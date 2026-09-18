@@ -23,8 +23,8 @@ _(none)_
 
 ## Deferred until Codex is available
 
-- Slice 0003, Astra's read-only harness-neutrality review (handoff already drafted). Latest sensible point: before stage 7.
-- Stages 7–9 (Codex target, paired empirical runs, dual-harness nodes).
+- Slice 0003, Astra's read-only harness-neutrality review (handoff already drafted). Runs before stage 9.
+- Stages 9–11 (Codex target, paired empirical runs, dual-harness nodes).
 
 ## Done
 
