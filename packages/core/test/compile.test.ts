@@ -281,7 +281,10 @@ test("adaptive (the default): amend the working copy visibly, brakes listed once
   assert.match(nine, /This graph is `adaptive` \(the default\)/);
   assert.match(nine, /add, remove or re-brief nodes, add or re-route edges, add loops, and change tiers or effort/);
   assert.match(nine, /Edit the working copy, `\.grooph\/review-loop\/runs\/<run-id>\/graph\.grooph\.json`/);
-  assert.match(nine, /"amendment":\{"summary":"<what you changed>","reason":"<what the work showed>"\}/);
+  assert.match(nine, /"amendment":\{"summary":"<what you changed>","reason":"<what the work showed>","patch":\[\{"op":"updateNode"/);
+  assert.match(nine, /A patch is preferably a list of grooph ops, the JSON `grooph apply --ops` takes/, "graph-ir §6, review 0004");
+  assert.match(nine, /Amending at kickoff is fine when reading the task already shows a gap/, "graph-ir §2, review 0004");
+  assert.match(nine, /a change to its overall shape before any node has run is a `proposal`/);
   assert.match(nine, /under \*\*Amendments\*\*/);
   assert.match(nine, /grooph validate --for-export \.grooph\/review-loop\/runs\/<run-id>\/graph\.grooph\.json/);
 
@@ -301,6 +304,7 @@ test("propose: change nothing, record proposals", () => {
   const nine = sectionNine({ ...reviewLoop(), adaptation: "propose" });
   assert.match(nine, /This graph is `propose`: you change nothing in it during the run/);
   assert.match(nine, /append a note with a `proposal`/);
+  assert.match(nine, /A `patch` is preferably a list of grooph ops/);
   assert.ok(!nine.includes("may not remove or loosen"), "nothing to loosen when nothing changes");
   const lead = compile({ ...reviewLoop(), adaptation: "propose" }, "claude-code").files[".grooph/review-loop/LEAD.md"]!;
   assert.ok(!lead.includes("amendment {"), "no amendment field offered");

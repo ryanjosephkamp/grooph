@@ -395,6 +395,13 @@ const BRAKES = [
   `the ${code("adaptation")} level itself`,
 ];
 
+/** graph-ir §6: the preferred form of a `patch` on a proposal. */
+const PROPOSAL_PATCH = `A ${code("patch")} is preferably a list of grooph ops, the JSON ${code(
+  "grooph apply --ops",
+)} takes (${code(
+  '[{"op":"updateNode","id":"<node-id>","set":{"effort":"high"}}]',
+)}): ops name objects by id, so the human can replay them with ${code("grooph apply")}.`;
+
 function sectionNine(ctx: PackageContext): string {
   const level = ctx.adaptation;
   const policies = (ctx.doc.policies ?? []).filter((p) => p.kind === "no-live-graph-rewrite");
@@ -440,6 +447,8 @@ function sectionNine(ctx: PackageContext): string {
         "patch",
       )} when one helps) and carry on with the graph as it is; the human decides after the run. If you cannot carry on without the change, halt and say why.`,
       "",
+      PROPOSAL_PATCH,
+      "",
       untouched,
     );
   }
@@ -448,7 +457,11 @@ function sectionNine(ctx: PackageContext): string {
     id: "n-0009",
     run: "<run-id>",
     at: "graph",
-    amendment: { summary: "<what you changed>", reason: "<what the work showed>" },
+    amendment: {
+      summary: "<what you changed>",
+      reason: "<what the work showed>",
+      patch: [{ op: "updateNode", id: "<node-id>", set: { owns: ["<artifact>"] } }],
+    },
   });
   const scoped = policies.filter((p) => p.scope !== "graph");
 
@@ -457,6 +470,12 @@ function sectionNine(ctx: PackageContext): string {
     "",
     `This graph is ${code("adaptive")}${why}. It is the plan to start from, not a script: when the work shows it is wrong — a missing node, a loop that should exist, a brief that no longer fits — change the run's working copy rather than work around it. When the graph fits, follow it. Work that fits an existing node's brief and outputs needs no amendment, and the smallest change that closes a real gap is the right one.`,
     "",
+    `Amending at kickoff is fine when reading the task already shows a gap, such as a file a node must write that its ${code(
+      "owns",
+    )} does not list. Redesigning the graph up front is not: a change to its overall shape before any node has run is a ${code(
+      "proposal",
+    )} for the human.`,
+    "",
     "You may add, remove or re-brief nodes, add or re-route edges, add loops, and change tiers or effort. For each amendment, when you make it:",
     "",
     `1. Edit the working copy, ${code(ctx.paths.workingCopy)}. The source document ${code(
@@ -464,7 +483,9 @@ function sectionNine(ctx: PackageContext): string {
     )} is never written by a run; after the run the human adopts your working copy as a new version or discards it.`,
     `2. Append a note with an ${code("amendment")} — ${code("summary")}, ${code("reason")}, and a ${code(
       "patch",
-    )} when one helps:`,
+    )} when one helps. A patch is preferably a list of grooph ops, the JSON ${code(
+      "grooph apply --ops",
+    )} takes: ops name objects by id, so they survive reordering and can be replayed. The working copy is the record either way.`,
     "",
     fence(example, "json"),
     "",

@@ -132,13 +132,15 @@ A run never writes the source document `.grooph/review-loop/graph.grooph.json`. 
 
 This graph is `adaptive` (the default). It is the plan to start from, not a script: when the work shows it is wrong — a missing node, a loop that should exist, a brief that no longer fits — change the run's working copy rather than work around it. When the graph fits, follow it. Work that fits an existing node's brief and outputs needs no amendment, and the smallest change that closes a real gap is the right one.
 
+Amending at kickoff is fine when reading the task already shows a gap, such as a file a node must write that its `owns` does not list. Redesigning the graph up front is not: a change to its overall shape before any node has run is a `proposal` for the human.
+
 You may add, remove or re-brief nodes, add or re-route edges, add loops, and change tiers or effort. For each amendment, when you make it:
 
 1. Edit the working copy, `.grooph/review-loop/runs/<run-id>/graph.grooph.json`. The source document `.grooph/review-loop/graph.grooph.json` is never written by a run; after the run the human adopts your working copy as a new version or discards it.
-2. Append a note with an `amendment` — `summary`, `reason`, and a `patch` when one helps:
+2. Append a note with an `amendment` — `summary`, `reason`, and a `patch` when one helps. A patch is preferably a list of grooph ops, the JSON `grooph apply --ops` takes: ops name objects by id, so they survive reordering and can be replayed. The working copy is the record either way.
 
 ```json
-{"id":"n-0009","run":"<run-id>","at":"graph","amendment":{"summary":"<what you changed>","reason":"<what the work showed>"}}
+{"id":"n-0009","run":"<run-id>","at":"graph","amendment":{"summary":"<what you changed>","reason":"<what the work showed>","patch":[{"op":"updateNode","id":"<node-id>","set":{"owns":["<artifact>"]}}]}}
 ```
 
 3. Record it in `PROGRESS.md` under **Amendments**, so the human can see the graph the run is actually following.
