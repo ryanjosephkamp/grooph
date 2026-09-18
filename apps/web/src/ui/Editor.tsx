@@ -376,7 +376,10 @@ function AddMenu({ onAdd }: { onAdd: (kind: NodeKind) => void }) {
     <div className="add-menu">
       {ADDABLE_KINDS.map((kind) => (
         <button key={kind} type="button" className={`add-kind add-${kind}`} onClick={() => onAdd(kind)}>
-          <span className="add-kind-name">{KIND_LABEL[kind]}</span>
+          <span className="add-kind-name">
+            <span className={`kind-mark kind-${kind}`} aria-hidden="true" />
+            {KIND_LABEL[kind]}
+          </span>
           <span className="add-kind-hint">{KIND_HINT[kind]}</span>
         </button>
       ))}

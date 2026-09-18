@@ -53,7 +53,10 @@ export const GraphNode = memo(function GraphNode({ data }: NodeProps<GraphFlowNo
   return (
     <div className={classes} data-node-id={node.id}>
       <Handle type="target" position={Position.Top} isConnectable={false} className="ghandle" />
-      <div className="gnode-kind">{KIND_LABEL[node.kind]}</div>
+      <div className="gnode-kind">
+        <span className={`kind-mark kind-${node.kind}`} aria-hidden="true" />
+        {KIND_LABEL[node.kind]}
+      </div>
       <div className="gnode-name">{node.name || <span className="muted">unnamed</span>}</div>
       <div className="gnode-sub">{subtitle(node)}</div>
       {data.loops.length > 0 ? (
