@@ -911,7 +911,7 @@ a {
   background: var(--surface-2);
 }
 .card .input {
-  background: var(--surface);
+  background-color: var(--surface); /* colour only: selects keep their arrow */
 }
 .card-head {
   display: flex;
