@@ -22,6 +22,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - 2026-09-18 · criterion 7 met: `write-outputs` in the picker, an adaptation control with a line per level, new codes highlight with no per-code UI.
 - 2026-09-18 · criterion 1 met: a fresh clone installs, builds and passes 161 unit and 10 browser tests; CI green on the branch (Node 22 and 24, web-e2e), Node 20 deprecation gone, Chromium cached.
 - 2026-09-18 · criterion 8 met: acceptance run `20260918-1737-k7qm` passed on the first of two approved runs ($2.12, 29 turns, 5m01s): the critic wrote REVIEW.md itself, the working copy is in the run folder, the run halted at the merge gate after `bar-passed`; the lead amended the working copy twice for the uncovered README requirement, both amendments real and brake-preserving. The second run was not spent.
+- 2026-09-18 · **done** at work head `0d8c297`; handback at `handoffs/0004-core-for-agents/HANDBACK.md`.
 
 ## Waiting on the owner
 
