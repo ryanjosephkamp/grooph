@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["vite/client", "node"],
+    // Decision 0005: the web app consumes core from source; Vite resolves the same path.
+    "paths": { "@grooph/core": ["../../packages/core/src/index.ts"] }
+  },
+  "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts"]
+}
