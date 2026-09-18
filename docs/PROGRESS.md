@@ -11,7 +11,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(0002 and 0003 not yet started — their entries are created when the owner confirms)_
+_(0002 confirmed, not yet started — the implementer creates its entry)_
 
 ## Waiting on the owner
 

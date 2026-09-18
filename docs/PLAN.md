@@ -35,7 +35,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | Slice | Stage | Title | Implementer | Status |
 |---|---|---|---|---|
 | 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 (`handoffs/0001-core-compiler-cli/REVIEW.md`) |
-| 0002 | 2 | Minimal canvas | Opus 5 | handoff drafted, awaiting owner confirmation |
+| 0002 | 2 | Minimal canvas | Opus 5 | confirmed 2026-09-18, awaiting the Opus session |
 | 0003 | 1 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred 2026-09-18 (Codex quota); runs when Codex is available, at the latest before stage 7 |
 
 ## Carried into stage 3 from review 0001
