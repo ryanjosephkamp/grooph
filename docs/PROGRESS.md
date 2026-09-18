@@ -16,6 +16,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 Branch `slice/0002-minimal-canvas`, implementer Opus 5.
 
 - 2026-09-18 · criterion 2 met: `pnpm --filter @grooph/web test:e2e` imports `review-loop.grooph.json` through the app at 400×800 with touch, exports from the app, and the unzipped package equals `fixtures/golden/claude-code/review-loop/` byte for byte (the graph download equals the package's canonical copy). Core is unchanged.
+- 2026-09-18 · criterion 1 met: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` exits 0 with `apps/web` in the workspace (core 50, cli 12, web 39 tests); CI run `35375968063` green on Node 22 and 24 plus the new `web-e2e` job (Playwright, phone size).
+- 2026-09-18 · criterion 3 met: `e2e/authoring.spec.ts` adds all four addable kinds by touch and sets every §1 field (agent, gate, check, stop; edge when/verdict/isolation/evidence/approval; loop members, back edges, mode, bar, every stop kind), then checks the downloaded document field for field; deletes cascade.
 
 ## Waiting on the owner
 
