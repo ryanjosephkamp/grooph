@@ -4,30 +4,20 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 2 (vertical slice). Slice 0001 merged to `main`; slice 0002 (minimal canvas) is confirmed and waits for the owner to open the Opus 5 session. Slice 0003 (Astra review) is deferred with all Codex work.
-- **Next action:** owner pastes the 0002 prompt into a fresh Opus 5 session.
-- **Last coherent commit:** see `git log -1`.
-- **What works today:** `pnpm exec grooph validate|canonicalize|export` on a graph document; the exported Claude Code package has driven one real headless run end to end (run `20260918-0042-k7qm`).
+- **Stage:** 2 (vertical slice) is built and merged; it closes when the owner has rebuilt the review loop on Android Chrome. Stage 3 (authoring completeness) is next and not yet handed off.
+- **Live app:** https://ryanjosephkamp.github.io/grooph/ — deployed from `main` by `.github/workflows/deploy.yml` on every push (first deploy 2026-09-18, run `35387614004`, loads with no console errors).
+- **Next action:** owner tries the app on the phone and reports what was awkward; the driver then drafts the stage-3 handoffs with that input.
+- **What works today:** draw, edit, validate and persist graphs in the browser; import/export `.grooph.json`; export the Claude Code package as a zip with a copyable kickoff prompt; `pnpm exec grooph validate|canonicalize|export` from the CLI; one real headless Claude Code run of an exported package (run `20260918-0042-k7qm`).
 
 ## In flight
 
-### Slice 0002
-
-Branch `slice/0002-minimal-canvas`, implementer Opus 5.
-
-- 2026-09-18 · criterion 2 met: `pnpm --filter @grooph/web test:e2e` imports `review-loop.grooph.json` through the app at 400×800 with touch, exports from the app, and the unzipped package equals `fixtures/golden/claude-code/review-loop/` byte for byte (the graph download equals the package's canonical copy). Core is unchanged.
-- 2026-09-18 · criterion 1 met: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` exits 0 with `apps/web` in the workspace (core 50, cli 12, web 39 tests); CI run `35375968063` green on Node 22 and 24 plus the new `web-e2e` job (Playwright, phone size).
-- 2026-09-18 · criterion 3 met: `e2e/authoring.spec.ts` adds all four addable kinds by touch and sets every §1 field (agent, gate, check, stop; edge when/verdict/isolation/evidence/approval; loop members, back edges, mode, bar, every stop kind), then checks the downloaded document field for field; deletes cascade.
-- 2026-09-18 · criterion 5 met: `e2e/validation.spec.ts` — the status chip and panel follow `validate(doc, { forExport: true })` keystroke by keystroke (schema issues first, as the CLI orders them); tapping an issue highlights its `at` (a loop expands to members and back edges); export refuses with the CLI's `formatIssue` lines and offers no package.
-- 2026-09-18 · criterion 6 met: `e2e/library.spec.ts` + `roundtrip.spec.ts` — IndexedDB store survives reloads; list, create, open, rename, duplicate, delete (with a second tap to confirm); import refuses non-graphs with the reason; canonical `.grooph.json` download; package zip; kickoff copied in one tap (clipboard equals the golden `KICKOFF.md`).
-- 2026-09-18 · criterion 8 met: `e2e/layout.spec.ts` — a layout-free review loop opens laid out top to bottom; the downloaded document has no `layout` until a node is dragged (then all four positions are written at once) or Save layout is tapped. Suite repeated ×3: 30/30.
-- 2026-09-18 · criterion 7 met on the branch side: `.github/workflows/deploy.yml` builds `apps/web` with base `/grooph/` and deploys it to Pages from `main`; Pages enabled with source "GitHub Actions" (`gh api -X POST repos/ryanjosephkamp/grooph/pages -f build_type=workflow`, owner-approved; site `https://ryanjosephkamp.github.io/grooph/`). The branch build was served from a plain static server under `/grooph/` and loads with every asset under `/grooph/assets/`, no other request. The first deploy runs when the driver merges.
-- 2026-09-18 · criterion 4, the implementer half: the review loop rebuilt from an empty graph at 400×800 by touch — automated (`e2e/authoring.spec.ts`, 58 taps, ~6 s) and driven by hand in a desktop browser at phone width against the Pages-style build (3 min 16 s, text entered by script). Six awkward spots found and fixed; the owner's Android Chrome run is still to do.
-- 2026-09-18 · **status: done** at `9897298` (handback commit follows). Handback: `handoffs/0002-minimal-canvas/HANDBACK.md`. Waiting on: the owner's Android run of criterion 4, and the first Pages deploy when the driver merges.
+_(none)_
 
 ## Waiting on the owner
 
-_(nothing — 0002 is confirmed; open the Opus session when ready)_
+| Item | Recommended answer |
+|---|---|
+| Rebuild the review loop on Android Chrome at the live URL (4 nodes, 5 edges, 1 loop with bar and 3 stops), export, and say what was awkward: pinch, drag, keyboard, edge drawing | Do this before stage 3 is handed off; it sets stage 3's priorities |
 
 ## Deferred until Codex is available
 
@@ -38,6 +28,7 @@ _(nothing — 0002 is confirmed; open the Opus session when ready)_
 
 | Date | What |
 |---|---|
+| 2026-09-18 | Slice 0002 reconciled and merged: web canvas over the unchanged core; 40 unit tests and 10 phone-size browser tests, including a byte-for-byte package round trip; GitHub Pages enabled and first deploy verified live. Decision 0006 recorded. |
 | 2026-09-18 | Owner confirmed slice 0002; Codex-dependent work (0003, stages 7–9) deferred until the owner's Codex quota returns. |
 | 2026-09-18 | Slice 0001 reconciled and merged: core (schema, validator, canonical form, Claude Code compiler), CLI, fixtures per ★ code, golden package, CI, headless acceptance run passed. Eight implementer findings folded into `graph-ir.md` and `targets/claude-code.md`; decision 0005 recorded. |
 | 2026-09-17 | Owner confirmed slice 0001; MIT license added. |
@@ -47,8 +38,10 @@ _(nothing — 0002 is confirmed; open the Opus session when ready)_
 
 ## Known risks
 
-- One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised until stage 8.
-- The review-gate pattern currently depends on the lead filing the critic's `REVIEW.md` (critic lacks a write capability). Fixed by `write-outputs` in stage 3; do not copy the fixture into `patterns/` before then.
-- Touch editing of edges on a phone canvas is fiddly. The outline view (stage 3) is the mitigation; the canvas stays for layout.
+- Real-finger pinch, drag and on-screen keyboard behaviour is untested; only browser touch emulation has run.
+- Graphs live in the browser's IndexedDB with no persistence request yet; Android may evict them under storage pressure. Until stage 3, Export → download is the backup. No undo yet.
+- One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised.
+- The review-gate pattern depends on the lead filing the critic's `REVIEW.md` until `write-outputs` lands in stage 3; do not copy the fixture into `patterns/` before then.
+- The typed document operations live in the web app; they must move into core before the MCP server (stage 5).
 - Claude Code native units change between releases. `targets/claude-code.md` pins what was verified (2.1.268) and when.
-- `turns` budgets bound the lead's own count, which ran 25 vs the harness's 33. Dollar budgets are advisory in Claude Code.
+- `turns` budgets bound the lead's own count (25 vs the harness's 33). Dollar budgets are advisory in Claude Code.

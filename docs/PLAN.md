@@ -19,7 +19,7 @@ Living document. The driver updates it after every handback. Stage status: `todo
 |---|---|---|---|---|---|
 | 0 | Scaffolding | Repo an agent can enter cold: entry point, spec + amendments, living docs, handoff protocol, project skills. | A fresh session reads AGENTS.md and can state what to do next without asking. | Driver | done |
 | 1 | Graph document v0 | Schema, semantics, error-code catalog, example graphs. | `graph-ir.md` is complete enough that an implementer can build the validator from it without design questions. | Driver | done |
-| 2 | Vertical slice | **0001** core + validator + Claude Code compiler + CLI. **0002** minimal canvas on the phone. | A hand-written review-loop graph exports, and a fresh Claude Code session runs it from the kickoff prompt alone. Then the same graph can be drawn on Android Chrome and exported. | Opus | in progress |
+| 2 | Vertical slice | **0001** core + validator + Claude Code compiler + CLI. **0002** minimal canvas on the phone. | A hand-written review-loop graph exports, and a fresh Claude Code session runs it from the kickoff prompt alone. Then the same graph can be drawn on Android Chrome and exported. | Opus | done (owner phone run outstanding) |
 | 3 | Authoring completeness | All node kinds and edge fields, copy/paste, bulk spawn, groups, full §12 rules and warnings, outline view, installable offline app. | Every §12 rule has a code and fixture; §7.1–7.3 capabilities all demonstrable on the phone. | Opus | todo |
 | 4 | Templates and patterns | Save node / subgraph / graph as template; the §10 patterns as validated graph documents; full §9 package; paste-only export; share links. | All 16 patterns validate clean; a pattern can be inserted into a graph; a package survives the paste-only path. | Opus builds, driver reviews content | todo |
 | 5 | Agent surface | CLI, MCP server, `grooph-design` skill, proposal sets, compare view. | From a Claude Code session: "here is my project and constraints" → three candidate graphs built through MCP → comparison shown → one picked → package placed. | Opus builds, driver writes the skill | todo |
@@ -35,12 +35,16 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | Slice | Stage | Title | Implementer | Status |
 |---|---|---|---|---|
 | 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 (`handoffs/0001-core-compiler-cli/REVIEW.md`) |
-| 0002 | 2 | Minimal canvas | Opus 5 | confirmed 2026-09-18, awaiting the Opus session |
+| 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 (`handoffs/0002-minimal-canvas/REVIEW.md`); owner's Android run outstanding |
 | 0003 | 1 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred 2026-09-18 (Codex quota); runs when Codex is available, at the latest before stage 7 |
 
 ## Carried into stage 3 from review 0001
 
 Small IR alignments decided at review time, deferred so the merged core stays byte-identical to what the acceptance run exercised: `kind` second in canonical key order (golden regeneration); the graph id in `E_DUPLICATE_ID`; the `write-outputs` capability with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules of graph-ir §3; canonicalising the fixtures in place; bumping the GitHub Actions versions.
+
+## Carried into stage 3 from review 0002
+
+Move the typed document operations from `apps/web/src/doc/ops.ts` into `packages/core` (first item, prerequisite for stage 5); toolbar overlapping content while the sheet is open; undo; `navigator.storage.persist()` with the installable/offline work; a warning when a rename changes the id of a graph that has been exported; self-loop edges by tap; keyboard selection of canvas nodes; Chromium cache in CI; four unused locals in core. Plus whatever the owner's Android run finds.
 
 ## Ordering rules
 
