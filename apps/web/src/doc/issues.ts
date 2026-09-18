@@ -18,7 +18,7 @@ export type Highlight = { nodes: Set<Id>; edges: Set<Id>; loops: Set<Id>; graph:
 
 export const emptyHighlight = (): Highlight => ({ nodes: new Set(), edges: new Set(), loops: new Set(), graph: false });
 
-/** The objects an issue's `at` names, with a loop expanded to its members and back edges. */
+/** The objects an issue's `at` names, with a loop expanded to its members and back edges and a group to its members. */
 export function highlightFor(doc: Graph, ids: readonly Id[]): Highlight {
   const h = emptyHighlight();
   for (const id of ids) {
@@ -31,6 +31,8 @@ export function highlightFor(doc: Graph, ids: readonly Id[]): Highlight {
       for (const m of loop.members) h.nodes.add(m);
       for (const b of loop.back) h.edges.add(b);
     }
+    const group = doc.groups?.find((g) => g.id === id);
+    if (group) for (const m of group.members) if (doc.nodes.some((n) => n.id === m)) h.nodes.add(m);
   }
   return h;
 }

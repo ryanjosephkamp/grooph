@@ -1,8 +1,6 @@
 /** The graph list: create, import, rename, duplicate, delete. */
-import { parseGraphText, type Graph, type Issue } from "@grooph/core";
+import { newGraph, parseGraphText, setGraphName, uniqueId, type Graph, type Issue } from "@grooph/core";
 
-import { uniqueId } from "../doc/ids.js";
-import { setGraphName } from "../doc/ops.js";
 import { newKey, openStore, type GraphRecord } from "./db.js";
 
 export async function listGraphs(): Promise<GraphRecord[]> {
@@ -25,7 +23,7 @@ async function save(doc: Graph): Promise<GraphRecord> {
 export async function createGraph(): Promise<GraphRecord> {
   const id = uniqueId("untitled-graph", await libraryIds());
   const name = id === "untitled-graph" ? "Untitled graph" : `Untitled graph ${id.slice("untitled-graph-".length)}`;
-  return save({ grooph: 0, id, name, version: 1, nodes: [], edges: [], loops: [] });
+  return save(newGraph({ name, id }));
 }
 
 export async function duplicateGraph(key: string): Promise<GraphRecord | undefined> {

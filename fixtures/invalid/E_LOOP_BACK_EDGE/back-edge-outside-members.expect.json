@@ -1,0 +1,8 @@
+{
+  "issues": [
+    "E_LOOP_BACK_EDGE",
+    "W_ONLY_MAX_ITERATIONS",
+    "W_OUTPUT_NOT_WRITABLE"
+  ],
+  "note": "Written for slice 0001, before the stage-3 warnings; the extra warnings are true statements about a deliberately minimal graph."
+}

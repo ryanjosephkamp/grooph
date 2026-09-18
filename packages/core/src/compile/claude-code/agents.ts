@@ -54,12 +54,24 @@ function body(ctx: PackageContext, agent: ResolvedAgent): string[] {
       "Leave all of these behind before you report:",
       "",
       ...node.outputs.map(bullet),
+      ...(writesOnlyOutputs(ctx, agent)
+        ? [
+            "",
+            `Write them yourself. With ${code("write-outputs")} you may create or overwrite only the files you declare in these outputs, and no other file.`,
+          ]
+        : []),
     ),
     ownership(agent),
     evidenceRules(ctx, agent, evidence),
     capabilities(ctx, agent),
-    reportFormat(ctx, agent, outbound),
+    reportFormat(agent, outbound),
   ];
+}
+
+/** graph-ir §1: `write-outputs` without `edit-files` — the node may write its declared outputs and nothing else. */
+function writesOnlyOutputs(ctx: PackageContext, agent: ResolvedAgent): boolean {
+  const allow = agent.node.allow ?? ctx.profile.defaultCapabilities;
+  return allow.includes("write-outputs") && !allow.includes("edit-files");
 }
 
 function ownership(agent: ResolvedAgent): string {
@@ -103,6 +115,8 @@ function evidenceRules(ctx: PackageContext, agent: ResolvedAgent, evidence: stri
             agent.disallowedTools.length > 0
               ? `Editing tools are withheld from you on purpose (${agent.disallowedTools.join(", ")}).`
               : "Report findings instead of editing."
+          }${
+            writesOnlyOutputs(ctx, agent) ? " Your own outputs are the only files you write." : ""
           } Cite a file and a line for every claim you make: an adjective is not a finding.`,
         ]
       : []),
@@ -140,7 +154,7 @@ function capabilities(ctx: PackageContext, agent: ResolvedAgent): string {
 }
 
 /** The report the node must return, derived from the conditions on its outgoing edges. */
-function reportFormat(ctx: PackageContext, agent: ResolvedAgent, outbound: readonly Edge[]): string {
+function reportFormat(agent: ResolvedAgent, outbound: readonly Edge[]): string {
   const verdicts: string[] = [];
   for (const edge of outbound) {
     const when = edgeWhen(edge);

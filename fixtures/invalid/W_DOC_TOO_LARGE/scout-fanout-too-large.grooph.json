@@ -21,7 +21,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/billing/ and the three most recent changelog entries that touch it. Write one file, findings/billing.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/billing/ and the three most recent changelog entries that touch it. Write one file, findings/billing.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/billing/",
         "CHANGELOG.md"
@@ -45,7 +45,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/auth/ and the three most recent changelog entries that touch it. Write one file, findings/auth.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/auth/ and the three most recent changelog entries that touch it. Write one file, findings/auth.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/auth/",
         "CHANGELOG.md"
@@ -69,7 +69,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/search/ and the three most recent changelog entries that touch it. Write one file, findings/search.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/search/ and the three most recent changelog entries that touch it. Write one file, findings/search.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/search/",
         "CHANGELOG.md"
@@ -93,7 +93,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/uploads/ and the three most recent changelog entries that touch it. Write one file, findings/uploads.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/uploads/ and the three most recent changelog entries that touch it. Write one file, findings/uploads.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/uploads/",
         "CHANGELOG.md"
@@ -117,7 +117,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/notifications/ and the three most recent changelog entries that touch it. Write one file, findings/notifications.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/notifications/ and the three most recent changelog entries that touch it. Write one file, findings/notifications.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/notifications/",
         "CHANGELOG.md"
@@ -141,7 +141,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/admin/ and the three most recent changelog entries that touch it. Write one file, findings/admin.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/admin/ and the three most recent changelog entries that touch it. Write one file, findings/admin.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/admin/",
         "CHANGELOG.md"
@@ -165,7 +165,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/api/ and the three most recent changelog entries that touch it. Write one file, findings/api.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/api/ and the three most recent changelog entries that touch it. Write one file, findings/api.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/api/",
         "CHANGELOG.md"
@@ -189,7 +189,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/webhooks/ and the three most recent changelog entries that touch it. Write one file, findings/webhooks.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/webhooks/ and the three most recent changelog entries that touch it. Write one file, findings/webhooks.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/webhooks/",
         "CHANGELOG.md"
@@ -213,7 +213,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/mobile/ and the three most recent changelog entries that touch it. Write one file, findings/mobile.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/mobile/ and the three most recent changelog entries that touch it. Write one file, findings/mobile.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/mobile/",
         "CHANGELOG.md"
@@ -237,7 +237,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/reporting/ and the three most recent changelog entries that touch it. Write one file, findings/reporting.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/reporting/ and the three most recent changelog entries that touch it. Write one file, findings/reporting.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/reporting/",
         "CHANGELOG.md"
@@ -261,7 +261,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/imports/ and the three most recent changelog entries that touch it. Write one file, findings/imports.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/imports/ and the three most recent changelog entries that touch it. Write one file, findings/imports.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/imports/",
         "CHANGELOG.md"
@@ -285,7 +285,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/exports/ and the three most recent changelog entries that touch it. Write one file, findings/exports.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/exports/ and the three most recent changelog entries that touch it. Write one file, findings/exports.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/exports/",
         "CHANGELOG.md"
@@ -309,7 +309,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/permissions/ and the three most recent changelog entries that touch it. Write one file, findings/permissions.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/permissions/ and the three most recent changelog entries that touch it. Write one file, findings/permissions.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/permissions/",
         "CHANGELOG.md"
@@ -333,7 +333,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/audit/ and the three most recent changelog entries that touch it. Write one file, findings/audit.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/audit/ and the three most recent changelog entries that touch it. Write one file, findings/audit.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/audit/",
         "CHANGELOG.md"
@@ -357,7 +357,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/onboarding/ and the three most recent changelog entries that touch it. Write one file, findings/onboarding.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/onboarding/ and the three most recent changelog entries that touch it. Write one file, findings/onboarding.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/onboarding/",
         "CHANGELOG.md"
@@ -381,7 +381,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/settings/ and the three most recent changelog entries that touch it. Write one file, findings/settings.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/settings/ and the three most recent changelog entries that touch it. Write one file, findings/settings.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/settings/",
         "CHANGELOG.md"
@@ -405,7 +405,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/integrations/ and the three most recent changelog entries that touch it. Write one file, findings/integrations.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/integrations/ and the three most recent changelog entries that touch it. Write one file, findings/integrations.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/integrations/",
         "CHANGELOG.md"
@@ -429,7 +429,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/scheduling/ and the three most recent changelog entries that touch it. Write one file, findings/scheduling.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/scheduling/ and the three most recent changelog entries that touch it. Write one file, findings/scheduling.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/scheduling/",
         "CHANGELOG.md"
@@ -453,7 +453,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/templates/ and the three most recent changelog entries that touch it. Write one file, findings/templates.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/templates/ and the three most recent changelog entries that touch it. Write one file, findings/templates.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/templates/",
         "CHANGELOG.md"
@@ -477,7 +477,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/archive/ and the three most recent changelog entries that touch it. Write one file, findings/archive.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/archive/ and the three most recent changelog entries that touch it. Write one file, findings/archive.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/archive/",
         "CHANGELOG.md"
@@ -501,7 +501,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/localization/ and the three most recent changelog entries that touch it. Write one file, findings/localization.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/localization/ and the three most recent changelog entries that touch it. Write one file, findings/localization.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/localization/",
         "CHANGELOG.md"
@@ -525,7 +525,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/billing-tax/ and the three most recent changelog entries that touch it. Write one file, findings/billing-tax.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/billing-tax/ and the three most recent changelog entries that touch it. Write one file, findings/billing-tax.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/billing-tax/",
         "CHANGELOG.md"
@@ -549,7 +549,7 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Read every page under docs/sso/ and the three most recent changelog entries that touch it. Write one file, findings/sso.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "brief": "Read every page under docs/sso/ and the three most recent changelog entries that touch it. Write one file, findings/sso.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement — a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
       "inputs": [
         "docs/sso/",
         "CHANGELOG.md"

@@ -4,7 +4,9 @@
   "name": "Back edge outside the loop's members",
   "version": 1,
   "goal": "Bring the failing suite back to green.",
-  "target": { "harness": "claude-code" },
+  "target": {
+    "harness": "claude-code"
+  },
   "description": "The loop declares only the builder as a member, but its back edge starts at the check node, so the cycle does not live inside the member set.",
   "nodes": [
     {
@@ -13,29 +15,63 @@
       "name": "Builder",
       "role": "builder",
       "brief": "Fix the failing tests in src/.",
-      "outputs": ["patched files in src/"]
+      "outputs": [
+        "patched files in src/"
+      ]
     },
     {
       "id": "suite",
       "kind": "check",
       "name": "Test suite",
-      "check": { "kind": "tests", "run": "npm test", "pass": "the command exits 0" }
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "the command exits 0"
+      }
     },
-    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
   ],
   "edges": [
-    { "id": "e-build-check", "from": "builder", "to": "suite" },
-    { "id": "e-check-fail", "from": "suite", "to": "builder", "when": "fail" },
-    { "id": "e-check-pass", "from": "suite", "to": "done", "when": "pass" }
+    {
+      "id": "e-build-check",
+      "from": "builder",
+      "to": "suite"
+    },
+    {
+      "id": "e-check-fail",
+      "from": "suite",
+      "to": "builder",
+      "when": "fail"
+    },
+    {
+      "id": "e-check-pass",
+      "from": "suite",
+      "to": "done",
+      "when": "pass"
+    }
   ],
   "loops": [
     {
       "id": "fix-cycle",
       "name": "Fix cycle",
-      "members": ["builder"],
-      "back": ["e-check-fail"],
+      "members": [
+        "builder"
+      ],
+      "back": [
+        "e-check-fail"
+      ],
       "mode": "grind",
-      "stops": [{ "kind": "max-iterations", "n": 3 }]
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
     }
   ]
 }

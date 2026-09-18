@@ -34,13 +34,24 @@ test("validation is live, points at its objects, and blocks export", async ({ pa
   await expect(status(page)).toHaveText("1 error");
   await expect(node(page, "writer").locator(".issue-dot-error")).toBeVisible();
   await field("Outputs").fill("DRAFT.md");
-  await expect(status(page)).toHaveText("Valid");
+
+  // The stage-3 warnings arrive the same way, pointing at their objects: nothing
+  // lets the writer write DRAFT.md yet, and no stop node ends the run.
+  await expect(status(page)).toHaveText("2 warnings");
+  await status(page).tap();
+  await expect(s.locator(".issue-code")).toHaveText(["W_NO_TERMINAL", "W_OUTPUT_NOT_WRITABLE"]);
+  await s.getByRole("button", { name: /W_OUTPUT_NOT_WRITABLE/ }).tap();
+  await expect(node(page, "writer").locator(".gnode")).toHaveClass(/is-highlighted/);
+  await s.getByRole("button", { name: "Open Writer" }).tap();
+  await s.getByRole("group", { name: "Allow" }).getByRole("button", { name: "write-outputs", exact: true }).tap();
+  await expect(status(page)).toHaveText("1 warning");
 
   // Two agents in a cycle with no loop around it.
   await toolbar(page).getByRole("button", { name: "Add" }).tap();
   await s.getByRole("button", { name: /^Agent/ }).tap();
   await field("Name").fill("Reader");
   await field("Outputs").fill("NOTES.md");
+  await s.getByRole("group", { name: "Allow" }).getByRole("button", { name: "write-outputs", exact: true }).tap();
   for (const [from, to] of [
     ["writer", "reader"],
     ["reader", "writer"],
@@ -55,7 +66,8 @@ test("validation is live, points at its objects, and blocks export", async ({ pa
   await status(page).tap();
   const issue = s.getByRole("button", { name: /E_CYCLE_NO_STOP/ });
   await expect(issue).toContainText("cycle with no stop: writer → reader");
-  await expect(node(page, "writer").locator(".gnode")).not.toHaveClass(/is-highlighted/);
+  // The writer is still highlighted from the warning tapped above; the reader never was.
+  await expect(node(page, "reader").locator(".gnode")).not.toHaveClass(/is-highlighted/);
   await issue.tap();
   await expect(node(page, "writer").locator(".gnode")).toHaveClass(/is-highlighted/);
   await expect(node(page, "reader").locator(".gnode")).toHaveClass(/is-highlighted/);
@@ -64,7 +76,7 @@ test("validation is live, points at its objects, and blocks export", async ({ pa
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   await expect(s.getByRole("alert")).toContainText("Cannot export for claude-code: fix these first.");
   await expect(s.getByRole("alert")).toContainText("1 validation error — E_CYCLE_NO_STOP");
-  await expect(s.locator(".issue-lines")).toHaveText(
+  await expect(s.locator(".issue-lines")).toContainText(
     "error  E_CYCLE_NO_STOP  cycle with no stop: writer → reader. Cover it with a loop that has at least one stop.  [at: writer, reader]",
   );
   await expect(s.getByRole("button", { name: "Download package (.zip)" })).toHaveCount(0);
@@ -80,7 +92,7 @@ test("validation is live, points at its objects, and blocks export", async ({ pa
   await s.getByRole("button", { name: "Add stop" }).tap();
   await expect(status(page)).toHaveText("1 error");
   await status(page).tap();
-  await expect(s.locator(".issue-code")).toHaveText(["E_JUDGMENT_LOOP_NO_BAR"]);
+  await expect(s.locator(".issue-code")).toHaveText(["E_JUDGMENT_LOOP_NO_BAR", "W_ONLY_MAX_ITERATIONS", "W_NO_TERMINAL"]);
   await s.getByRole("button", { name: /E_JUDGMENT_LOOP_NO_BAR/ }).tap();
   // A loop issue highlights its members and back edges.
   await expect(node(page, "writer").locator(".gnode")).toHaveClass(/is-highlighted/);

@@ -2,7 +2,9 @@
  * The closed vocabularies of graph-ir §1, as runtime lists for pickers. The
  * `satisfies` checks fail the build if these drift from the core types.
  */
-import type { BudgetMeasure, Capability, CheckNode, Edge, Effort, Evidence, Node, Role, StopKind, Tier } from "@grooph/core";
+import type { BudgetMeasure, Capability, CheckNode, Edge, Effort, Evidence, NodeKind, Role, StopKind, Tier } from "@grooph/core";
+
+export { KIND_LABEL, type NodeKind } from "@grooph/core";
 
 type Exhaustive<T extends string, L extends readonly T[]> = [T] extends [L[number]] ? L : never;
 
@@ -29,6 +31,7 @@ export const EFFORTS_EXHAUSTIVE: Exhaustive<Effort, typeof EFFORTS> = EFFORTS;
 export const CAPABILITIES = [
   "read-files",
   "edit-files",
+  "write-outputs",
   "run-commands",
   "run-tests",
   "web",
@@ -59,18 +62,8 @@ export const BUDGET_MEASURES_EXHAUSTIVE: Exhaustive<BudgetMeasure, typeof BUDGET
 
 export const ISOLATIONS = ["fresh", "shared"] as const satisfies readonly NonNullable<Edge["isolation"]>[];
 
-export type NodeKind = Node["kind"];
-
 /** Kinds the canvas can add (handoff 0002, criterion 3). Merge nodes are edited, not created, in v0. */
 export const ADDABLE_KINDS = ["agent", "human-gate", "check", "stop"] as const satisfies readonly NodeKind[];
-
-export const KIND_LABEL: Record<NodeKind, string> = {
-  agent: "Agent",
-  "human-gate": "Human gate",
-  check: "Check",
-  merge: "Merge",
-  stop: "Stop",
-};
 
 export const STOP_LABEL: Record<StopKind, string> = {
   "bar-passed": "Bar passed",

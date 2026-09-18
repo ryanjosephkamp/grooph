@@ -4,7 +4,9 @@
   "name": "The only stop is an adjective",
   "version": 1,
   "goal": "Polish the landing page.",
-  "target": { "harness": "claude-code" },
+  "target": {
+    "harness": "claude-code"
+  },
   "description": "A grind loop whose only way out is that its bar passed, while the bar names nothing anyone can inspect.",
   "nodes": [
     {
@@ -13,29 +15,67 @@
       "name": "Builder",
       "role": "builder",
       "brief": "Improve the landing page.",
-      "outputs": ["updated page"]
+      "outputs": [
+        "updated page"
+      ]
     },
     {
       "id": "lint",
       "kind": "check",
       "name": "Lint",
-      "check": { "kind": "command", "run": "npm run lint", "pass": "the command exits 0" }
+      "check": {
+        "kind": "command",
+        "run": "npm run lint",
+        "pass": "the command exits 0"
+      }
     },
-    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
   ],
   "edges": [
-    { "id": "e-build-lint", "from": "builder", "to": "lint" },
-    { "id": "e-lint-fail", "from": "lint", "to": "builder", "when": "fail" },
-    { "id": "e-lint-pass", "from": "lint", "to": "done", "when": "pass" }
+    {
+      "id": "e-build-lint",
+      "from": "builder",
+      "to": "lint"
+    },
+    {
+      "id": "e-lint-fail",
+      "from": "lint",
+      "to": "builder",
+      "when": "fail"
+    },
+    {
+      "id": "e-lint-pass",
+      "from": "lint",
+      "to": "done",
+      "when": "pass"
+    }
   ],
   "loops": [
     {
       "id": "polish-cycle",
       "name": "Polish cycle",
-      "members": ["builder", "lint"],
-      "back": ["e-lint-fail"],
-      "bar": { "name": "Great", "inspects": [], "acceptance": "The page is great." },
-      "stops": [{ "kind": "bar-passed" }]
+      "members": [
+        "builder",
+        "lint"
+      ],
+      "back": [
+        "e-lint-fail"
+      ],
+      "bar": {
+        "name": "Great",
+        "inspects": [],
+        "acceptance": "The page is great."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,6 @@
+{
+  "issues": [
+    "W_HOMOGENEOUS_CRITICS"
+  ],
+  "note": "True of the review loop: builder and critic both run at tier strong. Kept on purpose (handoff 0004)."
+}

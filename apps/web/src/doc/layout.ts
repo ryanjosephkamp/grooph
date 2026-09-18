@@ -8,9 +8,8 @@
  * they are left out of the ranking and the rest is a DAG in all but odd cases
  * (a cycle no loop covers), which a depth-first pass breaks.
  */
-import type { Graph, Id } from "@grooph/core";
+import type { Graph, Id, Position } from "@grooph/core";
 
-import type { Position } from "./ops.js";
 
 export const NODE_WIDTH = 200;
 export const NODE_HEIGHT = 84;

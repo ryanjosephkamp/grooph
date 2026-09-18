@@ -52,6 +52,13 @@
         }
       }
     },
+    "adaptation": {
+      "enum": [
+        "adaptive",
+        "propose",
+        "fixed"
+      ]
+    },
     "lineage": {
       "type": "object",
       "properties": {
@@ -147,6 +154,9 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$"
         },
+        "kind": {
+          "const": "agent"
+        },
         "name": {
           "type": "string"
         },
@@ -155,9 +165,6 @@
         },
         "coupled": {
           "type": "boolean"
-        },
-        "kind": {
-          "const": "agent"
         },
         "role": {
           "anyOf": [
@@ -240,6 +247,7 @@
             "examples": [
               "read-files",
               "edit-files",
+              "write-outputs",
               "run-commands",
               "run-tests",
               "web",
@@ -255,6 +263,7 @@
             "examples": [
               "read-files",
               "edit-files",
+              "write-outputs",
               "run-commands",
               "run-tests",
               "web",
@@ -277,8 +286,8 @@
       },
       "required": [
         "id",
-        "name",
         "kind",
+        "name",
         "role",
         "brief",
         "outputs"
@@ -320,6 +329,9 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$"
         },
+        "kind": {
+          "const": "check"
+        },
         "name": {
           "type": "string"
         },
@@ -328,9 +340,6 @@
         },
         "coupled": {
           "type": "boolean"
-        },
-        "kind": {
-          "const": "check"
         },
         "check": {
           "type": "object",
@@ -362,8 +371,8 @@
       },
       "required": [
         "id",
-        "name",
         "kind",
+        "name",
         "check"
       ]
     },
@@ -512,6 +521,9 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$"
         },
+        "kind": {
+          "const": "human-gate"
+        },
         "name": {
           "type": "string"
         },
@@ -520,9 +532,6 @@
         },
         "coupled": {
           "type": "boolean"
-        },
-        "kind": {
-          "const": "human-gate"
         },
         "prompt": {
           "type": "string"
@@ -536,8 +545,8 @@
       },
       "required": [
         "id",
-        "name",
         "kind",
+        "name",
         "prompt"
       ]
     },
@@ -596,6 +605,9 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$"
         },
+        "kind": {
+          "const": "merge"
+        },
         "name": {
           "type": "string"
         },
@@ -604,9 +616,6 @@
         },
         "coupled": {
           "type": "boolean"
-        },
-        "kind": {
-          "const": "merge"
         },
         "merges": {
           "type": "array",
@@ -620,8 +629,8 @@
       },
       "required": [
         "id",
-        "name",
         "kind",
+        "name",
         "merges"
       ]
     },
@@ -784,6 +793,22 @@
             "summary"
           ]
         },
+        "amendment": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "patch": {}
+          },
+          "required": [
+            "summary",
+            "reason"
+          ]
+        },
         "text": {
           "type": "string"
         }
@@ -934,6 +959,9 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*$"
         },
+        "kind": {
+          "const": "stop"
+        },
         "name": {
           "type": "string"
         },
@@ -942,9 +970,6 @@
         },
         "coupled": {
           "type": "boolean"
-        },
-        "kind": {
-          "const": "stop"
         },
         "outcome": {
           "enum": [
@@ -955,8 +980,8 @@
       },
       "required": [
         "id",
-        "name",
-        "kind"
+        "kind",
+        "name"
       ]
     }
   }

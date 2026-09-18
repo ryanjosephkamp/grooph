@@ -11,7 +11,7 @@ test("graphs persist across reloads and can be renamed, duplicated and deleted",
 
   // Reload the editor itself: the graph is still there.
   await page.reload();
-  await expect(status(page)).toHaveText("Valid");
+  await expect(status(page)).toHaveText("1 warning");
   expect(page.url()).toBe(url);
 
   // A second graph, created and named in the app.
@@ -52,7 +52,7 @@ test("graphs persist across reloads and can be renamed, duplicated and deleted",
   // The copy opens, and is its own graph with its own id. (The rename moved the
   // original's id too: it still followed the name.)
   await page.getByText("Review loop, mine (copy)").tap();
-  await expect(status(page)).toHaveText("Valid");
+  await expect(status(page)).toHaveText("1 warning");
   await page.getByRole("button", { name: /^Review loop, mine \(copy\)/ }).tap();
   await expect(sheet(page).getByLabel("Id", { exact: true })).toHaveValue("review-loop-mine-copy");
 });

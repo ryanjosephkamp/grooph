@@ -1,6 +1,6 @@
 import type { AgentNode, Edge, Graph, Group, Id, Loop, Node, Policy, RunNote } from "./types.js";
 
-export type IdOwnerKind = "node" | "edge" | "loop" | "group" | "policy" | "note";
+export type IdOwnerKind = "graph" | "node" | "edge" | "loop" | "group" | "policy" | "note";
 
 export type IdOwner = { kind: IdOwnerKind; id: Id; index: number };
 
@@ -34,7 +34,8 @@ export function indexGraph(doc: Graph): GraphIndex {
   const collect = (kind: IdOwnerKind, items: readonly { id: Id }[] | undefined): void => {
     (items ?? []).forEach((item, index) => owners.push({ kind, id: item.id, index }));
   };
-  // graph-ir §1: ids are unique across nodes, edges, loops, groups, policies, notes.
+  // graph-ir §1: ids are unique across the graph itself, nodes, edges, loops, groups, policies, notes.
+  collect("graph", [doc]);
   collect("node", nodes);
   collect("edge", edges);
   collect("loop", doc.loops);
@@ -137,7 +138,6 @@ export function findCycles(index: GraphIndex, edges: readonly Edge[]): Id[][] {
 
 /** Is there a path from `from` to `to` using only edges whose endpoints are in `within`? */
 export function hasPathWithin(
-  index: GraphIndex,
   from: Id,
   to: Id,
   within: ReadonlySet<Id>,

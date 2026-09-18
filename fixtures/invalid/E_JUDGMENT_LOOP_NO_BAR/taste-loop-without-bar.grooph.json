@@ -4,7 +4,9 @@
   "name": "Taste loop without a bar",
   "version": 1,
   "goal": "Rewrite the onboarding email so it reads well.",
-  "target": { "harness": "claude-code" },
+  "target": {
+    "harness": "claude-code"
+  },
   "description": "A writer and a critic trade rounds. The loop has a stop, so it terminates, but nothing says what the critic inspects or what good enough means.",
   "nodes": [
     {
@@ -13,7 +15,9 @@
       "name": "Writer",
       "role": "builder",
       "brief": "Rewrite the onboarding email.",
-      "outputs": ["email.md"]
+      "outputs": [
+        "email.md"
+      ]
     },
     {
       "id": "critic",
@@ -21,22 +25,53 @@
       "name": "Critic",
       "role": "critic",
       "brief": "Say whether the email reads well yet.",
-      "outputs": ["verdict"]
+      "outputs": [
+        "verdict"
+      ]
     },
-    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
   ],
   "edges": [
-    { "id": "e-write-review", "from": "writer", "to": "critic" },
-    { "id": "e-review-fail", "from": "critic", "to": "writer", "when": "fail" },
-    { "id": "e-review-pass", "from": "critic", "to": "done", "when": "pass" }
+    {
+      "id": "e-write-review",
+      "from": "writer",
+      "to": "critic"
+    },
+    {
+      "id": "e-review-fail",
+      "from": "critic",
+      "to": "writer",
+      "when": "fail"
+    },
+    {
+      "id": "e-review-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
   ],
   "loops": [
     {
       "id": "polish-cycle",
       "name": "Polish cycle",
-      "members": ["writer", "critic"],
-      "back": ["e-review-fail"],
-      "stops": [{ "kind": "max-iterations", "n": 3 }]
+      "members": [
+        "writer",
+        "critic"
+      ],
+      "back": [
+        "e-review-fail"
+      ],
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
     }
   ]
 }

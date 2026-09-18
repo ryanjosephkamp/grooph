@@ -6,6 +6,7 @@
  *  - `check()`   — structural validation with JSON Pointer paths (`E_SCHEMA`)
  *  - `json()`    — the published JSON Schema (`schema/grooph-0.schema.json`)
  *  - `canon()`   — canonical key order (graph-ir §7)
+ *  - `unknownKeys()` — keys the schema does not declare (`W_UNKNOWN_KEY`)
  *
  * It also carries the TypeScript type it describes as a phantom field, so
  * `src/schema/graph.ts` can assert at compile time that the schema and the
@@ -15,6 +16,9 @@
  */
 
 export type SchemaIssue = { path: string; message: string };
+
+/** A key the schema does not declare, where it sits, and the keys that object does declare. */
+export type UnknownKey = { path: string; key: string; known: string[] };
 
 export type JsonSchema = Record<string, unknown>;
 
@@ -33,6 +37,8 @@ export interface Sch<T> {
   canon(value: unknown): unknown;
   /** true when this schema accepts the value (used to pick a union branch) */
   accepts(value: unknown): boolean;
+  /** collect keys the schema does not declare; record-valued objects hold data, not keys */
+  unknownKeys(value: unknown, path: string, out: UnknownKey[]): void;
 }
 
 export type Opt<T> = Sch<T> & { readonly __optional: true };
@@ -60,13 +66,14 @@ const typeName = (v: unknown): string =>
 
 function base<T>(
   describe: string,
-  impl: Pick<Sch<T>, "check" | "json"> & Partial<Pick<Sch<T>, "canon">>,
+  impl: Pick<Sch<T>, "check" | "json"> & Partial<Pick<Sch<T>, "canon" | "unknownKeys">>,
 ): Sch<T> {
   const self: Sch<T> = {
     describe,
     check: impl.check,
     json: impl.json,
     canon: impl.canon ?? ((value) => value),
+    unknownKeys: impl.unknownKeys ?? (() => {}),
     accepts(value) {
       const out: SchemaIssue[] = [];
       self.check(value, "", out);
@@ -200,6 +207,9 @@ export function arr<T>(item: Sch<T>, options: { minItems?: number } = {}): Sch<T
     canon(value) {
       return Array.isArray(value) ? value.map((entry) => item.canon(entry)) : value;
     },
+    unknownKeys(value, path, out) {
+      if (Array.isArray(value)) value.forEach((entry, i) => item.unknownKeys(entry, `${path}/${i}`, out));
+    },
   });
 }
 
@@ -250,6 +260,10 @@ export function rec<T>(value: Sch<T>, options: { keyPattern?: RegExp; keyName?: 
       const out: Record<string, unknown> = {};
       for (const key of Object.keys(v).sort()) out[key] = value.canon(v[key]);
       return out;
+    },
+    unknownKeys(v, path, out) {
+      if (!isPlainObject(v)) return;
+      for (const [key, entry] of Object.entries(v)) value.unknownKeys(entry, `${path}/${escapePointer(key)}`, out);
     },
   });
 }
@@ -306,6 +320,15 @@ export function obj<F extends Fields>(fields: F, options: { name?: string; descr
       }
       return out;
     },
+    unknownKeys(value, path, out) {
+      if (!isPlainObject(value)) return;
+      for (const key of Object.keys(value)) {
+        if (value[key] === undefined) continue;
+        const where = `${path}/${escapePointer(key)}`;
+        if (keys.includes(key)) fields[key]!.unknownKeys(value[key], where, out);
+        else out.push({ path: where, key, known: keys });
+      }
+    },
   });
   return self;
 }
@@ -349,6 +372,11 @@ export function tagged<B extends Record<string, Sch<unknown>>>(
       if (typeof key === "string" && key in branches) return branches[key]!.canon(value);
       return unknownValue.canon(value);
     },
+    unknownKeys(value, path, out) {
+      if (!isPlainObject(value)) return;
+      const key = value[tag];
+      if (typeof key === "string" && key in branches) branches[key]!.unknownKeys(value, path, out);
+    },
   });
 }
 
@@ -369,6 +397,9 @@ export function anyOf<B extends Sch<unknown>[]>(
     canon(value) {
       const branch = branches.find((b) => b.accepts(value));
       return branch ? branch.canon(value) : unknownValue.canon(value);
+    },
+    unknownKeys(value, path, out) {
+      branches.find((b) => b.accepts(value))?.unknownKeys(value, path, out);
     },
   });
 }

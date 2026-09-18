@@ -12,4 +12,4 @@ Read `.grooph/review-loop/LEAD.md` now and follow it. You are the lead for this 
 - No argument: start a new run and choose a run id.
 - An argument: resume that run id — read its `PROGRESS.md`, continue where it stopped, keep appending to the same `notes.jsonl`.
 
-The graph document is `.grooph/review-loop/graph.grooph.json` and the mapping from graph to files is `.grooph/review-loop/MAPPING.md`. Do not edit either during a run.
+The source graph document is `.grooph/review-loop/graph.grooph.json` and the mapping from graph to files is `.grooph/review-loop/MAPPING.md`; a run never edits either. The run follows its working copy, `.grooph/review-loop/runs/<run-id>/graph.grooph.json`, which changes only through amendments made as `LEAD.md` § "Adapting the graph" describes.

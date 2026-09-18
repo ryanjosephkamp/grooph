@@ -1,0 +1,64 @@
+{
+  "grooph": 0,
+  "id": "coupled-fanout",
+  "name": "Coupled fan-out",
+  "version": 1,
+  "goal": "Migrate the schema.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "brief": "Planner: split the migration into steps.",
+      "outputs": [
+        "PLAN.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "migrator",
+      "kind": "agent",
+      "name": "Migrator",
+      "description": "Every step touches the same schema file, so steps cannot run side by side.",
+      "coupled": true,
+      "role": "builder",
+      "brief": "Migrator: apply one step of the schema migration.",
+      "outputs": [
+        "migrations/"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-plan-migrate",
+      "from": "planner",
+      "to": "migrator",
+      "concurrency": {
+        "max": 3
+      }
+    },
+    {
+      "id": "e-migrate-done",
+      "from": "migrator",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

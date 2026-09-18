@@ -1,4 +1,20 @@
-import type { AgentNode, CheckNode, Graph, HumanGateNode, Id, MergeNode, Node, Role, StopNode } from "@grooph/core";
+import {
+  optList,
+  optText,
+  removeNode,
+  setNodeName,
+  updateNode,
+  withField,
+  type AgentNode,
+  type CheckNode,
+  type Graph,
+  type HumanGateNode,
+  type Id,
+  type MergeNode,
+  type Node,
+  type Role,
+  type StopNode,
+} from "@grooph/core";
 
 import {
   CAPABILITIES,
@@ -9,7 +25,6 @@ import {
   ROLES,
   TIERS,
 } from "../../doc/catalog.js";
-import { optList, optText, removeNode, setNodeName, updateNode, withField } from "../../doc/ops.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { ChipSet, ListInput, More, NumberInput, Segmented, Select, TextArea, TextInput, Toggle } from "../fields.js";

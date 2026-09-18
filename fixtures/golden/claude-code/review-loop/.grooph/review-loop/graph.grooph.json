@@ -18,8 +18,8 @@
   "nodes": [
     {
       "id": "builder",
-      "name": "Builder",
       "kind": "agent",
+      "name": "Builder",
       "role": "builder",
       "model": {
         "tier": "strong"
@@ -47,8 +47,8 @@
     },
     {
       "id": "critic",
-      "name": "Critic",
       "kind": "agent",
+      "name": "Critic",
       "role": "critic",
       "model": {
         "tier": "strong"
@@ -66,6 +66,7 @@
       ],
       "allow": [
         "read-files",
+        "write-outputs",
         "run-tests"
       ],
       "deny": [
@@ -74,8 +75,8 @@
     },
     {
       "id": "merge-gate",
-      "name": "Merge approval",
       "kind": "human-gate",
+      "name": "Merge approval",
       "prompt": "The critic passed the change. Merge it?",
       "options": [
         "approve",
@@ -84,8 +85,8 @@
     },
     {
       "id": "done",
-      "name": "Done",
       "kind": "stop",
+      "name": "Done",
       "outcome": "success"
     }
   ],

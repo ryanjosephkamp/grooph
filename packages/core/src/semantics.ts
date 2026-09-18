@@ -4,7 +4,7 @@
  */
 
 import type { GraphIndex } from "./graph-index.js";
-import type { AgentNode, Bar, Edge, EdgeWhen, Id, Loop, Node, Role, Stop } from "./types.js";
+import type { Adaptation, AgentNode, Bar, Edge, EdgeWhen, Graph, Id, Loop, Node, Policy, Role, Stop } from "./types.js";
 
 /** graph-ir §1: critics are `critic`, `judge`, `red-team`. */
 export const CRITIC_ROLES: readonly Role[] = ["critic", "judge", "red-team"];
@@ -110,4 +110,50 @@ export function entryNodeIds(index: GraphIndex): Id[] {
 /** Loops a node belongs to, in document order. */
 export function loopsOfNode(index: GraphIndex, nodeId: Id): Loop[] {
   return (index.doc.loops ?? []).filter((loop) => (loop.members ?? []).includes(nodeId));
+}
+
+/** Every node reachable from `starts` along any edge, back edges included. */
+export function reachableFrom(index: GraphIndex, starts: readonly Id[]): Set<Id> {
+  const seen = new Set<Id>(starts.filter((id) => index.nodes.has(id)));
+  const queue = [...seen];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const edge of index.outgoing.get(current) ?? []) {
+      if (!index.nodes.has(edge.to) || seen.has(edge.to)) continue;
+      seen.add(edge.to);
+      queue.push(edge.to);
+    }
+  }
+  return seen;
+}
+
+/**
+ * Whether a policy's scope covers an edge: `graph` covers every edge,
+ * `edge:<id>` that edge, `node:<id>` the edges that start or end at that node,
+ * `loop:<id>` the edges that end at one of the loop's members.
+ */
+export function policyCoversEdge(index: GraphIndex, policy: Policy, edge: Edge): boolean {
+  const scope = policy.scope;
+  if (scope === "graph") return true;
+  const separator = scope.indexOf(":");
+  const kind = scope.slice(0, separator);
+  const target = scope.slice(separator + 1);
+  if (kind === "edge") return target === edge.id;
+  if (kind === "node") return target === edge.from || target === edge.to;
+  if (kind === "loop") return (index.loops.get(target)?.members ?? []).includes(edge.to);
+  return false;
+}
+
+/** graph-ir §2: stricter levels first. */
+const ADAPTATION_ORDER: readonly Adaptation[] = ["fixed", "propose", "adaptive"];
+
+/**
+ * The adaptation level a run follows (graph-ir §1–§2, A-008): the document's
+ * `adaptation`, default `adaptive`; a graph-scoped `no-live-graph-rewrite`
+ * policy means `propose`, and when both are present the stricter one wins.
+ */
+export function effectiveAdaptation(doc: Graph): Adaptation {
+  const levels: Adaptation[] = [doc.adaptation ?? "adaptive"];
+  if ((doc.policies ?? []).some((p) => p.kind === "no-live-graph-rewrite" && p.scope === "graph")) levels.push("propose");
+  return ADAPTATION_ORDER.find((level) => levels.includes(level))!;
 }

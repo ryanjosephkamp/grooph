@@ -2,15 +2,16 @@
  * The graph document schema, declared once.
  *
  * Field order in every `obj` below is the order `docs/graph-ir.md` §1 lists the
- * fields, which makes it the canonical key order (§7) as well. For the node and
- * stop unions the base type's fields come first, then the variant's, exactly as
- * the `NodeBase & { … }` intersections read.
+ * fields, which makes it the canonical key order (§7) as well. On every node
+ * `kind` comes second, right after `id`, then the rest of `NodeBase`, then the
+ * variant's own fields (§7). Stops lead with `kind`, as the union reads.
  *
  * The assertions at the bottom fail the build if this schema and the normative
  * types in `../types.ts` ever describe different shapes.
  */
 
 import type {
+  Adaptation,
   Capability,
   Effort,
   Graph,
@@ -48,7 +49,7 @@ const idRef = () => id();
 
 const harness = openEnum<HarnessId>(["claude-code", "codex"], "harness id");
 const capability = openEnum<Capability>(
-  ["read-files", "edit-files", "run-commands", "run-tests", "web", "spawn-agents"],
+  ["read-files", "edit-files", "write-outputs", "run-commands", "run-tests", "web", "spawn-agents"],
   "capability",
 );
 const tier = enumOf<Tier>("frontier", "strong", "fast");
@@ -65,17 +66,19 @@ const role = enumOf<Role>(
   "synthesizer",
 );
 
-const nodeBase = {
-  id: id(),
-  name: str(),
-  description: opt(str()),
-  coupled: opt(bool()),
-} as const;
+/** graph-ir §7: `id`, then `kind`, then the rest of `NodeBase`, then the variant's fields. */
+const nodeHead = <K extends string>(kind: K) =>
+  ({
+    id: id(),
+    kind: lit(kind),
+    name: str(),
+    description: opt(str()),
+    coupled: opt(bool()),
+  }) as const;
 
 const agentNode = obj(
   {
-    ...nodeBase,
-    kind: lit("agent"),
+    ...nodeHead("agent"),
     role: anyOf([role, obj({ custom: str() })], { describe: "role name or { custom }" }),
     model: opt(obj({ tier, pin: opt(rec(str(), { keyName: "harness id" })) })),
     effort: opt(effort),
@@ -91,14 +94,13 @@ const agentNode = obj(
 );
 
 const humanGateNode = obj(
-  { ...nodeBase, kind: lit("human-gate"), prompt: str(), options: opt(arr(str())) },
+  { ...nodeHead("human-gate"), prompt: str(), options: opt(arr(str())) },
   { name: "HumanGateNode" },
 );
 
 const checkNode = obj(
   {
-    ...nodeBase,
-    kind: lit("check"),
+    ...nodeHead("check"),
     check: obj({
       kind: enumOf("command", "tests", "diff", "metric", "evidence"),
       run: opt(str()),
@@ -110,12 +112,12 @@ const checkNode = obj(
 );
 
 const mergeNode = obj(
-  { ...nodeBase, kind: lit("merge"), merges: arr(str()), strategy: opt(str()) },
+  { ...nodeHead("merge"), merges: arr(str()), strategy: opt(str()) },
   { name: "MergeNode" },
 );
 
 const stopNode = obj(
-  { ...nodeBase, kind: lit("stop"), outcome: opt(enumOf("success", "halt")) },
+  { ...nodeHead("stop"), outcome: opt(enumOf("success", "halt")) },
   { name: "StopNode" },
 );
 
@@ -264,6 +266,7 @@ const runNote = obj(
     cost: opt(obj({ measure: budgetMeasure, amount: num() })),
     gaps: opt(arr(str())),
     proposal: opt(obj({ summary: str(), patch: opt(any()) })),
+    amendment: opt(obj({ summary: str(), reason: str(), patch: opt(any()) })),
     text: opt(str()),
   },
   { name: "RunNote" },
@@ -278,6 +281,7 @@ export const graphSchema = obj(
     goal: opt(str()),
     target: opt(obj({ harness })),
     constraints: opt(obj({ budget: opt(str()), time: opt(str()), other: opt(str()) })),
+    adaptation: opt(enumOf<Adaptation>("adaptive", "propose", "fixed")),
     lineage: opt(obj({ pattern: opt(str()), from: opt(str()) })),
     description: opt(str()),
 

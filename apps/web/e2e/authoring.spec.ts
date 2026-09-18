@@ -74,7 +74,8 @@ test("rebuild the review loop from scratch by touch, then export it", async ({ p
   await field("Brief").fill(critic.brief);
   await field("Inputs").fill(critic.inputs!.join("\n"));
   await field("Outputs").fill(critic.outputs.join("\n"));
-  for (const cap of ["read-files", "run-tests"]) await tap(chip("Allow", cap));
+  // write-outputs: the critic leaves REVIEW.md behind itself, still denied edit-files.
+  for (const cap of ["read-files", "write-outputs", "run-tests"]) await tap(chip("Allow", cap));
   await tap(chip("Deny", "edit-files"));
 
   // Merge gate
@@ -133,10 +134,10 @@ test("rebuild the review loop from scratch by touch, then export it", async ({ p
   await expect(s.getByRole("group", { name: "Stop 2" }).getByLabel("Rounds at most")).toHaveValue("4");
   await expect(s.getByRole("group", { name: "Stop 3" }).getByLabel("Limit")).toHaveValue("40");
 
-  // A clean validation panel …
-  await expect(status(page)).toHaveText("Valid");
+  // A validation panel with no errors — only the warning the fixture carries too …
+  await expect(status(page)).toHaveText("1 warning");
   await tap(status(page));
-  await expect(s.getByText("No issues. The graph validates for export.")).toBeVisible();
+  await expect(s.locator(".issue-code")).toHaveText(["W_HOMOGENEOUS_CRITICS"]);
 
   // … and a successful export.
   await tap(page.getByRole("button", { name: "Export", exact: true }));
@@ -154,7 +155,7 @@ test("rebuild the review loop from scratch by touch, then export it", async ({ p
 
   const parsed = parseGraphText(strFromU8(files[".grooph/review-loop/graph.grooph.json"]!));
   const doc = parsed.doc!;
-  expect(validate(doc, { forExport: true })).toEqual([]);
+  expect(validate(doc, { forExport: true }).map((i) => i.code)).toEqual(["W_HOMOGENEOUS_CRITICS"]);
   expect(doc.nodes.map((n) => [n.id, n.kind])).toEqual([
     ["builder", "agent"],
     ["critic", "agent"],
@@ -203,6 +204,17 @@ test("every field of every kind is editable and lands in the document", async ({
   await field("Target harness").selectOption("claude-code");
   await field("Goal").fill("Exercise every field.");
   await field("Time").fill("an afternoon");
+
+  // Adaptation: three levels, a line each; adaptive is the default and is not written in.
+  await expect(radio("Adaptation", "adaptive")).toHaveAttribute("aria-checked", "true");
+  const levels = s.locator(".level-list li");
+  await expect(levels).toHaveText([
+    "adaptive (default) — The lead may amend its copy of the graph during a run, visibly; brakes never loosen.",
+    "propose — The lead changes nothing and records proposals for you.",
+    "fixed — The lead follows the graph exactly and halts to ask when it cannot.",
+  ]);
+  await radio("Adaptation", "fixed").tap();
+  await expect(levels.nth(2)).toHaveClass("is-on");
 
   await add(/^Check/);
   await field("Name").fill("Tests pass");
@@ -266,6 +278,7 @@ test("every field of every kind is editable and lands in the document", async ({
   const doc = JSON.parse(await downloadText(file)) as Graph;
 
   expect(doc.constraints).toEqual({ time: "an afternoon" });
+  expect(doc.adaptation).toBe("fixed");
   expect(doc.nodes).toEqual([
     { id: "tests-pass", kind: "check", name: "Tests pass", check: { kind: "command", run: "npm test", pass: "exit code 0", threshold: 0.9 } },
     {

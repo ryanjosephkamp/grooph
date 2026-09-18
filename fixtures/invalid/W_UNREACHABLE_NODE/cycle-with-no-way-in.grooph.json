@@ -1,0 +1,79 @@
+{
+  "grooph": 0,
+  "id": "no-way-in",
+  "name": "No way in",
+  "version": 1,
+  "goal": "Write a draft.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "The writer reaches the stop node. The two reviewers only feed each other, so no entry node leads to them; under graph-ir's entry rule an unreachable node always sits on an uncovered cycle (or behind a dangling edge), which is why this fixture also reports E_CYCLE_NO_STOP.",
+  "nodes": [
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "brief": "Writer: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    },
+    {
+      "id": "reviewer-a",
+      "kind": "agent",
+      "name": "Reviewer A",
+      "role": "researcher",
+      "brief": "Reviewer A: read the draft.",
+      "outputs": [
+        "REVIEWER-A.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "reviewer-b",
+      "kind": "agent",
+      "name": "Reviewer B",
+      "role": "researcher",
+      "brief": "Reviewer B: read the draft.",
+      "outputs": [
+        "REVIEWER-B.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-done",
+      "from": "writer",
+      "to": "done"
+    },
+    {
+      "id": "e-a-b",
+      "from": "reviewer-a",
+      "to": "reviewer-b"
+    },
+    {
+      "id": "e-b-a",
+      "from": "reviewer-b",
+      "to": "reviewer-a"
+    }
+  ],
+  "loops": []
+}

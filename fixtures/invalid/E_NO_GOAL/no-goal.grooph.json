@@ -4,7 +4,9 @@
   "name": "No goal",
   "version": 1,
   "goal": "   ",
-  "target": { "harness": "claude-code" },
+  "target": {
+    "harness": "claude-code"
+  },
   "description": "A blank goal is the same as no goal: the lead brief has nothing to state.",
   "nodes": [
     {
@@ -13,10 +15,23 @@
       "name": "Worker",
       "role": "builder",
       "brief": "Write the release note.",
-      "outputs": ["NOTES.md"]
+      "outputs": [
+        "NOTES.md"
+      ]
     },
-    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
   ],
-  "edges": [{ "id": "e-finish", "from": "worker", "to": "done" }],
+  "edges": [
+    {
+      "id": "e-finish",
+      "from": "worker",
+      "to": "done"
+    }
+  ],
   "loops": []
 }

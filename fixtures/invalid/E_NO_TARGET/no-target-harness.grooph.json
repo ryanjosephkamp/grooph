@@ -12,10 +12,23 @@
       "name": "Worker",
       "role": "builder",
       "brief": "Write the release note.",
-      "outputs": ["NOTES.md"]
+      "outputs": [
+        "NOTES.md"
+      ]
     },
-    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
   ],
-  "edges": [{ "id": "e-finish", "from": "worker", "to": "done" }],
+  "edges": [
+    {
+      "id": "e-finish",
+      "from": "worker",
+      "to": "done"
+    }
+  ],
   "loops": []
 }

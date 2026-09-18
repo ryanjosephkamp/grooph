@@ -1,6 +1,5 @@
-import type { Edge, EdgeWhen, Id } from "@grooph/core";
+import { optList, optText, removeEdge, updateEdge, withField, type Edge, type EdgeWhen, type Id } from "@grooph/core";
 
-import { optList, optText, removeEdge, updateEdge, withField } from "../../doc/ops.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { ListInput, More, NumberInput, Segmented, TextInput, Toggle } from "../fields.js";

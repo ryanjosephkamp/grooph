@@ -5,9 +5,9 @@
  */
 
 import { indexGraph, type GraphIndex } from "../../graph-index.js";
-import { isCriticFamily, isWriterFamily, roleName } from "../../semantics.js";
+import { effectiveAdaptation, isCriticFamily, isWriterFamily, roleName } from "../../semantics.js";
 import { getProfile, type TargetProfile } from "../../targets/index.js";
-import type { AgentNode, Capability, Edge, Graph, Id, Node } from "../../types.js";
+import type { Adaptation, AgentNode, Capability, Edge, Graph, Id, Node } from "../../types.js";
 
 export type ResolvedAgent = {
   node: AgentNode;
@@ -44,7 +44,11 @@ export type PackageContext = {
     runs: string;
     progress: string;
     notes: string;
+    /** the run's working copy of the graph (graph-ir §2) */
+    workingCopy: string;
   };
+  /** the level this run follows: the document's, the default, or a stricter policy (graph-ir §2) */
+  adaptation: Adaptation;
   agents: ResolvedAgent[];
   agentByNode: Map<Id, ResolvedAgent>;
   /** the `lead`-role node, when the document has one */
@@ -81,7 +85,9 @@ export function buildContext(doc: Graph): PackageContext {
       runs: `${root}/runs`,
       progress: `${root}/runs/<run-id>/PROGRESS.md`,
       notes: `${root}/runs/<run-id>/notes.jsonl`,
+      workingCopy: `${root}/runs/<run-id>/graph.grooph.json`,
     },
+    adaptation: effectiveAdaptation(doc),
     agents,
     agentByNode: new Map(agents.map((agent) => [agent.node.id, agent])),
     ...(leadNode ? { leadNode } : {}),
