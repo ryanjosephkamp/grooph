@@ -4,29 +4,21 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 2 is closed (owner rebuilt the review loop on Android Chrome, 2026-09-18: works, manual building is slow and that is acceptable). The plan was reordered the same day: agents are the primary authors (decision 0007, A-009) and graphs are adaptive by default (decision 0008, A-008).
+- **Stage:** 3 (core for agents) is done and merged. Stage 4 (templates) is next: slice 0005 is drafted and waits on the owner.
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ — redeployed from `main` on every push.
-- **Next action:** slice 0004 (core for agents) is running in an Opus 5 session; the driver writes the pattern specifications for 0005 meanwhile.
-- **Then:** 0005 templates and pattern library, 0006 executive path (share links, compare view, `grooph-design` skill), then a recorded demo run per template.
-- **What works today:** draw, edit, validate and persist graphs in the browser; import/export `.grooph.json`; export the Claude Code package; `pnpm exec grooph validate|canonicalize|export`; one real headless Claude Code run of an exported package.
+- **Next action:** owner confirms slice 0005 and opens the Opus 5 session. No model spend in that slice.
+- **Then:** 0006 executive path (share links, compare view, `grooph-design` skill), 0007 templates in the app plus editing polish, then a recorded demo run per template.
+- **What works today:** everything from stage 2, plus: the full rule catalog (22 codes); typed document operations in core with `grooph new` and `grooph apply`; adaptive-by-default packages. Run `20260918-1737-k7qm` amended its working copy twice with reasons, validated it with `grooph`, held one larger idea back as a proposal, and loosened no brake; the critic wrote its own `REVIEW.md`.
 
 ## In flight
 
-### Slice 0004
-
-- 2026-09-18 · criterion 2 met: the document operations live in `packages/core/src/ops` with their tests; `applyOps` takes them as JSON; the web app imports them and keeps no copy; the vocabulary is in `packages/core/README.md`.
-- 2026-09-18 · criterion 3 met: `kind` second, graph id in the duplicate set, `write-outputs` → `Write` with the body rule, fixtures canonical, the review-loop critic allows `write-outputs`; golden regenerated and read.
-- 2026-09-18 · criterion 4 met: every graph-ir §3 code implemented with a failing fixture; `PLANNED_CODES` empty; `.expect.json` sidecars checked exactly.
-- 2026-09-18 · criterion 5 met: `adaptation` and `RunNote.amendment` in types and schema; LEAD.md §9 per level; the working copy at run setup; goldens for the review loop (adaptive) and fix-until-green (fixed).
-- 2026-09-18 · criterion 6 met: `grooph new` and `grooph apply`; `validate` on a run's working copy is tested.
-- 2026-09-18 · criterion 7 met: `write-outputs` in the picker, an adaptation control with a line per level, new codes highlight with no per-code UI.
-- 2026-09-18 · criterion 1 met: a fresh clone installs, builds and passes 161 unit and 10 browser tests; CI green on the branch (Node 22 and 24, web-e2e), Node 20 deprecation gone, Chromium cached.
-- 2026-09-18 · criterion 8 met: acceptance run `20260918-1737-k7qm` passed on the first of two approved runs ($2.12, 29 turns, 5m01s): the critic wrote REVIEW.md itself, the working copy is in the run folder, the run halted at the merge gate after `bar-passed`; the lead amended the working copy twice for the uncovered README requirement, both amendments real and brake-preserving. The second run was not spent.
-- 2026-09-18 · **done** at work head `0d8c297`; handback at `handoffs/0004-core-for-agents/HANDBACK.md`.
+_(none)_
 
 ## Waiting on the owner
 
-_(nothing until the 0004 handback)_
+| Item | Recommended answer |
+|---|---|
+| Confirm slice 0005 (`handoffs/0005-templates/HANDOFF.md`) | Yes |
 
 ## Deferred until Codex is available
 
@@ -37,6 +29,7 @@ _(nothing until the 0004 handback)_
 
 | Date | What |
 |---|---|
+| 2026-09-18 | Slice 0004 reconciled and merged: operations in core with `applyOps`, all §3 rules with fixtures, adaptation in document and compiler, `grooph new/apply`, second golden, acceptance run passed ($2.12). Ambiguities resolved in graph-ir; `docs/templates.md` written with the sixteen pattern specifications. |
 | 2026-09-18 | Owner's phone session closed stage 2. Plan reordered around agent-built graphs; A-008 (adaptive by default, brakes fixed) and A-009 (agents author) logged; decisions 0007 and 0008; run monitor and community gallery placed as later stages. |
 | 2026-09-18 | Slice 0002 reconciled and merged: web canvas over the unchanged core; 40 unit tests and 10 phone-size browser tests, including a byte-for-byte package round trip; GitHub Pages enabled and first deploy verified live. Decision 0006 recorded. |
 | 2026-09-18 | Owner confirmed slice 0002; Codex-dependent work (0003, stages 7–9) deferred until the owner's Codex quota returns. |

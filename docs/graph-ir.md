@@ -19,6 +19,7 @@ type Graph = {
   constraints?: { budget?: string; time?: string; other?: string };  // free-text hints, surfaced in the lead brief
   adaptation?: "adaptive" | "propose" | "fixed";                     // how far the lead may change the graph during a run; default "adaptive" (§2, A-008)
   lineage?: { pattern?: string; from?: string };                     // pattern id; "graph-id@version"
+  template?: Template;             // present when this document is a template; shape and rules in docs/templates.md
   description?: string;            // one paragraph a human or executive can read
 
   nodes: Node[];
@@ -159,35 +160,38 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Working copy.** At kickoff the lead copies the source document into the run folder. The run reads and, where allowed, amends that working copy. The source document is never written by a run; after the run the human adopts the working copy as a new graph version or discards it (stage 6).
 - **Adaptation.** `adaptation` sets how far the lead may change the working copy when the work shows the graph is wrong (a missing node, a loop that should exist, a brief that no longer fits):
   - `adaptive` (default): the lead may add, remove or re-brief nodes, add or re-route edges, add loops, and change tiers or effort. Every amendment is written to the working copy, recorded at once as a note with an `amendment` (summary, reason, what changed), and shown in the progress log, so the human can always see the graph the run is actually following. The amended document must still validate; when the `grooph` CLI is available the lead runs it, otherwise it checks the brakes below by hand.
+    Amending at kickoff is fine when reading the task already shows a gap (the first adaptive run added a file to a builder's `owns` before dispatching anyone). Redesigning the graph up front is not adaptation: a change to the graph's overall shape before any node has run is a `proposal`.
   - `propose`: the lead changes nothing and records `proposal` notes.
   - `fixed`: the lead follows the graph exactly; when it cannot, it halts and asks.
-- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. It may tighten any of them. Loosening one is a `proposal` for the human. A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other.
+- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. An adaptive lead may tighten any of them (tightening is an amendment, so `propose` and `fixed` runs do not tighten either). Loosening one is a `proposal` for the human. A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other.
 
 ## 3. Validation rules
 
-Hard errors block export. Warnings are shown and recorded in the package's lead brief. Codes are stable; new rules get new codes rather than changing old ones. `★` marks the rules required by slice 0001; the rest arrive in stage 3.
+Hard errors block export. Warnings are shown and recorded in the package's lead brief. Codes are stable; new rules get new codes rather than changing old ones.
 
 ### Structural
 
 | Code | Rule |
 |---|---|
-| `E_SCHEMA` ★ | Document fails the JSON Schema. Message names the path. |
-| `E_DUPLICATE_ID` ★ | An id appears more than once across all id-bearing objects, the graph's own id included (the graph id joins the set in stage 3; slice 0001 checks nodes, edges, loops, groups, policies and notes). |
-| `E_DANGLING_REF` ★ | An edge, loop, group, policy, stop `then`, or `answerKeyFrom` references an unknown id. |
-| `E_LOOP_BACK_EDGE` ★ | A loop's `back` list is empty, or one of its edges does not have both endpoints among `members`, or there is no path inside `members` from that edge's `to` back to its `from`. |
+| `E_SCHEMA` | Document fails the JSON Schema. Message names the path. |
+| `E_DUPLICATE_ID` | An id appears more than once across all id-bearing objects, the graph's own id included. |
+| `E_DANGLING_REF` | An edge, loop, group, policy, stop `then`, or `answerKeyFrom` references an unknown id. |
+| `E_LOOP_BACK_EDGE` | A loop's `back` list is empty, or one of its edges does not have both endpoints among `members`, or there is no path inside `members` from that edge's `to` back to its `from`. |
 
 ### Spec §12 hard errors
 
 | Code | Spec bullet | Rule |
 |---|---|---|
-| `E_CYCLE_NO_STOP` ★ | cycle with no stop | Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids. |
-| `E_JUDGMENT_LOOP_NO_BAR` ★ | taste loop with no bar | A loop whose `mode` is `judgment` (explicit or inferred) has no `bar`, or its bar has an empty `inspects`. An `answer-key` evidence entry counts as inspectable only when `answerKeyFrom` names a node in the graph. |
-| `E_STOP_NOT_INSPECTABLE` ★ | only stop is an adjective | A loop's stops are all `bar-passed` and the bar is missing or has empty `inspects`. |
-| `E_NO_TARGET` ★ | no target harness | Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together. |
-| `E_NO_GOAL` ★ | bootstrap with no goal | Export or bootstrap requested and `goal` is absent or blank. |
+| `E_CYCLE_NO_STOP` | cycle with no stop | Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids. |
+| `E_JUDGMENT_LOOP_NO_BAR` | taste loop with no bar | A loop whose `mode` is `judgment` (explicit or inferred) has no `bar`, or its bar has an empty `inspects`. An `answer-key` evidence entry counts as inspectable only when `answerKeyFrom` names a node in the graph. |
+| `E_STOP_NOT_INSPECTABLE` | only stop is an adjective | A loop's stops are all `bar-passed` and the bar is missing or has empty `inspects`. |
+| `E_NO_TARGET` | no target harness | Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together. |
+| `E_NO_GOAL` | bootstrap with no goal | Export or bootstrap requested and `goal` is absent or blank. |
+| `E_IS_TEMPLATE` | — | Export requested on a document that still has a `template` block. Instantiate it first (`docs/templates.md` §2). |
+| `E_UNFILLED_SLOT` | — | Export requested and a `{{slot}}` remains in a string field of a document without a `template` block. `at` names the objects holding it. |
 | `E_CRITIC_NOT_ISOLATED` | critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list. |
 | `E_OWNERSHIP_CONFLICT` | two writers, one artifact, no merge | Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`. |
-| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` has neither an inbound edge with `approval: true` nor a `human-gate` node as the source of every inbound edge. |
+| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human. |
 
 ### Spec §12 warnings
 
@@ -203,11 +207,11 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | Code | Rule |
 |---|---|
 | `W_ONLY_MAX_ITERATIONS` | A loop's only stop kind is `max-iterations`. |
-| `W_UNREACHABLE_NODE` | A node is not reachable from any entry node. |
+| `W_UNREACHABLE_NODE` | A node is not reachable from any entry node. Under the entry rule this always accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`); it exists to name the stranded nodes so a view can highlight them. |
 | `W_NO_TERMINAL` | No `stop` node is reachable from an entry node. |
 | `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). |
 | `W_UNKNOWN_KEY` | The document carries a key the schema does not know. Unknown keys are accepted and preserved (views may stash state), but a typo in an optional field name should be visible. |
-| `W_DOC_TOO_LARGE` ★ | Canonical serialization without `layout` exceeds 24,000 characters (about six thousand tokens). This is the "rewrite in one pass" budget and the share-link guard. |
+| `W_DOC_TOO_LARGE` | Canonical serialization without `layout` exceeds 24,000 characters (about six thousand tokens). This is the "rewrite in one pass" budget and the share-link guard. |
 
 Validation output is a list of `{ code, severity, message, at: Id[] }`. `at` names the objects involved so a view can highlight them.
 
@@ -257,6 +261,8 @@ type RunNote = {
   gaps?: string[];                           // repeated gaps observed
   proposal?: { summary: string; patch?: unknown };   // proposed graph edit; never applied automatically
   amendment?: { summary: string; reason: string; patch?: unknown };   // a change the lead made to the run's working copy (adaptive runs only)
+  // `patch`, on proposals and amendments, is preferably a grooph op list (packages/core README): ops name objects by id,
+  // so they survive reordering, and `grooph apply` can replay them. Index-path formats are accepted but fragile. The working copy is the record either way.
   text?: string;                             // free commentary, short
 };
 ```
@@ -265,7 +271,7 @@ type RunNote = {
 
 `canonicalize(doc)` is deterministic and idempotent: two-space indent, LF line endings, one trailing newline, object keys in the order the types above list them, arrays in document order, `layout` last. Diffs of canonical documents are semantic diffs.
 
-Key-order details: on every node, `kind` comes second, immediately after `id`, then the remaining `NodeBase` fields, then the kind-specific fields in the order listed (stage 3 applies this; slice 0001 expands the intersection left to right, which puts `kind` fifth). Unknown keys are accepted, kept, and sorted alphabetically after the known ones. Record-valued objects (`layout`, `policy.params`) have their keys sorted alphabetically.
+Key-order details: on every node, `kind` comes second, immediately after `id`, then the remaining `NodeBase` fields, then the kind-specific fields in the order listed. Unknown keys are accepted, kept, and sorted alphabetically after the known ones. Record-valued objects (`layout`, `policy.params`) have their keys sorted alphabetically.
 
 Size lint (`W_DOC_TOO_LARGE`) measures the canonical form with `layout` removed.
 

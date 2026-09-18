@@ -24,8 +24,8 @@ Reordered on 2026-09-18 after the owner's phone session (decision 0007). Everyth
 | 0 | Scaffolding | Repo an agent can enter cold. | A fresh session reads AGENTS.md and knows what to do next. | Driver | done |
 | 1 | Graph document v0 | Schema, semantics, rule catalog, example graphs. | An implementer builds the validator from `graph-ir.md` without design questions. | Driver | done |
 | 2 | Vertical slice | **0001** core + compiler + CLI. **0002** canvas on the phone. | Package drives a real Claude Code run; graph rebuilt on Android Chrome and exported. | Opus | done (owner's phone run 2026-09-18: "works basically perfectly") |
-| 3 | Core for agents | **0004**: typed operations move into core; IR alignments from both reviews; every §12 rule and warning with fixtures; `adaptation` in the document and the compiler; `grooph new` and `grooph apply`; one acceptance run. | All rule codes have fixtures; the critic writes its own `REVIEW.md`; an adaptive run amends its working copy and records it; web app uses core's operations. | Opus | todo |
-| 4 | Templates | **0005**: template metadata; the §10 patterns as validated documents under `patterns/` with an index; user and project template folders; `grooph template list/show/use/save`; templates browsable in the app and served as static files from Pages, so a template is referable by name and installable from the repo. Web editing polish rides along: undo, storage persistence, toolbar overlap, rename warning. | Every pattern validates clean; "use template X" works from the CLI and the app; a stranger can fetch a template by name from the published index. | Driver specifies the patterns, Opus builds | todo |
+| 3 | Core for agents | **0004**: typed operations move into core; IR alignments from both reviews; every §12 rule and warning with fixtures; `adaptation` in the document and the compiler; `grooph new` and `grooph apply`; one acceptance run. | All rule codes have fixtures; the critic writes its own `REVIEW.md`; an adaptive run amends its working copy and records it; web app uses core's operations. | Opus | done |
+| 4 | Templates | **0005**: template metadata; the §10 patterns as validated documents under `patterns/` with an index; user and project template folders; `grooph template list/show/use/save`; templates browsable in the app and served as static files from Pages, so a template is referable by name and installable from the repo. Split: **0005** core, CLI, library, publishing; **0007** templates in the app plus editing polish (undo, storage persistence, toolbar overlap, rename warning). | Every pattern validates clean; "use template X" works from the CLI and the app; a stranger can fetch a template by name from the published index. | Driver specifies the patterns, Opus builds | todo |
 | 5 | Executive | **0006**: share links (graph or proposal set in the URL fragment, opened by the app); proposal-set document and compare view; the `grooph-design` skill (driver writes it) packaged so a session can install it from this repo; optional thin MCP server over the same core operations. | From a Claude Code session: describe a project and constraints → the agent considers named templates or builds new ones → one to three candidate graphs validated → a link opens the comparison on the phone → the owner picks → the package is placed and the run starts. | Opus builds, driver writes the skill | todo |
 | 6 | Pattern proving ground | Each template gets a small task and one headless run; results, run notes and a short write-up land under `experiments/patterns/` and are shown with the template. | Every shipped template has a recorded run that ended through one of its stops, or an honest note why not. | Driver designs, Opus scripts, owner approves spend | todo |
 | 7 | Notes back and run monitor | Import run notes onto the graph; show the run's working copy against the source and adopt or discard amendments; `grooph watch <run>` serves the canvas locally with nodes and loop rounds lit from `notes.jsonl` (no extra model tokens beyond the notes the run already writes; optional hook-written start/stop events). | A finished run's notes and amendments appear on the graph; a running graph can be watched from a browser on the same network. | Opus | todo |
@@ -44,15 +44,20 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 |
 | 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 |
 | 0003 | 9 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred (Codex quota); runs before stage 9 |
-| 0004 | 3 | Core for agents | Opus 5 | in progress (confirmed 2026-09-18) |
-| 0005 | 4 | Templates, pattern library, web editing polish | Opus 5 | todo |
+| 0004 | 3 | Core for agents | Opus 5 | done 2026-09-18 |
+| 0005 | 4 | Templates and the pattern library (core, CLI, `patterns/`, published index) | Opus 5 | handoff drafted, awaiting owner confirmation |
 | 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | todo |
+| 0007 | 4 | Templates in the web app and editing polish | Opus 5 | todo |
 
-## Carried into slice 0004
+## Carried into slice 0004 (done)
 
 From review 0001: `kind` second in canonical key order (golden regeneration); graph id in `E_DUPLICATE_ID`; `write-outputs` with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules; canonical fixtures; GitHub Actions version bump. From review 0002: typed operations into core; four unused locals in core; Chromium cache in CI.
 
-## Carried into slice 0005 (web editing polish)
+## Carried into slice 0005
+
+From review 0004: `E_IRREVERSIBLE_NO_GATE` per the reworded rule; lead-brief §9 op-list patch preference and kickoff-versus-redesign sentence; goldens regenerated.
+
+## Carried into slice 0007 (web editing polish)
 
 Toolbar overlapping content while the sheet is open; undo; `navigator.storage.persist()`; a warning when a rename changes the id of an exported graph; self-loop edges by tap; keyboard selection of canvas nodes.
 
