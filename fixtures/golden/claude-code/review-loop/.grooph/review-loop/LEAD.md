@@ -71,7 +71,7 @@ Dispatch an agent node with the `Agent` tool and the `subagent_type` named above
 
 - **Mode.** judgment
 - **Members.** `builder`, `critic`, `merge-gate`
-- **A round is** one traversal of a back edge: `e-review-fail` (critic → builder), `e-gate-reject` (merge-gate → builder). Increment the round counter in `PROGRESS.md` when you take one.
+- **A round is** one traversal of a back edge: `e-review-fail` (critic → builder), `e-gate-reject` (merge-gate → builder). The first pass through the members is round 0, because no back edge has been taken yet; each traversal after that adds one. Record the round in `PROGRESS.md` and in a loop note every time you finish a pass.
 
 **Bar — Review checklist.** Stop when: Every checklist item is cited as satisfied with a file and line, and the test command exits 0.
 
@@ -99,7 +99,7 @@ If this session cannot ask — a headless or otherwise non-interactive run — t
 ## 8. Progress and notes
 
 - `.grooph/review-loop/runs/<run-id>/PROGRESS.md` — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, each node's status, what is waiting, and the stop check you last evaluated.
-- `.grooph/review-loop/runs/<run-id>/notes.jsonl` — one JSON object per line, appended, never rewritten. Append a line **per node run** and **per loop round**, plus one at the start and one at the end of the run.
+- `.grooph/review-loop/runs/<run-id>/notes.jsonl` — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (`at` = `node:<node-id>`), one **per pass through a loop** (`at` = `loop:<loop-id>`, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line), and one when the run ends.
 
 Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:
 

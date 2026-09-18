@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "slice/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22", "24"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      # The same three commands a fresh clone runs (handoff 0001, criterion 1).
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - run: pnpm -r test
+
+      # The package a human reviews must still be the package the compiler emits.
+      - name: export matches the golden package
+        run: |
+          pnpm exec grooph export fixtures/valid/review-loop.grooph.json \
+            --target claude-code --into "$RUNNER_TEMP/grooph-pkg" > /dev/null
+          diff -r "$RUNNER_TEMP/grooph-pkg" fixtures/golden/claude-code/review-loop
+
+      - name: the validator agrees with the fixtures from the command line
+        run: |
+          pnpm exec grooph validate fixtures/valid/review-loop.grooph.json
+          ! pnpm exec grooph validate fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json

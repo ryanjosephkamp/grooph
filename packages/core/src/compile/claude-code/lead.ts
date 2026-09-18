@@ -235,7 +235,9 @@ function loopSection(ctx: PackageContext, loop: Loop): string {
     bullet(
       `**A round is** one traversal of a back edge: ${
         backEdges.map((edge) => `${code(edge.id)} (${edge.from} → ${edge.to})`).join(", ") || "none declared"
-      }. Increment the round counter in ${code("PROGRESS.md")} when you take one.`,
+      }. The first pass through the members is round 0, because no back edge has been taken yet; each traversal after that adds one. Record the round in ${code(
+        "PROGRESS.md",
+      )} and in a loop note every time you finish a pass.`,
     ),
     "",
     ...(loop.bar
@@ -336,7 +338,11 @@ function sectionEight(ctx: PackageContext): string {
       `${code(ctx.paths.progress)} — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, each node's status, what is waiting, and the stop check you last evaluated.`,
     ),
     bullet(
-      `${code(ctx.paths.notes)} — one JSON object per line, appended, never rewritten. Append a line **per node run** and **per loop round**, plus one at the start and one at the end of the run.`,
+      `${code(ctx.paths.notes)} — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (${code(
+        "at",
+      )} = ${code("node:<node-id>")}), one **per pass through a loop** (${code("at")} = ${code(
+        "loop:<loop-id>",
+      )}, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line), and one when the run ends.`,
     ),
     "",
     "Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:",
