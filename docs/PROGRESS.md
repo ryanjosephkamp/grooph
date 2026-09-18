@@ -21,6 +21,7 @@ Implementer appends one line per success criterion met, newest last.
 - 2026-09-17 · criterion 5 met · `grooph validate | canonicalize | export` in `packages/cli`, 12 CLI tests; `pnpm exec grooph export … --into <dir>` then `diff -r` against the golden package is clean
 - 2026-09-18 · criterion 1 met · fresh clone of the branch: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` → 62 tests, 0 failures; `.github/workflows/ci.yml` green on Node 22 and 24 (run 35299182138)
 - 2026-09-18 · criterion 6 **unmet, blocked** · the `claude` CLI on this machine is not signed in (`claude auth status` → `loggedIn: false`; a desktop-app session does not share credentials with the CLI), so the headless run returned `Failed to authenticate` in one turn at zero cost. Neither approved run was spent. `scripts/e2e-claude-code.sh` is finished and dry-run verified end to end, now refuses before spending when the CLI is not signed in, and pre-trusts the scratch directory it creates; owner approved the trust step
+- 2026-09-18 · **handback written** · status `blocked` (criteria 1–5 met, criterion 6 unmet); head commit `6803982`; see `handoffs/0001-core-compiler-cli/HANDBACK.md`
 
 ## Waiting on the owner
 
