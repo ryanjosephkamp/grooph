@@ -25,6 +25,8 @@ export type Graph = {
   target?: { harness: HarnessId };
   /** free-text hints, surfaced in the lead brief */
   constraints?: { budget?: string; time?: string; other?: string };
+  /** how far the lead may change the graph during a run; default "adaptive" (graph-ir §2, A-008) */
+  adaptation?: Adaptation;
   /** pattern id; "graph-id@version" */
   lineage?: { pattern?: string; from?: string };
   /** one paragraph a human or executive can read */
@@ -40,6 +42,9 @@ export type Graph = {
   /** separable; models may ignore */
   layout?: Record<Id, { x: number; y: number; w?: number; h?: number }>;
 };
+
+/** graph-ir §2: `adaptive` amends the run's working copy, `propose` records proposals, `fixed` halts and asks. */
+export type Adaptation = "adaptive" | "propose" | "fixed";
 
 export type Node = AgentNode | HumanGateNode | CheckNode | MergeNode | StopNode;
 
@@ -76,9 +81,14 @@ export type Role =
   | "judge"
   | "synthesizer";
 
+/**
+ * `write-outputs`: may create or overwrite only the files it names in `outputs`
+ * — what a critic needs to leave REVIEW.md behind while denied `edit-files`.
+ */
 export type Capability =
   | "read-files"
   | "edit-files"
+  | "write-outputs"
   | "run-commands"
   | "run-tests"
   | "web"
@@ -217,6 +227,8 @@ export type RunNote = {
   gaps?: string[];
   /** proposed graph edit; never applied automatically */
   proposal?: { summary: string; patch?: unknown };
+  /** a change the lead made to the run's working copy (adaptive runs only) */
+  amendment?: { summary: string; reason: string; patch?: unknown };
   /** free commentary, short */
   text?: string;
 };

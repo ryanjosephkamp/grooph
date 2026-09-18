@@ -1,0 +1,67 @@
+[
+  { "op": "setGraphField", "key": "goal", "value": "Implement the change described in TASK.md so that every item in the review checklist is satisfied and the test command passes." },
+  { "op": "setTarget", "harness": "claude-code" },
+  { "op": "setConstraint", "key": "budget", "value": "about 40 lead turns" },
+  { "op": "setConstraint", "key": "other", "value": "Do not touch files outside src/ and tests/ without asking." },
+  { "op": "setGraphField", "key": "lineage", "value": { "pattern": "review-gate" } },
+  { "op": "setGraphField", "key": "description", "value": "A builder implements the task. An isolated critic checks the diff and test output against a written checklist. Failures return to the builder with findings; a pass goes to a human merge gate. The loop stops on bar pass, a turn budget, or four rounds." },
+
+  { "op": "addNode", "kind": "agent", "name": "Builder", "set": {
+      "role": "builder",
+      "model": { "tier": "strong" },
+      "effort": "high",
+      "brief": "Implement TASK.md in src/ with tests in tests/. Run the test command before reporting. On a later round, read REVIEW.md first and address every finding it lists; say which findings you addressed and how. Do not review your own work beyond running the tests.",
+      "inputs": ["TASK.md", "REVIEW.md (from round 2 on)"],
+      "outputs": ["implementation in src/ and tests/", "test command output", "CHANGES.md summarising what changed this round"],
+      "allow": ["read-files", "edit-files", "run-tests"],
+      "owns": ["src", "tests"]
+  } },
+  { "op": "addNode", "kind": "agent", "name": "Critic", "set": {
+      "role": "critic",
+      "model": { "tier": "strong" },
+      "effort": "high",
+      "brief": "Compare the diff and test output against the checklist. For each checklist item, cite the file and line that satisfies it or state that it is unmet. Run the test command yourself; do not trust the reported output. Emit verdict pass only when every item is satisfied and tests pass; otherwise fail with findings. If the diff or checklist cannot be read, emit invalid-evidence.",
+      "inputs": ["diff of src/ and tests/", "test command", "docs/REVIEW-CHECKLIST.md"],
+      "outputs": ["REVIEW.md with one line per checklist item and a verdict line", "verdict: pass | fail | invalid-evidence"],
+      "allow": ["read-files", "write-outputs", "run-tests"],
+      "deny": ["edit-files"]
+  } },
+  { "op": "addNode", "kind": "human-gate", "name": "Merge approval", "id": "merge-gate", "set": {
+      "prompt": "The critic passed the change. Merge it?",
+      "options": ["approve", "reject with feedback"]
+  } },
+  { "op": "addNode", "kind": "stop", "name": "Done", "set": { "outcome": "success" } },
+
+  { "op": "connect", "from": "builder", "to": "critic", "id": "e-build-review", "set": {
+      "when": "always", "isolation": "fresh", "evidence": ["diff of src/ and tests/", "test command output", "docs/REVIEW-CHECKLIST.md"]
+  } },
+  { "op": "connect", "from": "critic", "to": "builder", "id": "e-review-fail", "set": { "when": "fail", "isolation": "fresh", "evidence": ["REVIEW.md"] } },
+  { "op": "connect", "from": "critic", "to": "merge-gate", "id": "e-review-pass", "set": { "when": "pass" } },
+  { "op": "connect", "from": "merge-gate", "to": "done", "id": "e-gate-approve", "set": { "when": "pass" } },
+  { "op": "connect", "from": "merge-gate", "to": "builder", "id": "e-gate-reject", "set": { "when": "fail", "isolation": "fresh", "evidence": ["human feedback"] } },
+
+  { "op": "addLoop", "id": "review-cycle", "name": "Build-review cycle", "members": ["builder", "critic", "merge-gate"], "set": { "mode": "judgment" } },
+  { "op": "toggleLoopBack", "loop": "review-cycle", "edge": "e-review-fail", "on": true },
+  { "op": "toggleLoopBack", "loop": "review-cycle", "edge": "e-gate-reject", "on": true },
+  { "op": "setBar", "loop": "review-cycle", "bar": {
+      "name": "Review checklist",
+      "inspects": [
+        { "kind": "checklist", "ref": "docs/REVIEW-CHECKLIST.md" },
+        { "kind": "artifact", "ref": "test command output" }
+      ],
+      "acceptance": "Every checklist item is cited as satisfied with a file and line, and the test command exits 0."
+  } },
+  { "op": "addStop", "loop": "review-cycle", "kind": "bar-passed" },
+  { "op": "addStop", "loop": "review-cycle", "kind": "max-iterations", "set": { "n": 4 } },
+  { "op": "addStop", "loop": "review-cycle", "kind": "budget", "set": { "measure": "turns", "limit": 40 } },
+
+  { "op": "addPolicy", "kind": "critic-isolation", "scope": "graph" },
+  { "op": "addPolicy", "kind": "no-self-grading", "scope": "graph" },
+
+  { "op": "setPositions", "positions": {
+      "builder": { "x": 80, "y": 160 },
+      "critic": { "x": 380, "y": 160 },
+      "merge-gate": { "x": 680, "y": 160 },
+      "done": { "x": 960, "y": 160 }
+  } }
+]

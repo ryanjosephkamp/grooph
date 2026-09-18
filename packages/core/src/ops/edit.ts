@@ -1,29 +1,45 @@
 /**
- * Typed operations on the graph document — the only way the app changes it.
+ * Typed operations on the graph document — the one vocabulary every shell
+ * uses to change it: the web canvas, `grooph apply`, and the MCP server later
+ * (decision 0006, 0007).
  *
- * Every function is pure: document in, document out, nothing else touched, so
- * the canvas is a projection of the document and never a second source of
- * truth (spec §4.2, §6). Fields an operation does not name are carried through
- * untouched, unknown keys included. The vocabulary (`addNode`, `connect`,
- * `setStop`, …) is the one `docs/ARCHITECTURE.md` expects the MCP server to
- * expose in stage 5; these live in the web app until core grows them.
+ * Every function is pure: document in, document out, nothing else touched.
+ * Fields an operation does not name are carried through untouched, unknown
+ * keys included. A document may be schema-invalid while it is being edited;
+ * no operation invents content to satisfy the schema.
+ *
+ * These functions trust their arguments. `applyOps` is the checked entry point
+ * for callers that send operations as data.
  */
-import type { Bar, Edge, Graph, Id, Loop, Node, Stop, StopKind } from "@grooph/core";
 
-import type { NodeKind } from "./catalog.js";
-import { KIND_LABEL } from "./catalog.js";
-import { slugify, uniqueId } from "./ids.js";
+import type {
+  Bar,
+  Edge,
+  Graph,
+  HarnessId,
+  Id,
+  Loop,
+  Node,
+  Policy,
+  PolicyKind,
+  PolicyScope,
+  Stop,
+  StopKind,
+} from "../types.js";
+import { allIds, followsName, slugify, uniqueId } from "./ids.js";
 
 export type Position = { x: number; y: number };
 
-/** Every id-bearing object in the document, the graph's own id included (graph-ir §1). */
-export function allIds(doc: Graph): Set<Id> {
-  const ids = new Set<Id>([doc.id]);
-  for (const list of [doc.nodes, doc.edges, doc.loops, doc.groups, doc.policies, doc.notes]) {
-    for (const item of list ?? []) ids.add(item.id);
-  }
-  return ids;
-}
+export type NodeKind = Node["kind"];
+
+/** How a node of each kind is labelled, and so what a new one is called ("Agent", "Agent 2", …). */
+export const KIND_LABEL: Record<NodeKind, string> = {
+  agent: "Agent",
+  "human-gate": "Human gate",
+  check: "Check",
+  merge: "Merge",
+  stop: "Stop",
+};
 
 /** Set an optional key, or remove it when the value is `undefined`. Never mutates. */
 export function withField<T extends object, K extends keyof T>(obj: T, key: K, value: T[K] | undefined): T {
@@ -43,11 +59,28 @@ const round = (n: number): number => Math.round(n);
 
 // ─── graph ────────────────────────────────────────────────────────────────
 
-export function setGraphField<K extends "name" | "goal" | "description">(
-  doc: Graph,
-  key: K,
-  value: Graph[K] | undefined,
-): Graph {
+/**
+ * A minimal document: the fields the schema requires, plus a goal and target
+ * when given. `adaptation` is left out — its default applies at compile time.
+ */
+export function newGraph(options: { name: string; id?: Id; goal?: string; target?: HarnessId }): Graph {
+  const doc: Graph = {
+    grooph: 0,
+    id: options.id ?? slugify(options.name, "graph"),
+    name: options.name,
+    version: 1,
+    nodes: [],
+    edges: [],
+    loops: [],
+  };
+  if (options.goal !== undefined) doc.goal = options.goal;
+  if (options.target !== undefined) doc.target = { harness: options.target };
+  return doc;
+}
+
+export type GraphField = "name" | "goal" | "description" | "adaptation" | "lineage";
+
+export function setGraphField<K extends GraphField>(doc: Graph, key: K, value: Graph[K] | undefined): Graph {
   return withField(doc, key, value);
 }
 
@@ -91,17 +124,30 @@ export function newNode(kind: NodeKind, id: Id, name: string): Node {
 }
 
 /**
- * Add a node. It gets a layout entry only when the document already carries
- * layout: a layout-free document stays layout-free (amendment A-005).
+ * Add a node. Without a name it is called after its kind ("Agent", "Agent 2");
+ * without an id, the id is the name's slug, made unique. It gets a layout
+ * entry only when the document already carries layout: a layout-free document
+ * stays layout-free (amendment A-005).
  */
-export function addNode(doc: Graph, kind: NodeKind, at?: Position): { doc: Graph; id: Id } {
+export function addNode(
+  doc: Graph,
+  kind: NodeKind,
+  options: { at?: Position; name?: string; id?: Id } = {},
+): { doc: Graph; id: Id } {
   const taken = allIds(doc);
   const label = KIND_LABEL[kind];
-  const id = uniqueId(slugify(label), taken);
-  const suffix = id.slice(slugify(label).length); // "" or "-2", "-3", …
-  const name = suffix === "" ? label : `${label} ${suffix.slice(1)}`;
+  let id: Id;
+  let name: string;
+  if (options.name !== undefined) {
+    name = options.name;
+    id = options.id ?? uniqueId(slugify(name, slugify(label)), taken);
+  } else {
+    id = options.id ?? uniqueId(slugify(label), taken);
+    const suffix = id.slice(slugify(label).length); // "" or "-2", "-3", …
+    name = options.id !== undefined || suffix === "" ? label : `${label} ${suffix.slice(1)}`;
+  }
   let next: Graph = { ...doc, nodes: [...doc.nodes, newNode(kind, id, name)] };
-  if (doc.layout && at) next = setPositions(next, { [id]: at });
+  if (doc.layout && options.at) next = setPositions(next, { [id]: options.at });
   return { doc: next, id };
 }
 
@@ -121,17 +167,6 @@ export function setNodeName(doc: Graph, id: Id, name: string): { doc: Graph; id:
   if (newId === id) return { doc: next, id };
   next = renameId(next, id, newId);
   return { doc: next, id: newId };
-}
-
-/**
- * An id "follows" its object's name while it is exactly the slug of that name,
- * or that slug with the numeric suffix `uniqueId` adds. Editing the id by hand
- * breaks the link.
- */
-export function followsName(id: Id, name: string): boolean {
-  const slug = slugify(name, "");
-  if (slug === "") return true;
-  return id === slug || new RegExp(`^${slug}-\\d+$`).test(id);
 }
 
 /**
@@ -163,11 +198,12 @@ export function removeNode(doc: Graph, id: Id): Graph {
 
 // ─── edges ────────────────────────────────────────────────────────────────
 
-const edgeIdFor = (from: Id, to: Id): Id => `e-${from}-${to}`;
+/** The id an edge gets when none is given: `e-<from>-<to>`, made unique. */
+export const edgeIdFor = (from: Id, to: Id): Id => `e-${from}-${to}`;
 
 /** Connect two nodes. The new edge takes every default (`when: always`, `isolation: fresh`). */
-export function connect(doc: Graph, from: Id, to: Id): { doc: Graph; id: Id } {
-  const id = uniqueId(edgeIdFor(from, to), allIds(doc));
+export function connect(doc: Graph, from: Id, to: Id, options: { id?: Id } = {}): { doc: Graph; id: Id } {
+  const id = options.id ?? uniqueId(edgeIdFor(from, to), allIds(doc));
   return { doc: { ...doc, edges: [...doc.edges, { id, from, to }] }, id };
 }
 
@@ -187,10 +223,25 @@ export function removeEdge(doc: Graph, id: Id): Graph {
 
 // ─── loops ────────────────────────────────────────────────────────────────
 
-/** Add a loop over `members`. It starts with no back edge and no stop; the validator says what is missing. */
-export function addLoop(doc: Graph, members: Id[] = []): { doc: Graph; id: Id } {
-  const id = uniqueId("loop", allIds(doc));
-  const name = id === "loop" ? "Loop" : `Loop ${id.slice("loop-".length)}`;
+/**
+ * Add a loop over `members`. It starts with no back edge and no stop; the
+ * validator says what is missing. Without a name it is "Loop", "Loop 2", …
+ */
+export function addLoop(
+  doc: Graph,
+  members: Id[] = [],
+  options: { name?: string; id?: Id } = {},
+): { doc: Graph; id: Id } {
+  const taken = allIds(doc);
+  let id: Id;
+  let name: string;
+  if (options.name !== undefined) {
+    name = options.name;
+    id = options.id ?? uniqueId(slugify(name, "loop"), taken);
+  } else {
+    id = options.id ?? uniqueId("loop", taken);
+    name = options.id !== undefined || id === "loop" ? "Loop" : `Loop ${id.slice("loop-".length)}`;
+  }
   const loop: Loop = { id, name, members, back: [], stops: [] };
   return { doc: { ...doc, loops: [...doc.loops, loop] }, id };
 }
@@ -214,22 +265,32 @@ export function removeLoop(doc: Graph, id: Id): Graph {
   return dropScopedPolicies({ ...doc, loops: doc.loops.filter((l) => l.id !== id) }, `loop:${id}`);
 }
 
-const toggle = (list: Id[], id: Id): Id[] => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+/** Toggle membership of `id` in `list`, or set it when `on` is given. */
+const toggle = (list: Id[], id: Id, on?: boolean): Id[] => {
+  const present = list.includes(id);
+  const want = on ?? !present;
+  if (want === present) return list;
+  return want ? [...list, id] : list.filter((x) => x !== id);
+};
 
-/** Add or remove a member. Members keep document node order, so the loop reads the way the graph does. */
-export function toggleLoopMember(doc: Graph, loopId: Id, nodeId: Id): Graph {
+/**
+ * Add or remove a member (`on` forces one or the other; without it, toggle).
+ * Members keep document node order, so the loop reads the way the graph does.
+ */
+export function toggleLoopMember(doc: Graph, loopId: Id, nodeId: Id, on?: boolean): Graph {
   const order = new Map(doc.nodes.map((n, i) => [n.id, i]));
   return updateLoop(doc, loopId, (loop) => ({
     ...loop,
-    members: toggle(loop.members, nodeId).sort((a, b) => (order.get(a) ?? 1e9) - (order.get(b) ?? 1e9)),
+    members: toggle(loop.members, nodeId, on).sort((a, b) => (order.get(a) ?? 1e9) - (order.get(b) ?? 1e9)),
   }));
 }
 
-export function toggleLoopBack(doc: Graph, loopId: Id, edgeId: Id): Graph {
+/** Add or remove a back edge (`on` forces one or the other). Back edges keep document edge order. */
+export function toggleLoopBack(doc: Graph, loopId: Id, edgeId: Id, on?: boolean): Graph {
   const order = new Map(doc.edges.map((e, i) => [e.id, i]));
   return updateLoop(doc, loopId, (loop) => ({
     ...loop,
-    back: toggle(loop.back, edgeId).sort((a, b) => (order.get(a) ?? 1e9) - (order.get(b) ?? 1e9)),
+    back: toggle(loop.back, edgeId, on).sort((a, b) => (order.get(a) ?? 1e9) - (order.get(b) ?? 1e9)),
   }));
 }
 
@@ -256,8 +317,10 @@ export function newStop(kind: StopKind, previous?: Stop): Stop {
   }
 }
 
-export function addStop(doc: Graph, loopId: Id, kind: StopKind): Graph {
-  return updateLoop(doc, loopId, (loop) => ({ ...loop, stops: [...loop.stops, newStop(kind)] }));
+/** Append a stop of `kind` with its bounded defaults, overridden by `fields`. */
+export function addStop(doc: Graph, loopId: Id, kind: StopKind, fields: Partial<Stop> = {}): Graph {
+  const stop = { ...newStop(kind), ...fields, kind } as Stop;
+  return updateLoop(doc, loopId, (loop) => ({ ...loop, stops: [...loop.stops, stop] }));
 }
 
 export function setStop(doc: Graph, loopId: Id, index: number, stop: Stop): Graph {
@@ -279,6 +342,26 @@ export function moveStop(doc: Graph, loopId: Id, index: number, delta: -1 | 1): 
   });
 }
 
+// ─── policies ─────────────────────────────────────────────────────────────
+
+/** Add a policy. Without an id it is `p-<kind>`, made unique. */
+export function addPolicy(
+  doc: Graph,
+  policy: { kind: PolicyKind; scope: PolicyScope; params?: Policy["params"]; id?: Id },
+): { doc: Graph; id: Id } {
+  const kindName = typeof policy.kind === "string" ? policy.kind : policy.kind.custom;
+  const id = policy.id ?? uniqueId(`p-${slugify(kindName, "policy")}`, allIds(doc));
+  const added: Policy = { id, kind: policy.kind, scope: policy.scope };
+  if (policy.params !== undefined) added.params = policy.params;
+  return { doc: { ...doc, policies: [...(doc.policies ?? []), added] }, id };
+}
+
+/** Remove a policy; an emptied list is removed too, rather than left as a husk. */
+export function removePolicy(doc: Graph, id: Id): Graph {
+  if (!doc.policies) return doc;
+  return withField(doc, "policies", optList(doc.policies.filter((p) => p.id !== id)));
+}
+
 // ─── layout ───────────────────────────────────────────────────────────────
 
 /** Write positions into `layout`, rounded to whole pixels so diffs stay quiet. */
@@ -293,12 +376,14 @@ export function setPositions(doc: Graph, positions: Record<Id, Position>): Graph
 // ─── ids ──────────────────────────────────────────────────────────────────
 
 /**
- * Rename a node, edge or loop id and every reference to it. Run notes are
- * history and keep the id they were written with. Edge ids that were derived
- * from a renamed node (`e-<from>-<to>`) are re-derived so they stay readable.
+ * Rename an id and every reference to it: the graph's own id, or a node, edge,
+ * loop, group or policy id. Run notes are history and keep the id they were
+ * written with. Edge ids that were derived from a renamed node
+ * (`e-<from>-<to>`) are re-derived so they stay readable.
  */
 export function renameId(doc: Graph, from: Id, to: Id): Graph {
   if (from === to) return doc;
+  if (doc.id === from) return { ...doc, id: to };
   const swap = (id: Id): Id => (id === from ? to : id);
   const swapScope = <S extends string>(scope: S): S => {
     const colon = scope.indexOf(":");
@@ -325,8 +410,8 @@ export function renameId(doc: Graph, from: Id, to: Id): Graph {
       return l;
     }),
   };
-  if (doc.policies) next.policies = doc.policies.map((p) => ({ ...p, scope: swapScope(p.scope) }));
-  if (doc.groups) next.groups = doc.groups.map((g) => ({ ...g, members: g.members.map(swap) }));
+  if (doc.policies) next.policies = doc.policies.map((p) => ({ ...p, id: swap(p.id), scope: swapScope(p.scope) }));
+  if (doc.groups) next.groups = doc.groups.map((g) => ({ ...g, id: swap(g.id), members: g.members.map(swap) }));
   if (doc.layout && from in doc.layout) {
     const layout: NonNullable<Graph["layout"]> = {};
     for (const [key, value] of Object.entries(doc.layout)) layout[swap(key)] = value;

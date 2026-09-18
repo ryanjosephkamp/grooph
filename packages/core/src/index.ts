@@ -8,3 +8,4 @@ export { graphSchema, graphJsonSchema, SCHEMA_ID } from "./schema/graph.js";
 export { indexGraph, type GraphIndex } from "./graph-index.js";
 export * from "./semantics.js";
 export { KNOWN_TARGETS, getProfile, hasProfile, type TargetProfile } from "./targets/index.js";
+export * from "./ops/index.js";

@@ -58,8 +58,8 @@ test("key order follows the types, with layout last", () => {
   const node = (canonical["nodes"] as Record<string, unknown>[])[0]!;
   assert.deepEqual(Object.keys(node), [
     "id",
-    "name",
     "kind",
+    "name",
     "role",
     "model",
     "effort",
@@ -69,6 +69,10 @@ test("key order follows the types, with layout last", () => {
     "allow",
     "owns",
   ]);
+
+  for (const each of canonical["nodes"] as Record<string, unknown>[]) {
+    assert.deepEqual(Object.keys(each).slice(0, 2), ["id", "kind"], `kind is second on ${String(each["id"])} (graph-ir §7)`);
+  }
 
   const loop = (canonical["loops"] as Record<string, unknown>[])[0]!;
   assert.deepEqual(Object.keys(loop), ["id", "name", "members", "back", "mode", "bar", "stops"]);

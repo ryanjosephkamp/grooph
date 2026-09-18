@@ -1,0 +1,39 @@
+/**
+ * "Did you mean …?" for names a model or a human mistyped: op names, argument
+ * names, ids, and unknown document keys (`W_UNKNOWN_KEY`).
+ */
+
+function distance(a: string, b: string): number {
+  if (a === b) return 0;
+  let previous = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      current[j] = Math.min(previous[j]! + 1, current[j - 1]! + 1, previous[j - 1]! + cost);
+    }
+    previous = current;
+  }
+  return previous[b.length]!;
+}
+
+/** The closest candidate within a small edit distance, or undefined. */
+export function closest(word: string, candidates: Iterable<string>): string | undefined {
+  const limit = Math.max(1, Math.min(3, Math.floor(word.length / 3)));
+  let best: string | undefined;
+  let bestDistance = Infinity;
+  for (const candidate of candidates) {
+    const d = distance(word.toLowerCase(), candidate.toLowerCase());
+    if (d < bestDistance && d <= limit) {
+      best = candidate;
+      bestDistance = d;
+    }
+  }
+  return best;
+}
+
+/** `; did you mean "x"?` or nothing. */
+export const didYouMean = (word: string, candidates: Iterable<string>): string => {
+  const hit = closest(word, candidates);
+  return hit === undefined ? "" : `; did you mean "${hit}"?`;
+};

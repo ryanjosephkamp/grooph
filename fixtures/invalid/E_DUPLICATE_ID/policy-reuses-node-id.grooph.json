@@ -4,7 +4,9 @@
   "name": "Policy reuses a node id",
   "version": 1,
   "goal": "Write the release note in NOTES.md.",
-  "target": { "harness": "claude-code" },
+  "target": {
+    "harness": "claude-code"
+  },
   "description": "Ids are unique across every id-bearing object, not just within one list: this policy takes the id of the worker node.",
   "nodes": [
     {
@@ -13,11 +15,30 @@
       "name": "Worker",
       "role": "builder",
       "brief": "Write the release note.",
-      "outputs": ["NOTES.md"]
+      "outputs": [
+        "NOTES.md"
+      ]
     },
-    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
   ],
-  "edges": [{ "id": "e-finish", "from": "worker", "to": "done" }],
+  "edges": [
+    {
+      "id": "e-finish",
+      "from": "worker",
+      "to": "done"
+    }
+  ],
   "loops": [],
-  "policies": [{ "id": "worker", "kind": "no-self-grading", "scope": "graph" }]
+  "policies": [
+    {
+      "id": "worker",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
 }
