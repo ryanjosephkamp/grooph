@@ -137,6 +137,13 @@ EOF
 # The run needs a shell for the test command and for the diff the critic inspects.
 # Narrow on purpose: the acceptance test is about the package, not about how much
 # the sandbox allows.
+#
+# Observed in the 2026-09-18 run: 11 Bash calls were denied, every one of them a
+# compound command (`npm test > out.txt 2>&1; echo $?`, heredocs, `cmd && cmd`),
+# which none of these prefix rules match. The run recovered each time by retrying
+# a simpler form and never invented a result, so the acceptance test still passed.
+# Widen to "Bash(npm:*)" and "Bash(git:*)" if you want a quieter transcript; keep
+# it narrow if you would rather see what the run does when a tool is refused.
 mkdir -p "$SCRATCH/.claude"
 cat > "$SCRATCH/.claude/settings.json" <<'EOF'
 {

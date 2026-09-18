@@ -1,10 +1,10 @@
 # Handback 0001 · Core, validator, Claude Code compiler, CLI
 
-**Implementer:** Opus 5 · **Branch:** `slice/0001-core-compiler-cli` · **Last code commit:** `6803982` (this handback is the commit after it, at the branch head) · **Date:** 2026-09-18
+**Implementer:** Opus 5 · **Branch:** `slice/0001-core-compiler-cli` · **Last code commit:** `LASTSHA` (this handback is the commit after it, at the branch head) · **Date:** 2026-09-18
 
 ## Status
 
-`blocked` — criteria 1–5 are met, verified and green in CI; criterion 6 could not run because the `claude` CLI on this machine is not signed in (`claude auth status` → `loggedIn: false`), and the owner, on remote control, could not reach a terminal to authenticate it.
+`done` — all six criteria are met. The headless acceptance run passed on 2026-09-18 after the owner signed the CLI in: the compiled package drove a fresh Claude Code session through two loop passes, a real critic rejection, a fix, a bar pass, and a clean halt at the human gate.
 
 ## What changed
 
@@ -58,24 +58,51 @@ Run cold: `node_modules` and both `dist` folders deleted first. Head commit `680
 | 5 | CLI | `pnpm exec grooph validate fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json` | `error  E_CYCLE_NO_STOP  cycle with no stop: builder → critic. …  [at: builder, critic]` then `1 error, 0 warnings`, exit 1 |
 | 5 | CLI | `pnpm exec grooph canonicalize <file> [--write]` | canonical form on stdout; `--write` rewrites then reports `already canonical` on a second run |
 | 5 | CLI | `pnpm exec grooph export … --into <dir>` on an invalid document | refuses, prints `cannot export` with the code list, writes nothing, exit 1 |
-| 6 | Headless acceptance run | `./scripts/e2e-claude-code.sh` | **unmet.** See below. |
+| 6 | Headless acceptance run | `./scripts/e2e-claude-code.sh` | **PASS.** Run `20260918-0042-k7qm`; every assertion in the script held. See below. |
 
 The handoff's suggested form `pnpm --filter @grooph/cli exec grooph …` does not work: pnpm does not link a package's own bin into its own `node_modules/.bin`. The working forms are `pnpm exec grooph …` from the repo root (a root devDependency on `@grooph/cli` links the bin) or `node packages/cli/bin/grooph.js …`. CI uses the former.
 
-### Acceptance run summary (criterion 6, unmet)
+### Acceptance run summary (criterion 6, PASS)
 
-- **Run id:** none. **Rounds:** none. **Stop:** none. **Lead turns:** 1. **Cost:** `total_cost_usd: 0`.
-- The first invocation returned, in one turn, `"result": "Failed to authenticate: OAuth session expired and could not be refreshed"`, `is_error: true`, `subagent_stats.spawned: 0`. `claude auth status` confirms `{"loggedIn": false, "authMethod": "none"}` — this desktop-app session does not share credentials with the CLI, and `claude auth login` is an interactive browser sign-in I must not perform on the owner's behalf.
-- **Neither of the two approved runs was spent.** Nothing reached a model; the package's behaviour under a real lead is still unmeasured, which is exactly the risk this slice was sequenced first to retire.
-- Everything around the model call is finished and verified by `./scripts/e2e-claude-code.sh --dry-run`: the scratch project (`TASK.md`, `docs/REVIEW-CHECKLIST.md`, a `npm test` setup, a git repo so "diff of src/ and tests/" is real, the exported package), the assertion pass, and the summary. The assertion pass was tested against three synthetic `notes.jsonl` files — a good run, one with no `node:critic` note, one whose last note names no stop — and passes, fails and fails respectively.
-- The script now **refuses before spending** when the CLI is not signed in, so the next attempt cannot waste a run the way the first invocation did.
-- **To finish it:** sign the CLI in once (`claude auth login`, or `claude setup-token`, or export `ANTHROPIC_API_KEY`), then run `./scripts/e2e-claude-code.sh` from the repo root. It prints the run id, note counts, rounds, the stop it named, lead turns and cost, and keeps the scratch directory for inspection.
+**Run id** `20260918-0042-k7qm` · **rounds** 1 (two passes through the loop: round 0 and round 1) · **stop fired** `bar-passed`, then a halt at the `merge-gate` human gate · **lead turns** 33 (the harness's count) · **cost** $2.32 · **wall clock** 4m25s · **subagents** 4 spawned, 4 completed, 0 failed (`review-loop--builder` ×2, `review-loop--critic` ×2) · **model** `claude-opus-5`, which is tier `strong` resolved through the emitted frontmatter.
+
+What the run did, from its own notes:
+
+| note | at | round | outcome |
+|---|---|---|---|
+| n-0001 | `graph` | — | run started |
+| n-0002 | `node:builder` | 0 | pass (`verdict: done`) |
+| n-0003 | `node:critic` | 0 | **fail** (`verdict: fail`) — checklist item 4 unmet |
+| n-0004 | `loop:review-cycle` | 0 | fail; stops evaluated, back edge `e-review-fail` taken |
+| n-0005 | `node:builder` | 1 | pass — RangeError added |
+| n-0006 | `node:critic` | 1 | **pass** — 6/6 items cited, `npm test` 7/7 |
+| n-0007 | `loop:review-cycle` | 1 | pass; `bar-passed` fired → pass exit edge |
+| n-0008 | `node:merge-gate` | 1 | halt — waiting for a human |
+| n-0009 | `graph` | 1 | halt — run ended, stop named |
+
+The parts worth reporting to the driver, because they are the answers this slice was sequenced first to get:
+
+- **The loop did real work.** Round 0 failed on the one checklist item the task description does not spell out (an unreadable string must raise `RangeError`). The builder fixed exactly that in round 1. This was not a rubber stamp.
+- **The critic behaved like a critic.** Its `REVIEW.md` cites a file and a line for all six items, and it re-ran `npm test` itself rather than trusting the builder's reported output — which is what its brief tells it to do. Its round-1 verdict line is the exact format the agent file prescribes.
+- **Isolation held.** Each round dispatched a fresh subagent; the lead materialised the edge's evidence as files (`diff-r0-src.patch`, `test-output-r0.txt`, …) inside the run folder and pointed the fresh critic at those, rather than pasting a transcript. That is the intended reading of `isolation: fresh`, arrived at by the lead on its own; `docs/targets/claude-code.md` could name the pattern.
+- **The gate was not simulated.** The lead stopped at `merge-gate`, wrote `outcome: "halt"` with the resume instruction, and reported that it waits for a human — exactly what `LEAD.md` §7 says to do in a non-interactive session, and what graph-ir §2 forbids it from faking.
+- **The file contract holds.** All nine notes parse against the published `RunNote` schema, and the review-loop document with those notes attached still validates for export. Amendment A-007's "the package names the path and the line format" survived contact with a real run.
+- **The run proposed graph edits and applied none.** Both proposals landed in `PROGRESS.md` and the notes, as graph-ir §6 requires.
+
+**The one place the lead stepped outside the package's intent**, and it is the graph's fault rather than the compiler's: the critic node declares `REVIEW.md` in its `outputs` while denying `edit-files`, so the compiler correctly withheld `Write` — and the critic then could not write the file it is required to leave behind. The lead saved `REVIEW.md` from the critic's reply itself, and said so in a proposal note. That is the lead doing a worker's job, which §1 of its own brief tells it not to do. See the findings below: the fixture graph is self-contradictory, and no rule in graph-ir §3 catches it today.
+
+Two smaller observations:
+
+- **The lead's turn count and the harness's disagree.** The final note records `cost: {measure: "turns", amount: 25}`; the harness reported 33. `docs/targets/claude-code.md` says `turns` budgets are "enforced by the lead's own counting", and this is what that costs: a 40-turn budget is really "40 of whatever the lead counts". Worth a sentence in the target doc.
+- **Eleven `Bash` calls were denied** by the scratch project's deliberately narrow allowlist, every one a compound command (`npm test > out.txt 2>&1; echo $?`, heredocs, `a && b`) that the prefix rules do not match. The run retried simpler forms each time and never fabricated a result — which is its own small piece of evidence. The script now carries a comment saying what to widen.
+
+Reproduce with `./scripts/e2e-claude-code.sh`; it prints all of the above and keeps the scratch directory. **One of the two approved runs is still unused**: the 2026-09-17 invocation failed to authenticate in one turn at `total_cost_usd: 0` and never reached a model.
 
 ### The emitted lead brief
 
 `fixtures/golden/claude-code/review-loop/.grooph/review-loop/LEAD.md`
 
-The hardest thing to express was the evidence-and-isolation rule. Everything else in the brief is a fact the lead can check against a file — the goal, the node table, the routing conditions, the bar's refs, the stops and their order, where the progress log goes. Isolation is the opposite: it is a prohibition on being helpful. The lead is told not to paste a transcript into a fresh worker, to hand a critic only the artifacts its inbound edge lists, and not to re-read the diff itself and overrule the verdict — and nothing in the package can enforce any of that, because the one unit that could (a `Stop` hook, or a workflow script that does the routing) is deferred by `docs/targets/claude-code.md` § "Optional accelerators". So the rule appears three times in prose, at descending altitude: §1 as the lead's job description, §5 as the rule for every edge, and again in each critic's agent body with the `invalid-evidence` escape hatch. Whether prose is enough is precisely what the unrun acceptance test was meant to measure; the honest answer today is that we do not know.
+The hardest thing to express was the evidence-and-isolation rule. Everything else in the brief is a fact the lead can check against a file — the goal, the node table, the routing conditions, the bar's refs, the stops and their order, where the progress log goes. Isolation is the opposite: it is a prohibition on being helpful. The lead is told not to paste a transcript into a fresh worker, to hand a critic only the artifacts its inbound edge lists, and not to re-read the diff itself and overrule the verdict — and nothing in the package can enforce any of that, because the one unit that could (a `Stop` hook, or a workflow script that does the routing) is deferred by `docs/targets/claude-code.md` § "Optional accelerators". So the rule appears three times in prose, at descending altitude: §1 as the lead's job description, §5 as the rule for every edge, and again in each critic's agent body with the `invalid-evidence` escape hatch. On the evidence of one run, prose was enough: the lead wrote the evidence to files and handed a fresh critic the paths, never pasted a transcript, and let the critic's verdict stand rather than re-reading the diff itself. One run is one data point, and it is the data point the package most needs more of.
 
 ## Decisions made
 
@@ -119,20 +146,23 @@ Design decisions inside the boundary:
 5. **§2 human gates in a non-interactive run.** "The lead asks and waits… does not simulate an answer" has no meaning headless, and the target doc's headless procedure does not say what to do. `LEAD.md` §7 tells the lead to treat the gate as the end of the run: note `outcome: "halt"` naming the gate, write the final `PROGRESS.md`, report that it waits for a human, and resume later with the same run id. For the review-loop graph this is the *expected* ending of a headless pass, so the acceptance assertion accepts it.
 6. **`docs/targets/claude-code.md` § "Headless acceptance run" does not mention workspace trust.** As written, the procedure silently loses the project's permission allowlist in any fresh directory. It is worth a sentence there, with `--settings` named as the flag-based way in.
 7. **The capability-to-tools table is one-directional.** It says `disallowedTools` comes from `deny` but not what to do when `deny` and `allow` map to overlapping tools; see the decision above.
+8. **Nothing checks that a node can produce its own outputs.** Found by the acceptance run, not by reading: `fixtures/valid/review-loop.grooph.json` gives the critic `outputs: ["REVIEW.md …"]` and `deny: ["edit-files"]`, so the package correctly withholds `Write` from a node that is required to leave a file behind. The graph validates clean, because no rule in graph-ir §3 relates `outputs` to `allow`/`deny`. I did not touch the fixture: this is not an inconsistency with graph-ir's text — graph-ir simply has no rule for it — and inventing one is outside this handoff. It looks like a stage-3 rule (`E_OUTPUT_NOT_WRITABLE`, or a warning), and the fixture wants a matching fix once the rule exists. Until then the review-gate pattern quietly depends on the lead ghost-writing the critic's file.
 
 ## Risks and leftovers
 
-- **The slice's stated risk is still open.** Nothing has yet shown that a compiled package drives a Claude Code session: no lead has read `LEAD.md`. Criterion 6 is one authenticated command away, and the script is written to be that one command. I recommend the driver either merge 1–5 and schedule the acceptance run as its own short slice, or hold the merge until the owner can sign the CLI in and re-run it.
-- Until then, treat every claim about the package's *effectiveness* as unverified. What is verified is that it is emitted, deterministic, byte-stable, and carries every piece graph-ir §5 names.
+- **The slice's stated risk is retired for one graph, once.** A compiled package drove a real session through a real rejection to a real stop. It is one run, of one small graph, on one harness version, with one model. It says nothing yet about a graph with fan-out, with `shared` isolation, with a check node, or with more than two agent nodes — the empirical stage exists for that, and `scripts/e2e-claude-code.sh` is the shape those runs can take.
+- **The review-gate pattern has a hole the run exposed** (finding 8 above): a critic that must write `REVIEW.md` but is denied `edit-files`. Whatever the driver decides — a rule, a fixture fix, or a documented convention that critics report and the lead files — it should land before `patterns/` grows copies of this graph in stage 4.
 - `actions/checkout@v4`, `actions/setup-node@v4` and `pnpm/action-setup@v4` raise a Node 20 deprecation annotation on GitHub's runners. Harmless today; a version bump is a one-line change I left alone rather than guess at.
 - Non-★ rules from §3 are not implemented (stage 3, as the handoff says). `PLANNED_CODES` names them so the fixture walk can start enforcing them the moment each one lands.
 - `fixtures/valid/review-loop.grooph.json` is byte-identical to what the driver wrote, so `grooph canonicalize` on it is not a no-op (key order differs). The canonical form of the same document is committed inside the golden package. If the driver would rather fixtures be canonical, that is a one-command change.
 - `packages/core`'s entry point is `dist/src/index.js` rather than `dist/index.js`, because `targets/*.profile.json` lives outside `src/` (the target doc fixes its path) and so `rootDir` is the package root. Cosmetic, but it will show up in `apps/web`'s imports.
 - The two type-level assertions in `src/schema/graph.ts` are the only thing keeping `types.ts` and the schema in step. They are strong for shape but blind to constraints: a `pattern` or `minItems` in the schema that the type cannot express is not checked by anything but a test.
-- `docs/PROGRESS.md` has six new **In flight** lines; the driver rewrites that section at reconcile.
+- The scratch project's `Bash` allowlist does not match compound commands, which cost the run 11 denials and some retries. The script keeps the narrow list (with a comment saying what to widen) so the committed script is exactly the one that produced the evidence above.
+- One of the two approved acceptance runs is unused. If the driver wants a second data point — the same graph with the gate removed, so the run reaches the `done` stop node instead of halting — it is available without new approval.
+- `docs/PROGRESS.md` has seven new **In flight** lines; the driver rewrites that section at reconcile.
 
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0001 is at handoffs/0001-core-compiler-cli/HANDBACK.md at the head of branch slice/0001-core-compiler-cli (last code commit 6803982). Status: blocked — criteria 1-5 met and green in CI, criterion 6 (headless acceptance run) unmet because the claude CLI on this machine is not signed in; neither approved run was spent. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0001 is at handoffs/0001-core-compiler-cli/HANDBACK.md at the head of branch slice/0001-core-compiler-cli (last code commit LASTSHA). Status: done — all six criteria met, CI green, and the headless acceptance run passed (run 20260918-0042-k7qm: two loop passes, critic rejected round 0, bar-passed fired at round 1, clean halt at the human gate, 33 turns, $2.32). Please reconcile with the grooph-reconcile skill.
 ```

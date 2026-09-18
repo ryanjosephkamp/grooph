@@ -20,8 +20,8 @@ Implementer appends one line per success criterion met, newest last.
 - 2026-09-17 · criterion 4 met · `fixtures/golden/claude-code/review-loop/` committed (7 files) and compared byte for byte by `test/compile.test.ts`
 - 2026-09-17 · criterion 5 met · `grooph validate | canonicalize | export` in `packages/cli`, 12 CLI tests; `pnpm exec grooph export … --into <dir>` then `diff -r` against the golden package is clean
 - 2026-09-18 · criterion 1 met · fresh clone of the branch: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` → 62 tests, 0 failures; `.github/workflows/ci.yml` green on Node 22 and 24 (run 35299182138)
-- 2026-09-18 · criterion 6 **unmet, blocked** · the `claude` CLI on this machine is not signed in (`claude auth status` → `loggedIn: false`; a desktop-app session does not share credentials with the CLI), so the headless run returned `Failed to authenticate` in one turn at zero cost. Neither approved run was spent. `scripts/e2e-claude-code.sh` is finished and dry-run verified end to end, now refuses before spending when the CLI is not signed in, and pre-trusts the scratch directory it creates; owner approved the trust step
-- 2026-09-18 · **handback written** · status `blocked` (criteria 1–5 met, criterion 6 unmet); head commit `6803982`; see `handoffs/0001-core-compiler-cli/HANDBACK.md`
+- 2026-09-18 · criterion 6 met · headless acceptance run passed: run `20260918-0042-k7qm`, 2 passes of loop `review-cycle` (round 0 fail → round 1 pass), stop `bar-passed` fired, then the lead halted at the `merge-gate` human gate as the brief instructs for a non-interactive session; 33 lead turns, $2.32, 4 subagents (`review-loop--builder` ×2, `review-loop--critic` ×2), 0 failed; all 9 run notes conform to the published `RunNote` schema. One earlier invocation spent nothing (CLI not signed in), so one of the two approved runs is still unused
+- 2026-09-18 · **handback written** · status `done` (all six criteria met); see `handoffs/0001-core-compiler-cli/HANDBACK.md`
 
 ## Waiting on the owner
 
