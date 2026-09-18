@@ -1,6 +1,6 @@
 # Handoff 0001 · Core, validator, Claude Code compiler, CLI
 
-**Stage:** 2 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0001-core-compiler-cli` · **Drafted:** 2026-09-17 · **Confirmed by owner:** pending
+**Stage:** 2 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0001-core-compiler-cli` · **Drafted:** 2026-09-17 · **Confirmed by owner:** 2026-09-17
 
 ## Objective
 

@@ -34,7 +34,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 
 | Slice | Stage | Title | Implementer | Status |
 |---|---|---|---|---|
-| 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | handoff drafted, awaiting owner confirmation |
+| 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | in progress (confirmed 2026-09-17) |
 | 0002 | 2 | Minimal canvas | Opus 5 | todo |
 
 ## Ordering rules

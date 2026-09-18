@@ -4,25 +4,31 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 2 (vertical slice), about to start.
-- **Next action:** owner confirms slice 0001; then the owner pastes the 0001 prompt into an Opus 5 session.
+- **Stage:** 2 (vertical slice), slice 0001 in progress.
+- **Next action:** the Opus 5 implementer session works `handoffs/0001-core-compiler-cli/HANDOFF.md` on branch `slice/0001-core-compiler-cli`; when its handback prompt is pasted into the driver session, the driver reconciles with `grooph-reconcile`.
 - **Last coherent commit:** see `git log -1`.
 
 ## In flight
 
-_(none — 0001 not yet started)_
+### Slice 0001 · Core, validator, Claude Code compiler, CLI
+
+Implementer appends one line per success criterion met, newest last.
+
+- 2026-09-17 · started (owner confirmed the slice; acceptance-run spend approved, capped at two headless runs)
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0001 as written in `handoffs/0001-core-compiler-cli/HANDOFF.md` | Yes |
-| Repository license (repo is public) | MIT, unless you want to keep options open; then leave unlicensed for now |
+_(nothing until the 0001 handback)_
+
+## Scheduled after 0001
+
+- Astra (Codex) read-only review of `docs/graph-ir.md` for harness-neutrality, before the schema widens in stage 3. Driver drafts that handoff at reconcile time.
 
 ## Done
 
 | Date | What |
 |---|---|
+| 2026-09-17 | Owner confirmed slice 0001; MIT license added. |
 | 2026-09-17 | Phase A alignment: platform, executive location, phone-to-run path and slice order decided (see `PLAN.md`). |
 | 2026-09-17 | Stage 0: repo scaffolding, spec + amendments, living docs, handoff protocol, project skills. |
 | 2026-09-17 | Stage 1: graph document v0 designed (`graph-ir.md`), Claude Code target mapping (`targets/claude-code.md`), example fixtures. |
