@@ -1,6 +1,6 @@
 # Handback 0001 · Core, validator, Claude Code compiler, CLI
 
-**Implementer:** Opus 5 · **Branch:** `slice/0001-core-compiler-cli` · **Last code commit:** `LASTSHA` (this handback is the commit after it, at the branch head) · **Date:** 2026-09-18
+**Implementer:** Opus 5 · **Branch:** `slice/0001-core-compiler-cli` · **Last code commit:** `e93138f` (this handback is the commit after it, at the branch head) · **Date:** 2026-09-18
 
 ## Status
 
@@ -164,5 +164,5 @@ Design decisions inside the boundary:
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0001 is at handoffs/0001-core-compiler-cli/HANDBACK.md at the head of branch slice/0001-core-compiler-cli (last code commit LASTSHA). Status: done — all six criteria met, CI green, and the headless acceptance run passed (run 20260918-0042-k7qm: two loop passes, critic rejected round 0, bar-passed fired at round 1, clean halt at the human gate, 33 turns, $2.32). Please reconcile with the grooph-reconcile skill.
+Handback for slice 0001 is at handoffs/0001-core-compiler-cli/HANDBACK.md at the head of branch slice/0001-core-compiler-cli (last code commit e93138f). Status: done — all six criteria met, CI green, and the headless acceptance run passed (run 20260918-0042-k7qm: two loop passes, critic rejected round 0, bar-passed fired at round 1, clean halt at the human gate, 33 turns, $2.32). Please reconcile with the grooph-reconcile skill.
 ```
