@@ -1,0 +1,837 @@
+{
+  "grooph": 0,
+  "id": "docs-audit-fanout",
+  "name": "Docs audit fan-out",
+  "version": 1,
+  "goal": "Find where the documentation and the product disagree, with evidence, and report the ten that matter most.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "time": "one afternoon"
+  },
+  "description": "Twenty-three scouts read one documentation area each and a synthesizer merges their findings. Structurally sound and loop-free, but the document itself has outgrown the budget for rewriting it in one pass, which is what W_DOC_TOO_LARGE is for.",
+  "nodes": [
+    {
+      "id": "scout-billing",
+      "kind": "agent",
+      "name": "Billing scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/billing/ and the three most recent changelog entries that touch it. Write one file, findings/billing.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/billing/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/billing.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/billing.md"
+      ]
+    },
+    {
+      "id": "scout-auth",
+      "kind": "agent",
+      "name": "Authentication scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/auth/ and the three most recent changelog entries that touch it. Write one file, findings/auth.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/auth/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/auth.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/auth.md"
+      ]
+    },
+    {
+      "id": "scout-search",
+      "kind": "agent",
+      "name": "Search scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/search/ and the three most recent changelog entries that touch it. Write one file, findings/search.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/search/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/search.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/search.md"
+      ]
+    },
+    {
+      "id": "scout-uploads",
+      "kind": "agent",
+      "name": "Uploads scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/uploads/ and the three most recent changelog entries that touch it. Write one file, findings/uploads.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/uploads/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/uploads.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/uploads.md"
+      ]
+    },
+    {
+      "id": "scout-notifications",
+      "kind": "agent",
+      "name": "Notifications scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/notifications/ and the three most recent changelog entries that touch it. Write one file, findings/notifications.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/notifications/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/notifications.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/notifications.md"
+      ]
+    },
+    {
+      "id": "scout-admin",
+      "kind": "agent",
+      "name": "Admin console scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/admin/ and the three most recent changelog entries that touch it. Write one file, findings/admin.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/admin/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/admin.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/admin.md"
+      ]
+    },
+    {
+      "id": "scout-api",
+      "kind": "agent",
+      "name": "Public API scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/api/ and the three most recent changelog entries that touch it. Write one file, findings/api.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/api/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/api.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/api.md"
+      ]
+    },
+    {
+      "id": "scout-webhooks",
+      "kind": "agent",
+      "name": "Webhooks scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/webhooks/ and the three most recent changelog entries that touch it. Write one file, findings/webhooks.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/webhooks/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/webhooks.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/webhooks.md"
+      ]
+    },
+    {
+      "id": "scout-mobile",
+      "kind": "agent",
+      "name": "Mobile app scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/mobile/ and the three most recent changelog entries that touch it. Write one file, findings/mobile.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/mobile/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/mobile.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/mobile.md"
+      ]
+    },
+    {
+      "id": "scout-reporting",
+      "kind": "agent",
+      "name": "Reporting scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/reporting/ and the three most recent changelog entries that touch it. Write one file, findings/reporting.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/reporting/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/reporting.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/reporting.md"
+      ]
+    },
+    {
+      "id": "scout-imports",
+      "kind": "agent",
+      "name": "Imports scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/imports/ and the three most recent changelog entries that touch it. Write one file, findings/imports.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/imports/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/imports.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/imports.md"
+      ]
+    },
+    {
+      "id": "scout-exports",
+      "kind": "agent",
+      "name": "Exports scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/exports/ and the three most recent changelog entries that touch it. Write one file, findings/exports.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/exports/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/exports.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/exports.md"
+      ]
+    },
+    {
+      "id": "scout-permissions",
+      "kind": "agent",
+      "name": "Permissions scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/permissions/ and the three most recent changelog entries that touch it. Write one file, findings/permissions.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/permissions/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/permissions.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/permissions.md"
+      ]
+    },
+    {
+      "id": "scout-audit",
+      "kind": "agent",
+      "name": "Audit log scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/audit/ and the three most recent changelog entries that touch it. Write one file, findings/audit.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/audit/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/audit.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/audit.md"
+      ]
+    },
+    {
+      "id": "scout-onboarding",
+      "kind": "agent",
+      "name": "Onboarding scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/onboarding/ and the three most recent changelog entries that touch it. Write one file, findings/onboarding.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/onboarding/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/onboarding.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/onboarding.md"
+      ]
+    },
+    {
+      "id": "scout-settings",
+      "kind": "agent",
+      "name": "Settings scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/settings/ and the three most recent changelog entries that touch it. Write one file, findings/settings.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/settings/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/settings.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/settings.md"
+      ]
+    },
+    {
+      "id": "scout-integrations",
+      "kind": "agent",
+      "name": "Integrations scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/integrations/ and the three most recent changelog entries that touch it. Write one file, findings/integrations.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/integrations/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/integrations.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/integrations.md"
+      ]
+    },
+    {
+      "id": "scout-scheduling",
+      "kind": "agent",
+      "name": "Scheduling scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/scheduling/ and the three most recent changelog entries that touch it. Write one file, findings/scheduling.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/scheduling/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/scheduling.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/scheduling.md"
+      ]
+    },
+    {
+      "id": "scout-templates",
+      "kind": "agent",
+      "name": "Templates scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/templates/ and the three most recent changelog entries that touch it. Write one file, findings/templates.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/templates/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/templates.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/templates.md"
+      ]
+    },
+    {
+      "id": "scout-archive",
+      "kind": "agent",
+      "name": "Archive scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/archive/ and the three most recent changelog entries that touch it. Write one file, findings/archive.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/archive/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/archive.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/archive.md"
+      ]
+    },
+    {
+      "id": "scout-localization",
+      "kind": "agent",
+      "name": "Localization scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/localization/ and the three most recent changelog entries that touch it. Write one file, findings/localization.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/localization/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/localization.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/localization.md"
+      ]
+    },
+    {
+      "id": "scout-billing-tax",
+      "kind": "agent",
+      "name": "Tax rules scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/billing-tax/ and the three most recent changelog entries that touch it. Write one file, findings/billing-tax.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/billing-tax/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/billing-tax.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/billing-tax.md"
+      ]
+    },
+    {
+      "id": "scout-sso",
+      "kind": "agent",
+      "name": "Single sign-on scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read every page under docs/sso/ and the three most recent changelog entries that touch it. Write one file, findings/sso.md, with: what the area promises, what it actually does today, the three places those disagree most, and a line of evidence for each disagreement \u2014 a path and a line number, never an adjective. Do not edit anything outside findings/. If the area has no pages, say so in one line and stop rather than inventing material.",
+      "inputs": [
+        "docs/sso/",
+        "CHANGELOG.md"
+      ],
+      "outputs": [
+        "findings/sso.md"
+      ],
+      "allow": [
+        "read-files"
+      ],
+      "owns": [
+        "findings/sso.md"
+      ]
+    },
+    {
+      "id": "synthesizer",
+      "kind": "agent",
+      "name": "Synthesizer",
+      "role": "synthesizer",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Read every file under findings/ and write REPORT.md: the ten disagreements that cost the most, each with the evidence line that proves it and the area it came from. Drop anything a scout could not evidence. Do not re-research an area yourself.",
+      "inputs": [
+        "findings/"
+      ],
+      "outputs": [
+        "REPORT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ],
+      "owns": [
+        "REPORT.md"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-billing-synth",
+      "from": "scout-billing",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/billing.md"
+      ]
+    },
+    {
+      "id": "e-auth-synth",
+      "from": "scout-auth",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/auth.md"
+      ]
+    },
+    {
+      "id": "e-search-synth",
+      "from": "scout-search",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/search.md"
+      ]
+    },
+    {
+      "id": "e-uploads-synth",
+      "from": "scout-uploads",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/uploads.md"
+      ]
+    },
+    {
+      "id": "e-notifications-synth",
+      "from": "scout-notifications",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/notifications.md"
+      ]
+    },
+    {
+      "id": "e-admin-synth",
+      "from": "scout-admin",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/admin.md"
+      ]
+    },
+    {
+      "id": "e-api-synth",
+      "from": "scout-api",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/api.md"
+      ]
+    },
+    {
+      "id": "e-webhooks-synth",
+      "from": "scout-webhooks",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/webhooks.md"
+      ]
+    },
+    {
+      "id": "e-mobile-synth",
+      "from": "scout-mobile",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/mobile.md"
+      ]
+    },
+    {
+      "id": "e-reporting-synth",
+      "from": "scout-reporting",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/reporting.md"
+      ]
+    },
+    {
+      "id": "e-imports-synth",
+      "from": "scout-imports",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/imports.md"
+      ]
+    },
+    {
+      "id": "e-exports-synth",
+      "from": "scout-exports",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/exports.md"
+      ]
+    },
+    {
+      "id": "e-permissions-synth",
+      "from": "scout-permissions",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/permissions.md"
+      ]
+    },
+    {
+      "id": "e-audit-synth",
+      "from": "scout-audit",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/audit.md"
+      ]
+    },
+    {
+      "id": "e-onboarding-synth",
+      "from": "scout-onboarding",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/onboarding.md"
+      ]
+    },
+    {
+      "id": "e-settings-synth",
+      "from": "scout-settings",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/settings.md"
+      ]
+    },
+    {
+      "id": "e-integrations-synth",
+      "from": "scout-integrations",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/integrations.md"
+      ]
+    },
+    {
+      "id": "e-scheduling-synth",
+      "from": "scout-scheduling",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/scheduling.md"
+      ]
+    },
+    {
+      "id": "e-templates-synth",
+      "from": "scout-templates",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/templates.md"
+      ]
+    },
+    {
+      "id": "e-archive-synth",
+      "from": "scout-archive",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/archive.md"
+      ]
+    },
+    {
+      "id": "e-localization-synth",
+      "from": "scout-localization",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/localization.md"
+      ]
+    },
+    {
+      "id": "e-billing-tax-synth",
+      "from": "scout-billing-tax",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/billing-tax.md"
+      ]
+    },
+    {
+      "id": "e-sso-synth",
+      "from": "scout-sso",
+      "to": "synthesizer",
+      "when": "always",
+      "isolation": "fresh",
+      "evidence": [
+        "findings/sso.md"
+      ]
+    },
+    {
+      "id": "e-report-done",
+      "from": "synthesizer",
+      "to": "done",
+      "when": "always"
+    }
+  ],
+  "loops": []
+}

@@ -1,0 +1,10 @@
+{
+  "grooph": 1,
+  "id": "Wrong Schema",
+  "name": "Wrong schema version, no nodes",
+  "version": "1",
+  "goal": "Show what a document that does not match the schema looks like.",
+  "target": { "harness": "claude-code" },
+  "edges": [],
+  "loops": []
+}

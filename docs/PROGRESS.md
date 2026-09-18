@@ -15,6 +15,13 @@ The one file that says where grooph is right now. The driver rewrites it after e
 Implementer appends one line per success criterion met, newest last.
 
 - 2026-09-17 · started (owner confirmed the slice; acceptance-run spend approved, capped at two headless runs)
+- 2026-09-17 · criterion 2 met · `packages/core` exports `parseGraph`, `validate`, `canonicalize`, `compile`, and a generated `schema/grooph-0.schema.json`; `pnpm --filter @grooph/core run test` → 50 tests, 0 failures
+- 2026-09-17 · criterion 3 met · all ten ★ rules implemented with a one-code fixture each under `fixtures/invalid/<CODE>/`; the fixture walk fails when a ★ code has no fixture
+- 2026-09-17 · criterion 4 met · `fixtures/golden/claude-code/review-loop/` committed (7 files) and compared byte for byte by `test/compile.test.ts`
+- 2026-09-17 · criterion 5 met · `grooph validate | canonicalize | export` in `packages/cli`, 12 CLI tests; `pnpm exec grooph export … --into <dir>` then `diff -r` against the golden package is clean
+- 2026-09-18 · criterion 1 met · fresh clone of the branch: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` → 62 tests, 0 failures; `.github/workflows/ci.yml` green on Node 22 and 24 (run 35299182138)
+- 2026-09-18 · criterion 6 met · headless acceptance run passed: run `20260918-0042-k7qm`, 2 passes of loop `review-cycle` (round 0 fail → round 1 pass), stop `bar-passed` fired, then the lead halted at the `merge-gate` human gate as the brief instructs for a non-interactive session; 33 lead turns, $2.32, 4 subagents (`review-loop--builder` ×2, `review-loop--critic` ×2), 0 failed; all 9 run notes conform to the published `RunNote` schema. One earlier invocation spent nothing (CLI not signed in), so one of the two approved runs is still unused
+- 2026-09-18 · **handback written** · status `done` (all six criteria met); see `handoffs/0001-core-compiler-cli/HANDBACK.md`
 
 ## Waiting on the owner
 

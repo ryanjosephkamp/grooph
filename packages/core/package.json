@@ -1,0 +1,34 @@
+{
+  "name": "@grooph/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "grooph core: graph document types, schema, validator, canonical form and compilers.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./schema/grooph-0.schema.json": "./schema/grooph-0.schema.json",
+    "./targets/claude-code.profile.json": "./targets/claude-code.profile.json"
+  },
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "files": [
+    "dist",
+    "schema",
+    "targets"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "schema:write": "node dist/src/schema/write.js",
+    "test": "node --test 'dist/test/*.test.js'",
+    "golden:write": "node dist/src/dev/write-golden.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "ajv": "^8.17.1",
+    "typescript": "^5.7.2"
+  }
+}
