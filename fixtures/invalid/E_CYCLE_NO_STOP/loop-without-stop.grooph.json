@@ -1,0 +1,31 @@
+{
+  "grooph": 0,
+  "id": "loop-without-stop",
+  "name": "Loop without a stop",
+  "version": 1,
+  "goal": "Polish the landing page until it is great.",
+  "target": { "harness": "claude-code" },
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "brief": "Improve the landing page.",
+      "outputs": ["updated page"]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "brief": "Say whether the page is great yet.",
+      "outputs": ["verdict"]
+    }
+  ],
+  "edges": [
+    { "id": "e-build-review", "from": "builder", "to": "critic" },
+    { "id": "e-review-fail", "from": "critic", "to": "builder", "when": "fail" }
+  ],
+  "loops": []
+}
