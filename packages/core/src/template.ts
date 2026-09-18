@@ -300,7 +300,7 @@ export function extractTemplate(doc: Graph, options: { kind: TemplateKind; nodeI
 
   const slots = [...(meta.slots ?? [])];
   for (const use of findSlots(body)) {
-    if (!slots.some((slot) => slot.key === use.key)) slots.push({ key: use.key, ask: `What should {{${use.key}}} be?`, example: use.key });
+    if (!slots.some((slot) => slot.key === use.key)) slots.push({ key: use.key, ask: `What should "${use.key}" be?`, example: use.key });
   }
 
   const block: Template = {

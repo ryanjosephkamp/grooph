@@ -163,7 +163,7 @@ test("extractTemplate drops run notes, and gives any leftover {{key}} a slot", (
   };
   const saved = extractTemplate(doc, { kind: "graph", meta: { id: "half", title: "Half", summary: "s", whenToUse: "w" } });
   assert.equal(saved.notes, undefined);
-  assert.deepEqual(saved.template?.slots, [{ key: "test-command", ask: "What should {{test-command}} be?", example: "test-command" }]);
+  assert.deepEqual(saved.template?.slots, [{ key: "test-command", ask: "What should \"test-command\" be?", example: "test-command" }]);
   assert.deepEqual(saved.template?.profile, estimateProfile(doc));
   assert.ok(parseGraph(JSON.parse(canonicalize(saved))).doc, "the result matches the schema");
 });
