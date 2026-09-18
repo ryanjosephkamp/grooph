@@ -1,4 +1,4 @@
-import type { Id, Issue } from "@grooph/core";
+import { setPositions, type Id, type Issue, type Position } from "@grooph/core";
 import {
   Background,
   BackgroundVariant,
@@ -11,7 +11,6 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
-import { setPositions, type Position } from "../../doc/ops.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { edgeBends, type Box } from "./bends.js";

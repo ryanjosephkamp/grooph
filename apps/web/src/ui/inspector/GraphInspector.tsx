@@ -1,8 +1,7 @@
-import { KNOWN_TARGETS } from "@grooph/core";
+import { KNOWN_TARGETS, optText, setConstraint, setGraphField, setGraphName, setPositions, setTarget } from "@grooph/core";
 import { useState } from "react";
 
 import { resolvePositions } from "../../doc/layout.js";
-import { optText, setConstraint, setGraphField, setGraphName, setPositions, setTarget } from "../../doc/ops.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { Section, Select, TextArea, TextInput } from "../fields.js";

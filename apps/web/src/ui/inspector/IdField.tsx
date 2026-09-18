@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 
-import type { Id } from "@grooph/core";
+import { allIds, followsName, renameId, slugify, type Id } from "@grooph/core";
 
-import { slugify } from "../../doc/ids.js";
-import { allIds, followsName, renameId } from "../../doc/ops.js";
 import { Field } from "../fields.js";
 import { useEditor } from "../editorContext.js";
 

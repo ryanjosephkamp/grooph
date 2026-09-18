@@ -1,9 +1,7 @@
-import { indexGraph, loopMode, type Bar, type Evidence, type Graph, type Id, type Loop, type Stop, type StopKind } from "@grooph/core";
-import { useState } from "react";
-
-import { BUDGET_MEASURES, EVIDENCE_KINDS, STOP_KINDS, STOP_LABEL } from "../../doc/catalog.js";
 import {
   addStop,
+  indexGraph,
+  loopMode,
   moveStop,
   newStop,
   optText,
@@ -16,7 +14,17 @@ import {
   toggleLoopMember,
   updateLoop,
   withField,
-} from "../../doc/ops.js";
+  type Bar,
+  type Evidence,
+  type Graph,
+  type Id,
+  type Loop,
+  type Stop,
+  type StopKind,
+} from "@grooph/core";
+import { useState } from "react";
+
+import { BUDGET_MEASURES, EVIDENCE_KINDS, STOP_KINDS, STOP_LABEL } from "../../doc/catalog.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { NumberInput, Section, Segmented, Select, TextArea, TextInput } from "../fields.js";

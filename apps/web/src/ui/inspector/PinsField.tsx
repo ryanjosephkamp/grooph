@@ -1,8 +1,7 @@
 import { useState } from "react";
 
-import { KNOWN_TARGETS, type AgentNode, type Node } from "@grooph/core";
+import { KNOWN_TARGETS, withField, type AgentNode, type Node } from "@grooph/core";
 
-import { withField } from "../../doc/ops.js";
 import { Field } from "../fields.js";
 
 /** `model.pin`: a literal model name per harness, overriding the tier there. */

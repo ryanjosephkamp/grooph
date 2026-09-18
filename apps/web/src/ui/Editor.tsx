@@ -1,11 +1,10 @@
-import type { Graph, Id } from "@grooph/core";
+import { addLoop, addNode, connect, toggleLoopBack, toggleLoopMember, type Graph, type Id, type Position } from "@grooph/core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ADDABLE_KINDS, KIND_LABEL, type NodeKind } from "../doc/catalog.js";
 import { computeIssues, countBySeverity, emptyHighlight, type Highlight } from "../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
-import { addLoop, addNode, connect, toggleLoopBack, toggleLoopMember, type Position } from "../doc/ops.js";
 import { DocStore, useDoc } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
@@ -206,7 +205,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   }, [store, panel, flow]);
 
   const add = (kind: NodeKind) => {
-    const { id } = store.updateWith((d) => addNode(d, kind, placeFor()));
+    const { id } = store.updateWith((d) => addNode(d, kind, { at: placeFor() }));
     setMode({ type: "idle" });
     openPanel({ type: "node", id });
     setJustAdded(id);
