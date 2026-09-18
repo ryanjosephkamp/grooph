@@ -1,0 +1,13 @@
+# Spec amendments
+
+`capability-spec.md` is frozen as received on 2026-09-17. It changes only here. Each amendment names the section it touches, the new rule, and why. When the spec and any other document disagree, the spec plus this file wins.
+
+| ID | Date | Section | Amendment | Why |
+|---|---|---|---|---|
+| A-001 | 2026-09-17 | §7.4, §16 | Claude Code is the first compile target; Codex is the second, started only after the Claude Code path works end to end. | Owner's harness priority. |
+| A-002 | 2026-09-17 | §5.3, §5.5 | A **loop** is a first-class object in the graph document (members, back-edge, bar, stops). Stops and bars attach to loops, not to edges. | Makes "every cycle has a stop" a mechanical check: every detected cycle must be covered by a loop object with at least one valid stop. |
+| A-003 | 2026-09-17 | §5.2 | Model preference is a harness-neutral **tier** (`frontier`, `strong`, `fast`) plus optional per-harness pin; effort is `low`, `medium`, `high`, `max`. Each compile target ships a profile mapping tiers to current model names. | Answers the §17 open question on vendor renames; keeps the core harness-neutral. |
+| A-004 | 2026-09-17 | §8 | The executive agent lives in the harness (Claude Code or Codex) and drives grooph through a skill plus the MCP server or CLI. grooph itself makes no LLM calls. | Owner decision 2026-09-17. Removes keys, inference cost and a backend from the platform. |
+| A-005 | 2026-09-17 | §6 | Node positions live in a separable `layout` section of the document that models may ignore. Graphs without layout get automatic layout in the human view. | Keeps semantic diffs clean; agent-built graphs carry no coordinates. |
+| A-006 | 2026-09-17 | §9 | A package has two delivery modes: **files** (native harness units placed into a repo) and **paste-only** (one prompt that writes the same files, for sessions where only pasting is possible). | Phone-first authoring. |
+| A-007 | 2026-09-17 | §11 | v1 harness connection is a **file contract**: the package instructs the run to append structured run notes to a known path; grooph imports that file. Live append through MCP is a later addition. | Avoids instrumenting harness internals on day one, as §11 already prefers. |
