@@ -29,6 +29,8 @@ export type Graph = {
   adaptation?: Adaptation;
   /** pattern id; "graph-id@version" */
   lineage?: { pattern?: string; from?: string };
+  /** present when this document is a template; shape and rules in docs/templates.md */
+  template?: Template;
   /** one paragraph a human or executive can read */
   description?: string;
 
@@ -42,6 +44,39 @@ export type Graph = {
   /** separable; models may ignore */
   layout?: Record<Id, { x: number; y: number; w?: number; h?: number }>;
 };
+
+/**
+ * docs/templates.md §1. A document carrying this block is a template: not
+ * exportable (`E_IS_TEMPLATE`) until `instantiate` removes it.
+ */
+export type Template = {
+  /** a whole workflow, or nodes to insert into another graph (a single node is a fragment of one) */
+  kind: TemplateKind;
+  title: string;
+  /** one sentence */
+  summary: string;
+  /** the situation this fits, in the spec §10 sense */
+  whenToUse: string;
+  /** the situation people wrongly reach for it in */
+  notFor?: string;
+  profile: Profile;
+  /** `{{key}}` placeholders in string fields: the question to ask, and a realistic value for tests and demos */
+  slots?: TemplateSlot[];
+  tags?: string[];
+  /** path or URL of a recorded run write-up (stage 6) */
+  demo?: string;
+};
+
+export type TemplateKind = "graph" | "fragment";
+
+/** Coarse on purpose: enough to offer "a fast one, a cheap one, a rigorous one". */
+export type Profile = {
+  cost: "low" | "medium" | "high";
+  speed: "fast" | "medium" | "slow";
+  rigor: "light" | "standard" | "high";
+};
+
+export type TemplateSlot = { key: string; ask: string; example: string };
 
 /** graph-ir §2: `adaptive` amends the run's working copy, `propose` records proposals, `fixed` halts and asks. */
 export type Adaptation = "adaptive" | "propose" | "fixed";

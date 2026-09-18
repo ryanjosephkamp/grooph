@@ -19,6 +19,7 @@ import type {
   PolicyScope,
   Role,
   RunNoteAt,
+  TemplateKind,
   Tier,
 } from "../types.js";
 import {
@@ -246,6 +247,29 @@ const group = obj(
   { name: "Group" },
 );
 
+/** docs/templates.md §1. */
+const template = obj(
+  {
+    kind: enumOf<TemplateKind>("graph", "fragment"),
+    title: str(),
+    summary: str(),
+    whenToUse: str(),
+    notFor: opt(str()),
+    profile: obj(
+      {
+        cost: enumOf("low", "medium", "high"),
+        speed: enumOf("fast", "medium", "slow"),
+        rigor: enumOf("light", "standard", "high"),
+      },
+      { name: "Profile" },
+    ),
+    slots: opt(arr(obj({ key: str(), ask: str(), example: str() }, { name: "TemplateSlot" }))),
+    tags: opt(arr(str())),
+    demo: opt(str()),
+  },
+  { name: "Template" },
+);
+
 const runNote = obj(
   {
     id: id(),
@@ -283,6 +307,7 @@ export const graphSchema = obj(
     constraints: opt(obj({ budget: opt(str()), time: opt(str()), other: opt(str()) })),
     adaptation: opt(enumOf<Adaptation>("adaptive", "propose", "fixed")),
     lineage: opt(obj({ pattern: opt(str()), from: opt(str()) })),
+    template: opt(template),
     description: opt(str()),
 
     nodes: arr(node),

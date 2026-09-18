@@ -1,0 +1,59 @@
+{
+  "grooph": 0,
+  "id": "fix-it",
+  "name": "Fix it",
+  "version": 1,
+  "goal": "{{task}}",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Fix it",
+    "summary": "One builder does the task and the run ends.",
+    "whenToUse": "A task small enough that nobody needs to check it.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "light"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be fixed?",
+        "example": "Fix the typo in README.md."
+      }
+    ]
+  },
+  "description": "A template exported as it is: its slot is still a placeholder and its template block is still there. Instantiate it first.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "brief": "Do the task: {{task}}",
+      "outputs": [
+        "the change"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-done",
+      "from": "builder",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

@@ -328,6 +328,65 @@ test("E_IRREVERSIBLE_NO_GATE: an approval edge or a gate before every inbound ed
   );
   const entry = base({ nodes: [agent("publisher", "builder", { ...writable, irreversible: ["spend"] }), stopNode], edges: [{ id: "e-done", from: "publisher", to: "done" }] });
   assert.deepEqual(codes(validate(entry)), ["E_IRREVERSIBLE_NO_GATE"], "an entry node has no gate before it");
+
+  // Review 0004: one approved way in used to excuse an open one. Every way in must pass a human.
+  const mixed = validate(
+    publish(
+      [
+        { id: "e-pub", from: "writer", to: "publisher", approval: true },
+        { id: "e-shortcut", from: "hotfix", to: "publisher" },
+      ],
+      [agent("hotfix", "builder", writable)],
+    ),
+  );
+  assert.deepEqual(codes(mixed), ["E_IRREVERSIBLE_NO_GATE"]);
+  assert.deepEqual(mixed[0]!.at, ["publisher", "e-shortcut"], "the open way in is named");
+  assert.deepEqual(
+    validate(
+      publish(
+        [
+          { id: "e-ask", from: "writer", to: "gate" },
+          { id: "e-pub", from: "gate", to: "publisher", when: "pass" },
+          { id: "e-shortcut", from: "hotfix", to: "publisher", approval: true },
+        ],
+        [gate, agent("hotfix", "builder", writable)],
+      ),
+    ),
+    [],
+    "a gate on one way in and an approval on the other both pass a human",
+  );
+});
+
+test("E_IS_TEMPLATE and E_UNFILLED_SLOT bite at export only, and a template reports only the first", () => {
+  const block: Graph["template"] = {
+    kind: "graph",
+    title: "T",
+    summary: "s",
+    whenToUse: "w",
+    profile: { cost: "low", speed: "fast", rigor: "light" },
+    slots: [{ key: "task", ask: "What?", example: "This." }],
+  };
+  const doc = base({
+    goal: "{{task}}",
+    nodes: [agent("builder", "builder", { ...writable, brief: "Do {{task}} with {{ tool }}." }), stopNode],
+    edges: [{ id: "e-done", from: "builder", to: "done" }],
+  });
+
+  assert.deepEqual(validate({ ...doc, template: block }), [], "authoring a template is legal");
+  const asTemplate = validate({ ...doc, template: block }, { forExport: true });
+  assert.deepEqual(codes(asTemplate), ["E_IS_TEMPLATE"], "its slots are expected until it is instantiated");
+
+  assert.deepEqual(validate(doc), [], "unfilled slots are legal while authoring");
+  const unfilled = validate(doc, { forExport: true });
+  assert.deepEqual(
+    unfilled.map((issue) => [issue.code, issue.at]),
+    [
+      ["E_UNFILLED_SLOT", ["g", "builder"]],
+      ["E_UNFILLED_SLOT", ["builder"]],
+    ],
+    "one issue per slot, naming the objects that hold it; spaced braces count",
+  );
+  assert.match(unfilled[0]!.message, /\{\{task\}\}/);
 });
 
 test("W_HOMOGENEOUS_CRITICS compares tier and pin, and needs both families", () => {
