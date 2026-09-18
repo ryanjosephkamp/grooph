@@ -1,0 +1,185 @@
+{
+  "grooph": 0,
+  "id": "contradiction-seeker",
+  "name": "Contradiction seeker",
+  "version": 1,
+  "goal": "{{task}} Done when a critic with a fixed budget finds no counterexample to this: {{claim}}",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Contradiction seeker",
+    "summary": "A critic hunts one counterexample to a stated claim on a fixed budget; finding none is a pass, finding one sends it back to the builder.",
+    "whenToUse": "A claim can be broken by one concrete counterexample (a property, an invariant, an edge case), and a bounded search for it is worth more than an open-ended review.",
+    "notFor": "Claims no single input can break (style, clarity), or proving correctness: a hunt that finds nothing is evidence, not proof.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Add a slugify(text) function to src/strings.ts that lowercases, strips accents and joins words with single hyphens."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm test"
+      },
+      {
+        "key": "claim",
+        "ask": "What claim must hold, stated so that one counterexample would break it?",
+        "example": "slugify(text) always returns lowercase ASCII words joined by single hyphens, and slugify(slugify(text)) equals slugify(text)."
+      }
+    ],
+    "tags": [
+      "loop",
+      "counterexample",
+      "budget"
+    ]
+  },
+  "description": "A fast builder works; a critic in a fresh context tries to break the stated claim with one concrete counterexample, on a fixed effort. A counterexample goes back to the builder as a failing case; none found is a pass. The turn budget is the point: the hunt is bounded by design, and the loop stops after three rounds regardless.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Make the task true in the code, with tests, so that the claim holds. On a later round, turn the counterexample in COUNTEREXAMPLE.md into a test and make it pass without special-casing that one input. Run `{{test-command}}` before you report.",
+      "inputs": [
+        "the task",
+        "the claim: {{claim}}",
+        "COUNTEREXAMPLE.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Counterexample hunter",
+      "role": "critic",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Try to break the claim with one concrete counterexample: an input, how to run it, and the wrong result. Stop at the first one you can reproduce, or after about ten distinct attempts; finding none is a pass. You hunt; you do not fix.",
+      "inputs": [
+        "the claim: {{claim}}",
+        "diff of the change"
+      ],
+      "outputs": [
+        "COUNTEREXAMPLE.md: the reproducible counterexample, or the attempts that failed to find one",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-tests"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-critic",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "diff of the change",
+        "output of {{test-command}}"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "COUNTEREXAMPLE.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "hunt",
+      "name": "Hunt",
+      "members": [
+        "builder",
+        "critic"
+      ],
+      "back": [
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "No counterexample",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "COUNTEREXAMPLE.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of {{test-command}}"
+          }
+        ],
+        "acceptance": "A full hunt finds no input that breaks the claim, and `{{test-command}}` exits 0."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 20
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

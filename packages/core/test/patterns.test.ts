@@ -1,0 +1,190 @@
+/**
+ * The pattern library (docs/templates.md §5): the sixteen documents under
+ * patterns/, the rules every one of them follows, and the generated index.
+ */
+
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { test } from "node:test";
+
+import { canonicalize, canonicalizeWithoutLayout } from "../src/canonicalize.js";
+import { indexGraph } from "../src/graph-index.js";
+import { parseGraphText } from "../src/parse.js";
+import { isCriticFamily, loopMode } from "../src/semantics.js";
+import { findSlots, insertFragment, instantiate, slotKeys, templateIndexEntry } from "../src/template.js";
+import type { AgentNode, Graph, Profile, TemplateKind } from "../src/types.js";
+import { DOC_SIZE_LIMIT, validate } from "../src/validate.js";
+import { expectedIssues, read, repoRoot } from "./helpers.js";
+
+const patternsDir = join(repoRoot, "patterns");
+
+/** docs/templates.md §5, the table: id → kind and profile (cost · speed · rigor). */
+const TABLE: Record<string, { kind: TemplateKind; profile: `${Profile["cost"]} ${Profile["speed"]} ${Profile["rigor"]}` }> = {
+  "grind-loop": { kind: "graph", profile: "low fast light" },
+  "review-gate": { kind: "graph", profile: "medium medium standard" },
+  "taste-polish": { kind: "graph", profile: "high slow high" },
+  "spec-then-loop": { kind: "graph", profile: "medium medium high" },
+  "metric-sandwich": { kind: "graph", profile: "medium medium standard" },
+  "dual-bar": { kind: "graph", profile: "medium medium standard" },
+  "specialist-critic-bank": { kind: "graph", profile: "high medium high" },
+  "heterogeneous-critic": { kind: "graph", profile: "medium medium high" },
+  "ownership-not-swarm": { kind: "graph", profile: "medium medium standard" },
+  "tournament-then-judge": { kind: "graph", profile: "medium fast standard" },
+  "contradiction-seeker": { kind: "graph", profile: "low fast standard" },
+  "red-team-loop": { kind: "graph", profile: "medium medium high" },
+  "debate-then-build": { kind: "graph", profile: "medium medium standard" },
+  "human-gated-irreversible": { kind: "fragment", profile: "low fast standard" },
+  "retrospective-rewrite": { kind: "graph", profile: "low medium standard" },
+  "fresh-grind-rare-judge": { kind: "graph", profile: "medium medium high" },
+};
+
+const files = readdirSync(patternsDir).filter((name) => name.endsWith(".grooph.json")).sort();
+
+const load = (file: string): Graph => {
+  const parsed = parseGraphText(read(join(patternsDir, file)));
+  assert.deepEqual(parsed.issues, [], `${file} matches the schema`);
+  return parsed.doc!;
+};
+
+const examples = (doc: Graph): Record<string, string> =>
+  Object.fromEntries((doc.template?.slots ?? []).map((slot) => [slot.key, slot.example]));
+
+/** A pattern made concrete with its slot examples: instantiated, or (a fragment) inserted into a host with a goal and target. */
+function concrete(doc: Graph): Graph {
+  if (doc.template?.kind === "fragment") {
+    const host: Graph = { grooph: 0, id: "host", name: "Host", version: 1, goal: "Ship it.", target: { harness: "claude-code" }, nodes: [], edges: [], loops: [] };
+    return insertFragment(host, doc, { values: examples(doc) }).doc;
+  }
+  return instantiate(doc, { name: "Try it", values: examples(doc) });
+}
+
+test("patterns/ holds exactly the sixteen patterns of docs/templates.md §5", () => {
+  assert.deepEqual(files.map((f) => f.replace(/\.grooph\.json$/, "")), Object.keys(TABLE).sort());
+});
+
+for (const file of files) {
+  const id = file.replace(/\.grooph\.json$/, "");
+
+  test(`patterns/${file} instantiates with its slot examples and validates for export as its sidecar says`, () => {
+    const doc = load(file);
+    assert.equal(canonicalize(doc), read(join(patternsDir, file)), "stored in canonical form");
+    assert.deepEqual(validate(doc).filter((i) => i.severity === "error"), [], "the template itself has no errors");
+
+    const graph = concrete(doc);
+    assert.deepEqual(findSlots(graph), [], "every slot has an example");
+    const issues = validate(graph, { forExport: true });
+    assert.deepEqual(issues.filter((i) => i.severity === "error"), [], "no errors once filled");
+    assert.deepEqual(issues.map((i) => i.code), expectedIssues(join(patternsDir, file)) ?? [], "warnings exactly as the sidecar lists");
+  });
+
+  test(`patterns/${file} follows the §5 rules`, () => {
+    const doc = load(file);
+    const block = doc.template!;
+    assert.equal(doc.id, id, "named after its id");
+    assert.equal(block.kind, TABLE[id]!.kind);
+    assert.equal(`${block.profile.cost} ${block.profile.speed} ${block.profile.rigor}`, TABLE[id]!.profile);
+    assert.equal(doc.version, 1);
+    assert.equal(doc.layout, undefined, "layout-free: the app places nodes");
+    assert.ok(canonicalizeWithoutLayout(doc).length < DOC_SIZE_LIMIT / 2, "well under the W_DOC_TOO_LARGE budget");
+
+    // Slots: every one declared is used, every one used is declared, and each has a question and an example.
+    const declared = (block.slots ?? []).map((slot) => slot.key);
+    assert.deepEqual(slotKeys(doc), declared, "no undeclared {{key}}");
+    for (const key of declared) assert.ok(findSlots(doc).some((use) => use.key === key), `slot ${key} is used`);
+    for (const slot of block.slots ?? []) assert.ok(slot.ask.trim() && slot.example.trim(), `slot ${slot.key} has an ask and an example`);
+    if (block.kind === "graph") assert.ok(declared.includes("task"), "a graph pattern asks for the task");
+
+    // Adaptive unless the pattern says otherwise.
+    assert.equal(doc.adaptation, id === "retrospective-rewrite" ? "propose" : undefined);
+
+    // Latitude: briefs are purpose, limits and outputs in a few sentences, no step lists.
+    for (const node of doc.nodes.filter((n): n is AgentNode => n.kind === "agent")) {
+      const sentences = node.brief.split(/(?<=[.?!])\s+(?=[A-Z`{])/).length;
+      assert.ok(sentences <= 4, `${node.id}: brief has ${sentences} sentences`);
+      assert.doesNotMatch(node.brief, /(^|\s)(1\.|2\.|- )/, `${node.id}: no step list`);
+    }
+
+    // Critics are fresh, have evidence, may write their report, and may not edit.
+    const index = indexGraph(doc);
+    for (const node of doc.nodes.filter(isCriticFamily) as AgentNode[]) {
+      assert.ok(node.allow?.includes("write-outputs"), `${node.id} may write its report`);
+      assert.ok(node.deny?.includes("edit-files"), `${node.id} may not edit files`);
+      for (const edge of index.incoming.get(node.id) ?? []) {
+        assert.notEqual(edge.isolation, "shared", `${edge.id} into ${node.id} is fresh`);
+        assert.ok((edge.evidence ?? []).length > 0, `${edge.id} into ${node.id} lists evidence`);
+      }
+    }
+
+    // Every loop is braked: a budget in turns or minutes, and a max-iterations of 5 or fewer, besides its real stop.
+    for (const loop of doc.loops) {
+      assert.ok(loop.stops.some((s) => s.kind === "budget" && (s.measure === "turns" || s.measure === "minutes")), `${loop.id} has a budget stop`);
+      assert.ok(loop.stops.some((s) => s.kind === "max-iterations" && s.n <= 5), `${loop.id} has max-iterations ≤ 5`);
+      if (loopMode(index, loop) === "judgment") assert.ok(loop.bar, `${loop.id} is a judgment loop with a bar`);
+    }
+  });
+}
+
+test("patterns the §5 table singles out keep their point", () => {
+  const byId = (id: string): Graph => load(`${id}.grooph.json`);
+
+  const hetero = byId("heterogeneous-critic");
+  assert.ok(!validate(hetero).some((i) => i.code === "W_HOMOGENEOUS_CRITICS"), "heterogeneous-critic does not raise W_HOMOGENEOUS_CRITICS");
+  assert.match(hetero.description ?? "", /stage 11/, "and says cross-family judging needs a dual-harness node");
+
+  const spec = byId("spec-then-loop");
+  assert.equal(spec.loops[0]!.bar?.answerKeyFrom, "planner");
+
+  const sandwich = byId("metric-sandwich");
+  assert.equal(sandwich.loops.length, 1);
+  assert.equal(sandwich.loops[0]!.back.length, 2, "one loop, two back edges");
+
+  const bank = byId("specialist-critic-bank");
+  assert.ok(bank.policies?.some((p) => p.kind === "concurrency-cap" && p.params?.["max"] === 4));
+  assert.equal(bank.nodes.filter((n) => n.kind === "agent" && n.role === "critic").length, 4);
+
+  const swarm = byId("ownership-not-swarm");
+  const owners = swarm.nodes.filter((n): n is AgentNode => n.kind === "agent" && n.coupled === true);
+  assert.equal(owners.length, 2);
+  assert.notDeepEqual(owners[0]!.owns, owners[1]!.owns, "coupled owners own distinct subsystems");
+  const fanOut = swarm.edges.filter((e) => (e.concurrency?.max ?? 1) > 1);
+  assert.ok(fanOut.length > 0 && fanOut.every((e) => !swarm.nodes.find((n) => n.id === e.to)?.coupled), "fan-out only into uncoupled work");
+
+  const tournament = byId("tournament-then-judge");
+  assert.deepEqual(tournament.loops, [], "the tournament runs once");
+
+  const seeker = byId("contradiction-seeker");
+  assert.ok(seeker.loops[0]!.stops.some((s) => s.kind === "budget" && s.measure === "turns"));
+  assert.ok(seeker.loops[0]!.stops.some((s) => s.kind === "max-iterations" && s.n === 3));
+
+  const redTeam = byId("red-team-loop");
+  assert.deepEqual((redTeam.nodes.find((n) => n.id === "red-team") as AgentNode).owns, ["traces"]);
+  assert.ok(redTeam.loops[0]!.stops.some((s) => s.kind === "diminishing-returns" && s.rounds === 2));
+
+  const debate = byId("debate-then-build");
+  assert.ok(debate.loops.find((l) => l.id === "debate")!.stops.some((s) => s.kind === "max-iterations" && s.n === 2));
+
+  const gated = byId("human-gated-irreversible");
+  const act = gated.nodes.find((n) => n.kind === "agent" && (n.irreversible ?? []).length > 0)!;
+  assert.ok((indexGraph(gated).incoming.get(act.id) ?? []).every((e) => gated.nodes.find((n) => n.id === e.from)?.kind === "human-gate"));
+
+  const phased = byId("fresh-grind-rare-judge");
+  assert.equal(phased.loops.length, 2, "an inner grind loop and an outer judgment loop");
+
+  const taste = byId("taste-polish");
+  const kinds = taste.loops[0]!.stops.map((s) => s.kind);
+  assert.deepEqual(kinds, ["bar-passed", "diminishing-returns", "human", "max-iterations", "budget"]);
+  assert.ok(taste.nodes.some((n) => n.kind === "check" && n.check.kind === "evidence"), "evidence quality is gated before judging");
+});
+
+test("patterns/index.json rows are templateIndexEntry of each pattern, and the generated files are current", () => {
+  const index = JSON.parse(read(join(patternsDir, "index.json"))) as { grooph: number; templates: unknown[] };
+  assert.equal(index.grooph, 0);
+  assert.deepEqual(index.templates, files.map((file) => templateIndexEntry(load(file), file)));
+
+  const script = join(repoRoot, "scripts", "patterns-index.mjs");
+  assert.ok(existsSync(script));
+  const check = spawnSync(process.execPath, [script, "--check"], { encoding: "utf8" });
+  assert.equal(check.status, 0, `${check.stderr}${check.stdout}`);
+});

@@ -1,0 +1,248 @@
+{
+  "grooph": 0,
+  "id": "fresh-grind-rare-judge",
+  "name": "Fresh grind, rare judge",
+  "version": 1,
+  "goal": "{{task}} Done when every phase in {{phase-checklist}} has passed the judge and `{{test-command}}` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Fresh grind, rare judge",
+    "summary": "A fast builder grinds each phase against the tests; an expensive judge runs only at phase boundaries, against a phase checklist.",
+    "whenToUse": "Cheap iteration most steps, an expensive critic at phase boundaries: long work splits into phases that tests can drive but only judgment can sign off.",
+    "notFor": "Short tasks with one phase (use grind-loop or review-gate), or work where the tests cannot drive any of the steps.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "high"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Migrate the storage layer in src/storage/ from callbacks to async/await, one module per phase."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm test"
+      },
+      {
+        "key": "phase-checklist",
+        "ask": "Which file lists the phases, each with what the judge checks at its boundary?",
+        "example": "docs/PHASES.md"
+      }
+    ],
+    "tags": [
+      "loop",
+      "grind",
+      "judge",
+      "phases"
+    ]
+  },
+  "description": "An inner grind loop, a fast builder against the tests, runs inside an outer judgment loop. Only when the tests pass does a frontier judge review the phase against the phase checklist: fail returns to the builder to fix the phase, next-phase returns it to start the next one, and pass ends the run. Both loops are budgeted.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Work through the current phase of {{phase-checklist}} until `{{test-command}}` passes; one phase at a time, never ahead. On a failing test, start from its output; after a judge review, start from PHASE-REVIEW.md. Report which phase you are on and what changed.",
+      "inputs": [
+        "the task",
+        "{{phase-checklist}}",
+        "test output or PHASE-REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change for this phase, with tests",
+        "CHANGES.md: the phase and what changed"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "{{test-command}}",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "judge",
+      "kind": "agent",
+      "name": "Phase judge",
+      "description": "Runs only at phase boundaries: after the tests pass.",
+      "role": "judge",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge the finished phase against its entry in {{phase-checklist}}, citing file and line for each item. Emit fail with findings when the phase is not done, next-phase when it is and phases remain, and pass when the last phase is done. You judge; you do not fix.",
+      "inputs": [
+        "diff since the last phase boundary",
+        "{{phase-checklist}}"
+      ],
+      "outputs": [
+        "PHASE-REVIEW.md: the phase item by item and a verdict line",
+        "verdict: pass | fail | next-phase"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-judge",
+      "from": "tests",
+      "to": "judge",
+      "when": "pass",
+      "evidence": [
+        "diff since the last phase boundary",
+        "{{phase-checklist}}",
+        "test output"
+      ]
+    },
+    {
+      "id": "e-judge-fail",
+      "from": "judge",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "PHASE-REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-judge-next-phase",
+      "from": "judge",
+      "to": "builder",
+      "when": {
+        "verdict": "next-phase"
+      },
+      "evidence": [
+        "PHASE-REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-judge-pass",
+      "from": "judge",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    },
+    {
+      "id": "phases",
+      "name": "Phases",
+      "members": [
+        "builder",
+        "tests",
+        "judge"
+      ],
+      "back": [
+        "e-judge-fail",
+        "e-judge-next-phase"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Phase checklist",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "{{phase-checklist}}"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of {{test-command}}"
+          }
+        ],
+        "acceptance": "Every phase in {{phase-checklist}} is signed off by the judge with evidence, and `{{test-command}}` exits 0."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 60
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

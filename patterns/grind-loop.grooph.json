@@ -1,0 +1,129 @@
+{
+  "grooph": 0,
+  "id": "grind-loop",
+  "name": "Grind loop",
+  "version": 1,
+  "goal": "{{task}} Done when `{{test-command}}` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Grind loop",
+    "summary": "A fast builder works against the test suite until it passes, bounded by rounds and minutes.",
+    "whenToUse": "Done and good are the same: tests, types or a task list supply the back pressure, so a passing check is the finish line.",
+    "notFor": "Work where passing tests is not the same as good (taste, design, prose); use review-gate or taste-polish there.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "light"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Add a slugify(text) function to src/strings.ts that lowercases, strips accents and joins words with single hyphens."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm test"
+      }
+    ],
+    "tags": [
+      "loop",
+      "grind",
+      "tests"
+    ]
+  },
+  "description": "A builder changes the code and a check runs the tests. A failure goes back to the builder with the test output; a pass ends the run. The check is the bar, so there is no critic. The loop stops after five rounds or thirty minutes if the tests never pass.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Make the task true by changing the code, adding tests where they are missing. Do not skip, weaken or delete a test to get a pass. On a later round, start from the failing output you are handed. Report what you changed and which tests now pass.",
+      "inputs": [
+        "the task",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change",
+        "CHANGES.md: what changed this round and why"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "{{test-command}}",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-pass",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    }
+  ]
+}
