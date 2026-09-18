@@ -12,7 +12,8 @@ import { downloadBytes, downloadText, fixturePath, goldenDir, importDocument, re
  */
 test("the review loop round-trips to the golden package byte for byte", async ({ page }) => {
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
-  await expect(status(page)).toHaveText("Valid");
+  // The one warning the fixture's sidecar lists: builder and critic share a tier.
+  await expect(status(page)).toHaveText("1 warning");
 
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   const [zip] = await Promise.all([

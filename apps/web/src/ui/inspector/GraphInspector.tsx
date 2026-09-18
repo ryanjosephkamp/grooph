@@ -1,13 +1,29 @@
-import { KNOWN_TARGETS, optText, setConstraint, setGraphField, setGraphName, setPositions, setTarget } from "@grooph/core";
+import {
+  KNOWN_TARGETS,
+  optText,
+  setConstraint,
+  setGraphField,
+  setGraphName,
+  setPositions,
+  setTarget,
+  type Adaptation,
+} from "@grooph/core";
 import { useState } from "react";
 
 import { resolvePositions } from "../../doc/layout.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
-import { Section, Select, TextArea, TextInput } from "../fields.js";
+import { Section, Segmented, Select, TextArea, TextInput } from "../fields.js";
 import { IdField } from "./IdField.js";
 
 const OTHER = "__other";
+
+/** graph-ir §2, one line each. Brakes (gates, approvals, budgets, …) never loosen at any level. */
+const ADAPTATION_LEVELS: { value: Adaptation; label: string; line: string }[] = [
+  { value: "adaptive", label: "adaptive", line: "The lead may amend its copy of the graph during a run, visibly; brakes never loosen." },
+  { value: "propose", label: "propose", line: "The lead changes nothing and records proposals for you." },
+  { value: "fixed", label: "fixed", line: "The lead follows the graph exactly and halts to ask when it cannot." },
+];
 
 /** Graph-level fields (criterion 3), plus a read-only account of what this view cannot edit yet. */
 export function GraphInspector({ autoFocusName }: { autoFocusName?: boolean }) {
@@ -57,6 +73,24 @@ export function GraphInspector({ autoFocusName }: { autoFocusName?: boolean }) {
           onChange={(v) => editor.store.update((d) => setTarget(d, optText(v)))}
         />
       ) : null}
+
+      <Segmented
+        label="Adaptation"
+        value={doc.adaptation ?? "adaptive"}
+        options={ADAPTATION_LEVELS}
+        // adaptive is the default: choosing it clears the field rather than writing the default in.
+        onChange={(v) => editor.store.update((d) => setGraphField(d, "adaptation", v === "adaptive" ? undefined : v))}
+        hint={
+          <ul className="level-list">
+            {ADAPTATION_LEVELS.map((level) => (
+              <li key={level.value} className={level.value === (doc.adaptation ?? "adaptive") ? "is-on" : undefined}>
+                <strong>{level.label}</strong>
+                {level.value === "adaptive" ? " (default)" : ""} — {level.line}
+              </li>
+            ))}
+          </ul>
+        }
+      />
 
       <Section title="Constraints">
         <TextInput

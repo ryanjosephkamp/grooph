@@ -740,6 +740,16 @@ a {
   font-size: 13px;
   color: var(--ink-3);
 }
+.level-list {
+  margin: 0;
+  padding-left: 1.1em;
+}
+.level-list li + li {
+  margin-top: 2px;
+}
+.level-list .is-on {
+  color: var(--ink);
+}
 .input {
   display: block;
   width: 100%;
