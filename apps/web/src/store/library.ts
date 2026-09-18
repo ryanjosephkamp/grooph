@@ -1,7 +1,7 @@
 /** The graph list: create, import, rename, duplicate, delete. */
 import { parseGraphText, type Graph, type Issue } from "@grooph/core";
 
-import { slugify, uniqueId } from "../doc/ids.js";
+import { uniqueId } from "../doc/ids.js";
 import { setGraphName } from "../doc/ops.js";
 import { newKey, openStore, type GraphRecord } from "./db.js";
 
