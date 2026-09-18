@@ -18,6 +18,8 @@ Implementer appends one line per success criterion met, newest last.
 - 2026-09-17 · criterion 2 met · `packages/core` exports `parseGraph`, `validate`, `canonicalize`, `compile`, and a generated `schema/grooph-0.schema.json`; `pnpm --filter @grooph/core run test` → 50 tests, 0 failures
 - 2026-09-17 · criterion 3 met · all ten ★ rules implemented with a one-code fixture each under `fixtures/invalid/<CODE>/`; the fixture walk fails when a ★ code has no fixture
 - 2026-09-17 · criterion 4 met · `fixtures/golden/claude-code/review-loop/` committed (7 files) and compared byte for byte by `test/compile.test.ts`
+- 2026-09-17 · criterion 5 met · `grooph validate | canonicalize | export` in `packages/cli`, 12 CLI tests; `pnpm exec grooph export … --into <dir>` then `diff -r` against the golden package is clean
+- 2026-09-18 · criterion 1 met · fresh clone of the branch: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` → 62 tests, 0 failures; `.github/workflows/ci.yml` green on Node 22 and 24 (run 35299182138)
 
 ## Waiting on the owner
 
