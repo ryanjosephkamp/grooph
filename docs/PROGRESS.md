@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 3 (core for agents) is done and merged. Stage 4 (templates) is next: slice 0005 is drafted and waits on the owner.
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ — redeployed from `main` on every push.
-- **Next action:** owner confirms slice 0005 and opens the Opus 5 session. No model spend in that slice.
+- **Next action:** slice 0005 is running in an Opus 5 session; the driver designs slice 0006 (share links, compare view, `grooph-design` skill) meanwhile.
 - **Then:** 0006 executive path (share links, compare view, `grooph-design` skill), 0007 templates in the app plus editing polish, then a recorded demo run per template.
 - **What works today:** everything from stage 2, plus: the full rule catalog (22 codes); typed document operations in core with `grooph new` and `grooph apply`; adaptive-by-default packages. Run `20260918-1737-k7qm` amended its working copy twice with reasons, validated it with `grooph`, held one larger idea back as a proposal, and loosened no brake; the critic wrote its own `REVIEW.md`.
 
@@ -16,9 +16,7 @@ _(none)_
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0005 (`handoffs/0005-templates/HANDOFF.md`) | Yes |
+_(nothing until the 0005 handback)_
 
 ## Deferred until Codex is available
 

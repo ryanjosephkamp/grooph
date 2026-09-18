@@ -1,6 +1,6 @@
 # Handoff 0005 · Templates and the pattern library
 
-**Stage:** 4 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0005-templates` · **Drafted:** 2026-09-18 · **Confirmed by owner:** pending
+**Stage:** 4 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0005-templates` · **Drafted:** 2026-09-18 · **Confirmed by owner:** 2026-09-18
 
 ## Objective
 

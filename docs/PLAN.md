@@ -45,7 +45,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 |
 | 0003 | 9 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred (Codex quota); runs before stage 9 |
 | 0004 | 3 | Core for agents | Opus 5 | done 2026-09-18 |
-| 0005 | 4 | Templates and the pattern library (core, CLI, `patterns/`, published index) | Opus 5 | handoff drafted, awaiting owner confirmation |
+| 0005 | 4 | Templates and the pattern library (core, CLI, `patterns/`, published index) | Opus 5 | in progress (confirmed 2026-09-18) |
 | 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | todo |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 | todo |
 
