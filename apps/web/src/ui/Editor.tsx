@@ -5,10 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ADDABLE_KINDS, KIND_LABEL, type NodeKind } from "../doc/catalog.js";
 import { computeIssues, countBySeverity, emptyHighlight, type Highlight } from "../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
-import { addLoop, addNode, connect, setPositions, toggleLoopBack, toggleLoopMember, type Position } from "../doc/ops.js";
+import { addLoop, addNode, connect, toggleLoopBack, toggleLoopMember, type Position } from "../doc/ops.js";
 import { DocStore, useDoc } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
+import { FIT } from "./canvas/fit.js";
 import { EditorContext, type Editor, type Mode, type Panel } from "./editorContext.js";
 import { ExportPanel } from "./ExportPanel.js";
 import { EdgeInspector } from "./inspector/EdgeInspector.js";
@@ -93,13 +94,14 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const [mode, setMode] = useState<Mode>({ type: "idle" });
   const [highlight, setHighlight] = useState<Highlight>(emptyHighlight);
   const [expanded, setExpanded] = useState(false);
+  const [justAdded, setJustAdded] = useState<Id | null>(null);
 
   // While connecting or picking, the sheet folds to its header and the canvas
   // gets the room; show the whole graph so every target is on screen.
   const modeActive = mode.type !== "idle";
   useEffect(() => {
     if (!modeActive) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => void flow.fitView({ padding: 0.15, maxZoom: 1, duration: 200 })));
+    requestAnimationFrame(() => requestAnimationFrame(() => void flow.fitView({ ...FIT, duration: 200 })));
   }, [modeActive, flow]);
 
   const issues = useMemo(() => computeIssues(doc), [doc]);
@@ -110,7 +112,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
       // Two frames: one for the document to render, one for the nodes to be measured.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          void flow.fitView({ nodes: ids.map((id) => ({ id })), padding: 0.35, maxZoom: 1, duration: 250 });
+          void flow.fitView({ ...FIT, nodes: ids.map((id) => ({ id })), duration: 250 });
         }),
       );
     },
@@ -168,16 +170,19 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
         if (mode.from === undefined) setMode({ type: "connect", from: nodeId });
         else if (mode.from === nodeId) setMode({ type: "connect" });
         else {
-          const { id } = store.updateWith((d) => connect(d, mode.from!, nodeId));
+          const from = mode.from;
+          const { id } = store.updateWith((d) => connect(d, from, nodeId));
           setMode({ type: "idle" });
           openPanel({ type: "edge", id });
+          // A layout-free graph re-lays itself out around the new edge; follow its ends.
+          reveal([from, nodeId]);
         }
         return;
       }
       openPanel({ type: "node", id: nodeId });
       ensureVisible(nodeId);
     },
-    [mode, store, openPanel, ensureVisible],
+    [mode, store, openPanel, ensureVisible, reveal],
   );
 
   /** Where a new node goes: below the selected node, else the middle of the view; never on top of another. */
@@ -204,6 +209,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
     const { id } = store.updateWith((d) => addNode(d, kind, placeFor()));
     setMode({ type: "idle" });
     openPanel({ type: "node", id });
+    setJustAdded(id);
     reveal([id]);
   };
 
@@ -216,10 +222,9 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
 
   const editor: Editor = { store, panel, openPanel, mode, setMode, highlight, setHighlight, reveal, onEdgeTap };
 
-  const sheet = sheetFor(panel, doc, issues, fresh);
+  const sheet = sheetFor(panel, doc, issues, fresh, justAdded);
   const statusClass = errors > 0 ? "status-error" : warnings > 0 ? "status-warning" : "status-ok";
   const statusText = errors > 0 ? `${errors} error${errors === 1 ? "" : "s"}` : warnings > 0 ? `${warnings} warning${warnings === 1 ? "" : "s"}` : "Valid";
-  const { unplaced } = resolvePositions(doc);
 
   return (
     <EditorContext.Provider value={editor}>
@@ -307,25 +312,12 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               </svg>
               Loop
             </button>
-            <button type="button" className="tool" disabled={doc.nodes.length === 0} onClick={() => void flow.fitView({ padding: 0.2, maxZoom: 1, duration: 250 })}>
+            <button type="button" className="tool" disabled={doc.nodes.length === 0} onClick={() => void flow.fitView({ ...FIT, duration: 250 })}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
               </svg>
               Fit
             </button>
-            {unplaced.length > 0 && doc.nodes.length > 0 ? (
-              <button
-                type="button"
-                className="tool"
-                onClick={() => store.update((d) => setPositions(d, resolvePositions(d).positions))}
-                title="Positions are automatic until saved"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6" />
-                </svg>
-                Save layout
-              </button>
-            ) : null}
           </div>
         </main>
 
@@ -348,12 +340,12 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   );
 }
 
-function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIssues>, fresh: boolean) {
+function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIssues>, fresh: boolean, justAdded: Id | null) {
   if (!panel) return null;
   switch (panel.type) {
     case "node": {
       const node = doc.nodes.find((n) => n.id === panel.id);
-      return { title: node ? KIND_LABEL[node.kind] : "Node", subtitle: node?.id, body: <NodeInspector id={panel.id} key="node" /> };
+      return { title: node ? KIND_LABEL[node.kind] : "Node", subtitle: node?.id, body: <NodeInspector id={panel.id} key="node" focusName={justAdded === panel.id} /> };
     }
     case "edge": {
       const edge = doc.edges.find((e) => e.id === panel.id);

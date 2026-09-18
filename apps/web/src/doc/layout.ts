@@ -17,8 +17,17 @@ export const NODE_HEIGHT = 84;
 const GAP_X = 36;
 const GAP_Y = 76;
 
+/**
+ * How many nodes sit side by side before a row wraps: two on a phone held
+ * upright, four on anything wider. A row of unconnected nodes is otherwise one
+ * long line a phone can only show zoomed out to illegibility.
+ */
+export function columnsForViewport(): number {
+  return typeof window !== "undefined" && window.innerWidth < 640 ? 2 : 4;
+}
+
 /** A position for every node, whether or not the document carries one. */
-export function autoLayout(doc: Graph): Record<Id, Position> {
+export function autoLayout(doc: Graph, columns = 4): Record<Id, Position> {
   const nodes = doc.nodes.map((n) => n.id);
   const known = new Set(nodes);
   const back = new Set(doc.loops.flatMap((l) => l.back));
@@ -67,13 +76,18 @@ export function autoLayout(doc: Graph): Record<Id, Position> {
   }
 
   const positions: Record<Id, Position> = {};
-  rows.forEach((row, r) => {
-    if (!row) return;
-    const width = row.length * NODE_WIDTH + (row.length - 1) * GAP_X;
-    row.forEach((id, i) => {
-      positions[id] = { x: Math.round(i * (NODE_WIDTH + GAP_X) - width / 2), y: r * (NODE_HEIGHT + GAP_Y) };
-    });
-  });
+  let y = 0;
+  for (const row of rows) {
+    if (!row) continue;
+    for (let start = 0; start < row.length; start += columns) {
+      const line = row.slice(start, start + columns);
+      const width = line.length * NODE_WIDTH + (line.length - 1) * GAP_X;
+      line.forEach((id, i) => {
+        positions[id] = { x: Math.round(i * (NODE_WIDTH + GAP_X) - width / 2), y };
+      });
+      y += NODE_HEIGHT + GAP_Y;
+    }
+  }
   return positions;
 }
 
@@ -82,7 +96,7 @@ export function autoLayout(doc: Graph): Record<Id, Position> {
  * has one; otherwise automatic. Nodes missing from a partial layout are laid
  * out automatically and set below what is already placed, so nothing overlaps.
  */
-export function resolvePositions(doc: Graph): { positions: Record<Id, Position>; unplaced: Id[] } {
+export function resolvePositions(doc: Graph, columns = columnsForViewport()): { positions: Record<Id, Position>; unplaced: Id[] } {
   const layout = doc.layout ?? {};
   const unplaced = doc.nodes.map((n) => n.id).filter((id) => !(id in layout));
   if (unplaced.length === 0) {
@@ -91,7 +105,7 @@ export function resolvePositions(doc: Graph): { positions: Record<Id, Position>;
     return { positions, unplaced };
   }
 
-  const auto = autoLayout(doc);
+  const auto = autoLayout(doc, columns);
   const placed = doc.nodes.filter((n) => n.id in layout);
   if (placed.length === 0) return { positions: auto, unplaced };
 

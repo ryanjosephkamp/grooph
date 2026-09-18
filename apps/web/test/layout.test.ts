@@ -49,4 +49,13 @@ describe("automatic layout (A-005)", () => {
     const distinct = new Set(Object.values(positions).map((p) => `${p.x},${p.y}`));
     expect(distinct.size).toBe(4);
   });
+
+  it("wraps a wide row so a phone shows it at a legible zoom", () => {
+    const doc = withoutLayout();
+    const unconnected = { ...doc, edges: [], loops: [] };
+    const narrow = autoLayout(unconnected, 2);
+    expect(new Set(Object.values(narrow).map((p) => p.y)).size).toBe(2); // two rows of two
+    const wide = autoLayout(unconnected, 4);
+    expect(new Set(Object.values(wide).map((p) => p.y)).size).toBe(1);
+  });
 });

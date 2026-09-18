@@ -16,7 +16,7 @@ import { ChipSet, ListInput, More, NumberInput, Segmented, Select, TextArea, Tex
 import { IdField } from "./IdField.js";
 import { PinsField } from "./PinsField.js";
 
-export function NodeInspector({ id }: { id: Id }) {
+export function NodeInspector({ id, focusName }: { id: Id; focusName?: boolean }) {
   const editor = useEditor();
   const doc = useDoc(editor.store);
   const node = doc.nodes.find((n) => n.id === id);
@@ -47,6 +47,7 @@ export function NodeInspector({ id }: { id: Id }) {
       <TextInput
         label="Name"
         value={node.name}
+        autoFocus={focusName}
         onChange={(name) => {
           const result = editor.store.updateWith((d) => setNodeName(d, id, name));
           if (result.id !== id) editor.openPanel({ type: "node", id: result.id });

@@ -15,6 +15,7 @@ import { setPositions, type Position } from "../../doc/ops.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { edgeBends, type Box } from "./bends.js";
+import { FIT } from "./fit.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
 
@@ -172,7 +173,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       minZoom={0.2}
       maxZoom={2}
       fitView
-      fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+      fitViewOptions={FIT}
       attributionPosition="top-right"
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />

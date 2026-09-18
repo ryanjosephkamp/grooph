@@ -27,6 +27,7 @@ export function TextInput(props: {
   mono?: boolean;
   autoFocus?: boolean;
 }) {
+  const arrived = useRef(false);
   return (
     <Field label={props.label} hint={props.hint}>
       {(id) => (
@@ -36,6 +37,12 @@ export function TextInput(props: {
           value={props.value}
           placeholder={props.placeholder}
           autoFocus={props.autoFocus}
+          // A default name ("Agent", "Untitled graph") is selected on arrival, so typing replaces it.
+          onFocus={(e) => {
+            if (!props.autoFocus || arrived.current) return;
+            arrived.current = true;
+            e.target.select();
+          }}
           autoComplete="off"
           autoCapitalize={props.mono ? "off" : "sentences"}
           spellCheck={!props.mono}

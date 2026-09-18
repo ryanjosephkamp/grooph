@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { closeSheet, downloadText, fixturePath, importDocument, node, sheet, toolbar } from "./support.js";
+import { closeSheet, downloadText, fixturePath, importDocument, node, sheet } from "./support.js";
 
 /**
  * Handoff 0002, criterion 8 (and amendment A-005): a document without `layout`
@@ -51,9 +51,11 @@ test("an agent-built graph without layout opens laid out, and stays layout-free 
 
 test("Save layout writes the automatic positions on request", async ({ page }) => {
   await importDocument(page, "agent-built.grooph.json", layoutFree());
-  await expect(toolbar(page).getByRole("button", { name: "Save layout" })).toBeVisible();
-  await toolbar(page).getByRole("button", { name: "Save layout" }).tap();
-  await expect(toolbar(page).getByRole("button", { name: "Save layout" })).toHaveCount(0);
+  await page.getByRole("button", { name: /^Review loop/ }).tap();
+  await expect(sheet(page).getByText("Placed automatically.")).toBeVisible();
+  await sheet(page).getByRole("button", { name: "Save layout" }).tap();
+  await expect(sheet(page).getByText("Every node's position is saved in the document.")).toBeVisible();
+  await closeSheet(page);
   const doc = await downloadGraph(page);
   const layout = doc["layout"] as Record<string, { x: number; y: number }>;
   expect(Object.keys(layout).sort()).toEqual(["builder", "critic", "done", "merge-gate"]);
