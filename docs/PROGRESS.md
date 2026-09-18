@@ -12,7 +12,11 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0005
+
+- 2026-09-18 · criterion 2 met: the `template` block is in types, schema (after `lineage`) and JSON Schema; `E_IS_TEMPLATE` and `E_UNFILLED_SLOT` implemented as export-only rules, each with a failing fixture.
+- 2026-09-18 · criterion 3 met: `instantiate`, `insertFragment`, `extractTemplate`, `templateIndexEntry`, `findSlots` are pure, exported from `@grooph/core`, and tested (round trip, id map, fragment boundaries).
+- 2026-09-18 · criterion 7 met: `E_IRREVERSIBLE_NO_GATE` checks every way in (second fixture `mixed-inbound`); lead brief §9 prefers op-list patches and separates kickoff amendments from up-front redesign; goldens regenerated and read.
 
 ## Waiting on the owner
 
