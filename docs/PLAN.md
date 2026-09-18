@@ -36,13 +36,15 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 |---|---|---|---|---|
 | 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 (`handoffs/0001-core-compiler-cli/REVIEW.md`) |
 | 0002 | 2 | Minimal canvas | Opus 5 | handoff drafted, awaiting owner confirmation |
-| 0003 | 1 | Read-only review of the graph document for harness neutrality | Astra (Codex) | handoff drafted, awaiting owner confirmation |
+| 0003 | 1 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred 2026-09-18 (Codex quota); runs when Codex is available, at the latest before stage 7 |
 
 ## Carried into stage 3 from review 0001
 
 Small IR alignments decided at review time, deferred so the merged core stays byte-identical to what the acceptance run exercised: `kind` second in canonical key order (golden regeneration); the graph id in `E_DUPLICATE_ID`; the `write-outputs` capability with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules of graph-ir §3; canonicalising the fixtures in place; bumping the GitHub Actions versions.
 
 ## Ordering rules
+
+- **Codex is deferred** (owner, 2026-09-18): slices that need a Codex session (0003, stages 7–9) wait until the owner's Codex quota is available. Everything else proceeds in Claude Code and must not depend on them.
 
 - Stage 7 starts only after stage 2–5 work on Claude Code is demonstrably working; the mapping doc for Codex is written by the driver first.
 - Stage 5 needs the pattern library content from stage 4 (the executive recommends from named patterns, not slogans).

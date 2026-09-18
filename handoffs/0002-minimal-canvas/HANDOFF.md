@@ -1,6 +1,6 @@
 # Handoff 0002 · Minimal canvas
 
-**Stage:** 2 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0002-minimal-canvas` · **Drafted:** 2026-09-18 · **Confirmed by owner:** pending
+**Stage:** 2 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0002-minimal-canvas` · **Drafted:** 2026-09-18 · **Confirmed by owner:** 2026-09-18
 
 ## Objective
 

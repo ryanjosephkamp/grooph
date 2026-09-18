@@ -4,8 +4,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 2 (vertical slice). Slice 0001 merged to `main`; slice 0002 (minimal canvas) and slice 0003 (Astra read-only IR review) are drafted and wait on the owner.
-- **Next action:** owner confirms 0002 and 0003, then pastes their prompts into a fresh Opus 5 session (0002) and a fresh Codex session with Astra (0003). They may run in parallel: 0002 touches `apps/web` only, 0003 writes one review file.
+- **Stage:** 2 (vertical slice). Slice 0001 merged to `main`; slice 0002 (minimal canvas) is confirmed and waits for the owner to open the Opus 5 session. Slice 0003 (Astra review) is deferred with all Codex work.
+- **Next action:** owner pastes the 0002 prompt into a fresh Opus 5 session.
 - **Last coherent commit:** see `git log -1`.
 - **What works today:** `pnpm exec grooph validate|canonicalize|export` on a graph document; the exported Claude Code package has driven one real headless run end to end (run `20260918-0042-k7qm`).
 
@@ -15,15 +15,18 @@ _(0002 and 0003 not yet started — their entries are created when the owner con
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0002 (`handoffs/0002-minimal-canvas/HANDOFF.md`) | Yes |
-| Confirm slice 0003 (`handoffs/0003-astra-ir-review/HANDOFF.md`) | Yes, in parallel with 0002 |
+_(nothing — 0002 is confirmed; open the Opus session when ready)_
+
+## Deferred until Codex is available
+
+- Slice 0003, Astra's read-only harness-neutrality review (handoff already drafted). Latest sensible point: before stage 7.
+- Stages 7–9 (Codex target, paired empirical runs, dual-harness nodes).
 
 ## Done
 
 | Date | What |
 |---|---|
+| 2026-09-18 | Owner confirmed slice 0002; Codex-dependent work (0003, stages 7–9) deferred until the owner's Codex quota returns. |
 | 2026-09-18 | Slice 0001 reconciled and merged: core (schema, validator, canonical form, Claude Code compiler), CLI, fixtures per ★ code, golden package, CI, headless acceptance run passed. Eight implementer findings folded into `graph-ir.md` and `targets/claude-code.md`; decision 0005 recorded. |
 | 2026-09-17 | Owner confirmed slice 0001; MIT license added. |
 | 2026-09-17 | Stage 1: graph document v0 designed (`graph-ir.md`), Claude Code target mapping (`targets/claude-code.md`), example fixtures. |

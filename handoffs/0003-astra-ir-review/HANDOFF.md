@@ -1,6 +1,6 @@
 # Handoff 0003 · Read-only review of the graph document for harness neutrality
 
-**Stage:** 1 (follow-up) · **Implementer:** GPT-6 Astra in Codex · **Effort:** `xhigh` (floor `high`) · **Branch:** `slice/0003-astra-ir-review` · **Drafted:** 2026-09-18 · **Confirmed by owner:** pending
+**Stage:** 1 (follow-up) · **Implementer:** GPT-6 Astra in Codex · **Effort:** `xhigh` (floor `high`) · **Branch:** `slice/0003-astra-ir-review` · **Drafted:** 2026-09-18 · **Confirmed by owner:** deferred 2026-09-18 (Codex quota exhausted; run when available, before stage 7)
 
 ## Objective
 
