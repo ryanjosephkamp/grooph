@@ -620,6 +620,17 @@ a {
 .sheet-expanded {
   grid-template-rows: auto minmax(72px, 1fr) auto;
 }
+/* Connecting or picking: the canvas is the input, so the sheet folds to its header. */
+.mode-active .sheet-body {
+  display: none;
+}
+.mode-active .sheet-toggle {
+  visibility: hidden;
+}
+.sheet-expanded .toolbar,
+.sheet-expanded .loop-legend {
+  display: none;
+}
 .sheet-head {
   display: flex;
   align-items: center;

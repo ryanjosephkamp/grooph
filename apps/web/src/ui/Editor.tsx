@@ -94,6 +94,14 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const [highlight, setHighlight] = useState<Highlight>(emptyHighlight);
   const [expanded, setExpanded] = useState(false);
 
+  // While connecting or picking, the sheet folds to its header and the canvas
+  // gets the room; show the whole graph so every target is on screen.
+  const modeActive = mode.type !== "idle";
+  useEffect(() => {
+    if (!modeActive) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => void flow.fitView({ padding: 0.15, maxZoom: 1, duration: 200 })));
+  }, [modeActive, flow]);
+
   const issues = useMemo(() => computeIssues(doc), [doc]);
   const { errors, warnings } = countBySeverity(issues);
 
@@ -103,6 +111,29 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
           void flow.fitView({ nodes: ids.map((id) => ({ id })), padding: 0.35, maxZoom: 1, duration: 250 });
+        }),
+      );
+    },
+    [flow],
+  );
+
+  /** Pan (never zoom) so a node is clear of the sheet and the toolbar, after the sheet has opened. */
+  const ensureVisible = useCallback(
+    (id: Id) => {
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const stage = stageRef.current?.getBoundingClientRect();
+          const el = stageRef.current?.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id)}"]`);
+          if (!stage || !el) return;
+          const r = el.getBoundingClientRect();
+          const clear = r.top >= stage.top + 56 && r.bottom <= stage.bottom - 84 && r.left >= stage.left && r.right <= stage.right;
+          if (clear) return;
+          const node = flow.getInternalNode(id);
+          if (!node) return;
+          const { x, y } = node.internals.positionAbsolute;
+          const w = node.measured.width ?? NODE_WIDTH;
+          const h = node.measured.height ?? NODE_HEIGHT;
+          void flow.setCenter(x + w / 2, y + h / 2, { zoom: flow.getZoom(), duration: 200 });
         }),
       );
     },
@@ -144,8 +175,9 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
         return;
       }
       openPanel({ type: "node", id: nodeId });
+      ensureVisible(nodeId);
     },
-    [mode, store, openPanel],
+    [mode, store, openPanel, ensureVisible],
   );
 
   /** Where a new node goes: below the selected node, else the middle of the view; never on top of another. */
@@ -191,7 +223,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
 
   return (
     <EditorContext.Provider value={editor}>
-      <div className={`editor${panel ? " has-sheet" : ""}${expanded ? " sheet-expanded" : ""}`}>
+      <div className={`editor${panel ? " has-sheet" : ""}${expanded && !modeActive ? " sheet-expanded" : ""}${modeActive ? " mode-active" : ""}`}>
         <header className="topbar">
           <a className="icon-btn" href="#/" aria-label="All graphs">
             <svg viewBox="0 0 24 24" aria-hidden="true">

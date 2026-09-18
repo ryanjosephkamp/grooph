@@ -11,7 +11,11 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(0002 confirmed, not yet started — the implementer creates its entry)_
+### Slice 0002
+
+Branch `slice/0002-minimal-canvas`, implementer Opus 5.
+
+- 2026-09-18 · criterion 2 met: `pnpm --filter @grooph/web test:e2e` imports `review-loop.grooph.json` through the app at 400×800 with touch, exports from the app, and the unzipped package equals `fixtures/golden/claude-code/review-loop/` byte for byte (the graph download equals the package's canonical copy). Core is unchanged.
 
 ## Waiting on the owner
 

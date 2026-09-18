@@ -48,7 +48,7 @@ export function LoopInspector({ id }: { id: Id }) {
           }
         }}
       />
-      <IdField id={id} onRenamed={(next) => editor.openPanel({ type: "loop", id: next })} />
+      <IdField id={id} name={loop.name} onRenamed={(next) => editor.openPanel({ type: "loop", id: next })} />
 
       <Section
         title="Members and back edges"

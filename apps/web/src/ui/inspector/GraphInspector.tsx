@@ -27,7 +27,7 @@ export function GraphInspector({ autoFocusName }: { autoFocusName?: boolean }) {
         autoFocus={autoFocusName}
         onChange={(v) => editor.store.update((d) => setGraphName(d, v))}
       />
-      <IdField id={doc.id} graph />
+      <IdField id={doc.id} name={doc.name} graph />
       <TextArea
         label="Goal"
         value={doc.goal ?? ""}

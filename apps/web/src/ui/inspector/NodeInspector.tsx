@@ -52,7 +52,7 @@ export function NodeInspector({ id }: { id: Id }) {
           if (result.id !== id) editor.openPanel({ type: "node", id: result.id });
         }}
       />
-      <IdField id={id} onRenamed={(next) => editor.openPanel({ type: "node", id: next })} />
+      <IdField id={id} name={node.name} onRenamed={(next) => editor.openPanel({ type: "node", id: next })} />
 
       {node.kind === "agent" ? <AgentFields node={node} update={update} /> : null}
       {node.kind === "human-gate" ? <GateFields node={node} update={update} /> : null}

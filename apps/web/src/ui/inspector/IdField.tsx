@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { Id } from "@grooph/core";
 
 import { slugify } from "../../doc/ids.js";
-import { allIds, renameId } from "../../doc/ops.js";
+import { allIds, followsName, renameId } from "../../doc/ops.js";
 import { Field } from "../fields.js";
 import { useEditor } from "../editorContext.js";
 
@@ -12,7 +12,7 @@ import { useEditor } from "../editorContext.js";
  * kebab-case id; an id already in use is refused. Renaming rewrites every
  * reference in the document (edges, loops, stops, layout, policies).
  */
-export function IdField({ id, graph, onRenamed }: { id: Id; graph?: boolean; onRenamed?: (id: Id) => void }) {
+export function IdField({ id, name, graph, onRenamed }: { id: Id; name?: string; graph?: boolean; onRenamed?: (id: Id) => void }) {
   const editor = useEditor();
   const [text, setText] = useState(id);
   const [problem, setProblem] = useState<string | undefined>();
@@ -37,7 +37,15 @@ export function IdField({ id, graph, onRenamed }: { id: Id; graph?: boolean; onR
   };
 
   return (
-    <Field label="Id" hint={problem ?? "Follows the name until you change it. References update with it."}>
+    <Field
+      label="Id"
+      hint={
+        problem ??
+        (name !== undefined && followsName(id, name)
+          ? "Follows the name until you change it here. References update with it."
+          : "References to it update when you change it.")
+      }
+    >
       {(fieldId) => (
         <input
           id={fieldId}
