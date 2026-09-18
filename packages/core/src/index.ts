@@ -10,3 +10,4 @@ export * from "./semantics.js";
 export { KNOWN_TARGETS, getProfile, hasProfile, type TargetProfile } from "./targets/index.js";
 export * from "./ops/index.js";
 export * from "./template.js";
+export { closest, didYouMean } from "./suggest.js";
