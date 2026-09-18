@@ -1,0 +1,963 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grooph.dev/schema/grooph-0.schema.json",
+  "title": "grooph graph document v0",
+  "description": "A grooph graph document. Normative source: docs/graph-ir.md §1. Generated from packages/core/src/schema/graph.ts; do not edit by hand.",
+  "type": "object",
+  "properties": {
+    "grooph": {
+      "const": 0
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "goal": {
+      "type": "string"
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "harness": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "claude-code",
+            "codex"
+          ]
+        }
+      },
+      "required": [
+        "harness"
+      ]
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "budget": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "other": {
+          "type": "string"
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "properties": {
+        "pattern": {
+          "type": "string"
+        },
+        "from": {
+          "type": "string"
+        }
+      }
+    },
+    "description": {
+      "type": "string"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Node"
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Edge"
+      }
+    },
+    "loops": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Loop"
+      }
+    },
+    "policies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Policy"
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Group"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RunNote"
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          },
+          "w": {
+            "type": "number"
+          },
+          "h": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ]
+      },
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      }
+    }
+  },
+  "required": [
+    "grooph",
+    "id",
+    "name",
+    "version",
+    "nodes",
+    "edges",
+    "loops"
+  ],
+  "$defs": {
+    "AgentNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coupled": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "agent"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "lead",
+                "planner",
+                "builder",
+                "critic",
+                "tester",
+                "researcher",
+                "red-team",
+                "judge",
+                "synthesizer"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "custom": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "custom"
+              ]
+            }
+          ]
+        },
+        "model": {
+          "type": "object",
+          "properties": {
+            "tier": {
+              "enum": [
+                "frontier",
+                "strong",
+                "fast"
+              ]
+            },
+            "pin": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "tier"
+          ]
+        },
+        "effort": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "max"
+          ]
+        },
+        "brief": {
+          "type": "string"
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "examples": [
+              "read-files",
+              "edit-files",
+              "run-commands",
+              "run-tests",
+              "web",
+              "spawn-agents"
+            ]
+          }
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "examples": [
+              "read-files",
+              "edit-files",
+              "run-commands",
+              "run-tests",
+              "web",
+              "spawn-agents"
+            ]
+          }
+        },
+        "owns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "irreversible": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "role",
+        "brief",
+        "outputs"
+      ]
+    },
+    "Bar": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "inspects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        },
+        "acceptance": {
+          "type": "string"
+        },
+        "aspiration": {
+          "type": "string"
+        },
+        "answerKeyFrom": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        }
+      },
+      "required": [
+        "name",
+        "inspects",
+        "acceptance"
+      ]
+    },
+    "CheckNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coupled": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "check"
+        },
+        "check": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "command",
+                "tests",
+                "diff",
+                "metric",
+                "evidence"
+              ]
+            },
+            "run": {
+              "type": "string"
+            },
+            "pass": {
+              "type": "string"
+            },
+            "threshold": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "pass"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "check"
+      ]
+    },
+    "Edge": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "to": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "enum": [
+                "always",
+                "pass",
+                "fail"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "verdict": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verdict"
+              ]
+            }
+          ]
+        },
+        "isolation": {
+          "enum": [
+            "fresh",
+            "shared"
+          ]
+        },
+        "concurrency": {
+          "type": "object",
+          "properties": {
+            "max": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "max"
+          ]
+        },
+        "retry": {
+          "type": "object",
+          "properties": {
+            "max": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "max"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "approval": {
+          "type": "boolean"
+        },
+        "label": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "from",
+        "to"
+      ]
+    },
+    "Evidence": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "file",
+            "url",
+            "metric",
+            "checklist",
+            "answer-key",
+            "artifact"
+          ]
+        },
+        "ref": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "ref"
+      ]
+    },
+    "Group": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        "coupled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "members"
+      ]
+    },
+    "HumanGateNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coupled": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "human-gate"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "prompt"
+      ]
+    },
+    "Loop": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        "back": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          }
+        },
+        "mode": {
+          "enum": [
+            "grind",
+            "judgment"
+          ]
+        },
+        "bar": {
+          "$ref": "#/$defs/Bar"
+        },
+        "stops": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Stop"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "members",
+        "back",
+        "stops"
+      ]
+    },
+    "MergeNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coupled": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "merge"
+        },
+        "merges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "strategy": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind",
+        "merges"
+      ]
+    },
+    "Node": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AgentNode"
+        },
+        {
+          "$ref": "#/$defs/HumanGateNode"
+        },
+        {
+          "$ref": "#/$defs/CheckNode"
+        },
+        {
+          "$ref": "#/$defs/MergeNode"
+        },
+        {
+          "$ref": "#/$defs/StopNode"
+        }
+      ]
+    },
+    "Policy": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "critic-isolation",
+                "no-self-grading",
+                "owner-per-artifact",
+                "concurrency-cap",
+                "no-live-graph-rewrite",
+                "evidence-required"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "custom": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "custom"
+              ]
+            }
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "pattern": "^(graph|loop:[a-z][a-z0-9-]*|node:[a-z][a-z0-9-]*|edge:[a-z][a-z0-9-]*)$"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "scope"
+      ]
+    },
+    "RunNote": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "run": {
+          "type": "string"
+        },
+        "at": {
+          "type": "string",
+          "pattern": "^(graph|node:[a-z][a-z0-9-]*|edge:[a-z][a-z0-9-]*|loop:[a-z][a-z0-9-]*)$"
+        },
+        "started": {
+          "type": "string"
+        },
+        "ended": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string",
+          "minLength": 1,
+          "examples": [
+            "pass",
+            "fail",
+            "halt",
+            "invalid-evidence"
+          ]
+        },
+        "verdict": {
+          "type": "string"
+        },
+        "round": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cost": {
+          "type": "object",
+          "properties": {
+            "measure": {
+              "enum": [
+                "usd",
+                "minutes",
+                "turns",
+                "tokens"
+              ]
+            },
+            "amount": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "measure",
+            "amount"
+          ]
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proposal": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "patch": {}
+          },
+          "required": [
+            "summary"
+          ]
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "run",
+        "at"
+      ]
+    },
+    "Stop": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "human"
+            },
+            "every": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "then": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "budget"
+            },
+            "measure": {
+              "enum": [
+                "usd",
+                "minutes",
+                "turns",
+                "tokens"
+              ]
+            },
+            "limit": {
+              "type": "number",
+              "minimum": 0
+            },
+            "then": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "kind",
+            "measure",
+            "limit"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "bar-passed"
+            },
+            "then": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "diminishing-returns"
+            },
+            "rounds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "metric": {
+              "type": "string"
+            },
+            "threshold": {
+              "type": "number"
+            },
+            "then": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "kind",
+            "rounds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "evidence-invalid"
+            },
+            "rounds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "then": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "kind",
+            "rounds"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "max-iterations"
+            },
+            "n": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "then": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            }
+          },
+          "required": [
+            "kind",
+            "n"
+          ]
+        }
+      ]
+    },
+    "StopNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "coupled": {
+          "type": "boolean"
+        },
+        "kind": {
+          "const": "stop"
+        },
+        "outcome": {
+          "enum": [
+            "success",
+            "halt"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "kind"
+      ]
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "grooph",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Authoring and compilation surface for multi-agent loop graphs.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.7.0",
+  "engines": { "node": ">=20.11" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rm -rf dist",
+    "grooph": "pnpm --filter @grooph/cli exec grooph"
+  }
+}
