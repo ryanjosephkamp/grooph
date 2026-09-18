@@ -72,6 +72,31 @@ pnpm exec grooph new --name "Review loop" --out review-loop.grooph.json
 pnpm exec grooph apply review-loop.grooph.json --ops fixtures/ops/review-loop.ops.json --write
 ```
 
+## Templates
+
+A template is a graph document with a `template` block (`docs/templates.md`); the built-in ones are the pattern library in [`patterns/`](../../patterns/). The operations are pure, like the rest of core; reading registries from folders or the network is the CLI's job (`grooph template …`).
+
+```ts
+import { extractTemplate, findSlots, insertFragment, instantiate, templateIndexEntry } from "@grooph/core";
+
+const graph = instantiate(reviewGate, { name: "Slugify", values: { task: "Add a slugify function." } });
+findSlots(graph);                     // [{ key: "test-command", at: [...] }, …] — still unfilled; export refuses them
+const { doc, ids } = insertFragment(graph, gated, { values: { action: "Merge it.", irreversible: "merge" } });
+ids;                                  // { gate: "gate", done: "done-2", … } — where each template id landed
+const mine = extractTemplate(doc, { kind: "fragment", nodeIds: ["gate", "act"], meta: { id: "ship", title: "Ship", summary: "…", whenToUse: "…" } });
+templateIndexEntry(mine);             // the row a registry's index.json holds
+```
+
+| Function | Does |
+|---|---|
+| `instantiate(template, { name, values?, id? })` | Fills slots, drops the block, new id and name, `version: 1`, lineage `{ pattern, from: "<id>@<version>" }`. Refuses fragments and values for slots the template does not have (`TemplateError`). |
+| `insertFragment(doc, template, { values?, prefix? })` | Adds the template's nodes, edges, loops, policies and groups; colliding ids become `id-2` (or every id gets `prefix-`); edges with derived ids follow their nodes. Returns `{ doc, ids }`. Nothing is connected to the host's nodes; layout and graph-level fields stay behind. |
+| `extractTemplate(doc, { kind, nodeIds?, meta })` | The whole graph, or a fragment of `nodeIds` with the edges between them, loops fully inside, and policies and groups scoped inside. Drops run notes; a leftover `{{key}}` gets a slot. The profile is estimated (`estimateProfile`) unless `meta` gives one. |
+| `findSlots(doc)` · `fillSlots(doc, values)` · `slotKeys(template)` | Every `{{key}}` with the objects holding it; fill some; the keys a template asks for. |
+| `templateIndexEntry(template, file?)` · `templateIndex(entries)` | A registry index row, and the index sorted by id. |
+
+`validate(doc, { forExport: true })` refuses a template (`E_IS_TEMPLATE`) and a graph with `{{key}}` left in it (`E_UNFILLED_SLOT`).
+
 ## Scripts
 
 ```bash
