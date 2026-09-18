@@ -12,7 +12,14 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0004
+
+- 2026-09-18 · criterion 2 met: the document operations live in `packages/core/src/ops` with their tests; `applyOps` takes them as JSON; the web app imports them and keeps no copy; the vocabulary is in `packages/core/README.md`.
+- 2026-09-18 · criterion 3 met: `kind` second, graph id in the duplicate set, `write-outputs` → `Write` with the body rule, fixtures canonical, the review-loop critic allows `write-outputs`; golden regenerated and read.
+- 2026-09-18 · criterion 4 met: every graph-ir §3 code implemented with a failing fixture; `PLANNED_CODES` empty; `.expect.json` sidecars checked exactly.
+- 2026-09-18 · criterion 5 met: `adaptation` and `RunNote.amendment` in types and schema; LEAD.md §9 per level; the working copy at run setup; goldens for the review loop (adaptive) and fix-until-green (fixed).
+- 2026-09-18 · criterion 6 met: `grooph new` and `grooph apply`; `validate` on a run's working copy is tested.
+- 2026-09-18 · criterion 7 met: `write-outputs` in the picker, an adaptation control with a line per level, new codes highlight with no per-code UI.
 
 ## Waiting on the owner
 
