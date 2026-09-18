@@ -34,8 +34,13 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 
 | Slice | Stage | Title | Implementer | Status |
 |---|---|---|---|---|
-| 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | in progress (confirmed 2026-09-17) |
-| 0002 | 2 | Minimal canvas | Opus 5 | todo |
+| 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 (`handoffs/0001-core-compiler-cli/REVIEW.md`) |
+| 0002 | 2 | Minimal canvas | Opus 5 | handoff drafted, awaiting owner confirmation |
+| 0003 | 1 | Read-only review of the graph document for harness neutrality | Astra (Codex) | handoff drafted, awaiting owner confirmation |
+
+## Carried into stage 3 from review 0001
+
+Small IR alignments decided at review time, deferred so the merged core stays byte-identical to what the acceptance run exercised: `kind` second in canonical key order (golden regeneration); the graph id in `E_DUPLICATE_ID`; the `write-outputs` capability with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules of graph-ir §3; canonicalising the fixtures in place; bumping the GitHub Actions versions.
 
 ## Ordering rules
 

@@ -6,7 +6,7 @@ Encoding: JSON, canonical form (§7). File extension `.grooph.json`. Published J
 
 ## 1. Shape
 
-TypeScript notation, normative. `?` marks optional fields. Ids are kebab-case (`^[a-z][a-z0-9-]*$`) and unique across **all** id-bearing objects in one document (nodes, edges, loops, groups, policies, notes), so a reference never needs a type prefix.
+TypeScript notation, normative. `?` marks optional fields. Ids are kebab-case (`^[a-z][a-z0-9-]*$`) and unique across **all** id-bearing objects in one document (the graph itself, nodes, edges, loops, groups, policies, notes), so a reference never needs a type prefix. The graph's own id is in the set because it names the package directory and prefixes subagent names.
 
 ```ts
 type Graph = {
@@ -54,7 +54,9 @@ type AgentNode = NodeBase & {
 };
 
 type Role = "lead" | "planner" | "builder" | "critic" | "tester" | "researcher" | "red-team" | "judge" | "synthesizer";
-type Capability = "read-files" | "edit-files" | "run-commands" | "run-tests" | "web" | "spawn-agents" | string;
+type Capability = "read-files" | "edit-files" | "write-outputs" | "run-commands" | "run-tests" | "web" | "spawn-agents" | string;
+// write-outputs: may create or overwrite only the files it names in `outputs`. The capability a critic
+// needs to leave REVIEW.md behind while still being denied `edit-files` on everyone else's artifacts.
 
 type HumanGateNode = NodeBase & { kind: "human-gate"; prompt: string; options?: string[] };
 
@@ -147,8 +149,8 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Traversal.** When a node finishes, every outgoing edge whose `when` matches its result is taken. Several matching edges run in parallel, capped by `concurrency` and any `concurrency-cap` policy in scope.
 - **Isolation.** `fresh`: the downstream worker starts with no context except its brief, its declared inputs, and the edge's `evidence`. `shared`: the same worker continues with its prior context, or the lead performs the step itself.
 - **Evidence.** A worker may inspect only what its inbound edge lists (plus its own declared inputs). A critic that cannot read its evidence reports `invalid-evidence` rather than guessing; that round counts toward `evidence-invalid` stops.
-- **Rounds.** One traversal of any of a loop's back edges is one round. Stops are evaluated before every such traversal, in document order; the first that fires wins. Rounds are recorded in the progress log.
-- **Human gates and approvals.** The lead asks and waits. It does not simulate an answer, batch several gates into one question, or proceed on silence.
+- **Rounds.** The first pass through a loop's members is round 0; each traversal of a back edge starts the next round. Stops are evaluated at the end of every pass, before any back edge is taken, in document order; the first that fires wins. Every pass leaves one loop note (§6) carrying the round just finished and the stop evaluated, so a loop that passes first time still leaves a record.
+- **Human gates and approvals.** The lead asks and waits. It does not simulate an answer, batch several gates into one question, or proceed on silence. In a session that cannot ask (headless, non-interactive), a gate ends the run: the lead records `outcome: "halt"` naming the gate, writes the final progress, and reports that the run waits for a human; the same run id resumes it.
 - **Ownership.** A node that `owns` an artifact is the only node that writes it during the run. Others read it or hand it back with findings.
 - **Stop nodes.** Reaching a `stop` node ends the run with the given outcome. A run with no reachable stop node ends when the lead has no edges left to take; it reports which nodes ran and why it ended.
 - **Notes.** The run appends run notes (§6) at the path the package names. It never edits the graph document.
@@ -162,7 +164,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | Code | Rule |
 |---|---|
 | `E_SCHEMA` ★ | Document fails the JSON Schema. Message names the path. |
-| `E_DUPLICATE_ID` ★ | An id appears more than once across all id-bearing objects. |
+| `E_DUPLICATE_ID` ★ | An id appears more than once across all id-bearing objects, the graph's own id included (the graph id joins the set in stage 3; slice 0001 checks nodes, edges, loops, groups, policies and notes). |
 | `E_DANGLING_REF` ★ | An edge, loop, group, policy, stop `then`, or `answerKeyFrom` references an unknown id. |
 | `E_LOOP_BACK_EDGE` ★ | A loop's `back` list is empty, or one of its edges does not have both endpoints among `members`, or there is no path inside `members` from that edge's `to` back to its `from`. |
 
@@ -173,7 +175,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `E_CYCLE_NO_STOP` ★ | cycle with no stop | Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids. |
 | `E_JUDGMENT_LOOP_NO_BAR` ★ | taste loop with no bar | A loop whose `mode` is `judgment` (explicit or inferred) has no `bar`, or its bar has an empty `inspects`. An `answer-key` evidence entry counts as inspectable only when `answerKeyFrom` names a node in the graph. |
 | `E_STOP_NOT_INSPECTABLE` ★ | only stop is an adjective | A loop's stops are all `bar-passed` and the bar is missing or has empty `inspects`. |
-| `E_NO_TARGET` ★ | no target harness | Export requested and `target.harness` is absent or has no profile under `docs/targets/`. |
+| `E_NO_TARGET` ★ | no target harness | Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together. |
 | `E_NO_GOAL` ★ | bootstrap with no goal | Export or bootstrap requested and `goal` is absent or blank. |
 | `E_CRITIC_NOT_ISOLATED` | critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list. |
 | `E_OWNERSHIP_CONFLICT` | two writers, one artifact, no merge | Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`. |
@@ -195,6 +197,8 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `W_ONLY_MAX_ITERATIONS` | A loop's only stop kind is `max-iterations`. |
 | `W_UNREACHABLE_NODE` | A node is not reachable from any entry node. |
 | `W_NO_TERMINAL` | No `stop` node is reachable from an entry node. |
+| `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). |
+| `W_UNKNOWN_KEY` | The document carries a key the schema does not know. Unknown keys are accepted and preserved (views may stash state), but a typo in an optional field name should be visible. |
 | `W_DOC_TOO_LARGE` ★ | Canonical serialization without `layout` exceeds 24,000 characters (about six thousand tokens). This is the "rewrite in one pass" budget and the share-link guard. |
 
 Validation output is a list of `{ code, severity, message, at: Id[] }`. `at` names the objects involved so a view can highlight them.
@@ -250,7 +254,9 @@ type RunNote = {
 
 ## 7. Canonical form
 
-`canonicalize(doc)` is deterministic and idempotent: two-space indent, LF line endings, one trailing newline, object keys in the order the types above list them (unknown keys last, alphabetical), arrays in document order, `layout` last. Diffs of canonical documents are semantic diffs.
+`canonicalize(doc)` is deterministic and idempotent: two-space indent, LF line endings, one trailing newline, object keys in the order the types above list them, arrays in document order, `layout` last. Diffs of canonical documents are semantic diffs.
+
+Key-order details: on every node, `kind` comes second, immediately after `id`, then the remaining `NodeBase` fields, then the kind-specific fields in the order listed (stage 3 applies this; slice 0001 expands the intersection left to right, which puts `kind` fifth). Unknown keys are accepted, kept, and sorted alphabetically after the known ones. Record-valued objects (`layout`, `policy.params`) have their keys sorted alphabetically.
 
 Size lint (`W_DOC_TOO_LARGE`) measures the canonical form with `layout` removed.
 

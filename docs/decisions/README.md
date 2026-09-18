@@ -8,3 +8,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0002 | [The executive agent lives in the harness](0002-executive-lives-in-harness.md) |
 | 0003 | [Phone-to-run path: design on the phone, run from the Mac](0003-phone-to-run-path.md) |
 | 0004 | [First vertical slice: core and compiler before canvas](0004-slice-sequencing.md) |
+| 0005 | [Core tooling choices from slice 0001](0005-core-tooling.md) |
