@@ -12,14 +12,32 @@
 #   scripts/e2e-claude-code.sh              run it
 #   scripts/e2e-claude-code.sh --dry-run    build the scratch project, skip the model
 #   scripts/e2e-claude-code.sh --keep-dir D use D instead of a fresh mktemp directory
+#   scripts/e2e-claude-code.sh --no-trust   do not pre-trust the scratch directory
+#
+# The scratch directory is new, so Claude Code treats it as untrusted and ignores
+# the permission allowlist in its .claude/settings.json — which would leave the
+# run's subagents without a shell, testing the sandbox instead of the package. The
+# script therefore marks that one directory trusted in ~/.claude.json before the
+# run and removes the entry again afterwards, which is the remedy the harness's own
+# message names. --no-trust skips it. (`--settings '<json>'` on the claude command
+# is the other way in: the CLI says --settings still applies where an untrusted
+# project's settings file does not. That changes the documented invocation, so it is
+# not what this script does.)
+#
+# ~/.claude.json is written by any running Claude Code app, so this read-modify-write
+# can in principle lose a concurrent change. The script copies the file into the
+# scratch directory first and only ever adds or removes the one key for the scratch
+# directory it created.
 #
 set -euo pipefail
 
 DRY_RUN=0
 SCRATCH=""
+TRUST=1
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1 ;;
+    --no-trust) TRUST=0 ;;
     --keep-dir) SCRATCH="${2:?--keep-dir needs a directory}"; shift ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 64 ;;
@@ -35,6 +53,29 @@ CRITIC_ID="critic"
 
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31mFAIL\033[0m %s\n' "$*" >&2; exit 1; }
+
+# ---------------------------------------------------------------- preflight
+
+command -v claude >/dev/null 2>&1 || fail "claude is not on PATH; install Claude Code first"
+
+if [ "$DRY_RUN" = "0" ]; then
+  if ! claude auth status 2>/dev/null | node -e '
+let raw = "";
+process.stdin.on("data", (chunk) => (raw += chunk));
+process.stdin.on("end", () => {
+  try {
+    process.exit(JSON.parse(raw).loggedIn === true ? 0 : 1);
+  } catch {
+    process.exit(1);
+  }
+});'; then
+    printf 'claude auth status:\n' >&2
+    claude auth status >&2 2>/dev/null || true
+    fail "the claude CLI is not signed in, so a headless run would fail without spending anything.
+      Sign in once with \`claude auth login\` (or \`claude setup-token\`, or export ANTHROPIC_API_KEY)
+      and run this script again. A desktop-app session does not share its credentials with the CLI."
+  fi
+fi
 
 # ---------------------------------------------------------------- scratch project
 
@@ -139,6 +180,84 @@ KICKOFF="$SCRATCH/.grooph/$GRAPH_ID/KICKOFF.md"
 if [ "$DRY_RUN" = "1" ]; then
   say "dry run: the scratch project is ready, the model was not called"
   find "$SCRATCH" -type f -not -path '*/.git/*' | sed "s|$SCRATCH/||" | sort
+  # Exercise the trust grant and its cleanup, then stop before the model.
+  DRY_RUN_TRUST_ONLY=1
+fi
+DRY_RUN_TRUST_ONLY="${DRY_RUN_TRUST_ONLY:-0}"
+
+# ---------------------------------------------------------------- trust
+
+CLAUDE_CONFIG="$HOME/.claude.json"
+# Claude Code keys project state by the resolved path, so resolve symlinks first
+# (on macOS $TMPDIR lives under /var, which is a link to /private/var).
+SCRATCH_REAL="$(cd "$SCRATCH" && pwd -P)"
+
+trust_entry() {
+  # $1: "on" | "off"
+  CONFIG="$CLAUDE_CONFIG" DIR="$SCRATCH_REAL" MODE="$1" node -e '
+import { readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
+const path = process.env.CONFIG;
+const dir = process.env.DIR;
+const mode = process.env.MODE;
+if (!existsSync(path)) {
+  if (mode === "off") process.exit(0);
+  console.error(`no ${path}: cannot pre-trust ${dir}`);
+  process.exit(1);
+}
+const config = JSON.parse(readFileSync(path, "utf8"));
+config.projects ??= {};
+if (mode === "on") {
+  config.projects[dir] = { ...(config.projects[dir] ?? {}), hasTrustDialogAccepted: true };
+} else {
+  const entry = config.projects[dir];
+  // Only ever remove what this script added.
+  if (entry && Object.keys(entry).length === 1 && entry.hasTrustDialogAccepted === true) {
+    delete config.projects[dir];
+  }
+}
+const temp = `${path}.grooph-e2e.${process.pid}`;
+writeFileSync(temp, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+renameSync(temp, path);
+
+// The file belongs to the user: read it back and make sure it is still whole.
+const after = JSON.parse(readFileSync(path, "utf8"));
+const keysBefore = Object.keys(config).length;
+const keysAfter = Object.keys(after).length;
+if (keysAfter !== keysBefore) {
+  console.error(`warning: ${path} has ${keysAfter} top-level keys, expected ${keysBefore}`);
+  process.exit(1);
+}
+const trusted = after.projects?.[dir]?.hasTrustDialogAccepted === true;
+if (mode === "on" && !trusted) {
+  console.error(`warning: ${dir} is still not marked trusted in ${path}`);
+  process.exit(1);
+}
+'
+}
+
+untrust() {
+  if [ "${TRUSTED:-0}" = "1" ]; then
+    trust_entry off && printf 'removed the trust entry for %s\n' "$SCRATCH_REAL"
+    TRUSTED=0
+  fi
+}
+trap untrust EXIT
+
+if [ "$TRUST" = "1" ]; then
+  say "pre-trusting the scratch directory"
+  if [ -f "$CLAUDE_CONFIG" ]; then
+    cp "$CLAUDE_CONFIG" "$SCRATCH/claude.json.bak"
+    printf 'copied %s to %s first\n' "$CLAUDE_CONFIG" "$SCRATCH/claude.json.bak"
+  fi
+  trust_entry on
+  TRUSTED=1
+  printf 'marked %s trusted in %s (removed again when this script exits)\n' "$SCRATCH_REAL" "$CLAUDE_CONFIG"
+else
+  say "skipping the trust grant (--no-trust): expect the run's shell commands to be denied"
+fi
+
+if [ "$DRY_RUN_TRUST_ONLY" = "1" ]; then
+  say "trust code path exercised; stopping before the model"
   exit 0
 fi
 
