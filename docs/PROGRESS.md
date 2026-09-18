@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 2 is closed (owner rebuilt the review loop on Android Chrome, 2026-09-18: works, manual building is slow and that is acceptable). The plan was reordered the same day: agents are the primary authors (decision 0007, A-009) and graphs are adaptive by default (decision 0008, A-008).
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ — redeployed from `main` on every push.
-- **Next action:** owner confirms slice 0004 (core for agents) and opens the Opus 5 session.
+- **Next action:** slice 0004 (core for agents) is running in an Opus 5 session; the driver writes the pattern specifications for 0005 meanwhile.
 - **Then:** 0005 templates and pattern library, 0006 executive path (share links, compare view, `grooph-design` skill), then a recorded demo run per template.
 - **What works today:** draw, edit, validate and persist graphs in the browser; import/export `.grooph.json`; export the Claude Code package; `pnpm exec grooph validate|canonicalize|export`; one real headless Claude Code run of an exported package.
 
@@ -16,10 +16,7 @@ _(none)_
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0004 (`handoffs/0004-core-for-agents/HANDOFF.md`) | Yes |
-| Approve up to two headless acceptance runs for 0004 (about $2.50 each; one approved run from 0001 is still unused) | Yes |
+_(nothing until the 0004 handback)_
 
 ## Deferred until Codex is available
 

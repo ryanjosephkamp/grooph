@@ -44,7 +44,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 |
 | 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 |
 | 0003 | 9 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred (Codex quota); runs before stage 9 |
-| 0004 | 3 | Core for agents | Opus 5 | handoff drafted, awaiting owner confirmation |
+| 0004 | 3 | Core for agents | Opus 5 | in progress (confirmed 2026-09-18) |
 | 0005 | 4 | Templates, pattern library, web editing polish | Opus 5 | todo |
 | 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | todo |
 

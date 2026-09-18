@@ -1,6 +1,6 @@
 # Handoff 0004 · Core for agents
 
-**Stage:** 3 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0004-core-for-agents` · **Drafted:** 2026-09-18 · **Confirmed by owner:** pending
+**Stage:** 3 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0004-core-for-agents` · **Drafted:** 2026-09-18 · **Confirmed by owner:** 2026-09-18 (two acceptance runs approved)
 
 ## Objective
 
