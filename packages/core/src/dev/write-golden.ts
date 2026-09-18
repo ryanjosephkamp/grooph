@@ -8,13 +8,12 @@
  * diff before committing it: the golden files are the package a human reviews.
  */
 
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compile } from "../compile/index.js";
 import { parseGraphText } from "../parse.js";
-import { readFileSync } from "node:fs";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -25,7 +24,11 @@ const repoRoot = (() => {
   throw new Error("workspace root not found");
 })();
 
-const GOLDENS = [{ graph: "fixtures/valid/review-loop.grooph.json", target: "claude-code" as const }];
+/** The review loop at the default level (`adaptive`), and a small graph at `fixed`, so both §9 texts are reviewable. */
+const GOLDENS = [
+  { graph: "fixtures/valid/review-loop.grooph.json", target: "claude-code" as const },
+  { graph: "fixtures/valid/fix-until-green.grooph.json", target: "claude-code" as const },
+];
 
 for (const golden of GOLDENS) {
   const parsed = parseGraphText(readFileSync(join(repoRoot, golden.graph), "utf8"));

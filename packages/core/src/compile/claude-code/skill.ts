@@ -32,9 +32,13 @@ export function skillFile(ctx: PackageContext): string {
       )}.`,
     ),
     lines(
-      `The graph document is ${code(ctx.paths.graph)} and the mapping from graph to files is ${code(
+      `The source graph document is ${code(ctx.paths.graph)} and the mapping from graph to files is ${code(
         ctx.paths.mapping,
-      )}. Do not edit either during a run.`,
+      )}; a run never edits either. The run follows its working copy, ${code(ctx.paths.workingCopy)}, ${
+        ctx.adaptation === "adaptive"
+          ? `which changes only through amendments made as ${code("LEAD.md")} § "Adapting the graph" describes`
+          : "which stays as it was copied"
+      }.`,
     ),
   );
 }

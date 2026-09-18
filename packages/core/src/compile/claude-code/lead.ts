@@ -1,6 +1,6 @@
 /**
  * `LEAD.md` — the lead brief. Section order is fixed by
- * `docs/targets/claude-code.md` § "Lead brief structure".
+ * `docs/targets/claude-code.md` § "Lead brief structure" (eleven sections).
  */
 
 import { formatIssue, type Issue } from "../../issues.js";
@@ -28,8 +28,9 @@ export function leadBrief(ctx: PackageContext, warnings: Issue[]): string {
     sectionSix(ctx),
     sectionSeven(ctx),
     sectionEight(ctx),
-    sectionNine(warnings),
-    sectionTen(ctx),
+    sectionNine(ctx),
+    sectionTen(warnings),
+    sectionEleven(ctx),
   );
 }
 
@@ -91,16 +92,23 @@ function sectionThree(ctx: PackageContext): string {
       "20260917-0930-a1b2",
     )}.`,
     `2. Create ${code(`${ctx.paths.runs}/<run-id>/`)}.`,
-    `3. Write ${code("PROGRESS.md")} there before dispatching anything: the run id, the goal, every node with status ${code(
+    `3. Copy the source document ${code(ctx.paths.graph)} into it as ${code(
+      ctx.paths.workingCopy,
+    )}. That copy is the run's working copy: the graph this run follows, ${
+      ctx.adaptation === "adaptive" ? "and the only copy you may amend (§9)" : "left as copied (§9)"
+    }. Never write the source document.`,
+    `4. Write ${code("PROGRESS.md")} there before dispatching anything: the run id, the goal, every node with status ${code(
       "pending",
     )}, and the round counter at 0.`,
-    `4. Create ${code("notes.jsonl")} beside it and append the first line:`,
+    `5. Create ${code("notes.jsonl")} beside it and append the first line:`,
     "",
     fence(firstNote, "json"),
     "",
-    `5. If you were given a run id to resume, do not start a second run: read that folder's ${code(
+    `6. If you were given a run id to resume, do not start a second run: read that folder's ${code(
       "PROGRESS.md",
-    )}, continue from the last recorded position, and keep appending to the same ${code("notes.jsonl")}.`,
+    )} and working copy, continue from the last recorded position, and keep appending to the same ${code(
+      "notes.jsonl",
+    )}. Do not copy the source over the working copy again.`,
     "",
     `Entry nodes (start here): ${entryNodeIds(ctx.index).map(code).join(", ") || "none — the graph has no entry node"}.`,
   );
@@ -349,18 +357,21 @@ function sectionEight(ctx: PackageContext): string {
     "",
     fence(
       lines(
-        `id       kebab-case, unique in the file: ${"`n-0001`"}, ${"`n-0002`"}, … in append order`,
-        "run      the run id",
-        "at       graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>",
-        "started  ISO timestamp        ended     ISO timestamp",
-        "outcome  pass | fail | halt | invalid-evidence",
-        "verdict  the critic's verdict label, when there is one",
-        "round    the loop round this belongs to",
-        "evidence what was actually inspected",
-        "cost     { measure: usd | minutes | turns | tokens, amount }",
-        "gaps     repeated gaps you noticed",
-        "proposal { summary } — a graph edit you would suggest; never apply it yourself",
-        "text     short commentary",
+        `id        kebab-case, unique in the file: ${"`n-0001`"}, ${"`n-0002`"}, … in append order`,
+        "run       the run id",
+        "at        graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>",
+        "started   ISO timestamp        ended     ISO timestamp",
+        "outcome   pass | fail | halt | invalid-evidence",
+        "verdict   the critic's verdict label, when there is one",
+        "round     the loop round this belongs to",
+        "evidence  what was actually inspected",
+        "cost      { measure: usd | minutes | turns | tokens, amount }",
+        "gaps      repeated gaps you noticed",
+        "proposal  { summary, patch? } — a graph change for the human to decide; you do not make it",
+        ...(ctx.adaptation === "adaptive"
+          ? ["amendment { summary, reason, patch? } — a change you made to the working copy (§9)"]
+          : []),
+        "text      short commentary",
       ),
       "text",
     ),
@@ -369,15 +380,122 @@ function sectionEight(ctx: PackageContext): string {
     "",
     fence(example, "json"),
     "",
-    `Never edit ${code(ctx.paths.graph)}. If the graph itself looks wrong, append a note with a ${code(
-      "proposal",
-    )} and carry on.`,
+    `A run never writes the source document ${code(ctx.paths.graph)}. When the graph itself looks wrong, §9 says what to do.`,
   );
 }
 
-function sectionNine(warnings: Issue[]): string {
+/** graph-ir §2 "Brakes are not adaptable", item for item. */
+const BRAKES = [
+  "a human gate",
+  `an edge ${code("approval")}`,
+  `an ${code("irreversible")} marker`,
+  `a ${code("budget")} or ${code("max-iterations")} stop`,
+  `a bar's ${code("acceptance")}`,
+  "critic isolation",
+  `the ${code("adaptation")} level itself`,
+];
+
+function sectionNine(ctx: PackageContext): string {
+  const level = ctx.adaptation;
+  const policies = (ctx.doc.policies ?? []).filter((p) => p.kind === "no-live-graph-rewrite");
+  const graphPolicy = policies.find((p) => p.scope === "graph");
+  const why =
+    graphPolicy && ctx.doc.adaptation !== level
+      ? ` (its policy ${code(graphPolicy.id)}, ${code("no-live-graph-rewrite")}, is stricter than ${code(
+          `adaptation: ${ctx.doc.adaptation ?? "adaptive"}`,
+        )})`
+      : ctx.doc.adaptation === undefined
+        ? " (the default)"
+        : "";
+  const heading = "## 9. Adapting the graph";
+  const untouched = `The working copy ${code(ctx.paths.workingCopy)} stays identical to the source document ${code(
+    ctx.paths.graph,
+  )}: neither is written during this run.`;
+
+  if (level === "fixed") {
+    return lines(
+      heading,
+      "",
+      `This graph is ${code("fixed")}${why}: follow it exactly. Do not add, remove or re-brief nodes, re-route edges, or change loops, tiers or effort — not even to tighten a brake.`,
+      "",
+      `When the work cannot go on within the graph as written, halt and ask: append a note with ${code(
+        '"outcome":"halt"',
+      )} that says what the graph is missing, write the final ${code(
+        "PROGRESS.md",
+      )}, and tell the human. A ${code("proposal")} note alongside is welcome; the run does not continue on it.`,
+      "",
+      untouched,
+    );
+  }
+
+  if (level === "propose") {
+    return lines(
+      heading,
+      "",
+      `This graph is ${code("propose")}${why}: you change nothing in it during the run, not even to tighten a brake. Follow it as written.`,
+      "",
+      `When the work shows the graph is wrong — a missing node, a loop that should exist, a brief that no longer fits — append a note with a ${code(
+        "proposal",
+      )} (${code("summary")}, and a ${code(
+        "patch",
+      )} when one helps) and carry on with the graph as it is; the human decides after the run. If you cannot carry on without the change, halt and say why.`,
+      "",
+      untouched,
+    );
+  }
+
+  const example = JSON.stringify({
+    id: "n-0009",
+    run: "<run-id>",
+    at: "graph",
+    amendment: { summary: "<what you changed>", reason: "<what the work showed>" },
+  });
+  const scoped = policies.filter((p) => p.scope !== "graph");
+
   return lines(
-    "## 9. Validation warnings",
+    heading,
+    "",
+    `This graph is ${code("adaptive")}${why}. It is the plan to start from, not a script: when the work shows it is wrong — a missing node, a loop that should exist, a brief that no longer fits — change the run's working copy rather than work around it. When the graph fits, follow it. Work that fits an existing node's brief and outputs needs no amendment, and the smallest change that closes a real gap is the right one.`,
+    "",
+    "You may add, remove or re-brief nodes, add or re-route edges, add loops, and change tiers or effort. For each amendment, when you make it:",
+    "",
+    `1. Edit the working copy, ${code(ctx.paths.workingCopy)}. The source document ${code(
+      ctx.paths.graph,
+    )} is never written by a run; after the run the human adopts your working copy as a new version or discards it.`,
+    `2. Append a note with an ${code("amendment")} — ${code("summary")}, ${code("reason")}, and a ${code(
+      "patch",
+    )} when one helps:`,
+    "",
+    fence(example, "json"),
+    "",
+    `3. Record it in ${code("PROGRESS.md")} under **Amendments**, so the human can see the graph the run is actually following.`,
+    `4. Check that the working copy still validates: run ${code(
+      `grooph validate --for-export ${ctx.paths.workingCopy}`,
+    )} when ${code("grooph")} is on your PATH; otherwise check the brakes below by hand.`,
+    "",
+    "At every adaptation level you may not remove or loosen:",
+    "",
+    ...BRAKES.map(bullet),
+    "",
+    `You may tighten any of them. Loosening one is a ${code(
+      "proposal",
+    )} note for the human, never an amendment. A loop you add needs a stop, and a bar if it is a judgment loop, like any other.${
+      scoped.length > 0
+        ? ` Policy ${scoped
+            .map((p) => `${code(p.id)} (scope ${code(p.scope)})`)
+            .join(", ")} forbids live rewrites where it applies: for anything it covers, record a proposal instead.`
+        : ""
+    }`,
+    "",
+    `A node you add mid-run has no file under ${code(
+      ".claude/agents/",
+    )}, because agent files are read when the session starts. Dispatch it as a general-purpose subagent with its brief inline, under the same isolation and evidence rules as every other node.`,
+  );
+}
+
+function sectionTen(warnings: Issue[]): string {
+  return lines(
+    "## 10. Validation warnings",
     "",
     ...(warnings.length === 0
       ? ["The document validated clean for export: no warnings."]
@@ -389,10 +507,11 @@ function sectionNine(warnings: Issue[]): string {
   );
 }
 
-function sectionTen(ctx: PackageContext): string {
+function sectionEleven(ctx: PackageContext): string {
   const stopNodes = (ctx.doc.nodes ?? []).filter((node) => node.kind === "stop");
+  const adaptive = ctx.adaptation === "adaptive";
   return lines(
-    "## 10. Ending",
+    "## 11. Ending",
     "",
     "The run ends when you reach a stop node, when a stop fires and its action is to halt, or when no edge is left to take.",
     "",
@@ -409,7 +528,11 @@ function sectionTen(ctx: PackageContext): string {
     `1. Append the final note: ${code('"at":"graph"')} with the outcome and a ${code(
       "text",
     )} that names the stop that fired or the stop node reached.`,
-    `2. Write the last ${code("PROGRESS.md")}: which nodes ran, how many rounds, and why the run ended.`,
-    "3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, and what is left over.",
+    `2. Write the last ${code("PROGRESS.md")}: which nodes ran, how many rounds, ${
+      adaptive ? "every amendment to the working copy, " : ""
+    }and why the run ended.`,
+    `3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, ${
+      adaptive ? "whether the working copy was amended (so they can adopt or discard it), " : ""
+    }and what is left over.`,
   );
 }

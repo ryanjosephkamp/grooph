@@ -7,6 +7,20 @@ import { entryNodeIds } from "../../semantics.js";
 import { code, doc, lines } from "../markdown.js";
 import type { PackageContext } from "./context.js";
 
+/** One line on how far the graph may bend in this run (graph-ir §2, `LEAD.md` §9). */
+function adaptationLine(ctx: PackageContext): string {
+  switch (ctx.adaptation) {
+    case "adaptive":
+      return `- When the work shows the graph is wrong, amend the working copy as ${code(
+        "LEAD.md",
+      )} § "Adapting the graph" says: visibly, with a note, and never loosening a brake. Never write the source document.`;
+    case "propose":
+      return `- When the graph looks wrong, record a proposal note (${code("LEAD.md")} § "Adapting the graph") and change nothing.`;
+    case "fixed":
+      return `- Follow the graph exactly; when you cannot, halt and ask (${code("LEAD.md")} § "Adapting the graph").`;
+  }
+}
+
 export function kickoff(ctx: PackageContext): string {
   const entries = entryNodeIds(ctx.index);
   const dispatchable = ctx.agents.map((agent) => code(agent.agentName)).join(", ");
@@ -15,13 +29,17 @@ export function kickoff(ctx: PackageContext): string {
     lines(
       `Run the grooph graph ${code(ctx.graphId)} (${ctx.doc.name}) in this project. You are the lead.`,
       "",
-      `Read ${code(ctx.paths.lead)} first and follow it exactly. It is the brief for this run; this prompt is only the trigger.`,
+      `Read ${code(ctx.paths.lead)} first and follow it${
+        ctx.adaptation === "fixed" ? " exactly" : ""
+      }. It is the brief for this run; this prompt is only the trigger.`,
     ),
     lines("**Goal.**", "", ctx.doc.goal ?? "(the graph states no goal)"),
     lines(
       "**Before you touch anything:**",
       "",
-      `1. Choose a run id in the form ${code(ctx.profile.runIdFormat)} and create ${code(`${ctx.paths.runs}/<run-id>/`)}.`,
+      `1. Choose a run id in the form ${code(ctx.profile.runIdFormat)}, create ${code(
+        `${ctx.paths.runs}/<run-id>/`,
+      )}, and copy ${code(ctx.paths.graph)} into it: that copy is the run's working copy.`,
       `2. Write ${code("PROGRESS.md")} and start ${code("notes.jsonl")} there, as ${code(
         "LEAD.md",
       )} § "Run setup" and § "Progress and notes" describe. Append a note for every node run and every loop round — that file is the record of the run.`,
@@ -38,6 +56,7 @@ export function kickoff(ctx: PackageContext): string {
       `- At a human gate, ask and wait. If this session cannot ask, halt: write the note and the final ${code(
         "PROGRESS.md",
       )}, and report that the run is waiting for a human.`,
+      adaptationLine(ctx),
     ),
     `**When the run ends** — a stop fires, you reach a stop node, or no edge is left to take — append the final note, write the last ${code(
       "PROGRESS.md",

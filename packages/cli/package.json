@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "grooph command line: validate, canonicalize and export graph documents.",
+  "description": "grooph command line: create, edit (apply ops), validate, canonicalize and export graph documents.",
   "license": "MIT",
   "bin": { "grooph": "./bin/grooph.js" },
   "exports": { ".": "./dist/src/index.js" },

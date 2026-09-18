@@ -13,6 +13,7 @@ How this package's files correspond to the graph document, so a human can hand-a
 | mapping notes | `.grooph/review-loop/MAPPING.md` | this file |
 | progress | `.grooph/review-loop/runs/<run-id>/PROGRESS.md` | written at run time, after every node |
 | run notes | `.grooph/review-loop/runs/<run-id>/notes.jsonl` | written at run time, one JSON object per line (graph-ir §6) |
+| working copy | `.grooph/review-loop/runs/<run-id>/graph.grooph.json` | copied from the source at run setup; the lead amends it, with a note per amendment, when the work shows the graph is wrong |
 | node `builder` | `.claude/agents/review-loop--builder.md` | subagent `review-loop--builder` · builder · model opus · effort high |
 | node `critic` | `.claude/agents/review-loop--critic.md` | subagent `review-loop--critic` · critic · model opus · effort high |
 
@@ -46,4 +47,5 @@ The durable place for that change is `model.tier` or `effort` on the node in the
 - The subagent files must sit in `.claude/agents/` of the project the session runs in; the package is discovered from the project directory, not from a flag.
 - Subagent names cannot contain a colon, which is why they read `<graph-id>--<node-id>`.
 - `usd` and `tokens` budgets are advisory: Claude Code documents no session-level cost cap, so the lead counts them by hand.
+- A run never writes `.grooph/review-loop/graph.grooph.json`. Adopt a run's working copy as the next version of the graph, or discard it; either way that is a human decision after the run.
 - Nothing here executes the graph. grooph compiles; the session is the runtime.
