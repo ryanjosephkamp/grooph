@@ -20,6 +20,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - 2026-09-18 · criterion 5 met: `adaptation` and `RunNote.amendment` in types and schema; LEAD.md §9 per level; the working copy at run setup; goldens for the review loop (adaptive) and fix-until-green (fixed).
 - 2026-09-18 · criterion 6 met: `grooph new` and `grooph apply`; `validate` on a run's working copy is tested.
 - 2026-09-18 · criterion 7 met: `write-outputs` in the picker, an adaptation control with a line per level, new codes highlight with no per-code UI.
+- 2026-09-18 · criterion 1 met: a fresh clone installs, builds and passes 161 unit and 10 browser tests; CI green on the branch (Node 22 and 24, web-e2e), Node 20 deprecation gone, Chromium cached.
+- 2026-09-18 · criterion 8 met: acceptance run `20260918-1737-k7qm` passed on the first of two approved runs ($2.12, 29 turns, 5m01s): the critic wrote REVIEW.md itself, the working copy is in the run folder, the run halted at the merge gate after `bar-passed`; the lead amended the working copy twice for the uncovered README requirement, both amendments real and brake-preserving. The second run was not spent.
 
 ## Waiting on the owner
 
