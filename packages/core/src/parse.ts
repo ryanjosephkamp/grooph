@@ -36,10 +36,10 @@ export function parseGraphText(text: string): ParseResult {
 }
 
 /**
- * Best-effort `at` for a schema issue: the id of the nearest enclosing object
+ * Best-effort `at` for a path-based issue (`E_SCHEMA`, `W_UNKNOWN_KEY`): the id of the nearest enclosing object
  * that has one, so a view can highlight the offending node or edge.
  */
-function nearestIds(root: unknown, path: string): string[] {
+export function nearestIds(root: unknown, path: string): string[] {
   const segments = path.split("/").filter((s) => s !== "");
   let cursor: unknown = root;
   let found: string | undefined;

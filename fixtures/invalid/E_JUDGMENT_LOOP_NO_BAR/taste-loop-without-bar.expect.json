@@ -1,0 +1,10 @@
+{
+  "issues": [
+    "E_JUDGMENT_LOOP_NO_BAR",
+    "W_HOMOGENEOUS_CRITICS",
+    "W_ONLY_MAX_ITERATIONS",
+    "W_OUTPUT_NOT_WRITABLE",
+    "W_OUTPUT_NOT_WRITABLE"
+  ],
+  "note": "Written for slice 0001, before the stage-3 warnings; the extra warnings are true statements about a deliberately minimal graph."
+}

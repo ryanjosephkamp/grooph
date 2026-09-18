@@ -111,5 +111,5 @@ test("the size lint ignores layout (amendment A-005)", () => {
   };
   assert.ok(canonicalize(withLayout).length > 24_000, "the document with layout is over the budget");
   assert.ok(canonicalizeWithoutLayout(withLayout).length < 24_000);
-  assert.deepEqual(validate(withLayout), [], "so the size warning does not fire");
+  assert.ok(!validate(withLayout).some((issue) => issue.code === "W_DOC_TOO_LARGE"), "so the size warning does not fire");
 });

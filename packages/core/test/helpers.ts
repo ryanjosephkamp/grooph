@@ -31,6 +31,24 @@ export const listDirs = (dir: string): string[] =>
         .sort()
     : [];
 
+/**
+ * The sidecar beside a fixture, `<name>.expect.json`: the exact list of issue
+ * codes it reports (fixtures/README.md). Undefined when there is none.
+ */
+export function expectedIssues(fixturePath: string): string[] | undefined {
+  const sidecar = fixturePath.replace(/\.grooph\.json$/, ".expect.json");
+  if (!existsSync(sidecar)) return undefined;
+  const parsed = JSON.parse(readFileSync(sidecar, "utf8")) as { issues?: unknown };
+  if (!Array.isArray(parsed.issues) || !parsed.issues.every((code) => typeof code === "string")) {
+    throw new Error(`${sidecar}: "issues" must be a list of codes`);
+  }
+  return parsed.issues as string[];
+}
+
+/** Every sidecar under `dir`, so an orphaned one can be caught. */
+export const listSidecars = (dir: string): string[] =>
+  existsSync(dir) ? readdirSync(dir).filter((name) => name.endsWith(".expect.json")).sort() : [];
+
 /** Every file under `fixtures/valid`. */
 export const validFixtures = (): { name: string; path: string }[] =>
   listFiles(join(fixturesDir, "valid")).map((name) => ({ name, path: join(fixturesDir, "valid", name) }));

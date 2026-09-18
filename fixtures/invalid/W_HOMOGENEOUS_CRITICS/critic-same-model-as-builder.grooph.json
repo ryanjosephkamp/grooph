@@ -1,0 +1,69 @@
+{
+  "grooph": 0,
+  "id": "same-model",
+  "name": "Same model",
+  "version": 1,
+  "goal": "Review a draft.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Critic: judge DRAFT.md against the checklist.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-build-review",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

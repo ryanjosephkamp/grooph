@@ -27,6 +27,8 @@ export type IssueCode =
   | "W_ONLY_MAX_ITERATIONS"
   | "W_UNREACHABLE_NODE"
   | "W_NO_TERMINAL"
+  | "W_OUTPUT_NOT_WRITABLE"
+  | "W_UNKNOWN_KEY"
   | "W_DOC_TOO_LARGE";
 
 export type Issue = {
@@ -37,10 +39,7 @@ export type Issue = {
   at: Id[];
 };
 
-/**
- * The rules slice 0001 implements — the `★` set in graph-ir §3. The rest of the
- * table arrives in stage 3; every code here has at least one failing fixture.
- */
+/** Every rule in graph-ir §3, in table order. Each has at least one failing fixture. */
 export const IMPLEMENTED_CODES = [
   "E_SCHEMA",
   "E_DUPLICATE_ID",
@@ -51,13 +50,6 @@ export const IMPLEMENTED_CODES = [
   "E_STOP_NOT_INSPECTABLE",
   "E_NO_TARGET",
   "E_NO_GOAL",
-  "W_DOC_TOO_LARGE",
-] as const satisfies readonly IssueCode[];
-
-export type ImplementedCode = (typeof IMPLEMENTED_CODES)[number];
-
-/** Codes named in graph-ir §3 but scheduled for stage 3. */
-export const PLANNED_CODES = [
   "E_CRITIC_NOT_ISOLATED",
   "E_OWNERSHIP_CONFLICT",
   "E_IRREVERSIBLE_NO_GATE",
@@ -68,7 +60,20 @@ export const PLANNED_CODES = [
   "W_ONLY_MAX_ITERATIONS",
   "W_UNREACHABLE_NODE",
   "W_NO_TERMINAL",
+  "W_OUTPUT_NOT_WRITABLE",
+  "W_UNKNOWN_KEY",
+  "W_DOC_TOO_LARGE",
 ] as const satisfies readonly IssueCode[];
+
+export type ImplementedCode = (typeof IMPLEMENTED_CODES)[number];
+
+/** Fails the build if a code joins `IssueCode` without joining `IMPLEMENTED_CODES`. */
+export type _EveryCodeImplemented = [Exclude<IssueCode, ImplementedCode>] extends [never] ? true : never;
+const _everyCodeImplemented: _EveryCodeImplemented = true;
+void _everyCodeImplemented;
+
+/** Codes named in graph-ir §3 but not implemented yet. Empty since stage 3. */
+export const PLANNED_CODES = [] as const satisfies readonly IssueCode[];
 
 export const error = (code: IssueCode, message: string, at: Id[] = []): Issue => ({
   code,

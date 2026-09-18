@@ -18,6 +18,7 @@
   "capabilityTools": {
     "read-files": ["Read", "Glob", "Grep"],
     "edit-files": ["Read", "Edit", "Write", "Glob", "Grep"],
+    "write-outputs": ["Write"],
     "run-commands": ["Bash"],
     "run-tests": ["Bash"],
     "web": ["WebFetch", "WebSearch"],

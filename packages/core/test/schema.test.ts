@@ -56,7 +56,7 @@ test("the schema and parseGraph agree on every fixture", () => {
 test("the schema and parseGraph agree on mutated documents", () => {
   const ajv = new Ajv2020({ strict: false, allErrors: true });
   const validateJson = ajv.compile(JSON.parse(graphJsonSchema()));
-  const source = JSON.parse(read(validFixtures()[0]!.path)) as Record<string, unknown>;
+  const source = JSON.parse(read(validFixtures().find((f) => f.name.startsWith("review-loop"))!.path)) as Record<string, unknown>;
 
   const mutate = (label: string, change: (doc: Record<string, unknown>) => void): void => {
     const doc = structuredClone(source);
@@ -95,5 +95,16 @@ test("the schema and parseGraph agree on mutated documents", () => {
   });
   mutate("run note is well formed", (doc) => {
     doc["notes"] = [{ id: "n-0001", run: "20260917-0930-a1b2", at: "loop:review-cycle", round: 1, outcome: "fail" }];
+  });
+  mutate("adaptation level known", (doc) => void (doc["adaptation"] = "propose"));
+  mutate("adaptation level unknown", (doc) => void (doc["adaptation"] = "loose"));
+  mutate("amendment note is well formed", (doc) => {
+    doc["notes"] = [{ id: "n-0002", run: "r", at: "graph", amendment: { summary: "add a docs node", reason: "README.md is uncovered", patch: [{ op: "addNode" }] } }];
+  });
+  mutate("amendment note without a reason", (doc) => {
+    doc["notes"] = [{ id: "n-0002", run: "r", at: "graph", amendment: { summary: "add a docs node" } }];
+  });
+  mutate("write-outputs is a capability", (doc) => {
+    (doc["nodes"] as { allow?: string[] }[])[1]!.allow = ["read-files", "write-outputs"];
   });
 });

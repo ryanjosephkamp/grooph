@@ -12,7 +12,7 @@ import { CompileError, compile } from "../src/compile/index.js";
 import { parseGraphText } from "../src/parse.js";
 import { validate } from "../src/validate.js";
 import type { Graph } from "../src/types.js";
-import { fixturesDir, invalidFixtures, read, validFixtures } from "./helpers.js";
+import { expectedIssues, fixturesDir, invalidFixtures, read, validFixtures } from "./helpers.js";
 
 const reviewLoopPath = validFixtures().find((f) => f.name.startsWith("review-loop"))!.path;
 const reviewLoop = (): Graph => {
@@ -86,7 +86,10 @@ test("the emitted graph document is the canonical source document", () => {
   const reparsed = parseGraphText(emitted);
   assert.deepEqual(reparsed.issues, []);
   assert.deepEqual(reparsed.doc, reviewLoop(), "same document, only the key order is canonical");
-  assert.deepEqual(validate(reparsed.doc!, { forExport: true }), []);
+  assert.deepEqual(
+    validate(reparsed.doc!, { forExport: true }).map((issue) => issue.code),
+    expectedIssues(reviewLoopPath),
+  );
 });
 
 test("LEAD.md carries all ten sections in the documented order", () => {
@@ -132,7 +135,7 @@ test("LEAD.md carries every piece of the package contract (graph-ir §5)", () =>
   assert.ok(lead.includes("The critic passed the change. Merge it?"), "the human gate, verbatim");
   assert.ok(lead.includes("runs/<run-id>/PROGRESS.md") && lead.includes("runs/<run-id>/notes.jsonl"));
   assert.ok(lead.includes('"at":"node:critic"'), "the notes example is filled in");
-  assert.ok(lead.includes("no warnings"), "and the warning section says so when there are none");
+  assert.ok(lead.includes("W_HOMOGENEOUS_CRITICS"), "the validation warnings, where the human will see them");
 });
 
 test("validation warnings are copied into LEAD.md verbatim", () => {
@@ -142,10 +145,11 @@ test("validation warnings are copied into LEAD.md verbatim", () => {
     description: `${doc.description} ${"padding to push this document over the one-pass budget. ".repeat(400)}`,
   };
   const result = compile(oversized, "claude-code");
-  assert.equal(result.warnings.length, 1);
-  assert.equal(result.warnings[0]!.code, "W_DOC_TOO_LARGE");
+  assert.deepEqual(result.warnings.map((w) => w.code), ["W_HOMOGENEOUS_CRITICS", "W_DOC_TOO_LARGE"]);
   const lead = result.files[".grooph/review-loop/LEAD.md"]!;
-  assert.ok(lead.includes(result.warnings[0]!.message), "the message, verbatim, where the human will see it");
+  for (const warning of result.warnings) {
+    assert.ok(lead.includes(warning.message), `${warning.code}: the message, verbatim, where the human will see it`);
+  }
 });
 
 test("subagent frontmatter follows the capability-to-tools table", () => {
@@ -159,8 +163,9 @@ test("subagent frontmatter follows the capability-to-tools table", () => {
   assert.ok(!builder.includes("disallowedTools"), "the builder denies nothing");
 
   const critic = files[".claude/agents/review-loop--critic.md"]!;
-  assert.match(critic, /\ntools: Read, Glob, Grep, Bash\n/);
-  assert.match(critic, /\ndisallowedTools: Edit, Write\n/, "deny minus allow, so Read survives");
+  assert.match(critic, /\ntools: Read, Write, Glob, Grep, Bash\n/, "write-outputs maps to Write");
+  assert.match(critic, /\ndisallowedTools: Edit\n/, "deny minus allow, so Read and Write survive");
+  assert.match(critic, /only the files you declare in these outputs/, "and the body bounds what Write may touch");
   assert.ok(critic.includes("invalid-evidence"), "the critic knows the evidence escape hatch");
   assert.ok(critic.includes("docs/REVIEW-CHECKLIST.md"), "and what it may inspect");
 });
@@ -225,6 +230,6 @@ test("a warning does not block export", () => {
   const parsed = parseGraphText(read(oversized.path));
   assert.ok(parsed.doc);
   const result = compile(parsed.doc, "claude-code");
-  assert.equal(result.warnings.length, 1);
+  assert.ok(result.warnings.some((w) => w.code === "W_DOC_TOO_LARGE"));
   assert.ok(Object.keys(result.files).length > 0, "the package is still emitted");
 });
