@@ -1,0 +1,21 @@
+{
+  "grooph": 0,
+  "id": "no-target-harness",
+  "name": "No target harness",
+  "version": 1,
+  "goal": "Write the release note in NOTES.md.",
+  "description": "Structurally sound, but nothing says which harness to compile for, so export has no profile to use.",
+  "nodes": [
+    {
+      "id": "worker",
+      "kind": "agent",
+      "name": "Worker",
+      "role": "builder",
+      "brief": "Write the release note.",
+      "outputs": ["NOTES.md"]
+    },
+    { "id": "done", "kind": "stop", "name": "Done", "outcome": "success" }
+  ],
+  "edges": [{ "id": "e-finish", "from": "worker", "to": "done" }],
+  "loops": []
+}

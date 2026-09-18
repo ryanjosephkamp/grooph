@@ -15,11 +15,16 @@
   },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
-  "files": ["dist", "schema", "targets"],
+  "files": [
+    "dist",
+    "schema",
+    "targets"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "schema:write": "node dist/src/schema/write.js",
-    "test": "node --test dist/test/"
+    "test": "node --test 'dist/test/*.test.js'",
+    "golden:write": "node dist/src/dev/write-golden.js"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
