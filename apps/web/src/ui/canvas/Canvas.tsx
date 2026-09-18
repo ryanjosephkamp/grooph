@@ -10,10 +10,11 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { severityById } from "../../doc/issues.js";
-import { resolvePositions } from "../../doc/layout.js";
+import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { setPositions, type Position } from "../../doc/ops.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
+import { edgeBends, type Box } from "./bends.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
 
@@ -76,15 +77,21 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
     [doc, positions, drag, measured, severity, selectedNode, highlight, mode, picking, focusLoop, focusLoopColor],
   );
 
+  const bends = useMemo(() => {
+    const boxes: Record<Id, Box> = {};
+    for (const n of doc.nodes) {
+      const p = drag[n.id] ?? positions[n.id] ?? { x: 0, y: 0 };
+      const size = measured[n.id];
+      boxes[n.id] = { x: p.x, y: p.y, w: size?.width ?? NODE_WIDTH, h: size?.height ?? NODE_HEIGHT };
+    }
+    return edgeBends(doc, boxes);
+  }, [doc, positions, drag, measured]);
+
   const edges: GraphFlowEdge[] = useMemo(() => {
     const known = new Set(doc.nodes.map((n) => n.id));
-    const pairCount = new Map<string, number>();
     return doc.edges
       .filter((e) => known.has(e.from) && known.has(e.to))
       .map((edge) => {
-        const pair = [edge.from, edge.to].sort().join("|");
-        const rank = pairCount.get(pair) ?? 0;
-        pairCount.set(pair, rank + 1);
         const loopIndex = doc.loops.findIndex((l) => l.back.includes(edge.id));
         return {
           id: edge.id,
@@ -95,7 +102,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
             edge,
             back: loopIndex >= 0,
             loopColor: loopIndex >= 0 ? loopIndex : undefined,
-            rank,
+            bend: bends.get(edge.id) ?? 0,
             severity: severity.get(edge.id),
             selected: edge.id === selectedEdge,
             highlighted: highlight.edges.has(edge.id),
@@ -103,7 +110,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
           },
         };
       });
-  }, [doc, severity, selectedEdge, highlight, picking]);
+  }, [doc, bends, severity, selectedEdge, highlight, picking]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<GraphFlowNode>[]) => {

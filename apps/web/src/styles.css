@@ -1375,6 +1375,10 @@ a {
   opacity: 0.4;
 }
 
+/* Labels are the touch handles for edges, so they sit above the nodes. */
+.react-flow__edgelabel-renderer {
+  z-index: 1001;
+}
 .gedge-label {
   position: absolute;
   display: inline-flex;

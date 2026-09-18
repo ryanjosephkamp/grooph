@@ -166,7 +166,7 @@ function BarSection({ doc, loop }: { doc: Graph; loop: Loop }) {
       <div className="field">
         <div className="field-label">Inspects</div>
         {bar.inspects.map((entry, i) => (
-          <div className="card" key={i}>
+          <div className="card" key={i} role="group" aria-label={`Evidence ${i + 1}`}>
             <Select
               label="Kind"
               value={entry.kind}
@@ -221,7 +221,7 @@ function StopsSection({ doc, loop }: { doc: Graph; loop: Loop }) {
     <Section title="Stops">
       <p className="field-hint">Checked after every pass, in this order; the first that fires wins.</p>
       {loop.stops.map((stop, i) => (
-        <div className="card" key={i} data-stop-kind={stop.kind}>
+        <div className="card" key={i} role="group" aria-label={`Stop ${i + 1}`} data-stop-kind={stop.kind}>
           <div className="card-head">
             <span className="card-index">{i + 1}</span>
             <Select

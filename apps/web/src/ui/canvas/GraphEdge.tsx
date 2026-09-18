@@ -10,8 +10,8 @@ export type GraphEdgeData = {
   back: boolean;
   /** colour index of the loop it returns work in */
   loopColor?: number;
-  /** 0 for a lone edge; 1, 2, … for edges sharing a pair of nodes */
-  rank: number;
+  /** how far the curve bows at its middle, to the right of travel (see `bends.ts`) */
+  bend: number;
   severity?: Severity;
   selected: boolean;
   highlighted: boolean;
@@ -44,12 +44,8 @@ function border(b: Box, toward: Pt, gap: number): Pt {
   return { x: c.x + dx * t + (dx / len) * gap, y: c.y + dy * t + (dy / len) * gap };
 }
 
-/**
- * Edges float between node borders. A back edge arcs to the right of its
- * direction of travel, so the way round a loop reads at a glance; edges that
- * share a pair of nodes bow apart instead of drawing on top of each other.
- */
-function geometry(a: Box, b: Box, back: boolean, rank: number): { path: string; label: Pt; tip: Pt; dir: Pt } {
+/** Edges float between node borders, straight or as a quadratic curve bowing `bend` pixels at its middle. */
+function geometry(a: Box, b: Box, bend: number): { path: string; label: Pt; tip: Pt; dir: Pt } {
   const ca = center(a);
   const cb = center(b);
   const dist = Math.hypot(cb.x - ca.x, cb.y - ca.y) || 1;
@@ -58,7 +54,6 @@ function geometry(a: Box, b: Box, back: boolean, rank: number): { path: string; 
   // right-hand normal in screen coordinates (y grows downward)
   const nx = -uy;
   const ny = ux;
-  const bend = (back ? Math.min(Math.max(dist * 0.32, 48), 200) : 0) + rank * 26;
   const control = { x: (ca.x + cb.x) / 2 + nx * bend * 2, y: (ca.y + cb.y) / 2 + ny * bend * 2 };
   const start = border(a, bend === 0 ? cb : control, 2);
   const end = border(b, bend === 0 ? ca : control, 4);
@@ -92,7 +87,7 @@ export const GraphEdge = memo(function GraphEdge({ id, source, target, data }: E
   const b = useInternalNode(target);
   if (!a || !b || !data || !a.measured.width || !b.measured.width) return null;
 
-  const g = source === target ? selfLoop(box(a)) : geometry(box(a), box(b), data.back, data.rank);
+  const g = source === target ? selfLoop(box(a)) : geometry(box(a), box(b), data.bend);
   const { edge } = data;
   const size = 9;
   const px = -g.dir.y;
