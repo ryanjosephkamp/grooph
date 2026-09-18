@@ -71,6 +71,16 @@ CLI="$REPO_ROOT/packages/cli/bin/grooph.js"
 CORE="$REPO_ROOT/packages/core/dist/src/index.js"
 CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
+# The run is a fresh headless session: it gets a small, explicit environment, so
+# nothing from whatever launched this script (a desktop or IDE session's CLAUDE_*
+# and ANTHROPIC_* variables, a messaging socket, an effort override) reaches it.
+# The CLI signs in with its own stored credentials.
+clean_env() {
+  env -i HOME="$HOME" PATH="$1" TMPDIR="${TMPDIR:-/tmp}" USER="${USER:-}" LOGNAME="${LOGNAME:-${USER:-}}" \
+    LANG="${LANG:-en_US.UTF-8}" SHELL="${SHELL:-/bin/sh}" TERM="${TERM:-dumb}" \
+    ${CLAUDE_CONFIG_DIR:+CLAUDE_CONFIG_DIR="$CLAUDE_CONFIG_DIR"} "${@:2}"
+}
+
 say() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 fail() { printf '\n\033[31mFAIL\033[0m %s\n' "$*" >&2; exit 1; }
 
@@ -80,7 +90,7 @@ fail() { printf '\n\033[31mFAIL\033[0m %s\n' "$*" >&2; exit 1; }
 command -v claude >/dev/null 2>&1 || [ "$CHECK_ONLY" = "1" ] || fail "claude is not on PATH; install Claude Code first"
 
 if [ "$DRY_RUN" = "0" ] && [ "$CHECK_ONLY" = "0" ]; then
-  if ! claude auth status 2>/dev/null | node -e '
+  if ! clean_env "$PATH" claude auth status 2>/dev/null | node -e '
 let raw = "";
 process.stdin.on("data", (chunk) => (raw += chunk));
 process.stdin.on("end", () => {
@@ -91,7 +101,7 @@ process.stdin.on("end", () => {
   }
 });'; then
     printf 'claude auth status:\n' >&2
-    claude auth status >&2 2>/dev/null || true
+    clean_env "$PATH" claude auth status >&2 2>/dev/null || true
     fail "the claude CLI is not signed in, so a headless run would fail without spending anything.
       Sign in once with \`claude auth login\` (or \`claude setup-token\`, or export ANTHROPIC_API_KEY)
       and run this script again. A desktop-app session does not share its credentials with the CLI."
@@ -315,7 +325,7 @@ fi
 say "running the package headless (this spends tokens)"
 cd "$SCRATCH"
 set +e
-PATH="$BIN_DIR:$PATH" claude -p "$(cat ".grooph/$GRAPH_ID/KICKOFF.md")" --permission-mode acceptEdits --output-format json \
+clean_env "$BIN_DIR:$PATH" claude -p "$(cat ".grooph/$GRAPH_ID/KICKOFF.md")" --permission-mode acceptEdits --output-format json \
   > "$SCRATCH/claude-output.json" 2> "$SCRATCH/claude-stderr.txt"
 CLAUDE_STATUS=$?
 set -e
