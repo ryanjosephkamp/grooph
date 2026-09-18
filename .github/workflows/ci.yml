@@ -15,11 +15,11 @@ jobs:
         node: ["22", "24"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
@@ -29,12 +29,21 @@ jobs:
       - run: pnpm -r build
       - run: pnpm -r test
 
-      # The package a human reviews must still be the package the compiler emits.
-      - name: export matches the golden package
+      # The packages a human reviews must still be the packages the compiler emits.
+      - name: export matches the golden packages
         run: |
-          pnpm exec grooph export fixtures/valid/review-loop.grooph.json \
-            --target claude-code --into "$RUNNER_TEMP/grooph-pkg" > /dev/null
-          diff -r "$RUNNER_TEMP/grooph-pkg" fixtures/golden/claude-code/review-loop
+          for graph in review-loop fix-until-green; do
+            pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
+              --target claude-code --into "$RUNNER_TEMP/grooph-pkg-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-$graph" "fixtures/golden/claude-code/$graph"
+          done
+
+      # An agent's route from nothing to the review loop: new, then apply the example ops.
+      - name: new and apply rebuild the review loop
+        run: |
+          pnpm exec grooph new --name "Review loop" --out "$RUNNER_TEMP/review-loop.grooph.json"
+          pnpm exec grooph apply "$RUNNER_TEMP/review-loop.grooph.json" --ops fixtures/ops/review-loop.ops.json --write
+          diff "$RUNNER_TEMP/review-loop.grooph.json" fixtures/valid/review-loop.grooph.json
 
       - name: the validator agrees with the fixtures from the command line
         run: |
@@ -48,20 +57,35 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @grooph/web exec playwright install --with-deps --only-shell chromium
+
+      # Chromium is cached per Playwright version; the system libraries it
+      # needs are not in the cache, so they are installed either way.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @grooph/web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: chromium
+        with:
+          path: ~/.cache/ms-playwright
+          key: chromium-shell-${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+      - if: steps.chromium.outputs.cache-hit != 'true'
+        run: pnpm --filter @grooph/web exec playwright install --with-deps --only-shell chromium
+      - if: steps.chromium.outputs.cache-hit == 'true'
+        run: pnpm --filter @grooph/web exec playwright install-deps chromium
+
       - run: pnpm --filter @grooph/web test:e2e
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
