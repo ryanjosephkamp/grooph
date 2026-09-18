@@ -4,10 +4,11 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 2 (vertical slice) is built and merged; it closes when the owner has rebuilt the review loop on Android Chrome. Stage 3 (authoring completeness) is next and not yet handed off.
-- **Live app:** https://ryanjosephkamp.github.io/grooph/ — deployed from `main` by `.github/workflows/deploy.yml` on every push (first deploy 2026-09-18, run `35387614004`, loads with no console errors).
-- **Next action:** owner tries the app on the phone and reports what was awkward; the driver then drafts the stage-3 handoffs with that input.
-- **What works today:** draw, edit, validate and persist graphs in the browser; import/export `.grooph.json`; export the Claude Code package as a zip with a copyable kickoff prompt; `pnpm exec grooph validate|canonicalize|export` from the CLI; one real headless Claude Code run of an exported package (run `20260918-0042-k7qm`).
+- **Stage:** 2 is closed (owner rebuilt the review loop on Android Chrome, 2026-09-18: works, manual building is slow and that is acceptable). The plan was reordered the same day: agents are the primary authors (decision 0007, A-009) and graphs are adaptive by default (decision 0008, A-008).
+- **Live app:** https://ryanjosephkamp.github.io/grooph/ — redeployed from `main` on every push.
+- **Next action:** owner confirms slice 0004 (core for agents) and opens the Opus 5 session.
+- **Then:** 0005 templates and pattern library, 0006 executive path (share links, compare view, `grooph-design` skill), then a recorded demo run per template.
+- **What works today:** draw, edit, validate and persist graphs in the browser; import/export `.grooph.json`; export the Claude Code package; `pnpm exec grooph validate|canonicalize|export`; one real headless Claude Code run of an exported package.
 
 ## In flight
 
@@ -17,7 +18,8 @@ _(none)_
 
 | Item | Recommended answer |
 |---|---|
-| Rebuild the review loop on Android Chrome at the live URL (4 nodes, 5 edges, 1 loop with bar and 3 stops), export, and say what was awkward: pinch, drag, keyboard, edge drawing | Do this before stage 3 is handed off; it sets stage 3's priorities |
+| Confirm slice 0004 (`handoffs/0004-core-for-agents/HANDOFF.md`) | Yes |
+| Approve up to two headless acceptance runs for 0004 (about $2.50 each; one approved run from 0001 is still unused) | Yes |
 
 ## Deferred until Codex is available
 
@@ -28,6 +30,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-18 | Owner's phone session closed stage 2. Plan reordered around agent-built graphs; A-008 (adaptive by default, brakes fixed) and A-009 (agents author) logged; decisions 0007 and 0008; run monitor and community gallery placed as later stages. |
 | 2026-09-18 | Slice 0002 reconciled and merged: web canvas over the unchanged core; 40 unit tests and 10 phone-size browser tests, including a byte-for-byte package round trip; GitHub Pages enabled and first deploy verified live. Decision 0006 recorded. |
 | 2026-09-18 | Owner confirmed slice 0002; Codex-dependent work (0003, stages 7–9) deferred until the owner's Codex quota returns. |
 | 2026-09-18 | Slice 0001 reconciled and merged: core (schema, validator, canonical form, Claude Code compiler), CLI, fixtures per ★ code, golden package, CI, headless acceptance run passed. Eight implementer findings folded into `graph-ir.md` and `targets/claude-code.md`; decision 0005 recorded. |

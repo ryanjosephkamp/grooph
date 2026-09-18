@@ -22,8 +22,10 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 - **Spec wins.** When a convenience idea conflicts with the spec, log an amendment first or drop the idea.
 - **Document first.** The graph document is the single source of truth. The canvas, the outline view and every package are projections of it.
 - **Every rule has a code and a fixture.** Each validation rule in `docs/graph-ir.md` has a stable code (`E_…` hard error, `W_…` warning), a failing fixture and a passing fixture under `fixtures/`. Patterns under `patterns/` must validate clean.
-- **No LLM calls inside grooph.** The executive is the harness session, reaching grooph through the skill, CLI or MCP server.
-- **Human is the brake.** Spend, merge, publish and live graph mutation are gated. Loops never default to "until perfect".
+- **No LLM calls inside grooph.** The executive is the harness session, reaching grooph through the skill and the CLI (an MCP wrapper comes later).
+- **Agents author, humans review.** Most graphs are built by an agent from a template or from scratch; the web app is for review, editing and reuse (decision 0007).
+- **Human is the brake.** Spend, merge and publish are gated, and loops never default to "until perfect". Graphs are adaptive by default, but a run amends only its own working copy, visibly, and can tighten brakes, never loosen them (decision 0008).
+- **Latitude over procedure.** Briefs state purpose, limits and outputs. The smallest graph that works beats a thorough one.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
 - **State lives in `docs/PROGRESS.md`, reasons in `docs/decisions/`.** README stays a product description.
 - **Tooling:** TypeScript monorepo, `pnpm` workspaces. Package-level choices belong to the implementer and are recorded in the handback.

@@ -10,3 +10,5 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0004 | [First vertical slice: core and compiler before canvas](0004-slice-sequencing.md) |
 | 0005 | [Core tooling choices from slice 0001](0005-core-tooling.md) |
 | 0006 | [Web app tooling and editing semantics from slice 0002](0006-web-tooling.md) |
+| 0007 | [Agents are the primary authors; skill + CLI before MCP](0007-agents-are-the-primary-authors.md) |
+| 0008 | [Graphs are adaptive by default; brakes are not](0008-adaptive-by-default.md) |

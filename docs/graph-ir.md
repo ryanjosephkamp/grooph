@@ -17,6 +17,7 @@ type Graph = {
   goal?: string;                   // required for export and bootstrap (E_NO_GOAL)
   target?: { harness: HarnessId }; // required for export (E_NO_TARGET)
   constraints?: { budget?: string; time?: string; other?: string };  // free-text hints, surfaced in the lead brief
+  adaptation?: "adaptive" | "propose" | "fixed";                     // how far the lead may change the graph during a run; default "adaptive" (§2, A-008)
   lineage?: { pattern?: string; from?: string };                     // pattern id; "graph-id@version"
   description?: string;            // one paragraph a human or executive can read
 
@@ -138,7 +139,7 @@ type Policy = {
 type Group = { id: Id; name: string; members: Id[]; coupled?: boolean };
 ```
 
-`no-live-graph-rewrite` at graph scope is the default posture even when absent: a run proposes edits (§6) and never rewrites the document.
+`no-live-graph-rewrite` is kept for compatibility and means the same as `adaptation: "propose"`; prefer the `adaptation` field. When both are present the stricter one wins.
 
 ## 2. Semantics
 
@@ -153,7 +154,14 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Human gates and approvals.** The lead asks and waits. It does not simulate an answer, batch several gates into one question, or proceed on silence. In a session that cannot ask (headless, non-interactive), a gate ends the run: the lead records `outcome: "halt"` naming the gate, writes the final progress, and reports that the run waits for a human; the same run id resumes it.
 - **Ownership.** A node that `owns` an artifact is the only node that writes it during the run. Others read it or hand it back with findings.
 - **Stop nodes.** Reaching a `stop` node ends the run with the given outcome. A run with no reachable stop node ends when the lead has no edges left to take; it reports which nodes ran and why it ended.
-- **Notes.** The run appends run notes (§6) at the path the package names. It never edits the graph document.
+- **Notes.** The run appends run notes (§6) at the path the package names.
+- **Latitude.** A graph says who does what, what each node must leave behind, where the loops and brakes are. It does not script how a node does its work. Briefs state purpose, limits and outputs; the worker chooses its steps, and the lead chooses how to decompose work inside a node. A graph that needs a paragraph of procedure in a brief is over-specified.
+- **Working copy.** At kickoff the lead copies the source document into the run folder. The run reads and, where allowed, amends that working copy. The source document is never written by a run; after the run the human adopts the working copy as a new graph version or discards it (stage 6).
+- **Adaptation.** `adaptation` sets how far the lead may change the working copy when the work shows the graph is wrong (a missing node, a loop that should exist, a brief that no longer fits):
+  - `adaptive` (default): the lead may add, remove or re-brief nodes, add or re-route edges, add loops, and change tiers or effort. Every amendment is written to the working copy, recorded at once as a note with an `amendment` (summary, reason, what changed), and shown in the progress log, so the human can always see the graph the run is actually following. The amended document must still validate; when the `grooph` CLI is available the lead runs it, otherwise it checks the brakes below by hand.
+  - `propose`: the lead changes nothing and records `proposal` notes.
+  - `fixed`: the lead follows the graph exactly; when it cannot, it halts and asks.
+- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. It may tighten any of them. Loosening one is a `proposal` for the human. A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other.
 
 ## 3. Validation rules
 
@@ -248,6 +256,7 @@ type RunNote = {
   cost?: { measure: "usd" | "minutes" | "turns" | "tokens"; amount: number };
   gaps?: string[];                           // repeated gaps observed
   proposal?: { summary: string; patch?: unknown };   // proposed graph edit; never applied automatically
+  amendment?: { summary: string; reason: string; patch?: unknown };   // a change the lead made to the run's working copy (adaptive runs only)
   text?: string;                             // free commentary, short
 };
 ```

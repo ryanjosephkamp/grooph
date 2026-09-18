@@ -26,6 +26,7 @@ The profile is data (`packages/core/targets/claude-code.profile.json`), so a ven
     runs/                    created at run time
       <run-id>/PROGRESS.md   human-readable progress
       <run-id>/notes.jsonl   run notes, one per line (graph-ir §6)
+      <run-id>/graph.grooph.json   the run's working copy; amended by an adaptive lead, never the source above
   .claude/agents/<graph-id>--<node-id>.md     one subagent per agent node except the lead
   .claude/skills/<graph-id>/SKILL.md          `/<graph-id>` starts or resumes a run
 ```
@@ -49,20 +50,22 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 | Evidence rules | A block in each critic's agent body and in `LEAD.md`: what may be inspected; `invalid-evidence` on unreadable evidence | |
 | Progress contract | `runs/<run-id>/PROGRESS.md` updated after every node completes; `notes.jsonl` appended per node run and per loop round | Run id: `<yyyymmdd-hhmm>-<4 random chars>`, chosen at kickoff. |
 | Kickoff | `/<graph-id>` (skill), or the text of `KICKOFF.md` pasted | The skill: `disable-model-invocation: true`, `argument-hint: [run-id to resume]`, body = "read LEAD.md, start or resume a run". |
+| Adaptation (graph-ir §2, A-008) | A section in `LEAD.md` chosen by the document's `adaptation` level. `adaptive`: the lead edits `runs/<run-id>/graph.grooph.json`, appends an `amendment` note, updates `PROGRESS.md`, and runs `grooph validate` on the working copy when the CLI is on `PATH`; the brakes list is printed verbatim. `propose`: proposal notes only. `fixed`: halt and ask. | A node added mid-run has no file under `.claude/agents/` (agent files are read at session start), so the lead dispatches it as a general-purpose subagent with the new brief inline, under the same isolation and evidence rules. |
 | Mapping notes | `MAPPING.md` | Table of graph object → file, plus the two things a human most often hand-edits: a node's model and a loop's stop values. |
 
 ## Lead brief structure (`LEAD.md`)
 
 1. **You are the lead.** One paragraph: run the graph, do not do the workers' jobs, never grade your own work when a critic exists.
 2. **Goal and constraints.** Verbatim from the document.
-3. **Run setup.** Choose the run id, create `runs/<id>/`, write the initial `PROGRESS.md`.
+3. **Run setup.** Choose the run id, create `runs/<id>/`, copy the source document in as the working copy, write the initial `PROGRESS.md`.
 4. **Nodes.** One line each: id, agent name to dispatch, role, what it returns.
 5. **Edges.** How results route: `pass`/`fail`/verdict → next node; isolation and evidence for each.
 6. **Loops.** Per loop: members, what counts as a round, the bar (with the refs the critic inspects), the stops in order with the action for each (`bar-passed` → follow pass edges; others → halt and report unless `then` is set).
 7. **Human gates.** The list, in graph order, and the rule: ask, end the turn, wait.
 8. **Progress and notes.** When to update `PROGRESS.md`; the `notes.jsonl` line format with one filled example.
-9. **Validation warnings.** Verbatim, so the human sees them at run time too.
-10. **Ending.** Reaching a stop node, or a stop firing: write the final note, summarise which nodes ran and why the run ended.
+9. **Adapting the graph.** What the lead may change at this document's `adaptation` level, how to record it, and the brakes it may never loosen.
+10. **Validation warnings.** Verbatim, so the human sees them at run time too.
+11. **Ending.** Reaching a stop node, or a stop firing: write the final note, summarise which nodes ran and why the run ended.
 
 ## Headless acceptance run
 

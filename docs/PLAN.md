@@ -1,32 +1,39 @@
 # Plan
 
-Living document. The driver updates it after every handback. Stage status: `todo` · `in progress` · `done` · `blocked`. Current state and open decisions live in [`PROGRESS.md`](PROGRESS.md).
+Living document. The driver updates it after every handback. Stage status: `todo` · `in progress` · `done` · `deferred`. Current state and open decisions live in [`PROGRESS.md`](PROGRESS.md).
 
-## Locked on 2026-09-17
+## Locked decisions
 
 | Decision | Choice | Record |
 |---|---|---|
-| Platform | Local-first static web app + shared TypeScript core + CLI + MCP server. No backend. | [decisions/0001](decisions/0001-local-first-static-platform.md) |
-| Executive | Lives in the harness session; reaches grooph via skill + MCP/CLI. grooph makes no LLM calls. | [decisions/0002](decisions/0002-executive-lives-in-harness.md), A-004 |
-| Phone → run | Design on the phone, run from the Mac. Share links and files first; GitHub-backed sync later. | [decisions/0003](decisions/0003-phone-to-run-path.md) |
-| First slice | Core + compiler + CLI (0001), then minimal canvas (0002). Sequential. | [decisions/0004](decisions/0004-slice-sequencing.md) |
+| Platform | Local-first static web app + shared TypeScript core + CLI (+ MCP later). No backend. | [0001](decisions/0001-local-first-static-platform.md) |
+| Executive | Lives in the harness session; reaches grooph through a skill and the CLI. grooph makes no LLM calls. | [0002](decisions/0002-executive-lives-in-harness.md), A-004 |
+| Phone → run | Design or review on the phone, run from the Mac. Share links and files first; GitHub-backed sync later. | [0003](decisions/0003-phone-to-run-path.md) |
 | Document encoding | Canonical JSON with a published JSON Schema; `layout` separable. | [graph-ir.md](graph-ir.md), A-005 |
-| Top-level stack | TypeScript monorepo (pnpm). Web: React + Vite + React Flow. Everything below that is the implementer's call. | [decisions/0001](decisions/0001-local-first-static-platform.md) |
+| Top-level stack | TypeScript monorepo (pnpm). Web: React + Vite + React Flow. | [0001](decisions/0001-local-first-static-platform.md), [0005](decisions/0005-core-tooling.md), [0006](decisions/0006-web-tooling.md) |
+| Who authors | Agents build most graphs; the human reviews, edits and reuses templates. Manual authoring is kept, not optimised. | [0007](decisions/0007-agents-are-the-primary-authors.md), A-009 |
+| Agent surface | Skill + CLI first (every harness has a shell); the MCP server is a thin wrapper added afterwards. | [0007](decisions/0007-agents-are-the-primary-authors.md) |
+| Graph flexibility | Adaptive by default: the lead may amend a run-local working copy, visibly and within validation; brakes cannot be loosened. | [0008](decisions/0008-adaptive-by-default.md), A-008 |
 
 ## Stages
 
+Reordered on 2026-09-18 after the owner's phone session (decision 0007). Everything through stage 7 is Claude Code only.
+
 | # | Stage | Objective | Success test | Owner | Status |
 |---|---|---|---|---|---|
-| 0 | Scaffolding | Repo an agent can enter cold: entry point, spec + amendments, living docs, handoff protocol, project skills. | A fresh session reads AGENTS.md and can state what to do next without asking. | Driver | done |
-| 1 | Graph document v0 | Schema, semantics, error-code catalog, example graphs. | `graph-ir.md` is complete enough that an implementer can build the validator from it without design questions. | Driver | done |
-| 2 | Vertical slice | **0001** core + validator + Claude Code compiler + CLI. **0002** minimal canvas on the phone. | A hand-written review-loop graph exports, and a fresh Claude Code session runs it from the kickoff prompt alone. Then the same graph can be drawn on Android Chrome and exported. | Opus | done (owner phone run outstanding) |
-| 3 | Authoring completeness | All node kinds and edge fields, copy/paste, bulk spawn, groups, full §12 rules and warnings, outline view, installable offline app. | Every §12 rule has a code and fixture; §7.1–7.3 capabilities all demonstrable on the phone. | Opus | todo |
-| 4 | Templates and patterns | Save node / subgraph / graph as template; the §10 patterns as validated graph documents; full §9 package; paste-only export; share links. | All 16 patterns validate clean; a pattern can be inserted into a graph; a package survives the paste-only path. | Opus builds, driver reviews content | todo |
-| 5 | Agent surface | CLI, MCP server, `grooph-design` skill, proposal sets, compare view. | From a Claude Code session: "here is my project and constraints" → three candidate graphs built through MCP → comparison shown → one picked → package placed. | Opus builds, driver writes the skill | todo |
-| 6 | Notes back | Run-note schema, file-contract import, notes on nodes/edges, accept/reject proposed diffs, retrospective executive pass. | A run's notes appear on the graph; a proposed edit can be accepted into a new graph version or rejected. | Opus | todo |
-| 7 | Codex target | Codex compile target and profile. | Same graph exports to Codex and a fresh Codex session runs it one-shot. | Driver writes mapping, Astra implements | todo |
-| 8 | Paired empirical runs | Same graph in both harnesses with comparable model pairings, one-shot deploy preferred. | Results recorded under `experiments/` with the fallback-to-few-shot reasons if any. | Driver designs, owner runs | todo |
-| 9 | Dual-harness nodes (optional) | A node whose runner is the other harness (`codex exec` from Claude Code; Codex MCP → grooph). Enables heterogeneous critics for real. | Decided after stage 8. | tbd | todo |
+| 0 | Scaffolding | Repo an agent can enter cold. | A fresh session reads AGENTS.md and knows what to do next. | Driver | done |
+| 1 | Graph document v0 | Schema, semantics, rule catalog, example graphs. | An implementer builds the validator from `graph-ir.md` without design questions. | Driver | done |
+| 2 | Vertical slice | **0001** core + compiler + CLI. **0002** canvas on the phone. | Package drives a real Claude Code run; graph rebuilt on Android Chrome and exported. | Opus | done (owner's phone run 2026-09-18: "works basically perfectly") |
+| 3 | Core for agents | **0004**: typed operations move into core; IR alignments from both reviews; every §12 rule and warning with fixtures; `adaptation` in the document and the compiler; `grooph new` and `grooph apply`; one acceptance run. | All rule codes have fixtures; the critic writes its own `REVIEW.md`; an adaptive run amends its working copy and records it; web app uses core's operations. | Opus | todo |
+| 4 | Templates | **0005**: template metadata; the §10 patterns as validated documents under `patterns/` with an index; user and project template folders; `grooph template list/show/use/save`; templates browsable in the app and served as static files from Pages, so a template is referable by name and installable from the repo. Web editing polish rides along: undo, storage persistence, toolbar overlap, rename warning. | Every pattern validates clean; "use template X" works from the CLI and the app; a stranger can fetch a template by name from the published index. | Driver specifies the patterns, Opus builds | todo |
+| 5 | Executive | **0006**: share links (graph or proposal set in the URL fragment, opened by the app); proposal-set document and compare view; the `grooph-design` skill (driver writes it) packaged so a session can install it from this repo; optional thin MCP server over the same core operations. | From a Claude Code session: describe a project and constraints → the agent considers named templates or builds new ones → one to three candidate graphs validated → a link opens the comparison on the phone → the owner picks → the package is placed and the run starts. | Opus builds, driver writes the skill | todo |
+| 6 | Pattern proving ground | Each template gets a small task and one headless run; results, run notes and a short write-up land under `experiments/patterns/` and are shown with the template. | Every shipped template has a recorded run that ended through one of its stops, or an honest note why not. | Driver designs, Opus scripts, owner approves spend | todo |
+| 7 | Notes back and run monitor | Import run notes onto the graph; show the run's working copy against the source and adopt or discard amendments; `grooph watch <run>` serves the canvas locally with nodes and loop rounds lit from `notes.jsonl` (no extra model tokens beyond the notes the run already writes; optional hook-written start/stop events). | A finished run's notes and amendments appear on the graph; a running graph can be watched from a browser on the same network. | Opus | todo |
+| 8 | Manual authoring extras | Copy/paste, bulk spawn, groups, outline view, installable offline app. | Spec §7 and §16.3 fully demonstrable. | Opus | todo |
+| 9 | Codex target | Codex compile target and profile; slice 0003 (Astra's read-only review) runs first. | Same graph exports to Codex and a fresh Codex session runs it one-shot. | Driver maps, Astra implements | deferred (Codex quota) |
+| 10 | Paired empirical runs | Same graph in both harnesses, comparable model pairings, one-shot deploy preferred. | Results under `experiments/` with fallback reasons if any. | Driver designs, owner runs | deferred (Codex quota) |
+| 11 | Dual-harness nodes (optional) | A node whose runner is the other harness. | Decided after stage 10. | tbd | deferred |
+| 12 | Community gallery (idea) | Others submit templates with demos (screenshots, GIFs, write-ups). Sketch: submissions are pull requests to a `community/` folder and the gallery is a static page built from it, so decision 0001 (no backend) holds. | Not designed yet. | tbd | idea |
 
 ## Slice ledger
 
@@ -34,22 +41,24 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 
 | Slice | Stage | Title | Implementer | Status |
 |---|---|---|---|---|
-| 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 (`handoffs/0001-core-compiler-cli/REVIEW.md`) |
-| 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 (`handoffs/0002-minimal-canvas/REVIEW.md`); owner's Android run outstanding |
-| 0003 | 1 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred 2026-09-18 (Codex quota); runs when Codex is available, at the latest before stage 7 |
+| 0001 | 2 | Core, validator, Claude Code compiler, CLI | Opus 5 | done 2026-09-18 |
+| 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 |
+| 0003 | 9 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred (Codex quota); runs before stage 9 |
+| 0004 | 3 | Core for agents | Opus 5 | handoff drafted, awaiting owner confirmation |
+| 0005 | 4 | Templates, pattern library, web editing polish | Opus 5 | todo |
+| 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | todo |
 
-## Carried into stage 3 from review 0001
+## Carried into slice 0004
 
-Small IR alignments decided at review time, deferred so the merged core stays byte-identical to what the acceptance run exercised: `kind` second in canonical key order (golden regeneration); the graph id in `E_DUPLICATE_ID`; the `write-outputs` capability with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules of graph-ir §3; canonicalising the fixtures in place; bumping the GitHub Actions versions.
+From review 0001: `kind` second in canonical key order (golden regeneration); graph id in `E_DUPLICATE_ID`; `write-outputs` with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules; canonical fixtures; GitHub Actions version bump. From review 0002: typed operations into core; four unused locals in core; Chromium cache in CI.
 
-## Carried into stage 3 from review 0002
+## Carried into slice 0005 (web editing polish)
 
-Move the typed document operations from `apps/web/src/doc/ops.ts` into `packages/core` (first item, prerequisite for stage 5); toolbar overlapping content while the sheet is open; undo; `navigator.storage.persist()` with the installable/offline work; a warning when a rename changes the id of a graph that has been exported; self-loop edges by tap; keyboard selection of canvas nodes; Chromium cache in CI; four unused locals in core. Plus whatever the owner's Android run finds.
+Toolbar overlapping content while the sheet is open; undo; `navigator.storage.persist()`; a warning when a rename changes the id of an exported graph; self-loop edges by tap; keyboard selection of canvas nodes.
 
 ## Ordering rules
 
-- **Codex is deferred** (owner, 2026-09-18): slices that need a Codex session (0003, stages 7–9) wait until the owner's Codex quota is available. Everything else proceeds in Claude Code and must not depend on them.
-
-- Stage 7 starts only after stage 2–5 work on Claude Code is demonstrably working; the mapping doc for Codex is written by the driver first.
-- Stage 5 needs the pattern library content from stage 4 (the executive recommends from named patterns, not slogans).
-- Parallel implementer sessions are allowed once the handoff protocol has been exercised at least once end to end.
+- **Codex is deferred** (owner, 2026-09-18): slices that need a Codex session wait until the owner's quota is available. Nothing else depends on them.
+- Stage 5 needs stage 4: the executive recommends from named, validated patterns, not slogans.
+- Stage 6 needs owner approval of the spend before any run (about $2–5 per template run at current prices).
+- Parallel implementer sessions are allowed when their allowed paths do not overlap.
