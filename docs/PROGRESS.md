@@ -22,6 +22,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - 2026-09-18 · criterion 7 met: `E_IRREVERSIBLE_NO_GATE` checks every way in (second fixture `mixed-inbound`); lead brief §9 prefers op-list patches and separates kickoff amendments from up-front redesign; goldens regenerated and read.
 - 2026-09-18 · criterion 8 met: dogfood by CLI only (use → apply → validate → export, save a fragment, insert `human-gated-irreversible` into a second graph), every step exit 0, no network; transcript in the handback.
 - 2026-09-18 · criterion 1 met: fresh clone of the branch green (core 174, cli 35, web 22, e2e 10/10); CI green on every push.
+- 2026-09-18 · **done** at `dc8def9`; handback in `handoffs/0005-templates/HANDBACK.md` (the handback commit is on top).
 
 ## Waiting on the owner
 
