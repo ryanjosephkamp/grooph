@@ -180,7 +180,7 @@ function loopBackEdges(index: GraphIndex): Issue[] {
         );
         continue;
       }
-      if (!hasPathWithin(index, edge.to, edge.from, members, edges)) {
+      if (!hasPathWithin(edge.to, edge.from, members, edges)) {
         issues.push(
           error(
             "E_LOOP_BACK_EDGE",

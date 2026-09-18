@@ -138,7 +138,6 @@ export function findCycles(index: GraphIndex, edges: readonly Edge[]): Id[][] {
 
 /** Is there a path from `from` to `to` using only edges whose endpoints are in `within`? */
 export function hasPathWithin(
-  index: GraphIndex,
   from: Id,
   to: Id,
   within: ReadonlySet<Id>,

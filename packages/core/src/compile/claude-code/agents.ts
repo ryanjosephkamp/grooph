@@ -64,7 +64,7 @@ function body(ctx: PackageContext, agent: ResolvedAgent): string[] {
     ownership(agent),
     evidenceRules(ctx, agent, evidence),
     capabilities(ctx, agent),
-    reportFormat(ctx, agent, outbound),
+    reportFormat(agent, outbound),
   ];
 }
 
@@ -154,7 +154,7 @@ function capabilities(ctx: PackageContext, agent: ResolvedAgent): string {
 }
 
 /** The report the node must return, derived from the conditions on its outgoing edges. */
-function reportFormat(ctx: PackageContext, agent: ResolvedAgent, outbound: readonly Edge[]): string {
+function reportFormat(agent: ResolvedAgent, outbound: readonly Edge[]): string {
   const verdicts: string[] = [];
   for (const edge of outbound) {
     const when = edgeWhen(edge);

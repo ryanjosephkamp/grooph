@@ -13,7 +13,7 @@ import {
   loopMode,
   stopAction,
 } from "../../semantics.js";
-import type { Edge, Graph, Loop, Node } from "../../types.js";
+import type { Edge, Loop, Node } from "../../types.js";
 import { bullet, cell, code, doc, fence, lines, table } from "../markdown.js";
 import type { PackageContext } from "./context.js";
 
