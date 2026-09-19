@@ -12,7 +12,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0007
+
+- Criterion 1 met (2026-09-19): `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` exits 0 at 0b52a82, and CI is green on `slice/0007-web-templates` (run 35423741584; frozen-lockfile install, Node 22 and 24, web-e2e). Run `20260919-0057-66c8`, round 0.
 
 ## Waiting on the owner
 
