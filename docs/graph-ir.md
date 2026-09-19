@@ -152,6 +152,7 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Isolation.** `fresh`: the downstream worker starts with no context except its brief, its declared inputs, and the edge's `evidence`. `shared`: the same worker continues with its prior context, or the lead performs the step itself.
 - **Evidence.** A worker may inspect only what its inbound edge lists (plus its own declared inputs). A critic that cannot read its evidence reports `invalid-evidence` rather than guessing; that round counts toward `evidence-invalid` stops.
 - **Rounds.** The first pass through a loop's members is round 0; each traversal of a back edge starts the next round. Stops are evaluated at the end of every pass, before any back edge is taken, in document order; the first that fires wins. Every pass leaves one loop note (§6) carrying the round just finished and the stop evaluated, so a loop that passes first time still leaves a record.
+- **Nested loops.** When a loop sits inside another, the inner loop's round counter and its stops start afresh each time the outer loop re-enters it; the outer loop's counter and budget keep running. Budgets are therefore the brake that spans phases.
 - **Human gates and approvals.** The lead asks and waits. It does not simulate an answer, batch several gates into one question, or proceed on silence. In a session that cannot ask (headless, non-interactive), a gate ends the run: the lead records `outcome: "halt"` naming the gate, writes the final progress, and reports that the run waits for a human; the same run id resumes it.
 - **Ownership.** A node that `owns` an artifact is the only node that writes it during the run. Others read it or hand it back with findings.
 - **Stop nodes.** Reaching a `stop` node ends the run with the given outcome. A run with no reachable stop node ends when the lead has no edges left to take; it reports which nodes ran and why it ended.
@@ -197,7 +198,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 
 | Code | Rule |
 |---|---|
-| `W_HOMOGENEOUS_CRITICS` | Every critic-family node resolves to the same tier and pin as every writer-family node. |
+| `W_HOMOGENEOUS_CRITICS` | A critic-family node resolves to the same tier and pins as every writer-family node whose work can reach it along non-back edges. Reported once, naming each such critic. (Until slice 0006 lands this, the check is graph-wide, which lets one differing node mask the rest.) |
 | `W_FANOUT_ON_COUPLED` | A node or group marked `coupled` receives an edge with `concurrency.max > 1`, or two `coupled` nodes share an `owns` entry. |
 | `W_LONG_LOOP_NO_BUDGET` | A loop has no `budget` stop and either no `max-iterations` stop or one with `n > 5`. |
 | `W_ASPIRATION_AS_ACCEPTANCE` | A bar's `aspiration` equals its `acceptance`, or `acceptance` is blank while `aspiration` is set. |
@@ -208,7 +209,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 |---|---|
 | `W_ONLY_MAX_ITERATIONS` | A loop's only stop kind is `max-iterations`. |
 | `W_UNREACHABLE_NODE` | A node is not reachable from any entry node. Under the entry rule this always accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`); it exists to name the stranded nodes so a view can highlight them. |
-| `W_NO_TERMINAL` | No `stop` node is reachable from an entry node. |
+| `W_NO_TERMINAL` | No `stop` node is reachable from an entry node. Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host). |
 | `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). |
 | `W_UNKNOWN_KEY` | The document carries a key the schema does not know. Unknown keys are accepted and preserved (views may stash state), but a typo in an optional field name should be visible. |
 | `W_DOC_TOO_LARGE` | Canonical serialization without `layout` exceeds 24,000 characters (about six thousand tokens). This is the "rewrite in one pass" budget and the share-link guard. |

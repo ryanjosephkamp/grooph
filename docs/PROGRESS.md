@@ -52,7 +52,6 @@ _(nothing until the 0005 handback)_
 - Real-finger pinch, drag and on-screen keyboard behaviour is untested; only browser touch emulation has run.
 - Graphs live in the browser's IndexedDB with no persistence request yet; Android may evict them under storage pressure. Until stage 3, Export → download is the backup. No undo yet.
 - One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised.
-- The review-gate pattern depends on the lead filing the critic's `REVIEW.md` until `write-outputs` lands in stage 3; do not copy the fixture into `patterns/` before then.
 - The typed document operations live in the web app; they must move into core before the MCP server (stage 5).
 - Claude Code native units change between releases. `targets/claude-code.md` pins what was verified (2.1.268) and when.
 - `turns` budgets bound the lead's own count (25 vs the harness's 33). Dollar budgets are advisory in Claude Code.

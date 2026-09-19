@@ -29,8 +29,8 @@ template?: {
 | Operation | Does |
 |---|---|
 | `instantiate(template, { name, values, id? })` | Fills slots, removes the `template` block, sets a new id and name, sets `version: 1`, sets `lineage: { pattern: <template id>, from: "<template id>@<version>" }`. Unfilled slots stay as `{{key}}`. Refuses `kind: "fragment"`. |
-| `insertFragment(doc, template, { values, prefix? })` | Adds the fragment's nodes, edges, loops, policies and groups into `doc`, re-deriving ids that collide (or applying `prefix`), and returns the id map. Layout is dropped. |
-| `extractTemplate(doc, { kind, nodeIds?, meta })` | Whole graph, or a fragment of the given nodes with the edges between them, loops whose members and back edges are all inside, and policies scoped inside. Strips notes, layout, goal and target for fragments. |
+| `insertFragment(doc, template, { values, prefix? })` | Accepts fragments and whole-graph templates (inserted as a subgraph; a graph-scoped policy comes along unless the host has the identical one). Adds the template's nodes, edges, loops, policies and groups into `doc`, re-deriving ids that collide (or applying `prefix`), and returns the id map. Layout is dropped. |
+| `extractTemplate(doc, { kind, nodeIds?, meta })` | Whole graph, or a fragment of the given nodes with the edges between them, loops whose members and back edges are all inside, and policies scoped inside. Fragments drop everything graph-level (goal, target, constraints, adaptation, description, layout, notes); whole-graph templates keep goal, target and layout and drop run notes. |
 | `templateIndexEntry(template)` | The index row (§3). |
 | `findSlots(doc)` | Every `{{key}}` with the ids of the objects holding it. |
 
@@ -51,7 +51,7 @@ Resolution order by name (template id), first hit wins:
 3. **Built-in:** this repo's `patterns/`, bundled with the CLI and the web app at build time.
 4. **Remote:** any registry URL passed with `--registry`, and by default the published library at `https://ryanjosephkamp.github.io/grooph/patterns/index.json`. Remote is consulted only when the name is not found locally, or on `grooph template add`.
 
-`patterns/index.json` is generated, committed, and checked in CI. The Pages deploy publishes `patterns/` beside the app, so anyone can fetch a template by name with no clone.
+`patterns/index.json` is generated (without a timestamp, so it is deterministic), committed, and checked in CI. A template document's `version` is the template's version, which is what `lineage.from` records. The Pages deploy publishes `patterns/` beside the app, so anyone can fetch a template by name with no clone.
 
 ## 4. CLI
 
@@ -64,7 +64,7 @@ grooph template save <file> --id <id> --title <t> --summary <s> --when <w> [--fr
 grooph template add <name | url> [--to project|user]
 ```
 
-`use` prints the questions for unfilled slots to stderr and still writes the document, so an agent can fill the rest by editing or with `grooph apply`.
+`--registry` is repeatable and replaces the default remote. `save` and `add` default to `--to project`, refuse to overwrite without `--force` (`save --force` bumps the template's version), and `save` estimates the `profile` from the graph and prints it for correction. `use` prints the questions for unfilled slots to stderr and still writes the document, so an agent can fill the rest by editing or with `grooph apply`.
 
 ## 5. The pattern library (built-in templates)
 
