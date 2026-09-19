@@ -2,7 +2,7 @@
  * Share links (docs/executive.md §2).
  *
  *   <base>#/open?d=<payload>    payload = base64url( raw DEFLATE( envelope JSON ) )
- *   envelope = { "v": 1, "kind": "graph" | "proposals", "doc": … }
+ *   envelope = { "v": 1, "kind": "graph" | "proposals" | "run", "doc": … }
  *
  * Core owns the envelope, the base64url step and every message a person sees
  * when a link will not open. Compression is a shell concern, so core keeps
@@ -24,9 +24,11 @@ import {
   validateProposalSet,
   type ProposalIssue,
 } from "./proposals.js";
+import { isRunBundleLike, parseRunBundle } from "./runs.js";
 import { graphSchema } from "./schema/graph.js";
 import { proposalSetSchema } from "./schema/proposals.js";
-import type { Graph, ProposalSet } from "./types.js";
+import { runBundleSchema } from "./schema/run.js";
+import type { Graph, ProposalSet, RunBundle } from "./types.js";
 import { validate } from "./validate.js";
 
 export const SHARE_VERSION = 1;
@@ -45,7 +47,8 @@ export const SHARE_JSON_MAX = 4_000_000;
 
 export type ShareEnvelope =
   | { v: typeof SHARE_VERSION; kind: "graph"; doc: Graph }
-  | { v: typeof SHARE_VERSION; kind: "proposals"; doc: ProposalSet };
+  | { v: typeof SHARE_VERSION; kind: "proposals"; doc: ProposalSet }
+  | { v: typeof SHARE_VERSION; kind: "run"; doc: RunBundle };
 
 /** Thrown by `buildShareEnvelope` when a document cannot be shared; `issues` says why. */
 export class ShareError extends Error {
@@ -63,12 +66,27 @@ const withoutNotes = (graph: Graph): Graph => {
 };
 
 /**
- * The envelope for a graph or a proposal set, ready to encode. Validates first
- * and refuses what could not be exported: a graph with errors, a set with an
- * invalid or not-yet-inlined candidate. Run notes are dropped, layout is kept,
- * and each candidate's `shape` is computed here, whatever the input said.
+ * The envelope for a graph, a proposal set or a run bundle, ready to encode.
+ * Validates first and refuses what could not be exported: a graph with
+ * errors, a set with an invalid or not-yet-inlined candidate. Run notes are
+ * dropped, layout is kept, and each candidate's `shape` is computed here,
+ * whatever the input said.
+ *
+ * A run bundle (docs/runs.md §2) only has to match its schema: its notes are
+ * the point, and a working copy with errors is still worth looking at (the
+ * run view refuses to adopt it).
  */
-export function buildShareEnvelope(doc: Graph | ProposalSet): ShareEnvelope {
+export function buildShareEnvelope(doc: Graph | ProposalSet | RunBundle): ShareEnvelope {
+  if (isRunBundleLike(doc)) {
+    const parsed = parseRunBundle(doc);
+    if (!parsed.bundle) {
+      throw new ShareError(
+        "this run bundle does not match the run bundle schema",
+        parsed.issues.map((message) => ({ code: "E_SCHEMA", severity: "error" as const, message, at: [] })),
+      );
+    }
+    return { v: SHARE_VERSION, kind: "run", doc: runBundleSchema.canon(parsed.bundle) as RunBundle };
+  }
   if (isProposalSetLike(doc)) {
     const set = doc as ProposalSet;
     const issues = validateProposalSet(set, { requireInline: true });
@@ -216,6 +234,16 @@ export function parseShareEnvelope(json: unknown): OpenedShare {
       return { ...c, graph, shape: estimateShape(graph) };
     });
     return { ok: true, envelope: { v: SHARE_VERSION, kind: "proposals", doc: { ...parsed.set, candidates } }, issues };
+  }
+
+  if (kind === "run") {
+    const parsed = parseRunBundle(doc);
+    if (!parsed.bundle) {
+      return parsed.newer !== undefined
+        ? refuse(`The link holds a run from a newer grooph (run format ${parsed.newer}). Reload the app to update it, then open the link again.`)
+        : refuse("The link holds a run record that does not match the run bundle schema, so it was not opened.", parsed.issues);
+    }
+    return { ok: true, envelope: { v: SHARE_VERSION, kind: "run", doc: parsed.bundle }, issues: validate(parsed.bundle.working, { forExport: true }) };
   }
 
   return refuse(

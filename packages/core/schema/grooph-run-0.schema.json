@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grooph.dev/schema/grooph-run-0.schema.json",
+  "title": "grooph run bundle v0",
+  "description": "One grooph run, self-contained: the source graph, the run's working copy, its run notes and its progress log. Normative source: docs/runs.md §2. Generated from packages/core/src/schema/run.ts; do not edit by hand.",
+  "type": "object",
+  "properties": {
+    "groophRun": {
+      "const": 0
+    },
+    "run": {
+      "type": "string",
+      "minLength": 1
+    },
+    "progress": {
+      "type": "string"
+    },
+    "source": {
+      "$ref": "https://grooph.dev/schema/grooph-0.schema.json"
+    },
+    "working": {
+      "$ref": "https://grooph.dev/schema/grooph-0.schema.json"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "$ref": "https://grooph.dev/schema/grooph-0.schema.json#/$defs/RunNote"
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/RunNoteIssue"
+      }
+    }
+  },
+  "required": [
+    "groophRun",
+    "run",
+    "source",
+    "working",
+    "notes"
+  ],
+  "$defs": {
+    "RunNoteIssue": {
+      "type": "object",
+      "properties": {
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "line",
+        "message"
+      ]
+    }
+  }
+}

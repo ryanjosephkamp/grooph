@@ -91,6 +91,7 @@ If this session cannot ask — a headless or otherwise non-interactive run — t
 
 - `.grooph/fix-until-green/runs/<run-id>/PROGRESS.md` — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, each node's status, what is waiting, and the stop check you last evaluated.
 - `.grooph/fix-until-green/runs/<run-id>/notes.jsonl` — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (`at` = `node:<node-id>`), one **per pass through a loop** (`at` = `loop:<loop-id>`, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line), and one when the run ends.
+- When you dispatch a node, append one short line first: `"outcome":"started"`, `at` = `node:<node-id>`, and `round` when the node is inside a loop. The usual line follows when the node completes, so a monitor can show what is running.
 
 Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:
 
@@ -99,7 +100,7 @@ id        kebab-case, unique in the file: `n-0001`, `n-0002`, … in append orde
 run       the run id
 at        graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>
 started   ISO timestamp        ended     ISO timestamp
-outcome   pass | fail | halt | invalid-evidence
+outcome   pass | fail | halt | invalid-evidence; started on a dispatch line
 verdict   the critic's verdict label, when there is one
 round     the loop round this belongs to
 evidence  what was actually inspected

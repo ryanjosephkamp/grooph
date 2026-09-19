@@ -9,3 +9,8 @@ export const SCHEMA_PATH = fileURLToPath(
 export const PROPOSALS_SCHEMA_PATH = fileURLToPath(
   new URL("../../../schema/grooph-proposals-0.schema.json", import.meta.url),
 );
+
+/** Absolute path of the published run bundle schema (docs/runs.md §2). */
+export const RUN_SCHEMA_PATH = fileURLToPath(
+  new URL("../../../schema/grooph-run-0.schema.json", import.meta.url),
+);

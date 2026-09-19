@@ -352,6 +352,11 @@ function sectionEight(ctx: PackageContext): string {
         "loop:<loop-id>",
       )}, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line), and one when the run ends.`,
     ),
+    bullet(
+      `When you dispatch a node, append one short line first: ${code('"outcome":"started"')}, ${code("at")} = ${code(
+        "node:<node-id>",
+      )}, and ${code("round")} when the node is inside a loop. The usual line follows when the node completes, so a monitor can show what is running.`,
+    ),
     "",
     "Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:",
     "",
@@ -361,7 +366,7 @@ function sectionEight(ctx: PackageContext): string {
         "run       the run id",
         "at        graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>",
         "started   ISO timestamp        ended     ISO timestamp",
-        "outcome   pass | fail | halt | invalid-evidence",
+        "outcome   pass | fail | halt | invalid-evidence; started on a dispatch line",
         "verdict   the critic's verdict label, when there is one",
         "round     the loop round this belongs to",
         "evidence  what was actually inspected",

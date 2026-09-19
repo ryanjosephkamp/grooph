@@ -320,3 +320,29 @@ export type Shape = {
   /** each loop's budget stop, as text */
   budgets: string[];
 };
+
+/* ------------------------------------------------------------------ *
+ * Run bundles (docs/runs.md §2): one run, self-contained, for import,
+ * share links and the `grooph watch` endpoint. Run data lives beside
+ * the graph, never inside it (spec §4.7).
+ * ------------------------------------------------------------------ */
+
+/** A line of `notes.jsonl` that could not be read, by its line number (from 1). */
+export type RunNoteIssue = { line: number; message: string };
+
+export type RunBundle = {
+  /** bundle schema version */
+  groophRun: 0;
+  /** the run id: the run folder's name */
+  run: string;
+  /** the run's PROGRESS.md, when there is one */
+  progress?: string;
+  /** the graph as the package placed it (`.grooph/<graph-id>/graph.grooph.json`) */
+  source: Graph;
+  /** the run's working copy (graph-ir §2) */
+  working: Graph;
+  /** the readable lines of notes.jsonl, in append order */
+  notes: RunNote[];
+  /** the lines that could not be read */
+  issues?: RunNoteIssue[];
+};

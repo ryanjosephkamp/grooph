@@ -112,11 +112,35 @@ const opened = decodeSharePayload(sharePayloadFrom(link)!, inflateRaw); // { ok,
 
 Compression is the caller's: pass raw DEFLATE functions (`node:zlib` in the CLI, fflate in the app). `inflateRaw(bytes, max)` must throw a `RangeError` past `max`, which is how an oversized link is refused without unpacking it. Every message a person sees when a link will not open comes from `decodeSharePayload`, so both shells say the same thing.
 
+## Runs
+
+`docs/runs.md` §2. A run leaves a folder behind (`.grooph/<graph-id>/runs/<run-id>/`: `notes.jsonl`, the working copy `graph.grooph.json`, `PROGRESS.md`); these functions read what is in it. The CLI reads the files, the app reads bundles; nothing here runs anything.
+
+```ts
+const { notes, issues } = parseRunNotes(text);         // line-tolerant: a bad line is { line, message }, never a throw
+const summary = summarizeRun(notes, working);           // state, per-node and per-loop state, amendments, proposals, cost, timeline
+const diff = diffGraphs(source, working);               // { changes: [{ line, op?, at, fields }], ops, exact }
+explainChanges(diff.changes, summary.amendments);       // per change, the amendment note ids that account for it
+const adopted = adoptWorkingCopy(source, working, { run }); // { ok, doc } (version + 1, lineage.from "<id>@<version>") or { ok: false, message, issues }
+const bundle = buildRunBundle({ source, working, notesText, progress, run }); // *.grooph-run.json
+parseRunBundle(json);                                   // { bundle } or { issues }: untrusted input, schema-checked
+```
+
+| Function | Does |
+|---|---|
+| `parseRunNotes(text)` | Every line that is a run note (graph-ir §6) in order; anything else is an issue with its line number. |
+| `summarizeRun(notes, graph)` | `RunSummary`: `running` · `halted` · `ended`, the closing outcome, per node `{ state, runs, lastOutcome, lastVerdict, round }`, per loop `{ round, lastStop }`, amendments, proposals, cost totals per measure, the timeline in append order. A node is `running` when its last note is `"outcome":"started"`. |
+| `diffGraphs(source, working)` | The change list as grooph ops, ordered so they replay, with one line per change; layout, run notes and `version` ignored. `exact` says whether the ops reproduce the working copy; a change no op expresses (a node's kind, groups) has a line and no op. |
+| `explainChanges(changes, amendments)` | Ties each change to the amendment notes whose op-list patch touches it, else whose text names it, else the only amendment. An empty list means nothing explains it. |
+| `describePatch(patch)` | `ops` for a replayable op list, `other` with the reason for anything else (JSON Patch index paths, prose), `none`. |
+| `adoptWorkingCopy(source, working, { run })` | The working copy as the next version; refused with the issues when it has export errors. |
+| `buildRunBundle` · `parseRunBundle` · `canonicalizeRunBundle` | The self-contained run; its JSON Schema is `schema/grooph-run-0.schema.json`. `buildShareEnvelope(bundle)` makes a `kind: "run"` link. |
+
 ## Scripts
 
 ```bash
 pnpm --filter @grooph/core build            # tsc
 pnpm --filter @grooph/core test             # node:test over dist/test
-pnpm --filter @grooph/core run schema:write # regenerate schema/grooph-0.schema.json from src/schema/graph.ts
+pnpm --filter @grooph/core run schema:write # regenerate schema/*.schema.json from src/schema/
 pnpm --filter @grooph/core run golden:write # regenerate fixtures/golden/ — read the diff before committing
 ```

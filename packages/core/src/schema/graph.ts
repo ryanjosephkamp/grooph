@@ -273,7 +273,8 @@ const template = obj(
   { name: "Template" },
 );
 
-const runNote = obj(
+/** graph-ir §6. Exported for run notes read line by line (docs/runs.md §2) and for the run bundle schema. */
+export const runNoteSchema = obj(
   {
     id: id(),
     run: str(),
@@ -318,7 +319,7 @@ export const graphSchema = obj(
     loops: arr(loop),
     policies: opt(arr(policy)),
     groups: opt(arr(group)),
-    notes: opt(arr(runNote)),
+    notes: opt(arr(runNoteSchema)),
     layout: opt(
       rec(
         obj({ x: num(), y: num(), w: opt(num()), h: opt(num()) }),
