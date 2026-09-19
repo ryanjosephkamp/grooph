@@ -1,7 +1,17 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { deflateRawSync } from "node:zlib";
 
+import {
+  buildShareEnvelope,
+  encodeSharePayload,
+  isCandidateFile,
+  parseGraphText,
+  parseProposalSetText,
+  type Graph,
+  type ProposalSet,
+} from "@grooph/core";
 import { expect, type Download, type Locator, type Page } from "@playwright/test";
 
 export const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
@@ -51,3 +61,26 @@ export async function downloadText(download: Download): Promise<string> {
 export async function downloadBytes(download: Download): Promise<Uint8Array> {
   return new Uint8Array(readFileSync((await download.path())!));
 }
+
+/* ─── share links (slice 0006) ──────────────────────────────────────────── */
+
+export const csvSetDir = join(repoRoot, "fixtures/proposals/valid/csv-export");
+
+/** The three-candidate rehearsal set with its `{ file }` candidates inlined, as `grooph share` sends it. */
+export function csvSet(): ProposalSet {
+  const set = parseProposalSetText(readFileSync(join(csvSetDir, "csv-export.grooph-proposals.json"), "utf8")).set!;
+  return {
+    ...set,
+    candidates: set.candidates.map((c) =>
+      isCandidateFile(c.graph) ? { ...c, graph: parseGraphText(readFileSync(join(csvSetDir, c.graph.file), "utf8")).doc! } : c,
+    ),
+  };
+}
+
+export const reviewLoop = (): Graph => parseGraphText(readFileSync(fixturePath, "utf8")).doc!;
+
+/** The app-relative link `grooph share` would print: core's envelope, zlib raw DEFLATE, as the CLI does it. */
+export const linkFor = (doc: Graph | ProposalSet): string =>
+  `./#/open?d=${encodeSharePayload(buildShareEnvelope(doc), (bytes) => deflateRawSync(bytes, { level: 9 }))}`;
+
+export const pager = (page: Page): Locator => page.locator(".pager-count");

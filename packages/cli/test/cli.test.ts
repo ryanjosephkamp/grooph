@@ -424,7 +424,12 @@ test("validate accepts a run's working copy like any other document", async () =
 
     const io = capture();
     assert.equal(await run(["validate", workingCopy, "--for-export"], io), 0);
-    assert.match(io.stdout.join("\n"), /no issues/, "the new writer runs on another model, so the critic is no longer homogeneous");
+    assert.match(io.stdout.join("\n"), /0 errors, 1 warning/);
+    assert.match(
+      io.stdout.join("\n"),
+      /W_HOMOGENEOUS_CRITICS {2}critic "critic" judges "builder" .*\[at: builder, critic\]/,
+      "the new writer comes after the critic, so it does not change what the critic judges (per-critic rule, slice 0006)",
+    );
     assert.equal(
       readFileSync(join(dir, ".grooph", "review-loop", "graph.grooph.json"), "utf8"),
       readFileSync(fixture("golden", "claude-code", "review-loop", ".grooph", "review-loop", "graph.grooph.json"), "utf8"),

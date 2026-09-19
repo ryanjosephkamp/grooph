@@ -153,6 +153,23 @@ export function bool(): Sch<boolean> {
   });
 }
 
+export function nul(): Sch<null> {
+  return base<null>("null", {
+    check(value, path, out) {
+      if (value !== null) out.push({ path, message: `expected null, got ${typeName(value)}` });
+    },
+    json: () => ({ type: "null" }),
+  });
+}
+
+/**
+ * A schema published elsewhere: checks, orders and reports keys exactly as `sch`
+ * does, but the JSON Schema names it by `$ref` instead of repeating it.
+ */
+export function external<T>(sch: Sch<T>, $ref: string): Sch<T> {
+  return { ...sch, json: () => ({ $ref }) };
+}
+
 export function lit<const V extends string | number | boolean>(value: V): Sch<V> {
   return base<V>(JSON.stringify(value), {
     check(v, path, out) {
@@ -186,7 +203,7 @@ export function openEnum<T extends string>(known: readonly string[], label: stri
   });
 }
 
-export function arr<T>(item: Sch<T>, options: { minItems?: number } = {}): Sch<T[]> {
+export function arr<T>(item: Sch<T>, options: { minItems?: number; maxItems?: number } = {}): Sch<T[]> {
   const describe = `array of ${item.describe}`;
   return base<T[]>(describe, {
     check(value, path, out) {
@@ -197,11 +214,15 @@ export function arr<T>(item: Sch<T>, options: { minItems?: number } = {}): Sch<T
       if (options.minItems !== undefined && value.length < options.minItems) {
         out.push({ path, message: `expected at least ${options.minItems} item(s), got ${value.length}` });
       }
+      if (options.maxItems !== undefined && value.length > options.maxItems) {
+        out.push({ path, message: `expected at most ${options.maxItems} item(s), got ${value.length}` });
+      }
       value.forEach((entry, i) => item.check(entry, `${path}/${i}`, out));
     },
     json(ctx) {
       const s: JsonSchema = { type: "array", items: item.json(ctx) };
       if (options.minItems !== undefined) s["minItems"] = options.minItems;
+      if (options.maxItems !== undefined) s["maxItems"] = options.maxItems;
       return s;
     },
     canon(value) {
@@ -377,6 +398,25 @@ export function tagged<B extends Record<string, Sch<unknown>>>(
       const key = value[tag];
       if (typeof key === "string" && key in branches) branches[key]!.unknownKeys(value, path, out);
     },
+  });
+}
+
+/**
+ * Two shapes told apart by a test on the value, so a failure is reported against
+ * the shape the value was evidently meant to be, with that shape's own paths.
+ */
+export function either<A, B>(
+  isFirst: (value: unknown) => boolean,
+  first: Sch<A>,
+  second: Sch<B>,
+  options: { describe?: string } = {},
+): Sch<A | B> {
+  const pick = (value: unknown): Sch<unknown> => (isFirst(value) ? first : second);
+  return base<A | B>(options.describe ?? `${first.describe} | ${second.describe}`, {
+    check: (value, path, out) => pick(value).check(value, path, out),
+    json: (ctx) => ({ anyOf: [first.json(ctx), second.json(ctx)] }),
+    canon: (value) => pick(value).canon(value),
+    unknownKeys: (value, path, out) => pick(value).unknownKeys(value, path, out),
   });
 }
 

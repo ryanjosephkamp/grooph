@@ -1,0 +1,165 @@
+grooph slice 0006 · rehearsal of the grooph-design skill's steps 2–7 by hand, no model
+Project: a made-up Express app (orders-app: GET /orders with a status filter, Jest via npm test, docs/REVIEW-CHECKLIST.md).
+Ask: "add CSV export to the orders list". CLI: this branch, built; GROOPH_HOME pointed at a scratch folder; no network.
+App: this branch's build served by `vite preview` on http://localhost:4173/grooph/.
+TASK='Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honouring its filters, with a header row and RFC 4180 quoting.'
+
+## Step 2 — read the library
+$ grooph template list --json   (ids, profiles and when-to-use of the three read further; full output elided)
+grind-loop  low·fast·light  Done and good are the same: tests, types or a task list supply the back pressure, so a passing check is the finish line.
+review-gate  medium·medium·standard  Work, then a separate reviewer, then iterate or pass: the change needs a second pair of eyes against a checklist that already exists.
+spec-then-loop  medium·medium·high  No external reference product exists: a planning pass writes an answer key (ACCEPTANCE.md) that becomes the bar. The default for zero-to-one work.
+(16 templates listed)
+
+$ grooph template show review-gate
+review-gate · Review gate (graph, version 1)
+from built-in: /Users/noir/Documents/grooph/packages/cli/dist/patterns/review-gate.grooph.json
+
+A builder works, an isolated critic checks the change against a written checklist, failures loop back, and a human approves the merge.
+
+When to use: Work, then a separate reviewer, then iterate or pass: the change needs a second pair of eyes against a checklist that already exists.
+Not for: Work where the tests alone decide done (use grind-loop), or where nobody has written down what good means yet (use spec-then-loop).
+Profile: cost medium · speed medium · rigor standard
+Tags: loop, review, human-gate
+
+Slots:
+  task          What should be built or changed? One or two sentences a builder can act on.
+                e.g. Add a slugify(text) function to src/strings.ts that lowercases, strips accents and joins words with single hyphens.
+  test-command  Which command runs the tests?
+                e.g. pnpm test
+  checklist     Which file holds the checklist the critic judges against?
+                e.g. docs/REVIEW-CHECKLIST.md
+
+Nodes:
+  builder (builder, strong)
+  critic (critic, strong)
+  merge-gate (human-gate)
+  done (stop)
+Edges:
+  builder → critic
+  critic → builder [fail]
+  critic → merge-gate [pass]
+  merge-gate → done [pass]
+  merge-gate → builder [fail]
+Loop review: builder, critic, merge-gate; stops: bar passed, max iterations: 4, budget: 40 turns
+  bar: Every checklist item is cited as satisfied with a file and line, and `{{test-command}}` exits 0.
+
+Use it: grooph template use review-gate --name "<graph name>" --set task="…" --set test-command="…" --set checklist="…" --out <file>
+[exit 0]
+
+## Step 3 — build three candidates that differ in shape
+$ grooph template use grind-loop --name "CSV export lean" --set task="$TASK" --set test-command="npm test" --out .grooph/proposals/csv-export/lean.grooph.json
+.grooph/proposals/csv-export/lean.grooph.json: no issues
+wrote .grooph/proposals/csv-export/lean.grooph.json (graph "csv-export-lean" from grind-loop@1, built-in)
+next: grooph validate --for-export .grooph/proposals/csv-export/lean.grooph.json
+[exit 0]
+
+$ grooph template use review-gate --name "CSV export reviewed" --set task="$TASK" --set test-command="npm test" --set checklist=docs/REVIEW-CHECKLIST.md --out .grooph/proposals/csv-export/reviewed.grooph.json
+warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: builder, critic]
+.grooph/proposals/csv-export/reviewed.grooph.json: 0 errors, 1 warning
+wrote .grooph/proposals/csv-export/reviewed.grooph.json (graph "csv-export-reviewed" from review-gate@1, built-in)
+next: grooph validate --for-export .grooph/proposals/csv-export/reviewed.grooph.json
+[exit 0]
+
+$ grooph template use spec-then-loop --name "CSV export rigorous" --set task="$TASK" --set test-command="npm test" --out .grooph/proposals/csv-export/rigorous.grooph.json
+.grooph/proposals/csv-export/rigorous.grooph.json: no issues
+wrote .grooph/proposals/csv-export/rigorous.grooph.json (graph "csv-export-rigorous" from spec-then-loop@1, built-in)
+next: grooph validate --for-export .grooph/proposals/csv-export/rigorous.grooph.json
+[exit 0]
+
+## Step 4 — validate each for export
+$ grooph validate --for-export .grooph/proposals/csv-export/lean.grooph.json
+.grooph/proposals/csv-export/lean.grooph.json: no issues
+[exit 0]
+
+$ grooph validate --for-export .grooph/proposals/csv-export/reviewed.grooph.json
+warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: builder, critic]
+.grooph/proposals/csv-export/reviewed.grooph.json: 0 errors, 1 warning
+[exit 0]
+
+$ grooph validate --for-export .grooph/proposals/csv-export/rigorous.grooph.json
+.grooph/proposals/csv-export/rigorous.grooph.json: no issues
+[exit 0]
+
+## Step 5 — write the proposal set (the warning on Reviewed goes into its cons)
+$ cat > .grooph/proposals/csv-export/csv-export.grooph-proposals.json   (content: fixtures/proposals/valid/csv-export/csv-export.grooph-proposals.json)
+
+## Step 6 — share it
+$ grooph share .grooph/proposals/csv-export/csv-export.grooph-proposals.json --base http://localhost:4173/grooph/ --out .grooph/proposals/csv-export/csv-export.shared.grooph-proposals.json
+csv-export · CSV export for the orders list · 3 candidates
+  Lean      lean      1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes  (recommended)
+  Reviewed  reviewed  2 agents · 1 gate · 1 loop · up to 4 rounds · 40 turns  (1 warning: W_HOMOGENEOUS_CRITICS)
+  Rigorous  rigorous  3 agents · 1 gate · 1 loop · up to 4 rounds · 40 turns
+recommended: Lean. The behaviour is fully testable and nothing is irreversible, so tests are the bar; pay for a critic only if you want someone to read the code.
+wrote .grooph/proposals/csv-export/csv-export.shared.grooph-proposals.json (self-contained; import it in the app, or share that file)
+
+link (4,902 characters):
+http://localhost:4173/grooph/#/open?d=7Vppb-TGEf0rjfniXWBmPLI3QCB9cBRZXq-PXUOr2AgMwe4he4YdkWyGTWo0cPTf86qqSTbn0Gp9xQYCA2sNjz7qePXqNX-a3E1OT6aTW1umk9NJVbvKeZ37yXSSumRy-tNkXTtXZd_0N04X04mlZxN_NzP3lasbPNzYJje4ePH2WyUX1crVqsmMcnVqaq9y6-nBZW3NCg-eK1_oPFeX91VtvFe6qtQzvXRtoz6aLhYLPF8aP1VfGN-oBv94dWe1KquCfz1XpTGpVy8vr9WHMsMcC1K1adq6tOWap67dZvSI8hmuTNXGNpmyGHJl8wbXp0qrzGg8Qq8oXabq6rML9eLkrwv179Y1GG-urjGgLCRxd0b29sXbN6_xStsYtTF5fkYXa6Ms9oOl3FmzUUlmklvavLKlgk39h1eX3766_G528fnlxZdfvXp7PS_SuXrtmoyWbWu8hyXZZc7j2PLO5XcmnfKq2J6bErNvdImV2IbG15Vqy5ysOJpee1eq0sF8Ti3NHMZPMIZNNXYxOf3-J3FjbnSJW7lemhw_v5Kf61pX2eD-Q16fhTdLXex4PtzgbbiS42vtNI1-nqYqehAL24mQ0yMe5a0pj6mOOjVzpWtrtmHsWfb1E9z7qSvhxMyU6scuyH5UlfbeeDJdo-u1acgima4RmZ5skes2NbPEpWbyABMiYvXa0DOVbjA7tg77IbNmOYyIQVa1K0bX_nZCL6bGJ7WtGjYWMmPZ2pwWm2S6XBvZOk3CK9cSUapug1E4JufqXK20zVu4f-3wzlLjmWDfbjw2RfeKQtRWbXOGAWmXypSpjIeBJdhlHitXl7qeKu-GCCudwqIbm8jDtBvlG1ch9lbYOxxwR75qaVhGAls3W1XYEsmCwF0Na0cqUz7RKsjSJXYaxWdY_KTHKJi4bIa4-3t_v3YMQcMLBUbKyR2Nxe_TyUoDgmBvs1oRap1OCpPatohQ6Wt9a2Rh2sN8dYuNb8UPHaaQI5CMacoXeP0btglubpXGH4X1PoQUp5-_tRXi0GDskkyBRRkAhhY3wEcIrOCFuXpT4s9cNxyrMB6MjtADmiJ0eH7yMk0t7lNb1_KkWGJqgCNXhjNrk2m5JzGUcuhsMptknc2RCJ3FbYmRyOSTbusUq2GeKFbUM14Fr0udKFc-n9xMJ3Kvf10mxAAXn5-_fnn5Fuh2KsvploJQ8GEQWdWWhkExcBsaBMCVzpC-hooQHNT0PxCZM1795OZhGsJDfvfBwTE7BMd1uCuXEQnhse4tjIhfXb7jApkEV8w9ISul3ILXiGBnO5ArK5NOHvr5U8DGMD0lwDD7p3IPBkocX_BtkhB0PNzQztZxmJtZiNtZt7YAFkM4N65feT-9kcdn5K3hnW4IfmMYgNCN04CfRXlKTZkYdtzg5Mi23eBslMODh-2HkflB2hyhQbQ5BrzBLi_Dz8IUS2A0LSDapTgYOanJZd-Pt3gjWR2NyZjDUwUfFPp-ZpE_mvCUFoqV_YX2FO4v25SQnKbXHnhJrwgqURm0hQUyfLx4uMF_tAhv0jd7QC6Da8abayYaRAEQ1kJqulK9NJm-s6hKdGvV5vlWQFWjuJ9GAIi6rKjSUEnERalVU_471KcwJLIoFDZV6CbJdkjIXH1HBUwGTc0KBUmRh4jfEPj1lYA3w8OutS09T1t0UM97oIBgEiCzblx9C3T6LAJ1WdEI1RMwER6hQjUhZAGfZPcySaEh6SVaiaFSTxWXl8WQ3ltNMq2FDykceiMhIzcoOJgGiLgl21pCkFC0zJpopCXGA-ciTBJyPqYu3dKlW6JDaVRJl20Tl8az3s6UltgHqj7DqivhM8yxdq6fq18OMbZbVLcVVy2VtQX86E1XsRnusE4UG0OP55rMBhbIE9e6TDJaKGxEAEfolDhPZYmAEIFdgeF2VQshZ9eOilhu1xlXMZ_BpPQWW88zzeLokj_XQvMWfTKeTLkOenoFqVxKUVxQBuHXmv_kuehJkAtiOwvMA9f75gIWuWK_I5mmIYfYvh8vOvcDOXroEPJr0ohZXg2XnsIuoxH2GWZ088_KMonzbDEI5d3xxoAxBTOXtIvM5eADe_R0GnihxB8aqRr9iWylMGCtv4S-iqFnFExDBYguPk5gbVHlpqDo7EkVEVXhjbRtwBLSNkNOlo25bwQd5eHUrlYCCREB6eBKMxQ0MGPfXp11_NcHZx5kv2JiGLYzGnNfZsx4vLMhm03R_uDZzHnCl3-ZhPan0AO7IVxGU-wxYXZ0YM-Ds4QeU1UQJJ0SKdTcMANLeeC5CrSWVxnshYSvmTZaKg6BzGHwO51TU4dBVrle-zNEIWZwQAXjWj_rrB0FN0PH0A6EJ2hz4KsZ9baY4rfl4gF0YjaeAdkiLv6pG5h4AE3h3rJu6Xr26TIB_eBmZGgdyg4oOysNRsNuK6l_bHqPagISShCdUiAQZ0cW5Vuw6bYcShJIXEEDBUQndl0z25ZYSoXth7Z_S_6lvKXKiVe2LhTwo4R7WPPTaXZsjPei3HawAZeyYBzjfwEVlzA6GhwX3e0QG_3j7x8aX1D5iYtsRGMGRJgywSBYUxWBEaB2qhLbdJ0c7YXNwY8wzfHgdX5lDdtEQkOgntKnLQvTHIkJcrc3-UqBGXICYV3UP3ohbyFQ5uqfCJp_0erPOH5CzKzs_Vx9a-rUJo0gEvOO3TpB-O9HNMnz02ekEhEIzDpOPyAPw6irIxkKZJPmXBpOlXE4ytMrNWrkjtWmnajs4_d0bPdIAKNNCOzehc3SU1LE6eepbP4_DOX43-62jgcnM8NZt5pRfFJ5KrfcSQwRPEQtY31X4ELkchXoroXw_ZprglRXnQu3LaomNAABQhnj03dG5lzJaLb5hPrDSjoVrDAUb9oAFxxJ7xWIIHdDN79h29mn4-G-s78dt40HwyWUalyO-urjMRR1mzLHTi_bT_zkZrYPxEODj3vZ8eCjUBi1tMMwwzOz4IMw1Ojlo73xwYHE148N9aQenjpHCtwPfBwx-924VKghXq663wf78QGmh1WNuvOx1w5tbGjaCfoKqQqgRIT5ozUMGcKohA4oaUa9fXy_5lJwNLCijl_XjV3pZHjpQIiSnTTSpGo023Nyybi7A16oAigghlvBrlakHfkf1RPhBBFXJ0nJq8WcW7ddzQLGmAl2xOs-pGS8eFzJYPY46BgvWMcAVrncJjZO_Krzm_Uu5wkiEW3_jk9cJaoLdW59GFez0s2o7s1wg8jEMMj-jZ0xxvLKuNHY1VeAigyHOifU36pMHzphYYEadVcWbnrizE_jsgQUiS9MyJla43rCSgrzJampJOCegsJjroLKN51k5dRAYUbf5qAJ6H2n0rSUzSy1vnLe0oqnEgZNOB6iJlSkIQyxdg01P0e7NPWK6ATNrzFBQnxRdJGqI7esWpROVTlKOC2sE3A7maV_sZY-9GDx4V-7Br01pvJBbtlZYaC7vMhYWFnudyhLdA90fkCtBDcbzORCwyKHB92jBUi3NDRRAwXkWuak6sCgsMOz7374_M3Xb15evr5884-3P1xcvbp-dfH2OZYpB4XNxiZmEJwon-n4ajDYYXmlV_07haW_0GksHiCQ6jo9KLN8NMgsi15mOXm6zPJRJ7MsHpdZXoxklhcL6QxHIgstFy1eLLIMl54ksgyPHxBZhpt_bpGFqagjNaGL6lSdX1xcfnN9_vri8pDKsgvev_wckKBnho2XO2eB4-uH5ZQujCTxCVt6M4buGMsebYhwCBuis1jKeOzdLb2p7wT7OlXaH8Aj25x1YgepodGhYJfAPCXhJncQSJWGzp0G0Yc2I3pxd155VO7hTmiklrKrlsFlMXz1jqNk7tSPoGmQ5Qg69BEFJooCbqGeqMHs6x_B_kdb3G_6-6HHHV7YO4vsoOGRNveaVazjXpYjhIOe7VT7FrFc0KEmixtES1j-6E8hyNZUAcjZLIzDDPA1V5ch_ufqNaUrl0jY3Al34no-V1-idNDwEm8GmbvOKI9CdWa3i0IsnIhbNT4-xnxH1JBxZzna9FN7wIH7c4q9u8E7lwjr6kkSt3iv_A5gcE6QEi_HLFz8ySZk40_U1fsn0ON9YLSb_5kG1yJe8x1EHRuFk0tScKDSQovp_MveG4SsXZFiR-_j2oYWMGUFDsZBqLBsJmLJSEohPGElRYiQDTpMBNF7qtwZC5pHz9L7LvGoIDcOu99LoPtzC3DjgIjR_BHpLXwoJp9DsAxHNECQynWgvefwTnJ7RFQTwImukQmlnIzj8x3q21A6niK19Rt8b6VtD-ieIK9FO_lD6mu_nlIViuksxvPAooY6y3LJ8EQkuPQXZwMixiTsUb1lV735fVSznXj4A0llT_vug5ewU5reoTMdlZaeICLtAvYhBUmXfgO_3ZptrwaNX_t1dKPDBXL_MPeYSDQNC_3SbD8bh_j_5aND8tFeexUrSAc6qPAlydg9clb4rDsd67pO_omMcXxaNpXCnYGiGTRhLBoR_qNRJmdSS_t851vdqLnqaIout8K3mQTxUfZZLI9wExXao6EN0nSSSWGhEL8sGIUOSKioHOuCYH0w6rA_UBkynj4ISix18XTCyd_EkC5WoJdWW9PEMhK9vfMdDL2bhs8I-1asrcSwU2JutAtxVLSNnR1Qo9mvX6aWr8RJVxUkjAQm1qliqUtmR1G-b2rdH8WwaKYKx1KSLmNWgmSiM7nwsSnFCH8bHTQvt6ReicLdo-QZ6ZOZiGS1MT9XO2KmdEg3-vjn6EYnv6ZudEM4RieW6EokM2lj3Tfhw7fg9EWm6K4HPmAjoOLOUb6LDF-t-9GH6yL2sZbaK3y6PoMTt-xwPXxygBHhHqJo9EU73isM0RvuH3Xan_rPJw8PD_8F
+[exit 0]
+
+## Step 7 — the owner says: "the second one, but put the critic on a different tier"
+$ echo '[{"op":"updateNode","id":"critic","set":{"model":{"tier":"frontier"}}}]' | grooph apply .grooph/proposals/csv-export/reviewed.grooph.json --ops - --write
+.grooph/proposals/csv-export/reviewed.grooph.json: no issues
+applied 1 op; wrote .grooph/proposals/csv-export/reviewed.grooph.json
+[exit 0]
+
+$ grooph validate --for-export .grooph/proposals/csv-export/reviewed.grooph.json
+.grooph/proposals/csv-export/reviewed.grooph.json: no issues
+[exit 0]
+
+$ grooph pick .grooph/proposals/csv-export/csv-export.grooph-proposals.json reviewed --out .grooph/graphs/csv-export-reviewed.grooph.json
+picked "Reviewed" (reviewed) from csv-export → .grooph/graphs/csv-export-reviewed.grooph.json
+next: grooph export .grooph/graphs/csv-export-reviewed.grooph.json --target claude-code --into .
+[exit 0]
+
+$ grooph export .grooph/graphs/csv-export-reviewed.grooph.json --target claude-code --into .
+wrote 7 files into .
+  .claude/agents/csv-export-reviewed--builder.md
+  .claude/agents/csv-export-reviewed--critic.md
+  .claude/skills/csv-export-reviewed/SKILL.md
+  .grooph/csv-export-reviewed/KICKOFF.md
+  .grooph/csv-export-reviewed/LEAD.md
+  .grooph/csv-export-reviewed/MAPPING.md
+  .grooph/csv-export-reviewed/graph.grooph.json
+
+Kickoff — paste this into a Claude Code session opened in .:
+
+Run the grooph graph `csv-export-reviewed` (CSV export reviewed) in this project. You are the lead.
+
+Read `.grooph/csv-export-reviewed/LEAD.md` first and follow it. It is the brief for this run; this prompt is only the trigger.
+
+**Goal.**
+
+Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honouring its filters, with a header row and RFC 4180 quoting. Done when every item in docs/REVIEW-CHECKLIST.md is shown to hold, `npm test` passes, and a human approves the merge.
+
+**Before you touch anything:**
+
+1. Choose a run id in the form `<yyyymmdd-hhmm>-<4 random chars>`, create `.grooph/csv-export-reviewed/runs/<run-id>/`, and copy `.grooph/csv-export-reviewed/graph.grooph.json` into it: that copy is the run's working copy.
+2. Write `PROGRESS.md` and start `notes.jsonl` there, as `LEAD.md` § "Run setup" and § "Progress and notes" describe. Append a note for every node run and every loop round — that file is the record of the run.
+3. Start at `builder`.
+
+**While you run:**
+
+- Dispatch each agent node as its own subagent with the `Agent` tool: `csv-export-reviewed--builder`, `csv-export-reviewed--critic`. Do not do their work yourself, and do not grade work a critic node is there to grade.
+- Give a fresh worker only its task, its declared inputs and the evidence its edge lists. Never paste a transcript into one.
+- Evaluate the loop stops before every round, in the order `LEAD.md` lists them, and record the round.
+- At a human gate, ask and wait. If this session cannot ask, halt: write the note and the final `PROGRESS.md`, and report that the run is waiting for a human.
+- When the work shows the graph is wrong, amend the working copy as `LEAD.md` § "Adapting the graph" says: visibly, with a note, and never loosening a brake. Never write the source document.
+
+**When the run ends** — a stop fires, you reach a stop node, or no edge is left to take — append the final note, write the last `PROGRESS.md`, and reply with the run id, the number of rounds, which stop ended the run, and anything left over.
+[exit 0]
+
+$ git status --short   (what was placed; nothing was started)
+?? .claude/agents/csv-export-reviewed--builder.md
+?? .claude/agents/csv-export-reviewed--critic.md
+?? .claude/skills/csv-export-reviewed/SKILL.md
+?? .grooph/csv-export-reviewed/KICKOFF.md
+?? .grooph/csv-export-reviewed/LEAD.md
+?? .grooph/csv-export-reviewed/MAPPING.md
+?? .grooph/csv-export-reviewed/graph.grooph.json
+?? .grooph/graphs/csv-export-reviewed.grooph.json
+?? .grooph/proposals/csv-export/csv-export.grooph-proposals.json
+?? .grooph/proposals/csv-export/csv-export.shared.grooph-proposals.json
+?? .grooph/proposals/csv-export/lean.grooph.json
+?? .grooph/proposals/csv-export/reviewed.grooph.json
+?? .grooph/proposals/csv-export/rigorous.grooph.json

@@ -97,6 +97,21 @@ templateIndexEntry(mine);             // the row a registry's index.json holds
 
 `validate(doc, { forExport: true })` refuses a template (`E_IS_TEMPLATE`) and a graph with `{{key}}` left in it (`E_UNFILLED_SLOT`).
 
+## Proposal sets and share links
+
+`docs/executive.md` §1–2. A proposal set (`*.grooph-proposals.json`) carries one to four candidate graphs for a project and the reasoning; its JSON Schema is `schema/grooph-proposals-0.schema.json`, which names graphs by `$ref` to the graph schema.
+
+```ts
+const issues = validateProposalSet(set, { requireInline: true }); // E_SCHEMA, E_DUPLICATE_ID, E_DUPLICATE_LABEL, E_DANGLING_REF, E_CANDIDATE_INVALID, W_UNKNOWN_KEY
+shapeLine(estimateShape(graph));                                  // "2 agents · 1 gate · 1 loop · up to 4 rounds · 40 turns"
+
+const envelope = buildShareEnvelope(setOrGraph);                  // validates, drops run notes, computes shapes; throws ShareError
+const link = shareLink(encodeSharePayload(envelope, deflateRaw)); // <base>#/open?d=<base64url(raw DEFLATE(json))>
+const opened = decodeSharePayload(sharePayloadFrom(link)!, inflateRaw); // { ok, envelope, issues } or { ok: false, message, details }
+```
+
+Compression is the caller's: pass raw DEFLATE functions (`node:zlib` in the CLI, fflate in the app). `inflateRaw(bytes, max)` must throw a `RangeError` past `max`, which is how an oversized link is refused without unpacking it. Every message a person sees when a link will not open comes from `decodeSharePayload`, so both shells say the same thing.
+
 ## Scripts
 
 ```bash

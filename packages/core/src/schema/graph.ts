@@ -247,6 +247,16 @@ const group = obj(
   { name: "Group" },
 );
 
+/** docs/templates.md §1; proposal candidates carry one too (docs/executive.md §1). */
+export const profileSchema = obj(
+  {
+    cost: enumOf("low", "medium", "high"),
+    speed: enumOf("fast", "medium", "slow"),
+    rigor: enumOf("light", "standard", "high"),
+  },
+  { name: "Profile" },
+);
+
 /** docs/templates.md §1. */
 const template = obj(
   {
@@ -255,14 +265,7 @@ const template = obj(
     summary: str(),
     whenToUse: str(),
     notFor: opt(str()),
-    profile: obj(
-      {
-        cost: enumOf("low", "medium", "high"),
-        speed: enumOf("fast", "medium", "slow"),
-        rigor: enumOf("light", "standard", "high"),
-      },
-      { name: "Profile" },
-    ),
+    profile: profileSchema,
     slots: opt(arr(obj({ key: str(), ask: str(), example: str() }, { name: "TemplateSlot" }))),
     tags: opt(arr(str())),
     demo: opt(str()),

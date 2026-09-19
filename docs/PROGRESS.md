@@ -12,7 +12,18 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0006
+
+- 2026-09-18 · criterion 8 met: `W_HOMOGENEOUS_CRITICS` judged per critic against the writers that reach it, `W_NO_TERMINAL` spares fragments; fixtures `invalid/W_HOMOGENEOUS_CRITICS/one-critic-of-two`, `valid/audit-then-fix`, `valid/approval-fragment`; `specialist-critic-bank` now raises the warning (sidecar added), golden LEAD.md message updated.
+- 2026-09-18 · criterion 2 met: proposal sets in core (types, schema, `schema/grooph-proposals-0.schema.json`, `validateProposalSet` with one fixture per code under `fixtures/proposals/`, `estimateShape` with flat, nested and uncapped tests); share envelope and base64url in core with the codec injected.
+- 2026-09-18 · criterion 4 met: `grooph share` (validate, inline, shape, link and length, 32,000 warning, `--base`, `--open`, `--out`), `grooph pick` (id or label, any case, refuses ambiguity), `grooph shape`; `--help` on every command.
+- 2026-09-18 · criterion 3 met: raw DEFLATE via `node:zlib` in the CLI and fflate in the app; `apps/web/test/share.test.ts` opens each side's links with the other's codec, and damaged and oversized payloads fail with a readable message on both.
+- 2026-09-18 · criterion 5 met: `#/open?d=…` opens a graph read-only or the compare view; nothing stored until Save; no export from a link; bad links explained; `e2e/open.spec.ts` 9 tests (graph link, three-candidate link, swipe, Choose, Save then edit, full graph, damaged links, `--out` import, desktop side by side).
+- 2026-09-18 · criterion 6 met: on a phone a card's label, badge with its reason, profile, shape line and rationale sit above the action bar (asserted in `e2e/open.spec.ts`); compact auto-laid-out mini canvas; pros and cons as lists; screenshots (phone light and dark, desktop, full graph, damaged link) in `handoffs/0006-executive-path/`.
+- 2026-09-18 · criterion 7 met: `.claude-plugin/marketplace.json` and `plugins/grooph/.claude-plugin/plugin.json` pass `claude plugin validate --strict` (2.1.276, scratch HOME); `scripts/install-local.sh` (links CLI and skill, prints the plan first, idempotent, `--dry-run`, `--uninstall`) tested only against a throwaway HOME by `scripts/test-install-local.sh`, also in CI.
+- 2026-09-18 · criterion 9 met: rehearsal by hand in a made-up Express app (three candidates from `grind-loop`, `review-gate`, `spec-then-loop`; `grooph share --base` against the local build, 4,902-character link; "the second one, but critic on another tier" via `grooph apply`; `grooph pick`; `grooph export --into`); transcript and phone screenshots in the slice folder. No model run.
+- 2026-09-18 · criterion 1 met: fresh clone of the branch passes install, build and test (core 208, cli 44, web 29) and the browser suite (19 passed, 5 screenshot specs skipped unless asked); CI green at `8346c88`.
+- 2026-09-18 · **done** · handback at `handoffs/0006-executive-path/HANDBACK.md`, work head `4b537cf`.
 
 ## Waiting on the owner
 

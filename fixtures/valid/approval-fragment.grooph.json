@@ -1,0 +1,55 @@
+{
+  "grooph": 0,
+  "id": "approval-fragment",
+  "name": "Approval before publish",
+  "version": 1,
+  "template": {
+    "kind": "fragment",
+    "title": "Approval before publish",
+    "summary": "A human approves before a node publishes.",
+    "whenToUse": "Insert in front of any node that publishes; the host graph decides where the run ends.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "standard"
+    }
+  },
+  "nodes": [
+    {
+      "id": "approve",
+      "kind": "human-gate",
+      "name": "Approve",
+      "prompt": "Publish this release?",
+      "options": [
+        "approve",
+        "reject"
+      ]
+    },
+    {
+      "id": "publish",
+      "kind": "agent",
+      "name": "Publish",
+      "role": "builder",
+      "brief": "Builder: publish the approved release and record where it went.",
+      "outputs": [
+        "RELEASE.md"
+      ],
+      "allow": [
+        "run-commands",
+        "write-outputs"
+      ],
+      "irreversible": [
+        "publish"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-approve-publish",
+      "from": "approve",
+      "to": "publish",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

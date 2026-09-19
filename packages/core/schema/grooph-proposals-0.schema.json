@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://grooph.dev/schema/grooph-proposals-0.schema.json",
+  "title": "grooph proposal set v0",
+  "description": "A grooph proposal set: one to four candidate graphs for one project, with the reasoning. Normative source: docs/executive.md §1. A candidate's `graph` is a graph document or `{ file }`, a path relative to the proposal set's folder. Generated from packages/core/src/schema/proposals.ts; do not edit by hand.",
+  "type": "object",
+  "properties": {
+    "groophProposals": {
+      "const": 0
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "title": {
+      "type": "string"
+    },
+    "brief": {
+      "type": "string"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "minItems": 1,
+      "maxItems": 4
+    },
+    "recommendation": {
+      "type": "object",
+      "properties": {
+        "candidate": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "why": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate",
+        "why"
+      ]
+    }
+  },
+  "required": [
+    "groophProposals",
+    "id",
+    "title",
+    "brief",
+    "candidates"
+  ],
+  "$defs": {
+    "Candidate": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CandidateFile"
+            },
+            {
+              "$ref": "https://grooph.dev/schema/grooph-0.schema.json"
+            }
+          ]
+        },
+        "basedOn": {
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string"
+        },
+        "pros": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "shape": {
+          "$ref": "#/$defs/Shape"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "graph",
+        "rationale",
+        "pros",
+        "cons",
+        "profile"
+      ]
+    },
+    "CandidateFile": {
+      "type": "object",
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "file"
+      ]
+    },
+    "Profile": {
+      "type": "object",
+      "properties": {
+        "cost": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "speed": {
+          "enum": [
+            "fast",
+            "medium",
+            "slow"
+          ]
+        },
+        "rigor": {
+          "enum": [
+            "light",
+            "standard",
+            "high"
+          ]
+        }
+      },
+      "required": [
+        "cost",
+        "speed",
+        "rigor"
+      ]
+    },
+    "Shape": {
+      "type": "object",
+      "properties": {
+        "agents": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "checks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "gates": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loops": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tiers": {
+          "type": "object",
+          "properties": {
+            "frontier": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "strong": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "fast": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unset": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "frontier",
+            "strong",
+            "fast",
+            "unset"
+          ]
+        },
+        "worstCaseRounds": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "budgets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "agents",
+        "checks",
+        "gates",
+        "loops",
+        "tiers",
+        "worstCaseRounds",
+        "budgets"
+      ]
+    }
+  }
+}

@@ -14,10 +14,17 @@ import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { newCommand } from "./commands/new.js";
+import { pickCommand, PICK_HELP } from "./commands/pick.js";
+import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
+import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
 import { validateCommand } from "./commands/validate.js";
 import { stdio, type Output } from "./print.js";
 import { RegistryError, defaultRegistryEnv, type RegistryEnv } from "./registry.js";
+import { openUrl, type OpenUrl } from "./share-io.js";
+
+/** What a run may reach outside its arguments; tests replace any of it. */
+export type CliEnv = RegistryEnv & { openUrl: OpenUrl };
 
 export const VERSION = "0.0.0";
 
@@ -29,8 +36,11 @@ Usage
   grooph validate <file> [--for-export] [--json]
   grooph canonicalize <file> [--write]
   grooph export <file> --target <harness> --into <dir>
+  grooph shape <file> [--json]
+  grooph share <graph | proposal set> [--base <url>] [--open] [--out <file>]
+  grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
   grooph template list | show | use | insert | save | add …   (grooph template help)
-  grooph help | --help
+  grooph <command> --help
   grooph --version
 
 Commands
@@ -48,6 +58,10 @@ Commands
   canonicalize   Print the document in canonical form (graph-ir §7), or rewrite it with --write.
   export         Validate for export, then write the harness package into <dir> and print the
                  kickoff prompt. Refuses, with the reasons, when the document has errors.
+  shape          Counts and brakes at a glance: agents, gates, loops, worst-case rounds, budgets.
+  share          A link that opens a graph, or a proposal set of candidate graphs to compare, in
+                 the app on any device. The document rides in the link; nothing is uploaded.
+  pick           Write the chosen candidate of a proposal set out as a graph, ready to export.
   template       Reusable graphs and fragments by name: the built-in pattern library, your own
                  in .grooph/templates/ and ~/.grooph/templates/, and published registries.
 
@@ -60,7 +74,7 @@ export async function run(
   argv: string[],
   io: Output = stdio,
   readStdin: () => string = () => readFileSync(0, "utf8"),
-  env: Partial<RegistryEnv> = {},
+  env: Partial<CliEnv> = {},
 ): Promise<number> {
   const [command, ...rest] = argv;
 
@@ -70,6 +84,11 @@ export async function run(
   }
   if (command === "--version" || command === "-v" || command === "version") {
     io.out(VERSION);
+    return 0;
+  }
+
+  if (command !== "template" && (rest.includes("--help") || rest.includes("-h"))) {
+    io.out(COMMAND_HELP[command] ?? USAGE);
     return 0;
   }
 
@@ -168,6 +187,51 @@ export async function run(
         return exportCommand(io, file, { target: target as CompileTarget, into });
       }
 
+      case "shape": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "shape needs a file: grooph shape <graph file>");
+        return shapeCommand(io, file, { json: values["json"] === true });
+      }
+
+      case "share": {
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { base: { type: "string" }, open: { type: "boolean" }, out: { type: "string" } },
+        });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "share needs a file: grooph share <graph | proposal set> (grooph share --help)");
+        if (values["base"] !== undefined && !/^(https?|file):\/\//.test(values["base"])) {
+          return usageError(io, `--base must be an http(s) or file URL, like http://localhost:4173/grooph/; got "${values["base"]}"`);
+        }
+        return await shareCommand(
+          io,
+          file,
+          {
+            ...(values["base"] !== undefined ? { base: values["base"] } : {}),
+            open: values["open"] === true,
+            ...(values["out"] !== undefined ? { out: values["out"] } : {}),
+          },
+          env.openUrl ?? openUrl,
+        );
+      }
+
+      case "pick": {
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { out: { type: "string" }, force: { type: "boolean" } },
+        });
+        const [file, ...name] = positionals;
+        if (file === undefined || name.length === 0) {
+          return usageError(io, "pick needs a proposal set and a candidate: grooph pick <proposal set> <candidate id | label> --out <graph file>");
+        }
+        const out = values["out"];
+        if (out === undefined) return usageError(io, "pick needs --out <graph file>, for example .grooph/graphs/<graph-id>.grooph.json");
+        return pickCommand(io, file, name.join(" "), { out, force: values["force"] === true });
+      }
+
       case "template": {
         const outcome = await templateCommand(io, rest, { ...defaultRegistryEnv(), ...env });
         if (typeof outcome === "number") return outcome;
@@ -197,6 +261,13 @@ export async function run(
     return 2;
   }
 }
+
+/** `grooph <command> --help`: the command's own page where it has one, else the overview. */
+const COMMAND_HELP: Record<string, string> = {
+  share: SHARE_HELP,
+  pick: PICK_HELP,
+  shape: SHAPE_HELP,
+};
 
 function usageError(io: Output, message: string): number {
   io.err(`grooph: ${message}`);
