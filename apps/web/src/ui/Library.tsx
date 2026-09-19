@@ -1,8 +1,22 @@
-import { ShareError, formatIssue, isProposalSetLike, parseProposalSet, followsName, setGraphName, type Graph, type IssueLike } from "@grooph/core";
+import {
+  ShareError,
+  formatIssue,
+  isProposalSetLike,
+  isRunBundleLike,
+  parseProposalSet,
+  parseRunBundle,
+  followsName,
+  runStateLine,
+  setGraphName,
+  summarizeRun,
+  type Graph,
+  type IssueLike,
+} from "@grooph/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { openRouteFor } from "../doc/share.js";
-import { openStore, type GraphRecord } from "../store/db.js";
+import { runHref } from "../doc/run.js";
+import { openStore, type GraphRecord, type RunRecord } from "../store/db.js";
 import {
   createGraph,
   deleteGraph,
@@ -13,6 +27,7 @@ import {
   renameGraph,
 } from "../store/library.js";
 import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
+import { listRuns, saveRun } from "../store/runs.js";
 import { saveUserTemplate } from "../store/templates.js";
 import { PersistNotice } from "./Notices.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
@@ -25,17 +40,39 @@ const when = (ms: number): string => {
   return new Date(ms).toLocaleDateString();
 };
 
-const isProposalSet = (text: string): boolean => {
+const jsonOf = (text: string): unknown => {
   try {
-    return isProposalSetLike(JSON.parse(text));
+    return JSON.parse(text);
   } catch {
-    return false;
+    return undefined;
   }
 };
+
+/** A run's line in the list: its id, state and when it started. */
+function RunRows({ runs }: { runs: RunRecord[] }) {
+  return (
+    <ul className="run-rows" aria-label="Runs">
+      {runs.map((r) => {
+        const summary = summarizeRun(r.bundle.notes, r.bundle.working);
+        return (
+          <li key={r.key}>
+            <a className="run-row" href={runHref(r.key)}>
+              <span className="run-row-name">
+                Run <span className="mono">{r.run}</span>
+              </span>
+              <span className="run-row-meta">{runStateLine(summary)}</span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 /** The graphs on this device. */
 export function Library({ open }: { open: (key: string, fresh?: boolean) => void }) {
   const [records, setRecords] = useState<GraphRecord[] | null>(null);
+  const [runs, setRuns] = useState<RunRecord[]>([]);
   const [persistent, setPersistent] = useState(true);
   const [importProblem, setImportProblem] = useState<{ name: string; issues: IssueLike[]; what?: string } | null>(null);
   const [menu, setMenu] = useState<string | null>(null);
@@ -46,6 +83,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
 
   const refresh = useCallback(async () => {
     setRecords(await listGraphs());
+    setRuns(await listRuns());
     setPersistent((await openStore()).persistent);
   }, []);
   useEffect(() => void refresh(), [refresh]);
@@ -53,7 +91,23 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   const onFile = async (file: File | undefined) => {
     if (!file) return;
     const text = await file.text();
-    if (isProposalSet(text)) {
+    const json = jsonOf(text);
+    if (isRunBundleLike(json)) {
+      // A run (grooph runs bundle, or share --out on a run folder) is kept beside the graphs and opens in the run view.
+      const parsed = parseRunBundle(json);
+      if (!parsed.bundle) {
+        setImportProblem({
+          name: file.name,
+          issues: parsed.issues.map((message) => ({ code: "E_SCHEMA", severity: "error" as const, message, at: [] })),
+          what: "It is a run bundle grooph cannot read. Make it again with grooph runs bundle <run dir> --out <file>.",
+        });
+        return;
+      }
+      const { record } = await saveRun(parsed.bundle);
+      location.hash = runHref(record.key);
+      return;
+    }
+    if (isProposalSetLike(json)) {
       // A proposal set (grooph share --out) opens in the compare view, like its link; nothing is stored yet.
       const parsed = parseProposalSet(JSON.parse(text));
       try {
@@ -196,7 +250,8 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
         <div className="library-empty">
           <p>No graphs on this device yet.</p>
           <p className="muted">
-            Start a new one, or import a <span className="mono">.grooph.json</span> graph or a <span className="mono">.grooph-proposals.json</span> set.
+            Start a new one, or import a <span className="mono">.grooph.json</span> graph, a <span className="mono">.grooph-proposals.json</span> set or a{" "}
+            <span className="mono">.grooph-run.json</span> run.
           </p>
         </div>
       ) : (
@@ -242,6 +297,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
                   </button>
                 </>
               )}
+              {runs.some((run) => run.graphId === r.doc.id) ? <RunRows runs={runs.filter((run) => run.graphId === r.doc.id)} /> : null}
               {menu === r.key && renaming?.key !== r.key ? (
                 <div className="row-actions">
                   <button
@@ -289,6 +345,13 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
           ))}
         </ul>
       )}
+
+      {records !== null && runs.some((run) => !records.some((r) => r.doc.id === run.graphId)) ? (
+        <section className="orphan-runs" aria-label="Runs of graphs not on this device">
+          <h2 className="list-title">Runs of graphs not on this device</h2>
+          <RunRows runs={runs.filter((run) => !records.some((r) => r.doc.id === run.graphId))} />
+        </section>
+      ) : null}
 
       <footer className="library-foot muted">
         Graphs live in this browser on this device. Nothing is sent anywhere.{" "}

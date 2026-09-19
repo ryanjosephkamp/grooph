@@ -3,7 +3,7 @@
  * when the browser refuses it (some private modes), an in-memory store keeps
  * the app usable and the UI says nothing will survive a reload.
  */
-import type { Graph } from "@grooph/core";
+import type { Graph, RunBundle } from "@grooph/core";
 
 export type GraphRecord = {
   /** local key; the document's own `id` may repeat across copies */
@@ -22,6 +22,20 @@ export type TemplateRecord = {
   savedAt: number;
 };
 
+/**
+ * A run kept on this device (docs/runs.md §4), beside the graphs. Keyed by
+ * graph id and run id, so saving the same run again replaces it with the
+ * newer copy of its notes.
+ */
+export type RunRecord = {
+  key: string;
+  /** the id of the graph the run followed, which is how the library lists it */
+  graphId: string;
+  run: string;
+  bundle: RunBundle;
+  savedAt: number;
+};
+
 export interface GraphStore {
   readonly persistent: boolean;
   list(): Promise<GraphRecord[]>;
@@ -30,6 +44,8 @@ export interface GraphStore {
   delete(key: string): Promise<void>;
   /** user templates, beside the graphs */
   readonly templates: RecordStore<TemplateRecord>;
+  /** runs imported or saved from a link or a watch, beside the graphs */
+  readonly runs: RecordStore<RunRecord>;
 }
 
 export interface RecordStore<T> {
@@ -42,6 +58,7 @@ export interface RecordStore<T> {
 const DB_NAME = "grooph";
 const STORE = "graphs";
 const TEMPLATES = "templates";
+const RUNS = "runs";
 
 /** Called after every successful write to the device, so storage persistence can be asked for after the first one. */
 let afterSave: () => void = () => {};
@@ -57,12 +74,13 @@ const request = <T>(req: IDBRequest<T>): Promise<T> =>
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    // Version 2 adds the templates store (slice 0007); graphs from version 1 stay as they are.
-    const req = indexedDB.open(DB_NAME, 2);
+    // Version 2 adds the templates store (slice 0007), version 3 the runs store (slice 0008); what is there stays as it is.
+    const req = indexedDB.open(DB_NAME, 3);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "key" });
       if (!db.objectStoreNames.contains(TEMPLATES)) db.createObjectStore(TEMPLATES, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(RUNS)) db.createObjectStore(RUNS, { keyPath: "key" });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -96,9 +114,11 @@ class IdbRecords<T> implements RecordStore<T> {
 class IdbStore extends IdbRecords<GraphRecord> implements GraphStore {
   readonly persistent = true;
   readonly templates: RecordStore<TemplateRecord>;
+  readonly runs: RecordStore<RunRecord>;
   constructor(db: IDBDatabase) {
     super(db, STORE);
     this.templates = new IdbRecords<TemplateRecord>(db, TEMPLATES);
+    this.runs = new IdbRecords<RunRecord>(db, RUNS);
   }
 }
 
@@ -123,6 +143,7 @@ class MemoryRecords<T> implements RecordStore<T> {
 class MemoryStore extends MemoryRecords<GraphRecord> implements GraphStore {
   readonly persistent = false;
   readonly templates = new MemoryRecords<TemplateRecord>((r) => r.id);
+  readonly runs = new MemoryRecords<RunRecord>((r) => r.key);
   constructor() {
     super((r) => r.key);
   }

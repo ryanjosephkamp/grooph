@@ -1,8 +1,9 @@
-import type { Graph, Id, Issue, Node as DocNode } from "@grooph/core";
-import { Background, BackgroundVariant, Handle, Position, ReactFlow, type EdgeTypes, type Node, type NodeProps, type NodeTypes } from "@xyflow/react";
-import { memo, useMemo, useState } from "react";
+import type { Graph, Id, Issue, Node as DocNode, RunSummary } from "@grooph/core";
+import { Background, BackgroundVariant, Handle, Position, ReactFlow, useReactFlow, type EdgeTypes, type Node, type NodeProps, type NodeTypes } from "@xyflow/react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
+import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { MINI_BOX, NODE_HEIGHT, NODE_WIDTH, autoLayout, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, type Box } from "./bends.js";
@@ -38,11 +39,17 @@ const edgeTypes: EdgeTypes = { graph: GraphEdge };
 
 type Size = { width: number; height: number };
 
+/** What a run view lights up: a note's node, edge or loop. */
+export type Highlight = { nodes: Id[]; edges: Id[]; loop?: Id };
+
 /**
  * A read-only projection of a graph: nothing here writes to any document.
  * `mini` is the compare card's picture (compact nodes, laid out automatically,
  * fitted, inert so a swipe passes through); `full` is the link viewer's canvas
  * (the document's own layout, pan and zoom, nodes tappable for details).
+ *
+ * With `run`, each node carries its run state (icon and label as well as
+ * colour) and `highlight` lights up the object a timeline note is about.
  */
 export function ViewCanvas(props: {
   doc: Graph;
@@ -50,6 +57,8 @@ export function ViewCanvas(props: {
   issues?: Issue[];
   selected?: Id;
   onNodeTap?: (id: Id) => void;
+  run?: RunSummary;
+  highlight?: Highlight;
 }) {
   const { doc, variant } = props;
   const mini = variant === "mini";
@@ -63,6 +72,8 @@ export function ViewCanvas(props: {
         const loops = doc.loops.map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members })).filter((l) => l.members.includes(node.id));
         const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
         if (mini) return { ...base, type: "mini" as const, data: { node, loopColor: loops[0]?.color } } satisfies MiniFlowNode;
+        const run = props.run?.nodes[node.id];
+        const loopIndex = props.highlight?.loop !== undefined ? doc.loops.findIndex((l) => l.id === props.highlight!.loop) : -1;
         return {
           ...base,
           type: "graph" as const,
@@ -71,12 +82,14 @@ export function ViewCanvas(props: {
             severity: severity.get(node.id),
             loops: loops.map(({ members: _m, ...l }) => l),
             selected: node.id === props.selected,
-            highlighted: false,
+            highlighted: loopIndex < 0 && (props.highlight?.nodes.includes(node.id) ?? false),
             connectFrom: false,
+            ...(loopIndex >= 0 && doc.loops[loopIndex]!.members.includes(node.id) ? { loopColor: loopIndex } : {}),
+            ...(run ? { run: { state: run.state, label: stateLabel(run.state, run.lastOutcome), runs: run.runs } } : {}),
           },
         } satisfies GraphFlowNode;
       }),
-    [doc, positions, measured, mini, severity, props.selected],
+    [doc, positions, measured, mini, severity, props.selected, props.run, props.highlight],
   );
 
   const edges: GraphFlowEdge[] = useMemo(() => {
@@ -103,11 +116,11 @@ export function ViewCanvas(props: {
             bend: bends.get(edge.id) ?? 0,
             severity: severity.get(edge.id),
             selected: false,
-            highlighted: false,
+            highlighted: props.highlight?.edges.includes(edge.id) ?? false,
           },
         };
       });
-  }, [doc, positions, measured, mini, severity]);
+  }, [doc, positions, measured, mini, severity, props.highlight]);
 
   return (
     <ReactFlow<GraphFlowNode | MiniFlowNode, GraphFlowEdge>
@@ -137,13 +150,31 @@ export function ViewCanvas(props: {
       minZoom={mini ? 0.3 : 0.2}
       maxZoom={mini ? 1.1 : 2}
       fitView
-      fitViewOptions={mini ? { padding: 0.08, maxZoom: 1.1 } : { ...FIT, padding: { top: "64px", bottom: "100px", x: "20px" } }}
+      fitViewOptions={
+        mini
+          ? { padding: 0.08, maxZoom: 1.1 }
+          : // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
+            { ...FIT, padding: props.run ? { top: "56px", bottom: "12px", x: "12px" } : { top: "64px", bottom: "100px", x: "20px" } }
+      }
       proOptions={{ hideAttribution: mini }}
       attributionPosition="top-right"
     >
       {mini ? null : <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />}
+      {props.highlight ? <FocusOn ids={props.highlight.nodes} /> : null}
     </ReactFlow>
   );
+}
+
+/** Bring highlighted nodes into view: pan, and zoom out if they do not fit, never in. */
+function FocusOn({ ids }: { ids: Id[] }) {
+  const flow = useReactFlow();
+  const key = ids.join(" ");
+  useEffect(() => {
+    if (key === "") return;
+    const zoom = flow.getZoom();
+    void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: 250 });
+  }, [key, flow]);
+  return null;
 }
 
 /** The height a card gives its picture: the laid-out graph at full size, within reason. */

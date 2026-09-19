@@ -4,13 +4,16 @@ import { fileURLToPath } from "node:url";
 import { deflateRawSync } from "node:zlib";
 
 import {
+  buildRunBundle,
   buildShareEnvelope,
+  canonicalizeRunBundle,
   encodeSharePayload,
   isCandidateFile,
   parseGraphText,
   parseProposalSetText,
   type Graph,
   type ProposalSet,
+  type RunBundle,
 } from "@grooph/core";
 import { expect, type Download, type Locator, type Page } from "@playwright/test";
 
@@ -80,7 +83,66 @@ export function csvSet(): ProposalSet {
 export const reviewLoop = (): Graph => parseGraphText(readFileSync(fixturePath, "utf8")).doc!;
 
 /** The app-relative link `grooph share` would print: core's envelope, zlib raw DEFLATE, as the CLI does it. */
-export const linkFor = (doc: Graph | ProposalSet): string =>
+export const linkFor = (doc: Graph | ProposalSet | RunBundle): string =>
   `./#/open?d=${encodeSharePayload(buildShareEnvelope(doc), (bytes) => deflateRawSync(bytes, { level: 9 }))}`;
 
 export const pager = (page: Page): Locator => page.locator(".pager-count");
+
+/* ─── runs (slice 0008) ─────────────────────────────────────────────────── */
+
+export const runsDir = join(repoRoot, "fixtures/runs");
+export const REAL_RUN = "20260919-0057-66c8";
+
+/**
+ * A run in fixtures/runs/ as `grooph runs bundle` builds it: the graph folder's
+ * source, the run's working copy, notes and progress. `notes` trims or extends
+ * the notes, to show a run at an earlier or later moment.
+ */
+export function runBundle(graphId: string, options: { notes?: (lines: string[]) => string[] } = {}): RunBundle {
+  const graphDir = join(runsDir, graphId);
+  const run = readdirSync(join(graphDir, "runs"))[0]!;
+  const runDir = join(graphDir, "runs", run);
+  const graph = (path: string): Graph => parseGraphText(readFileSync(path, "utf8")).doc!;
+  const lines = readFileSync(join(runDir, "notes.jsonl"), "utf8").split("\n").filter((l) => l !== "");
+  let progress: string | undefined;
+  try {
+    progress = readFileSync(join(runDir, "PROGRESS.md"), "utf8");
+  } catch {
+    progress = undefined;
+  }
+  return buildRunBundle({
+    source: graph(join(graphDir, "graph.grooph.json")),
+    working: graph(join(runDir, "graph.grooph.json")),
+    notesText: (options.notes ? options.notes(lines) : lines).join("\n"),
+    run,
+    ...(progress !== undefined ? { progress } : {}),
+  });
+}
+
+export const bundleText = (bundle: RunBundle): string => canonicalizeRunBundle(bundle);
+
+/** The graph documents in this browser's library, read straight from IndexedDB. */
+export async function libraryDocs(page: Page): Promise<Graph[]> {
+  return page.evaluate(
+    () =>
+      new Promise<Graph[]>((resolve, reject) => {
+        const req = indexedDB.open("grooph");
+        req.onsuccess = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains("graphs")) return resolve([]);
+          const all = db.transaction("graphs").objectStore("graphs").getAll();
+          all.onsuccess = () => {
+            resolve((all.result as { doc: Graph; createdAt: number }[]).sort((a, b) => a.createdAt - b.createdAt).map((r) => r.doc));
+            db.close();
+          };
+          all.onerror = () => reject(all.error);
+        };
+        req.onerror = () => reject(req.error);
+      }),
+  );
+}
+
+export const runNode = (page: Page, id: string): Locator => page.locator(`.react-flow__node[data-id="${id}"] .gnode`);
+export const runBadge = (page: Page, id: string): Locator => page.locator(`.react-flow__node[data-id="${id}"] .run-badge`);
+export const noteItem = (page: Page, id: string): Locator => page.locator(`.tl-item[data-note-id="${id}"]`);
+export const runTab = (page: Page, name: string): Locator => page.getByRole("tab", { name: new RegExp(`^${name}`) });
