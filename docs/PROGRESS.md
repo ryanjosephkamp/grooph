@@ -13,6 +13,12 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 _(slices 0008 and 0009 create their entries here)_
 
+### Slice 0008
+
+- 2026-09-19 · criterion 2 met: core `parseRunNotes`, `summarizeRun`, `diffGraphs`, `adoptWorkingCopy`, run bundles with their schema, `kind: "run"` links; tested on the real run in `fixtures/runs/` and five synthetic runs.
+- 2026-09-19 · criterion 3 met: the real run's diff is n-0002's three changes (`setConstraint`, `updateNode` ×2), equal to the lead's `amend-01.ops.json`, and replays to the working copy.
+- 2026-09-19 · criterion 4 met: lead brief §8 asks for a `"outcome":"started"` note at dispatch; both goldens regenerated.
+
 ## Waiting on the owner
 
 _(nothing until the 0008 and 0009 handbacks; owner decisions on 2026-09-19: both in parallel, $25 cap for the first proving batch, gates halt and are recorded)_
