@@ -18,6 +18,7 @@ _(slices 0008 and 0009 create their entries here)_
 - 2026-09-19 · criterion 2 met: core `parseRunNotes`, `summarizeRun`, `diffGraphs`, `adoptWorkingCopy`, run bundles with their schema, `kind: "run"` links; tested on the real run in `fixtures/runs/` and five synthetic runs.
 - 2026-09-19 · criterion 3 met: the real run's diff is n-0002's three changes (`setConstraint`, `updateNode` ×2), equal to the lead's `amend-01.ops.json`, and replays to the working copy.
 - 2026-09-19 · criterion 4 met: lead brief §8 asks for a `"outcome":"started"` note at dispatch; both goldens regenerated.
+- 2026-09-19 · criterion 5 met: `grooph runs list|show|bundle`, `share <run dir>`, `adopt [--write]` (a copy of the real run adopts to v2, equal to the driver's by hand but for description and `lineage.from`), `watch` (loopback by default, LAN warning with `--host`, re-reads per request, tested on a free port while the test appends notes).
 
 ## Waiting on the owner
 
