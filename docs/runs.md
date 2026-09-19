@@ -50,6 +50,13 @@ grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]
 - **Pin to graph** on any note.
 - Runs imported into the app are stored beside graphs on the device and listed under the graph they belong to.
 
-## 5. Out of scope here
+## 5. Details fixed by slice 0008
+
+- The live endpoint is `/grooph/api/run.json` on the `watch` server, and the app's live route is `#/run?live` with that fixed same-origin path; no URL parameter names an endpoint, so a crafted link cannot make the app fetch elsewhere. A stored run opens at `#/run/<key>`.
+- `adopt --write` is refused when the source's version differs from the version the run started from (the source moved on), or when the target already holds something else; adopting the same run twice is a no-op. `lineage.from` of an adopted version names the previous version of the same graph.
+- The stop that fired is read from a loop note's `stop` field when present (graph-ir §6) and inferred from its text for older runs.
+- The timeline is in append order; timestamps are shown, not trusted for ordering.
+
+## 6. Out of scope here
 
 Hook-written start/stop events and token accounting from the harness; a hosted monitor; notifications; editing a run. The monitor must never add instructions to a package beyond the one started note.

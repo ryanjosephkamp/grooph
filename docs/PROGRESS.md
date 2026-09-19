@@ -4,30 +4,21 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 0 through 5 are done and live. Slice 0007 ran through grooph itself (run `20260919-0057-66c8`: critic failed round 0, passed round 1, one kickoff amendment, one proposal), needed one small plain fix pass, and is merged. The run's amendment was adopted by hand as version 2 of `slice-0007-sandwich`.
-- **Live app:** https://ryanjosephkamp.github.io/grooph/ · **Published templates:** https://ryanjosephkamp.github.io/grooph/patterns/index.json
-- **Next action:** slices 0008 (runs: notes back, adoption, monitor) and 0009 (proving ground, five templates, $25 cap) run in parallel Opus 5 sessions, each in its own git worktree.
-- **What works today:** describe a project to a Claude Code session with `/grooph-design` → candidates from templates or scratch → share link → compare on the phone → pick → package placed. In the app: template library (browse, use, insert, save as, import), undo and redo, persistent storage request, read-only link viewer and compare view. CLI: `validate`, `canonicalize`, `new`, `apply`, `export`, `template …`, `share`, `pick`, `shape`. Sixteen published templates. Three real runs on record.
+- **Stage:** 0–5 and 7 are done. Stage 6 (proving ground) is under way: the first batch of five templates ran for $7.01 and found seven defects in what grooph emits; slice 0010 fixes them before the second batch.
+- **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
+- **Next action (owner):** confirm slice 0010; say whether it may spend up to two re-proving runs (about $4) from the $17.99 left under the 0009 cap.
+- **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes); `scripts/prove-pattern.sh` with a spend ledger; six real run records.
 
 ## In flight
 
-_(slices 0008 and 0009 create their entries here)_
-
-### Slice 0008
-
-- 2026-09-19 · criterion 1 met: a fresh clone of `slice/0008-runs` at 2f5bea5 installs, builds and passes (core 234, CLI 58, web unit 49, e2e 50 with 27 screenshot specs skipped); CI green at 2f5bea5.
-- 2026-09-19 · criterion 2 met: core `parseRunNotes`, `summarizeRun`, `diffGraphs`, `adoptWorkingCopy`, run bundles with their schema, `kind: "run"` links; tested on the real run in `fixtures/runs/` and five synthetic runs.
-- 2026-09-19 · criterion 3 met: the real run's diff is n-0002's three changes (`setConstraint`, `updateNode` ×2), equal to the lead's `amend-01.ops.json`, and replays to the working copy.
-- 2026-09-19 · criterion 4 met: lead brief §8 asks for a `"outcome":"started"` note at dispatch; both goldens regenerated.
-- 2026-09-19 · criterion 5 met: `grooph runs list|show|bundle`, `share <run dir>`, `adopt [--write]` (a copy of the real run adopts to v2, equal to the driver's by hand but for description and `lineage.from`), `watch` (loopback by default, LAN warning with `--host`, re-reads per request, tested on a free port while the test appends notes).
-- 2026-09-19 · criterion 6 met: run view (`#/open` kind run, `#/run/<key>`, `#/run?live`) with 13 browser tests at 400×800 on the real run and the synthetic ones: states, rounds, timeline highlight, three changes tied to n-0002, Adopt, Discard, Apply to a copy (n-0008 is an op list; a JSON Patch is explained), Pin, live polling of a stub endpoint.
-- 2026-09-19 · criterion 7 met: running nodes pulse, a static ring under reduced motion (tested); icon and label on every state; light and dark phone screenshots in `handoffs/0008-runs/`.
-- 2026-09-19 · criterion 8 met: a browser test records every request across link, library and live views; only the app's own origin, and only `/grooph/api/run.json` beyond its files.
-- 2026-09-19 · **done**, work head `0ab0560`; handback at `handoffs/0008-runs/HANDBACK.md`.
+_(none)_
 
 ## Waiting on the owner
 
-_(nothing until the 0008 and 0009 handbacks; owner decisions on 2026-09-19: both in parallel, $25 cap for the first proving batch, gates halt and are recorded)_
+| Item | Recommended answer |
+|---|---|
+| Confirm slice 0010 (`handoffs/0010-hardening/HANDOFF.md`) | Yes |
+| Allow 0010 to re-prove `review-gate` and `spec-then-loop` once each (about $4, inside the existing $25 cap) | Yes: it is the only way to see that the gate and run-id fixes work in a real session |
 
 ## Deferred until Codex is available
 
@@ -38,6 +29,7 @@ _(nothing until the 0008 and 0009 handbacks; owner decisions on 2026-09-19: both
 
 | Date | What |
 |---|---|
+| 2026-09-19 | Slices 0008 (runs: notes back, adoption, monitor) and 0009 (proving ground, five templates, $7.01) reconciled and merged. Findings folded into graph-ir (one gate rule, `dispatches` budgets, `invalid-evidence` routing, `stop` on loop notes, clock timestamps), the target doc (run ids from the clock, cost cap flag) and runs.md. Proving records published with the site. |
 | 2026-09-19 | Slice 0007 merged after fix pass 1: templates in the app, undo/redo, storage persistence, docked toolbar, rename warning, compare view opens on the recommendation, nearest-writer critic rule. First slice built by a grooph run; first working copy adopted (v2). Skill gained two lessons (point at sources of truth; give critics the repository). |
 | 2026-09-18 | Slice 0006 reconciled and merged: proposal sets, share links, compare view, `grooph share/pick/shape`, plugin manifests, local install script. Skill revised from the implementer's notes. Driver ran the skill end to end for slice 0007's workflow; link verified on the live site. |
 | 2026-09-18 | Slice 0005 reconciled and merged: template block and operations, registries and `grooph template …`, sixteen patterns with generated index, library published with the site. `docs/executive.md` and the `grooph-design` skill written by the driver. |

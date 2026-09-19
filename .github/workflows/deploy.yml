@@ -45,6 +45,11 @@ jobs:
           node scripts/patterns-index.mjs --check
           cp -R patterns apps/web/dist/patterns
 
+      - name: publish the pattern proving runs
+        run: |
+          mkdir -p apps/web/dist/experiments
+          cp -R experiments/patterns apps/web/dist/experiments/patterns
+
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

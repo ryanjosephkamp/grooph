@@ -118,7 +118,9 @@ type Evidence = { kind: "file" | "url" | "metric" | "checklist" | "answer-key" |
 
 type Stop =
   | { kind: "human"; every?: number; then?: Id }                                  // human halt; optionally asked every N rounds
-  | { kind: "budget"; measure: "usd" | "minutes" | "turns" | "tokens"; limit: number; then?: Id }
+  | { kind: "budget"; measure: "dispatches" | "minutes" | "usd" | "turns" | "tokens"; limit: number; then?: Id }
+      // dispatches: node dispatches counted by the lead (agents and checks), exact and harness-neutral: the measure to prefer.
+      // minutes: wall clock from the first note. usd, turns, tokens: advisory unless the harness enforces them; leads count "turns" inconsistently.
   | { kind: "bar-passed"; then?: Id }                                             // acceptance bar met
   | { kind: "diminishing-returns"; rounds: number; metric?: string; threshold?: number; then?: Id }
   | { kind: "evidence-invalid"; rounds: number; then?: Id }
@@ -150,10 +152,10 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Entry.** Nodes with no inbound edges other than loop back-edges are entry nodes. The lead starts them.
 - **Traversal.** When a node finishes, every outgoing edge whose `when` matches its result is taken. Several matching edges run in parallel, capped by `concurrency` and any `concurrency-cap` policy in scope.
 - **Isolation.** `fresh`: the downstream worker starts with no context except its brief, its declared inputs, and the edge's `evidence`. `shared`: the same worker continues with its prior context, or the lead performs the step itself.
-- **Evidence.** A worker may inspect only what its inbound edge lists (plus its own declared inputs). A critic that cannot read its evidence reports `invalid-evidence` rather than guessing; that round counts toward `evidence-invalid` stops.
+- **Evidence.** A worker may inspect what its inbound edge lists **plus its own declared inputs**; for a writer that includes the project it is changing. A critic that cannot read its evidence reports `invalid-evidence` rather than guessing. When no edge routes that verdict, the lead repairs the evidence and dispatches the same node once more in the same round; a second `invalid-evidence` routes as `fail`. Such rounds count toward an `evidence-invalid` stop only when the loop has one. "The repository as the change leaves it, read-only" is ordinary evidence for a critic: isolation means a fresh context and none of the builder's claims, not a hidden repository.
 - **Rounds.** The first pass through a loop's members is round 0; each traversal of a back edge starts the next round. Stops are evaluated at the end of every pass, before any back edge is taken, in document order; the first that fires wins. Every pass leaves one loop note (§6) carrying the round just finished and the stop evaluated, so a loop that passes first time still leaves a record.
 - **Nested loops.** When a loop sits inside another, the inner loop's round counter and its stops start afresh each time the outer loop re-enters it; the outer loop's counter and budget keep running. Budgets are therefore the brake that spans phases.
-- **Human gates and approvals.** The lead asks and waits. It does not simulate an answer, batch several gates into one question, or proceed on silence. In a session that cannot ask (headless, non-interactive), a gate ends the run: the lead records `outcome: "halt"` naming the gate, writes the final progress, and reports that the run waits for a human; the same run id resumes it.
+- **Human gates and approvals.** One rule in every mode: on reaching a gate the lead first appends a note at the gate with `outcome: "halt"`, then asks, then ends its turn. It does not simulate an answer, batch several gates into one question, or proceed on silence. When the human answers, the lead appends a note with their decision and continues; a run nobody answers (a headless session) simply ends on that halt note, and the same run id resumes it. (Two of two headless gate runs in the first proving batch waited without the note when the rule depended on the lead judging whether it "could ask".)
 - **Ownership.** A node that `owns` an artifact is the only node that writes it during the run. Others read it or hand it back with findings.
 - **Stop nodes.** Reaching a `stop` node ends the run with the given outcome. A run with no reachable stop node ends when the lead has no edges left to take; it reports which nodes ran and why it ended.
 - **Notes.** The run appends run notes (§6) at the path the package names.
@@ -253,10 +255,11 @@ type RunNote = {
   id: Id;
   run: string;                     // run id, chosen by the lead at kickoff
   at: "graph" | `node:${Id}` | `edge:${Id}` | `loop:${Id}`;
-  started?: string; ended?: string;          // ISO timestamps
+  started?: string; ended?: string;          // ISO timestamps read from the clock (`date -u`), or omitted; never estimated
   outcome?: "pass" | "fail" | "halt" | "invalid-evidence" | string;
   verdict?: string;                          // critic verdict label, if any
   round?: number;                            // loop round, when `at` is a loop or a member
+  stop?: string;                             // on a loop note that ends the loop: the kind of the stop that fired
   evidence?: string[];                       // what was actually inspected
   cost?: { measure: "usd" | "minutes" | "turns" | "tokens"; amount: number };
   gaps?: string[];                           // repeated gaps observed
