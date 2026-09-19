@@ -14,7 +14,8 @@ export default defineConfig({
     // modules the CLI compiles — no second build of the compiler.
     alias: { "@grooph/core": coreSource },
   },
-  // One screen, one chunk: React, React Flow and core together are ~165 KB gzipped.
-  build: { target: "es2022", sourcemap: true, chunkSizeWarningLimit: 700 },
+  // One screen, one chunk: React, React Flow and core together are ~190 KB gzipped,
+  // with the pattern library bundled in since slice 0007 (~15 KB of it gzipped).
+  build: { target: "es2022", sourcemap: true, chunkSizeWarningLimit: 800 },
   test: { include: ["test/**/*.test.ts"], environment: "node" },
 });

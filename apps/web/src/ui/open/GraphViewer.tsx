@@ -1,5 +1,5 @@
-import { validate, type Graph, type Id } from "@grooph/core";
-import { useMemo, useState } from "react";
+import { validate, type Graph, type Id, type Issue } from "@grooph/core";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
 import { countBySeverity } from "../../doc/issues.js";
@@ -8,16 +8,34 @@ import { Sheet } from "../Sheet.js";
 import { GraphDetails, IssueList, LoopDetails, NodeDetails } from "./Details.js";
 import { editorHref, useSaveFromLink } from "./save.js";
 
-type Panel = { type: "node"; id: Id } | { type: "loop"; id: Id } | { type: "graph" } | { type: "issues" } | null;
+type Panel = { type: "node"; id: Id } | { type: "loop"; id: Id } | { type: "graph" } | { type: "issues" } | { type: "about" } | null;
 
 /**
  * A graph from a link, read-only: look at it, tap for details, save it to the
  * device to edit it. There is no export here; export happens from the library.
+ *
+ * Templates open here too (slice 0007): they pass their own validation list,
+ * an `about` panel that the title opens (and that is open on arrival), and
+ * their own bar in place of Save.
  */
-export function GraphViewer({ doc, back, context }: { doc: Graph; back: { href: string; label: string }; context?: string }) {
-  const issues = useMemo(() => validate(doc, { forExport: true }), [doc]);
+export function GraphViewer({
+  doc,
+  back,
+  context,
+  issues: given,
+  about,
+  bar,
+}: {
+  doc: Graph;
+  back: { href: string; label: string };
+  context?: string;
+  issues?: Issue[];
+  about?: { title: string; subtitle?: string; body: ReactNode };
+  bar?: ReactNode;
+}) {
+  const issues = useMemo(() => given ?? validate(doc, { forExport: true }), [doc, given]);
   const { errors, warnings } = countBySeverity(issues);
-  const [panel, setPanel] = useState<Panel>(null);
+  const [panel, setPanel] = useState<Panel>(about ? { type: "about" } : null);
   const [expanded, setExpanded] = useState(false);
   const { saved, busy, save } = useSaveFromLink();
   const done = saved["graph"];
@@ -36,6 +54,7 @@ export function GraphViewer({ doc, back, context }: { doc: Graph; back: { href: 
       const loop = doc.loops.find((l) => l.id === panel.id);
       return loop ? { title: "Loop", subtitle: loop.id, body: <LoopDetails doc={doc} loop={loop} /> } : null;
     }
+    if (panel.type === "about") return about ?? null;
     if (panel.type === "graph") return { title: "Graph", subtitle: doc.id, body: <GraphDetails doc={doc} /> };
     return { title: "Validation", subtitle: "as export sees it", body: <IssueList issues={issues} /> };
   })();
@@ -48,7 +67,7 @@ export function GraphViewer({ doc, back, context }: { doc: Graph; back: { href: 
             <path d="M15 5 8 12l7 7" />
           </svg>
         </a>
-        <button type="button" className="title-btn" onClick={() => toggle({ type: "graph" })}>
+        <button type="button" className="title-btn" onClick={() => toggle(about ? { type: "about" } : { type: "graph" })}>
           <span className="title-name">{doc.name || doc.id}</span>
           <span className="title-sub">{context ?? "from a link"} · read-only</span>
         </button>
@@ -76,6 +95,7 @@ export function GraphViewer({ doc, back, context }: { doc: Graph; back: { href: 
           </nav>
         ) : null}
 
+        {bar ?? (
         <div className="viewer-bar" role="region" aria-label="Save">
           {done ? (
             <p className="viewer-saved" role="status">
@@ -91,6 +111,7 @@ export function GraphViewer({ doc, back, context }: { doc: Graph; back: { href: 
             </>
           )}
         </div>
+        )}
       </main>
 
       {sheet ? (

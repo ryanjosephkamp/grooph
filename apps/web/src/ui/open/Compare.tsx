@@ -8,28 +8,15 @@ import {
   type Graph,
   type Issue,
   type IssueLike,
-  type Profile,
   type ProposalSet,
 } from "@grooph/core";
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { copyText } from "../../doc/exportPackage.js";
 import { countBySeverity } from "../../doc/issues.js";
 import { ViewCanvas, miniHeight } from "../canvas/ViewCanvas.js";
+import { ProfileChips } from "../templates/ProfileChips.js";
 import { editorHref, useSaveFromLink } from "./save.js";
-
-const PROFILE_TEXT: { [K in keyof Profile]: Record<Profile[K], string> } = {
-  cost: { low: "Low cost", medium: "Medium cost", high: "High cost" },
-  speed: { fast: "Fast", medium: "Medium speed", slow: "Slow" },
-  rigor: { light: "Light rigor", standard: "Standard rigor", high: "High rigor" },
-};
-
-/** Where each profile value sits on its scale, for the small meter beside it (1–3). */
-const PROFILE_LEVEL: { [K in keyof Profile]: Record<Profile[K], number> } = {
-  cost: { low: 1, medium: 2, high: 3 },
-  speed: { fast: 3, medium: 2, slow: 1 },
-  rigor: { light: 1, standard: 2, high: 3 },
-};
 
 /** The line the owner pastes back into the chat (docs/executive.md §3). */
 export const chooseLine = (set: ProposalSet, c: Candidate): string => `I pick "${c.label}" (${c.id}) from ${set.id}.`;
@@ -55,7 +42,8 @@ export function Compare({ set, setIssues, payload }: { set: ProposalSet; setIssu
   const setLevel = setIssues.filter((i) => i.code !== "E_CANDIDATE_INVALID");
 
   const track = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
+  const recommendedIndex = Math.max(0, rows.findIndex((row) => row.recommended));
+  const [active, setActive] = useState(recommendedIndex);
   const [briefOpen, setBriefOpen] = useState(false);
   const [copied, setCopied] = useState<{ id: string; ok: boolean; line: string } | null>(null);
   const [allSaved, setAllSaved] = useState<number | null>(null);
@@ -85,6 +73,14 @@ export function Compare({ set, setIssues, payload }: { set: ProposalSet; setIssu
       el.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
     };
+  }, []);
+
+  // Open on the recommended card (review 0006, finding 1): put it in view before the first paint.
+  useLayoutEffect(() => {
+    const el = track.current;
+    const card = el?.children[recommendedIndex] as HTMLElement | undefined;
+    if (!el || !card || recommendedIndex === 0) return;
+    el.scrollLeft = card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2;
   }, []);
 
   // Sideways only: the page stays where the reader left it.
@@ -226,18 +222,7 @@ function Card(props: {
         {c.basedOn ? <span className="ccard-based muted">from the {c.basedOn} template</span> : null}
       </div>
 
-      <ul className="ccard-profile" aria-label="Profile">
-        {(["cost", "speed", "rigor"] as const).map((k) => (
-          <li key={k} className="pchip">
-            <span className="meter" aria-hidden="true" data-level={PROFILE_LEVEL[k][c.profile[k] as never]}>
-              <i />
-              <i />
-              <i />
-            </span>
-            {PROFILE_TEXT[k][c.profile[k] as never]}
-          </li>
-        ))}
-      </ul>
+      <ProfileChips profile={c.profile} />
 
       <div className="ccard-shape">
         <p className="shape-line">{shapeLine(shape)}</p>
