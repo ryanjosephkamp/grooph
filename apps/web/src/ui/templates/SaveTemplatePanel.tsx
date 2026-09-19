@@ -92,6 +92,7 @@ export function SaveTemplatePanel() {
   return (
     <form
       className="inspector"
+      data-own-undo
       onSubmit={(e) => {
         e.preventDefault();
         if (ready) void save(false);

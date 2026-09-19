@@ -88,6 +88,34 @@ test("Use asks for a name and each slot, allows gaps, and opens the graph with E
   await expect(status(page)).toHaveText("Valid");
 });
 
+test("Use says so when the device will not save the graph, and the form stays usable", async ({ page }) => {
+  await page.goto("./#/templates/built-in/grind-loop/use");
+  await page.getByLabel("Graph name").fill("Slugify");
+  await page.evaluate(() => {
+    IDBObjectStore.prototype.put = () => {
+      throw new DOMException("The quota has been exceeded.", "QuotaExceededError");
+    };
+  });
+  await page.getByRole("button", { name: "Create graph" }).tap();
+  await expect(page.getByText("Could not create the graph: The quota has been exceeded.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create graph" })).toBeEnabled();
+});
+
+test("Ctrl+Z in the Insert form is the field's own, not the document's", async ({ page }) => {
+  await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+  await page.locator(".title-btn").tap();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Renamed");
+  await closeSheet(page);
+  await toolbar(page).getByRole("button", { name: "Add" }).tap();
+  await sheet(page).getByRole("button", { name: /^Insert a template/ }).tap();
+  await sheet(page).getByRole("button", { name: /^Human-gated irreversible step/ }).tap();
+  const step = sheet(page).getByLabel("What is the irreversible step, in one sentence?");
+  await step.pressSequentially("Merge", { delay: 20 });
+  await page.keyboard.press("Control+z");
+  await page.keyboard.press("Meta+z");
+  await expect(page.locator(".title-name")).toHaveText("Renamed");
+});
+
 test("Insert a fragment: the id map is shown once, and the new nodes are selected and in view", async ({ page }) => {
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
   await toolbar(page).getByRole("button", { name: "Add" }).tap();

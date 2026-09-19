@@ -97,6 +97,24 @@ test("undo and redo from the toolbar and the keyboard; typing is one step; the s
   await expect(undoButton(page)).toBeDisabled();
 });
 
+test("typing into a list field is one step too", async ({ page }) => {
+  await open(page);
+  await node(page, "builder").tap();
+  const inputs = sheet(page).getByLabel("Inputs", { exact: true });
+  const before = await inputs.inputValue();
+  // Keystroke by keystroke at the end of the last line: one step, not one per key.
+  await inputs.focus();
+  await inputs.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(el.value.length, el.value.length));
+  await inputs.pressSequentially(" too", { delay: 40 });
+  await inputs.blur();
+  await expect(inputs).toHaveValue(`${before} too`);
+  await closeSheet(page);
+  await undoButton(page).tap();
+  await expect(undoButton(page)).toBeDisabled();
+  await node(page, "builder").tap();
+  await expect(inputs).toHaveValue(before);
+});
+
 test("the undo stack is at least 50 steps deep", async ({ page }) => {
   await open(page);
   await node(page, "critic").tap();
@@ -140,7 +158,10 @@ test.describe("storage persistence", () => {
     const notice = page.locator(".persist-notice");
     await expect(notice).toContainText("Storage not guaranteed");
     await expect(notice).toContainText("Download graph");
-    await notice.getByRole("button", { name: "Got it" }).tap();
+    // Its one control meets the phone's 44 px floor (review 0007 round 0, criterion 11).
+    const gotIt = notice.getByRole("button", { name: "Got it" });
+    expect((await gotIt.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await gotIt.tap();
     await expect(notice).toHaveCount(0);
 
     // No nagging: more saves, a reload and another graph ask nothing and show nothing.

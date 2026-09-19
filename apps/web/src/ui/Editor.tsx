@@ -250,9 +250,11 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   }, [store]);
 
   // Cmd/Ctrl+Z undoes, Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes: the document's edits, in text fields too.
+  // Forms whose fields are not the document yet (Insert, Save as template) keep the browser's own undo of the text typed.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+      if (e.target instanceof Element && e.target.closest("[data-own-undo]")) return;
       const key = e.key.toLowerCase();
       if (key === "z") {
         e.preventDefault();

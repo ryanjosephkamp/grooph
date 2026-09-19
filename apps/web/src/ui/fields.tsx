@@ -137,12 +137,12 @@ export function ListInput(props: {
           }}
           onChange={(value) => {
             setText(value);
-            props.onChange(
-              value
-                .split("\n")
-                .map((line) => line.trim())
-                .filter((line) => line !== ""),
-            );
+            const lines = value
+              .split("\n")
+              .map((line) => line.trim())
+              .filter((line) => line !== "");
+            // A space or a blank line changes the text, not the list: no edit, so no empty undo step.
+            if (lines.join("\n") !== joined) typing(() => props.onChange(lines));
           }}
         />
       )}

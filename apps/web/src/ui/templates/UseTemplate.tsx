@@ -38,8 +38,8 @@ function UseForm({ source, template }: { source: TemplateSource; template: Graph
       const record = await importGraph(doc);
       location.hash = `#/g/${encodeURIComponent(record.key)}`;
     } catch (err) {
-      if (!(err instanceof TemplateError)) throw err;
-      setProblem(err.message);
+      // A template problem reads as itself; anything else (the device refusing the write, say) is still said, and the form stays usable.
+      setProblem(err instanceof TemplateError ? err.message : `Could not create the graph: ${err instanceof Error ? err.message : String(err)}`);
       setBusy(false);
     }
   };

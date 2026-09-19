@@ -217,8 +217,9 @@ a {
 .btn-danger-text {
   color: var(--error);
 }
+/* Smaller type and padding, never a smaller target: 44 px is the phone floor. */
 .btn-small {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   font-size: 14px;
 }

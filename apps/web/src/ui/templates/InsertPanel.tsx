@@ -95,6 +95,7 @@ function InsertForm({ entry, onBack, onInsert }: { entry: TemplateEntry; onBack:
   return (
     <form
       className="inspector"
+      data-own-undo
       onSubmit={(e) => {
         e.preventDefault();
         try {
