@@ -1,0 +1,101 @@
+{
+  "grooph": 0,
+  "id": "two-critics",
+  "name": "Two critics",
+  "version": 1,
+  "goal": "Review a draft twice.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "Two critics judge one builder. The frontier critic differs from the builder; the strong one does not, and a graph-wide check let the first hide the second.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "style",
+      "kind": "agent",
+      "name": "Style critic",
+      "role": "critic",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Style critic: judge DRAFT.md against the style guide.",
+      "outputs": [
+        "STYLE.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "facts",
+      "kind": "agent",
+      "name": "Fact critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "brief": "Fact critic: check every claim in DRAFT.md.",
+      "outputs": [
+        "FACTS.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-style",
+      "from": "builder",
+      "to": "style",
+      "evidence": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "e-builder-facts",
+      "from": "builder",
+      "to": "facts",
+      "evidence": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "e-style-done",
+      "from": "style",
+      "to": "done",
+      "when": "pass"
+    },
+    {
+      "id": "e-facts-done",
+      "from": "facts",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

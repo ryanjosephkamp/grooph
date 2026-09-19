@@ -12,7 +12,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0006
+
+- 2026-09-18 · criterion 8 met: `W_HOMOGENEOUS_CRITICS` judged per critic against the writers that reach it, `W_NO_TERMINAL` spares fragments; fixtures `invalid/W_HOMOGENEOUS_CRITICS/one-critic-of-two`, `valid/audit-then-fix`, `valid/approval-fragment`; `specialist-critic-bank` now raises the warning (sidecar added), golden LEAD.md message updated.
 
 ## Waiting on the owner
 

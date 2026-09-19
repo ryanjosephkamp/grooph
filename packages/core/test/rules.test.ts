@@ -403,6 +403,66 @@ test("W_HOMOGENEOUS_CRITICS compares tier and pin, and needs both families", () 
   assert.deepEqual(validate(noCritic), []);
 });
 
+test("W_HOMOGENEOUS_CRITICS is judged per critic, against the writers whose work reaches it", () => {
+  const strong = { model: { tier: "strong" } };
+  const frontier = { model: { tier: "frontier" } };
+  // One differing critic no longer masks another (review 0005, finding 1).
+  const two = base({
+    nodes: [agent("builder", "builder", { ...writable, ...strong }), agent("a", "critic", { ...writable, ...strong }), agent("b", "judge", { ...writable, ...frontier }), stopNode],
+    edges: [
+      { id: "e-a", from: "builder", to: "a", evidence: ["diff"] },
+      { id: "e-b", from: "a", to: "b", when: "pass", evidence: ["diff"] },
+      { id: "e-done", from: "b", to: "done", when: "pass" },
+    ],
+  });
+  const issues = only(validate(two), "W_HOMOGENEOUS_CRITICS");
+  assert.equal(issues.length, 1, "reported once");
+  assert.deepEqual(issues[0]!.at, ["builder", "a"]);
+  assert.match(issues[0]!.message, /critic "a" judges "builder"/);
+  assert.doesNotMatch(issues[0]!.message, /"b"/, "the frontier judge differs from the builder it reaches");
+
+  // Every flagged critic is named in the one issue.
+  const both = structuredClone(two);
+  (both.nodes[2] as { model: object }).model = { tier: "strong" };
+  const named = only(validate(both), "W_HOMOGENEOUS_CRITICS");
+  assert.equal(named.length, 1);
+  assert.deepEqual(named[0]!.at, ["builder", "a", "b"]);
+
+  // Only writers upstream along non-back edges count: a writer downstream of the critic, or one reaching it only
+  // through a loop's back edge, is not the work it judges.
+  const downstream = base({
+    nodes: [agent("builder", "builder", { ...writable, model: { tier: "fast" } }), agent("critic", "critic", { ...writable, ...strong }), agent("notes", "synthesizer", { ...writable, ...strong }), stopNode],
+    edges: [
+      { id: "e-review", from: "builder", to: "critic", evidence: ["diff"] },
+      { id: "e-notes", from: "critic", to: "notes", when: "pass" },
+      { id: "e-done", from: "notes", to: "done" },
+    ],
+  });
+  assert.deepEqual(only(validate(downstream), "W_HOMOGENEOUS_CRITICS"), [], "the synthesizer after the critic shares its tier and does not count");
+
+  const auditFirst = base({
+    nodes: [agent("audit", "red-team", { ...writable, ...strong }), agent("fix", "builder", { ...writable, ...strong }), stopNode],
+    edges: [
+      { id: "e-fix", from: "audit", to: "fix", evidence: ["FINDINGS.md"] },
+      { id: "e-again", from: "fix", to: "audit", when: "fail", evidence: ["diff"] },
+      { id: "e-done", from: "fix", to: "done" },
+    ],
+    loops: [{ id: "cycle", name: "Cycle", members: ["audit", "fix"], back: ["e-again"], mode: "grind", stops: [{ kind: "max-iterations", n: 3 }, { kind: "budget", measure: "turns", limit: 20 }] }],
+  });
+  assert.deepEqual(only(validate(auditFirst), "W_HOMOGENEOUS_CRITICS"), [], "the builder reaches the red team only through a back edge");
+});
+
+test("W_NO_TERMINAL spares a fragment template, which ends in its host", () => {
+  const fragment = base({
+    nodes: [agent("worker", "builder", writable)],
+    template: { kind: "fragment", title: "F", summary: "S", whenToUse: "W", profile: { cost: "low", speed: "fast", rigor: "light" } },
+  });
+  assert.deepEqual(validate(fragment), []);
+  const whole = structuredClone(fragment);
+  whole.template!.kind = "graph";
+  assert.deepEqual(codes(validate(whole)), ["W_NO_TERMINAL"], "a whole-graph template still needs somewhere to end");
+});
+
 test("W_FANOUT_ON_COUPLED covers coupled groups and coupled owners", () => {
   const doc = base({
     nodes: [agent("planner", "planner", writable), agent("a", "builder", writable), agent("b", "builder", writable), stopNode],

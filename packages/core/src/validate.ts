@@ -400,22 +400,50 @@ function modelKey(node: AgentNode): string {
   return [node.model ? `tier ${node.model.tier}` : "the session default", ...pins.map((p) => `pin ${p}`)].join(", ");
 }
 
-/** `W_HOMOGENEOUS_CRITICS` — every critic resolves to the same tier and pin as every writer. */
+/**
+ * `W_HOMOGENEOUS_CRITICS` — a critic resolves to the same tier and pins as every
+ * writer whose work can reach it along non-back edges. Judged per critic, so
+ * one differing node elsewhere in the graph does not mask it. A critic no
+ * writer reaches judges no writer's work and is not flagged. Reported once,
+ * naming each such critic and the writers it shares its model with.
+ */
 function homogeneousCritics(index: GraphIndex): Issue[] {
-  const critics = agentNodes(index).filter(isCriticFamily);
+  const back = new Set<Id>((index.doc.loops ?? []).flatMap((loop) => loop.back ?? []));
   const writers = agentNodes(index).filter(isWriterFamily);
-  if (critics.length === 0 || writers.length === 0) return [];
-  const keys = new Set([...critics, ...writers].map(modelKey));
-  if (keys.size !== 1) return [];
+  const flagged: { critic: AgentNode; writers: AgentNode[] }[] = [];
+  for (const critic of agentNodes(index).filter(isCriticFamily)) {
+    const upstream = upstreamOf(index, critic.id, back);
+    const reaching = writers.filter((writer) => writer.id !== critic.id && upstream.has(writer.id));
+    if (reaching.length === 0) continue;
+    const key = modelKey(critic);
+    if (reaching.every((writer) => modelKey(writer) === key)) flagged.push({ critic, writers: reaching });
+  }
+  if (flagged.length === 0) return [];
+  const parts = flagged.map(
+    ({ critic, writers: same }) => `critic "${critic.id}" judges ${quoted(same.map((n) => n.id))} on the same model (${modelKey(critic)})`,
+  );
   return [
     warning(
       "W_HOMOGENEOUS_CRITICS",
-      `every critic (${quoted(critics.map((n) => n.id))}) runs on the same model as every writer (${quoted(
-        writers.map((n) => n.id),
-      )}): ${[...keys][0]}; a critic on a different tier or pin tends to catch different mistakes`,
-      sortNodeIds(index, [...critics, ...writers].map((n) => n.id)),
+      `${parts.join("; ")}; a critic on a different tier or pin tends to catch different mistakes`,
+      sortNodeIds(index, new Set(flagged.flatMap(({ critic, writers: same }) => [critic.id, ...same.map((n) => n.id)]))),
     ),
   ];
+}
+
+/** Every node with a path to `target` along edges that are not loop back edges. */
+function upstreamOf(index: GraphIndex, target: Id, back: ReadonlySet<Id>): Set<Id> {
+  const seen = new Set<Id>();
+  const queue: Id[] = [target];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const edge of index.incoming.get(current) ?? []) {
+      if (back.has(edge.id) || seen.has(edge.from)) continue;
+      seen.add(edge.from);
+      queue.push(edge.from);
+    }
+  }
+  return seen;
 }
 
 /**
@@ -557,10 +585,12 @@ function unreachableNodes(index: GraphIndex): Issue[] {
     );
 }
 
-/** `W_NO_TERMINAL` — no stop node is reachable from an entry node. An empty graph has nothing to end. */
+/** `W_NO_TERMINAL` — no stop node is reachable from an entry node. An empty graph and a fragment template are exempt. */
 function noTerminal(index: GraphIndex): Issue[] {
   const nodes: Node[] = index.doc.nodes ?? [];
   if (nodes.length === 0) return [];
+  // A fragment usually ends in its host (graph-ir §3).
+  if (index.doc.template?.kind === "fragment") return [];
   const reached = reachableFrom(index, entryNodeIds(index));
   if (nodes.some((node) => node.kind === "stop" && reached.has(node.id))) return [];
   return [
