@@ -47,7 +47,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0004 | 3 | Core for agents | Opus 5 | done 2026-09-18 |
 | 0005 | 4 | Templates and the pattern library (core, CLI, `patterns/`, published index) | Opus 5 | done 2026-09-18 |
 | 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | done 2026-09-18 |
-| 0007 | 4 | Templates in the web app and editing polish | Opus 5 (plain session, or through a grooph package: owner's choice) | handoff drafted, awaiting owner confirmation |
+| 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package | in progress (confirmed 2026-09-19) |
 
 ## Carried into slice 0004 (done)
 

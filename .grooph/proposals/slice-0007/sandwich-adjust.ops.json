@@ -1,0 +1,10 @@
+[
+  {"op":"updateNode","id":"builder","set":{
+    "allow":["read-files","edit-files","run-tests","run-commands"],
+    "inputs":["handoffs/0007-web-templates/HANDOFF.md (the success criteria and the allowed paths)","check output or REVIEW.md (from round 1 on)"],
+    "outputs":["the change, with tests, committed on branch slice/0007-web-templates","CHANGES.md: what changed this round","phone-width screenshots of the new screens in handoffs/0007-web-templates/"]}},
+  {"op":"updateNode","id":"critic","set":{
+    "inputs":["diff of the change","handoffs/0007-web-templates/HANDOFF.md","screenshots in handoffs/0007-web-templates/"]}},
+  {"op":"updateEdge","id":"e-checks-critic","set":{"evidence":["diff of the change","handoffs/0007-web-templates/HANDOFF.md","screenshots in handoffs/0007-web-templates/"]}},
+  {"op":"setStop","loop":"sandwich","index":2,"stop":{"kind":"budget","measure":"turns","limit":80}}
+]

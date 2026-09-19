@@ -1,6 +1,6 @@
 # Handoff 0007 · Templates in the app and editing polish
 
-**Stage:** 4 (second half) · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0007-web-templates` · **Drafted:** 2026-09-18 · **Confirmed by owner:** pending
+**Stage:** 4 (second half) · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0007-web-templates` · **Drafted:** 2026-09-18 · **Confirmed by owner:** 2026-09-19 · **Route:** B, through the `slice-0007-sandwich` grooph package (owner's pick)
 
 ## Objective
 
@@ -84,7 +84,19 @@ The `TEMPLATE-HANDBACK.md` sections, plus the screenshots of criterion 11 and, w
 
 **B. Through grooph itself.** The driver designed three candidate workflows for this slice with the `grooph-design` skill (`.grooph/proposals/slice-0007/`); when the owner picks one, the driver places its package on `main` and gives a second prompt that starts the run with `/<graph-id>`. The lead session then dispatches the builder and critic subagents, this file is the critic's checklist, and the run ends at the package's stops. The handback protocol is unchanged: the lead writes `HANDBACK.md` and pushes.
 
-## Prompt to paste (route A)
+## Prompt to paste (route B, the owner's choice)
+
+```text
+You are the lead for grooph slice 0007 (templates in the app and editing polish), and this slice runs through a grooph package. The repo is /Users/noir/Documents/grooph, published at github.com/ryanjosephkamp/grooph.
+
+1. Run `git fetch origin` and create branch slice/0007-web-templates from origin/main.
+2. Read handoffs/0007-web-templates/HANDOFF.md and AGENTS.md. The handoff's allowed and forbidden paths bind every agent in this run; say so when you dispatch them.
+3. Start the run with /slice-0007-sandwich and follow .grooph/slice-0007-sandwich/LEAD.md exactly: you dispatch the builder and the critic as subagents, you run the check yourself, you keep PROGRESS.md and notes.jsonl in the run folder, and you do not do the builder's or the critic's work. The graph is adaptive: amend the run's working copy when the work shows a gap, record it, and never loosen a brake.
+4. Each time a success criterion of the handoff is met, append one line to the "In flight" section of docs/PROGRESS.md under a "Slice 0007" heading (create it). Commit and push the branch as the run goes.
+5. When the run ends (the stop node, or a stop firing), finish with the grooph-handback skill. The handback also reports the run id, rounds, which stop fired, every amendment and proposal, and what the critic caught that the checks did not. The branch must be pushed and HANDBACK.md committed before you print the return prompt, which is the last block of your final reply.
+```
+
+## Prompt to paste (route A, fallback)
 
 ```text
 You are the implementer for grooph slice 0007 (templates in the app and editing polish). The repo is /Users/noir/Documents/grooph, published at github.com/ryanjosephkamp/grooph.

@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 5 (the executive path) is built, merged and live. The driver ran `grooph-design` for real at reconcile: three candidate workflows for slice 0007, shared as a link that opens the compare view on the live site.
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ · **Published templates:** https://ryanjosephkamp.github.io/grooph/patterns/index.json
-- **Next action (owner):** open the slice-0007 proposal link on the phone, pick a candidate or choose the plain session; optionally run `scripts/install-local.sh --dry-run` then `scripts/install-local.sh` to put `grooph` and `/grooph-design` on this machine.
+- **Next action:** slice 0007 runs through grooph itself: the owner picked "Sandwich" on the phone; the package `slice-0007-sandwich` is placed on `main` (2 agents · 1 check · 1 loop · up to 5 rounds · 80 turns) and an Opus 5 lead session runs it. `grooph` and `/grooph-design` are installed on the owner's machine.
 - **Then:** slice 0007 (templates in the app, undo, storage persistence); the pattern proving ground (needs spend approval); notes back and the run monitor.
 - **What works today:** describe a project to a Claude Code session with the `grooph-design` skill → candidates from templates or scratch → `grooph share` link → compare on the phone → `grooph pick` → `grooph export`. Sixteen published templates. Adaptive-by-default packages proven in one real run.
 
@@ -16,11 +16,7 @@ _(none)_
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Pick how slice 0007 runs: a candidate from `.grooph/proposals/slice-0007/` (Lean, Sandwich, Gated) through grooph itself, or a plain Opus session | Sandwich, through grooph: it is the product's purpose and a second real-run data point |
-| Confirm slice 0007 (`handoffs/0007-web-templates/HANDOFF.md`) | Yes |
-| Install grooph locally (`scripts/install-local.sh`) | Yes, after a `--dry-run` look |
+_(nothing until the 0007 handback)_
 
 ## Deferred until Codex is available
 
