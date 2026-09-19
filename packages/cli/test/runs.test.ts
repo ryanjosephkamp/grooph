@@ -416,6 +416,12 @@ test("grooph watch prints where to look; with --host it warns that the network c
   }
 });
 
+test("watch tells a run folder from a graph folder, even a graph folder inside a folder named runs", () => {
+  assert.equal(watchTarget(join(runsFixtures, "run-live")).kind, "graph");
+  assert.equal(watchTarget(join(runsFixtures, "run-live", "runs", "20260919-1100-live")).kind, "run");
+  assert.equal(watchTarget(runsFixtures).kind, "project");
+});
+
 test("watch finds the built app in this clone when there is one", () => {
   const dist = findWebDist({});
   if (!existsSync(join(repoRoot, "apps", "web", "dist", "index.html"))) return;
