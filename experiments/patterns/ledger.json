@@ -93,8 +93,38 @@
       "run_id": "20260919-1241-k7qm",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 7,
+      "template": "spec-then-loop",
+      "kind": "kickoff",
+      "started": "2026-09-19T16:45:03.490Z",
+      "ended": "2026-09-19T16:46:26.149Z",
+      "status": "ok",
+      "cost_usd": 0.794805,
+      "reported_cost_usd": 0.7948047500000001,
+      "max_budget_usd": 6,
+      "session_id": "71e39056-c986-4299-9730-fc12e031b844",
+      "run_id": "20260919-1245-k7qz",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 8,
+      "template": "spec-then-loop",
+      "kind": "resume",
+      "started": "2026-09-19T16:46:26.150Z",
+      "ended": "2026-09-19T16:50:37.976Z",
+      "status": "ok",
+      "cost_usd": 1.530376,
+      "reported_cost_usd": 1.5303760000000002,
+      "max_budget_usd": 6,
+      "session_id": "71e39056-c986-4299-9730-fc12e031b844",
+      "run_id": "20260919-1245-k7qz",
+      "retry": null,
+      "note": "scripted answer \"approve\" at spec-gate"
     }
   ],
-  "spent_usd": 4.684693,
-  "remaining_usd": 20.315307
+  "spent_usd": 7.009874,
+  "remaining_usd": 17.990126
 }
