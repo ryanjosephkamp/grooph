@@ -98,6 +98,25 @@ test("validate reports a schema failure instead of crashing", async () => {
   assert.match(io.stderr.join("\n"), /\/nodes: missing required property/);
 });
 
+test("validate on a proposal set says so and points to grooph share", async () => {
+  const set = fixture("proposals", "valid", "csv-export", "csv-export.grooph-proposals.json");
+  const io = capture();
+  assert.equal(await run(["validate", set], io), 1);
+  assert.deepEqual(io.stdout, []);
+  const said = io.stderr.join("\n");
+  assert.match(said, /is a proposal set, not a graph document/);
+  assert.match(said, /grooph share .*csv-export\.grooph-proposals\.json/);
+  assert.match(said, /grooph pick/);
+  assert.doesNotMatch(said, /E_SCHEMA/, "no schema noise from reading it as a graph");
+
+  const json = capture();
+  assert.equal(await run(["validate", set, "--json"], json), 1);
+  const data = JSON.parse(json.stdout.join("\n")) as { ok: boolean; kind: string; message: string };
+  assert.equal(data.ok, false);
+  assert.equal(data.kind, "proposal-set");
+  assert.match(data.message, /grooph share/);
+});
+
 test("canonicalize --write rewrites in place and is then a no-op", async () => {
   const dir = scratch();
   try {

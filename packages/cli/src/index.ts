@@ -55,6 +55,7 @@ Commands
                  Any graph document works, a run's working copy included. Exits 1 when
                  there are errors. --for-export also applies the export-only rules
                  (E_NO_TARGET, E_NO_GOAL); --json prints the issue list as JSON.
+                 A proposal set is not a graph: grooph share checks one.
   canonicalize   Print the document in canonical form (graph-ir §7), or rewrite it with --write.
   export         Validate for export, then write the harness package into <dir> and print the
                  kickoff prompt. Refuses, with the reasons, when the document has errors.
