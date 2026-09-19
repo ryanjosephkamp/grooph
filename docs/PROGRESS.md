@@ -18,6 +18,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - Criteria 2–10 met (2026-09-19), per the run's critic, round 0 (`.grooph/slice-0007-sandwich/runs/20260919-0057-66c8/round-0/REVIEW.md`): template library, Use, Insert, Save as template, undo and redo, storage persistence, toolbar and sheet, rename warning, the three items carried from review 0006.
 - Criterion 11 met (2026-09-19), per the run's critic, round 1 (`round-1/REVIEW.md`): 44 px floor for `.btn-small` (storage notice "Got it"), browser tests at 400×800 for 2–9, screenshots in the slice folder. Run `20260919-0057-66c8` ended at `done` (bar passed) after 1 round; handback next.
 - Handback (2026-09-19): **needs fix pass** at 1745a1a. Re-verification after the run found criterion 5 partly unmet (Save as template keeps templates that carry errors, which `grooph template save` refuses and `template add` rejects) and criterion 11 partly unmet (the Save form's `.chip` node chips are 40 px). See `handoffs/0007-web-templates/HANDBACK.md`.
+- Fix pass 1, criterion 1 met (2026-09-19): Save as template and template import refuse a template that carries errors, showing the issues and the CLI's "loop … stayed behind" hint; unit tests in `apps/web/test/templates.test.ts`, browser tests in `e2e/templates.spec.ts` (bea7219).
+- Fix pass 1, criterion 2 met (2026-09-19): `.chip` tap targets are 44 px; `e2e/editing.spec.ts` measures an issue chip, an Allow chip, the Graph panel's loop chip, loop member and back-edge chips, and a Save-form node chip at 400×800 (ff6fd68).
+- Fix pass 1, criterion 3 met (2026-09-19): build, tests (core 210, cli 45, web 43) and browser tests (37) exit 0; CI green at ff6fd68 (run 35451283568); new screenshot `save-template-refused-phone-light.png`, the others unchanged.
 
 ## Waiting on the owner
 
