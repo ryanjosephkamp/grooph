@@ -1,0 +1,126 @@
+{
+  "template": "review-gate",
+  "template_version": "review-gate@1",
+  "graph_id": "truncate",
+  "run_id": "20260919-1236-k7q2",
+  "run_ids": [
+    "20260919-1236-k7q2"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.276 (Claude Code)",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "cost_usd": 0.001584,
+      "output_tokens": 13
+    },
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.4494557500000005,
+      "output_tokens": 21498
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "truncate--critic": [
+      "claude-opus-5"
+    ],
+    "truncate--builder": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.45104,
+  "harness_turns": 27,
+  "lead_turns": 19,
+  "duration_s": 196,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [],
+  "subagents": {
+    "truncate--critic": 1,
+    "truncate--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "R=20260919-1236-$(LC_ALL=C tr -dc a-z0-9 </dev/urandom | head -c4) && echo $R && mkdir -p .grooph/truncate/runs/$R && cp .grooph/truncate/graph.grooph.json .grooph/truncate/runs/$R/ && git checkout -b grooph/truncate-$R && grooph --help 2>&1 | head -30"
+    },
+    {
+      "tool": "Bash",
+      "command": "LC_ALL=C tr -dc a-z0-9 </dev/urandom | head -c4"
+    },
+    {
+      "tool": "Bash",
+      "command": "mkdir -p .grooph/truncate/runs/20260919-1236-k7q2 && cp .grooph/truncate/graph.grooph.json .grooph/truncate/runs/20260919-1236-k7q2/graph.grooph.json && git checkout -b grooph/truncate-20260919-1236-k7q2 && grooph --help 2>&1 | head -30"
+    },
+    {
+      "tool": "Bash",
+      "command": "git -C /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-review-gate-CGe7fZ checkout -b grooph/truncate-20260919-1236-k7q2"
+    },
+    {
+      "tool": "Bash",
+      "command": "cat > src/truncate.mjs <<'EOF'\n/**\n * Shortens `text` to `max` characters, ending it with \"…\" (U+2026).\n * Text that is already `max` characters or shorter comes back unchanged.\n *\n * @param {string} text\n * @param {number} max a positive integer\n * @returns {string}\n */\nexport function truncate(text, max) {\n  if (typeof text !== \"string\") throw new TypeError(\"truncate: text must be a string\");\n  if (!Number.isInteger(max) || max < 1) throw new RangeError(\"truncate: max must be a positive integer\");\n  return text.length <= max ? text : text.slice(0, max - 1) + \"…\";\n}\nEOF\ncat > tests/truncate.test.mjs <<'EOF'\nimport assert from \"node:assert/strict\";\nimport { test } from \"node:test\";\n\nimport { truncate } from \"../src/truncate.mjs\";\n\ntest(\"truncate leaves text of at most max characters alone\", () => {\n  assert.equal(truncate(\"hello\", 5), \"hello\");\n  assert.equal(truncate(\"hi\", 5), \"hi\");\n  assert.equal(truncate(\"\", 1), \"\");\n});\n\ntest(\"truncate cuts longer text to exactly max characters ending in an ellipsis\", () => {\n  const result = truncate(\"hello world\", 8);\n  assert.equal(result, \"hello w…\");\n  assert.equal(result.length, 8);\n  assert.equal(truncate(\"hello\", 1), \"…\");\n});\n\ntest(\"truncate refuses a text that is not a string\", () => {\n  assert.throws(() => truncate(12345, 3), TypeError);\n  assert.throws(() => truncate(null, 3), TypeError);\n});\n\ntest(\"truncate refuses a max that is not a positive integer\", () => {\n  for (const max of [0, -1, 2.5, \"3\", NaN, Infinity]) {\n    assert.throws(() => truncate(\"hello\", max), RangeError);\n  }\n});\nEOF\npython3 - <<'EOF'\np=\"CHANGELOG.md\"\ns=open(p).read()\ns=s.replace(\"## Unreleased\\n\",\"## Unreleased\\n\\n- Added `truncate(text, max)`: cuts text longer than `max` characters to exactly `max`, ending it with \\\"…\\\".\\n\",1)\nopen(p,\"w\").write(s)\nEOF\ncat CHANGELOG.md; npm test; echo EXIT $?; git status --short"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm test; echo EXIT $?; git status --short"
+    },
+    {
+      "tool": "Bash",
+      "command": "git status --porcelain -uall; echo ---; git diff --stat; echo ---; npm test; echo \"EXIT=$?\"; echo ---; grep -n \"Unreleased\\|truncate\\|Added\" CHANGELOG.md; grep -rn \"skip\\|todo\" tests/ || echo \"no skip/todo\""
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 5,
+      "session_id": "930496f5-0a88-458b-9999-98a04184bb62",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.45104,
+      "reported_cost_usd": 1.4510397500000005,
+      "max_budget_usd": 6,
+      "harness_turns": 27,
+      "duration_s": 196,
+      "wall_s": 198,
+      "notes_after": 6,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "fe3fb9693a52ddb80b221b705f265439716bafc0",
+  "source_sha256_before": "4fa483ebc5bcbcddd9c548c92f5b5587887d7bee8a9a9bd50d041b0a66af54d8",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-review-gate-CGe7fZ",
+  "home_redactions": 0,
+  "amendments": [
+    "builder: add docs/REVIEW-CHECKLIST.md to inputs and owns src/truncate.mjs, tests/truncate.test.mjs, CHANGELOG.md, CHANGES.md; critic: owns REVIEW.md"
+  ],
+  "proposals": [],
+  "working_copy": [
+    "node builder changed: inputs, owns",
+    "node critic changed: owns"
+  ]
+}
