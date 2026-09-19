@@ -1,3 +1,4 @@
+import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
@@ -7,28 +8,37 @@ import {
   buildShareEnvelope,
   canonicalize,
   canonicalizeProposals,
+  canonicalizeRunBundle,
   encodeSharePayload,
   estimateShape,
   formatIssue,
+  runStateLine,
   shapeLine,
   shareLink,
   validate,
+  summarizeRun,
   validateProposalSet,
   type Graph,
   type ProposalSet,
+  type RunBundle,
 } from "@grooph/core";
 
 import { writeText } from "../io.js";
 import { plural, type Output } from "../print.js";
-import { LoadError, deflateRaw, loadShareable, shown, type OpenUrl } from "../share-io.js";
+import { isRunDir, readRun } from "../run-io.js";
+import { LoadError, deflateRaw, loadShareable, shown, type Loaded, type OpenUrl } from "../share-io.js";
 
 export type ShareFlags = { base?: string; open?: boolean; out?: string };
 
-export const SHARE_HELP = `grooph share <graph | proposal set> [--base <url>] [--open] [--out <file>]
+export const SHARE_HELP = `grooph share <graph | proposal set | run dir | run bundle> [--base <url>] [--open] [--out <file>]
 
-Turn a graph, or a set of one to four candidate graphs, into a link that opens it in the
-grooph app on any device. The document travels in the link's #fragment, which browsers do
-not send to any server; nothing is uploaded.
+Turn a graph, a set of one to four candidate graphs, or a run into a link that opens it in
+the grooph app on any device. The document travels in the link's #fragment, which browsers
+do not send to any server; nothing is uploaded.
+
+A run folder (.grooph/<graph-id>/runs/<run-id>/) or a *.grooph-run.json bundle opens in the
+run view: what ran, what the run changed and why, its proposals, and its notes. --out then
+writes the bundle, the fallback when the link is too long.
 
 Validates first and refuses a graph, or a candidate, with errors. Inlines { "file" }
 candidates, computes each candidate's shape, prints the comparison and the link with its
@@ -73,9 +83,14 @@ A proposal set, <set-id>.grooph-proposals.json (docs/executive.md §1):
  * Exit 0 with the link, 1 when the document cannot be shared.
  */
 export async function shareCommand(io: Output, file: string, flags: ShareFlags, open: OpenUrl): Promise<number> {
-  let loaded;
+  let loaded: Loaded;
   try {
-    loaded = loadShareable(file);
+    if (existsSync(file) && statSync(file).isDirectory()) {
+      if (!isRunDir(file)) {
+        throw new LoadError(`${file} is a folder but not a run folder; share takes a graph, a proposal set, a run folder (.grooph/<graph-id>/runs/<run-id>/) or a run bundle`);
+      }
+      loaded = { kind: "run", doc: readRun(file).bundle };
+    } else loaded = loadShareable(file);
   } catch (err) {
     if (!(err instanceof LoadError)) throw err;
     io.err(`grooph: ${err.message}`);
@@ -94,6 +109,7 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
   }
 
   if (envelope.kind === "proposals") printSet(io, envelope.doc);
+  else if (envelope.kind === "run") printRun(io, envelope.doc);
   else printGraph(io, envelope.doc);
 
   const link = shareLink(encodeSharePayload(envelope, deflateRaw), flags.base ?? SHARE_BASE);
@@ -103,7 +119,10 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
       io.err(`grooph: --out ${flags.out} is the file being shared; name another file`);
       return 1;
     }
-    writeText(flags.out, envelope.kind === "proposals" ? canonicalizeProposals(envelope.doc) : canonicalize(envelope.doc));
+    writeText(
+      flags.out,
+      envelope.kind === "proposals" ? canonicalizeProposals(envelope.doc) : envelope.kind === "run" ? canonicalizeRunBundle(envelope.doc) : canonicalize(envelope.doc),
+    );
     io.out(`wrote ${shown(resolve(flags.out))} (self-contained; import it in the app, or share that file)`);
   }
 
@@ -115,7 +134,9 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
     io.err("");
     io.err(
       `warning: the link is ${link.length.toLocaleString("en")} characters; messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")}. ` +
-        `The graphs are too big for a link: shorten the briefs or drop a candidate, or send the file from --out and import it in the app.`,
+        (envelope.kind === "run"
+          ? "The run is too big for a link: send the bundle instead (--out <file>.grooph-run.json, or grooph runs bundle) and import it in the app."
+          : "The graphs are too big for a link: shorten the briefs or drop a candidate, or send the file from --out and import it in the app."),
     );
   }
 
@@ -128,6 +149,13 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
     }
   }
   return 0;
+}
+
+function printRun(io: Output, bundle: RunBundle): void {
+  const summary = summarizeRun(bundle.notes, bundle.working);
+  io.out(`run ${bundle.run} · ${bundle.working.name} (${bundle.working.id}) · ${runStateLine(summary)}`);
+  io.out(`  ${plural(bundle.notes.length, "note")} · ${plural(summary.amendments.length, "amendment")} · ${plural(summary.proposals.length, "proposal")}`);
+  if (bundle.issues && bundle.issues.length > 0) io.out(`  ${plural(bundle.issues.length, "line")} of notes.jsonl could not be read; the run view lists them`);
 }
 
 function printGraph(io: Output, graph: Graph): void {
