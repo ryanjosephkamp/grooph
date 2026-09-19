@@ -23,6 +23,8 @@ These decide whether a graph is good. Apply them before reaching for any templat
 - **Cheap checks before expensive judgment.** A deterministic check in front of a critic saves rounds.
 - **A different eye sees more.** A critic on the same tier as the builder tends to approve the builder's mistakes. Put judges on a different tier when it matters, and say so plainly when it does not.
 - **Humans gate what cannot be undone.** Merge, publish, spend, delete.
+- **Point at the source of truth; do not paraphrase it.** Path limits, acceptance criteria and commands live in the project's own files. Name the file in a brief or constraint instead of restating it, and never restate a brake's value in prose: the copy goes stale and then contradicts the graph.
+- **Give a critic the repository, not only the diff.** Isolation means a fresh context and no builder claims. A critic that can read the head commit read-only catches what sits just outside the diff.
 - **Leave graphs adaptive** unless the user asks otherwise. The lead may amend its working copy visibly and cannot loosen brakes. That is the safety margin for whatever you did not foresee, so do not try to foresee everything.
 
 ## Steps
