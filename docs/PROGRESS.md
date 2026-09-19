@@ -6,19 +6,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0 through 5 are done and live. Slice 0007 ran through grooph itself (run `20260919-0057-66c8`: critic failed round 0, passed round 1, one kickoff amendment, one proposal), needed one small plain fix pass, and is merged. The run's amendment was adopted by hand as version 2 of `slice-0007-sandwich`.
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ · **Published templates:** https://ryanjosephkamp.github.io/grooph/patterns/index.json
-- **Next action (owner):** choose what comes next: stage 7 (notes back and the run monitor, no model spend) and/or stage 6 (pattern proving ground, needs a spend cap).
+- **Next action:** slices 0008 (runs: notes back, adoption, monitor) and 0009 (proving ground, five templates, $25 cap) run in parallel Opus 5 sessions, each in its own git worktree.
 - **What works today:** describe a project to a Claude Code session with `/grooph-design` → candidates from templates or scratch → share link → compare on the phone → pick → package placed. In the app: template library (browse, use, insert, save as, import), undo and redo, persistent storage request, read-only link viewer and compare view. CLI: `validate`, `canonicalize`, `new`, `apply`, `export`, `template …`, `share`, `pick`, `shape`. Sixteen published templates. Three real runs on record.
 
 ## In flight
 
-_(none)_
+_(slices 0008 and 0009 create their entries here)_
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| What runs next | Stage 7 first (notes back + run monitor); the proving ground's first batch in parallel with a spend cap |
-| Spend cap for the proving ground's first batch (five templates, one headless run each, about $2–5 per run) | $25 |
+_(nothing until the 0008 and 0009 handbacks; owner decisions on 2026-09-19: both in parallel, $25 cap for the first proving batch, gates halt and are recorded)_
 
 ## Deferred until Codex is available
 
