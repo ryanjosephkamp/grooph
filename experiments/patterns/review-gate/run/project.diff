@@ -1,0 +1,66 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 71c19a1..31a5b76 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -2,6 +2,8 @@
+ 
+ ## Unreleased
+ 
++- Added `truncate(text, max)`: cuts text longer than `max` characters to exactly `max`, ending it with "…".
++
+ ## 0.1.0 — 2026-08-30
+ 
+ - Added `padStart(text, width)`: pads text on the left with spaces to `width` characters.
+diff --git a/src/truncate.mjs b/src/truncate.mjs
+new file mode 100644
+index 0000000..e9bb34d
+--- /dev/null
++++ b/src/truncate.mjs
+@@ -0,0 +1,13 @@
++/**
++ * Shortens `text` to exactly `max` characters, ending it with "…" (U+2026).
++ * Text that is already `max` characters or shorter comes back unchanged.
++ *
++ * @param {string} text
++ * @param {number} max a positive integer
++ * @returns {string}
++ */
++export function truncate(text, max) {
++  if (typeof text !== "string") throw new TypeError("truncate: text must be a string");
++  if (!Number.isInteger(max) || max < 1) throw new RangeError("truncate: max must be a positive integer");
++  return text.length <= max ? text : text.slice(0, max - 1) + "…";
++}
+diff --git a/tests/truncate.test.mjs b/tests/truncate.test.mjs
+new file mode 100644
+index 0000000..64e0b55
+--- /dev/null
++++ b/tests/truncate.test.mjs
+@@ -0,0 +1,28 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { truncate } from "../src/truncate.mjs";
++
++test("truncate leaves text of at most max characters alone", () => {
++  assert.equal(truncate("hello", 5), "hello");
++  assert.equal(truncate("hi", 5), "hi");
++  assert.equal(truncate("", 1), "");
++});
++
++test("truncate cuts longer text to exactly max characters ending in an ellipsis", () => {
++  const result = truncate("hello world", 8);
++  assert.equal(result, "hello w…");
++  assert.equal(result.length, 8);
++  assert.equal(truncate("hello", 1), "…");
++});
++
++test("truncate refuses a text that is not a string", () => {
++  assert.throws(() => truncate(12345, 3), TypeError);
++  assert.throws(() => truncate(null, 3), TypeError);
++});
++
++test("truncate refuses a max that is not a positive integer", () => {
++  for (const max of [0, -1, 2.5, "3", NaN, Infinity]) {
++    assert.throws(() => truncate("hello", max), RangeError);
++  }
++});

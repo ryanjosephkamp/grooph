@@ -37,7 +37,7 @@
       "severity"
     ]
   },
-  "description": "A builder works; four critics, each in a fresh context and each on one concern, review the same diff in parallel (at most four at a time). A frontier triage judge merges their reports into one list by severity and emits the verdict. Blockers or majors return to the builder; a clean list goes to a human, whose rejection also returns to the builder. The loop stops when the merged list is clean, after four rounds, or at eighty turns.",
+  "description": "A builder works; four critics, each in a fresh context and each on one concern, review the same diff in parallel (at most four at a time). A frontier triage judge merges their reports into one list by severity and emits the verdict. Blockers or majors return to the builder; a clean list goes to a human, whose rejection also returns to the builder. The loop stops when the merged list is clean, at its round cap, or at its turn budget.",
   "nodes": [
     {
       "id": "builder",

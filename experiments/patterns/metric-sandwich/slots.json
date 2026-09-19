@@ -1,0 +1,8 @@
+{
+  "name": "Pages from one",
+  "values": {
+    "task": "Change `paginate(items, pageSize, page)` in src/paginate.mjs to number pages from 1 instead of 0, and add `pageCount(total, pageSize)` beside it, returning how many pages `total` items fill. Update and extend tests/paginate.test.mjs to match.",
+    "test-command": "npm run check",
+    "checklist": "docs/REVIEW-CHECKLIST.md"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "template": "spec-then-loop",
+  "template_version": "spec-then-loop@1",
+  "graph_id": "word-wrap",
+  "run_id": "20260919-1245-k7qz",
+  "run_ids": [
+    "20260919-1245-k7qz"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.276 (Claude Code)",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "cost_usd": 0.001485,
+      "output_tokens": 11
+    },
+    "claude-opus-5[1m]": {
+      "cost_usd": 2.086081,
+      "output_tokens": 31041
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.23761474999999999,
+      "output_tokens": 2886
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "word-wrap--builder": [
+      "claude-opus-5"
+    ],
+    "word-wrap--critic": [
+      "claude-opus-5"
+    ],
+    "word-wrap--planner": [
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 2.325181,
+  "harness_turns": 45,
+  "lead_turns": 4,
+  "duration_s": 331,
+  "rounds": {
+    "loop_passes": 2,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "word-wrap--builder": 1,
+    "word-wrap--critic": 2,
+    "word-wrap--planner": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cat .claude/agents/word-wrap--planner.md .claude/agents/word-wrap--builder.md .claude/agents/word-wrap--critic.md; cat README.md src/count.mjs; which grooph; RID=\"$(date +%Y%m%d-%H%M)-$(LC_ALL=C tr -dc a-z0-9 </dev/urandom | head -c4)\"; echo $RID; date -u +%Y-%m-%dT%H:%M:%SZ"
+    },
+    {
+      "tool": "Bash",
+      "command": "cat .claude/agents/word-wrap--planner.md .claude/agents/word-wrap--builder.md .claude/agents/word-wrap--critic.md README.md src/count.mjs; which grooph; date +%Y%m%d-%H%M; date -u +%Y-%m-%dT%H:%M:%SZ; openssl rand -hex 2"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-spec-then-loop-0tlzaC/.grooph/word-wrap/runs/20260919-1245-k7qz && date -u +%Y-%m-%dT%H:%M:%SZ && cat >> notes.jsonl <<'EOF'\n{\"id\":\"n-0002\",\"run\":\"20260919-1245-k7qz\",\"at\":\"node:planner\",\"started\":\"2026-09-19T16:45:40Z\",\"ended\":\"2026-09-19T16:46:20Z\",\"outcome\":\"pass\",\"evidence\":[\"the task\",\"README.md\",\"src/count.mjs\",\"tests/count.test.mjs\",\"package.json\"],\"text\":\"ACCEPTANCE.md written: 16 items (7 shape, 8 behaviour, 1 npm test) plus out-of-scope list. Planner flags one call: input newlines collapse to spaces, not preserved as paragraph breaks (item 12).\"}\n{\"id\":\"n-0003\",\"run\":\"20260919-1245-k7qz\",\"at\":\"node:spec-gate\",\"started\":\"2026-09-19T16:46:30Z\",\"text\":\"asked the human to approve or reject ACCEPTANCE.md; waiting\"}\nEOF"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm test 2>&1 | tail -25; echo \"exit=$?\"; git status --short; git diff --stat -- src/count.mjs tests/count.test.mjs"
+    },
+    {
+      "tool": "Bash",
+      "command": "git -C /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-spec-then-loop-0tlzaC status --short"
+    },
+    {
+      "tool": "Bash",
+      "command": "git status --porcelain && git add -N src tests README.md && git diff -- src tests README.md > .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.diff; npm test > .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt 2>&1; echo \"exit $?\" >> .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt; wc -l .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.*; tail -12 .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt"
+    },
+    {
+      "tool": "Bash",
+      "command": "R=.grooph/word-wrap/runs/20260919-1245-k7qz && { git diff -- README.md src/count.mjs tests/count.test.mjs; git diff --no-index /dev/null src/wrap.mjs; git diff --no-index /dev/null tests/wrap.test.mjs; } > $R/round-0.diff; wc -l $R/round-0.diff"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm test > .grooph/word-wrap/runs/20260919-1245-k7qz/round-0.npm-test.txt 2>&1; echo $?"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-spec-then-loop-0tlzaC && npm test; echo \"exit=$?\""
+    },
+    {
+      "tool": "Bash",
+      "command": "cd /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-spec-then-loop-0tlzaC && npm test; echo \"EXIT=$?\""
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 7,
+      "session_id": "71e39056-c986-4299-9730-fc12e031b844",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.794805,
+      "reported_cost_usd": 0.7948047500000001,
+      "max_budget_usd": 6,
+      "harness_turns": 15,
+      "duration_s": 81,
+      "wall_s": 83,
+      "notes_after": 3,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00"
+      ],
+      "output": "claude-output.json"
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 8,
+      "session_id": "71e39056-c986-4299-9730-fc12e031b844",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.530376,
+      "reported_cost_usd": 1.5303760000000002,
+      "max_budget_usd": 6,
+      "harness_turns": 30,
+      "duration_s": 250,
+      "wall_s": 252,
+      "notes_after": 12,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--resume",
+        "71e39056-c986-4299-9730-fc12e031b844"
+      ],
+      "output": "claude-output-2.json"
+    }
+  ],
+  "base_commit": "2c1336d3dcc9d41a43e548957d8f139a772452e0",
+  "source_sha256_before": "7c0390f7e213fd1087d378085e66b494bbd958d9e599894e0c89c7e00ab6360b",
+  "project_files_changed": [
+    "M README.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-spec-then-loop-0tlzaC",
+  "home_redactions": 0,
+  "amendments": [
+    "e-builder-critic evidence gains the unchanged files ACCEPTANCE.md names as a reference (src/count.mjs); loop build gains an evidence-invalid stop at 2 rounds"
+  ],
+  "proposals": [],
+  "working_copy": [
+    "edge e-builder-critic changed",
+    "loops changed"
+  ]
+}

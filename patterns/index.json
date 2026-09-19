@@ -23,14 +23,15 @@
         "test-command",
         "claim"
       ],
-      "file": "contradiction-seeker.grooph.json"
+      "file": "contradiction-seeker.grooph.json",
+      "demo": "experiments/patterns/contradiction-seeker/README.md"
     },
     {
       "id": "debate-then-build",
       "version": 1,
       "kind": "graph",
       "title": "Debate then build",
-      "summary": "Two planners argue opposite approaches for at most two rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
+      "summary": "Two planners argue opposite approaches for a capped number of rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
       "whenToUse": "Short adversarial planning, then a small build graph: the right approach is genuinely unclear and a wrong choice is expensive to undo.",
       "profile": {
         "cost": "medium",
@@ -121,7 +122,8 @@
         "task",
         "test-command"
       ],
-      "file": "grind-loop.grooph.json"
+      "file": "grind-loop.grooph.json",
+      "demo": "experiments/patterns/grind-loop/README.md"
     },
     {
       "id": "heterogeneous-critic",
@@ -194,7 +196,8 @@
         "test-command",
         "checklist"
       ],
-      "file": "metric-sandwich.grooph.json"
+      "file": "metric-sandwich.grooph.json",
+      "demo": "experiments/patterns/metric-sandwich/README.md"
     },
     {
       "id": "ownership-not-swarm",
@@ -293,7 +296,8 @@
         "test-command",
         "checklist"
       ],
-      "file": "review-gate.grooph.json"
+      "file": "review-gate.grooph.json",
+      "demo": "experiments/patterns/review-gate/README.md"
     },
     {
       "id": "spec-then-loop",
@@ -317,7 +321,8 @@
         "task",
         "test-command"
       ],
-      "file": "spec-then-loop.grooph.json"
+      "file": "spec-then-loop.grooph.json",
+      "demo": "experiments/patterns/spec-then-loop/README.md"
     },
     {
       "id": "specialist-critic-bank",

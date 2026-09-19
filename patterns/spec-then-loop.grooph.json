@@ -35,9 +35,10 @@
       "answer-key",
       "human-gate",
       "zero-to-one"
-    ]
+    ],
+    "demo": "experiments/patterns/spec-then-loop/README.md"
   },
-  "description": "A frontier planner turns the task into ACCEPTANCE.md, a short list of observable behaviours. A human approves it; rejecting ends the run so the task can be restated. A builder then works and a critic in a fresh context judges the change line by line against the approved file, which is the loop's bar. The loop stops when every line holds, after four rounds, or at forty turns.",
+  "description": "A frontier planner turns the task into ACCEPTANCE.md, a short list of observable behaviours. A human approves it; rejecting ends the run so the task can be restated. A builder then works and a critic in a fresh context judges the change line by line against the approved file, which is the loop's bar. The loop stops when every line holds, at its round cap, or at its turn budget.",
   "nodes": [
     {
       "id": "planner",

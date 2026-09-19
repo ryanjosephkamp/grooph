@@ -1,0 +1,8 @@
+{
+  "name": "Truncate",
+  "values": {
+    "task": "Add `truncate(text, max)` in a new file, src/truncate.mjs: it returns `text` unchanged when it has at most `max` characters, and otherwise cuts it and ends it with \"…\" (one character) so that the result is exactly `max` characters long. A `text` that is not a string throws a TypeError, and a `max` that is not a positive integer throws a RangeError. Tests go in tests/truncate.test.mjs.",
+    "test-command": "npm test",
+    "checklist": "docs/REVIEW-CHECKLIST.md"
+  }
+}

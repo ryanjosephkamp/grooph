@@ -1,0 +1,116 @@
+{
+  "template": "metric-sandwich",
+  "template_version": "metric-sandwich@1",
+  "graph_id": "pages-from-one",
+  "run_id": "20260919-1241-k7qm",
+  "run_ids": [
+    "20260919-1241-k7qm"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.276 (Claude Code)",
+  "models": {
+    "claude-haiku-4-5-20251001": {
+      "cost_usd": 0.001568,
+      "output_tokens": 15
+    },
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.11034975,
+      "output_tokens": 14910
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.38008800000000004,
+      "output_tokens": 3918
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "pages-from-one--critic": [
+      "claude-fable-5-1"
+    ],
+    "pages-from-one--builder": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.492006,
+  "harness_turns": 20,
+  "lead_turns": 16,
+  "duration_s": 182,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "pages-from-one--critic": 1,
+    "pages-from-one--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "RID=\"20260919-1241-$(LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c4)\" && mkdir -p .grooph/pages-from-one/runs/$RID && cp .grooph/pages-from-one/graph.grooph.json .grooph/pages-from-one/runs/$RID/ && echo $RID && printf '{\"id\":\"n-0001\",\"run\":\"%s\",\"at\":\"graph\",\"started\":\"%s\",\"text\":\"run started\"}\\n' $RID \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" > .grooph/pages-from-one/runs/$RID/notes.jsonl && cat .grooph/pages-from-one/runs/$RID/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "LC_ALL=C tr -dc 'a-z0-9' </dev/urandom | head -c4"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm run check 2>&1; echo \"exit=$?\"; date -u +%Y-%m-%dT%H:%M:%SZ; git status --short"
+    },
+    {
+      "tool": "Bash",
+      "command": "cd /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-metric-sandwich-eZ7EwI/.grooph/pages-from-one/runs/20260919-1241-k7qm && cat >> notes.jsonl <<'EOF'\n{\"id\":\"n-0002\",\"run\":\"20260919-1241-k7qm\",\"at\":\"node:builder\",\"started\":\"2026-09-19T16:42:10Z\",\"ended\":\"2026-09-19T16:43:00Z\",\"outcome\":\"pass\",\"verdict\":\"done\",\"round\":0,\"evidence\":[\"the task\"],\"text\":\"paginate now 1-based; pageCount added; RangeError refusals with tests; README updated. CHANGES-r0.md left in the run folder.\"}\n{\"id\":\"n-0003\",\"run\":\"20260919-1241-k7qm\",\"at\":\"node:checks\",\"started\":\"2026-09-19T16:43:10Z\",\"ended\":\"2026-09-19T16:43:15Z\",\"outcome\":\"pass\",\"round\":0,\"evidence\":[\"npm run check output\"],\"text\":\"npm run check exited 0: lint clean, 11/11 tests pass. Taking e-checks-critic.\"}\n{\"id\":\"n-0004\",\"run\":\"20260919-1241-k7qm\",\"at\":\"edge:e-checks-critic\",\"round\":0,\"evidence\":[\"diff-r0.patch (git diff HEAD, excluding .grooph/)\",\"working tree at HEAD plus the uncommitted change, read-only\",\"docs/REVIEW-CHECKLIST.md\"],\"gaps\":[\"the edge says 'repository at the head commit' but the run does not commit; the critic reads the working tree (HEAD + diff) instead\"],\"text\":\"critic dispatched fresh with the edge's three evidence items only\"}\nEOF"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 6,
+      "session_id": "8d283d2b-3827-403b-a61a-6e6b80d05dbd",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.492006,
+      "reported_cost_usd": 1.49200575,
+      "max_budget_usd": 6,
+      "harness_turns": 20,
+      "duration_s": 182,
+      "wall_s": 184,
+      "notes_after": 7,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "a7f109952572d819048ca2bff6e6ec94ba0e3a6e",
+  "source_sha256_before": "0791268d8120c96c2f5975789645e0a54f076c95789d67549987485fb4720c52",
+  "project_files_changed": [
+    "M README.md",
+    "M src/paginate.mjs",
+    "M tests/paginate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-metric-sandwich-eZ7EwI",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

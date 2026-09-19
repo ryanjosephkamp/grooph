@@ -1,0 +1,19 @@
+
+> slugs@1.2.0 test
+> node --test tests/*.test.mjs
+
+✔ words are lowercased and joined by single hyphens (0.509291ms)
+✔ accents are dropped (0.086167ms)
+✔ a long title is cut to maxLength (0.08275ms)
+✔ text that is not a string throws a TypeError (0.178667ms)
+✔ &, @ and % are spelled out as words (0.122417ms)
+✔ slug never starts or ends with a hyphen even after truncation (0.799291ms)
+✔ slugify is idempotent for a range of inputs and maxLengths (0.356667ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.428042
