@@ -8,14 +8,16 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
-import { KNOWN_TARGETS, type CompileTarget } from "@grooph/core";
+import { KNOWN_TARGETS, TemplateError, type CompileTarget } from "@grooph/core";
 
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { newCommand } from "./commands/new.js";
+import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
 import { validateCommand } from "./commands/validate.js";
 import { stdio, type Output } from "./print.js";
+import { RegistryError, defaultRegistryEnv, type RegistryEnv } from "./registry.js";
 
 export const VERSION = "0.0.0";
 
@@ -27,6 +29,7 @@ Usage
   grooph validate <file> [--for-export] [--json]
   grooph canonicalize <file> [--write]
   grooph export <file> --target <harness> --into <dir>
+  grooph template list | show | use | insert | save | add …   (grooph template help)
   grooph help | --help
   grooph --version
 
@@ -45,6 +48,8 @@ Commands
   canonicalize   Print the document in canonical form (graph-ir §7), or rewrite it with --write.
   export         Validate for export, then write the harness package into <dir> and print the
                  kickoff prompt. Refuses, with the reasons, when the document has errors.
+  template       Reusable graphs and fragments by name: the built-in pattern library, your own
+                 in .grooph/templates/ and ~/.grooph/templates/, and published registries.
 
 Targets
   ${KNOWN_TARGETS.join(", ")}
@@ -55,6 +60,7 @@ export async function run(
   argv: string[],
   io: Output = stdio,
   readStdin: () => string = () => readFileSync(0, "utf8"),
+  env: Partial<RegistryEnv> = {},
 ): Promise<number> {
   const [command, ...rest] = argv;
 
@@ -162,10 +168,23 @@ export async function run(
         return exportCommand(io, file, { target: target as CompileTarget, into });
       }
 
+      case "template": {
+        const outcome = await templateCommand(io, rest, { ...defaultRegistryEnv(), ...env });
+        if (typeof outcome === "number") return outcome;
+        io.err(`grooph: ${outcome.usage}`);
+        io.err("");
+        io.err(TEMPLATE_USAGE);
+        return 1;
+      }
+
       default:
         return usageError(io, `unknown command "${command}"`);
     }
   } catch (err) {
+    if (err instanceof RegistryError || err instanceof TemplateError) {
+      io.err(`grooph: ${err.message}`);
+      return 1;
+    }
     const error = err as NodeJS.ErrnoException;
     if (error.code === "ENOENT") {
       io.err(`no such file: ${error.path ?? "(unknown)"}`);

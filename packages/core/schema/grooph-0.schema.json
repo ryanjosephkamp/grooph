@@ -70,6 +70,9 @@
         }
       }
     },
+    "template": {
+      "$ref": "#/$defs/Template"
+    },
     "description": {
       "type": "string"
     },
@@ -712,6 +715,37 @@
         "scope"
       ]
     },
+    "Profile": {
+      "type": "object",
+      "properties": {
+        "cost": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "speed": {
+          "enum": [
+            "fast",
+            "medium",
+            "slow"
+          ]
+        },
+        "rigor": {
+          "enum": [
+            "light",
+            "standard",
+            "high"
+          ]
+        }
+      },
+      "required": [
+        "cost",
+        "speed",
+        "rigor"
+      ]
+    },
     "RunNote": {
       "type": "object",
       "properties": {
@@ -982,6 +1016,73 @@
         "id",
         "kind",
         "name"
+      ]
+    },
+    "Template": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "graph",
+            "fragment"
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "whenToUse": {
+          "type": "string"
+        },
+        "notFor": {
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/Profile"
+        },
+        "slots": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TemplateSlot"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "demo": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "title",
+        "summary",
+        "whenToUse",
+        "profile"
+      ]
+    },
+    "TemplateSlot": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "ask": {
+          "type": "string"
+        },
+        "example": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "ask",
+        "example"
       ]
     }
   }

@@ -50,6 +50,22 @@ jobs:
           pnpm exec grooph validate fixtures/valid/review-loop.grooph.json
           ! pnpm exec grooph validate fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json
 
+      # patterns/index.json and patterns/README.md are generated and committed (docs/templates.md §3).
+      - name: the pattern index is current
+        run: node scripts/patterns-index.mjs --check
+
+      # An agent's route from a name to an exportable graph, through the bundled library only.
+      - name: a built-in template instantiates and exports
+        env:
+          GROOPH_REGISTRY: http://127.0.0.1:9/unreachable/index.json
+        run: |
+          pnpm exec grooph template list
+          pnpm exec grooph template use review-gate --name "Try it" \
+            --set task="Add a slugify function." --set test-command="pnpm test" --set checklist=docs/REVIEW-CHECKLIST.md \
+            --out "$RUNNER_TEMP/try.grooph.json"
+          pnpm exec grooph validate --for-export "$RUNNER_TEMP/try.grooph.json"
+          pnpm exec grooph export "$RUNNER_TEMP/try.grooph.json" --target claude-code --into "$RUNNER_TEMP/try-pkg" > /dev/null
+
   # The web app in a real browser at phone size (handoff 0002): the round trip
   # to the golden package, authoring by touch, validation, storage and layout,
   # against the production build served under the Pages base path.

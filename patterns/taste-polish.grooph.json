@@ -1,0 +1,224 @@
+{
+  "grooph": 0,
+  "id": "taste-polish",
+  "name": "Taste polish",
+  "version": 1,
+  "goal": "{{task}} Done when a frontier critic comparing captures against {{reference}} finds no major gap, or when the human stops the polish.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Taste polish",
+    "summary": "One owner polishes an existing artifact while an isolated frontier critic compares readable captures against a named reference, bounded by rounds, budget and a human check-in.",
+    "whenToUse": "Done and good have split: the artifact works but must match a named, inspectable reference, and the polish can be judged from captures.",
+    "notFor": "Zero-to-one work with no reference (use spec-then-loop), or a default for every task: unbounded 'keep going until it beats the reference' is exactly what the stops here prevent.",
+    "profile": {
+      "cost": "high",
+      "speed": "slow",
+      "rigor": "high"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Polish the pricing page in site/pricing/ until it reads as clearly as the reference."
+      },
+      {
+        "key": "reference",
+        "ask": "What named reference should the result be compared against: a file, a URL or a capture?",
+        "example": "references/pricing-reference.png"
+      },
+      {
+        "key": "capture-command",
+        "ask": "Which command captures the artifact for the critic (screenshots, a rendered PDF, a recording)?",
+        "example": "pnpm run capture -- --out captures/"
+      }
+    ],
+    "tags": [
+      "loop",
+      "taste",
+      "gauntlet",
+      "reference"
+    ]
+  },
+  "description": "The Gauntlet-style entry, bounded. One owner revises the artifact and captures it; a check refuses captures that are missing, stale or unreadable before any judging happens; a frontier critic in a fresh context compares the captures against the named reference and returns the top gaps. The loop stops when the critic finds no major gap, when two rounds bring no improvement, when the human says so at their check-in every two rounds, after five rounds, or at the turn budget.",
+  "nodes": [
+    {
+      "id": "owner",
+      "kind": "agent",
+      "name": "Owner",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You own the artifact the task names and are the only node that changes it. Each round, close the gaps the critic ranked highest, largest first, without regressing what already matches the reference. Capture the artifact with `{{capture-command}}` before you report, and say which gaps you closed and which you left on purpose.",
+      "inputs": [
+        "the task",
+        "{{reference}}",
+        "GAPS.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the revised artifact",
+        "captures/ of this revision",
+        "CHANGES.md: gaps closed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "capture-check",
+      "kind": "check",
+      "name": "Capture check",
+      "description": "Evidence quality is gated (spec §13): a bad capture can fake a pass or a fail, so the critic never sees one.",
+      "check": {
+        "kind": "evidence",
+        "run": "{{capture-command}}",
+        "pass": "every capture exists, opens, is legible at full size, and shows the current revision"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Compare the captures against {{reference}} and rank the gaps that matter most, at most five, each with where it shows and what closing it would look like. You judge; you do not fix. Report invalid-evidence rather than guessing when a capture is missing or unreadable. Verdict pass only when no gap you would call major remains.",
+      "inputs": [
+        "captures/ of the current revision",
+        "{{reference}}"
+      ],
+      "outputs": [
+        "GAPS.md: ranked gaps and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-owner-capture-check",
+      "from": "owner",
+      "to": "capture-check"
+    },
+    {
+      "id": "e-capture-check-fail",
+      "from": "capture-check",
+      "to": "owner",
+      "when": "fail",
+      "evidence": [
+        "capture check output"
+      ]
+    },
+    {
+      "id": "e-capture-check-critic",
+      "from": "capture-check",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "captures/ of the current revision",
+        "{{reference}}"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "owner",
+      "when": "fail",
+      "evidence": [
+        "GAPS.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "polish",
+      "name": "Polish",
+      "members": [
+        "owner",
+        "capture-check",
+        "critic"
+      ],
+      "back": [
+        "e-capture-check-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Match the reference",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "{{reference}}",
+            "note": "the named reference"
+          },
+          {
+            "kind": "artifact",
+            "ref": "captures/ of the current revision"
+          }
+        ],
+        "acceptance": "The critic finds no major gap between the captures and {{reference}}, and every capture is current and readable."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "major gaps remaining"
+        },
+        {
+          "kind": "human",
+          "every": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 60
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

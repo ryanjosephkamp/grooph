@@ -1,0 +1,191 @@
+{
+  "grooph": 0,
+  "id": "red-team-loop",
+  "name": "Red-team loop",
+  "version": 1,
+  "goal": "{{task}} Done when a red team attacking {{attack-surface}} stops finding new failing traces.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Red-team loop",
+    "summary": "A separate attacker records reproducible failing traces; the builder sees only the traces, until no new one appears.",
+    "whenToUse": "A separate attacker should produce failing traces and the builder should see only those: hardening against inputs or abuse nobody has listed yet.",
+    "notFor": "Work with a known list of cases to satisfy (use grind-loop against tests), or judging quality rather than breaking things.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "high"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Harden login and session handling in src/auth/ against malformed input, replayed tokens and timing leaks."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm test"
+      },
+      {
+        "key": "attack-surface",
+        "ask": "What should the red team attack?",
+        "example": "the login endpoint and session handling in src/auth/"
+      }
+    ],
+    "tags": [
+      "loop",
+      "red-team",
+      "traces",
+      "hardening"
+    ]
+  },
+  "description": "A builder hardens the code; a frontier red team in a fresh context attacks the stated surface and writes each reproducible failure as a trace in traces/, which it alone owns. The builder sees only the traces, not the attacker's reasoning. The loop ends when an attack round finds nothing, stops when two rounds bring no new failing trace, and is capped at five rounds and sixty turns.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Make the task hold under attack. Each round you see only the failing traces in traces/: make each one pass without special-casing it, and add it to the test suite. Keep `{{test-command}}` green and report which traces now pass.",
+      "inputs": [
+        "the task",
+        "traces/ (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with a test per fixed trace",
+        "CHANGES.md: traces fixed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "red-team",
+      "kind": "agent",
+      "name": "Red team",
+      "role": "red-team",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Attack {{attack-surface}} and record each failure you can reproduce as a trace in traces/: the input, how to run it, and the wrong result. Traces are all the builder sees, so each must reproduce on its own. You attack; you do not fix. Verdict fail when you have a new failing trace, pass when you found none.",
+      "inputs": [
+        "the running code",
+        "source of {{attack-surface}}"
+      ],
+      "outputs": [
+        "traces/: one reproducible failing trace per file",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-commands"
+      ],
+      "deny": [
+        "edit-files"
+      ],
+      "owns": [
+        "traces"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-red-team",
+      "from": "builder",
+      "to": "red-team",
+      "evidence": [
+        "the running code",
+        "source of {{attack-surface}}",
+        "traces/ already recorded"
+      ]
+    },
+    {
+      "id": "e-red-team-fail",
+      "from": "red-team",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "traces/"
+      ]
+    },
+    {
+      "id": "e-red-team-pass",
+      "from": "red-team",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "attack",
+      "name": "Attack",
+      "members": [
+        "builder",
+        "red-team"
+      ],
+      "back": [
+        "e-red-team-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "No new failing trace",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "traces/"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of {{test-command}}"
+          }
+        ],
+        "acceptance": "A full attack round finds no failing trace, and every recorded trace passes in `{{test-command}}`."
+      },
+      "stops": [
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "new failing traces"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 60
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

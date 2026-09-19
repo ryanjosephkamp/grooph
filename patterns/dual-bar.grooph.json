@@ -1,0 +1,197 @@
+{
+  "grooph": 0,
+  "id": "dual-bar",
+  "name": "Dual bar",
+  "version": 1,
+  "goal": "{{task}} Ship when this holds: {{ship-line}} Aim toward: {{aspiration}}",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Dual bar",
+    "summary": "A builder and an isolated critic loop against two lines: a reachable ship line that stops the loop, and an aspiration that only steers the findings.",
+    "whenToUse": "The work needs both a ship line and a directional aspiration: good enough to ship is clear, and better is worth pointing at without ever blocking.",
+    "notFor": "Work where only the aspiration is written down; a bar that cannot be met never stops, so write the ship line first.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Add a GET /users/:id endpoint to the API in src/api/."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm test"
+      },
+      {
+        "key": "ship-line",
+        "ask": "What must be true to ship? A reachable line the critic can check.",
+        "example": "`pnpm test` passes, GET /users/:id returns 404 for unknown ids, and the README documents the endpoint."
+      },
+      {
+        "key": "aspiration",
+        "ask": "What would great look like? Direction only: it never blocks shipping.",
+        "example": "A new contributor can use the endpoint correctly from the README alone, on the first try."
+      }
+    ],
+    "tags": [
+      "loop",
+      "review",
+      "bar"
+    ]
+  },
+  "description": "A builder works and a frontier critic in a fresh context reports against both lines of the bar. The acceptance (the ship line) decides the verdict; the aspiration only ranks what to improve next and never fails a round. The loop stops when the ship line holds, when two rounds bring no improvement, after five rounds, or at fifty turns.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task until the ship line holds, then spend any remaining rounds on the aspiration findings the critic ranks highest. Run `{{test-command}}` before you report; on a later round, start from REVIEW.md.",
+      "inputs": [
+        "the task",
+        "the ship line: {{ship-line}}",
+        "the aspiration: {{aspiration}}",
+        "REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md: what changed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge the change against both lines of the bar and say, with file and line, where it stands on each. The ship line alone decides the verdict: pass when it holds. The aspiration never fails a round; use it only to rank what to improve next. You judge; you do not fix.",
+      "inputs": [
+        "the ship line: {{ship-line}}",
+        "the aspiration: {{aspiration}}",
+        "diff of the change"
+      ],
+      "outputs": [
+        "REVIEW.md: the ship line item by item, then ranked aspiration findings, then a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-tests"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-critic",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "diff of the change",
+        "output of {{test-command}}"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "review",
+      "name": "Review",
+      "members": [
+        "builder",
+        "critic"
+      ],
+      "back": [
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Ship line and aspiration",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "diff of the change"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of {{test-command}}"
+          }
+        ],
+        "acceptance": "{{ship-line}}",
+        "aspiration": "{{aspiration}}"
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 50
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

@@ -1,0 +1,281 @@
+{
+  "grooph": 0,
+  "id": "ownership-not-swarm",
+  "name": "Ownership, not swarm",
+  "version": 1,
+  "goal": "{{task}} Done when the pieces are integrated and `{{test-command}}` passes, with each coupled subsystem changed by exactly one owner.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Ownership, not swarm",
+    "summary": "Coupled subsystems get one owner each, in sequence; only the independent pieces fan out to fast workers; an integrator joins them and the tests close it.",
+    "whenToUse": "Coupled subsystems get one owner; fan out only the independent pieces. The work spans a shared core and several leaf pieces that touch nothing else.",
+    "notFor": "Work that is all coupled (use one builder in a grind-loop or review-gate) or all independent (a fan-out alone); and never as a way to parallelise a shared core.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Add tagging to notes: a tags table, tag endpoints in the API, and tag chips, a tag filter and a tag editor in the web UI."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm test"
+      },
+      {
+        "key": "subsystem-a",
+        "ask": "Which folder is the first coupled subsystem, the one the others build on?",
+        "example": "src/db/"
+      },
+      {
+        "key": "subsystem-b",
+        "ask": "Which folder is the second coupled subsystem, built on the first?",
+        "example": "src/api/"
+      }
+    ],
+    "tags": [
+      "ownership",
+      "fan-out",
+      "coupled",
+      "grind"
+    ]
+  },
+  "description": "A planner splits the task into the coupled core and independent pieces. Two owners, both marked coupled and each owning one subsystem, work in sequence, the second building on the first. Only then do fast workers take the independent pieces, up to three at a time. An integrator joins everything and a test check closes a short grind loop. Parallel fan-out lost to sequential ownership on coupled systems (spec §13); this graph fans out only where nothing is coupled.",
+  "nodes": [
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Split the task into the coupled core, the work inside {{subsystem-a}} and {{subsystem-b}}, and independent pieces that touch neither. Write PLAN.md with what each owner does and the independent pieces as a list, each small enough for one worker. Write no code.",
+      "inputs": [
+        "the task"
+      ],
+      "outputs": [
+        "PLAN.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "owner-a",
+      "kind": "agent",
+      "name": "Owner A",
+      "coupled": true,
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You are the only node that changes {{subsystem-a}}. Do its part of PLAN.md and record every interface the next owner relies on in HANDOFF-A.md. Run `{{test-command}}` before you report.",
+      "inputs": [
+        "PLAN.md"
+      ],
+      "outputs": [
+        "changes in {{subsystem-a}}",
+        "HANDOFF-A.md: interfaces and changes the next owner relies on"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "{{subsystem-a}}"
+      ]
+    },
+    {
+      "id": "owner-b",
+      "kind": "agent",
+      "name": "Owner B",
+      "coupled": true,
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You are the only node that changes {{subsystem-b}}. Do its part of PLAN.md on top of what HANDOFF-A.md describes; if {{subsystem-a}} needs to change, say so rather than changing it. Run `{{test-command}}` before you report.",
+      "inputs": [
+        "PLAN.md",
+        "HANDOFF-A.md"
+      ],
+      "outputs": [
+        "changes in {{subsystem-b}}",
+        "HANDOFF-B.md: interfaces the pieces rely on"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "{{subsystem-b}}"
+      ]
+    },
+    {
+      "id": "worker",
+      "kind": "agent",
+      "name": "Piece worker",
+      "description": "One dispatch per independent piece in PLAN.md.",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build one independent piece from PLAN.md, touching only its own files; {{subsystem-a}} and {{subsystem-b}} are read-only to you. If the piece turns out to need a change in either, stop and say so instead of making it. Report the files you touched.",
+      "inputs": [
+        "PLAN.md",
+        "HANDOFF-B.md",
+        "the piece to build"
+      ],
+      "outputs": [
+        "the piece",
+        "a list of the files it touched"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "integrator",
+      "kind": "agent",
+      "name": "Integrator",
+      "role": "synthesizer",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Join the pieces to the coupled core so the task works end to end, changing only the seams between them. {{subsystem-a}} and {{subsystem-b}} belong to their owners: a change there is a note in your report, not an edit. Write ARCHITECTURE.md naming each owner, what they own, and how the pieces connect.",
+      "inputs": [
+        "PLAN.md",
+        "HANDOFF-A.md",
+        "HANDOFF-B.md",
+        "the pieces",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the integrated change",
+        "ARCHITECTURE.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "{{test-command}}",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-planner-owner-a",
+      "from": "planner",
+      "to": "owner-a",
+      "evidence": [
+        "PLAN.md"
+      ]
+    },
+    {
+      "id": "e-owner-a-owner-b",
+      "from": "owner-a",
+      "to": "owner-b",
+      "evidence": [
+        "PLAN.md",
+        "HANDOFF-A.md"
+      ]
+    },
+    {
+      "id": "e-owner-b-worker",
+      "from": "owner-b",
+      "to": "worker",
+      "concurrency": {
+        "max": 3
+      },
+      "evidence": [
+        "PLAN.md",
+        "HANDOFF-B.md"
+      ],
+      "label": "one worker per independent piece"
+    },
+    {
+      "id": "e-worker-integrator",
+      "from": "worker",
+      "to": "integrator",
+      "label": "after every piece is in"
+    },
+    {
+      "id": "e-integrator-tests",
+      "from": "integrator",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "integrator",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-pass",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "integrate",
+      "name": "Integrate",
+      "members": [
+        "integrator",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 3
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "grooph": 0,
+  "id": "human-gated-irreversible",
+  "name": "Human-gated irreversible step",
+  "version": 1,
+  "template": {
+    "kind": "fragment",
+    "title": "Human-gated irreversible step",
+    "summary": "A human gate, then the one node that performs an irreversible action, then a stop: insert it before any merge, publish, spend or delete.",
+    "whenToUse": "A step cannot be undone (merge, spend, publish, delete) and must wait for a human decision; this fragment satisfies E_IRREVERSIBLE_NO_GATE.",
+    "notFor": "Reversible steps, where a gate only slows the run; and it gates only the way in you connect to it: every edge into the action must pass the gate.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "action",
+        "ask": "What is the irreversible step, in one sentence?",
+        "example": "Merge the release branch into main."
+      },
+      {
+        "key": "irreversible",
+        "ask": "Which kind of irreversible action is it: merge, publish, spend or delete?",
+        "example": "merge"
+      }
+    ],
+    "tags": [
+      "fragment",
+      "human-gate",
+      "irreversible",
+      "brake"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "gate",
+      "kind": "human-gate",
+      "name": "Irreversible step approval",
+      "prompt": "About to do this, and it cannot be undone: {{action}} Go ahead?",
+      "options": [
+        "go ahead",
+        "stop"
+      ]
+    },
+    {
+      "id": "act",
+      "kind": "agent",
+      "name": "Irreversible step",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Carry out exactly this, once: {{action}} Do nothing else, and do not retry on failure; report the result instead. Write down what was done so a human can check it.",
+      "inputs": [
+        "the approved action"
+      ],
+      "outputs": [
+        "ACTION.md: what was done and its result"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "irreversible": [
+        "{{irreversible}}"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-gate-act",
+      "from": "gate",
+      "to": "act",
+      "when": "pass"
+    },
+    {
+      "id": "e-act-done",
+      "from": "act",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

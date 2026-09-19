@@ -9,3 +9,5 @@ export { indexGraph, type GraphIndex } from "./graph-index.js";
 export * from "./semantics.js";
 export { KNOWN_TARGETS, getProfile, hasProfile, type TargetProfile } from "./targets/index.js";
 export * from "./ops/index.js";
+export * from "./template.js";
+export { closest, didYouMean } from "./suggest.js";

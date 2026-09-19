@@ -1,0 +1,84 @@
+{
+  "grooph": 0,
+  "id": "gated-publish-with-a-shortcut",
+  "name": "Gated publish with a shortcut",
+  "version": 1,
+  "goal": "Publish the release notes, and publish hotfix notes when a hotfix lands.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "The release path asks a human (approval on its edge), but the hotfix path reaches the publisher directly. One approved way in is not enough: every way in must pass a human.",
+  "nodes": [
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "brief": "Write the release notes.",
+      "outputs": [
+        "NOTES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "hotfix",
+      "kind": "agent",
+      "name": "Hotfix writer",
+      "role": "builder",
+      "brief": "Write the hotfix notes.",
+      "outputs": [
+        "HOTFIX.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "publisher",
+      "kind": "agent",
+      "name": "Publisher",
+      "role": "builder",
+      "brief": "Publish the notes you are handed.",
+      "outputs": [
+        "published URL"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "web"
+      ],
+      "irreversible": [
+        "publish"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-writer-publisher",
+      "from": "writer",
+      "to": "publisher",
+      "approval": true
+    },
+    {
+      "id": "e-hotfix-publisher",
+      "from": "hotfix",
+      "to": "publisher"
+    },
+    {
+      "id": "e-publisher-done",
+      "from": "publisher",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

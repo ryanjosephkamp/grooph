@@ -1,0 +1,396 @@
+{
+  "grooph": 0,
+  "templates": [
+    {
+      "id": "contradiction-seeker",
+      "version": 1,
+      "kind": "graph",
+      "title": "Contradiction seeker",
+      "summary": "A critic hunts one counterexample to a stated claim on a fixed budget; finding none is a pass, finding one sends it back to the builder.",
+      "whenToUse": "A claim can be broken by one concrete counterexample (a property, an invariant, an edge case), and a bounded search for it is worth more than an open-ended review.",
+      "profile": {
+        "cost": "low",
+        "speed": "fast",
+        "rigor": "standard"
+      },
+      "tags": [
+        "loop",
+        "counterexample",
+        "budget"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "claim"
+      ],
+      "file": "contradiction-seeker.grooph.json"
+    },
+    {
+      "id": "debate-then-build",
+      "version": 1,
+      "kind": "graph",
+      "title": "Debate then build",
+      "summary": "Two planners argue opposite approaches for at most two rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
+      "whenToUse": "Short adversarial planning, then a small build graph: the right approach is genuinely unclear and a wrong choice is expensive to undo.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "planning",
+        "debate",
+        "judge",
+        "human-gate",
+        "grind"
+      ],
+      "slots": [
+        "task",
+        "test-command"
+      ],
+      "file": "debate-then-build.grooph.json"
+    },
+    {
+      "id": "dual-bar",
+      "version": 1,
+      "kind": "graph",
+      "title": "Dual bar",
+      "summary": "A builder and an isolated critic loop against two lines: a reachable ship line that stops the loop, and an aspiration that only steers the findings.",
+      "whenToUse": "The work needs both a ship line and a directional aspiration: good enough to ship is clear, and better is worth pointing at without ever blocking.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "loop",
+        "review",
+        "bar"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "ship-line",
+        "aspiration"
+      ],
+      "file": "dual-bar.grooph.json"
+    },
+    {
+      "id": "fresh-grind-rare-judge",
+      "version": 1,
+      "kind": "graph",
+      "title": "Fresh grind, rare judge",
+      "summary": "A fast builder grinds each phase against the tests; an expensive judge runs only at phase boundaries, against a phase checklist.",
+      "whenToUse": "Cheap iteration most steps, an expensive critic at phase boundaries: long work splits into phases that tests can drive but only judgment can sign off.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "grind",
+        "judge",
+        "phases"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "phase-checklist"
+      ],
+      "file": "fresh-grind-rare-judge.grooph.json"
+    },
+    {
+      "id": "grind-loop",
+      "version": 1,
+      "kind": "graph",
+      "title": "Grind loop",
+      "summary": "A fast builder works against the test suite until it passes, bounded by rounds and minutes.",
+      "whenToUse": "Done and good are the same: tests, types or a task list supply the back pressure, so a passing check is the finish line.",
+      "profile": {
+        "cost": "low",
+        "speed": "fast",
+        "rigor": "light"
+      },
+      "tags": [
+        "loop",
+        "grind",
+        "tests"
+      ],
+      "slots": [
+        "task",
+        "test-command"
+      ],
+      "file": "grind-loop.grooph.json"
+    },
+    {
+      "id": "heterogeneous-critic",
+      "version": 1,
+      "kind": "graph",
+      "title": "Heterogeneous critic",
+      "summary": "The review gate with the critic on a different model tier from the builder, so it does not share the builder's blind spots.",
+      "whenToUse": "The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic keeps approving the mistakes the builder makes.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "review",
+        "human-gate",
+        "heterogeneous"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "checklist"
+      ],
+      "file": "heterogeneous-critic.grooph.json"
+    },
+    {
+      "id": "human-gated-irreversible",
+      "version": 1,
+      "kind": "fragment",
+      "title": "Human-gated irreversible step",
+      "summary": "A human gate, then the one node that performs an irreversible action, then a stop: insert it before any merge, publish, spend or delete.",
+      "whenToUse": "A step cannot be undone (merge, spend, publish, delete) and must wait for a human decision; this fragment satisfies E_IRREVERSIBLE_NO_GATE.",
+      "profile": {
+        "cost": "low",
+        "speed": "fast",
+        "rigor": "standard"
+      },
+      "tags": [
+        "fragment",
+        "human-gate",
+        "irreversible",
+        "brake"
+      ],
+      "slots": [
+        "action",
+        "irreversible"
+      ],
+      "file": "human-gated-irreversible.grooph.json"
+    },
+    {
+      "id": "metric-sandwich",
+      "version": 1,
+      "kind": "graph",
+      "title": "Metric sandwich",
+      "summary": "Cheap deterministic checks run first; an expensive critic judges only what they cannot see, and either failure returns to the builder.",
+      "whenToUse": "Cheap deterministic checks first, expensive judgment only on what those cannot see: lint and tests catch most failures, and a reviewer should not spend a round on them.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "loop",
+        "checks",
+        "review"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "checklist"
+      ],
+      "file": "metric-sandwich.grooph.json"
+    },
+    {
+      "id": "ownership-not-swarm",
+      "version": 1,
+      "kind": "graph",
+      "title": "Ownership, not swarm",
+      "summary": "Coupled subsystems get one owner each, in sequence; only the independent pieces fan out to fast workers; an integrator joins them and the tests close it.",
+      "whenToUse": "Coupled subsystems get one owner; fan out only the independent pieces. The work spans a shared core and several leaf pieces that touch nothing else.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "ownership",
+        "fan-out",
+        "coupled",
+        "grind"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "subsystem-a",
+        "subsystem-b"
+      ],
+      "file": "ownership-not-swarm.grooph.json"
+    },
+    {
+      "id": "red-team-loop",
+      "version": 1,
+      "kind": "graph",
+      "title": "Red-team loop",
+      "summary": "A separate attacker records reproducible failing traces; the builder sees only the traces, until no new one appears.",
+      "whenToUse": "A separate attacker should produce failing traces and the builder should see only those: hardening against inputs or abuse nobody has listed yet.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "red-team",
+        "traces",
+        "hardening"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "attack-surface"
+      ],
+      "file": "red-team-loop.grooph.json"
+    },
+    {
+      "id": "retrospective-rewrite",
+      "version": 1,
+      "kind": "graph",
+      "title": "Retrospective rewrite",
+      "summary": "A grind loop that ends, pass or fail, with a researcher reading the run's notes and proposing graph changes for the human to adopt.",
+      "whenToUse": "After a run, propose graph edits rather than rewriting mid-flight: the graph is being tuned across runs and the human wants every change as a proposal.",
+      "profile": {
+        "cost": "low",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "loop",
+        "grind",
+        "retrospective",
+        "proposals"
+      ],
+      "slots": [
+        "task",
+        "test-command"
+      ],
+      "file": "retrospective-rewrite.grooph.json"
+    },
+    {
+      "id": "review-gate",
+      "version": 1,
+      "kind": "graph",
+      "title": "Review gate",
+      "summary": "A builder works, an isolated critic checks the change against a written checklist, failures loop back, and a human approves the merge.",
+      "whenToUse": "Work, then a separate reviewer, then iterate or pass: the change needs a second pair of eyes against a checklist that already exists.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "loop",
+        "review",
+        "human-gate"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "checklist"
+      ],
+      "file": "review-gate.grooph.json"
+    },
+    {
+      "id": "spec-then-loop",
+      "version": 1,
+      "kind": "graph",
+      "title": "Spec then loop",
+      "summary": "A planner writes the answer key, a human approves it, then a builder and an isolated critic loop against it.",
+      "whenToUse": "No external reference product exists: a planning pass writes an answer key (ACCEPTANCE.md) that becomes the bar. The default for zero-to-one work.",
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "answer-key",
+        "human-gate",
+        "zero-to-one"
+      ],
+      "slots": [
+        "task",
+        "test-command"
+      ],
+      "file": "spec-then-loop.grooph.json"
+    },
+    {
+      "id": "specialist-critic-bank",
+      "version": 1,
+      "kind": "graph",
+      "title": "Specialist critic bank",
+      "summary": "Four fresh specialist critics review in parallel, a triage judge merges their findings by severity, and the change loops until nothing blocker or major remains.",
+      "whenToUse": "Multiple disjoint judges (correctness, security, performance, taste) should each look at the change, and their findings need merging by severity.",
+      "profile": {
+        "cost": "high",
+        "speed": "medium",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "review",
+        "parallel",
+        "severity"
+      ],
+      "slots": [
+        "task",
+        "test-command"
+      ],
+      "file": "specialist-critic-bank.grooph.json"
+    },
+    {
+      "id": "taste-polish",
+      "version": 1,
+      "kind": "graph",
+      "title": "Taste polish",
+      "summary": "One owner polishes an existing artifact while an isolated frontier critic compares readable captures against a named reference, bounded by rounds, budget and a human check-in.",
+      "whenToUse": "Done and good have split: the artifact works but must match a named, inspectable reference, and the polish can be judged from captures.",
+      "profile": {
+        "cost": "high",
+        "speed": "slow",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "taste",
+        "gauntlet",
+        "reference"
+      ],
+      "slots": [
+        "task",
+        "reference",
+        "capture-command"
+      ],
+      "file": "taste-polish.grooph.json"
+    },
+    {
+      "id": "tournament-then-judge",
+      "version": 1,
+      "kind": "graph",
+      "title": "Tournament then judge",
+      "summary": "Three fast candidates build in parallel, a cheap check drops the broken ones, a frontier judge picks one finalist, and a builder finishes it.",
+      "whenToUse": "Cheap candidates, then spend the expensive critic on finalists: the approach is open, drafts are cheap, and comparing working options beats arguing about them.",
+      "profile": {
+        "cost": "medium",
+        "speed": "fast",
+        "rigor": "standard"
+      },
+      "tags": [
+        "parallel",
+        "candidates",
+        "judge"
+      ],
+      "slots": [
+        "task",
+        "test-command",
+        "criteria"
+      ],
+      "file": "tournament-then-judge.grooph.json"
+    }
+  ]
+}

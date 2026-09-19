@@ -1,0 +1,210 @@
+{
+  "grooph": 0,
+  "id": "metric-sandwich",
+  "name": "Metric sandwich",
+  "version": 1,
+  "goal": "{{task}} Done when `{{test-command}}` passes and a critic finds nothing unmet in {{checklist}}.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Metric sandwich",
+    "summary": "Cheap deterministic checks run first; an expensive critic judges only what they cannot see, and either failure returns to the builder.",
+    "whenToUse": "Cheap deterministic checks first, expensive judgment only on what those cannot see: lint and tests catch most failures, and a reviewer should not spend a round on them.",
+    "notFor": "Work with no deterministic check to run first (use review-gate), or where the checks are the whole story (use grind-loop).",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a builder can act on.",
+        "example": "Add a slugify(text) function to src/strings.ts that lowercases, strips accents and joins words with single hyphens."
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "pnpm lint && pnpm test"
+      },
+      {
+        "key": "checklist",
+        "ask": "Which file holds the checklist the critic judges against?",
+        "example": "docs/REVIEW-CHECKLIST.md"
+      }
+    ],
+    "tags": [
+      "loop",
+      "checks",
+      "review"
+    ]
+  },
+  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, after five rounds, or at fifty turns.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task in the code, with tests. On a later round you get either the failing check output or REVIEW.md; address what it names. Run `{{test-command}}` before you report.",
+      "inputs": [
+        "the task",
+        "check output or REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md: what changed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "checks",
+      "kind": "check",
+      "name": "Cheap checks",
+      "check": {
+        "kind": "command",
+        "run": "{{test-command}}",
+        "pass": "exit code 0"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge only what `{{test-command}}` cannot see, the items in the checklist, for a change that already passes it. Do not rerun or restate the checks. Cite the file and line for each finding; you judge, you do not fix. Verdict pass when no checklist item is unmet.",
+      "inputs": [
+        "diff of the change",
+        "{{checklist}}"
+      ],
+      "outputs": [
+        "REVIEW.md: findings by checklist item and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-checks",
+      "from": "builder",
+      "to": "checks"
+    },
+    {
+      "id": "e-checks-fail",
+      "from": "checks",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "check output"
+      ]
+    },
+    {
+      "id": "e-checks-critic",
+      "from": "checks",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "diff of the change",
+        "{{checklist}}"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "sandwich",
+      "name": "Sandwich",
+      "members": [
+        "builder",
+        "checks",
+        "critic"
+      ],
+      "back": [
+        "e-checks-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Checks, then checklist",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "output of {{test-command}}"
+          },
+          {
+            "kind": "checklist",
+            "ref": "{{checklist}}"
+          }
+        ],
+        "acceptance": "`{{test-command}}` exits 0 and the critic finds no unmet item in {{checklist}}."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 50
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

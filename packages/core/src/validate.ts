@@ -23,10 +23,11 @@ import {
 } from "./semantics.js";
 import { didYouMean } from "./suggest.js";
 import { hasProfile } from "./targets/index.js";
+import { findSlots } from "./template.js";
 import type { AgentNode, Edge, Graph, Id, Node } from "./types.js";
 
 export type ValidateOptions = {
-  /** Apply the rules that only bite at export time: `E_NO_TARGET`, `E_NO_GOAL`. */
+  /** Apply the rules that only bite at export time: `E_NO_TARGET`, `E_NO_GOAL`, `E_IS_TEMPLATE`, `E_UNFILLED_SLOT`. */
   forExport?: boolean;
 };
 
@@ -252,7 +253,11 @@ function stopsNotInspectable(index: GraphIndex): Issue[] {
   return issues;
 }
 
-/** `E_NO_TARGET` and `E_NO_GOAL` — export and bootstrap preconditions. */
+/**
+ * `E_NO_TARGET`, `E_NO_GOAL`, `E_IS_TEMPLATE`, `E_UNFILLED_SLOT` — export and
+ * bootstrap preconditions. A template reports only `E_IS_TEMPLATE`: its slots
+ * are meant to be there until it is instantiated (docs/templates.md §1).
+ */
 function exportOnlyRules(index: GraphIndex): Issue[] {
   const issues: Issue[] = [];
   const doc = index.doc;
@@ -268,6 +273,26 @@ function exportOnlyRules(index: GraphIndex): Issue[] {
 
   if (doc.goal === undefined || doc.goal.trim() === "") {
     issues.push(error("E_NO_GOAL", "export needs a goal; the lead brief is built from it", [doc.id]));
+  }
+
+  if (doc.template !== undefined) {
+    issues.push(
+      error(
+        "E_IS_TEMPLATE",
+        `"${doc.id}" is a template; instantiate it first (grooph template use ${doc.id} --name <graph name>)`,
+        [doc.id],
+      ),
+    );
+  } else {
+    for (const slot of findSlots(doc)) {
+      issues.push(
+        error(
+          "E_UNFILLED_SLOT",
+          `slot {{${slot.key}}} is still unfilled in ${quoted(slot.at)}; replace it with a real value before export`,
+          slot.at,
+        ),
+      );
+    }
   }
 
   return issues;
@@ -339,24 +364,29 @@ function ownershipConflicts(index: GraphIndex): Issue[] {
 }
 
 /**
- * `E_IRREVERSIBLE_NO_GATE` — a node with irreversible actions has neither an
- * inbound edge with `approval: true` nor a human gate as the source of every
- * inbound edge. A node with no inbound edge at all is ungated.
+ * `E_IRREVERSIBLE_NO_GATE` — a node with irreversible actions is reachable
+ * without a human decision: it has no inbound edge, or an inbound edge that
+ * neither carries `approval: true` nor starts at a human-gate node. Every way
+ * in must pass a human.
  */
 function irreversibleWithoutGate(index: GraphIndex): Issue[] {
   const issues: Issue[] = [];
+  const passesHuman = (edge: Edge): boolean => edge.approval === true || index.nodes.get(edge.from)?.kind === "human-gate";
   for (const node of agentNodes(index)) {
     const actions = node.irreversible ?? [];
     if (actions.length === 0) continue;
     const inbound = index.incoming.get(node.id) ?? [];
-    const approved = inbound.some((edge) => edge.approval === true);
-    const gated = inbound.length > 0 && inbound.every((edge) => index.nodes.get(edge.from)?.kind === "human-gate");
-    if (approved || gated) continue;
+    const open = inbound.filter((edge) => !passesHuman(edge));
+    if (inbound.length > 0 && open.length === 0) continue;
     issues.push(
       error(
         "E_IRREVERSIBLE_NO_GATE",
-        `node "${node.id}" performs irreversible actions (${actions.join(", ")}) with no gate before it; set approval: true on an inbound edge, or route every inbound edge through a human-gate node`,
-        [node.id],
+        inbound.length === 0
+          ? `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and nothing leads to it, so no human decides before it runs; put a human-gate node before it`
+          : `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and can be reached without a human decision through ${quoted(
+              open.map((edge) => edge.id),
+            )}; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node`,
+        [node.id, ...open.map((edge) => edge.id)],
       ),
     );
   }

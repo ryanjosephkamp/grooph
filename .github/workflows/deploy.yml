@@ -1,8 +1,9 @@
 name: Deploy web app
 
 # Publishes apps/web to GitHub Pages at https://ryanjosephkamp.github.io/grooph/
-# from main. Pages must be set to "GitHub Actions" as its source (Settings →
-# Pages), once.
+# from main, with the pattern library beside it at /grooph/patterns/ so
+# `grooph template add <id>` works without a clone (docs/templates.md §3).
+# Pages must be set to "GitHub Actions" as its source (Settings → Pages), once.
 
 on:
   push:
@@ -36,6 +37,13 @@ jobs:
       - run: pnpm --filter @grooph/web test
       # The build bakes in the base path /grooph/ (apps/web/vite.config.ts).
       - run: pnpm --filter @grooph/web build
+
+      # Never publish a stale index: it is what remote registries read.
+      - name: publish the pattern library beside the app
+        run: |
+          pnpm --filter @grooph/core build
+          node scripts/patterns-index.mjs --check
+          cp -R patterns apps/web/dist/patterns
 
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5

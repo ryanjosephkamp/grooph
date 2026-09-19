@@ -1,0 +1,6 @@
+{
+  "issues": [
+    "W_HOMOGENEOUS_CRITICS"
+  ],
+  "note": "True of the pattern: builder and critic both run at tier strong, as in fixtures/valid/review-loop. heterogeneous-critic is the variant that differs."
+}
