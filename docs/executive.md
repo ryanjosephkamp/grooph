@@ -22,7 +22,7 @@ type ProposalSet = {
 };
 type Candidate = {
   id: Id; label: string;               // "Lean", "Fast", "Rigorous": a word the owner can say back
-  graph: Graph | { file: string };     // `{ file }` is resolved and inlined by `grooph share`
+  graph: Graph | { file: string };     // `{ file }` is relative to the proposal set's folder; resolved and inlined by `grooph share`
   basedOn?: string;                    // template id, when it started from one
   rationale: string;                   // why this shape fits this project, three or four sentences
   pros: string[]; cons: string[];      // cons include any validation warning, in plain words
@@ -31,7 +31,7 @@ type Candidate = {
 };
 type Shape = { agents: number; checks: number; gates: number; loops: number;
   tiers: Record<"frontier" | "strong" | "fast" | "unset", number>;
-  worstCaseRounds: number;             // sum over loops of their max-iterations (nested loops multiply); null when a loop has none
+  worstCaseRounds: number | null;      // sum over loops of their max-iterations (nested loops multiply); null when a loop has none
   budgets: string[] };                 // each loop's budget stop, as text
 ```
 

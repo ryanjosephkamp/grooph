@@ -198,7 +198,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 
 | Code | Rule |
 |---|---|
-| `W_HOMOGENEOUS_CRITICS` | A critic-family node resolves to the same tier and pins as every writer-family node whose work can reach it along non-back edges. Reported once, naming each such critic. (Until slice 0006 lands this, the check is graph-wide, which lets one differing node mask the rest.) |
+| `W_HOMOGENEOUS_CRITICS` | A critic-family node resolves to the same tier and pins as every one of its **nearest writers**: the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic. |
 | `W_FANOUT_ON_COUPLED` | A node or group marked `coupled` receives an edge with `concurrency.max > 1`, or two `coupled` nodes share an `owns` entry. |
 | `W_LONG_LOOP_NO_BUDGET` | A loop has no `budget` stop and either no `max-iterations` stop or one with `n > 5`. |
 | `W_ASPIRATION_AS_ACCEPTANCE` | A bar's `aspiration` equals its `acceptance`, or `acceptance` is blank while `aspiration` is set. |
