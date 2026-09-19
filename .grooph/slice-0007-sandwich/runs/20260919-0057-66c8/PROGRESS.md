@@ -7,17 +7,17 @@
 ## Position
 
 - **Round:** 1 (e-critic-fail taken after pass 0)
-- **Lead turns used:** ~23 of 80 (budget stop; a turn is one lead tool-use cycle, counted by hand)
-- **Now:** `builder` running (round 1) with `round-0/REVIEW.md` as evidence
+- **Lead turns used:** ~27 of 80 (budget stop; a turn is one lead tool-use cycle, counted by hand)
+- **Now:** `critic` running (round 1) on head 83509ab
 - **Last stop check:** before round 1 — bar not passed; max-iterations 1/5; budget ~22/80 turns. None fired.
 
 ## Nodes
 
 | node | status | last result |
 |---|---|---|
-| `builder` | running | round 1 dispatched (round 0: criteria 1–11 implemented, daebea8..0b52a82) |
-| `checks` | pass | round 0: exit 0 at 0b52a82 (`round-0/check-output.txt`) |
-| `critic` | fail | round 0: criteria 2–10 met, 11 unmet (storage notice "Got it" ~33 px) |
+| `builder` | done | round 1: 44 px floor on `.btn-small`, three non-blocking findings settled (4e39a0a, 83509ab) |
+| `checks` | pass | round 1: exit 0 at 83509ab (`round-1/check-output.txt`) |
+| `critic` | running | round 1 dispatched (round 0: fail on criterion 11) |
 | `done` | pending | — |
 
 ## Rounds
@@ -25,7 +25,7 @@
 | round | builder | checks | critic |
 |---|---|---|---|
 | 0 | done (6 commits) | pass | fail: criterion 11, one touch target |
-| 1 | running | — | — |
+| 1 | done (2 commits) | pass | running |
 
 ## Amendments
 
