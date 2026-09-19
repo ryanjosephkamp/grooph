@@ -39,7 +39,8 @@
       "loop",
       "counterexample",
       "budget"
-    ]
+    ],
+    "demo": "experiments/patterns/contradiction-seeker/README.md"
   },
   "description": "A fast builder works; a critic in a fresh context tries to break the stated claim with one concrete counterexample, on a fixed effort. A counterexample goes back to the builder as a failing case; none found is a pass. The turn budget is the point: the hunt is bounded by design, and the round cap ends the loop regardless.",
   "nodes": [

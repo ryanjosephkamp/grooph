@@ -39,7 +39,8 @@
       "loop",
       "review",
       "human-gate"
-    ]
+    ],
+    "demo": "experiments/patterns/review-gate/README.md"
   },
   "description": "A builder implements the task. A critic in a fresh context checks the diff and test output against a written checklist; failures return to the builder with REVIEW.md, and a pass goes to a human merge gate, whose rejection also returns to the builder. The loop stops when the bar passes, at its round cap, or at its turn budget. Builder and critic share a tier, which the validator flags; heterogeneous-critic is the same shape with the critic on another tier.",
   "nodes": [

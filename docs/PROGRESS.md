@@ -19,6 +19,10 @@ _(slices 0008 and 0009 create their entries here)_
 - 2026-09-19 · criterion 3 met: five task projects under `experiments/patterns/<id>/task/`, each checked against a reference or naive solution so the pattern's point can show.
 - 2026-09-19 · criterion 1 met: `scripts/prove-pattern.sh` ran `grind-loop` end to end (evidence in `experiments/patterns/grind-loop/run/`, `--check` passes); `--dry-run` works for all five.
 - 2026-09-19 · criterion 2 met: `experiments/patterns/ledger.json` records every model call (a $0.02 harness probe, then the runs); refuses below $6.00, caps each call with `--max-budget-usd`.
+- 2026-09-19 · criterion 4 met: `--check` makes the seven assertions on the evidence alone; grind-loop, contradiction-seeker and metric-sandwich pass; review-gate and spec-then-loop fail one each (the lead waited at a gate without a halt note), reported as findings.
+- 2026-09-19 · criterion 5 met: five write-ups and the index `experiments/patterns/README.md`; total spend $7.01 of $25.00.
+- 2026-09-19 · criterion 6 partly met: `template.demo` set on the five, `patterns/index.json` and `README.md` regenerated, pattern tests green. The `deploy.yml` step publishing `experiments/patterns/` was refused by the session's permission classifier and is left for the owner.
+- 2026-09-19 · criterion 8 met: cold install, build and test green (core 210, cli 45, web 43); browser suite 37 passed; `patterns-index --check` clean.
 
 ## Waiting on the owner
 

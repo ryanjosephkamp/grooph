@@ -34,7 +34,8 @@
       "loop",
       "grind",
       "tests"
-    ]
+    ],
+    "demo": "experiments/patterns/grind-loop/README.md"
   },
   "description": "A builder changes the code and a check runs the tests. A failure goes back to the builder with the test output; a pass ends the run. The check is the bar, so there is no critic. The loop stops at its round cap or its time budget if the tests never pass.",
   "nodes": [

@@ -39,7 +39,8 @@
       "loop",
       "checks",
       "review"
-    ]
+    ],
+    "demo": "experiments/patterns/metric-sandwich/README.md"
   },
   "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, at its round cap, or at its turn budget.",
   "nodes": [
