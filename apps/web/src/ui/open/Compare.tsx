@@ -87,9 +87,15 @@ export function Compare({ set, setIssues, payload }: { set: ProposalSet; setIssu
     };
   }, []);
 
+  // Sideways only: the page stays where the reader left it.
   const show = useCallback((i: number) => {
-    const card = track.current?.children[i] as HTMLElement | undefined;
-    card?.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", inline: "center", block: "nearest" });
+    const el = track.current;
+    const card = el?.children[i] as HTMLElement | undefined;
+    if (!el || !card) return;
+    el.scrollTo({
+      left: card.offsetLeft - (el.clientWidth - card.offsetWidth) / 2,
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+    });
   }, []);
 
   const choose = async (c: Candidate) => {
