@@ -66,7 +66,11 @@ export function ExportPanel() {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={() => download(packageFileName(doc, attempt.target), zipPackage(files), "application/zip")}
+          onClick={() => {
+            download(packageFileName(doc, attempt.target), zipPackage(files), "application/zip");
+            // Remembered so a later rename can warn that the package folder name changes (criterion 9).
+            editor.markExported();
+          }}
         >
           Download package (.zip)
         </button>

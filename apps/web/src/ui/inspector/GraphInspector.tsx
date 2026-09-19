@@ -8,7 +8,7 @@ import {
   setTarget,
   type Adaptation,
 } from "@grooph/core";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { resolvePositions } from "../../doc/layout.js";
 import { useDoc } from "../../doc/store.js";
@@ -26,7 +26,7 @@ const ADAPTATION_LEVELS: { value: Adaptation; label: string; line: string }[] = 
 ];
 
 /** Graph-level fields (criterion 3), plus a read-only account of what this view cannot edit yet. */
-export function GraphInspector({ autoFocusName }: { autoFocusName?: boolean }) {
+export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName?: boolean; renameWarning?: ReactNode }) {
   const editor = useEditor();
   const doc = useDoc(editor.store);
   const harness = doc.target?.harness;
@@ -42,6 +42,7 @@ export function GraphInspector({ autoFocusName }: { autoFocusName?: boolean }) {
         autoFocus={autoFocusName}
         onChange={(v) => editor.store.update((d) => setGraphName(d, v))}
       />
+      {renameWarning}
       <IdField id={doc.id} name={doc.name} graph />
       <TextArea
         label="Goal"
@@ -129,6 +130,13 @@ export function GraphInspector({ autoFocusName }: { autoFocusName?: boolean }) {
             </button>
           ))}
         </div>
+      </Section>
+
+      <Section title="Reuse">
+        <p className="field-hint">Keep this graph, or some of its nodes, as a template in Yours, to start from or insert later.</p>
+        <button type="button" className="btn" onClick={() => editor.openPanel({ type: "save-template" })}>
+          Save as template…
+        </button>
       </Section>
 
       <Section title="Layout">

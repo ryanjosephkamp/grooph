@@ -402,18 +402,21 @@ function modelKey(node: AgentNode): string {
 
 /**
  * `W_HOMOGENEOUS_CRITICS` — a critic resolves to the same tier and pins as every
- * writer whose work can reach it along non-back edges. Judged per critic, so
- * one differing node elsewhere in the graph does not mask it. A critic no
- * writer reaches judges no writer's work and is not flagged. Reported once,
- * naming each such critic and the writers it shares its model with.
+ * one of its nearest writers: the writers with a path to it along non-back
+ * edges that passes through no other writer (graph-ir §3). A planner two steps
+ * upstream does not excuse a critic that shares a model with the builder it
+ * judges. Judged per critic, so one differing node elsewhere in the graph does
+ * not mask it. A critic no writer reaches judges no writer's work and is not
+ * flagged. Reported once, naming each such critic and the writers it shares
+ * its model with.
  */
 function homogeneousCritics(index: GraphIndex): Issue[] {
   const back = new Set<Id>((index.doc.loops ?? []).flatMap((loop) => loop.back ?? []));
   const writers = agentNodes(index).filter(isWriterFamily);
   const flagged: { critic: AgentNode; writers: AgentNode[] }[] = [];
   for (const critic of agentNodes(index).filter(isCriticFamily)) {
-    const upstream = upstreamOf(index, critic.id, back);
-    const reaching = writers.filter((writer) => writer.id !== critic.id && upstream.has(writer.id));
+    const nearest = nearestWriters(index, critic.id, back);
+    const reaching = writers.filter((writer) => writer.id !== critic.id && nearest.has(writer.id));
     if (reaching.length === 0) continue;
     const key = modelKey(critic);
     if (reaching.every((writer) => modelKey(writer) === key)) flagged.push({ critic, writers: reaching });
@@ -431,19 +434,26 @@ function homogeneousCritics(index: GraphIndex): Issue[] {
   ];
 }
 
-/** Every node with a path to `target` along edges that are not loop back edges. */
-function upstreamOf(index: GraphIndex, target: Id, back: ReadonlySet<Id>): Set<Id> {
-  const seen = new Set<Id>();
+/**
+ * The writer-family nodes with a path to `target` along edges that are not
+ * loop back edges and that passes through no other writer: the walk upstream
+ * stops at the first writer on each path.
+ */
+function nearestWriters(index: GraphIndex, target: Id, back: ReadonlySet<Id>): Set<Id> {
+  const seen = new Set<Id>([target]);
+  const found = new Set<Id>();
   const queue: Id[] = [target];
   while (queue.length > 0) {
     const current = queue.shift()!;
     for (const edge of index.incoming.get(current) ?? []) {
       if (back.has(edge.id) || seen.has(edge.from)) continue;
       seen.add(edge.from);
-      queue.push(edge.from);
+      const from = index.nodes.get(edge.from);
+      if (from && isWriterFamily(from)) found.add(edge.from);
+      else queue.push(edge.from);
     }
   }
-  return seen;
+  return found;
 }
 
 /**

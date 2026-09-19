@@ -225,3 +225,15 @@ test.describe("at desktop width", () => {
     await expect(card(page, "reviewed").getByRole("button", { name: "Choose Reviewed" })).toBeVisible();
   });
 });
+
+test("the compare view opens on the recommended candidate, in view (review 0006, finding 1)", async ({ page }) => {
+  const set = csvSet();
+  set.recommendation = { candidate: "rigorous", why: "Test: the recommendation is the last card." };
+  await page.goto(linkFor(set));
+  await expect(pager(page)).toHaveText("Rigorous · 3 of 3");
+  await expect(card(page, "rigorous").locator(".badge")).toHaveText("Recommended");
+  await expect.poll(() => inView(page, "rigorous")).toBe(true);
+  expect(await inView(page, "lean")).toBe(false);
+  // The sticky bar acts on the card in view.
+  await expect(page.locator(".compare-bar").getByRole("button", { name: "Choose Rigorous" })).toBeVisible();
+});

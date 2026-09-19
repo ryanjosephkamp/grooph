@@ -111,8 +111,10 @@ export function EdgeInspector({ id }: { id: Id }) {
           type="button"
           className="btn btn-danger"
           onClick={() => {
+            const edge = editor.store.get().edges.find((e) => e.id === id);
             editor.store.update((d) => removeEdge(d, id));
             editor.openPanel(null);
+            editor.deleted(edge ? `edge ${edge.from} → ${edge.to}` : "edge");
           }}
         >
           Delete edge

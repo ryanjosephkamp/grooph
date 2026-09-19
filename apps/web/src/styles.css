@@ -217,8 +217,9 @@ a {
 .btn-danger-text {
   color: var(--error);
 }
+/* Smaller type and padding, never a smaller target: 44 px is the phone floor. */
 .btn-small {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   font-size: 14px;
 }
@@ -388,7 +389,8 @@ a {
 
 .editor {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* top bar, a notice when there is one, canvas, sheet: each in its own row, so nothing overlays the canvas */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   grid-template-columns: minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
@@ -468,6 +470,18 @@ a {
   padding: 0 14px;
 }
 
+.editor > .topbar {
+  grid-row: 1;
+}
+.editor > .editor-notice {
+  grid-row: 2;
+}
+.editor > .stage {
+  grid-row: 3;
+}
+.editor > .sheet {
+  grid-row: 4;
+}
 .stage {
   position: relative;
   min-height: 0;
@@ -630,7 +644,7 @@ a {
   max-height: 86dvh;
 }
 .sheet-expanded {
-  grid-template-rows: auto minmax(72px, 1fr) auto;
+  grid-template-rows: auto auto minmax(72px, 1fr) auto;
 }
 /* Connecting or picking: the canvas is the input, so the sheet folds to its header. */
 .mode-active .sheet-body {
@@ -690,7 +704,10 @@ a {
 @media (min-width: 900px) {
   .editor {
     grid-template-columns: minmax(0, 1fr) 400px;
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .editor > .editor-notice {
+    grid-column: 1;
   }
   .editor:not(.has-sheet) {
     grid-template-columns: minmax(0, 1fr);
@@ -698,10 +715,10 @@ a {
   .topbar {
     grid-column: 1 / -1;
   }
-  .sheet,
+  .editor > .sheet,
   .sheet-expanded .sheet {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 2 / -1;
     max-height: none;
     border-top: 0;
     border-left: 1px solid var(--line);
@@ -818,7 +835,8 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  /* Chips are tap targets: the phone's 44 px floor (handoff 0007, criterion 11). */
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -833,7 +851,6 @@ a {
   font-weight: 600;
 }
 .chip-small {
-  min-height: 32px;
   font-size: 13px;
 }
 .inline-add {
@@ -1212,6 +1229,9 @@ a {
 }
 .refusal p {
   margin: 0 0 6px;
+}
+.refusal .refusal-hint {
+  font-weight: 600;
 }
 .warnings {
   margin: 12px 0;
@@ -2028,5 +2048,356 @@ a {
   }
   .compare-bar {
     display: none;
+  }
+}
+
+/* ─── slice 0007: templates, undo, notices ────────────────────────────── */
+
+.screen-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 14px -12px;
+}
+.screen-head h1 {
+  margin: 4px 0 0;
+  font-size: 24px;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.screen-head p {
+  margin: 2px 0 0;
+}
+.screen-head .overline {
+  margin-top: 4px;
+  white-space: normal;
+}
+.list-title {
+  margin: 22px 0 8px;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.template-list,
+.insert-list,
+.slot-list,
+.id-map {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.template-list {
+  display: grid;
+  gap: 10px;
+}
+@media (min-width: 640px) {
+  .template-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.template-row,
+.insert-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+}
+.template-row:active,
+.insert-row:active {
+  background: var(--surface-2);
+}
+.template-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 660;
+}
+.template-when,
+.template-not,
+.insert-summary {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.template-label {
+  font-weight: 700;
+  color: var(--ink);
+}
+.template-not .template-label {
+  color: var(--warning);
+}
+.template-profile {
+  margin-top: 2px;
+}
+.templates-hint {
+  margin-top: 20px;
+  font-size: 14px;
+}
+.badge-quiet {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-weight: 650;
+}
+.template-details .ccard-profile {
+  margin: 10px 0 6px;
+}
+.template-use {
+  width: 100%;
+  margin: 4px 0 6px;
+}
+.slot-list {
+  display: grid;
+  gap: 8px;
+}
+.slot-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.slot-ask {
+  font-weight: 600;
+}
+.slot-key {
+  font-size: 13px;
+  color: var(--accent);
+}
+.slot-example {
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+
+.use-form {
+  display: grid;
+  gap: 4px;
+}
+.use-form .slots {
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.use-form .slots .list-title {
+  margin-top: 8px;
+}
+.use-actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 4px;
+  margin: 12px -16px 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+}
+
+.insert-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.insert-row {
+  box-shadow: none;
+  border-color: var(--line-strong);
+}
+.insert-chosen {
+  margin: 4px 0 12px;
+}
+.id-map {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.id-map li {
+  padding: 4px 0;
+  color: var(--ink-3);
+}
+.id-map li.is-renamed {
+  color: var(--ink);
+  font-weight: 650;
+}
+.add-template {
+  border-style: dashed;
+}
+.kind-template {
+  --kind: var(--accent);
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 -1px var(--surface), 3px 3px 0 0 var(--accent);
+}
+
+.title-btn.is-highlighted {
+  box-shadow: inset 0 0 0 2px var(--highlight);
+}
+
+/* A notice, an offer or a warning in the flow of a screen or a panel. */
+.persist-notice,
+.offer,
+.rename-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 14px;
+}
+.persist-notice p,
+.offer p,
+.rename-warning p {
+  flex: 1 1 220px;
+  margin: 0;
+}
+.persist-notice.is-granted {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+.persist-notice.is-denied,
+.rename-warning {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.offer {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.offer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rename {
+  flex-direction: column;
+}
+.rename-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rename-row .input {
+  flex: 1 1 180px;
+}
+.rename-warning {
+  margin: 0;
+}
+.inspector .rename-warning {
+  margin: 0 0 12px;
+}
+.editor-notice {
+  margin: 6px 8px 0;
+  padding: 6px 6px 6px 12px;
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+/* "Deleted · Undo": above the toolbar, never over the sheet. */
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 24px);
+  padding: 4px 4px 4px 16px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 560;
+  box-shadow: var(--shadow);
+  z-index: var(--z-banner);
+  animation: toast-in 160ms ease-out;
+}
+.toast span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toast-action {
+  flex: none;
+  min-width: 64px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: inherit;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.toast-action:active {
+  background: color-mix(in oklch, var(--bg) 18%, transparent);
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+}
+
+/*
+ * Toolbar and sheet on a phone (criterion 8): while the sheet is open the
+ * toolbar docks between the canvas and the sheet, a row of its own, so it
+ * covers no part of the canvas and what is selected stays in sight above.
+ */
+@media (max-width: 899px) {
+  .has-sheet .stage {
+    display: flex;
+    flex-direction: column;
+  }
+  .has-sheet .stage > .react-flow {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+  }
+  .has-sheet .toolbar {
+    position: static;
+    transform: none;
+    flex: none;
+    justify-content: space-around;
+    max-width: none;
+    padding: 2px 4px;
+    border-width: 1px 0 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .has-sheet .toolbar .tool {
+    min-width: 0;
+    flex: 1 1 0;
+    min-height: 48px;
+  }
+  .has-sheet .toast {
+    bottom: 62px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: none;
   }
 }

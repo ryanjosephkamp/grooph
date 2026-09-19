@@ -5,6 +5,8 @@
  */
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
+import { typing } from "../doc/store.js";
+
 export function Field(props: { label: string; hint?: ReactNode; children: (id: string) => ReactNode; wide?: boolean }) {
   const id = useId();
   return (
@@ -46,7 +48,7 @@ export function TextInput(props: {
           autoComplete="off"
           autoCapitalize={props.mono ? "off" : "sentences"}
           spellCheck={!props.mono}
-          onChange={(e) => props.onChange(e.target.value)}
+          onChange={(e) => typing(() => props.onChange(e.target.value))}
         />
       )}
     </Field>
@@ -95,7 +97,7 @@ function AutoGrow(props: {
       rows={props.rows}
       value={props.value}
       placeholder={props.placeholder}
-      onChange={(e) => props.onChange(e.target.value)}
+      onChange={(e) => typing(() => props.onChange(e.target.value))}
       onFocus={props.onFocus}
       onBlur={props.onBlur}
     />
@@ -135,12 +137,12 @@ export function ListInput(props: {
           }}
           onChange={(value) => {
             setText(value);
-            props.onChange(
-              value
-                .split("\n")
-                .map((line) => line.trim())
-                .filter((line) => line !== ""),
-            );
+            const lines = value
+              .split("\n")
+              .map((line) => line.trim())
+              .filter((line) => line !== "");
+            // A space or a blank line changes the text, not the list: no edit, so no empty undo step.
+            if (lines.join("\n") !== joined) typing(() => props.onChange(lines));
           }}
         />
       )}
@@ -185,8 +187,8 @@ export function NumberInput(props: {
             const raw = e.target.value;
             setText(raw);
             const n = Number(raw);
-            if (raw.trim() === "") props.onChange(undefined);
-            else if (Number.isFinite(n)) props.onChange(props.integer ? Math.trunc(n) : n);
+            if (raw.trim() === "") typing(() => props.onChange(undefined));
+            else if (Number.isFinite(n)) typing(() => props.onChange(props.integer ? Math.trunc(n) : n));
           }}
         />
       )}

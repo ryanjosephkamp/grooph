@@ -159,6 +159,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       onPaneClick={() => {
         if (editor.mode.type !== "idle") return;
         editor.setHighlight({ nodes: new Set(), edges: new Set(), loops: new Set(), graph: false });
+        editor.setSelection([]);
         if (editor.panel && ["node", "edge", "loop", "add"].includes(editor.panel.type)) editor.openPanel(null);
       }}
       nodesConnectable={false}

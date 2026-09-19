@@ -452,6 +452,49 @@ test("W_HOMOGENEOUS_CRITICS is judged per critic, against the writers whose work
   assert.deepEqual(only(validate(auditFirst), "W_HOMOGENEOUS_CRITICS"), [], "the builder reaches the red team only through a back edge");
 });
 
+test("W_HOMOGENEOUS_CRITICS compares against nearest writers only (graph-ir §3)", () => {
+  const strong = { model: { tier: "strong" } };
+  const frontier = { model: { tier: "frontier" } };
+  // planner (frontier) → builder (strong) → critic (strong): the planner is behind another writer and excuses nothing.
+  const far = base({
+    nodes: [agent("planner", "planner", { ...writable, ...frontier }), agent("builder", "builder", { ...writable, ...strong }), agent("critic", "critic", { ...writable, ...strong }), stopNode],
+    edges: [
+      { id: "e-plan", from: "planner", to: "builder", evidence: ["PLAN.md"] },
+      { id: "e-review", from: "builder", to: "critic", evidence: ["diff"] },
+      { id: "e-done", from: "critic", to: "done", when: "pass" },
+    ],
+  });
+  const flagged = only(validate(far), "W_HOMOGENEOUS_CRITICS");
+  assert.equal(flagged.length, 1, "a far-upstream writer no longer excuses the critic");
+  assert.deepEqual(flagged[0]!.at, ["builder", "critic"], "only the nearest writer is named");
+
+  // A gate between the writers does not stop the walk; a writer does.
+  const gated = structuredClone(far);
+  gated.nodes.splice(1, 0, { id: "gate", kind: "human-gate", name: "Gate", prompt: "Approve the plan?" });
+  gated.edges = [
+    { id: "e-plan", from: "planner", to: "gate", evidence: ["PLAN.md"] },
+    { id: "e-approved", from: "gate", to: "builder", when: "pass" },
+    ...gated.edges.slice(1),
+  ];
+  assert.equal(only(validate(gated), "W_HOMOGENEOUS_CRITICS").length, 1);
+
+  // Two nearest writers side by side: one on a different model is enough, as before.
+  const parallel = base({
+    nodes: [
+      agent("a", "builder", { ...writable, ...strong }),
+      agent("b", "builder", { ...writable, ...frontier, owns: ["b-out"] }),
+      agent("critic", "critic", { ...writable, ...strong }),
+      stopNode,
+    ],
+    edges: [
+      { id: "e-a", from: "a", to: "critic", evidence: ["diff"] },
+      { id: "e-b", from: "b", to: "critic", evidence: ["diff"] },
+      { id: "e-done", from: "critic", to: "done", when: "pass" },
+    ],
+  });
+  assert.deepEqual(only(validate(parallel), "W_HOMOGENEOUS_CRITICS"), [], "a nearest writer on another model excuses the critic");
+});
+
 test("W_NO_TERMINAL spares a fragment template, which ends in its host", () => {
   const fragment = base({
     nodes: [agent("worker", "builder", writable)],

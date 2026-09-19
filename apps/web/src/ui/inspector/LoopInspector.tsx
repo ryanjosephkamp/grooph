@@ -135,6 +135,7 @@ export function LoopInspector({ id }: { id: Id }) {
             editor.store.update((d) => removeLoop(d, id));
             editor.setMode({ type: "idle" });
             editor.openPanel(null);
+            editor.deleted(`loop ${loop.name || id}`);
           }}
         >
           Delete loop

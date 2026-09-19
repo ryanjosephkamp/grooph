@@ -1,11 +1,11 @@
-import { addLoop, addNode, connect, toggleLoopBack, toggleLoopMember, type Graph, type Id, type Position } from "@grooph/core";
+import { addLoop, addNode, connect, followsName, toggleLoopBack, toggleLoopMember, type Graph, type Id, type Position } from "@grooph/core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ADDABLE_KINDS, KIND_LABEL, type NodeKind } from "../doc/catalog.js";
 import { computeIssues, countBySeverity, emptyHighlight, type Highlight } from "../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
-import { DocStore, useDoc } from "../doc/store.js";
+import { DocStore, useDoc, useHistory } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
 import { FIT } from "./canvas/fit.js";
@@ -16,7 +16,12 @@ import { GraphInspector } from "./inspector/GraphInspector.js";
 import { LoopInspector } from "./inspector/LoopInspector.js";
 import { NodeInspector } from "./inspector/NodeInspector.js";
 import { IssuesPanel } from "./IssuesPanel.js";
+import { keepGraphId } from "../store/library.js";
+import { RenameWarning } from "./Library.js";
+import { PersistNotice, Toast, type ToastMessage } from "./Notices.js";
 import { Sheet } from "./Sheet.js";
+import { InsertPanel } from "./templates/InsertPanel.js";
+import { SaveTemplatePanel } from "./templates/SaveTemplatePanel.js";
 
 export function EditorScreen({ graphKey, fresh }: { graphKey: string; fresh: boolean }) {
   const [record, setRecord] = useState<GraphRecord | null | undefined>(undefined);
@@ -48,17 +53,22 @@ export function EditorScreen({ graphKey, fresh }: { graphKey: string; fresh: boo
   );
 }
 
-/** Saves the document to the device a moment after each change, and on the way out. */
-function useAutosave(store: DocStore, record: GraphRecord): "saved" | "saving" | "memory" {
+/**
+ * Saves the document to the device a moment after each change, and on the way
+ * out. The record is read through a ref, so what else it carries (when the
+ * package was last downloaded) is saved with the document, not overwritten.
+ */
+function useAutosave(store: DocStore, recordRef: { current: GraphRecord }): { state: "saved" | "saving" | "memory"; flush: () => Promise<void> } {
   const [state, setState] = useState<"saved" | "saving" | "memory">("saved");
   const pending = useRef<number | undefined>(undefined);
   const flush = useCallback(async () => {
     window.clearTimeout(pending.current);
     pending.current = undefined;
     const db = await openStore();
-    await db.put({ ...record, doc: store.get(), updatedAt: Date.now() });
+    recordRef.current = { ...recordRef.current, doc: store.get(), updatedAt: Date.now() };
+    await db.put(recordRef.current);
     setState(db.persistent ? "saved" : "memory");
-  }, [store, record]);
+  }, [store, recordRef]);
 
   useEffect(() => {
     void openStore().then((db) => !db.persistent && setState("memory"));
@@ -79,15 +89,22 @@ function useAutosave(store: DocStore, record: GraphRecord): "saved" | "saving" |
       if (pending.current !== undefined) void flush();
     };
   }, [store, flush]);
-  return state;
+  return { state, flush };
 }
 
 function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) {
   const store = useMemo(() => new DocStore(record.doc), [record]);
   const doc = useDoc(store);
-  const saveState = useAutosave(store, record);
+  const history = useHistory(store);
+  const recordRef = useRef(record);
+  const { state: saveState, flush } = useAutosave(store, recordRef);
+  const [exportedAs, setExportedAs] = useState<Id | undefined>(record.exported?.id);
   const flow = useReactFlow();
   const stageRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const [selection, setSelection] = useState<Id[]>([]);
+  const [toast, setToast] = useState<(ToastMessage & { after: Graph }) | null>(null);
+  const hideToast = useCallback(() => setToast(null), []);
 
   const [panel, setPanel] = useState<Panel>(fresh ? { type: "graph" } : null);
   const [mode, setMode] = useState<Mode>({ type: "idle" });
@@ -127,7 +144,10 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
           const el = stageRef.current?.querySelector<HTMLElement>(`.react-flow__node[data-id="${CSS.escape(id)}"]`);
           if (!stage || !el) return;
           const r = el.getBoundingClientRect();
-          const clear = r.top >= stage.top + 56 && r.bottom <= stage.bottom - 84 && r.left >= stage.left && r.right <= stage.right;
+          // The floating toolbar covers the foot of the canvas; docked above the sheet, it covers nothing.
+          const bar = toolbarRef.current?.getBoundingClientRect();
+          const floor = bar && bar.height > 0 && bar.top < stage.bottom && bar.bottom > stage.top ? Math.min(bar.top, stage.bottom) - 8 : stage.bottom - 8;
+          const clear = r.top >= stage.top + 56 && r.bottom <= floor && r.left >= stage.left && r.right <= stage.right;
           if (clear) return;
           const node = flow.getInternalNode(id);
           if (!node) return;
@@ -179,6 +199,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
         return;
       }
       openPanel({ type: "node", id: nodeId });
+      setSelection([nodeId]);
       ensureVisible(nodeId);
     },
     [mode, store, openPanel, ensureVisible, reveal],
@@ -219,9 +240,87 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
     setMode({ type: "pick", loopId: id });
   };
 
-  const editor: Editor = { store, panel, openPanel, mode, setMode, highlight, setHighlight, reveal, onEdgeTap };
+  const undo = useCallback(() => {
+    store.undo();
+    setToast(null);
+  }, [store]);
+  const redo = useCallback(() => {
+    store.redo();
+    setToast(null);
+  }, [store]);
 
-  const sheet = sheetFor(panel, doc, issues, fresh, justAdded);
+  // Cmd/Ctrl+Z undoes, Shift+Cmd/Ctrl+Z (or Ctrl+Y) redoes: the document's edits, in text fields too.
+  // Forms whose fields are not the document yet (Insert, Save as template) keep the browser's own undo of the text typed.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey) return;
+      if (e.target instanceof Element && e.target.closest("[data-own-undo]")) return;
+      const key = e.key.toLowerCase();
+      if (key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (key === "y" && e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  // An undo or redo can take away what the sheet shows, or the loop being picked: close them rather than show nothing.
+  useEffect(() => {
+    if (panel && (panel.type === "node" || panel.type === "edge" || panel.type === "loop")) {
+      const list = panel.type === "node" ? doc.nodes : panel.type === "edge" ? doc.edges : doc.loops;
+      if (!list.some((item) => item.id === panel.id)) openPanel(null);
+    }
+    if (mode.type === "pick" && !doc.loops.some((l) => l.id === mode.loopId)) setMode({ type: "idle" });
+    if (mode.type === "connect" && mode.from !== undefined && !doc.nodes.some((n) => n.id === mode.from)) setMode({ type: "connect" });
+  }, [doc, panel, mode, openPanel]);
+
+  // The toast's Undo takes back the deletion only while it is still the last edit.
+  useEffect(() => {
+    if (toast && doc !== toast.after) setToast(null);
+  }, [doc, toast]);
+
+  const deleted = useCallback(
+    (what: string) => {
+      const after = store.get();
+      setToast({ id: Date.now(), text: `Deleted ${what}`, after, undo: () => store.get() === after && store.undo() });
+    },
+    [store],
+  );
+
+  const markExported = useCallback(() => {
+    const id = store.get().id;
+    recordRef.current = { ...recordRef.current, exported: { id, at: Date.now() } };
+    setExportedAs(id);
+    void flush();
+  }, [store, flush]);
+
+  const editor: Editor = {
+    store,
+    panel,
+    openPanel,
+    mode,
+    setMode,
+    highlight,
+    setHighlight,
+    reveal,
+    onEdgeTap,
+    selection,
+    setSelection,
+    deleted,
+    exportedAs,
+    markExported,
+  };
+  // Renaming changed an id that a downloaded package was named after (criterion 9).
+  const renamedAfterExport = exportedAs !== undefined && doc.id !== exportedAs && followsName(doc.id, doc.name);
+
+  const sheet = sheetFor(panel, doc, issues, fresh, justAdded, renamedAfterExport ? (
+    <RenameWarning exportedAs={exportedAs!} nextId={doc.id} onKeep={() => store.update((d) => keepGraphId(d, exportedAs!))} />
+  ) : null);
   const statusClass = errors > 0 ? "status-error" : warnings > 0 ? "status-warning" : "status-ok";
   const statusText = errors > 0 ? `${errors} error${errors === 1 ? "" : "s"}` : warnings > 0 ? `${warnings} warning${warnings === 1 ? "" : "s"}` : "Valid";
 
@@ -234,7 +333,11 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               <path d="M15 5 8 12l7 7" />
             </svg>
           </a>
-          <button type="button" className="title-btn" onClick={() => openPanel(panel?.type === "graph" ? null : { type: "graph" })}>
+          <button
+            type="button"
+            className={`title-btn${highlight.graph ? " is-highlighted" : ""}`}
+            onClick={() => openPanel(panel?.type === "graph" ? null : { type: "graph" })}
+          >
             <span className="title-name">{doc.name || "Untitled"}</span>
             <span className="title-sub">
               {doc.target?.harness ?? "no target"} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
@@ -252,6 +355,8 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
             Export
           </button>
         </header>
+
+        <PersistNotice className="editor-notice" />
 
         <main className="stage" ref={stageRef}>
           <Canvas issues={issues} onNodeTap={onNodeTap} />
@@ -274,6 +379,9 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
 
           {mode.type !== "idle" ? <ModeBanner mode={mode} doc={doc} onDone={() => setMode({ type: "idle" })} /> : null}
 
+
+          <Toast toast={toast} onDone={hideToast} />
+
           {doc.nodes.length === 0 ? (
             <div className="empty-canvas">
               <p>An empty graph.</p>
@@ -281,7 +389,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
             </div>
           ) : null}
 
-          <div className="toolbar" role="toolbar" aria-label="Canvas">
+          <div className="toolbar" role="toolbar" aria-label="Canvas" ref={toolbarRef}>
             <button type="button" className="tool" onClick={() => openPanel(panel?.type === "add" ? null : { type: "add" })} aria-pressed={panel?.type === "add"}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 5v14M5 12h14" />
@@ -317,6 +425,20 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               </svg>
               Fit
             </button>
+            <button type="button" className="tool" disabled={!history.canUndo} onClick={undo} aria-keyshortcuts="Control+Z Meta+Z">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 14 4 9l5-5" />
+                <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+              </svg>
+              Undo
+            </button>
+            <button type="button" className="tool" disabled={!history.canRedo} onClick={redo} aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m15 14 5-5-5-5" />
+                <path d="M20 9H10a6 6 0 0 0 0 12h3" />
+              </svg>
+              Redo
+            </button>
           </div>
         </main>
 
@@ -331,7 +453,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               setMode({ type: "idle" });
             }}
           >
-            {panel?.type === "add" ? <AddMenu onAdd={add} /> : sheet.body}
+            {panel?.type === "add" ? <AddMenu onAdd={add} onInsert={() => openPanel({ type: "insert" })} /> : sheet.body}
           </Sheet>
         ) : null}
       </div>
@@ -339,7 +461,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   );
 }
 
-function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIssues>, fresh: boolean, justAdded: Id | null) {
+function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIssues>, fresh: boolean, justAdded: Id | null, renameWarning: ReactNode) {
   if (!panel) return null;
   switch (panel.type) {
     case "node": {
@@ -353,13 +475,17 @@ function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIss
     case "loop":
       return { title: "Loop", subtitle: panel.id, body: <LoopInspector id={panel.id} key="loop" /> };
     case "graph":
-      return { title: "Graph", subtitle: doc.id, body: <GraphInspector autoFocusName={fresh && doc.nodes.length === 0} /> };
+      return { title: "Graph", subtitle: doc.id, body: <GraphInspector autoFocusName={fresh && doc.nodes.length === 0} renameWarning={renameWarning} /> };
     case "issues":
       return { title: "Validation", subtitle: "as export sees it", body: <IssuesPanel issues={issues} /> };
     case "export":
       return { title: "Export", subtitle: doc.target?.harness ?? "no target", body: <ExportPanel /> };
     case "add":
       return { title: "Add a node", subtitle: undefined, body: null };
+    case "insert":
+      return { title: "Insert a template", subtitle: "into this graph", body: <InsertPanel key="insert" /> };
+    case "save-template":
+      return { title: "Save as template", subtitle: "to Yours, on this device", body: <SaveTemplatePanel key="save-template" /> };
   }
 }
 
@@ -370,7 +496,7 @@ const KIND_HINT: Record<(typeof ADDABLE_KINDS)[number], string> = {
   stop: "Where the run ends.",
 };
 
-function AddMenu({ onAdd }: { onAdd: (kind: NodeKind) => void }) {
+function AddMenu({ onAdd, onInsert }: { onAdd: (kind: NodeKind) => void; onInsert: () => void }) {
   return (
     <div className="add-menu">
       {ADDABLE_KINDS.map((kind) => (
@@ -382,6 +508,13 @@ function AddMenu({ onAdd }: { onAdd: (kind: NodeKind) => void }) {
           <span className="add-kind-hint">{KIND_HINT[kind]}</span>
         </button>
       ))}
+      <button type="button" className="add-kind add-template" onClick={onInsert}>
+        <span className="add-kind-name">
+          <span className="kind-mark kind-template" aria-hidden="true" />
+          Insert a template
+        </span>
+        <span className="add-kind-hint">A fragment or a whole pattern, from Templates.</span>
+      </button>
     </div>
   );
 }
