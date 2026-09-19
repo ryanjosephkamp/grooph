@@ -15,6 +15,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 ### Slice 0007
 
 - Criterion 1 met (2026-09-19): `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` exits 0 at 0b52a82, and CI is green on `slice/0007-web-templates` (run 35423741584; frozen-lockfile install, Node 22 and 24, web-e2e). Run `20260919-0057-66c8`, round 0.
+- Criteria 2–10 met (2026-09-19), per the run's critic, round 0 (`.grooph/slice-0007-sandwich/runs/20260919-0057-66c8/round-0/REVIEW.md`): template library, Use, Insert, Save as template, undo and redo, storage persistence, toolbar and sheet, rename warning, the three items carried from review 0006.
 
 ## Waiting on the owner
 
