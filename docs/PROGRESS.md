@@ -16,6 +16,9 @@ _(slices 0008 and 0009 create their entries here)_
 ### Slice 0009
 
 - 2026-09-19 · criterion 7 met: critics in `review-gate` and `metric-sandwich` read the repository at the head commit, read-only, beside the diff; no pattern restates a brake value, and `scripts/check-brake-values.mjs` (in CI) fails when one does.
+- 2026-09-19 · criterion 3 met: five task projects under `experiments/patterns/<id>/task/`, each checked against a reference or naive solution so the pattern's point can show.
+- 2026-09-19 · criterion 1 met: `scripts/prove-pattern.sh` ran `grind-loop` end to end (evidence in `experiments/patterns/grind-loop/run/`, `--check` passes); `--dry-run` works for all five.
+- 2026-09-19 · criterion 2 met: `experiments/patterns/ledger.json` records every model call (a $0.02 harness probe, then the runs); refuses below $6.00, caps each call with `--max-budget-usd`.
 
 ## Waiting on the owner
 

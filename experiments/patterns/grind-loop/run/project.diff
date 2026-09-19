@@ -1,0 +1,75 @@
+diff --git a/src/semver.mjs b/src/semver.mjs
+index c20a655..fb6233d 100644
+--- a/src/semver.mjs
++++ b/src/semver.mjs
+@@ -10,6 +10,69 @@
+  * @param {string} b
+  * @returns {-1 | 0 | 1}
+  */
++
++const NUMERIC_ID = "0|[1-9]\\d*";
++const ALPHANUMERIC_ID = "\\d*[a-zA-Z-][a-zA-Z0-9-]*";
++const PRERELEASE_ID = `(?:${NUMERIC_ID}|${ALPHANUMERIC_ID})`;
++const BUILD_ID = "[0-9a-zA-Z-]+";
++
++const SEMVER_RE = new RegExp(
++  `^(${NUMERIC_ID})\\.(${NUMERIC_ID})\\.(${NUMERIC_ID})` +
++    `(?:-(${PRERELEASE_ID}(?:\\.${PRERELEASE_ID})*))?` +
++    `(?:\\+(${BUILD_ID}(?:\\.${BUILD_ID})*))?$`,
++);
++
++function parse(version) {
++  if (typeof version !== "string") {
++    throw new TypeError(`version must be a string, got ${typeof version}`);
++  }
++  const match = SEMVER_RE.exec(version);
++  if (!match) {
++    throw new RangeError(`invalid semantic version: ${JSON.stringify(version)}`);
++  }
++  const [, major, minor, patch, prerelease] = match;
++  return {
++    major: Number(major),
++    minor: Number(minor),
++    patch: Number(patch),
++    prerelease: prerelease ? prerelease.split(".") : [],
++  };
++}
++
++function compareIdentifiers(a, b) {
++  const aIsNumeric = /^\d+$/.test(a);
++  const bIsNumeric = /^\d+$/.test(b);
++  if (aIsNumeric && bIsNumeric) {
++    const an = Number(a);
++    const bn = Number(b);
++    return an < bn ? -1 : an > bn ? 1 : 0;
++  }
++  if (aIsNumeric) return -1;
++  if (bIsNumeric) return 1;
++  return a < b ? -1 : a > b ? 1 : 0;
++}
++
+ export function compare(a, b) {
+-  throw new Error("not implemented");
++  const va = parse(a);
++  const vb = parse(b);
++
++  if (va.major !== vb.major) return va.major < vb.major ? -1 : 1;
++  if (va.minor !== vb.minor) return va.minor < vb.minor ? -1 : 1;
++  if (va.patch !== vb.patch) return va.patch < vb.patch ? -1 : 1;
++
++  const ap = va.prerelease;
++  const bp = vb.prerelease;
++
++  if (ap.length === 0 && bp.length === 0) return 0;
++  if (ap.length === 0) return 1;
++  if (bp.length === 0) return -1;
++
++  const len = Math.max(ap.length, bp.length);
++  for (let i = 0; i < len; i += 1) {
++    if (i >= ap.length) return -1;
++    if (i >= bp.length) return 1;
++    const cmp = compareIdentifiers(ap[i], bp[i]);
++    if (cmp !== 0) return cmp;
++  }
++  return 0;
+ }

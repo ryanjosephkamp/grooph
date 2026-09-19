@@ -193,6 +193,19 @@ export async function checkRun(evidenceDir, { core, template }) {
   const stopNodes = (graph?.nodes ?? []).filter((node) => node.kind === "stop");
   const gates = (graph?.nodes ?? []).filter((node) => node.kind === "human-gate");
   const approvalEdges = (graph?.edges ?? []).filter((edge) => edge.approval === true);
+  // A stop counts as fired only where a clause says so: "max-iterations 0/5 not fired" names a stop without firing it.
+  const firedIn = (note) => {
+    const found = [];
+    for (const clause of `${note?.text ?? ""}`.split(/[;.\n]/)) {
+      if (/\bnot\b|n't\b|\bno\b/i.test(clause)) continue;
+      for (const kind of stopKinds) {
+        if (!pattern(kind).test(clause)) continue;
+        const verb = /\b(fired|fires|firing|hit|reached|exhausted|exceeded|ended|stopped)\b/i.test(clause);
+        if (verb || (kind === "bar-passed" && note.outcome === "pass")) found.push(kind);
+      }
+    }
+    return [...new Set(found)];
+  };
   const endingOf = (note) => {
     if (!note) return [];
     const text = `${note.outcome ?? ""} ${note.text ?? ""} ${note.verdict ?? ""}`;
@@ -204,7 +217,7 @@ export async function checkRun(evidenceDir, { core, template }) {
     for (const node of stopNodes) {
       if (new RegExp(`\\b${node.id}\\b`, "i").test(text) || text.toLowerCase().includes(node.name.toLowerCase())) named.push(`stop node ${node.id}`);
     }
-    for (const kind of stopKinds) if (pattern(kind).test(text)) named.push(`stop ${kind}`);
+    for (const kind of firedIn(note)) named.push(`stop ${kind}`);
     return named;
   };
   const last = notes[notes.length - 1];
@@ -213,15 +226,11 @@ export async function checkRun(evidenceDir, { core, template }) {
   if (ending.length === 0) problems.push(`the final note names no stop, stop node or halt at a gate: ${JSON.stringify(last)}`);
   facts.ending = ending;
   const loopNotes = notes.filter((note) => String(note.at).startsWith("loop:"));
-  const fired = [...ending.filter((e) => e.startsWith("stop ")).map((e) => e.slice(5))];
-  if (fired.length === 0) {
-    for (const note of [...loopNotes].reverse()) {
-      const named = stopKinds.filter((kind) => pattern(kind).test(`${note.text ?? ""} ${note.outcome ?? ""}`));
-      if (named.length > 0) {
-        fired.push(...named);
-        break;
-      }
-    }
+  // The stop that fired, as the notes tell it: the final note, else the last loop pass that names one.
+  let fired = firedIn(last);
+  for (const note of [...loopNotes].reverse()) {
+    if (fired.length > 0) break;
+    fired = firedIn(note);
   }
   facts.stop_fired = fired;
 

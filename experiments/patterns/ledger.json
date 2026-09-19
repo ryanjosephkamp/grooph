@@ -33,8 +33,23 @@
       "run_id": null,
       "retry": null,
       "note": "harness probe: the same session with --resume reported 0.0040993 (its own tokens only), so resume cost is per invocation, not cumulative"
+    },
+    {
+      "n": 3,
+      "template": "grind-loop",
+      "kind": "kickoff",
+      "started": "2026-09-19T16:30:34.717Z",
+      "ended": "2026-09-19T16:32:00.653Z",
+      "status": "ok",
+      "cost_usd": 0.656791,
+      "reported_cost_usd": 0.6567905999999999,
+      "max_budget_usd": 6,
+      "session_id": "ce7226cc-e4c2-4031-b60a-38485bfe740d",
+      "run_id": "20260919-1230-k7qm",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 0.022462,
-  "remaining_usd": 24.977538
+  "spent_usd": 0.679253,
+  "remaining_usd": 24.320747
 }
