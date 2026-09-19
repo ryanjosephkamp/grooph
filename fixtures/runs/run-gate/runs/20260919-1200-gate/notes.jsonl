@@ -1,0 +1,9 @@
+{"id":"n-0001","run":"20260919-1200-gate","at":"graph","started":"2026-09-19T12:00:00Z","text":"run started"}
+{"id":"n-0002","run":"20260919-1200-gate","at":"node:builder","started":"2026-09-19T12:00:05Z","outcome":"started","round":0}
+{"id":"n-0003","run":"20260919-1200-gate","at":"node:builder","ended":"2026-09-19T12:09:00Z","outcome":"pass","round":0,"cost":{"measure":"turns","amount":6}}
+{"id":"n-0004","run":"20260919-1200-gate","at":"node:critic","started":"2026-09-19T12:09:10Z","outcome":"started","round":0}
+{"id":"n-0005","run":"20260919-1200-gate","at":"node:critic","ended":"2026-09-19T12:14:00Z","outcome":"pass","verdict":"pass","round":0,"evidence":["diff of src/ and tests/","docs/REVIEW-CHECKLIST.md"],"cost":{"measure":"turns","amount":4}}
+{"id":"n-0006","run":"20260919-1200-gate","at":"loop:review-cycle","ended":"2026-09-19T12:14:00Z","outcome":"pass","round":0,"text":"pass 0 ends on critic pass; stop bar-passed fires; taking e-review-pass to merge-gate"}
+{"id":"n-0007","run":"20260919-1200-gate","at":"loop:review-cycle","proposal":{"summary":"raise the turn budget from 40 to 60","patch":[{"op":"replace","path":"/loops/0/stops/1/limit","value":60}]},"text":"the task is larger than the budget assumed; loosening a budget is the human's call"}
+{"id":"n-0008","run":"20260919-1200-gate","at":"node:merge-gate","started":"2026-09-19T12:14:05Z","outcome":"halt","round":0,"text":"gate merge-gate: this session cannot ask, so the run waits for a human"}
+{"id":"n-0009","run":"20260919-1200-gate","at":"graph","ended":"2026-09-19T12:14:06Z","outcome":"halt","text":"halted at merge-gate; resume with the same run id"}

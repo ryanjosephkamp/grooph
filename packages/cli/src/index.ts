@@ -10,21 +10,27 @@ import { parseArgs } from "node:util";
 
 import { KNOWN_TARGETS, TemplateError, type CompileTarget } from "@grooph/core";
 
+import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
+import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
 import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
 import { validateCommand } from "./commands/validate.js";
+import { watchCommand, WATCH_HELP } from "./commands/watch.js";
 import { stdio, type Output } from "./print.js";
 import { RegistryError, defaultRegistryEnv, type RegistryEnv } from "./registry.js";
-import { openUrl, type OpenUrl } from "./share-io.js";
+import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
 
-/** What a run may reach outside its arguments; tests replace any of it. */
-export type CliEnv = RegistryEnv & { openUrl: OpenUrl };
+/**
+ * What a run may reach outside its arguments; tests replace any of it.
+ * `signal` stops `grooph watch` (otherwise Ctrl-C does); `env` stands in for `process.env`.
+ */
+export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
 export const VERSION = "0.0.0";
 
@@ -37,9 +43,12 @@ Usage
   grooph canonicalize <file> [--write]
   grooph export <file> --target <harness> --into <dir>
   grooph shape <file> [--json]
-  grooph share <graph | proposal set> [--base <url>] [--open] [--out <file>]
+  grooph share <graph | proposal set | run dir | run bundle> [--base <url>] [--open] [--out <file>]
   grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
   grooph template list | show | use | insert | save | add …   (grooph template help)
+  grooph runs list [<dir>] | show <run dir> [--json] | bundle <run dir> --out <file>
+  grooph adopt <run dir> [--into <graph file>] [--write]
+  grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]
   grooph <command> --help
   grooph --version
 
@@ -60,11 +69,16 @@ Commands
   export         Validate for export, then write the harness package into <dir> and print the
                  kickoff prompt. Refuses, with the reasons, when the document has errors.
   shape          Counts and brakes at a glance: agents, gates, loops, worst-case rounds, budgets.
-  share          A link that opens a graph, or a proposal set of candidate graphs to compare, in
-                 the app on any device. The document rides in the link; nothing is uploaded.
+  share          A link that opens a graph, a proposal set of candidate graphs to compare, or a
+                 run, in the app on any device. The document rides in the link; nothing is uploaded.
   pick           Write the chosen candidate of a proposal set out as a graph, ready to export.
   template       Reusable graphs and fragments by name: the built-in pattern library, your own
                  in .grooph/templates/ and ~/.grooph/templates/, and published registries.
+  runs           What runs left in .grooph/<graph-id>/runs/: list them, show one (states, what it
+                 changed and why, proposals, timeline), or bundle one into a single file.
+  adopt          Take a run's working copy as the graph's next version (--write to save it).
+  watch          Serve the app and the run, read live from disk, to a browser on this machine
+                 (or, with --host, the local network). Read-only.
 
 Targets
   ${KNOWN_TARGETS.join(", ")}
@@ -233,6 +247,53 @@ export async function run(
         return pickCommand(io, file, name.join(" "), { out, force: values["force"] === true });
       }
 
+      case "runs": {
+        const [sub, ...args] = rest;
+        const { positionals, values } = parseArgs({
+          args,
+          allowPositionals: true,
+          options: { json: { type: "boolean" }, out: { type: "string" } },
+        });
+        if (sub === "list") return runsListCommand(io, positionals[0] ?? ".");
+        if (sub === "show") {
+          if (positionals[0] === undefined) return usageError(io, "runs show needs a run folder: grooph runs show .grooph/<graph-id>/runs/<run-id>");
+          return runsShowCommand(io, positionals[0], { json: values["json"] === true });
+        }
+        if (sub === "bundle") {
+          if (positionals[0] === undefined) return usageError(io, "runs bundle needs a run folder: grooph runs bundle <run dir> --out <file>");
+          if (values["out"] === undefined) return usageError(io, "runs bundle needs --out <file>, for example run.grooph-run.json");
+          return runsBundleCommand(io, positionals[0], values["out"]);
+        }
+        return usageError(io, sub === undefined ? "runs needs list, show or bundle (grooph runs --help)" : `unknown runs command "${sub}"; it is list, show or bundle`);
+      }
+
+      case "adopt": {
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { into: { type: "string" }, write: { type: "boolean" } },
+        });
+        if (positionals[0] === undefined) return usageError(io, "adopt needs a run folder: grooph adopt .grooph/<graph-id>/runs/<run-id> [--write]");
+        return adoptCommand(io, positionals[0], { ...(values["into"] !== undefined ? { into: values["into"] } : {}), write: values["write"] === true });
+      }
+
+      case "watch": {
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" } },
+        });
+        const port = values["port"] === undefined ? 4174 : Number(values["port"]);
+        if (!Number.isInteger(port) || port < 0 || port > 65535) return usageError(io, `--port must be a port number from 0 to 65535, got "${values["port"]}"`);
+        const host = values["host"] ?? "127.0.0.1";
+        if (host.trim() === "") return usageError(io, "--host needs an address, like 127.0.0.1 or 0.0.0.0");
+        return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true }, {
+          openUrl: env.openUrl ?? openUrl,
+          ...(env.signal ? { signal: env.signal } : {}),
+          ...(env.env ? { env: env.env } : {}),
+        });
+      }
+
       case "template": {
         const outcome = await templateCommand(io, rest, { ...defaultRegistryEnv(), ...env });
         if (typeof outcome === "number") return outcome;
@@ -248,6 +309,11 @@ export async function run(
   } catch (err) {
     if (err instanceof RegistryError || err instanceof TemplateError) {
       io.err(`grooph: ${err.message}`);
+      return 1;
+    }
+    if (err instanceof LoadError) {
+      io.err(`grooph: ${err.message}`);
+      for (const line of err.lines) io.err(line);
       return 1;
     }
     const error = err as NodeJS.ErrnoException;
@@ -266,6 +332,9 @@ export async function run(
 /** `grooph <command> --help`: the command's own page where it has one, else the overview. */
 const COMMAND_HELP: Record<string, string> = {
   share: SHARE_HELP,
+  runs: RUNS_HELP,
+  adopt: ADOPT_HELP,
+  watch: WATCH_HELP,
   pick: PICK_HELP,
   shape: SHAPE_HELP,
 };

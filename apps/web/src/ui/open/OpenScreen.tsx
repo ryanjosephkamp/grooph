@@ -2,6 +2,7 @@ import { useMemo } from "react";
 
 import { openPayload } from "../../doc/share.js";
 import { Compare } from "./Compare.js";
+import { RunView } from "../run/RunView.js";
 import { GraphViewer } from "./GraphViewer.js";
 
 /**
@@ -16,6 +17,7 @@ export function OpenScreen({ payload, candidate }: { payload: string; candidate?
 
   const { envelope } = opened;
   if (envelope.kind === "graph") return <GraphViewer doc={envelope.doc} back={{ href: "#/", label: "All graphs" }} />;
+  if (envelope.kind === "run") return <RunView bundle={envelope.doc} origin={{ kind: "link" }} />;
 
   const set = envelope.doc;
   if (candidate !== undefined) {

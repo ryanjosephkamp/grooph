@@ -1,8 +1,9 @@
-import type { Node as DocNode, Severity } from "@grooph/core";
+import type { Node as DocNode, NodeRunState, Severity } from "@grooph/core";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { memo } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
+import { StateIcon } from "../run/StateIcon.js";
 
 export type GraphNodeData = {
   node: DocNode;
@@ -15,6 +16,8 @@ export type GraphNodeData = {
   picked?: boolean;
   /** the loop the sheet shows, if this node is one of its members */
   loopColor?: number;
+  /** in a run view: this node's state in the run (docs/runs.md §4) */
+  run?: { state: NodeRunState; label: string; runs: number };
 };
 
 export type GraphFlowNode = Node<GraphNodeData, "graph">;
@@ -47,6 +50,7 @@ export const GraphNode = memo(function GraphNode({ data }: NodeProps<GraphFlowNo
     data.picked === true && "is-picked",
     data.picked === false && "is-unpicked",
     data.loopColor !== undefined && `in-loop loop-c${data.loopColor % 4}`,
+    data.run && `run-state run-${data.run.state}`,
   ]
     .filter(Boolean)
     .join(" ");
@@ -59,6 +63,13 @@ export const GraphNode = memo(function GraphNode({ data }: NodeProps<GraphFlowNo
       </div>
       <div className="gnode-name">{node.name || <span className="muted">unnamed</span>}</div>
       <div className="gnode-sub">{subtitle(node)}</div>
+      {data.run ? (
+        <div className={`run-badge run-badge-${data.run.state}`} data-run-state={data.run.state}>
+          <StateIcon state={data.run.state} />
+          <span>{data.run.label}</span>
+          {data.run.runs > 1 ? <span className="run-count" aria-label={`${data.run.runs} runs`}>×{data.run.runs}</span> : null}
+        </div>
+      ) : null}
       {data.loops.length > 0 ? (
         <div className="gnode-loops" aria-label={`In loop ${data.loops.map((l) => l.name).join(", ")}`}>
           {data.loops.map((l) => (

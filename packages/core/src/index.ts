@@ -14,3 +14,5 @@ export { closest, didYouMean } from "./suggest.js";
 export * from "./proposals.js";
 export * from "./share.js";
 export { proposalSetSchema, proposalsJsonSchema, PROPOSALS_SCHEMA_ID } from "./schema/proposals.js";
+export * from "./runs.js";
+export { runBundleSchema, runJsonSchema, RUN_SCHEMA_ID } from "./schema/run.js";

@@ -2401,3 +2401,613 @@ a {
     animation: none;
   }
 }
+
+/* ─── runs: the run view (docs/runs.md §4) ───────────────────────────── */
+
+/* Canvas on top, the run's notes and decisions below; side by side on a wide screen. */
+.run-view {
+  display: grid;
+  grid-template-rows: auto minmax(220px, 42dvh) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.run-view > .topbar {
+  grid-row: 1;
+}
+.run-view > .stage {
+  grid-row: 2;
+  border-bottom: 1px solid var(--line);
+}
+.run-panel {
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+}
+@media (min-width: 900px) {
+  .run-view {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 440px;
+  }
+  .run-view > .topbar {
+    grid-column: 1 / -1;
+  }
+  .run-view > .stage {
+    grid-column: 1;
+    border-bottom: 0;
+  }
+  .run-panel {
+    grid-row: 2;
+    grid-column: 2;
+    border-left: 1px solid var(--line);
+  }
+}
+.run-title:active {
+  background: transparent;
+}
+.run-view .stage .react-flow__node {
+  cursor: pointer;
+}
+.run-view .loop-legend {
+  right: 10px;
+}
+
+.run-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.run-status-running {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.run-status-ended {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+/* A state is a shape as well as a colour. */
+.state-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.state-icon .fill {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* Node states on the canvas: pending quiet, running pulsing, passed and failed in the semantic colours, halted amber. */
+.run-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 7px;
+  padding: 2px 9px 2px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+.run-badge-running {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.run-badge-passed {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.run-badge-failed {
+  background: var(--error-soft);
+  color: var(--error);
+}
+.run-badge-halted {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.run-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.gnode.run-pending {
+  border-style: dashed;
+  background: var(--bg);
+  box-shadow: none;
+}
+.gnode.run-running {
+  border-color: var(--accent);
+}
+.gnode.run-passed {
+  border-color: var(--ok);
+}
+.gnode.run-failed {
+  border-color: var(--error);
+}
+.gnode.run-halted {
+  border-color: var(--warning);
+  border-width: 2px;
+}
+.gnode.run-running::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border: 2px solid var(--accent);
+  border-radius: 15px;
+  pointer-events: none;
+  animation: run-pulse 1.6s ease-out infinite;
+}
+.gnode-stop.run-running::after {
+  border-radius: 27px;
+}
+@keyframes run-pulse {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.99);
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(1.05);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* A static ring says "running" without moving. */
+  .gnode.run-running::after {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+.loop-round {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.loop-stop {
+  margin-left: -3px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* The panel: facts, where the run came from, tabs, then the tab's content, which scrolls. */
+.run-facts {
+  flex: none;
+  padding: 8px 14px 6px;
+}
+.run-line {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.run-origin {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.run-origin > span:first-child {
+  flex: 1 1 180px;
+}
+.run-origin .btn {
+  min-height: 44px;
+}
+.run-origin.is-problem {
+  color: var(--warning);
+}
+.live-dot {
+  flex: none !important;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.live-dot.is-on {
+  background: var(--ok);
+  animation: live-blink 2s ease-in-out infinite;
+}
+@keyframes live-blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-dot.is-on {
+    animation: none;
+  }
+}
+.run-tabs {
+  flex: none;
+  display: flex;
+  gap: 2px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.run-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 2.5px solid transparent;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 620;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.run-tab.is-on {
+  border-bottom-color: var(--accent);
+  color: var(--ink);
+}
+.run-tab-count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.run-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 14px calc(24px + env(safe-area-inset-bottom));
+}
+.run-intro {
+  margin: 8px 0 10px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.run-log {
+  margin: 8px 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Timeline. */
+.tl-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.tl-item {
+  border-top: 1px solid var(--line);
+}
+.tl-item.is-on {
+  background: var(--surface-2);
+  margin: 0 -14px;
+  padding: 0 14px;
+}
+.tl-note {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.tl-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 14px;
+}
+.tl-where {
+  font-weight: 650;
+}
+.tl-round {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.tl-dot {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-dot::after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.tl-note .state-icon.state-passed {
+  color: var(--ok);
+}
+.tl-note .state-icon.state-failed {
+  color: var(--error);
+}
+.tl-note .state-icon.state-halted {
+  color: var(--warning);
+}
+.tl-note .state-icon.state-running {
+  color: var(--accent);
+}
+.tl-outcome {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.outcome-passed {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.outcome-failed {
+  background: var(--error-soft);
+  color: var(--error);
+}
+.outcome-halted {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.outcome-running {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.tl-id {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.tl-marks {
+  display: flex;
+  gap: 6px;
+}
+.mark {
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.mark-amendment {
+  color: var(--kind-merge);
+}
+.mark-proposal {
+  color: var(--kind-check);
+}
+.tl-text {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tl-item.is-on .tl-text {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.tl-details {
+  padding: 0 0 12px 22px;
+}
+.tl-details .readonly {
+  margin: 0 0 8px;
+}
+.tl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tl-pinned {
+  margin: 0;
+  font-size: 14px;
+}
+.tl-unread {
+  margin-top: 14px;
+}
+.tl-unread li {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+/* What the run changed. */
+.change-list,
+.proposal-list,
+.op-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.change,
+.proposal {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.change-line,
+.proposal-summary {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.field-change {
+  margin: 6px 0;
+}
+.field-key {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.field-diff {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+.field-diff li,
+div.field-diff {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.field-diff li + li,
+div.field-diff + div.field-diff {
+  margin-top: 3px;
+}
+.field-diff .del,
+div.field-diff.del {
+  background: var(--error-soft);
+}
+.field-diff .ins,
+div.field-diff.ins {
+  background: var(--ok-soft);
+}
+.field-diff del {
+  color: var(--ink-2);
+  text-decoration-color: var(--error);
+}
+.field-diff ins {
+  color: var(--ink);
+  text-decoration: none;
+}
+.sign {
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.field-kept {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.change-why {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.change-why .link {
+  font-size: 12.5px;
+  min-height: 0;
+}
+.change-why-label {
+  font-weight: 650;
+}
+.change-why.is-unexplained {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-weight: 600;
+}
+.adopt {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line-strong);
+}
+.adopt .actions-row {
+  display: flex;
+  gap: 8px;
+}
+.adopt-done {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--ok-soft);
+  font-size: 14px;
+}
+
+/* Proposals. */
+.proposal-meta {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.proposal-text {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  color: var(--ink-2);
+}
+.op-list {
+  margin: 6px 0;
+}
+.op-list li {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.op-list li + li {
+  margin-top: 3px;
+}
+.proposal .more {
+  margin: 4px 0 8px;
+}
+.proposal-other .field-hint {
+  margin: 6px 0;
+}
+.proposal .refusal-hint {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* Runs in the library, under the graph they belong to. */
+.run-rows {
+  grid-column: 1 / -1;
+  list-style: none;
+  margin: -4px 0 10px;
+  padding: 0 0 0 14px;
+  border-left: 2px solid var(--line);
+}
+.run-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  min-height: 44px;
+  padding: 10px 4px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.run-row-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.run-row-meta {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.orphan-runs .run-rows {
+  margin: 0;
+}

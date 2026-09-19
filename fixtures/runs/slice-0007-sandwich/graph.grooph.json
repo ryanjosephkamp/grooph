@@ -1,0 +1,187 @@
+{
+  "grooph": 0,
+  "id": "slice-0007-sandwich",
+  "name": "Slice 0007 sandwich",
+  "version": 1,
+  "goal": "Implement grooph slice 0007 in apps/web: browse, use, insert and save-as templates in the app (built-ins bundled), plus editing polish: undo, storage persistence request, toolbar clear of the open sheet, rename warning for exported graphs. Done when `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` passes and a critic finds nothing unmet in handoffs/0007-web-templates/HANDOFF.md.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "other": "Touch apps/web only. The critic also reads phone-width screenshots, which tests cannot judge."
+  },
+  "lineage": {
+    "pattern": "metric-sandwich",
+    "from": "metric-sandwich@1"
+  },
+  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, after five rounds, or at fifty turns.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task in the code, with tests. On a later round you get either the failing check output or REVIEW.md; address what it names. Run `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` before you report.",
+      "inputs": [
+        "handoffs/0007-web-templates/HANDOFF.md (the success criteria and the allowed paths)",
+        "check output or REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests, committed on branch slice/0007-web-templates",
+        "CHANGES.md: what changed this round",
+        "phone-width screenshots of the new screens in handoffs/0007-web-templates/"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "checks",
+      "kind": "check",
+      "name": "Cheap checks",
+      "check": {
+        "kind": "command",
+        "run": "pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e",
+        "pass": "exit code 0"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge only what `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` cannot see, the items in the checklist, for a change that already passes it. Do not rerun or restate the checks. Cite the file and line for each finding; you judge, you do not fix. Verdict pass when no checklist item is unmet.",
+      "inputs": [
+        "diff of the change",
+        "handoffs/0007-web-templates/HANDOFF.md",
+        "screenshots in handoffs/0007-web-templates/"
+      ],
+      "outputs": [
+        "REVIEW.md: findings by checklist item and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-checks",
+      "from": "builder",
+      "to": "checks"
+    },
+    {
+      "id": "e-checks-fail",
+      "from": "checks",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "check output"
+      ]
+    },
+    {
+      "id": "e-checks-critic",
+      "from": "checks",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "diff of the change",
+        "handoffs/0007-web-templates/HANDOFF.md",
+        "screenshots in handoffs/0007-web-templates/"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "sandwich",
+      "name": "Sandwich",
+      "members": [
+        "builder",
+        "checks",
+        "critic"
+      ],
+      "back": [
+        "e-checks-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Checks, then checklist",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "output of pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e"
+          },
+          {
+            "kind": "checklist",
+            "ref": "handoffs/0007-web-templates/HANDOFF.md"
+          }
+        ],
+        "acceptance": "`pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` exits 0 and the critic finds no unmet item in handoffs/0007-web-templates/HANDOFF.md."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "turns",
+          "limit": 80
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

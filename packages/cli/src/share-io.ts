@@ -13,14 +13,17 @@ import {
   formatIssue,
   isCandidateFile,
   isProposalSetLike,
+  isRunBundleLike,
   parseGraph,
   parseProposalSet,
+  parseRunBundle,
   type Candidate,
   type DeflateRaw,
   type Graph,
   type InflateRaw,
   type IssueLike,
   type ProposalSet,
+  type RunBundle,
 } from "@grooph/core";
 
 import { readText } from "./io.js";
@@ -32,7 +35,8 @@ export const inflateRaw: InflateRaw = (bytes, maxOutput) => inflateRawSync(bytes
 
 export type Loaded =
   | { kind: "graph"; doc: Graph }
-  | { kind: "proposals"; doc: ProposalSet; files: Record<string, string> };
+  | { kind: "proposals"; doc: ProposalSet; files: Record<string, string> }
+  | { kind: "run"; doc: RunBundle };
 
 /** Something the user can fix, with the issue lines that say what. */
 export class LoadError extends Error {
@@ -55,9 +59,14 @@ function readJson(file: string): unknown {
   }
 }
 
-/** A graph document, or a proposal set with every `{ file }` candidate read and inlined. */
+/** A graph document, a proposal set with every `{ file }` candidate read and inlined, or a run bundle file. */
 export function loadShareable(file: string, cwd = process.cwd()): Loaded {
   const json = readJson(file);
+  if (isRunBundleLike(json)) {
+    const parsed = parseRunBundle(json);
+    if (!parsed.bundle) throw new LoadError(`${file} is not a run bundle grooph can read`, parsed.issues);
+    return { kind: "run", doc: parsed.bundle };
+  }
   if (!isProposalSetLike(json)) {
     const parsed = parseGraph(json);
     if (!parsed.doc) throw new LoadError(`${file} is neither a graph document nor a proposal set`, lines(parsed.issues));
