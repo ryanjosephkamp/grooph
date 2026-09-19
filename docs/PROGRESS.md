@@ -16,6 +16,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - 2026-09-18 · criterion 8 met: `W_HOMOGENEOUS_CRITICS` judged per critic against the writers that reach it, `W_NO_TERMINAL` spares fragments; fixtures `invalid/W_HOMOGENEOUS_CRITICS/one-critic-of-two`, `valid/audit-then-fix`, `valid/approval-fragment`; `specialist-critic-bank` now raises the warning (sidecar added), golden LEAD.md message updated.
 - 2026-09-18 · criterion 2 met: proposal sets in core (types, schema, `schema/grooph-proposals-0.schema.json`, `validateProposalSet` with one fixture per code under `fixtures/proposals/`, `estimateShape` with flat, nested and uncapped tests); share envelope and base64url in core with the codec injected.
+- 2026-09-18 · criterion 4 met: `grooph share` (validate, inline, shape, link and length, 32,000 warning, `--base`, `--open`, `--out`), `grooph pick` (id or label, any case, refuses ambiguity), `grooph shape`; `--help` on every command.
+- 2026-09-18 · criterion 3 met: raw DEFLATE via `node:zlib` in the CLI and fflate in the app; `apps/web/test/share.test.ts` opens each side's links with the other's codec, and damaged and oversized payloads fail with a readable message on both.
+- 2026-09-18 · criterion 5 met: `#/open?d=…` opens a graph read-only or the compare view; nothing stored until Save; no export from a link; bad links explained; `e2e/open.spec.ts` 9 tests (graph link, three-candidate link, swipe, Choose, Save then edit, full graph, damaged links, `--out` import, desktop side by side).
 
 ## Waiting on the owner
 

@@ -1,6 +1,7 @@
-import { formatIssue, type Issue } from "@grooph/core";
+import { ShareError, formatIssue, isProposalSetLike, parseProposalSet, type IssueLike } from "@grooph/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { openRouteFor } from "../doc/share.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import {
   createGraph,
@@ -20,11 +21,19 @@ const when = (ms: number): string => {
   return new Date(ms).toLocaleDateString();
 };
 
+const isProposalSet = (text: string): boolean => {
+  try {
+    return isProposalSetLike(JSON.parse(text));
+  } catch {
+    return false;
+  }
+};
+
 /** The graphs on this device. */
 export function Library({ open }: { open: (key: string, fresh?: boolean) => void }) {
   const [records, setRecords] = useState<GraphRecord[] | null>(null);
   const [persistent, setPersistent] = useState(true);
-  const [importProblem, setImportProblem] = useState<{ name: string; issues: Issue[] } | null>(null);
+  const [importProblem, setImportProblem] = useState<{ name: string; issues: IssueLike[]; what?: string } | null>(null);
   const [menu, setMenu] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -38,7 +47,20 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
 
   const onFile = async (file: File | undefined) => {
     if (!file) return;
-    const result = readGraphFile(await file.text());
+    const text = await file.text();
+    if (isProposalSet(text)) {
+      // A proposal set (grooph share --out) opens in the compare view, like its link; nothing is stored yet.
+      const parsed = parseProposalSet(JSON.parse(text));
+      try {
+        if (!parsed.set) throw new ShareError("not a proposal set", parsed.issues);
+        location.hash = openRouteFor(parsed.set);
+      } catch (err) {
+        if (!(err instanceof ShareError)) throw err;
+        setImportProblem({ name: file.name, issues: err.issues, what: "It is a proposal set grooph cannot show. Make a self-contained copy with grooph share --out, which carries every graph." });
+      }
+      return;
+    }
+    const result = readGraphFile(text);
     if (!result.doc) {
       setImportProblem({ name: file.name, issues: result.issues });
       return;
@@ -91,7 +113,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       {importProblem ? (
         <div className="refusal" role="alert">
           <p>
-            <strong>Could not import {importProblem.name}.</strong> It is not a graph document grooph can open.
+            <strong>Could not import {importProblem.name}.</strong> {importProblem.what ?? "It is not a graph document grooph can open."}
           </p>
           <pre className="issue-lines">{importProblem.issues.map(formatIssue).join("\n")}</pre>
           <button type="button" className="btn btn-small" onClick={() => setImportProblem(null)}>
@@ -103,7 +125,9 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       {records === null ? null : records.length === 0 ? (
         <div className="library-empty">
           <p>No graphs on this device yet.</p>
-          <p className="muted">Start a new one, or import a <span className="mono">.grooph.json</span> file.</p>
+          <p className="muted">
+            Start a new one, or import a <span className="mono">.grooph.json</span> graph or a <span className="mono">.grooph-proposals.json</span> set.
+          </p>
         </div>
       ) : (
         <ul className="graph-list" aria-label="Graphs on this device">

@@ -16,6 +16,15 @@ export const NODE_HEIGHT = 84;
 const GAP_X = 36;
 const GAP_Y = 76;
 
+/** The size of a laid-out node and the gaps between them. */
+export type LayoutBox = { width: number; height: number; gapX: number; gapY: number };
+
+/** The editor's node. */
+export const FULL_BOX: LayoutBox = { width: NODE_WIDTH, height: NODE_HEIGHT, gapX: GAP_X, gapY: GAP_Y };
+
+/** The compact node a compare card draws, so a whole candidate reads at card width. */
+export const MINI_BOX: LayoutBox = { width: 136, height: 46, gapX: 18, gapY: 34 };
+
 /**
  * How many nodes sit side by side before a row wraps: two on a phone held
  * upright, four on anything wider. A row of unconnected nodes is otherwise one
@@ -26,7 +35,7 @@ export function columnsForViewport(): number {
 }
 
 /** A position for every node, whether or not the document carries one. */
-export function autoLayout(doc: Graph, columns = 4): Record<Id, Position> {
+export function autoLayout(doc: Graph, columns = 4, box: LayoutBox = FULL_BOX): Record<Id, Position> {
   const nodes = doc.nodes.map((n) => n.id);
   const known = new Set(nodes);
   const back = new Set(doc.loops.flatMap((l) => l.back));
@@ -80,11 +89,11 @@ export function autoLayout(doc: Graph, columns = 4): Record<Id, Position> {
     if (!row) continue;
     for (let start = 0; start < row.length; start += columns) {
       const line = row.slice(start, start + columns);
-      const width = line.length * NODE_WIDTH + (line.length - 1) * GAP_X;
+      const width = line.length * box.width + (line.length - 1) * box.gapX;
       line.forEach((id, i) => {
-        positions[id] = { x: Math.round(i * (NODE_WIDTH + GAP_X) - width / 2), y };
+        positions[id] = { x: Math.round(i * (box.width + box.gapX) - width / 2), y };
       });
-      y += NODE_HEIGHT + GAP_Y;
+      y += box.height + box.gapY;
     }
   }
   return positions;

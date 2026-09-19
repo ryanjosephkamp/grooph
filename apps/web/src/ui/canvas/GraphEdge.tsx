@@ -1,8 +1,8 @@
 import type { Edge as DocEdge, Severity } from "@grooph/core";
 import { EdgeLabelRenderer, useInternalNode, type Edge, type EdgeProps, type InternalNode } from "@xyflow/react";
-import { memo } from "react";
+import { memo, useContext } from "react";
 
-import { useEditor } from "../editorContext.js";
+import { EditorContext } from "../editorContext.js";
 
 export type GraphEdgeData = {
   edge: DocEdge;
@@ -82,7 +82,8 @@ function whenLabel(edge: DocEdge): string {
 }
 
 export const GraphEdge = memo(function GraphEdge({ id, source, target, data }: EdgeProps<GraphFlowEdge>) {
-  const editor = useEditor();
+  // Absent on a read-only canvas (a link, a compare card): labels are then only labels.
+  const editor = useContext(EditorContext);
   const a = useInternalNode(source);
   const b = useInternalNode(target);
   if (!a || !b || !data || !a.measured.width || !b.measured.width) return null;
@@ -126,9 +127,10 @@ export const GraphEdge = memo(function GraphEdge({ id, source, target, data }: E
           style={{ transform: `translate(-50%, -50%) translate(${g.label.x}px, ${g.label.y}px)` }}
           aria-label={`Edge ${edge.from} to ${edge.to}, ${text}${edge.approval ? ", needs approval" : ""}`}
           data-edge-id={id}
+          tabIndex={editor ? undefined : -1}
           onClick={(e) => {
             e.stopPropagation();
-            editor.onEdgeTap(id);
+            editor?.onEdgeTap(id);
           }}
         >
           {quiet ? "" : text}

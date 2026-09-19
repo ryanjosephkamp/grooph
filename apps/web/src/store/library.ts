@@ -1,5 +1,5 @@
 /** The graph list: create, import, rename, duplicate, delete. */
-import { newGraph, parseGraphText, setGraphName, uniqueId, type Graph, type Issue } from "@grooph/core";
+import { canonicalize, newGraph, parseGraphText, setGraphName, uniqueId, type Graph, type Issue } from "@grooph/core";
 
 import { newKey, openStore, type GraphRecord } from "./db.js";
 
@@ -65,6 +65,16 @@ export function readGraphFile(text: string): ReadResult {
 
 export async function importGraph(doc: Graph): Promise<GraphRecord> {
   return save(doc);
+}
+
+/**
+ * Save a graph that arrived in a link (the only way a link reaches storage).
+ * The same graph saved before is not saved twice: its record is returned.
+ */
+export async function saveFromLink(doc: Graph): Promise<{ record: GraphRecord; existed: boolean }> {
+  const text = canonicalize(doc);
+  const same = (await listGraphs()).find((r) => r.doc.id === doc.id && canonicalize(r.doc) === text);
+  return same ? { record: same, existed: true } : { record: await save(structuredClone(doc)), existed: false };
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
