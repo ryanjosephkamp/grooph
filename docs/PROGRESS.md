@@ -23,6 +23,7 @@ _(slices 0008 and 0009 create their entries here)_
 - 2026-09-19 · criterion 5 met: five write-ups and the index `experiments/patterns/README.md`; total spend $7.01 of $25.00.
 - 2026-09-19 · criterion 6 partly met: `template.demo` set on the five, `patterns/index.json` and `README.md` regenerated, pattern tests green. The `deploy.yml` step publishing `experiments/patterns/` was refused by the session's permission classifier and is left for the owner.
 - 2026-09-19 · criterion 8 met: cold install, build and test green (core 210, cli 45, web 43); browser suite 37 passed; `patterns-index --check` clean.
+- 2026-09-19 · handback written: **needs fix pass** (criterion 6's `deploy.yml` step waits on the owner) · work head `9925e26` · spend $7.01 of $25.00.
 
 ## Waiting on the owner
 
