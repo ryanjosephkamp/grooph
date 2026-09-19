@@ -23,6 +23,7 @@ _(slices 0008 and 0009 create their entries here)_
 - 2026-09-19 · criterion 6 met: run view (`#/open` kind run, `#/run/<key>`, `#/run?live`) with 13 browser tests at 400×800 on the real run and the synthetic ones: states, rounds, timeline highlight, three changes tied to n-0002, Adopt, Discard, Apply to a copy (n-0008 is an op list; a JSON Patch is explained), Pin, live polling of a stub endpoint.
 - 2026-09-19 · criterion 7 met: running nodes pulse, a static ring under reduced motion (tested); icon and label on every state; light and dark phone screenshots in `handoffs/0008-runs/`.
 - 2026-09-19 · criterion 8 met: a browser test records every request across link, library and live views; only the app's own origin, and only `/grooph/api/run.json` beyond its files.
+- 2026-09-19 · **done**, work head `0ab0560`; handback at `handoffs/0008-runs/HANDBACK.md`.
 
 ## Waiting on the owner
 
