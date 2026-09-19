@@ -15,6 +15,7 @@ _(slices 0008 and 0009 create their entries here)_
 
 ### Slice 0008
 
+- 2026-09-19 · criterion 1 met: a fresh clone of `slice/0008-runs` at 2f5bea5 installs, builds and passes (core 234, CLI 58, web unit 49, e2e 50 with 27 screenshot specs skipped); CI green at 2f5bea5.
 - 2026-09-19 · criterion 2 met: core `parseRunNotes`, `summarizeRun`, `diffGraphs`, `adoptWorkingCopy`, run bundles with their schema, `kind: "run"` links; tested on the real run in `fixtures/runs/` and five synthetic runs.
 - 2026-09-19 · criterion 3 met: the real run's diff is n-0002's three changes (`setConstraint`, `updateNode` ×2), equal to the lead's `amend-01.ops.json`, and replays to the working copy.
 - 2026-09-19 · criterion 4 met: lead brief §8 asks for a `"outcome":"started"` note at dispatch; both goldens regenerated.
