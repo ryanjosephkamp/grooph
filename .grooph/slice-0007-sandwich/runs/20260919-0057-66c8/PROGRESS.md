@@ -55,3 +55,10 @@ The working copy validates `--for-export` clean. Adopt it as version 2 of the gr
 - CI green at 36ccf81 (run 35423741584) and at 926ce74 (run 35424266093): criterion 1.
 - The critic's evidence diffs were written to `round-<n>/` and deleted after the run. They are reproducible as `git diff -U12 origin/main..<head> -- . ':(exclude).grooph/**' ':(exclude)*.png'` with head 0b52a82 (round 0) and 83509ab (round 1), plus `0b52a82..83509ab` for round 1's delta.
 - The graph's `description` says "at fifty turns" while its budget stop says 80. The run followed the stop; the description is stale text for the human to fix.
+
+## After the run
+
+Handback verification (n-0015), made after the run ended, found two gaps the critic could not see from the diff. The run's outcome stands as the critic judged it; the handback reports them and asks for a fix pass.
+
+- **Criterion 5.** Save as template does not refuse a template that carries errors. The e2e's own fragment (builder and critic out of review-loop, its loop left behind) has `E_CYCLE_NO_STOP`. `grooph template save` refuses that template, and `grooph template add` rejects the file the app downloads for it. A whole-graph template's download is accepted.
+- **Criterion 11.** The Save form's node chips use `.chip` (40 px tall on a phone), under the 44 px floor. The class predates the slice, so it was not in the diff. This is the same kind of defect as round 0's `.btn-small`.
