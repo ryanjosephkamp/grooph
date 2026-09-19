@@ -63,10 +63,6 @@ export const isProposalSetLike = (json: unknown): boolean =>
 
 export const isCandidateFile = (graph: Candidate["graph"]): graph is CandidateFile => !("grooph" in graph) && "file" in graph;
 
-/** The candidate's graph when it is carried inline. */
-export const inlineGraph = (candidate: Candidate): Graph | undefined =>
-  isCandidateFile(candidate.graph) ? undefined : candidate.graph;
-
 export type ValidateProposalsOptions = {
   /** A `{ file }` candidate is an error (`E_CANDIDATE_INVALID`): links and `--out` files must carry every graph. */
   requireInline?: boolean;

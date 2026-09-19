@@ -146,7 +146,7 @@ export function Compare({ set, setIssues, payload }: { set: ProposalSet; setIssu
         ) : null}
         {setLevel.length > 0 ? (
           <div className="warnings">
-            <p>This set has problems grooph share would have caught.</p>
+            <p>Notes on the set itself</p>
             <pre className="issue-lines">{setLevel.map(formatIssue).join("\n")}</pre>
           </div>
         ) : null}

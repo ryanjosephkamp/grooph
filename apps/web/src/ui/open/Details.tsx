@@ -1,8 +1,6 @@
 import { describeStop, loopMode, indexGraph, type Graph, type Id, type IssueLike, type Loop, type Node } from "@grooph/core";
 import type { ReactNode } from "react";
 
-import { KIND_LABEL } from "../../doc/catalog.js";
-
 /** Read-only details for what a link carries: the same facts the inspectors edit, as text. */
 
 function Rows({ rows }: { rows: [string, ReactNode][] }) {
@@ -166,5 +164,3 @@ export function IssueList({ issues }: { issues: readonly IssueLike[] }) {
     </div>
   );
 }
-
-export const kindTitle = (node: Node): string => KIND_LABEL[node.kind];

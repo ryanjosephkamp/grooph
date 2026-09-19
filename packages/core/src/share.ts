@@ -47,8 +47,6 @@ export type ShareEnvelope =
   | { v: typeof SHARE_VERSION; kind: "graph"; doc: Graph }
   | { v: typeof SHARE_VERSION; kind: "proposals"; doc: ProposalSet };
 
-export type ShareKind = ShareEnvelope["kind"];
-
 /** Thrown by `buildShareEnvelope` when a document cannot be shared; `issues` says why. */
 export class ShareError extends Error {
   readonly issues: IssueLike[];
