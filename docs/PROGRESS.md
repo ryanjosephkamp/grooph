@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 5 (the executive path) is built, merged and live. The driver ran `grooph-design` for real at reconcile: three candidate workflows for slice 0007, shared as a link that opens the compare view on the live site.
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ · **Published templates:** https://ryanjosephkamp.github.io/grooph/patterns/index.json
-- **Next action:** slice 0007 runs through grooph itself: the owner picked "Sandwich" on the phone; the package `slice-0007-sandwich` is placed on `main` (2 agents · 1 check · 1 loop · up to 5 rounds · 80 turns) and an Opus 5 lead session runs it. `grooph` and `/grooph-design` are installed on the owner's machine.
+- **Next action:** fix pass 1 for slice 0007 (Save-as-template validation, 44 px chips), then merge. Background: slice 0007 ran through grooph itself: the owner picked "Sandwich" on the phone; the package `slice-0007-sandwich` is placed on `main` (2 agents · 1 check · 1 loop · up to 5 rounds · 80 turns) and an Opus 5 lead session runs it. `grooph` and `/grooph-design` are installed on the owner's machine.
 - **Then:** slice 0007 (templates in the app, undo, storage persistence); the pattern proving ground (needs spend approval); notes back and the run monitor.
 - **What works today:** describe a project to a Claude Code session with the `grooph-design` skill → candidates from templates or scratch → `grooph share` link → compare on the phone → `grooph pick` → `grooph export`. Sixteen published templates. Adaptive-by-default packages proven in one real run.
 
@@ -21,7 +21,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Waiting on the owner
 
-_(nothing until the 0007 handback)_
+| Item | Recommended answer |
+|---|---|
+| Confirm fix pass 1 for slice 0007 (`handoffs/0007-web-templates/FIXPASS-1.md`), a plain Opus session at effort medium | Yes |
 
 ## Deferred until Codex is available
 
