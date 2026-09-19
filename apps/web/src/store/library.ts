@@ -1,5 +1,5 @@
 /** The graph list: create, import, rename, duplicate, delete. */
-import { canonicalize, newGraph, parseGraphText, setGraphName, uniqueId, type Graph, type Issue } from "@grooph/core";
+import { allIds, canonicalize, newGraph, parseGraphText, setGraphName, uniqueId, type Graph, type Issue } from "@grooph/core";
 
 import { newKey, openStore, type GraphRecord } from "./db.js";
 
@@ -33,11 +33,21 @@ export async function duplicateGraph(key: string): Promise<GraphRecord | undefin
   return save({ ...structuredClone(source.doc), id, name: `${source.doc.name} (copy)` });
 }
 
-export async function renameGraph(key: string, name: string): Promise<void> {
+/** Rename a graph; its id follows the name as core's `setGraphName` decides, unless `keepId` pins it. */
+export async function renameGraph(key: string, name: string, options: { keepId?: string } = {}): Promise<void> {
   const store = await openStore();
   const record = await store.get(key);
   if (!record) return;
-  await store.put({ ...record, doc: setGraphName(record.doc, name), updatedAt: Date.now() });
+  const doc = setGraphName(record.doc, name);
+  await store.put({ ...record, doc: options.keepId !== undefined ? keepGraphId(doc, options.keepId) : doc, updatedAt: Date.now() });
+}
+
+/** Set the graph's id back to one it had, unless an object inside it has taken that id since. */
+export function keepGraphId(doc: Graph, id: string): Graph {
+  if (doc.id === id) return doc;
+  const taken = allIds(doc);
+  taken.delete(doc.id);
+  return taken.has(id) ? doc : { ...doc, id };
 }
 
 export async function deleteGraph(key: string): Promise<void> {

@@ -1,4 +1,4 @@
-import { ShareError, formatIssue, isProposalSetLike, parseProposalSet, type IssueLike } from "@grooph/core";
+import { ShareError, formatIssue, isProposalSetLike, parseProposalSet, followsName, setGraphName, type Graph, type IssueLike } from "@grooph/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { openRouteFor } from "../doc/share.js";
@@ -12,6 +12,9 @@ import {
   readGraphFile,
   renameGraph,
 } from "../store/library.js";
+import { saveUserTemplate } from "../store/templates.js";
+import { PersistNotice } from "./Notices.js";
+import { templateHref } from "./templates/TemplatesScreen.js";
 
 const when = (ms: number): string => {
   const diff = Date.now() - ms;
@@ -37,6 +40,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   const [menu, setMenu] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [templateOffer, setTemplateOffer] = useState<{ name: string; doc: Graph; exists?: Graph } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -66,8 +70,23 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       return;
     }
     setImportProblem(null);
+    if (result.doc.template) {
+      // A template file (from Download template, or a registry): offer it to "Yours" rather than opening it as a graph.
+      setTemplateOffer({ name: file.name, doc: result.doc });
+      return;
+    }
     const record = await importGraph(result.doc);
     open(record.key);
+  };
+
+  const addTemplate = async (doc: Graph, replace: boolean) => {
+    const saved = await saveUserTemplate(doc, { replace });
+    if ("exists" in saved) {
+      setTemplateOffer((offer) => offer && { ...offer, exists: saved.exists });
+      return;
+    }
+    setTemplateOffer(null);
+    location.hash = templateHref("yours", saved.saved.id);
   };
 
   return (
@@ -90,6 +109,9 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
         >
           New graph
         </button>
+        <a className="btn btn-large" href="#/templates">
+          Templates
+        </a>
         <label className="btn btn-large file-btn">
           Import .grooph.json
           <input
@@ -108,6 +130,48 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
         <p className="notice" role="status">
           This browser is not letting grooph store anything, so graphs last until the tab closes. Download them from Export to keep them.
         </p>
+      ) : null}
+
+      <PersistNotice />
+
+      {templateOffer ? (
+        <div className="offer" role="alert">
+          <p>
+            <strong>{templateOffer.name} is a template:</strong> {templateOffer.doc.template!.title}
+            {templateOffer.doc.template!.kind === "fragment" ? " (a fragment)" : ""}. Add it to Yours to use it from Templates.
+          </p>
+          {templateOffer.exists ? (
+            <p className="field-hint">
+              Yours already has a template with the id <span className="mono">{templateOffer.doc.id}</span> (version {templateOffer.exists.version}). Replacing it
+              makes version {Math.max(templateOffer.exists.version, templateOffer.doc.version) + 1}.
+            </p>
+          ) : null}
+          <div className="offer-actions">
+            {templateOffer.exists ? (
+              <button type="button" className="btn btn-primary" onClick={() => void addTemplate(templateOffer.doc, true)}>
+                Replace yours
+              </button>
+            ) : (
+              <button type="button" className="btn btn-primary" onClick={() => void addTemplate(templateOffer.doc, false)}>
+                Add to Yours
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn"
+              onClick={async () => {
+                const record = await importGraph(templateOffer.doc);
+                setTemplateOffer(null);
+                open(record.key);
+              }}
+            >
+              Open it as a graph
+            </button>
+            <button type="button" className="btn btn-quiet" onClick={() => setTemplateOffer(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
       ) : null}
 
       {importProblem ? (
@@ -134,29 +198,17 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
           {records.map((r) => (
             <li key={r.key} className="graph-row">
               {renaming?.key === r.key ? (
-                <form
-                  className="rename"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    await renameGraph(r.key, renaming.name);
+                <RenameForm
+                  record={r}
+                  name={renaming.name}
+                  onName={(name) => setRenaming({ key: r.key, name })}
+                  onCancel={() => setRenaming(null)}
+                  onSave={async (keepId) => {
+                    await renameGraph(r.key, renaming.name, { keepId });
                     setRenaming(null);
                     await refresh();
                   }}
-                >
-                  <input
-                    className="input"
-                    aria-label="Graph name"
-                    value={renaming.name}
-                    autoFocus
-                    onChange={(e) => setRenaming({ key: r.key, name: e.target.value })}
-                  />
-                  <button type="submit" className="btn btn-primary">
-                    Save
-                  </button>
-                  <button type="button" className="btn" onClick={() => setRenaming(null)}>
-                    Cancel
-                  </button>
-                </form>
+                />
               ) : (
                 <>
                   <button type="button" className="graph-open" onClick={() => open(r.key)}>
@@ -238,6 +290,53 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
           Source
         </a>
       </footer>
+    </div>
+  );
+}
+
+/**
+ * Rename from the list. When the graph's package has been downloaded from
+ * this device and the new name would change its id, say that the package
+ * folder name changes with it, and offer to keep the old id (criterion 9).
+ */
+function RenameForm(props: { record: GraphRecord; name: string; onName: (name: string) => void; onSave: (keepId?: string) => void; onCancel: () => void }) {
+  const { record } = props;
+  const nextId = setGraphName(record.doc, props.name).id;
+  const exportedAs = record.exported?.id;
+  const warn = exportedAs !== undefined && nextId !== exportedAs && followsName(nextId, props.name);
+  return (
+    <form
+      className="rename"
+      onSubmit={(e) => {
+        e.preventDefault();
+        props.onSave();
+      }}
+    >
+      <div className="rename-row">
+        <input className="input" aria-label="Graph name" value={props.name} autoFocus onChange={(e) => props.onName(e.target.value)} />
+        <button type="submit" className="btn btn-primary">
+          Save
+        </button>
+        <button type="button" className="btn" onClick={props.onCancel}>
+          Cancel
+        </button>
+      </div>
+      {warn ? <RenameWarning exportedAs={exportedAs} nextId={nextId} onKeep={() => props.onSave(exportedAs)} /> : null}
+    </form>
+  );
+}
+
+export function RenameWarning({ exportedAs, nextId, onKeep }: { exportedAs: string; nextId: string; onKeep: () => void }) {
+  return (
+    <div className="rename-warning" role="alert">
+      <p>
+        This graph was exported from this device as <span className="mono">.grooph/{exportedAs}/</span>. With this name its id becomes{" "}
+        <span className="mono">{nextId}</span>, so the next export writes a new package folder, <span className="mono">.grooph/{nextId}/</span>, beside the old
+        one.
+      </p>
+      <button type="button" className="btn" onClick={onKeep}>
+        Keep the old id
+      </button>
     </div>
   );
 }

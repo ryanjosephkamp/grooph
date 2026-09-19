@@ -98,6 +98,7 @@ export function NodeInspector({ id, focusName }: { id: Id; focusName?: boolean }
           onClick={() => {
             editor.store.update((d: Graph) => removeNode(d, id));
             editor.openPanel(null);
+            editor.deleted(node.name || id);
           }}
         >
           Delete {KIND_LABEL[node.kind].toLowerCase()}
