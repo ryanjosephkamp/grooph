@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { closeSheet, edgeLabel, fit, fixturePath, importDocument, node, sheet, status, toolbar } from "./support.js";
 
@@ -267,4 +267,39 @@ test("the list's rename warns after an export, and Keep the old id keeps it", as
   await warning.getByRole("button", { name: "Keep the old id" }).tap();
   await expect(page.getByText("Review loop, mine")).toBeVisible();
   await expect(page.locator(".graph-meta").first()).toContainText("review-loop ·");
+});
+
+test("every chip that is a tap target meets the 44 px floor", async ({ page }) => {
+  // Fix pass 1 of slice 0007, criterion 2: one chip of each kind, measured at 400×800.
+  const atLeast44 = async (chip: Locator) => {
+    await chip.scrollIntoViewIfNeeded();
+    expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  };
+  await open(page);
+  const s = sheet(page);
+
+  // The validation panel's "Open …" chips.
+  await status(page).tap();
+  await atLeast44(s.locator(".issue-at .chip").first());
+  await closeSheet(page);
+
+  // A node's Allow chips (fields.tsx ChipSet).
+  await node(page, "builder").tap();
+  await atLeast44(s.getByRole("group", { name: "Allow" }).getByRole("button").first());
+  await closeSheet(page);
+
+  // The Graph panel's loop chip, then the loop's member and back-edge chips.
+  await page.locator(".title-btn").tap();
+  const loopChip = s.getByRole("button", { name: "Build-review cycle" });
+  await atLeast44(loopChip);
+  await loopChip.tap();
+  await atLeast44(s.locator(".field", { hasText: "Members" }).locator(".chip").first());
+  await atLeast44(s.locator(".field", { hasText: "Back edges" }).locator(".chip").first());
+  await closeSheet(page);
+
+  // The Save-as-template form's node chips.
+  await page.locator(".title-btn").tap();
+  await s.getByRole("button", { name: "Save as template…" }).tap();
+  await s.getByRole("radio", { name: "Selected nodes" }).tap();
+  await atLeast44(s.getByRole("group", { name: /^Nodes/ }).getByRole("button").first());
 });

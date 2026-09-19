@@ -835,7 +835,8 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  /* Chips are tap targets: the phone's 44 px floor (handoff 0007, criterion 11). */
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
@@ -850,7 +851,6 @@ a {
   font-weight: 600;
 }
 .chip-small {
-  min-height: 32px;
   font-size: 13px;
 }
 .inline-add {
