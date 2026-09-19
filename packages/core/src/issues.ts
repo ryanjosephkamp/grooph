@@ -93,11 +93,14 @@ export const warning = (code: IssueCode, message: string, at: Id[] = []): Issue 
   at,
 });
 
-export const hasErrors = (issues: readonly Issue[]): boolean =>
+/** Any issue list: a graph's, or a proposal set's, which shares the shape. */
+export type IssueLike = { code: string; severity: Severity; message: string; at: readonly Id[] };
+
+export const hasErrors = (issues: readonly IssueLike[]): boolean =>
   issues.some((issue) => issue.severity === "error");
 
 /** One line per issue, the form the CLI prints and the web app shows. */
-export const formatIssue = (issue: Issue): string =>
+export const formatIssue = (issue: IssueLike): string =>
   `${issue.severity === "error" ? "error" : "warning"}  ${issue.code}  ${issue.message}${
     issue.at.length > 0 ? `  [at: ${issue.at.join(", ")}]` : ""
   }`;

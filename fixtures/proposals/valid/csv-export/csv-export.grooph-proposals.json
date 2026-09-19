@@ -1,0 +1,78 @@
+{
+  "groophProposals": 0,
+  "id": "csv-export",
+  "title": "CSV export for the orders list",
+  "brief": "A small Express app (about 2,000 lines, Jest tests via npm test) needs GET /orders.csv returning the rows GET /orders shows, with its filters, a header row and RFC 4180 quoting. The tests cover the JSON route well; there is a review checklist in docs/REVIEW-CHECKLIST.md. Nothing irreversible is involved, and the owner wants it cheap unless there is a reason not to be.",
+  "candidates": [
+    {
+      "id": "lean",
+      "label": "Lean",
+      "graph": {
+        "file": "lean.grooph.json"
+      },
+      "basedOn": "grind-loop",
+      "rationale": "The route is small and the behaviour is fully checkable: the tests can assert the header, the quoting and that filters match the JSON route. When tests define done, a fast builder grinding against them is the smallest graph that works. Five rounds and thirty minutes cap the spend.",
+      "pros": [
+        "cheapest and fastest: one fast agent and the test suite",
+        "the tests it writes stay behind as the regression net"
+      ],
+      "cons": [
+        "nobody reads the code but the builder; quoting edge cases are only as good as the tests it thinks of",
+        "no human sees the change before it lands in the branch"
+      ],
+      "profile": {
+        "cost": "low",
+        "speed": "fast",
+        "rigor": "light"
+      }
+    },
+    {
+      "id": "reviewed",
+      "label": "Reviewed",
+      "graph": {
+        "file": "reviewed.grooph.json"
+      },
+      "basedOn": "review-gate",
+      "rationale": "The project already has a review checklist, so an isolated critic has an inspectable bar and can catch what tests miss: streaming for large result sets, content-disposition, a filter the CSV route forgot. A human approves the merge. It costs a second agent per round but no planning pass.",
+      "pros": [
+        "a second reader against the checklist the project already keeps",
+        "the human approves before merge"
+      ],
+      "cons": [
+        "builder and critic both run on the strong tier, so the critic may share the builder's blind spots (W_HOMOGENEOUS_CRITICS)",
+        "about twice the spend of Lean per round"
+      ],
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "standard"
+      }
+    },
+    {
+      "id": "rigorous",
+      "label": "Rigorous",
+      "graph": {
+        "file": "rigorous.grooph.json"
+      },
+      "basedOn": "spec-then-loop",
+      "rationale": "A frontier planner writes ACCEPTANCE.md first (which filters, which encodings, what happens at ten thousand rows) and the owner approves it before any code is written; the critic then judges against that answer key. It is the right shape if 'the same rows' hides decisions nobody has made yet.",
+      "pros": [
+        "the edge cases are decided and approved up front, in writing",
+        "the critic judges against an answer key made for this change"
+      ],
+      "cons": [
+        "the planning pass and an extra approval cost more than the change itself if the spec is already obvious",
+        "slowest of the three"
+      ],
+      "profile": {
+        "cost": "medium",
+        "speed": "medium",
+        "rigor": "high"
+      }
+    }
+  ],
+  "recommendation": {
+    "candidate": "lean",
+    "why": "The behaviour is fully testable and nothing is irreversible, so tests are the bar; pay for a critic only if you want someone to read the code."
+  }
+}

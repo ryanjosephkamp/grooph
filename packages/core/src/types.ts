@@ -267,3 +267,56 @@ export type RunNote = {
   /** free commentary, short */
   text?: string;
 };
+
+/* ------------------------------------------------------------------ *
+ * Proposal sets (docs/executive.md §1): the candidates an executive
+ * offers for one project, and the reasoning, as data.
+ * ------------------------------------------------------------------ */
+
+export type ProposalSet = {
+  /** document schema version */
+  groophProposals: 0;
+  id: Id;
+  title: string;
+  /** the project and its constraints as the executive understood them */
+  brief: string;
+  /** one to four */
+  candidates: Candidate[];
+  recommendation?: { candidate: Id; why: string };
+};
+
+export type Candidate = {
+  id: Id;
+  /** "Lean", "Fast", "Rigorous": a word the owner can say back */
+  label: string;
+  /** `{ file }` is resolved against the proposal set's folder and inlined by `grooph share` */
+  graph: Graph | CandidateFile;
+  /** template id, when it started from one */
+  basedOn?: string;
+  /** why this shape fits this project, three or four sentences */
+  rationale: string;
+  pros: string[];
+  /** include any validation warning, in plain words */
+  cons: string[];
+  profile: Profile;
+  /** computed by core (`estimateShape`), never written by the executive */
+  shape?: Shape;
+};
+
+export type CandidateFile = { file: string };
+
+export type ShapeTier = Tier | "unset";
+
+/** Structural and honest: counts and brakes, no dollar figures. */
+export type Shape = {
+  agents: number;
+  checks: number;
+  /** human-gate nodes plus edges that need approval */
+  gates: number;
+  loops: number;
+  tiers: Record<ShapeTier, number>;
+  /** sum over loops of their max-iterations, nested loops multiplied; null when a loop has none */
+  worstCaseRounds: number | null;
+  /** each loop's budget stop, as text */
+  budgets: string[];
+};

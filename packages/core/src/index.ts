@@ -11,3 +11,6 @@ export { KNOWN_TARGETS, getProfile, hasProfile, type TargetProfile } from "./tar
 export * from "./ops/index.js";
 export * from "./template.js";
 export { closest, didYouMean } from "./suggest.js";
+export * from "./proposals.js";
+export * from "./share.js";
+export { proposalSetSchema, proposalsJsonSchema, PROPOSALS_SCHEMA_ID } from "./schema/proposals.js";
