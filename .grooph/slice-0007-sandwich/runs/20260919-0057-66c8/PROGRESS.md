@@ -7,23 +7,24 @@
 ## Position
 
 - **Round:** 0 (no back edge taken yet)
-- **Lead turns used:** ~7 of 80 (budget stop; a turn is one lead tool-use cycle, counted by hand)
-- **Now:** dispatching `builder` (round 0)
+- **Lead turns used:** ~14 of 80 (budget stop; a turn is one lead tool-use cycle, counted by hand)
+- **Now:** `critic` running (round 0) on head 0b52a82
 - **Last stop check:** before round 0 — bar not passed; max-iterations 0/5; budget ~7/80 turns. None fired.
 
 ## Nodes
 
 | node | status | last result |
 |---|---|---|
-| `builder` | pending | — |
-| `checks` | pending | — |
-| `critic` | pending | — |
+| `builder` | done | round 0: criteria 1–11 implemented, commits daebea8..0b52a82 |
+| `checks` | pass | round 0: exit 0 at 0b52a82 (`round-0/check-output.txt`) |
+| `critic` | running | round 0 dispatched |
 | `done` | pending | — |
 
 ## Rounds
 
 | round | builder | checks | critic |
 |---|---|---|---|
+| 0 | done (6 commits) | pass | running |
 
 ## Amendments
 
