@@ -146,7 +146,9 @@ function buildScratch(template, experiment) {
   run("git", ["-C", scratch, "commit", "-qm", `task and the grooph package for ${template}`]);
   const base = run("git", ["-C", scratch, "rev-parse", "HEAD"]).stdout.trim();
   const sourcePath = join(scratch, ".grooph", doc.id, "graph.grooph.json");
-  return { scratch, graphId: doc.id, doc, base, sourceSha: sha256(sourcePath), exportOutput: exported.stdout };
+  const harnessDir = `${scratch}.harness`;
+  mkdirSync(harnessDir);
+  return { scratch, harnessDir, graphId: doc.id, doc, base, sourceSha: sha256(sourcePath), exportOutput: exported.stdout };
 }
 
 /** The built-in pattern the CLI bundles must be this branch's, or the run measures a stale template. */
@@ -168,15 +170,17 @@ function claudeSignedIn() {
 }
 
 // ── one model-calling invocation ─────────────────────────────────────────
-function invoke({ ledger, template, kind, retry, scratch, binDir, prompt, resumeSession, suffix, note }) {
+function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, prompt, resumeSession, suffix, note }) {
   const decision = gate(ledger, { template, kind, retry });
   if (!decision.ok) fail(`the ledger refuses this ${kind}: ${decision.reason}`);
   const entry = openEntry(ledger, { template, kind, maxBudget: decision.maxBudget, retry, sessionId: resumeSession, note });
   saveLedger(ledger);
   console.log(`ledger: invocation ${entry.n} opened; $${decision.remaining.toFixed(2)} remains, this one is capped at $${decision.maxBudget.toFixed(2)}`);
 
-  const outPath = join(scratch, `claude-output${suffix}.json`);
-  const errPath = join(scratch, `claude-stderr${suffix}.txt`);
+  // The harness's own output goes beside the project, not into it: a run that sees an
+  // unexplained file in its tree may report it, or a critic may judge it.
+  const outPath = join(harnessDir, `claude-output${suffix}.json`);
+  const errPath = join(harnessDir, `claude-stderr${suffix}.txt`);
   const args = ["-p", prompt, "--permission-mode", "acceptEdits", "--output-format", "json", "--settings", JSON.stringify(SETTINGS), "--max-budget-usd", decision.maxBudget.toFixed(2)];
   if (resumeSession) args.push("--resume", resumeSession);
   const out = openSync(outPath, "w");
@@ -226,12 +230,12 @@ export function collect({ template, experiment, built, invocations, prompts, evi
   for (const name of readdirSync(join(scratch, ".claude", "agents")).filter((n) => n.startsWith(`${graphId}--`))) cpSync(join(scratch, ".claude", "agents", name), join(pkg, "agents", name));
   cpSync(join(scratch, ".claude", "skills", graphId, "SKILL.md"), join(pkg, "skill", "SKILL.md"));
 
-  const { diff, files } = projectDiff(scratch, built.base, [`.grooph/${graphId}/runs`, "claude-output*.json", "claude-stderr*.txt"]);
+  const { diff, files } = projectDiff(scratch, built.base, [`.grooph/${graphId}/runs`]);
   writeFileSync(join(evidenceDir, "project.diff"), diff, "utf8");
 
   for (const inv of invocations) {
-    cpSync(join(scratch, inv.outFile), join(evidenceDir, inv.outFile));
-    const errText = readFileSync(join(scratch, inv.errFile), "utf8");
+    cpSync(join(built.harnessDir, inv.outFile), join(evidenceDir, inv.outFile));
+    const errText = readFileSync(join(built.harnessDir, inv.errFile), "utf8");
     if (errText.trim()) writeFileSync(join(evidenceDir, inv.errFile), errText, "utf8");
   }
   writeFileSync(join(evidenceDir, "settings.json"), `${JSON.stringify(SETTINGS, null, 2)}\n`, "utf8");
@@ -394,7 +398,7 @@ async function main() {
     const prompts = { "kickoff.md": kickoff };
 
     say("running the package headless (this spends money)");
-    const first = invoke({ ledger, template: args.template, kind: "kickoff", retry: args.retry, scratch: built.scratch, binDir, prompt: kickoff, suffix: "", note: args.retry ? `retry: ${args.retry}` : "" });
+    const first = invoke({ ledger, template: args.template, kind: "kickoff", retry: args.retry, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt: kickoff, suffix: "", note: args.retry ? `retry: ${args.retry}` : "" });
     first.notesAfter = notesPath() ? readNotes(notesPath()).lines : 0;
     invocations.push(first);
     const runId = runFolders(join(built.scratch, ".grooph", built.graphId, "runs"))[0] ?? null;
@@ -417,6 +421,7 @@ async function main() {
           template: args.template,
           kind: "resume",
           scratch: built.scratch,
+          harnessDir: built.harnessDir,
           binDir,
           prompt,
           resumeSession: first.output.session_id,
