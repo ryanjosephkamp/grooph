@@ -9,7 +9,8 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 3. [`spec/capability-spec.md`](spec/capability-spec.md) with [`spec/AMENDMENTS.md`](spec/AMENDMENTS.md) — the product contract. The spec is frozen; it changes only through amendments.
 4. [`docs/graph-ir.md`](docs/graph-ir.md) — the graph document: schema, semantics, error codes. Read before touching `packages/core`, any fixture, or any compiler.
 5. [`docs/templates.md`](docs/templates.md) — templates, registries and the pattern library. Read before touching `patterns/` or any template code.
-6. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
+6. [`docs/executive.md`](docs/executive.md) — proposal sets, share links, the compare view, and how the `grooph-design` skill (under `plugins/grooph/`) uses them.
+7. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
 
 ## Roles
 
@@ -42,5 +43,6 @@ apps/web     installable local-first web app                     — created in 
 patterns/    built-in pattern library, one graph document each
 fixtures/    graphs per error code, golden packages
 experiments/ paired harness runs (later)
+plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin
 .claude/skills/  project skills: grooph-handoff, grooph-handback, grooph-reconcile
 ```

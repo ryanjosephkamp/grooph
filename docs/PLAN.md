@@ -45,19 +45,25 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0002 | 2 | Minimal canvas | Opus 5 | done 2026-09-18 |
 | 0003 | 9 | Read-only review of the graph document for harness neutrality | Astra (Codex) | deferred (Codex quota); runs before stage 9 |
 | 0004 | 3 | Core for agents | Opus 5 | done 2026-09-18 |
-| 0005 | 4 | Templates and the pattern library (core, CLI, `patterns/`, published index) | Opus 5 | in progress (confirmed 2026-09-18) |
-| 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | todo |
+| 0005 | 4 | Templates and the pattern library (core, CLI, `patterns/`, published index) | Opus 5 | done 2026-09-18 |
+| 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | handoff drafted, awaiting owner confirmation |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 | todo |
 
 ## Carried into slice 0004 (done)
 
 From review 0001: `kind` second in canonical key order (golden regeneration); graph id in `E_DUPLICATE_ID`; `write-outputs` with `W_OUTPUT_NOT_WRITABLE`, and the review-loop fixture updated to use it; `W_UNKNOWN_KEY`; the non-★ rules; canonical fixtures; GitHub Actions version bump. From review 0002: typed operations into core; four unused locals in core; Chromium cache in CI.
 
-## Carried into slice 0005
+## Carried into slice 0005 (done)
 
 From review 0004: `E_IRREVERSIBLE_NO_GATE` per the reworded rule; lead-brief §9 op-list patch preference and kickoff-versus-redesign sentence; goldens regenerated.
 
-## Carried into slice 0007 (web editing polish)
+## Carried into slice 0006
+
+From review 0005: per-critic `W_HOMOGENEOUS_CRITICS`; `W_NO_TERMINAL` exemption for fragment templates.
+
+## Carried into slice 0007 (templates in the app, web editing polish)
+
+Bundle the built-in templates into the web app; browse, use, insert, save-as-template.
 
 Toolbar overlapping content while the sheet is open; undo; `navigator.storage.persist()`; a warning when a rename changes the id of an exported graph; self-loop edges by tap; keyboard selection of canvas nodes.
 
