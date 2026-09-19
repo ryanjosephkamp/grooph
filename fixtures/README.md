@@ -9,6 +9,8 @@ fixtures/
   invalid/<CODE>/<name>.grooph.json   graphs that must report that code
   invalid/<CODE>/<name>.expect.json   optional sidecar: every code that graph reports, exactly
   ops/<name>.ops.json                 op lists for `applyOps` / `grooph apply` (packages/core/README.md)
+  proposals/valid/<set>/              proposal sets (docs/executive.md §1) that validate clean, with their { file } graphs beside them
+  proposals/invalid/<CODE>/<name>.grooph-proposals.json   proposal sets that report exactly that code
   golden/<harness>/<graph>/           expected compiler output, byte-for-byte
 ```
 
@@ -35,3 +37,5 @@ Sidecar format:
 `ops/review-loop.ops.json` rebuilds `valid/review-loop.grooph.json` from the document `grooph new --name "Review loop"` writes; `packages/core/test/apply.test.ts` checks that byte for byte.
 
 `golden/<harness>/<graph>/` holds the files `compile()` emits, at the paths the target profile gives them, and is compared byte for byte. Regenerate it with `pnpm --filter @grooph/core run golden:write` and read the diff before committing: those files are the package a human reviews.
+
+`proposals/` follows the same rules for proposal sets, walked by `packages/core/test/proposals.test.ts`: every set rule has a folder under `proposals/invalid/`, each set there reports exactly its folder's code, every set is stored in canonical form, and every set under `proposals/valid/` validates clean both as written and with its `{ file }` candidates inlined. `proposals/valid/csv-export/` is the slice 0006 rehearsal set (three candidates from `grind-loop`, `review-gate` and `spec-then-loop`); the CLI and browser tests share it.
