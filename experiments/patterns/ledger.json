@@ -1,0 +1,40 @@
+{
+  "cap_usd": 25,
+  "refuse_below_usd": 6,
+  "per_invocation_ceiling_usd": 6,
+  "about": "Every model-calling invocation of slice 0009's proving runs, with its cost as the harness reported it (total_cost_usd). Written by scripts/prove-pattern.sh; never edited by hand. An unsettled cost counts at its ceiling.",
+  "invocations": [
+    {
+      "n": 1,
+      "template": "-",
+      "kind": "probe",
+      "started": "2026-09-19T16:30:07.229Z",
+      "ended": "2026-09-19T16:30:07.230Z",
+      "status": "ok",
+      "cost_usd": 0.0183627,
+      "reported_cost_usd": 0.0183627,
+      "max_budget_usd": 0.0183627,
+      "session_id": "82d85166-d9de-4a53-a6f3-347ad88300a0",
+      "run_id": null,
+      "retry": null,
+      "note": "harness probe, not a template run: claude -p (haiku, 1 turn) in an empty scratch dir, to learn how --resume reports cost"
+    },
+    {
+      "n": 2,
+      "template": "-",
+      "kind": "probe",
+      "started": "2026-09-19T16:30:07.267Z",
+      "ended": "2026-09-19T16:30:07.268Z",
+      "status": "ok",
+      "cost_usd": 0.0040993,
+      "reported_cost_usd": 0.0040993,
+      "max_budget_usd": 0.0040993,
+      "session_id": "82d85166-d9de-4a53-a6f3-347ad88300a0",
+      "run_id": null,
+      "retry": null,
+      "note": "harness probe: the same session with --resume reported 0.0040993 (its own tokens only), so resume cost is per invocation, not cumulative"
+    }
+  ],
+  "spent_usd": 0.022462,
+  "remaining_usd": 24.977538
+}
