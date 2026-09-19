@@ -292,7 +292,7 @@ function findLastIndex<T>(items: readonly T[], test: (item: T) => boolean): numb
 
 /** A run's state in a few words: `ended · pass`, `running`, `halted · halt`. */
 export const runStateLine = (summary: RunSummary): string =>
-  [summary.state, summary.outcome].filter((part) => part !== undefined).join(" · ");
+  summary.outcome === undefined || (summary.state === "halted" && summary.outcome === "halt") ? summary.state : `${summary.state} · ${summary.outcome}`;
 
 // ─── what the run changed ─────────────────────────────────────────────────
 
@@ -560,8 +560,10 @@ const comparable = (doc: Graph): string => {
  * For each change, the amendment notes that account for it: a note whose
  * op-list patch touches the same object (and, for an update, at least one of
  * the same fields); failing that, one whose text or patch names the object;
- * failing that, the only amendment when there is exactly one. An empty list
- * means no amendment explains the change, which the view says out loud.
+ * failing that, the only amendment when there is exactly one and it carries
+ * no op list (an op list says what it changed, so it explains nothing else).
+ * An empty list means no amendment explains the change, which the view says
+ * out loud.
  */
 export function explainChanges(changes: readonly GraphChange[], amendments: readonly RunNote[]): Id[][] {
   const ops = amendments.map((note) => (isOpList(note.amendment?.patch) ? (note.amendment!.patch as Op[]) : []));
@@ -573,7 +575,7 @@ export function explainChanges(changes: readonly GraphChange[], amendments: read
       const byName = amendments.filter((n) => word.test(`${n.amendment!.summary} ${n.amendment!.reason} ${JSON.stringify(n.amendment!.patch ?? "")}`));
       if (byName.length > 0) return byName.map((n) => n.id);
     }
-    return amendments.length === 1 ? [amendments[0]!.id] : [];
+    return amendments.length === 1 && ops[0]!.length === 0 ? [amendments[0]!.id] : [];
   });
 }
 

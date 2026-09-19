@@ -145,6 +145,7 @@ test("started notes: a node whose last note is a start is running, and so is the
 test("halted at a gate: the run is halted, the gate halted, the bar-passed stop read from the loop note", () => {
   const s = summaryOf("run-gate");
   assert.equal(s.state, "halted");
+  assert.equal(runStateLine(s), "halted");
   assert.equal(s.outcome, "halt");
   assert.equal(s.ended, "2026-09-19T12:14:06Z");
   assert.equal(s.nodes["merge-gate"]!.state, "halted");
@@ -309,6 +310,8 @@ test("explainChanges matches by patch, then by name, then the only amendment; ot
   assert.deepEqual(explainChanges(changes, [a, b]), [[], ["a1"], ["a2"]]);
   assert.deepEqual(explainChanges(changes, [b]), [["a2"], ["a2"], ["a2"]]);
   assert.deepEqual(explainChanges(changes, []), [[], [], []]);
+  // An amendment with an op list explains only what its ops touch, even when it is the only one.
+  assert.deepEqual(explainChanges(changes, [a]), [[], ["a1"], []]);
 });
 
 // ─── patches ──────────────────────────────────────────────────────────────
