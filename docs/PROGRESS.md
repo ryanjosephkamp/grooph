@@ -4,29 +4,21 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 5 (the executive path) is built, merged and live. The driver ran `grooph-design` for real at reconcile: three candidate workflows for slice 0007, shared as a link that opens the compare view on the live site.
+- **Stage:** 0 through 5 are done and live. Slice 0007 ran through grooph itself (run `20260919-0057-66c8`: critic failed round 0, passed round 1, one kickoff amendment, one proposal), needed one small plain fix pass, and is merged. The run's amendment was adopted by hand as version 2 of `slice-0007-sandwich`.
 - **Live app:** https://ryanjosephkamp.github.io/grooph/ · **Published templates:** https://ryanjosephkamp.github.io/grooph/patterns/index.json
-- **Next action:** fix pass 1 for slice 0007 (Save-as-template validation, 44 px chips), then merge. Background: slice 0007 ran through grooph itself: the owner picked "Sandwich" on the phone; the package `slice-0007-sandwich` is placed on `main` (2 agents · 1 check · 1 loop · up to 5 rounds · 80 turns) and an Opus 5 lead session runs it. `grooph` and `/grooph-design` are installed on the owner's machine.
-- **Then:** slice 0007 (templates in the app, undo, storage persistence); the pattern proving ground (needs spend approval); notes back and the run monitor.
-- **What works today:** describe a project to a Claude Code session with the `grooph-design` skill → candidates from templates or scratch → `grooph share` link → compare on the phone → `grooph pick` → `grooph export`. Sixteen published templates. Adaptive-by-default packages proven in one real run.
+- **Next action (owner):** choose what comes next: stage 7 (notes back and the run monitor, no model spend) and/or stage 6 (pattern proving ground, needs a spend cap).
+- **What works today:** describe a project to a Claude Code session with `/grooph-design` → candidates from templates or scratch → share link → compare on the phone → pick → package placed. In the app: template library (browse, use, insert, save as, import), undo and redo, persistent storage request, read-only link viewer and compare view. CLI: `validate`, `canonicalize`, `new`, `apply`, `export`, `template …`, `share`, `pick`, `shape`. Sixteen published templates. Three real runs on record.
 
 ## In flight
 
-### Slice 0007
-
-- Criterion 1 met (2026-09-19): `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` exits 0 at 0b52a82, and CI is green on `slice/0007-web-templates` (run 35423741584; frozen-lockfile install, Node 22 and 24, web-e2e). Run `20260919-0057-66c8`, round 0.
-- Criteria 2–10 met (2026-09-19), per the run's critic, round 0 (`.grooph/slice-0007-sandwich/runs/20260919-0057-66c8/round-0/REVIEW.md`): template library, Use, Insert, Save as template, undo and redo, storage persistence, toolbar and sheet, rename warning, the three items carried from review 0006.
-- Criterion 11 met (2026-09-19), per the run's critic, round 1 (`round-1/REVIEW.md`): 44 px floor for `.btn-small` (storage notice "Got it"), browser tests at 400×800 for 2–9, screenshots in the slice folder. Run `20260919-0057-66c8` ended at `done` (bar passed) after 1 round; handback next.
-- Handback (2026-09-19): **needs fix pass** at 1745a1a. Re-verification after the run found criterion 5 partly unmet (Save as template keeps templates that carry errors, which `grooph template save` refuses and `template add` rejects) and criterion 11 partly unmet (the Save form's `.chip` node chips are 40 px). See `handoffs/0007-web-templates/HANDBACK.md`.
-- Fix pass 1, criterion 1 met (2026-09-19): Save as template and template import refuse a template that carries errors, showing the issues and the CLI's "loop … stayed behind" hint; unit tests in `apps/web/test/templates.test.ts`, browser tests in `e2e/templates.spec.ts` (bea7219).
-- Fix pass 1, criterion 2 met (2026-09-19): `.chip` tap targets are 44 px; `e2e/editing.spec.ts` measures an issue chip, an Allow chip, the Graph panel's loop chip, loop member and back-edge chips, and a Save-form node chip at 400×800 (ff6fd68).
-- Fix pass 1, criterion 3 met (2026-09-19): build, tests (core 210, cli 45, web 43) and browser tests (37) exit 0; CI green at ff6fd68 (run 35451283568); new screenshot `save-template-refused-phone-light.png`, the others unchanged.
+_(none)_
 
 ## Waiting on the owner
 
 | Item | Recommended answer |
 |---|---|
-| Confirm fix pass 1 for slice 0007 (`handoffs/0007-web-templates/FIXPASS-1.md`), a plain Opus session at effort medium | Yes |
+| What runs next | Stage 7 first (notes back + run monitor); the proving ground's first batch in parallel with a spend cap |
+| Spend cap for the proving ground's first batch (five templates, one headless run each, about $2–5 per run) | $25 |
 
 ## Deferred until Codex is available
 
@@ -37,6 +29,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 | Date | What |
 |---|---|
+| 2026-09-19 | Slice 0007 merged after fix pass 1: templates in the app, undo/redo, storage persistence, docked toolbar, rename warning, compare view opens on the recommendation, nearest-writer critic rule. First slice built by a grooph run; first working copy adopted (v2). Skill gained two lessons (point at sources of truth; give critics the repository). |
 | 2026-09-18 | Slice 0006 reconciled and merged: proposal sets, share links, compare view, `grooph share/pick/shape`, plugin manifests, local install script. Skill revised from the implementer's notes. Driver ran the skill end to end for slice 0007's workflow; link verified on the live site. |
 | 2026-09-18 | Slice 0005 reconciled and merged: template block and operations, registries and `grooph template …`, sixteen patterns with generated index, library published with the site. `docs/executive.md` and the `grooph-design` skill written by the driver. |
 | 2026-09-18 | Slice 0004 reconciled and merged: operations in core with `applyOps`, all §3 rules with fixtures, adaptation in document and compiler, `grooph new/apply`, second golden, acceptance run passed ($2.12). Ambiguities resolved in graph-ir; `docs/templates.md` written with the sixteen pattern specifications. |
@@ -52,8 +45,6 @@ The one file that says where grooph is right now. The driver rewrites it after e
 ## Known risks
 
 - Real-finger pinch, drag and on-screen keyboard behaviour is untested; only browser touch emulation has run.
-- Graphs live in the browser's IndexedDB with no persistence request yet; Android may evict them under storage pressure. Until stage 3, Export → download is the backup. No undo yet.
 - One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised.
-- The typed document operations live in the web app; they must move into core before the MCP server (stage 5).
 - Claude Code native units change between releases. `targets/claude-code.md` pins what was verified (2.1.268) and when.
 - `turns` budgets bound the lead's own count (25 vs the harness's 33). Dollar budgets are advisory in Claude Code.

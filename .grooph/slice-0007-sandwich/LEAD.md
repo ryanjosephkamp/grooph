@@ -1,6 +1,6 @@
 # Lead brief · Slice 0007 sandwich
 
-Graph `slice-0007-sandwich` v1 · target `claude-code` · compiled by grooph from `.grooph/slice-0007-sandwich/graph.grooph.json`.
+Graph `slice-0007-sandwich` v2 · target `claude-code` · compiled by grooph from `.grooph/slice-0007-sandwich/graph.grooph.json`.
 
 This file is generated. Edit the graph document and export again, or hand-edit and record what you changed — the next export overwrites it.
 
@@ -18,11 +18,11 @@ Implement grooph slice 0007 in apps/web: browse, use, insert and save-as templat
 
 **Constraints.**
 
-- **Other.** Touch apps/web only. The critic also reads phone-width screenshots, which tests cannot judge.
+- **Other.** Touch only the paths handoffs/0007-web-templates/HANDOFF.md allows: apps/web/**; packages/core/**, packages/cli/**, fixtures/** and patterns/*.expect.json only for criterion 10; .github/workflows/ci.yml only if a test step needs it; root package.json and pnpm-lock.yaml only for a genuine dependency change; handoffs/0007-web-templates/** for screenshots; this run's folder for run files. Its forbidden paths stand. The critic also reads phone-width screenshots, which tests cannot judge.
 
 **What this graph does.**
 
-A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, after five rounds, or at fifty turns.
+A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes or when one of the loop's brakes fires.
 
 ## 3. Run setup
 
@@ -44,9 +44,9 @@ Entry nodes (start here): `builder`.
 
 | node | name | how you run it | role | what it returns |
 |---|---|---|---|---|
-| `builder` | Builder | `Agent` · `slice-0007-sandwich--builder` | builder | the change, with tests, committed on branch slice/0007-web-templates; CHANGES.md: what changed this round; phone-width screenshots of the new screens in handoffs/0007-web-templates/ |
+| `builder` | Builder | `Agent` · `slice-0007-sandwich--builder` | builder | the change, with tests, committed on branch slice/0007-web-templates; CHANGES.md: what changed this round, at .grooph/slice-0007-sandwich/runs/<run-id>/round-<n>/CHANGES.md; phone-width screenshots of the new screens in handoffs/0007-web-templates/ |
 | `checks` | Cheap checks | you run `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` | check | pass when: exit code 0 |
-| `critic` | Critic | `Agent` · `slice-0007-sandwich--critic` | critic | REVIEW.md: findings by checklist item and a verdict line; verdict: pass \| fail \| invalid-evidence |
+| `critic` | Critic | `Agent` · `slice-0007-sandwich--critic` | critic | REVIEW.md: findings by checklist item and a verdict line, at .grooph/slice-0007-sandwich/runs/<run-id>/round-<n>/REVIEW.md (never handoffs/0007-web-templates/REVIEW.md, which the driver writes); verdict: pass \| fail \| invalid-evidence |
 | `done` | Done | you end the run | stop | run ends with outcome success |
 
 Dispatch an agent node with the `Agent` tool and the `subagent_type` named above; its file under `.claude/agents/` carries the full brief, so your prompt carries only the task, the declared inputs and the edge's evidence. Never paste a transcript into a fresh worker.

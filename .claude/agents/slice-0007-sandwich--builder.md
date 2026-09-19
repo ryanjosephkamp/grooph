@@ -24,7 +24,7 @@ Do the task in the code, with tests. On a later round you get either the failing
 Leave all of these behind before you report:
 
 - the change, with tests, committed on branch slice/0007-web-templates
-- CHANGES.md: what changed this round
+- CHANGES.md: what changed this round, at .grooph/slice-0007-sandwich/runs/<run-id>/round-<n>/CHANGES.md
 - phone-width screenshots of the new screens in handoffs/0007-web-templates/
 
 ## Ownership
@@ -52,7 +52,7 @@ End your reply with exactly this block, and keep it short — the lead routes on
 verdict: done
 outputs:
   - the change, with tests, committed on branch slice/0007-web-templates — <where you left it>
-  - CHANGES.md: what changed this round — <where you left it>
+  - CHANGES.md: what changed this round, at .grooph/slice-0007-sandwich/runs/<run-id>/round-<n>/CHANGES.md — <where you left it>
   - phone-width screenshots of the new screens in handoffs/0007-web-templates/ — <where you left it>
 changes:
   - <what you changed this round, and why>

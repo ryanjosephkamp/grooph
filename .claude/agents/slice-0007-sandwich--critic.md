@@ -25,7 +25,7 @@ Judge only what `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test
 
 Leave all of these behind before you report:
 
-- REVIEW.md: findings by checklist item and a verdict line
+- REVIEW.md: findings by checklist item and a verdict line, at .grooph/slice-0007-sandwich/runs/<run-id>/round-<n>/REVIEW.md (never handoffs/0007-web-templates/REVIEW.md, which the driver writes)
 - verdict: pass | fail | invalid-evidence
 
 Write them yourself. With `write-outputs` you may create or overwrite only the files you declare in these outputs, and no other file.
@@ -58,7 +58,7 @@ End your reply with exactly this block, and keep it short — the lead routes on
 ```text
 verdict: fail | pass | invalid-evidence
 outputs:
-  - REVIEW.md: findings by checklist item and a verdict line — <where you left it>
+  - REVIEW.md: findings by checklist item and a verdict line, at .grooph/slice-0007-sandwich/runs/<run-id>/round-<n>/REVIEW.md (never handoffs/0007-web-templates/REVIEW.md, which the driver writes) — <where you left it>
   - verdict: pass | fail | invalid-evidence — <where you left it>
 findings:
   - <file>:<line> — <what is wrong, or the item it satisfies>
