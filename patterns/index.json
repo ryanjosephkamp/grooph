@@ -30,7 +30,7 @@
       "version": 1,
       "kind": "graph",
       "title": "Debate then build",
-      "summary": "Two planners argue opposite approaches for at most two rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
+      "summary": "Two planners argue opposite approaches for a capped number of rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
       "whenToUse": "Short adversarial planning, then a small build graph: the right approach is genuinely unclear and a wrong choice is expensive to undo.",
       "profile": {
         "cost": "medium",

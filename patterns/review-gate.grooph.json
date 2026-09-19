@@ -41,7 +41,7 @@
       "human-gate"
     ]
   },
-  "description": "A builder implements the task. A critic in a fresh context checks the diff and test output against a written checklist; failures return to the builder with REVIEW.md, and a pass goes to a human merge gate, whose rejection also returns to the builder. The loop stops when the bar passes, after four rounds, or at forty turns. Builder and critic share a tier, which the validator flags; heterogeneous-critic is the same shape with the critic on another tier.",
+  "description": "A builder implements the task. A critic in a fresh context checks the diff and test output against a written checklist; failures return to the builder with REVIEW.md, and a pass goes to a human merge gate, whose rejection also returns to the builder. The loop stops when the bar passes, at its round cap, or at its turn budget. Builder and critic share a tier, which the validator flags; heterogeneous-critic is the same shape with the critic on another tier.",
   "nodes": [
     {
       "id": "builder",
@@ -76,9 +76,10 @@
         "tier": "strong"
       },
       "effort": "high",
-      "brief": "Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet. Run the test command yourself rather than trusting a report. You judge; you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.",
+      "brief": "Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet; use the repository only to understand what the change touches. Run the test command yourself rather than trusting a report; you judge, you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.",
       "inputs": [
         "diff of the change",
+        "the repository at the head commit, read-only",
         "{{checklist}}"
       ],
       "outputs": [
@@ -118,6 +119,7 @@
       "to": "critic",
       "evidence": [
         "diff of the change",
+        "the repository at the head commit, read-only",
         "output of {{test-command}}",
         "{{checklist}}"
       ]

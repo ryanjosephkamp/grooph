@@ -13,6 +13,10 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 _(slices 0008 and 0009 create their entries here)_
 
+### Slice 0009
+
+- 2026-09-19 · criterion 7 met: critics in `review-gate` and `metric-sandwich` read the repository at the head commit, read-only, beside the diff; no pattern restates a brake value, and `scripts/check-brake-values.mjs` (in CI) fails when one does.
+
 ## Waiting on the owner
 
 _(nothing until the 0008 and 0009 handbacks; owner decisions on 2026-09-19: both in parallel, $25 cap for the first proving batch, gates halt and are recorded)_

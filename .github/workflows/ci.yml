@@ -54,6 +54,10 @@ jobs:
       - name: the pattern index is current
         run: node scripts/patterns-index.mjs --check
 
+      # A loop's stops are the only place its numbers live (handoff 0009, criterion 7).
+      - name: no pattern restates a brake value
+        run: node scripts/check-brake-values.mjs
+
       # An agent's route from a name to an exportable graph, through the bundled library only.
       - name: a built-in template instantiates and exports
         env:

@@ -46,7 +46,7 @@
       "bar"
     ]
   },
-  "description": "A builder works and a frontier critic in a fresh context reports against both lines of the bar. The acceptance (the ship line) decides the verdict; the aspiration only ranks what to improve next and never fails a round. The loop stops when the ship line holds, when two rounds bring no improvement, after five rounds, or at fifty turns.",
+  "description": "A builder works and a frontier critic in a fresh context reports against both lines of the bar. The acceptance (the ship line) decides the verdict; the aspiration only ranks what to improve next and never fails a round. The loop stops when the ship line holds, when rounds stop bringing improvement, at its round cap, or at its turn budget.",
   "nodes": [
     {
       "id": "builder",

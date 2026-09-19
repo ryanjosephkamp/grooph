@@ -10,7 +10,7 @@
   "template": {
     "kind": "graph",
     "title": "Debate then build",
-    "summary": "Two planners argue opposite approaches for at most two rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
+    "summary": "Two planners argue opposite approaches for a capped number of rounds, a judge writes the plan, a human approves it, and a small grind loop builds it.",
     "whenToUse": "Short adversarial planning, then a small build graph: the right approach is genuinely unclear and a wrong choice is expensive to undo.",
     "notFor": "Work with an obvious approach, or where drafts are cheaper than arguments (use tournament-then-judge).",
     "profile": {
@@ -38,7 +38,7 @@
       "grind"
     ]
   },
-  "description": "One planner argues for the simplest approach that could work, the other against it and for the strongest alternative. A frontier judge reads both cases and either asks for one more exchange or writes PLAN.md; the debate is capped at two rounds, after which the judge must decide. A human approves the plan, and a fast builder grinds the first version against the tests.",
+  "description": "One planner argues for the simplest approach that could work, the other against it and for the strongest alternative. A frontier judge reads both cases and either asks for one more exchange or writes PLAN.md; the debate has a round cap, after which the judge must decide. A human approves the plan, and a fast builder grinds the first version against the tests.",
   "nodes": [
     {
       "id": "planner-a",

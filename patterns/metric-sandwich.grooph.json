@@ -41,7 +41,7 @@
       "review"
     ]
   },
-  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, after five rounds, or at fifty turns.",
+  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, at its round cap, or at its turn budget.",
   "nodes": [
     {
       "id": "builder",
@@ -86,9 +86,10 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Judge only what `{{test-command}}` cannot see, the items in the checklist, for a change that already passes it. Do not rerun or restate the checks. Cite the file and line for each finding; you judge, you do not fix. Verdict pass when no checklist item is unmet.",
+      "brief": "Judge only what `{{test-command}}` cannot see, the items in the checklist, for a change that already passes it; use the repository only to understand what the change touches. Do not rerun or restate the checks. Cite the file and line for each finding; you judge, you do not fix. Verdict pass when no checklist item is unmet.",
       "inputs": [
         "diff of the change",
+        "the repository at the head commit, read-only",
         "{{checklist}}"
       ],
       "outputs": [
@@ -132,6 +133,7 @@
       "when": "pass",
       "evidence": [
         "diff of the change",
+        "the repository at the head commit, read-only",
         "{{checklist}}"
       ]
     },
