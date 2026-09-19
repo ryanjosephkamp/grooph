@@ -12,6 +12,7 @@ import {
   readGraphFile,
   renameGraph,
 } from "../store/library.js";
+import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
 import { saveUserTemplate } from "../store/templates.js";
 import { PersistNotice } from "./Notices.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
@@ -40,7 +41,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   const [menu, setMenu] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ key: string; name: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [templateOffer, setTemplateOffer] = useState<{ name: string; doc: Graph; exists?: Graph } | null>(null);
+  const [templateOffer, setTemplateOffer] = useState<{ name: string; doc: Graph; exists?: Graph; refusal: TemplateRefusal | null } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -71,8 +72,9 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
     }
     setImportProblem(null);
     if (result.doc.template) {
-      // A template file (from Download template, or a registry): offer it to "Yours" rather than opening it as a graph.
-      setTemplateOffer({ name: file.name, doc: result.doc });
+      // A template file (from Download template, or a registry): offer it to "Yours" rather than opening it as a graph,
+      // unless it carries errors, which grooph template add refuses too.
+      setTemplateOffer({ name: file.name, doc: result.doc, refusal: templateRefusal(result.doc) });
       return;
     }
     const record = await importGraph(result.doc);
@@ -138,8 +140,12 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
         <div className="offer" role="alert">
           <p>
             <strong>{templateOffer.name} is a template:</strong> {templateOffer.doc.template!.title}
-            {templateOffer.doc.template!.kind === "fragment" ? " (a fragment)" : ""}. Add it to Yours to use it from Templates.
+            {templateOffer.doc.template!.kind === "fragment" ? " (a fragment)" : ""}.{" "}
+            {templateOffer.refusal
+              ? "It carries errors, so it cannot go into Yours; grooph template add refuses it too. Open it as a graph to fix it."
+              : "Add it to Yours to use it from Templates."}
           </p>
+          {templateOffer.refusal ? <pre className="issue-lines">{templateOffer.refusal.issues.map(formatIssue).join("\n")}</pre> : null}
           {templateOffer.exists ? (
             <p className="field-hint">
               Yours already has a template with the id <span className="mono">{templateOffer.doc.id}</span> (version {templateOffer.exists.version}). Replacing it
@@ -147,7 +153,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
             </p>
           ) : null}
           <div className="offer-actions">
-            {templateOffer.exists ? (
+            {templateOffer.refusal ? null : templateOffer.exists ? (
               <button type="button" className="btn btn-primary" onClick={() => void addTemplate(templateOffer.doc, true)}>
                 Replace yours
               </button>

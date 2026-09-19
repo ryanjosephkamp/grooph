@@ -1,10 +1,10 @@
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { findSlots, insertFragment, instantiate, validate } from "@grooph/core";
+import { extractTemplate, findSlots, insertFragment, instantiate, validate } from "@grooph/core";
 import { describe, expect, test } from "vitest";
 
-import { BUILT_IN_TEMPLATES, filledValues, graphIdFor, slotsOf } from "../src/doc/templates.js";
+import { BUILT_IN_TEMPLATES, filledValues, graphIdFor, slotsOf, templateRefusal } from "../src/doc/templates.js";
 import { repoRoot, reviewLoop } from "./helpers.js";
 
 describe("the bundled pattern library (handoff 0007, criterion 2)", () => {
@@ -49,5 +49,31 @@ describe("use and insert go through core (criteria 3 and 4)", () => {
     const { doc, ids } = insertFragment(host, fragment, { values: {} });
     expect(doc.nodes.length).toBe(host.nodes.length + fragment.nodes.length);
     if (host.nodes.some((n) => n.id === "done")) expect(ids["done"]).not.toBe("done");
+  });
+});
+
+describe("Yours keeps only templates that validate (fix pass 1, criterion 1)", () => {
+  const meta = { id: "build-and-review", title: "Build and review", summary: "A builder and its critic.", whenToUse: "Any change." };
+  const fragment = (nodeIds: string[]) => extractTemplate(reviewLoop(), { kind: "fragment", nodeIds, meta });
+
+  test("a fragment that leaves its loop behind is refused, with the CLI's hint", () => {
+    const refusal = templateRefusal(fragment(["builder", "critic"]), reviewLoop());
+    expect(refusal?.issues.some((i) => i.code === "E_CYCLE_NO_STOP" && i.severity === "error")).toBe(true);
+    expect(refusal?.hints).toEqual([
+      'loop "review-cycle" stayed behind: a loop comes along only with all its members; add merge-gate (Merge approval) to the selected nodes',
+    ]);
+  });
+
+  test("the same file, imported without its source graph, is refused with no hint", () => {
+    expect(templateRefusal(fragment(["builder", "critic"]))?.hints).toEqual([]);
+  });
+
+  test("bringing every member along, or the whole graph, is kept", () => {
+    expect(templateRefusal(fragment(["builder", "critic", "merge-gate"]), reviewLoop())).toBeNull();
+    expect(templateRefusal(extractTemplate(reviewLoop(), { kind: "graph", meta }), reviewLoop())).toBeNull();
+  });
+
+  test("every bundled pattern would be kept", () => {
+    for (const doc of BUILT_IN_TEMPLATES) expect(templateRefusal(doc), doc.id).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { expect, test } from "@playwright/test";
 
-import { parseGraphText } from "@grooph/core";
+import { canonicalize, extractTemplate, parseGraphText } from "@grooph/core";
 
 import { closeSheet, downloadText, fixturePath, importDocument, node, repoRoot, sheet, status, toolbar } from "./support.js";
 
@@ -197,6 +197,15 @@ test("Save as template: whole graph and selected nodes, into Yours; download, im
   const chips = s.getByRole("group", { name: /^Nodes/ });
   await expect(chips.getByRole("button", { name: "Critic" })).toHaveAttribute("aria-pressed", "true");
   await chips.getByRole("button", { name: "Builder" }).tap();
+  // Builder and critic alone leave their loop behind: refused, as grooph template save refuses it, with its hint.
+  const refusal = s.locator(".refusal");
+  await expect(refusal).toContainText("Not saved: the template would carry these errors.");
+  await expect(refusal).toContainText("E_CYCLE_NO_STOP");
+  await expect(refusal).toContainText('loop "review-cycle" stayed behind: a loop comes along only with all its members; add merge-gate (Merge approval) to the selected nodes');
+  await expect(s.getByRole("button", { name: "Save to Yours" })).toBeDisabled();
+  // Bringing the gate along brings the loop, and the refusal goes.
+  await chips.getByRole("button", { name: "Merge approval" }).tap();
+  await expect(refusal).toHaveCount(0);
   await s.getByLabel("Template id").fill("build-and-review");
   await s.getByLabel("Title").fill("Build and review");
   await s.getByLabel("Summary").fill("A builder and its critic.");
@@ -205,7 +214,8 @@ test("Save as template: whole graph and selected nodes, into Yours; download, im
   await s.getByRole("link", { name: "Open in Templates" }).tap();
   await expect(page.locator(".title-sub")).toHaveText("your fragment · read-only");
   await expect(node(page, "builder")).toBeVisible();
-  await expect(node(page, "merge-gate")).toHaveCount(0);
+  await expect(node(page, "merge-gate")).toBeVisible();
+  await expect(node(page, "done")).toHaveCount(0);
 
   // Both are under "Yours".
   await page.getByRole("link", { name: "All templates" }).tap();
@@ -236,4 +246,27 @@ test("Save as template: whole graph and selected nodes, into Yours; download, im
   await expect(offer).toContainText("Replacing it makes version 2");
   await offer.getByRole("button", { name: "Replace yours" }).tap();
   await expect(sheet(page)).toContainText("my-review@2");
+});
+
+test("importing a template that carries errors does not offer it to Yours", async ({ page }) => {
+  // Fix pass 1 of slice 0007, criterion 1: the file grooph template add would refuse.
+  const broken = extractTemplate(parseGraphText(readFileSync(fixturePath, "utf8")).doc!, {
+    kind: "fragment",
+    nodeIds: ["builder", "critic"],
+    meta: { id: "build-and-review", title: "Build and review", summary: "A builder and its critic.", whenToUse: "Any change worth a second reader." },
+  });
+  await page.goto("./");
+  await page.locator('input[type="file"]').setInputFiles({ name: "build-and-review.grooph.json", mimeType: "application/json", buffer: Buffer.from(canonicalize(broken)) });
+  const offer = page.locator(".offer");
+  await expect(offer).toContainText("build-and-review.grooph.json is a template: Build and review (a fragment).");
+  await expect(offer).toContainText("It carries errors, so it cannot go into Yours");
+  await expect(offer.locator(".issue-lines")).toContainText("E_CYCLE_NO_STOP");
+  await expect(offer.getByRole("button", { name: "Add to Yours" })).toHaveCount(0);
+  await expect(offer.getByRole("button", { name: "Replace yours" })).toHaveCount(0);
+  await expect(offer.getByRole("button", { name: "Open it as a graph" })).toBeVisible();
+
+  // Nothing reached Yours.
+  await offer.getByRole("button", { name: "Cancel" }).tap();
+  await page.getByRole("link", { name: "Templates" }).tap();
+  await expect(page.getByRole("list", { name: "Your templates" })).toHaveCount(0);
 });

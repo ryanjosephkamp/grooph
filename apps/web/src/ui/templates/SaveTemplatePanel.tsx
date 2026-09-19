@@ -1,9 +1,9 @@
-import { TemplateError, extractTemplate, slugify, type Graph, type Id, type Profile, type TemplateKind } from "@grooph/core";
+import { TemplateError, extractTemplate, formatIssue, slugify, type Graph, type Id, type Profile, type TemplateKind } from "@grooph/core";
 import { useMemo, useState } from "react";
 
 import { download } from "../../doc/exportPackage.js";
 import { useDoc } from "../../doc/store.js";
-import { PROFILE_OPTIONS } from "../../doc/templates.js";
+import { PROFILE_OPTIONS, templateRefusal, type TemplateRefusal } from "../../doc/templates.js";
 import { saveUserTemplate, templateFileName, templateFileText } from "../../store/templates.js";
 import { useEditor } from "../editorContext.js";
 import { Segmented, TextArea, TextInput } from "../fields.js";
@@ -11,8 +11,17 @@ import { templateHref } from "./TemplatesScreen.js";
 
 type Meta = { id: string; title: string; summary: string; whenToUse: string; notFor: string };
 
-/** What core would make, or why it cannot. The profile is core's estimate unless one is given. */
-function preview(doc: Graph, kind: TemplateKind, nodeIds: Id[], meta: Meta, profile?: Profile): { template: Graph } | { problem: string } {
+/**
+ * What core would make, or why it cannot. The profile is core's estimate unless one is given.
+ * A template that core makes but that carries errors is refused, as `grooph template save` refuses it.
+ */
+function preview(
+  doc: Graph,
+  kind: TemplateKind,
+  nodeIds: Id[],
+  meta: Meta,
+  profile?: Profile,
+): { template: Graph; refusal: TemplateRefusal | null } | { problem: string } {
   try {
     const template = extractTemplate(doc, {
       kind,
@@ -26,7 +35,7 @@ function preview(doc: Graph, kind: TemplateKind, nodeIds: Id[], meta: Meta, prof
         ...(profile ? { profile } : {}),
       },
     });
-    return { template };
+    return { template, refusal: templateRefusal(template, doc) };
   } catch (err) {
     if (err instanceof TemplateError) return { problem: err.message };
     throw err;
@@ -54,7 +63,7 @@ export function SaveTemplatePanel() {
   const shown = profile ?? estimate ?? { cost: "medium", speed: "medium", rigor: "standard" };
   const missing = (["title", "summary", "whenToUse"] as const).filter((k) => meta[k].trim() === "");
   const check = preview(doc, kind, nodeIds, meta, shown);
-  const ready = missing.length === 0 && "template" in check;
+  const ready = missing.length === 0 && "template" in check && check.refusal === null;
 
   const set = (key: keyof Meta) => (value: string) => {
     setMeta((m) => ({ ...m, [key]: key === "id" ? value.toLowerCase().replace(/[^a-z0-9-]/g, "-") : value }));
@@ -62,7 +71,7 @@ export function SaveTemplatePanel() {
   };
 
   const save = async (replace: boolean) => {
-    if (!("template" in check)) return;
+    if (!("template" in check) || check.refusal !== null) return;
     const result = await saveUserTemplate(check.template, { replace });
     setOutcome("exists" in result ? result : { saved: result.saved.doc, replaced: result.replaced });
   };
@@ -133,6 +142,21 @@ export function SaveTemplatePanel() {
               );
             })}
           </div>
+        </div>
+      ) : null}
+
+      {/* Right under what decides it: the kind and the nodes the person just tapped. */}
+      {"template" in check && check.refusal ? (
+        <div className="refusal" role="alert">
+          <p>
+            <strong>Not saved: the template would carry these errors.</strong> Yours keeps only templates that validate, as <span className="mono">grooph template save</span> does.
+          </p>
+          {check.refusal.hints.map((hint) => (
+            <p key={hint} className="refusal-hint">
+              {hint}
+            </p>
+          ))}
+          <pre className="issue-lines">{check.refusal.issues.map(formatIssue).join("\n")}</pre>
         </div>
       ) : null}
 

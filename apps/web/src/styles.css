@@ -1230,6 +1230,9 @@ a {
 .refusal p {
   margin: 0 0 6px;
 }
+.refusal .refusal-hint {
+  font-weight: 600;
+}
 .warnings {
   margin: 12px 0;
   padding: 10px 12px;

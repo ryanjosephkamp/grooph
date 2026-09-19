@@ -1,7 +1,7 @@
 /** The person's own templates ("Yours"), on the device beside the graphs. */
 import { canonicalize, type Graph } from "@grooph/core";
 
-import { sortTemplates } from "../doc/templates.js";
+import { sortTemplates, templateRefusal } from "../doc/templates.js";
 import { openStore, type TemplateRecord } from "./db.js";
 
 export async function listUserTemplates(): Promise<Graph[]> {
@@ -16,10 +16,13 @@ export async function getUserTemplate(id: string): Promise<Graph | undefined> {
 /**
  * Save a template under its id. One with the same id is replaced only when
  * `replace` is set, and then the template's version goes up by one, as
- * `grooph template save --force` does; `lineage.from` names versions.
+ * `grooph template save --force` does; `lineage.from` names versions. A
+ * template that carries errors is never kept (the screens refuse it first,
+ * with the issues, as `grooph template save` and `add` do).
  */
 export async function saveUserTemplate(doc: Graph, options: { replace?: boolean } = {}): Promise<{ saved: TemplateRecord; replaced: boolean } | { exists: Graph }> {
   if (!doc.template) throw new Error(`"${doc.id}" has no template block`);
+  if (templateRefusal(doc)) throw new Error(`"${doc.id}" carries errors; Yours keeps only templates that validate`);
   const store = await openStore();
   const existing = await store.templates.get(doc.id);
   if (existing && !options.replace) return { exists: existing.doc };

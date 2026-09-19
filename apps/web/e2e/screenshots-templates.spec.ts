@@ -84,6 +84,20 @@ test.describe("phone, light: the other new screens", () => {
     await shot(page, "save-template-phone-light");
   });
 
+  test("save as template, refused", async ({ page }) => {
+    // Fix pass 1: a fragment that leaves its loop behind is refused with the CLI's hint; the node chips are 44 px.
+    await noticeSeen(page);
+    await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+    await node(page, "critic").tap();
+    await page.locator(".title-btn").tap();
+    await sheet(page).getByRole("button", { name: "Save as template…" }).tap();
+    await sheet(page).getByRole("group", { name: /^Nodes/ }).getByRole("button", { name: "Builder" }).tap();
+    await page.getByRole("button", { name: "Expand panel" }).tap();
+    await sheet(page).getByRole("group", { name: /^Nodes/ }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await shot(page, "save-template-refused-phone-light");
+  });
+
   test("toolbar docked above the sheet, selection in view", async ({ page }) => {
     await noticeSeen(page);
     await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));

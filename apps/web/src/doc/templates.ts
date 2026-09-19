@@ -7,7 +7,7 @@
  * Every semantic is core's (docs/templates.md): `instantiate`, `insertFragment`
  * and `extractTemplate` are called as they are.
  */
-import { allIds, parseGraphText, slotKeys, slugify, uniqueId, type Graph, type Profile, type TemplateSlot } from "@grooph/core";
+import { allIds, hasErrors, parseGraphText, slotKeys, slugify, uniqueId, validate, type Graph, type Issue, type Profile, type TemplateSlot } from "@grooph/core";
 
 /** Where a template came from: the bundled pattern library, or saved on this device. */
 export type TemplateSource = "built-in" | "yours";
@@ -37,6 +37,34 @@ export function sortTemplates(docs: readonly Graph[]): Graph[] {
 export const BUILT_IN_TEMPLATES: readonly Graph[] = loadBuiltIns();
 
 export const builtInTemplate = (id: string): Graph | undefined => BUILT_IN_TEMPLATES.find((doc) => doc.id === id);
+
+/**
+ * Why a template may not be kept in Yours: the rule `grooph template save` and
+ * `grooph template add` apply, any error from core's `validate`. The issues
+ * are all of them, warnings too, as the CLI prints them. `from` is the graph a
+ * fragment was cut from; a loop whose members were only partly taken stayed
+ * behind, and the hint names the nodes that would bring it along, as the CLI's
+ * does. Null when the template may be kept.
+ */
+export type TemplateRefusal = { issues: Issue[]; hints: string[] };
+
+export function templateRefusal(template: Graph, from?: Graph): TemplateRefusal | null {
+  const issues = validate(template);
+  if (!hasErrors(issues)) return null;
+  const hints: string[] = [];
+  const kept = new Set(template.nodes.map((node) => node.id));
+  for (const loop of from?.loops ?? []) {
+    const outside = loop.members.filter((id) => !kept.has(id));
+    if (outside.length > 0 && outside.length < loop.members.length) {
+      const named = outside.map((id) => {
+        const name = from!.nodes.find((node) => node.id === id)?.name;
+        return name ? `${id} (${name})` : id;
+      });
+      hints.push(`loop "${loop.id}" stayed behind: a loop comes along only with all its members; add ${named.join(", ")} to the selected nodes`);
+    }
+  }
+  return { issues, hints };
+}
 
 /** The slots a template asks for, in order, with the question and the example; undeclared `{{key}}`s get a plain question. */
 export function slotsOf(template: Graph): TemplateSlot[] {
