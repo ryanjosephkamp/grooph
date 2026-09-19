@@ -1,0 +1,107 @@
+{
+  "grooph": 0,
+  "id": "slice-0007-lean",
+  "name": "Slice 0007 lean",
+  "version": 1,
+  "goal": "Implement grooph slice 0007 in apps/web: browse, use, insert and save-as templates in the app (built-ins bundled), plus editing polish: undo, storage persistence request, toolbar clear of the open sheet, rename warning for exported graphs. Done when `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "other": "Touch apps/web only. packages/core is consumed as-is."
+  },
+  "lineage": {
+    "pattern": "grind-loop",
+    "from": "grind-loop@1"
+  },
+  "description": "A builder changes the code and a check runs the tests. A failure goes back to the builder with the test output; a pass ends the run. The check is the bar, so there is no critic. The loop stops after five rounds or thirty minutes if the tests never pass.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Make the task true by changing the code, adding tests where they are missing. Do not skip, weaken or delete a test to get a pass. On a later round, start from the failing output you are handed. Report what you changed and which tests now pass.",
+      "inputs": [
+        "the task",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change",
+        "CHANGES.md: what changed this round and why"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-pass",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    }
+  ]
+}

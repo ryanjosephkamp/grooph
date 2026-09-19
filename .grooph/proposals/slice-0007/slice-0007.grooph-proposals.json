@@ -1,0 +1,42 @@
+{
+  "groophProposals": 0,
+  "id": "slice-0007",
+  "title": "Workflow for grooph slice 0007",
+  "brief": "grooph's next slice: templates in the web app (browse, use, insert, save-as, built-ins bundled) plus editing polish (undo, storage persistence, toolbar clear of the sheet, rename warning). All work is in apps/web; core is consumed as-is. Unit tests and phone-size browser tests catch regressions, but whether the template screens read well on a phone is judgment that tests cannot make. Nothing irreversible happens before the owner merges.",
+  "candidates": [
+    {
+      "id": "lean",
+      "label": "Lean",
+      "graph": { "file": "lean.grooph.json" },
+      "basedOn": "grind-loop",
+      "rationale": "The slice has a strong deterministic gate already: build, 260 unit tests and 19 browser tests at phone size. One strong builder grinding against that gate is the smallest graph that can finish the slice. It leaves phone readability unjudged until the owner looks.",
+      "pros": ["one agent, no judgment rounds to pay for", "the test suite it extends stays behind as the regression net"],
+      "cons": ["nobody checks that the new screens read well at 400 px before the owner does", "five rounds and thirty minutes may be tight for a slice this size; the lead can only tighten that, not extend it"],
+      "profile": { "cost": "low", "speed": "fast", "rigor": "light" }
+    },
+    {
+      "id": "sandwich",
+      "label": "Sandwich",
+      "graph": { "file": "sandwich.grooph.json" },
+      "basedOn": "metric-sandwich",
+      "rationale": "Tests run first and send cheap failures straight back, so the frontier critic spends its rounds only on what tests cannot see: whether the template browser and the undo affordance are usable on a phone, judged against the handoff's success criteria and screenshots. The critic is a tier above the builder, so it is a genuinely different eye.",
+      "pros": ["judgment is paid for only after the deterministic gate passes", "critic on a different tier from the builder", "matches how the slice will be reviewed anyway: criteria in the handoff, screenshots at phone width"],
+      "cons": ["one more agent and up to four judged rounds", "the handoff must exist before the run, since it is the checklist"],
+      "profile": { "cost": "medium", "speed": "medium", "rigor": "standard" }
+    },
+    {
+      "id": "gated",
+      "label": "Gated",
+      "graph": { "file": "gated.grooph.json" },
+      "basedOn": "review-gate",
+      "rationale": "The same builder and frontier critic, with a human merge gate inside the loop so a rejection returns to the builder with the owner's feedback. This mirrors the project's real process, where the owner's phone session is the last word. It has no deterministic check in front of the critic, so the critic also spends attention on failures a test run would have caught.",
+      "pros": ["the owner's verdict is part of the loop, not an afterthought", "closest to how grooph slices are reviewed today"],
+      "cons": ["no cheap check before the critic", "a headless run halts at the gate and must be resumed after the owner looks"],
+      "profile": { "cost": "medium", "speed": "slow", "rigor": "high" }
+    }
+  ],
+  "recommendation": {
+    "candidate": "sandwich",
+    "why": "Done and good have split only for the phone screens, and a test gate already exists: exactly the situation the metric sandwich is for. The owner's merge is already a gate outside the graph."
+  }
+}
