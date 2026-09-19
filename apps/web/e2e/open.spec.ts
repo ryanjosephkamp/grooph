@@ -15,16 +15,21 @@ import { csvSet, linkFor, node, pager, reviewLoop, sheet, status } from "./suppo
 
 const LINE = 'I pick "Reviewed" (reviewed) from csv-export.';
 
-/** A finger drag across the cards: CDP touch events, so the browser scrolls and snaps as it would under a thumb. */
+/**
+ * A finger drag across the cards: CDP touch events, so the browser scrolls and snaps as it
+ * would under a thumb. One move per frame, so the speed is a thumb's, not a teleport's.
+ */
 async function swipe(page: Page, from: { x: number; y: number }, to: { x: number; y: number }): Promise<void> {
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [from] });
-  const steps = 12;
+  const steps = 14;
   for (let i = 1; i <= steps; i++) {
     const x = from.x + ((to.x - from.x) * i) / steps;
     const y = from.y + ((to.y - from.y) * i) / steps;
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y }] });
+    await page.waitForTimeout(16);
   }
+  await page.waitForTimeout(16);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await cdp.detach();
 }

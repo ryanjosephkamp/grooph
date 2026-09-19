@@ -1648,6 +1648,7 @@ a {
   flex: 0 0 calc(100% - 22px);
   max-width: 460px;
   scroll-snap-align: center;
+  scroll-snap-stop: always; /* one swipe, one card: a fling never skips a candidate */
   display: flex;
   flex-direction: column;
   gap: 12px;
