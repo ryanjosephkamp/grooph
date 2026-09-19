@@ -66,6 +66,20 @@ jobs:
           pnpm exec grooph validate --for-export "$RUNNER_TEMP/try.grooph.json"
           pnpm exec grooph export "$RUNNER_TEMP/try.grooph.json" --target claude-code --into "$RUNNER_TEMP/try-pkg" > /dev/null
 
+      # The executive path without a model (docs/executive.md §4): shape, share a set, pick, export.
+      - name: shape, share and pick from the command line
+        run: |
+          pnpm exec grooph shape fixtures/valid/review-loop.grooph.json
+          pnpm exec grooph share fixtures/valid/review-loop.grooph.json --base http://localhost:4173/grooph/
+          set=fixtures/proposals/valid/csv-export/csv-export.grooph-proposals.json
+          pnpm exec grooph share "$set" --out "$RUNNER_TEMP/csv-export.grooph-proposals.json"
+          pnpm exec grooph pick "$set" lean --out "$RUNNER_TEMP/lean.grooph.json"
+          pnpm exec grooph export "$RUNNER_TEMP/lean.grooph.json" --target claude-code --into "$RUNNER_TEMP/lean-pkg" > /dev/null
+
+      # The owner's install script, against a throwaway HOME only.
+      - name: install-local.sh installs, repeats, refuses and uninstalls
+        run: scripts/test-install-local.sh
+
   # The web app in a real browser at phone size (handoff 0002): the round trip
   # to the golden package, authoring by touch, validation, storage and layout,
   # against the production build served under the Pages base path.

@@ -1,0 +1,14 @@
+{
+  "name": "grooph",
+  "displayName": "grooph",
+  "version": "0.1.0",
+  "description": "Design the multi-agent workflow for a project as grooph loop graphs: one to three validated candidates, a comparison link to open on a phone, and on your pick a placed prompt package, with nothing started. Needs the grooph CLI on PATH.",
+  "author": {
+    "name": "ryanjosephkamp",
+    "url": "https://github.com/ryanjosephkamp"
+  },
+  "homepage": "https://ryanjosephkamp.github.io/grooph/",
+  "repository": "https://github.com/ryanjosephkamp/grooph",
+  "license": "MIT",
+  "keywords": ["multi-agent", "workflow", "loop-graph", "prompt-package", "grooph"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "grooph",
+  "owner": {
+    "name": "ryanjosephkamp",
+    "url": "https://github.com/ryanjosephkamp"
+  },
+  "description": "grooph: design multi-agent loop graphs in a Claude Code session and compare them on a phone.",
+  "plugins": [
+    {
+      "name": "grooph",
+      "source": "./plugins/grooph",
+      "description": "The grooph-design skill: candidate loop graphs from templates or from scratch, a comparison link, and the placed package on your pick. Needs the grooph CLI on PATH.",
+      "homepage": "https://ryanjosephkamp.github.io/grooph/",
+      "repository": "https://github.com/ryanjosephkamp/grooph",
+      "license": "MIT",
+      "category": "development"
+    }
+  ]
+}
