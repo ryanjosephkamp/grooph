@@ -4,6 +4,7 @@
   "reports": { "planner": ["ACCEPTANCE.md"], "critic": ["REVIEW.md"] },
   "resume": {
     "gate": "spec-gate",
+    "before": ["planner"],
     "answer": "approve",
     "prompt": "Answer at the gate `{{gate}}` of run `{{run-id}}`: {{answer}}. Continue that run from where it halted."
   }

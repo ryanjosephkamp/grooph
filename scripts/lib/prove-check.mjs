@@ -164,7 +164,10 @@ export async function checkRun(evidenceDir, { core, template }) {
   for (const [nodeId, files] of Object.entries(expect.reports ?? {})) {
     const agent = `${graphId}--${nodeId}`;
     for (const name of files) {
-      const matching = writes.filter((w) => w.name === name);
+      // A lead may name the report per round (REVIEW-r0.md, REVIEW-round-1.md): same stem, same extension.
+      const [stem, ext] = [name.replace(/\.[^.]+$/, ""), name.slice(name.lastIndexOf("."))];
+      const sameReport = new RegExp(`^${stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[-_.][\\w.-]*)?${ext.replace(".", "\\.")}$`, "i");
+      const matching = writes.filter((w) => sameReport.test(w.name));
       if (!matching.some((w) => w.who === agent)) problems.push(`${nodeId} never wrote ${name} itself`);
       const others = [...new Set(matching.filter((w) => w.who !== agent).map((w) => w.who))];
       if (others.length > 0) problems.push(`${name} was also written by ${others.join(", ")}, not only ${nodeId}`);

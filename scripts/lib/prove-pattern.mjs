@@ -409,9 +409,14 @@ async function main() {
     if (resume) {
       const notes = notesPath() ? readNotes(notesPath()).notes.filter(Boolean) : [];
       const last = notes[notes.length - 1];
-      const halted = last && (last.outcome === "halt" || /\bhalt/i.test(last.text ?? "")) && JSON.stringify(last).includes(resume.gate);
-      if (!runId || !halted) {
-        console.log(`the run did not halt at ${resume.gate}, so the scripted "${resume.answer}" is not given (last note: ${JSON.stringify(last ?? null)})`);
+      // The answer is given only to a run that reached the gate and went no further. Whether it also
+      // wrote a halt note is for --check to judge (the review-gate lead asked in its reply instead).
+      const reached = notes.some((note) => JSON.stringify(note).includes(resume.gate));
+      const beyond = notes.filter((note) => /^node:/.test(note.at) && !(resume.before ?? []).includes(note.at.slice(5)) && note.at !== `node:${resume.gate}`);
+      if (!runId || !reached || beyond.length > 0) {
+        console.log(
+          `the run did not stop at ${resume.gate}${beyond.length > 0 ? ` (it ran ${[...new Set(beyond.map((n) => n.at))].join(", ")} past it)` : ""}, so the scripted "${resume.answer}" is not given (last note: ${JSON.stringify(last ?? null)})`,
+        );
       } else {
         const prompt = resume.prompt.replaceAll("{{run-id}}", runId).replaceAll("{{gate}}", resume.gate).replaceAll("{{answer}}", resume.answer);
         prompts["resume.md"] = prompt;

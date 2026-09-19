@@ -48,8 +48,53 @@
       "run_id": "20260919-1230-k7qm",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 4,
+      "template": "contradiction-seeker",
+      "kind": "kickoff",
+      "started": "2026-09-19T16:33:36.772Z",
+      "ended": "2026-09-19T16:36:31.388Z",
+      "status": "ok",
+      "cost_usd": 1.062394,
+      "reported_cost_usd": 1.06239435,
+      "max_budget_usd": 6,
+      "session_id": "eea1766c-1696-4df0-a937-3a4611a8c177",
+      "run_id": "20260919-1233-k7qm",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 5,
+      "template": "review-gate",
+      "kind": "kickoff",
+      "started": "2026-09-19T16:36:50.049Z",
+      "ended": "2026-09-19T16:40:08.176Z",
+      "status": "ok",
+      "cost_usd": 1.45104,
+      "reported_cost_usd": 1.4510397500000005,
+      "max_budget_usd": 6,
+      "session_id": "930496f5-0a88-458b-9999-98a04184bb62",
+      "run_id": "20260919-1236-k7q2",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 6,
+      "template": "metric-sandwich",
+      "kind": "kickoff",
+      "started": "2026-09-19T16:41:12.123Z",
+      "ended": "2026-09-19T16:44:15.937Z",
+      "status": "ok",
+      "cost_usd": 1.492006,
+      "reported_cost_usd": 1.49200575,
+      "max_budget_usd": 6,
+      "session_id": "8d283d2b-3827-403b-a61a-6e6b80d05dbd",
+      "run_id": "20260919-1241-k7qm",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 0.679253,
-  "remaining_usd": 24.320747
+  "spent_usd": 4.684693,
+  "remaining_usd": 20.315307
 }
