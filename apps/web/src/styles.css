@@ -1989,6 +1989,15 @@ a {
     max-width: 78ch;
     font-size: 15px;
   }
+  /* Room enough for the whole brief. */
+  .compare-brief .is-clamped {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: none;
+  }
+  .compare-brief > .link {
+    display: none;
+  }
   .cards {
     display: grid;
     grid-template-columns: repeat(var(--cards), minmax(0, 1fr));

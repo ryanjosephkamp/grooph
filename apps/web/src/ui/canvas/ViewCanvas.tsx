@@ -129,7 +129,7 @@ export function ViewCanvas(props: {
       multiSelectionKeyCode={null}
       panOnDrag={!mini}
       zoomOnPinch={!mini}
-      zoomOnScroll={false}
+      zoomOnScroll={!mini}
       zoomOnDoubleClick={!mini}
       panOnScroll={false}
       preventScrolling={!mini}
@@ -137,7 +137,7 @@ export function ViewCanvas(props: {
       minZoom={mini ? 0.3 : 0.2}
       maxZoom={mini ? 1.1 : 2}
       fitView
-      fitViewOptions={mini ? { padding: 0.08, maxZoom: 1.1 } : { ...FIT, padding: { top: "64px", bottom: "24px", x: "20px" } }}
+      fitViewOptions={mini ? { padding: 0.08, maxZoom: 1.1 } : { ...FIT, padding: { top: "64px", bottom: "100px", x: "20px" } }}
       proOptions={{ hideAttribution: mini }}
       attributionPosition="top-right"
     >

@@ -19,6 +19,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - 2026-09-18 · criterion 4 met: `grooph share` (validate, inline, shape, link and length, 32,000 warning, `--base`, `--open`, `--out`), `grooph pick` (id or label, any case, refuses ambiguity), `grooph shape`; `--help` on every command.
 - 2026-09-18 · criterion 3 met: raw DEFLATE via `node:zlib` in the CLI and fflate in the app; `apps/web/test/share.test.ts` opens each side's links with the other's codec, and damaged and oversized payloads fail with a readable message on both.
 - 2026-09-18 · criterion 5 met: `#/open?d=…` opens a graph read-only or the compare view; nothing stored until Save; no export from a link; bad links explained; `e2e/open.spec.ts` 9 tests (graph link, three-candidate link, swipe, Choose, Save then edit, full graph, damaged links, `--out` import, desktop side by side).
+- 2026-09-18 · criterion 6 met: on a phone a card's label, badge with its reason, profile, shape line and rationale sit above the action bar (asserted in `e2e/open.spec.ts`); compact auto-laid-out mini canvas; pros and cons as lists; screenshots (phone light and dark, desktop, full graph, damaged link) in `handoffs/0006-executive-path/`.
 
 ## Waiting on the owner
 
