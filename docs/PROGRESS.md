@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Next: re-prove the two red records (slice 0013), then stage 8 (manual authoring extras) while Codex stays deferred.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (driver):** draft handoff 0013, the re-proof of the two red records, under the cap raised to $55.00 as the owner approved on 2026-09-20.
+- **Next action (owner):** confirm slice 0013 (two re-proving runs, about $12 with the per-run ceiling raised from $6.00 to $9.00 so the bank can finish a third round), then paste its prompt into an Opus 5 session.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
@@ -15,7 +15,9 @@ _(none)_
 
 ## Waiting on the owner
 
-_(nothing: the $55.00 cap for slice 0013 was approved 2026-09-20 with the status report)_
+| Item | Recommended answer |
+|---|---|
+| Confirm slice 0013 (`handoffs/0013-reproof-red-records/HANDOFF.md`). The $55.00 cap was approved with the status report; new here is a $9.00 per-run ceiling (was $6.00), because the bank halted on the old one after two rounds. Expected about $12 of the $15.42 available | Yes |
 
 ## Deferred until Codex is available
 
