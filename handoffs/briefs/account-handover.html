@@ -1,0 +1,135 @@
+<title>grooph Account Handover</title>
+<style>
+  :root {
+    --ground: #f4f5f7; --surface: #ffffff; --surface-2: #eaedf1; --ink: #1b2027; --muted: #5c6673;
+    --line: #d5dae1; --accent: #176b63; --accent-ink: #ffffff; --good: #2f7d4f; --warn: #a35f00; --crit: #b3261e;
+    --mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #13161a; --surface: #1b1f25; --surface-2: #242a32; --ink: #e7e9ec; --muted: #9aa4b0;
+      --line: #333b45; --accent: #4fb3a6; --accent-ink: #0f1a18; --good: #5cbf85; --warn: #e0a24a; --crit: #ef7a72;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #13161a; --surface: #1b1f25; --surface-2: #242a32; --ink: #e7e9ec; --muted: #9aa4b0;
+    --line: #333b45; --accent: #4fb3a6; --accent-ink: #0f1a18; --good: #5cbf85; --warn: #e0a24a; --crit: #ef7a72;
+  }
+  body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; margin: 0; }
+  .wrap { max-width: 720px; margin: 0 auto; padding-block: 32px 64px; padding-inline: 16px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+  h1 { font-size: 1.85rem; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 1.2rem; font-weight: 600; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line); }
+  p { margin: 12px 0; max-width: 68ch; }
+  ul, ol { padding-left: 1.3em; max-width: 68ch; }
+  li { margin: 7px 0; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: var(--mono); font-size: 0.84rem; line-height: 1.5; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow-x: auto; margin: 0; white-space: pre-wrap; word-break: break-word; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .masthead { display: flex; flex-direction: column; gap: 8px; }
+  .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-top: 20px; }
+  .status div { background: var(--surface); padding: 10px 12px; }
+  .status .k { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 4px; }
+  .status .v { font-weight: 500; font-size: 0.95rem; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .muted { color: var(--muted); }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+  .promptbox { position: relative; margin: 14px 0; }
+  .promptbox pre { padding-top: 42px; }
+  .copy { position: absolute; top: 8px; right: 8px; font-family: var(--mono); font-size: 0.74rem; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 4px; padding: 8px 12px; min-height: 36px; cursor: pointer; }
+  .copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .callout { background: var(--surface-2); border-radius: 6px; padding: 12px 14px; margin: 16px 0; max-width: 68ch; }
+  ol.checklist { counter-reset: step; list-style: none; padding-left: 0; }
+  ol.checklist > li { counter-increment: step; position: relative; padding-left: 38px; margin: 14px 0; }
+  ol.checklist > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-family: var(--mono); font-size: 0.8rem; display: grid; place-items: center; }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="eyebrow">grooph · account handover · 2026-09-19</span>
+    <h1>Moving grooph to another Claude account</h1>
+    <p>grooph turns out to be unusually clean to hand over. Nothing it reads while working belongs to a Claude account: no routine, no scheduled task, no connector, no key. The only account-owned things are three published pages, and their sources are now in the repository. Nothing needs switching off, and nothing can collide.</p>
+    <div class="status">
+      <div><span class="k">Must recreate</span><span class="v good">nothing</span></div>
+      <div><span class="k">Must turn off</span><span class="v good">nothing</span></div>
+      <div><span class="k">Lost on switch</span><span class="v warn">3 page URLs</span></div>
+      <div><span class="k">Their sources</span><span class="v good">in the repo</span></div>
+    </div>
+  </header>
+
+  <h2>What you keep by signing in at the same path</h2>
+  <p>All of this is keyed to the filesystem, not to who is signed in.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>What</th><th>Why it survives</th></tr></thead>
+      <tbody>
+        <tr><td><strong>The whole repository</strong></td><td>The spec and its amendments, every handoff, handback and review, the plan and progress, the sixteen templates, the proving records, the <code>grooph-design</code> skill, the code.</td></tr>
+        <tr><td><strong>Memory and every past transcript</strong><br><span class="muted">about 56 MB</span></td><td>They live in a folder named after the project's path, not the account. Most people expect to lose this and do not.</td></tr>
+        <tr><td><strong>The <code>grooph</code> command and <code>/grooph-design</code></strong></td><td>Both are symlinks into the clone, made by <code>scripts/install-local.sh</code>.</td></tr>
+        <tr><td><strong>The live site, CI, the Pages deploy</strong></td><td>Tied to the GitHub account, which a Claude account switch does not touch.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What you lose, and why it costs nothing</h2>
+  <p>Three published pages: the two gate briefs and the slice 0007 options launcher. A page belongs to the account that published it; the new account sees nothing at its URL.</p>
+  <p>Their substance was never only in them. Each is a phone-shaped restatement of <code>docs/PROGRESS.md</code>, <code>docs/PLAN.md</code> and the slice reviews, all of which travel with the clone. Nothing in the project reads them. Their sources now sit in <code>handoffs/briefs/</code>, so any of them can be published again from the new account, which mints a new URL to record beside the source.</p>
+  <div class="callout">
+    <strong>Worth knowing:</strong> the share link <em>inside</em> the slice 0007 page carries its graphs in its own URL fragment and points at the app on GitHub Pages. That link keeps working after the switch. Only the wrapper page around it stops.
+  </div>
+
+  <h2>The switch, in order</h2>
+  <ol class="checklist">
+    <li><strong>Nothing to prepare.</strong> The one thing the old account held that the new one cannot reach — those three page sources — is in the repository and pushed, as of this page.</li>
+    <li><strong>Sign in as the new account, in the same directory.</strong> No files move.</li>
+    <li><strong>Open a session in the clone</strong> and send the prompt below. It starts from <code>AGENTS.md</code>, which points at the current state.</li>
+    <li><strong>Check the tools answer:</strong> <code>grooph --version</code>, and <code>/grooph-design</code> offered in any project. If the clone has moved, re-run <code>scripts/install-local.sh</code>; it is idempotent and prints its plan before touching anything.</li>
+    <li><strong>Only if you want the briefs back:</strong> publish the files in <code>handoffs/briefs/</code> from the new account and record each new URL in that folder's table.</li>
+  </ol>
+
+  <h2>The first prompt on the new account</h2>
+  <div class="promptbox">
+    <button class="copy" data-target="p1" type="button">Copy</button>
+<pre id="p1"><code>You are the driver session for the grooph project at /Users/noir/Documents/grooph (published at github.com/ryanjosephkamp/grooph). This is a fresh Claude account; the previous one built slices 0001 through 0009.
+
+Read AGENTS.md first, then docs/PROGRESS.md and docs/PLAN.md, then docs/HANDOVER.md for what did and did not carry over from the old account.
+
+Then tell me, in a few lines: where the project stands, what is waiting on me, and what you would do next. Do not start implementation work until I confirm it.</code></pre>
+  </div>
+  <p class="muted">Mode: execution. Effort: medium is enough to read in and report; the driver's own planning work wants high.</p>
+
+  <h2>If the clone ever moves to another machine</h2>
+  <ul>
+    <li>Copy <code>~/.claude/projects/-Users-noir-Documents-grooph/</code> — the memory files and transcripts. Rename it to match the new path, dashes for slashes.</li>
+    <li>Copy <code>~/.claude/skills/</code> if you want this machine's hand-written skills.</li>
+    <li>Run <code>gh auth login</code>, then <code>scripts/install-local.sh</code>.</li>
+    <li>Expect nothing under a session scratchpad to survive. That is why <code>AGENTS.md</code> now says a page may only be published from a file the repository keeps.</li>
+  </ul>
+
+  <p class="muted">The full recipe, including the routine that belongs to another project and must not be confused for grooph's, is in <code>docs/HANDOVER.md</code>.</p>
+</div>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-target'));
+      var text = el ? el.innerText : '';
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback() {
+        try {
+          var range = document.createRange(); range.selectNodeContents(el);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+          document.execCommand('copy'); sel.removeAllRanges(); done();
+        } catch (e) { btn.textContent = 'Select and copy'; }
+      }
+    });
+  });
+</script>

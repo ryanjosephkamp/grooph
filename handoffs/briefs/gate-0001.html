@@ -1,0 +1,214 @@
+<title>grooph Gate 0001</title>
+<style>
+  :root {
+    --ground: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eaedf1;
+    --ink: #1b2027;
+    --muted: #5c6673;
+    --line: #d5dae1;
+    --accent: #176b63;
+    --accent-ink: #ffffff;
+    --good: #2f7d4f;
+    --warn: #a35f00;
+    --crit: #b3261e;
+    --mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #13161a; --surface: #1b1f25; --surface-2: #242a32; --ink: #e7e9ec; --muted: #9aa4b0;
+      --line: #333b45; --accent: #4fb3a6; --accent-ink: #0f1a18; --good: #5cbf85; --warn: #e0a24a; --crit: #ef7a72;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #13161a; --surface: #1b1f25; --surface-2: #242a32; --ink: #e7e9ec; --muted: #9aa4b0;
+    --line: #333b45; --accent: #4fb3a6; --accent-ink: #0f1a18; --good: #5cbf85; --warn: #e0a24a; --crit: #ef7a72;
+  }
+  body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; margin: 0; }
+  .wrap { max-width: 760px; margin: 0 auto; padding-block: 32px 64px; padding-inline: 16px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 1.25rem; font-weight: 600; margin-top: 44px; padding-top: 16px; border-top: 1px solid var(--line); }
+  h3 { font-size: 1rem; font-weight: 600; margin-top: 20px; }
+  p { margin: 12px 0; max-width: 68ch; }
+  ul, ol { padding-left: 1.3em; max-width: 68ch; }
+  li { margin: 6px 0; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: var(--mono); font-size: 0.84rem; line-height: 1.5; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow-x: auto; margin: 0; white-space: pre-wrap; word-break: break-word; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .masthead { display: flex; flex-direction: column; gap: 8px; }
+  .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-top: 20px; }
+  .status div { background: var(--surface); padding: 10px 12px; }
+  .status .k { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 4px; }
+  .status .v { font-weight: 500; font-size: 0.95rem; }
+  .pill { display: inline-block; font-family: var(--mono); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; vertical-align: middle; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .crit { color: var(--crit); } .muted { color: var(--muted); }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .diagram { background: #ffffff; color: #1b2027; border: 1px solid var(--line); border-radius: 6px; padding: 12px; text-align: center; margin: 14px 0; overflow-x: auto; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .promptbox { position: relative; margin: 14px 0; }
+  .promptbox pre { padding-top: 40px; }
+  .copy { position: absolute; top: 8px; right: 8px; font-family: var(--mono); font-size: 0.74rem; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+  .copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .rec { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; margin: 14px 0; }
+  .rec .q { font-weight: 600; }
+  .callout { background: var(--surface-2); border-radius: 6px; padding: 12px 14px; margin: 14px 0; max-width: 68ch; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="eyebrow">grooph · driver brief · 2026-09-17</span>
+    <h1>Gate 0001: plan locked, scaffolding pushed, first slice waiting on you</h1>
+    <p>Stages 0 and 1 are done. Nothing runs yet: the repo holds the product contract, the design of the graph document, the Claude Code target mapping, and the handoff for the first implementation slice. The next move is yours: confirm the slice and open the Opus session.</p>
+    <div class="status">
+      <div><span class="k">Branch</span><span class="v">main · 4 commits</span></div>
+      <div><span class="k">Tree</span><span class="v good">clean, pushed</span></div>
+      <div><span class="k">Code</span><span class="v muted">none yet (29 files, all docs)</span></div>
+      <div><span class="k">Tests</span><span class="v muted">none to run</span></div>
+      <div><span class="k">Rollback point</span><span class="v"><code>6313b6b</code> (initial README)</span></div>
+      <div><span class="k">Blocking</span><span class="v warn">2 confirmations</span></div>
+    </div>
+  </header>
+
+  <h2>What was just completed</h2>
+  <p><strong>The plan is locked at the top level.</strong> You picked, and I recorded: a local-first web app with no backend, sharing one TypeScript core with a command-line tool and an MCP server; the "executive" that proposes graphs is your Claude Code or Codex session using grooph as a tool, so grooph itself never calls a model; graphs designed on the phone reach the Mac by share link or file first, with GitHub sync later; and the first slice builds the core and compiler before any canvas.</p>
+  <p><strong>The repo is now a place an agent can enter cold.</strong> <code>AGENTS.md</code> is the entry point (with <code>CLAUDE.md</code> importing it so both harnesses land in the same place). Your spec is frozen under <code>spec/</code> and changes only through a numbered amendments log; seven amendments are already recorded, the first being "Claude Code first, Codex second". Living docs hold the plan, current state, and one decision record per decision. The handoff protocol has templates and three project skills (<code>grooph-handoff</code>, <code>grooph-handback</code>, <code>grooph-reconcile</code>) so each side of a handoff runs the same steps every time.</p>
+  <p><strong>The graph document is designed.</strong> <code>docs/graph-ir.md</code> is the normative shape of a grooph graph: nodes (agents, human gates, deterministic checks, merges, stops), edges as contracts (condition, isolation, concurrency, evidence, approval), loops as first-class objects with a bar and structured stops, policies, and a run-note schema. It defines every validation rule as a stable code with a fixture requirement, so "every loop has a stop" and "an adjective is not a bar" are mechanical checks rather than advice. Model preference is a harness-neutral tier (frontier / strong / fast) mapped by a per-harness profile file, so vendor renames become a one-file edit.</p>
+  <p><strong>The Claude Code mapping is verified, not remembered.</strong> A research pass against the current docs for Claude Code 2.1.268 confirmed the subagent and skill frontmatter fields, headless flags, hooks and the workflow feature. <code>docs/targets/claude-code.md</code> maps each package piece onto those units: one subagent file per agent node, a lead brief the main session follows, a skill that starts a run, and a file contract for progress and run notes. One finding matters for budgets: Claude Code documents no session-level cost cap, so dollar budgets in a graph are advisory there; turn and minute budgets are enforced by the lead's own counting.</p>
+  <p><strong>The first slice is written.</strong> <code>handoffs/0001-core-compiler-cli/HANDOFF.md</code> gives an Opus 5 session its objective, six checkable success criteria, reading order, allowed and forbidden paths, the spec constraints in force, and the exact prompt to paste. Its acceptance test is a real headless Claude Code run of the exported review-loop package.</p>
+  <p class="muted">One housekeeping change: GitHub rejected the first push because your commit email is private, so this repo's local git config now uses your GitHub noreply address. Nothing global was changed.</p>
+
+  <h2>What comes immediately next</h2>
+  <p>Slice 0001: an Opus 5 session creates the pnpm monorepo with <code>packages/core</code> (schema, canonical form, validator with ten rule codes, Claude Code compiler, golden tests) and <code>packages/cli</code> (<code>validate</code>, <code>canonicalize</code>, <code>export</code>), plus a script that exports the review-loop fixture into a scratch project and runs it headlessly in Claude Code. Roughly one long session of agent work. It depends on nothing but your confirmation.</p>
+  <p>After its handback I reconcile (independent verification, review file, merge), then draft slice 0002: the minimal canvas on your phone, on top of the frozen core.</p>
+
+  <h2>The overall plan</h2>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  S0[Stage 0 Scaffolding] --> S1[Stage 1 Graph document v0]
+  S1 --> S2a[0001 Core, compiler, CLI]
+  S2a --> S2b[0002 Minimal canvas]
+  S2b --> S3[Stage 3 Authoring completeness]
+  S3 --> S4[Stage 4 Templates and patterns]
+  S4 --> S5[Stage 5 Agent surface: CLI, MCP, design skill]
+  S5 --> S6[Stage 6 Notes back]
+  S6 --> S7[Stage 7 Codex target via Astra]
+  S7 --> S8[Stage 8 Paired empirical runs]
+  S8 -.-> S9[Stage 9 Dual-harness nodes, optional]
+  style S0 fill:#dfeeea,stroke:#176b63
+  style S1 fill:#dfeeea,stroke:#176b63
+  style S2a fill:#fff3d6,stroke:#a35f00
+</pre>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Stage</th><th>Scope</th><th>Owner</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="n">0</td><td>Entry point, spec + amendments, living docs, handoff protocol, skills</td><td>Fable</td><td><span class="pill good">done</span></td></tr>
+        <tr><td class="n">1</td><td>Graph document v0, rule catalog, Claude Code mapping, first fixtures</td><td>Fable</td><td><span class="pill good">done</span></td></tr>
+        <tr><td class="n">2</td><td>0001 core + compiler + CLI, then 0002 canvas on the phone</td><td>Opus 5</td><td><span class="pill warn">awaiting confirmation</span></td></tr>
+        <tr><td class="n">3</td><td>All node kinds and edge fields, copy/paste, bulk spawn, groups, full rule set, outline view, offline install</td><td>Opus 5</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">4</td><td>Templates, the 16 named patterns, full package, paste-only export, share links</td><td>Opus 5, Fable reviews content</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">5</td><td>MCP server, CLI, grooph-design skill, proposal sets, compare view (your "three graphs" scenario)</td><td>Opus 5, Fable writes the skill</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">6</td><td>Run notes import, notes on the graph, accept/reject proposed edits</td><td>Opus 5</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">7</td><td>Codex compile target</td><td>Fable maps, Astra implements</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">8</td><td>Same graph, both harnesses, one-shot deploy preferred</td><td>Fable designs, you run</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">9</td><td>Nodes whose runner is the other harness (heterogeneous critics for real)</td><td>tbd</td><td><span class="pill muted">provisional</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="muted">Stages 3 to 9 are the agreed order from Phase A; their internal slicing is provisional until each one is handed off.</p>
+
+  <h2>What you need to do</h2>
+  <ol>
+    <li><strong>Confirm slice 0001</strong> as written in <code>handoffs/0001-core-compiler-cli/HANDOFF.md</code>. No Opus session starts before this.</li>
+    <li><strong>Approve the acceptance-run spend.</strong> Criterion 6 has the Opus session run the exported package headlessly in Claude Code, at most twice, with strong-tier (Opus) subagents on a toy task. Expect low single-digit dollars per run.</li>
+    <li><strong>Pick a license</strong> for the public repo, or leave it unlicensed for now.</li>
+    <li><strong>Decide whether Astra should read-review the graph document</strong> before the schema gets wider in stage 3. Read-only, one short Codex session, catches Claude-shaped assumptions in the "neutral" core.</li>
+  </ol>
+
+  <h2>My recommendation for each</h2>
+  <div class="rec"><div class="q">1. Confirm 0001 as written.</div><p>The slice is the smallest thing that proves the product's riskiest claim (a compiled package drives a real session). Its boundary keeps the Opus session off the design docs, so a bad implementation costs a fix pass, not a redesign.</p></div>
+  <div class="rec"><div class="q">2. Approve the spend, capped at two runs.</div><p>Without a real run, "the package works" is a guess. Two runs cover one failure and one retry; a third means something is wrong with the package text and belongs in the handback, not in more spend.</p></div>
+  <div class="rec"><div class="q">3. MIT, unless you want to keep commercial options open.</div><p>The repo is already public; MIT matches the project's "harness-neutral, no lock-in" posture and removes friction for anyone who wants to run the CLI. If you are unsure, leaving it unlicensed costs nothing today. This one is genuinely yours; I will not add a license file without your word.</p></div>
+  <div class="rec"><div class="q">4. Yes, but after the 0001 handback, not now.</div><p>Running it in parallel risks two sessions proposing changes to the same document while Opus builds against it. After 0001 lands, the document is exercised by real code and the review is worth more. It is a read-only Codex session; I will draft that handoff when we get there.</p></div>
+
+  <h2>Prompts to send</h2>
+  <p>Two prompts, in order. The first goes to this driver session; the second opens the Opus session.</p>
+
+  <h3>1 · Reply here (accepts all four recommendations)</h3>
+  <div class="promptbox">
+    <button class="copy" data-target="p1" type="button">Copy</button>
+<pre id="p1"><code>Slice 0001 is confirmed as written in handoffs/0001-core-compiler-cli/HANDOFF.md. Acceptance-run spend approved, capped at two headless runs. License: MIT — add LICENSE now. Astra's read-only review of the graph document happens after the 0001 handback, not in parallel. I'm opening the Opus session now; I'll paste its handback prompt here when it returns.</code></pre>
+  </div>
+
+  <h3>2 · Paste into a fresh Claude Code session in the repo</h3>
+  <p>Open Claude Code in <code>/Users/noir/Documents/grooph</code>, model <strong>Opus 5</strong>, effort <strong>high</strong>, permission mode <strong>acceptEdits</strong>. Then paste:</p>
+  <div class="promptbox">
+    <button class="copy" data-target="p2" type="button">Copy</button>
+<pre id="p2"><code>You are the implementer for grooph slice 0001 (core, validator, Claude Code compiler, CLI). The repo is /Users/noir/Documents/grooph, published at github.com/ryanjosephkamp/grooph.
+
+1. Run `git fetch origin` and create branch slice/0001-core-compiler-cli from origin/main.
+2. Read handoffs/0001-core-compiler-cli/HANDOFF.md first, then the files in its "Read first" order. Read docs/graph-ir.md and docs/targets/claude-code.md completely before writing any code; they are normative and the handoff forbids changing them.
+3. Work only inside the handoff's "Allowed changes". Commit often with `&lt;area&gt;: &lt;what changed&gt;` messages and push the branch.
+4. Each time a success criterion is met, append one line to the "In flight" section of docs/PROGRESS.md.
+5. The headless acceptance run in success criterion 6 spends real tokens; run it at most twice.
+6. When done, or if blocked, finish with the grooph-handback skill. The last block of your final reply must be the return prompt from HANDBACK.md.</code></pre>
+  </div>
+  <div class="callout">
+    <strong>Mode:</strong> execution. The design is fixed in two normative docs; the session builds against them and must not plan its own architecture.<br>
+    <strong>Effort:</strong> high, floor high. The validator and CLI are test-checkable, but the emitted lead brief and agent bodies are prose that only the real run can judge; below high that text goes generic and the failure is only caught by the expensive run.
+  </div>
+
+  <h2>Verification and evidence</h2>
+  <ul>
+    <li>Four commits on <code>main</code>, all pushed; <code>git status --porcelain</code> is empty.</li>
+    <li>Both fixture files parse as JSON (checked with a one-line script). They have <em>not</em> been run through a validator, because none exists yet; the handoff lets the implementer fix inconsistencies and requires them to be reported.</li>
+    <li>Claude Code native units were verified against the official docs for 2.1.268 by a research subagent (subagents, skills, headless, hooks, workflows, MCP config, plugins, effort settings). Unconfirmed items are listed in the target doc as such.</li>
+    <li>Codex CLI 0.154.0-alpha.6.2 is installed and exposes <code>codex exec</code> (non-interactive) and <code>codex mcp</code> (external MCP servers), which is what the later dual-harness idea needs. Not exercised yet.</li>
+    <li>No tests, builds or deployments exist yet. Nothing was skipped that could have been run.</li>
+  </ul>
+
+  <h2>Risks, open items, what was not done</h2>
+  <ul>
+    <li><strong>The package may under-drive the session.</strong> A lead that skips the progress log, grades its own work, or ignores a stop is the failure this slice exists to find. Expect a fix pass on the lead brief text.</li>
+    <li><strong>Dollar budgets are advisory in Claude Code.</strong> No documented cost-cap flag. The lead brief will say so; turn and minute budgets are the enforceable kinds.</li>
+    <li><strong>Hand-written fixtures.</strong> The review-loop fixture was written against the rules by hand and may carry a small inconsistency; the handoff bounds how it may be fixed.</li>
+    <li><strong>Phone canvas ergonomics</strong> are untested until 0002; the outline view in stage 3 is the fallback if edge-drawing by touch is poor.</li>
+    <li><strong>Codex CLI is an alpha build.</strong> Its surface may shift before stage 7; the mapping doc for Codex is deliberately not written yet.</li>
+    <li><strong>Not done, by design:</strong> no code, no CI, no license file, no monorepo skeleton (all belong to 0001 so the implementer owns the tooling choices), no pattern content, no MCP server.</li>
+  </ul>
+
+  <h2>How to undo it</h2>
+  <p>Everything is documentation. <code>git reset --hard 6313b6b &amp;&amp; git push --force origin main</code> returns the repo to the initial README. Lost: the docs, the handoff, and the two memory notes in this session's memory directory (which would need deleting separately). No deployments, secrets or external state were created.</p>
+  <p class="muted">I could not view this page after publishing; it is private to you. If anything renders oddly, tell me and I will republish once.</p>
+</div>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-target'));
+      var text = el ? el.innerText : '';
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+      } else { fallback(); }
+      function fallback() {
+        try {
+          var range = document.createRange(); range.selectNodeContents(el);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+          document.execCommand('copy'); sel.removeAllRanges(); done();
+        } catch (e) { btn.textContent = 'Select and copy'; }
+      }
+    });
+  });
+</script>

@@ -31,6 +31,7 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 - **Latitude over procedure.** Briefs state purpose, limits and outputs. The smallest graph that works beats a thorough one.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
 - **State lives in `docs/PROGRESS.md`, reasons in `docs/decisions/`.** README stays a product description.
+- **Publish only from a file the repo keeps.** A published page (a gate brief, a share-link wrapper) belongs to the Claude account that published it and cannot be handed to another. Write its source into `handoffs/briefs/` first, publish from there, then record the URL beside it in that folder's table. Never publish from a session scratchpad: that directory is expected to vanish.
 - **Tooling:** TypeScript monorepo, `pnpm` workspaces. Package-level choices belong to the implementer and are recorded in the handback.
 
 ## Layout
@@ -39,6 +40,7 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 spec/        capability spec (frozen) + amendments
 docs/        PLAN, PROGRESS, ARCHITECTURE, GLOSSARY, graph-ir, targets/, decisions/
 handoffs/    protocol, templates, one folder per slice (HANDOFF, HANDBACK, REVIEW)
+handoffs/briefs/  sources of the gate briefs published as Artifacts, with their URLs
 packages/    core (schema, validate, compile) · cli · mcp        — created in slice 0001
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
@@ -47,3 +49,11 @@ experiments/ paired harness runs (later)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin
 .claude/skills/  project skills: grooph-handoff, grooph-handback, grooph-reconcile
 ```
+
+## Picking this up on another Claude account
+
+You inherit everything that matters by signing in at this path: the repository, and — because the folder is named after the path, not the account — this project's memory files and every past session's transcript under `~/.claude/projects/-Users-noir-Documents-grooph/`. The `grooph` command and the `/grooph-design` skill are symlinks into this clone and keep working, as do GitHub pushes, CI and the Pages deploy, which belong to the GitHub account.
+
+You do not inherit the gate briefs published as Artifacts. Their sources are in `handoffs/briefs/`; republishing mints a new URL. grooph has no routine, no scheduled task and no connector to recreate, so there is nothing to turn off and nothing that can collide.
+
+[`docs/HANDOVER.md`](docs/HANDOVER.md) has the full recipe, the order to switch in, and what to copy if the clone ever moves to another machine.

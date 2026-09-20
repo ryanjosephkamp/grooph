@@ -1,0 +1,189 @@
+<title>grooph Gate 0002</title>
+<style>
+  :root {
+    --ground: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eaedf1;
+    --ink: #1b2027;
+    --muted: #5c6673;
+    --line: #d5dae1;
+    --accent: #176b63;
+    --accent-ink: #ffffff;
+    --good: #2f7d4f;
+    --warn: #a35f00;
+    --crit: #b3261e;
+    --mono: ui-monospace, "SF Mono", Menlo, "Roboto Mono", monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #13161a; --surface: #1b1f25; --surface-2: #242a32; --ink: #e7e9ec; --muted: #9aa4b0;
+      --line: #333b45; --accent: #4fb3a6; --accent-ink: #0f1a18; --good: #5cbf85; --warn: #e0a24a; --crit: #ef7a72;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #13161a; --surface: #1b1f25; --surface-2: #242a32; --ink: #e7e9ec; --muted: #9aa4b0;
+    --line: #333b45; --accent: #4fb3a6; --accent-ink: #0f1a18; --good: #5cbf85; --warn: #e0a24a; --crit: #ef7a72;
+  }
+  body { background: var(--ground); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; margin: 0; }
+  .wrap { max-width: 760px; margin: 0 auto; padding-block: 32px 64px; padding-inline: 16px; }
+  h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+  h1 { font-size: 1.9rem; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 1.25rem; font-weight: 600; margin-top: 44px; padding-top: 16px; border-top: 1px solid var(--line); }
+  h3 { font-size: 1rem; font-weight: 600; margin-top: 20px; }
+  p { margin: 12px 0; max-width: 68ch; }
+  ul, ol { padding-left: 1.3em; max-width: 68ch; }
+  li { margin: 6px 0; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: var(--mono); font-size: 0.84rem; line-height: 1.5; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; overflow-x: auto; margin: 0; white-space: pre-wrap; word-break: break-word; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .masthead { display: flex; flex-direction: column; gap: 8px; }
+  .status { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-top: 20px; }
+  .status div { background: var(--surface); padding: 10px 12px; }
+  .status .k { font-family: var(--mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: block; margin-bottom: 4px; }
+  .status .v { font-weight: 500; font-size: 0.95rem; }
+  .pill { display: inline-block; font-family: var(--mono); font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; vertical-align: middle; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .crit { color: var(--crit); } .muted { color: var(--muted); }
+  .tablewrap { overflow-x: auto; margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-family: var(--mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 500; }
+  td.n { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .diagram { background: #ffffff; color: #1b2027; border: 1px solid var(--line); border-radius: 6px; padding: 12px; text-align: center; margin: 14px 0; overflow-x: auto; }
+  .diagram svg { max-width: 100%; height: auto; }
+  .promptbox { position: relative; margin: 14px 0; }
+  .promptbox pre { padding-top: 40px; }
+  .copy { position: absolute; top: 8px; right: 8px; font-family: var(--mono); font-size: 0.74rem; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+  .copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .rec { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; margin: 14px 0; }
+  .rec .q { font-weight: 600; }
+  .callout { background: var(--surface-2); border-radius: 6px; padding: 12px 14px; margin: 14px 0; max-width: 68ch; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <span class="eyebrow">grooph · driver brief · 2026-09-18</span>
+    <h1>Gate 0002: the compiler works for real; canvas and Codex-side review are ready to start</h1>
+    <p>Slice 0001 came back complete and was merged after independent verification. A compiled package drove a fresh Claude Code session through a genuine critic rejection, a fix, a bar pass and a clean stop at the human gate. Two slices are drafted and can run in parallel: the phone canvas (Opus) and a read-only harness-neutrality review of the graph document (Astra in Codex).</p>
+    <div class="status">
+      <div><span class="k">Branch</span><span class="v">main · 9 commits</span></div>
+      <div><span class="k">Tree</span><span class="v good">clean, pushed</span></div>
+      <div><span class="k">Tests</span><span class="v good">62 / 62, CI green</span></div>
+      <div><span class="k">Acceptance run</span><span class="v good">passed · $2.32 · 33 turns</span></div>
+      <div><span class="k">Rollback point</span><span class="v"><code>0f2556c</code> (before merge)</span></div>
+      <div><span class="k">Blocking</span><span class="v good">none — 0002 confirmed</span></div>
+    </div>
+  </header>
+
+  <h2>What was just completed</h2>
+  <p><strong>The core exists and is tested.</strong> <code>packages/core</code> holds the graph document types, a generated JSON Schema, the canonical form, the validator with all ten first-slice rules (each with a fixture that reports exactly its own code), and the Claude Code compiler. <code>packages/cli</code> exposes <code>grooph validate | canonicalize | export</code>. Core has zero runtime dependencies so it will run unchanged in the browser. CI runs on Node 22 and 24 and also checks that the compiler's output still matches the committed golden package byte for byte.</p>
+  <p><strong>The riskiest claim was tested with a real run, and held.</strong> The exported review-loop package was dropped into a scratch project with a small task and a checklist, and Claude Code was started headlessly from the kickoff prompt alone. The lead dispatched a fresh builder, then a fresh critic with only the listed evidence (it wrote the diff and test output to files and handed the critic the paths, never a transcript). The critic re-ran the tests itself and failed round 0 on the one checklist item the task did not spell out. The builder fixed exactly that; the critic passed round 1; the "bar passed" stop fired; the lead halted at the merge gate and reported that it was waiting for a human, without inventing an answer. All nine run notes conform to the schema. One of the two approved runs is unused.</p>
+  <p><strong>The implementer found one real hole, and it is now a decision.</strong> The critic must leave <code>REVIEW.md</code> behind but is denied file editing, so the lead filed the report for it. Fix: a new <code>write-outputs</code> capability (a node may write only the files it declares as outputs) and a warning rule, both scheduled for stage 3; the fixture stays as it ran until then. Seven smaller ambiguities the implementer flagged were resolved in the normative docs (round numbering, headless gates, workspace trust, tool-denial arithmetic, turn counting, evidence-as-files, the target registry).</p>
+  <p><strong>Five tooling choices were promoted to a decision record</strong> so later slices inherit them rather than rediscover them.</p>
+
+  <h2>What comes immediately next</h2>
+  <p><strong>Slice 0002, minimal canvas (Opus 5).</strong> A React + React Flow app over the core: add and edit nodes, edges and loops by touch; live validation; on-device graph storage; JSON import/export; package export as a zip with a copyable kickoff prompt; auto-layout for documents without positions; deployed to GitHub Pages. Its acceptance test is a browser test at phone width that imports the fixture and exports a byte-identical package, plus you rebuilding the review loop on your phone from scratch.</p>
+  <p><strong>Slice 0003, harness-neutrality review (Astra in Codex).</strong> Read-only. Astra reads the graph document design and the emitted package, lists where they quietly assume Claude Code, and produces a verified inventory of Codex's native units with a draft mapping table. That inventory seeds the Codex target in stage 7. It changes one file.</p>
+  <p><strong>Update 2026-09-18:</strong> your Codex quota is exhausted, so slice 0003 and everything Codex-dependent (stages 7–9) is deferred; the handoff stays drafted for when Codex is back. Slice 0002 is confirmed and everything below reflects that.</p>
+
+  <h2>The overall plan</h2>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  S0[Stage 0 Scaffolding] --> S1[Stage 1 Graph document v0]
+  S1 --> S2a[0001 Core, compiler, CLI]
+  S2a --> S2b[0002 Minimal canvas]
+  S2a --> S2c[0003 Astra IR review]
+  S2b --> S3[Stage 3 Authoring completeness]
+  S2c --> S3
+  S3 --> S4[Stage 4 Templates and patterns]
+  S4 --> S5[Stage 5 Agent surface: CLI, MCP, design skill]
+  S5 --> S6[Stage 6 Notes back]
+  S6 --> S7[Stage 7 Codex target via Astra]
+  S7 --> S8[Stage 8 Paired empirical runs]
+  S8 -.-> S9[Stage 9 Dual-harness nodes, optional]
+  style S0 fill:#dfeeea,stroke:#176b63
+  style S1 fill:#dfeeea,stroke:#176b63
+  style S2a fill:#dfeeea,stroke:#176b63
+  style S2b fill:#fff3d6,stroke:#a35f00
+  style S2c fill:#fff3d6,stroke:#a35f00
+</pre>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Slice / stage</th><th>Scope</th><th>Owner</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td class="n">0001</td><td>Core, validator, Claude Code compiler, CLI, acceptance run</td><td>Opus 5</td><td><span class="pill good">merged</span></td></tr>
+        <tr><td class="n">0002</td><td>Minimal canvas on the phone, deployed</td><td>Opus 5</td><td><span class="pill good">confirmed</span></td></tr>
+        <tr><td class="n">0003</td><td>Read-only IR review + Codex native-units inventory</td><td>Astra (Codex)</td><td><span class="pill muted">deferred (Codex quota)</span></td></tr>
+        <tr><td class="n">3</td><td>Full rule set, all authoring features, outline view, offline install, plus the carry-forward list from review 0001</td><td>Opus 5</td><td><span class="pill muted">todo</span></td></tr>
+        <tr><td class="n">4–9</td><td>Templates and patterns · agent surface (MCP, design skill) · notes back · Codex target · paired runs · dual-harness nodes</td><td>various</td><td><span class="pill muted">todo</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>What you need to do</h2>
+  <ol><li>Open the Opus 5 session for slice 0002 and paste the prompt below. Nothing else is waiting on you.</li></ol>
+
+  <h2>Prompt to send</h2>
+<h3>Paste into a fresh Claude Code session (Opus 5, effort high, acceptEdits)</h3>
+  <div class="promptbox">
+    <button class="copy" data-target="p2" type="button">Copy</button>
+<pre id="p2"><code>You are the implementer for grooph slice 0002 (minimal canvas). The repo is /Users/noir/Documents/grooph, published at github.com/ryanjosephkamp/grooph.
+
+1. Run `git fetch origin` and create branch slice/0002-minimal-canvas from origin/main.
+2. Read handoffs/0002-minimal-canvas/HANDOFF.md first, then the files in its "Read first" order. The core package is consumed as-is; the handoff says exactly when you may touch it.
+3. Work only inside the handoff's "Allowed changes". Commit often with `&lt;area&gt;: &lt;what changed&gt;` messages and push the branch.
+4. Each time a success criterion is met, append one line to the "In flight" section of docs/PROGRESS.md under a "Slice 0002" heading (create it).
+5. When done, or if blocked, finish with the grooph-handback skill. The last block of your final reply must be the return prompt from HANDBACK.md.</code></pre>
+  </div>
+
+  <div class="callout">
+    <strong>0002 mode and effort:</strong> execution, <strong>high</strong> (floor high). Test-checkable pipeline, but touch ergonomics and visual hierarchy are judgment calls no test catches.<br>
+    <strong>0003:</strong> deferred until Codex is available; its prompt is in <code>handoffs/0003-astra-ir-review/HANDOFF.md</code>.
+  </div>
+
+  <h2>Verification and evidence</h2>
+  <ul>
+    <li>Cold install, build and test on the slice branch before merge: 62 tests, 0 failures (core 50, cli 12). CI runs <code>35299182138</code>, <code>35299329288</code>, <code>35299735087</code> green on Node 22 and 24.</li>
+    <li>CLI: valid fixture exits 0 with no issues; the no-stop fixture exits 1 with <code>E_CYCLE_NO_STOP</code>; export then <code>diff -r</code> against the golden package is empty; every invalid fixture reports exactly its own code.</li>
+    <li>Acceptance run <code>20260918-0042-k7qm</code>: I read the kept scratch directory myself. <code>claude-output.json</code>: cost $2.32, 33 turns, 4m25s, success. Nine notes in the sequence the handback describes. Not re-run.</li>
+    <li>Boundary: no path outside the handoff's allowed list was touched.</li>
+  </ul>
+
+  <h2>Risks, open items, what was not done</h2>
+  <ul>
+    <li>One run is one data point: one small graph, one harness version, one model. Fan-out, shared isolation, check nodes and bigger graphs are untested until stage 8.</li>
+    <li>The review-gate fixture keeps its known hole (critic cannot write its own report) until stage 3 lands <code>write-outputs</code>. Nothing copies it into the pattern library before then.</li>
+    <li>Turn budgets bound what the lead counts (25) rather than what the harness counts (33); dollar budgets are advisory in Claude Code. Both are now written into the target doc.</li>
+    <li>Phone canvas ergonomics are exactly what 0002 will discover; the stage-3 outline view is the fallback.</li>
+    <li>Not done, by design: the second acceptance run (available without new approval), the stage-3 carry-forward list, any UI.</li>
+  </ul>
+
+  <h2>How to undo it</h2>
+  <p><code>git reset --hard 0f2556c &amp;&amp; git push --force origin main</code> removes the merge and everything after it; the slice branch <code>slice/0001-core-compiler-cli</code> keeps the work. Nothing was deployed. The acceptance script's trust entry in <code>~/.claude.json</code> was removed by the script on exit.</p>
+  <p class="muted">I could not view this page after publishing; it is private to you. If anything renders oddly, tell me and I will republish once.</p>
+</div>
+
+<script>
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var el = document.getElementById(btn.getAttribute('data-target'));
+      var text = el ? el.innerText : '';
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(); });
+      } else { fallback(); }
+      function fallback() {
+        try {
+          var range = document.createRange(); range.selectNodeContents(el);
+          var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+          document.execCommand('copy'); sel.removeAllRanges(); done();
+        } catch (e) { btn.textContent = 'Select and copy'; }
+      }
+    });
+  });
+</script>
