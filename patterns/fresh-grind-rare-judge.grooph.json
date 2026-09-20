@@ -40,7 +40,8 @@
       "grind",
       "judge",
       "phases"
-    ]
+    ],
+    "demo": "experiments/patterns/fresh-grind-rare-judge/README.md"
   },
   "description": "An inner grind loop, a fast builder against the tests, runs inside an outer judgment loop. Only when the tests pass does a frontier judge review the phase against the phase checklist: fail returns to the builder to fix the phase, next-phase returns it to start the next one, and pass ends the run. Both loops are budgeted.",
   "nodes": [

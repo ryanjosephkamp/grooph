@@ -45,7 +45,8 @@
       "fan-out",
       "coupled",
       "grind"
-    ]
+    ],
+    "demo": "experiments/patterns/ownership-not-swarm/README.md"
   },
   "description": "A planner splits the task into the coupled core and independent pieces. Two owners, both marked coupled and each owning one subsystem, work in sequence, the second building on the first. Only then do fast workers take the independent pieces, up to three at a time. An integrator joins everything and a test check closes a short grind loop. Parallel fan-out lost to sequential ownership on coupled systems (spec §13); this graph fans out only where nothing is coupled.",
   "nodes": [

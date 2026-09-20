@@ -36,7 +36,8 @@
       "grind",
       "retrospective",
       "proposals"
-    ]
+    ],
+    "demo": "experiments/patterns/retrospective-rewrite/README.md"
   },
   "description": "The grind-loop shape with adaptation set to propose: the lead changes nothing during the run. When the tests pass, or when the loop stops on its rounds or minutes, a researcher reads the run's notes and progress log and writes proposals for the next version of this graph, each with its evidence and an op-list patch. The human decides after the run.",
   "nodes": [

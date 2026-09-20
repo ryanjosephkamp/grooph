@@ -39,7 +39,8 @@
       "parallel",
       "candidates",
       "judge"
-    ]
+    ],
+    "demo": "experiments/patterns/tournament-then-judge/README.md"
   },
   "description": "Three fast builders each draft the whole task in their own folder, in parallel. A check runs the tests on each and keeps the ones that pass. A frontier judge sees only those finalists and picks one against the stated criteria, naming any idea worth borrowing from the others. A builder finishes the winner. No loop: the tournament runs once.",
   "nodes": [
