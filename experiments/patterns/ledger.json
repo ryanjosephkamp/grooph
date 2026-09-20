@@ -176,8 +176,23 @@
       "run_id": "20260920-172850",
       "retry": null,
       "note": "scripted answer \"approve\" at spec-gate"
+    },
+    {
+      "n": 12,
+      "template": "-",
+      "kind": "probe",
+      "started": "2026-09-20T18:29:41.032Z",
+      "ended": "2026-09-20T18:29:41.033Z",
+      "status": "ok",
+      "cost_usd": 0.0209283,
+      "reported_cost_usd": 0.0209283,
+      "max_budget_usd": 0.0209283,
+      "session_id": "a8563fee-e858-4948-85a5-4670f497d1ed",
+      "run_id": null,
+      "retry": null,
+      "note": "harness probe, not a template run: claude -p (haiku, 2 turns) in an empty scratch dir with a Read(//<path>/**) allow rule, to confirm a headless session can read held-out evidence beside the project (it did; no denial) before batch two's tasks depend on it"
     }
   ],
-  "spent_usd": 10.808089,
-  "remaining_usd": 34.191911
+  "spent_usd": 10.829017,
+  "remaining_usd": 34.170983
 }
