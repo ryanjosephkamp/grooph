@@ -1,0 +1,216 @@
+<title>grooph Status</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#7b8494;--line:#d9ded8;--accent:#2f6f8f;--accent-soft:#dbe9f0;--bar:#3b83a6;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--note-bg:#f1f3ef;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-soft:#233543;--bar:#5fa2c4;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--note-bg:#232a32}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-soft:#233543;--bar:#5fa2c4;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--note-bg:#232a32}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px;padding-inline:16px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:2rem;font-weight:700}
+h2{font-size:1.35rem;font-weight:600;margin-top:44px;padding-top:14px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:22px}
+p{margin:10px 0;max-width:68ch}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+code,.mono{font-family:var(--mono);font-size:.86em}
+code{background:var(--note-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.45}
+pre code{background:none;padding:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0}
+.box.warn{background:var(--warn-bg);border-color:transparent;color:var(--warn-ink)}
+.box.warn p{color:inherit}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:18px 0}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.tile .n{font-family:var(--head);font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .l{font-size:.85rem;color:var(--ink2);margin-top:4px}
+.tile .s{font-size:.75rem;color:var(--ink3);font-family:var(--mono);margin-top:6px;word-break:break-all}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.pill{display:inline-block;font-family:var(--head);font-size:.72rem;font-weight:600;letter-spacing:.03em;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.pill.red{background:var(--warn-bg);color:var(--warn-ink)}
+.pill.none{background:var(--note-bg);color:var(--ink2)}
+ul{padding-left:20px}li{margin:6px 0;max-width:68ch}
+li b,p b{font-weight:600}
+.chart{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 8px 6px;margin:14px 0}
+.chart svg{width:100%;height:auto;display:block}
+.chart .cap{font-size:.82rem;color:var(--ink3);padding:6px 8px 4px}
+.src{font-size:.82rem;color:var(--ink3)}
+a{color:var(--accent)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--ink2);padding:0 8px 4px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px;background:var(--bar)}
+.sw.red{background:var(--bar);background-image:repeating-linear-gradient(135deg,transparent 0 2px,var(--surface) 2px 3px)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+<div class="wrap">
+<div class="eyebrow">Status report · 2026-09-20</div>
+<h1>grooph: where the project stands</h1>
+<p class="meta">Written by the driver session (Claude Fable 5.1) for Ryan, the owner. Every number on this page comes from a file in the repository at <code>github.com/ryanjosephkamp/grooph</code>, and the path or command that produces it is given beside it, so anything here can be audited from the clone.</p>
+
+<div class="box warn">
+<p><b>Who actually ran what.</b> The driver session (this one, and the previous account's driver before slice 0010) never runs an experiment. Every headless run on record was made by an Opus 5 implementer session that you started yourself from a paste prompt, on this Mac, through <code>scripts/prove-pattern.sh</code>. What this session did today: re-ran every test suite, ran the evidence check on all sixteen records, summed the ledger against the runner's own status output, read the notes behind the claims it acted on, and merged. What nobody has done: compared a grooph run against the same task without a graph. That comparison is stage 10 and has not started, so the effectiveness question below is answered "unknown", not with a number.</p>
+</div>
+
+<h2>At a glance</h2>
+<div class="tiles">
+<div class="tile"><div class="n">16 / 16</div><div class="l">templates with a recorded headless run and a write-up</div><div class="s">experiments/patterns/README.md</div></div>
+<div class="tile"><div class="n">$39.58</div><div class="l">proving spend, under a $45.00 cap set by you</div><div class="s">experiments/patterns/ledger.json</div></div>
+<div class="tile"><div class="n">19</div><div class="l">real run records kept in the repository</div><div class="s">experiments/patterns/*/run*/ · .grooph/slice-0007-sandwich/runs/</div></div>
+<div class="tile"><div class="n">4</div><div class="l">runs where a loop actually looped (a critic sent work back)</div><div class="s">batch two, all four in the summary table</div></div>
+<div class="tile"><div class="n">14 / 16</div><div class="l">records that pass the evidence check; two are red on purpose</div><div class="s">scripts/prove-pattern.sh &lt;id&gt; --check …</div></div>
+<div class="tile"><div class="n">402</div><div class="l">automated tests green on main (243 core, 58 CLI, 49 web, 52 browser)</div><div class="s">pnpm -r test · test:e2e · CI</div></div>
+</div>
+<p class="src">Also on record but outside the ledger: the first two acceptance runs, $2.32 (slice 0001) and $2.12 (slice 0004), summarised in those slices' handbacks; their run folders were scratch and are not in the repo. Slice 0007 was itself built by a grooph run whose record is kept; its cost was not written into that record.</p>
+
+<h2>What grooph can do today</h2>
+<p>grooph is an authoring and compilation tool for multi-agent loop graphs. A graph document (JSON, with a published schema) describes agents, edges, loops, stops and human gates; a validator enforces loop hygiene with 24 coded rules; a compiler emits a prompt package that a Claude Code session runs as the lead. grooph never calls a model itself.</p>
+<ul>
+<li><b>Sixteen built-in templates</b>, each a validated graph document, browsable in the app and installable by name from the published index. Every one now has a proving record linked from its page.</li>
+<li><b>A CLI</b> (<code>grooph</code>): validate, compile, apply typed operations, use and insert templates, share a proposal set, list and bundle runs, adopt a run's amended working copy, and watch a run live on the phone.</li>
+<li><b>A local-first web app</b> on GitHub Pages: canvas editing on a phone, template library, compare view for candidate graphs, and a run view that lights the graph from the run's notes, including the stop that fired.</li>
+<li><b>The design skill</b> (<code>/grooph-design</code>): from a Claude Code session, describe a project and get one to three validated candidate graphs and a phone link to compare them. The driver has used it end to end once (slice 0007's workflow); you have not used it yourself yet.</li>
+<li><b>The proving runner</b>: builds a scratch project from a task, instantiates a template, runs the package headless under a spend ledger and a narrow permission allowlist, copies the evidence into the repo, and asserts on it.</li>
+</ul>
+<p class="src">Live: <a href="https://ryanjosephkamp.github.io/grooph/">the app</a> · <a href="https://ryanjosephkamp.github.io/grooph/patterns/index.json">template index</a> · <a href="https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json">spend ledger</a>. Source of "what works": <code>docs/PROGRESS.md</code> § Now.</p>
+
+<h2>What has been done, in order</h2>
+<div class="scroll"><table>
+<tr><th>Date</th><th>Slice</th><th>What landed</th></tr>
+<tr><td>09-17</td><td>stages 0–1</td><td>Repo, frozen spec plus amendments, graph document design, Claude Code target mapping</td></tr>
+<tr><td>09-18</td><td>0001</td><td>Core (schema, validator, canonical form, compiler), CLI, fixtures per rule, first real headless run ($2.32)</td></tr>
+<tr><td>09-18</td><td>0002</td><td>Web canvas; phone-size browser tests; GitHub Pages deploy</td></tr>
+<tr><td>09-18</td><td>0004</td><td>Typed operations in core, every rule with fixtures, adaptive runs, second acceptance run ($2.12)</td></tr>
+<tr><td>09-18</td><td>0005</td><td>Template block, registries, sixteen patterns, published library</td></tr>
+<tr><td>09-18</td><td>0006</td><td>Share links, proposal sets, compare view, the design skill packaged as a plugin</td></tr>
+<tr><td>09-19</td><td>0007</td><td>Templates in the app, undo, persistence. First slice built by a grooph run; first working copy adopted</td></tr>
+<tr><td>09-19</td><td>0008</td><td>Runs: notes back onto the graph, adopt or discard, the live monitor</td></tr>
+<tr><td>09-19</td><td>0009</td><td>Proving ground, first batch: five templates, $7.01, seven defects found in what grooph emits</td></tr>
+<tr><td>09-20</td><td>handover</td><td>Project moved to this Claude account; nothing needed recreating</td></tr>
+<tr><td>09-20</td><td>0010</td><td>The seven defects fixed at the source; two gate templates re-proved clean ($3.80)</td></tr>
+<tr><td>09-20</td><td>0011</td><td>Second batch: the remaining eleven templates ($28.77), four back edges, held-out evidence, fragment hosts. Stage 6 done</td></tr>
+</table></div>
+<p class="src">Source: <code>docs/PROGRESS.md</code> § Done; <code>docs/PLAN.md</code> slice ledger; <code>handoffs/NNNN-*/REVIEW.md</code> for each verdict. 172 commits on main.</p>
+
+<h2>The experiments: what a proving run is and what it records</h2>
+<p>A proving run answers one question per template: does a real Claude Code session, given only the package grooph emits, run the graph as designed and end through one of its stops? Each run is one data point about grooph's output. It is not a benchmark of the template against anything else.</p>
+<p><b>How one run goes.</b> The runner copies a small Node project from <code>experiments/patterns/&lt;id&gt;/task/</code> into a scratch folder, instantiates the template with that task's slot values, exports the package, and starts <code>claude -p</code> headless with a permission allowlist passed by flag, a per-run dollar ceiling, and no MCP servers. When the session ends, the runner copies the evidence into the repository and runs its assertions.</p>
+<h3>What is recorded, and where to look</h3>
+<div class="scroll"><table>
+<tr><th>Path</th><th>What it holds</th></tr>
+<tr><td><code>experiments/patterns/ledger.json</code></td><td>Every model-calling invocation: number, template, kind, start and end time, cost as the harness reported it, the run id, the cap and its history. Written by the runner, not by hand (the cap raise is the one hand edit, and it is recorded).</td></tr>
+<tr><td><code>experiments/patterns/&lt;id&gt;/run/result.json</code></td><td>The run's facts: run id, harness version, models per agent, cost, harness turns, duration, rounds, stop fired, ending, subagents, permission denials, amendments, proposals, hashes of the task and of held-out files.</td></tr>
+<tr><td><code>…/run/runs/&lt;run-id&gt;/notes.jsonl</code></td><td>The lead's own log, one JSON line per event: run start, each dispatch, each node result, each loop pass with the stop it evaluated, halts at gates, amendments and proposals. 188 lines across the sixteen current records.</td></tr>
+<tr><td><code>…/run/runs/&lt;run-id&gt;/PROGRESS.md</code>, <code>graph.grooph.json</code></td><td>The lead's human-readable progress file and the run's working copy of the graph (what an adaptive lead amended, if anything).</td></tr>
+<tr><td><code>…/run/claude-output.json</code>, <code>transcript-digest.json</code>, <code>project.diff</code></td><td>The harness's own result object, a digest of the session transcript (which agent read or wrote which file), and the diff the run left in the scratch project.</td></tr>
+<tr><td><code>…/run/package/</code>, <code>expect.json</code>, <code>held-out/</code></td><td>The exact package the session was given; what the check asserts for this template; cases a critic held that the builder was told not to read.</td></tr>
+<tr><td><code>experiments/patterns/&lt;id&gt;/README.md</code></td><td>The one-screen write-up. Every claim links a file under <code>run/</code>.</td></tr>
+<tr><td><code>…/run-1/</code></td><td>Earlier evidence for a re-proved template, moved unedited (byte-identical, checked at review).</td></tr>
+</table></div>
+<p><b>To audit a record yourself:</b></p>
+<pre><code>scripts/prove-pattern.sh --status                       # the ledger
+scripts/prove-pattern.sh heterogeneous-critic --check experiments/patterns/heterogeneous-critic/run
+node scripts/lib/prove-summary.mjs                        # the sixteen-row table, re-derived from the records</code></pre>
+<p class="src">Evidence is never edited after a run (decision 0009, <code>docs/decisions/0009-proving-records-are-evidence.md</code>). The check that reads it may be corrected, and is then re-run on every record.</p>
+
+<h2>Results so far</h2>
+<div class="chart">
+<div class="cap">Cost per proving run, current record for each template (USD as reported by Claude Code). Hatched: the record fails the evidence check.</div>
+<div class="legend"><span><span class="sw"></span>check passes</span><span><span class="sw red"></span>check fails, kept red</span></div>
+<svg id="cost" viewBox="0 0 720 470" role="img" aria-label="Bar chart of cost per proving run for sixteen templates, from 0.66 to 5.76 dollars"></svg>
+<div class="cap">Source: <code>experiments/patterns/ledger.json</code> and each record's <code>result.json</code>; total of the sixteen current records $35.74, plus $3.80 on the two first-batch records now under <code>run-1/</code> and $0.04 on three probes.</div>
+</div>
+<script>
+(function(){
+var d=[["specialist-critic-bank",5.76,true],["heterogeneous-critic",3.40,false],["taste-polish",3.17,false],["ownership-not-swarm",3.12,false],["fresh-grind-rare-judge",2.94,true],["tournament-then-judge",2.64,false],["spec-then-loop",2.44,false],["red-team-loop",2.15,false],["debate-then-build",1.73,false],["dual-bar",1.67,false],["metric-sandwich",1.49,false],["retrospective-rewrite",1.45,false],["review-gate",1.36,false],["contradiction-seeker",1.06,false],["human-gated-irreversible",0.70,false],["grind-loop",0.66,false]];
+var svg=document.getElementById("cost"),W=720,L=206,R=54,top=10,rowH=27,max=6,ns="http://www.w3.org/2000/svg";
+function el(n,a,t){var e=document.createElementNS(ns,n);for(var k in a)e.setAttribute(k,a[k]);if(t!=null)e.textContent=t;return e;}
+var defs=el("defs",{});var pat=el("pattern",{id:"hatch",width:"6",height:"6",patternUnits:"userSpaceOnUse",patternTransform:"rotate(45)"});
+pat.appendChild(el("rect",{width:"6",height:"6",fill:"var(--bar)"}));pat.appendChild(el("rect",{width:"2",height:"6",fill:"var(--surface)"}));defs.appendChild(pat);svg.appendChild(defs);
+var plotW=W-L-R;
+for(var g=0;g<=max;g+=1){var x=L+plotW*g/max;svg.appendChild(el("line",{x1:x,x2:x,y1:top,y2:top+rowH*d.length,stroke:"var(--line)","stroke-width":"1"}));svg.appendChild(el("text",{x:x,y:top+rowH*d.length+16,"text-anchor":"middle","font-size":"11","font-family":"var(--mono)",fill:"var(--ink3)"},"$"+g));}
+d.forEach(function(r,i){var y=top+i*rowH,h=rowH-8,w=plotW*r[1]/max;var grp=el("g",{});
+grp.appendChild(el("title",{},r[0]+": $"+r[1].toFixed(2)+(r[2]?" (check fails)":"")));
+grp.appendChild(el("text",{x:L-8,y:y+h/2+4,"text-anchor":"end","font-size":"12","font-family":"var(--mono)",fill:"var(--ink)"},r[0]));
+grp.appendChild(el("rect",{x:L,y:y,width:w,height:h,rx:"0",fill:r[2]?"url(#hatch)":"var(--bar)"}));
+grp.appendChild(el("text",{x:L+w+6,y:y+h/2+4,"font-size":"12","font-family":"var(--mono)",fill:"var(--ink2)"},"$"+r[1].toFixed(2)));
+svg.appendChild(grp);});
+svg.setAttribute("viewBox","0 0 "+W+" "+(top+rowH*d.length+26));
+})();
+</script>
+
+<h3>All sixteen records</h3>
+<p>One row per template, current record. "Back edge" means the loop sent work back to the builder at least once, which is the thing a loop graph exists to do. Duration is wall clock for the session; harness turns are what Claude Code reported (misreported when subagents ran in parallel; see findings).</p>
+<div class="scroll"><table>
+<tr><th>Template</th><th>Run id</th><th>Back edge</th><th>Ending</th><th class="num">Cost</th><th class="num">Duration</th><th class="num">Turns</th><th class="num">Denials</th><th>Check</th></tr>
+<tr><td>grind-loop</td><td class="mono">20260919-1230-k7qm</td><td><span class="pill none">none</span></td><td>stop node done</td><td class="num">$0.66</td><td class="num">1m26s</td><td class="num">16</td><td class="num">3</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>contradiction-seeker</td><td class="mono">20260919-1233-k7qm</td><td><span class="pill none">none</span></td><td>bar passed, done</td><td class="num">$1.06</td><td class="num">2m55s</td><td class="num">18</td><td class="num">8</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>metric-sandwich</td><td class="mono">20260919-1241-k7qm</td><td><span class="pill none">none</span></td><td>bar passed, done</td><td class="num">$1.49</td><td class="num">3m04s</td><td class="num">20</td><td class="num">4</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>review-gate <span class="src">(re-proved)</span></td><td class="mono">20260920-172408</td><td><span class="pill none">none</span></td><td>halt at merge-gate</td><td class="num">$1.36</td><td class="num">4m18s</td><td class="num">22</td><td class="num">2</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>spec-then-loop <span class="src">(re-proved)</span></td><td class="mono">20260920-172850</td><td><span class="pill none">none</span></td><td>halt at spec-gate, scripted approve, done</td><td class="num">$2.44</td><td class="num">6m54s</td><td class="num">35</td><td class="num">14</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>human-gated-irreversible</td><td class="mono">20260920-184824</td><td><span class="pill none">none</span></td><td>halt at gate; nothing published</td><td class="num">$0.70</td><td class="num">1m48s</td><td class="num">14</td><td class="num">1</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>retrospective-rewrite</td><td class="mono">20260920-185135</td><td><span class="pill none">none</span></td><td>done; 5 proposals, 0 amendments</td><td class="num">$1.45</td><td class="num">4m36s</td><td class="num">23</td><td class="num">2</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>debate-then-build</td><td class="mono">20260920-185756</td><td><span class="pill none">none</span></td><td>plan written, halt at plan-gate</td><td class="num">$1.73</td><td class="num">5m45s</td><td class="num">21</td><td class="num">1</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>tournament-then-judge</td><td class="mono">20260920-190434</td><td><span class="pill none">no loop</span></td><td>3 candidates in parallel, judge picked one</td><td class="num">$2.64</td><td class="num">5m35s</td><td class="num">4*</td><td class="num">0</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>dual-bar</td><td class="mono">20260920-191110</td><td><span class="pill none">none</span></td><td>ship line passed, 3 aspiration findings</td><td class="num">$1.67</td><td class="num">4m13s</td><td class="num">20</td><td class="num">2</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>red-team-loop</td><td class="mono">20260920-191614</td><td><span class="pill none">none</span></td><td>400k-input fuzz found nothing</td><td class="num">$2.15</td><td class="num">7m51s</td><td class="num">20</td><td class="num">2</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>heterogeneous-critic</td><td class="mono">20260920-192538</td><td><span class="pill ok">yes</span></td><td>critic failed r0 on held-out cases; passed r1; halt at gate</td><td class="num">$3.40</td><td class="num">8m26s</td><td class="num">36</td><td class="num">9</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>ownership-not-swarm</td><td class="mono">20260920-193520</td><td><span class="pill none">none</span></td><td>owners stayed in their folders; done</td><td class="num">$3.12</td><td class="num">8m16s</td><td class="num">11*</td><td class="num">2</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>taste-polish</td><td class="mono">20260920-194427</td><td><span class="pill ok">yes</span></td><td>critic failed r0 against reference; passed r1</td><td class="num">$3.17</td><td class="num">8m24s</td><td class="num">33</td><td class="num">7</td><td><span class="pill ok">pass</span></td></tr>
+<tr><td>fresh-grind-rare-judge</td><td class="mono">20260920-195457</td><td><span class="pill ok">yes</span></td><td>judge sent phase 1 back; done</td><td class="num">$2.94</td><td class="num">7m19s</td><td class="num">34</td><td class="num">3</td><td><span class="pill red">fail</span></td></tr>
+<tr><td>specialist-critic-bank</td><td class="mono">20260920-200356</td><td><span class="pill ok">yes</span></td><td>triage failed twice; halt on the $6 session ceiling</td><td class="num">$5.76</td><td class="num">15m58s</td><td class="num">36</td><td class="num">3</td><td><span class="pill red">fail</span></td></tr>
+</table></div>
+<p class="src">* Harness turn count misreported by Claude Code when subagents ran in parallel; the duration column is the wall clock the runner measured. Source: <code>node scripts/lib/prove-summary.mjs</code> and each <code>result.json</code>. The two red records fail for true reasons: a stand-in judge after the lead amended a capability the compiled agent file could not take, and a halt on the session's dollar ceiling, which the graph has no stop for.</p>
+
+<h3>The three batches</h3>
+<div class="scroll"><table>
+<tr><th>Batch</th><th class="num">Runs</th><th class="num">Spend</th><th class="num">Back edges</th><th>What it established</th></tr>
+<tr><td>First (slice 0009, 09-19)</td><td class="num">5</td><td class="num">$7.01</td><td class="num">0</td><td>Packages drive real sessions end to end; isolation and gates work; seven defects in the emitted brief (evidence rules, gate wording, run ids, clocks, budgets, evidence routing, help text). No loop looped, because every builder could read what it was judged against.</td></tr>
+<tr><td>Re-proof (slice 0010, 09-20)</td><td class="num">2</td><td class="num">$3.80</td><td class="num">0</td><td>The seven fixes hold in real sessions: halt note before the ask, clock-based run ids, dispatch counting, the stop named on the loop note.</td></tr>
+<tr><td>Second (slice 0011, 09-20)</td><td class="num">11</td><td class="num">$28.77</td><td class="num">4</td><td>Loops loop when the critic holds evidence the builder cannot see. Every gate halts and is recorded. Fragments prove inside a host. Six template defects and five brief or harness findings.</td></tr>
+</table></div>
+
+<h2>Findings</h2>
+<ul>
+<li><b>The package works as a runtime contract.</b> Eighteen proving sessions and three earlier acceptance runs followed the graph: dispatched the named agents as their own subagents, kept critics isolated, evaluated stops in order, and wrote the notes the run view reads. The first batch's seven defects were all in wording the lead brief emitted, and the re-proof showed the fixes landing.</li>
+<li><b>A loop only loops when the critic knows something the builder does not.</b> Zero back edges in the first seven runs; four in the eleven where tasks used held-out cases, a held-out reference, or a phase checklist. Two designs still did not force a loop: a frontier red team could not break a strong builder given a complete contract, and a fast builder passed all 43 held-out phase-2 cases first try. Those are recorded as lost bets, not failures.</li>
+<li><b>Gates hold.</b> Every human gate in headless mode ended the run with a halt note first and nothing irreversible done; the irreversible fragment left its publish file absent.</li>
+<li><b>Dispatch counting is a real brake.</b> Leads kept an exact dispatch count in seven of eight loops that had one; the eighth (the four-critic bank) counted 8 a round for 6, and the check caught it.</li>
+<li><b>Adaptive runs amend within the rules.</b> The first adaptive run added a file to a builder's ownership before dispatching; the retrospective template produced five proposals and zero amendments, as its level requires. One amendment exposed a gap: a capability change cannot reach the compiled agent file, so the lead used a stand-in. That is slice 0012's first fix.</li>
+<li><b>Harness quirks worth knowing.</b> Claude Code misreports turns and duration when subagents run in parallel; a headless lead can see its dollar ceiling and may halt on it; compound shell commands are refused under a narrow allowlist (the kickoff now says to run commands bare, and those refusals stopped).</li>
+</ul>
+<p class="src">Sources: <code>experiments/patterns/README.md</code> § "What the second batch showed" and § "What the first batch showed"; <code>handoffs/0009-proving-ground/HANDBACK.md</code>, <code>handoffs/0011-proving-batch-two/HANDBACK.md</code>.</p>
+
+<h2>Effectiveness, speed and cost: what we know and what we do not</h2>
+<h3>Effectiveness against alternatives: unknown</h3>
+<p>There is no run of the same task without a graph, with a plain single-agent session, or with another orchestration approach. Nothing in the repository supports a claim that a loop graph produces better, worse or equal work. The proving ground measures whether grooph's output drives a session as designed, which is a precondition for that question, not an answer to it. The comparison is stage 10 (paired runs, one harness against another and a graph against no graph), which is deferred until Codex is available. It could be brought forward for Claude Code alone at about $2 to $6 a pair if you want that evidence sooner.</p>
+<h3>Speed: measured, not compared</h3>
+<p>The sixteen current runs took from 1m26s (a grind loop, one round) to 15m58s (four critics in parallel, two rounds), median about 5m40s. That is the time for a small Node task to be built, judged and, in four cases, revised. No baseline exists for the same tasks done another way, so nothing here says grooph is faster or slower.</p>
+<h3>Cost: measured well</h3>
+<p>Per run, $0.66 to $5.76, median about $1.94; the cost of a round rises with the number of agents dispatched (the bank runs six agents a round, about $2.80). Total proving spend $39.58 of a $45.00 cap over 23 invocations, all in the ledger. These figures are what Claude Code reports as the API-rate cost of the tokens; under the subscription sign-in this Mac uses they draw on your plan's usage rather than being billed. What is not measured: the cost of the driver and implementer sessions that build grooph itself, which are ordinary interactive sessions outside any ledger.</p>
+
+<h2>The immediate next step</h2>
+<p><b>Slice 0012, brief and runner fixes from batch two.</b> Five small changes to what the compiler emits and what the runner checks, each traceable to a specific run: capability amendments reach the agent file (or become proposals); the lead brief names the operation vocabulary so proposers stop inventing ops; a sentence on diffing new files (seven refusals came from that git idiom); per-round critic reports kept in the run folder; and each loop's dispatches per round stated. The reason to do this before anything else: the two red records and the noisiest denials all trace to these, and the proving runner is now the acceptance test for any brief change. The handoff is not drafted yet; it is the driver's next action.</p>
+
+<h2>On the horizon</h2>
+<ul>
+<li><b>Re-prove the two red records</b> after 0012 (about $9), which needs the cap raised from $45 to $55. Recommended yes, after 0012 merges.</li>
+<li><b>Stage 8, manual authoring extras:</b> copy and paste, bulk spawn, groups, an outline view, an installable offline app. The parts of the spec's editing surface not yet built.</li>
+<li><b>Stages 9 to 11, Codex:</b> a harness-neutrality review of the graph document (slice 0003, already drafted), a Codex compile target, and the paired empirical runs. Deferred while your Codex quota is exhausted.</li>
+<li><b>Your own first use of the design skill</b> on a real project of yours, which is the stage 5 success test that is still outstanding.</li>
+<li><b>A community gallery</b> of submitted templates with demos. An idea in the plan, not designed.</li>
+</ul>
+<p class="src">Source: <code>docs/PLAN.md</code> § Stages and § Carried forward from slice 0011.</p>
+
+<h2>Known risks and what is not proved</h2>
+<ul>
+<li>Every run is one data point on one small task with one harness version (Claude Code 2.1.268 to 2.1.278) and one lead model (Opus 5). Larger graphs, bigger codebases and other models are untested.</li>
+<li>Held-out evidence is protected by instruction only. In the three runs that used it no builder read it, and the transcript digest would show if one had.</li>
+<li>Real-finger phone interaction is tested by browser emulation only, plus your own phone session on 09-18.</li>
+<li>Dollar and turn budgets are advisory inside a session; only dispatch counts and minutes are exact brakes.</li>
+</ul>
+<p class="src">Source: <code>docs/PROGRESS.md</code> § Known risks.</p>
+</div>

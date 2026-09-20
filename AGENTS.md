@@ -47,7 +47,7 @@ patterns/    built-in pattern library, one graph document each
 fixtures/    graphs per error code, golden packages
 experiments/ paired harness runs (later)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin
-.claude/skills/  project skills: grooph-handoff, grooph-handback, grooph-reconcile
+.claude/skills/  project skills: grooph-handoff, grooph-handback, grooph-reconcile, grooph-status
 ```
 
 ## Picking this up on another Claude account
