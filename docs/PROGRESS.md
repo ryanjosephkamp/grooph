@@ -6,19 +6,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–5 and 7 are done. Stage 6 (proving ground) is under way: the first batch of five templates ran for $7.01 and found seven defects in what grooph emits; slice 0010 fixes them before the second batch.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** confirm slice 0010; say whether it may spend up to two re-proving runs (about $4) from the $17.99 left under the 0009 cap.
+- **Next action (owner):** paste the slice 0010 prompt into an Opus 5 implementer session, then bring its handback prompt to the driver.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes); `scripts/prove-pattern.sh` with a spend ledger; six real run records.
 
 ## In flight
 
-_(none)_
+- **Slice 0010** (`handoffs/0010-hardening/`): confirmed 2026-09-20 with spend approved for two re-proving runs (about $4 of the $17.99 left under the 0009 cap). Awaiting the implementer session.
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0010 (`handoffs/0010-hardening/HANDOFF.md`) | Yes |
-| Allow 0010 to re-prove `review-gate` and `spec-then-loop` once each (about $4, inside the existing $25 cap) | Yes: it is the only way to see that the gate and run-id fixes work in a real session |
+_(nothing: slice 0010 and its spend were confirmed 2026-09-20)_
 
 ## Deferred until Codex is available
 
@@ -29,6 +26,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-20 | Project picked up on a new Claude account per `docs/HANDOVER.md`; nothing needed recreating. Owner confirmed slice 0010 and approved its two re-proving runs. Handover page republished from the new account, URL recorded in `handoffs/briefs/`. |
 | 2026-09-19 | Slices 0008 (runs: notes back, adoption, monitor) and 0009 (proving ground, five templates, $7.01) reconciled and merged. Findings folded into graph-ir (one gate rule, `dispatches` budgets, `invalid-evidence` routing, `stop` on loop notes, clock timestamps), the target doc (run ids from the clock, cost cap flag) and runs.md. Proving records published with the site. |
 | 2026-09-19 | Slice 0007 merged after fix pass 1: templates in the app, undo/redo, storage persistence, docked toolbar, rename warning, compare view opens on the recommendation, nearest-writer critic rule. First slice built by a grooph run; first working copy adopted (v2). Skill gained two lessons (point at sources of truth; give critics the repository). |
 | 2026-09-18 | Slice 0006 reconciled and merged: proposal sets, share links, compare view, `grooph share/pick/shape`, plugin manifests, local install script. Skill revised from the implementer's notes. Driver ran the skill end to end for slice 0007's workflow; link verified on the live site. |

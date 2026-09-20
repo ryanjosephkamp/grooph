@@ -1,6 +1,6 @@
 # Handoff 0010 · Lead brief and template hardening
 
-**Stage:** 6 (between proving batches) · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0010-hardening` · **Drafted:** 2026-09-19 · **Confirmed by owner:** pending · **Spend:** up to two headless re-proving runs from the unspent 0009 budget, only if the owner approves
+**Stage:** 6 (between proving batches) · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0010-hardening` · **Drafted:** 2026-09-19 · **Confirmed by owner:** 2026-09-20 · **Spend:** approved 2026-09-20: up to two headless re-proving runs (about $4) from the unspent 0009 budget, under the existing $25.00 cap
 
 ## Objective
 
