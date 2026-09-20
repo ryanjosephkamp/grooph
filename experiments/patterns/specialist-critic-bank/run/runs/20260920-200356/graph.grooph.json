@@ -1,42 +1,15 @@
 {
   "grooph": 0,
-  "id": "specialist-critic-bank",
-  "name": "Specialist critic bank",
+  "id": "search-user-files",
+  "name": "Search user files",
   "version": 1,
-  "goal": "{{task}} Done when the merged review lists no blocker and no major finding, `{{test-command}}` passes, and a human accepts the change.",
+  "goal": "Add `searchFiles(root, query, { within } = {})` to src/store.mjs: it returns, sorted, the names of the files directly under the user's root (or under the subfolder `within` when the request names one) whose text contains `query`. Build on the store's existing helpers, document it in README.md, and add tests to tests/store.test.mjs. Done when the merged review lists no blocker and no major finding, `npm test` passes, and a human accepts the change.",
   "target": {
     "harness": "claude-code"
   },
-  "template": {
-    "kind": "graph",
-    "title": "Specialist critic bank",
-    "summary": "Four fresh specialist critics review in parallel, a triage judge merges their findings by severity, and the change loops until nothing blocker or major remains.",
-    "whenToUse": "Multiple disjoint judges (correctness, security, performance, taste) should each look at the change, and their findings need merging by severity.",
-    "notFor": "Small or low-risk changes, where one review-gate critic is enough; four reviewers and a judge cost four times a round.",
-    "profile": {
-      "cost": "high",
-      "speed": "medium",
-      "rigor": "high"
-    },
-    "slots": [
-      {
-        "key": "task",
-        "ask": "What should be built or changed? One or two sentences a builder can act on.",
-        "example": "Add password reset by email to the account service in src/account/."
-      },
-      {
-        "key": "test-command",
-        "ask": "Which command runs the tests?",
-        "example": "pnpm test"
-      }
-    ],
-    "tags": [
-      "loop",
-      "review",
-      "parallel",
-      "severity"
-    ],
-    "demo": "experiments/patterns/specialist-critic-bank/README.md"
+  "lineage": {
+    "pattern": "specialist-critic-bank",
+    "from": "specialist-critic-bank@1"
   },
   "description": "A builder works; four critics, each in a fresh context and each on one concern, review the same diff in parallel (at most four at a time). A frontier triage judge merges their reports into one list by severity and emits the verdict. Blockers or majors return to the builder; a clean list goes to a human, whose rejection also returns to the builder. The loop stops when the merged list is clean, at its round cap, or at its dispatch budget.",
   "nodes": [
@@ -49,7 +22,7 @@
         "tier": "strong"
       },
       "effort": "high",
-      "brief": "Do the task in the code, with tests. On a later round, address every blocker and major in TRIAGE.md, or say why it does not apply; minors are optional. Run `{{test-command}}` before you report.",
+      "brief": "Do the task in the code, with tests. On a later round, address every blocker and major in TRIAGE.md, or say why it does not apply; minors are optional. Run `npm test` before you report.",
       "inputs": [
         "the task",
         "TRIAGE.md (from round 1 on)"
@@ -73,7 +46,7 @@
         "tier": "strong"
       },
       "effort": "medium",
-      "brief": "Review the change for correctness: wrong results, unhandled cases and missing tests; run `{{test-command}}` yourself only; other reviewers cover the rest. Rate each finding blocker, major or minor, with the file and line that shows it. You review; you do not fix. Report invalid-evidence rather than guessing when the diff cannot be read.",
+      "brief": "Review the change for correctness: wrong results, unhandled cases and missing tests; run `npm test` yourself only; other reviewers cover the rest. Rate each finding blocker, major or minor, with the file and line that shows it. You review; you do not fix. Report invalid-evidence rather than guessing when the diff cannot be read.",
       "inputs": [
         "diff of the change",
         "the repository as the change leaves it, read-only"
@@ -219,7 +192,7 @@
       "evidence": [
         "diff of the change",
         "the repository as the change leaves it, read-only",
-        "output of {{test-command}}"
+        "output of npm test"
       ]
     },
     {
@@ -340,10 +313,10 @@
           },
           {
             "kind": "artifact",
-            "ref": "output of {{test-command}}"
+            "ref": "output of npm test"
           }
         ],
-        "acceptance": "TRIAGE.md lists no blocker and no major finding, and `{{test-command}}` exits 0."
+        "acceptance": "TRIAGE.md lists no blocker and no major finding, and `npm test` exits 0."
       },
       "stops": [
         {

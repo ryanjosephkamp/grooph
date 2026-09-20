@@ -341,8 +341,23 @@
       "run_id": "20260920-195457",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 23,
+      "template": "specialist-critic-bank",
+      "kind": "kickoff",
+      "started": "2026-09-20T20:03:45.322Z",
+      "ended": "2026-09-20T20:19:42.959Z",
+      "status": "ok",
+      "cost_usd": 5.761035,
+      "reported_cost_usd": 5.761035250000001,
+      "max_budget_usd": 6,
+      "session_id": "d33bed6d-8521-4ef7-aa53-3989af6464da",
+      "run_id": "20260920-200356",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 33.814147,
-  "remaining_usd": 11.185853
+  "spent_usd": 39.575182,
+  "remaining_usd": 5.424818
 }

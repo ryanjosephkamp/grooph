@@ -354,7 +354,8 @@
         "task",
         "test-command"
       ],
-      "file": "specialist-critic-bank.grooph.json"
+      "file": "specialist-critic-bank.grooph.json",
+      "demo": "experiments/patterns/specialist-critic-bank/README.md"
     },
     {
       "id": "taste-polish",
