@@ -29,8 +29,9 @@ const PROVABLE = ["grind-loop", "review-gate", "metric-sandwich", "spec-then-loo
  * scratch project is touched (review 0001, finding 11). Narrow on purpose, as in
  * scripts/e2e-claude-code.sh: compound commands match no prefix rule and are
  * refused, and each refusal is recorded. Added here: `date` (the lead stamps its
- * notes), `git show` and `git rev-parse` (a critic reading the repository at the
- * head commit).
+ * notes and reads its run id from the clock), `git show` and `git rev-parse` (a
+ * critic reading the repository), and since slice 0010 `echo`, `cp` and `tr`:
+ * the first batch's denials were all shell plumbing of this kind, a turn each.
  */
 const SETTINGS = {
   permissions: {
@@ -54,6 +55,9 @@ const SETTINGS = {
       "Bash(find:*)",
       "Bash(mkdir:*)",
       "Bash(date:*)",
+      "Bash(echo:*)",
+      "Bash(cp:*)",
+      "Bash(tr:*)",
     ],
   },
 };
@@ -181,7 +185,9 @@ function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, pr
   // unexplained file in its tree may report it, or a critic may judge it.
   const outPath = join(harnessDir, `claude-output${suffix}.json`);
   const errPath = join(harnessDir, `claude-stderr${suffix}.txt`);
-  const args = ["-p", prompt, "--permission-mode", "acceptEdits", "--output-format", "json", "--settings", JSON.stringify(SETTINGS), "--max-budget-usd", decision.maxBudget.toFixed(2)];
+  // --strict-mcp-config: only the MCP servers named on the command line (none), so the owner's own
+  // connectors never reach a run (in the first batch a builder called one's instructions an injection).
+  const args = ["-p", prompt, "--permission-mode", "acceptEdits", "--output-format", "json", "--settings", JSON.stringify(SETTINGS), "--max-budget-usd", decision.maxBudget.toFixed(2), "--strict-mcp-config"];
   if (resumeSession) args.push("--resume", resumeSession);
   const out = openSync(outPath, "w");
   const err = openSync(errPath, "w");
@@ -356,7 +362,7 @@ async function main() {
   const evidenceDir = join(experiment.dir, "run");
   assertFreshBundle(args.template);
   if (!args.dryRun) {
-    if (existsSync(evidenceDir)) fail(`experiments/patterns/${args.template}/run already holds a run's evidence; it is never overwritten`);
+    if (existsSync(evidenceDir)) fail(`experiments/patterns/${args.template}/run already holds a run's evidence; it is never overwritten. To re-prove, move it aside first (run/ → run-1/) and pass --retry "<why>"`);
     if (spawnSync("claude", ["--version"], { encoding: "utf8" }).status !== 0) fail("claude is not on PATH; install Claude Code first");
     if (!claudeSignedIn()) fail("the claude CLI is not signed in, so a headless run would fail. Sign in with `claude auth login` and run this again.");
   }
@@ -383,7 +389,7 @@ async function main() {
       const decision = gate(ledger, { template: args.template, kind: "kickoff", retry: args.retry });
       console.log(describe(ledger));
       console.log(decision.ok ? `the ledger would allow a kickoff, capped at $${decision.maxBudget.toFixed(2)}` : `the ledger would refuse: ${decision.reason}`);
-      console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" --permission-mode acceptEdits --output-format json --settings '<${SETTINGS.permissions.allow.length} allow rules>' --max-budget-usd ${decision.ok ? decision.maxBudget.toFixed(2) : "–"}`);
+      console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" --permission-mode acceptEdits --output-format json --settings '<${SETTINGS.permissions.allow.length} allow rules>' --max-budget-usd ${decision.ok ? decision.maxBudget.toFixed(2) : "–"} --strict-mcp-config`);
       if (experiment.expect.resume) console.log(`then, after a halt at ${experiment.expect.resume.gate}, once: claude -p "<scripted ${experiment.expect.resume.answer}>" --resume <session id> …`);
       console.log(`would copy the evidence into experiments/patterns/${args.template}/run/ and check it`);
       say("dry run done; the model was not called and the ledger is unchanged");

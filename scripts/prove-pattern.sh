@@ -21,14 +21,15 @@
 #      invocation with --max-budget-usd at what remains, $6.00 at most;
 #   4. runs the documented headless command, with permissions passed by --settings
 #      (nothing outside the scratch project is written by this script; ~/.claude.json
-#      is never touched):
+#      is never touched) and no MCP server (--strict-mcp-config):
 #        claude -p "$(cat .grooph/<graph>/KICKOFF.md)" --permission-mode acceptEdits \
-#          --output-format json --settings '<json>' --max-budget-usd <n>
+#          --output-format json --settings '<json>' --max-budget-usd <n> --strict-mcp-config
 #   5. for a template whose expect.json names a scripted gate answer (spec-then-loop),
 #      resumes the same session once with that answer, and only after the run
 #      halted at that gate;
 #   6. copies the evidence into experiments/patterns/<id>/run/ (never over an
-#      earlier run's) and makes the assertions of criterion 4 on it.
+#      earlier run's: to re-prove a template, move run/ to run-1/ first and pass
+#      --retry "<why>") and makes the assertions of criterion 4 on it.
 #
 # scripts/lib/prove-evidence.mjs lists what the evidence folder holds, and
 # scripts/lib/prove-check.mjs what --check asserts. The scratch project is kept.
