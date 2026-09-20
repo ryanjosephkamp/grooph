@@ -16,6 +16,7 @@ Implement the change described in TASK.md so that every item in the review check
 
 - Dispatch each agent node as its own subagent with the `Agent` tool: `review-loop--builder`, `review-loop--critic`. Do not do their work yourself, and do not grade work a critic node is there to grade.
 - Give a fresh worker only its task, its declared inputs and the evidence its edge lists. Never paste a transcript into one.
+- Run commands bare, from the project root, and tell each worker to do the same: under a narrow allowlist a compound form (`cd … && …`) or `git -C <path>` is refused, and every refusal costs a turn.
 - Evaluate the loop stops before every round, in the order `LEAD.md` lists them, and record the round.
 - At a human gate: append the halt note first, then ask, then end your turn (`LEAD.md` § "Human gates"). A run nobody answers ends there, and the same run id resumes it.
 - When the work shows the graph is wrong, amend the working copy as `LEAD.md` § "Adapting the graph" says: visibly, with a note, and never loosening a brake. Never write the source document.

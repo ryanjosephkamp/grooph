@@ -47,5 +47,6 @@ The durable place for that change is `model.tier` or `effort` on the node in the
 - The subagent files must sit in `.claude/agents/` of the project the session runs in; the package is discovered from the project directory, not from a flag.
 - Subagent names cannot contain a colon, which is why they read `<graph-id>--<node-id>`.
 - A `dispatches` budget is exact: the lead counts node dispatches in `PROGRESS.md`. `usd`, `turns` and `tokens` budgets are advisory inside a session; a `usd` budget is enforced only from outside, by starting a headless run with `--max-budget-usd`.
+- Commands run bare from the project root: an allowlist matches a command's prefix, so a compound form (`cd … && …`) or `git -C <path>` is refused under a narrow allowlist and costs a turn each time.
 - A run never writes `.grooph/review-loop/graph.grooph.json`. Adopt a run's working copy as the next version of the graph, or discard it; either way that is a human decision after the run.
 - Nothing here executes the graph. grooph compiles; the session is the runtime.

@@ -52,6 +52,9 @@ export function kickoff(ctx: PackageContext): string {
         dispatchable || "(this graph has no agent nodes)"
       }. Do not do their work yourself, and do not grade work a critic node is there to grade.`,
       `- Give a fresh worker only its task, its declared inputs and the evidence its edge lists. Never paste a transcript into one.`,
+      `- Run commands bare, from the project root, and tell each worker to do the same: under a narrow allowlist a compound form (${code(
+        "cd … && …",
+      )}) or ${code("git -C <path>")} is refused, and every refusal costs a turn.`,
       `- Evaluate the loop stops before every round, in the order ${code("LEAD.md")} lists them, and record the round.`,
       `- At a human gate: append the halt note first, then ask, then end your turn (${code(
         "LEAD.md",
