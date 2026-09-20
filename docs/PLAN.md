@@ -50,7 +50,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0008 | 7 | Runs: notes back, adoption, the monitor | Opus 5 | done 2026-09-19 |
 | 0009 | 6 | Pattern proving ground, first batch of five ($25 cap) | Opus 5 | done 2026-09-19 ($7.01 spent; seven defects found) |
 | 0010 | 6 | Lead brief and template hardening (defects D1–D7, `dispatches` budgets, critics read the repository) | Opus 5 | done 2026-09-20 ($3.80 on two re-proving runs; both pass `--check`) |
-| 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | next; handoff to draft; needs a spend cap from the owner ($14.19 left under the 0009 cap) |
+| 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | handoff drafted (`handoffs/0011-proving-batch-two/`), awaiting owner confirmation; cap raised to $45.00 on 2026-09-20 |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)

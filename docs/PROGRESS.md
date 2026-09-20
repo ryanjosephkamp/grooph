@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–5 and 7 are done. Stage 6 (proving ground) is under way: the first batch found seven defects in what grooph emits; slice 0010 fixed them and re-proved the two gate templates clean. Next is the second batch (slice 0011, the remaining eleven templates).
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** set the spend cap for the second proving batch (slice 0011) so the driver can draft its handoff.
+- **Next action (owner):** confirm slice 0011 and paste its prompt into an Opus 5 implementer session.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger and `--strict-mcp-config`; eight real run records.
 
 ## In flight
@@ -17,7 +17,7 @@ _(none)_
 
 | Item | Recommended answer |
 |---|---|
-| Spend cap for slice 0011, the second proving batch: eleven templates at about $1.50–2.50 each, with tasks designed to force a second round | Raise the ledger cap from $25.00 to $45.00 (about $34 available) so every template gets one run and the batch can afford two retries |
+| Confirm slice 0011 (`handoffs/0011-proving-batch-two/HANDOFF.md`): the remaining eleven templates on tasks built to force a back edge, under the $45.00 cap ($34.19 left) | Yes |
 
 ## Deferred until Codex is available
 
@@ -28,6 +28,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-20 | Owner raised the proving ledger cap to $45.00; handoff 0011 drafted. |
 | 2026-09-20 | Slice 0010 reconciled and merged: lead brief and agent files agree with graph-ir (evidence plus inputs, one gate rule, clock run ids and timestamps, `dispatches` budgets, `invalid-evidence` routing, `stop` on loop notes), eleven templates hardened, `review-gate` and `spec-then-loop` re-proved clean for $3.80 (ledger $10.81 of $25.00). `docs/templates.md` §5 reconciled. |
 | 2026-09-20 | Project picked up on a new Claude account per `docs/HANDOVER.md`; nothing needed recreating. Owner confirmed slice 0010 and approved its two re-proving runs. Handover page republished from the new account, URL recorded in `handoffs/briefs/`. |
 | 2026-09-19 | Slices 0008 (runs: notes back, adoption, monitor) and 0009 (proving ground, five templates, $7.01) reconciled and merged. Findings folded into graph-ir (one gate rule, `dispatches` budgets, `invalid-evidence` routing, `stop` on loop notes, clock timestamps), the target doc (run ids from the clock, cost cap flag) and runs.md. Proving records published with the site. |

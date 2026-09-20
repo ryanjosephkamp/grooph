@@ -1,5 +1,13 @@
 {
-  "cap_usd": 25,
+  "cap_usd": 45,
+  "cap_history": [
+    {
+      "from_usd": 25,
+      "to_usd": 45,
+      "on": "2026-09-20",
+      "by": "owner, for slice 0011 (the second proving batch)"
+    }
+  ],
   "refuse_below_usd": 6,
   "per_invocation_ceiling_usd": 6,
   "about": "Every model-calling invocation of slice 0009's proving runs, with its cost as the harness reported it (total_cost_usd). Written by scripts/prove-pattern.sh; never edited by hand. An unsettled cost counts at its ceiling.",
@@ -171,5 +179,5 @@
     }
   ],
   "spent_usd": 10.808089,
-  "remaining_usd": 14.191911
+  "remaining_usd": 34.191911
 }
