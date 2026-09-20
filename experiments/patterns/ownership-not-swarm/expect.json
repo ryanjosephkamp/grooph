@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: planner, both owners, the piece worker and the integrator ran as their own subagents; each owner wrote only under its subsystem (its handoff file aside) and nobody else wrote there; the worker was dispatched at least twice (two independent pieces); the run ended at the stop node.",
+  "agents": ["planner", "owner-a", "owner-b", "worker", "integrator"],
+  "reports": { "planner": ["PLAN.md"], "owner-a": ["HANDOFF-A.md"], "owner-b": ["HANDOFF-B.md"], "integrator": ["ARCHITECTURE.md"] },
+  "ownership": { "owner-a": ["src/db"], "owner-b": ["src/api"] },
+  "dispatches": { "worker": { "min": 2 } },
+  "ending": ["stop node done"]
+}

@@ -197,6 +197,13 @@ export async function checkRun(evidenceDir, { core, template }) {
     if (!dispatches.some((d) => d.subagent_type === agent)) problems.push(`the lead never dispatched ${agent}`);
     if (!notes.some((note) => note.at === `node:${nodeId}`)) problems.push(`no note at node:${nodeId}`);
   }
+  // A node the template dispatches per piece or per candidate must have been dispatched at least that often.
+  for (const [nodeId, want] of Object.entries(expect.dispatches ?? {})) {
+    const agent = `${graphId}--${nodeId}`;
+    const count = dispatches.filter((d) => d.subagent_type === agent).length;
+    if (typeof want.min === "number" && count < want.min) problems.push(`${nodeId} was dispatched ${count} time(s); the template expects at least ${want.min}`);
+    else findings.push(`${nodeId} dispatched ${count} time(s)`);
+  }
   const generalDispatches = dispatches.filter((d) => !String(d.subagent_type ?? "").startsWith(`${graphId}--`));
   if (generalDispatches.length > 0) {
     findings.push(`dispatches outside the package's agents: ${generalDispatches.map((d) => `${d.subagent_type ?? "general-purpose"} (${d.description ?? "no description"})`).join("; ")}`);

@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the owner and the critic ran as their own subagents; the critic wrote GAPS.md itself; the critic touched the held-out reference and the owner did not; the loop ended on a stop the template has. The design bet (write-up): the critic fails round 0 against the reference, e-critic-fail is taken at least once, and the loop ends on the human check-in at round 2, on diminishing returns, or on the bar.",
+  "agents": ["owner", "critic"],
+  "reports": { "critic": ["GAPS.md"] },
+  "heldOut": { "readers": ["critic"], "notReaders": ["owner"] },
+  "backEdge": true,
+  "ending": ["stop human", "stop diminishing-returns", "stop bar-passed", "stop max-iterations", "stop budget", "stop node done"]
+}
