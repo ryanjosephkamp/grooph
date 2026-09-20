@@ -4,18 +4,18 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Next: slice 0012, the brief and runner fixes those runs exposed, then stage 8 (manual authoring extras) while Codex stays deferred.
+- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Next: re-prove the two red records (slice 0013), then stage 8 (manual authoring extras) while Codex stays deferred.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** run the slice 0012 implementer session, then bring its handback prompt to the driver. The cap raise to $55.00 for re-proving the two red records is approved in principle and happens after 0012 merges.
+- **Next action (driver):** draft handoff 0013, the re-proof of the two red records, under the cap raised to $55.00 as the owner approved on 2026-09-20.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
 
-- **Slice 0012** (`handoffs/0012-batch-two-fixes/`): confirmed 2026-09-20; no model spend. Awaiting the implementer session.
+_(none)_
 
 ## Waiting on the owner
 
-_(nothing: slice 0012 confirmed 2026-09-20; the cap raise follows its merge)_
+_(nothing: the $55.00 cap for slice 0013 was approved 2026-09-20 with the status report)_
 
 ## Deferred until Codex is available
 
@@ -26,6 +26,7 @@ _(nothing: slice 0012 confirmed 2026-09-20; the cap raise follows its merge)_
 
 | Date | What |
 |---|---|
+| 2026-09-20 | Slice 0012 reconciled and merged: the lead brief edits `tools:` on a capability amendment, names the 26 ops, diffs new files bare, keeps per-round critic reports, states dispatches per round; `MAPPING.md` lists `tools:` as hand-editable; the check reports per-round copies; `git add -N` allowed. Harness confirmed to re-read agent files at the next dispatch (documentary). |
 | 2026-09-20 | Status report published (`handoffs/briefs/status-2026-09-20.html`); `grooph-status` skill added. Handoff 0012 drafted and confirmed. |
 | 2026-09-20 | Slice 0011 reconciled and merged: eleven templates proved for $28.77, four back edges, gates halt and are recorded, held-out evidence and fragment hosts in the runner, dispatch-count check; two records red. Decision 0009 (proving records are evidence). Three template edits at reconcile (judge may run tests; retro writes `PROPOSALS.md`; red team writes `ATTACK.md`). Stage 6 done. |
 | 2026-09-20 | Owner raised the proving ledger cap to $45.00; handoff 0011 drafted. |
@@ -51,6 +52,6 @@ _(nothing: slice 0012 confirmed 2026-09-20; the cap raise follows its merge)_
 - One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised.
 - Claude Code native units change between releases. `targets/claude-code.md` pins what was verified (2.1.268) and when.
 - `dispatches` is the lead's own count; `--check` now compares it with the record. Exact in seven of eight loops that kept one; the bank's lead counted 8 a round for 6. `turns`, `usd` and `tokens` are advisory inside a session, but a headless lead can see the `--max-budget-usd` position and may halt on it.
-- An `allow` amendment cannot reach a compiled agent file, so an adaptive lead that needs a capability dispatches a stand-in (slice 0012 closes this).
+- The rule that an `allow` amendment edits the agent file's `tools:` line rests on the harness documentation; the first `allow`-amending re-proof under `claude -p` is the live check.
 - Held-out evidence is protected by instruction only; three runs show no builder read it, and the check would say if one did.
 - Two designs did not force their loop (`red-team-loop`, the phase-2 `fail` of `fresh-grind-rare-judge`): the critic's side is proved, the back edge is not.

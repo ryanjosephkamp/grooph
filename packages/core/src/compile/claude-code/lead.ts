@@ -11,8 +11,10 @@ import {
   entryNodeIds,
   inspectableEvidence,
   loopMode,
+  loopsOfNode,
   stopAction,
 } from "../../semantics.js";
+import { OP_ARGS, type OpName } from "../../ops/apply.js";
 import type { Edge, Loop, Node, Stop } from "../../types.js";
 import { bullet, cell, code, doc, fence, lines, table } from "../markdown.js";
 import type { PackageContext } from "./context.js";
@@ -196,6 +198,7 @@ function returnsFor(node: Node): string {
 function sectionFive(ctx: PackageContext): string {
   const edges = ctx.doc.edges ?? [];
   const evidenceLoops = loopsWithEvidenceStop(ctx);
+  const diffEvidence = edges.some((edge) => (edge.evidence ?? []).some((item) => /\bdiff\b/i.test(item)));
   const rows = edges.map((edge) => [
     code(edge.id),
     `${code(edge.from)} → ${code(edge.to)}`,
@@ -232,8 +235,22 @@ function sectionFive(ctx: PackageContext): string {
           : ""
       }`,
     ),
+    ...(diffEvidence ? [bullet(DIFF_OF_THE_CHANGE)] : []),
   );
 }
+
+/**
+ * Review 0011: `git diff` omits files a change added, and leads reached for
+ * `git add -N`, brace groups and `${pipestatus[1]}` — refused under the narrow
+ * allowlist, a turn each. Said once, where the evidence names a diff.
+ */
+const DIFF_OF_THE_CHANGE = `A diff of the change is ${code("git diff")} plus, for each file the change added, ${code(
+  "git diff --no-index /dev/null <file>",
+)} (${code("git diff")} omits untracked files; ${code(
+  "--no-index",
+)} exits 1 whenever the two differ, which is not an error). Run each bare from the project root, one command at a time; no brace group, no ${code(
+  "cd",
+)}. ${code("git add -N <file>")} also works where it is allowed, and stages nothing.`;
 
 function edgeExtras(edge: Edge): string {
   const parts: string[] = [];
@@ -304,13 +321,33 @@ function loopSection(ctx: PackageContext, loop: Loop): string {
       ["#", "stop", "what you do"],
       (loop.stops ?? []).map((stop, i) => [String(i + 1), cell(describeStop(stop)), cell(stopAction(stop))]),
     ),
-    ...budgetNotes(loop, advisory),
+    ...budgetNotes(ctx, loop, advisory),
     "",
   );
 }
 
-/** graph-ir §1 on budget measures, said once per loop that has one: what a dispatch is; which measures nothing enforces. */
-function budgetNotes(loop: Loop, advisory: Stop[]): string[] {
+/**
+ * What one full round of a loop costs in dispatches: its agent members (the
+ * lead node is not dispatched) and its check members; a gate, merge or stop
+ * member is not a dispatch. The same arithmetic the proving check makes.
+ */
+function dispatchMembers(ctx: PackageContext, loop: Loop): Node[] {
+  return (loop.members ?? [])
+    .map((id) => ctx.index.nodes.get(id))
+    .filter((node): node is Node => node !== undefined)
+    .filter((node) => (node.kind === "agent" && node.id !== ctx.leadNode?.id) || node.kind === "check");
+}
+
+/** Loops nested inside `loop`: members a strict subset of its members (graph-ir §2, `estimateShape`). */
+const innerLoops = (ctx: PackageContext, loop: Loop): Loop[] => {
+  const members = new Set(loop.members ?? []);
+  return (ctx.doc.loops ?? []).filter(
+    (other) => other.id !== loop.id && (other.members ?? []).length < members.size && (other.members ?? []).every((id) => members.has(id)),
+  );
+};
+
+/** graph-ir §1 on budget measures, said once per loop that has one: what a dispatch is, what a round costs; which measures nothing enforces. */
+function budgetNotes(ctx: PackageContext, loop: Loop, advisory: Stop[]): string[] {
   const notes: string[] = [];
   const measures = new Set((loop.stops ?? []).flatMap((stop) => (stop.kind === "budget" ? [stop.measure] : [])));
   if (measures.has("dispatches")) {
@@ -319,6 +356,7 @@ function budgetNotes(loop: Loop, advisory: Stop[]): string[] {
         "PROGRESS.md",
       )} and evaluate the stop against it.`,
     );
+    notes.push(`> ${dispatchesPerRound(ctx, loop)}`);
   }
   if (measures.has("minutes")) notes.push(`> Minutes are wall clock from the run's first note.`);
   if (advisory.length > 0) {
@@ -332,6 +370,30 @@ function budgetNotes(loop: Loop, advisory: Stop[]): string[] {
     );
   }
   return notes.length > 0 ? ["", ...notes] : [];
+}
+
+/**
+ * Review 0011: nothing told a lead what a round costs, and one counted 8 for 6.
+ * One sentence per loop with a `dispatches` budget, derived from its members,
+ * so the lead's count and the proving check's agree.
+ */
+function dispatchesPerRound(ctx: PackageContext, loop: Loop): string {
+  const members = dispatchMembers(ctx, loop);
+  const others = (loop.members ?? []).filter((id) => !members.some((node) => node.id === id));
+  const limits = (loop.stops ?? []).flatMap((stop) => (stop.kind === "budget" && stop.measure === "dispatches" ? [stop.limit] : []));
+  const limit = limits.length > 0 ? Math.min(...limits) : undefined;
+  const inner = innerLoops(ctx, loop);
+  if (members.length === 0) {
+    return `One full round of this loop dispatches nothing: none of its members is an agent or a check.`;
+  }
+  const rounds = limit === undefined ? "" : ` The budget of ${limit} covers ${Math.floor(limit / members.length)} full round${Math.floor(limit / members.length) === 1 ? "" : "s"}${limit % members.length === 0 ? "" : ` and ${limit % members.length} more dispatch${limit % members.length === 1 ? "" : "es"}`}.`;
+  return `One full round of this loop costs **${members.length} dispatch${members.length === 1 ? "" : "es"}**: ${members
+    .map((node) => code(node.id))
+    .join(", ")}${others.length > 0 ? ` (${others.map(code).join(", ")} ${others.length === 1 ? "is" : "are"} not a dispatch)` : ""}.${rounds}${
+    inner.length > 0
+      ? ` Every extra round of the inner loop ${inner.map((other) => code(other.id)).join(", ")} adds its own dispatches on top.`
+      : ""
+  } A node dispatched twice in one round (§5, invalid evidence) counts twice.`;
 }
 
 function sectionSeven(ctx: PackageContext): string {
@@ -430,6 +492,7 @@ function sectionEight(ctx: PackageContext): string {
         "date -u +%Y-%m-%dT%H:%M:%SZ",
       )}, or left out. Never estimate one.`,
     ),
+    ...roundReports(ctx),
     "",
     "Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:",
     "",
@@ -463,6 +526,24 @@ function sectionEight(ctx: PackageContext): string {
   );
 }
 
+/**
+ * Review 0011: a critic's report is rewritten each round, so round 0's findings
+ * survived only in the notes. Said once, when a critic sits inside a loop.
+ */
+function roundReports(ctx: PackageContext): string[] {
+  const looped = ctx.agents.filter((agent) => agent.isCritic && loopsOfNode(ctx.index, agent.node.id).length > 0);
+  if (looped.length === 0) return [];
+  const report = looped.flatMap((agent) => agent.node.outputs).find((output) => /\.md$/i.test(output.trim())) ?? "REVIEW.md";
+  const stem = report.trim().replace(/\.md$/i, "");
+  return [
+    bullet(
+      `Before you re-dispatch a builder after a critic's ${code("fail")}, copy each report the critic wrote that round into the run folder as ${code(
+        "<report>-round-<n>.md",
+      )} — ${code(report.trim())} from round 0 becomes ${code(`${ctx.paths.runs}/<run-id>/${stem}-round-0.md`)} — so the round's findings survive the next round's rewrite. Copy; the builder still reads the report where its edge says.`,
+    ),
+  ];
+}
+
 /** graph-ir §2 "Brakes are not adaptable", item for item. */
 const BRAKES = [
   "a human gate",
@@ -480,6 +561,66 @@ const PROPOSAL_PATCH = `A ${code("patch")} is preferably a list of grooph ops, t
 )} takes (${code(
   '[{"op":"updateNode","id":"<node-id>","set":{"effort":"high"}}]',
 )}): ops name objects by id, so the human can replay them with ${code("grooph apply")}.`;
+
+/**
+ * The ops core accepts (`packages/core/src/ops/apply.ts`, documented in
+ * `packages/core/README.md`), one line each: the arguments, then what it does.
+ * Typed against `OpName` so a new op cannot be left out; a test checks that
+ * every argument `OP_ARGS` names appears on its line. Review 0011: a proposer
+ * shown only `updateNode` invented `addEdge` and an `addNode` with a `node`
+ * object, and the check could not replay them.
+ */
+const OP_VOCABULARY: Record<OpName, string> = {
+  setGraphName: "name — the graph id follows while it still matches",
+  setGraphField: "key (name | goal | description | adaptation | lineage), value — null removes",
+  setTarget: "harness — null removes",
+  setConstraint: "key (budget | time | other), value — null removes",
+  addNode: "kind (agent | human-gate | check | merge | stop), name?, id?, at?, set? — the node's fields (role, brief, outputs, allow, …) go in set",
+  setNodeName: "id, name",
+  updateNode: "id, set — a shallow patch: each key replaces the field, null removes it; never id or kind",
+  removeNode: "id — with its edges, loop memberships and scoped policies",
+  connect: "from, to, id?, set? — adds an edge; when, isolation, evidence, approval go in set",
+  updateEdge: "id, set — re-routing (from, to) included",
+  removeEdge: "id",
+  addLoop: "members?, name?, id?, set? — no back edge and no stop until set or addStop gives them",
+  setLoopName: "id, name",
+  updateLoop: "id, set — mode, members, back, bar, stops",
+  removeLoop: "id",
+  toggleLoopMember: "loop, node, on?",
+  toggleLoopBack: "loop, edge, on?",
+  setBar: "loop, bar — null removes",
+  addStop: "loop, kind (human | budget | bar-passed | diminishing-returns | evidence-invalid | max-iterations), set?",
+  setStop: "loop, index, stop — replaces the stop at index (from 0)",
+  removeStop: "loop, index",
+  moveStop: "loop, index, delta (-1 | 1)",
+  addPolicy: "kind, scope (graph | loop:<id> | node:<id> | edge:<id>), params?, id?",
+  removePolicy: "id",
+  setPositions: "positions — layout only",
+  renameId: "from, to — every reference follows",
+};
+
+/** §9's vocabulary block: the op names, each with its arguments, and two examples a proposer most often needs. */
+function opVocabulary(): string[] {
+  const names = Object.keys(OP_ARGS) as OpName[];
+  const width = Math.max(...names.map((name) => name.length));
+  const examples = [
+    JSON.stringify({ op: "addNode", kind: "agent", id: "reviewer", set: { role: "critic", brief: "<purpose, limits, outputs>", outputs: ["REVIEW.md"], allow: ["read-files", "write-outputs"] } }),
+    JSON.stringify({ op: "connect", from: "builder", to: "reviewer", set: { when: "pass", evidence: ["diff of the change"] } }),
+  ];
+  return [
+    `These are the ops, and the only ops, ${code("grooph apply")} accepts; an op is ${code(
+      '{"op":"<name>", ...arguments}',
+    )}, and a ${code("?")} marks an optional argument. There is no ${code("addEdge")} and no ${code(
+      "node",
+    )} object: an edge is ${code("connect")}, and a node's fields go in ${code("set")}.`,
+    "",
+    fence(names.map((name) => `${name.padEnd(width)}  ${OP_VOCABULARY[name]}`).join("\n"), "text"),
+    "",
+    "A new critic and the edge into it, as one patch of two ops:",
+    "",
+    fence(`[${examples.join(",\n ")}]`, "json"),
+  ];
+}
 
 function sectionNine(ctx: PackageContext): string {
   const level = ctx.adaptation;
@@ -528,6 +669,8 @@ function sectionNine(ctx: PackageContext): string {
       "",
       PROPOSAL_PATCH,
       "",
+      ...opVocabulary(),
+      "",
       untouched,
     );
   }
@@ -572,6 +715,17 @@ function sectionNine(ctx: PackageContext): string {
     `4. Check that the working copy still validates: run ${code(
       `grooph validate --for-export ${ctx.paths.workingCopy}`,
     )} when ${code("grooph")} is on your PATH; otherwise check the brakes below by hand.`,
+    `5. When the amendment changes a node's ${code("allow")} or ${code("deny")}, also edit that node's file under ${code(
+      ".claude/agents/",
+    )} before you dispatch it: its ${code("tools:")} line (and ${code(
+      "disallowedTools:",
+    )}), with the capability-to-tools table in ${code(
+      ctx.paths.mapping,
+    )}. Claude Code reads the edited file at the next dispatch; no restart is needed. Say in the amendment note that you edited it. If the file cannot be edited, the change is a ${code(
+      "proposal",
+    )}: record it as one and dispatch the node as compiled, never a stand-in.`,
+    "",
+    ...opVocabulary(),
     "",
     "At every adaptation level you may not remove or loosen:",
     "",
@@ -587,9 +741,9 @@ function sectionNine(ctx: PackageContext): string {
         : ""
     }`,
     "",
-    `A node you add mid-run has no file under ${code(
+    `A node you add mid-run has no compiled file under ${code(
       ".claude/agents/",
-    )}, because agent files are read when the session starts. Dispatch it as a general-purpose subagent with its brief inline, under the same isolation and evidence rules as every other node.`,
+    )}. Write one beside the others, in the shape of an existing one, and dispatch it by that name (the file is read at the next dispatch), or dispatch it as a general-purpose subagent with its brief inline. Either way it works under the same isolation and evidence rules as every other node.`,
   );
 }
 

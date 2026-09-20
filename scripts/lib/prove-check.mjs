@@ -30,6 +30,13 @@
  *  14. `heldOut.readers` / `heldOut.notReaders`: who touched the held-out evidence
  *      (a critic that never did judged without it; a builder that did saw its cases).
  *
+ * Added for slice 0012 (handoff 0012, criterion 4):
+ *
+ *  15. per-round report copies: for each critic report the template names, the
+ *      rounds the critic ran that a later round followed, and whether the run
+ *      folder holds that round's copy (`<report>-round-<n>.md`, LEAD.md §8) — a
+ *      finding either way, never a problem, since the kept records predate the rule.
+ *
  * Problems fail the check. Findings are reported, not judged: they are what the
  * write-up is made of (what the lead did that the package did not intend, which
  * files a critic read, the permission denials, whether a back edge fired).
@@ -225,6 +232,31 @@ export async function checkRun(evidenceDir, { core, template }) {
     }
   }
   const runPrefix = `.grooph/${graphId}/runs/`;
+
+  // ── 15. per-round report copies ────────────────────────────────────────
+  // LEAD.md §8 since slice 0012: before re-dispatching a builder after a critic's fail, the lead copies each report
+  // the critic wrote that round into the run folder as <report>-round-<n>.md, so round n's findings survive round
+  // n+1's rewrite. Checked for every round the critic ran that it ran again after (a gate's reject re-dispatches too);
+  // the name is matched as the same-report rule above does, so a lead's own `-round0` or `-r0` counts.
+  const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const runFiles = readdirSync(runDir);
+  const roundReports = { kept: [], missing: [] };
+  for (const [nodeId, files] of Object.entries(expect.reports ?? {})) {
+    const node = (graph?.nodes ?? []).find((n) => n.id === nodeId);
+    if (!node || !isCriticFamily(node)) continue;
+    const rounds = [...new Set(notes.filter((n) => n.at === `node:${nodeId}` && n.outcome && n.outcome !== "started" && typeof n.round === "number").map((n) => n.round))].sort((a, b) => a - b);
+    for (const name of files) {
+      const [stem, ext] = [name.replace(/\.[^.]+$/, ""), name.slice(name.lastIndexOf("."))];
+      for (const round of rounds.slice(0, -1)) {
+        const copy = new RegExp(`^${escapeRe(stem)}-(?:round-?|r)${round}${escapeRe(ext)}$`, "i");
+        roundReports[runFiles.some((file) => copy.test(file)) ? "kept" : "missing"].push(`${name} round ${round}`);
+      }
+    }
+  }
+  if (roundReports.kept.length > 0) findings.push(`per-round report copies in the run folder: ${roundReports.kept.join(", ")}`);
+  if (roundReports.missing.length > 0) findings.push(`per-round report copies missing from the run folder (LEAD.md §8 since slice 0012; only the last round's survives in project.diff): ${roundReports.missing.join(", ")}`);
+  facts.round_reports = roundReports;
+
   const leadWritesOutside = writes.filter((w) => w.who === "lead" && !w.file.startsWith(runPrefix));
   if (leadWritesOutside.length > 0) findings.push(`the lead wrote outside the run folder: ${[...new Set(leadWritesOutside.map((w) => w.file))].join(", ")}`);
   for (const entry of digest.filter((e) => e.who !== "lead")) {

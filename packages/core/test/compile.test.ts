@@ -9,7 +9,9 @@ import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 
 import { CompileError, compile } from "../src/compile/index.js";
+import { OP_ARGS, OP_NAMES } from "../src/ops/apply.js";
 import { parseGraphText } from "../src/parse.js";
+import { instantiate } from "../src/template.js";
 import { validate } from "../src/validate.js";
 import type { Graph } from "../src/types.js";
 import { expectedIssues, fixturesDir, invalidFixtures, read, validFixtures } from "./helpers.js";
@@ -402,7 +404,8 @@ test("adaptive (the default): amend the working copy visibly, brakes listed once
   assert.equal(nine, nine.replace(/\bMUST\b|\bNEVER\b|!/g, ""), "plainly, without shouting");
   assert.match(nine, /Loosening one is a `proposal` note for the human, never an amendment/);
   assert.match(nine, /A loop you add needs a stop, and a bar if it is a judgment loop/);
-  assert.match(nine, /no file under `\.claude\/agents\/`.*general-purpose subagent with its brief inline/s, "the mid-run node rule");
+  assert.match(nine, /no compiled file under `\.claude\/agents\/`.*read at the next dispatch.*general-purpose subagent with its brief inline/s, "the mid-run node rule, as observed on 2.1.278: an agent file is read at the next dispatch");
+  assert.doesNotMatch(nine, /read when the session starts/, "no longer true of the harness");
 
   const lead = compile(doc, "claude-code").files[".grooph/review-loop/LEAD.md"]!;
   assert.match(lead, /amendment \{ summary, reason, patch\? \}/, "the notes contract names the amendment field");
@@ -431,4 +434,93 @@ test("a graph-scoped no-live-graph-rewrite policy makes the run propose, and say
   assert.match(nine, /This graph is `propose` \(its policy `p-frozen`, `no-live-graph-rewrite`, is stricter than `adaptation: adaptive`\)/);
   const scoped: Graph = { ...reviewLoop(), policies: [{ id: "p-loop", kind: "no-live-graph-rewrite", scope: "loop:review-cycle" }] };
   assert.match(sectionNine(scoped), /Policy `p-loop` \(scope `loop:review-cycle`\) forbids live rewrites where it applies/);
+});
+
+/* ------------------------------------------------------------------ *
+ * Handoff 0012: brief and runner fixes from the second proving batch.
+ * ------------------------------------------------------------------ */
+
+/** A built-in pattern made concrete with its slot examples, under its own id, so its package paths read as the proving runs' do. */
+const patternDoc = (name: string): Graph => {
+  const parsed = parseGraphText(read(join(fixturesDir, "..", "patterns", `${name}.grooph.json`)));
+  assert.ok(parsed.doc, `${name} parses`);
+  const values = Object.fromEntries((parsed.doc.template?.slots ?? []).map((slot) => [slot.key, slot.example]));
+  return instantiate(parsed.doc, { name, id: name, values });
+};
+
+test("0012-1: an allow or deny amendment edits the agent file's tools: line before dispatch, or becomes a proposal; MAPPING.md lists tools: as hand-editable with the capability table", () => {
+  const nine = sectionNine(reviewLoop());
+  assert.match(nine, /5\. When the amendment changes a node's `allow` or `deny`, also edit that node's file under `\.claude\/agents\/` before you dispatch it: its `tools:` line \(and `disallowedTools:`\)/);
+  assert.match(nine, /Claude Code reads the edited file at the next dispatch; no restart is needed/, "observed on 2.1.278 (sub-agents docs: the agents directories are watched)");
+  assert.match(nine, /Say in the amendment note that you edited it/, "A-008: the change is visible");
+  assert.match(nine, /If the file cannot be edited, the change is a `proposal`: record it as one and dispatch the node as compiled, never a stand-in/);
+  assert.ok(!sectionNine({ ...reviewLoop(), adaptation: "propose" }).includes("`tools:`"), "a propose run amends nothing, so it edits no file");
+
+  const files = compile(reviewLoop(), "claude-code").files;
+  const mapping = files[".grooph/review-loop/MAPPING.md"]!;
+  assert.match(mapping, /## The three things people hand-edit/);
+  assert.match(mapping, /\*\*A node's model or effort\.\*\*[\s\S]*\*\*A node's tools\.\*\* The `tools:` line of the same frontmatter \(and `disallowedTools:`\)[\s\S]*\*\*A loop's stop values\.\*\*/, "tools: beside model and effort, before the stop values");
+  assert.match(mapping, /\| `run-tests` \| `Bash` \|/, "the capability table");
+  assert.match(mapping, /\| `edit-files` \| `Read`, `Edit`, `Write`, `Glob`, `Grep` \|/);
+  assert.match(mapping, /A running lead edits `tools:` itself when it amends a node's capabilities \(`\.grooph\/review-loop\/LEAD\.md` §9\)/);
+  const fixed = compile(load("fix-until-green"), "claude-code").files[".grooph/fix-until-green/MAPPING.md"]!;
+  assert.match(fixed, /\*\*A node's tools\.\*\*/, "the table is for humans too");
+  assert.doesNotMatch(fixed, /A running lead edits/, "a fixed run's lead amends nothing");
+});
+
+test("0012-2: §9 names every op core accepts, with its arguments, in the proposal and the amendment sections", () => {
+  for (const doc of [reviewLoop(), { ...reviewLoop(), adaptation: "propose" as const }]) {
+    const nine = sectionNine(doc);
+    assert.match(nine, /These are the ops, and the only ops, `grooph apply` accepts/);
+    assert.match(nine, /There is no `addEdge` and no `node` object: an edge is `connect`, and a node's fields go in `set`/, "the two inventions of review 0011");
+    const block = nine.slice(nine.indexOf("```text\n") + 8, nine.indexOf("\n```", nine.indexOf("```text\n")));
+    const rows = new Map(block.split("\n").map((row) => [row.slice(0, row.indexOf(" ")), row]));
+    assert.deepEqual([...rows.keys()], OP_NAMES, "every op, in core's order, one line each");
+    for (const name of OP_NAMES) {
+      for (const arg of OP_ARGS[name]) assert.match(rows.get(name)!, new RegExp(`\\b${arg}\\b`), `${name} names its argument ${arg}`);
+    }
+    assert.match(nine, /\[\{"op":"addNode","kind":"agent","id":"reviewer","set":\{"role":"critic"/, "an addNode example with set");
+    assert.match(nine, /\{"op":"connect","from":"builder","to":"reviewer","set":\{"when":"pass"/, "a connect example");
+  }
+  assert.ok(!sectionNine(load("fix-until-green")).includes("```text"), "a fixed run neither amends nor is asked to patch");
+});
+
+test("0012-3: §5 says how to diff a change that added files, bare, when an edge's evidence names a diff", () => {
+  const five = section(compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!, 5);
+  assert.match(five, /A diff of the change is `git diff` plus, for each file the change added, `git diff --no-index \/dev\/null <file>`/);
+  assert.match(five, /`git diff` omits untracked files/);
+  assert.match(five, /exits 1 whenever the two differ, which is not an error/);
+  assert.match(five, /Run each bare from the project root, one command at a time; no brace group, no `cd`/);
+  assert.match(five, /`git add -N <file>` also works where it is allowed, and stages nothing/);
+  const noDiff = section(compile(load("fix-until-green"), "claude-code").files[".grooph/fix-until-green/LEAD.md"]!, 5);
+  assert.doesNotMatch(noDiff, /--no-index/, "said only where an edge's evidence names a diff");
+});
+
+test("0012-4: §8 keeps each round's critic report in the run folder before the builder is re-dispatched", () => {
+  const eight = section(compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!, 8);
+  assert.match(eight, /Before you re-dispatch a builder after a critic's `fail`, copy each report the critic wrote that round into the run folder as `<report>-round-<n>\.md`/);
+  assert.match(eight, /`REVIEW\.md` from round 0 becomes `\.grooph\/review-loop\/runs\/<run-id>\/REVIEW-round-0\.md`/, "the example uses the critic's own report");
+  assert.match(eight, /Copy; the builder still reads the report where its edge says/);
+  const bank = compile(patternDoc("specialist-critic-bank"), "claude-code").files[".grooph/specialist-critic-bank/LEAD.md"]!;
+  assert.match(section(bank, 8), /-round-<n>\.md/);
+  const grind = section(compile(load("fix-until-green"), "claude-code").files[".grooph/fix-until-green/LEAD.md"]!, 8);
+  assert.doesNotMatch(grind, /-round-<n>/, "no critic in a loop, nothing to keep");
+});
+
+test("0012-5: §6 states what one full round costs in dispatches, from the loop's agent and check members, for every loop with a dispatches budget", () => {
+  const bank = compile(patternDoc("specialist-critic-bank"), "claude-code").files[".grooph/specialist-critic-bank/LEAD.md"]!;
+  const six = section(bank, 6);
+  assert.match(six, /One full round of this loop costs \*\*6 dispatches\*\*: `builder`, `correctness`, `security`, `performance`, `taste`, `triage` \(`gate` is not a dispatch\)\. The budget of 26 covers 4 full rounds and 2 more dispatches\./, "review 0011: the bank's lead counted 8 for 6");
+  assert.match(six, /A node dispatched twice in one round \(§5, invalid evidence\) counts twice/);
+
+  const phases = compile(patternDoc("fresh-grind-rare-judge"), "claude-code").files[".grooph/fresh-grind-rare-judge/LEAD.md"]!;
+  const loops = section(phases, 6);
+  assert.match(loops, /One full round of this loop costs \*\*3 dispatches\*\*: `builder`, `tests`, `judge`\. The budget of 55 covers 18 full rounds and 1 more dispatch\. Every extra round of the inner loop `grind` adds its own dispatches on top\./, "a check member counts; a nested loop is named");
+  assert.equal(loops.split("One full round of this loop costs").length, 2, "the grind loop has a minutes budget, not dispatches: no sentence for it");
+
+  const doc = reviewLoop();
+  const loop = doc.loops[0]!;
+  const counted: Graph = { ...doc, loops: [{ ...loop, stops: [{ kind: "bar-passed" }, { kind: "budget", measure: "dispatches", limit: 12 }] }] };
+  assert.match(section(compile(counted, "claude-code").files[".grooph/review-loop/LEAD.md"]!, 6), /costs \*\*2 dispatches\*\*: `builder`, `critic` \(`merge-gate` is not a dispatch\)\. The budget of 12 covers 6 full rounds\./);
+  assert.doesNotMatch(section(compile(doc, "claude-code").files[".grooph/review-loop/LEAD.md"]!, 6), /One full round of this loop costs/, "a turns budget gets no dispatch arithmetic");
 });
