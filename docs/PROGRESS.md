@@ -13,6 +13,10 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Slice 0011** (`handoffs/0011-proving-batch-two/`): confirmed 2026-09-20 under the $45.00 cap ($34.19 left). Awaiting the implementer session.
 
+### Slice 0011
+
+- Criterion 1 met (2026-09-20): kickoff and mapping say to run commands bare from the project root (goldens regenerated, compile test added); `--check` compares each loop note's dispatch count with the started lines before it and names a `stop` the loop lacks; `PROVABLE` is the sixteen built-in ids. Core 243, CLI 58, web 49.
+
 ## Waiting on the owner
 
 _(nothing: slice 0011 was confirmed 2026-09-20)_
