@@ -132,7 +132,12 @@ test("rebuild the review loop from scratch by touch, then export it", async ({ p
     await tap(s.getByRole("button", { name: "Add stop" }));
   }
   await expect(s.getByRole("group", { name: "Stop 2" }).getByLabel("Rounds at most")).toHaveValue("4");
-  await expect(s.getByRole("group", { name: "Stop 3" }).getByLabel("Limit")).toHaveValue("40");
+  // A new budget counts dispatches, the measure the lead can count exactly (graph-ir §1); the fixture's is in turns.
+  const budget = s.getByRole("group", { name: "Stop 3" });
+  await expect(budget.getByRole("radiogroup", { name: "Measure" }).getByRole("radio", { name: "dispatches", exact: true })).toBeChecked();
+  await expect(budget.getByLabel("Limit")).toHaveValue("12");
+  await tap(budget.getByRole("radiogroup", { name: "Measure" }).getByRole("radio", { name: "turns", exact: true }));
+  await budget.getByLabel("Limit").fill("40");
 
   // A validation panel with no errors — only the warning the fixture carries too …
   await expect(status(page)).toHaveText("1 warning");

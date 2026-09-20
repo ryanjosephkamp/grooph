@@ -27,18 +27,32 @@ type Route =
  * watch` serves) and `#/run/<key>` (a run kept on this device). A run from a
  * link opens at `#/open?d=…` like any share.
  */
+/**
+ * A key from the hash. A malformed `%` escape (a link cut short, a hand-typed
+ * address) makes `decodeURIComponent` throw, which would blank the app; the
+ * raw text matches no stored key, so the screen for a missing graph or run
+ * shows instead, with its way back to the library (review 0008, finding 5).
+ */
+function decodeKey(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 function parse(hash: string): Route {
   if (hash === "#/run?live") return { name: "live-run" };
   const run = /^#\/run\/([^?]+)$/.exec(hash);
-  if (run) return { name: "run", key: decodeURIComponent(run[1]!) };
+  if (run) return { name: "run", key: decodeKey(run[1]!) };
   if (hash === "#/templates") return { name: "templates" };
   const template = /^#\/templates\/(built-in|yours)\/([^/?]+)(\/use)?$/.exec(hash);
-  if (template) return { name: "template", source: template[1] as TemplateSource, id: decodeURIComponent(template[2]!), use: template[3] !== undefined };
+  if (template) return { name: "template", source: template[1] as TemplateSource, id: decodeKey(template[2]!), use: template[3] !== undefined };
   const graph = /^#\/g\/([^/?]+)(\?new)?$/.exec(hash);
-  if (graph) return { name: "graph", key: decodeURIComponent(graph[1]!), fresh: graph[2] !== undefined };
+  if (graph) return { name: "graph", key: decodeKey(graph[1]!), fresh: graph[2] !== undefined };
   if (hash.startsWith("#/open?")) {
     const candidate = /[?&]c=([^&]*)/.exec(hash)?.[1];
-    return { name: "open", payload: sharePayloadFrom(hash) ?? "", ...(candidate ? { candidate: decodeURIComponent(candidate) } : {}) };
+    return { name: "open", payload: sharePayloadFrom(hash) ?? "", ...(candidate ? { candidate: decodeKey(candidate) } : {}) };
   }
   return { name: "library" };
 }

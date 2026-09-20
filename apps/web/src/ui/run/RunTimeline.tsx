@@ -44,6 +44,7 @@ export function RunTimeline(props: {
                   {state ? <StateIcon state={state} /> : <span className="tl-dot" aria-hidden="true" />}
                   <span className="tl-where">{targetLabel(target, bundle.working)}</span>
                   {note.round !== undefined ? <span className="tl-round">round {note.round}</span> : null}
+                  {note.stop ? <span className="tl-stop">stop: {note.stop}</span> : null}
                   {note.outcome ? (
                     <span className={`tl-outcome outcome-${state ?? "passed"}`}>
                       {note.outcome}
@@ -92,6 +93,7 @@ function NoteDetails({ bundle, note, onShow }: { bundle: RunBundle; note: RunNot
   const took = duration(note.started, note.ended);
   const rows: [string, string | string[] | undefined][] = [
     ["When", [time(note.started), time(note.ended)].filter(Boolean).join(" → ") + (took ? ` (${took})` : "") || undefined],
+    ["Stop fired", note.stop],
     ["Evidence", note.evidence],
     ["Gaps", note.gaps],
     ["Cost", note.cost ? `${note.cost.amount} ${note.cost.measure}` : undefined],
