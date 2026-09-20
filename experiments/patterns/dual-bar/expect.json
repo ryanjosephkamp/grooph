@@ -1,0 +1,6 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the builder and the critic ran as their own subagents; the critic wrote REVIEW.md itself; the loop ended on the ship line (bar-passed) at the stop node. The design bet (write-up): the ship line holds at round 0 while the critic's REVIEW.md still lists findings against the aspiration, which never fails a round.",
+  "agents": ["builder", "critic"],
+  "reports": { "critic": ["REVIEW.md"] },
+  "ending": ["stop bar-passed", "stop node done"]
+}

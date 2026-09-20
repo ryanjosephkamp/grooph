@@ -481,11 +481,22 @@ export async function checkRun(evidenceDir, { core, template }) {
   ];
   const failVerdicts = notes.filter((note) => String(note.at).startsWith("node:") && (note.outcome === "fail" || /^(fail|rebut|next-phase)$/.test(`${note.verdict ?? ""}`)));
   facts.back_edges = { later_rounds: laterRounds.length, edge_notes: edgeNotes.map((n) => n.at), mentioned, caught_by: [...new Set(failVerdicts.map((n) => `${n.at.slice(5)}${n.verdict ? ` (${n.verdict})` : ""}`))] };
+  const backEdgeTaken = laterRounds.length > 0 || edgeNotes.length > 0 || mentioned.length > 0;
+  facts.back_edges.taken = backEdgeTaken;
   findings.push(
-    laterRounds.length > 0 || edgeNotes.length > 0 || mentioned.length > 0
+    backEdgeTaken
       ? `back edge taken: ${[...new Set([...mentioned, ...edgeNotes.map((n) => n.at.slice(5))])].join(", ") || "a later round is recorded"}; ${laterRounds.length} loop note(s) beyond round 0; caught by ${facts.back_edges.caught_by.join(", ") || "no fail verdict recorded"}`
-      : "no back edge taken: every loop note is round 0 and no back edge is named",
+      : `no back edge taken: every loop note is round 0 and no back edge is named${expect.backEdge === true ? " (the task was designed to force one; the write-up must say why it did not)" : ""}`,
   );
+  // Verdicts per node, in order: the shape of the loop as the critics and judges told it.
+  const verdictsByNode = {};
+  for (const note of notes) {
+    if (!String(note.at).startsWith("node:") || !(note.verdict || (note.outcome && note.outcome !== "started"))) continue;
+    (verdictsByNode[note.at.slice(5)] ??= []).push(note.verdict ?? note.outcome);
+  }
+  facts.verdicts = verdictsByNode;
+  const judged = Object.entries(verdictsByNode).filter(([nodeId]) => (graph?.nodes ?? []).some((node) => node.id === nodeId && isCriticFamily(node)));
+  if (judged.length > 0) findings.push(`verdicts in order: ${judged.map(([nodeId, list]) => `${nodeId} → ${list.join(", ")}`).join("; ")}`);
 
   // ── 14. held-out evidence: who touched it ──────────────────────────────
   const heldOut = result.held_out?.dir;

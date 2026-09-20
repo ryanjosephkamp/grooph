@@ -1,0 +1,9 @@
+{
+  "name": "Parse key-value",
+  "values": {
+    "task": "Add `parseKeyValue(text)` to src/kv.mjs, the inverse of `renderKeyValue`: it turns `key=value` text into an object, skipping blank lines and lines whose first non-space character is `#`. Tests go in tests/kv.test.mjs and the README documents the function.",
+    "test-command": "npm test",
+    "ship-line": "`npm test` passes; `parseKeyValue` skips blank lines and `#` comment lines; a value may contain `=` (only the first `=` splits); `parseKeyValue(renderKeyValue(o))` gives back `o` for any object of plain string values without newlines; README.md documents `parseKeyValue` with one example.",
+    "aspiration": "A new contributor can predict `parseKeyValue`'s result for any input from README.md alone, on the first try: every edge (whitespace around keys and values, a duplicate key, a quoted value, a line with no `=`, an empty key, a trailing comment on a value line, CRLF line endings) is decided, tested, and stated in the README in one sentence each."
+  }
+}
