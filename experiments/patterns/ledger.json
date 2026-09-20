@@ -326,8 +326,23 @@
       "run_id": "20260920-194427",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 22,
+      "template": "fresh-grind-rare-judge",
+      "kind": "kickoff",
+      "started": "2026-09-20T19:54:50.996Z",
+      "ended": "2026-09-20T20:02:09.868Z",
+      "status": "ok",
+      "cost_usd": 2.938937,
+      "reported_cost_usd": 2.938937299999999,
+      "max_budget_usd": 6,
+      "session_id": "58e8f118-b0c2-4857-8dfb-f1b8f6588cb0",
+      "run_id": "20260920-195457",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 30.87521,
-  "remaining_usd": 14.12479
+  "spent_usd": 33.814147,
+  "remaining_usd": 11.185853
 }
