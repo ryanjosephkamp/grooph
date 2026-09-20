@@ -35,7 +35,7 @@
  * files a critic read, the permission denials, whether a back edge fired).
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { readNotes, sha256, writesOf } from "./prove-evidence.mjs";
@@ -90,6 +90,30 @@ function applyJsonPatch(doc, patch) {
 }
 
 const pattern = (text) => new RegExp(text.replace(/[-\s]/g, "[- ]?"), "i");
+
+/** The text of a file the run wrote, by basename: from the run folder in the evidence, else the added lines of project.diff. */
+function reportText(evidenceDir, runDir, name) {
+  const found = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (entry.toLowerCase() === name.toLowerCase()) found.push(full);
+    }
+  };
+  if (existsSync(runDir)) walk(runDir);
+  if (found.length > 0) return readFileSync(found[0], "utf8");
+  const diffPath = join(evidenceDir, "project.diff");
+  if (!existsSync(diffPath)) return null;
+  const blocks = readFileSync(diffPath, "utf8").split(/^diff --git /m);
+  const block = blocks.find((b) => new RegExp(`^\\+\\+\\+ b/(?:.*/)?${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "mi").test(b));
+  if (!block) return null;
+  return block
+    .split("\n")
+    .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
+    .map((line) => line.slice(1))
+    .join("\n");
+}
 
 export async function checkRun(evidenceDir, { core, template }) {
   const problems = [];
@@ -400,6 +424,19 @@ export async function checkRun(evidenceDir, { core, template }) {
     const intruders = writes.filter((w) => w.who !== agent && prefixes.some((prefix) => under(w.file, prefix)));
     if (intruders.length > 0) problems.push(`${[...new Set(intruders.map((w) => `${w.who === "lead" ? "the lead" : w.who} (${w.file})`))].join(", ")} wrote under ${prefixes.join(", ")}, which ${nodeId} owns`);
     findings.push(`${nodeId} wrote ${own.length} file(s): ${[...new Set(own.map((w) => w.file))].join(", ") || "nothing"}`);
+  }
+
+  // ── the judge's pick names one candidate (tournament-then-judge) ───────
+  if (expect.pick?.report && Array.isArray(expect.pick.among)) {
+    const text = reportText(evidenceDir, runDir, expect.pick.report);
+    if (text === null) problems.push(`${expect.pick.report} is not in the evidence, so the pick cannot be read`);
+    else {
+      const named = expect.pick.among.filter((item) => text.includes(item) || new RegExp(`\\b${item.split("/").pop()}\\b`, "i").test(text.replace(/candidates?[- /]/gi, "")));
+      const winnerLine = text.split("\n").find((line) => /\b(winner|pick(ed)?|chosen|choose|finalist to finish)\b/i.test(line) && expect.pick.among.some((item) => line.includes(item) || new RegExp(`\\b${item.split("/").pop()}\\b`).test(line)));
+      if (named.length === 0) problems.push(`${expect.pick.report} names none of ${expect.pick.among.join(", ")}`);
+      else findings.push(`${expect.pick.report} names ${named.join(", ")}${winnerLine ? `; the pick line: "${winnerLine.trim().slice(0, 120)}"` : "; no line says which won in so many words"}`);
+      facts.pick = { named, winner_line: winnerLine?.trim() ?? null };
+    }
   }
 
   // ── 8. the dispatch count, and the stop named on loop notes ────────────

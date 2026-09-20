@@ -1,0 +1,7 @@
+{
+  "name": "Fast lookup",
+  "values": {
+    "task": "Make repeated calls to `lookup(word)` in src/dictionary.mjs fast, without changing its results or the way the word list is edited (README.md).",
+    "test-command": "npm test"
+  }
+}

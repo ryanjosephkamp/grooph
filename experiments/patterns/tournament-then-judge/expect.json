@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: three candidates, the judge and the finisher ran as their own subagents; each candidate wrote only under its own folder and nobody else wrote there; the judge wrote PICK.md itself and it names one candidate; the run ended at the stop node.",
+  "agents": ["candidate-a", "candidate-b", "candidate-c", "judge", "finisher"],
+  "reports": { "judge": ["PICK.md"] },
+  "ownership": { "candidate-a": ["candidates/a"], "candidate-b": ["candidates/b"], "candidate-c": ["candidates/c"] },
+  "pick": { "report": "PICK.md", "among": ["candidates/a", "candidates/b", "candidates/c"] },
+  "ending": ["stop node done"]
+}
