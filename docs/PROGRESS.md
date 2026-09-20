@@ -6,18 +6,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Next: slice 0012, the brief and runner fixes those runs exposed, then stage 8 (manual authoring extras) while Codex stays deferred.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (driver):** draft handoff 0012 from the carries in `PLAN.md`. **Owner:** decide whether re-proving the two red records after 0012 (about $9) is worth raising the cap to $55.
+- **Next action (owner):** run the slice 0012 implementer session, then bring its handback prompt to the driver. The cap raise to $55.00 for re-proving the two red records is approved in principle and happens after 0012 merges.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
 
-_(none)_
+- **Slice 0012** (`handoffs/0012-batch-two-fixes/`): confirmed 2026-09-20; no model spend. Awaiting the implementer session.
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Raise the proving cap from $45.00 to $55.00 so the two red records can be re-proved after slice 0012 (about $9 at batch-two prices) | Yes, but only once 0012 has merged; nothing spends before then |
+_(nothing: slice 0012 confirmed 2026-09-20; the cap raise follows its merge)_
 
 ## Deferred until Codex is available
 
@@ -28,6 +26,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-20 | Status report published (`handoffs/briefs/status-2026-09-20.html`); `grooph-status` skill added. Handoff 0012 drafted and confirmed. |
 | 2026-09-20 | Slice 0011 reconciled and merged: eleven templates proved for $28.77, four back edges, gates halt and are recorded, held-out evidence and fragment hosts in the runner, dispatch-count check; two records red. Decision 0009 (proving records are evidence). Three template edits at reconcile (judge may run tests; retro writes `PROPOSALS.md`; red team writes `ATTACK.md`). Stage 6 done. |
 | 2026-09-20 | Owner raised the proving ledger cap to $45.00; handoff 0011 drafted. |
 | 2026-09-20 | Slice 0010 reconciled and merged: lead brief and agent files agree with graph-ir (evidence plus inputs, one gate rule, clock run ids and timestamps, `dispatches` budgets, `invalid-evidence` routing, `stop` on loop notes), eleven templates hardened, `review-gate` and `spec-then-loop` re-proved clean for $3.80 (ledger $10.81 of $25.00). `docs/templates.md` §5 reconciled. |
