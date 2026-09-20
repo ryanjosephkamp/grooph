@@ -11,7 +11,19 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-- **Slice 0010** (`handoffs/0010-hardening/`): confirmed 2026-09-20 with spend approved for two re-proving runs (about $4 of the $17.99 left under the 0009 cap). Awaiting the implementer session.
+- **Slice 0010** (`handoffs/0010-hardening/`): confirmed 2026-09-20 with spend approved for two re-proving runs (about $4 of the $17.99 left under the 0009 cap). Implementer session under way on `slice/0010-hardening`.
+
+### Slice 0010
+
+- 2026-09-20 · criterion 2 met (D1): every agent file's Evidence rules allow the edge's evidence plus the node's declared inputs, a writer's "including the project you are changing"; a critic keeps `invalid-evidence` and names the evidence stop only where its loop has one. Goldens regenerated and read as documents.
+- 2026-09-20 · criterion 3 met (D2): LEAD.md §7 is one rule for every session: halt note at the gate, then ask, then end the turn; an answer is a note, then the run continues. Neither the brief nor the kickoff says "cannot ask".
+- 2026-09-20 · criterion 4 met (D3, D4): run id `<yyyymmdd-hhmmss>` from `date -u`, `-2`, `-3` … on collision; timestamps from `date -u` or omitted; the first note and both filled examples in §8 follow.
+- 2026-09-20 · criterion 5 met (D5): `dispatches` in types, schema, the editor's stop form (the default for a new budget), `estimateShape`/`shapeLine` ("10 dispatches"), and the brief (§6 says what a dispatch is; the counter lives in `PROGRESS.md`); `turns`, `usd`, `tokens` advisory in the brief and MAPPING.md, `usd` enforceable by `--max-budget-usd`; `W_LONG_LOOP_NO_BUDGET` unchanged.
+- 2026-09-20 · criterion 6 met (D6): §5 gives the routing rule (edge if one routes it; else repair, re-dispatch once, then `fail`) and mentions an `evidence-invalid` stop only for loops that have one.
+- 2026-09-20 · criterion 7 met: `RunNote.stop` in types and schema; §8 asks for it on the loop note that ends the loop; `summarizeRun` takes it over text inference; the run view shows it on the note and the loop pill (browser test).
+- 2026-09-20 · criterion 8 met (D7 and carries): `grooph template <sub> --help` exits 0 with the usage on all six subcommands; `#/g/<key>` and `#/run/<key>` with a malformed `%` escape land on the missing-item screen with its way back (browser test).
+- 2026-09-20 · criterion 9 met: checklists among builders' inputs (review-gate, metric-sandwich, heterogeneous-critic); "the repository as the change leaves it, read-only" for the seven templates' critics and judges and contradiction-seeker's hunter (which also gets `run-commands`); contradiction-seeker's description names the brief as the hunt's bound; every `turns` budget is now `dispatches`, sized at the round cap's allowance plus a repair or two (pattern test), `minutes` budgets kept; index and README regenerated.
+- 2026-09-20 · criterion 10 met: `prove-pattern.sh` passes `--strict-mcp-config` and allows `echo`, `cp`, `tr`; `--check` reads `stop`, reports the run id's form, out-of-order timestamps, halt and started notes; the five kept records re-check exactly as in 0009 (3 pass, 2 fail on the missing halt note). No evidence edited.
 
 ## Waiting on the owner
 
