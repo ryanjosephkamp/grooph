@@ -42,7 +42,7 @@
     ],
     "demo": "experiments/patterns/metric-sandwich/README.md"
   },
-  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, at its round cap, or at its turn budget.",
+  "description": "A builder works; a check runs the cheap deterministic suite. Only a passing change reaches the frontier critic, which judges what the suite cannot see against a checklist. Either failing returns to the builder, so one loop has two back edges. It stops when the critic passes, at its round cap, or at its dispatch budget.",
   "nodes": [
     {
       "id": "builder",
@@ -56,6 +56,7 @@
       "brief": "Do the task in the code, with tests. On a later round you get either the failing check output or REVIEW.md; address what it names. Run `{{test-command}}` before you report.",
       "inputs": [
         "the task",
+        "{{checklist}}",
         "check output or REVIEW.md (from round 1 on)"
       ],
       "outputs": [
@@ -90,7 +91,7 @@
       "brief": "Judge only what `{{test-command}}` cannot see, the items in the checklist, for a change that already passes it; use the repository only to understand what the change touches. Do not rerun or restate the checks. Cite the file and line for each finding; you judge, you do not fix. Verdict pass when no checklist item is unmet.",
       "inputs": [
         "diff of the change",
-        "the repository at the head commit, read-only",
+        "the repository as the change leaves it, read-only",
         "{{checklist}}"
       ],
       "outputs": [
@@ -134,7 +135,7 @@
       "when": "pass",
       "evidence": [
         "diff of the change",
-        "the repository at the head commit, read-only",
+        "the repository as the change leaves it, read-only",
         "{{checklist}}"
       ]
     },
@@ -192,8 +193,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 50
+          "measure": "dispatches",
+          "limit": 16
         }
       ]
     }

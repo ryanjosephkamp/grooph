@@ -41,12 +41,12 @@ The durable place for that change is `model.tier` or `effort` on the node in the
 
 **A loop's stop values.** The numbers a run actually bumps into:
 
-- `build` (judgment): `bar-passed`, `max-iterations n=4`, `budget 40 turns` — edit them in `.grooph/word-wrap/LEAD.md` §6 for this run, or in the graph document to keep them.
+- `build` (judgment): `bar-passed`, `max-iterations n=4`, `budget 10 dispatches` — edit them in `.grooph/word-wrap/LEAD.md` §6 for this run, or in the graph document to keep them.
 
 ## Rules this package relies on
 
 - The subagent files must sit in `.claude/agents/` of the project the session runs in; the package is discovered from the project directory, not from a flag.
 - Subagent names cannot contain a colon, which is why they read `<graph-id>--<node-id>`.
-- `usd` and `tokens` budgets are advisory: Claude Code documents no session-level cost cap, so the lead counts them by hand.
+- A `dispatches` budget is exact: the lead counts node dispatches in `PROGRESS.md`. `usd`, `turns` and `tokens` budgets are advisory inside a session; a `usd` budget is enforced only from outside, by starting a headless run with `--max-budget-usd`.
 - A run never writes `.grooph/word-wrap/graph.grooph.json`. Adopt a run's working copy as the next version of the graph, or discard it; either way that is a human decision after the run.
 - Nothing here executes the graph. grooph compiles; the session is the runtime.

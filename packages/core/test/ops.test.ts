@@ -217,7 +217,7 @@ test("stops are added with bounded defaults, reordered and removed", () => {
   doc = addStop(doc, "loop", "max-iterations");
   doc = addStop(doc, "loop", "max-iterations", { n: 3 });
   assert.deepEqual(doc.loops[0]!.stops, [
-    { kind: "budget", measure: "turns", limit: 40 },
+    { kind: "budget", measure: "dispatches", limit: 12 },
     { kind: "max-iterations", n: 4 },
     { kind: "max-iterations", n: 3 },
   ]);

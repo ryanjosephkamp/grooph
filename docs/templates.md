@@ -73,7 +73,7 @@ One document per spec §10 pattern, under `patterns/<id>.grooph.json`. Rules for
 - Validates with no errors once instantiated with its slot examples. True warnings are allowed and listed in a sidecar, as fixtures do.
 - **Latitude over procedure** (graph-ir §2): briefs state purpose, limits and outputs in three or four sentences. No step lists.
 - **Smallest graph that shows the pattern.** If a node can be removed without losing the pattern, remove it.
-- Every loop has a `budget` stop in `turns` or `minutes` and a `max-iterations` stop of 5 or fewer, besides its real stop.
+- Every loop has a `budget` stop in `dispatches` or `minutes` and a `max-iterations` stop of 5 or fewer, besides its real stop. A `dispatches` limit is sized from the round cap: the dispatches the cap already allows, plus at most two for an `invalid-evidence` repair or a second critic pass (slice 0010; `packages/core/test/patterns.test.ts` enforces it), so the shape line never shows a budget that cannot be reached or one that hides the real brake.
 - Critics are `fresh`, have an evidence list, allow `write-outputs` for their report, and deny `edit-files`.
 - `adaptation` is left unset (adaptive) except where the pattern says otherwise.
 - Common slots: `task` (what to build or change), `test-command`, and the pattern's own bar reference.
@@ -81,7 +81,7 @@ One document per spec §10 pattern, under `patterns/<id>.grooph.json`. Rules for
 | id | kind | Shape | Bar and stops | Profile (cost · speed · rigor) |
 |---|---|---|---|---|
 | `grind-loop` | graph | builder → tests check; fail → builder; pass → done | grind loop, the check is the bar; max-iterations 5, budget minutes | low · fast · light |
-| `review-gate` | graph | builder → isolated critic → human gate → done; critic fail and gate reject → builder | checklist bar; bar-passed, max-iterations 4, budget turns (today's `fixtures/valid/review-loop`) | medium · medium · standard |
+| `review-gate` | graph | builder → isolated critic → human gate → done; critic fail and gate reject → builder | checklist bar; bar-passed, max-iterations 4, budget 10 dispatches (today's `fixtures/valid/review-loop`) | medium · medium · standard |
 | `taste-polish` | graph | owner-builder → evidence check (is the artifact capture readable?) → isolated frontier critic comparing against a named reference → builder with the top gaps | bar inspects `{{reference}}` and the captured artifact; bar-passed, diminishing-returns 2 rounds, human every 2 rounds, max-iterations 5, budget. The Gauntlet-style entry, bounded | high · slow · high |
 | `spec-then-loop` | graph | planner writes `ACCEPTANCE.md` → human gate approves it → builder ⇄ critic judging against it | `answerKeyFrom: planner`; bar-passed, max-iterations 4, budget | medium · medium · high |
 | `metric-sandwich` | graph | builder → cheap deterministic check → (pass) expensive critic; either failing → builder | one loop, two back edges; critic only sees what the check cannot | medium · medium · standard |
@@ -90,7 +90,7 @@ One document per spec §10 pattern, under `patterns/<id>.grooph.json`. Rules for
 | `heterogeneous-critic` | graph | `review-gate` with the critic on a different tier from the builder and a note that true cross-family judging needs a dual-harness node (stage 11) | as `review-gate`; does not raise `W_HOMOGENEOUS_CRITICS` | medium · medium · high |
 | `ownership-not-swarm` | graph | planner decomposes → one owner per coupled subsystem, in sequence (`coupled`, distinct `owns`) → independent pieces fan out to fast workers → integrator → tests check | no loop, or one grind loop at the end; demonstrates fan-out only where nothing is coupled | medium · medium · standard |
 | `tournament-then-judge` | graph | three fast candidate builders in parallel (each owns its own folder) → cheap check filter → frontier judge picks one → builder finishes it | no loop; the judge sees finalists only | medium · fast · standard |
-| `contradiction-seeker` | graph | builder → critic hunting one counterexample on a fixed budget; none found → pass | budget stop in turns is the point; max-iterations 3 | low · fast · standard |
+| `contradiction-seeker` | graph | builder → critic hunting one counterexample on a fixed budget; none found → pass | the critic's brief caps the hunt at about ten attempts; budget 8 dispatches, max-iterations 3 | low · fast · standard |
 | `red-team-loop` | graph | builder → red-team producing failing traces (owns `traces/`) → builder sees only the traces | diminishing-returns (no new failing trace for 2 rounds), max-iterations 5, budget | medium · medium · high |
 | `debate-then-build` | graph | two planners argue opposite approaches for at most two rounds → judge writes the plan → human gate → small grind build | debate loop max-iterations 2; build loop as `grind-loop` | medium · medium · standard |
 | `human-gated-irreversible` | fragment | human gate → irreversible node (merge, publish, spend, delete) → stop | the fragment that satisfies `E_IRREVERSIBLE_NO_GATE`; insert before any irreversible step | low · fast · standard |

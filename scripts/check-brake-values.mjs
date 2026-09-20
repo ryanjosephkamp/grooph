@@ -6,8 +6,8 @@
  * when-to-use line, brief or gate prompt that says "after four rounds" or "at
  * forty turns" goes stale the first time someone tightens a stop (review 0007,
  * finding 6). This script fails when any prose field of a document under
- * patterns/ pairs a count with a brake unit (rounds, iterations, turns, minutes,
- * hours), whether or not the count matches a stop today. Words that name a brake
+ * patterns/ pairs a count with a brake unit (rounds, iterations, turns, dispatches,
+ * minutes, hours), whether or not the count matches a stop today. Words that name a brake
  * without its value ("at its round cap", "the turn budget") are fine.
  *
  *   node scripts/check-brake-values.mjs     exit 1 and list every hit (CI)
@@ -31,7 +31,7 @@ const NUMBER_WORDS = [
   "once", "twice",
 ];
 const NUMBER = `(?:\\d+(?:\\.\\d+)?|(?:${NUMBER_WORDS.join("|")})(?:[- ](?:${NUMBER_WORDS.slice(0, 9).join("|")}))?)`;
-const UNIT = "(?:rounds?|iterations?|turns?|minutes?|mins?|hours?|hrs?)";
+const UNIT = "(?:rounds?|iterations?|turns?|dispatch(?:es)?|minutes?|mins?|hours?|hrs?)";
 // A count, at most one word between (`five review rounds`, `30-minute`), then a unit.
 const BRAKE_VALUE = new RegExp(`\\b${NUMBER}(?:[\\s-]+[a-z]+)?[\\s-]+${UNIT}\\b`, "gi");
 
@@ -47,9 +47,11 @@ const MUST_HIT = [
   "capped at five review rounds",
   "the human checks in every 2 rounds",
   "at most twenty-five turns",
+  "a budget of twelve dispatches",
 ];
 const MUST_PASS = [
   "The loop stops when the bar passes, at its round cap, or at its turn budget.",
+  "The loop stops when the bar passes, at its round cap, or at its dispatch budget.",
   "On a later round, start from REVIEW.md.",
   "failing test output (from round 1 on)",
   "A planner turns the task into ACCEPTANCE.md.",

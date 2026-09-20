@@ -213,7 +213,7 @@ const amount = (measure: string, limit: number): string => (measure === "usd" ? 
 
 const count = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
 
-/** One line for a card or a chat message: "4 agents · 1 gate · 1 loop · up to 4 rounds · 40 turns". */
+/** One line for a card or a chat message: "4 agents · 1 gate · 1 loop · up to 4 rounds · 12 dispatches". A dispatch is one node run. */
 export function shapeLine(shape: Shape): string {
   const parts = [count(shape.agents, "agent")];
   if (shape.checks > 0) parts.push(count(shape.checks, "check"));

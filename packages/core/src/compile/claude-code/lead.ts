@@ -13,7 +13,7 @@ import {
   loopMode,
   stopAction,
 } from "../../semantics.js";
-import type { Edge, Loop, Node } from "../../types.js";
+import type { Edge, Loop, Node, Stop } from "../../types.js";
 import { bullet, cell, code, doc, fence, lines, table } from "../markdown.js";
 import type { PackageContext } from "./context.js";
 
@@ -77,20 +77,27 @@ function sectionTwo(ctx: PackageContext): string {
   );
 }
 
+/** The run id and timestamps every example in the brief uses, so they agree with each other. */
+const EXAMPLE_RUN_ID = "20260917-093002";
+const EXAMPLE_STARTED = "2026-09-17T09:30:02Z";
+
 function sectionThree(ctx: PackageContext): string {
   const firstNote = JSON.stringify({
     id: "n-0001",
-    run: "<run-id>",
+    run: EXAMPLE_RUN_ID,
     at: "graph",
-    started: "<iso-timestamp>",
+    started: EXAMPLE_STARTED,
     text: "run started",
   });
+  const dispatchLoops = loopsWithDispatchBudget(ctx);
   return lines(
     "## 3. Run setup",
     "",
-    `1. Choose a run id in the form ${code(ctx.profile.runIdFormat)} — the current local date and time, then four random lowercase characters, for example ${code(
-      "20260917-0930-a1b2",
-    )}.`,
+    `1. Read the run id from the clock, in the form ${code(ctx.profile.runIdFormat)} (UTC): ${code(
+      "date -u +%Y%m%d-%H%M%S",
+    )}, for example ${code(EXAMPLE_RUN_ID)}. If ${code(`${ctx.paths.runs}/<that id>/`)} already exists, append ${code(
+      "-2",
+    )}, then ${code("-3")}, and so on. Never make an id up.`,
     `2. Create ${code(`${ctx.paths.runs}/<run-id>/`)}.`,
     `3. Copy the source document ${code(ctx.paths.graph)} into it as ${code(
       ctx.paths.workingCopy,
@@ -99,8 +106,12 @@ function sectionThree(ctx: PackageContext): string {
     }. Never write the source document.`,
     `4. Write ${code("PROGRESS.md")} there before dispatching anything: the run id, the goal, every node with status ${code(
       "pending",
-    )}, and the round counter at 0.`,
-    `5. Create ${code("notes.jsonl")} beside it and append the first line:`,
+    )}, and the round counter at 0${
+      dispatchLoops.length > 0 ? ` (with the dispatch counter of ${dispatchLoops.map((loop) => code(loop.id)).join(", ")} at 0, §6)` : ""
+    }.`,
+    `5. Create ${code("notes.jsonl")} beside it and append the first line, its ${code("started")} read from ${code(
+      "date -u +%Y-%m-%dT%H:%M:%SZ",
+    )}:`,
     "",
     fence(firstNote, "json"),
     "",
@@ -113,6 +124,14 @@ function sectionThree(ctx: PackageContext): string {
     `Entry nodes (start here): ${entryNodeIds(ctx.index).map(code).join(", ") || "none — the graph has no entry node"}.`,
   );
 }
+
+/** Loops whose budget stop counts `dispatches`: the lead keeps their counter in PROGRESS.md (graph-ir §1). */
+const loopsWithDispatchBudget = (ctx: PackageContext): Loop[] =>
+  (ctx.doc.loops ?? []).filter((loop) => (loop.stops ?? []).some((stop) => stop.kind === "budget" && stop.measure === "dispatches"));
+
+/** Loops with an `evidence-invalid` stop: the only ones an invalid-evidence round counts toward (graph-ir §2). */
+const loopsWithEvidenceStop = (ctx: PackageContext): Loop[] =>
+  (ctx.doc.loops ?? []).filter((loop) => (loop.stops ?? []).some((stop) => stop.kind === "evidence-invalid"));
 
 function sectionFour(ctx: PackageContext): string {
   const rows = (ctx.doc.nodes ?? []).map((node) => [
@@ -176,6 +195,7 @@ function returnsFor(node: Node): string {
 
 function sectionFive(ctx: PackageContext): string {
   const edges = ctx.doc.edges ?? [];
+  const evidenceLoops = loopsWithEvidenceStop(ctx);
   const rows = edges.map((edge) => [
     code(edge.id),
     `${code(edge.from)} → ${code(edge.to)}`,
@@ -199,9 +219,18 @@ function sectionFive(ctx: PackageContext): string {
       )}: continue the same worker if the build lets you, otherwise do that step yourself rather than faking a continuation.`,
     ),
     bullet(
-      `A worker may inspect only what its inbound edge lists plus its own declared inputs. A critic that cannot read its evidence reports ${code(
+      `A worker may inspect what its inbound edge lists plus its own declared inputs; for a writer that includes the project it is changing. A critic that cannot read its evidence reports ${code(
         "invalid-evidence",
-      )} instead of guessing, and that round counts toward an ${code("evidence-invalid")} stop.`,
+      )} instead of guessing.`,
+    ),
+    bullet(
+      `When an edge routes ${code("invalid-evidence")}, take it. Otherwise repair the evidence and dispatch the same node once more in the same round; a second ${code(
+        "invalid-evidence",
+      )} routes as ${code("fail")}.${
+        evidenceLoops.length > 0
+          ? ` Such rounds count toward the ${code("evidence-invalid")} stop of loop ${evidenceLoops.map((loop) => code(loop.id)).join(", ")}.`
+          : ""
+      }`,
     ),
   );
 }
@@ -275,18 +304,34 @@ function loopSection(ctx: PackageContext, loop: Loop): string {
       ["#", "stop", "what you do"],
       (loop.stops ?? []).map((stop, i) => [String(i + 1), cell(describeStop(stop)), cell(stopAction(stop))]),
     ),
-    ...(advisory.length > 0
-      ? [
-          "",
-          `> Claude Code has no documented session-level cost cap, so ${advisory
-            .map((stop) => code(`${stop.kind === "budget" ? stop.measure : ""}`))
-            .join(", ")} budgets here are **advisory**: track the figure in ${code(
-            "PROGRESS.md",
-          )} yourself and halt when you pass it.`,
-        ]
-      : []),
+    ...budgetNotes(loop, advisory),
     "",
   );
+}
+
+/** graph-ir §1 on budget measures, said once per loop that has one: what a dispatch is; which measures nothing enforces. */
+function budgetNotes(loop: Loop, advisory: Stop[]): string[] {
+  const notes: string[] = [];
+  const measures = new Set((loop.stops ?? []).flatMap((stop) => (stop.kind === "budget" ? [stop.measure] : [])));
+  if (measures.has("dispatches")) {
+    notes.push(
+      `> A dispatch is one node run inside this loop's members — an agent you dispatch, or a check you run — counted from the loop's first pass; a nested loop's count restarts when the outer loop re-enters it. Keep the count in ${code(
+        "PROGRESS.md",
+      )} and evaluate the stop against it.`,
+    );
+  }
+  if (measures.has("minutes")) notes.push(`> Minutes are wall clock from the run's first note.`);
+  if (advisory.length > 0) {
+    const named = [...new Set(advisory.flatMap((stop) => (stop.kind === "budget" ? [stop.measure] : [])))];
+    notes.push(
+      `> ${named.map(code).join(", ")} budgets are **advisory**: nothing in Claude Code enforces them inside a session${
+        named.includes("turns") ? ", and leads count turns inconsistently" : ""
+      }. Track the figure in ${code("PROGRESS.md")} and halt when you pass it${
+        named.includes("usd") ? `; a ${code("usd")} budget is enforced only from outside, by starting a headless run with ${code("--max-budget-usd")}` : ""
+      }.`,
+    );
+  }
+  return notes.length > 0 ? ["", ...notes] : [];
 }
 
 function sectionSeven(ctx: PackageContext): string {
@@ -313,13 +358,15 @@ function sectionSeven(ctx: PackageContext): string {
     "",
     ...(entries.length > 0 ? entries : [bullet("None in this graph.")]),
     "",
-    `Ask with ${code(
-      "AskUserQuestion",
-    )} when it is available, otherwise in plain text. Then end your turn and wait. Do not simulate an answer, do not batch two gates into one question, and do not proceed on silence.`,
-    "",
-    `If this session cannot ask — a headless or otherwise non-interactive run — treat the gate as the end of the run: append a note with ${code(
+    `One rule, in every kind of session. On reaching a gate: first append a note at the gate (${code("at")} = ${code(
+      "node:<gate-id>",
+    )}, or ${code("edge:<edge-id>")} for an approval edge) with ${code(
       '"outcome":"halt"',
-    )} naming the gate, write the final ${code("PROGRESS.md")}, and report that the run is waiting for a human. Resume later with the same run id.`,
+    )} and a ${code("text")} naming it, and write ${code("PROGRESS.md")}; then ask, with ${code(
+      "AskUserQuestion",
+    )} when it is available, otherwise in plain text; then end your turn. Do not simulate an answer, do not batch two gates into one question, and do not proceed on silence.`,
+    "",
+    `When the human answers, append a note at the same place with their decision and continue along the matching edge. A run nobody answers ends on that halt note, and the same run id resumes it (§3, step 6).`,
   );
 }
 
@@ -327,7 +374,7 @@ function sectionEight(ctx: PackageContext): string {
   const exampleNode = ctx.agents.find((agent) => agent.isCritic) ?? ctx.agents[0];
   const example = JSON.stringify({
     id: "n-0007",
-    run: "20260917-0930-a1b2",
+    run: EXAMPLE_RUN_ID,
     at: `node:${exampleNode?.node.id ?? "some-node"}`,
     started: "2026-09-17T09:34:02Z",
     ended: "2026-09-17T09:38:41Z",
@@ -338,24 +385,50 @@ function sectionEight(ctx: PackageContext): string {
     gaps: ["no test covers the empty-input case"],
     text: "3 of 5 checklist items cited; two unmet",
   });
+  const exampleLoop = (ctx.doc.loops ?? [])[0];
+  const exampleStops = exampleLoop?.stops ?? [];
+  const exampleStop = exampleStops.find((stop) => stop.kind === "bar-passed") ?? exampleStops.find((stop) => stop.kind === "budget") ?? exampleStops[0];
+  const loopExample =
+    exampleLoop && exampleStop
+      ? JSON.stringify({
+          id: "n-0012",
+          run: EXAMPLE_RUN_ID,
+          at: `loop:${exampleLoop.id}`,
+          ended: "2026-09-17T09:51:10Z",
+          outcome: exampleStop.kind === "bar-passed" ? "pass" : "halt",
+          round: 3,
+          stop: exampleStop.kind,
+          text: exampleStop.kind === "bar-passed" ? "bar passed at round 3; taking the pass edges" : `${describeStop(exampleStop)} fired at round 3`,
+        })
+      : undefined;
+  const dispatchLoops = loopsWithDispatchBudget(ctx);
 
   return lines(
     "## 8. Progress and notes",
     "",
     bullet(
-      `${code(ctx.paths.progress)} — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, each node's status, what is waiting, and the stop check you last evaluated.`,
+      `${code(ctx.paths.progress)} — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, ${
+        dispatchLoops.length > 0 ? `the dispatch count of ${dispatchLoops.map((loop) => code(loop.id)).join(", ")}, ` : ""
+      }each node's status, what is waiting, and the stop check you last evaluated.`,
     ),
     bullet(
       `${code(ctx.paths.notes)} — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (${code(
         "at",
       )} = ${code("node:<node-id>")}), one **per pass through a loop** (${code("at")} = ${code(
         "loop:<loop-id>",
-      )}, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line), and one when the run ends.`,
+      )}, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line — and ${code(
+        "stop",
+      )} with the kind of the stop when one fires), and one when the run ends.`,
     ),
     bullet(
       `When you dispatch a node, append one short line first: ${code('"outcome":"started"')}, ${code("at")} = ${code(
         "node:<node-id>",
       )}, and ${code("round")} when the node is inside a loop. The usual line follows when the node completes, so a monitor can show what is running.`,
+    ),
+    bullet(
+      `${code("started")} and ${code("ended")} are read from the clock, ${code(
+        "date -u +%Y-%m-%dT%H:%M:%SZ",
+      )}, or left out. Never estimate one.`,
     ),
     "",
     "Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:",
@@ -365,12 +438,13 @@ function sectionEight(ctx: PackageContext): string {
         `id        kebab-case, unique in the file: ${"`n-0001`"}, ${"`n-0002`"}, … in append order`,
         "run       the run id",
         "at        graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>",
-        "started   ISO timestamp        ended     ISO timestamp",
+        "started   ISO timestamp from the clock, or omitted        ended     the same",
         "outcome   pass | fail | halt | invalid-evidence; started on a dispatch line",
         "verdict   the critic's verdict label, when there is one",
         "round     the loop round this belongs to",
+        "stop      on the loop note that ends the loop: the kind of the stop that fired",
         "evidence  what was actually inspected",
-        "cost      { measure: usd | minutes | turns | tokens, amount }",
+        "cost      { measure: dispatches | minutes | usd | turns | tokens, amount }",
         "gaps      repeated gaps you noticed",
         "proposal  { summary, patch? } — a graph change for the human to decide; you do not make it",
         ...(ctx.adaptation === "adaptive"
@@ -381,9 +455,9 @@ function sectionEight(ctx: PackageContext): string {
       "text",
     ),
     "",
-    "One filled line:",
+    loopExample ? "Two filled lines, a node run and the loop pass on which a stop fired:" : "One filled line:",
     "",
-    fence(example, "json"),
+    fence(loopExample ? lines(example, loopExample) : example, "json"),
     "",
     `A run never writes the source document ${code(ctx.paths.graph)}. When the graph itself looks wrong, §9 says what to do.`,
   );
@@ -539,7 +613,7 @@ function sectionEleven(ctx: PackageContext): string {
   return lines(
     "## 11. Ending",
     "",
-    "The run ends when you reach a stop node, when a stop fires and its action is to halt, or when no edge is left to take.",
+    "The run ends when you reach a stop node, when a stop fires and its action is to halt, or when no edge is left to take. A gate is different: the halt note of §7 stands as the final note until the human answers, and the run continues from it.",
     "",
     ...(stopNodes.length > 0
       ? [

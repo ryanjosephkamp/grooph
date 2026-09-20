@@ -49,8 +49,8 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0006 | 5 | Share links, proposal sets, compare view, design skill packaging | Opus 5 + driver | done 2026-09-18 |
 | 0008 | 7 | Runs: notes back, adoption, the monitor | Opus 5 | done 2026-09-19 |
 | 0009 | 6 | Pattern proving ground, first batch of five ($25 cap) | Opus 5 | done 2026-09-19 ($7.01 spent; seven defects found) |
-| 0010 | 6 | Lead brief and template hardening (defects D1–D7, `dispatches` budgets, critics read the repository) | Opus 5 | confirmed 2026-09-20, spend approved (two re-proving runs); in progress |
-| 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | todo, after 0010; needs a spend cap |
+| 0010 | 6 | Lead brief and template hardening (defects D1–D7, `dispatches` budgets, critics read the repository) | Opus 5 | done 2026-09-20 ($3.80 on two re-proving runs; both pass `--check`) |
+| 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | next; handoff to draft; needs a spend cap from the owner ($14.19 left under the 0009 cap) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)
@@ -64,6 +64,10 @@ From review 0004: `E_IRREVERSIBLE_NO_GATE` per the reworded rule; lead-brief §9
 ## Carried into slice 0006 (done)
 
 From review 0005: per-critic `W_HOMOGENEOUS_CRITICS`; `W_NO_TERMINAL` exemption for fragment templates.
+
+## Carried forward from slice 0010
+
+Review 0010: a kickoff and mapping sentence that commands run bare from the project root (compound and `git -C` forms are refused under the proving allowlist; 16 refusals across the two re-proving runs); `--check` compares a loop note's `cost: dispatches` with its `started` lines and flags a `stop` the loop lacks; batch-two tasks designed to force a second round (no back edge taken in seven runs).
 
 ## Carried forward from slice 0007
 

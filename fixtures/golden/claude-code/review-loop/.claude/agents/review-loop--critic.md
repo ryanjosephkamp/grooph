@@ -36,13 +36,13 @@ You own no artifact in this graph. Do not write over another node's files: repor
 
 ## Evidence rules
 
-You may inspect exactly what the lead hands you, which is this and nothing more:
+You may inspect what the lead hands you — the evidence below — plus your declared inputs (Inputs above), and nothing else:
 
 - diff of src/ and tests/
 - test command output
 - docs/REVIEW-CHECKLIST.md
 
-If any of it is missing or unreadable, do not guess and do not substitute your own reading of the repository: report `invalid-evidence` and say which item you could not read. That round counts toward the loop's evidence stop.
+If any of it is missing or unreadable, do not guess and do not substitute your own reading of the repository: report `invalid-evidence` and say which item you could not read.
 
 You judge; you do not fix. Editing tools are withheld from you on purpose (Edit). Your own outputs are the only files you write. Cite a file and a line for every claim you make: an adjective is not a finding.
 

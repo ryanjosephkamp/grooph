@@ -116,7 +116,7 @@ export function mappingNotes(ctx: PackageContext): string {
       "",
       `- The subagent files must sit in ${code(".claude/agents/")} of the project the session runs in; the package is discovered from the project directory, not from a flag.`,
       `- Subagent names cannot contain a colon, which is why they read ${code("<graph-id>--<node-id>")}.`,
-      `- ${cell("`usd` and `tokens` budgets are advisory: Claude Code documents no session-level cost cap, so the lead counts them by hand.")}`,
+      `- ${cell("A `dispatches` budget is exact: the lead counts node dispatches in `PROGRESS.md`. `usd`, `turns` and `tokens` budgets are advisory inside a session; a `usd` budget is enforced only from outside, by starting a headless run with `--max-budget-usd`.")}`,
       `- A run never writes ${code(ctx.paths.graph)}. Adopt a run's working copy as the next version of the graph, or discard it; either way that is a human decision after the run.`,
       `- Nothing here executes the graph. grooph compiles; the session is the runtime.`,
     ),

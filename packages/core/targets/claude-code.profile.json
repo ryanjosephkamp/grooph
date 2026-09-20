@@ -26,6 +26,6 @@
   },
   "defaultCapabilities": ["read-files"],
   "toolOrder": ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "Agent"],
-  "advisoryBudgetMeasures": ["usd", "tokens"],
-  "runIdFormat": "<yyyymmdd-hhmm>-<4 random chars>"
+  "advisoryBudgetMeasures": ["usd", "turns", "tokens"],
+  "runIdFormat": "<yyyymmdd-hhmmss>"
 }

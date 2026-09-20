@@ -94,7 +94,16 @@ test("the schema and parseGraph agree on mutated documents", () => {
     doc["notes"] = [{ id: "n-0001", run: "r", at: "node:" }];
   });
   mutate("run note is well formed", (doc) => {
-    doc["notes"] = [{ id: "n-0001", run: "20260917-0930-a1b2", at: "loop:review-cycle", round: 1, outcome: "fail" }];
+    doc["notes"] = [{ id: "n-0001", run: "20260917-093002", at: "loop:review-cycle", round: 1, outcome: "fail" }];
+  });
+  mutate("loop note names the stop that fired", (doc) => {
+    doc["notes"] = [{ id: "n-0001", run: "20260917-093002", at: "loop:review-cycle", round: 1, outcome: "pass", stop: "bar-passed" }];
+  });
+  mutate("budget measured in dispatches", (doc) => {
+    (doc["loops"] as { stops: unknown[] }[])[0]!.stops = [{ kind: "budget", measure: "dispatches", limit: 12 }];
+  });
+  mutate("budget measured in something else", (doc) => {
+    (doc["loops"] as { stops: unknown[] }[])[0]!.stops = [{ kind: "budget", measure: "calories", limit: 12 }];
   });
   mutate("adaptation level known", (doc) => void (doc["adaptation"] = "propose"));
   mutate("adaptation level unknown", (doc) => void (doc["adaptation"] = "loose"));

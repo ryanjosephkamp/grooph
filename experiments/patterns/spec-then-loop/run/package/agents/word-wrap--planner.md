@@ -32,7 +32,7 @@ You own no artifact in this graph. Do not write over another node's files: repor
 
 ## Evidence rules
 
-No inbound edge lists evidence for you. Work from your declared inputs and the lead's prompt; say so in your report if something you need is missing.
+No inbound edge lists evidence for you. Work from your declared inputs (Inputs above), the project you are changing and the lead's prompt, and nothing else; say so in your report if something you need is missing.
 
 ## Capabilities
 

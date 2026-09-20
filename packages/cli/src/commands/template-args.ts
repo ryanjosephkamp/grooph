@@ -48,6 +48,11 @@ const destination = (value: string | undefined): "project" | "user" | undefined 
 
 export async function templateCommand(io: Output, argv: string[], env: RegistryEnv): Promise<Outcome> {
   const [sub, ...rest] = argv;
+  // `grooph template <sub> --help` works like every other command's --help (0009 handback, D7).
+  if (rest.includes("--help") || rest.includes("-h")) {
+    io.out(TEMPLATE_USAGE);
+    return 0;
+  }
   switch (sub) {
     case undefined:
     case "help":

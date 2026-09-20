@@ -371,3 +371,31 @@ test("the app requests nothing but its own files and, in a live view, the watch 
   const live = requests.filter((u) => u.includes("api/run.json"));
   expect(new Set(live)).toEqual(new Set([`${origin}/grooph/api/run.json`]));
 });
+
+/* ─── slice 0010 carries ─────────────────────────────────────────────────── */
+
+test("a loop note's `stop` is what the run view shows, on the loop pill and on the note", async ({ page }) => {
+  // The lead wrote the stop as a field (graph-ir §6), and its text says something else entirely.
+  const budgeted = runBundle("run-gate", {
+    notes: (lines) => lines.map((line) => (line.includes('"id":"n-0006"') ? line.replace('"outcome":"pass"', '"outcome":"halt","stop":"budget"').replace(/"text":"[^"]*"/, '"text":"the loop ends here"') : line)),
+  });
+  await page.goto(linkFor(budgeted));
+  await expect(page.locator('.loop-pill[data-loop-id="review-cycle"]')).toHaveText("Build-review cycleround 0· budget");
+  await expect(noteItem(page, "n-0006").locator(".tl-stop")).toHaveText("stop: budget");
+  await noteItem(page, "n-0006").locator(".tl-note").tap();
+  await expect(noteItem(page, "n-0006").locator(".tl-details")).toContainText("Stop fired");
+  await expect(noteItem(page, "n-0006").locator(".tl-details")).toContainText("budget");
+});
+
+test("a malformed % escape in #/g/<key> or #/run/<key> shows the missing-item screen with a way back, not a blank page", async ({ page }) => {
+  await page.goto("./#/g/%E0%A4%A");
+  await expect(page.getByText("This graph is not on this device.")).toBeVisible();
+  await page.getByRole("link", { name: "Back to graphs" }).tap();
+  await expect(page).toHaveURL(/#\/$/);
+  await expect(page.getByRole("button", { name: "New graph" })).toBeVisible();
+
+  await page.goto("./#/run/slice-0007-sandwich%2F2026%ZZ");
+  await expect(page.getByRole("heading", { name: "That run is not on this device" })).toBeVisible();
+  await page.getByRole("link", { name: "Back to your graphs" }).tap();
+  await expect(page).toHaveURL(/#\/$/);
+});

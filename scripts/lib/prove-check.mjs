@@ -95,6 +95,9 @@ export async function checkRun(evidenceDir, { core, template }) {
     return { problems, findings, facts, result };
   }
   if ((result.run_ids ?? []).length > 1) findings.push(`the lead created ${result.run_ids.length} run folders: ${result.run_ids.join(", ")}; checking ${result.run_id}`);
+  // The run id's form: from the clock since slice 0010 (<yyyymmdd-hhmmss>, -2, -3 … on collision); the first batch's <yyyymmdd-hhmm>-<4 chars> was typed by hand.
+  const idForm = /^\d{8}-\d{6}(?:-\d+)?$/.test(result.run_id) ? "the clock form" : /^\d{8}-\d{4}-[a-z0-9]{4}$/.test(result.run_id) ? "the earlier random-suffix form" : "neither documented form";
+  findings.push(`run id ${result.run_id}: ${idForm}`);
   for (const file of ["PROGRESS.md", "notes.jsonl", "graph.grooph.json"]) {
     if (!existsSync(join(runDir, file))) problems.push(`missing runs/${result.run_id}/${file}`);
   }
@@ -127,7 +130,7 @@ export async function checkRun(evidenceDir, { core, template }) {
     const parsed = parseGraph({ ...structuredClone(source), notes });
     for (const issue of parsed.issues.filter((i) => i.code === "E_SCHEMA")) problems.push(`note schema: ${issue.message}`);
   }
-  const KNOWN = new Set(["id", "run", "at", "started", "ended", "outcome", "verdict", "round", "evidence", "cost", "gaps", "proposal", "amendment", "text"]);
+  const KNOWN = new Set(["id", "run", "at", "started", "ended", "outcome", "verdict", "round", "stop", "evidence", "cost", "gaps", "proposal", "amendment", "text"]);
   const unknownKeys = [...new Set(notes.flatMap((note) => Object.keys(note).filter((key) => !KNOWN.has(key))))];
   if (unknownKeys.length > 0) findings.push(`notes carry keys outside the RunNote shape (accepted, preserved): ${unknownKeys.join(", ")}`);
   const ids = notes.map((note) => note.id);
@@ -197,7 +200,9 @@ export async function checkRun(evidenceDir, { core, template }) {
   const gates = (graph?.nodes ?? []).filter((node) => node.kind === "human-gate");
   const approvalEdges = (graph?.edges ?? []).filter((edge) => edge.approval === true);
   // A stop counts as fired only where a clause says so: "max-iterations 0/5 not fired" names a stop without firing it.
+  // A note's `stop` field (graph-ir §6, written from slice 0010 on) says it outright.
   const firedIn = (note) => {
+    if (typeof note?.stop === "string") return stopKinds.includes(note.stop) ? [note.stop] : [];
     const found = [];
     for (const clause of `${note?.text ?? ""}`.split(/[;.\n]/)) {
       if (/\bnot\b|n't\b|\bno\b/i.test(clause)) continue;
@@ -349,6 +354,13 @@ export async function checkRun(evidenceDir, { core, template }) {
   facts.subagents = Object.fromEntries(subagentRuns);
   facts.notes = notes.length;
   facts.node_runs = notes.filter((note) => String(note.at).startsWith("node:")).length;
+  // Timestamps: read from the clock they never run backwards along the file; the first batch's estimates did (D4).
+  const stamps = notes.flatMap((note) => [note.started, note.ended].filter((t) => typeof t === "string").map((t) => Date.parse(t)));
+  const backwards = stamps.filter((t, i) => i > 0 && Number.isFinite(t) && Number.isFinite(stamps[i - 1]) && t < stamps[i - 1]).length;
+  facts.timestamps = { given: stamps.length, out_of_order: backwards };
+  if (stamps.length > 0) findings.push(`timestamps: ${stamps.length} given, ${backwards} out of append order${backwards > 0 ? " (estimated, not read from the clock)" : ""}`);
+  facts.started_notes = notes.filter((note) => note.outcome === "started").length;
+  facts.halt_notes = notes.filter((note) => note.outcome === "halt").map((note) => note.at);
   const leadTurns = notes.filter((note) => note.cost?.measure === "turns").map((note) => note.cost.amount);
   facts.lead_turns = leadTurns.length > 0 ? Math.max(...leadTurns) : null;
   facts.denials = result.permission_denials?.length ?? 0;
@@ -374,6 +386,8 @@ export function printCheck({ problems, findings, facts, result }) {
     row("rounds recorded", `${facts.rounds_recorded ?? 0}${facts.last_round !== null && facts.last_round !== undefined ? ` (last round ${facts.last_round})` : ""}`);
     row("ending", (facts.ending ?? []).join(", ") || "none named");
     row("stop fired", (facts.stop_fired ?? []).join(", ") || "none named");
+    row("halt notes", (facts.halt_notes ?? []).join(", ") || "none");
+    row("started notes", facts.started_notes ?? 0);
     row("subagents", Object.entries(facts.subagents ?? {}).map(([who, n]) => `${who} ×${n}`).join(", ") || "none");
     row("amendments", (facts.amendments ?? []).length ? facts.amendments.join(" | ") : "none");
     row("proposals", (facts.proposals ?? []).length ? facts.proposals.join(" | ") : "none");

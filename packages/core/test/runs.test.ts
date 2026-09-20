@@ -131,6 +131,17 @@ test("round 0's loop note names stops without one firing, so none is claimed", (
   assert.equal(s.nodes["done"]!.state, "pending");
 });
 
+test("a loop note's `stop` names the stop that fired; the text is read only for notes without one (graph-ir §6)", () => {
+  const run = load("run-gate");
+  const { notes } = parseRunNotes(run.notesText);
+  const withStop = notes.map((n) => (n.id === "n-0006" ? { ...n, stop: "max-iterations", text: "the bar passed, so the loop ends" } : n));
+  assert.equal(summarizeRun(withStop, run.working).loops["review-cycle"]!.lastStop?.fired, "max-iterations", "the field wins over the text");
+  const unknownStop = notes.map((n) => (n.id === "n-0006" ? { ...n, stop: "lunch" } : n));
+  assert.equal(summarizeRun(unknownStop, run.working).loops["review-cycle"]!.lastStop?.fired, undefined, "a stop no loop can have is not claimed");
+  const budgetNote = [...notes.slice(0, 5), note({ id: "n-0006", at: "loop:review-cycle", round: 0, outcome: "halt", stop: "budget" })];
+  assert.equal(summarizeRun(budgetNote, run.working).loops["review-cycle"]!.lastStop?.fired, "budget", "no text needed");
+});
+
 test("started notes: a node whose last note is a start is running, and so is the run", () => {
   const s = summaryOf("run-live");
   assert.equal(s.state, "running");

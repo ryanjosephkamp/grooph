@@ -46,7 +46,7 @@
       "bar"
     ]
   },
-  "description": "A builder works and a frontier critic in a fresh context reports against both lines of the bar. The acceptance (the ship line) decides the verdict; the aspiration only ranks what to improve next and never fails a round. The loop stops when the ship line holds, when rounds stop bringing improvement, at its round cap, or at its turn budget.",
+  "description": "A builder works and a frontier critic in a fresh context reports against both lines of the bar. The acceptance (the ship line) decides the verdict; the aspiration only ranks what to improve next and never fails a round. The loop stops when the ship line holds, when rounds stop bringing improvement, at its round cap, or at its dispatch budget.",
   "nodes": [
     {
       "id": "builder",
@@ -87,7 +87,8 @@
       "inputs": [
         "the ship line: {{ship-line}}",
         "the aspiration: {{aspiration}}",
-        "diff of the change"
+        "diff of the change",
+        "the repository as the change leaves it, read-only"
       ],
       "outputs": [
         "REVIEW.md: the ship line item by item, then ranked aspiration findings, then a verdict line",
@@ -116,6 +117,7 @@
       "to": "critic",
       "evidence": [
         "diff of the change",
+        "the repository as the change leaves it, read-only",
         "output of {{test-command}}"
       ]
     },
@@ -176,8 +178,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 50
+          "measure": "dispatches",
+          "limit": 12
         }
       ]
     }

@@ -783,6 +783,9 @@
           "type": "integer",
           "minimum": 0
         },
+        "stop": {
+          "type": "string"
+        },
         "evidence": {
           "type": "array",
           "items": {
@@ -794,8 +797,9 @@
           "properties": {
             "measure": {
               "enum": [
-                "usd",
+                "dispatches",
                 "minutes",
+                "usd",
                 "turns",
                 "tokens"
               ]
@@ -882,8 +886,9 @@
             },
             "measure": {
               "enum": [
-                "usd",
+                "dispatches",
                 "minutes",
+                "usd",
                 "turns",
                 "tokens"
               ]

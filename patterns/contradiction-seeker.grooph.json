@@ -42,7 +42,7 @@
     ],
     "demo": "experiments/patterns/contradiction-seeker/README.md"
   },
-  "description": "A fast builder works; a critic in a fresh context tries to break the stated claim with one concrete counterexample, on a fixed effort. A counterexample goes back to the builder as a failing case; none found is a pass. The turn budget is the point: the hunt is bounded by design, and the round cap ends the loop regardless.",
+  "description": "A fast builder works; a critic in a fresh context tries to break the stated claim with one concrete counterexample, on a fixed effort. A counterexample goes back to the builder as a failing case; none found is a pass. The hunt is bounded by design: the critic's brief caps how many attempts it makes, and the loop's budget and round cap end the loop regardless.",
   "nodes": [
     {
       "id": "builder",
@@ -81,7 +81,8 @@
       "brief": "Try to break the claim with one concrete counterexample: an input, how to run it, and the wrong result. Stop at the first one you can reproduce, or after about ten distinct attempts; finding none is a pass. You hunt; you do not fix.",
       "inputs": [
         "the claim: {{claim}}",
-        "diff of the change"
+        "diff of the change",
+        "the repository as the change leaves it, read-only"
       ],
       "outputs": [
         "COUNTEREXAMPLE.md: the reproducible counterexample, or the attempts that failed to find one",
@@ -90,6 +91,7 @@
       "allow": [
         "read-files",
         "write-outputs",
+        "run-commands",
         "run-tests"
       ],
       "deny": [
@@ -110,6 +112,7 @@
       "to": "critic",
       "evidence": [
         "diff of the change",
+        "the repository as the change leaves it, read-only",
         "output of {{test-command}}"
       ]
     },
@@ -161,8 +164,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 20
+          "measure": "dispatches",
+          "limit": 8
         },
         {
           "kind": "max-iterations",

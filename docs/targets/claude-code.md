@@ -57,7 +57,7 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 
 1. **You are the lead.** One paragraph: run the graph, do not do the workers' jobs, never grade your own work when a critic exists.
 2. **Goal and constraints.** Verbatim from the document.
-3. **Run setup.** Choose the run id, create `runs/<id>/`, copy the source document in as the working copy, write the initial `PROGRESS.md`.
+3. **Run setup.** Read the run id from the clock, create `runs/<id>/`, copy the source document in as the working copy, write the initial `PROGRESS.md`.
 4. **Nodes.** One line each: id, agent name to dispatch, role, what it returns.
 5. **Edges.** How results route: `pass`/`fail`/verdict → next node; isolation and evidence for each.
 6. **Loops.** Per loop: members, what counts as a round, the bar (with the refs the critic inspects), the stops in order with the action for each (`bar-passed` → follow pass edges; others → halt and report unless `then` is set).
