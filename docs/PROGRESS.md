@@ -16,6 +16,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 ### Slice 0011
 
 - Criterion 1 met (2026-09-20): kickoff and mapping say to run commands bare from the project root (goldens regenerated, compile test added); `--check` compares each loop note's dispatch count with the started lines before it and names a `stop` the loop lacks; `PROVABLE` is the sixteen built-in ids. Core 243, CLI 58, web 49.
+- Criterion 2 met (2026-09-20): eleven tasks under `experiments/patterns/<id>/` with `slots.json`, `expect.json` and a write-up skeleton naming the mechanism; held-out suites for `heterogeneous-critic`, `taste-polish`, `fresh-grind-rare-judge` (copied beside the scratch project, `Read` allowed by rule, path substituted for `<held-out>`; a $0.02 haiku probe confirmed the rule works headless); the fragment proved inside a `grind-loop` host through `template insert` and three ops. All eleven `--dry-run` clean.
 
 ## Waiting on the owner
 
