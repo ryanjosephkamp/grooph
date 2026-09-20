@@ -281,8 +281,23 @@
       "run_id": "20260920-191614",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 19,
+      "template": "heterogeneous-critic",
+      "kind": "kickoff",
+      "started": "2026-09-20T19:25:29.709Z",
+      "ended": "2026-09-20T19:33:55.527Z",
+      "status": "ok",
+      "cost_usd": 3.403659,
+      "reported_cost_usd": 3.403658750000001,
+      "max_budget_usd": 6,
+      "session_id": "e4ea19c1-bf46-4e7c-acb6-3eb9f028c45d",
+      "run_id": "20260920-192538",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 21.171767,
-  "remaining_usd": 23.828233
+  "spent_usd": 24.575426,
+  "remaining_usd": 20.424574
 }

@@ -1,0 +1,26 @@
+
+> timekit@0.2.0 test
+> node --test tests/*.test.mjs
+
+✔ parseDuration reads the examples from the task (0.509667ms)
+✔ parseDuration reads every unit, alone and together (0.077583ms)
+✔ parseDuration inverts formatSeconds (0.093167ms)
+✔ parseDuration refuses units out of order (0.205125ms)
+✔ parseDuration refuses a unit given more than once (0.079292ms)
+✔ parseDuration refuses text with no unit (0.069042ms)
+✔ parseDuration refuses text that is not a duration at all (0.115292ms)
+✔ parseDuration refuses whitespace anywhere (0.077917ms)
+✔ parseDuration refuses upper-case units (0.076541ms)
+✔ parseDuration refuses fractions, signs and exponents (0.13725ms)
+✔ parseDuration refuses non-ASCII digits and lookalikes (0.181209ms)
+✔ parseDuration refuses a non-string with a TypeError (0.166334ms)
+✔ formatSeconds writes the shortest run of parts (0.383083ms)
+✔ formatSeconds refuses bad input (0.192375ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.898459
