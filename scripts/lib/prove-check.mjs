@@ -252,7 +252,7 @@ export async function checkRun(evidenceDir, { core, template }) {
     if (typeof note?.stop === "string") return stopKinds.includes(note.stop) ? [note.stop] : [];
     const found = [];
     for (const clause of `${note?.text ?? ""}`.split(/[;.\n]/)) {
-      if (/\bnot\b|n't\b|\bno\b/i.test(clause)) continue;
+      if (/\bnot\b|n't\b|\bno\b|\bnone\b|\bn\/a\b/i.test(clause)) continue;
       for (const kind of stopKinds) {
         if (!pattern(kind).test(clause)) continue;
         const verb = /\b(fired|fires|firing|hit|reached|exhausted|exceeded|ended|stopped)\b/i.test(clause);
