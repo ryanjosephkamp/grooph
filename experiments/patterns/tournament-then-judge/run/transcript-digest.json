@@ -1,0 +1,495 @@
+[
+  {
+    "session": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+    "who": "lead",
+    "transcript": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f.jsonl",
+    "description": null,
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-20T19:04:26.333Z",
+    "ended": "2026-09-20T19:10:00.359Z",
+    "assistant_messages": 47,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:04:30.597Z",
+        "file": ".grooph/line-diff/LEAD.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:04:33.711Z",
+        "error": "Exit code 1\n20260920-190434\n2026-09-20T19:04:34Z\npackage.json\nREADME.md\nsrc\ntests\n# linediff\n\nA line diff for a small review tool.\n\n```js\nimport { diffLines } from \"./src/diff.mjs\";\n\ndiffLines([\"a\", \"",
+        "command": "date -u +%Y%m%d-%H%M%S; date -u +%Y-%m-%dT%H:%M:%SZ; ls; cat README.md; cat package.json; ls candidates src test 2>/dev/null; ls .grooph/line-diff/runs 2>/dev/null"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:04:36.115Z",
+        "command": "ls tests; cat tests/*.test.mjs; ls .claude/agents; cat .grooph/line-diff/graph.grooph.json"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:04:41.018Z",
+        "command": "mkdir -p .grooph/line-diff/runs/20260920-190434 && cp .grooph/line-diff/graph.grooph.json .grooph/line-diff/runs/20260920-190434/graph.grooph.json && printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-190434\",\"at\":\"graph\",\"started\":\"2026-09-20T19:04:34Z\",\"text\":\"run started\"}' > .grooph/line-diff/runs/20260920-190434/notes.jsonl && ls .grooph/line-diff/runs/20260920-190434",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:04:47.143Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:04:50.837Z",
+        "error": "Contains simple_expansion",
+        "command": "T=$(date -u +%Y-%m-%dT%H:%M:%SZ); printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-190434\\\",\\\"at\\\":\\\"node:candidate-a\\\",\\\"started\\\":\\\"$T\\\",\\\"outcome\\\":\\\"started\\\"}\" \"{\\\"id\\\":\\\"n-0003\\\",\\\"run\\\":\\\"20260920-190434\\\",\\\"at\\\":\\\"node:candidate-b\\\",\\\"started\\\":\\\"$T\\\",\\\"outcome\\\":\\\"started\\\"}\" \"{\\\"id\\\":\\\"n-0004\\\",\\\"run\\\":\\\"20260920-190434\\\",\\\"at\\\":\\\"node:candidate-c\\\",\\\"started\\\":\\\"$T\\\",\\\"outcome\\\":\\\"started\\\"}\" >> .grooph/line-diff/runs/20260920-190434/notes.jsonl; echo $T",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:04:52.253Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:04:55.292Z",
+        "command": "printf '%s\\n' '{\"id\":\"n-0002\",\"run\":\"20260920-190434\",\"at\":\"node:candidate-a\",\"started\":\"2026-09-20T19:04:52Z\",\"outcome\":\"started\"}' '{\"id\":\"n-0003\",\"run\":\"20260920-190434\",\"at\":\"node:candidate-b\",\"started\":\"2026-09-20T19:04:52Z\",\"outcome\":\"started\"}' '{\"id\":\"n-0004\",\"run\":\"20260920-190434\",\"at\":\"node:candidate-c\",\"started\":\"2026-09-20T19:04:52Z\",\"outcome\":\"started\"}' >> .grooph/line-diff/runs/20260920-190434/notes.jsonl",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-20T19:05:02.234Z",
+        "subagent_type": "line-diff--candidate-a",
+        "description": "Candidate A builds diffLines",
+        "prompt": "Task: implement `diffLines(before, after)` as README.md (project root) specifies — a minimal line edit script (array of `{ op, line }`, op one of \"=\", \"-\", \"+\"; keeps the longest common subsequence; empty inputs handled; anything that is not an array of strings throws TypeError; must not mutate its inputs).\n\nYour inputs: README.md, tests/diff.test.mjs, package.json. Read them.\n\nWrite everything inside candidates/a/ and nowhere else: candidates/a/diff.mjs exporting `diffLines`, self-contained (no imports from outside its own folder), plus candidates/a/APPROACH.md with one honest paragraph describing your approach and its performance on inputs of a few thousand lines. Do not touch src/, tests/, or other candidate folders.\n\nRun `npm test` bare from the project root (no `cd … &&`, no compound commands) to check your work before you report. The tests pick up candidates/a/diff.mjs automatically; other candidates' results may also appear — only yours matter to you.\n\nReport in a few lines: what you built, and whether the candidates/a tests pass."
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-20T19:05:05.967Z",
+        "subagent_type": "line-diff--candidate-b",
+        "description": "Candidate B builds diffLines",
+        "prompt": "Task: implement `diffLines(before, after)` as README.md (project root) specifies — a minimal line edit script (array of `{ op, line }`, op one of \"=\", \"-\", \"+\"; keeps the longest common subsequence; empty inputs handled; anything that is not an array of strings throws TypeError; must not mutate its inputs).\n\nYour inputs: README.md, tests/diff.test.mjs, package.json. Read them.\n\nWrite everything inside candidates/b/ and nowhere else: candidates/b/diff.mjs exporting `diffLines`, self-contained (no imports from outside its own folder), plus candidates/b/APPROACH.md with one honest paragraph describing your approach and its performance on inputs of a few thousand lines. Do not touch src/, tests/, or other candidate folders.\n\nRun `npm test` bare from the project root (no `cd … &&`, no compound commands) to check your work before you report. The tests pick up candidates/b/diff.mjs automatically; other candidates' results may also appear — only yours matter to you.\n\nReport in a few lines: what you built, and whether the candidates/b tests pass."
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-20T19:05:09.575Z",
+        "subagent_type": "line-diff--candidate-c",
+        "description": "Candidate C builds diffLines",
+        "prompt": "Task: implement `diffLines(before, after)` as README.md (project root) specifies — a minimal line edit script (array of `{ op, line }`, op one of \"=\", \"-\", \"+\"; keeps the longest common subsequence; empty inputs handled; anything that is not an array of strings throws TypeError; must not mutate its inputs).\n\nYour inputs: README.md, tests/diff.test.mjs, package.json. Read them.\n\nWrite everything inside candidates/c/ and nowhere else: candidates/c/diff.mjs exporting `diffLines`, self-contained (no imports from outside its own folder), plus candidates/c/APPROACH.md with one honest paragraph describing your approach and its performance on inputs of a few thousand lines. Do not touch src/, tests/, or other candidate folders.\n\nRun `npm test` bare from the project root (no `cd … &&`, no compound commands) to check your work before you report. The tests pick up candidates/c/diff.mjs automatically; other candidates' results may also appear — only yours matter to you.\n\nReport in a few lines: what you built, and whether the candidates/c tests pass."
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:05:13.778Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:05:16.947Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:56.275Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:59.667Z",
+        "command": "printf '%s\\n' '{\"id\":\"n-0005\",\"run\":\"20260920-190434\",\"at\":\"node:candidate-a\",\"started\":\"2026-09-20T19:04:52Z\",\"ended\":\"2026-09-20T19:05:56Z\",\"outcome\":\"pass\",\"evidence\":[\"candidates/a/diff.mjs\",\"candidates/a/APPROACH.md\",\"worker report\"],\"cost\":{\"measure\":\"tokens\",\"amount\":17710},\"text\":\"Myers O(ND) shortest edit script, self-contained; worker reports its 14 tests pass\"}' >> .grooph/line-diff/runs/20260920-190434/notes.jsonl",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:06:02.743Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:06:15.290Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:06:21.153Z",
+        "command": "printf '%s\\n' '{\"id\":\"n-0006\",\"run\":\"20260920-190434\",\"at\":\"node:candidate-c\",\"started\":\"2026-09-20T19:04:52Z\",\"ended\":\"2026-09-20T19:06:15Z\",\"outcome\":\"pass\",\"evidence\":[\"candidates/c/diff.mjs\",\"candidates/c/APPROACH.md\",\"worker report\"],\"cost\":{\"measure\":\"tokens\",\"amount\":18191},\"text\":\"Myers O(ND) trace+backtrack; worker reports 13 tests pass; ~2ms 5k near-identical, ~2.7s 3k disjoint\"}' '{\"id\":\"n-0007\",\"run\":\"20260920-190434\",\"at\":\"node:candidate-b\",\"started\":\"2026-09-20T19:04:52Z\",\"ended\":\"2026-09-20T19:06:15Z\",\"outcome\":\"pass\",\"evidence\":[\"candidates/b/diff.mjs\",\"candidates/b/APPROACH.md\",\"worker report\"],\"cost\":{\"measure\":\"tokens\",\"amount\":19583},\"text\":\"Myers O((N+M)D) frontier+backtrack; worker reports 13 tests pass; ~1ms sparse / ~200ms unrelated at 4k lines\"}' '{\"id\":\"n-0008\",\"run\":\"20260920-190434\",\"at\":\"node:filter\",\"started\":\"2026-09-20T19:06:15Z\",\"outcome\":\"started\"}' >> .grooph/line-diff/runs/20260920-190434/notes.jsonl; npm test 2>&1 | tail -60",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:06:24.297Z",
+        "command": "npm test > .grooph/line-diff/runs/20260920-190434/filter-output.txt 2>&1; date -u +%Y-%m-%dT%H:%M:%SZ",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/filter-output.txt"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:06:27.985Z",
+        "command": "printf '%s\\n' '{\"id\":\"n-0009\",\"run\":\"20260920-190434\",\"at\":\"node:filter\",\"started\":\"2026-09-20T19:06:15Z\",\"ended\":\"2026-09-20T19:06:24Z\",\"outcome\":\"pass\",\"evidence\":[\"npm test output: 40 pass, 0 fail\"],\"text\":\"all three candidates pass; finalists: a, b, c. Output saved to runs/20260920-190434/filter-output.txt\"}' '{\"id\":\"n-0010\",\"run\":\"20260920-190434\",\"at\":\"node:judge\",\"started\":\"2026-09-20T19:06:24Z\",\"outcome\":\"started\"}' >> .grooph/line-diff/runs/20260920-190434/notes.jsonl",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:06:32.394Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:06:35.016Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-20T19:06:42.245Z",
+        "subagent_type": "line-diff--judge",
+        "description": "Judge picks the finalist",
+        "prompt": "Task: pick the one finalist to finish. The finalist filter (`npm test`) passed all three candidates: candidates/a, candidates/b, candidates/c are all finalists (40/40 tests pass).\n\nCriteria, verbatim from the graph: \"Among candidates that pass the tests, prefer the one whose code reads most clearly at its size, that stays fast on inputs of a few thousand lines, and whose approach is explained honestly in its APPROACH.md; a smaller change beats a more general one.\"\n\nYour evidence (read all of it; report `invalid-evidence` instead of guessing if any is missing):\n- candidates/a/diff.mjs and candidates/a/APPROACH.md\n- candidates/b/diff.mjs and candidates/b/APPROACH.md\n- candidates/c/diff.mjs and candidates/c/APPROACH.md\n- the filter output: .grooph/line-diff/runs/20260920-190434/filter-output.txt\n- for context on the contract: README.md and tests/diff.test.mjs\n\nWrite PICK.md at the project root naming: the winner (one of candidates/a, candidates/b, candidates/c), the reason against each criterion, and the single best idea worth borrowing from another finalist (or say plainly if there is none). You pick; you do not edit any candidate.\n\nReport with verdict `pass` and the path of PICK.md, plus a two-line summary of the pick."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:08:22.062Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ; ls PICK.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:08:27.379Z",
+        "command": "printf '%s\\n' '{\"id\":\"n-0011\",\"run\":\"20260920-190434\",\"at\":\"node:judge\",\"started\":\"2026-09-20T19:06:24Z\",\"ended\":\"2026-09-20T19:08:22Z\",\"outcome\":\"pass\",\"verdict\":\"pass\",\"evidence\":[\"candidates/a,b,c diff.mjs + APPROACH.md\",\"runs/20260920-190434/filter-output.txt\",\"README.md\",\"tests/diff.test.mjs\"],\"cost\":{\"measure\":\"tokens\",\"amount\":23931},\"text\":\"PICK.md written at project root. Winner: candidates/b (clearest inline explanation, fastest measured worst case, most candid APPROACH). Borrow from a: explicit O((N+M)D) memory-cost statement. Noted gap in b: dead max===0 branch.\"}' '{\"id\":\"n-0012\",\"run\":\"20260920-190434\",\"at\":\"node:finisher\",\"started\":\"2026-09-20T19:08:22Z\",\"outcome\":\"started\"}' >> .grooph/line-diff/runs/20260920-190434/notes.jsonl",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:08:30.523Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-20T19:08:34.136Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-20T19:08:41.676Z",
+        "subagent_type": "line-diff--finisher",
+        "description": "Finisher completes candidate b",
+        "prompt": "Task: finish the winning candidate. PICK.md at the project root names the winner; the judge picked candidates/b.\n\nYour evidence and inputs (read them):\n- PICK.md — the winner, the reasons, the one idea to borrow, and the gaps the judge noted\n- candidates/b/diff.mjs and candidates/b/APPROACH.md — the winning candidate\n- README.md — the contract; tests/diff.test.mjs — the test suite; package.json\n\nDo:\n1. Put the finished implementation at src/diff.mjs (the final implementation's real place per README.md), exporting `diffLines`. It must be self-contained.\n2. Close the gaps PICK.md names in candidates/b (e.g. the dead `max === 0` branch), and fold in the borrowed idea (the explicit statement of the O((N+M)·D) memory cost) if it fits.\n3. Write CHANGES.md at the project root: what you moved, what you changed from candidates/b, and what you borrowed and why (or why not).\n4. Leave candidates/a, candidates/b, candidates/c untouched. Do not edit tests/.\n5. Run `npm test` bare from the project root (no `cd … &&`, no compound commands) before you report. It checks every candidates/*/diff.mjs and src/diff.mjs; all must pass.\n\nReport in a few lines: the files you wrote, the changes from candidates/b, and the `npm test` result (pass/fail counts)."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:09:35.676Z",
+        "command": "npm test 2>&1 | tail -9; ls src CHANGES.md PICK.md; git status --short; date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:09:41.550Z",
+        "command": "printf '%s\\n' '{\"id\":\"n-0013\",\"run\":\"20260920-190434\",\"at\":\"node:finisher\",\"started\":\"2026-09-20T19:08:22Z\",\"ended\":\"2026-09-20T19:09:35Z\",\"outcome\":\"pass\",\"evidence\":[\"src/diff.mjs\",\"CHANGES.md\",\"npm test: 53 pass, 0 fail (lead re-ran)\"],\"cost\":{\"measure\":\"tokens\",\"amount\":19024},\"text\":\"candidates/b moved to src/diff.mjs; dead max===0 branch removed and precondition documented; borrowed O((N+M)D) space-cost note from a; candidates and tests untouched\"}' '{\"id\":\"n-0014\",\"run\":\"20260920-190434\",\"at\":\"graph\",\"ended\":\"2026-09-20T19:09:35Z\",\"outcome\":\"pass\",\"text\":\"reached stop node done (success); no loops, 0 rounds; working copy not amended; npm test 53/53\"}' >> .grooph/line-diff/runs/20260920-190434/notes.jsonl",
+        "writes": [
+          ".grooph/line-diff/runs/20260920-190434/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:09:52.920Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/PROGRESS.md"
+      }
+    ]
+  },
+  {
+    "session": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+    "who": "line-diff--finisher",
+    "transcript": "agent-a957cf24f7f57d032.jsonl",
+    "description": "Finisher completes candidate b",
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-20T19:08:41.681Z",
+    "ended": "2026-09-20T19:09:32.646Z",
+    "assistant_messages": 14,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:08:43.734Z",
+        "file": "PICK.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:08:44.612Z",
+        "file": "candidates/b/diff.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:08:45.561Z",
+        "file": "candidates/b/APPROACH.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:08:46.425Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:08:47.301Z",
+        "file": "tests/diff.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:08:48.183Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:09:12.350Z",
+        "file": "src/diff.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:09:20.812Z",
+        "file": "CHANGES.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:09:23.030Z",
+        "command": "npm test --prefix /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n"
+      }
+    ]
+  },
+  {
+    "session": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+    "who": "line-diff--candidate-a",
+    "transcript": "agent-a99b52c60e8ae66b1.jsonl",
+    "description": "Candidate A builds diffLines",
+    "models": [
+      "claude-sonnet-5"
+    ],
+    "started": "2026-09-20T19:05:02.243Z",
+    "ended": "2026-09-20T19:05:53.968Z",
+    "assistant_messages": 13,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:03.629Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:04.315Z",
+        "file": "tests/diff.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:04.928Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:12.175Z",
+        "command": "mkdir -p \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n/candidates/a\""
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:05:35.858Z",
+        "file": "candidates/a/diff.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:05:43.757Z",
+        "file": "candidates/a/APPROACH.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:44.789Z",
+        "command": "npm test"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:48.754Z",
+        "command": "ls \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n/candidates/a\""
+      }
+    ]
+  },
+  {
+    "session": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+    "who": "line-diff--candidate-b",
+    "transcript": "agent-aa8b54874167b3a05.jsonl",
+    "description": "Candidate B builds diffLines",
+    "models": [
+      "claude-sonnet-5"
+    ],
+    "started": "2026-09-20T19:05:05.974Z",
+    "ended": "2026-09-20T19:06:13.159Z",
+    "assistant_messages": 13,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:07.339Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:08.041Z",
+        "file": "tests/diff.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:08.602Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:37.510Z",
+        "command": "mkdir -p /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n/candidates/b"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:05:51.062Z",
+        "file": "candidates/b/diff.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:52.574Z",
+        "command": "npm test 2>&1 | tail -80"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:58.837Z",
+        "command": "node -e '\nimport(\"./candidates/b/diff.mjs\").then(({diffLines}) => {\n  const n = 4000;\n  const before = Array.from({length:n}, (_,i)=>`line ${i}`);\n  const after = before.slice();\n  // small edits: shift a chunk\n  after.splice(1000, 0, \"inserted-1\", \"inserted-2\");\n  after.splice(3000, 5);\n  const t0 = Date.now();\n  const script = diffLines(before, after);\n  console.log(\"small-diff ms:\", Date.now()-t0, \"script length:\", script.length);\n\n  const after2 = Array.from({length:n}, (_,i)=>`other ${i}`);\n  const t1 = Date.now();\n  const script2 = diffLines(before, after2);\n  console.log(\"fully-different ms:\", Date.now()-t1, \"script length:\", script2.length);\n});\n'\n"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:06:06.191Z",
+        "file": "candidates/b/APPROACH.md"
+      }
+    ]
+  },
+  {
+    "session": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+    "who": "line-diff--judge",
+    "transcript": "agent-ac3a0696d4a002e68.jsonl",
+    "description": "Judge picks the finalist",
+    "models": [
+      "claude-fable-5-1"
+    ],
+    "started": "2026-09-20T19:06:42.250Z",
+    "ended": "2026-09-20T19:08:19.023Z",
+    "assistant_messages": 15,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:44.294Z",
+        "file": "candidates/a/diff.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:45.235Z",
+        "file": "candidates/a/APPROACH.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:46.176Z",
+        "file": "candidates/b/diff.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:47.070Z",
+        "file": "candidates/b/APPROACH.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:47.987Z",
+        "file": "candidates/c/diff.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:48.925Z",
+        "file": "candidates/c/APPROACH.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:49.931Z",
+        "file": ".grooph/line-diff/runs/20260920-190434/filter-output.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:50.801Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:06:51.659Z",
+        "file": "tests/diff.test.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:08:08.593Z",
+        "file": "PICK.md"
+      }
+    ]
+  },
+  {
+    "session": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+    "who": "line-diff--candidate-c",
+    "transcript": "agent-acfd4728e7b3738d5.jsonl",
+    "description": "Candidate C builds diffLines",
+    "models": [
+      "claude-sonnet-5"
+    ],
+    "started": "2026-09-20T19:05:09.582Z",
+    "ended": "2026-09-20T19:06:12.549Z",
+    "assistant_messages": 14,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:11.124Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:11.749Z",
+        "file": "tests/diff.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-20T19:05:12.372Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:34.078Z",
+        "command": "mkdir -p \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n/candidates/c\""
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:05:47.173Z",
+        "file": "candidates/c/diff.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:48.960Z",
+        "command": "cd \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n\" && npm test 2>&1 | grep -A3 \"candidates/c\" | head -150"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-20T19:05:53.594Z",
+        "command": "cd \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n\" && node -e \"\nimport('./candidates/c/diff.mjs').then(({diffLines}) => {\n  const n = 5000;\n  const before = Array.from({length: n}, (_, i) => 'line ' + i);\n  const after = before.slice();\n  after.splice(2500, 0, 'inserted');\n  after[10] = 'changed';\n  const t0 = Date.now();\n  const script = diffLines(before, after);\n  console.log('similar diff time ms:', Date.now() - t0, 'edits:', script.filter(e=>e.op!=='=').length);\n\n  const before2 = Array.from({length: 3000}, (_, i) => 'L' + i);\n  const after2 = Array.from({length: 3000}, (_, i) => 'R' + i);\n  const t1 = Date.now();\n  const script2 = diffLines(before2, after2);\n  console.log('fully different diff time ms:', Date.now() - t1, 'edits:', script2.filter(e=>e.op!=='=').length);\n});\n\"\n"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-20T19:06:05.026Z",
+        "file": "candidates/c/APPROACH.md"
+      }
+    ]
+  }
+]

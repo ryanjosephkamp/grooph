@@ -1,0 +1,122 @@
+{
+  "template": "tournament-then-judge",
+  "template_version": "tournament-then-judge@1",
+  "slots": {
+    "values": {
+      "task": "Implement `diffLines(before, after)` as README.md specifies, producing a minimal line edit script. The final implementation lives at src/diff.mjs; `npm test` checks every candidates/*/diff.mjs and src/diff.mjs against the same contract.",
+      "test-command": "npm test",
+      "criteria": "Among candidates that pass the tests, prefer the one whose code reads most clearly at its size, that stays fast on inputs of a few thousand lines, and whose approach is explained honestly in its APPROACH.md; a smaller change beats a more general one."
+    }
+  },
+  "graph_id": "line-diff",
+  "run_id": "20260920-190434",
+  "run_ids": [
+    "20260920-190434"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.6749705000000001,
+      "output_tokens": 15863
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.33726680000000003,
+      "output_tokens": 18311
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.63127325,
+      "output_tokens": 7564
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "line-diff--finisher": [
+      "claude-opus-5"
+    ],
+    "line-diff--candidate-a": [
+      "claude-sonnet-5"
+    ],
+    "line-diff--candidate-b": [
+      "claude-sonnet-5"
+    ],
+    "line-diff--judge": [
+      "claude-fable-5-1"
+    ],
+    "line-diff--candidate-c": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 2.643511,
+  "harness_turns": 4,
+  "lead_turns": null,
+  "duration_s": 28,
+  "rounds": {
+    "loop_passes": 0,
+    "rounds_recorded": 0,
+    "last_round": null
+  },
+  "stop_fired": [],
+  "ending": [
+    "stop node done"
+  ],
+  "subagents": {
+    "line-diff--finisher": 1,
+    "line-diff--candidate-a": 1,
+    "line-diff--candidate-b": 1,
+    "line-diff--judge": 1,
+    "line-diff--candidate-c": 1
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 16,
+      "session_id": "1cfc01c8-8b94-4cf8-a400-b17ae1b07f3f",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 2.643511,
+      "reported_cost_usd": 2.6435105500000007,
+      "max_budget_usd": 6,
+      "harness_turns": 4,
+      "duration_s": 28,
+      "wall_s": 335,
+      "notes_after": 14,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "c6dbc01242d85473cacf2a234ed0689fdf15cdf4",
+  "source_sha256_before": "6b8ea9534cd73df983221cf023af5f0664244bd1f1646ff632f7f4635226a788",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "A PICK.md",
+    "A candidates/a/APPROACH.md",
+    "A candidates/a/diff.mjs",
+    "A candidates/b/APPROACH.md",
+    "A candidates/b/diff.mjs",
+    "A candidates/c/APPROACH.md",
+    "A candidates/c/diff.mjs",
+    "A src/diff.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-tournament-then-judge-lrWp9n",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}
