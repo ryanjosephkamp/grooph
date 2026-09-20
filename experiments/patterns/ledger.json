@@ -191,8 +191,23 @@
       "run_id": null,
       "retry": null,
       "note": "harness probe, not a template run: claude -p (haiku, 2 turns) in an empty scratch dir with a Read(//<path>/**) allow rule, to confirm a headless session can read held-out evidence beside the project (it did; no denial) before batch two's tasks depend on it"
+    },
+    {
+      "n": 13,
+      "template": "human-gated-irreversible",
+      "kind": "kickoff",
+      "started": "2026-09-20T18:48:17.241Z",
+      "ended": "2026-09-20T18:50:05.426Z",
+      "status": "ok",
+      "cost_usd": 0.702596,
+      "reported_cost_usd": 0.7025963999999999,
+      "max_budget_usd": 6,
+      "session_id": "59196420-ead5-469e-9403-b3af6f9426d7",
+      "run_id": "20260920-184824",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 10.829017,
-  "remaining_usd": 34.170983
+  "spent_usd": 11.531613,
+  "remaining_usd": 33.468387
 }

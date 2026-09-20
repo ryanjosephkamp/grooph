@@ -270,7 +270,9 @@ export async function checkRun(evidenceDir, { core, template }) {
       if (halted && (text.includes(gate.id) || (gate.name && text.toLowerCase().includes(gate.name.toLowerCase())))) named.push(`halt at ${gate.id}`);
     }
     for (const node of stopNodes) {
-      if (new RegExp(`\\b${node.id}\\b`, "i").test(text) || text.toLowerCase().includes(node.name.toLowerCase())) named.push(`stop node ${node.id}`);
+      // Whole words only: a gate that says "cannot be undone" does not name the stop node "Done".
+      const escaped = node.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${node.id}\\b`, "i").test(text) || new RegExp(`\\b${escaped}\\b`, "i").test(text)) named.push(`stop node ${node.id}`);
     }
     for (const kind of firedIn(note)) named.push(`stop ${kind}`);
     return named;
