@@ -262,8 +262,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 20
+          "measure": "dispatches",
+          "limit": 8
         }
       ]
     },

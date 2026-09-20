@@ -117,11 +117,26 @@ for (const file of files) {
       }
     }
 
-    // Every loop is braked: a budget in turns or minutes, and a max-iterations of 5 or fewer, besides its real stop.
+    // Every loop is braked: a budget the lead can count (dispatches or minutes, handoff 0010), and a max-iterations of 5 or fewer, besides its real stop.
     for (const loop of doc.loops) {
-      assert.ok(loop.stops.some((s) => s.kind === "budget" && (s.measure === "turns" || s.measure === "minutes")), `${loop.id} has a budget stop`);
-      assert.ok(loop.stops.some((s) => s.kind === "max-iterations" && s.n <= 5), `${loop.id} has max-iterations ≤ 5`);
+      const budget = loop.stops.find((s) => s.kind === "budget");
+      assert.ok(budget && (budget.measure === "dispatches" || budget.measure === "minutes"), `${loop.id} has a budget stop in dispatches or minutes`);
+      const cap = loop.stops.find((s) => s.kind === "max-iterations");
+      assert.ok(cap && cap.n <= 5, `${loop.id} has max-iterations ≤ 5`);
       if (loopMode(index, loop) === "judgment") assert.ok(loop.bar, `${loop.id} is a judgment loop with a bar`);
+      // A dispatch is one node run, so a dispatches budget is sized against what the round cap already allows:
+      // at least the members that run each pass times the cap, at most a repair or two more (the shape line stays honest).
+      if (budget.measure === "dispatches") {
+        const dispatchable = (members: string[]) => members.filter((m) => ["agent", "check"].includes(doc.nodes.find((n) => n.id === m)!.kind));
+        const inner = doc.loops.filter((other) => other !== loop && other.members.every((m) => loop.members.includes(m)) && other.members.length < loop.members.length);
+        const innerMembers = new Set(inner.flatMap((other) => other.members));
+        // One pass of this loop: its own members once, plus each nested loop run to its cap (graph-ir §2, nested loops).
+        const perPass =
+          dispatchable(loop.members.filter((m) => !innerMembers.has(m))).length +
+          inner.reduce((n, other) => n + dispatchable(other.members).length * (other.stops.find((s) => s.kind === "max-iterations") as { n: number }).n, 0);
+        const floor = perPass * cap.n;
+        assert.ok(budget.limit >= floor && budget.limit <= floor + 2, `${loop.id}: ${budget.limit} dispatches against ${perPass} per pass × ${cap.n} rounds = ${floor}`);
+      }
     }
   });
 }
@@ -155,8 +170,11 @@ test("patterns the §5 table singles out keep their point", () => {
   assert.deepEqual(tournament.loops, [], "the tournament runs once");
 
   const seeker = byId("contradiction-seeker");
-  assert.ok(seeker.loops[0]!.stops.some((s) => s.kind === "budget" && s.measure === "turns"));
+  assert.ok(seeker.loops[0]!.stops.some((s) => s.kind === "budget" && s.measure === "dispatches"));
   assert.ok(seeker.loops[0]!.stops.some((s) => s.kind === "max-iterations" && s.n === 3));
+  assert.doesNotMatch(seeker.description ?? "", /budget is the point/, "the hunt's bound is the critic's brief, not the loop budget (0009 finding)");
+  assert.match((seeker.nodes.find((n) => n.id === "critic") as AgentNode).brief, /about ten distinct attempts/, "and the brief names it");
+  assert.ok((seeker.nodes.find((n) => n.id === "critic") as AgentNode).allow?.includes("run-commands"), "the hunter runs the code");
 
   const redTeam = byId("red-team-loop");
   assert.deepEqual((redTeam.nodes.find((n) => n.id === "red-team") as AgentNode).owns, ["traces"]);
@@ -176,6 +194,42 @@ test("patterns the §5 table singles out keep their point", () => {
   const kinds = taste.loops[0]!.stops.map((s) => s.kind);
   assert.deepEqual(kinds, ["bar-passed", "diminishing-returns", "human", "max-iterations", "budget"]);
   assert.ok(taste.nodes.some((n) => n.kind === "check" && n.check.kind === "evidence"), "evidence quality is gated before judging");
+});
+
+test("handoff 0010: builders get the checklist; critics and judges that assess a change see the repository as the change leaves it", () => {
+  const REPO = "the repository as the change leaves it, read-only";
+  const byId = (id: string): Graph => load(`${id}.grooph.json`);
+  const agent = (doc: Graph, id: string): AgentNode => doc.nodes.find((n) => n.id === id) as AgentNode;
+
+  for (const id of ["review-gate", "metric-sandwich", "heterogeneous-critic"]) {
+    assert.ok(agent(byId(id), "builder").inputs?.includes("{{checklist}}"), `${id}: the checklist is among the builder's inputs`);
+  }
+  assert.ok(agent(byId("spec-then-loop"), "builder").inputs?.includes("ACCEPTANCE.md"));
+  assert.ok(agent(byId("fresh-grind-rare-judge"), "builder").inputs?.includes("{{phase-checklist}}"));
+
+  const sees: [string, string, string][] = [
+    ["review-gate", "critic", "e-builder-critic"],
+    ["metric-sandwich", "critic", "e-checks-critic"],
+    ["heterogeneous-critic", "critic", "e-builder-critic"],
+    ["spec-then-loop", "critic", "e-builder-critic"],
+    ["dual-bar", "critic", "e-builder-critic"],
+    ["specialist-critic-bank", "correctness", "e-builder-correctness"],
+    ["specialist-critic-bank", "security", "e-builder-security"],
+    ["specialist-critic-bank", "performance", "e-builder-performance"],
+    ["specialist-critic-bank", "taste", "e-builder-taste"],
+    ["fresh-grind-rare-judge", "judge", "e-tests-judge"],
+    ["contradiction-seeker", "critic", "e-builder-critic"],
+  ];
+  for (const [id, nodeId, edgeId] of sees) {
+    const doc = byId(id);
+    assert.ok(agent(doc, nodeId).inputs?.includes(REPO), `${id}/${nodeId}: the repository is an input`);
+    assert.ok(doc.edges.find((e) => e.id === edgeId)?.evidence?.includes(REPO), `${id}/${edgeId}: and inbound evidence`);
+  }
+  for (const doc of files.map(load)) assert.ok(!JSON.stringify(doc).includes("at the head commit"), `${doc.id}: no "head commit" wording (two leads had to reinterpret it)`);
+  for (const id of ["contradiction-seeker", "red-team-loop"]) {
+    const hunter = byId(id).nodes.find((n) => n.kind === "agent" && isCriticFamily(n)) as AgentNode;
+    assert.ok(hunter.allow?.includes("run-commands"), `${id}: ${hunter.id} may run the code`);
+  }
 });
 
 test("patterns/index.json rows are templateIndexEntry of each pattern, and the generated files are current", () => {

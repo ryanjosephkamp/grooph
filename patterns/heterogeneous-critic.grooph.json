@@ -56,6 +56,7 @@
       "brief": "Do the task in the code, with tests. On a later round, read REVIEW.md first and address each finding, or say why it does not apply. Run the test command before you report, and do not review your own work beyond that.",
       "inputs": [
         "the task",
+        "{{checklist}}",
         "REVIEW.md (from round 1 on)"
       ],
       "outputs": [
@@ -78,9 +79,10 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet. Run the test command yourself rather than trusting a report. You judge; you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.",
+      "brief": "Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet; use the repository only to understand what the change touches. Run the test command yourself rather than trusting a report. You judge; you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.",
       "inputs": [
         "diff of the change",
+        "the repository as the change leaves it, read-only",
         "{{checklist}}"
       ],
       "outputs": [
@@ -120,6 +122,7 @@
       "to": "critic",
       "evidence": [
         "diff of the change",
+        "the repository as the change leaves it, read-only",
         "output of {{test-command}}",
         "{{checklist}}"
       ]
@@ -193,8 +196,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 40
+          "measure": "dispatches",
+          "limit": 10
         }
       ]
     }

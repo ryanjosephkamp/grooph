@@ -92,6 +92,7 @@
       "brief": "Judge the finished phase against its entry in {{phase-checklist}}, citing file and line for each item. Emit fail with findings when the phase is not done, next-phase when it is and phases remain, and pass when the last phase is done. You judge; you do not fix.",
       "inputs": [
         "diff since the last phase boundary",
+        "the repository as the change leaves it, read-only",
         "{{phase-checklist}}"
       ],
       "outputs": [
@@ -135,6 +136,7 @@
       "when": "pass",
       "evidence": [
         "diff since the last phase boundary",
+        "the repository as the change leaves it, read-only",
         "{{phase-checklist}}",
         "test output"
       ]
@@ -227,8 +229,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 60
+          "measure": "dispatches",
+          "limit": 55
         }
       ]
     }

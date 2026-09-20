@@ -42,7 +42,7 @@
       "hardening"
     ]
   },
-  "description": "A builder hardens the code; a frontier red team in a fresh context attacks the stated surface and writes each reproducible failure as a trace in traces/, which it alone owns. The builder sees only the traces, not the attacker's reasoning. The loop ends when an attack round finds nothing, stops when rounds stop bringing a new failing trace, and is capped by rounds and turns.",
+  "description": "A builder hardens the code; a frontier red team in a fresh context attacks the stated surface and writes each reproducible failure as a trace in traces/, which it alone owns. The builder sees only the traces, not the attacker's reasoning. The loop ends when an attack round finds nothing, stops when rounds stop bringing a new failing trace, and is capped by rounds and dispatches.",
   "nodes": [
     {
       "id": "builder",
@@ -170,8 +170,8 @@
         },
         {
           "kind": "budget",
-          "measure": "turns",
-          "limit": 60
+          "measure": "dispatches",
+          "limit": 12
         }
       ]
     }

@@ -172,7 +172,7 @@ test("show prints the when-to-use, the slots with their questions, and how to us
     assert.match(out, /Not for: /);
     assert.match(out, /Profile: cost medium · speed medium · rigor high/);
     assert.match(out, /Slots:\n {2}task {2,}What should be built or changed\?/);
-    assert.match(out, /Loop build: builder, critic; stops: bar passed, max iterations: 4, budget: 40 turns/);
+    assert.match(out, /Loop build: builder, critic; stops: bar passed, max iterations: 4, budget: 10 dispatches/);
     assert.match(out, /Use it: grooph template use spec-then-loop --name "<graph name>" --set task="…" --set test-command="…" --out <file>/);
 
     const json = capture();
