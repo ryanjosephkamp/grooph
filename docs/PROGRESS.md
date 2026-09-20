@@ -22,6 +22,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - Criterion 5 met 2026-09-20: §6 states, per loop with a `dispatches` budget, what one full round costs from its agent and check members (the bank: 6, not 8; `fresh-grind-rare-judge` `phases`: 3, with the inner loop named), and how many full rounds the budget covers; `grooph shape` unchanged. Compile test `0012-5`.
 - Criterion 6 met 2026-09-20: both goldens regenerated and read as documents; the sixteen kept records re-checked with no verdict change (14 pass, `fresh-grind-rare-judge` and `specialist-critic-bank` still fail as before); the only finding change is the new per-round line.
 - Criterion 7 met 2026-09-20: `pnpm install --frozen-lockfile && pnpm -r build && pnpm -r test` (core 248, cli 58, web 49), `pnpm --filter @grooph/web test:e2e` (52 passed, 27 skipped), `patterns-index --check` and `check-brake-values` all exit 0; CI green on the branch (run 35543706322).
+- Handback written 2026-09-20: status `done`, work head `79bb031`; awaiting reconcile.
 
 ## Waiting on the owner
 
