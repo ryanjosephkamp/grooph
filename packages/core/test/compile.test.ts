@@ -148,6 +148,107 @@ test("LEAD.md carries every piece of the package contract (graph-ir §5)", () =>
   assert.ok(lead.includes("W_HOMOGENEOUS_CRITICS"), "the validation warnings, where the human will see them");
 });
 
+/* ------------------------------------------------------------------ *
+ * Handoff 0010: the brief and the agent files say what graph-ir §1, §2 and
+ * §6 and the target doc decided after the first proving batch (D1–D6).
+ * ------------------------------------------------------------------ */
+
+const section = (lead: string, n: number): string => lead.slice(lead.indexOf(`## ${n}. `), lead.indexOf(`## ${n + 1}. `));
+
+test("D2: one gate rule in every mode — halt note first, then ask, then end the turn; an answer is a note, then the run continues", () => {
+  const lead = compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!;
+  const seven = section(lead, 7);
+  const halt = seven.indexOf('`"outcome":"halt"`');
+  const ask = seven.indexOf("then ask");
+  const end = seven.indexOf("then end your turn");
+  assert.ok(halt > 0 && ask > halt && end > ask, "halt note, ask, end the turn — in that order");
+  assert.match(seven, /When the human answers, append a note at the same place with their decision and continue/);
+  assert.match(seven, /A run nobody answers ends on that halt note, and the same run id resumes it/);
+  assert.doesNotMatch(seven, /cannot ask|non-interactive|headless/, "no wording depends on the lead judging whether it can ask");
+  assert.doesNotMatch(compile(reviewLoop(), "claude-code").kickoff, /cannot ask/);
+});
+
+test("D3, D4: the run id and every timestamp come from the clock, and the examples follow", () => {
+  const lead = compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!;
+  const three = section(lead, 3);
+  assert.match(three, /`<yyyymmdd-hhmmss>` \(UTC\): `date -u \+%Y%m%d-%H%M%S`, for example `20260917-093002`/);
+  assert.match(three, /append `-2`, then `-3`/, "collisions");
+  assert.doesNotMatch(three, /random/);
+  assert.match(three, /"run":"20260917-093002","at":"graph","started":"2026-09-17T09:30:02Z"/, "the first note follows the form");
+  const eight = section(lead, 8);
+  assert.match(eight, /read from the clock, `date -u \+%Y-%m-%dT%H:%M:%SZ`, or left out\. Never estimate one\./);
+  const examples = [...eight.matchAll(/^\{"id":"n-\d+","run":"([^"]+)".*?"(?:started|ended)":"([^"]+)"/gm)];
+  assert.equal(examples.length, 2, "a node line and a loop line");
+  for (const [, run, at] of examples) {
+    assert.match(run!, /^\d{8}-\d{6}$/, `run id ${run} is the clock form`);
+    assert.match(at!, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/, `timestamp ${at} is a UTC clock reading`);
+  }
+});
+
+test("D5: a dispatches budget is counted by the lead in PROGRESS.md; turns, usd and tokens are advisory, usd enforceable by --max-budget-usd", () => {
+  const doc = reviewLoop();
+  const loop = doc.loops[0]!;
+  const counted: Graph = {
+    ...doc,
+    loops: [{ ...loop, stops: [{ kind: "bar-passed" }, { kind: "budget", measure: "dispatches", limit: 12 }, { kind: "budget", measure: "usd", limit: 5 }, { kind: "budget", measure: "tokens", limit: 200000 }] }],
+  };
+  const lead = compile(counted, "claude-code").files[".grooph/review-loop/LEAD.md"]!;
+  assert.match(section(lead, 3), /dispatch counter of `review-cycle` at 0/);
+  const six = section(lead, 6);
+  assert.match(six, /budget: 12 dispatches/);
+  assert.match(six, /A dispatch is one node run inside this loop's members — an agent you dispatch, or a check you run/);
+  assert.match(six, /Keep the count in `PROGRESS\.md`/);
+  assert.match(six, /`usd`, `tokens` budgets are \*\*advisory\*\*: nothing in Claude Code enforces them inside a session\./);
+  assert.match(six, /a `usd` budget is enforced only from outside, by starting a headless run with `--max-budget-usd`/);
+  assert.doesNotMatch(six, /no documented session-level cost cap/, "there is one now");
+  assert.match(section(lead, 8), /the dispatch count of `review-cycle`/);
+  assert.match(section(lead, 8), /cost {6}\{ measure: dispatches \| minutes \| usd \| turns \| tokens, amount \}/);
+
+  const turns = compile(doc, "claude-code").files[".grooph/review-loop/LEAD.md"]!;
+  assert.match(section(turns, 6), /`turns` budgets are \*\*advisory\*\*: nothing in Claude Code enforces them inside a session, and leads count turns inconsistently/);
+  assert.doesNotMatch(section(turns, 3), /dispatch counter/, "no counter to keep without a dispatches budget");
+  const mapping = compile(counted, "claude-code").files[".grooph/review-loop/MAPPING.md"]!;
+  assert.match(mapping, /A `dispatches` budget is exact: the lead counts node dispatches in `PROGRESS\.md`/);
+});
+
+test("D6: invalid-evidence is routed — the edge when one exists, else repair and re-dispatch once, then fail; an evidence stop is named only when a loop has one", () => {
+  const doc = reviewLoop();
+  const five = section(compile(doc, "claude-code").files[".grooph/review-loop/LEAD.md"]!, 5);
+  assert.match(five, /When an edge routes `invalid-evidence`, take it\. Otherwise repair the evidence and dispatch the same node once more in the same round; a second `invalid-evidence` routes as `fail`\./);
+  assert.doesNotMatch(five, /evidence-invalid/, "this graph has no evidence-invalid stop, so none is mentioned");
+
+  const loop = doc.loops[0]!;
+  const withStop: Graph = { ...doc, loops: [{ ...loop, stops: [...loop.stops, { kind: "evidence-invalid", rounds: 2 }] }] };
+  const files = compile(withStop, "claude-code").files;
+  assert.match(section(files[".grooph/review-loop/LEAD.md"]!, 5), /Such rounds count toward the `evidence-invalid` stop of loop `review-cycle`\./);
+  assert.match(files[".claude/agents/review-loop--critic.md"]!, /That round counts toward the loop's evidence stop/);
+  assert.doesNotMatch(compile(doc, "claude-code").files[".claude/agents/review-loop--critic.md"]!, /evidence stop/);
+});
+
+test("D1: an agent's evidence rules allow its declared inputs too; a writer's include the project; a critic keeps invalid-evidence", () => {
+  const files = compile(reviewLoop(), "claude-code").files;
+  const builder = files[".claude/agents/review-loop--builder.md"]!;
+  assert.match(builder, /plus your declared inputs \(Inputs above\), which for you includes the project you are changing, and nothing else:/);
+  assert.doesNotMatch(builder, /invalid-evidence/, "a builder does not judge");
+  const critic = files[".claude/agents/review-loop--critic.md"]!;
+  assert.match(critic, /plus your declared inputs \(Inputs above\), and nothing else:/);
+  assert.doesNotMatch(critic, /includes the project you are changing/, "a critic changes nothing");
+  assert.match(critic, /report `invalid-evidence` and say which item you could not read\./);
+  assert.match(section(files[".grooph/review-loop/LEAD.md"]!, 5), /plus its own declared inputs; for a writer that includes the project it is changing/);
+
+  const doc = reviewLoop();
+  const bare: Graph = { ...doc, edges: doc.edges.map((edge) => (edge.to === "builder" ? { ...edge, evidence: [] } : edge)) };
+  const bareBuilder = compile(bare, "claude-code").files[".claude/agents/review-loop--builder.md"]!;
+  assert.match(bareBuilder, /No inbound edge lists evidence for you\. Work from your declared inputs \(Inputs above\), the project you are changing and the lead's prompt, and nothing else/);
+});
+
+test("loop notes carry `stop` when a stop fires (graph-ir §6), and the brief shows one", () => {
+  const eight = section(compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!, 8);
+  assert.match(eight, /and `stop` with the kind of the stop when one fires/);
+  assert.match(eight, /^stop {6}on the loop note that ends the loop: the kind of the stop that fired$/m);
+  assert.match(eight, /"at":"loop:review-cycle","ended":"[^"]+","outcome":"pass","round":3,"stop":"bar-passed"/);
+});
+
 test("validation warnings are copied into LEAD.md verbatim", () => {
   const doc = reviewLoop();
   const oversized: Graph = {

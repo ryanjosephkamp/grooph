@@ -57,7 +57,7 @@ export const STOP_KINDS = [
 ] as const satisfies readonly StopKind[];
 export const STOP_KINDS_EXHAUSTIVE: Exhaustive<StopKind, typeof STOP_KINDS> = STOP_KINDS;
 
-export const BUDGET_MEASURES = ["usd", "minutes", "turns", "tokens"] as const satisfies readonly BudgetMeasure[];
+export const BUDGET_MEASURES = ["dispatches", "minutes", "usd", "turns", "tokens"] as const satisfies readonly BudgetMeasure[];
 export const BUDGET_MEASURES_EXHAUSTIVE: Exhaustive<BudgetMeasure, typeof BUDGET_MEASURES> = BUDGET_MEASURES;
 
 export const ISOLATIONS = ["fresh", "shared"] as const satisfies readonly NonNullable<Edge["isolation"]>[];

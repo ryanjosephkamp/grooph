@@ -305,7 +305,7 @@ export function newStop(kind: StopKind, previous?: Stop): Stop {
     case "human":
       return { kind, ...then };
     case "budget":
-      return { kind, measure: "turns", limit: 40, ...then };
+      return { kind, measure: "dispatches", limit: 12, ...then };
     case "bar-passed":
       return { kind, ...then };
     case "diminishing-returns":

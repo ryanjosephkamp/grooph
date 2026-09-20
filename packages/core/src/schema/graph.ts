@@ -174,7 +174,7 @@ const bar = obj(
   { name: "Bar" },
 );
 
-const budgetMeasure = enumOf("usd", "minutes", "turns", "tokens");
+const budgetMeasure = enumOf("dispatches", "minutes", "usd", "turns", "tokens");
 
 const stop = tagged(
   "kind",
@@ -290,6 +290,7 @@ export const runNoteSchema = obj(
     )),
     verdict: opt(str()),
     round: opt(num({ integer: true, minimum: 0 })),
+    stop: opt(str()),
     evidence: opt(arr(str())),
     cost: opt(obj({ measure: budgetMeasure, amount: num() })),
     gaps: opt(arr(str())),

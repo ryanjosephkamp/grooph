@@ -204,7 +204,11 @@ export type Evidence = {
   note?: string;
 };
 
-export type BudgetMeasure = "usd" | "minutes" | "turns" | "tokens";
+/**
+ * `dispatches`: node dispatches counted by the lead (agents and checks), exact and harness-neutral — the measure to prefer.
+ * `minutes`: wall clock from the first note. `usd`, `turns`, `tokens`: advisory unless the harness enforces them (graph-ir §1).
+ */
+export type BudgetMeasure = "dispatches" | "minutes" | "usd" | "turns" | "tokens";
 
 export type Stop =
   /** human halt; optionally asked every N rounds */
@@ -247,7 +251,7 @@ export type RunNote = {
   /** run id, chosen by the lead at kickoff */
   run: string;
   at: RunNoteAt;
-  /** ISO timestamps */
+  /** ISO timestamps read from the clock (`date -u`), or omitted; never estimated */
   started?: string;
   ended?: string;
   outcome?: "pass" | "fail" | "halt" | "invalid-evidence" | (string & {});
@@ -255,6 +259,8 @@ export type RunNote = {
   verdict?: string;
   /** loop round, when `at` is a loop or a member */
   round?: number;
+  /** on a loop note that ends the loop: the kind of the stop that fired */
+  stop?: string;
   /** what was actually inspected */
   evidence?: string[];
   cost?: { measure: BudgetMeasure; amount: number };

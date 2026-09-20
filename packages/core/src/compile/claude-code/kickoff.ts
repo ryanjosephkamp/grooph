@@ -37,7 +37,7 @@ export function kickoff(ctx: PackageContext): string {
     lines(
       "**Before you touch anything:**",
       "",
-      `1. Choose a run id in the form ${code(ctx.profile.runIdFormat)}, create ${code(
+      `1. Read a run id from the clock (${code("date -u +%Y%m%d-%H%M%S")}, the form ${code(ctx.profile.runIdFormat)}), create ${code(
         `${ctx.paths.runs}/<run-id>/`,
       )}, and copy ${code(ctx.paths.graph)} into it: that copy is the run's working copy.`,
       `2. Write ${code("PROGRESS.md")} and start ${code("notes.jsonl")} there, as ${code(
@@ -53,9 +53,9 @@ export function kickoff(ctx: PackageContext): string {
       }. Do not do their work yourself, and do not grade work a critic node is there to grade.`,
       `- Give a fresh worker only its task, its declared inputs and the evidence its edge lists. Never paste a transcript into one.`,
       `- Evaluate the loop stops before every round, in the order ${code("LEAD.md")} lists them, and record the round.`,
-      `- At a human gate, ask and wait. If this session cannot ask, halt: write the note and the final ${code(
-        "PROGRESS.md",
-      )}, and report that the run is waiting for a human.`,
+      `- At a human gate: append the halt note first, then ask, then end your turn (${code(
+        "LEAD.md",
+      )} § "Human gates"). A run nobody answers ends there, and the same run id resumes it.`,
       adaptationLine(ctx),
     ),
     `**When the run ends** — a stop fires, you reach a stop node, or no edge is left to take — append the final note, write the last ${code(

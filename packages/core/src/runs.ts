@@ -95,7 +95,7 @@ export type LoopStop = {
   note: Id;
   round?: number;
   outcome?: string;
-  /** the stop that fired, when the note's outcome ends the loop and its text names one of the loop's stops */
+  /** the stop that fired: the note's `stop` (graph-ir §6), or, for notes without one, what its text names when its outcome ends the loop */
   fired?: StopKind;
   text?: string;
 };
@@ -266,14 +266,18 @@ const STOP_WORDS: [StopKind, RegExp][] = [
   ["human", /\bhuman (?:stop|halt)\b/i],
 ];
 
+const STOP_KINDS: readonly StopKind[] = ["human", "budget", "bar-passed", "diminishing-returns", "evidence-invalid", "max-iterations"];
+
 /**
- * The stop that fired, as far as a loop note says. Run notes carry no
- * structured stop field (graph-ir §6), so this reads the text: only when the
+ * The stop that fired, as far as a loop note says. A note's `stop` (graph-ir
+ * §6, written by leads from slice 0010 on) is taken as it stands when it names
+ * a stop kind. Older notes carry none, so this reads the text: only when the
  * note's outcome ends the loop (`pass` or `halt`), only the loop's own stop
  * kinds, and a mention followed by "fire" wins over a bare mention. When the
  * text is silent, a passing loop with a bar-passed stop passed its bar.
  */
 function firedStop(note: RunNote, loop: Loop): StopKind | undefined {
+  if (note.stop !== undefined) return (STOP_KINDS as readonly string[]).includes(note.stop) ? (note.stop as StopKind) : undefined;
   if (note.outcome !== "pass" && note.outcome !== "halt") return undefined;
   const text = note.text ?? "";
   const own = new Set(loop.stops.map((s) => s.kind));

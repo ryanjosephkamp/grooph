@@ -4,7 +4,7 @@
  * `docs/targets/claude-code.md` § "Unit mapping".
  */
 
-import { edgeWhen } from "../../semantics.js";
+import { edgeWhen, loopsOfNode } from "../../semantics.js";
 import type { Edge } from "../../types.js";
 import { bullet, code, doc, fence, firstSentence, lines, quoteYaml } from "../markdown.js";
 import type { PackageContext, ResolvedAgent } from "./context.js";
@@ -89,24 +89,37 @@ function ownership(agent: ResolvedAgent): string {
   );
 }
 
+/**
+ * graph-ir §2 "Evidence": what the lead hands the node plus its declared
+ * inputs, which for a writer includes the project it is changing. A critic
+ * reports `invalid-evidence` on evidence it cannot read; the round counts
+ * toward an `evidence-invalid` stop only where a loop around the node has one.
+ */
 function evidenceRules(ctx: PackageContext, agent: ResolvedAgent, evidence: string[]): string {
+  const inputs = agent.node.inputs && agent.node.inputs.length > 0 ? "your declared inputs (Inputs above)" : "your declared inputs";
+  const project = agent.isWriter ? ", which for you includes the project you are changing" : "";
+  const evidenceStop = loopsOfNode(ctx.index, agent.node.id).some((loop) =>
+    (loop.stops ?? []).some((stop) => stop.kind === "evidence-invalid"),
+  );
   return lines(
     "## Evidence rules",
     "",
     ...(evidence.length > 0
       ? [
-          "You may inspect exactly what the lead hands you, which is this and nothing more:",
+          `You may inspect what the lead hands you — the evidence below — plus ${inputs}${project}, and nothing else:`,
           "",
           ...evidence.map(bullet),
           "",
           agent.isCritic
             ? `If any of it is missing or unreadable, do not guess and do not substitute your own reading of the repository: report ${code(
                 "invalid-evidence",
-              )} and say which item you could not read. That round counts toward the loop's evidence stop.`
+              )} and say which item you could not read.${evidenceStop ? " That round counts toward the loop's evidence stop." : ""}`
             : `If any of it is missing or unreadable, say so in your report rather than guessing.`,
         ]
       : [
-          `No inbound edge lists evidence for you. Work from your declared inputs and the lead's prompt; say so in your report if something you need is missing.`,
+          `No inbound edge lists evidence for you. Work from ${inputs}${
+            agent.isWriter ? ", the project you are changing" : ""
+          } and the lead's prompt, and nothing else; say so in your report if something you need is missing.`,
         ]),
     ...(agent.isCritic
       ? [
