@@ -15,6 +15,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ### Slice 0010
 
+- 2026-09-20 · criterion 1 met: a fresh clone of `slice/0010-hardening` at 5c82065 installs, builds and passes (core 242, CLI 58, web unit 49, browser 52 passed with 27 screenshot specs skipped); `patterns-index.mjs --check` and `check-brake-values.mjs` clean; CI green at 5c82065.
 - 2026-09-20 · criterion 2 met (D1): every agent file's Evidence rules allow the edge's evidence plus the node's declared inputs, a writer's "including the project you are changing"; a critic keeps `invalid-evidence` and names the evidence stop only where its loop has one. Goldens regenerated and read as documents.
 - 2026-09-20 · criterion 3 met (D2): LEAD.md §7 is one rule for every session: halt note at the gate, then ask, then end the turn; an answer is a note, then the run continues. Neither the brief nor the kickoff says "cannot ask".
 - 2026-09-20 · criterion 4 met (D3, D4): run id `<yyyymmdd-hhmmss>` from `date -u`, `-2`, `-3` … on collision; timestamps from `date -u` or omitted; the first note and both filled examples in §8 follow.
