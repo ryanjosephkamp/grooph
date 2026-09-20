@@ -368,6 +368,25 @@ export async function checkRun(evidenceDir, { core, template }) {
   facts.working_copy = working === undefined ? "missing" : changed ? diffSummary : "identical to the source";
   facts.amendments = amendments.map((note) => note.amendment.summary);
   facts.proposals = proposals.map((note) => note.proposal.summary);
+  // Proposal patches are never applied by a run, but a proposal whose op list cannot apply is worth less; replay each on the source and report.
+  if (proposals.length > 0 && source) {
+    const replayed = proposals.map((note) => {
+      const patch = note.proposal.patch;
+      if (!Array.isArray(patch) || patch.length === 0) return `${note.id}: no op list`;
+      if (!patch.every((op) => typeof op?.op === "string" && OP_NAMES.includes(op.op))) return `${note.id}: unknown op ${patch.map((op) => op?.op).filter((name) => !OP_NAMES.includes(name)).join(", ")}`;
+      try {
+        const applied = applyOps(source, patch);
+        if (!applied.ok) return `${note.id}: ${applied.error.message}`;
+        const errors = validate(applied.doc, { forExport: true }).filter((issue) => issue.severity === "error").map((issue) => issue.code);
+        return `${note.id}: applies${errors.length > 0 ? `, then ${errors.join(", ")}` : " and validates"}`;
+      } catch (err) {
+        return `${note.id}: ${err.message}`;
+      }
+    });
+    findings.push(`proposal patches replayed on the source: ${replayed.join("; ")}`);
+    facts.proposal_replay = replayed;
+  }
+
   // ── 13. what a propose-level run must record ───────────────────────────
   if (typeof expect.proposals?.min === "number" && proposals.length < expect.proposals.min) problems.push(`${proposals.length} proposal note(s); the template expects at least ${expect.proposals.min}`);
   if (typeof expect.amendments?.max === "number" && amendments.length > expect.amendments.max) problems.push(`${amendments.length} amendment note(s); the template allows at most ${expect.amendments.max}`);

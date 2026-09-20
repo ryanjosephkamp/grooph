@@ -1,0 +1,113 @@
+{
+  "template": "retrospective-rewrite",
+  "template_version": "retrospective-rewrite@1",
+  "slots": {
+    "values": {
+      "task": "Add `mergeIntervals(intervals)` to src/interval.mjs: it returns the sorted, non-overlapping closed integer intervals covering the same integers as the input (so touching and adjacent-integer intervals join), without changing the input. tests/interval.test.mjs already specifies it and fails. Document the function in README.md beside `overlaps`.",
+      "test-command": "npm test"
+    }
+  },
+  "graph_id": "merge-intervals",
+  "run_id": "20260920-185135",
+  "run_ids": [
+    "20260920-185135"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.3744279999999998,
+      "output_tokens": 19893
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.0778195,
+      "output_tokens": 3917
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "merge-intervals--retro": [
+      "claude-opus-5"
+    ],
+    "merge-intervals--builder": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 1.452248,
+  "harness_turns": 23,
+  "lead_turns": null,
+  "duration_s": 275,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [],
+  "ending": [
+    "stop node done"
+  ],
+  "subagents": {
+    "merge-intervals--retro": 1,
+    "merge-intervals--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-185135\",\"at\":\"graph\",\"started\":\"2026-09-20T18:51:35Z\",\"text\":\"run started\"}' > .grooph/merge-intervals/runs/20260920-185135/notes.jsonl && printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-185135\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched, round 0\\\"}\" >> .grooph/merge-intervals/runs/20260920-185135/notes.jsonl && cat .grooph/merge-intervals/runs/20260920-185135/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "head -6 .grooph/merge-intervals/runs/20260920-185135/notes.jsonl | md5; wc -l .grooph/merge-intervals/runs/20260920-185135/notes.jsonl; tail -5 .grooph/merge-intervals/runs/20260920-185135/notes.jsonl | cut -c1-160; git diff --stat .grooph/merge-intervals/graph.grooph.json; diff .grooph/merge-intervals/graph.grooph.json .grooph/merge-intervals/runs/20260920-185135/graph.grooph.json && echo \"working copy identical\"; date -u +%Y-%m-%dT%H:%M:%SZ"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 14,
+      "session_id": "924dd6a7-fa4e-48b9-bde7-bc07fc5e1843",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.452248,
+      "reported_cost_usd": 1.4522475,
+      "max_budget_usd": 6,
+      "harness_turns": 23,
+      "duration_s": 275,
+      "wall_s": 276,
+      "notes_after": 13,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "efab8e31f774feece0771a937a6e24d6b57957b4",
+  "source_sha256_before": "669a7344127e3b0e9ec31e941fac4f70311a1780aff4ee01950fa301b2e9a5aa",
+  "project_files_changed": [
+    "M README.md",
+    "M src/interval.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-retrospective-rewrite-nDHqa4",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [
+    "Builder brief: existing tests are the spec; drop 'adding tests where they are missing', forbid editing tests, tell the builder to run npm test itself on round 0",
+    "Add a 'docs' check node (grep mergeIntervals in README.md) between tests and retro, with a fail edge back to builder as a second back edge of grind, so the README half of the goal is verified",
+    "Declare CHANGES.md as retro input and as evidence on the pass edge into retro, so the retro can see what was built without the lead handing over undeclared context",
+    "Lower the grind minutes budget from 30 to 10: at ~1 minute per round, max-iterations 5 always fires first and the 30-minute stop is dead",
+    "Declare the retro's notes.jsonl append explicitly in its outputs and brief (append only, continue the id sequence, carry proposal and evidence) so the lead does not re-specify it in every dispatch"
+  ],
+  "working_copy": "identical to the source"
+}
