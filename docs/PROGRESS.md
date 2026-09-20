@@ -11,7 +11,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-- **Slice 0012** (`handoffs/0012-batch-two-fixes/`): confirmed 2026-09-20; no model spend. Awaiting the implementer session.
+- **Slice 0012** (`handoffs/0012-batch-two-fixes/`): confirmed 2026-09-20; no model spend. Implementer session started 2026-09-20 on `slice/0012-batch-two-fixes`.
+
+### Slice 0012
+
+- Criterion 1 met 2026-09-20: `LEAD.md` §9 step 5 has an `allow`/`deny` amendment edit the node's agent file (`tools:`, `disallowedTools:`) before dispatch, say so in the note, and fall back to a proposal and a dispatch as compiled; `MAPPING.md` lists `tools:` beside model and effort with the capability → tools table. Observed by reading the harness's own documentation for 2.1.278 (no model call): the agents directories are watched, an edited file is used by the next delegation without a restart; the mid-run-node sentence was corrected to match. Compile test `0012-1`.
+- Criterion 2 met 2026-09-20: §9's proposal and amendment sections list all 26 ops from `OP_ARGS` with their arguments (typed `Record<OpName, string>`, so a new op cannot be left out) and a two-op example (`addNode` with `set`, `connect`); the check's replay is unchanged. Compile test `0012-2`.
+- Criterion 3 met 2026-09-20: §5 says a diff of a change that added files is `git diff` plus `git diff --no-index /dev/null <file>` per new file, bare, where an edge's evidence names a diff; the proving allowlist admits `Bash(git add -N:*)`. Compile test `0012-3`.
+- Criterion 4 met 2026-09-20: §8 has the lead copy each critic report into the run folder as `<report>-round-<n>.md` before re-dispatching the builder; `prove-check.mjs` item 15 reports the rounds whose copy is missing (a finding: on the kept records, five reports across four runs; the bank's own `TRIAGE-round0.md` counts as kept). Compile test `0012-4`.
+- Criterion 5 met 2026-09-20: §6 states, per loop with a `dispatches` budget, what one full round costs from its agent and check members (the bank: 6, not 8; `fresh-grind-rare-judge` `phases`: 3, with the inner loop named), and how many full rounds the budget covers; `grooph shape` unchanged. Compile test `0012-5`.
+- Criterion 6 met 2026-09-20: both goldens regenerated and read as documents; the sixteen kept records re-checked with no verdict change (14 pass, `fresh-grind-rare-judge` and `specialist-critic-bank` still fail as before); the only finding change is the new per-round line.
 
 ## Waiting on the owner
 
