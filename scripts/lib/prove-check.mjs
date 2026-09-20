@@ -14,12 +14,28 @@
  *   6. the source document is untouched;
  *   7. every note conforms to the RunNote schema.
  *
+ * Added for the second batch (handoff 0011, criteria 1 and 4), all driven by the
+ * template's expect.json where it says so:
+ *
+ *   8. a loop note's `cost: {measure: "dispatches"}` agrees with the number of
+ *      `"outcome":"started"` lines at that loop's members written before it (off
+ *      by one is a finding; more than one is a problem), and a loop note's `stop`
+ *      is one of the loop's stops (a finding when it is not);
+ *   9. `notRun`: agents that must not have run (a gate halted before them);
+ *  10. `ownership`: each owner wrote only under its `owns` folders (its own report
+ *      files aside), and nobody else wrote there;
+ *  11. `ending`: the run ended one of the ways the template expects;
+ *  12. `absent`: files the run must not have created (PUBLISHED.txt behind a gate);
+ *  13. `proposals.min`, `amendments.max`: what a propose-level run must record;
+ *  14. `heldOut.readers` / `heldOut.notReaders`: who touched the held-out evidence
+ *      (a critic that never did judged without it; a builder that did saw its cases).
+ *
  * Problems fail the check. Findings are reported, not judged: they are what the
  * write-up is made of (what the lead did that the package did not intend, which
- * files a critic read, the permission denials).
+ * files a critic read, the permission denials, whether a back edge fired).
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { readNotes, sha256, writesOf } from "./prove-evidence.mjs";
@@ -74,6 +90,30 @@ function applyJsonPatch(doc, patch) {
 }
 
 const pattern = (text) => new RegExp(text.replace(/[-\s]/g, "[- ]?"), "i");
+
+/** The text of a file the run wrote, by basename: from the run folder in the evidence, else the added lines of project.diff. */
+function reportText(evidenceDir, runDir, name) {
+  const found = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) walk(full);
+      else if (entry.toLowerCase() === name.toLowerCase()) found.push(full);
+    }
+  };
+  if (existsSync(runDir)) walk(runDir);
+  if (found.length > 0) return readFileSync(found[0], "utf8");
+  const diffPath = join(evidenceDir, "project.diff");
+  if (!existsSync(diffPath)) return null;
+  const blocks = readFileSync(diffPath, "utf8").split(/^diff --git /m);
+  const block = blocks.find((b) => new RegExp(`^\\+\\+\\+ b/(?:.*/)?${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "mi").test(b));
+  if (!block) return null;
+  return block
+    .split("\n")
+    .filter((line) => line.startsWith("+") && !line.startsWith("+++"))
+    .map((line) => line.slice(1))
+    .join("\n");
+}
 
 export async function checkRun(evidenceDir, { core, template }) {
   const problems = [];
@@ -157,6 +197,13 @@ export async function checkRun(evidenceDir, { core, template }) {
     if (!dispatches.some((d) => d.subagent_type === agent)) problems.push(`the lead never dispatched ${agent}`);
     if (!notes.some((note) => note.at === `node:${nodeId}`)) problems.push(`no note at node:${nodeId}`);
   }
+  // A node the template dispatches per piece or per candidate must have been dispatched at least that often.
+  for (const [nodeId, want] of Object.entries(expect.dispatches ?? {})) {
+    const agent = `${graphId}--${nodeId}`;
+    const count = dispatches.filter((d) => d.subagent_type === agent).length;
+    if (typeof want.min === "number" && count < want.min) problems.push(`${nodeId} was dispatched ${count} time(s); the template expects at least ${want.min}`);
+    else findings.push(`${nodeId} dispatched ${count} time(s)`);
+  }
   const generalDispatches = dispatches.filter((d) => !String(d.subagent_type ?? "").startsWith(`${graphId}--`));
   if (generalDispatches.length > 0) {
     findings.push(`dispatches outside the package's agents: ${generalDispatches.map((d) => `${d.subagent_type ?? "general-purpose"} (${d.description ?? "no description"})`).join("; ")}`);
@@ -205,7 +252,7 @@ export async function checkRun(evidenceDir, { core, template }) {
     if (typeof note?.stop === "string") return stopKinds.includes(note.stop) ? [note.stop] : [];
     const found = [];
     for (const clause of `${note?.text ?? ""}`.split(/[;.\n]/)) {
-      if (/\bnot\b|n't\b|\bno\b/i.test(clause)) continue;
+      if (/\bnot\b|n't\b|\bno\b|\bnone\b|\bn\/a\b/i.test(clause)) continue;
       for (const kind of stopKinds) {
         if (!pattern(kind).test(clause)) continue;
         const verb = /\b(fired|fires|firing|hit|reached|exhausted|exceeded|ended|stopped)\b/i.test(clause);
@@ -223,7 +270,9 @@ export async function checkRun(evidenceDir, { core, template }) {
       if (halted && (text.includes(gate.id) || (gate.name && text.toLowerCase().includes(gate.name.toLowerCase())))) named.push(`halt at ${gate.id}`);
     }
     for (const node of stopNodes) {
-      if (new RegExp(`\\b${node.id}\\b`, "i").test(text) || text.toLowerCase().includes(node.name.toLowerCase())) named.push(`stop node ${node.id}`);
+      // Whole words only: a gate that says "cannot be undone" does not name the stop node "Done".
+      const escaped = node.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(`\\b${node.id}\\b`, "i").test(text) || new RegExp(`\\b${escaped}\\b`, "i").test(text)) named.push(`stop node ${node.id}`);
     }
     for (const kind of firedIn(note)) named.push(`stop ${kind}`);
     return named;
@@ -249,6 +298,22 @@ export async function checkRun(evidenceDir, { core, template }) {
     const named = endingOf(halt);
     if (!named.includes(`halt at ${expect.resume.gate}`)) problems.push(`the first invocation did not end in a halt at ${expect.resume.gate} (note ${upTo}: ${JSON.stringify(halt)})`);
     if ((result.invocations ?? []).length < 2) problems.push(`the run was to be resumed once with a scripted "${expect.resume.answer}", and was not`);
+  }
+
+  // ── 9. agents that must not have run (a gate halted before them) ───────
+  for (const nodeId of expect.notRun ?? []) {
+    const agent = `${graphId}--${nodeId}`;
+    if (subagentRuns.has(agent)) problems.push(`${nodeId} ran as a subagent (${agent}), and the template expects the run to halt before it`);
+    if (dispatches.some((d) => d.subagent_type === agent)) problems.push(`the lead dispatched ${agent}, which must not run`);
+    if (notes.some((note) => note.at === `node:${nodeId}` && note.outcome && note.outcome !== "halt")) problems.push(`a note at node:${nodeId} records it running`);
+  }
+
+  // ── 11. the ending the template expects ────────────────────────────────
+  if (Array.isArray(expect.ending) && expect.ending.length > 0) {
+    const actual = new Set([...ending, ...fired.map((kind) => `stop ${kind}`)]);
+    const hit = expect.ending.filter((want) => actual.has(want));
+    if (hit.length === 0) problems.push(`the run ended by ${[...actual].join(", ") || "nothing named"}; the template expects one of: ${expect.ending.join(", ")}`);
+    else findings.push(`ending as expected: ${hit.join(", ")}`);
   }
 
   // ── 4. amendments ⇄ working copy ───────────────────────────────────────
@@ -303,6 +368,28 @@ export async function checkRun(evidenceDir, { core, template }) {
   facts.working_copy = working === undefined ? "missing" : changed ? diffSummary : "identical to the source";
   facts.amendments = amendments.map((note) => note.amendment.summary);
   facts.proposals = proposals.map((note) => note.proposal.summary);
+  // Proposal patches are never applied by a run, but a proposal whose op list cannot apply is worth less; replay each on the source and report.
+  if (proposals.length > 0 && source) {
+    const replayed = proposals.map((note) => {
+      const patch = note.proposal.patch;
+      if (!Array.isArray(patch) || patch.length === 0) return `${note.id}: no op list`;
+      if (!patch.every((op) => typeof op?.op === "string" && OP_NAMES.includes(op.op))) return `${note.id}: unknown op ${patch.map((op) => op?.op).filter((name) => !OP_NAMES.includes(name)).join(", ")}`;
+      try {
+        const applied = applyOps(source, patch);
+        if (!applied.ok) return `${note.id}: ${applied.error.message}`;
+        const errors = validate(applied.doc, { forExport: true }).filter((issue) => issue.severity === "error").map((issue) => issue.code);
+        return `${note.id}: applies${errors.length > 0 ? `, then ${errors.join(", ")}` : " and validates"}`;
+      } catch (err) {
+        return `${note.id}: ${err.message}`;
+      }
+    });
+    findings.push(`proposal patches replayed on the source: ${replayed.join("; ")}`);
+    facts.proposal_replay = replayed;
+  }
+
+  // ── 13. what a propose-level run must record ───────────────────────────
+  if (typeof expect.proposals?.min === "number" && proposals.length < expect.proposals.min) problems.push(`${proposals.length} proposal note(s); the template expects at least ${expect.proposals.min}`);
+  if (typeof expect.amendments?.max === "number" && amendments.length > expect.amendments.max) problems.push(`${amendments.length} amendment note(s); the template allows at most ${expect.amendments.max}`);
 
   // ── 5. brakes ──────────────────────────────────────────────────────────
   if (working && source) {
@@ -345,6 +432,126 @@ export async function checkRun(evidenceDir, { core, template }) {
   // ── 6. the source document, seen from the project diff too ─────────────
   const diffPath = join(evidenceDir, "project.diff");
   if (existsSync(diffPath) && readFileSync(diffPath, "utf8").includes(`b/.grooph/${graphId}/graph.grooph.json`)) problems.push("project.diff shows the source document changed");
+
+  // ── 12. files the run must not have created ────────────────────────────
+  const changedFiles = (result.project_files_changed ?? []).map((line) => line.split(" ").slice(1).join(" "));
+  for (const name of expect.absent ?? []) {
+    if (changedFiles.some((file) => file === name || file.endsWith(`/${name}`))) problems.push(`${name} exists in the project after the run, and the template expects it never to be written`);
+    else findings.push(`${name} absent, as expected`);
+  }
+
+  // ── 10. ownership: an owner writes only under its owns, and nobody else writes there ──
+  const ownership = expect.ownership ?? {};
+  const under = (file, prefix) => file === prefix || file.startsWith(`${prefix.replace(/\/$/, "")}/`);
+  for (const [nodeId, prefixes] of Object.entries(ownership)) {
+    const agent = `${graphId}--${nodeId}`;
+    const reportNames = new Set((expect.reports?.[nodeId] ?? []).map((name) => name.toLowerCase()));
+    const own = writes.filter((w) => w.who === agent);
+    const outside = own.filter((w) => !prefixes.some((prefix) => under(w.file, prefix)) && !reportNames.has(w.name.toLowerCase()) && !w.file.startsWith(runPrefix));
+    if (outside.length > 0) problems.push(`${nodeId} wrote outside ${prefixes.join(", ")}: ${[...new Set(outside.map((w) => w.file))].join(", ")}`);
+    const intruders = writes.filter((w) => w.who !== agent && prefixes.some((prefix) => under(w.file, prefix)));
+    if (intruders.length > 0) problems.push(`${[...new Set(intruders.map((w) => `${w.who === "lead" ? "the lead" : w.who} (${w.file})`))].join(", ")} wrote under ${prefixes.join(", ")}, which ${nodeId} owns`);
+    findings.push(`${nodeId} wrote ${own.length} file(s): ${[...new Set(own.map((w) => w.file))].join(", ") || "nothing"}`);
+  }
+
+  // ── the judge's pick names one candidate (tournament-then-judge) ───────
+  if (expect.pick?.report && Array.isArray(expect.pick.among)) {
+    const text = reportText(evidenceDir, runDir, expect.pick.report);
+    if (text === null) problems.push(`${expect.pick.report} is not in the evidence, so the pick cannot be read`);
+    else {
+      const named = expect.pick.among.filter((item) => text.includes(item) || new RegExp(`\\b${item.split("/").pop()}\\b`, "i").test(text.replace(/candidates?[- /]/gi, "")));
+      const winnerLine = text.split("\n").find((line) => /\b(winner|pick(ed)?|chosen|choose|finalist to finish)\b/i.test(line) && expect.pick.among.some((item) => line.includes(item) || new RegExp(`\\b${item.split("/").pop()}\\b`).test(line)));
+      if (named.length === 0) problems.push(`${expect.pick.report} names none of ${expect.pick.among.join(", ")}`);
+      else findings.push(`${expect.pick.report} names ${named.join(", ")}${winnerLine ? `; the pick line: "${winnerLine.trim().slice(0, 120)}"` : "; no line says which won in so many words"}`);
+      facts.pick = { named, winner_line: winnerLine?.trim() ?? null };
+    }
+  }
+
+  // ── 8. the dispatch count, and the stop named on loop notes ────────────
+  const loopsById = byId(graph?.loops);
+  const memberNodes = (loop) => new Set((loop.members ?? []).map((id) => `node:${id}`));
+  const counted = [];
+  for (const [i, note] of notes.entries()) {
+    if (!String(note.at).startsWith("loop:")) continue;
+    const loop = loopsById.get(note.at.slice(5));
+    if (!loop) continue;
+    if (typeof note.stop === "string" && !loop.stops.some((stop) => stop.kind === note.stop)) findings.push(`note ${note.id} names stop \`${note.stop}\` on ${note.at}, which has only: ${loop.stops.map((s) => s.kind).join(", ")}`);
+    if (note.cost?.measure !== "dispatches") continue;
+    // The brief counts "an agent you dispatch, or a check you run" and asks for a started line only when a node is
+    // dispatched, so an agent member counts by its started lines and a check member by its result notes.
+    const checkMembers = new Set((loop.members ?? []).filter((id) => (graph?.nodes ?? []).find((node) => node.id === id)?.kind === "check").map((id) => `node:${id}`));
+    const agentMembers = new Set([...memberNodes(loop)].filter((at) => !checkMembers.has(at)));
+    const before = notes.slice(0, i);
+    const started = before.filter((n) => n.outcome === "started" && agentMembers.has(n.at)).length + before.filter((n) => checkMembers.has(n.at) && n.outcome && n.outcome !== "started").length;
+    const off = Math.abs(started - note.cost.amount);
+    counted.push({ note: note.id, loop: loop.id, round: note.round ?? null, recorded: note.cost.amount, started, off });
+    if (off > 1) problems.push(`note ${note.id}: ${note.at} records ${note.cost.amount} dispatches, but ${started} started line(s) at its members precede it`);
+  }
+  for (const loop of graph?.loops ?? []) {
+    if (loop.stops.some((stop) => stop.kind === "budget" && stop.measure === "dispatches") && !counted.some((c) => c.loop === loop.id)) findings.push(`loop ${loop.id} has a dispatches budget, but no loop note records a dispatch count`);
+  }
+  if (counted.length > 0) {
+    const worst = Math.max(...counted.map((c) => c.off));
+    findings.push(`dispatch count: ${counted.map((c) => `${c.note} ${c.loop}${c.round === null ? "" : ` r${c.round}`} recorded ${c.recorded}, started lines ${c.started}`).join("; ")}${worst === 0 ? " (exact)" : ` (off by ${worst})`}`);
+  }
+  facts.dispatch_count = counted;
+
+  // ── back edges: did the loop loop, and what caught ─────────────────────
+  const backEdgeIds = new Set((graph?.loops ?? []).flatMap((loop) => loop.back ?? []));
+  const laterRounds = notes.filter((note) => String(note.at).startsWith("loop:") && typeof note.round === "number" && note.round > 0);
+  const edgeNotes = notes.filter((note) => String(note.at).startsWith("edge:") && backEdgeIds.has(note.at.slice(5)));
+  // A back edge counts as named only in a clause that does not deny it ("back edge e-tests-fail not taken" names none).
+  const mentioned = [
+    ...new Set(
+      notes.flatMap((note) =>
+        `${note.text ?? ""}`
+          .split(/[;.\n]/)
+          .filter((clause) => !/\bnot\b|n't\b|\bno\b|\bnever\b/i.test(clause))
+          .flatMap((clause) => [...backEdgeIds].filter((id) => new RegExp(`\\b${id}\\b`).test(clause) && /\b(tak\w+|follow\w*|back|rout\w+)\b/i.test(clause))),
+      ),
+    ),
+  ];
+  const failVerdicts = notes.filter((note) => String(note.at).startsWith("node:") && (note.outcome === "fail" || /^(fail|rebut|next-phase)$/.test(`${note.verdict ?? ""}`)));
+  facts.back_edges = { later_rounds: laterRounds.length, edge_notes: edgeNotes.map((n) => n.at), mentioned, caught_by: [...new Set(failVerdicts.map((n) => `${n.at.slice(5)}${n.verdict ? ` (${n.verdict})` : ""}`))] };
+  const backEdgeTaken = laterRounds.length > 0 || edgeNotes.length > 0 || mentioned.length > 0;
+  facts.back_edges.taken = backEdgeTaken;
+  findings.push(
+    backEdgeTaken
+      ? `back edge taken: ${[...new Set([...mentioned, ...edgeNotes.map((n) => n.at.slice(5))])].join(", ") || "a later round is recorded"}; ${laterRounds.length} loop note(s) beyond round 0; caught by ${facts.back_edges.caught_by.join(", ") || "no fail verdict recorded"}`
+      : `no back edge taken: every loop note is round 0 and no back edge is named${expect.backEdge === true ? " (the task was designed to force one; the write-up must say why it did not)" : ""}`,
+  );
+  // Verdicts per node, in order: the shape of the loop as the critics and judges told it.
+  const verdictsByNode = {};
+  for (const note of notes) {
+    if (!String(note.at).startsWith("node:") || !(note.verdict || (note.outcome && note.outcome !== "started"))) continue;
+    (verdictsByNode[note.at.slice(5)] ??= []).push(note.verdict ?? note.outcome);
+  }
+  facts.verdicts = verdictsByNode;
+  const judged = Object.entries(verdictsByNode).filter(([nodeId]) => (graph?.nodes ?? []).some((node) => node.id === nodeId && isCriticFamily(node)));
+  if (judged.length > 0) findings.push(`verdicts in order: ${judged.map(([nodeId, list]) => `${nodeId} → ${list.join(", ")}`).join("; ")}`);
+
+  // ── 14. held-out evidence: who touched it ──────────────────────────────
+  const heldOut = result.held_out?.dir;
+  if (heldOut) {
+    const touched = new Map();
+    const marks = [heldOut, "/held-out/"];
+    let namedInDispatches = 0;
+    for (const entry of digest) {
+      // A read, a search or a command on the folder counts; a dispatch prompt that names the path hands it on, and is counted apart.
+      const uses = entry.tool_uses.filter((u) => !u.error && u.tool !== "Agent" && u.tool !== "Task" && marks.some((m) => `${u.file ?? ""}${u.path ?? ""}${u.command ?? ""}`.includes(m)));
+      if (uses.length > 0) touched.set(entry.who, uses.length);
+      namedInDispatches += entry.tool_uses.filter((u) => (u.tool === "Agent" || u.tool === "Task") && marks.some((m) => `${u.prompt ?? ""}`.includes(m))).length;
+    }
+    const label = (who) => (who.startsWith(`${graphId}--`) ? who.slice(graphId.length + 2) : who);
+    findings.push(`held-out evidence (${(result.held_out.files ?? []).map((f) => f.path).join(", ")}): touched by ${[...touched].map(([who, n]) => `${label(who)} ×${n}`).join(", ") || "nobody"}; named in ${namedInDispatches} dispatch prompt(s)`);
+    for (const nodeId of expect.heldOut?.readers ?? []) {
+      if (!touched.has(`${graphId}--${nodeId}`)) problems.push(`${nodeId} never read or ran the held-out evidence, so its judgment was not made against it`);
+    }
+    for (const nodeId of expect.heldOut?.notReaders ?? []) {
+      if (touched.has(`${graphId}--${nodeId}`)) problems.push(`${nodeId} read the held-out evidence it was told is not its to read (${touched.get(`${graphId}--${nodeId}`)} tool use(s))`);
+    }
+    facts.held_out_touched = Object.fromEntries([...touched].map(([who, n]) => [label(who), n]));
+  }
 
   // ── counts ─────────────────────────────────────────────────────────────
   const rounds = [...new Set(loopNotes.map((note) => note.round).filter((round) => typeof round === "number"))];
@@ -393,6 +600,9 @@ export function printCheck({ problems, findings, facts, result }) {
     row("proposals", (facts.proposals ?? []).length ? facts.proposals.join(" | ") : "none");
     row("working copy", Array.isArray(facts.working_copy) ? facts.working_copy.join("; ") : facts.working_copy);
     row("denials", facts.denials ?? 0);
+    if (facts.back_edges) row("back edges", facts.back_edges.later_rounds > 0 || facts.back_edges.mentioned.length > 0 || facts.back_edges.edge_notes.length > 0 ? `yes (${facts.back_edges.later_rounds} loop note(s) beyond round 0; caught by ${facts.back_edges.caught_by.join(", ") || "?"})` : "none");
+    if (facts.dispatch_count?.length) row("dispatch count", facts.dispatch_count.map((c) => `${c.loop}: recorded ${c.recorded}, started ${c.started}`).join("; "));
+    if (facts.held_out_touched) row("held-out touched", Object.entries(facts.held_out_touched).map(([who, n]) => `${who} ×${n}`).join(", ") || "nobody");
   }
   if (findings.length > 0) {
     console.log("\nfindings (reported, not judged):");

@@ -40,7 +40,8 @@
       "review",
       "human-gate",
       "heterogeneous"
-    ]
+    ],
+    "demo": "experiments/patterns/heterogeneous-critic/README.md"
   },
   "description": "The review-gate shape with the critic on the frontier tier and the builder on the strong tier. Within one harness both tiers are one model family, so this varies capability, not lineage; true cross-family judging needs a critic running in a second harness, which arrives with dual-harness nodes (stage 11).",
   "nodes": [

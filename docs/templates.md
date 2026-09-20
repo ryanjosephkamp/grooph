@@ -74,7 +74,7 @@ One document per spec §10 pattern, under `patterns/<id>.grooph.json`. Rules for
 - **Latitude over procedure** (graph-ir §2): briefs state purpose, limits and outputs in three or four sentences. No step lists.
 - **Smallest graph that shows the pattern.** If a node can be removed without losing the pattern, remove it.
 - Every loop has a `budget` stop in `dispatches` or `minutes` and a `max-iterations` stop of 5 or fewer, besides its real stop. A `dispatches` limit is sized from the round cap: the dispatches the cap already allows, plus at most two for an `invalid-evidence` repair or a second critic pass (slice 0010; `packages/core/test/patterns.test.ts` enforces it), so the shape line never shows a budget that cannot be reached or one that hides the real brake.
-- Critics are `fresh`, have an evidence list, allow `write-outputs` for their report, and deny `edit-files`.
+- Critics are `fresh`, have an evidence list, allow `write-outputs` for their report, and deny `edit-files`. A judging node that must run anything (tests, held-out cases) has `run-tests` or `run-commands`: batch two's `fresh-grind-rare-judge` judge could not, and its lead had to amend the graph and dispatch a stand-in (review 0011).
 - `adaptation` is left unset (adaptive) except where the pattern says otherwise.
 - Common slots: `task` (what to build or change), `test-command`, and the pattern's own bar reference.
 

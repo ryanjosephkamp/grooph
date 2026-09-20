@@ -1,0 +1,7 @@
+{
+  "name": "Merge intervals",
+  "values": {
+    "task": "Add `mergeIntervals(intervals)` to src/interval.mjs: it returns the sorted, non-overlapping closed integer intervals covering the same integers as the input (so touching and adjacent-integer intervals join), without changing the input. tests/interval.test.mjs already specifies it and fails. Document the function in README.md beside `overlaps`.",
+    "test-command": "npm test"
+  }
+}

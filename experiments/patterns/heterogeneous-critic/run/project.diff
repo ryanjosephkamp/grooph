@@ -1,0 +1,354 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..bcfcfa1
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,80 @@
++# Changes
++
++## Round 1
++
++Findings addressed: REVIEW.md (round 0) item 6, the only UNMET item. Items
++1-5 were MET and stay so; item 4 needed the README corrected to match the
++new behaviour, which this round does.
++
++- `src/duration.mjs`: the grammar now accepts every shape REVIEW.md item 6
++  lists as failing, while still refusing every shape it says must keep
++  throwing.
++  - Units match regardless of letter case (regex `i` flag):
++    `"1H30M"` → `5400`, `"500MS"` → `0.5`.
++  - The text is trimmed before matching, so surrounding whitespace is
++    ignored: `"  45s  "` → `45`. A whitespace-only text (`"   "`) trims to
++    the empty string and throws `RangeError`, as before.
++  - `\s*` is allowed between parts: `"1h 30m"` → `5400`. Nothing is allowed
++    between a number and its unit, so `"1 h"` still throws.
++  - Each number may carry a fraction with digits on both sides of the point
++    (`[0-9]+(?:\.[0-9]+)?`): `"1.5h"` → `5400`, `"0.5m"` → `30`,
++    `"0.25h"` → `900`, `"1.5s"` → `1.5`. `".5s"` and `"5.s"` still throw.
++  - Still refused with `RangeError` (checked against the list REVIEW.md
++    quotes): `"1e2s"`, `"-1h"`, `"+1h"`, `"1_000s"`, `"1h,30m"`,
++    `"1h and 30m"`, `"Infinity"`, `"h"`, `"1h30"`, `"30m1h"`, `"1h1h"`,
++    `"1d"`, `""`; `90`, `null`, `["1h"]` still throw `TypeError`.
++    `"5ms"` is still `0.005` and `"1h0m0s"` is still `3600`.
++  - The header comment and JSDoc describe the new grammar (REVIEW.md noted
++    the old comment at `src/duration.mjs:1-4` documented the opposite).
++- `tests/duration.test.mjs`: the tests that asserted the opposite of the
++  held-out expectations (whitespace around and between parts, upper-case
++  units, `"1.5h"`, `"0.5s"`) are replaced by three new tests that assert the
++  accepted shapes (`ignores the letter case of units`, `trims whitespace
++  around the text`, `allows whitespace between parts`, `allows a fraction on
++  any part`), and the refusal tests are regrouped so each shape that must
++  still throw is covered: whitespace-only text and whitespace inside a part
++  (`"   "`, `"1 h"`, non-breaking space), malformed fractions (`".5s"`,
++  `"5.s"`, `"1.h"`, `"1.5.5h"`), signs, exponents and digit separators
++  (`"-1h"`, `"+1h"`, `"1e2s"`, `"1_000s"`), other separators (`"1h,30m"`,
++  `"1h and 30m"`), `"Infinity"`, `"1h30"`, plus `"5ms"` → `0.005` and
++  `"1h0m0s"` → `3600`, and `90` as a non-string `TypeError` case.
++- `README.md`: the `parseDuration` paragraph no longer says parts must be
++  whole ASCII digits with a lowercase unit and no whitespace; it now lists
++  the three relaxations (letter case, whitespace around and between parts
++  but not inside one, fractions with digits on both sides of the point) with
++  examples, and the `RangeError` list no longer names fractions, upper-case
++  units or whitespace as throwing. The `TypeError` sentence gives examples.
++
++`npm test`: 17 tests, 17 pass, 0 fail, 0 skipped, 0 todo, exit 0.
++
++## Round 0
++
++Findings addressed: none yet (first round, no REVIEW.md).
++
++- `src/duration.mjs` (new): exports `parseDuration(text)`, the inverse of
++  `formatSeconds`. A non-string throws `TypeError`. The text must match
++  `^(?:[0-9]+h)?(?:[0-9]+m)?(?:[0-9]+s)?(?:[0-9]+ms)?$` and be non-empty;
++  anything else throws `RangeError`. The sum is taken in whole milliseconds
++  and divided by 1000 once, so `"1m1s"` is exactly `61`.
++- Decisions on the open points, taking the strictest reading consistent with
++  "inverse of formatSeconds" (it only ever writes lowercase units, ASCII
++  integer digits, no separators):
++  - whitespace anywhere (leading, trailing, between parts, inside a part):
++    refused;
++  - upper-case units (`1H`, `500MS`, `500Ms`): refused;
++  - fractions, signs, exponents (`1.5h`, `.5s`, `-1h`, `+1h`, `1e3s`): refused;
++  - no unit (`90`, `1h30`), unknown unit (`1d`, `1hour`), out-of-order or
++    repeated units (`30m1h`, `1h1h`), empty string, separators (`1:30`,
++    `1h,30m`): refused;
++  - non-ASCII digits (`١h`, `１h`) and non-breaking space: refused;
++  - `String` objects, arrays and objects with `toString`: `TypeError`
++    (only primitive strings are accepted);
++  - a digit run of any length is accepted (`0s` is `0`, `100h` is `360000`),
++    and a total that overflows to a non-finite number throws `RangeError`.
++- `tests/duration.test.mjs` (new): covers the task's examples, each unit alone
++  and combined, the round trip `parseDuration(formatSeconds(n))` for `5400`,
++  `61`, `0.5`, `0` and more, and one test per refused shape above.
++- `README.md`: documents `parseDuration` beside `formatSeconds`, with examples
++  and a list of what throws `RangeError` and what throws `TypeError`.
++
++`npm test`: 14 tests, 14 pass, 0 fail, 0 skipped, 0 todo, exit 0.
+diff --git a/README.md b/README.md
+index 32fa0ab..3a420ad 100644
+--- a/README.md
++++ b/README.md
+@@ -4,10 +4,15 @@ Small time helpers.
+ 
+ ```js
+ import { formatSeconds } from "./src/format.mjs";
++import { parseDuration } from "./src/duration.mjs";
+ 
+ formatSeconds(5400); // "1h30m"
+ formatSeconds(45);   // "45s"
+ formatSeconds(0.5);  // "500ms"
++
++parseDuration("1h30m"); // 5400
++parseDuration("45s");   // 45
++parseDuration("500ms"); // 0.5
+ ```
+ 
+ `formatSeconds(seconds)` writes a non-negative number of seconds as the
+@@ -15,3 +20,25 @@ shortest run of `h`, `m`, `s` and `ms` parts, in that order, leaving out the
+ parts that are zero (so `3600` is `"1h"`, `61` is `"1m1s"`, `0` is `"0s"`).
+ A negative or non-finite number throws a `RangeError`; a non-number throws a
+ `TypeError`.
++
++`parseDuration(text)` is its inverse: it reads a duration written that way
++back into a number of seconds, so `parseDuration(formatSeconds(n))` is `n`.
++The text is a run of `h`, `m`, `s` and `ms` parts, in that order, each at most
++once and at least one present; each part is a number followed directly by its
++unit (so `"1h"` is `3600`, `"1m1s"` is `61`, `"0s"` is `0`, `"1h1m1s1ms"` is
++`3661.001`). It reads a little more than `formatSeconds` writes:
++
++- letter case does not matter (`"1H30M"` is `5400`, `"500MS"` is `0.5`);
++- whitespace around the text is trimmed and may separate parts
++  (`"  45s  "` is `45`, `"1h 30m"` is `5400`), but may not sit between a
++  number and its unit (`"1 h"` throws);
++- any part may carry a fraction with ASCII digits on both sides of the point
++  (`"1.5h"` is `5400`, `"0.5m"` is `30`, `"1.5s"` is `1.5`; `".5s"` and
++  `"5.s"` throw).
++
++Anything else throws a `RangeError`: units out of order or repeated
++(`"30m1h"`, `"1h1h"`), a number with no unit (`"90"`, `"1h30"`), an unknown
++unit (`"1d"`), a sign, exponent or digit separator (`"-1h"`, `"+1h"`,
++`"1e2s"`, `"1_000s"`), other separators between parts (`"1h,30m"`,
++`"1h and 30m"`), or an empty or whitespace-only string. A non-string (such as
++`90`, `null` or `["1h"]`) throws a `TypeError`.
+diff --git a/REVIEW.md b/REVIEW.md
+new file mode 100644
+index 0000000..0a7701b
+--- /dev/null
++++ b/REVIEW.md
+@@ -0,0 +1,12 @@
++# Review: parseDuration (round 1)
++
++Evidence read: `.grooph/parse-duration/runs/20260920-192538/round1.diff`, `.grooph/parse-duration/runs/20260920-192538/round1-npm-test.txt`, `docs/REVIEW-CHECKLIST.md`, and the working tree (`src/duration.mjs`, `tests/duration.test.mjs`, `README.md`, `package.json`), which matches the diff line for line. `npm test` and the held-out suite were run by the critic, not taken from the report.
++
++1. Met — `src/duration.mjs:26` declares `export function parseDuration(text)`; the file exists in the tree (diff `round1.diff:47-52` adds it as a new file).
++2. Met — `tests/duration.test.mjs:8` asserts `"1h30m"` is `5400`, `:9` asserts `"45s"` is `45`, `:10` asserts `"500ms"` is `0.5`; `tests/duration.test.mjs:28-29` asserts `parseDuration(formatSeconds(n)) === n` for `5400`, `61`, `0.5` and `0` (plus four more). All pass under `npm test` (17/17).
++3. Met — the grammar at `src/duration.mjs:9-13` is one anchored regex with the four units as optional groups in the fixed order h, m, s, ms, so each can appear at most once and only in that order; `src/duration.mjs:27` throws `TypeError` for a non-string; `src/duration.mjs:30-32` throws `RangeError` on no match or empty text. Tests: out of order `tests/duration.test.mjs:70-75`; repeated unit `:79-85`; no unit `:89-93`; not a duration at all `:97-108`; whitespace-only `:112-114`; non-string `TypeError` `:141-151`.
++4. Met — `README.md:7` imports it beside `formatSeconds`; `README.md:13-15` gives examples in the same code block as the `formatSeconds` examples; `README.md:24-37` describes it directly after the `formatSeconds` paragraph; `README.md:39-44` says what throws `RangeError` and what throws `TypeError`, with examples.
++5. Met — `npm test` (script at `package.json:7`, `node --test tests/*.test.mjs`) run by the critic: exit 0, `tests 17`, `pass 17`, `fail 0`, `skipped 0`, `todo 0`; matches `round1-npm-test.txt:22-28`. No `skip`/`todo` markers in `tests/duration.test.mjs:1-152`.
++6. Met — `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X.harness/held-out/duration-cases.test.mjs` run from the project root: exit 0, `tests 41`, `pass 41`, `fail 0`, `skipped 0`, `todo 0`. No failing cases to quote.
++
++verdict: pass
+diff --git a/src/duration.mjs b/src/duration.mjs
+new file mode 100644
+index 0000000..592c059
+--- /dev/null
++++ b/src/duration.mjs
+@@ -0,0 +1,40 @@
++// The shape formatSeconds writes, read a little more generously: h, m, s and
++// ms parts, in that order, each at most once. A part is a number followed
++// directly by its unit; the number is a run of ASCII digits with an optional
++// fraction that has digits on both sides of the point ("1", "1.5", not ".5"
++// or "5."). Units are matched regardless of letter case. Whitespace may
++// separate parts and may surround the whole text (trimmed before matching),
++// but not sit between a number and its unit. Signs, exponents, other
++// separators and other units are not part of the grammar.
++const NUMBER = "[0-9]+(?:\\.[0-9]+)?";
++const DURATION = new RegExp(
++  `^(?:(${NUMBER})h)?\\s*(?:(${NUMBER})m)?\\s*(?:(${NUMBER})s)?\\s*(?:(${NUMBER})ms)?$`,
++  "i",
++);
++
++/**
++ * Reads a duration written by formatSeconds ("1h30m", "45s", "500ms") back
++ * into a number of seconds. Units are h, m, s and ms, in that order, each at
++ * most once; at least one part must be present. Letter case does not matter,
++ * each number may carry a fraction ("1.5h"), and whitespace is allowed
++ * around the text and between parts ("1h 30m") but not inside a part.
++ * @param {string} text
++ * @returns {number} seconds
++ * @throws {TypeError} when text is not a string
++ * @throws {RangeError} when text is not a duration in that shape
++ */
++export function parseDuration(text) {
++  if (typeof text !== "string") throw new TypeError("parseDuration: text must be a string");
++  const trimmed = text.trim();
++  const match = DURATION.exec(trimmed);
++  if (match === null || trimmed === "") {
++    throw new RangeError(`parseDuration: not a duration: ${JSON.stringify(text)}`);
++  }
++  const [, h = "0", m = "0", s = "0", ms = "0"] = match;
++  // Sum in milliseconds so "1m1s" comes back as exactly 61, not 61.00000000000001.
++  const total = Number(h) * 3_600_000 + Number(m) * 60_000 + Number(s) * 1000 + Number(ms);
++  if (!Number.isFinite(total)) {
++    throw new RangeError(`parseDuration: duration is too large: ${JSON.stringify(text)}`);
++  }
++  return total / 1000;
++}
+diff --git a/tests/duration.test.mjs b/tests/duration.test.mjs
+new file mode 100644
+index 0000000..56e9f94
+--- /dev/null
++++ b/tests/duration.test.mjs
+@@ -0,0 +1,152 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { parseDuration } from "../src/duration.mjs";
++import { formatSeconds } from "../src/format.mjs";
++
++test("parseDuration reads the examples from the task", () => {
++  assert.equal(parseDuration("1h30m"), 5400);
++  assert.equal(parseDuration("45s"), 45);
++  assert.equal(parseDuration("500ms"), 0.5);
++});
++
++test("parseDuration reads every unit, alone and together", () => {
++  assert.equal(parseDuration("1h"), 3600);
++  assert.equal(parseDuration("1m"), 60);
++  assert.equal(parseDuration("1s"), 1);
++  assert.equal(parseDuration("1ms"), 0.001);
++  assert.equal(parseDuration("5ms"), 0.005);
++  assert.equal(parseDuration("1m1s"), 61);
++  assert.equal(parseDuration("0s"), 0);
++  assert.equal(parseDuration("1h0m0s"), 3600);
++  assert.equal(parseDuration("1h1m1s1ms"), 3661.001);
++  assert.equal(parseDuration("2h500ms"), 7200.5);
++  assert.equal(parseDuration("100h"), 360000);
++});
++
++test("parseDuration inverts formatSeconds", () => {
++  for (const n of [5400, 61, 0.5, 0, 3600, 3661.001, 86400, 0.001]) {
++    assert.equal(parseDuration(formatSeconds(n)), n);
++  }
++});
++
++test("parseDuration ignores the letter case of units", () => {
++  assert.equal(parseDuration("1H30M"), 5400);
++  assert.equal(parseDuration("1H"), 3600);
++  assert.equal(parseDuration("45S"), 45);
++  assert.equal(parseDuration("500MS"), 0.5);
++  assert.equal(parseDuration("500Ms"), 0.5);
++  assert.equal(parseDuration("500mS"), 0.5);
++});
++
++test("parseDuration trims whitespace around the text", () => {
++  assert.equal(parseDuration("  45s  "), 45);
++  assert.equal(parseDuration(" 1h"), 3600);
++  assert.equal(parseDuration("1h "), 3600);
++  assert.equal(parseDuration("\t45s\n"), 45);
++});
++
++test("parseDuration allows whitespace between parts", () => {
++  assert.equal(parseDuration("1h 30m"), 5400);
++  assert.equal(parseDuration("1h  30m   5s"), 5405);
++  assert.equal(parseDuration("1h\t30m\n5s"), 5405);
++  assert.equal(parseDuration("1h 30s"), 3630);
++  assert.equal(parseDuration(" 1h 30m 5s 500ms "), 5405.5);
++});
++
++test("parseDuration allows a fraction on any part", () => {
++  assert.equal(parseDuration("1.5h"), 5400);
++  assert.equal(parseDuration("0.5m"), 30);
++  assert.equal(parseDuration("0.25h"), 900);
++  assert.equal(parseDuration("1.5s"), 1.5);
++  assert.equal(parseDuration("0.5s"), 0.5);
++  assert.equal(parseDuration("0.1s"), 0.1);
++  assert.equal(parseDuration("1.001s"), 1.001);
++  assert.equal(parseDuration("0.5ms"), 0.0005);
++  assert.equal(parseDuration("1.5h 0.5m"), 5430);
++});
++
++test("parseDuration refuses units out of order", () => {
++  assert.throws(() => parseDuration("30m1h"), RangeError);
++  assert.throws(() => parseDuration("1s1m"), RangeError);
++  assert.throws(() => parseDuration("500ms1s"), RangeError);
++  assert.throws(() => parseDuration("1ms1h"), RangeError);
++  assert.throws(() => parseDuration("30m 1h"), RangeError);
++  assert.throws(() => parseDuration("30M1H"), RangeError);
++});
++
++test("parseDuration refuses a unit given more than once", () => {
++  assert.throws(() => parseDuration("1h1h"), RangeError);
++  assert.throws(() => parseDuration("1m2m"), RangeError);
++  assert.throws(() => parseDuration("1s1s"), RangeError);
++  assert.throws(() => parseDuration("1ms1ms"), RangeError);
++  assert.throws(() => parseDuration("1h30m2h"), RangeError);
++  assert.throws(() => parseDuration("1h 1h"), RangeError);
++  assert.throws(() => parseDuration("1h1H"), RangeError);
++});
++
++test("parseDuration refuses text with no unit", () => {
++  assert.throws(() => parseDuration("90"), RangeError);
++  assert.throws(() => parseDuration("0"), RangeError);
++  assert.throws(() => parseDuration("1.5"), RangeError);
++  assert.throws(() => parseDuration("1h30"), RangeError);
++  assert.throws(() => parseDuration("Infinity"), RangeError);
++});
++
++test("parseDuration refuses text that is not a duration at all", () => {
++  assert.throws(() => parseDuration(""), RangeError);
++  assert.throws(() => parseDuration("abc"), RangeError);
++  assert.throws(() => parseDuration("h"), RangeError);
++  assert.throws(() => parseDuration("ms"), RangeError);
++  assert.throws(() => parseDuration("1x"), RangeError);
++  assert.throws(() => parseDuration("1d"), RangeError);
++  assert.throws(() => parseDuration("1hour"), RangeError);
++  assert.throws(() => parseDuration("1h30mm"), RangeError);
++  assert.throws(() => parseDuration("1:30"), RangeError);
++  assert.throws(() => parseDuration("1h,30m"), RangeError);
++  assert.throws(() => parseDuration("1h and 30m"), RangeError);
++  assert.throws(() => parseDuration("1h-30m"), RangeError);
++});
++
++test("parseDuration refuses whitespace-only text and whitespace inside a part", () => {
++  assert.throws(() => parseDuration(" "), RangeError);
++  assert.throws(() => parseDuration("   "), RangeError);
++  assert.throws(() => parseDuration("\t\n"), RangeError);
++  assert.throws(() => parseDuration("1 h"), RangeError);
++  assert.throws(() => parseDuration("1 h 30 m"), RangeError);
++  assert.throws(() => parseDuration("1 h"), RangeError);
++  assert.throws(() => parseDuration("1. 5h"), RangeError);
++  assert.throws(() => parseDuration("1 .5h"), RangeError);
++});
++
++test("parseDuration refuses malformed fractions, signs, exponents and separators", () => {
++  assert.throws(() => parseDuration(".5s"), RangeError);
++  assert.throws(() => parseDuration("5.s"), RangeError);
++  assert.throws(() => parseDuration("1.h"), RangeError);
++  assert.throws(() => parseDuration("1.5.5h"), RangeError);
++  assert.throws(() => parseDuration("1,5h"), RangeError);
++  assert.throws(() => parseDuration("-1h"), RangeError);
++  assert.throws(() => parseDuration("+1h"), RangeError);
++  assert.throws(() => parseDuration("1e2s"), RangeError);
++  assert.throws(() => parseDuration("1e3s"), RangeError);
++  assert.throws(() => parseDuration("1_000s"), RangeError);
++});
++
++test("parseDuration refuses non-ASCII digits and lookalikes", () => {
++  assert.throws(() => parseDuration("١h"), RangeError);
++  assert.throws(() => parseDuration("１h"), RangeError);
++});
++
++test("parseDuration refuses a non-string with a TypeError", () => {
++  assert.throws(() => parseDuration(45), TypeError);
++  assert.throws(() => parseDuration(90), TypeError);
++  assert.throws(() => parseDuration(5400), TypeError);
++  assert.throws(() => parseDuration(null), TypeError);
++  assert.throws(() => parseDuration(undefined), TypeError);
++  assert.throws(() => parseDuration(), TypeError);
++  assert.throws(() => parseDuration(["1h"]), TypeError);
++  assert.throws(() => parseDuration({ toString: () => "1h" }), TypeError);
++  assert.throws(() => parseDuration(new String("1h")), TypeError);
++  assert.throws(() => parseDuration(Symbol("1h")), TypeError);
++  assert.throws(() => parseDuration(true), TypeError);
++});

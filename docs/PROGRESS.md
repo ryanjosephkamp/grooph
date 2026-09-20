@@ -4,18 +4,20 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 0–5 and 7 are done. Stage 6 (proving ground) is under way: the first batch found seven defects in what grooph emits; slice 0010 fixed them and re-proved the two gate templates clean. Next is the second batch (slice 0011, the remaining eleven templates).
+- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Next: slice 0012, the brief and runner fixes those runs exposed, then stage 8 (manual authoring extras) while Codex stays deferred.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** run the slice 0011 implementer session, then bring its handback prompt to the driver.
-- **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger and `--strict-mcp-config`; eight real run records.
+- **Next action (driver):** draft handoff 0012 from the carries in `PLAN.md`. **Owner:** decide whether re-proving the two red records after 0012 (about $9) is worth raising the cap to $55.
+- **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
 
-- **Slice 0011** (`handoffs/0011-proving-batch-two/`): confirmed 2026-09-20 under the $45.00 cap ($34.19 left). Awaiting the implementer session.
+_(none)_
 
 ## Waiting on the owner
 
-_(nothing: slice 0011 was confirmed 2026-09-20)_
+| Item | Recommended answer |
+|---|---|
+| Raise the proving cap from $45.00 to $55.00 so the two red records can be re-proved after slice 0012 (about $9 at batch-two prices) | Yes, but only once 0012 has merged; nothing spends before then |
 
 ## Deferred until Codex is available
 
@@ -26,6 +28,7 @@ _(nothing: slice 0011 was confirmed 2026-09-20)_
 
 | Date | What |
 |---|---|
+| 2026-09-20 | Slice 0011 reconciled and merged: eleven templates proved for $28.77, four back edges, gates halt and are recorded, held-out evidence and fragment hosts in the runner, dispatch-count check; two records red. Decision 0009 (proving records are evidence). Three template edits at reconcile (judge may run tests; retro writes `PROPOSALS.md`; red team writes `ATTACK.md`). Stage 6 done. |
 | 2026-09-20 | Owner raised the proving ledger cap to $45.00; handoff 0011 drafted. |
 | 2026-09-20 | Slice 0010 reconciled and merged: lead brief and agent files agree with graph-ir (evidence plus inputs, one gate rule, clock run ids and timestamps, `dispatches` budgets, `invalid-evidence` routing, `stop` on loop notes), eleven templates hardened, `review-gate` and `spec-then-loop` re-proved clean for $3.80 (ledger $10.81 of $25.00). `docs/templates.md` §5 reconciled. |
 | 2026-09-20 | Project picked up on a new Claude account per `docs/HANDOVER.md`; nothing needed recreating. Owner confirmed slice 0010 and approved its two re-proving runs. Handover page republished from the new account, URL recorded in `handoffs/briefs/`. |
@@ -48,5 +51,7 @@ _(nothing: slice 0011 was confirmed 2026-09-20)_
 - Real-finger pinch, drag and on-screen keyboard behaviour is untested; only browser touch emulation has run.
 - One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised.
 - Claude Code native units change between releases. `targets/claude-code.md` pins what was verified (2.1.268) and when.
-- `dispatches` is the lead's own count; both re-proving leads kept it correctly, but nothing checks it yet. `turns`, `usd` and `tokens` are advisory inside a session.
-- Leads reach for compound shell forms (`cd … &&`, `git -C`) that the proving allowlist refuses: a turn per refusal, and once a critic's diff. Not a package defect, but it skews batch-two costs until the kickoff says to run commands bare.
+- `dispatches` is the lead's own count; `--check` now compares it with the record. Exact in seven of eight loops that kept one; the bank's lead counted 8 a round for 6. `turns`, `usd` and `tokens` are advisory inside a session, but a headless lead can see the `--max-budget-usd` position and may halt on it.
+- An `allow` amendment cannot reach a compiled agent file, so an adaptive lead that needs a capability dispatches a stand-in (slice 0012 closes this).
+- Held-out evidence is protected by instruction only; three runs show no builder read it, and the check would say if one did.
+- Two designs did not force their loop (`red-team-loop`, the phase-2 `fail` of `fresh-grind-rare-judge`): the critic's side is proved, the back edge is not.

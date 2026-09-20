@@ -1,0 +1,132 @@
+{
+  "template": "ownership-not-swarm",
+  "template_version": "ownership-not-swarm@1",
+  "slots": {
+    "values": {
+      "task": "Add tags to notes as README.md § \"The change\" describes: tag storage and lookup in the store, the two tag routes in the API, a text-table renderer and a CSV exporter that take plain notes, and `createApp()` in src/index.mjs wiring them, so that tests/app.test.mjs passes.",
+      "test-command": "npm test",
+      "subsystem-a": "src/db/",
+      "subsystem-b": "src/api/"
+    }
+  },
+  "graph_id": "tag-notes",
+  "run_id": "20260920-193520",
+  "run_ids": [
+    "20260920-193520"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 2.9313119999999997,
+      "output_tokens": 41295
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.19368489999999997,
+      "output_tokens": 5584
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "tag-notes--worker": [
+      "claude-sonnet-5"
+    ],
+    "tag-notes--owner-a": [
+      "claude-opus-5"
+    ],
+    "tag-notes--integrator": [
+      "claude-opus-5"
+    ],
+    "tag-notes--owner-b": [
+      "claude-opus-5"
+    ],
+    "tag-notes--planner": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 3.124997,
+  "harness_turns": 11,
+  "lead_turns": null,
+  "duration_s": 111,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [],
+  "ending": [
+    "stop node done"
+  ],
+  "subagents": {
+    "tag-notes--worker": 2,
+    "tag-notes--owner-a": 1,
+    "tag-notes--integrator": 1,
+    "tag-notes--owner-b": 1,
+    "tag-notes--planner": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "npm test 2>&1 | tail -40; echo \"exit: ${pipestatus[1]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "date -u +%Y-%m-%dT%H:%M:%SZ; npm test 2>&1 | tail -15; echo \"exit=${pipestatus[1]}\""
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 20,
+      "session_id": "39e7ef7f-ddad-4103-a501-68f11f13ff39",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 3.124997,
+      "reported_cost_usd": 3.1249968999999993,
+      "max_budget_usd": 6,
+      "harness_turns": 11,
+      "duration_s": 111,
+      "wall_s": 496,
+      "notes_after": 17,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "58498aa0cbb1d3da4a83bc7dd2995582b07e0229",
+  "source_sha256_before": "93b03f75496d6daff29438d39da8818c0d0cbb9a884c72d43897bca3f66bd042",
+  "project_files_changed": [
+    "A ARCHITECTURE.md",
+    "A HANDOFF-A.md",
+    "A HANDOFF-B.md",
+    "A PLAN.md",
+    "M src/api/handle.mjs",
+    "M src/api/handle.test.mjs",
+    "M src/db/store.mjs",
+    "M src/db/store.test.mjs",
+    "A src/export/csv.mjs",
+    "A src/export/csv.test.mjs",
+    "A src/format/table.mjs",
+    "A src/format/table.test.mjs",
+    "A src/index.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-ownership-not-swarm-dfnjdg",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

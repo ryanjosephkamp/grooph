@@ -1,0 +1,153 @@
+{
+  "template": "heterogeneous-critic",
+  "template_version": "heterogeneous-critic@1",
+  "slots": {
+    "values": {
+      "task": "Add `parseDuration(text)` to a new file src/duration.mjs, the inverse of `formatSeconds`: it turns a duration such as \"1h30m\", \"45s\" or \"500ms\" into a number of seconds. Units are h, m, s and ms, in that order, each at most once; anything else throws a RangeError, and a non-string throws a TypeError. Tests go in tests/duration.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; the critic judges against it, and it is not yours to read.",
+      "test-command": "npm test",
+      "checklist": "docs/REVIEW-CHECKLIST.md"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X.harness/held-out",
+    "files": [
+      {
+        "path": "duration-cases.test.mjs",
+        "sha256": "99138c840f58a1e136f62e4f48dd188db20c835ba8e679ef7320da1d162834dd"
+      }
+    ],
+    "substituted_in": [
+      "docs/REVIEW-CHECKLIST.md"
+    ]
+  },
+  "graph_id": "parse-duration",
+  "run_id": "20260920-192538",
+  "run_ids": [
+    "20260920-192538"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 2.2695907499999994,
+      "output_tokens": 33300
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 1.134068,
+      "output_tokens": 10717
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "parse-duration--builder": [
+      "claude-opus-5"
+    ],
+    "parse-duration--critic": [
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 3.403659,
+  "harness_turns": 36,
+  "lead_turns": null,
+  "duration_s": 505,
+  "rounds": {
+    "loop_passes": 2,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at merge-gate"
+  ],
+  "subagents": {
+    "parse-duration--builder": 2,
+    "parse-duration--critic": 2
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-192538\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched\\\"}\" >> .grooph/parse-duration/runs/20260920-192538/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm test 2>&1 | tail -30; echo \"exit: ${pipestatus[1]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "git status --short; git add -N . ; git diff -- src tests README.md > .grooph/parse-duration/runs/20260920-192538/round0.diff; wc -l .grooph/parse-duration/runs/20260920-192538/round0.diff; npm test > .grooph/parse-duration/runs/20260920-192538/round0-npm-test.txt 2>&1; echo \"exit=$?\"; tail -8 .grooph/parse-duration/runs/20260920-192538/round0-npm-test.txt; date -u +%Y-%m-%dT%H:%M:%SZ"
+    },
+    {
+      "tool": "Bash",
+      "command": "{ git diff -- README.md; git diff --no-index /dev/null src/duration.mjs; git diff --no-index /dev/null tests/duration.test.mjs; } > .grooph/parse-duration/runs/20260920-192538/round0.diff; wc -l .grooph/parse-duration/runs/20260920-192538/round0.diff"
+    },
+    {
+      "tool": "Bash",
+      "command": "git diff HEAD --stat; git status --short; echo ---; git diff HEAD -- README.md | diff - <(sed -n '1,35p' /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X/.grooph/parse-duration/runs/20260920-192538/round0.diff) && echo \"README diff matches\"; git diff --no-index /dev/null src/duration.mjs | diff - <(sed -n '36,70p' /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X/.grooph/parse-duration/runs/20260920-192538/round0.diff) && echo \"src diff matches\"; git diff --no-index /dev/null tests/duration.test.mjs | diff - <(sed -n '71,186p' /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X/.grooph/parse-duration/runs/20260920-192538/round0.diff) && echo \"tests diff matches\"; cat package.json"
+    },
+    {
+      "tool": "Bash",
+      "command": "git status --short; echo \"--- README\"; git diff HEAD -- README.md > /tmp/critic-readme.diff; sed -n '1,35p' /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X/.grooph/parse-duration/runs/20260920-192538/round0.diff > /tmp/critic-readme-expected.diff; diff /tmp/critic-readme.diff /tmp/critic-readme-expected.diff && echo \"README diff matches\"; echo \"--- src\"; git hash-object src/duration.mjs; echo \"--- tests\"; git hash-object tests/duration.test.mjs; echo \"--- package.json\"; cat package.json; echo \"--- CHANGES.md\"; cat CHANGES.md"
+    },
+    {
+      "tool": "Bash",
+      "command": "node --input-type=module -e '\nimport { parseDuration } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X/src/duration.mjs\";\nconst ok = { \"1H30M\":5400, \"500MS\":0.5, \"1h 30m\":5400, \"  45s  \":45, \"1.5h\":5400, \"0.5m\":30, \"0.25h\":900, \"1.5s\":1.5, \"5ms\":0.005, \"1h0m0s\":3600, \"1m1s\":61, \"0.1h\":360, \"0.1s\":0.1, \"1.001s\":1.001, \"1h\\t30m\\n5s\":5405 };\nfor (const [k,v] of Object.entries(ok)) { const r = parseDuration(k); console.log(r===v?\"ok \":\"BAD\", JSON.stringify(k), r); }\nconst bad = [\"   \",\"1 h\",\".5s\",\"5.s\",\"1e2s\",\"-1h\",\"+1h\",\"1_000s\",\"1h,30m\",\"1h and 30m\",\"Infinity\",\"h\",\"1h30\",\"30m1h\",\"1h1h\",\"1d\",\"\",\"1 h\",\"1.h\"];\nfor (const k of bad) { try { const r = parseDuration(k); console.log(\"BAD\", JSON.stringify(k), r); } catch (e) { console.log(e instanceof RangeError?\"ok \":\"BAD\", JSON.stringify(k), e.constructor.name); } }\n'"
+    },
+    {
+      "tool": "Bash",
+      "command": "git status --short; echo ---; git diff --stat; echo ---; git diff --no-index /dev/null src/duration.mjs | diff - <(sed -n '47,92p' .grooph/parse-duration/runs/20260920-192538/round1.diff) >/dev/null 2>&1; echo \"src matches diff: $?\"; cat package.json"
+    },
+    {
+      "tool": "Bash",
+      "command": "{ git diff HEAD -- README.md; git diff --no-index /dev/null src/duration.mjs; git diff --no-index /dev/null tests/duration.test.mjs; } | diff - .grooph/parse-duration/runs/20260920-192538/round1.diff && echo \"WORKING TREE MATCHES round1.diff\"; git status --short"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 19,
+      "session_id": "e4ea19c1-bf46-4e7c-acb6-3eb9f028c45d",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 3.403659,
+      "reported_cost_usd": 3.403658750000001,
+      "max_budget_usd": 6,
+      "harness_turns": 36,
+      "duration_s": 505,
+      "wall_s": 506,
+      "notes_after": 12,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "acc866ca4f80d90211649d580a6b1436fc478cc8",
+  "source_sha256_before": "0a36737191ccafada5e0d18c2dc3404303819102a377ef328d71af0feff14178",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/duration.mjs",
+    "A tests/duration.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-heterogeneous-critic-9rs49X",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

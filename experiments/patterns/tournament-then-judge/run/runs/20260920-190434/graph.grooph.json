@@ -1,0 +1,216 @@
+{
+  "grooph": 0,
+  "id": "line-diff",
+  "name": "Line diff",
+  "version": 1,
+  "goal": "Implement `diffLines(before, after)` as README.md specifies, producing a minimal line edit script. The final implementation lives at src/diff.mjs; `npm test` checks every candidates/*/diff.mjs and src/diff.mjs against the same contract. Done when the finalist the judge picks is finished and `npm test` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "tournament-then-judge",
+    "from": "tournament-then-judge@1"
+  },
+  "description": "Three fast builders each draft the whole task in their own folder, in parallel. A check runs the tests on each and keeps the ones that pass. A frontier judge sees only those finalists and picks one against the stated criteria, naming any idea worth borrowing from the others. A builder finishes the winner. No loop: the tournament runs once.",
+  "nodes": [
+    {
+      "id": "candidate-a",
+      "kind": "agent",
+      "name": "Candidate A",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build your own complete take on the task inside candidates/a/ and nowhere else. A runnable draft beats a polished fragment, and an approach different from the obvious one is welcome. Report your approach in one paragraph.",
+      "inputs": [
+        "the task"
+      ],
+      "outputs": [
+        "candidates/a/",
+        "candidates/a/APPROACH.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "candidates/a"
+      ]
+    },
+    {
+      "id": "candidate-b",
+      "kind": "agent",
+      "name": "Candidate B",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build your own complete take on the task inside candidates/b/ and nowhere else. A runnable draft beats a polished fragment, and an approach different from the obvious one is welcome. Report your approach in one paragraph.",
+      "inputs": [
+        "the task"
+      ],
+      "outputs": [
+        "candidates/b/",
+        "candidates/b/APPROACH.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "candidates/b"
+      ]
+    },
+    {
+      "id": "candidate-c",
+      "kind": "agent",
+      "name": "Candidate C",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build your own complete take on the task inside candidates/c/ and nowhere else. A runnable draft beats a polished fragment, and an approach different from the obvious one is welcome. Report your approach in one paragraph.",
+      "inputs": [
+        "the task"
+      ],
+      "outputs": [
+        "candidates/c/",
+        "candidates/c/APPROACH.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "candidates/c"
+      ]
+    },
+    {
+      "id": "filter",
+      "kind": "check",
+      "name": "Finalist filter",
+      "description": "Runs once, after all three candidates are in.",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "at least one candidate passes; those that pass are the finalists"
+      }
+    },
+    {
+      "id": "judge",
+      "kind": "agent",
+      "name": "Judge",
+      "role": "judge",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Pick the one finalist to finish, judging against Among candidates that pass the tests, prefer the one whose code reads most clearly at its size, that stays fast on inputs of a few thousand lines, and whose approach is explained honestly in its APPROACH.md; a smaller change beats a more general one.; you see only the candidates that passed the filter. Write PICK.md naming the winner, why, and the best idea worth borrowing from another finalist. You pick; you do not edit any candidate.",
+      "inputs": [
+        "the finalists' folders"
+      ],
+      "outputs": [
+        "PICK.md: the winner, the reason, one idea to borrow",
+        "verdict: pass"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "finisher",
+      "kind": "agent",
+      "name": "Finisher",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Finish the candidate PICK.md names: move it into its real place, close its gaps, and fold in the borrowed idea if it fits. Leave the other candidates untouched. Run `npm test` before you report.",
+      "inputs": [
+        "PICK.md",
+        "the winning candidate"
+      ],
+      "outputs": [
+        "the finished change",
+        "CHANGES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-candidate-a-filter",
+      "from": "candidate-a",
+      "to": "filter"
+    },
+    {
+      "id": "e-candidate-b-filter",
+      "from": "candidate-b",
+      "to": "filter"
+    },
+    {
+      "id": "e-candidate-c-filter",
+      "from": "candidate-c",
+      "to": "filter"
+    },
+    {
+      "id": "e-filter-judge",
+      "from": "filter",
+      "to": "judge",
+      "when": "pass",
+      "evidence": [
+        "the finalists' folders",
+        "filter output"
+      ]
+    },
+    {
+      "id": "e-judge-finisher",
+      "from": "judge",
+      "to": "finisher",
+      "when": "pass",
+      "evidence": [
+        "PICK.md",
+        "the winning candidate"
+      ]
+    },
+    {
+      "id": "e-finisher-done",
+      "from": "finisher",
+      "to": "done"
+    }
+  ],
+  "loops": [],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

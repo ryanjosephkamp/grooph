@@ -27,7 +27,7 @@ Reordered on 2026-09-18 after the owner's phone session (decision 0007). Everyth
 | 3 | Core for agents | **0004**: typed operations move into core; IR alignments from both reviews; every §12 rule and warning with fixtures; `adaptation` in the document and the compiler; `grooph new` and `grooph apply`; one acceptance run. | All rule codes have fixtures; the critic writes its own `REVIEW.md`; an adaptive run amends its working copy and records it; web app uses core's operations. | Opus | done |
 | 4 | Templates | **0005**: template metadata; the §10 patterns as validated documents under `patterns/` with an index; user and project template folders; `grooph template list/show/use/save`; templates browsable in the app and served as static files from Pages, so a template is referable by name and installable from the repo. Split: **0005** core, CLI, library, publishing; **0007** templates in the app plus editing polish (undo, storage persistence, toolbar overlap, rename warning). | Every pattern validates clean; "use template X" works from the CLI and the app; a stranger can fetch a template by name from the published index. | Driver specifies the patterns, Opus builds | done |
 | 5 | Executive | **0006**: share links (graph or proposal set in the URL fragment, opened by the app); proposal-set document and compare view; the `grooph-design` skill (driver writes it) packaged so a session can install it from this repo; optional thin MCP server over the same core operations. | From a Claude Code session: describe a project and constraints → the agent considers named templates or builds new ones → one to three candidate graphs validated → a link opens the comparison on the phone → the owner picks → the package is placed and the run starts. | Opus builds, driver writes the skill | done (driver ran the skill for real at reconcile; owner's own first use outstanding) |
-| 6 | Pattern proving ground | Each template gets a small task and one headless run; results, run notes and a short write-up land under `experiments/patterns/` and are shown with the template. | Every shipped template has a recorded run that ended through one of its stops, or an honest note why not. | Driver designs, Opus scripts, owner approves spend | in progress |
+| 6 | Pattern proving ground | Each template gets a small task and one headless run; results, run notes and a short write-up land under `experiments/patterns/` and are shown with the template. | Every shipped template has a recorded run that ended through one of its stops, or an honest note why not. | Driver designs, Opus scripts, owner approves spend | done (sixteen records, $39.58; two published red with their reasons; decision 0009) |
 | 7 | Notes back and run monitor | Import run notes onto the graph; show the run's working copy against the source and adopt or discard amendments; `grooph watch <run>` serves the canvas locally with nodes and loop rounds lit from `notes.jsonl` (no extra model tokens beyond the notes the run already writes; optional hook-written start/stop events). | A finished run's notes and amendments appear on the graph; a running graph can be watched from a browser on the same network. | Opus | done |
 | 8 | Manual authoring extras | Copy/paste, bulk spawn, groups, outline view, installable offline app. | Spec §7 and §16.3 fully demonstrable. | Opus | todo |
 | 9 | Codex target | Codex compile target and profile; slice 0003 (Astra's read-only review) runs first. | Same graph exports to Codex and a fresh Codex session runs it one-shot. | Driver maps, Astra implements | deferred (Codex quota) |
@@ -50,7 +50,8 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0008 | 7 | Runs: notes back, adoption, the monitor | Opus 5 | done 2026-09-19 |
 | 0009 | 6 | Pattern proving ground, first batch of five ($25 cap) | Opus 5 | done 2026-09-19 ($7.01 spent; seven defects found) |
 | 0010 | 6 | Lead brief and template hardening (defects D1–D7, `dispatches` budgets, critics read the repository) | Opus 5 | done 2026-09-20 ($3.80 on two re-proving runs; both pass `--check`) |
-| 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | confirmed 2026-09-20 under the $45.00 cap; in progress |
+| 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | done 2026-09-20 ($28.77; four back edges; two records red) |
+| 0012 | 6 | Brief and runner fixes from batch two (capability amendments reach the agent file, §9 op vocabulary, new-file diffs, per-round reports, dispatches per round) | Opus 5 | todo, handoff to draft |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)
@@ -64,6 +65,10 @@ From review 0004: `E_IRREVERSIBLE_NO_GATE` per the reworded rule; lead-brief §9
 ## Carried into slice 0006 (done)
 
 From review 0005: per-critic `W_HOMOGENEOUS_CRITICS`; `W_NO_TERMINAL` exemption for fragment templates.
+
+## Carried forward from slice 0011
+
+Review 0011, into slice 0012: `allow` amendments edit the agent file's `tools:` line (or become proposals) and `MAPPING.md` lists it as hand-editable; §9 names the op vocabulary; the evidence section says how to diff a new file (`git diff --no-index /dev/null <file>`); the lead keeps per-round critic reports in the run folder; the brief states each loop's dispatches per round. Then, with a raised cap (about $9): re-prove `fresh-grind-rare-judge` and `specialist-critic-bank`. Template observations not acted on: three fast candidates converged on one algorithm in `tournament-then-judge` (a task wanting different approaches should name them); a red team could not break a strong builder with a complete contract.
 
 ## Carried forward from slice 0010
 

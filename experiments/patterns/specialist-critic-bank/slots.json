@@ -1,0 +1,7 @@
+{
+  "name": "Search user files",
+  "values": {
+    "task": "Add `searchFiles(root, query, { within } = {})` to src/store.mjs: it returns, sorted, the names of the files directly under the user's root (or under the subfolder `within` when the request names one) whose text contains `query`. Build on the store's existing helpers, document it in README.md, and add tests to tests/store.test.mjs.",
+    "test-command": "npm test"
+  }
+}

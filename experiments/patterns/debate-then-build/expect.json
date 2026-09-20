@@ -1,0 +1,7 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: both planners and the judge ran as their own subagents and wrote their own case and plan; the builder never ran, because the run halts at the plan gate and this batch gives no gate a scripted answer.",
+  "agents": ["planner-a", "planner-b", "judge"],
+  "reports": { "planner-a": ["CASE-A.md"], "planner-b": ["CASE-B.md"], "judge": ["PLAN.md"] },
+  "notRun": ["builder"],
+  "ending": ["halt at plan-gate"]
+}

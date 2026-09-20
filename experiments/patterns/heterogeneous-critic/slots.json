@@ -1,0 +1,9 @@
+{
+  "about": "The token <held-out> in a slot value or a task file becomes the absolute path of the held-out folder the runner copies beside the scratch project (never into it). Here the checklist in the repository points at the held-out suite; the checklist reaches both the builder (as an input, since slice 0010) and the critic, and tells the builder the suite is not its to read.",
+  "name": "Parse duration",
+  "values": {
+    "task": "Add `parseDuration(text)` to a new file src/duration.mjs, the inverse of `formatSeconds`: it turns a duration such as \"1h30m\", \"45s\" or \"500ms\" into a number of seconds. Units are h, m, s and ms, in that order, each at most once; anything else throws a RangeError, and a non-string throws a TypeError. Tests go in tests/duration.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; the critic judges against it, and it is not yours to read.",
+    "test-command": "npm test",
+    "checklist": "docs/REVIEW-CHECKLIST.md"
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "template": "red-team-loop",
+  "template_version": "red-team-loop@1",
+  "slots": {
+    "values": {
+      "task": "Make `parseCsvLine` in src/csv.mjs honour every line of the contract in README.md for any string input: fields or a CsvError, nothing else, within a second for a 100 KB record. Keep tests/csv.test.mjs green and extend it.",
+      "test-command": "npm test",
+      "attack-surface": "`parseCsvLine` in src/csv.mjs, against the contract in README.md"
+    }
+  },
+  "graph_id": "harden-csv-line",
+  "run_id": "20260920-191614",
+  "run_ids": [
+    "20260920-191614"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.4353984999999996,
+      "output_tokens": 22050
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.7131562499999999,
+      "output_tokens": 9898
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "harden-csv-line--red-team": [
+      "claude-fable-5-1"
+    ],
+    "harden-csv-line--builder": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 2.148555,
+  "harness_turns": 20,
+  "lead_turns": null,
+  "duration_s": 470,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "diminishing-returns",
+    "max-iterations",
+    "budget"
+  ],
+  "ending": [
+    "stop node done"
+  ],
+  "subagents": {
+    "harden-csv-line--red-team": 1,
+    "harden-csv-line--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260920-191614\",\"at\":\"graph\",\"started\":\"2026-09-20T19:16:14Z\",\"text\":\"run started\"}' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-191614\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched, round 0: no traces yet\\\"}\" >> .grooph/harden-csv-line/runs/20260920-191614/notes.jsonl; cat .grooph/harden-csv-line/runs/20260920-191614/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "cat >> .grooph/harden-csv-line/runs/20260920-191614/notes.jsonl <<'EOF'\n{\"id\":\"n-0003\",\"run\":\"20260920-191614\",\"at\":\"node:builder\",\"started\":\"2026-09-20T19:16:37Z\",\"ended\":\"2026-09-20T19:19:12Z\",\"outcome\":\"pass\",\"round\":0,\"evidence\":[\"src/csv.mjs\",\"tests/csv.test.mjs\",\"CHANGES.md\",\"npm test output: 16 pass, 0 fail\"],\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"builder rewrote parseCsvLine as a linear single pass covering every README rule; 16 tests incl. 100 KB timing and fuzz; no traces this round\"}\n{\"id\":\"n-0004\",\"run\":\"20260920-191614\",\"at\":\"node:red-team\",\"started\":\"2026-09-20T19:19:12Z\",\"outcome\":\"started\",\"round\":0,\"text\":\"red-team dispatched via e-builder-red-team, round 0\"}\nEOF"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 18,
+      "session_id": "a9a53d8d-17c2-4d92-a029-d125691e1c66",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 2.148555,
+      "reported_cost_usd": 2.1485547499999997,
+      "max_budget_usd": 6,
+      "harness_turns": 20,
+      "duration_s": 470,
+      "wall_s": 471,
+      "notes_after": 8,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "caf0fb1f7f8fd3c3658450d9a4f05afe150b40bf",
+  "source_sha256_before": "81305c07244abd23b481cc9ab478fdb73248816586d721b3fe0f375671724e2c",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M src/csv.mjs",
+    "M tests/csv.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-red-team-loop-Nv7LJF",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

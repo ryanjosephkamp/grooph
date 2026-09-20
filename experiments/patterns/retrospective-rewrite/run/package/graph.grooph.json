@@ -1,0 +1,140 @@
+{
+  "grooph": 0,
+  "id": "merge-intervals",
+  "name": "Merge intervals",
+  "version": 1,
+  "goal": "Add `mergeIntervals(intervals)` to src/interval.mjs: it returns the sorted, non-overlapping closed integer intervals covering the same integers as the input (so touching and adjacent-integer intervals join), without changing the input. tests/interval.test.mjs already specifies it and fails. Document the function in README.md beside `overlaps`. Done when `npm test` passes, or the loop runs out; either way, end with proposals to improve this graph.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "adaptation": "propose",
+  "lineage": {
+    "pattern": "retrospective-rewrite",
+    "from": "retrospective-rewrite@1"
+  },
+  "description": "The grind-loop shape with adaptation set to propose: the lead changes nothing during the run. When the tests pass, or when the loop stops on its rounds or minutes, a researcher reads the run's notes and progress log and writes proposals for the next version of this graph, each with its evidence and an op-list patch. The human decides after the run.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Make the task true by changing the code, adding tests where they are missing. Do not skip, weaken or delete a test to get a pass. On a later round, start from the failing output you are handed. Report what you changed and which tests now pass.",
+      "inputs": [
+        "the task",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change",
+        "CHANGES.md: what changed this round and why"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "retro",
+      "kind": "agent",
+      "name": "Retrospective",
+      "role": "researcher",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Read this run's notes and progress log and propose changes to the graph for next time: a node to add or drop, a loop or stop that misfired, a brief that no longer fits. Each proposal needs a summary, the evidence from this run, and a patch as a list of grooph ops. Change nothing yourself; the human decides.",
+      "inputs": [
+        "the run's notes",
+        "PROGRESS.md",
+        "the graph"
+      ],
+      "outputs": [
+        "PROPOSALS.md",
+        "one proposal note per proposal in the run's notes"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-retro",
+      "from": "tests",
+      "to": "retro",
+      "when": "pass",
+      "evidence": [
+        "the run's notes",
+        "PROGRESS.md"
+      ]
+    },
+    {
+      "id": "e-retro-done",
+      "from": "retro",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5,
+          "then": "retro"
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30,
+          "then": "retro"
+        }
+      ]
+    }
+  ]
+}

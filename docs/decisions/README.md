@@ -12,3 +12,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0006 | [Web app tooling and editing semantics from slice 0002](0006-web-tooling.md) |
 | 0007 | [Agents are the primary authors; skill + CLI before MCP](0007-agents-are-the-primary-authors.md) |
 | 0008 | [Graphs are adaptive by default; brakes are not](0008-adaptive-by-default.md) |
+| 0009 | [Proving records are evidence](0009-proving-records-are-evidence.md) |

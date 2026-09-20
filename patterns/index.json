@@ -49,7 +49,8 @@
         "task",
         "test-command"
       ],
-      "file": "debate-then-build.grooph.json"
+      "file": "debate-then-build.grooph.json",
+      "demo": "experiments/patterns/debate-then-build/README.md"
     },
     {
       "id": "dual-bar",
@@ -74,7 +75,8 @@
         "ship-line",
         "aspiration"
       ],
-      "file": "dual-bar.grooph.json"
+      "file": "dual-bar.grooph.json",
+      "demo": "experiments/patterns/dual-bar/README.md"
     },
     {
       "id": "fresh-grind-rare-judge",
@@ -99,7 +101,8 @@
         "test-command",
         "phase-checklist"
       ],
-      "file": "fresh-grind-rare-judge.grooph.json"
+      "file": "fresh-grind-rare-judge.grooph.json",
+      "demo": "experiments/patterns/fresh-grind-rare-judge/README.md"
     },
     {
       "id": "grind-loop",
@@ -148,7 +151,8 @@
         "test-command",
         "checklist"
       ],
-      "file": "heterogeneous-critic.grooph.json"
+      "file": "heterogeneous-critic.grooph.json",
+      "demo": "experiments/patterns/heterogeneous-critic/README.md"
     },
     {
       "id": "human-gated-irreversible",
@@ -172,7 +176,8 @@
         "action",
         "irreversible"
       ],
-      "file": "human-gated-irreversible.grooph.json"
+      "file": "human-gated-irreversible.grooph.json",
+      "demo": "experiments/patterns/human-gated-irreversible/README.md"
     },
     {
       "id": "metric-sandwich",
@@ -223,7 +228,8 @@
         "subsystem-a",
         "subsystem-b"
       ],
-      "file": "ownership-not-swarm.grooph.json"
+      "file": "ownership-not-swarm.grooph.json",
+      "demo": "experiments/patterns/ownership-not-swarm/README.md"
     },
     {
       "id": "red-team-loop",
@@ -248,7 +254,8 @@
         "test-command",
         "attack-surface"
       ],
-      "file": "red-team-loop.grooph.json"
+      "file": "red-team-loop.grooph.json",
+      "demo": "experiments/patterns/red-team-loop/README.md"
     },
     {
       "id": "retrospective-rewrite",
@@ -272,7 +279,8 @@
         "task",
         "test-command"
       ],
-      "file": "retrospective-rewrite.grooph.json"
+      "file": "retrospective-rewrite.grooph.json",
+      "demo": "experiments/patterns/retrospective-rewrite/README.md"
     },
     {
       "id": "review-gate",
@@ -346,7 +354,8 @@
         "task",
         "test-command"
       ],
-      "file": "specialist-critic-bank.grooph.json"
+      "file": "specialist-critic-bank.grooph.json",
+      "demo": "experiments/patterns/specialist-critic-bank/README.md"
     },
     {
       "id": "taste-polish",
@@ -371,7 +380,8 @@
         "reference",
         "capture-command"
       ],
-      "file": "taste-polish.grooph.json"
+      "file": "taste-polish.grooph.json",
+      "demo": "experiments/patterns/taste-polish/README.md"
     },
     {
       "id": "tournament-then-judge",
@@ -395,7 +405,8 @@
         "test-command",
         "criteria"
       ],
-      "file": "tournament-then-judge.grooph.json"
+      "file": "tournament-then-judge.grooph.json",
+      "demo": "experiments/patterns/tournament-then-judge/README.md"
     }
   ]
 }

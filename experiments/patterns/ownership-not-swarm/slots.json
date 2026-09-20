@@ -1,0 +1,9 @@
+{
+  "name": "Tag notes",
+  "values": {
+    "task": "Add tags to notes as README.md § \"The change\" describes: tag storage and lookup in the store, the two tag routes in the API, a text-table renderer and a CSV exporter that take plain notes, and `createApp()` in src/index.mjs wiring them, so that tests/app.test.mjs passes.",
+    "test-command": "npm test",
+    "subsystem-a": "src/db/",
+    "subsystem-b": "src/api/"
+  }
+}

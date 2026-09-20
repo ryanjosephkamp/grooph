@@ -1,0 +1,708 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..dee6ff3
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,31 @@
++# Changes
++
++## Moved
++
++- `candidates/b/diff.mjs` -> `src/diff.mjs`, the final implementation's place
++  per `README.md`. It is self-contained (no imports) and exports `diffLines`.
++  `candidates/a`, `candidates/b` and `candidates/c` are untouched.
++
++## Changed from `candidates/b`
++
++- Removed the dead `max === 0` guard in `shortestEditTrace` (was
++  `candidates/b/diff.mjs:39-42`). `diffLines` already returns `[]` for two
++  empty inputs before calling `shortestEditTrace`, so the branch could never
++  run. Behaviour is unchanged.
++- Made that dependency explicit instead of implicit: the `shortestEditTrace`
++  doc comment now states it requires at least one non-empty input (so
++  `max >= 1`), and the both-empty early return in `diffLines` notes that it is
++  what provides that guarantee.
++- Everything else (validation, the forward trace, the backtrack, the
++  defensive `slice()` copies) is as in `candidates/b`.
++
++## Borrowed from `candidates/a`
++
++- The explicit statement of memory cost. `candidates/b` documented only the
++  O((N+M)·D) time bound; the header comment in `src/diff.mjs` now also states
++  the O((N+M)·D) space bound, explains where it comes from (one full
++  `Int32Array` frontier snapshot per edit distance, kept for the backtrack),
++  and gives the practical consequence (hundreds of megabytes for two unrelated
++  inputs of a few thousand lines; negligible for the usual small-D review
++  case). This was the one idea PICK.md flagged as worth borrowing, and it fits
++  as a comment-only addition with no code change.
+diff --git a/PICK.md b/PICK.md
+new file mode 100644
+index 0000000..198114f
+--- /dev/null
++++ b/PICK.md
+@@ -0,0 +1,94 @@
++# Pick
++
++**Winner: `candidates/b`**
++
++All three finalists pass the filter (40/40, `.grooph/line-diff/runs/20260920-190434/filter-output.txt:45-48`)
++and all three implement the same Myers O((N+M)·D) forward-trace / backtrack
++algorithm (`a/diff.mjs:34-103`, `b/diff.mjs:27-105`, `c/diff.mjs:19-85`). The
++choice therefore comes down to the three stated criteria.
++
++## Reads most clearly at its size
++
++- **b (122 lines)**: the two non-obvious pieces of Myers are each explained at
++  the point they matter: why `offset = max + 1` (`b/diff.mjs:31-35`) and which
++  direction each branch of the frontier step moves (`b/diff.mjs:49`, `:51`).
++  The header comment explains the algorithm against the LCS table it replaces
++  (`b/diff.mjs:3-9`). One wart: the `max === 0` guard at `b/diff.mjs:39-42` is
++  dead code, because `diffLines` already returns `[]` for two empty inputs at
++  `b/diff.mjs:117` before calling `shortestEditTrace`.
++- **a (120 lines)**: equally clean structure and a good header comment
++  (`a/diff.mjs:1-17`), but the frontier step (`a/diff.mjs:46-50`) is
++  uncommented, and `offset = max` (`a/diff.mjs:38`) is only in-bounds because
++  the empty-side cases are peeled off first at `a/diff.mjs:113-115`; that
++  dependency is not stated.
++- **c (108 lines)**: shortest, but the hardest to follow. The frontier is a
++  `Map` copied every step (`c/diff.mjs:23`, `:28`), `?? 0` is applied
++  inconsistently (present at `:32`, `:34`, `:62`, `:67`; absent at `:31`, which
++  only works because `undefined < 0` is `false`), `trace[d] = v` at `:43` is a
++  no-op assignment with a comment that suggests otherwise, and the backtrack is
++  a generator yielding index tuples with `-1` sentinels (`:71`, `:77`, `:79`)
++  that a second pass then maps back to lines (`:102-106`). That indirection
++  buys nothing over emitting `{ op, line }` directly as a and b do.
++
++## Stays fast on inputs of a few thousand lines
++
++- **b**: one `Int32Array` snapshot per edit distance (`b/diff.mjs:36`, `:45`),
++  so per-step cost is a typed-array memcpy. APPROACH reports measured figures:
++  about 1 ms for a 4,000-line input with a handful of edits and about 200 ms
++  for two unrelated 4,000-line inputs (`b/APPROACH.md:9-12`).
++- **a**: same shape but with a plain `Array` snapshot per step
++  (`a/diff.mjs:39`, `:43`), so the worst case holds the same number of slots at
++  a larger per-element size. No measurement is given (`a/APPROACH.md:12-19`
++  estimates only).
++- **c**: `new Map(v)` per step (`c/diff.mjs:28`) gives O(D²) frontier memory
++  but slow constants; c's own APPROACH reports roughly 2.7 seconds for two
++  disjoint 3,000-line inputs (`c/APPROACH.md:13-15`). That is inside "a few
++  thousand lines" and is more than ten times b's measured worst case. The
++  filter's small "long unrelated inputs" case points the same way: c 1.31 ms
++  (`filter-output.txt:41`) versus a 0.66 ms (`:15`) and b 0.79 ms (`:28`).
++
++## APPROACH.md explained honestly
++
++- **b**: states the algorithm, gives measured numbers for both the easy and
++  the worst-case shape, and admits the cost of the choice: "at the price of
++  being a less obvious algorithm to read and verify" (`b/APPROACH.md:14-15`).
++  Omission: it does not mention that the trace holds an (N+M)-slot snapshot per
++  edit distance, i.e. O((N+M)·D) memory.
++- **a**: honest about the O((N+M)²) worst case and about not special-casing it
++  (`a/APPROACH.md:16-22`), but the performance claim is an unmeasured estimate
++  ("on the order of tens of millions of array operations", `a/APPROACH.md:17-18`)
++  that counts only the inner loop and not the per-step `v.slice()` copy.
++- **c**: honest, including the unflattering 2.7 s worst case
++  (`c/APPROACH.md:13-15`) and a correct statement of its D² memory
++  (`c/APPROACH.md:10-11`). The honesty is a credit; the number it reports is
++  what disqualifies it on the speed criterion.
++
++## A smaller change beats a more general one
++
++None of the three is more general than the others: same contract, same
++algorithm, no extra options or exports. Sizes are within 14 lines of each
++other. This criterion does not separate a from b; it counts slightly against
++c only in the sense that its extra machinery (generator, sentinel remap, Map
++frontier) is more mechanism for the same result, not less.
++
++## Verdict
++
++`candidates/b`: clearest at the two points where Myers is genuinely tricky,
++the fastest worst case at the few-thousand-line scale with numbers to back
++it, and the most candid APPROACH. `candidates/a` is a close second and would
++be an acceptable pick; `candidates/c` is ruled out by its own worst-case
++measurement and by the readability cost of its indirection.
++
++## One idea worth borrowing (from `candidates/a`)
++
++State the memory cost, not just the time cost. a's header says the algorithm
++is "O((N+M)D) time and space" (`a/diff.mjs:11`) and its APPROACH repeats the
++tradeoff (`a/APPROACH.md:12-22`). b keeps one full `Int32Array` snapshot per
++edit distance (`b/diff.mjs:45`) and never says so in code or in
++`b/APPROACH.md`. For two unrelated inputs of a few thousand lines that is
++hundreds of megabytes; a one-line note in b's header comment and APPROACH
++would make its performance story complete.
++
++Secondary, not a borrow but a trim the lead may want to route: the dead
++`max === 0` branch at `b/diff.mjs:39-42` can be removed without changing
++behaviour, since `b/diff.mjs:117` already handles that case.
+diff --git a/candidates/a/APPROACH.md b/candidates/a/APPROACH.md
+new file mode 100644
+index 0000000..c239375
+--- /dev/null
++++ b/candidates/a/APPROACH.md
+@@ -0,0 +1,22 @@
++# Approach
++
++`diffLines` implements the Myers O(ND) shortest-edit-script algorithm directly
++(no library), where D is the number of `-`/`+` entries in the final script:
++it walks a forward "frontier" of furthest-reaching diagonals for each edit
++distance `d`, recording each frontier, then backtracks from `(n, m)` to
++`(0, 0)` through the recorded frontiers to recover the actual sequence of
++matches, deletions and insertions, which is reversed into the final script.
++Inputs are validated up front (`TypeError` for anything that isn't an
++array of strings) and copied with `.slice()` before use so the originals are
++never mutated; empty-input cases are special-cased for clarity and speed.
++Performance is input-shape dependent: because cost is O((N+M)\*D), diffs of a
++few thousand mostly-similar lines (the realistic case for a review tool,
++e.g. a few edits scattered through 3-5k lines) run in well under a second
++since D stays small (tens to hundreds of edits), whereas two totally
++unrelated inputs of a few thousand lines each (D close to N+M) push the
++algorithm toward its O((N+M)^2) worst case -- still on the order of tens of
++millions of array operations, which is a noticeable but tolerable fraction
++of a second in Node, not a hang. No attempt was made to special-case that
++worst case (e.g. via Hirschberg space-halving or a heuristic diagonal cutoff)
++since the contract only asks for correctness and minimality, not a bound on
++pathological inputs.
+diff --git a/candidates/a/diff.mjs b/candidates/a/diff.mjs
+new file mode 100644
+index 0000000..506d4f6
+--- /dev/null
++++ b/candidates/a/diff.mjs
+@@ -0,0 +1,119 @@
++// Line diff via the Myers O(ND) shortest-edit-script algorithm.
++//
++// The algorithm walks an edit graph where the x axis is `before` and the y
++// axis is `after`; a "snake" of diagonal moves means a `=` (matched line),
++// a horizontal move means a `-` (a `before` line consumed with no match),
++// and a vertical move means a `+` (an `after` line produced with no match).
++// It finds the shortest path from (0,0) to (n,m), which is exactly the
++// minimal edit script the contract asks for (fewest `-`/`+`, i.e. the
++// longest common subsequence is kept as `=`).
++//
++// Complexity is O((N+M)D) time and space, where D is the size of the edit
++// (the number of `-`/`+` entries). For inputs that are mostly similar --
++// the common case for a line-review diff -- D is small even when N and M
++// are in the thousands, so this stays fast in practice. The worst case is
++// two completely unrelated inputs (D close to N+M), which degrades toward
++// O((N+M)^2); a few thousand unrelated lines is still fine (single-digit
++// millions of cells), just no longer near-linear.
++
++function assertStringArray(value, name) {
++  if (!Array.isArray(value)) {
++    throw new TypeError(`${name} must be an array of strings`);
++  }
++  for (const item of value) {
++    if (typeof item !== "string") {
++      throw new TypeError(`${name} must be an array of strings`);
++    }
++  }
++}
++
++/**
++ * Run the Myers algorithm forward, recording the frontier `v` at each edit
++ * distance `d` so we can walk it backwards afterwards to recover the path.
++ */
++function buildTrace(a, b) {
++  const n = a.length;
++  const m = b.length;
++  const max = n + m;
++  const offset = max;
++  const v = new Array(2 * max + 1).fill(0);
++  const trace = [];
++
++  for (let d = 0; d <= max; d += 1) {
++    trace.push(v.slice());
++    for (let k = -d; k <= d; k += 2) {
++      let x;
++      if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
++        x = v[offset + k + 1];
++      } else {
++        x = v[offset + k - 1] + 1;
++      }
++      let y = x - k;
++      while (x < n && y < m && a[x] === b[y]) {
++        x += 1;
++        y += 1;
++      }
++      v[offset + k] = x;
++      if (x >= n && y >= m) {
++        return { trace, offset };
++      }
++    }
++  }
++  // Unreachable: the loop above always terminates once x reaches (n, m).
++  return { trace, offset };
++}
++
++/** Walk the recorded frontiers backwards from (n, m) to (0, 0), emitting ops. */
++function backtrack(a, b, trace, offset) {
++  let x = a.length;
++  let y = b.length;
++  const ops = [];
++
++  for (let d = trace.length - 1; d >= 0; d -= 1) {
++    const v = trace[d];
++    const k = x - y;
++    let prevK;
++    if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
++      prevK = k + 1;
++    } else {
++      prevK = k - 1;
++    }
++    const prevX = v[offset + prevK];
++    const prevY = prevX - prevK;
++
++    while (x > prevX && y > prevY) {
++      ops.push({ op: "=", line: a[x - 1] });
++      x -= 1;
++      y -= 1;
++    }
++
++    if (d > 0) {
++      if (x === prevX) {
++        ops.push({ op: "+", line: b[y - 1] });
++        y -= 1;
++      } else {
++        ops.push({ op: "-", line: a[x - 1] });
++        x -= 1;
++      }
++    }
++  }
++
++  ops.reverse();
++  return ops;
++}
++
++export function diffLines(before, after) {
++  assertStringArray(before, "before");
++  assertStringArray(after, "after");
++
++  // Defensive copies so we never touch the caller's arrays.
++  const a = before.slice();
++  const b = after.slice();
++
++  if (a.length === 0 && b.length === 0) return [];
++  if (a.length === 0) return b.map((line) => ({ op: "+", line }));
++  if (b.length === 0) return a.map((line) => ({ op: "-", line }));
++
++  const { trace, offset } = buildTrace(a, b);
++  return backtrack(a, b, trace, offset);
++}
+diff --git a/candidates/b/APPROACH.md b/candidates/b/APPROACH.md
+new file mode 100644
+index 0000000..078ecdf
+--- /dev/null
++++ b/candidates/b/APPROACH.md
+@@ -0,0 +1,15 @@
++# Approach
++
++Instead of the textbook N×M longest-common-subsequence table, this implementation walks Myers'
++edit graph directly: for each candidate edit distance D = 0, 1, 2, ... it tracks, per diagonal
++k = x − y, the furthest x reachable using exactly D insertions/deletions, extending each point
++through a free "snake" of matching lines; the first D whose frontier reaches the bottom-right
++corner is the minimal edit count, and the script is recovered by re-walking the recorded
++per-D frontiers backwards. This is Myers' classic O((N+M)·D) algorithm, so its running time is
++governed by how different the two inputs are (D), not just their size. Measured locally on
++4,000-line inputs: a version with only a handful of real edits (a couple of insertions plus a
++small deletion scattered through an otherwise-identical file) diffs in about 1ms, while two
++completely unrelated 4,000-line files (D = N+M = 8000, the worst case) take roughly 200ms — still
++comfortably fast, but scaling closer to O((N+M)²) when nothing lines up. For the common
++code-review case (large files, small diffs) this is meaningfully faster than the fixed-cost DP
++table, at the price of being a less obvious algorithm to read and verify.
+diff --git a/candidates/b/diff.mjs b/candidates/b/diff.mjs
+new file mode 100644
+index 0000000..36e395a
+--- /dev/null
++++ b/candidates/b/diff.mjs
+@@ -0,0 +1,121 @@
++// diffLines(before, after) — Myers O((N+M)·D) shortest-edit-script diff.
++//
++// Rather than building the classic N×M longest-common-subsequence table (an
++// O(N·M) time and space approach), this walks Myers' edit graph: for each
++// number of edits D = 0, 1, 2, ... it tracks the furthest-reaching x
++// coordinate reachable on every diagonal k = x − y, extending each candidate
++// point through a "snake" of equal lines for free. The first D for which some
++// diagonal reaches the bottom-right corner is the minimal edit count, and the
++// script is recovered by walking the recorded per-D frontiers backwards.
++
++/** Validate that `value` is an array of strings, else throw TypeError. */
++function assertStringArray(value, name) {
++  if (!Array.isArray(value)) {
++    throw new TypeError(`${name} must be an array of strings`);
++  }
++  for (const item of value) {
++    if (typeof item !== "string") {
++      throw new TypeError(`${name} must be an array of strings`);
++    }
++  }
++}
++
++/**
++ * Run Myers' greedy algorithm and return the list of frontier snapshots
++ * (one Int32Array per edit-distance D), the last of which reaches the end.
++ */
++function shortestEditTrace(a, b) {
++  const n = a.length;
++  const m = b.length;
++  const max = n + m;
++  // Offset so that diagonal k (which ranges over -max..max) maps to a
++  // non-negative index; one extra slot on each side avoids bounds checks
++  // for the D === 0 base case, which conceptually reads a "k = 1" frontier
++  // that was never explicitly written.
++  const offset = max + 1;
++  const v = new Int32Array(2 * offset + 1);
++  const trace = [];
++
++  if (max === 0) {
++    trace.push(v.slice());
++    return { trace, offset };
++  }
++
++  for (let d = 0; d <= max; d += 1) {
++    trace.push(v.slice());
++    for (let k = -d; k <= d; k += 2) {
++      let x;
++      if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
++        x = v[offset + k + 1]; // move down (insertion from `after`)
++      } else {
++        x = v[offset + k - 1] + 1; // move right (deletion from `before`)
++      }
++      let y = x - k;
++      while (x < n && y < m && a[x] === b[y]) {
++        x += 1;
++        y += 1;
++      }
++      v[offset + k] = x;
++      if (x >= n && y >= m) {
++        return { trace, offset };
++      }
++    }
++  }
++  // Unreachable: d = max always finds the corner.
++  return { trace, offset };
++}
++
++/** Walk the recorded frontiers backwards to recover the edit script. */
++function backtrack(trace, offset, a, b) {
++  const script = [];
++  let x = a.length;
++  let y = b.length;
++
++  for (let d = trace.length - 1; d >= 0; d -= 1) {
++    const v = trace[d];
++    const k = x - y;
++    let prevK;
++    if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
++      prevK = k + 1;
++    } else {
++      prevK = k - 1;
++    }
++    const prevX = v[offset + prevK];
++    const prevY = prevX - prevK;
++
++    while (x > prevX && y > prevY) {
++      script.push({ op: "=", line: a[x - 1] });
++      x -= 1;
++      y -= 1;
++    }
++
++    if (d > 0) {
++      if (x === prevX) {
++        script.push({ op: "+", line: b[y - 1] });
++        y -= 1;
++      } else {
++        script.push({ op: "-", line: a[x - 1] });
++        x -= 1;
++      }
++    }
++  }
++
++  script.reverse();
++  return script;
++}
++
++export function diffLines(before, after) {
++  assertStringArray(before, "before");
++  assertStringArray(after, "after");
++
++  // Work against local copies so nothing we do can ever be observed as a
++  // mutation of the caller's arrays (we don't mutate them anyway, but this
++  // keeps the contract robust even if that changes later).
++  const a = before.slice();
++  const b = after.slice();
++
++  if (a.length === 0 && b.length === 0) return [];
++
++  const { trace, offset } = shortestEditTrace(a, b);
++  return backtrack(trace, offset, a, b);
++}
+diff --git a/candidates/c/APPROACH.md b/candidates/c/APPROACH.md
+new file mode 100644
+index 0000000..82d9916
+--- /dev/null
++++ b/candidates/c/APPROACH.md
+@@ -0,0 +1,19 @@
++# Approach
++
++Instead of the textbook O(n·m) dynamic-programming LCS table, this implementation uses
++Myers' O(N·D) shortest-edit-script algorithm (N = |before| + |after|, D = the size of the
++diff itself, i.e. the number of `-`/`+` entries in the minimal script), tracing the
++edit graph's frontier at each edit distance and then walking that trace backwards to
++recover the actual sequence of "=", "-", and "+" moves. The payoff is that cost tracks
++how *different* the two inputs are rather than how *big* they are: for a review-tool
++workload where `before` and `after` are usually near-identical (a few lines changed in a
++file of thousands), this stays fast and only allocates memory proportional to D², not to
++n·m. On a synthetic test of two 5,000-line arrays differing by one insertion and one
++changed line, the diff computes in about 2ms. The tradeoff shows up on inputs that are
++almost entirely unrelated (D close to n + m): a worst-case test with two disjoint
++3,000-line arrays (no shared lines at all) took roughly 2.7 seconds, since the trace and
++backtrack there degrade toward the same O(n·m) cost the naive table has everywhere. So
++this approach is a good bet specifically for the "small diff against a large file"
++shape the README's use case implies, at the cost of being no better (and with some
++constant-factor overhead) than the straightforward table approach for pathological,
++almost-entirely-different inputs.
+diff --git a/candidates/c/diff.mjs b/candidates/c/diff.mjs
+new file mode 100644
+index 0000000..d4f46e2
+--- /dev/null
++++ b/candidates/c/diff.mjs
+@@ -0,0 +1,107 @@
++// Line diff via the Myers O(ND) shortest-edit-script algorithm.
++//
++// Unlike the textbook O(n*m) LCS table, this walks "diagonals" of a virtual
++// edit graph and only does as much work as the *size of the diff* (D)
++// requires: two inputs that mostly agree are cheap to diff even when they are
++// individually huge, because D stays small no matter how large n and m are.
++// Only inputs that are almost entirely different (D close to n + m) approach
++// the O(n*m) cost of the naive table.
++
++function assertLineArray(value, name) {
++  if (!Array.isArray(value) || !value.every((line) => typeof line === "string")) {
++    throw new TypeError(`${name} must be an array of strings`);
++  }
++}
++
++// Runs Myers' algorithm forward, recording the frontier `v` at every edit
++// distance `d` so we can walk it backwards afterward to recover the actual
++// path (this is the standard "trace" trick from Myers' paper).
++function buildTrace(a, b) {
++  const n = a.length;
++  const m = b.length;
++  const max = n + m;
++  let v = new Map([[1, 0]]);
++  const trace = [];
++
++  for (let d = 0; d <= max; d += 1) {
++    trace.push(v);
++    const nextV = new Map(v);
++    for (let k = -d; k <= d; k += 2) {
++      let x;
++      if (k === -d || (k !== d && v.get(k - 1) < v.get(k + 1))) {
++        x = v.get(k + 1) ?? 0;
++      } else {
++        x = (v.get(k - 1) ?? 0) + 1;
++      }
++      let y = x - k;
++      while (x < n && y < m && a[x] === b[y]) {
++        x += 1;
++        y += 1;
++      }
++      nextV.set(k, x);
++      if (x >= n && y >= m) {
++        trace[d] = v; // keep the frontier that produced this d, as recorded
++        return trace;
++      }
++    }
++    v = nextV;
++  }
++  return trace; // n === m === 0 falls through here with trace = [Map([[1, 0]])]
++}
++
++// Walks the recorded trace backwards from (n, m) to (0, 0), yielding
++// snake/edit segments in reverse order.
++function* walkBack(a, b, trace) {
++  let x = a.length;
++  let y = b.length;
++
++  for (let d = trace.length - 1; d >= 0 && (x > 0 || y > 0); d -= 1) {
++    const v = trace[d];
++    const k = x - y;
++    let prevK;
++    if (k === -d || (k !== d && (v.get(k - 1) ?? 0) < (v.get(k + 1) ?? 0))) {
++      prevK = k + 1;
++    } else {
++      prevK = k - 1;
++    }
++    const prevX = v.get(prevK) ?? 0;
++    const prevY = prevX - prevK;
++
++    while (x > prevX && y > prevY) {
++      yield { op: "=", ax: x - 1, bx: y - 1 };
++      x -= 1;
++      y -= 1;
++    }
++    if (d > 0) {
++      if (x === prevX) {
++        yield { op: "+", ax: -1, bx: prevY };
++      } else {
++        yield { op: "-", ax: prevX, bx: -1 };
++      }
++    }
++    x = prevX;
++    y = prevY;
++  }
++}
++
++export function diffLines(before, after) {
++  assertLineArray(before, "before");
++  assertLineArray(after, "after");
++
++  // Work on private copies so nothing we do here can leak back to the
++  // caller's arrays, even though this implementation never writes to them.
++  const a = before.slice();
++  const b = after.slice();
++
++  if (a.length === 0 && b.length === 0) return [];
++
++  const trace = buildTrace(a, b);
++  const steps = [...walkBack(a, b, trace)];
++  steps.reverse();
++
++  return steps.map((step) => {
++    if (step.op === "=") return { op: "=", line: a[step.ax] };
++    if (step.op === "-") return { op: "-", line: a[step.ax] };
++    return { op: "+", line: b[step.bx] };
++  });
++}
+diff --git a/src/diff.mjs b/src/diff.mjs
+new file mode 100644
+index 0000000..328a264
+--- /dev/null
++++ b/src/diff.mjs
+@@ -0,0 +1,126 @@
++// diffLines(before, after) — Myers O((N+M)·D) shortest-edit-script diff.
++//
++// Rather than building the classic N×M longest-common-subsequence table (an
++// O(N·M) time and space approach), this walks Myers' edit graph: for each
++// number of edits D = 0, 1, 2, ... it tracks the furthest-reaching x
++// coordinate reachable on every diagonal k = x − y, extending each candidate
++// point through a "snake" of equal lines for free. The first D for which some
++// diagonal reaches the bottom-right corner is the minimal edit count, and the
++// script is recovered by walking the recorded per-D frontiers backwards.
++//
++// Cost: O((N+M)·D) time and O((N+M)·D) space. The space comes from keeping
++// one full (2·(N+M)+3)-slot Int32Array frontier snapshot per edit distance so
++// the backtrack can replay them; for two unrelated inputs of a few thousand
++// lines (D = N+M) that is on the order of hundreds of megabytes. For the
++// usual review case (large files, small D) it is negligible.
++
++/** Validate that `value` is an array of strings, else throw TypeError. */
++function assertStringArray(value, name) {
++  if (!Array.isArray(value)) {
++    throw new TypeError(`${name} must be an array of strings`);
++  }
++  for (const item of value) {
++    if (typeof item !== "string") {
++      throw new TypeError(`${name} must be an array of strings`);
++    }
++  }
++}
++
++/**
++ * Run Myers' greedy algorithm and return the list of frontier snapshots
++ * (one Int32Array per edit-distance D), the last of which reaches the end.
++ * Requires at least one of `a`, `b` to be non-empty (the caller handles the
++ * both-empty case), so `max >= 1` and the loop below always runs.
++ */
++function shortestEditTrace(a, b) {
++  const n = a.length;
++  const m = b.length;
++  const max = n + m;
++  // Offset so that diagonal k (which ranges over -max..max) maps to a
++  // non-negative index; one extra slot on each side avoids bounds checks
++  // for the D === 0 base case, which conceptually reads a "k = 1" frontier
++  // that was never explicitly written.
++  const offset = max + 1;
++  const v = new Int32Array(2 * offset + 1);
++  const trace = [];
++
++  for (let d = 0; d <= max; d += 1) {
++    trace.push(v.slice());
++    for (let k = -d; k <= d; k += 2) {
++      let x;
++      if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
++        x = v[offset + k + 1]; // move down (insertion from `after`)
++      } else {
++        x = v[offset + k - 1] + 1; // move right (deletion from `before`)
++      }
++      let y = x - k;
++      while (x < n && y < m && a[x] === b[y]) {
++        x += 1;
++        y += 1;
++      }
++      v[offset + k] = x;
++      if (x >= n && y >= m) {
++        return { trace, offset };
++      }
++    }
++  }
++  // Unreachable: d = max always finds the corner.
++  return { trace, offset };
++}
++
++/** Walk the recorded frontiers backwards to recover the edit script. */
++function backtrack(trace, offset, a, b) {
++  const script = [];
++  let x = a.length;
++  let y = b.length;
++
++  for (let d = trace.length - 1; d >= 0; d -= 1) {
++    const v = trace[d];
++    const k = x - y;
++    let prevK;
++    if (k === -d || (k !== d && v[offset + k - 1] < v[offset + k + 1])) {
++      prevK = k + 1;
++    } else {
++      prevK = k - 1;
++    }
++    const prevX = v[offset + prevK];
++    const prevY = prevX - prevK;
++
++    while (x > prevX && y > prevY) {
++      script.push({ op: "=", line: a[x - 1] });
++      x -= 1;
++      y -= 1;
++    }
++
++    if (d > 0) {
++      if (x === prevX) {
++        script.push({ op: "+", line: b[y - 1] });
++        y -= 1;
++      } else {
++        script.push({ op: "-", line: a[x - 1] });
++        x -= 1;
++      }
++    }
++  }
++
++  script.reverse();
++  return script;
++}
++
++export function diffLines(before, after) {
++  assertStringArray(before, "before");
++  assertStringArray(after, "after");
++
++  // Work against local copies so nothing we do can ever be observed as a
++  // mutation of the caller's arrays (we don't mutate them anyway, but this
++  // keeps the contract robust even if that changes later).
++  const a = before.slice();
++  const b = after.slice();
++
++  // Both empty: nothing to diff. This is also what lets shortestEditTrace
++  // assume max >= 1.
++  if (a.length === 0 && b.length === 0) return [];
++
++  const { trace, offset } = shortestEditTrace(a, b);
++  return backtrack(trace, offset, a, b);
++}

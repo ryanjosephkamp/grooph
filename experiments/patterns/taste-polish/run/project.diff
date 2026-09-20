@@ -1,0 +1,318 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..41e8fc1
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,78 @@
++# Changes
++
++## Round 1 — closing the round-0 gaps
++
++All five gaps in GAPS.md are closed this round, in rank order. Nothing the
++critic confirmed as matching was touched: bar heights are still computed from
++the data against the gridline scale, months are still named and centred at
++12px in calendar order, the single accent `#2f6db5` and the neutral greys are
++unchanged, gridlines are still `#d9d9d9` with a `#444444` baseline at zero,
++and there is still no legend, frame, gradient or shadow.
++
++### Gap 1 (major) — peak month called out: closed
++
++One label, `142.3k`, centred over the October bar (x-centre 504.5) with its
++baseline 6px above the bar's top edge (bar top y=93, label y=87), 12px,
++semi-bold, `#222222` (the title tone). It is the same compact form as the tick
++labels. The month and value are computed from the data (`indexOf(max)`), not
++hard-coded, so the callout follows the data if it changes. There is exactly one
++value label on the chart.
++
++### Gap 2 (minor) — 20k scale steps: closed
++
++The nice-step routine now targets about eight rules instead of four, which on
++this data gives ticks every 20k from 0 to 160k: nine rules counting the
++baseline, each labelled `0`, `20k` ... `160k` at 11px. The top rule (160k,
++y=60.5) sits just above the tallest bar (y=93); the baseline stays darker.
++
++### Gap 3 (minor) — title hierarchy: closed
++
++Title is now `Monthly revenue, 2025` at 18px semi-bold `#222222`, top-left,
++aligned with the plot's left edge (x=64). Directly under it, a 12px muted-grey
++(`#777777`) subtitle `USD, thousands` names both the unit and the scale the
++ticks are in. `(USD)` no longer appears in the title. The top margin grew from
++56 to 60 to give the subtitle room above the 160k rule.
++
++### Gap 4 (minor) — bar gap about a third of a bar: closed
++
++Bars are 35px wide with a 12px gap (0.34 of a bar, pitch 47). The first bar
++starts at the plot's left edge (x=64) and the last ends at its right edge
++(x=616). Month labels are centred under each bar.
++
++### Gap 5 (minor) — explicit white background: closed
++
++A full-canvas `<rect fill="#ffffff">` is now the first element in the SVG.
++
++### Checks
++
++- No overlaps: the peak label (y 78-87) is clear of the 160k rule (60.5) and
++  the 140k rule (97.5); the subtitle (bottom y=47, starting x=64) is clear of
++  the 160k tick label (y 56-64, ending x=54).
++- Nothing within 24px of the canvas edge except the left tick labels, which
++  start around x=32.
++- `npm test` passes (2/2). `npm run capture` written to `captures/chart.svg`
++  (sha256 c36670939a4d) and `captures/CAPTURE.md`.
++
++Left on purpose: nothing. All ranked gaps were closed.
++
++## Round 0 — first pass against STYLE.md
++
++Rewrote `src/chart.mjs`. The starting chart was twelve black bars filling the
++whole 600x300 canvas with no title, no scale, no month names, white numerals
++painted inside the bars, and raw values drawn above each bar so the tallest
++bar's label sat on the top edge. Every item in STYLE.md was missing.
++
++What changed, and the brief line it answers:
++
++- **Title with unit** — `Monthly revenue, 2025 (USD)` at 16px, top-left,
++  aligned to the plot's left edge.
++- **Twelve named bars in order** — bars are 62% of each month's slot with the
++  month abbreviation centred beneath each one at 12px.
++- **Usable scale** — horizontal gridlines at 50k, 100k, 150k with compact
++  labels and a darker 1px baseline at zero, snapped to half-pixels.
++- **One accent, neutral greys** — bars `#2f6db5`; title `#222`, labels `#555`,
++  gridlines `#d9d9d9`, baseline `#444`. No legend, border, gradients or
++  effects.
++- **Margins and legibility** — 640x400 canvas with 56/24/44/64 margins.
++- **Exactness** — bar heights from the data; per-bar callouts removed.
++- Added `role="img"` and an `aria-label`; escaped text.
+diff --git a/GAPS.md b/GAPS.md
+new file mode 100644
+index 0000000..763131d
+--- /dev/null
++++ b/GAPS.md
+@@ -0,0 +1,46 @@
++# Gaps — round 1 (capture sha256 c36670939a4d)
++
++Judged against the report's reference chart. Ranked most important first.
++No gap below is major; all six things that matter (hierarchy, usable scale,
++month names, one accent colour, spacing, exactness) are met in this revision.
++
++## 1. Month labels are one step too large for tick text — minor
++
++- Where: captures/chart.svg:1, every month `<text ... font-size="12" fill="#555555">` at y=376
++  (CAPTURE.md:23-34 lists them all at 12px).
++- Why it matters: month labels are axis ticks, and they now sit at the same
++  size as the unit line ("USD, thousands", 12px) while the y-axis ticks are
++  11px. Tick text on both axes should be the same size and a step below the
++  subtitle so the eye goes title, bars, scale.
++- Closing it: set the month labels to 11px, same as the y-axis tick labels.
++  Keep them centred under their bars at the same y.
++
++## 2. Peak callout is larger than the tick text it sits among — minor
++
++- Where: captures/chart.svg:1, `<text x="504.5" y="87" ... font-size="12" font-weight="600" ...>142.3k</text>`
++  (CAPTURE.md:35).
++- Why it matters: the callout should read as an annotation on the scale,
++  not as a second subtitle. At 12px semi-bold it matches the subtitle line's
++  size; at tick size it stays subordinate to the title.
++- Closing it: render the callout at 11px, keep the semi-bold weight and the
++  dark title colour, keep it centred over the October bar with the same
++  6px clearance above the bar top (bar top y=93, label baseline y=87 is fine).
++
++## Verified as satisfied (no action)
++
++- Title 18px/600 dark grey top-left, 12px muted unit line under it
++  (chart.svg:1, CAPTURE.md:12-13).
++- Gridlines every 20k, labelled `0`…`160k` in compact form, light grey
++  lines, darker baseline at zero, scale starts at zero, top gridline (160k)
++  is the first round step above the 142.3k peak (chart.svg:1, CAPTURE.md:14-22).
++- Months by name in calendar order, each centred at bar x + 17.5 (chart.svg:1).
++- One accent `#2f6db5`, greys for text/lines, white background, no legend,
++  frame, gradient or shadow (CAPTURE.md:6-7).
++- Bars 35px wide with 12px gaps (about a third), plot spans x 64–616 of 640,
++  callout spans roughly x 484–525 and clears Sep (top y=112) and Nov (top
++  y=118); no text overlaps or runs off the edge (chart.svg:1).
++- Values map to the scale: at 1.85 px per k, Oct 263px = 142.2k, called out
++  as `142.3k`; all twelve bars agree with the reference within integer-pixel
++  rounding (chart.svg:1).
++
++verdict: pass
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..4e9b9f7
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,35 @@
++# Capture of the current revision
++
++- rendered at 2026-09-20T19:50:44.049Z from src/chart.mjs, sha256 c36670939a4d
++- file: captures/chart.svg, 5098 bytes, 640 × 400
++- elements: 13 rect, 9 line, 24 text, 0 path, 0 g
++- fills used: #ffffff, #222222, #777777, #555555, #2f6db5
++- strokes used: #d9d9d9, #444444
++- font families: Helvetica Neue, Helvetica, Arial, sans-serif
++
++## Text, in document order
++
++- (64, 28) 18px: Monthly revenue, 2025
++- (64, 47) 12px: USD, thousands
++- (54, 360.5) 11px: 0
++- (54, 323.5) 11px: 20k
++- (54, 286.5) 11px: 40k
++- (54, 249.5) 11px: 60k
++- (54, 212.5) 11px: 80k
++- (54, 175.5) 11px: 100k
++- (54, 138.5) 11px: 120k
++- (54, 101.5) 11px: 140k
++- (54, 64.5) 11px: 160k
++- (81.5, 376) 12px: Jan
++- (128.5, 376) 12px: Feb
++- (175.5, 376) 12px: Mar
++- (222.5, 376) 12px: Apr
++- (269.5, 376) 12px: May
++- (316.5, 376) 12px: Jun
++- (363.5, 376) 12px: Jul
++- (410.5, 376) 12px: Aug
++- (457.5, 376) 12px: Sep
++- (504.5, 376) 12px: Oct
++- (551.5, 376) 12px: Nov
++- (598.5, 376) 12px: Dec
++- (504.5, 87) 12px: 142.3k
+diff --git a/captures/chart.svg b/captures/chart.svg
+new file mode 100644
+index 0000000..842dfc0
+--- /dev/null
++++ b/captures/chart.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Monthly revenue, 2025, USD"><rect x="0" y="0" width="640" height="400" fill="#ffffff"/><text x="64" y="28" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#222222">Monthly revenue, 2025</text><text x="64" y="47" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#777777">USD, thousands</text><text x="54" y="360.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">0</text><line x1="64" y1="319.5" x2="616" y2="319.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="323.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">20k</text><line x1="64" y1="282.5" x2="616" y2="282.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="286.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">40k</text><line x1="64" y1="245.5" x2="616" y2="245.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="249.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">60k</text><line x1="64" y1="208.5" x2="616" y2="208.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="212.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">80k</text><line x1="64" y1="171.5" x2="616" y2="171.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="175.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">100k</text><line x1="64" y1="134.5" x2="616" y2="134.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="138.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">120k</text><line x1="64" y1="97.5" x2="616" y2="97.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="101.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">140k</text><line x1="64" y1="60.5" x2="616" y2="60.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="64.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">160k</text><rect x="64" y="204" width="35" height="152" fill="#2f6db5"/><text x="81.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Jan</text><rect x="111" y="187" width="35" height="169" fill="#2f6db5"/><text x="128.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Feb</text><rect x="158" y="212" width="35" height="144" fill="#2f6db5"/><text x="175.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Mar</text><rect x="205" y="165" width="35" height="191" fill="#2f6db5"/><text x="222.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Apr</text><rect x="252" y="136" width="35" height="220" fill="#2f6db5"/><text x="269.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">May</text><rect x="299" y="176" width="35" height="180" fill="#2f6db5"/><text x="316.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Jun</text><rect x="346" y="152" width="35" height="204" fill="#2f6db5"/><text x="363.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Jul</text><rect x="393" y="124" width="35" height="232" fill="#2f6db5"/><text x="410.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Aug</text><rect x="440" y="112" width="35" height="244" fill="#2f6db5"/><text x="457.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Sep</text><rect x="487" y="93" width="35" height="263" fill="#2f6db5"/><text x="504.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Oct</text><rect x="534" y="118" width="35" height="238" fill="#2f6db5"/><text x="551.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Nov</text><rect x="581" y="98" width="35" height="258" fill="#2f6db5"/><text x="598.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Dec</text><text x="504.5" y="87" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#222222" text-anchor="middle">142.3k</text><line x1="64" y1="356.5" x2="616" y2="356.5" stroke="#444444" stroke-width="1"/></svg>
+diff --git a/out/chart.svg b/out/chart.svg
+new file mode 100644
+index 0000000..842dfc0
+--- /dev/null
++++ b/out/chart.svg
+@@ -0,0 +1 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Monthly revenue, 2025, USD"><rect x="0" y="0" width="640" height="400" fill="#ffffff"/><text x="64" y="28" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="18" font-weight="600" fill="#222222">Monthly revenue, 2025</text><text x="64" y="47" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#777777">USD, thousands</text><text x="54" y="360.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">0</text><line x1="64" y1="319.5" x2="616" y2="319.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="323.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">20k</text><line x1="64" y1="282.5" x2="616" y2="282.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="286.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">40k</text><line x1="64" y1="245.5" x2="616" y2="245.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="249.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">60k</text><line x1="64" y1="208.5" x2="616" y2="208.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="212.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">80k</text><line x1="64" y1="171.5" x2="616" y2="171.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="175.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">100k</text><line x1="64" y1="134.5" x2="616" y2="134.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="138.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">120k</text><line x1="64" y1="97.5" x2="616" y2="97.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="101.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">140k</text><line x1="64" y1="60.5" x2="616" y2="60.5" stroke="#d9d9d9" stroke-width="1"/><text x="54" y="64.5" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="11" fill="#555555" text-anchor="end">160k</text><rect x="64" y="204" width="35" height="152" fill="#2f6db5"/><text x="81.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Jan</text><rect x="111" y="187" width="35" height="169" fill="#2f6db5"/><text x="128.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Feb</text><rect x="158" y="212" width="35" height="144" fill="#2f6db5"/><text x="175.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Mar</text><rect x="205" y="165" width="35" height="191" fill="#2f6db5"/><text x="222.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Apr</text><rect x="252" y="136" width="35" height="220" fill="#2f6db5"/><text x="269.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">May</text><rect x="299" y="176" width="35" height="180" fill="#2f6db5"/><text x="316.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Jun</text><rect x="346" y="152" width="35" height="204" fill="#2f6db5"/><text x="363.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Jul</text><rect x="393" y="124" width="35" height="232" fill="#2f6db5"/><text x="410.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Aug</text><rect x="440" y="112" width="35" height="244" fill="#2f6db5"/><text x="457.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Sep</text><rect x="487" y="93" width="35" height="263" fill="#2f6db5"/><text x="504.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Oct</text><rect x="534" y="118" width="35" height="238" fill="#2f6db5"/><text x="551.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Nov</text><rect x="581" y="98" width="35" height="258" fill="#2f6db5"/><text x="598.5" y="376" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" fill="#555555" text-anchor="middle">Dec</text><text x="504.5" y="87" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#222222" text-anchor="middle">142.3k</text><line x1="64" y1="356.5" x2="616" y2="356.5" stroke="#444444" stroke-width="1"/></svg>
+diff --git a/src/chart.mjs b/src/chart.mjs
+index 27754e1..50474fc 100644
+--- a/src/chart.mjs
++++ b/src/chart.mjs
+@@ -1,19 +1,114 @@
+ /**
+  * Renders the monthly revenue bar chart as an SVG string.
++ *
++ * Layout follows STYLE.md: a title, a subtitle naming the unit and scale,
++ * twelve named bars in one accent colour, horizontal gridlines at round values
++ * with compact labels, a visible baseline, one value callout on the peak
++ * month, neutral greys for everything else, and no decoration.
++ *
+  * @param {{ title: string, unit: string, months: string[], values: number[] }} data
+  */
+ export function renderChart(data) {
+-  const width = 600;
+-  const height = 300;
++  const width = 640;
++  const height = 400;
++  const margin = { top: 60, right: 24, bottom: 44, left: 64 };
++  const plot = {
++    x: margin.left,
++    y: margin.top,
++    w: width - margin.left - margin.right,
++    h: height - margin.top - margin.bottom,
++  };
++
++  const font = "font-family=\"Helvetica Neue, Helvetica, Arial, sans-serif\"";
++  const colour = {
++    background: "#ffffff",
++    accent: "#2f6db5",
++    title: "#222222",
++    subtitle: "#777777",
++    label: "#555555",
++    grid: "#d9d9d9",
++    baseline: "#444444",
++  };
++
+   const max = Math.max(...data.values);
+-  const barWidth = width / data.values.length;
++  const ticks = niceTicks(max);
++  const top = ticks[ticks.length - 1];
++  const scaleY = (v) => plot.y + plot.h - (v / top) * plot.h;
++  const crisp = (v) => Math.round(v) + 0.5;
++
++  // Explicit white background so the chart keeps its own page colour when it
++  // is placed on a tinted report page.
++  const background = `<rect x="0" y="0" width="${width}" height="${height}" fill="${colour.background}"/>`;
++
++  // Title names what the chart shows; the subtitle names the unit and the
++  // scale the tick labels are in.
++  const title = `<text x="${plot.x}" y="28" ${font} font-size="18" font-weight="600" fill="${colour.title}">${escape(data.title)}</text>`;
++  const subtitle = `<text x="${plot.x}" y="47" ${font} font-size="12" fill="${colour.subtitle}">${escape(data.unit)}, thousands</text>`;
++
++  const grid = ticks
++    .map((t) => {
++      const y = crisp(scaleY(t));
++      const isBase = t === 0;
++      const line = isBase
++        ? ""
++        : `<line x1="${plot.x}" y1="${y}" x2="${plot.x + plot.w}" y2="${y}" stroke="${colour.grid}" stroke-width="1"/>`;
++      const label = `<text x="${plot.x - 10}" y="${y + 4}" ${font} font-size="11" fill="${colour.label}" text-anchor="end">${compact(t)}</text>`;
++      return line + label;
++    })
++    .join("");
++
++  // Bars fill the plot edge to edge with a gap of about a third of a bar:
++  // the first bar starts at the plot's left edge, the last ends at its right.
++  const n = data.values.length;
++  const barWidth = Math.round(plot.w / (n + (n - 1) / 3));
++  const gap = (plot.w - n * barWidth) / (n - 1);
++  const barX = (i) => Math.round(plot.x + i * (barWidth + gap));
+   const bars = data.values
+     .map((value, i) => {
+-      const h = (value / max) * height;
+-      const x = i * barWidth;
+-      const y = height - h;
+-      return `<rect x="${x}" y="${y}" width="${barWidth}" height="${h}" fill="black"/>` + `<text x="${x + 2}" y="${height - 4}" font-size="10" fill="white">${i + 1}</text>` + `<text x="${x + 2}" y="${y - 2}" font-size="9">${value}</text>`;
++      const x = barX(i);
++      const yTop = Math.round(scaleY(value));
++      const h = Math.round(plot.y + plot.h) - yTop;
++      const cx = x + barWidth / 2;
++      return `<rect x="${x}" y="${yTop}" width="${barWidth}" height="${h}" fill="${colour.accent}"/>` +
++        `<text x="${cx}" y="${plot.y + plot.h + 20}" ${font} font-size="12" fill="${colour.label}" text-anchor="middle">${escape(data.months[i])}</text>`;
+     })
+     .join("");
+-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${bars}</svg>\n`;
++
++  // One callout, on the peak month only, computed from the data so it always
++  // names the right month and value.
++  const peak = data.values.indexOf(max);
++  const peakLabel = `<text x="${barX(peak) + barWidth / 2}" y="${Math.round(scaleY(max)) - 6}" ${font} font-size="12" font-weight="600" fill="${colour.title}" text-anchor="middle">${compact(max)}</text>`;
++
++  const baseY = crisp(plot.y + plot.h);
++  const baseline = `<line x1="${plot.x}" y1="${baseY}" x2="${plot.x + plot.w}" y2="${baseY}" stroke="${colour.baseline}" stroke-width="1"/>`;
++
++  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escape(data.title)}, ${escape(data.unit)}">` +
++    background + title + subtitle + grid + bars + peakLabel + baseline +
++    `</svg>\n`;
++}
++
++/** Round gridline values from 0 to just above max, at a 1/2/2.5/5 step giving about 8 lines. */
++function niceTicks(max) {
++  const rough = max / 8;
++  const power = 10 ** Math.floor(Math.log10(rough));
++  const step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => rough <= s);
++  const ticks = [];
++  for (let v = 0; v < max + step; v += step) ticks.push(Math.round(v));
++  return ticks;
++}
++
++/** Compact labels: 0 -> "0", 50000 -> "50k", 142300 -> "142.3k", 1500000 -> "1.5M". */
++function compact(v) {
++  if (v === 0) return "0";
++  if (v >= 1e6) return trim(v / 1e6) + "M";
++  if (v >= 1e3) return trim(v / 1e3) + "k";
++  return String(v);
++}
++
++function trim(n) {
++  return String(Number(n.toFixed(1)));
++}
++
++function escape(s) {
++  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+ }

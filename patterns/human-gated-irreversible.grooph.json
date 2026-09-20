@@ -31,7 +31,8 @@
       "human-gate",
       "irreversible",
       "brake"
-    ]
+    ],
+    "demo": "experiments/patterns/human-gated-irreversible/README.md"
   },
   "nodes": [
     {

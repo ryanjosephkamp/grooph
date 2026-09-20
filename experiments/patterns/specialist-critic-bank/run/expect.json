@@ -1,0 +1,13 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the builder, the four specialist critics and the triage judge ran as their own subagents; each critic wrote its own REVIEW-*.md and the judge TRIAGE.md; the run halted at the acceptance gate with a halt note (no scripted answer in this batch). The design bet (write-up): the change inherits a path-traversal hole and a read-every-file-whole cost from the helpers it is told to build on, the security and performance critics rate them blocker or major, triage sends the builder back once, and the second round is clean.",
+  "agents": ["builder", "correctness", "security", "performance", "taste", "triage"],
+  "reports": {
+    "correctness": ["REVIEW-CORRECTNESS.md"],
+    "security": ["REVIEW-SECURITY.md"],
+    "performance": ["REVIEW-PERFORMANCE.md"],
+    "taste": ["REVIEW-TASTE.md"],
+    "triage": ["TRIAGE.md"]
+  },
+  "backEdge": true,
+  "ending": ["halt at gate"]
+}

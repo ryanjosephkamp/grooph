@@ -40,7 +40,8 @@
       "taste",
       "gauntlet",
       "reference"
-    ]
+    ],
+    "demo": "experiments/patterns/taste-polish/README.md"
   },
   "description": "The Gauntlet-style entry, bounded. One owner revises the artifact and captures it; a check refuses captures that are missing, stale or unreadable before any judging happens; a frontier critic in a fresh context compares the captures against the named reference and returns the top gaps. The loop stops when the critic finds no major gap, when rounds stop bringing improvement, when the human says so at their regular check-in, at its round cap, or at the dispatch budget.",
   "nodes": [

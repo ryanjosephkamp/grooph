@@ -1,0 +1,6 @@
+{
+  "title": "Monthly revenue, 2025",
+  "unit": "USD",
+  "months": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  "values": [82400, 91200, 78100, 103500, 118900, 97300, 110200, 125600, 131900, 142300, 128800, 139400]
+}

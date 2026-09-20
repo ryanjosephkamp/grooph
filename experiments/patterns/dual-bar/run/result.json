@@ -1,0 +1,115 @@
+{
+  "template": "dual-bar",
+  "template_version": "dual-bar@1",
+  "slots": {
+    "values": {
+      "task": "Add `parseKeyValue(text)` to src/kv.mjs, the inverse of `renderKeyValue`: it turns `key=value` text into an object, skipping blank lines and lines whose first non-space character is `#`. Tests go in tests/kv.test.mjs and the README documents the function.",
+      "test-command": "npm test",
+      "ship-line": "`npm test` passes; `parseKeyValue` skips blank lines and `#` comment lines; a value may contain `=` (only the first `=` splits); `parseKeyValue(renderKeyValue(o))` gives back `o` for any object of plain string values without newlines; README.md documents `parseKeyValue` with one example.",
+      "aspiration": "A new contributor can predict `parseKeyValue`'s result for any input from README.md alone, on the first try: every edge (whitespace around keys and values, a duplicate key, a quoted value, a line with no `=`, an empty key, a trailing comment on a value line, CRLF line endings) is decided, tested, and stated in the README in one sentence each."
+    }
+  },
+  "graph_id": "parse-key-value",
+  "run_id": "20260920-191110",
+  "run_ids": [
+    "20260920-191110"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.1663657500000002,
+      "output_tokens": 15611
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.5016645,
+      "output_tokens": 5180
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "parse-key-value--critic": [
+      "claude-fable-5-1"
+    ],
+    "parse-key-value--builder": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.66803,
+  "harness_turns": 20,
+  "lead_turns": null,
+  "duration_s": 252,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "parse-key-value--critic": 1,
+    "parse-key-value--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "N=.grooph/parse-key-value/runs/20260920-191110/notes.jsonl; T=$(date -u +%Y-%m-%dT%H:%M:%SZ); printf '%s\\n' \"{\\\"id\\\":\\\"n-0001\\\",\\\"run\\\":\\\"20260920-191110\\\",\\\"at\\\":\\\"graph\\\",\\\"started\\\":\\\"2026-09-20T19:11:10Z\\\",\\\"text\\\":\\\"run started\\\"}\" \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260920-191110\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$T\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched, round 0\\\"}\" >> $N; cat $N"
+    },
+    {
+      "tool": "Bash",
+      "command": "date -u +%Y-%m-%dT%H:%M:%SZ; git add -N . ; git diff > .grooph/parse-key-value/runs/20260920-191110/round-0.diff; npm test > .grooph/parse-key-value/runs/20260920-191110/round-0.npm-test.txt 2>&1; echo \"exit=$?\"; tail -n 12 .grooph/parse-key-value/runs/20260920-191110/round-0.npm-test.txt; wc -l .grooph/parse-key-value/runs/20260920-191110/round-0.diff; git status --short"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 17,
+      "session_id": "3de248d3-9824-4d67-b1d6-c4f2e9c46c69",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.66803,
+      "reported_cost_usd": 1.66803025,
+      "max_budget_usd": 6,
+      "harness_turns": 20,
+      "duration_s": 252,
+      "wall_s": 253,
+      "notes_after": 7,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "55c1937a2e6a0050b6d0fded53fc65a835b10b9c",
+  "source_sha256_before": "75e8065c89f79d2276609d650b6b409564774f393e91d334202b5e24f6d817b9",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "M src/kv.mjs",
+    "M tests/kv.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-dual-bar-GRRdg4",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

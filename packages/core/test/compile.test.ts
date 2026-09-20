@@ -242,6 +242,13 @@ test("D1: an agent's evidence rules allow its declared inputs too; a writer's in
   assert.match(bareBuilder, /No inbound edge lists evidence for you\. Work from your declared inputs \(Inputs above\), the project you are changing and the lead's prompt, and nothing else/);
 });
 
+test("carry from review 0010: the kickoff and the mapping say to run commands bare from the project root, and why", () => {
+  const result = compile(reviewLoop(), "claude-code");
+  assert.match(result.kickoff, /Run commands bare, from the project root, and tell each worker to do the same: under a narrow allowlist a compound form \(`cd … && …`\) or `git -C <path>` is refused, and every refusal costs a turn\./);
+  const rules = result.files[".grooph/review-loop/MAPPING.md"]!.split("## Rules this package relies on")[1]!;
+  assert.match(rules, /Commands run bare from the project root: an allowlist matches a command's prefix, so a compound form \(`cd … && …`\) or `git -C <path>` is refused under a narrow allowlist and costs a turn each time\./);
+});
+
 test("loop notes carry `stop` when a stop fires (graph-ir §6), and the brief shows one", () => {
   const eight = section(compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!, 8);
   assert.match(eight, /and `stop` with the kind of the stop when one fires/);

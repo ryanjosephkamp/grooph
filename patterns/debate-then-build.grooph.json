@@ -36,7 +36,8 @@
       "judge",
       "human-gate",
       "grind"
-    ]
+    ],
+    "demo": "experiments/patterns/debate-then-build/README.md"
   },
   "description": "One planner argues for the simplest approach that could work, the other against it and for the strongest alternative. A frontier judge reads both cases and either asks for one more exchange or writes PLAN.md; the debate has a round cap, after which the judge must decide. A human approves the plan, and a fast builder grinds the first version against the tests.",
   "nodes": [
