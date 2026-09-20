@@ -12,31 +12,40 @@
 #
 # A run:
 #   1. builds a scratch project under $TMPDIR from experiments/patterns/<id>/task/,
-#      as a git repository;
+#      as a git repository. A held-out/ folder beside the task (cases only the critic
+#      or judge may see) is copied next to the project, into <scratch>.harness/held-out/,
+#      never into it; the token <held-out> in slots.json and in task files becomes
+#      that folder's path, and the run's settings allow Read there and nowhere else
+#      outside the project;
 #   2. instantiates the template with experiments/patterns/<id>/slots.json through
 #      the CLI built from this branch (the built-in library only: no user templates,
-#      no remote registry) and exports the Claude Code package into it;
+#      no remote registry) and exports the Claude Code package into it. A fragment
+#      (human-gated-irreversible) is proved inside a host: slots.json names the host
+#      template and its values, the fragment's values, and the grooph ops that wire
+#      the inserted nodes in (grooph template use, template insert, apply);
 #   3. asks the ledger (experiments/patterns/ledger.json) whether it may spend: it
-#      refuses when less than $6.00 remains under the $25.00 cap, and caps the
-#      invocation with --max-budget-usd at what remains, $6.00 at most;
+#      refuses when less than $6.00 remains under the cap ($45.00 since slice 0011),
+#      and caps the invocation with --max-budget-usd at what remains, $6.00 at most;
 #   4. runs the documented headless command, with permissions passed by --settings
 #      (nothing outside the scratch project is written by this script; ~/.claude.json
 #      is never touched) and no MCP server (--strict-mcp-config):
 #        claude -p "$(cat .grooph/<graph>/KICKOFF.md)" --permission-mode acceptEdits \
 #          --output-format json --settings '<json>' --max-budget-usd <n> --strict-mcp-config
-#   5. for a template whose expect.json names a scripted gate answer (spec-then-loop),
-#      resumes the same session once with that answer, and only after the run
-#      halted at that gate;
+#   5. for a template whose expect.json names a scripted gate answer (spec-then-loop
+#      in the first batch; none in the second), resumes the same session once with
+#      that answer, and only after the run halted at that gate;
 #   6. copies the evidence into experiments/patterns/<id>/run/ (never over an
 #      earlier run's: to re-prove a template, move run/ to run-1/ first and pass
 #      --retry "<why>") and makes the assertions of criterion 4 on it.
 #
 # scripts/lib/prove-evidence.mjs lists what the evidence folder holds, and
-# scripts/lib/prove-check.mjs what --check asserts. The scratch project is kept.
+# scripts/lib/prove-check.mjs what --check asserts (expect.json per template names
+# the agents, reports, ownership folders, expected ending, and what must stay
+# absent). The scratch project is kept.
 #
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "${1:-}" in
-  -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,45p' "$0"; exit 0 ;;
 esac
 exec node "$REPO_ROOT/scripts/lib/prove-pattern.mjs" "$@"
