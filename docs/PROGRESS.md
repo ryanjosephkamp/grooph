@@ -6,18 +6,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–5 and 7 are done. Stage 6 (proving ground) is under way: the first batch found seven defects in what grooph emits; slice 0010 fixed them and re-proved the two gate templates clean. Next is the second batch (slice 0011, the remaining eleven templates).
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** confirm slice 0011 and paste its prompt into an Opus 5 implementer session.
+- **Next action (owner):** run the slice 0011 implementer session, then bring its handback prompt to the driver.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger and `--strict-mcp-config`; eight real run records.
 
 ## In flight
 
-_(none)_
+- **Slice 0011** (`handoffs/0011-proving-batch-two/`): confirmed 2026-09-20 under the $45.00 cap ($34.19 left). Awaiting the implementer session.
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0011 (`handoffs/0011-proving-batch-two/HANDOFF.md`): the remaining eleven templates on tasks built to force a back edge, under the $45.00 cap ($34.19 left) | Yes |
+_(nothing: slice 0011 was confirmed 2026-09-20)_
 
 ## Deferred until Codex is available
 

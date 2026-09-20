@@ -1,6 +1,6 @@
 # Handoff 0011 · Pattern proving ground, second batch
 
-**Stage:** 6 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`: a task whose catch the builder can see wastes a paid run) · **Branch:** `slice/0011-proving-batch-two` · **Drafted:** 2026-09-20 · **Confirmed by owner:** pending · **Spend: the ledger cap is $45.00 total, owner-approved 2026-09-20; $34.19 remains for this slice**
+**Stage:** 6 · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`: a task whose catch the builder can see wastes a paid run) · **Branch:** `slice/0011-proving-batch-two` · **Drafted:** 2026-09-20 · **Confirmed by owner:** 2026-09-20 · **Spend: the ledger cap is $45.00 total, owner-approved 2026-09-20; $34.19 remains for this slice**
 
 ## Objective
 
