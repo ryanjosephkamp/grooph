@@ -19,7 +19,10 @@
       "Bash(grep:*)",
       "Bash(find:*)",
       "Bash(mkdir:*)",
-      "Bash(date:*)"
+      "Bash(date:*)",
+      "Bash(echo:*)",
+      "Bash(cp:*)",
+      "Bash(tr:*)"
     ]
   }
 }

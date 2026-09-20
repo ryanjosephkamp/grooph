@@ -1,0 +1,28 @@
+$ npm test   (run by the lead, 2026-09-20T17:32:48Z, round 0)
+
+> textwrap@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ countWords counts runs of non-whitespace (0.403125ms)
+✔ wrap rejects a non-string text (0.658667ms)
+✔ wrap rejects a width that is not an integer >= 1 (0.1605ms)
+✔ wrap returns a string (0.086667ms)
+✔ wrap treats runs of spaces, tabs and newlines as separators (0.173791ms)
+✔ wrap is greedy (0.098542ms)
+✔ wrap keeps every line within width when words fit (0.171083ms)
+✔ wrap puts an over-long word alone on its own line, unbroken (0.055084ms)
+✔ wrap has no leading or trailing whitespace and no trailing newline (0.052208ms)
+✔ wrap joins lines with a single newline (0.056708ms)
+✔ wrap returns the empty string for empty or whitespace-only input (0.092041ms)
+✔ wrap returns one line when the text already fits (0.056084ms)
+✔ wrap preserves all words in order (0.055041ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54.949708
+
+exit status: 0

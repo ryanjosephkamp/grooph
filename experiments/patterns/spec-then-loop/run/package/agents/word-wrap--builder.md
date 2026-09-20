@@ -33,7 +33,7 @@ You own no artifact in this graph. Do not write over another node's files: repor
 
 ## Evidence rules
 
-You may inspect exactly what the lead hands you, which is this and nothing more:
+You may inspect what the lead hands you — the evidence below — plus your declared inputs (Inputs above), which for you includes the project you are changing, and nothing else:
 
 - REVIEW.md
 

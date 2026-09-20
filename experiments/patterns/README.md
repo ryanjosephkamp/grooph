@@ -18,6 +18,19 @@ Claude Code 2.1.276; the lead ran on `claude-opus-5` in every run.
 
 **Spend:** $7.01 of the $25.00 cap: $6.99 on the five runs and $0.02 on a two-call harness probe that showed a resumed session reports only its own cost ([`ledger.json`](ledger.json), invocations 1–2).
 
+## Re-proving after slice 0010 (2026-09-20)
+
+The two gate templates again, on the hardened brief and templates, with `--retry "0010 hardening"`; the first batch's evidence moved to `run-1/` beside the new `run/`. Claude Code 2.1.276; lead on `claude-opus-5`; `--strict-mcp-config`, and `echo`, `cp`, `tr` allowed.
+
+| Template | Run | Passes | Stop fired | Ending | Cost | Harness turns | Amendments | Denials | `--check` |
+|---|---|---|---|---|---|---|---|---|---|
+| [`review-gate`](review-gate/README.md#re-proved-after-slice-0010) | `20260920-172408` | 1 | bar-passed (`stop` on the loop note) | **halt note** at `merge-gate`, then the ask | $1.36 | 22 | 0 | 2 | pass |
+| [`spec-then-loop`](spec-then-loop/README.md#re-proved-after-slice-0010) | `20260920-172850` | 1 | bar-passed (`stop` on the loop note) | **halt note** at `spec-gate`, scripted approve, then `done` | $2.44 | 35 | 0 | 14 | pass |
+
+Both run ids are the clock's (`<yyyymmdd-hhmmss>`), both records carry `started` lines and clock timestamps in order, and both leads counted dispatches against the budget. The `spec-then-loop` critic, now with the repository read-only, passed the answer key at round 0 where the first run returned `invalid-evidence`. Still no back edge taken.
+
+**Spend:** $3.80 for the three invocations ([`ledger.json`](ledger.json), invocations 9–11); $10.81 of the $25.00 cap in all.
+
 ## What the batch showed
 
 - **No run needed a second round.** Every builder passed at its first attempt. In `review-gate` and `metric-sandwich` the builder read the checklist in the repository (it is not among their declared inputs), so the items meant to stay open were closed before judging. In `contradiction-seeker` the builder fixed the planted defect because the claim is one of its inputs. The critics confirmed; none caught.
