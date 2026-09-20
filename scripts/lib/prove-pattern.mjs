@@ -62,6 +62,10 @@ const TEXT_FILE = /\.(md|json|mjs|js|txt|cjs|ts)$/i;
  * notes and reads its run id from the clock), `git show` and `git rev-parse` (a
  * critic reading the repository), and since slice 0010 `echo`, `cp` and `tr`:
  * the first batch's denials were all shell plumbing of this kind, a turn each.
+ * Since slice 0012 `git add -N` (intent-to-add stages nothing: it only makes an
+ * added file show in `git diff`, which is what the leads of the second batch
+ * wanted from it, seven denials across two runs). `git add` in any other form
+ * still matches no rule.
  */
 const BASE_SETTINGS = {
   permissions: {
@@ -71,6 +75,7 @@ const BASE_SETTINGS = {
       "Bash(npm run:*)",
       "Bash(node:*)",
       "Bash(git diff:*)",
+      "Bash(git add -N:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
