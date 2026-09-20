@@ -26,7 +26,7 @@ These live inside `LEAD.md`, because the lead performs them itself:
 
 Edges, loops and policies have no file: they are the routing, round and stop rules in `LEAD.md` §5–§7. Policies in force: `p-critic-isolation` (critic-isolation, scope graph), `p-no-self-grading` (no-self-grading, scope graph).
 
-## The two things people hand-edit
+## The three things people hand-edit
 
 **A node's model or effort.** Change the frontmatter of its agent file:
 
@@ -37,6 +37,20 @@ effort: high      # low | medium | high | max
 ```
 
 The durable place for that change is `model.tier` or `effort` on the node in the graph document; edit the file only for a one-off run, because the next export overwrites it.
+
+**A node's tools.** The `tools:` line of the same frontmatter (and `disallowedTools:`), which is the node's `allow` (and `deny`) through this table:
+
+| capability | tools |
+|---|---|
+| `read-files` | `Read`, `Glob`, `Grep` |
+| `edit-files` | `Read`, `Edit`, `Write`, `Glob`, `Grep` |
+| `write-outputs` | `Write` |
+| `run-commands` | `Bash` |
+| `run-tests` | `Bash` |
+| `web` | `WebFetch`, `WebSearch` |
+| `spawn-agents` | `Agent` |
+
+The durable place is `allow` or `deny` on the node in the graph document. A running lead edits `tools:` itself when it amends a node's capabilities (`.grooph/review-loop/LEAD.md` §9); Claude Code reads the edited file at the node's next dispatch, without a restart.
 
 **A loop's stop values.** The numbers a run actually bumps into:
 

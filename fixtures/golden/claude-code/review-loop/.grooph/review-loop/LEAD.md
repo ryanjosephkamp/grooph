@@ -66,6 +66,7 @@ Dispatch an agent node with the `Agent` tool and the `subagent_type` named above
 - `fresh` isolation: the worker starts with no context except its brief, its declared inputs and the evidence listed above. `shared`: continue the same worker if the build lets you, otherwise do that step yourself rather than faking a continuation.
 - A worker may inspect what its inbound edge lists plus its own declared inputs; for a writer that includes the project it is changing. A critic that cannot read its evidence reports `invalid-evidence` instead of guessing.
 - When an edge routes `invalid-evidence`, take it. Otherwise repair the evidence and dispatch the same node once more in the same round; a second `invalid-evidence` routes as `fail`.
+- A diff of the change is `git diff` plus, for each file the change added, `git diff --no-index /dev/null <file>` (`git diff` omits untracked files; `--no-index` exits 1 whenever the two differ, which is not an error). Run each bare from the project root, one command at a time; no brace group, no `cd`. `git add -N <file>` also works where it is allowed, and stages nothing.
 
 ## 6. Loops
 
@@ -106,6 +107,7 @@ When the human answers, append a note at the same place with their decision and 
 - `.grooph/review-loop/runs/<run-id>/notes.jsonl` — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (`at` = `node:<node-id>`), one **per pass through a loop** (`at` = `loop:<loop-id>`, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line — and `stop` with the kind of the stop when one fires), and one when the run ends.
 - When you dispatch a node, append one short line first: `"outcome":"started"`, `at` = `node:<node-id>`, and `round` when the node is inside a loop. The usual line follows when the node completes, so a monitor can show what is running.
 - `started` and `ended` are read from the clock, `date -u +%Y-%m-%dT%H:%M:%SZ`, or left out. Never estimate one.
+- Before you re-dispatch a builder after a critic's `fail`, copy each report the critic wrote that round into the run folder as `<report>-round-<n>.md` — `REVIEW.md` from round 0 becomes `.grooph/review-loop/runs/<run-id>/REVIEW-round-0.md` — so the round's findings survive the next round's rewrite. Copy; the builder still reads the report where its edge says.
 
 Line shape (graph-ir §6). `id`, `run` and `at` are required; the rest are filled when they apply:
 
@@ -152,6 +154,45 @@ You may add, remove or re-brief nodes, add or re-route edges, add loops, and cha
 
 3. Record it in `PROGRESS.md` under **Amendments**, so the human can see the graph the run is actually following.
 4. Check that the working copy still validates: run `grooph validate --for-export .grooph/review-loop/runs/<run-id>/graph.grooph.json` when `grooph` is on your PATH; otherwise check the brakes below by hand.
+5. When the amendment changes a node's `allow` or `deny`, also edit that node's file under `.claude/agents/` before you dispatch it: its `tools:` line (and `disallowedTools:`), with the capability-to-tools table in `.grooph/review-loop/MAPPING.md`. Claude Code reads the edited file at the next dispatch; no restart is needed. Say in the amendment note that you edited it. If the file cannot be edited, the change is a `proposal`: record it as one and dispatch the node as compiled, never a stand-in.
+
+These are the ops, and the only ops, `grooph apply` accepts; an op is `{"op":"<name>", ...arguments}`, and a `?` marks an optional argument. There is no `addEdge` and no `node` object: an edge is `connect`, and a node's fields go in `set`.
+
+```text
+setGraphName      name — the graph id follows while it still matches
+setGraphField     key (name | goal | description | adaptation | lineage), value — null removes
+setTarget         harness — null removes
+setConstraint     key (budget | time | other), value — null removes
+addNode           kind (agent | human-gate | check | merge | stop), name?, id?, at?, set? — the node's fields (role, brief, outputs, allow, …) go in set
+setNodeName       id, name
+updateNode        id, set — a shallow patch: each key replaces the field, null removes it; never id or kind
+removeNode        id — with its edges, loop memberships and scoped policies
+connect           from, to, id?, set? — adds an edge; when, isolation, evidence, approval go in set
+updateEdge        id, set — re-routing (from, to) included
+removeEdge        id
+addLoop           members?, name?, id?, set? — no back edge and no stop until set or addStop gives them
+setLoopName       id, name
+updateLoop        id, set — mode, members, back, bar, stops
+removeLoop        id
+toggleLoopMember  loop, node, on?
+toggleLoopBack    loop, edge, on?
+setBar            loop, bar — null removes
+addStop           loop, kind (human | budget | bar-passed | diminishing-returns | evidence-invalid | max-iterations), set?
+setStop           loop, index, stop — replaces the stop at index (from 0)
+removeStop        loop, index
+moveStop          loop, index, delta (-1 | 1)
+addPolicy         kind, scope (graph | loop:<id> | node:<id> | edge:<id>), params?, id?
+removePolicy      id
+setPositions      positions — layout only
+renameId          from, to — every reference follows
+```
+
+A new critic and the edge into it, as one patch of two ops:
+
+```json
+[{"op":"addNode","kind":"agent","id":"reviewer","set":{"role":"critic","brief":"<purpose, limits, outputs>","outputs":["REVIEW.md"],"allow":["read-files","write-outputs"]}},
+ {"op":"connect","from":"builder","to":"reviewer","set":{"when":"pass","evidence":["diff of the change"]}}]
+```
 
 At every adaptation level you may not remove or loosen:
 
@@ -165,7 +206,7 @@ At every adaptation level you may not remove or loosen:
 
 You may tighten any of them. Loosening one is a `proposal` note for the human, never an amendment. A loop you add needs a stop, and a bar if it is a judgment loop, like any other.
 
-A node you add mid-run has no file under `.claude/agents/`, because agent files are read when the session starts. Dispatch it as a general-purpose subagent with its brief inline, under the same isolation and evidence rules as every other node.
+A node you add mid-run has no compiled file under `.claude/agents/`. Write one beside the others, in the shape of an existing one, and dispatch it by that name (the file is read at the next dispatch), or dispatch it as a general-purpose subagent with its brief inline. Either way it works under the same isolation and evidence rules as every other node.
 
 ## 10. Validation warnings
 

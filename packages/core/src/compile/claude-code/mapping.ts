@@ -76,7 +76,7 @@ export function mappingNotes(ctx: PackageContext): string {
       }`,
     ),
     lines(
-      "## The two things people hand-edit",
+      "## The three things people hand-edit",
       "",
       "**A node's model or effort.** Change the frontmatter of its agent file:",
       "",
@@ -92,6 +92,23 @@ export function mappingNotes(ctx: PackageContext): string {
       `The durable place for that change is ${code("model.tier")} or ${code(
         "effort",
       )} on the node in the graph document; edit the file only for a one-off run, because the next export overwrites it.`,
+      "",
+      `**A node's tools.** The ${code("tools:")} line of the same frontmatter (and ${code(
+        "disallowedTools:",
+      )}), which is the node's ${code("allow")} (and ${code("deny")}) through this table:`,
+      "",
+      table(
+        ["capability", "tools"],
+        Object.entries(ctx.profile.capabilityTools).map(([capability, tools]) => [code(capability), tools.map(code).join(", ")]),
+      ),
+      "",
+      `The durable place is ${code("allow")} or ${code("deny")} on the node in the graph document.${
+        ctx.adaptation === "adaptive"
+          ? ` A running lead edits ${code("tools:")} itself when it amends a node's capabilities (${code(
+              ctx.paths.lead,
+            )} §9); Claude Code reads the edited file at the node's next dispatch, without a restart.`
+          : ""
+      }`,
       "",
       "**A loop's stop values.** The numbers a run actually bumps into:",
       "",
