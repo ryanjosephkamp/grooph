@@ -311,8 +311,23 @@
       "run_id": "20260920-193520",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 21,
+      "template": "taste-polish",
+      "kind": "kickoff",
+      "started": "2026-09-20T19:44:20.039Z",
+      "ended": "2026-09-20T19:52:44.138Z",
+      "status": "ok",
+      "cost_usd": 3.174787,
+      "reported_cost_usd": 3.1747865000000015,
+      "max_budget_usd": 6,
+      "session_id": "98539fec-28a7-4c6f-a095-ea486d500a3a",
+      "run_id": "20260920-194427",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 27.700423,
-  "remaining_usd": 17.299577
+  "spent_usd": 30.87521,
+  "remaining_usd": 14.12479
 }

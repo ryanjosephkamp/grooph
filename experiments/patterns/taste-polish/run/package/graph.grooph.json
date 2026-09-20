@@ -1,0 +1,193 @@
+{
+  "grooph": 0,
+  "id": "polish-revenue-chart",
+  "name": "Polish revenue chart",
+  "version": 1,
+  "goal": "Polish the monthly revenue chart rendered by `npm run render` from src/chart.mjs until it reads like the report's reference chart: STYLE.md says what the chart should be, data/monthly.json is the data, and `npm run capture` produces what the critic judges. The reference itself is held by the critic outside this project and is not yours to read. Done when a frontier critic comparing captures against the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it) finds no major gap, or when the human stops the polish.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "taste-polish",
+    "from": "taste-polish@1"
+  },
+  "description": "The Gauntlet-style entry, bounded. One owner revises the artifact and captures it; a check refuses captures that are missing, stale or unreadable before any judging happens; a frontier critic in a fresh context compares the captures against the named reference and returns the top gaps. The loop stops when the critic finds no major gap, when rounds stop bringing improvement, when the human says so at their regular check-in, at its round cap, or at the dispatch budget.",
+  "nodes": [
+    {
+      "id": "owner",
+      "kind": "agent",
+      "name": "Owner",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You own the artifact the task names and are the only node that changes it. Each round, close the gaps the critic ranked highest, largest first, without regressing what already matches the reference. Capture the artifact with `npm run capture` before you report, and say which gaps you closed and which you left on purpose.",
+      "inputs": [
+        "the task",
+        "the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it)",
+        "GAPS.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the revised artifact",
+        "captures/ of this revision",
+        "CHANGES.md: gaps closed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "capture-check",
+      "kind": "check",
+      "name": "Capture check",
+      "description": "Evidence quality is gated (spec §13): a bad capture can fake a pass or a fail, so the critic never sees one.",
+      "check": {
+        "kind": "evidence",
+        "run": "npm run capture",
+        "pass": "every capture exists, opens, is legible at full size, and shows the current revision"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Compare the captures against the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it) and rank the gaps that matter most, at most five, each with where it shows and what closing it would look like. You judge; you do not fix. Report invalid-evidence rather than guessing when a capture is missing or unreadable. Verdict pass only when no gap you would call major remains.",
+      "inputs": [
+        "captures/ of the current revision",
+        "the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it)"
+      ],
+      "outputs": [
+        "GAPS.md: ranked gaps and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-owner-capture-check",
+      "from": "owner",
+      "to": "capture-check"
+    },
+    {
+      "id": "e-capture-check-fail",
+      "from": "capture-check",
+      "to": "owner",
+      "when": "fail",
+      "evidence": [
+        "capture check output"
+      ]
+    },
+    {
+      "id": "e-capture-check-critic",
+      "from": "capture-check",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "captures/ of the current revision",
+        "the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it)"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "owner",
+      "when": "fail",
+      "evidence": [
+        "GAPS.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "polish",
+      "name": "Polish",
+      "members": [
+        "owner",
+        "capture-check",
+        "critic"
+      ],
+      "back": [
+        "e-capture-check-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Match the reference",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it)",
+            "note": "the named reference"
+          },
+          {
+            "kind": "artifact",
+            "ref": "captures/ of the current revision"
+          }
+        ],
+        "acceptance": "The critic finds no major gap between the captures and the report's reference chart at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/reference.svg with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-taste-polish-iPZ28b.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it), and every capture is current and readable."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "major gaps remaining"
+        },
+        {
+          "kind": "human",
+          "every": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 16
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

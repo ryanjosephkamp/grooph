@@ -117,7 +117,7 @@ export function digestTranscripts(transcripts, scratch) {
           use.command = input.command;
           const targets = [...input.command.matchAll(/(?:(?<![=\-])>>?|\btee(?:\s+-a)?)\s*["']?([^\s"'|;&()]+)/g)]
             .map((m) => m[1])
-            .filter((target) => !target.startsWith("$") && !target.startsWith("/dev/") && !/^&?\d$/.test(target))
+            .filter((target) => !target.startsWith("$") && !target.startsWith("/dev/") && !/^&?\d$/.test(target) && !/[[\]*,]/.test(target))
             .map(rel);
           if (targets.length > 0) use.writes = targets;
         }

@@ -477,8 +477,12 @@ export async function checkRun(evidenceDir, { core, template }) {
     if (!loop) continue;
     if (typeof note.stop === "string" && !loop.stops.some((stop) => stop.kind === note.stop)) findings.push(`note ${note.id} names stop \`${note.stop}\` on ${note.at}, which has only: ${loop.stops.map((s) => s.kind).join(", ")}`);
     if (note.cost?.measure !== "dispatches") continue;
-    const members = memberNodes(loop);
-    const started = notes.slice(0, i).filter((n) => n.outcome === "started" && members.has(n.at)).length;
+    // The brief counts "an agent you dispatch, or a check you run" and asks for a started line only when a node is
+    // dispatched, so an agent member counts by its started lines and a check member by its result notes.
+    const checkMembers = new Set((loop.members ?? []).filter((id) => (graph?.nodes ?? []).find((node) => node.id === id)?.kind === "check").map((id) => `node:${id}`));
+    const agentMembers = new Set([...memberNodes(loop)].filter((at) => !checkMembers.has(at)));
+    const before = notes.slice(0, i);
+    const started = before.filter((n) => n.outcome === "started" && agentMembers.has(n.at)).length + before.filter((n) => checkMembers.has(n.at) && n.outcome && n.outcome !== "started").length;
     const off = Math.abs(started - note.cost.amount);
     counted.push({ note: note.id, loop: loop.id, round: note.round ?? null, recorded: note.cost.amount, started, off });
     if (off > 1) problems.push(`note ${note.id}: ${note.at} records ${note.cost.amount} dispatches, but ${started} started line(s) at its members precede it`);
@@ -531,12 +535,15 @@ export async function checkRun(evidenceDir, { core, template }) {
   if (heldOut) {
     const touched = new Map();
     const marks = [heldOut, "/held-out/"];
+    let namedInDispatches = 0;
     for (const entry of digest) {
-      const uses = entry.tool_uses.filter((u) => !u.error && marks.some((m) => `${u.file ?? ""}${u.path ?? ""}${u.command ?? ""}${u.prompt ?? ""}`.includes(m)));
+      // A read, a search or a command on the folder counts; a dispatch prompt that names the path hands it on, and is counted apart.
+      const uses = entry.tool_uses.filter((u) => !u.error && u.tool !== "Agent" && u.tool !== "Task" && marks.some((m) => `${u.file ?? ""}${u.path ?? ""}${u.command ?? ""}`.includes(m)));
       if (uses.length > 0) touched.set(entry.who, uses.length);
+      namedInDispatches += entry.tool_uses.filter((u) => (u.tool === "Agent" || u.tool === "Task") && marks.some((m) => `${u.prompt ?? ""}`.includes(m))).length;
     }
     const label = (who) => (who.startsWith(`${graphId}--`) ? who.slice(graphId.length + 2) : who);
-    findings.push(`held-out evidence (${(result.held_out.files ?? []).map((f) => f.path).join(", ")}): touched by ${[...touched].map(([who, n]) => `${label(who)} ×${n}`).join(", ") || "nobody"}`);
+    findings.push(`held-out evidence (${(result.held_out.files ?? []).map((f) => f.path).join(", ")}): touched by ${[...touched].map(([who, n]) => `${label(who)} ×${n}`).join(", ") || "nobody"}; named in ${namedInDispatches} dispatch prompt(s)`);
     for (const nodeId of expect.heldOut?.readers ?? []) {
       if (!touched.has(`${graphId}--${nodeId}`)) problems.push(`${nodeId} never read or ran the held-out evidence, so its judgment was not made against it`);
     }
