@@ -2,7 +2,7 @@
   "grooph": 0,
   "id": "taste-polish",
   "name": "Taste polish",
-  "version": 1,
+  "version": 2,
   "goal": "{{task}} Done when a frontier critic comparing captures against {{reference}} finds no major gap, or when the human stops the polish.",
   "target": {
     "harness": "claude-code"
@@ -41,7 +41,14 @@
       "gauntlet",
       "reference"
     ],
-    "demo": "experiments/patterns/taste-polish/README.md"
+    "demo": "experiments/patterns/taste-polish/README.md",
+    "credits": [
+      {
+        "name": "Matt Shumer's Gauntlet Loop (Claude of Duty)",
+        "url": "https://github.com/mshumer/Claude-of-Duty",
+        "note": "the bounded form of the Gauntlet: one owner, an isolated critic against a named reference, real stops"
+      }
+    ]
   },
   "description": "The Gauntlet-style entry, bounded. One owner revises the artifact and captures it; a check refuses captures that are missing, stale or unreadable before any judging happens; a frontier critic in a fresh context compares the captures against the named reference and returns the top gaps. The loop stops when the critic finds no major gap, when rounds stop bringing improvement, when the human says so at their regular check-in, at its round cap, or at the dispatch budget.",
   "nodes": [
@@ -91,7 +98,7 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Compare the captures against {{reference}} and rank the gaps that matter most, at most five, each with where it shows and what closing it would look like. You judge; you do not fix. Report invalid-evidence rather than guessing when a capture is missing or unreadable. Verdict pass only when no gap you would call major remains.",
+      "brief": "Compare the captures against {{reference}} side by side with the labels stripped and in random order, say which is better and why, then rank the gaps that matter most, at most five, each with where it shows and what closing it would look like. You judge; you do not fix. Report invalid-evidence rather than guessing when a capture is missing or unreadable. Verdict pass only when no gap you would call major remains.",
       "inputs": [
         "captures/ of the current revision",
         "{{reference}}"

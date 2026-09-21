@@ -206,7 +206,7 @@
     },
     {
       "id": "ownership-not-swarm",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Ownership, not swarm",
       "summary": "Coupled subsystems get one owner each, in sequence; only the independent pieces fan out to fast workers; an integrator joins them and the tests close it.",
@@ -229,7 +229,14 @@
         "subsystem-b"
       ],
       "file": "ownership-not-swarm.grooph.json",
-      "demo": "experiments/patterns/ownership-not-swarm/README.md"
+      "demo": "experiments/patterns/ownership-not-swarm/README.md",
+      "credits": [
+        {
+          "name": "Claude of Duty process note (Matt Shumer)",
+          "url": "https://github.com/mshumer/Claude-of-Duty",
+          "note": "sequential ownership beat parallel fan-out on coupled systems in the repository's own write-up"
+        }
+      ]
     },
     {
       "id": "red-team-loop",
@@ -309,7 +316,7 @@
     },
     {
       "id": "spec-then-loop",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Spec then loop",
       "summary": "A planner writes the answer key, a human approves it, then a builder and an isolated critic loop against it.",
@@ -330,7 +337,14 @@
         "test-command"
       ],
       "file": "spec-then-loop.grooph.json",
-      "demo": "experiments/patterns/spec-then-loop/README.md"
+      "demo": "experiments/patterns/spec-then-loop/README.md",
+      "credits": [
+        {
+          "name": "Answer-key-first Gauntlet, a community modification of Matt Pocock's Wayfinder",
+          "url": "https://github.com/mattpocock/skills/blob/main/docs/engineering/wayfinder.md",
+          "note": "write the spec and a pass/fail answer key before the loop; the modification is known from a secondary write-up, not a primary source"
+        }
+      ]
     },
     {
       "id": "specialist-critic-bank",
@@ -359,7 +373,7 @@
     },
     {
       "id": "taste-polish",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Taste polish",
       "summary": "One owner polishes an existing artifact while an isolated frontier critic compares readable captures against a named reference, bounded by rounds, budget and a human check-in.",
@@ -381,7 +395,14 @@
         "capture-command"
       ],
       "file": "taste-polish.grooph.json",
-      "demo": "experiments/patterns/taste-polish/README.md"
+      "demo": "experiments/patterns/taste-polish/README.md",
+      "credits": [
+        {
+          "name": "Matt Shumer's Gauntlet Loop (Claude of Duty)",
+          "url": "https://github.com/mshumer/Claude-of-Duty",
+          "note": "the bounded form of the Gauntlet: one owner, an isolated critic against a named reference, real stops"
+        }
+      ]
     },
     {
       "id": "tournament-then-judge",
