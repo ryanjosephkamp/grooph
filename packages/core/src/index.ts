@@ -15,4 +15,7 @@ export * from "./proposals.js";
 export * from "./share.js";
 export { proposalSetSchema, proposalsJsonSchema, PROPOSALS_SCHEMA_ID } from "./schema/proposals.js";
 export * from "./runs.js";
+export { autoLayout, layerNodes, resolvePositions, DEFAULT_LAYOUT_BOX, type LayoutBox } from "./layout.js";
+export { glyph, type GlyphOptions } from "./glyph.js";
+export { mermaid } from "./mermaid.js";
 export { runBundleSchema, runJsonSchema, RUN_SCHEMA_ID } from "./schema/run.js";
