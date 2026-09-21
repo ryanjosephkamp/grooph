@@ -22,6 +22,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - Criterion 5 met (2026-09-21): LEAD.md §11 asks for `{"at":"graph","outcome":"ending"}` with a `text` before the final note; `RunNote.outcome` lists `started` and `ending` in types and schema; `prove-check` reports a final note with no `ending` line before it, or an `ending` line with nothing after it, as a finding; `summarizeRun` ignores both markers (test `0014-5`).
 - Criterion 6 met (2026-09-21): §11 ends with the report sentence: the final note and `PROGRESS.md` are the record; the lead's last reply summarises them for whoever started the session and points at the run folder.
 - Criterion 7 met (2026-09-21): both golden packages regenerated (LEAD.md §8 line shape and §11, MAPPING.md skills paragraph) and read; all sixteen kept records re-checked, 16/16 PASS, no verdict change; one new finding on the eleven records that end at a stop node (`no ending line before the final note`), none on the five that halt at a gate.
+- Criterion 8 met (2026-09-21): cold on `37c23bc`, install/build/test (core 254, cli 58, web 49), goldens regenerate to the committed bytes, index and brake checks clean, e2e 54 passed, 16/16 records PASS, ledger untouched; CI green on every pushed commit.
+- **done** at `37c23bc`; handback in `handoffs/0014-credits-and-folds/HANDBACK.md` (2026-09-21).
 
 ## Waiting on the owner
 
