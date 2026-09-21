@@ -1,0 +1,133 @@
+{
+  "template": "fresh-grind-rare-judge",
+  "template_version": "fresh-grind-rare-judge@1",
+  "slots": {
+    "values": {
+      "task": "Build the arithmetic evaluator in two phases as docs/PHASES.md lays out: first `tokenize` in src/tokenize.mjs against tests/tokenize.test.mjs, then `evaluate` in src/evaluate.mjs with its own tests written from the phase entry. A held-out set of cases for phase 2 exists outside this project; the judge checks against it, and it is not yours to read.",
+      "test-command": "npm test",
+      "phase-checklist": "docs/PHASES.md"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-dKz7KU.harness/held-out",
+    "files": [
+      {
+        "path": "evaluate-cases.test.mjs",
+        "sha256": "8d5559abd0e0ccd200e519c858e944d293e27de4a7161baa2b853292a2003b56"
+      }
+    ],
+    "substituted_in": [
+      "docs/PHASES.md"
+    ]
+  },
+  "graph_id": "calc-in-phases",
+  "run_id": "20260921-044114",
+  "run_ids": [
+    "20260921-044114"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.8323435000000001,
+      "output_tokens": 17528
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.23403110000000002,
+      "output_tokens": 12105
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.9036172499999999,
+      "output_tokens": 9533
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "calc-in-phases--builder": [
+      "claude-sonnet-5"
+    ],
+    "calc-in-phases--judge": [
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 2.969992,
+  "harness_turns": 42,
+  "lead_turns": null,
+  "duration_s": 698,
+  "rounds": {
+    "loop_passes": 4,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done"
+  ],
+  "subagents": {
+    "calc-in-phases--builder": 2,
+    "calc-in-phases--judge": 2
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "RUN=$(date -u +%Y%m%d-%H%M%S); echo \"$RUN\"; mkdir -p .grooph/calc-in-phases/runs/$RUN; cp .grooph/calc-in-phases/graph.grooph.json .grooph/calc-in-phases/runs/$RUN/graph.grooph.json; ls .grooph/calc-in-phases/runs/$RUN; date -u +%Y-%m-%dT%H:%M:%SZ"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm test 2>&1 | tee .grooph/calc-in-phases/runs/20260921-044114/test-output-phase1-round0.txt; echo \"exit: ${PIPESTATUS[0]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "date -u +%Y-%m-%dT%H:%M:%SZ; cp PHASE-REVIEW.md .grooph/calc-in-phases/runs/20260921-044114/PHASE-REVIEW-round-0.md; git add -N src/tokenize.mjs CHANGES.md PHASE-REVIEW.md; git add src/tokenize.mjs CHANGES.md PHASE-REVIEW.md; git status --porcelain"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 26,
+      "session_id": "e8f8ff6f-1080-4c77-a2c8-e205e189f750",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 2.969992,
+      "reported_cost_usd": 2.9699918499999995,
+      "max_budget_usd": 9,
+      "harness_turns": 42,
+      "duration_s": 698,
+      "wall_s": 698,
+      "notes_after": 19,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "6a77970c8d280aa71d8d02d7d25af9148d80add3",
+  "source_sha256_before": "eb08b37f11057b0677ecd82fbbbc2e5c98c55e3291838dffe0e509e960c30cd5",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "A PHASE-REVIEW.md",
+    "A src/evaluate.mjs",
+    "A src/tokenize.mjs",
+    "A tests/evaluate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-dKz7KU",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

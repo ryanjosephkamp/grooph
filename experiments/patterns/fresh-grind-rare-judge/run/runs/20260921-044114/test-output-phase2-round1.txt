@@ -1,0 +1,32 @@
+
+> calc@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ precedence: * and / bind tighter than + and - (1.012584ms)
+✔ parentheses override precedence (0.067708ms)
+✔ ^ is right-associative (0.05175ms)
+✔ ^ binds tighter than unary minus (0.047167ms)
+✔ division (0.125125ms)
+✔ division by zero is a RangeError (0.170958ms)
+✔ a trailing operator is a SyntaxError (0.051375ms)
+✔ empty and whitespace-only input are SyntaxErrors (0.059459ms)
+✔ two numbers with no operator between them is a SyntaxError (0.057917ms)
+✔ a stray '+' where an operand is expected is a SyntaxError (no unary plus) (0.086417ms)
+✔ unmatched parentheses are SyntaxErrors (0.067792ms)
+✔ chained unary minus negates repeatedly (0.055459ms)
+✔ unary minus applies to a parenthesized expression (0.035833ms)
+✔ unary minus binds looser than *, / so it applies to the whole product (0.036541ms)
+✔ what is not an operator (e.g. an unknown character) surfaces the tokenizer's SyntaxError (0.341166ms)
+✔ a non-string is the TypeError the tokenizer raises (0.097958ms)
+✔ numbers, operators and parentheses with positions (0.8095ms)
+✔ whitespace of every kind is skipped and the empty text has no tokens (0.073625ms)
+✔ a bad number and an unknown character are SyntaxErrors that name the index (0.30525ms)
+✔ a non-string is a TypeError (0.058375ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.468833

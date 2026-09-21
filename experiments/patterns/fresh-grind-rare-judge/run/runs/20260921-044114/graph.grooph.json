@@ -1,0 +1,220 @@
+{
+  "grooph": 0,
+  "id": "calc-in-phases",
+  "name": "Calc in phases",
+  "version": 1,
+  "goal": "Build the arithmetic evaluator in two phases as docs/PHASES.md lays out: first `tokenize` in src/tokenize.mjs against tests/tokenize.test.mjs, then `evaluate` in src/evaluate.mjs with its own tests written from the phase entry. A held-out set of cases for phase 2 exists outside this project; the judge checks against it, and it is not yours to read. Done when every phase in docs/PHASES.md has passed the judge and `npm test` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "fresh-grind-rare-judge",
+    "from": "fresh-grind-rare-judge@1"
+  },
+  "description": "An inner grind loop, a fast builder against the tests, runs inside an outer judgment loop. Only when the tests pass does a frontier judge review the phase against the phase checklist: fail returns to the builder to fix the phase, next-phase returns it to start the next one, and pass ends the run. Both loops are budgeted.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Work through the current phase of docs/PHASES.md until `npm test` passes; one phase at a time, never ahead. On a failing test, start from its output; after a judge review, start from PHASE-REVIEW.md. Report which phase you are on and what changed.",
+      "inputs": [
+        "the task",
+        "docs/PHASES.md",
+        "test output or PHASE-REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change for this phase, with tests",
+        "CHANGES.md: the phase and what changed"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "judge",
+      "kind": "agent",
+      "name": "Phase judge",
+      "description": "Runs only at phase boundaries: after the tests pass.",
+      "role": "judge",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Judge the finished phase against its entry in docs/PHASES.md, citing file and line for each item. Emit fail with findings when the phase is not done, next-phase when it is and phases remain, and pass when the last phase is done. You judge; you do not fix.",
+      "inputs": [
+        "diff since the last phase boundary",
+        "the repository as the change leaves it, read-only",
+        "docs/PHASES.md"
+      ],
+      "outputs": [
+        "PHASE-REVIEW.md: the phase item by item and a verdict line",
+        "verdict: pass | fail | next-phase"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-tests"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-judge",
+      "from": "tests",
+      "to": "judge",
+      "when": "pass",
+      "evidence": [
+        "diff since the last phase boundary",
+        "the repository as the change leaves it, read-only",
+        "docs/PHASES.md",
+        "test output"
+      ]
+    },
+    {
+      "id": "e-judge-fail",
+      "from": "judge",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "PHASE-REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-judge-next-phase",
+      "from": "judge",
+      "to": "builder",
+      "when": {
+        "verdict": "next-phase"
+      },
+      "evidence": [
+        "PHASE-REVIEW.md"
+      ]
+    },
+    {
+      "id": "e-judge-pass",
+      "from": "judge",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    },
+    {
+      "id": "phases",
+      "name": "Phases",
+      "members": [
+        "builder",
+        "tests",
+        "judge"
+      ],
+      "back": [
+        "e-judge-fail",
+        "e-judge-next-phase"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Phase checklist",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "docs/PHASES.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of npm test"
+          }
+        ],
+        "acceptance": "Every phase in docs/PHASES.md is signed off by the judge with evidence, and `npm test` exits 0."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 55
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

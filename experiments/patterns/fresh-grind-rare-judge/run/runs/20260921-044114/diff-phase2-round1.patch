@@ -1,0 +1,239 @@
+diff --git a/.grooph/calc-in-phases/runs/20260921-044114/boundary-phase1/CHANGES.md b/CHANGES.md
+index 17c7f25..91d2e92 100644
+--- a/.grooph/calc-in-phases/runs/20260921-044114/boundary-phase1/CHANGES.md
++++ b/CHANGES.md
+@@ -17,3 +17,35 @@ Added `src/tokenize.mjs` implementing `tokenize(text)`:
+ 
+ `tests/tokenize.test.mjs` (pre-existing, not modified) passes: 4/4 tests,
+ `npm test` exits 0 with nothing skipped or todo.
++
++## Phase 2 · evaluator
++
++Added `src/evaluate.mjs` implementing `evaluate(text)` as a recursive-descent
++parser built on `tokenize`:
++
++- Precedence, tightest to loosest: parentheses; `^` (right-associative);
++  unary minus; `*`/`/` (left-associative); `+`/`-` (left-associative). `^`
++  binds tighter than unary minus, so `-2 ^ 2` is `-4` and, being
++  right-associative, `2 ^ 3 ^ 2` is `512`.
++- Division by zero throws `RangeError`; any malformed expression (trailing
++  operator, doubled operand, unmatched parenthesis, stray operator where an
++  operand is expected, empty/whitespace-only input) throws `SyntaxError`
++  because the parser requires the whole token stream to reduce to a single
++  expression with nothing left over.
++- Unary minus recurses (`--2` is `2`, `-(1 + 2)` is `-3`), so chained or
++  parenthesized unary minus is well-defined rather than an error.
++- Non-string input and anything the tokenizer itself rejects (unknown
++  characters, bad numbers) surface as whatever error `tokenize` raises
++  (`TypeError` or `SyntaxError` naming the index); `evaluate` does not
++  reinterpret those.
++
++Added `tests/evaluate.test.mjs` covering the seven cases from the phase 2
++entry (`1 + 2 * 3` → `7`, `(1 + 2) * 3` → `9`, `2 ^ 3 ^ 2` → `512`,
++`-2 ^ 2` → `-4`, `10 / 4` → `2.5`, `1 / 0` → `RangeError`, `1 +` →
++`SyntaxError`) plus edge cases thought through from the entry: empty and
++whitespace-only input, two numbers with no operator between them, a stray
++`+` where an operand is expected (no unary plus), unmatched parentheses,
++chained unary minus, unary minus before a parenthesis, unary minus mixed
++with `*`/`/`, an unknown character, and non-string input.
++
++`npm test` passes: 20/20 tests, exit 0, nothing skipped or todo.
+diff --git a/src/evaluate.mjs b/src/evaluate.mjs
+new file mode 100644
+index 0000000..fad9c11
+--- /dev/null
++++ b/src/evaluate.mjs
+@@ -0,0 +1,114 @@
++import { tokenize } from "./tokenize.mjs";
++
++// Grammar (tightest to loosest binding):
++//   addsub := muldiv (('+' | '-') muldiv)*
++//   muldiv := unary (('*' | '/') unary)*
++//   unary  := '-' unary | power
++//   power  := primary ('^' unary)?      // right-associative
++//   primary := number | '(' addsub ')'
++//
++// This makes '^' bind tighter than unary minus, so `-2 ^ 2` parses as
++// `-(2 ^ 2)` = -4, and `2 ^ 3 ^ 2` parses as `2 ^ (3 ^ 2)` = 512.
++
++export function evaluate(text) {
++  const tokens = tokenize(text);
++  const state = { tokens, pos: 0 };
++
++  const value = parseAddSub(state);
++
++  if (state.pos < state.tokens.length) {
++    const tok = state.tokens[state.pos];
++    throw new SyntaxError(`unexpected token at index ${tok.at}`);
++  }
++
++  return value;
++}
++
++function peek(state) {
++  return state.tokens[state.pos];
++}
++
++function advance(state) {
++  return state.tokens[state.pos++];
++}
++
++function isOp(tok, ...values) {
++  return tok && tok.type === "op" && values.includes(tok.value);
++}
++
++function parseAddSub(state) {
++  let left = parseMulDiv(state);
++
++  while (isOp(peek(state), "+", "-")) {
++    const tok = advance(state);
++    const right = parseMulDiv(state);
++    left = tok.value === "+" ? left + right : left - right;
++  }
++
++  return left;
++}
++
++function parseMulDiv(state) {
++  let left = parseUnary(state);
++
++  while (isOp(peek(state), "*", "/")) {
++    const tok = advance(state);
++    const right = parseUnary(state);
++    if (tok.value === "*") {
++      left = left * right;
++    } else {
++      if (right === 0) {
++        throw new RangeError("division by zero");
++      }
++      left = left / right;
++    }
++  }
++
++  return left;
++}
++
++function parseUnary(state) {
++  if (isOp(peek(state), "-")) {
++    advance(state);
++    return -parseUnary(state);
++  }
++  return parsePower(state);
++}
++
++function parsePower(state) {
++  const base = parsePrimary(state);
++
++  if (isOp(peek(state), "^")) {
++    advance(state);
++    const exponent = parseUnary(state);
++    return Math.pow(base, exponent);
++  }
++
++  return base;
++}
++
++function parsePrimary(state) {
++  const tok = peek(state);
++
++  if (!tok) {
++    throw new SyntaxError("unexpected end of input");
++  }
++
++  if (tok.type === "number") {
++    advance(state);
++    return tok.value;
++  }
++
++  if (tok.type === "lparen") {
++    advance(state);
++    const value = parseAddSub(state);
++    const close = peek(state);
++    if (!close || close.type !== "rparen") {
++      throw new SyntaxError(`expected ')' to match '(' at index ${tok.at}`);
++    }
++    advance(state);
++    return value;
++  }
++
++  throw new SyntaxError(`unexpected token at index ${tok.at}`);
++}
+diff --git a/tests/evaluate.test.mjs b/tests/evaluate.test.mjs
+new file mode 100644
+index 0000000..6dfe4db
+--- /dev/null
++++ b/tests/evaluate.test.mjs
+@@ -0,0 +1,73 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { evaluate } from "../src/evaluate.mjs";
++
++test("precedence: * and / bind tighter than + and -", () => {
++  assert.equal(evaluate("1 + 2 * 3"), 7);
++});
++
++test("parentheses override precedence", () => {
++  assert.equal(evaluate("(1 + 2) * 3"), 9);
++});
++
++test("^ is right-associative", () => {
++  assert.equal(evaluate("2 ^ 3 ^ 2"), 512);
++});
++
++test("^ binds tighter than unary minus", () => {
++  assert.equal(evaluate("-2 ^ 2"), -4);
++});
++
++test("division", () => {
++  assert.equal(evaluate("10 / 4"), 2.5);
++});
++
++test("division by zero is a RangeError", () => {
++  assert.throws(() => evaluate("1 / 0"), RangeError);
++});
++
++test("a trailing operator is a SyntaxError", () => {
++  assert.throws(() => evaluate("1 +"), SyntaxError);
++});
++
++test("empty and whitespace-only input are SyntaxErrors", () => {
++  assert.throws(() => evaluate(""), SyntaxError);
++  assert.throws(() => evaluate("   \t\n"), SyntaxError);
++});
++
++test("two numbers with no operator between them is a SyntaxError", () => {
++  assert.throws(() => evaluate("2 3"), SyntaxError);
++});
++
++test("a stray '+' where an operand is expected is a SyntaxError (no unary plus)", () => {
++  assert.throws(() => evaluate("1 + + 2"), SyntaxError);
++});
++
++test("unmatched parentheses are SyntaxErrors", () => {
++  assert.throws(() => evaluate("(1 + 2"), SyntaxError);
++  assert.throws(() => evaluate("1 + 2)"), SyntaxError);
++});
++
++test("chained unary minus negates repeatedly", () => {
++  assert.equal(evaluate("--2"), 2);
++  assert.equal(evaluate("---2"), -2);
++});
++
++test("unary minus applies to a parenthesized expression", () => {
++  assert.equal(evaluate("-(1 + 2)"), -3);
++});
++
++test("unary minus binds looser than *, / so it applies to the whole product", () => {
++  assert.equal(evaluate("-2 * 3"), -6);
++  assert.equal(evaluate("2 * -3"), -6);
++});
++
++test("what is not an operator (e.g. an unknown character) surfaces the tokenizer's SyntaxError", () => {
++  assert.throws(() => evaluate("1 % 2"), { name: "SyntaxError", message: /\b2\b/ });
++});
++
++test("a non-string is the TypeError the tokenizer raises", () => {
++  assert.throws(() => evaluate(12), TypeError);
++  assert.throws(() => evaluate(null), TypeError);
++});

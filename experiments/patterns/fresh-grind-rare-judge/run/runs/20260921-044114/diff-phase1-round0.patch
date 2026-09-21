@@ -1,0 +1,111 @@
+diff --git a/src/tokenize.mjs b/src/tokenize.mjs
+new file mode 100644
+index 0000000..75b9008
+--- /dev/null
++++ b/src/tokenize.mjs
+@@ -0,0 +1,80 @@
++const OPERATORS = new Set(["+", "-", "*", "/", "^"]);
++
++export function tokenize(text) {
++  if (typeof text !== "string") {
++    throw new TypeError("tokenize expects a string");
++  }
++
++  const tokens = [];
++  let i = 0;
++
++  while (i < text.length) {
++    const ch = text[i];
++
++    if (ch === " " || ch === "\t" || ch === "\n") {
++      i += 1;
++      continue;
++    }
++
++    if (ch === "(") {
++      tokens.push({ type: "lparen", value: "(", at: i });
++      i += 1;
++      continue;
++    }
++
++    if (ch === ")") {
++      tokens.push({ type: "rparen", value: ")", at: i });
++      i += 1;
++      continue;
++    }
++
++    if (OPERATORS.has(ch)) {
++      tokens.push({ type: "op", value: ch, at: i });
++      i += 1;
++      continue;
++    }
++
++    if (isDigit(ch) || ch === ".") {
++      const start = i;
++      let j = i;
++      let sawDigitBeforeDot = false;
++      let sawDot = false;
++      let sawDigitAfterDot = false;
++
++      while (j < text.length && isDigit(text[j])) {
++        sawDigitBeforeDot = true;
++        j += 1;
++      }
++
++      if (j < text.length && text[j] === ".") {
++        sawDot = true;
++        const dotIndex = j;
++        j += 1;
++        const afterDotStart = j;
++        while (j < text.length && isDigit(text[j])) {
++          sawDigitAfterDot = true;
++          j += 1;
++        }
++
++        if (!sawDigitBeforeDot || !sawDigitAfterDot) {
++          throw new SyntaxError(
++            `unexpected character at index ${dotIndex}`,
++          );
++        }
++      }
++
++      const raw = text.slice(start, j);
++      tokens.push({ type: "number", value: Number(raw), at: start });
++      i = j;
++      continue;
++    }
++
++    throw new SyntaxError(`unexpected character at index ${i}`);
++  }
++
++  return tokens;
++}
++
++function isDigit(ch) {
++  return ch >= "0" && ch <= "9";
++}
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..17c7f25
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,19 @@
++# Changes
++
++## Phase 1 · tokenizer
++
++Added `src/tokenize.mjs` implementing `tokenize(text)`:
++
++- Scans `text` left to right, producing `{ type, value, at }` tokens where
++  `type` is one of `number`, `op`, `lparen`, `rparen` and `at` is the index
++  of the token's first character.
++- Recognizes integers and decimals (`1`, `2.5`); a `.` lacking a digit on
++  either side throws a `SyntaxError` whose message names the index of the
++  `.`.
++- Recognizes operators `+ - * / ^` and parentheses `(` `)`; skips spaces,
++  tabs and newlines; any other character throws a `SyntaxError` naming its
++  index.
++- Throws a `TypeError` if `text` is not a string.
++
++`tests/tokenize.test.mjs` (pre-existing, not modified) passes: 4/4 tests,
++`npm test` exits 0 with nothing skipped or todo.
