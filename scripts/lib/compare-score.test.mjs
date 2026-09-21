@@ -93,6 +93,8 @@ test("scope: files outside the allowed prefixes, with the package paths ignored 
   assert.deepEqual(score.outside, ["notes/scratch.md", "package.json", "docs/new.md"]);
   assert.deepEqual(score.changed.filter((p) => p.startsWith(".")), []);
   assert.deepEqual(scoreScope([], ["src/"]).outside, []);
+  assert.deepEqual(scoreScope(["M tests/semver.test.mjs", "A src/x.mjs"], ["src/", "tests/"], ["tests/semver.test.mjs"]).protected_changed, ["tests/semver.test.mjs"]);
+  assert.deepEqual(scoreScope(["A src/x.mjs"], ["src/"], ["tests/semver.test.mjs"]).protected_changed, []);
 });
 
 test("the summary parser reads both reporters", () => {

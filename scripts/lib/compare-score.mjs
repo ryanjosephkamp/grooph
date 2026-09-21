@@ -106,8 +106,11 @@ export function scoreTests(tree, testCommand) {
   };
 }
 
-/** Files changed outside the allowed paths. `files` are `git diff --name-status` lines ("A path", "M path", "R100 old new"). */
-export function scoreScope(files, allowed) {
+/**
+ * Files changed outside the allowed paths, and any protected file the task said not to change.
+ * `files` are `git diff --name-status` lines ("A path", "M path", "R100 old new").
+ */
+export function scoreScope(files, allowed, protectedPaths = []) {
   const paths = files
     .map((line) => line.trim().split(/\s+/))
     .filter((parts) => parts.length >= 2)
@@ -119,6 +122,8 @@ export function scoreScope(files, allowed) {
     ignored: IGNORED,
     changed: considered,
     outside: considered.filter((path) => !inside(path)),
+    protected: protectedPaths,
+    protected_changed: considered.filter((path) => protectedPaths.includes(path)),
   };
 }
 
@@ -126,10 +131,10 @@ export function scoreScope(files, allowed) {
  * Score one final tree. `ending` is the runner's record: { kind: "clean" | "cut-off", reason }.
  * `files` is the diff's name-status list against the base commit.
  */
-export function scoreTree({ tree, heldOutDir, testCommand, allowed, files, ending }) {
+export function scoreTree({ tree, heldOutDir, testCommand, allowed, protectedPaths, files, ending }) {
   const held_out = scoreHeldOut(tree, heldOutDir);
   const tests = scoreTests(tree, testCommand);
-  const scope = scoreScope(files, allowed);
+  const scope = scoreScope(files, allowed, protectedPaths ?? []);
   return {
     scored_at: new Date().toISOString(),
     scorer: "scripts/lib/compare-score.mjs",
@@ -198,7 +203,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   try {
     const heldOutDir = existsSync(join(projectDir, "held-out")) ? join(projectDir, "held-out") : null;
     const kept = existsSync(join(runDir, "score.json")) ? JSON.parse(readFileSync(join(runDir, "score.json"), "utf8")) : null;
-    const score = scoreTree({ tree, heldOutDir, testCommand: slots.values["test-command"], allowed: expect.scope?.allowed ?? [], files: result.project_files_changed ?? [], ending: kept?.ending ?? result.ending_kind });
+    const score = scoreTree({ tree, heldOutDir, testCommand: slots.values["test-command"], allowed: expect.scope?.allowed ?? [], protectedPaths: expect.scope?.protected ?? [], files: result.project_files_changed ?? [], ending: kept?.ending ?? result.ending_kind });
     score.rebuilt_from = "task/ + project.diff";
     console.log(JSON.stringify(score, null, 2));
     if (kept) {
