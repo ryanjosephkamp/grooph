@@ -51,9 +51,24 @@ The remaining eleven templates, on tasks built so a first-round pass is unlikely
 
 **Spend:** $28.75 for the eleven runs and $0.02 for a probe that confirmed a headless session can read held-out evidence beside the project ([`ledger.json`](ledger.json), invocations 12–23); **$39.58 of the $45.00 cap** in all, $5.42 left, below the $6.00 a run may need.
 
+## Re-proving after slice 0012 (2026-09-21)
+
+The two red records were to run again on the fixed brief, with `--retry "0013 re-proof"` and the batch-two evidence moved to `run-1/`. One ran. Claude Code 2.1.278; lead on `claude-opus-5`; per-invocation ceiling raised to $9.00.
+
+| Template | Run | Last round | Back edge taken, caught by | Ending | Cost | Harness turns | Denials | Dispatch count | `--check` |
+|---|---|---|---|---|---|---|---|---|---|
+| [`specialist-critic-bank`](specialist-critic-bank/README.md) | `20260921-032821` | 0 | none | halt at gate | $3.10 | 8 | 0 | exact (6) | pass |
+| [`fresh-grind-rare-judge`](fresh-grind-rare-judge/README.md) | — | — | — | **did not run** | $0.00 | 1 | — | — | — |
+
+`specialist-critic-bank` is green: the lead's dispatch count matches the graph (6 a round, which the brief now states outright), the run ended through the template with a halt note at the gate well inside the ceiling, and there were no permission denials. It also lost its bet — the round-0 change confined the traversal surface it adds, the critics' three majors were all ranked minor by triage with reasons, and the bar passed on the first pass — so the loop never turned and the per-round copy rule never fired. [The write-up](specialist-critic-bank/README.md#re-proved-after-slice-0012) sets both runs side by side; the pair is the clearest thing in this ground about how much a bar of "no blocker, no major" rests on one judge's severity discipline.
+
+`fresh-grind-rare-judge` was not re-proved. Its kickoff (ledger invocation 25's predecessor, invocation 24) failed at authentication before any model call — "OAuth session expired and could not be refreshed", $0.00, evidence kept as `fresh-grind-rare-judge/run-failed-auth/` — and because a re-proof is started with `--retry`, the ledger then counted that as the template's one retry and refused a second. Its `run/` therefore still holds the batch-two record, red for the reasons its write-up gives. See `handoffs/0013-reproof-red-records/HANDBACK.md`.
+
+**Spend:** $3.10 for the one run and $0.00 for the failed kickoff ([`ledger.json`](ledger.json), invocations 24–25); **$42.67 of the $55.00 cap** in all, $12.33 left.
+
 ## All sixteen
 
-One kept run per template (`run/`; for `review-gate` and `spec-then-loop` the re-proved one). Dispatch count is the lead's own tally on its loop notes against the started lines and check runs before each; "no count kept" means the loop's budget is in minutes, or the lead kept none.
+One kept run per template (`run/`; for `review-gate`, `spec-then-loop` and `specialist-critic-bank` the re-proved one). Dispatch count is the lead's own tally on its loop notes against the started lines and check runs before each; "no count kept" means the loop's budget is in minutes, or the lead kept none.
 
 | Template | Batch | Back edge taken, caught by | Denials | Dispatch count | `--check` |
 |---|---|---|---|---|---|
@@ -70,7 +85,7 @@ One kept run per template (`run/`; for `review-gate` and `spec-then-loop` the re
 | [`retrospective-rewrite`](retrospective-rewrite/README.md) | second | none | 2 | no count kept | pass |
 | [`review-gate`](review-gate/README.md) | first (re-proved after 0010) | none | 2 | no count kept | pass |
 | [`spec-then-loop`](spec-then-loop/README.md) | first (re-proved after 0010) | none | 14 | exact (2) | pass |
-| [`specialist-critic-bank`](specialist-critic-bank/README.md) | second | yes: e-triage-fail; caught by triage (fail) | 3 | off by 4 | **fail** (4) |
+| [`specialist-critic-bank`](specialist-critic-bank/README.md) | second (re-proved after 0012) | none | 0 | exact (6) | pass |
 | [`taste-polish`](taste-polish/README.md) | second | yes: e-critic-fail; caught by critic (fail) | 7 | exact (3, 6) | pass |
 | [`tournament-then-judge`](tournament-then-judge/README.md) | second | none | 0 | no count kept | pass |
 
@@ -79,7 +94,7 @@ One kept run per template (`run/`; for `review-gate` and `spec-then-loop` the re
 - **Four loops looped.** `heterogeneous-critic` and `taste-polish` failed round 0 on held-out evidence the builder never saw and passed at round 1; `fresh-grind-rare-judge` took `next-phase` back to the builder; `specialist-critic-bank`'s triage sent the builder back once and would have again. Every one of them was caught by the node the template puts there to catch it. The first batch had none.
 - **Two bets did not pay.** A strong builder given a precise CSV contract produced a parser a frontier red team could not break with a 400,000-input differential fuzz (`red-team-loop`), and a fast builder passed all 43 held-out evaluator cases at its first phase-2 attempt (`fresh-grind-rare-judge`). Both write-ups say so; both records still show the mechanism working on the critic's side.
 - **Held-out evidence works by instruction, not by permission.** The runner allows `Read` on the held-out folder by rule for the whole session; the digest is what shows who used it. In all three held-out runs the critic or judge ran the cases and the builder never touched them, though its path stood in a file the builder was given.
-- **Two records fail `--check` for true reasons.** In `fresh-grind-rare-judge` the lead amended the working copy to give the judge `run-tests` and, since the compiled agent file could not change, dispatched a `general-purpose` stand-in as the phase-2 judge; in `specialist-critic-bank` the lead halted on the $6.00 session ceiling the ledger imposes, a stop the graph does not have, and miscounted dispatches (8 a round for 6). Both are findings for the template and the brief, not retries.
+- **Two records fail `--check` for true reasons.** In `fresh-grind-rare-judge` the lead amended the working copy to give the judge `run-tests` and, since the compiled agent file could not change, dispatched a `general-purpose` stand-in as the phase-2 judge; in `specialist-critic-bank` the lead halted on the $6.00 session ceiling the ledger imposes, a stop the graph does not have, and miscounted dispatches (8 a round for 6). Both are findings for the template and the brief, not retries. Slice 0012 fixed what they exposed; `specialist-critic-bank` was re-proved green on 2026-09-21 (above), and `fresh-grind-rare-judge`'s re-proof has not run.
 - **Dispatch counts were exact in seven of eight loops that kept one**, checks included; the eighth is the miscount above, which the new check caught.
 - **Denials fell from 2 and 14 in the re-proved runs to a median of 2 (0–9) here, and no `cd … &&` or `git -C` form appears in any of the 32.** What remains is note-append plumbing (`printf`, heredocs, shell variables) and, in the two costliest cases, a git idiom for the diff of new files (`git add -N`, brace groups) and attempts to rasterise an SVG.
 - **Two harness quirks.** With subagents dispatched in parallel, `claude -p --output-format json` reported 4 turns and 28 s for a 335 s run and 11 turns and 111 s for a 496 s one (`duration_api_ms` was right both times). And a lead can see its `--max-budget-usd` position: the bank's lead halted at $5.51 of $6.00 rather than start a round it could not finish.
