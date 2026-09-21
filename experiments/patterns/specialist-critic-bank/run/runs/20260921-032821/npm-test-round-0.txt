@@ -1,0 +1,22 @@
+
+> userfiles@0.4.0 test
+> node --test tests/*.test.mjs
+
+✔ write, read and list (1.760375ms)
+✔ sizes are in bytes, not characters (0.313875ms)
+✔ searchFiles returns the sorted names of files under root containing the query (0.889166ms)
+✔ searchFiles matches an exact, case-sensitive substring (0.758791ms)
+✔ searchFiles ignores folders and skips an empty root (0.242166ms)
+✔ searchFiles with `within` searches only that subfolder (1.123208ms)
+✔ searchFiles refuses a `within` that escapes the user's root (0.886125ms)
+✔ searchFiles refuses a `within` that escapes the user's root through a symlink (0.576125ms)
+✔ searchFiles throws when `within` does not exist (0.338166ms)
+✔ searchFiles requires a non-empty string query (0.314625ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.1775

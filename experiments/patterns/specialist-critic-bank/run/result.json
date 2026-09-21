@@ -1,0 +1,123 @@
+{
+  "template": "specialist-critic-bank",
+  "template_version": "specialist-critic-bank@1",
+  "slots": {
+    "values": {
+      "task": "Add `searchFiles(root, query, { within } = {})` to src/store.mjs: it returns, sorted, the names of the files directly under the user's root (or under the subfolder `within` when the request names one) whose text contains `query`. Build on the store's existing helpers, document it in README.md, and add tests to tests/store.test.mjs.",
+      "test-command": "npm test"
+    }
+  },
+  "graph_id": "search-user-files",
+  "run_id": "20260921-032821",
+  "run_ids": [
+    "20260921-032821"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 2.374653,
+      "output_tokens": 35405
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.72152125,
+      "output_tokens": 8389
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "search-user-files--taste": [
+      "claude-opus-5"
+    ],
+    "search-user-files--correctness": [
+      "claude-opus-5"
+    ],
+    "search-user-files--builder": [
+      "claude-opus-5"
+    ],
+    "search-user-files--security": [
+      "claude-opus-5"
+    ],
+    "search-user-files--triage": [
+      "claude-fable-5-1"
+    ],
+    "search-user-files--performance": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 3.096174,
+  "harness_turns": 8,
+  "lead_turns": null,
+  "duration_s": 163,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at gate"
+  ],
+  "subagents": {
+    "search-user-files--taste": 1,
+    "search-user-files--correctness": 1,
+    "search-user-files--builder": 1,
+    "search-user-files--security": 1,
+    "search-user-files--triage": 1,
+    "search-user-files--performance": 1
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 25,
+      "session_id": "c3087224-cc4c-4772-a2d6-a7990740f18a",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 3.096174,
+      "reported_cost_usd": 3.0961742499999994,
+      "max_budget_usd": 9,
+      "harness_turns": 8,
+      "duration_s": 163,
+      "wall_s": 391,
+      "notes_after": 15,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "67df3798b8f2c197f5edf3249886af4388a687db",
+  "source_sha256_before": "668b6ee88b7f30959c385ab1cf3faa826156b86bb2865a609738b7c1bd4cc5e2",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW-CORRECTNESS.md",
+    "A REVIEW-PERFORMANCE.md",
+    "A REVIEW-SECURITY.md",
+    "A REVIEW-TASTE.md",
+    "A TRIAGE.md",
+    "M src/store.mjs",
+    "M tests/store.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-specialist-critic-bank-hPqD35",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}
