@@ -1,0 +1,86 @@
+{
+  "template": "fresh-grind-rare-judge",
+  "template_version": "fresh-grind-rare-judge@1",
+  "slots": {
+    "values": {
+      "task": "Build the arithmetic evaluator in two phases as docs/PHASES.md lays out: first `tokenize` in src/tokenize.mjs against tests/tokenize.test.mjs, then `evaluate` in src/evaluate.mjs with its own tests written from the phase entry. A held-out set of cases for phase 2 exists outside this project; the judge checks against it, and it is not yours to read.",
+      "test-command": "npm test",
+      "phase-checklist": "docs/PHASES.md"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-Osym0n.harness/held-out",
+    "files": [
+      {
+        "path": "evaluate-cases.test.mjs",
+        "sha256": "8d5559abd0e0ccd200e519c858e944d293e27de4a7161baa2b853292a2003b56"
+      }
+    ],
+    "substituted_in": [
+      "docs/PHASES.md"
+    ]
+  },
+  "graph_id": "calc-in-phases",
+  "run_id": null,
+  "run_ids": [],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {},
+  "models_by_agent": {
+    "lead": [
+      "<synthetic>"
+    ]
+  },
+  "cost_usd": 0,
+  "harness_turns": 1,
+  "lead_turns": null,
+  "duration_s": 1,
+  "rounds": {
+    "loop_passes": 0,
+    "rounds_recorded": 0,
+    "last_round": null
+  },
+  "stop_fired": [],
+  "ending": [],
+  "subagents": {},
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 24,
+      "session_id": "e283171d-5214-4b3b-8395-137cc0e2f166",
+      "result": "success",
+      "is_error": true,
+      "cost_usd": 0,
+      "reported_cost_usd": 0,
+      "max_budget_usd": 9,
+      "harness_turns": 1,
+      "duration_s": 1,
+      "wall_s": 2,
+      "notes_after": 0,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "fdf847cc9ac01eb2514e8bbd8897395f42d93d25",
+  "source_sha256_before": "eb08b37f11057b0677ecd82fbbbc2e5c98c55e3291838dffe0e509e960c30cd5",
+  "project_files_changed": [],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-Osym0n",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": null
+}

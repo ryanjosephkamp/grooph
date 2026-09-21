@@ -1,0 +1,15 @@
+[
+  {
+    "session": "e283171d-5214-4b3b-8395-137cc0e2f166",
+    "who": "lead",
+    "transcript": "e283171d-5214-4b3b-8395-137cc0e2f166.jsonl",
+    "description": null,
+    "models": [
+      "<synthetic>"
+    ],
+    "started": "2026-09-21T00:58:30.787Z",
+    "ended": "2026-09-21T00:58:31.657Z",
+    "assistant_messages": 1,
+    "tool_uses": []
+  }
+]
