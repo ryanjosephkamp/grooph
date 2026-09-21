@@ -16,7 +16,14 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - Criterion 1 (part): `fresh-grind-rare-judge/run/` moved to `run-1/` by `git mv`, unedited; `--check` on `run-1/` fails the same two assertions as before (stand-in judge wrote `PHASE-REVIEW.md`; the judge never touched the held-out suite).
 - The judge's re-proof (ledger invocation 24, `--retry "0013 re-proof"`) failed before any model call: `claude -p` exited 1 in 2 s with "Failed to authenticate: OAuth session expired and could not be refreshed", $0.00. Its evidence is kept as `run-failed-auth/`; `claude auth status` now reports logged out.
 - The ledger now refuses the judge ("already retried once (invocation 24)"): the re-proof's `--retry` is counted as the one retry, so a re-proof that fails on sign-in cannot be retried. Runner defect, reported not fixed. The bank is still admitted.
-- **blocked** at `009ccf4` (work head; the handback commit is on top): owner to sign in (`claude login`) and the driver to decide how the judge's re-proof gets admitted; the bank run has not started.
+- Owner signed in again (2026-09-21); the runner's clean environment sees the session. The judge's evidence was moved back to `run/` (pure rename, contents untouched, `--check` unchanged): its re-proof did not run, so the batch-two record stays the kept one and the sixteen-row summary stays sixteen. Only `run-failed-auth/` is new there.
+- Criterion 1 (bank): `specialist-critic-bank/run/` moved to `run-1/` by `git mv`, unedited; `--check` on `run-1/` fails the same four assertions as before.
+- Criterion 3: `specialist-critic-bank` re-proved, run `20260921-032821`, $3.0962 of a $9.00 ceiling, 8 harness turns, 163 s. Dispatch count exact (6 recorded, 6 started lines), the run ended through the template (halt note at `node:gate`, the final note), zero denials. Per-round report copies never came up: triage passed at round 0, so no builder was re-dispatched. The bet did not pay this time — no back edge.
+- Criterion 4: `--check` PASS on the bank's new `run/`; the judge's `run/` and the bank's `run-1/` still FAIL for their recorded reasons; `run-failed-auth/` fails with "no run folder".
+- Criterion 5: `specialist-critic-bank/README.md` gains "Re-proved after slice 0012" (its first-run links now point at `run-1/`); `experiments/patterns/README.md` gains a "Re-proving after slice 0012" section and the sixteen-row table is regenerated from `scripts/lib/prove-summary.mjs`. No section for the judge: nothing ran.
+- Criterion 6: ledger invocations 24 ($0.00, auth failure) and 25 ($3.0962); **$42.67 of the $55.00 cap, $12.33 left**. No other template ran.
+- Criterion 7: `pnpm -r build && pnpm -r test` (core 248, CLI 58, web 49), `pnpm --filter @grooph/web test:e2e` (52 passed, 27 skipped), `patterns-index.mjs --check`, `check-brake-values.mjs` all green.
+- **needs fix pass** at ``cf7fa97` (work head; the handback commit is on top)`: one of the two runs done. `fresh-grind-rare-judge` is still red and still refused by the ledger's retry rule (a runner defect, reported in the handback); the owner chose to leave its admission to the driver.
 
 ## Waiting on the owner
 
