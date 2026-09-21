@@ -116,7 +116,7 @@ id        kebab-case, unique in the file: `n-0001`, `n-0002`, … in append orde
 run       the run id
 at        graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>
 started   ISO timestamp from the clock, or omitted        ended     the same
-outcome   pass | fail | halt | invalid-evidence; started on a dispatch line
+outcome   pass | fail | halt | invalid-evidence; started on a dispatch line, ending on the line before the final note (§11)
 verdict   the critic's verdict label, when there is one
 round     the loop round this belongs to
 stop      on the loop note that ends the loop: the kind of the stop that fired
@@ -224,6 +224,8 @@ Stop nodes: `done` (success).
 
 Whichever way it ends, do all three:
 
-1. Append the final note: `"at":"graph"` with the outcome and a `text` that names the stop that fired or the stop node reached.
+1. Append one short line first, `{"at":"graph","outcome":"ending"}` with a `text` naming how the run ends, then the final note: `"at":"graph"` with the outcome and a `text` that names the stop that fired or the stop node reached. The `ending` line is how a monitor tells a run that finished from one that was cut off while finishing.
 2. Write the last `PROGRESS.md`: which nodes ran, how many rounds, every amendment to the working copy, and why the run ended.
 3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, whether the working copy was amended (so they can adopt or discard it), and what is left over.
+
+The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, `.grooph/review-loop/runs/<run-id>/`.
