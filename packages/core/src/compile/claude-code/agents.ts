@@ -23,6 +23,8 @@ function frontmatter(ctx: PackageContext, agent: ResolvedAgent): string {
     ...(agent.effort ? [`effort: ${agent.effort}`] : []),
     ...(agent.tools.length > 0 ? [`tools: ${agent.tools.join(", ")}`] : []),
     ...(agent.disallowedTools.length > 0 ? [`disallowedTools: ${agent.disallowedTools.join(", ")}`] : []),
+    // graph-ir §1 `skills`: preloaded at dispatch; an unknown name is the harness's to refuse, so none is checked here.
+    ...((agent.node.skills ?? []).length > 0 ? [`skills: ${agent.node.skills!.join(", ")}`] : []),
     "---",
   );
 }

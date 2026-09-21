@@ -130,9 +130,13 @@ const RESULT_STATE: Record<string, NodeRunState> = {
   halt: "halted",
 };
 
+/** graph-ir §6: the two marker lines, `started` before a dispatch and `ending` before the final note; neither is a result. */
+const isMarker = (note: RunNote): boolean => note.outcome === "started" || note.outcome === "ending";
+
 /** What a note says about a node: dispatched, finished with a state, or nothing (commentary). */
 function nodeEvent(note: RunNote): { kind: "started" } | { kind: "result"; state: NodeRunState } | undefined {
   if (note.outcome === "started") return { kind: "started" };
+  if (note.outcome === "ending") return undefined;
   // An outcome the lead named itself ("done", "reached") is a finished run, not a failure (graph-ir §6 leaves outcome open).
   if (note.outcome !== undefined) return { kind: "result", state: RESULT_STATE[note.outcome] ?? "passed" };
   if (note.ended !== undefined) return { kind: "result", state: "passed" };
@@ -146,8 +150,8 @@ const target = (at: RunNote["at"]): { kind: "graph" | "node" | "edge" | "loop"; 
   return { kind: at.slice(0, colon) as "node" | "edge" | "loop", id: at.slice(colon + 1) };
 };
 
-/** A note at `graph` whose outcome closes the run: the lead's final note, or a halt. */
-const closesRun = (note: RunNote): boolean => note.at === "graph" && note.outcome !== undefined && note.outcome !== "started";
+/** A note at `graph` whose outcome closes the run: the lead's final note, or a halt; never a marker line. */
+const closesRun = (note: RunNote): boolean => note.at === "graph" && note.outcome !== undefined && !isMarker(note);
 
 /**
  * The run's state and every node's and loop's, from its notes, against the
@@ -181,7 +185,7 @@ export function summarizeRun(notes: readonly RunNote[], graph: Graph): RunSummar
         if (!open.delete(where.id)) run.runs += 1;
         run.state = event.state;
       }
-      if (note.outcome !== undefined && note.outcome !== "started") run.lastOutcome = note.outcome;
+      if (note.outcome !== undefined && !isMarker(note)) run.lastOutcome = note.outcome;
       if (note.verdict !== undefined) run.lastVerdict = note.verdict;
       if (note.round !== undefined) {
         run.round = note.round;

@@ -1,0 +1,110 @@
+{
+  "grooph": 0,
+  "id": "skilled-fixer",
+  "name": "Skilled fixer",
+  "version": 1,
+  "goal": "Make the failing test suite pass without changing what the tests assert.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "time": "about 20 minutes"
+  },
+  "adaptation": "fixed",
+  "description": "fix-until-green with harness skills named on the fixer: `skills` is passed to the target's subagent frontmatter and never validated by grooph (graph-ir §1, slice 0014).",
+  "nodes": [
+    {
+      "id": "fixer",
+      "kind": "agent",
+      "name": "Fixer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Make the failing tests in tests/ pass by changing src/. Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
+      "inputs": [
+        "the failing test output"
+      ],
+      "outputs": [
+        "src/ changes",
+        "FIXES.md naming each test fixed and its cause"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src"
+      ],
+      "skills": [
+        "test-triage",
+        "commit-style"
+      ]
+    },
+    {
+      "id": "suite",
+      "kind": "check",
+      "name": "Test suite",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "green",
+      "kind": "stop",
+      "name": "Green",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-fix-suite",
+      "from": "fixer",
+      "to": "suite"
+    },
+    {
+      "id": "e-suite-fail",
+      "from": "suite",
+      "to": "fixer",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-suite-pass",
+      "from": "suite",
+      "to": "green",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "fixer",
+        "suite"
+      ],
+      "back": [
+        "e-suite-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

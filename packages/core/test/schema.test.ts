@@ -116,4 +116,31 @@ test("the schema and parseGraph agree on mutated documents", () => {
   mutate("write-outputs is a capability", (doc) => {
     (doc["nodes"] as { allow?: string[] }[])[1]!.allow = ["read-files", "write-outputs"];
   });
+  mutate("marker lines: started before a dispatch, ending before the final note (graph-ir §6, slice 0014)", (doc) => {
+    doc["notes"] = [
+      { id: "n-0001", run: "r", at: "node:builder", outcome: "started", round: 0 },
+      { id: "n-0002", run: "r", at: "graph", outcome: "ending", text: "bar passed; taking the pass edge to done" },
+      { id: "n-0003", run: "r", at: "graph", outcome: "pass", text: "reached stop node done" },
+    ];
+  });
+  mutate("skills on an agent node", (doc) => {
+    (doc["nodes"] as { skills?: unknown }[])[0]!.skills = ["test-triage"];
+  });
+  mutate("skills must be strings", (doc) => {
+    (doc["nodes"] as { skills?: unknown }[])[0]!.skills = [{ name: "test-triage" }];
+  });
+  mutate("template credits are complete", (doc) => {
+    doc["template"] = { kind: "graph", title: "T", summary: "s", whenToUse: "w", profile: { cost: "low", speed: "fast", rigor: "light" }, credits: [{ name: "n", url: "https://example.com", note: "what was taken" }] };
+  });
+  mutate("template credit without a note", (doc) => {
+    doc["template"] = { kind: "graph", title: "T", summary: "s", whenToUse: "w", profile: { cost: "low", speed: "fast", rigor: "light" }, credits: [{ name: "n", url: "https://example.com" }] };
+  });
+});
+
+test("0014: the published schema lists started and ending among run-note outcomes, and TemplateCredit requires all three fields", () => {
+  const schema = JSON.parse(graphJsonSchema()) as { $defs: Record<string, { properties: Record<string, { examples?: string[] }>; required?: string[] }> };
+  // `outcome` is an open enum (the lead may name its own), so the known values are examples, not a closed list.
+  assert.deepEqual(schema.$defs["RunNote"]!.properties["outcome"]!.examples, ["pass", "fail", "halt", "invalid-evidence", "started", "ending"]);
+  assert.deepEqual(schema.$defs["TemplateCredit"]!.required, ["name", "url", "note"]);
+  assert.ok("skills" in schema.$defs["AgentNode"]!.properties, "skills on an agent node");
 });

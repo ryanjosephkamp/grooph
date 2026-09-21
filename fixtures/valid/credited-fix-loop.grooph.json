@@ -1,0 +1,125 @@
+{
+  "grooph": 0,
+  "id": "credited-fix-loop",
+  "name": "Credited fix loop",
+  "version": 1,
+  "goal": "{{task}}",
+  "adaptation": "fixed",
+  "template": {
+    "kind": "graph",
+    "title": "Credited fix loop",
+    "summary": "A builder fixes failing tests until the suite is green, bounded by a round cap and a time budget.",
+    "whenToUse": "Failing tests define done and nobody needs to judge taste.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "light"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be fixed?",
+        "example": "Make the failing tests in tests/ pass by changing src/."
+      }
+    ],
+    "credits": [
+      {
+        "name": "An example source",
+        "url": "https://example.com/fix-loop",
+        "note": "the fix-until-green shape; a fixture, not a real attribution"
+      }
+    ]
+  },
+  "description": "A template carrying `credits` (decision 0010, slice 0014): whose published work the shape comes from, with the URL and what was taken.",
+  "nodes": [
+    {
+      "id": "fixer",
+      "kind": "agent",
+      "name": "Fixer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "{{task}} Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
+      "inputs": [
+        "the failing test output"
+      ],
+      "outputs": [
+        "src/ changes",
+        "FIXES.md naming each test fixed and its cause"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src"
+      ]
+    },
+    {
+      "id": "suite",
+      "kind": "check",
+      "name": "Test suite",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "green",
+      "kind": "stop",
+      "name": "Green",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-fix-suite",
+      "from": "fixer",
+      "to": "suite"
+    },
+    {
+      "id": "e-suite-fail",
+      "from": "suite",
+      "to": "fixer",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-suite-pass",
+      "from": "suite",
+      "to": "green",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "fixer",
+        "suite"
+      ],
+      "back": [
+        "e-suite-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

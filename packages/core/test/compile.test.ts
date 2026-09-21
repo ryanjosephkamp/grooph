@@ -524,3 +524,33 @@ test("0012-5: §6 states what one full round costs in dispatches, from the loop'
   assert.match(section(compile(counted, "claude-code").files[".grooph/review-loop/LEAD.md"]!, 6), /costs \*\*2 dispatches\*\*: `builder`, `critic` \(`merge-gate` is not a dispatch\)\. The budget of 12 covers 6 full rounds\./);
   assert.doesNotMatch(section(compile(doc, "claude-code").files[".grooph/review-loop/LEAD.md"]!, 6), /One full round of this loop costs/, "a turns budget gets no dispatch arithmetic");
 });
+
+test("0014-4: a node's skills go into the agent file's skills: frontmatter, and MAPPING.md lists the line as hand-editable", () => {
+  const files = compile(load("skilled-fixer"), "claude-code").files;
+  const fixer = files[".claude/agents/skilled-fixer--fixer.md"]!;
+  const frontmatter = fixer.slice(0, fixer.indexOf("\n---", 4));
+  assert.match(frontmatter, /\ntools: Read, Edit, Write, Glob, Grep, Bash\nskills: test-triage, commit-style$/, "skills: after tools, last in the frontmatter");
+  assert.ok(!fixer.slice(frontmatter.length).includes("test-triage"), "the body says nothing about skills: the harness preloads them");
+
+  const mapping = files[".grooph/skilled-fixer/MAPPING.md"]!;
+  assert.match(mapping, /\*\*A node's tools\.\*\*[\s\S]*The `skills:` line of the same frontmatter is hand-editable the same way[\s\S]*\*\*A loop's stop values\.\*\*/, "among the frontmatter lines, before the stop values");
+  assert.match(mapping, /In this package: `\.claude\/agents\/skilled-fixer--fixer\.md` \(test-triage, commit-style\)\./);
+  assert.match(mapping, /An unknown name is refused by Claude Code, not by grooph/);
+
+  // Without skills: no frontmatter line, and the mapping says so.
+  const plain = compile(load("fix-until-green"), "claude-code").files;
+  assert.ok(!plain[".claude/agents/fix-until-green--fixer.md"]!.includes("skills:"), "no line when the node names none");
+  assert.match(plain[".grooph/fix-until-green/MAPPING.md"]!, /The `skills:` line of the same frontmatter[\s\S]*No node in this graph names one\./);
+});
+
+test("0014-5/6: LEAD.md §11 asks for the `ending` line before the final note and names where the report goes", () => {
+  const lead = compile(reviewLoop(), "claude-code").files[".grooph/review-loop/LEAD.md"]!;
+  const eleven = lead.split("## 11. Ending")[1]!;
+  assert.match(eleven, /1\. Append one short line first, `\{"at":"graph","outcome":"ending"\}` with a `text` naming how the run ends, then the final note: `"at":"graph"` with the outcome/);
+  assert.match(eleven, /The `ending` line is how a monitor tells a run that finished from one that was cut off while finishing\./);
+  assert.match(eleven, /2\. Write the last `PROGRESS\.md`/);
+  assert.match(eleven, /3\. Tell the human, in your reply/);
+  assert.match(eleven, /The final note and `PROGRESS\.md` are the record\. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, `\.grooph\/review-loop\/runs\/<run-id>\/`\./);
+  // §8's line shape says the same word means the same thing there.
+  assert.match(lead, /outcome {3}pass \| fail \| halt \| invalid-evidence; started on a dispatch line, ending on the line before the final note \(§11\)/);
+});
