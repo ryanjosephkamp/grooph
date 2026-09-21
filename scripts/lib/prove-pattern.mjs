@@ -51,7 +51,7 @@ const PROVABLE = [
  * denial); nothing else outside the project is readable by rule. Whether the
  * builder honours "not yours to read" is what the transcript digest records.
  */
-const HELD_OUT_TOKEN = "<held-out>";
+export const HELD_OUT_TOKEN = "<held-out>";
 const TEXT_FILE = /\.(md|json|mjs|js|txt|cjs|ts)$/i;
 
 /**
@@ -67,7 +67,7 @@ const TEXT_FILE = /\.(md|json|mjs|js|txt|cjs|ts)$/i;
  * wanted from it, seven denials across two runs). `git add` in any other form
  * still matches no rule.
  */
-const BASE_SETTINGS = {
+export const BASE_SETTINGS = {
   permissions: {
     allow: [
       "Bash(npm test)",
@@ -98,15 +98,15 @@ const BASE_SETTINGS = {
 };
 
 /** The run's settings: the base allowlist, plus `Read` under the held-out folder when the template has one (both the given and the real path, since macOS puts $TMPDIR behind a symlink and an allow rule must match both). */
-function settingsFor(heldOut) {
+export function settingsFor(heldOut) {
   if (!heldOut) return BASE_SETTINGS;
   const paths = [...new Set([heldOut.dir, heldOut.realDir])];
   return { permissions: { allow: [...BASE_SETTINGS.permissions.allow, ...paths.map((path) => `Read(/${path}/**)`)] } };
 }
 
-const say = (text) => console.log(`\n\x1b[1m${text}\x1b[0m`);
-class Refusal extends Error {}
-const fail = (text) => {
+export const say = (text) => console.log(`\n\x1b[1m${text}\x1b[0m`);
+export class Refusal extends Error {}
+export const fail = (text) => {
   throw new Refusal(text);
 };
 
@@ -127,7 +127,7 @@ function parseArgs(argv) {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────
-function run(command, args, options = {}) {
+export function run(command, args, options = {}) {
   const out = spawnSync(command, args, { encoding: "utf8", maxBuffer: 64 << 20, ...options });
   if (out.error) throw out.error;
   if (out.status !== 0 && !options.allowFail) {
@@ -142,7 +142,7 @@ function run(command, args, options = {}) {
  * and ANTHROPIC_* variables, a messaging socket, an effort override) reaches it.
  * The CLI signs in with its own stored credentials.
  */
-function cleanEnv(path) {
+export function cleanEnv(path) {
   const env = {
     HOME,
     PATH: path,
@@ -179,7 +179,7 @@ function loadExperiment(template) {
 }
 
 /** Every text file under `dir` (recursively) holding the held-out token gets the folder's path in its place. Returns the files touched. */
-function substituteHeldOut(dir, path) {
+export function substituteHeldOut(dir, path) {
   const touched = [];
   const walk = (at) => {
     for (const name of readdirSync(at)) {
@@ -200,8 +200,8 @@ function substituteHeldOut(dir, path) {
 }
 
 // ── the scratch project ──────────────────────────────────────────────────
-function buildScratch(template, experiment) {
-  const scratch = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), `grooph-prove-${template}-`));
+export function buildScratch(template, experiment, prefix = `grooph-prove-${template}-`) {
+  const scratch = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix));
   const harnessDir = `${scratch}.harness`;
   mkdirSync(harnessDir);
   cpSync(join(experiment.dir, "task"), scratch, { recursive: true });
@@ -281,7 +281,7 @@ function buildScratch(template, experiment) {
 }
 
 /** The built-in pattern the CLI bundles must be this branch's, or the run measures a stale template. */
-function assertFreshBundle(template) {
+export function assertFreshBundle(template) {
   const bundled = join(root, "packages", "cli", "dist", "patterns", `${template}.grooph.json`);
   const source = join(root, "patterns", `${template}.grooph.json`);
   if (!existsSync(bundled) || readFileSync(bundled, "utf8") !== readFileSync(source, "utf8")) {
@@ -289,7 +289,7 @@ function assertFreshBundle(template) {
   }
 }
 
-function claudeSignedIn() {
+export function claudeSignedIn() {
   const out = spawnSync("claude", ["auth", "status"], { encoding: "utf8", env: cleanEnv(process.env.PATH) });
   try {
     return JSON.parse(out.stdout).loggedIn === true;
