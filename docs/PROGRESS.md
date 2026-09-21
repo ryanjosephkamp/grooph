@@ -11,7 +11,12 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0013 · re-prove the two red records
+
+- Criterion 1 (part): `fresh-grind-rare-judge/run/` moved to `run-1/` by `git mv`, unedited; `--check` on `run-1/` fails the same two assertions as before (stand-in judge wrote `PHASE-REVIEW.md`; the judge never touched the held-out suite).
+- The judge's re-proof (ledger invocation 24, `--retry "0013 re-proof"`) failed before any model call: `claude -p` exited 1 in 2 s with "Failed to authenticate: OAuth session expired and could not be refreshed", $0.00. Its evidence is kept as `run-failed-auth/`; `claude auth status` now reports logged out.
+- The ledger now refuses the judge ("already retried once (invocation 24)"): the re-proof's `--retry` is counted as the one retry, so a re-proof that fails on sign-in cannot be retried. Runner defect, reported not fixed. The bank is still admitted.
+- **blocked** at `009ccf4` (work head; the handback commit is on top): owner to sign in (`claude login`) and the driver to decide how the judge's re-proof gets admitted; the bank run has not started.
 
 ## Waiting on the owner
 
