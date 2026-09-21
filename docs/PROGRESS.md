@@ -4,9 +4,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Next: re-prove the two red records (slice 0013), then stage 8 (manual authoring extras) while Codex stays deferred.
+- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved the bank green ($3.10, dispatch count exact, halt at the gate); the judge's re-proof is in fix pass 1 after a runner rule refused it. Then stage 8 (manual authoring extras) while Codex stays deferred.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** confirm slice 0013 (two re-proving runs, about $12 with the per-run ceiling raised from $6.00 to $9.00 so the bank can finish a third round), then paste its prompt into an Opus 5 session.
+- **Next action (owner):** paste the slice 0013 fix pass 1 prompt into an Opus 5 session (about $3, inside the spend already approved), then bring its handback to the driver.
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
@@ -15,9 +15,7 @@ _(none)_
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0013 (`handoffs/0013-reproof-red-records/HANDOFF.md`). The $55.00 cap was approved with the status report; new here is a $9.00 per-run ceiling (was $6.00), because the bank halted on the old one after two rounds. Expected about $12 of the $15.42 available | Yes |
+_(nothing: fix pass 1 of slice 0013 runs under the spend approved on 2026-09-20)_
 
 ## Deferred until Codex is available
 
@@ -28,6 +26,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-21 | Slice 0013 reviewed: `specialist-critic-bank` re-proved green ($3.10; dispatch count exact, halt note at the gate, zero denials; bar passed at round 0 so no back edge). `fresh-grind-rare-judge` blocked: an expired OAuth session failed the kickoff at $0.00 and the ledger's retry rule then refused the re-proof. Fix pass 1 drafted (fix the rule, run the judge). |
 | 2026-09-20 | Slice 0012 reconciled and merged: the lead brief edits `tools:` on a capability amendment, names the 26 ops, diffs new files bare, keeps per-round critic reports, states dispatches per round; `MAPPING.md` lists `tools:` as hand-editable; the check reports per-round copies; `git add -N` allowed. Harness confirmed to re-read agent files at the next dispatch (documentary). |
 | 2026-09-20 | Status report published (`handoffs/briefs/status-2026-09-20.html`); `grooph-status` skill added. Handoff 0012 drafted and confirmed. |
 | 2026-09-20 | Slice 0011 reconciled and merged: eleven templates proved for $28.77, four back edges, gates halt and are recorded, held-out evidence and fragment hosts in the runner, dispatch-count check; two records red. Decision 0009 (proving records are evidence). Three template edits at reconcile (judge may run tests; retro writes `PROPOSALS.md`; red team writes `ATTACK.md`). Stage 6 done. |
@@ -56,4 +55,6 @@ _(none)_
 - `dispatches` is the lead's own count; `--check` now compares it with the record. Exact in seven of eight loops that kept one; the bank's lead counted 8 a round for 6. `turns`, `usd` and `tokens` are advisory inside a session, but a headless lead can see the `--max-budget-usd` position and may halt on it.
 - The rule that an `allow` amendment edits the agent file's `tools:` line rests on the harness documentation; the first `allow`-amending re-proof under `claude -p` is the live check.
 - Held-out evidence is protected by instruction only; three runs show no builder read it, and the check would say if one did.
+- The same template, task and critics can reach two defensible severity rankings: the bank's triage sent the builder back twice in batch two and passed the same kind of change at round 0 in its re-proof, ranking three reviewer-labelled majors minor with reasons. A bar that depends on a judge's severity call is only as narrow as that judge's brief.
+- An expired OAuth session fails a headless kickoff at $0.00 after the runner's own sign-in check has passed; the runner cannot see it coming.
 - Two designs did not force their loop (`red-team-loop`, the phase-2 `fail` of `fresh-grind-rare-judge`): the critic's side is proved, the back edge is not.
