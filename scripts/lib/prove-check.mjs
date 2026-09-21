@@ -37,6 +37,14 @@
  *      folder holds that round's copy (`<report>-round-<n>.md`, LEAD.md §8) — a
  *      finding either way, never a problem, since the kept records predate the rule.
  *
+ * Added for slice 0014 (handoff 0014, criterion 5):
+ *
+ *  16. the `ending` marker (graph-ir §6, LEAD.md §11): the line before the final
+ *      note is `{"at":"graph","outcome":"ending"}`, and every `ending` line has a
+ *      final note right after it — a final note with no `ending` line before it, or
+ *      an `ending` line with nothing after it (a run cut off while finishing), is a
+ *      finding, never a problem: the kept records predate the marker (decision 0009).
+ *
  * Problems fail the check. Findings are reported, not judged: they are what the
  * write-up is made of (what the lead did that the package did not intend, which
  * files a critic read, the permission denials, whether a back edge fired).
@@ -314,6 +322,19 @@ export async function checkRun(evidenceDir, { core, template }) {
   if (last && last.at !== "graph") findings.push(`the final note is at ${last.at}, not at graph`);
   if (ending.length === 0) problems.push(`the final note names no stop, stop node or halt at a gate: ${JSON.stringify(last)}`);
   facts.ending = ending;
+
+  // ── 16. the `ending` marker before the final note ──────────────────────
+  // A halt at a gate is a pause, not an end: its halt note sits at the node (LEAD.md §7, §11), so no marker is expected before it.
+  const isEndingLine = (note) => note?.at === "graph" && note.outcome === "ending";
+  const isFinalNote = (note) => note?.at === "graph" && note.outcome !== undefined && note.outcome !== "started" && note.outcome !== "ending";
+  const endingLines = notes.filter(isEndingLine);
+  const unfinished = endingLines.filter((note) => !isFinalNote(notes[notes.indexOf(note) + 1]));
+  if (isFinalNote(last) && !isEndingLine(notes[notes.length - 2])) {
+    findings.push(`no \`ending\` line before the final note ${last.id} (LEAD.md §11 since slice 0014; a monitor reads such a record as interrupted)`);
+  }
+  for (const note of unfinished) findings.push(`\`ending\` line ${note.id} has no final note after it: the run was cut off while finishing`);
+  if (endingLines.length > 0 && unfinished.length === 0) findings.push(`\`ending\` line before ${endingLines.length === 1 ? "the final note" : `each of ${endingLines.length} final notes`}`);
+  facts.ending_marker = endingLines.length === 0 ? "none" : unfinished.length > 0 ? `unfinished (${unfinished.map((n) => n.id).join(", ")})` : "present";
   const loopNotes = notes.filter((note) => String(note.at).startsWith("loop:"));
   // The stop that fired, as the notes tell it: the final note, else the last loop pass that names one.
   let fired = firedIn(last);
@@ -627,6 +648,7 @@ export function printCheck({ problems, findings, facts, result }) {
     row("stop fired", (facts.stop_fired ?? []).join(", ") || "none named");
     row("halt notes", (facts.halt_notes ?? []).join(", ") || "none");
     row("started notes", facts.started_notes ?? 0);
+    row("ending line", facts.ending_marker ?? "none");
     row("subagents", Object.entries(facts.subagents ?? {}).map(([who, n]) => `${who} ×${n}`).join(", ") || "none");
     row("amendments", (facts.amendments ?? []).length ? facts.amendments.join(" | ") : "none");
     row("proposals", (facts.proposals ?? []).length ? facts.proposals.join(" | ") : "none");
