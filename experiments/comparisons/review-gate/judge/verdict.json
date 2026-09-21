@@ -1,0 +1,52 @@
+{
+  "project": "review-gate",
+  "model": "claude-fable-5-1",
+  "ledger_n": 14,
+  "cost_usd": 0.48989275,
+  "harness_turns": 1,
+  "wall_s": 46,
+  "candidates": [
+    "E",
+    "N",
+    "X",
+    "Z",
+    "Y",
+    "L"
+  ],
+  "parsed": true,
+  "scores": {
+    "E": {
+      "score": 5,
+      "reasons": "Implementation at src/truncate.mjs lines 10 to 14 is correct for every point the checklist names. Tests cover the exact-max boundary (line 12), both branches of max = 1 (lines 27 to 28), whitespace (lines 32 to 34), and all listed refused values (lines 45 to 52). The three-dots check at line 24 compares against \"a...\", which would differ from the result regardless of the ellipsis, so it adds little."
+    },
+    "N": {
+      "score": 5,
+      "reasons": "Same correct implementation (lines 13 to 17), with the most careful boundary coverage: exact codepoint of the ellipsis (line 21), text one over max (lines 24 to 27), a max of 1 (lines 13, 29 to 32), and all-whitespace strings (lines 41 to 43). Refusal tests at lines 47 to 64 hit every checklist value plus NaN, Infinity, null and undefined. The changelog line is the only one that also describes the unchanged case."
+    },
+    "X": {
+      "score": 5,
+      "reasons": "Correct implementation (lines 12 to 16) and a compact test file that still hits every checklist item: exact max (line 12), both branches of max = 1 (lines 29 to 30), whitespace at the cut (lines 34 to 36), and the full refusal list (lines 46 to 54). The three-dots check at line 24 uses a proper \"abc...\" comparison. It adds no codepoint assertion, so a lookalike character would only be caught by the string equality."
+    },
+    "Z": {
+      "score": 5,
+      "reasons": "Correct implementation (lines 12 to 16) and the broadest refusal coverage: boxed String (line 47), true (line 59), null and undefined (lines 57 to 58) on top of the checklist values. The ellipsis test asserts the codepoint (line 26), whitespace tests include newline and tab (lines 38 to 39), and both branches of max = 1 are covered (lines 31 to 32). Nothing is weak or missing."
+    },
+    "Y": {
+      "score": 5,
+      "reasons": "Correct implementation (lines 13 to 17) with tests for exact max including (\"a\", 1) at line 13, max = 1 with a length check (lines 24 to 26), whitespace on both branches (lines 30 to 32), and a full refusal list (lines 41 to 56) plus an argument-order test (lines 59 to 61). The three-dots assertion at line 37 compares against \"a...\", so it does not isolate the ellipsis. Otherwise every checklist item is clearly covered."
+    },
+    "L": {
+      "score": 4,
+      "reasons": "Correct implementation (lines 10 to 14) and every checklist item has at least one test, but coverage is thinner: the max = 1 test at lines 23 to 25 only exercises the long branch, null is missing from the RangeError list (lines 40 to 47), and whitespace has two cases (lines 28 to 29). A regression that broke only the one-character-at-max-1 path would slip past this file, though the exact-max test at line 12 guards the general boundary."
+    }
+  },
+  "ranking": [
+    "Z",
+    "N",
+    "Y",
+    "X",
+    "E",
+    "L"
+  ],
+  "notes": "All six candidates share a byte-for-byte equivalent implementation, so the held-out suite will treat them identically and the ranking rests on test rigor. Every candidate stays within src/, tests/ and CHANGELOG.md and writes a changelog line in the existing style. E and Y both use a weak \"a...\" comparison for the three-dots check; X, N and Z compare against the actual three-dot counterpart or the codepoint."
+}

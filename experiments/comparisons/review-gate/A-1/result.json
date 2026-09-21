@@ -1,0 +1,270 @@
+{
+  "template": "review-gate",
+  "template_version": "review-gate@1",
+  "slots": {
+    "values": {
+      "task": "Add `truncate(text, max)` in a new file, src/truncate.mjs: it returns `text` unchanged when it has at most `max` characters, and otherwise cuts it and ends it with \"…\" (one character) so that the result is exactly `max` characters long. A `text` that is not a string throws a TypeError, and a `max` that is not a positive integer throws a RangeError. Tests go in tests/truncate.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; the critic judges against it, and it is not yours to read.",
+      "test-command": "npm test",
+      "checklist": "docs/REVIEW-CHECKLIST.md"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-6UoTeG.harness/held-out",
+    "files": [
+      {
+        "path": "truncate-cases.test.mjs",
+        "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+      }
+    ],
+    "substituted_in": [
+      "docs/REVIEW-CHECKLIST.md"
+    ]
+  },
+  "graph_id": "truncate",
+  "run_id": "20260921-214803",
+  "run_ids": [
+    "20260921-214803"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.3975015000000002,
+      "output_tokens": 16315
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "truncate--critic": [
+      "claude-opus-5"
+    ],
+    "truncate--builder": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.397502,
+  "harness_turns": 24,
+  "lead_turns": null,
+  "duration_s": 189,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at merge-gate"
+  ],
+  "subagents": {
+    "truncate--critic": 1,
+    "truncate--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-214803\",\"at\":\"graph\",\"started\":\"2026-09-21T21:48:03Z\",\"text\":\"run started\"}' >> .grooph/truncate/runs/20260921-214803/notes.jsonl; T=$(date -u +%Y-%m-%dT%H:%M:%SZ); printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260921-214803\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$T\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched, round 0\\\"}\" >> .grooph/truncate/runs/20260921-214803/notes.jsonl; echo $T"
+    },
+    {
+      "tool": "Bash",
+      "command": "cat >> .grooph/truncate/runs/20260921-214803/notes.jsonl <<'EOF'\n{\"id\":\"n-0003\",\"run\":\"20260921-214803\",\"at\":\"node:builder\",\"started\":\"2026-09-21T21:48:16Z\",\"ended\":\"2026-09-21T21:49:16Z\",\"outcome\":\"pass\",\"round\":0,\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"builder done: src/truncate.mjs, tests/truncate.test.mjs (8 tests), CHANGELOG Unreleased line, CHANGES.md; npm test 11/11 pass\"}\n{\"id\":\"n-0004\",\"run\":\"20260921-214803\",\"at\":\"edge:e-builder-critic\",\"text\":\"evidence prepared: diff-round-0.patch (git diff + --no-index for new files), npm-test-round-0.txt (exit 0)\"}\n{\"id\":\"n-0005\",\"run\":\"20260921-214803\",\"at\":\"node:critic\",\"started\":\"2026-09-21T21:49:28Z\",\"outcome\":\"started\",\"round\":0,\"text\":\"critic dispatched, round 0\"}\nEOF"
+    },
+    {
+      "tool": "Bash",
+      "command": "git diff --no-index /dev/null tests/truncate.test.mjs | diff - <(sed -n '36,96p' .grooph/truncate/runs/20260921-214803/diff-round-0.patch) && echo TESTS_MATCH_DIFF"
+    },
+    {
+      "tool": "Bash",
+      "command": "git hash-object tests/truncate.test.mjs src/truncate.mjs CHANGES.md"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 8,
+      "session_id": "1c6f1054-b5fa-4d90-9abb-9669c0873a83",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.397502,
+      "reported_cost_usd": 1.3975015000000002,
+      "max_budget_usd": 9,
+      "harness_turns": 24,
+      "duration_s": 189,
+      "wall_s": 190,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "runs/20260921-214803/REVIEW-round-0.md`).\n- Stop check: **bar passed** fired first; max-iterations (0/4) and budget (2/10) not reached.\n\nOne design call the builder flagged: trailing whitespace before the ellipsis is *not* trimmed (`truncate(\"hello world\", 7)` → `\"hello …\"`), to keep the exact-`max` length guarantee. The held-out suite accepted this.\n\n**The critic passed the change against the checklist. Merge it?**\n\n- **approve** → run ends at `done` (success)\n- **reject with feedback** → your feedback goes back to `builder` for round 1\n\nI'll resume this run under the same id when you answer."
+    }
+  ],
+  "base_commit": "ae219f4ab8c6df3a2677a3fb306f8af8237338cc",
+  "source_sha256_before": "c5d8fba4fc24c6505f33fa59901c39db1de3f80ceca7e7c6aaa60e04c66e069b",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-6UoTeG",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source",
+  "arm": "A",
+  "replicate": 1,
+  "project": "review-gate",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-6UoTeG.harness/held-out",
+      "files": [
+        {
+          "path": "truncate-cases.test.mjs",
+          "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+        }
+      ],
+      "substituted_in": [
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "review-gate",
+    "template_version": 1,
+    "graph_id": "truncate",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-6UoTeG"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.3975015000000002,
+        "output_tokens": 16315
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "truncate--critic": [
+        "claude-opus-5"
+      ],
+      "truncate--builder": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 1.397502,
+    "harness_turns": 24,
+    "duration_s": 189,
+    "wall_s": 190,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-214803\",\"at\":\"graph\",\"started\":\"2026-09-21T21:48:03Z\",\"text\":\"run started\"}' >> .grooph/truncate/runs/20260921-214803/notes.jsonl; T=$(date -u +%Y-%m-%dT%H:%M:%SZ); printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260921-214803\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$T\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched, round 0\\\"}\" >> .grooph/truncate/runs/20260921-214803/notes.jsonl; echo $T"
+      },
+      {
+        "tool": "Bash",
+        "command": "cat >> .grooph/truncate/runs/20260921-214803/notes.jsonl <<'EOF'\n{\"id\":\"n-0003\",\"run\":\"20260921-214803\",\"at\":\"node:builder\",\"started\":\"2026-09-21T21:48:16Z\",\"ended\":\"2026-09-21T21:49:16Z\",\"outcome\":\"pass\",\"round\":0,\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"builder done: src/truncate.mjs, tests/truncate.test.mjs (8 tests), CHANGELOG Unreleased line, CHANGES.md; npm test 11/11 pass\"}\n{\"id\":\"n-0004\",\"run\":\"20260921-214803\",\"at\":\"edge:e-builder-critic\",\"text\":\"evidence prepared: diff-round-0.patch (git diff + --no-index for new files), npm-test-round-0.txt (exit 0)\"}\n{\"id\":\"n-0005\",\"run\":\"20260921-214803\",\"at\":\"node:critic\",\"started\":\"2026-09-21T21:49:28Z\",\"outcome\":\"started\",\"round\":0,\"text\":\"critic dispatched, round 0\"}\nEOF"
+      },
+      {
+        "tool": "Bash",
+        "command": "git diff --no-index /dev/null tests/truncate.test.mjs | diff - <(sed -n '36,96p' .grooph/truncate/runs/20260921-214803/diff-round-0.patch) && echo TESTS_MATCH_DIFF"
+      },
+      {
+        "tool": "Bash",
+        "command": "git hash-object tests/truncate.test.mjs src/truncate.mjs CHANGES.md"
+      }
+    ],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "truncate--builder",
+        "description": "Builder round 0: truncate"
+      },
+      {
+        "subagent_type": "truncate--critic",
+        "description": "Critic round 0: truncate"
+      }
+    ],
+    "held_out_touched": {
+      "truncate--critic": 1
+    },
+    "record": {
+      "rounds": {
+        "loop_passes": 1,
+        "rounds_recorded": 1,
+        "last_round": 0
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "halt at merge-gate"
+      ],
+      "back_edges": {
+        "later_rounds": 0,
+        "edge_notes": [],
+        "mentioned": [],
+        "caught_by": [],
+        "taken": false
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0007",
+          "loop": "review",
+          "round": 0,
+          "recorded": 2,
+          "started": 2,
+          "off": 0
+        }
+      ],
+      "amendments": [],
+      "halt_notes": [
+        "node:merge-gate"
+      ]
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20260921-214803: the clock form",
+      "REVIEW.md: critic Write REVIEW.md",
+      "truncate--critic (Critic round 0: truncate) read docs/REVIEW-CHECKLIST.md, .grooph/truncate/runs/20260921-214803/diff-round-0.patch, .grooph/truncate/runs/20260921-214803/npm-test-round-0.txt, src/truncate.mjs, CHANGELOG.md, tests/truncate.test.mjs; ran `npm test 2>&1; echo \"EXIT=$?\"`, `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review…`, `git status --porcelain`",
+      "the final note is at node:merge-gate, not at graph",
+      "ending as expected: halt at merge-gate",
+      "dispatch count: n-0007 review r0 recorded 2, started lines 2 (exact)",
+      "no back edge taken: every loop note is round 0 and no back edge is named",
+      "verdicts in order: critic → pass",
+      "held-out evidence (truncate-cases.test.mjs): touched by critic ×1; named in 1 dispatch prompt(s)",
+      "timestamps: 9 given, 0 out of append order",
+      "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-214803\",\"at\":\"graph\",\"started\":\"20`; Bash `cat >> .grooph/truncate/runs/20260921-214803/notes.jsonl <<'EOF'\n{\"id\":\"n-0003\",`; Bash `git diff --no-index /dev/null tests/truncate.test.mjs | diff - <(sed -n '36,96p'`; Bash `git hash-object tests/truncate.test.mjs src/truncate.mjs CHANGES.md`"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "halt at merge-gate"
+  }
+}

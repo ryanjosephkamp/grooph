@@ -1,0 +1,235 @@
+{
+  "template": "review-gate",
+  "template_version": "review-gate@1",
+  "slots": {
+    "values": {
+      "task": "Add `truncate(text, max)` in a new file, src/truncate.mjs: it returns `text` unchanged when it has at most `max` characters, and otherwise cuts it and ends it with \"…\" (one character) so that the result is exactly `max` characters long. A `text` that is not a string throws a TypeError, and a `max` that is not a positive integer throws a RangeError. Tests go in tests/truncate.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; the critic judges against it, and it is not yours to read.",
+      "test-command": "npm test",
+      "checklist": "docs/REVIEW-CHECKLIST.md"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-GV6eMQ.harness/held-out",
+    "files": [
+      {
+        "path": "truncate-cases.test.mjs",
+        "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+      }
+    ],
+    "substituted_in": [
+      "docs/REVIEW-CHECKLIST.md"
+    ]
+  },
+  "graph_id": "truncate",
+  "run_id": "20260921-215704",
+  "run_ids": [
+    "20260921-215704"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.0197829999999999,
+      "output_tokens": 12865
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "truncate--builder": [
+      "claude-opus-5"
+    ],
+    "truncate--critic": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.019783,
+  "harness_turns": 14,
+  "lead_turns": null,
+  "duration_s": 142,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at merge-gate"
+  ],
+  "subagents": {
+    "truncate--builder": 1,
+    "truncate--critic": 1
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 11,
+      "session_id": "b548e688-e825-4ab9-b3a7-0b014d2faed3",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.019783,
+      "reported_cost_usd": 1.0197829999999999,
+      "max_budget_usd": 9,
+      "harness_turns": 14,
+      "duration_s": 142,
+      "wall_s": 143,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "cate` line under `## Unreleased` in the existing style.\n- `npm test`: exit 0, 10 pass, 0 skipped, 0 todo. Held-out suite: exit 0, 41 pass, 0 fail.\n- Only `src/`, `tests/`, `CHANGELOG.md`, `CHANGES.md`, `REVIEW.md` and `.grooph/` were touched. Nothing is committed.\n\n**The critic passed the change against the checklist. Merge it?**\n\n- **approve** → the run ends at `done` (success).\n- **reject with feedback** → your feedback goes back to the builder for round 1.\n\nThe run is halted at this gate (halt note `n-0007` in `.grooph/truncate/runs/20260921-215704/notes.jsonl`); the same run id resumes it."
+    }
+  ],
+  "base_commit": "1493e3fa495e3b1ac85a407a1c224636735225b2",
+  "source_sha256_before": "c5d8fba4fc24c6505f33fa59901c39db1de3f80ceca7e7c6aaa60e04c66e069b",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-GV6eMQ",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source",
+  "arm": "A",
+  "replicate": 2,
+  "project": "review-gate",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-GV6eMQ.harness/held-out",
+      "files": [
+        {
+          "path": "truncate-cases.test.mjs",
+          "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+        }
+      ],
+      "substituted_in": [
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "review-gate",
+    "template_version": 1,
+    "graph_id": "truncate",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-A-GV6eMQ"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.0197829999999999,
+        "output_tokens": 12865
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "truncate--builder": [
+        "claude-opus-5"
+      ],
+      "truncate--critic": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 1.019783,
+    "harness_turns": 14,
+    "duration_s": 142,
+    "wall_s": 143,
+    "permission_denials": [],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "truncate--builder",
+        "description": "Builder round 0: truncate"
+      },
+      {
+        "subagent_type": "truncate--critic",
+        "description": "Critic round 0: truncate"
+      }
+    ],
+    "held_out_touched": {
+      "truncate--critic": 1
+    },
+    "record": {
+      "rounds": {
+        "loop_passes": 1,
+        "rounds_recorded": 1,
+        "last_round": 0
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "halt at merge-gate"
+      ],
+      "back_edges": {
+        "later_rounds": 0,
+        "edge_notes": [],
+        "mentioned": [],
+        "caught_by": [],
+        "taken": false
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0006",
+          "loop": "review",
+          "round": 0,
+          "recorded": 2,
+          "started": 2,
+          "off": 0
+        }
+      ],
+      "amendments": [],
+      "halt_notes": [
+        "node:merge-gate"
+      ]
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20260921-215704: the clock form",
+      "REVIEW.md: critic Write REVIEW.md",
+      "truncate--critic (Critic round 0: truncate) read docs/REVIEW-CHECKLIST.md; ran `git status --short`, `git diff`, `git diff --no-index /dev/null src/truncate.mjs`, `git diff --no-index /dev/null tests/truncate.test.mjs`, `git diff --no-index /dev/null CHANGES.md`, `npm test 2>&1; echo \"EXIT=$?\"`, `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review…`, `git status --short --untracked-files=all`, `grep -n -E \"skip|todo\" tests/truncate.test.mjs tests/*.mjs package.json`",
+      "the final note is at node:merge-gate, not at graph",
+      "ending as expected: halt at merge-gate",
+      "dispatch count: n-0006 review r0 recorded 2, started lines 2 (exact)",
+      "no back edge taken: every loop note is round 0 and no back edge is named",
+      "verdicts in order: critic → pass",
+      "held-out evidence (truncate-cases.test.mjs): touched by critic ×1; named in 1 dispatch prompt(s)",
+      "timestamps: 9 given, 0 out of append order"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "halt at merge-gate"
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "template": "review-gate",
+  "arm": "C",
+  "replicate": 1,
+  "project": "review-gate",
+  "graph_id": "truncate",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-86m7Ap.harness/held-out",
+      "files": [
+        {
+          "path": "truncate-cases.test.mjs",
+          "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+        }
+      ],
+      "substituted_in": [
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "review-gate",
+    "template_version": 1,
+    "graph_id": "truncate",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-86m7Ap"
+  },
+  "derivation": {
+    "graph": "truncate",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 4,
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 0.9771360000000001,
+      "output_tokens": 13171
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "claude": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 0.977136,
+  "harness_turns": 9,
+  "duration_s": 148,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 0.9771360000000001,
+        "output_tokens": 13171
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "claude": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 0.977136,
+    "harness_turns": 9,
+    "duration_s": 148,
+    "wall_s": 149,
+    "permission_denials": [],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "claude",
+        "description": "Builder: implement truncate"
+      },
+      {
+        "subagent_type": "claude",
+        "description": "Critic: review truncate change"
+      }
+    ],
+    "held_out_touched": {
+      "claude": 1
+    }
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 10,
+      "session_id": "01370ba8-c25b-4b28-ba02-0a0d7ad6ad55",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.977136,
+      "reported_cost_usd": 0.9771360000000001,
+      "max_budget_usd": 9,
+      "harness_turns": 9,
+      "duration_s": 148,
+      "wall_s": 149,
+      "says_done": true,
+      "tests_after": true,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": "the style of the `padStart` entry.\n- `CHANGES.md` — round note (no findings addressed; first round).\n\n**Critic's verdict** (`REVIEW.md`, fresh context): **pass** — all 7 checklist items cited as satisfied with file:line. The critic ran `npm test` itself (11/11 pass, 0 skipped, 0 todo, exit 0) and the held-out suite (41/41 pass); no held-out failures to quote.\n\n**Merge approval:** The critic passed the change against the checklist. Merge it? Reply **approve** to end the run, or **reject** with feedback and I'll route it back to a fresh builder (round 1 of 4; 2 of 10 dispatches used).\n\ndone: yes"
+    }
+  ],
+  "base_commit": "b52f8c1994b683b205acfdb5fd09b51af216eef1",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-86m7Ap",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 4 said done and the tests passed"
+  },
+  "home_redactions": 0
+}

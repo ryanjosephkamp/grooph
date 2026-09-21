@@ -202,7 +202,9 @@ function processMeasures(invocations, digest, heldOutDir) {
     const marks = [heldOutDir, "/held-out/"];
     for (const entry of digest) {
       const uses = entry.tool_uses.filter((u) => !u.error && u.tool !== "Agent" && u.tool !== "Task" && marks.some((m) => `${u.file ?? ""}${u.path ?? ""}${u.command ?? ""}`.includes(m)));
-      if (uses.length > 0) touched[entry.who] = uses.length;
+      // A generic subagent ("claude", "general-purpose") is told apart by the description the lead gave it.
+      const who = entry.who === "lead" || entry.who.includes("--") ? entry.who : `${entry.who} (${entry.description ?? entry.transcript})`;
+      if (uses.length > 0) touched[who] = (touched[who] ?? 0) + uses.length;
     }
   }
   for (const inv of invocations) {

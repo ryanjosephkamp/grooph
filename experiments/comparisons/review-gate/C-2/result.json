@@ -1,0 +1,166 @@
+{
+  "template": "review-gate",
+  "arm": "C",
+  "replicate": 2,
+  "project": "review-gate",
+  "graph_id": "truncate",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-ZYJgqR.harness/held-out",
+      "files": [
+        {
+          "path": "truncate-cases.test.mjs",
+          "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+        }
+      ],
+      "substituted_in": [
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "review-gate",
+    "template_version": 1,
+    "graph_id": "truncate",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-ZYJgqR"
+  },
+  "derivation": {
+    "graph": "truncate",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 4,
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.0457112499999999,
+      "output_tokens": 14030
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "claude": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.045711,
+  "harness_turns": 11,
+  "duration_s": 155,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.0457112499999999,
+        "output_tokens": 14030
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "claude": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 1.045711,
+    "harness_turns": 11,
+    "duration_s": 155,
+    "wall_s": 156,
+    "permission_denials": [],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "claude",
+        "description": "Builder: implement truncate"
+      },
+      {
+        "subagent_type": "claude",
+        "description": "Critic: review truncate change"
+      }
+    ],
+    "held_out_touched": {
+      "claude (Critic: review truncate change)": 1
+    }
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 13,
+      "session_id": "a373bf2d-fbef-4f7b-835d-9aeabc5579b6",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.045711,
+      "reported_cost_usd": 1.0457112499999999,
+      "max_budget_usd": 9,
+      "harness_turns": 11,
+      "duration_s": 155,
+      "wall_s": 156,
+      "says_done": true,
+      "tests_after": true,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": "st items cited as satisfied with file:line, ran the commands itself:\n- `npm test`: exit 0, 11 pass / 0 fail / 0 skipped / 0 todo\n- held-out suite: exit 0, 41 pass / 0 fail\n- `git status --porcelain`: only `CHANGELOG.md`, `CHANGES.md`, `src/truncate.mjs`, `tests/truncate.test.mjs` changed\n- `verdict: pass`\n\nNothing is committed; the working tree holds the change.\n\n**Merge approval needed:** The critic passed the change against the checklist. Merge it? Reply **approve** (I'll end the run as success) or **reject with feedback** (I'll route your feedback to a fresh builder for round 1).\n\ndone: yes"
+    }
+  ],
+  "base_commit": "55fd81933f2e7d7afbb76acffc74ceab221a47a3",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-ZYJgqR",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 4 said done and the tests passed"
+  },
+  "home_redactions": 0
+}

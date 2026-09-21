@@ -1,0 +1,198 @@
+[
+  {
+    "session": "a373bf2d-fbef-4f7b-835d-9aeabc5579b6",
+    "who": "lead",
+    "transcript": "a373bf2d-fbef-4f7b-835d-9aeabc5579b6.jsonl",
+    "description": null,
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-21T22:02:04.447Z",
+    "ended": "2026-09-21T22:04:39.409Z",
+    "assistant_messages": 16,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:02:07.565Z",
+        "command": "ls -la && cat package.json && cat docs/REVIEW-CHECKLIST.md && ls src tests 2>/dev/null"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-21T22:02:18.400Z",
+        "subagent_type": "claude",
+        "description": "Builder: implement truncate",
+        "prompt": "You are the Builder (role: builder, model opus, effort high).\n\n**Brief.** Do the task in the code, with tests. Run the test command before you report, and do not review your own work beyond that.\n\n**Project root:** /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-ZYJgqR — run every command bare from this directory (no `cd … && …`, no `git -C`, no brace groups; each such compound form is refused and costs a turn).\n\n**The task.**\n\nAdd `truncate(text, max)` in a new file, src/truncate.mjs: it returns `text` unchanged when it has at most `max` characters, and otherwise cuts it and ends it with \"…\" (one character, U+2026) so that the result is exactly `max` characters long. A `text` that is not a string throws a TypeError, and a `max` that is not a positive integer throws a RangeError. Tests go in tests/truncate.test.mjs. A held-out set of cases exists outside this project and settles what this text leaves open; a critic judges against it, and it is NOT yours to read or run — do not open anything under the `.harness` directory. Build from the task, docs/REVIEW-CHECKLIST.md and README.md. Follow the style of the existing src/pad.mjs and tests/pad.test.mjs.\n\n**Your inputs.**\n- the task (above)\n- docs/REVIEW-CHECKLIST.md (read it; the critic will judge against every item, including the CHANGELOG.md entry under `## Unreleased` in the style of existing entries, and that nothing outside `src/`, `tests/`, `CHANGELOG.md` and CHANGES.md changes)\n- This is round 0: there is no REVIEW.md yet.\n\n**Outputs — leave all of these behind before you report:**\n- the change, with tests (src/truncate.mjs, tests/truncate.test.mjs, CHANGELOG.md entry)\n- CHANGES.md at the project root: what changed this round and which findings it addresses (round 0: none yet)\n\n**Capabilities.** Allowed: read-files, edit-files, run-tests → tools Read, Edit, Write, Glob, Grep, Bash. Run `npm test` bare from the project root before you report, and include its output in your report. Do not commit."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:03:13.338Z",
+        "command": "git status --porcelain"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:03:15.086Z",
+        "command": "git diff"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:03:17.032Z",
+        "command": "git diff --no-index /dev/null src/truncate.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:03:19.167Z",
+        "command": "git diff --no-index /dev/null tests/truncate.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:03:21.178Z",
+        "command": "git diff --no-index /dev/null CHANGES.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:03:23.858Z",
+        "command": "npm test 2>&1"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-21T22:03:59.821Z",
+        "subagent_type": "claude",
+        "description": "Critic: review truncate change",
+        "prompt": "You are the Critic (role: critic, model opus, effort high).\n\n**Brief.** Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet; use the repository only to understand what the change touches. Run the test command yourself rather than trusting a report; you judge, you do not fix. Verdict `pass` only when every item holds and the tests pass; `invalid-evidence` when the diff or checklist cannot be read; otherwise `fail`.\n\n**Project root:** /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-ZYJgqR — run every command bare from this directory (no `cd … && …`, no `git -C`, no brace groups; each compound form is refused and costs a turn).\n\n**The task the change implements.** Add `truncate(text, max)` in a new file, src/truncate.mjs: it returns `text` unchanged when it has at most `max` characters, and otherwise cuts it and ends it with \"…\" (one character) so that the result is exactly `max` characters long. A `text` that is not a string throws a TypeError, and a `max` that is not a positive integer throws a RangeError. Tests go in tests/truncate.test.mjs. A held-out suite outside the project settles what the task leaves open; you judge against it (checklist item 7).\n\n**Inputs.**\n- diff of the change (below)\n- the repository as the change leaves it, read-only (you may read any file; do not edit any file other than your declared output)\n- docs/REVIEW-CHECKLIST.md — read it from the repository; it lists 7 items and, in item 7, the absolute path of the held-out suite and the exact command to run it.\n\n**Outputs — leave these behind before you report:**\n- REVIEW.md at the project root: one line per checklist item (item number, satisfied/unmet, file:line citation or reason), and for any held-out case that fails, quote the input and the expected result so the builder can act on it; end with a verdict line `verdict: pass` | `verdict: fail` | `verdict: invalid-evidence`.\n- Your final report must state the verdict plainly.\n\n**Capabilities.** Allowed: read-files, write-outputs, run-tests → tools Read, Write, Glob, Grep, Bash. Denied: Edit. You may create/overwrite only REVIEW.md. Run both `npm test` and the held-out command from checklist item 7 yourself, bare from the project root, and report their real output. Also verify item 6 with `git status --porcelain` yourself.\n\n**Evidence: diff of the change** (git diff for tracked files, plus `git diff --no-index /dev/null <file>` for each added file):\n\n```diff\ndiff --git a/CHANGELOG.md b/CHANGELOG.md\nindex 71c19a1..6498e0d 100644\n--- a/CHANGELOG.md\n+++ b/CHANGELOG.md\n@@ -2,6 +2,8 @@\n \n ## Unreleased\n \n+- Added `truncate(text, max)`: cuts text longer than `max` characters down to exactly `max` characters, ending in \"…\".\n+\n ## 0.1.0 — 2026-08-30\n \n - Added `padStart(text, width)`: pads text on the left with spaces to `width` characters.\ndiff --git a/src/truncate.mjs b/src/truncate.mjs\nnew file mode 100644\nindex 0000000..2ba2351\n--- /dev/null\n+++ b/src/truncate.mjs\n@@ -0,0 +1,14 @@\n+/**\n+ * Cuts `text` down so that it is at most `max` characters long, ending the cut\n+ * text with \"…\" (U+2026) so that the result is exactly `max` characters long.\n+ * Text that is already `max` characters or shorter comes back unchanged.\n+ *\n+ * @param {string} text\n+ * @param {number} max a positive integer\n+ * @returns {string}\n+ */\n+export function truncate(text, max) {\n+  if (typeof text !== \"string\") throw new TypeError(\"truncate: text must be a string\");\n+  if (!Number.isInteger(max) || max < 1) throw new RangeError(\"truncate: max must be a positive integer\");\n+  return text.length <= max ? text : text.slice(0, max - 1) + \"…\";\n+}\ndiff --git a/tests/truncate.test.mjs b/tests/truncate.test.mjs\nnew file mode 100644\nindex 0000000..13d0203\n--- /dev/null\n+++ b/tests/truncate.test.mjs\n@@ -0,0 +1,54 @@\n+import assert from \"node:assert/strict\";\n+import { test } from \"node:test\";\n+\n+import { truncate } from \"../src/truncate.mjs\";\n+\n+test(\"truncate leaves text that fits alone\", () => {\n+  assert.equal(truncate(\"hello\", 10), \"hello\");\n+  assert.equal(truncate(\"\", 1), \"\");\n+});\n+\n+test(\"truncate leaves text that is exactly max characters alone\", () => {\n+  assert.equal(truncate(\"hello\", 5), \"hello\");\n+});\n+\n+test(\"truncate cuts long text to exactly max characters ending in an ellipsis\", () => {\n+  const result = truncate(\"hello world\", 8);\n+  assert.equal(result, \"hello w…\");\n+  assert.equal(result.length, 8);\n+  assert.equal(result.at(-1), \"…\");\n+});\n+\n+test(\"truncate uses the single-character ellipsis, not three dots\", () => {\n+  assert.equal(truncate(\"abcdef\", 4), \"abc…\");\n+  assert.notEqual(truncate(\"abcdef\", 4), \"a...\");\n+});\n+\n+test(\"truncate with a max of 1 returns just the ellipsis\", () => {\n+  assert.equal(truncate(\"hello\", 1), \"…\");\n+  assert.equal(truncate(\"h\", 1), \"h\");\n+});\n+\n+test(\"truncate keeps whitespace as-is\", () => {\n+  assert.equal(truncate(\"hello world\", 7), \"hello …\");\n+  assert.equal(truncate(\"  hi\", 4), \"  hi\");\n+  assert.equal(truncate(\"  hello\", 4), \"  h…\");\n+});\n+\n+test(\"truncate refuses text that is not a string\", () => {\n+  assert.throws(() => truncate(7, 3), TypeError);\n+  assert.throws(() => truncate(null, 3), TypeError);\n+  assert.throws(() => truncate(undefined, 3), TypeError);\n+  assert.throws(() => truncate([\"hello\"], 3), TypeError);\n+});\n+\n+test(\"truncate refuses a max that is not a positive integer\", () => {\n+  assert.throws(() => truncate(\"hello\", 0), RangeError);\n+  assert.throws(() => truncate(\"hello\", -1), RangeError);\n+  assert.throws(() => truncate(\"hello\", 2.5), RangeError);\n+  assert.throws(() => truncate(\"hello\", \"3\"), RangeError);\n+  assert.throws(() => truncate(\"hello\", NaN), RangeError);\n+  assert.throws(() => truncate(\"hello\", Infinity), RangeError);\n+  assert.throws(() => truncate(\"hello\", undefined), RangeError);\n+  assert.throws(() => truncate(\"hello\", null), RangeError);\n+});\ndiff --git a/CHANGES.md b/CHANGES.md\nnew file mode 100644\nindex 0000000..b82a651\n--- /dev/null\n+++ b/CHANGES.md\n@@ -0,0 +1,28 @@\n+# Changes — round 0\n+\n+No REVIEW.md exists yet, so this round addresses no findings; it is the initial build.\n+\n+## What changed\n+\n+- `src/truncate.mjs` (new): exports `truncate(text, max)`. Text of at most `max`\n+  characters comes back unchanged; longer text is cut to `max - 1` characters and\n+  ended with \"…\" (U+2026), so the result is exactly `max` characters long. A\n+  non-string `text` throws a `TypeError`; a `max` that is not a positive integer\n+  (`0`, `-1`, `2.5`, `\"3\"`, `NaN`, `Infinity`, `null`, `undefined`) throws a\n+  `RangeError`. Follows the shape of `src/pad.mjs`.\n+- `tests/truncate.test.mjs` (new): covers unchanged short text, the boundary at\n+  exactly `max`, cutting to exactly `max` with the single-character ellipsis,\n+  `max` of 1, whitespace preserved as-is, and every refused value above.\n+- `CHANGELOG.md`: one line under `## Unreleased` naming `truncate` in the style\n+  of the `padStart` entry.\n+\n+## Decisions on points the task leaves open\n+\n+- Boundary: text of exactly `max` characters is returned unchanged (`<=`).\n+- `max` of 1: over-long text becomes just \"…\".\n+- Whitespace: not trimmed; the cut is a plain slice.\n+- Characters are counted with `String.prototype.length`, as `padStart` does.\n+\n+Nothing outside `src/`, `tests/`, `CHANGELOG.md` and this file was touched.\n```\n\n**Evidence: output of `npm test` as reported by the lead** (re-run it yourself; do not trust this):\n\n```\n> textkit@0.1.0 test\n> node --test tests/*.test.mjs\n\n✔ padStart pads short text on the left\n✔ padStart leaves text that fills the width alone\n✔ padStart refuses bad input\n✔ truncate leaves text that fits alone\n✔ truncate leaves text that is exactly max characters alone\n✔ truncate cuts long text to exactly max characters ending in an ellipsis\n✔ truncate uses the single-character ellipsis, not three dots\n✔ truncate with a max of 1 returns just the ellipsis\n✔ truncate keeps whitespace as-is\n✔ truncate refuses text that is not a string\n✔ truncate refuses a max that is not a positive integer\nℹ tests 11  ℹ pass 11  ℹ fail 0  ℹ cancelled 0  ℹ skipped 0  ℹ todo 0\n```"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:04:31.190Z",
+        "file": "REVIEW.md"
+      }
+    ]
+  },
+  {
+    "session": "a373bf2d-fbef-4f7b-835d-9aeabc5579b6",
+    "who": "claude",
+    "transcript": "agent-a5a8e7b5886976e96.jsonl",
+    "description": "Builder: implement truncate",
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-21T22:02:18.404Z",
+    "ended": "2026-09-21T22:03:10.709Z",
+    "assistant_messages": 18,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:02:22.032Z",
+        "file": "docs/REVIEW-CHECKLIST.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:02:22.954Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:02:23.742Z",
+        "file": "src/pad.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:02:24.683Z",
+        "file": "tests/pad.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:02:25.574Z",
+        "file": "CHANGELOG.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:02:26.267Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:02:37.833Z",
+        "file": "src/truncate.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:02:46.338Z",
+        "file": "tests/truncate.test.mjs"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-21T22:02:48.152Z",
+        "file": "CHANGELOG.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:02:54.932Z",
+        "file": "CHANGES.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:02:57.029Z",
+        "command": "npm test 2>&1"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:02:57.446Z",
+        "command": "git status --short"
+      }
+    ]
+  },
+  {
+    "session": "a373bf2d-fbef-4f7b-835d-9aeabc5579b6",
+    "who": "claude",
+    "transcript": "agent-aec1d37e6e95c8577.jsonl",
+    "description": "Critic: review truncate change",
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-21T22:03:59.830Z",
+    "ended": "2026-09-21T22:04:29.480Z",
+    "assistant_messages": 13,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:04:04.023Z",
+        "file": "docs/REVIEW-CHECKLIST.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:04:04.987Z",
+        "file": "src/truncate.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:04:05.772Z",
+        "file": "tests/truncate.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:04:08.139Z",
+        "command": "npm test 2>&1; echo \"EXIT=$?\""
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:04:09.518Z",
+        "command": "node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-C-ZYJgqR.harness/held-out/truncate-cases.test.mjs 2>&1; echo \"EXIT=$?\""
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:04:10.206Z",
+        "command": "git status --porcelain"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:04:11.006Z",
+        "file": "CHANGELOG.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:04:22.842Z",
+        "file": "REVIEW.md"
+      }
+    ]
+  }
+]

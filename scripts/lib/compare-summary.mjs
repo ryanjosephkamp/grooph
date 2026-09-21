@@ -22,6 +22,22 @@ const comparisons = join(root, "experiments", "comparisons");
 const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
 const usd = (n) => `$${(n ?? 0).toFixed(2)}`;
 
+/** Who touched the held-out folder, from the kept transcript digest: the lead, a graph agent, or a generic subagent told apart by its description. */
+export function heldOutTouched(runDir, result) {
+  const dir = result.conditions?.held_out?.dir ?? result.held_out?.dir;
+  const digestPath = join(runDir, "transcript-digest.json");
+  if (!dir || !existsSync(digestPath)) return null;
+  const marks = [dir, "/held-out/"];
+  const touched = {};
+  for (const entry of readJson(digestPath)) {
+    const uses = entry.tool_uses.filter((u) => !u.error && u.tool !== "Agent" && u.tool !== "Task" && marks.some((m) => `${u.file ?? ""}${u.path ?? ""}${u.command ?? ""}`.includes(m)));
+    if (uses.length === 0) continue;
+    const who = entry.who === "lead" || entry.who.includes("--") ? entry.who : `${entry.who} (${entry.description ?? entry.transcript})`;
+    touched[who] = (touched[who] ?? 0) + uses.length;
+  }
+  return touched;
+}
+
 /** Every run of a project, in arm-then-replicate order, with its result, score and judge row. */
 export function projectRows(project) {
   const dir = join(comparisons, project);
@@ -52,7 +68,7 @@ export function projectRows(project) {
       iterations: result.arm === "C" ? result.invocations.length : null,
       record: result.process?.record ?? null,
       judge: judged ? { letter, score: judged.score, reasons: judged.reasons, rank: rank || null } : letter ? { letter, score: null, reasons: null, rank: null } : null,
-      held_out_touched: result.process?.held_out_touched ?? result.held_out_touched ?? null,
+      held_out_touched: heldOutTouched(join(dir, name), result),
     };
   });
 }
