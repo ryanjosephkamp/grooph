@@ -11,7 +11,11 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0016 · paired comparisons, first study
+
+- 2026-09-21 · criterion 1 met: `scripts/compare.sh <project> A|B|C [--replicate n] [--dry-run] | --next | --derive | --judge | --score | --status | --test` over `scripts/lib/compare-run.mjs`, reusing the proving runner's scratch build, settings, invocation and evidence copy; ledger `experiments/comparisons/ledger.json` (cap $100, floor $6, $9 per invocation, `cap_history`) in `compare-ledger.mjs`; dry runs of A, B and C for `grind-loop`, `review-gate`, `red-team-loop` print the command lines and the ledger decision and write nothing.
+- 2026-09-21 · criterion 2 met: `scripts/lib/compare-prompt.mjs` derives `prompt-B.md` and `loop-C.sh` by protocol §3 (sections 1, 2, 4, 5 kept and filtered at the sentence; loops and gates restated; agent briefs appended); unit test on the golden `review-loop` package asserts every brief is present and no mechanic survives (`scripts/compare.sh --test`, 19 pass).
+- 2026-09-21 · criterion 4 met: `scripts/lib/compare-score.mjs` (held-out, tests, scope with protected files, ending) writes `score.json`; fixture test covers each measure; `--score <run dir>` rebuilds the tree from `task/` + `project.diff`.
 
 ## Waiting on the owner
 
