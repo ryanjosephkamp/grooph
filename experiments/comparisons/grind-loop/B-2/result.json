@@ -1,0 +1,156 @@
+{
+  "template": "grind-loop",
+  "arm": "B",
+  "replicate": 2,
+  "project": "grind-loop",
+  "graph_id": "semver-compare",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/grind-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-B-TXE1WQ.harness/held-out",
+      "files": [
+        {
+          "path": "semver-cases.test.mjs",
+          "sha256": "8e2e6b3c80eae6e34d5ddc957c5c47e7fbbf6e80650509000fb999665f2eb4a8"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "grind-loop",
+    "template_version": 1,
+    "graph_id": "semver-compare",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-B-TXE1WQ"
+  },
+  "derivation": {
+    "graph": "semver-compare",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder"
+    ],
+    "loops": [
+      "grind"
+    ],
+    "gates": [],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 0.2066,
+      "output_tokens": 1294
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.10060749999999999,
+      "output_tokens": 3718
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 0.307207,
+  "harness_turns": 3,
+  "duration_s": 58,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 0.2066,
+        "output_tokens": 1294
+      },
+      "claude-sonnet-5": {
+        "cost_usd": 0.10060749999999999,
+        "output_tokens": 3718
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5"
+      ]
+    },
+    "cost_usd": 0.307207,
+    "harness_turns": 3,
+    "duration_s": 58,
+    "wall_s": 59,
+    "permission_denials": [],
+    "subagents_dispatched": 1,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement semver compare"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 5,
+      "session_id": "18b48493-d08c-40d2-a700-4aca86b63cb7",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.307207,
+      "reported_cost_usd": 0.30720749999999997,
+      "max_budget_usd": 9,
+      "harness_turns": 3,
+      "duration_s": 58,
+      "wall_s": 59,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "uild identifiers. Build metadata is validated then discarded.\n- `compareIdentifiers()` — numeric identifiers compare numerically and rank below alphanumeric ones; alphanumeric compare in ASCII order.\n- `comparePrerelease()` — no pre-release outranks any pre-release; otherwise first differing identifier decides, and a shorter list with an equal prefix ranks lower.\n- `compare()` — major/minor/patch numerically, then pre-release chain.\n\nThe implementation covers the full §11 precedence rules rather than only the visible cases, which is what the held-out set will exercise. Tests were not modified."
+    }
+  ],
+  "base_commit": "e3ac70e20b62a5ef2846d06e33285b9323f94207",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M src/semver.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-B-TXE1WQ",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

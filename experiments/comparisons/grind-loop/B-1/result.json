@@ -1,0 +1,156 @@
+{
+  "template": "grind-loop",
+  "arm": "B",
+  "replicate": 1,
+  "project": "grind-loop",
+  "graph_id": "semver-compare",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/grind-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-B-05u0Ks.harness/held-out",
+      "files": [
+        {
+          "path": "semver-cases.test.mjs",
+          "sha256": "8e2e6b3c80eae6e34d5ddc957c5c47e7fbbf6e80650509000fb999665f2eb4a8"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "grind-loop",
+    "template_version": 1,
+    "graph_id": "semver-compare",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-B-05u0Ks"
+  },
+  "derivation": {
+    "graph": "semver-compare",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder"
+    ],
+    "loops": [
+      "grind"
+    ],
+    "gates": [],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 0.20951999999999998,
+      "output_tokens": 1376
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.1311091,
+      "output_tokens": 3622
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 0.340629,
+  "harness_turns": 3,
+  "duration_s": 51,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 0.20951999999999998,
+        "output_tokens": 1376
+      },
+      "claude-sonnet-5": {
+        "cost_usd": 0.1311091,
+        "output_tokens": 3622
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5"
+      ]
+    },
+    "cost_usd": 0.340629,
+    "harness_turns": 3,
+    "duration_s": 51,
+    "wall_s": 52,
+    "permission_denials": [],
+    "subagents_dispatched": 1,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement semver compare"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 2,
+      "session_id": "ab955008-ab6d-4a0c-ba59-a30a1b021f22",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.340629,
+      "reported_cost_usd": 0.3406291,
+      "max_budget_usd": 9,
+      "harness_turns": 3,
+      "duration_s": 51,
+      "wall_s": 52,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "s needed).\n\n- `builder` implemented `compare(a, b)` in `src/semver.mjs` with full semver 2.0.0 precedence: numeric major/minor/patch, pre-release < release, §11 identifier-by-identifier comparison (numeric vs numeric numerically, alphanumeric ASCII-lexically, numeric < alphanumeric, shorter prefix lower), build metadata ignored. Non-strings throw `TypeError`; malformed strings throw `RangeError`.\n- `CHANGES.md` written at the project root.\n- `npm test`: 10 pass, 0 fail, 0 skipped.\n\nNothing was committed — the working tree holds the implementation and CHANGES.md if you want to review or commit."
+    }
+  ],
+  "base_commit": "3048d9aec0dcc4ab611fb27303a3241aea51cab6",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M src/semver.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-B-05u0Ks",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}
