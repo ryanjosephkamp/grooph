@@ -1,6 +1,6 @@
 # Review 0013 · Re-prove the two red records
 
-**Reviewer:** driver (Fable 5.1) · **Date:** 2026-09-21 · **Branch reviewed:** `slice/0013-reproof-red-records` at `5ac50cc` (work head `cf7fa97`) · **Verdict:** **fix pass** (`FIXPASS-1.md`): the bank half is complete and correct; the judge half never ran because the runner's retry rule refuses a re-proof whose first attempt died before any model call.
+**Reviewer:** driver (Fable 5.1) · **Date:** 2026-09-21 · **Branch reviewed:** `slice/0013-reproof-red-records` at `5ac50cc` (work head `cf7fa97`) · **Verdict:** **proceed** after fix pass 1 (first review 2026-09-21: fix pass; the bank half was complete and the judge half never ran because the runner's retry rule refused a re-proof whose first attempt died before any model call).
 
 ## Verified independently
 
@@ -32,6 +32,18 @@
 
 None.
 
-## What the fix pass does
+## Fix pass 1, verified (branch at `b108968`, work head `2ff540a`)
 
-`FIXPASS-1.md`: fix the retry rule (with `--dry-run` as its test), add the header line, then run the judge's re-proof under the approved spend ($12.33 available, about $3 expected), write its section and index row, regenerate the summary. On its handback the slice merges as a whole.
+| What | Result |
+|---|---|
+| suites, index and brake scripts | core 248, CLI 58, web 49, browser 52; both scripts clean |
+| `--check` on all sixteen `run/` records | **16 PASS**; both `run-1/` records fail with their original problems; the help text prints the whole header |
+| `fresh-grind-rare-judge/run-1/` against `main`'s `run/` | 22 files, byte-identical |
+| the judge's notes | `n-0008` `next-phase` at phase 1, `n-0009` `e-judge-next-phase` with 3 dispatches against 3 started, `n-0017` `bar-passed` at round 1 with 6 against 6, `n-0018` stop node; `PHASE-REVIEW-round-0.md` and `-round-1.md` in the run folder; no amendment |
+| the retry rule (`prove-ledger.mjs`) | counts an earlier retry only when `status === "ok"` or a `run_id` exists; the dry runs now refuse both templates because their retries ran, which is the rule |
+| ledger | invocation 26: $2.969992, run `20260921-044114`; $45.64 of $55.00; slice spend $6.07 |
+| paths | the two runner files the fix pass allowed, plus the handoff's list; nothing else |
+
+**Deviation ruled on:** the `--help` line range in `prove-pattern.sh` (`2,45p` → `2,49p`) is accepted; without it the new header lines would be cut off, which defeats them.
+
+**What the two re-proofs settle.** Both red records are green on the 0012 brief: the judge with `run-tests` needed no amendment and did every review itself; the bank's lead counted exactly and halted at the gate. Neither design bet paid a second time (a fast builder passes the held-out evaluator cases from the phase entry alone; the bank's triage ranked majors down with reasons), which is recorded, not hidden. **Still unproved:** an edited `tools:` line taking effect under `claude -p`, because no run needed an amendment. It stays a carried item until an adaptive run amends a capability for real.

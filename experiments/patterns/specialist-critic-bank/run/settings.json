@@ -6,6 +6,7 @@
       "Bash(npm run:*)",
       "Bash(node:*)",
       "Bash(git diff:*)",
+      "Bash(git add -N:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",

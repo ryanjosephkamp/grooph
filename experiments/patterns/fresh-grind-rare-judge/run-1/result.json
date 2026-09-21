@@ -1,0 +1,142 @@
+{
+  "template": "fresh-grind-rare-judge",
+  "template_version": "fresh-grind-rare-judge@1",
+  "slots": {
+    "values": {
+      "task": "Build the arithmetic evaluator in two phases as docs/PHASES.md lays out: first `tokenize` in src/tokenize.mjs against tests/tokenize.test.mjs, then `evaluate` in src/evaluate.mjs with its own tests written from the phase entry. A held-out set of cases for phase 2 exists outside this project; the judge checks against it, and it is not yours to read.",
+      "test-command": "npm test",
+      "phase-checklist": "docs/PHASES.md"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-q7a5i6.harness/held-out",
+    "files": [
+      {
+        "path": "evaluate-cases.test.mjs",
+        "sha256": "8d5559abd0e0ccd200e519c858e944d293e27de4a7161baa2b853292a2003b56"
+      }
+    ],
+    "substituted_in": [
+      "docs/PHASES.md"
+    ]
+  },
+  "graph_id": "calc-in-phases",
+  "run_id": "20260920-195457",
+  "run_ids": [
+    "20260920-195457"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.7484869999999997,
+      "output_tokens": 18693
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.23801680000000003,
+      "output_tokens": 12465
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.9524335,
+      "output_tokens": 8762
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "calc-in-phases--builder": [
+      "claude-sonnet-5"
+    ],
+    "general-purpose": [
+      "claude-fable-5-1"
+    ],
+    "calc-in-phases--judge": [
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 2.938937,
+  "harness_turns": 34,
+  "lead_turns": null,
+  "duration_s": 438,
+  "rounds": {
+    "loop_passes": 4,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "calc-in-phases--builder": 2,
+    "general-purpose": 1,
+    "calc-in-phases--judge": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "grooph apply --help 2>&1 | head -40"
+    },
+    {
+      "tool": "Bash",
+      "command": "date -u +%Y-%m-%dT%H:%M:%SZ; npm test 2>&1 | tee .grooph/calc-in-phases/runs/20260920-195457/tests-r0-p1.txt; echo \"exit=${PIPESTATUS[0]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "date -u +%Y-%m-%dT%H:%M:%SZ; shasum -a 256 src/tokenize.mjs tests/tokenize.test.mjs CHANGES.md PHASE-REVIEW.md package.json"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 22,
+      "session_id": "58e8f118-b0c2-4857-8dfb-f1b8f6588cb0",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 2.938937,
+      "reported_cost_usd": 2.938937299999999,
+      "max_budget_usd": 6,
+      "harness_turns": 34,
+      "duration_s": 438,
+      "wall_s": 439,
+      "notes_after": 18,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "6.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "eda0b945befecca5636ac025c88520378a1c99b7",
+  "source_sha256_before": "07bcfcc6a43dc7549144b25a8ea37924e60947611732373cf8be0d1b276020c8",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "A PHASE-REVIEW.md",
+    "A src/evaluate.mjs",
+    "A src/tokenize.mjs",
+    "A tests/evaluate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-q7a5i6",
+  "home_redactions": 0,
+  "amendments": [
+    "judge: allow run-tests"
+  ],
+  "proposals": [],
+  "working_copy": [
+    "node judge changed: allow"
+  ]
+}

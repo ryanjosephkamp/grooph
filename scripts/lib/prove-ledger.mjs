@@ -97,8 +97,12 @@ export function gate(ledger, { template, kind, retry }) {
         `${template} already has a kickoff in the ledger (invocation ${earlier.map((e) => e.n).join(", ")}). A run whose package under-drove the session is a finding, not a retry; a run that failed for a reason outside the package (sign-in, network) may be retried once with --retry "<reason>"`,
       );
     }
-    if (retry && earlier.some((entry) => entry.retry)) {
-      return refuse(`${template} was already retried once (invocation ${earlier.filter((e) => e.retry).map((e) => e.n).join(", ")})`);
+    // A retry that never reached a lead (an expired sign-in fails the kickoff at $0.00 before
+    // any model call) does not use up the one retry: only a retried kickoff that ran does.
+    const reachedLead = (entry) => entry.status === "ok" || Boolean(entry.run_id);
+    const retried = earlier.filter((entry) => entry.retry && reachedLead(entry));
+    if (retry && retried.length > 0) {
+      return refuse(`${template} was already retried once (invocation ${retried.map((e) => e.n).join(", ")})`);
     }
     if (retry && earlier.length === 0) return refuse(`--retry given, but ${template} has no earlier kickoff to retry`);
   }

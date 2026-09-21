@@ -52,7 +52,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0010 | 6 | Lead brief and template hardening (defects D1–D7, `dispatches` budgets, critics read the repository) | Opus 5 | done 2026-09-20 ($3.80 on two re-proving runs; both pass `--check`) |
 | 0011 | 6 | Proving ground, second batch (remaining eleven templates; tasks that force a second round) | Opus 5 | done 2026-09-20 ($28.77; four back edges; two records red) |
 | 0012 | 6 | Brief and runner fixes from batch two (capability amendments reach the agent file, §9 op vocabulary, new-file diffs, per-round reports, dispatches per round) | Opus 5 | done 2026-09-20 (no spend; core 248 tests) |
-| 0013 | 6 | Re-prove `fresh-grind-rare-judge` and `specialist-critic-bank` on the 0012 brief (about $9; cap raised to $55.00) | Opus 5 | confirmed 2026-09-20; bank re-proved green 2026-09-21 ($3.10); judge blocked by the ledger's retry rule; fix pass 1 drafted |
+| 0013 | 6 | Re-prove `fresh-grind-rare-judge` and `specialist-critic-bank` on the 0012 brief (about $9; cap raised to $55.00) | Opus 5 | done 2026-09-21 after fix pass 1 ($6.07; both records green; all sixteen pass the check) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)

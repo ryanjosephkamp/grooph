@@ -1,237 +1,282 @@
 diff --git a/CHANGES.md b/CHANGES.md
 new file mode 100644
-index 0000000..790d76a
+index 0000000..91d2e92
 --- /dev/null
 +++ b/CHANGES.md
-@@ -0,0 +1,55 @@
+@@ -0,0 +1,51 @@
 +# Changes
 +
 +## Phase 1 · tokenizer
 +
-+Added `tokenize(text)` in `src/tokenize.mjs`:
++Added `src/tokenize.mjs` implementing `tokenize(text)`:
 +
-+- Scans `text` left to right, producing tokens `{ type, value, at }` where
-+  `at` is the index of the token's first character.
-+- `type` is one of `number`, `op`, `lparen`, `rparen`.
-+- Numbers accept integers and decimals with a digit on both sides of the
-+  point; a `.` missing a digit on either side raises a `SyntaxError` whose
-+  message names the index of the `.`.
-+- Operators `+ - * / ^` and parentheses `( )` are recognized; space, tab,
-+  newline and carriage return are skipped; any other character raises a
-+  `SyntaxError` naming its index.
-+- A non-string argument raises a `TypeError`.
++- Scans `text` left to right, producing `{ type, value, at }` tokens where
++  `type` is one of `number`, `op`, `lparen`, `rparen` and `at` is the index
++  of the token's first character.
++- Recognizes integers and decimals (`1`, `2.5`); a `.` lacking a digit on
++  either side throws a `SyntaxError` whose message names the index of the
++  `.`.
++- Recognizes operators `+ - * / ^` and parentheses `(` `)`; skips spaces,
++  tabs and newlines; any other character throws a `SyntaxError` naming its
++  index.
++- Throws a `TypeError` if `text` is not a string.
 +
-+`tests/tokenize.test.mjs` (pre-existing) passes: `npm test` exits 0 with
-+4 tests passing, 0 failed, 0 skipped, 0 todo.
++`tests/tokenize.test.mjs` (pre-existing, not modified) passes: 4/4 tests,
++`npm test` exits 0 with nothing skipped or todo.
 +
 +## Phase 2 · evaluator
 +
-+Added `evaluate(text)` in `src/evaluate.mjs`, a recursive-descent parser built
-+on `tokenize`:
++Added `src/evaluate.mjs` implementing `evaluate(text)` as a recursive-descent
++parser built on `tokenize`:
 +
-+- Grammar, tightest binding first: parentheses; `^` (right-associative,
-+  parsed by recursing into the unary rule on its right-hand side so
-+  `2 ^ 3 ^ 2` is `2 ^ (3 ^ 2)` = `512`); unary minus (`-` only — `+` is never
-+  treated as a prefix operator); `*` and `/` (left-associative); `+` and `-`
-+  (left-associative). Because `^` binds tighter than unary minus,
-+  `-2 ^ 2` parses as `-(2 ^ 2)` = `-4`.
-+- `/` throws a `RangeError` naming the operator's index whenever the
-+  right-hand operand is `0` (this includes `0 / 0`), per the entry's
-+  "division by zero is a `RangeError`" rule.
-+- Any other malformed input — an empty or whitespace-only string, a
-+  trailing operator (`1 +`), a leading or doubled binary operator that
-+  isn't the unary `-` (`+ 1`, `1 + + 2`, `* 2`), two operands with no
-+  operator between them (`1 2`), unmatched or empty parentheses
-+  (`(1 + 2`, `1 + 2)`, `()`), or a dangling `^` (`2 ^`) — is a
-+  `SyntaxError`. Errors thrown by `tokenize` itself (bad characters, bad
-+  numbers, non-string input) surface unchanged through `evaluate`.
-+- Doubled unary minus is accepted and composes normally: `- - 2` is `2`,
-+  `- - - 2` is `-2`. This, together with the empty/doubled-input and
-+  "what is not an operator" decisions above, are exactly the points the
-+  entry leaves open for the held-out suite to settle; this is the reading
-+  chosen and tested here.
++- Precedence, tightest to loosest: parentheses; `^` (right-associative);
++  unary minus; `*`/`/` (left-associative); `+`/`-` (left-associative). `^`
++  binds tighter than unary minus, so `-2 ^ 2` is `-4` and, being
++  right-associative, `2 ^ 3 ^ 2` is `512`.
++- Division by zero throws `RangeError`; any malformed expression (trailing
++  operator, doubled operand, unmatched parenthesis, stray operator where an
++  operand is expected, empty/whitespace-only input) throws `SyntaxError`
++  because the parser requires the whole token stream to reduce to a single
++  expression with nothing left over.
++- Unary minus recurses (`--2` is `2`, `-(1 + 2)` is `-3`), so chained or
++  parenthesized unary minus is well-defined rather than an error.
++- Non-string input and anything the tokenizer itself rejects (unknown
++  characters, bad numbers) surface as whatever error `tokenize` raises
++  (`TypeError` or `SyntaxError` naming the index); `evaluate` does not
++  reinterpret those.
 +
-+`tests/evaluate.test.mjs` (new, written from `docs/PHASES.md:23-37`) covers
-+every case listed in the judge's checklist item 1, plus precedence/
-+associativity, the unary-minus-vs-`^` interaction, division-by-zero
-+variants, the malformed-input decisions above, and tokenizer errors passing
-+through. `tests/tokenize.test.mjs` is untouched.
++Added `tests/evaluate.test.mjs` covering the seven cases from the phase 2
++entry (`1 + 2 * 3` → `7`, `(1 + 2) * 3` → `9`, `2 ^ 3 ^ 2` → `512`,
++`-2 ^ 2` → `-4`, `10 / 4` → `2.5`, `1 / 0` → `RangeError`, `1 +` →
++`SyntaxError`) plus edge cases thought through from the entry: empty and
++whitespace-only input, two numbers with no operator between them, a stray
++`+` where an operand is expected (no unary plus), unmatched parentheses,
++chained unary minus, unary minus before a parenthesis, unary minus mixed
++with `*`/`/`, an unknown character, and non-string input.
 +
-+`npm test` exits 0 with 11 tests passing (4 from phase 1, 7 from phase 2),
-+0 failed, 0 skipped, 0 todo.
++`npm test` passes: 20/20 tests, exit 0, nothing skipped or todo.
 diff --git a/PHASE-REVIEW.md b/PHASE-REVIEW.md
 new file mode 100644
-index 0000000..db76b60
+index 0000000..5b78eb4
 --- /dev/null
 +++ b/PHASE-REVIEW.md
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,85 @@
 +# Phase review · Phase 2 · evaluator
 +
-+Judged against `docs/PHASES.md:23-44`. Evidence: `.grooph/calc-in-phases/runs/20260920-195457/evidence-phase2.md` (diff and `npm test` output), `src/evaluate.mjs`, `tests/evaluate.test.mjs`, `package.json`, and the held-out suite run by the judge from the project root (results below). `src/tokenize.mjs` and `tests/tokenize.test.mjs` are unchanged since the phase-1 sign-off per `evidence-phase2.md:7-8`.
++Judged against `docs/PHASES.md:23-44` ("Phase 2 · evaluator", the three items
++under "The judge checks" at `docs/PHASES.md:32-44`). Phase 1 was signed off in
++the previous round; phase 2 is the last phase.
 +
-+## Item by item
++Evidence inspected: `.grooph/calc-in-phases/runs/20260921-044114/diff-phase2-round1.patch`,
++`.grooph/calc-in-phases/runs/20260921-044114/test-output-phase2-round1.txt`,
++`src/evaluate.mjs`, `tests/evaluate.test.mjs`, `CHANGES.md`, `docs/PHASES.md`,
++the held-out suite, plus a fresh `npm test` and a fresh held-out run, both bare
++from the project root. The on-disk `src/evaluate.mjs` (114 lines) and
++`tests/evaluate.test.mjs` (73 lines) are identical to the versions in the diff
++(`diff-phase2-round1.patch:46-160` and `:166-239`).
 +
-+1. The seven listed cases hold and a test covers each — MET.
-+   - `1 + 2 * 3` → `7`: `+`/`-` loop at `src/evaluate.mjs:87-99` calls `parseMulDiv` (`:66-85`) for each operand, so `2 * 3` binds first. Test: `tests/evaluate.test.mjs:7`.
-+   - `(1 + 2) * 3` → `9`: `lparen` branch at `src/evaluate.mjs:33-42` recurses into `parseAddSub` and requires the matching `rparen` (`:37-39`). Test: `tests/evaluate.test.mjs:8`.
-+   - `2 ^ 3 ^ 2` → `512`: `parsePower` at `src/evaluate.mjs:46-55` takes its exponent via `parseUnary` → `parsePower`, so `^` is right-associative (`2 ^ (3 ^ 2)`). Test: `tests/evaluate.test.mjs:9`.
-+   - `-2 ^ 2` → `-4`: `parseUnary` at `src/evaluate.mjs:57-64` negates the result of `parseUnary` → `parsePower`, so `^` binds tighter than unary minus (`-(2 ^ 2)`). Test: `tests/evaluate.test.mjs:10`.
-+   - `10 / 4` → `2.5`: plain IEEE division at `src/evaluate.mjs:79`. Test: `tests/evaluate.test.mjs:11`.
-+   - `1 / 0` → `RangeError`: `rhs === 0` guard at `src/evaluate.mjs:76-78` throws `RangeError`. Test: `tests/evaluate.test.mjs:12`.
-+   - `1 +` → `SyntaxError`: after `+` at `src/evaluate.mjs:92-93`, `parseAtom` finds no token and throws via `fail` at `:26-28` / `:19-22` (`SyntaxError`). Test: `tests/evaluate.test.mjs:13`.
-+   - Precedence order as specified at `docs/PHASES.md:26-27` is encoded in the grammar comment `src/evaluate.mjs:3-10` and realised by the call chain `parseAddSub` → `parseMulDiv` → `parseUnary` → `parsePower` → `parseAtom` (`:24-99`). Left-associativity of `*`/`/` and `+`/`-` comes from the iterative loops at `:68-84` and `:89-98`.
-+   - Trailing-token check at `src/evaluate.mjs:102-104` rejects leftovers such as `1 + 2)` and `1 2` as `SyntaxError`. Tests: `tests/evaluate.test.mjs:47`, `:49`.
++## Item 1 — the seven named cases hold and a test covers each (`docs/PHASES.md:34-36`)
 +
-+2. `npm test` exits 0 with no test skipped or marked todo — MET.
-+   - Script `node --test tests/*.test.mjs` at `package.json:7`.
-+   - `evidence-phase2.md:59` records exit code 0; `:76-82` records `tests 11`, `pass 11`, `fail 0`, `cancelled 0`, `skipped 0`, `todo 0`.
-+   - `tests/evaluate.test.mjs:1-65` contains no `skip`, `todo` or `only` modifiers.
++| Case | Test covering it | Implementation |
++| --- | --- | --- |
++| `1 + 2 * 3` → `7` | `tests/evaluate.test.mjs:6-8` | `*`/`/` parsed under `+`/`-`: `src/evaluate.mjs:39-49` calls `parseMulDiv` (`:51-68`) for each operand |
++| `(1 + 2) * 3` → `9` | `tests/evaluate.test.mjs:10-12` | `lparen` → recursive `parseAddSub` → `rparen`: `src/evaluate.mjs:102-110` |
++| `2 ^ 3 ^ 2` → `512` | `tests/evaluate.test.mjs:14-16` | exponent parsed via `parseUnary`, which recurses back into `parsePower`, giving right-association: `src/evaluate.mjs:81-85` |
++| `-2 ^ 2` → `-4` | `tests/evaluate.test.mjs:18-20` | unary minus wraps `parsePower`, so `^` binds first: `src/evaluate.mjs:70-76` |
++| `10 / 4` → `2.5` | `tests/evaluate.test.mjs:22-24` | `left / right`: `src/evaluate.mjs:63` |
++| `1 / 0` → `RangeError` | `tests/evaluate.test.mjs:26-28` | `if (right === 0) throw new RangeError(...)`: `src/evaluate.mjs:60-62` |
++| `1 +` → `SyntaxError` | `tests/evaluate.test.mjs:30-32` | end of input where an operand is expected: `src/evaluate.mjs:93-95` |
 +
-+3. Every case in the held-out suite passes — MET.
-+   - Run by the judge from the project root: `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-q7a5i6.harness/held-out/evaluate-cases.test.mjs`.
-+   - Result: `tests 43`, `pass 43`, `fail 0`, `cancelled 0`, `skipped 0`, `todo 0`. No failing case to quote.
-+   - The open points named at `docs/PHASES.md:40-41` were settled the same way the suite expects: unary minus in odd places (`(-2) ^ 2` → 4, `2 ^ -1` → 0.5, `-2 ^ -2` → -0.25, `2 * -3` → -6, `--1` → 1, `-(-3)` → 3) pass via `src/evaluate.mjs:57-64`; empty and doubled input (`""`, `"   "`, `1 2`, `2(3)`, `(3)2`, `1 * / 2`, `+ 1`, `+1`) throw `SyntaxError` via `:26-28`, `:43`, `:102-104`; what is not an operator (`1e3`, `7 % 2`, `2 ** 3`) throws `SyntaxError` from `tokenize` (surfaced unchanged at `:13`) or from the trailing/doubled-operator paths; `0 / 0` and `1 / (2 - 2)` throw `RangeError` via `:76-78`; `42` and `null` throw `TypeError` from `tokenize` via `:13`.
++All seven pass in the recorded test output
++(`test-output-phase2-round1.txt:5-11`) and in my re-run. Met.
 +
-+## Observations (not blocking)
++## Item 2 — `npm test` exits 0 with no test skipped or marked todo (`docs/PHASES.md:37`)
 +
-+- `CHANGES.md` phase-2 section (`evidence-phase2.md:22-56`) accurately describes the grammar, the error decisions and the test count; the reported 11 tests match the `npm test` output at `evidence-phase2.md:76-78`.
-+- `src/evaluate.mjs:38` reports `text.length` as the index for an unclosed parenthesis at end of input; the entry does not require an index in evaluator `SyntaxError` messages, so this is extra rather than required.
++Recorded run: `test-output-phase2-round1.txt:25-31` — tests 20, pass 20,
++fail 0, cancelled 0, skipped 0, todo 0. My fresh `npm test` from the project
++root (script `node --test tests/*.test.mjs`) reproduced the same counts:
++20 pass, 0 fail, 0 skipped, 0 todo, exit 0. Met.
 +
-+## Held-out results
++## Item 3 — every case in the held-out suite passes (`docs/PHASES.md:38-44`)
 +
-+Suite: `.harness/held-out/evaluate-cases.test.mjs`, run from the project root.
-+Pass: 43. Fail: 0. Skipped: 0. Todo: 0. Cancelled: 0.
++Ran bare from the project root:
++
++```
++node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-dKz7KU.harness/held-out/evaluate-cases.test.mjs
++```
++
++Result: tests 43, pass 43, fail 0, cancelled 0, skipped 0, todo 0. The suite
++imports `src/evaluate.mjs` by cwd (`evaluate-cases.test.mjs:8`), so the run
++exercised the project's file as it stands.
++
++Failing cases (input and expected result): **none.**
++
++Coverage of what the entry left open, all passing:
++
++- unary minus in odd places (`evaluate-cases.test.mjs:15-21`): `(-2) ^ 2` → 4,
++  `2 ^ -1` → 0.5, `-2 ^ -2` → -0.25, `2 * -3` → -6, `3 - -2` → 5, `--1` → 1,
++  `-(-3)` → 3 — handled by `src/evaluate.mjs:70-76` and `:83`.
++- empty and doubled input (`evaluate-cases.test.mjs:37-38,42-45`): `""`,
++  `"   "`, `1 2`, `2(3)`, `(3)2`, `()` → `SyntaxError` — `src/evaluate.mjs:19-22`
++  (leftover tokens) and `:93-95`, `:113` (missing/wrong operand).
++- what is not an operator (`evaluate-cases.test.mjs:40-41,48-51`): `+ 1`, `+1`,
++  `1 * / 2`, `1e3`, `7 % 2`, `2 ** 3` → `SyntaxError` — stray `op` where an
++  operand is expected hits `src/evaluate.mjs:113`; `e` and `%` are rejected
++  by `tokenize` before parsing (`src/evaluate.mjs:14`).
++- `0 / 0` and `1 / (2 - 2)` → `RangeError` (`evaluate-cases.test.mjs:53-54`)
++  — `src/evaluate.mjs:60-62` checks the evaluated divisor, not the literal.
++- `42` and `null` → `TypeError` (`evaluate-cases.test.mjs:55-56`) — raised by
++  `tokenize` at `src/evaluate.mjs:14` and not caught.
++
++Met.
++
++## Notes (not findings)
++
++- `CHANGES.md:10-40` describes the phase 2 work and matches the code: the
++  precedence claims at `CHANGES.md:15-18` correspond to the grammar comment at
++  `src/evaluate.mjs:3-11`; the "20/20 tests" claim at `CHANGES.md:40` matches
++  the recorded output.
++- The diff touches only `CHANGES.md`, `src/evaluate.mjs` and
++  `tests/evaluate.test.mjs`; `src/tokenize.mjs` and `tests/tokenize.test.mjs`
++  are unchanged since the phase 1 boundary, and the four tokenizer tests still
++  pass (`test-output-phase2-round1.txt:21-24`).
 +
 +## Verdict
 +
-+All three Phase 2 items are met. Phase 2 is the last phase in `docs/PHASES.md`.
++All three items are met and phase 2 is the last phase.
 +
 +verdict: pass
 diff --git a/src/evaluate.mjs b/src/evaluate.mjs
 new file mode 100644
-index 0000000..25599d3
+index 0000000..fad9c11
 --- /dev/null
 +++ b/src/evaluate.mjs
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,114 @@
 +import { tokenize } from "./tokenize.mjs";
 +
-+// Grammar, tightest binding first:
-+//   addsub := muldiv (('+' | '-') muldiv)*        (left-associative)
-+//   muldiv := unary (('*' | '/') unary)*          (left-associative)
-+//   unary  := '-' unary | power                    (only '-' is a unary op)
-+//   power  := atom ('^' unary)?                    (right-associative)
-+//   atom   := number | '(' addsub ')'
++// Grammar (tightest to loosest binding):
++//   addsub := muldiv (('+' | '-') muldiv)*
++//   muldiv := unary (('*' | '/') unary)*
++//   unary  := '-' unary | power
++//   power  := primary ('^' unary)?      // right-associative
++//   primary := number | '(' addsub ')'
 +//
-+// This puts '^' tighter than unary minus, so "-2 ^ 2" parses as -(2 ^ 2).
++// This makes '^' bind tighter than unary minus, so `-2 ^ 2` parses as
++// `-(2 ^ 2)` = -4, and `2 ^ 3 ^ 2` parses as `2 ^ (3 ^ 2)` = 512.
 +
 +export function evaluate(text) {
 +  const tokens = tokenize(text);
-+  let pos = 0;
++  const state = { tokens, pos: 0 };
 +
-+  const peek = () => tokens[pos];
-+  const advance = () => tokens[pos++];
++  const value = parseAddSub(state);
 +
-+  function fail(message, at) {
-+    const suffix = at === undefined ? "" : ` at index ${at}`;
-+    throw new SyntaxError(`${message}${suffix}`);
++  if (state.pos < state.tokens.length) {
++    const tok = state.tokens[state.pos];
++    throw new SyntaxError(`unexpected token at index ${tok.at}`);
 +  }
 +
-+  function parseAtom() {
-+    const tok = peek();
-+    if (!tok) {
-+      fail("unexpected end of input");
-+    }
-+    if (tok.type === "number") {
-+      advance();
-+      return tok.value;
-+    }
-+    if (tok.type === "lparen") {
-+      advance();
-+      const value = parseAddSub();
-+      const close = peek();
-+      if (!close || close.type !== "rparen") {
-+        fail('expected ")"', close ? close.at : text.length);
++  return value;
++}
++
++function peek(state) {
++  return state.tokens[state.pos];
++}
++
++function advance(state) {
++  return state.tokens[state.pos++];
++}
++
++function isOp(tok, ...values) {
++  return tok && tok.type === "op" && values.includes(tok.value);
++}
++
++function parseAddSub(state) {
++  let left = parseMulDiv(state);
++
++  while (isOp(peek(state), "+", "-")) {
++    const tok = advance(state);
++    const right = parseMulDiv(state);
++    left = tok.value === "+" ? left + right : left - right;
++  }
++
++  return left;
++}
++
++function parseMulDiv(state) {
++  let left = parseUnary(state);
++
++  while (isOp(peek(state), "*", "/")) {
++    const tok = advance(state);
++    const right = parseUnary(state);
++    if (tok.value === "*") {
++      left = left * right;
++    } else {
++      if (right === 0) {
++        throw new RangeError("division by zero");
 +      }
-+      advance();
-+      return value;
-+    }
-+    fail("unexpected token", tok.at);
-+  }
-+
-+  function parsePower() {
-+    const base = parseAtom();
-+    const tok = peek();
-+    if (tok && tok.type === "op" && tok.value === "^") {
-+      advance();
-+      const exponent = parseUnary();
-+      return Math.pow(base, exponent);
-+    }
-+    return base;
-+  }
-+
-+  function parseUnary() {
-+    const tok = peek();
-+    if (tok && tok.type === "op" && tok.value === "-") {
-+      advance();
-+      return -parseUnary();
-+    }
-+    return parsePower();
-+  }
-+
-+  function parseMulDiv() {
-+    let value = parseUnary();
-+    for (;;) {
-+      const tok = peek();
-+      if (tok && tok.type === "op" && (tok.value === "*" || tok.value === "/")) {
-+        advance();
-+        const rhs = parseUnary();
-+        if (tok.value === "*") {
-+          value = value * rhs;
-+        } else {
-+          if (rhs === 0) {
-+            throw new RangeError(`division by zero at index ${tok.at}`);
-+          }
-+          value = value / rhs;
-+        }
-+      } else {
-+        return value;
-+      }
++      left = left / right;
 +    }
 +  }
 +
-+  function parseAddSub() {
-+    let value = parseMulDiv();
-+    for (;;) {
-+      const tok = peek();
-+      if (tok && tok.type === "op" && (tok.value === "+" || tok.value === "-")) {
-+        advance();
-+        const rhs = parseMulDiv();
-+        value = tok.value === "+" ? value + rhs : value - rhs;
-+      } else {
-+        return value;
-+      }
-+    }
++  return left;
++}
++
++function parseUnary(state) {
++  if (isOp(peek(state), "-")) {
++    advance(state);
++    return -parseUnary(state);
++  }
++  return parsePower(state);
++}
++
++function parsePower(state) {
++  const base = parsePrimary(state);
++
++  if (isOp(peek(state), "^")) {
++    advance(state);
++    const exponent = parseUnary(state);
++    return Math.pow(base, exponent);
 +  }
 +
-+  const result = parseAddSub();
-+  if (pos < tokens.length) {
-+    fail("unexpected token", tokens[pos].at);
++  return base;
++}
++
++function parsePrimary(state) {
++  const tok = peek(state);
++
++  if (!tok) {
++    throw new SyntaxError("unexpected end of input");
 +  }
-+  return result;
++
++  if (tok.type === "number") {
++    advance(state);
++    return tok.value;
++  }
++
++  if (tok.type === "lparen") {
++    advance(state);
++    const value = parseAddSub(state);
++    const close = peek(state);
++    if (!close || close.type !== "rparen") {
++      throw new SyntaxError(`expected ')' to match '(' at index ${tok.at}`);
++    }
++    advance(state);
++    return value;
++  }
++
++  throw new SyntaxError(`unexpected token at index ${tok.at}`);
 +}
 diff --git a/src/tokenize.mjs b/src/tokenize.mjs
 new file mode 100644
-index 0000000..4892ea3
+index 0000000..75b9008
 --- /dev/null
 +++ b/src/tokenize.mjs
-@@ -0,0 +1,79 @@
-+const OPS = new Set(["+", "-", "*", "/", "^"]);
-+
-+const isDigit = (ch) => ch >= "0" && ch <= "9";
+@@ -0,0 +1,80 @@
++const OPERATORS = new Set(["+", "-", "*", "/", "^"]);
 +
 +export function tokenize(text) {
 +  if (typeof text !== "string") {
-+    throw new TypeError(`tokenize expects a string, got ${typeof text}`);
++    throw new TypeError("tokenize expects a string");
 +  }
 +
 +  const tokens = [];
@@ -240,7 +285,7 @@ index 0000000..4892ea3
 +  while (i < text.length) {
 +    const ch = text[i];
 +
-+    if (ch === " " || ch === "\t" || ch === "\n" || ch === "\r") {
++    if (ch === " " || ch === "\t" || ch === "\n") {
 +      i += 1;
 +      continue;
 +    }
@@ -257,7 +302,7 @@ index 0000000..4892ea3
 +      continue;
 +    }
 +
-+    if (OPS.has(ch)) {
++    if (OPERATORS.has(ch)) {
 +      tokens.push({ type: "op", value: ch, at: i });
 +      i += 1;
 +      continue;
@@ -265,37 +310,36 @@ index 0000000..4892ea3
 +
 +    if (isDigit(ch) || ch === ".") {
 +      const start = i;
-+      let end = i;
++      let j = i;
++      let sawDigitBeforeDot = false;
++      let sawDot = false;
++      let sawDigitAfterDot = false;
 +
-+      while (end < text.length && isDigit(text[end])) {
-+        end += 1;
++      while (j < text.length && isDigit(text[j])) {
++        sawDigitBeforeDot = true;
++        j += 1;
 +      }
 +
-+      if (end < text.length && text[end] === ".") {
-+        const dotAt = end;
-+        const hasDigitBefore = dotAt > start;
-+        const hasDigitAfter = dotAt + 1 < text.length && isDigit(text[dotAt + 1]);
-+
-+        if (!hasDigitBefore || !hasDigitAfter) {
-+          throw new SyntaxError(`unexpected "." at index ${dotAt}`);
++      if (j < text.length && text[j] === ".") {
++        sawDot = true;
++        const dotIndex = j;
++        j += 1;
++        const afterDotStart = j;
++        while (j < text.length && isDigit(text[j])) {
++          sawDigitAfterDot = true;
++          j += 1;
 +        }
 +
-+        end = dotAt + 1;
-+        while (end < text.length && isDigit(text[end])) {
-+          end += 1;
++        if (!sawDigitBeforeDot || !sawDigitAfterDot) {
++          throw new SyntaxError(
++            `unexpected character at index ${dotIndex}`,
++          );
 +        }
 +      }
 +
-+      if (end === start) {
-+        throw new SyntaxError(`unexpected character at index ${start}`);
-+      }
-+
-+      tokens.push({
-+        type: "number",
-+        value: Number(text.slice(start, end)),
-+        at: start,
-+      });
-+      i = end;
++      const raw = text.slice(start, j);
++      tokens.push({ type: "number", value: Number(raw), at: start });
++      i = j;
 +      continue;
 +    }
 +
@@ -304,74 +348,86 @@ index 0000000..4892ea3
 +
 +  return tokens;
 +}
++
++function isDigit(ch) {
++  return ch >= "0" && ch <= "9";
++}
 diff --git a/tests/evaluate.test.mjs b/tests/evaluate.test.mjs
 new file mode 100644
-index 0000000..b09cdca
+index 0000000..6dfe4db
 --- /dev/null
 +++ b/tests/evaluate.test.mjs
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,73 @@
 +import assert from "node:assert/strict";
 +import { test } from "node:test";
 +
 +import { evaluate } from "../src/evaluate.mjs";
 +
-+test("the required cases from the phase 2 entry", () => {
++test("precedence: * and / bind tighter than + and -", () => {
 +  assert.equal(evaluate("1 + 2 * 3"), 7);
++});
++
++test("parentheses override precedence", () => {
 +  assert.equal(evaluate("(1 + 2) * 3"), 9);
++});
++
++test("^ is right-associative", () => {
 +  assert.equal(evaluate("2 ^ 3 ^ 2"), 512);
++});
++
++test("^ binds tighter than unary minus", () => {
 +  assert.equal(evaluate("-2 ^ 2"), -4);
++});
++
++test("division", () => {
 +  assert.equal(evaluate("10 / 4"), 2.5);
++});
++
++test("division by zero is a RangeError", () => {
 +  assert.throws(() => evaluate("1 / 0"), RangeError);
++});
++
++test("a trailing operator is a SyntaxError", () => {
 +  assert.throws(() => evaluate("1 +"), SyntaxError);
 +});
 +
-+test("precedence and associativity", () => {
-+  assert.equal(evaluate("2 + 3 * 4"), 14);
-+  assert.equal(evaluate("2 * 3 + 4"), 10);
-+  assert.equal(evaluate("10 - 2 - 3"), 5);
-+  assert.equal(evaluate("20 / 2 / 5"), 2);
-+  assert.equal(evaluate("2 ^ 2 * 3"), 12);
-+  assert.equal(evaluate("(2 + 3) ^ 2"), 25);
-+});
-+
-+test("unary minus binds tighter than * and / but looser than ^", () => {
-+  assert.equal(evaluate("-2 * 3"), -6);
-+  assert.equal(evaluate("-2 ^ 2"), -4);
-+  assert.equal(evaluate("2 ^ -2"), 0.25);
-+  assert.equal(evaluate("-(2 + 3)"), -5);
-+  assert.equal(evaluate("5 - -2"), 7);
-+  assert.equal(evaluate("- - 2"), 2);
-+  assert.equal(evaluate("- - - 2"), -2);
-+});
-+
-+test("division by zero is a RangeError, including 0 / 0", () => {
-+  assert.throws(() => evaluate("1 / 0"), RangeError);
-+  assert.throws(() => evaluate("0 / 0"), RangeError);
-+  assert.throws(() => evaluate("1 / (2 - 2)"), RangeError);
-+});
-+
-+test("malformed expressions are SyntaxErrors", () => {
++test("empty and whitespace-only input are SyntaxErrors", () => {
 +  assert.throws(() => evaluate(""), SyntaxError);
-+  assert.throws(() => evaluate("   "), SyntaxError);
-+  assert.throws(() => evaluate("1 +"), SyntaxError);
-+  assert.throws(() => evaluate("+ 1"), SyntaxError);
++  assert.throws(() => evaluate("   \t\n"), SyntaxError);
++});
++
++test("two numbers with no operator between them is a SyntaxError", () => {
++  assert.throws(() => evaluate("2 3"), SyntaxError);
++});
++
++test("a stray '+' where an operand is expected is a SyntaxError (no unary plus)", () => {
 +  assert.throws(() => evaluate("1 + + 2"), SyntaxError);
-+  assert.throws(() => evaluate("1 2"), SyntaxError);
++});
++
++test("unmatched parentheses are SyntaxErrors", () => {
 +  assert.throws(() => evaluate("(1 + 2"), SyntaxError);
 +  assert.throws(() => evaluate("1 + 2)"), SyntaxError);
-+  assert.throws(() => evaluate("()"), SyntaxError);
-+  assert.throws(() => evaluate("* 2"), SyntaxError);
-+  assert.throws(() => evaluate("2 ^"), SyntaxError);
 +});
 +
-+test("tokenizer errors surface unchanged from evaluate", () => {
-+  assert.throws(() => evaluate("1 % 2"), SyntaxError);
-+  assert.throws(() => evaluate("2."), SyntaxError);
++test("chained unary minus negates repeatedly", () => {
++  assert.equal(evaluate("--2"), 2);
++  assert.equal(evaluate("---2"), -2);
++});
++
++test("unary minus applies to a parenthesized expression", () => {
++  assert.equal(evaluate("-(1 + 2)"), -3);
++});
++
++test("unary minus binds looser than *, / so it applies to the whole product", () => {
++  assert.equal(evaluate("-2 * 3"), -6);
++  assert.equal(evaluate("2 * -3"), -6);
++});
++
++test("what is not an operator (e.g. an unknown character) surfaces the tokenizer's SyntaxError", () => {
++  assert.throws(() => evaluate("1 % 2"), { name: "SyntaxError", message: /\b2\b/ });
++});
++
++test("a non-string is the TypeError the tokenizer raises", () => {
 +  assert.throws(() => evaluate(12), TypeError);
-+});
-+
-+test("whitespace-only and nested parentheses", () => {
-+  assert.equal(evaluate("  ( 1 + 2 )  * ( 3 - 1 )  "), 6);
-+  assert.equal(evaluate("((1))"), 1);
-+  assert.equal(evaluate("((1 + 2) * (3 + 4))"), 21);
++  assert.throws(() => evaluate(null), TypeError);
 +});

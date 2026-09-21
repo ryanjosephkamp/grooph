@@ -6,6 +6,7 @@
       "Bash(npm run:*)",
       "Bash(node:*)",
       "Bash(git diff:*)",
+      "Bash(git add -N:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
@@ -23,8 +24,8 @@
       "Bash(echo:*)",
       "Bash(cp:*)",
       "Bash(tr:*)",
-      "Read(//var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-q7a5i6.harness/held-out/**)",
-      "Read(//private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-q7a5i6.harness/held-out/**)"
+      "Read(//var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-dKz7KU.harness/held-out/**)",
+      "Read(//private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-fresh-grind-rare-judge-dKz7KU.harness/held-out/**)"
     ]
   }
 }

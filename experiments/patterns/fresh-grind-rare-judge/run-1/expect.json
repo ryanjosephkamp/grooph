@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the builder and the phase judge ran as their own subagents; the judge wrote PHASE-REVIEW.md itself; the judge touched the held-out suite and the builder did not; the run ended on the outer loop's bar at the stop node. The design bet (write-up): the judge says next-phase after phase 1, fail once at phase 2 on the held-out cases, then pass; both back edges of the outer loop are taken.",
+  "agents": ["builder", "judge"],
+  "reports": { "judge": ["PHASE-REVIEW.md"] },
+  "heldOut": { "readers": ["judge"], "notReaders": ["builder"] },
+  "backEdge": true,
+  "ending": ["stop bar-passed", "stop node done"]
+}
