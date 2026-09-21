@@ -344,9 +344,14 @@ export function roundCap(doc) {
 /** The sentence every iteration of arm C ends with, and how the runner reads the reply. */
 export const DONE_LINE = "End your reply with one line on its own, `done: yes` if your done check passes (or the instructions above told you to stop and report at a point you have reached, and you have) and there is nothing left for another session to do, otherwise `done: no`.";
 
-/** The prompt of iteration `i` of `n` in arm C (protocol §3). */
-export function iterationPrompt(prompt, i, n) {
-  return `${prompt.trimEnd()}\n\nIteration ${i} of ${n}. Continue from the working tree as it is. Stop when your done check passes. ${DONE_LINE}\n`;
+/**
+ * The prompt of iteration `i` of `n` in arm C (protocol §3). `note` is added only
+ * when a scripted gate answer was given in an earlier iteration (a project whose
+ * expect.json names one, owner-approved): a fresh session must be told, as the
+ * resumed session of arm B and the run record of arm A already know it.
+ */
+export function iterationPrompt(prompt, i, n, note) {
+  return `${prompt.trimEnd()}\n\nIteration ${i} of ${n}. Continue from the working tree as it is. Stop when your done check passes.${note ? ` ${note.trim()}` : ""} ${DONE_LINE}\n`;
 }
 
 /** Does an iteration's reply say done? Reads the last non-empty line. */

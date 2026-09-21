@@ -1,0 +1,288 @@
+[
+  {
+    "session": "9a859ceb-96b7-4b4a-9567-ff6b0bc1d698",
+    "who": "lead",
+    "transcript": "9a859ceb-96b7-4b4a-9567-ff6b0bc1d698.jsonl",
+    "description": null,
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-21T22:05:47.300Z",
+    "ended": "2026-09-21T22:12:58.558Z",
+    "assistant_messages": 22,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:05:51.095Z",
+        "file": ".grooph/harden-csv-line/LEAD.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:05:54.384Z",
+        "command": "date -u +%Y%m%d-%H%M%S; date -u +%Y-%m-%dT%H:%M:%SZ; ls -la; ls .grooph/harden-csv-line .grooph/harden-csv-line/runs 2>/dev/null; cat README.md; cat src/csv.mjs; cat tests/csv.test.mjs; cat package.json; ls traces 2>/dev/null; cat .claude/agents/harden-csv-line--builder.md .claude/agents/harden-csv-line--red-team.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:05:58.863Z",
+        "command": "mkdir -p .grooph/harden-csv-line/runs/20260921-220554 && cp .grooph/harden-csv-line/graph.grooph.json .grooph/harden-csv-line/runs/20260921-220554/graph.grooph.json && printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-220554\",\"at\":\"graph\",\"started\":\"2026-09-21T22:05:54Z\",\"text\":\"run started\"}' > .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl && which grooph; echo ok",
+        "writes": [
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:06:04.204Z",
+        "file": ".grooph/harden-csv-line/runs/20260921-220554/PROGRESS.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:06:06.936Z",
+        "error": "printf operand '{\"id\":\"n-0002\",\"run\":\"20260921-220554\",\"at\":\"node:builder\",\"started\":\"$(…)\",\"outcome\":\"started\",\"round\":0,\"text\":\"builder dispatched, round 0\"}' is runtime-determined and may carry an ",
+        "command": "printf '%s\\n' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260921-220554\\\",\\\"at\\\":\\\"node:builder\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"round\\\":0,\\\"text\\\":\\\"builder dispatched, round 0\\\"}\" >> .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl",
+        "writes": [
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:06:08.679Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:06:11.102Z",
+        "command": "echo '{\"id\":\"n-0002\",\"run\":\"20260921-220554\",\"at\":\"node:builder\",\"started\":\"2026-09-21T22:06:08Z\",\"outcome\":\"started\",\"round\":0,\"text\":\"builder dispatched, round 0\"}' >> .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl",
+        "writes": [
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-21T22:06:19.404Z",
+        "subagent_type": "harden-csv-line--builder",
+        "description": "Builder round 0: harden parseCsvLine",
+        "prompt": "Round 0 of loop `attack` in graph `harden-csv-line`. Project root is the current working directory; run every command bare from there (no `cd … && …`, no `git -C`).\n\n## Task\n\nMake `parseCsvLine` in src/csv.mjs honour every line of the contract in README.md for any string input: it returns an array of string fields or throws `CsvError` (exported, subclass of Error), nothing else; never hangs; returns within a second for a 100 KB record; non-string input throws `TypeError`. Read README.md § Contract line by line and implement all of it — the current implementation only handles the plain and simple-quoted cases. Keep tests/csv.test.mjs green and extend it with a test for each contract line you implement (including a 100 KB timing test).\n\n## Inputs\n\n- The project: src/csv.mjs, README.md, tests/csv.test.mjs, package.json (`npm test` runs `node --test tests/*.test.mjs`).\n- traces/: none yet — this is round 0, no red-team traces exist. Do not create traces/ yourself; that directory is owned by the red team.\n\n## Outputs\n\n- The change in src/csv.mjs and tests/csv.test.mjs.\n- CHANGES.md at the project root: what you changed this round (in round 0, \"traces fixed\" is none — describe the contract lines implemented instead).\n\nRun `npm test` before you report and include its result. End with the report block your brief specifies."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:08:42.604Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ; npm test 2>&1 | tail -5"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:08:47.777Z",
+        "command": "echo '{\"id\":\"n-0003\",\"run\":\"20260921-220554\",\"at\":\"node:builder\",\"started\":\"2026-09-21T22:06:08Z\",\"ended\":\"2026-09-21T22:08:42Z\",\"outcome\":\"pass\",\"verdict\":\"done\",\"round\":0,\"evidence\":[\"README.md contract\",\"npm test output: 16/16 pass\"],\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"builder rewrote parser to implement full README contract; 12 tests added incl. 100 KB timing and seeded fuzz; flags lone \\\\r inside quotes treated as literal\"}' >> .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl\necho '{\"id\":\"n-0004\",\"run\":\"20260921-220554\",\"at\":\"node:red-team\",\"started\":\"2026-09-21T22:08:42Z\",\"outcome\":\"started\",\"round\":0,\"text\":\"red-team dispatched, round 0\"}' >> .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl",
+        "writes": [
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl",
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:08:53.026Z",
+        "file": ".grooph/harden-csv-line/runs/20260921-220554/PROGRESS.md"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-21T22:09:03.015Z",
+        "subagent_type": "harden-csv-line--red-team",
+        "description": "Red team round 0: attack parseCsvLine",
+        "prompt": "Round 0 of loop `attack` in graph `harden-csv-line`. Project root is the current working directory; run every command bare from there (no `cd … && …`, no `git -C`).\n\n## Task\n\nAttack `parseCsvLine` in src/csv.mjs against the contract in README.md. For every string input, the contract requires: fields as an array of strings, or a thrown `CsvError` — nothing else (no other exception type, no hang, no wrong fields); non-string input throws `TypeError`; returns within a second for a 100 KB record. Test every contract line (separators, quoting, `\"\"` escapes, what may follow a closing quote, unclosed quotes, stray quotes outside quotes, whitespace, the single trailing record terminator, unquoted `\\r`/`\\n`, literal tabs/control chars/Unicode, empty text, trailing comma), plus adversarial inputs: pathological sizes and shapes (100 KB of quotes, of `\"\"`, of commas, one huge quoted field, many tiny fields), lone `\\r` in various positions, `\\r\\n` splits, surrogate pairs, prototype-ish strings, etc. Aim for both correctness and performance failures.\n\nRecord each failure you can reproduce as its own file in traces/ (create the directory): the exact input (as a JS literal or a hex/escape form that reproduces it exactly), the command to run it from the project root, the actual result and the expected result with the README line it violates. Write ATTACK.md at the project root describing what you attacked and how, whether or not you found anything.\n\n## Evidence you may inspect\n\n- The running code: src/csv.mjs, package.json (`npm test`), tests/csv.test.mjs.\n- README.md (the contract).\n- traces/ already recorded: none yet — this is round 0.\n\nVerdict `fail` if you have at least one new reproducible failing trace, `pass` if you found none. End with the report block your brief specifies."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:12:16.527Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ; ls -la traces; npm test 2>&1 | grep -E \"^ℹ (tests|pass|fail)\"; head -20 ATTACK.md; git status --short"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:12:26.974Z",
+        "error": "Contains brace with quote character (expansion obfuscation)",
+        "command": "cat >> .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl <<'EOF'\n{\"id\":\"n-0005\",\"run\":\"20260921-220554\",\"at\":\"node:red-team\",\"started\":\"2026-09-21T22:08:42Z\",\"ended\":\"2026-09-21T22:12:16Z\",\"outcome\":\"pass\",\"verdict\":\"pass\",\"round\":0,\"evidence\":[\"src/csv.mjs\",\"README.md\",\"tests/csv.test.mjs\",\"npm test output: 16/16\",\"traces/ (empty)\"],\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"red team found no reproducible failure: exhaustive differential fuzz (488,281 strings len 0-8) + 300,000 random strings vs independent reference parser, non-string probes all TypeError, 26 adversarial 100 KB shapes worst case 8.7 ms; ATTACK.md written, traces/ empty\"}\n{\"id\":\"n-0006\",\"run\":\"20260921-220554\",\"at\":\"loop:attack\",\"ended\":\"2026-09-21T22:12:16Z\",\"outcome\":\"pass\",\"round\":0,\"stop\":\"bar-passed\",\"evidence\":[\"traces/ (empty)\",\"npm test output: 16/16 pass\"],\"cost\":{\"measure\":\"dispatches\",\"amount\":2},\"text\":\"round 0 finished; stops checked in order (diminishing returns: n/a after 1 round; max iterations 5: at 0; budget 12: at 2) — none fired; bar 'No new failing trace' met on first pass, taking e-red-team-pass\"}\n{\"id\":\"n-0007\",\"run\":\"20260921-220554\",\"at\":\"node:done\",\"ended\":\"2026-09-21T22:12:16Z\",\"outcome\":\"pass\",\"text\":\"stop node done reached: success\"}\n{\"id\":\"n-0008\",\"run\":\"20260921-220554\",\"at\":\"graph\",\"outcome\":\"ending\",\"text\":\"run ends at stop node done\"}\n{\"id\":\"n-0009\",\"run\":\"20260921-220554\",\"at\":\"graph\",\"ended\":\"2026-09-21T22:12:16Z\",\"outcome\":\"pass\",\"cost\":{\"measure\":\"dispatches\",\"amount\":2},\"text\":\"run ended with success at stop node done after round 0; working copy not amended\"}\nEOF",
+        "writes": [
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:12:34.935Z",
+        "file": ".grooph/harden-csv-line/runs/20260921-220554/notes-tail.jsonl"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:12:38.076Z",
+        "command": "cat .grooph/harden-csv-line/runs/20260921-220554/notes-tail.jsonl >> .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl && rm .grooph/harden-csv-line/runs/20260921-220554/notes-tail.jsonl && wc -l .grooph/harden-csv-line/runs/20260921-220554/notes.jsonl",
+        "writes": [
+          ".grooph/harden-csv-line/runs/20260921-220554/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:12:51.090Z",
+        "file": ".grooph/harden-csv-line/runs/20260921-220554/PROGRESS.md"
+      }
+    ]
+  },
+  {
+    "session": "9a859ceb-96b7-4b4a-9567-ff6b0bc1d698",
+    "who": "harden-csv-line--builder",
+    "transcript": "agent-a23d0e389a329d974.jsonl",
+    "description": "Builder round 0: harden parseCsvLine",
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-21T22:06:19.408Z",
+    "ended": "2026-09-21T22:08:40.519Z",
+    "assistant_messages": 20,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:06:21.380Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:06:22.259Z",
+        "file": "src/csv.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:06:23.194Z",
+        "file": "tests/csv.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:06:23.918Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:07:19.812Z",
+        "file": "src/csv.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:08:07.125Z",
+        "file": "tests/csv.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:08:08.875Z",
+        "command": "npm test 2>&1 | tail -40"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-21T22:08:15.292Z",
+        "file": "tests/csv.test.mjs"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-21T22:08:18.418Z",
+        "file": "tests/csv.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:08:20.140Z",
+        "command": "npm test 2>&1 | tail -12"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:08:29.808Z",
+        "file": "CHANGES.md"
+      }
+    ]
+  },
+  {
+    "session": "9a859ceb-96b7-4b4a-9567-ff6b0bc1d698",
+    "who": "harden-csv-line--red-team",
+    "transcript": "agent-abe54cf95acc68ca1.jsonl",
+    "description": "Red team round 0: attack parseCsvLine",
+    "models": [
+      "claude-fable-5-1"
+    ],
+    "started": "2026-09-21T22:09:03.017Z",
+    "ended": "2026-09-21T22:12:12.310Z",
+    "assistant_messages": 24,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:09:05.387Z",
+        "file": "src/csv.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:09:06.200Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:09:07.076Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-21T22:09:07.841Z",
+        "file": "tests/csv.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:10:00.032Z",
+        "command": "npm test 2>&1 | tail -25; node --version"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:10:10.288Z",
+        "error": "Contains Unicode whitespace",
+        "command": "node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\n// Independent reference: character state machine straight from README.\nfunction ref(text) {\n  if (typeof text !== \"string\") throw new TypeError(\"x\");\n  let end = text.length;\n  if (text.endsWith(\"\\r\\n\")) end -= 2; else if (text.endsWith(\"\\n\")) end -= 1;\n  const out = []; let f = \"\"; let state = \"start\"; // start | unq | inq | afterq\n  for (let i = 0; i < end; i++) {\n    const c = text[i];\n    if (state === \"start\") {\n      if (c === \"\\\"\") state = \"inq\";\n      else if (c === \",\") { out.push(\"\"); }\n      else if (c === \"\\n\" || c === \"\\r\") throw new CsvError(\"lb\");\n      else { f = c; state = \"unq\"; }\n    } else if (state === \"unq\") {\n      if (c === \",\") { out.push(f); f = \"\"; state = \"start\"; }\n      else if (c === \"\\\"\") throw new CsvError(\"q\");\n      else if (c === \"\\n\" || c === \"\\r\") throw new CsvError(\"lb\");\n      else f += c;\n    } else if (state === \"inq\") {\n      if (c === \"\\\"\") { if (i + 1 < end && text[i+1] === \"\\\"\") { f += \"\\\"\"; i++; } else state = \"afterq\"; }\n      else f += c;\n    } else { // afterq\n      if (c === \",\") { out.push(f); f = \"\"; state = \"start\"; }\n      else throw new CsvError(\"after\");\n    }\n  }\n  if (state === \"inq\") throw new CsvError(\"unclosed\");\n  out.push(f);\n  return out;\n}\nlet seed = 12345;\nconst rand = (n) => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed % n; };\nconst alphabet = [\"\\\"\", \"\\\"\", \"\\\"\", \",\", \",\", \"\\n\", \"\\r\", \"\\r\\n\", \" \", \"a\", \"b\", \"\\t\", \"\\u0000\", \"🙂\", \"\\ud800\", \"\\udc00\", \"\\u0085\", \" \", \"\\\\\", \"__proto__\"];\nlet mismatches = 0;\nfor (let round = 0; round < 400000 && mismatches < 10; round++) {\n  const len = rand(24);\n  let s = \"\";\n  for (let k = 0; k < len; k++) s += alphabet[rand(alphabet.length)];\n  let a, ea, b, eb;\n  try { a = parseCsvLine(s); } catch (e) { ea = e; }\n  try { b = ref(s); } catch (e) { eb = e; }\n  const ok = (ea && eb && ea instanceof CsvError && eb instanceof CsvError) || (!ea && !eb && JSON.stringify(a) === JSON.stringify(b));\n  if (!ok) { mismatches++; console.log(\"MISMATCH\", JSON.stringify(s), \"impl:\", ea ? ea.constructor.name + \": \" + ea.message : JSON.stringify(a), \"ref:\", eb ? eb.constructor.name : JSON.stringify(b)); }\n}\nconsole.log(\"fuzz done, mismatches:\", mismatches);\n'",
+        "writes": [
+          ">"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:10:20.675Z",
+        "command": "node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\nimport { performance } from \"node:perf_hooks\";\nconst KB = 1024, N = 100 * KB;\nconst cases = {\n  allQuotesEven: \"\\\"\".repeat(N),\n  allQuotesOdd: \"\\\"\".repeat(N + 1),\n  allEscapes: \"\\\"\" + \"\\\"\\\"\".repeat(N / 2) + \"\\\"\",\n  allCommas: \",\".repeat(N),\n  hugeQuoted: \"\\\"\" + \"x\".repeat(N) + \"\\\"\",\n  hugeUnquoted: \"x\".repeat(N),\n  tinyQuoted: \"\\\"\\\",\".repeat(N / 3),\n  tinyEscaped: \"\\\"\\\"\\\"\\\",\".repeat(N / 5),\n  quoteCommaAlt: \"\\\",\".repeat(N / 2),\n  crOnly: \"\\r\".repeat(N),\n  crlfOnly: \"\\r\\n\".repeat(N / 2),\n  lfOnly: \"\\n\".repeat(N),\n  quotedCr: \"\\\"\" + \"\\r\".repeat(N) + \"\\\"\",\n  quotedCrlf: \"\\\"\" + \"\\r\\n\".repeat(N / 2) + \"\\\"\",\n  surrogates: \"\\ud800\".repeat(N),\n  emoji: \"🙂\".repeat(N / 2),\n  unclosedManyEscapes: \"\\\"\" + \"\\\"\\\"\".repeat(N / 2),\n  trailingQuoteErr: \"x\".repeat(N) + \"\\\"\",\n  trailingCrErr: \"x\".repeat(N) + \"\\r\",\n  quoteThenJunk: \"\\\"\" + \"x\".repeat(N) + \"\\\"y\",\n  spaces: \" \".repeat(N),\n  nul: \"\\u0000\".repeat(N),\n  manyFieldsWithCr: \"a,\".repeat(N / 2) + \"\\r\",\n  quotedFieldsEndingLf: \"\\\"a\\n\\\",\".repeat(N / 5) + \"\\\"\\n\\\"\\n\",\n  bigThenTerm: \"x\".repeat(N) + \"\\r\\n\",\n  quotesEvenPlusLf: \"\\\"\".repeat(N) + \"\\n\",\n};\nfor (const [name, s] of Object.entries(cases)) {\n  const t0 = performance.now();\n  let res, err;\n  try { res = parseCsvLine(s); } catch (e) { err = e; }\n  const ms = (performance.now() - t0).toFixed(1);\n  const desc = err ? err.constructor.name + (err instanceof CsvError ? \"\" : \" <<< NOT CsvError\") + \": \" + err.message.slice(0, 60)\n                   : \"fields=\" + res.length + \" first.len=\" + res[0].length + \" allStrings=\" + res.every(f => typeof f === \"string\");\n  console.log(name.padEnd(24), String(s.length).padStart(7), ms.padStart(8) + \"ms\", desc);\n}\n'"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:10:38.689Z",
+        "error": "Contains Unicode whitespace",
+        "command": "node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\nfunction ref(text) {\n  if (typeof text !== \"string\") throw new TypeError(\"x\");\n  let end = text.length;\n  if (text.endsWith(\"\\r\\n\")) end -= 2; else if (text.endsWith(\"\\n\")) end -= 1;\n  const out = []; let f = \"\"; let state = \"start\";\n  for (let i = 0; i < end; i++) {\n    const c = text[i];\n    if (state === \"start\") {\n      if (c === \"\\\"\") state = \"inq\";\n      else if (c === \",\") { out.push(\"\"); }\n      else if (c === \"\\n\" || c === \"\\r\") throw new CsvError(\"lb\");\n      else { f = c; state = \"unq\"; }\n    } else if (state === \"unq\") {\n      if (c === \",\") { out.push(f); f = \"\"; state = \"start\"; }\n      else if (c === \"\\\"\") throw new CsvError(\"q\");\n      else if (c === \"\\n\" || c === \"\\r\") throw new CsvError(\"lb\");\n      else f += c;\n    } else if (state === \"inq\") {\n      if (c === \"\\\"\") { if (i + 1 < end && text[i+1] === \"\\\"\") { f += \"\\\"\"; i++; } else state = \"afterq\"; }\n      else f += c;\n    } else {\n      if (c === \",\") { out.push(f); f = \"\"; state = \"start\"; }\n      else throw new CsvError(\"after\");\n    }\n  }\n  if (state === \"inq\") throw new CsvError(\"unclosed\");\n  out.push(f);\n  return out;\n}\nconst same = (s) => {\n  let a, ea, b, eb;\n  try { a = parseCsvLine(s); } catch (e) { ea = e; }\n  try { b = ref(s); } catch (e) { eb = e; }\n  const ok = (ea && eb && ea instanceof CsvError && eb instanceof CsvError) || (!ea && !eb && JSON.stringify(a) === JSON.stringify(b));\n  if (!ok) console.log(\"MISMATCH\", JSON.stringify(s), \"impl:\", ea ? ea.constructor.name + \": \" + ea.message : JSON.stringify(a), \"ref:\", eb ? eb.constructor.name : JSON.stringify(b));\n  return ok;\n};\n// 1. Exhaustive: all strings up to length 7 over the critical alphabet.\nconst core = [\"\\\"\", \",\", \"\\n\", \"\\r\", \"a\"];\nlet n = 0, bad = 0;\nfor (let len = 0; len <= 7; len++) {\n  const total = core.length ** len;\n  for (let x = 0; x < total; x++) {\n    let s = \"\", y = x;\n    for (let k = 0; k < len; k++) { s += core[y % core.length]; y = Math.floor(y / core.length); }\n    n++; if (!same(s)) bad++;\n    if (bad > 10) break;\n  }\n}\nconsole.log(\"exhaustive strings:\", n, \"mismatches:\", bad);\n// 2. Random with wider alphabet (ASCII escapes only).\nlet seed = 12345;\nconst rand = (k) => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed % k; };\nconst alphabet = [\"\\\"\", \"\\\"\", \"\\\"\", \",\", \",\", \"\\n\", \"\\r\", \"\\r\\n\", \" \", \"a\", \"b\", \"\\t\", \"\\u0000\", \"🙂\", \"\\ud800\", \"\\udc00\", \"\\u0085\", \" \", \"\\\\\", \"__proto__\", \"\\\"\\\"\"];\nlet m = 0;\nfor (let round = 0; round < 300000 && m < 10; round++) {\n  const len = rand(30); let s = \"\";\n  for (let k = 0; k < len; k++) s += alphabet[rand(alphabet.length)];\n  if (!same(s)) m++;\n}\nconsole.log(\"random strings: 300000 mismatches:\", m);\n'",
+        "writes": [
+          "10",
+          ">"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:10:50.287Z",
+        "error": "Contains Unicode whitespace",
+        "command": "node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\n// Type checks and identity/prototype probes.\nconst probes = [undefined, null, 0, NaN, true, {}, [], [\"a\"], new String(\"a\"), Symbol(\"s\"), () => \"a\", 10n, Object.create(null), { toString() { return \"a,b\"; } }, { [Symbol.toPrimitive]() { return \"a\"; } }, new Proxy({}, { get() { throw new Error(\"proxy trap\"); } })];\nfor (const p of probes) {\n  try { const r = parseCsvLine(p); console.log(\"NO THROW for\", typeof p, JSON.stringify(r)); }\n  catch (e) { if (!(e instanceof TypeError)) console.log(\"WRONG TYPE\", typeof p, e.constructor.name, e.message); }\n}\nconsole.log(\"type probes done\");\n// Prototype-ish / special strings.\nfor (const s of [\"__proto__\", \"constructor\", \"__proto__,constructor,prototype\", \"\\\"__proto__\\\"\", \"toString\", \"valueOf\", \"hasOwnProperty\", \"length\", \"﻿\", \"﻿a,b\", \"a ,b\", \"a b\", \"a b\", \"a\\u0085b\", \"\\u000b\", \"\\u000c\", \"\\u001e\", \"\\u001f\"]) {\n  try { const r = parseCsvLine(s); const ok = Array.isArray(r) && Object.getPrototypeOf(r) === Array.prototype && r.every(f => typeof f === \"string\"); console.log(JSON.stringify(s), \"->\", JSON.stringify(r), ok ? \"\" : \"<<< BAD SHAPE\"); }\n  catch (e) { console.log(JSON.stringify(s), \"threw\", e.constructor.name, e.message); }\n}\n// Error class checks.\nconst e = new CsvError(\"m\");\nconsole.log(\"instanceof Error\", e instanceof Error, \"name\", e.name, \"message\", e.message, \"stack?\", typeof e.stack);\ntry { parseCsvLine(\"\\\"a\\\"\\ud800\"); } catch (err) { console.log(\"lone surrogate after closing quote:\", err.constructor.name, err.message); }\ntry { parseCsvLine(\"a\\\"\\ud800\"); } catch (err) { console.log(\"lone surrogate after stray quote:\", err.constructor.name, err.message); }\n// Very large: 10 MB shapes (beyond contract but check no non-CsvError throw).\nimport { performance } from \"node:perf_hooks\";\nfor (const [name, s] of [[\"10MB commas\", \",\".repeat(10*1024*1024)], [\"10MB escapes\", \"\\\"\" + \"\\\"\\\"\".repeat(5*1024*1024) + \"\\\"\"], [\"10MB x\", \"x\".repeat(10*1024*1024)]]) {\n  const t0 = performance.now(); let res, err;\n  try { res = parseCsvLine(s); } catch (er) { err = er; }\n  console.log(name, (performance.now()-t0).toFixed(0) + \"ms\", err ? err.constructor.name : \"fields=\" + res.length);\n}\n'"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:11:03.746Z",
+        "command": "node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\nconst C = String.fromCharCode;\nfunction ref(text) {\n  if (typeof text !== \"string\") throw new TypeError(\"x\");\n  let end = text.length;\n  if (text.endsWith(\"\\r\\n\")) end -= 2; else if (text.endsWith(\"\\n\")) end -= 1;\n  const out = []; let f = \"\"; let state = \"start\";\n  for (let i = 0; i < end; i++) {\n    const c = text[i];\n    if (state === \"start\") {\n      if (c === \"\\\"\") state = \"inq\";\n      else if (c === \",\") { out.push(\"\"); }\n      else if (c === \"\\n\" || c === \"\\r\") throw new CsvError(\"lb\");\n      else { f = c; state = \"unq\"; }\n    } else if (state === \"unq\") {\n      if (c === \",\") { out.push(f); f = \"\"; state = \"start\"; }\n      else if (c === \"\\\"\") throw new CsvError(\"q\");\n      else if (c === \"\\n\" || c === \"\\r\") throw new CsvError(\"lb\");\n      else f += c;\n    } else if (state === \"inq\") {\n      if (c === \"\\\"\") { if (i + 1 < end && text[i+1] === \"\\\"\") { f += \"\\\"\"; i++; } else state = \"afterq\"; }\n      else f += c;\n    } else {\n      if (c === \",\") { out.push(f); f = \"\"; state = \"start\"; }\n      else throw new CsvError(\"after\");\n    }\n  }\n  if (state === \"inq\") throw new CsvError(\"unclosed\");\n  out.push(f);\n  return out;\n}\nconst same = (s) => {\n  let a, ea, b, eb;\n  try { a = parseCsvLine(s); } catch (e) { ea = e; }\n  try { b = ref(s); } catch (e) { eb = e; }\n  const ok = (ea && eb && ea instanceof CsvError && eb instanceof CsvError) || (!ea && !eb && JSON.stringify(a) === JSON.stringify(b));\n  if (!ok) console.log(\"MISMATCH\", JSON.stringify(s), \"impl:\", ea ? ea.constructor.name + \": \" + ea.message : JSON.stringify(a), \"ref:\", eb ? eb.constructor.name : JSON.stringify(b));\n  return ok;\n};\nconst core = [\"\\\"\", \",\", \"\\n\", \"\\r\", \"a\"];\nlet n = 0, bad = 0;\nouter: for (let len = 0; len <= 8; len++) {\n  const total = core.length ** len;\n  for (let x = 0; x < total; x++) {\n    let s = \"\", y = x;\n    for (let k = 0; k < len; k++) { s += core[y % core.length]; y = Math.floor(y / core.length); }\n    n++; if (!same(s)) bad++;\n    if (bad > 10) break outer;\n  }\n}\nconsole.log(\"exhaustive strings:\", n, \"mismatches:\", bad);\nlet seed = 12345;\nconst rand = (k) => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed % k; };\nconst alphabet = [\"\\\"\", \"\\\"\", \"\\\"\", \",\", \",\", \"\\n\", \"\\r\", \"\\r\\n\", \" \", \"a\", \"b\", \"\\t\", C(0), C(0xd83d, 0xde42), C(0xd800), C(0xdc00), C(0x85), C(0x2028), \"\\\\\", \"__proto__\", \"\\\"\\\"\"];\nlet m = 0;\nfor (let round = 0; round < 300000 && m < 10; round++) {\n  const len = rand(30); let s = \"\";\n  for (let k = 0; k < len; k++) s += alphabet[rand(alphabet.length)];\n  if (!same(s)) m++;\n}\nconsole.log(\"random strings: 300000 mismatches:\", m);\n'",
+        "writes": [
+          "10",
+          ">"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:11:13.296Z",
+        "command": "node --input-type=module -e '\nimport { parseCsvLine, CsvError } from \"./src/csv.mjs\";\nimport { performance } from \"node:perf_hooks\";\nconst C = String.fromCharCode;\nconst probes = [undefined, null, 0, NaN, true, {}, [], [\"a\"], new String(\"a\"), Symbol(\"s\"), () => \"a\", 10n, Object.create(null), { toString() { return \"a,b\"; } }, { [Symbol.toPrimitive]() { return \"a\"; } }, new Proxy({}, { get() { throw new Error(\"proxy trap\"); } })];\nfor (const p of probes) {\n  try { const r = parseCsvLine(p); console.log(\"NO THROW for\", typeof p, JSON.stringify(r)); }\n  catch (e) { if (!(e instanceof TypeError)) console.log(\"WRONG TYPE\", typeof p, e.constructor.name, e.message); }\n}\nconsole.log(\"type probes done\");\nfor (const s of [\"__proto__\", \"constructor\", \"__proto__,constructor,prototype\", \"\\\"__proto__\\\"\", \"toString\", \"valueOf\", \"hasOwnProperty\", \"length\", C(0xfeff), C(0xfeff) + \"a,b\", \"a\" + C(0xa0) + \",b\", \"a\" + C(0x2028) + \"b\", \"a\" + C(0x2029) + \"b\", \"a\" + C(0x85) + \"b\", C(0x0b), C(0x0c), C(0x1e), C(0x1f)]) {\n  try { const r = parseCsvLine(s); const ok = Array.isArray(r) && Object.getPrototypeOf(r) === Array.prototype && r.every(f => typeof f === \"string\"); console.log(JSON.stringify(s), \"->\", JSON.stringify(r), ok ? \"\" : \"<<< BAD SHAPE\"); }\n  catch (e) { console.log(JSON.stringify(s), \"threw\", e.constructor.name, e.message); }\n}\nconst e = new CsvError(\"m\");\nconsole.log(\"instanceof Error\", e instanceof Error, \"name\", e.name, \"message\", e.message, \"stack?\", typeof e.stack, \"proto chain ok\", Object.getPrototypeOf(CsvError.prototype) === Error.prototype);\ntry { parseCsvLine(\"\\\"a\\\"\" + C(0xd800)); } catch (err) { console.log(\"lone surrogate after closing quote:\", err.constructor.name, err.message); }\ntry { parseCsvLine(\"a\\\"\" + C(0xd800)); } catch (err) { console.log(\"lone surrogate after stray quote:\", err.constructor.name, err.message); }\nfor (const [name, s] of [[\"10MB commas\", \",\".repeat(10*1024*1024)], [\"10MB escapes\", \"\\\"\" + \"\\\"\\\"\".repeat(5*1024*1024) + \"\\\"\"], [\"10MB x\", \"x\".repeat(10*1024*1024)], [\"10MB tiny quoted\", \"\\\"\\\",\".repeat(3*1024*1024)]]) {\n  const t0 = performance.now(); let res, err;\n  try { res = parseCsvLine(s); } catch (er) { err = er; }\n  console.log(name, (performance.now()-t0).toFixed(0) + \"ms\", err ? err.constructor.name : \"fields=\" + res.length);\n}\n'"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T22:11:33.757Z",
+        "command": "mkdir -p /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-A-aqPJsR/traces && ls -la /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-A-aqPJsR/traces"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-21T22:11:57.188Z",
+        "file": "ATTACK.md"
+      }
+    ]
+  }
+]

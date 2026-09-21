@@ -1,0 +1,161 @@
+{
+  "grooph": 0,
+  "id": "harden-csv-line",
+  "name": "Harden CSV line",
+  "version": 1,
+  "goal": "Make `parseCsvLine` in src/csv.mjs honour every line of the contract in README.md for any string input: fields or a CsvError, nothing else, within a second for a 100 KB record. Keep tests/csv.test.mjs green and extend it. Done when a red team attacking `parseCsvLine` in src/csv.mjs, against the contract in README.md stops finding new failing traces.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "red-team-loop",
+    "from": "red-team-loop@1"
+  },
+  "description": "A builder hardens the code; a frontier red team in a fresh context attacks the stated surface and writes each reproducible failure as a trace in traces/, which it alone owns. The builder sees only the traces, not the attacker's reasoning. The loop ends when an attack round finds nothing, stops when rounds stop bringing a new failing trace, and is capped by rounds and dispatches.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Make the task hold under attack. Each round you see only the failing traces in traces/: make each one pass without special-casing it, and add it to the test suite. Keep `npm test` green and report which traces now pass.",
+      "inputs": [
+        "the task",
+        "traces/ (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with a test per fixed trace",
+        "CHANGES.md: traces fixed this round"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "red-team",
+      "kind": "agent",
+      "name": "Red team",
+      "role": "red-team",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Attack `parseCsvLine` in src/csv.mjs, against the contract in README.md and record each failure you can reproduce as a trace in traces/: the input, how to run it, and the wrong result. Traces are all the builder sees, so each must reproduce on its own. You attack; you do not fix. Verdict fail when you have a new failing trace, pass when you found none.",
+      "inputs": [
+        "the running code",
+        "source of `parseCsvLine` in src/csv.mjs, against the contract in README.md"
+      ],
+      "outputs": [
+        "traces/: one reproducible failing trace per file",
+        "ATTACK.md: what was attacked and how, written whether or not a trace was found",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-commands"
+      ],
+      "deny": [
+        "edit-files"
+      ],
+      "owns": [
+        "traces"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-red-team",
+      "from": "builder",
+      "to": "red-team",
+      "evidence": [
+        "the running code",
+        "source of `parseCsvLine` in src/csv.mjs, against the contract in README.md",
+        "traces/ already recorded"
+      ]
+    },
+    {
+      "id": "e-red-team-fail",
+      "from": "red-team",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "traces/"
+      ]
+    },
+    {
+      "id": "e-red-team-pass",
+      "from": "red-team",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "attack",
+      "name": "Attack",
+      "members": [
+        "builder",
+        "red-team"
+      ],
+      "back": [
+        "e-red-team-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "No new failing trace",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "traces/"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of npm test"
+          }
+        ],
+        "acceptance": "A full attack round finds no failing trace, and every recorded trace passes in `npm test`."
+      },
+      "stops": [
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "new failing traces"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 12
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

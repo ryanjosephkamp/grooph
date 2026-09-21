@@ -1,18 +1,70 @@
 {
-  "about": "What the runner, the scorer and the summary read for this project (protocol §7). The proving keys (agents, reports) drive the check on arm A's run record, copied from experiments/patterns/spec-then-loop/expect.json without its scripted gate answer (`resume`): this study gives no scripted answer to a gate, so every arm stops at the spec gate and is compared there unless the owner decides otherwise (README). The held-out suite is the scorer's only: nothing in any arm names it.",
+  "about": "What the runner, the scorer and the summary read for this project (protocol §7). The proving keys (agents, reports, resume) drive the check on arm A's run record, copied from experiments/patterns/spec-then-loop/expect.json; `resume` is the one scripted gate answer of this study, owner-approved on 2026-09-21 for every arm after a halt at the gate (README › Pre-registration); the rest is the pre-registration and the scorer's paths. The held-out suite is the scorer's only: nothing in any arm names it.",
   "template": "spec-then-loop",
   "replicates": 3,
   "bet": "spec-then-loop's mechanism is an answer key written before any code by a frontier planner, approved by a human, then a builder and an isolated critic looping against it line by line. On a thin task ('a function that wraps text to a given width') the bet is that the answer key makes the corners explicit (long words, blank lines, edges) and the critic holds the builder to them, so arm A's wrap satisfies more of the invariants any wrap must satisfy and reads as more complete to a blind judge than a single session that specs and builds in one breath. Three replicates because the bet rests on the planner's and the critic's judgment.",
   "measure": "held-out invariants out of 88 (an export found by name, lines fit, words kept in order, no empty or space-edged line, greedy fill named apart); the judge's score against the task; cost.",
   "loses_if": "the graph loses when arm B's held-out passes equal or exceed arm A's in at least two of three replicates at lower cost; it earns its cost only if A's held-out range lies above B's or the judge ranks every A above every B with reasons that name the acceptance.",
   "scope": {
-    "allowed": ["src/", "tests/", "README.md", "ACCEPTANCE.md", "REVIEW.md", "CHANGES.md"]
+    "allowed": [
+      "src/",
+      "tests/",
+      "README.md",
+      "ACCEPTANCE.md",
+      "REVIEW.md",
+      "CHANGES.md"
+    ]
   },
   "judge": {
-    "files": ["src/", "tests/", "README.md", "ACCEPTANCE.md"],
-    "acceptance": ["README.md"]
+    "files": [
+      "src/",
+      "tests/",
+      "README.md",
+      "ACCEPTANCE.md"
+    ],
+    "acceptance": [
+      "README.md"
+    ]
   },
-  "agents": ["planner", "builder", "critic"],
-  "reports": { "planner": ["ACCEPTANCE.md"], "critic": ["REVIEW.md"] },
-  "heldOut": { "notReaders": ["planner", "builder", "critic"] }
+  "agents": [
+    "planner",
+    "builder",
+    "critic"
+  ],
+  "reports": {
+    "planner": [
+      "ACCEPTANCE.md"
+    ],
+    "critic": [
+      "REVIEW.md"
+    ]
+  },
+  "heldOut": {
+    "notReaders": [
+      "planner",
+      "builder",
+      "critic"
+    ]
+  },
+  "resume": {
+    "gate": "spec-gate",
+    "before": [
+      "planner"
+    ],
+    "answer": "approve",
+    "prompt": "Answer at the gate `{{gate}}` of run `{{run-id}}`: {{answer}}. Continue that run from where it halted.",
+    "prompt_arm": "Answer at the gate `{{gate}}`: {{answer}}. Continue from where you stopped and report when you are done.",
+    "iteration_note": "At `{{gate}}` the human already answered: {{answer}}. Do not stop there again.",
+    "planning_outputs": [
+      "ACCEPTANCE.md"
+    ],
+    "owner_approved": "2026-09-21, in the implementer session of slice 0016: one scripted approve per run, every arm, only after a halt at the gate"
+  },
+  "ending": [
+    "stop node done",
+    "stop bar-passed",
+    "stop max-iterations",
+    "stop budget",
+    "halt at spec-gate"
+  ]
 }

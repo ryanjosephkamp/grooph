@@ -249,6 +249,7 @@ function invocationRows(invocations) {
     wall_s: inv.wall,
     says_done: inv.saysDone ?? undefined,
     tests_after: inv.testsAfter ?? undefined,
+    gate: inv.gate ?? undefined,
     command: ["claude", ...inv.args],
     output: inv.outFile,
     reply_tail: String(inv.output.result ?? "").slice(-600),
@@ -404,11 +405,50 @@ function collectPromptArm({ proj, built, arm, invocations, prompts, evidenceDir,
   return { result, files };
 }
 
+/**
+ * The one scripted gate answer a project may name (expect.json `resume`, owner-approved;
+ * spec-then-loop only in this study), for a prompt arm: given only when the tree shows
+ * the session stopped at the gate — every planning output present, nothing under src/
+ * or tests/ changed. A session that built straight through, or stopped elsewhere, gets
+ * no answer and is recorded as it ended.
+ */
+function haltedAtGate(built, resume) {
+  const { files } = projectDiff(built.scratch, built.base, []);
+  const changed = files.map((line) => line.trim().split(/\s+/).pop());
+  const outputs = resume.planning_outputs ?? [];
+  const present = outputs.filter((path) => existsSync(join(built.scratch, path)));
+  const built_ = changed.filter((path) => path.startsWith("src/") || path.startsWith("tests/"));
+  const halted = outputs.length > 0 && present.length === outputs.length && built_.length === 0;
+  return { halted, changed, planning_outputs_present: present, built: built_ };
+}
+
+function resumePromptArm({ proj, built, arm, first, ledger, binDir, suffix, prompts }) {
+  const resume = proj.expect.resume;
+  if (!resume?.prompt_arm) return null;
+  const gate = haltedAtGate(built, resume);
+  first.gate = { ...gate, resumed: false };
+  if (!gate.halted) {
+    console.log(`the session did not stop at ${resume.gate} (changed: ${gate.changed.join(", ") || "nothing"}), so the scripted "${resume.answer}" is not given`);
+    return null;
+  }
+  const prompt = resume.prompt_arm.replaceAll("{{gate}}", resume.gate).replaceAll("{{answer}}", resume.answer);
+  prompts[`resume${suffix}.md`] = prompt;
+  say(`resuming the session once with the scripted answer "${resume.answer}" at ${resume.gate} (owner-approved exception, see the project README)`);
+  const second = invoke({ ledger, proj, arm, replicate: built.replicate, kind: "resume", iteration: first.entry.iteration ?? undefined, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt, resumeSession: first.output.session_id, suffix: `${suffix}-resume`, note: `scripted answer "${resume.answer}" at ${resume.gate}`, settings: built.settings });
+  first.gate.resumed = true;
+  second.gate = { answer: resume.answer, gate: resume.gate };
+  return second;
+}
+
 function runArmB({ proj, built, ledger, binDir, retry, evidenceDir, harnessVersion }) {
   say("arm B: running the derived prompt in one headless session (this spends money)");
+  const prompts = { "prompt-B.md": built.prompt };
   const inv = invoke({ ledger, proj, arm: "B", replicate: built.replicate, kind: "kickoff", retry, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt: built.prompt, suffix: "", note: retry ? `retry: ${retry}` : "", settings: built.settings });
+  const invocations = [inv];
+  const resumed = resumePromptArm({ proj, built, arm: "B", first: inv, ledger, binDir, suffix: "", prompts });
+  if (resumed) invocations.push(resumed);
   say(`copying the evidence into ${evidenceDir.slice(root.length + 1)}/`);
-  return collectPromptArm({ proj, built, arm: "B", invocations: [inv], prompts: { "prompt-B.md": built.prompt }, evidenceDir, harnessVersion, ending: endingOfB(inv) });
+  return collectPromptArm({ proj, built, arm: "B", invocations, prompts, evidenceDir, harnessVersion, ending: endingOfB(invocations[invocations.length - 1]) });
 }
 
 function testsPass(scratch, testCommand) {
@@ -422,13 +462,23 @@ function runArmC({ proj, built, ledger, binDir, retry, evidenceDir, harnessVersi
   say(`arm C: the derived prompt in up to ${n} fresh headless sessions (this spends money)`);
   const invocations = [];
   const prompts = { "prompt-B.md": built.prompt };
+  let gateNote = null;
   for (let i = 1; i <= n; i += 1) {
-    const prompt = iterationPrompt(built.prompt, i, n);
+    const prompt = iterationPrompt(built.prompt, i, n, gateNote);
     prompts[`iteration-${i}.md`] = prompt;
-    const inv = invoke({ ledger, proj, arm: "C", replicate: built.replicate, kind: i === 1 ? "kickoff" : "iteration", iteration: i, retry: i === 1 ? retry : undefined, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt, suffix: `-${i}`, note: [i === 1 && retry ? `retry: ${retry}` : "", `iteration ${i} of ${n}`].filter(Boolean).join("; "), settings: built.settings });
+    let inv = invoke({ ledger, proj, arm: "C", replicate: built.replicate, kind: i === 1 ? "kickoff" : "iteration", iteration: i, retry: i === 1 ? retry : undefined, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt, suffix: `-${i}`, note: [i === 1 && retry ? `retry: ${retry}` : "", `iteration ${i} of ${n}`].filter(Boolean).join("; "), settings: built.settings });
+    invocations.push(inv);
+    // The scripted gate answer, when the project names one and this iteration halted at the gate; later iterations are told.
+    if (!gateNote && proj.expect.resume?.prompt_arm) {
+      const resumed = resumePromptArm({ proj, built, arm: "C", first: inv, ledger, binDir, suffix: `-${i}`, prompts });
+      if (resumed) {
+        invocations.push(resumed);
+        inv = resumed;
+        gateNote = (proj.expect.resume.iteration_note ?? "At `{{gate}}` the human already answered: {{answer}}.").replaceAll("{{gate}}", proj.expect.resume.gate).replaceAll("{{answer}}", proj.expect.resume.answer);
+      }
+    }
     inv.saysDone = saysDone(inv.output.result);
     inv.testsAfter = testsPass(built.scratch, proj.testCommand);
-    invocations.push(inv);
     console.log(`iteration ${i}: says done ${inv.saysDone ? "yes" : "no"}; tests ${inv.testsAfter ? "pass" : "fail"}`);
     if (inv.output.subtype && inv.output.subtype !== "success") {
       console.log(`iteration ${i} ended with ${inv.output.subtype}; the loop stops here`);
@@ -706,8 +756,10 @@ async function main() {
         if (proj.expect.resume) console.log(`then, only after a halt at ${proj.expect.resume.gate}, once: claude -p "<scripted ${proj.expect.resume.answer}>" --resume <session id> …`);
       } else if (arm === "B") {
         console.log(`would run in ${built.scratch}:\n  claude -p "$(cat prompt-B.md)" ${common}`);
+        if (proj.expect.resume?.prompt_arm) console.log(`then, only if the tree shows a halt at ${proj.expect.resume.gate} (${(proj.expect.resume.planning_outputs ?? []).join(", ")} present, src/ and tests/ untouched), once: claude -p "<scripted ${proj.expect.resume.answer}>" --resume <session id> …`);
       } else {
         console.log(`would run in ${built.scratch}, for i in 1..${built.n}, each its own ledger line with its own ceiling:\n  claude -p "$(cat prompt-B.md)\\n\\nIteration $i of ${built.n}. Continue from the working tree as it is. Stop when your done check passes. ${DONE_LINE.slice(0, 60)}…" ${common}\n  stopping early when the reply's last line is \`done: yes\` and \`${proj.testCommand}\` exits 0`);
+        if (proj.expect.resume?.prompt_arm) console.log(`the iteration that halts at ${proj.expect.resume.gate} is resumed once with the scripted ${proj.expect.resume.answer}; later iterations are told it was given`);
       }
       console.log(`prompt for this arm: ${arm === "A" ? "KICKOFF.md" : "prompt-B.md"} (${(arm === "A" ? built.kickoff : built.prompt).length} characters)${arm !== "A" ? "; matches the committed prompt-B.md" : ""}`);
       console.log(`would score the final tree against ${built.heldOut ? `${built.heldOut.files.length} held-out file(s)` : "no held-out suite"}, \`${proj.testCommand}\`, and the allowed paths ${proj.expect.scope.allowed.join(", ")}`);

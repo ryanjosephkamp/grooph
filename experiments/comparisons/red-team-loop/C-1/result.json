@@ -1,0 +1,219 @@
+{
+  "template": "red-team-loop",
+  "arm": "C",
+  "replicate": 1,
+  "project": "red-team-loop",
+  "graph_id": "harden-csv-line",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/red-team-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw.harness/held-out",
+      "files": [
+        {
+          "path": "csv-cases.test.mjs",
+          "sha256": "2fea51cccd1c79d1e03880466f6ad5532fc96115dfa0aec68ec3502665bd30fa"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "red-team-loop",
+    "template_version": 1,
+    "graph_id": "harden-csv-line",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw"
+  },
+  "derivation": {
+    "graph": "harden-csv-line",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "red-team"
+    ],
+    "loops": [
+      "attack"
+    ],
+    "gates": [],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 5,
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.26297225,
+      "output_tokens": 24477
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 2.3349577499999996,
+      "output_tokens": 29365
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "claude": [
+      "claude-fable-5-1",
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 3.59793,
+  "harness_turns": 5,
+  "duration_s": 628,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.26297225,
+        "output_tokens": 24477
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 2.3349577499999996,
+        "output_tokens": 29365
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "claude": [
+        "claude-fable-5-1",
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 3.59793,
+    "harness_turns": 5,
+    "duration_s": 628,
+    "wall_s": 629,
+    "permission_denials": [
+      {
+        "tool": "Write",
+        "command": "/tmp/probe-oracle.mjs"
+      },
+      {
+        "tool": "Write",
+        "command": "/tmp/probe-perf.mjs"
+      },
+      {
+        "tool": "Write",
+        "command": "/tmp/probe-types.mjs"
+      },
+      {
+        "tool": "Bash",
+        "command": "node --input-type=module <<'EOF'\nimport { parseCsvLine, CsvError } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw/src/csv.mjs\";\nfunction oracle(text) {\n  let s = text;\n  if (s.endsWith(\"\\r\\n\")) s = s.slice(0, -2);\n  else if (s.endsWith(\"\\n\")) s = s.slice(0, -1);\n  const fields = []; let pos = 0;\n  while (true) {\n    let field = \"\";\n    if (s[pos] === '\"') {\n      pos++; let closed = false;\n      while (pos < s.length) {\n        const c = s[pos];\n        if (c === '\"') { if (s[pos + 1] === '\"') { field += '\"'; pos += 2; continue; } pos++; closed = true; break; }\n        field += c; pos++;\n      }\n      if (!closed) return { error: true };\n      if (pos < s.length && s[pos] !== \",\") return { error: true };\n    } else {\n      while (pos < s.length && s[pos] !== \",\") {\n        const c = s[pos];\n        if (c === '\"' || c === \"\\n\" || c === \"\\r\") return { error: true };\n        field += c; pos++;\n      }\n    }\n    fields.push(field);\n    if (pos >= s.length) break;\n    pos++;\n  }\n  return { fields };\n}\nfunction run(text) {\n  try {\n    const out = parseCsvLine(text);\n    if (!Array.isArray(out) || Object.getPrototypeOf(out) !== Array.prototype) return { bad: \"not plain array\" };\n    for (const f of out) if (typeof f !== \"string\") return { bad: \"non-string field\" };\n    return { fields: out };\n  } catch (e) {\n    if (!(e instanceof CsvError) || !(e instanceof Error)) return { bad: \"wrong throw: \" + String(e) };\n    return { error: true };\n  }\n}\nfunction same(a, b) {\n  if (a.bad) return false;\n  if (a.error || b.error) return !!a.error === !!b.error;\n  if (a.fields.length !== b.fields.length) return false;\n  for (let i = 0; i < a.fields.length; i++) if (a.fields[i] !== b.fields[i]) return false;\n  return true;\n}\nlet mismatches = 0;\nfunction check(text) {\n  const e = oracle(text), a = run(text);\n  if (!same(a, e)) { mismatches++; if (mismatches <= 20) console.log(\"MISMATCH\", JSON.stringify(text), \"expected\", JSON.stringify(e), \"actual\", JSON.stringify(a)); }\n}\nconst alpha = ['\"', \",\", \"\\n\", \"\\r\", \"a\"];\nlet count = 0;\nfunction walk(prefix, depth) { check(prefix); count++; if (depth === 0) return; for (const c of alpha) walk(prefix + c, depth - 1); }\nwalk(\"\", 8);\nconsole.log(\"exhaustive strings checked:\", count);\nlet seed = 12345;\nconst rnd = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };\nconst wide = ['\"', '\"', '\"', \",\", \",\", \"\\n\", \"\\r\", \"\\r\\n\", \" \", \"a\", \"\\t\", \"\\0\", \"\\u0085\", \" \", \"﻿\", \"😀\", \"\\ud800\", \"é\", \"\\\\\", \"'\", \"，\"];\nfor (let n = 0; n < 300000; n++) {\n  const len = Math.floor(rnd() * 40); let t = \"\";\n  for (let i = 0; i < len; i++) t += wide[Math.floor(rnd() * wide.length)];\n  check(t);\n}\nconsole.log(\"fuzz done; mismatches:\", mismatches);\nEOF"
+      },
+      {
+        "tool": "Bash",
+        "command": "node --input-type=module <<'EOF'\nimport { parseCsvLine, CsvError } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw/src/csv.mjs\";\nfunction timed(label, text) {\n  const t0 = process.hrtime.bigint(); let res;\n  try { const out = parseCsvLine(text); res = `fields=${out.length}`; }\n  catch (e) { res = (e instanceof CsvError ? \"CsvError\" : \"OTHER:\" + e.constructor.name) + \" idx=\" + e.index; }\n  const ms = Number(process.hrtime.bigint() - t0) / 1e6;\n  console.log(`${ms.toFixed(1).padStart(8)} ms  ${label.padEnd(44)} len=${text.length} ${res}`);\n}\nfor (const [name, size] of [[\"100KB\", 100 * 1024], [\"1MB\", 1024 * 1024], [\"10MB\", 10 * 1024 * 1024]]) {\n  console.log(\"---\", name);\n  timed(\"unquoted single field\", \"x\".repeat(size));\n  timed(\"only commas\", \",\".repeat(size));\n  timed(\"quoted single field\", '\"' + \"y\".repeat(size - 2) + '\"');\n  timed(\"all quotes even\", '\"'.repeat(size));\n  timed(\"all quotes odd\", '\"'.repeat(size + 1));\n  timed(\"escaped pairs then unterminated\", '\"' + '\"\"'.repeat(size / 2));\n  timed('\"\",', '\"\",'.repeat(size / 3));\n  timed('\"\"\"\",', '\"\"\"\",'.repeat(size / 5));\n  timed('\"a\"\"b\",', '\"a\"\"b\",'.repeat(size / 7));\n  timed(\"emoji two-byte quoted esc\", '\"😀\"\"\",'.repeat(size / 6));\n  timed(\"two-byte unquoted\", \"é,\".repeat(size / 2));\n  timed(\"quote error at very end\", \"z\".repeat(size - 1) + '\"');\n  timed(\"CR at very end\", \"z\".repeat(size - 1) + \"\\r\");\n  timed(\"quoted then garbage at very end\", '\"' + \"z\".repeat(size - 3) + '\"x');\n  timed(\"many quoted CRLF fields\", '\"\\r\\n\",'.repeat(size / 5));\n  timed(\"LF at start\", \"\\n\" + \"z\".repeat(size - 1));\n  timed(\"cons string by concat\", (() => { let s = \"\"; for (let i = 0; i < size / 4; i++) s += 'a,\"'; return s; })());\n  timed(\"sliced string view\", (\"Q\".repeat(size) + \",a\").slice(1));\n  timed(\"1-char fields\", \"a,\".repeat(size / 2));\n  timed(\"quoted 1-char fields\", '\"a\",'.repeat(size / 4));\n  timed(\"quoted then extra quote at end\", '\"' + \"a\".repeat(size - 2) + '\"\"');\n  timed(\"quoted, esc quote every 2nd char\", '\"' + 'a\"\"'.repeat(size / 3) + '\"');\n}\nEOF"
+      },
+      {
+        "tool": "Bash",
+        "command": "node --input-type=module <<'EOF'\nimport { parseCsvLine, CsvError } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw/src/csv.mjs\";\nimport vm from \"node:vm\";\nfunction tryIt(label, fn) {\n  try { const out = fn(); console.log(label.padEnd(36), \"RETURNED\", JSON.stringify(out), \"plainArray=\" + (Object.getPrototypeOf(out) === Array.prototype)); }\n  catch (e) { console.log(label.padEnd(36), \"THREW\", e && e.constructor && e.constructor.name, \"|\", e instanceof TypeError ? \"TypeError\" : \"-\", e instanceof CsvError ? \"CsvError\" : \"-\", \"|\", e && e.message); }\n}\nconst vals = {\n  undefined: undefined, null: null, zero: 0, NaN: NaN, true: true, obj: {}, arr: [], strArr: [\"a\"],\n  StringObj: new String(\"a,b\"), symbol: Symbol(\"s\"), bigint: 1n, fn: () => \"a\", buffer: Buffer.from(\"a\"),\n  date: new Date(), regex: /a/, proxyStr: new Proxy(new String(\"a\"), {}), nullProto: Object.create(null),\n  toPrimitive: { [Symbol.toPrimitive]: () => \"a,b\" }, valueOf: { valueOf: () => \"a\" },\n  promise: Promise.resolve(\"a\"), map: new Map(), typedArr: new Uint16Array([97]),\n  arrayBuffer: new ArrayBuffer(2), err: new Error(\"a,b\"), boolObj: new Boolean(true), numObj: new Number(1),\n  StringObjOtherRealm: vm.runInNewContext('new String(\"a,b\")'), primOtherRealm: vm.runInNewContext('\"a,b\"'),\n};\nfor (const [k, v] of Object.entries(vals)) tryIt(\"val:\" + k, () => parseCsvLine(v));\ntryIt(\"no args\", () => parseCsvLine());\ntryIt(\"extra args\", () => parseCsvLine(\"a,b\", \"c,d\"));\ntryIt(\"this=null\", () => parseCsvLine.call(null, \"a,b\"));\ntryIt(\"new parseCsvLine\", () => new parseCsvLine(\"a,b\"));\ntry { parseCsvLine('a\"'); } catch (e) { console.log(\"CsvError shape:\", e.name, e instanceof Error, e instanceof CsvError, Object.keys(e), typeof e.stack, JSON.stringify(e.message)); }\nconsole.log(\"new CsvError() no args:\", (() => { try { const e = new CsvError(); return [e.message, e.index, e.name]; } catch (x) { return \"THREW \" + x; } })());\nconst r1 = parseCsvLine(\"a,b\"); r1.push(\"z\"); r1[0] = \"MUT\";\nconsole.log(\"after mutating result:\", parseCsvLine(\"a,b\"));\ntry { parseCsvLine('\"unterminated'); } catch {}\nconsole.log(\"after error:\", parseCsvLine('\"x, y\",z'));\nconsole.log(\"result own keys:\", Reflect.ownKeys(parseCsvLine(\"a,b\")));\nObject.prototype.polluted = \"yes\"; Array.prototype[3] = \"ghost\";\nconsole.log(\"with polluted protos:\", JSON.stringify(parseCsvLine(\"a,b\")), parseCsvLine(\"a,b\").length);\ndelete Object.prototype.polluted; delete Array.prototype[3];\nconst cases = [\n  \"\", \"\\n\", \"\\r\\n\", \"\\r\", \"\\n\\n\", \"\\r\\n\\r\\n\", \"\\n\\r\", \"\\r\\r\\n\", \"a\\r\\r\\n\", \" \", \" \", \"\\u0085\", \"\\u000b\", \"\\u000c\",\n  '\"a\"\\r\\n', '\"a\"\\r', '\"a\"\\n\\r\\n', '\"a\\r\"', '\"a\\r\\n\"', '\"\\r\\n\"\\r\\n', '\"a\"\\r\\n\\n', '\"a\",\\r\\n', '\"a\",\\r',\n  '\"\"', '\"\"\"\"', '\"\"\"', '\"\"\"\"\"', '\"\"\"\"\"\"', '\"\"a', '\"\"\"a\"', '\"a\"\"', '\"a\"\"\"', '\"a\"\"\"\"', '\"a\"\"\"\"\"',\n  '\"a\"b', '\"a\" ', ' \"a\"', '\"a\",b\"', 'a,\"b\"c', 'a,\"b\",c', 'a,\"b\" ,c', ',\"', '\",\"', '\",\"\"', '\"\",\\n', '\"\",\"\\n', '\"\\n\"\\n', '\"\\n\\n',\n  '﻿\"a\"', '\"a\"﻿', '\"﻿\"', '﻿a,b', 'a\\u0000,b', '\\ud800\"', '\"\\ud800\"', '\"\\udc00\",\\ud800',\n  'a\\n', 'a\\r\\n', 'a\\n\\n', 'a,\\n', ',\\n', ',\\r\\n', 'a\\r\\n\\r\\n', 'a\\r\\n\\n', '\\n\\na', '\\r\\n\\r\\na',\n  '\"a,\\r\\n\",\"b\\n\"\\n', '\"x\"\"y\"\"z\"', '\"x\"\",\"\"y\"', '\"x\",\"\",\"y\",\"\"', '\"\",\"\"', ',\"\"', '\"\",', ',,\"\"', '\"\",,',\n  \"a\\\\,b\", '\"a\\\\\"\"', '\"a\\\\\"', \"'a',b\", \"a;b\", \"a\\tb\", \"\\t\", \" \", \"  ,  \", \"　\",\n  \"a,b\\u000d\\u000a\", \"a,b\\u000a\\u000d\", '\"a\"\\u000a\\u000a', '\"a\"\\t\\n', '\"a\"\\n\\t',\n];\nfor (const c of cases) tryIt(JSON.stringify(c), () => parseCsvLine(c));\nEOF"
+      }
+    ],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "claude",
+        "description": "Builder: harden parseCsvLine"
+      },
+      {
+        "subagent_type": "claude",
+        "description": "Red team: attack parseCsvLine"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [
+    {
+      "tool": "Write",
+      "command": "/tmp/probe-oracle.mjs"
+    },
+    {
+      "tool": "Write",
+      "command": "/tmp/probe-perf.mjs"
+    },
+    {
+      "tool": "Write",
+      "command": "/tmp/probe-types.mjs"
+    },
+    {
+      "tool": "Bash",
+      "command": "node --input-type=module <<'EOF'\nimport { parseCsvLine, CsvError } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw/src/csv.mjs\";\nfunction oracle(text) {\n  let s = text;\n  if (s.endsWith(\"\\r\\n\")) s = s.slice(0, -2);\n  else if (s.endsWith(\"\\n\")) s = s.slice(0, -1);\n  const fields = []; let pos = 0;\n  while (true) {\n    let field = \"\";\n    if (s[pos] === '\"') {\n      pos++; let closed = false;\n      while (pos < s.length) {\n        const c = s[pos];\n        if (c === '\"') { if (s[pos + 1] === '\"') { field += '\"'; pos += 2; continue; } pos++; closed = true; break; }\n        field += c; pos++;\n      }\n      if (!closed) return { error: true };\n      if (pos < s.length && s[pos] !== \",\") return { error: true };\n    } else {\n      while (pos < s.length && s[pos] !== \",\") {\n        const c = s[pos];\n        if (c === '\"' || c === \"\\n\" || c === \"\\r\") return { error: true };\n        field += c; pos++;\n      }\n    }\n    fields.push(field);\n    if (pos >= s.length) break;\n    pos++;\n  }\n  return { fields };\n}\nfunction run(text) {\n  try {\n    const out = parseCsvLine(text);\n    if (!Array.isArray(out) || Object.getPrototypeOf(out) !== Array.prototype) return { bad: \"not plain array\" };\n    for (const f of out) if (typeof f !== \"string\") return { bad: \"non-string field\" };\n    return { fields: out };\n  } catch (e) {\n    if (!(e instanceof CsvError) || !(e instanceof Error)) return { bad: \"wrong throw: \" + String(e) };\n    return { error: true };\n  }\n}\nfunction same(a, b) {\n  if (a.bad) return false;\n  if (a.error || b.error) return !!a.error === !!b.error;\n  if (a.fields.length !== b.fields.length) return false;\n  for (let i = 0; i < a.fields.length; i++) if (a.fields[i] !== b.fields[i]) return false;\n  return true;\n}\nlet mismatches = 0;\nfunction check(text) {\n  const e = oracle(text), a = run(text);\n  if (!same(a, e)) { mismatches++; if (mismatches <= 20) console.log(\"MISMATCH\", JSON.stringify(text), \"expected\", JSON.stringify(e), \"actual\", JSON.stringify(a)); }\n}\nconst alpha = ['\"', \",\", \"\\n\", \"\\r\", \"a\"];\nlet count = 0;\nfunction walk(prefix, depth) { check(prefix); count++; if (depth === 0) return; for (const c of alpha) walk(prefix + c, depth - 1); }\nwalk(\"\", 8);\nconsole.log(\"exhaustive strings checked:\", count);\nlet seed = 12345;\nconst rnd = () => { seed = (seed * 1103515245 + 12345) >>> 0; return seed / 4294967296; };\nconst wide = ['\"', '\"', '\"', \",\", \",\", \"\\n\", \"\\r\", \"\\r\\n\", \" \", \"a\", \"\\t\", \"\\0\", \"\\u0085\", \" \", \"﻿\", \"😀\", \"\\ud800\", \"é\", \"\\\\\", \"'\", \"，\"];\nfor (let n = 0; n < 300000; n++) {\n  const len = Math.floor(rnd() * 40); let t = \"\";\n  for (let i = 0; i < len; i++) t += wide[Math.floor(rnd() * wide.length)];\n  check(t);\n}\nconsole.log(\"fuzz done; mismatches:\", mismatches);\nEOF"
+    },
+    {
+      "tool": "Bash",
+      "command": "node --input-type=module <<'EOF'\nimport { parseCsvLine, CsvError } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw/src/csv.mjs\";\nfunction timed(label, text) {\n  const t0 = process.hrtime.bigint(); let res;\n  try { const out = parseCsvLine(text); res = `fields=${out.length}`; }\n  catch (e) { res = (e instanceof CsvError ? \"CsvError\" : \"OTHER:\" + e.constructor.name) + \" idx=\" + e.index; }\n  const ms = Number(process.hrtime.bigint() - t0) / 1e6;\n  console.log(`${ms.toFixed(1).padStart(8)} ms  ${label.padEnd(44)} len=${text.length} ${res}`);\n}\nfor (const [name, size] of [[\"100KB\", 100 * 1024], [\"1MB\", 1024 * 1024], [\"10MB\", 10 * 1024 * 1024]]) {\n  console.log(\"---\", name);\n  timed(\"unquoted single field\", \"x\".repeat(size));\n  timed(\"only commas\", \",\".repeat(size));\n  timed(\"quoted single field\", '\"' + \"y\".repeat(size - 2) + '\"');\n  timed(\"all quotes even\", '\"'.repeat(size));\n  timed(\"all quotes odd\", '\"'.repeat(size + 1));\n  timed(\"escaped pairs then unterminated\", '\"' + '\"\"'.repeat(size / 2));\n  timed('\"\",', '\"\",'.repeat(size / 3));\n  timed('\"\"\"\",', '\"\"\"\",'.repeat(size / 5));\n  timed('\"a\"\"b\",', '\"a\"\"b\",'.repeat(size / 7));\n  timed(\"emoji two-byte quoted esc\", '\"😀\"\"\",'.repeat(size / 6));\n  timed(\"two-byte unquoted\", \"é,\".repeat(size / 2));\n  timed(\"quote error at very end\", \"z\".repeat(size - 1) + '\"');\n  timed(\"CR at very end\", \"z\".repeat(size - 1) + \"\\r\");\n  timed(\"quoted then garbage at very end\", '\"' + \"z\".repeat(size - 3) + '\"x');\n  timed(\"many quoted CRLF fields\", '\"\\r\\n\",'.repeat(size / 5));\n  timed(\"LF at start\", \"\\n\" + \"z\".repeat(size - 1));\n  timed(\"cons string by concat\", (() => { let s = \"\"; for (let i = 0; i < size / 4; i++) s += 'a,\"'; return s; })());\n  timed(\"sliced string view\", (\"Q\".repeat(size) + \",a\").slice(1));\n  timed(\"1-char fields\", \"a,\".repeat(size / 2));\n  timed(\"quoted 1-char fields\", '\"a\",'.repeat(size / 4));\n  timed(\"quoted then extra quote at end\", '\"' + \"a\".repeat(size - 2) + '\"\"');\n  timed(\"quoted, esc quote every 2nd char\", '\"' + 'a\"\"'.repeat(size / 3) + '\"');\n}\nEOF"
+    },
+    {
+      "tool": "Bash",
+      "command": "node --input-type=module <<'EOF'\nimport { parseCsvLine, CsvError } from \"/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw/src/csv.mjs\";\nimport vm from \"node:vm\";\nfunction tryIt(label, fn) {\n  try { const out = fn(); console.log(label.padEnd(36), \"RETURNED\", JSON.stringify(out), \"plainArray=\" + (Object.getPrototypeOf(out) === Array.prototype)); }\n  catch (e) { console.log(label.padEnd(36), \"THREW\", e && e.constructor && e.constructor.name, \"|\", e instanceof TypeError ? \"TypeError\" : \"-\", e instanceof CsvError ? \"CsvError\" : \"-\", \"|\", e && e.message); }\n}\nconst vals = {\n  undefined: undefined, null: null, zero: 0, NaN: NaN, true: true, obj: {}, arr: [], strArr: [\"a\"],\n  StringObj: new String(\"a,b\"), symbol: Symbol(\"s\"), bigint: 1n, fn: () => \"a\", buffer: Buffer.from(\"a\"),\n  date: new Date(), regex: /a/, proxyStr: new Proxy(new String(\"a\"), {}), nullProto: Object.create(null),\n  toPrimitive: { [Symbol.toPrimitive]: () => \"a,b\" }, valueOf: { valueOf: () => \"a\" },\n  promise: Promise.resolve(\"a\"), map: new Map(), typedArr: new Uint16Array([97]),\n  arrayBuffer: new ArrayBuffer(2), err: new Error(\"a,b\"), boolObj: new Boolean(true), numObj: new Number(1),\n  StringObjOtherRealm: vm.runInNewContext('new String(\"a,b\")'), primOtherRealm: vm.runInNewContext('\"a,b\"'),\n};\nfor (const [k, v] of Object.entries(vals)) tryIt(\"val:\" + k, () => parseCsvLine(v));\ntryIt(\"no args\", () => parseCsvLine());\ntryIt(\"extra args\", () => parseCsvLine(\"a,b\", \"c,d\"));\ntryIt(\"this=null\", () => parseCsvLine.call(null, \"a,b\"));\ntryIt(\"new parseCsvLine\", () => new parseCsvLine(\"a,b\"));\ntry { parseCsvLine('a\"'); } catch (e) { console.log(\"CsvError shape:\", e.name, e instanceof Error, e instanceof CsvError, Object.keys(e), typeof e.stack, JSON.stringify(e.message)); }\nconsole.log(\"new CsvError() no args:\", (() => { try { const e = new CsvError(); return [e.message, e.index, e.name]; } catch (x) { return \"THREW \" + x; } })());\nconst r1 = parseCsvLine(\"a,b\"); r1.push(\"z\"); r1[0] = \"MUT\";\nconsole.log(\"after mutating result:\", parseCsvLine(\"a,b\"));\ntry { parseCsvLine('\"unterminated'); } catch {}\nconsole.log(\"after error:\", parseCsvLine('\"x, y\",z'));\nconsole.log(\"result own keys:\", Reflect.ownKeys(parseCsvLine(\"a,b\")));\nObject.prototype.polluted = \"yes\"; Array.prototype[3] = \"ghost\";\nconsole.log(\"with polluted protos:\", JSON.stringify(parseCsvLine(\"a,b\")), parseCsvLine(\"a,b\").length);\ndelete Object.prototype.polluted; delete Array.prototype[3];\nconst cases = [\n  \"\", \"\\n\", \"\\r\\n\", \"\\r\", \"\\n\\n\", \"\\r\\n\\r\\n\", \"\\n\\r\", \"\\r\\r\\n\", \"a\\r\\r\\n\", \" \", \" \", \"\\u0085\", \"\\u000b\", \"\\u000c\",\n  '\"a\"\\r\\n', '\"a\"\\r', '\"a\"\\n\\r\\n', '\"a\\r\"', '\"a\\r\\n\"', '\"\\r\\n\"\\r\\n', '\"a\"\\r\\n\\n', '\"a\",\\r\\n', '\"a\",\\r',\n  '\"\"', '\"\"\"\"', '\"\"\"', '\"\"\"\"\"', '\"\"\"\"\"\"', '\"\"a', '\"\"\"a\"', '\"a\"\"', '\"a\"\"\"', '\"a\"\"\"\"', '\"a\"\"\"\"\"',\n  '\"a\"b', '\"a\" ', ' \"a\"', '\"a\",b\"', 'a,\"b\"c', 'a,\"b\",c', 'a,\"b\" ,c', ',\"', '\",\"', '\",\"\"', '\"\",\\n', '\"\",\"\\n', '\"\\n\"\\n', '\"\\n\\n',\n  '﻿\"a\"', '\"a\"﻿', '\"﻿\"', '﻿a,b', 'a\\u0000,b', '\\ud800\"', '\"\\ud800\"', '\"\\udc00\",\\ud800',\n  'a\\n', 'a\\r\\n', 'a\\n\\n', 'a,\\n', ',\\n', ',\\r\\n', 'a\\r\\n\\r\\n', 'a\\r\\n\\n', '\\n\\na', '\\r\\n\\r\\na',\n  '\"a,\\r\\n\",\"b\\n\"\\n', '\"x\"\"y\"\"z\"', '\"x\"\",\"\"y\"', '\"x\",\"\",\"y\",\"\"', '\"\",\"\"', ',\"\"', '\"\",', ',,\"\"', '\"\",,',\n  \"a\\\\,b\", '\"a\\\\\"\"', '\"a\\\\\"', \"'a',b\", \"a;b\", \"a\\tb\", \"\\t\", \" \", \"  ,  \", \"　\",\n  \"a,b\\u000d\\u000a\", \"a,b\\u000a\\u000d\", '\"a\"\\u000a\\u000a', '\"a\"\\t\\n', '\"a\"\\n\\t',\n];\nfor (const c of cases) tryIt(JSON.stringify(c), () => parseCsvLine(c));\nEOF"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 17,
+      "session_id": "8239c526-1fcb-4c22-becb-dad6f0982b29",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 3.59793,
+      "reported_cost_usd": 3.5979299999999994,
+      "max_budget_usd": 9,
+      "harness_turns": 5,
+      "duration_s": 628,
+      "wall_s": 629,
+      "says_done": true,
+      "tests_after": true,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": "ial cases against its own README-derived oracle, ~120 hand-picked per-clause probes, 29 non-string/prototype/cross-realm inputs, state-leakage and prototype-pollution checks, and 25 pathological shapes at 100 KB / 1 MB / 10 MB (worst 100 KB: 4.1 ms). No README-violating behaviour reproduced; `traces/` empty; `ATTACK.md` written. Verdict: **pass**.\n\n**Done check:** a full attack round found no failing trace, and `npm test` is 37/37 green. Working tree holds the uncommitted changes (`src/csv.mjs`, `tests/csv.test.mjs`, `CHANGES.md`, `ATTACK.md`) — nothing was committed, per the brief.\n\ndone: yes"
+    }
+  ],
+  "base_commit": "a2757380ccced8aab9527ca659340bb22862ca64",
+  "project_files_changed": [
+    "A ATTACK.md",
+    "A CHANGES.md",
+    "M src/csv.mjs",
+    "M tests/csv.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-red-team-loop-C-QAruuw",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 5 said done and the tests passed"
+  },
+  "home_redactions": 0
+}
