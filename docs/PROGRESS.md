@@ -24,6 +24,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - Criterion 6: ledger invocations 24 ($0.00, auth failure) and 25 ($3.0962); **$42.67 of the $55.00 cap, $12.33 left**. No other template ran.
 - Criterion 7: `pnpm -r build && pnpm -r test` (core 248, CLI 58, web 49), `pnpm --filter @grooph/web test:e2e` (52 passed, 27 skipped), `patterns-index.mjs --check`, `check-brake-values.mjs` all green.
 - **needs fix pass** at ``cf7fa97` (work head; the handback commit is on top)`: one of the two runs done. `fresh-grind-rare-judge` is still red and still refused by the ledger's retry rule (a runner defect, reported in the handback); the owner chose to leave its admission to the driver.
+- Fix pass 1, criterion 1: `gate()` in `scripts/lib/prove-ledger.mjs` counts an earlier retried kickoff only when it reached a lead (`status: "ok"` or a `run_id`). Before the change, `--dry-run --retry` on the judge printed "the ledger would refuse: fresh-grind-rare-judge was already retried once (invocation 24)"; after it, "the ledger would allow a kickoff, capped at $9.00". The bank's dry run is refused before and after ("already retried once (invocation 25)"). Ledger unchanged by both.
+- Fix pass 1, criterion 2: `scripts/prove-pattern.sh`'s header says what an expired OAuth session looks like (a $0.00 `error` invocation, `terminal_reason: api_error`, the refresh message, minutes after `claude auth status` said `loggedIn: true`) and that it does not use up the template's retry; the `--help` line range grew with it.
 
 ## Waiting on the owner
 
