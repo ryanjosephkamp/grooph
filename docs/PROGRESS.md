@@ -11,7 +11,13 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-- **Slice 0014** (`handoffs/0014-credits-and-folds/`): confirmed 2026-09-21; no spend. Awaiting the implementer session.
+- **Slice 0014** (`handoffs/0014-credits-and-folds/`): confirmed 2026-09-21; no spend. Implementer on `slice/0014-credits-and-folds`.
+
+### Slice 0014
+
+- Criterion 1 met (2026-09-21): `credits` on `Template` in types, schema builder and `grooph-0.schema.json`; carried by `templateIndexEntry` into `index.json`, printed under the README table, by `grooph template show`, on the app's template page and on the compare card; the pattern test checks every credit's three fields and `http(s)` URL.
+- Criterion 2 met (2026-09-21): `taste-polish`, `ownership-not-swarm` and `spec-then-loop` carry the credits of docs/templates.md §5, each at version 2.
+- Criterion 3 met (2026-09-21): the `taste-polish` critic compares captures and reference side by side, labels stripped, in random order, and says which is better and why before ranking the gaps; `check-brake-values` clean, pattern validates, record not re-proved.
 
 ## Waiting on the owner
 
