@@ -18,6 +18,10 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - Criterion 1 met (2026-09-21): `credits` on `Template` in types, schema builder and `grooph-0.schema.json`; carried by `templateIndexEntry` into `index.json`, printed under the README table, by `grooph template show`, on the app's template page and on the compare card; the pattern test checks every credit's three fields and `http(s)` URL.
 - Criterion 2 met (2026-09-21): `taste-polish`, `ownership-not-swarm` and `spec-then-loop` carry the credits of docs/templates.md §5, each at version 2.
 - Criterion 3 met (2026-09-21): the `taste-polish` critic compares captures and reference side by side, labels stripped, in random order, and says which is better and why before ranking the gaps; `check-brake-values` clean, pattern validates, record not re-proved.
+- Criterion 4 met (2026-09-21): `skills?: string[]` on agent nodes in types, schema builder and JSON schema; the Claude Code compiler writes `skills:` into the agent frontmatter; `MAPPING.md` lists the line among the hand-editable frontmatter; fixture `fixtures/valid/skilled-fixer.grooph.json` and compile test `0014-4`; no validation rule.
+- Criterion 5 met (2026-09-21): LEAD.md §11 asks for `{"at":"graph","outcome":"ending"}` with a `text` before the final note; `RunNote.outcome` lists `started` and `ending` in types and schema; `prove-check` reports a final note with no `ending` line before it, or an `ending` line with nothing after it, as a finding; `summarizeRun` ignores both markers (test `0014-5`).
+- Criterion 6 met (2026-09-21): §11 ends with the report sentence: the final note and `PROGRESS.md` are the record; the lead's last reply summarises them for whoever started the session and points at the run folder.
+- Criterion 7 met (2026-09-21): both golden packages regenerated (LEAD.md §8 line shape and §11, MAPPING.md skills paragraph) and read; all sixteen kept records re-checked, 16/16 PASS, no verdict change; one new finding on the eleven records that end at a stop node (`no ending line before the final note`), none on the five that halt at a gate.
 
 ## Waiting on the owner
 
