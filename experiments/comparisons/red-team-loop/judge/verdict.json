@@ -1,0 +1,52 @@
+{
+  "project": "red-team-loop",
+  "model": "claude-fable-5-1",
+  "ledger_n": 21,
+  "cost_usd": 1.89652275,
+  "harness_turns": 1,
+  "wall_s": 128,
+  "candidates": [
+    "D",
+    "S",
+    "L",
+    "E",
+    "G",
+    "P"
+  ],
+  "parsed": true,
+  "scores": {
+    "D": {
+      "score": 5,
+      "reasons": "Parser honours every contract line (up-front terminator strip, indexOf-based quoted scan, strict post-quote check, unquoted quote/line-break rejection) and traced edge cases like '\"a\"\"\"\\n' and '\"a\"\\n\"' are right. Tests cover each README bullet plus ten 100 KB shapes and keep the original tests. The fuzz test checks only result shape, not content against an oracle."
+    },
+    "S": {
+      "score": 5,
+      "reasons": "Correct single-pass parser with the same end-bound design. Tests add an independent reference parser, exhaustive comparison over all strings up to length 6, a random full-UTF-16 fuzz for 'nothing else thrown', and many perf shapes. The 500 ms perf threshold is stricter than needed and slightly flake-prone."
+    },
+    "L": {
+      "score": 5,
+      "reasons": "Correct parser; the closed flag handles '\"', '\"a\"\"' and '\"a\"\"\"' properly and post-quote validation is right. Tests cover every bullet, a quoting round-trip and a 10 MB linearity check. Exhaustive short-string test asserts shape only, so content regressions rely on hand-written cases."
+    },
+    "E": {
+      "score": 5,
+      "reasons": "Correct parser with a compatible position field on CsvError. Tests include an independent reference over all strings to length 5, a 20 000-case serializer round-trip fuzz, position assertions, and sixteen large-record shapes with a separate content-correctness test. Nothing unmet."
+    },
+    "G": {
+      "score": 5,
+      "reasons": "Correct parser with lazy parts accumulation and an index on CsvError. Tests are the most rigorous: oracle fuzz, exhaustive length-6 sweep with verified count, round-trip encoding, statelessness/mutation checks, and per-shape perf tests each asserting content."
+    },
+    "P": {
+      "score": 4,
+      "reasons": "The state-machine parser is correct and the oracle/exhaustive tests are strong. But it widens scope with new exports MAX_FIELDS and createCsvLineParser, a catch-all that rewraps any unexpected error as CsvError (masking bugs), and test comments citing a trace file and CHANGES.md that are absent from the diff and the acceptance material."
+    }
+  },
+  "ranking": [
+    "G",
+    "E",
+    "S",
+    "L",
+    "D",
+    "P"
+  ],
+  "notes": "All six use the same design: strip one trailing terminator first, then a linear index scan with a QUOTE/COMMA/CR/LF check, and all correctly treat a lone \\r inside quotes as literal. Five are functionally indistinguishable on the contract; ranking among them reflects whether tests compare against an independent reference (G, E, S) versus shape-only fuzzing (L, D). Only P addresses the theoretical 2**27-field RangeError, but at 128 MiB of input it is far outside the 100 KB contract and its handling adds unrequested API surface."
+}
