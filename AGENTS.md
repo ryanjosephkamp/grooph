@@ -10,7 +10,7 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 4. [`docs/graph-ir.md`](docs/graph-ir.md) — the graph document: schema, semantics, error codes. Read before touching `packages/core`, any fixture, or any compiler.
 5. [`docs/templates.md`](docs/templates.md) — templates, registries and the pattern library. Read before touching `patterns/` or any template code.
 6. [`docs/executive.md`](docs/executive.md) — proposal sets, share links, the compare view, and how the `grooph-design` skill (under `plugins/grooph/`) uses them.
-7. [`docs/runs.md`](docs/runs.md) — run folders, notes back, adoption of a run's working copy, the monitor.
+7. [`docs/runs.md`](docs/runs.md) — run folders, notes back, adoption of a run's working copy, the monitor. [`docs/comparisons.md`](docs/comparisons.md) — the paired-comparison protocol (stage 10a).
 8. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
 
 ## Roles
