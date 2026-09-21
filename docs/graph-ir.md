@@ -19,7 +19,7 @@ type Graph = {
   constraints?: { budget?: string; time?: string; other?: string };  // free-text hints, surfaced in the lead brief
   adaptation?: "adaptive" | "propose" | "fixed";                     // how far the lead may change the graph during a run; default "adaptive" (§2, A-008)
   lineage?: { pattern?: string; from?: string };                     // pattern id; "graph-id@version"
-  template?: Template;             // present when this document is a template; shape and rules in docs/templates.md
+  template?: Template;             // present when this document is a template; shape and rules in docs/templates.md (including `credits`, decision 0010)
   description?: string;            // one paragraph a human or executive can read
 
   nodes: Node[];
@@ -44,6 +44,7 @@ type NodeBase = { id: Id; name: string; description?: string; coupled?: boolean 
 type AgentNode = NodeBase & {
   kind: "agent";
   role: Role | { custom: string };
+  skills?: string[];               // names of harness skills this node may use; the target maps them (Claude Code: the agent file's `skills:` frontmatter, preloaded at dispatch). Harness-neutral names; unknown names are the harness's to refuse.
   model?: { tier: "frontier" | "strong" | "fast"; pin?: Record<HarnessId, string> };
   effort?: "low" | "medium" | "high" | "max";
   brief: string;                   // what this node may and may not do; the core of its prompt
@@ -256,12 +257,12 @@ type RunNote = {
   run: string;                     // run id, chosen by the lead at kickoff
   at: "graph" | `node:${Id}` | `edge:${Id}` | `loop:${Id}`;
   started?: string; ended?: string;          // ISO timestamps read from the clock (`date -u`), or omitted; never estimated
-  outcome?: "pass" | "fail" | "halt" | "invalid-evidence" | string;
+  outcome?: "pass" | "fail" | "halt" | "invalid-evidence" | "started" | "ending" | string;   // started: the short line before a dispatch; ending: the short line before the final note
   verdict?: string;                          // critic verdict label, if any
   round?: number;                            // loop round, when `at` is a loop or a member
   stop?: string;                             // on a loop note that ends the loop: the kind of the stop that fired
   evidence?: string[];                       // what was actually inspected
-  cost?: { measure: "usd" | "minutes" | "turns" | "tokens"; amount: number };
+  cost?: { measure: "dispatches" | "minutes" | "usd" | "turns" | "tokens"; amount: number };
   gaps?: string[];                           // repeated gaps observed
   proposal?: { summary: string; patch?: unknown };   // proposed graph edit; never applied automatically
   amendment?: { summary: string; reason: string; patch?: unknown };   // a change the lead made to the run's working copy (adaptive runs only)
@@ -270,6 +271,8 @@ type RunNote = {
   text?: string;                             // free commentary, short
 };
 ```
+
+Two marker lines bracket work so a monitor and the check can tell a crash from a completion: `"outcome":"started"` at `node:<id>` just before a dispatch, and `"outcome":"ending"` at `graph` just before the final note (slice 0014; Gas Town's done-intent, decision 0010). A record whose final note has no `ending` line before it, or whose `ending` line has no final note after it, is read as interrupted.
 
 ## 7. Canonical form
 

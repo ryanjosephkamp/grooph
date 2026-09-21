@@ -52,6 +52,7 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 | Kickoff | `/<graph-id>` (skill), or the text of `KICKOFF.md` pasted | The skill: `disable-model-invocation: true`, `argument-hint: [run-id to resume]`, body = "read LEAD.md, start or resume a run". |
 | Adaptation (graph-ir §2, A-008) | A section in `LEAD.md` chosen by the document's `adaptation` level. `adaptive`: the lead edits `runs/<run-id>/graph.grooph.json`, appends an `amendment` note, updates `PROGRESS.md`, and runs `grooph validate` on the working copy when the CLI is on `PATH`; the brakes list is printed verbatim. `propose`: proposal notes only. `fixed`: halt and ask. | Claude Code re-reads an added or edited file under `.claude/agents/` at the next dispatch, without a restart (its subagents documentation, read 2026-09-20 against 2.1.278; exceptions: an agents directory absent at session start, `--add-dir`, `--disable-slash-commands`, none of which a grooph run uses). So, since slice 0012: an amendment that changes a node's `allow` or `deny` also edits that file's `tools:` line, per the capability table `MAPPING.md` prints, and says so in the amendment note; if the file cannot be edited the change is a proposal and the node runs as compiled, never as a stand-in. A node added mid-run gets its own file in the shape of the others, or a general-purpose dispatch with its brief inline. Live confirmation under `claude -p` is pending the first re-proof of an `allow`-amending run. |
 | Mapping notes | `MAPPING.md` | Table of graph object → file, plus the three things a human (or an adaptive lead) hand-edits: a node's model or effort, a node's `tools:` line with the capability table, and a loop's stop values. |
+| Node `skills` (graph-ir §1) | Harness-neutral skill names on a node | The agent file's `skills:` frontmatter, which preloads each skill's full content at the node's dispatch (Claude Code subagents doc, read 2026-09-21 against 2.1.278). An unknown name is the harness's to refuse; grooph does not validate it. `MAPPING.md` lists `skills:` among the hand-editable lines. |
 
 ## Lead brief structure (`LEAD.md`)
 
@@ -80,6 +81,16 @@ Pass if `runs/<id>/PROGRESS.md` and `notes.jsonl` exist, the critic ran as its o
 **Workspace trust.** A freshly created directory is untrusted, and Claude Code then ignores the permission allowlist in its `.claude/settings.json`, which leaves subagents without a shell. Either mark the directory trusted first (what `scripts/e2e-claude-code.sh` does, scoped to one key in `~/.claude.json` and removed on exit) or pass the permissions with `--settings '<json>'`, which the CLI applies even where an untrusted project's settings file is ignored. The experiment runner in stage 8 uses `--settings` so nothing outside the scratch directory is touched.
 
 First run on record: `20260918-0042-k7qm` on Claude Code 2.1.268 with `claude-opus-5`: two passes, a real critic rejection at round 0, `bar-passed` at round 1, halt at the merge gate; 33 harness turns, $2.32, 4m25s.
+
+## Running a package on a schedule
+
+grooph never runs anything, so a graph that should recur (a patrol pulse, a nightly review) recurs through the harness. Each pulse is an ordinary run: the same package, a new run id from the clock, its own folder, notes and progress file, so the run list (`grooph runs list`) is the pulse log and a clean pulse still leaves its notes. Three ways, in order of preference:
+
+- **A scheduled task or cron** that starts a headless session with the kickoff: `claude -p "$(cat .grooph/<graph>/KICKOFF.md)" --permission-mode acceptEdits --max-budget-usd <n>`, with the allowlist passed by `--settings` as the proving runner does. The dollar cap bounds each pulse; the graph's stops bound the work inside it.
+- **`/loop <interval>` in an interactive session** with the kickoff as the prompt, for a pulse someone is watching.
+- **A harness routine** in the cloud, for a pulse that must run when the machine is off.
+
+The memory a pulse accumulates (tickets, a log, a database) is the project's own file or store, named by a slot and owned by the node that writes it; grooph is not the memory. A gate inside a pulse halts that pulse with its note, and the next pulse is a new run: the brief's resume-by-run-id rule applies only when a human answers the halted run. Dedupe across pulses (do not ticket what a previous pulse ticketed) is the writer's brief, given the store as an input.
 
 ## Optional accelerators (not in v0)
 

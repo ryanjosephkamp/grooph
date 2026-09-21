@@ -17,10 +17,12 @@ template?: {
   slots?: { key: string; ask: string; example: string }[];
   tags?: string[];
   demo?: string;                   // path or URL of a recorded run write-up (stage 6)
+  credits?: { name: string; url: string; note: string }[];  // whose published work the shape or name comes from (decision 0010)
 };
 ```
 
 - **Slots** are written `{{key}}` anywhere in a string field (goal, briefs, inputs, outputs, evidence, bar refs and acceptance, `check.run`, gate prompts). `ask` is the question an agent or the app puts to the user; `example` is a realistic value used by tests and demos.
+- **`credits`** name the person or project a template's shape or name comes from, with a URL and one line on what was taken; a secondary source is named as such. Shown in the index, by `grooph template show`, on the template's page in the app and in its write-up. Never a claim of endorsement (decision 0010).
 - **`profile`** is coarse on purpose. It is what lets an executive offer "a fast one, a cheap one, a rigorous one" without pretending to precision.
 - A document with a `template` block is not exportable (`E_IS_TEMPLATE`); an instantiated graph with `{{…}}` left in it is not exportable (`E_UNFILLED_SLOT`, `at` = the objects holding the text). Both are added to graph-ir §3.
 
@@ -41,7 +43,7 @@ A registry is a folder of `*.grooph.json` templates with an `index.json`:
 ```ts
 type TemplateIndex = { grooph: 0; generated?: string; templates: {
   id: string; version: number; kind: "graph" | "fragment"; title: string; summary: string; whenToUse: string;
-  profile: Profile; tags?: string[]; slots?: string[]; file: string; demo?: string }[] };
+  profile: Profile; tags?: string[]; slots?: string[]; file: string; demo?: string; credits?: { name: string; url: string; note: string }[] }[] };
 ```
 
 Resolution order by name (template id), first hit wins:
@@ -77,6 +79,7 @@ One document per spec §10 pattern, under `patterns/<id>.grooph.json`. Rules for
 - Critics are `fresh`, have an evidence list, allow `write-outputs` for their report, and deny `edit-files`. A judging node that must run anything (tests, held-out cases) has `run-tests` or `run-commands`: batch two's `fresh-grind-rare-judge` judge could not, and its lead had to amend the graph and dispatch a stand-in (review 0011).
 - `adaptation` is left unset (adaptive) except where the pattern says otherwise.
 - Common slots: `task` (what to build or change), `test-command`, and the pattern's own bar reference.
+- A pattern that takes its shape or name from published work carries `credits` (decision 0010). Today: `taste-polish` (Matt Shumer's Gauntlet Loop and the Claude of Duty repository), `ownership-not-swarm` (the Claude of Duty process note: sequential ownership beat fan-out on coupled systems), `spec-then-loop` (the answer-key-first modification of Matt Pocock's Wayfinder, known from a secondary write-up).
 
 | id | kind | Shape | Bar and stops | Profile (cost · speed · rigor) |
 |---|---|---|---|---|

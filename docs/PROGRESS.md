@@ -4,9 +4,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## Now
 
-- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). Next: stage 8 (manual authoring extras) while Codex stays deferred.
+- **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). On 2026-09-21 the owner accepted the roadmap (decisions 0010 and 0011): credits and folds (0014), the templates page with a glyph (0015), paired comparisons against a big prompt (0016, stage 10a), prior-art templates (0017), elaborate templates (0018); stage 8 follows. Codex is deferred without a date.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (driver):** propose the next stage. Stage 6 is closed with every record green; stage 8 (manual authoring extras) is the next undeferred stage, and the owner's own first use of `/grooph-design` is the outstanding stage-5 test.
+- **Next action (owner):** confirm slice 0014 and paste its prompt into an Opus 5 session. Independently: run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
@@ -17,17 +17,17 @@ _(none)_
 
 | Item | Recommended answer |
 |---|---|
-| What next: stage 8 (manual authoring extras: copy and paste, bulk spawn, groups, outline view, offline install) as slice 0014, or first your own run of `/grooph-design` on a project of yours | Your own `/grooph-design` run first: it is the stage-5 success test still outstanding, costs one session, and would tell us whether the agent-built path works for its actual user before more editing surface is built |
+| Confirm slice 0014 (`handoffs/0014-credits-and-folds/HANDOFF.md`): credits on templates, blind A/B wording, `skills` on a node, the `ending` note. No spend. | Yes |
 
-## Deferred until Codex is available
+## Deferred until the owner reopens Codex
 
-- Slice 0003, Astra's read-only harness-neutrality review (handoff already drafted). Runs before stage 9.
-- Stages 9–11 (Codex target, paired empirical runs, dual-harness nodes).
+- Stages 9, 10b and 11 (Codex target, cross-harness paired runs, dual-harness nodes). The owner's Codex subscription ends about 2026-10-07; nothing in the repository depends on it. Slice 0003 (the neutrality review) is reassigned to an Opus session and is not deferred.
 
 ## Done
 
 | Date | What |
 |---|---|
+| 2026-09-21 | Roadmap review: prior-art analysis and roadmap answers published from `handoffs/briefs/`; owner accepted all recommendations. Decisions 0010 (prior art credited, adapted, proved) and 0011 (paired comparisons, three arms, own ledger); amendment A-010 (sources, positioning); `credits` in the template block; `skills` on a node and the `ending` note in graph-ir; scheduled-run section in the target doc; two sentences in the design skill; stages 10a/10b, 13–15 and slices 0014–0018 in the plan; slice 0003 reassigned to Opus. Handoff 0014 drafted. |
 | 2026-09-21 | Slice 0013 merged after fix pass 1: the ledger counts a retry only when it reached a lead; `fresh-grind-rare-judge` re-proved green ($2.97; the package's own judge ran the held-out suite, no amendment, next-phase back edge, exact dispatch counts, per-round copies kept). All sixteen proving records pass the check. |
 | 2026-09-21 | Slice 0013 reviewed: `specialist-critic-bank` re-proved green ($3.10; dispatch count exact, halt note at the gate, zero denials; bar passed at round 0 so no back edge). `fresh-grind-rare-judge` blocked: an expired OAuth session failed the kickoff at $0.00 and the ledger's retry rule then refused the re-proof. Fix pass 1 drafted (fix the rule, run the judge). |
 | 2026-09-20 | Slice 0012 reconciled and merged: the lead brief edits `tools:` on a capability amendment, names the 26 ops, diffs new files bare, keeps per-round critic reports, states dispatches per round; `MAPPING.md` lists `tools:` as hand-editable; the check reports per-round copies; `git add -N` allowed. Harness confirmed to re-read agent files at the next dispatch (documentary). |
