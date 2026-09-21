@@ -28,8 +28,12 @@ test("the Templates screen lists the bundled patterns; one opens read-only with 
   const grind = page.locator('.template-row[data-template="grind-loop"]');
   await expect(grind).toContainText("Grind loop");
   await expect(grind).toContainText("Use when Done and good are the same");
-  await expect(grind).toContainText("Not for Work where passing tests is not the same as good");
-  await expect(grind.getByRole("list", { name: "Profile" })).toHaveText(/Low cost\s*Fast\s*Light rigor/);
+  // A row is built to scan (slice 0015): the glyph, the title, when to use it, and the profile as meters with the words in their names.
+  await expect(grind.locator(".template-glyph svg")).toBeVisible();
+  await expect(grind.getByRole("list", { name: "Profile" }).getByRole("listitem")).toHaveCount(3);
+  for (const [i, name] of ["Low cost", "Fast", "Light rigor"].entries()) {
+    await expect(grind.getByRole("list", { name: "Profile" }).getByRole("listitem").nth(i)).toHaveAttribute("aria-label", name);
+  }
   await expect(page.locator('.template-row[data-template="human-gated-irreversible"]')).toContainText("fragment");
 
   await grind.tap();

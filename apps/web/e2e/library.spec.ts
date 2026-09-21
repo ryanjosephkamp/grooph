@@ -29,13 +29,13 @@ test("graphs persist across reloads and can be renamed, duplicated and deleted",
   await page.getByRole("button", { name: "Rename" }).tap();
   await page.getByLabel("Graph name").fill("Review loop, mine");
   await page.getByRole("button", { name: "Save" }).tap();
-  await expect(page.getByText("Review loop, mine")).toBeVisible();
+  await expect(page.locator(".graph-name", { hasText: "Review loop, mine" })).toBeVisible();
 
   // Duplicate.
   await page.getByRole("button", { name: "Actions for Review loop, mine" }).tap();
   await page.getByRole("button", { name: "Duplicate" }).tap();
   await expect(rows).toHaveCount(3);
-  await expect(page.getByText("Review loop, mine (copy)")).toBeVisible();
+  await expect(page.locator(".graph-name", { hasText: "Review loop, mine (copy)" })).toBeVisible();
 
   // Delete asks once more.
   await page.getByRole("button", { name: "Actions for Scratch" }).tap();
@@ -46,12 +46,12 @@ test("graphs persist across reloads and can be renamed, duplicated and deleted",
   // All of it survives a reload.
   await page.reload();
   await expect(rows).toHaveCount(2);
-  await expect(page.getByText("Review loop, mine (copy)")).toBeVisible();
+  await expect(page.locator(".graph-name", { hasText: "Review loop, mine (copy)" })).toBeVisible();
   await expect(page.getByText("Scratch")).toHaveCount(0);
 
   // The copy opens, and is its own graph with its own id. (The rename moved the
   // original's id too: it still followed the name.)
-  await page.getByText("Review loop, mine (copy)").tap();
+  await page.locator(".graph-name", { hasText: "Review loop, mine (copy)" }).tap();
   await expect(status(page)).toHaveText("1 warning");
   await page.getByRole("button", { name: /^Review loop, mine \(copy\)/ }).tap();
   await expect(sheet(page).getByLabel("Id", { exact: true })).toHaveValue("review-loop-mine-copy");

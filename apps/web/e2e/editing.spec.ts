@@ -265,7 +265,7 @@ test("the list's rename warns after an export, and Keep the old id keeps it", as
   const warning = page.locator(".rename-warning");
   await expect(warning).toContainText(".grooph/review-loop-mine/");
   await warning.getByRole("button", { name: "Keep the old id" }).tap();
-  await expect(page.getByText("Review loop, mine")).toBeVisible();
+  await expect(page.locator(".graph-name", { hasText: "Review loop, mine" })).toBeVisible();
   await expect(page.locator(".graph-meta").first()).toContainText("review-loop ·");
 });
 

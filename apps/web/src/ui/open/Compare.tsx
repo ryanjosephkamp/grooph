@@ -15,7 +15,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { copyText } from "../../doc/exportPackage.js";
 import { countBySeverity } from "../../doc/issues.js";
 import { builtInTemplate } from "../../doc/templates.js";
-import { ViewCanvas, miniHeight } from "../canvas/ViewCanvas.js";
+import { Glyph } from "../Glyph.js";
 import { Credits } from "../templates/Credits.js";
 import { ProfileChips } from "../templates/ProfileChips.js";
 import { editorHref, useSaveFromLink } from "./save.js";
@@ -276,10 +276,9 @@ function Card(props: {
         )}
       </section>
 
+      {/* The glyph in place of the compact canvas (slice 0015): the shape at a glance, the names one tap away. */}
       <div className="ccard-canvas">
-        <div className="mini" style={{ height: miniHeight(graph) }} aria-label={`Graph of ${c.label}`} role="img">
-          <ViewCanvas doc={graph} variant="mini" />
-        </div>
+        <Glyph doc={graph} className="ccard-glyph" decorative />
         <a className="btn btn-small" href={props.fullHref}>
           Open full graph
         </a>
