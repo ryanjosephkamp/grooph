@@ -1,0 +1,138 @@
+<title>grooph Roadmap Answers</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#7b8494;--line:#d9ded8;--accent:#2f6f8f;--accent-soft:#dbe9f0;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--note-bg:#f1f3ef;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--note-bg:#232a32}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--note-bg:#232a32}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px;padding-inline:16px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:2rem;font-weight:700}
+h2{font-size:1.35rem;font-weight:600;margin-top:44px;padding-top:14px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:24px}
+p{margin:10px 0;max-width:68ch}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--note-bg);padding:1px 5px;border-radius:3px}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-size:.82rem;line-height:1.45;white-space:pre-wrap}
+pre code{background:none;padding:0}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:16px 0}
+.box.warn{background:var(--warn-bg);border-color:transparent;color:var(--warn-ink)}.box.warn p{color:inherit}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ul,ol{padding-left:20px}li{margin:6px 0;max-width:68ch}
+.src{font-size:.82rem;color:var(--ink3)}
+a{color:var(--accent)}
+.glyph{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;margin:12px 0}
+.glyph svg{width:100%;max-width:520px;height:auto;display:block;margin:0 auto}
+.glyph .cap{font-size:.82rem;color:var(--ink3);text-align:center;padding-top:6px}
+.rec{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:8px 14px;margin:8px 0}
+.rec .id{font-family:var(--mono);font-size:.8rem;color:var(--accent)}
+</style>
+<div class="wrap">
+<div class="eyebrow">Roadmap answers · 2026-09-21</div>
+<h1>Your four questions, answered, and what I would do next</h1>
+<p class="meta">Written by the driver session for Ryan. The prior-art analysis (question 3) has its own page; its recommendations are rolled into the list at the end here, with a prompt to fold everything into the plan.</p>
+
+<h2>The short version</h2>
+<p>All four ideas are sound and none contradicts the frozen spec. My ordering differs from the order you listed them in, because one of them tests the premise of the whole project and should come before the others grow it.</p>
+<ol>
+<li><b>Fold everything into the plan now</b> (this session, no code, no spend): two decision records, a spec amendment for sources, the new stages, the attribution policy.</li>
+<li><b>Your real-project run of the design skill</b> whenever you like. It needs no code and is independent of all of this.</li>
+<li><b>Slice 0014, credits and small folds:</b> the attribution field, the blind-comparison wording, the scheduled-run doc section, the design-skill sentences. Small, no spend.</li>
+<li><b>Slice 0015, the templates page:</b> search, filter, sort, the shape glyph in core, a Mermaid projection, glyphs on the site and in the write-ups. No spend.</li>
+<li><b>Slice 0016, the paired comparison:</b> your question 4, on four templates first. This is the expensive one and the one that matters most, so it goes before the library grows.</li>
+<li><b>Slice 0017, templates from prior art:</b> ralph-loop, patrol-pulse, gauntlet-decomposed, merge-queue, each proved.</li>
+<li><b>Slice 0018, the elaborate graphs:</b> mayor-and-polecats and two or three from the brainstorm below, each proved. Then stage 8, the manual-editing extras.</li>
+</ol>
+
+<h2>1. The templates page: search, filter, sort, and a shape glyph</h2>
+<p><b>Answer: yes, and it is cheaper than it looks.</b> The data is already there: every template carries a coarse profile (cost, speed, rigor), tags, a kind, and the app already draws a read-only canvas for a graph opened from a link. Nothing here touches the graph document, and the spec explicitly allows a Mermaid-like projection as a view.</p>
+<p><b>Search, filter, sort.</b> Search over title, summary, when-to-use and tags; filter by kind, by each profile axis and by tag; sort by cost, speed, rigor or name. One screen, one slice. The same index should drive the design skill's template list so an agent and a human see the same ordering.</p>
+<p><b>The glyph.</b> A pure function in core, <code>glyph(document)</code>, that returns a small SVG with no words: node kinds as shapes, edge kinds as line styles, loops as a dashed hull, gates and irreversible steps visibly different. Because it lives in core it renders identically in the CLI (<code>grooph glyph</code>), on the site's template list and compare cards, in the proving write-ups, and as a file you can save. A first draft of the design language, using shapes the canvas already distinguishes:</p>
+<div class="glyph">
+<svg viewBox="0 0 520 150" role="img" aria-label="Example glyph of the review-gate template: builder square, critic diamond, gate octagon, done dot, a dashed loop hull and a dashed fail edge back to the builder">
+<rect x="30" y="30" width="270" height="90" rx="14" fill="none" stroke="var(--ink3)" stroke-dasharray="6 5" stroke-width="1.5"/>
+<rect x="60" y="55" width="40" height="40" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+<polygon points="200,52 224,75 200,98 176,75" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+<polygon points="348,60 362,52 378,52 392,60 392,88 378,98 362,98 348,88" fill="none" stroke="var(--warn-ink)" stroke-width="2.5"/>
+<circle cx="470" cy="75" r="9" fill="var(--ink)"/>
+<line x1="100" y1="75" x2="176" y2="75" stroke="var(--ink)" stroke-width="2"/>
+<polygon points="176,75 168,70 168,80" fill="var(--ink)"/>
+<line x1="224" y1="75" x2="348" y2="75" stroke="var(--ink)" stroke-width="2"/>
+<polygon points="348,75 340,70 340,80" fill="var(--ink)"/>
+<line x1="392" y1="75" x2="461" y2="75" stroke="var(--ink)" stroke-width="2"/>
+<polygon points="461,75 453,70 453,80" fill="var(--ink)"/>
+<path d="M200 98 C 200 125, 80 125, 80 95" fill="none" stroke="var(--warn-ink)" stroke-width="2" stroke-dasharray="5 4"/>
+<polygon points="80,95 74,104 86,103" fill="var(--warn-ink)"/>
+<path d="M370 98 C 370 140, 80 140, 80 96" fill="none" stroke="var(--ink3)" stroke-width="1.5" stroke-dasharray="2 4"/>
+</svg>
+<div class="cap">review-gate as a glyph: square builder, diamond critic, octagon human gate, filled dot stop; solid pass edges, dashed fail edge back, dotted gate-reject edge; dashed hull is the loop. Hand-drawn here; the real one is generated from the document.</div>
+</div>
+<p><b>Mermaid.</b> A one-way projection, <code>grooph mermaid &lt;file&gt;</code>: a flowchart with one subgraph per loop, edge labels from the edge's condition, and a note per stop. It is easy because the document is already a graph, and it costs nothing in the document itself. It cannot round-trip (Mermaid has no loops, stops or bars), and it should never be edited in place of the document; the spec's "document first" rule stays.</p>
+<p><b>Cost and placement.</b> One implementer slice for the web work, with the glyph and the Mermaid projection in core and the CLI in the same slice so the site, the CLI and the write-ups share one drawing. No proving spend. I put it after the credits slice and before the comparison because the glyph also improves the compare view and the proving write-ups.</p>
+
+<h2>2. Are the templates too small?</h2>
+<p><b>Answer: it is deliberate, and it is not the end state.</b> The sixteen are the spec's own pattern list, one to one. They range from three to eight nodes and one to six agents. Three rules made them small: the spec's "smallest graph that works", its lesson that same-role harsh-critic language adds nothing while structure does, and the "latitude over procedure" rule that keeps briefs to purpose, limits and outputs. The proving ground bore this out: the smallest graphs ended cleanest, and the six-agent bank costs about $2.80 a round.</p>
+<p><b>What "bigger" should mean.</b> Not more adjectives or longer briefs, but composition: fragments inserted into hosts (the runner proved this with the irreversible gate inside a grind loop), nested loops (fresh-grind-rare-judge), and organisation-shaped graphs where several small shapes are wired together with real ownership. Each one is proved before it ships, so a large template that does not earn its cost never enters the library.</p>
+<p><b>Brainstorm, for after the comparison.</b> Each needs a designed task and a proving run; the estimated size is nodes.</p>
+<div class="scroll"><table>
+<tr><th>Candidate</th><th>Shape</th><th>Where it comes from</th></tr>
+<tr><td><code>gauntlet-decomposed</code> (9)</td><td>planner decomposes along seams → gate approves the decomposition → outer loop, one piece per round, taste-polish inside → integrator → final blind compare → gate</td><td>Shumer's Gauntlet with the Claude of Duty process note built in</td></tr>
+<tr><td><code>mayor-and-polecats</code> (9)</td><td>convoy file → three owners in parallel on independent beads → witness that only monitors → merge-queue fragment → overseer gate</td><td>Gas Town, one convoy per run</td></tr>
+<tr><td><code>patrol-pulse</code> (5)</td><td>scan check → read-only investigator → ticket writer → prioritise gate; run on a schedule</td><td>Lloyd, Symphony, Gas Town patrols</td></tr>
+<tr><td><code>release-train</code> (10)</td><td>spec-then-loop → specialist critic bank → red-team round → docs writer → changelog check → gate → publish (irreversible)</td><td>Composition of five existing templates</td></tr>
+<tr><td><code>research-then-build</code> (8)</td><td>three researchers on named sources in parallel → synthesizer writes the brief and acceptance → gate → grind loop with a critic</td><td>ownership-not-swarm plus spec-then-loop</td></tr>
+<tr><td><code>migration-bisect</code> (7)</td><td>batch of changes → integration check → bisect on failure (halve the batch, re-run) → land</td><td>Gas Town's Refinery, Bors</td></tr>
+<tr><td><code>evals-ratchet</code> (4)</td><td>review-gate where every critic finding becomes a permanent case in an evals file</td><td>Ng's "evals when a failure repeats"; the proving ground's held-out lesson</td></tr>
+<tr><td><code>design-system-polish</code> (7)</td><td>one shared reference, sequential owners per component, one frontier critic across all of them, diminishing-returns stop</td><td>taste-polish scaled to a coupled surface</td></tr>
+</table></div>
+<p>Two cautions. Cost per round grows with agents per round, so a ten-node graph is a $5-to-$10 run at today's prices, and the ledger's per-run ceiling will need to move. And the honest finding from batch two applies: a big graph whose bet does not pay is still a big bill. The comparison in question 4 is how we learn which of these earn their size.</p>
+
+<h2>3. Prior art</h2>
+<p>The analysis is on its own page. Its recommendations are A1 to A9 in the list below. The headline: grooph was built from the Gauntlet already, so the additions are four templates with attribution, one elaborate organisation-shaped template, and a handful of small folds (blind A/B wording, a scheduled-run section, skills on a node, a done-intent marker). Declined: a runtime-sized worker pool, persistent daemons, budget-free brakes.</p>
+
+<h2>4. Paired comparisons: grooph versus a big prompt</h2>
+<p><b>Answer: yes, and it is the most important thing on this list.</b> Today the honest answer to "is a loop graph better than not using one" is unknown. The proving ground shows that packages drive sessions as designed; it says nothing about whether the design beats a plain prompt. The spec forbids claiming a graph beats a named product; it says nothing against measuring a graph against no graph, and that is the evidence the project needs. I would move it ahead of the new templates.</p>
+<h3>The protocol I recommend</h3>
+<ul>
+<li><b>Per template, one designed project</b> with a written task, a test command, and held-out cases the builder never sees (the proving ground's task folders already have this shape, and several can be reused as they are).</li>
+<li><b>Three arms, not two.</b> (A) the grooph template through its package, headless, as the proving runs go. (B) one big prompt: the same task and the same workflow described in prose in a single prompt, one session, same model and effort, no package. (C) the big prompt inside a traditional loop: the same prompt piped into fresh sessions by a ralph-style bash loop with the same round cap. B measures the graph against nothing; C measures it against the looping people already do. Two arms would leave one of those unanswered.</li>
+<li><b>Same everything else.</b> Same model and effort for the lead, same dollar cap per run, same permission allowlist, same harness version, all recorded.</li>
+<li><b>Two runs per arm minimum</b>, three where a template's bet involves judgment (taste-polish, the bank). With n this small, report ranges, not means, and say so.</li>
+<li><b>Two kinds of measure.</b> Objective: held-out pass rate, tests passing, defects a fresh judge finds, files touched outside scope. Process: cost, wall time, harness turns, permission refusals, whether a human had to intervene. Plus one blind judgment: a frontier critic in a fresh context compares the arms' outputs with labels stripped and order randomised, and says which is better and why. The judge's verdict is one measure among several, never the headline.</li>
+<li><b>Pre-registered.</b> Each project's expected outcome and what would count as the graph losing is written before any run, in the same spirit as the proving ground's expect files.</li>
+<li><b>Records kept like the proving records:</b> evidence never edited, a red result published red, decision 0009 applies.</li>
+</ul>
+<h3>Scope and cost</h3>
+<p>Start with four templates whose bar is most objective: grind-loop, review-gate, red-team-loop and spec-then-loop. Four projects, three arms, two runs each is 24 runs at roughly $1 to $4 each, plus judge runs, so about $60 to $90. I would give comparisons their own ledger with a $100 cap rather than stretch the proving ledger. Extending to all sixteen later is another $200 to $300 and should wait for what the first four show.</p>
+<h3>What it can and cannot show</h3>
+<p>It can show whether, on small designed tasks with one model, a graph produces better held-out results, fewer defects, or lower cost than a prompt or a plain loop, and by how much in a range. It cannot show that a graph beats a human team, a named product, or a different model, and with n of two it cannot show a small difference at all. The write-up says which of these each pair showed.</p>
+<h3>Where it goes in the plan</h3>
+<p>Stage 10 today is "paired runs across harnesses" and is deferred with Codex. Split it: 10a, graph versus no graph in Claude Code, now; 10b, Claude Code versus Codex, deferred. The runner grows an "arm" concept and a blind-judge step; the write-up gets one required line per project: did the graph earn its cost.</p>
+
+<h2>Codex, after October 7</h2>
+<p>Nothing in the repository depends on Codex, so cancelling changes no code. Three adjustments to the plan: stages 9, 10b and 11 stay deferred with no date and are reopened only when you say; the graph document stays harness-neutral as a design rule, so slice 0003 (the neutrality review) is reassigned from Astra to an Opus session and becomes a short read-only review of graph-ir for Claude-specific drift; and every new template is specified in harness-neutral terms with the Claude Code mapping in the target doc, as today. If you ever do the Codex target, nothing done meanwhile will need undoing.</p>
+
+<h2>When to test on your real project</h2>
+<p>Any time. The design-skill run needs none of the above, costs one session, and would tell us whether the agent-built path works for its actual user. If you would rather see the glyph and the new templates first, the earliest sensible point is after slice 0015; the latest useful point is before slice 0018, so that what you find shapes the elaborate templates rather than trails them.</p>
+
+<h2>All recommendations</h2>
+<div class="rec"><span class="id">B1</span> Fold this review into the plan now: decision records for prior art and attribution, and for the comparison protocol as the project's effectiveness evidence; a spec amendment adding the sources; stages and slices renumbered; PROGRESS updated. Driver, this session.</div>
+<div class="rec"><span class="id">B2</span> Slice 0014, credits and folds: A1 credits field and attributions; A4 blind A/B wording; A5 scheduled-run section; A8 design-skill sentences; A9 done-intent marker; A6 skills on a node if the harness supports it; A7 spec amendment. No spend.</div>
+<div class="rec"><span class="id">B3</span> Slice 0015, the templates page: search, filter, sort; <code>glyph()</code> in core and <code>grooph glyph</code>; <code>grooph mermaid</code>; glyphs on the template list, compare cards and write-ups; the glyph saveable as SVG. No spend.</div>
+<div class="rec"><span class="id">B4</span> Slice 0016, the comparison: protocol written by the driver first; runner gains arms and a blind judge; four templates, three arms, two runs; own ledger, $100 cap; stage 10 split into 10a (now) and 10b (Codex, deferred).</div>
+<div class="rec"><span class="id">B5</span> Slice 0017, prior-art templates: A2 ralph-loop, patrol-pulse, gauntlet-decomposed, merge-queue fragment, each with credits and a proving run. About $15.</div>
+<div class="rec"><span class="id">B6</span> Slice 0018, elaborate templates: A3 mayor-and-polecats plus two or three from the brainstorm chosen by what the comparison showed. About $25; the per-run ceiling rises with them.</div>
+<div class="rec"><span class="id">B7</span> Codex: keep stages 9, 10b, 11 deferred without a date; reassign slice 0003 to an Opus session as a neutrality review; keep every template harness-neutral.</div>
+<div class="rec"><span class="id">B8</span> Your real-project design run: independent; recommended any time from now, and before slice 0018 at the latest.</div>
+<div class="rec"><span class="id">Declined</span> A runtime-sized worker pool, persistent daemons, budget-free brakes, grooph as scheduler or memory store, formula import, any "until perfect" stop, and any comparison framed as beating a named product.</div>
+
+<h2>The prompt to paste next</h2>
+<p>If you accept all of the above as written, paste this into this driver session:</p>
+<pre><code>Accepted: all recommendations in the roadmap-answers page of 2026-09-21 (B1 to B8, with A1 to A9 folded in as stated). Fold them into the plan now: write decision 0010 (prior art and attribution policy) and decision 0011 (paired comparisons as the effectiveness evidence, three arms, own ledger), log spec amendment A-010 (sources and positioning additions), update docs/PLAN.md (split stage 10 into 10a now and 10b deferred; add the slices 0014 to 0018 with their scope; reassign slice 0003 to an Opus neutrality review; record the Codex note), update docs/PROGRESS.md, add the credits field to the template block in docs/templates.md and graph-ir, and draft handoff 0014 (credits and folds). Then give me the paste prompt for the 0014 implementer session. I will run /grooph-design on a real project of mine on my own schedule and bring you the record.</code></pre>
+<p>If you want changes first, say which items, and I will revise the plan before drafting anything.</p>
+</div>
