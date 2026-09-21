@@ -38,6 +38,10 @@
 #      earlier run's: to re-prove a template, move run/ to run-1/ first and pass
 #      --retry "<why>") and makes the assertions of criterion 4 on it.
 #
+# An expired OAuth session fails the kickoff at $0.00 (`claude auth status` said loggedIn: true
+# minutes before; claude-output.json: an `error`, terminal_reason api_error, the refresh message).
+# It reached no lead, so it does not use up the template's retry: sign in and pass --retry again.
+#
 # scripts/lib/prove-evidence.mjs lists what the evidence folder holds, and
 # scripts/lib/prove-check.mjs what --check asserts (expect.json per template names
 # the agents, reports, ownership folders, expected ending, and what must stay
@@ -46,6 +50,6 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "${1:-}" in
-  -h|--help) sed -n '2,45p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,49p' "$0"; exit 0 ;;
 esac
 exec node "$REPO_ROOT/scripts/lib/prove-pattern.mjs" "$@"
