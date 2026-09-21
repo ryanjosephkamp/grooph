@@ -106,6 +106,18 @@ test("a three-candidate link opens the comparison with each card's facts above t
   await expect(page.getByText("No graphs on this device yet.")).toBeVisible();
 });
 
+test("a card based on a credited template carries the template's credit line (decision 0010)", async ({ page }) => {
+  const set = csvSet();
+  set.candidates[0]!.basedOn = "taste-polish";
+  await page.goto(linkFor(set));
+  const credits = card(page, "lean").getByRole("list", { name: "Credits" }).getByRole("listitem");
+  await expect(credits).toHaveCount(1);
+  await expect(credits.first()).toContainText("Inspired by Matt Shumer's Gauntlet Loop (Claude of Duty): the bounded form of the Gauntlet");
+  await expect(credits.first().getByRole("link")).toHaveAttribute("href", "https://github.com/mshumer/Claude-of-Duty");
+  // review-gate owes no credit, so its card shows none.
+  await expect(card(page, "reviewed").getByRole("list", { name: "Credits" })).toHaveCount(0);
+});
+
 test("swipe between cards; the bar and pager follow the card in view", async ({ page }) => {
   await page.goto(linkFor(csvSet()));
   await expect(pager(page)).toHaveText("Lean · 1 of 3");

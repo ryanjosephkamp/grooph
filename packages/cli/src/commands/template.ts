@@ -184,6 +184,8 @@ export async function templateShow(io: Output, env: RegistryEnv, name: string, f
   if (block.notFor !== undefined) io.out(`Not for: ${block.notFor}`);
   io.out(`Profile: cost ${block.profile.cost} · speed ${block.profile.speed} · rigor ${block.profile.rigor}`);
   if (block.tags !== undefined && block.tags.length > 0) io.out(`Tags: ${block.tags.join(", ")}`);
+  // decision 0010: what was taken from whose published work, with the link; never an endorsement.
+  for (const credit of block.credits ?? []) io.out(`Inspired by: ${credit.name} <${credit.url}> — ${credit.note}`);
 
   const slots = block.slots ?? [];
   if (slots.length > 0) {
