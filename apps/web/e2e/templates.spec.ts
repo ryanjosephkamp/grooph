@@ -46,9 +46,23 @@ test("the Templates screen lists the bundled patterns; one opens read-only with 
   await expect(about.locator("input, textarea, select")).toHaveCount(0);
   await expect(toolbar(page)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Export", exact: true })).toHaveCount(0);
+  // A pattern that owes no credit shows none (decision 0010).
+  await expect(about.getByRole("list", { name: "Credits" })).toHaveCount(0);
 
   const origin = new URL(page.url()).origin;
   expect(requests.filter((url) => !url.startsWith(origin))).toEqual([]);
+});
+
+test("a credited template shows whose work it is inspired by, with the link (decision 0010)", async ({ page }) => {
+  await page.goto("./#/templates/built-in/taste-polish");
+  const about = sheet(page);
+  await expect(about.getByRole("heading", { name: "Taste polish" })).toBeVisible();
+  const credits = about.getByRole("list", { name: "Credits" }).getByRole("listitem");
+  await expect(credits).toHaveCount(1);
+  await expect(credits.first()).toHaveText(
+    "Inspired by Matt Shumer's Gauntlet Loop (Claude of Duty): the bounded form of the Gauntlet: one owner, an isolated critic against a named reference, real stops",
+  );
+  await expect(credits.first().getByRole("link", { name: "Matt Shumer's Gauntlet Loop (Claude of Duty)" })).toHaveAttribute("href", "https://github.com/mshumer/Claude-of-Duty");
 });
 
 test("Use asks for a name and each slot, allows gaps, and opens the graph with E_UNFILLED_SLOT to find", async ({ page }) => {

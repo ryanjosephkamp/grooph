@@ -65,6 +65,8 @@ export type Template = {
   tags?: string[];
   /** path or URL of a recorded run write-up (stage 6) */
   demo?: string;
+  /** whose published work the shape or name comes from: never a claim of endorsement (decision 0010) */
+  credits?: TemplateCredit[];
 };
 
 export type TemplateKind = "graph" | "fragment";
@@ -77,6 +79,9 @@ export type Profile = {
 };
 
 export type TemplateSlot = { key: string; ask: string; example: string };
+
+/** docs/templates.md §1: the person or project, its URL, and one line on what was taken (a secondary source is named as such). */
+export type TemplateCredit = { name: string; url: string; note: string };
 
 /** graph-ir §2: `adaptive` amends the run's working copy, `propose` records proposals, `fixed` halts and asks. */
 export type Adaptation = "adaptive" | "propose" | "fixed";
@@ -103,6 +108,8 @@ export type AgentNode = NodeBase & {
   owns?: string[];
   /** irreversible actions it performs: "merge" | "publish" | "spend" | "delete" | custom */
   irreversible?: string[];
+  /** harness-neutral names of skills this node may use; the target maps them, and an unknown name is the harness's to refuse */
+  skills?: string[];
 };
 
 export type Role =
@@ -254,7 +261,8 @@ export type RunNote = {
   /** ISO timestamps read from the clock (`date -u`), or omitted; never estimated */
   started?: string;
   ended?: string;
-  outcome?: "pass" | "fail" | "halt" | "invalid-evidence" | (string & {});
+  /** `started`: the short line before a dispatch; `ending`: the short line before the final note (graph-ir §6) */
+  outcome?: "pass" | "fail" | "halt" | "invalid-evidence" | "started" | "ending" | (string & {});
   /** critic verdict label, if any */
   verdict?: string;
   /** loop round, when `at` is a loop or a member */

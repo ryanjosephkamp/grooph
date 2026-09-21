@@ -502,7 +502,7 @@ function sectionEight(ctx: PackageContext): string {
         "run       the run id",
         "at        graph | node:<node-id> | edge:<edge-id> | loop:<loop-id>",
         "started   ISO timestamp from the clock, or omitted        ended     the same",
-        "outcome   pass | fail | halt | invalid-evidence; started on a dispatch line",
+        "outcome   pass | fail | halt | invalid-evidence; started on a dispatch line, ending on the line before the final note (§11)",
         "verdict   the critic's verdict label, when there is one",
         "round     the loop round this belongs to",
         "stop      on the loop note that ends the loop: the kind of the stop that fired",
@@ -779,14 +779,22 @@ function sectionEleven(ctx: PackageContext): string {
       : ["This graph has no stop node: the run ends when no edge is left to take.", ""]),
     "Whichever way it ends, do all three:",
     "",
-    `1. Append the final note: ${code('"at":"graph"')} with the outcome and a ${code(
+    `1. Append one short line first, ${code('{"at":"graph","outcome":"ending"}')} with a ${code(
       "text",
-    )} that names the stop that fired or the stop node reached.`,
+    )} naming how the run ends, then the final note: ${code('"at":"graph"')} with the outcome and a ${code(
+      "text",
+    )} that names the stop that fired or the stop node reached. The ${code(
+      "ending",
+    )} line is how a monitor tells a run that finished from one that was cut off while finishing.`,
     `2. Write the last ${code("PROGRESS.md")}: which nodes ran, how many rounds, ${
       adaptive ? "every amendment to the working copy, " : ""
     }and why the run ended.`,
     `3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, ${
       adaptive ? "whether the working copy was amended (so they can adopt or discard it), " : ""
     }and what is left over.`,
+    "",
+    `The final note and ${code("PROGRESS.md")} are the record. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, ${code(
+      `${ctx.paths.runs}/<run-id>/`,
+    )}.`,
   );
 }

@@ -90,6 +90,7 @@ const agentNode = obj(
     deny: opt(arr(capability)),
     owns: opt(arr(str())),
     irreversible: opt(arr(str())),
+    skills: opt(arr(str())),
   },
   { name: "AgentNode" },
 );
@@ -269,6 +270,7 @@ const template = obj(
     slots: opt(arr(obj({ key: str(), ask: str(), example: str() }, { name: "TemplateSlot" }))),
     tags: opt(arr(str())),
     demo: opt(str()),
+    credits: opt(arr(obj({ name: str(), url: str(), note: str() }, { name: "TemplateCredit" }))),
   },
   { name: "Template" },
 );
@@ -284,8 +286,8 @@ export const runNoteSchema = obj(
     ),
     started: opt(str()),
     ended: opt(str()),
-    outcome: opt(openEnum<"pass" | "fail" | "halt" | "invalid-evidence" | (string & {})>(
-      ["pass", "fail", "halt", "invalid-evidence"],
+    outcome: opt(openEnum<"pass" | "fail" | "halt" | "invalid-evidence" | "started" | "ending" | (string & {})>(
+      ["pass", "fail", "halt", "invalid-evidence", "started", "ending"],
       "outcome",
     )),
     verdict: opt(str()),

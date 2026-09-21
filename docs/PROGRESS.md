@@ -6,16 +6,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). On 2026-09-21 the owner accepted the roadmap (decisions 0010 and 0011): credits and folds (0014), the templates page with a glyph (0015), paired comparisons against a big prompt (0016, stage 10a), prior-art templates (0017), elaborate templates (0018); stage 8 follows. Codex is deferred without a date.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** run the slice 0014 implementer session, then bring its handback to the driver. Independently: run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
+- **Next action (driver):** draft handoff 0015 (templates browse and glyph). **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
 
-- **Slice 0014** (`handoffs/0014-credits-and-folds/`): confirmed 2026-09-21; no spend. Awaiting the implementer session.
+_(none)_
 
 ## Waiting on the owner
 
-_(nothing: slice 0014 confirmed 2026-09-21)_
+_(nothing: handoff 0015 is the driver's next action)_
 
 ## Deferred until the owner reopens Codex
 
@@ -25,6 +25,7 @@ _(nothing: slice 0014 confirmed 2026-09-21)_
 
 | Date | What |
 |---|---|
+| 2026-09-21 | Slice 0014 reconciled and merged: `credits` on templates (taste-polish, ownership-not-swarm, spec-then-loop credited; shown in the index, CLI, app and compare card), blind A/B in the taste-polish critic, `skills` on a node mapped to the agent file, the `ending` marker in the brief and the check, the report sentence. No spend. |
 | 2026-09-21 | Roadmap review: prior-art analysis and roadmap answers published from `handoffs/briefs/`; owner accepted all recommendations. Decisions 0010 (prior art credited, adapted, proved) and 0011 (paired comparisons, three arms, own ledger); amendment A-010 (sources, positioning); `credits` in the template block; `skills` on a node and the `ending` note in graph-ir; scheduled-run section in the target doc; two sentences in the design skill; stages 10a/10b, 13–15 and slices 0014–0018 in the plan; slice 0003 reassigned to Opus. Handoff 0014 drafted. |
 | 2026-09-21 | Slice 0013 merged after fix pass 1: the ledger counts a retry only when it reached a lead; `fresh-grind-rare-judge` re-proved green ($2.97; the package's own judge ran the held-out suite, no amendment, next-phase back edge, exact dispatch counts, per-round copies kept). All sixteen proving records pass the check. |
 | 2026-09-21 | Slice 0013 reviewed: `specialist-critic-bank` re-proved green ($3.10; dispatch count exact, halt note at the gate, zero denials; bar passed at round 0 so no back edge). `fresh-grind-rare-judge` blocked: an expired OAuth session failed the kickoff at $0.00 and the ledger's retry rule then refused the re-proof. Fix pass 1 drafted (fix the rule, run the judge). |
@@ -54,7 +55,7 @@ _(nothing: slice 0014 confirmed 2026-09-21)_
 - One acceptance run is one data point: a small graph, one harness version, one model. Fan-out, `shared` isolation, check nodes and larger graphs are unexercised.
 - Claude Code native units change between releases. `targets/claude-code.md` pins what was verified (2.1.268) and when.
 - `dispatches` is the lead's own count; `--check` now compares it with the record. Exact in seven of eight loops that kept one; the bank's lead counted 8 a round for 6. `turns`, `usd` and `tokens` are advisory inside a session, but a headless lead can see the `--max-budget-usd` position and may halt on it.
-- The rule that an `allow` amendment edits the agent file's `tools:` line rests on the harness documentation; no re-proof needed an amendment, so it is still unexercised under `claude -p`.
+- The rule that an `allow` amendment edits the agent file's `tools:` line rests on the harness documentation; no re-proof needed an amendment, so it is still unexercised under `claude -p`. The same is true of the `ending` marker, the blind A/B sentence and `skills:` preloading: written from the docs, unexercised until the next proving run.
 - Held-out evidence is protected by instruction only; three runs show no builder read it, and the check would say if one did.
 - The same template, task and critics can reach two defensible severity rankings: the bank's triage sent the builder back twice in batch two and passed the same kind of change at round 0 in its re-proof, ranking three reviewer-labelled majors minor with reasons. A bar that depends on a judge's severity call is only as narrow as that judge's brief.
 - An expired OAuth session fails a headless kickoff at $0.00 after the runner's own sign-in check has passed; the runner cannot see it coming.

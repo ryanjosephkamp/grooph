@@ -1729,6 +1729,18 @@ a {
 .ccard-based {
   font-size: 12.5px;
 }
+/* decision 0010: the template's credits, one short line each with the link */
+.credits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+.credits li + li {
+  margin-top: 2px;
+}
 .ccard-profile {
   display: flex;
   flex-wrap: wrap;
@@ -2155,6 +2167,9 @@ a {
 }
 .template-details .ccard-profile {
   margin: 10px 0 6px;
+}
+.template-details .credits {
+  margin: 2px 0 12px;
 }
 .template-use {
   width: 100%;

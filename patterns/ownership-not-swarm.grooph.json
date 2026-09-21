@@ -2,7 +2,7 @@
   "grooph": 0,
   "id": "ownership-not-swarm",
   "name": "Ownership, not swarm",
-  "version": 1,
+  "version": 2,
   "goal": "{{task}} Done when the pieces are integrated and `{{test-command}}` passes, with each coupled subsystem changed by exactly one owner.",
   "target": {
     "harness": "claude-code"
@@ -46,7 +46,14 @@
       "coupled",
       "grind"
     ],
-    "demo": "experiments/patterns/ownership-not-swarm/README.md"
+    "demo": "experiments/patterns/ownership-not-swarm/README.md",
+    "credits": [
+      {
+        "name": "Claude of Duty process note (Matt Shumer)",
+        "url": "https://github.com/mshumer/Claude-of-Duty",
+        "note": "sequential ownership beat parallel fan-out on coupled systems in the repository's own write-up"
+      }
+    ]
   },
   "description": "A planner splits the task into the coupled core and independent pieces. Two owners, both marked coupled and each owning one subsystem, work in sequence, the second building on the first. Only then do fast workers take the independent pieces, up to three at a time. An integrator joins everything and a test check closes a short grind loop. Parallel fan-out lost to sequential ownership on coupled systems (spec §13); this graph fans out only where nothing is coupled.",
   "nodes": [

@@ -33,6 +33,7 @@ export function mappingNotes(ctx: PackageContext): string {
   ];
 
   const unmapped = (ctx.doc.nodes ?? []).filter((node) => node.kind !== "agent");
+  const skilled = ctx.agents.filter((agent) => (agent.node.skills ?? []).length > 0);
 
   return doc(
     lines(
@@ -108,6 +109,12 @@ export function mappingNotes(ctx: PackageContext): string {
               ctx.paths.lead,
             )} §9); Claude Code reads the edited file at the node's next dispatch, without a restart.`
           : ""
+      }`,
+      "",
+      `The ${code("skills:")} line of the same frontmatter is hand-editable the same way: harness skill names, preloaded at the node's dispatch, from ${code(
+        "skills",
+      )} on the node in the graph document. An unknown name is refused by Claude Code, not by grooph.${
+        skilled.length > 0 ? ` In this package: ${skilled.map((agent) => `${code(agent.file)} (${agent.node.skills!.join(", ")})`).join(", ")}.` : " No node in this graph names one."
       }`,
       "",
       "**A loop's stop values.** The numbers a run actually bumps into:",

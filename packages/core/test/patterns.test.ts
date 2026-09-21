@@ -40,6 +40,9 @@ const TABLE: Record<string, { kind: TemplateKind; profile: `${Profile["cost"]} $
   "fresh-grind-rare-judge": { kind: "graph", profile: "medium medium high" },
 };
 
+/** docs/templates.md §5: the patterns whose shape or name comes from someone's published work (decision 0010). */
+const CREDITED = new Set(["taste-polish", "ownership-not-swarm", "spec-then-loop"]);
+
 const files = readdirSync(patternsDir).filter((name) => name.endsWith(".grooph.json")).sort();
 
 const load = (file: string): Graph => {
@@ -85,8 +88,16 @@ for (const file of files) {
     assert.equal(doc.id, id, "named after its id");
     assert.equal(block.kind, TABLE[id]!.kind);
     assert.equal(`${block.profile.cost} ${block.profile.speed} ${block.profile.rigor}`, TABLE[id]!.profile);
-    assert.equal(doc.version, 1);
+    assert.equal(doc.version, CREDITED.has(id) ? 2 : 1, "version 1, or 2 where slice 0014 added a credit");
     assert.equal(doc.layout, undefined, "layout-free: the app places nodes");
+
+    // Credits (docs/templates.md §1 and §5, decision 0010): the three patterns that owe one carry it, and every credit is complete with a web link.
+    assert.equal((block.credits ?? []).length > 0, CREDITED.has(id), `${id} ${CREDITED.has(id) ? "credits its source" : "owes no credit"}`);
+    for (const credit of block.credits ?? []) {
+      assert.ok(credit.name.trim() && credit.url.trim() && credit.note.trim(), `${id}: a credit names the source, its URL and what was taken`);
+      assert.match(credit.url, /^https?:\/\/\S+$/, `${id}: credit URL is a web link`);
+      assert.doesNotMatch(credit.note, /\bendors/i, `${id}: a credit says what was taken, never endorsement`);
+    }
     assert.ok(canonicalizeWithoutLayout(doc).length < DOC_SIZE_LIMIT / 2, "well under the W_DOC_TOO_LARGE budget");
 
     // Slots: every one declared is used, every one used is declared, and each has a question and an example.

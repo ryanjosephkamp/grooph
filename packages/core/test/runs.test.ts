@@ -197,6 +197,35 @@ test("a halt at a node with no closing note still halts the run; a node started 
   assert.equal(v.loops["review-cycle"]!.round, null);
 });
 
+test("0014-5: the `ending` marker before the final note is ignored when states are derived, as `started` is (graph-ir §6)", () => {
+  const run = load("slice-0007-sandwich");
+  const { notes } = parseRunNotes(run.notesText);
+  // The real run's final note is n-0014; n-0015 is the driver's commentary after it.
+  const at = notes.findIndex((n) => n.id === "n-0014");
+  const marker = note({ id: "n-0013a", at: "graph", outcome: "ending", text: "ending: bar passed, taking the pass edge to done" });
+  const withMarker = [...notes.slice(0, at), marker, ...notes.slice(at)];
+  const s = summarizeRun(withMarker, run.working);
+  const plain = summarizeRun(notes, run.working);
+  assert.equal(s.state, "ended");
+  assert.equal(s.outcome, "pass", "the final note closes the run, not the marker");
+  assert.equal(s.ended, plain.ended);
+  assert.deepEqual(s.nodes, plain.nodes, "no node state moves");
+  assert.deepEqual(s.loops, plain.loops);
+  assert.equal(s.timeline.length, notes.length + 1, "the marker stays in the timeline");
+
+  // Cut off while finishing: the marker is the last line, so nothing closed the run.
+  const cutOff = summarizeRun([...notes.slice(0, at), marker], run.working);
+  assert.equal(cutOff.state, "running");
+  assert.equal(cutOff.outcome, undefined);
+  assert.equal(cutOff.ended, undefined);
+
+  // A marker mis-filed at a node is still not a result.
+  const graph = load("run-gate").working;
+  const t = summarizeRun([note({ id: "a", at: "node:builder", outcome: "started" }), note({ id: "b", at: "node:builder", outcome: "ending" })], graph);
+  assert.equal(t.nodes["builder"]!.state, "running");
+  assert.equal(t.nodes["builder"]!.lastOutcome, undefined);
+});
+
 test("nested loops: the inner round restarts inside the outer loop; each counter follows its own loop", () => {
   const s = summaryOf("run-nested");
   assert.equal(s.state, "running");

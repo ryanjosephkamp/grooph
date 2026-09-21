@@ -171,6 +171,8 @@ test("show prints the when-to-use, the slots with their questions, and how to us
     assert.match(out, /When to use: No external reference product exists/);
     assert.match(out, /Not for: /);
     assert.match(out, /Profile: cost medium · speed medium · rigor high/);
+    // decision 0010: the credit, with its link and what was taken, between the profile and the slots.
+    assert.match(out, /Inspired by: Answer-key-first Gauntlet, a community modification of Matt Pocock's Wayfinder <https:\/\/github\.com\/mattpocock\/skills\/blob\/main\/docs\/engineering\/wayfinder\.md> — write the spec and a pass\/fail answer key before the loop/);
     assert.match(out, /Slots:\n {2}task {2,}What should be built or changed\?/);
     assert.match(out, /Loop build: builder, critic; stops: bar passed, max iterations: 4, budget: 10 dispatches/);
     assert.match(out, /Use it: grooph template use spec-then-loop --name "<graph name>" --set task="…" --set test-command="…" --out <file>/);

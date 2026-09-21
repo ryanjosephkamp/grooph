@@ -51,6 +51,8 @@ The durable place for that change is `model.tier` or `effort` on the node in the
 
 The durable place is `allow` or `deny` on the node in the graph document.
 
+The `skills:` line of the same frontmatter is hand-editable the same way: harness skill names, preloaded at the node's dispatch, from `skills` on the node in the graph document. An unknown name is refused by Claude Code, not by grooph. No node in this graph names one.
+
 **A loop's stop values.** The numbers a run actually bumps into:
 
 - `fix-cycle` (grind): `max-iterations n=5`, `budget 20 minutes` — edit them in `.grooph/fix-until-green/LEAD.md` §6 for this run, or in the graph document to keep them.

@@ -87,7 +87,7 @@ export function targetHighlight(target: NoteTarget, doc: Graph): { nodes: Id[]; 
 
 /** The label a state shows beside its icon. A finished node shows the lead's own word when it used one. */
 export function stateLabel(state: NodeRunState, lastOutcome?: string): string {
-  if (state === "passed" && lastOutcome && !["pass", "fail", "halt", "invalid-evidence", "started"].includes(lastOutcome)) return lastOutcome;
+  if (state === "passed" && lastOutcome && !["pass", "fail", "halt", "invalid-evidence", "started", "ending"].includes(lastOutcome)) return lastOutcome;
   return state;
 }
 
@@ -95,6 +95,8 @@ export function stateLabel(state: NodeRunState, lastOutcome?: string): string {
 export function outcomeState(outcome: string | undefined): NodeRunState | undefined {
   if (outcome === undefined) return undefined;
   if (outcome === "started") return "running";
+  // The `ending` marker (graph-ir §6) is the line before the final note, not a result: a plain dot, no tick.
+  if (outcome === "ending") return undefined;
   if (outcome === "pass") return "passed";
   if (outcome === "fail" || outcome === "invalid-evidence") return "failed";
   if (outcome === "halt") return "halted";

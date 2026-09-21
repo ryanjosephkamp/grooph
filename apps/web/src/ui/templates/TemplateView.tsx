@@ -5,6 +5,7 @@ import { download } from "../../doc/exportPackage.js";
 import { builtInTemplate, slotsOf, type TemplateSource } from "../../doc/templates.js";
 import { deleteUserTemplate, getUserTemplate, templateFileName, templateFileText } from "../../store/templates.js";
 import { GraphViewer } from "../open/GraphViewer.js";
+import { Credits } from "./Credits.js";
 import { ProfileChips } from "./ProfileChips.js";
 import { templateHref } from "./TemplatesScreen.js";
 
@@ -89,6 +90,7 @@ function TemplateDetails({ source, doc }: { source: TemplateSource; doc: Graph }
         <p className="field-hint">A fragment: open a graph, then Add → Insert a template.</p>
       )}
       <ProfileChips profile={t.profile} />
+      <Credits credits={t.credits} />
       <dl className="readonly">
         <div className="readonly-row">
           <dt>Use when</dt>

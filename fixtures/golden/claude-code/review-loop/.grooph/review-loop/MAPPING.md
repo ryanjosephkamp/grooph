@@ -52,6 +52,8 @@ The durable place for that change is `model.tier` or `effort` on the node in the
 
 The durable place is `allow` or `deny` on the node in the graph document. A running lead edits `tools:` itself when it amends a node's capabilities (`.grooph/review-loop/LEAD.md` §9); Claude Code reads the edited file at the node's next dispatch, without a restart.
 
+The `skills:` line of the same frontmatter is hand-editable the same way: harness skill names, preloaded at the node's dispatch, from `skills` on the node in the graph document. An unknown name is refused by Claude Code, not by grooph. No node in this graph names one.
+
 **A loop's stop values.** The numbers a run actually bumps into:
 
 - `review-cycle` (judgment): `bar-passed`, `max-iterations n=4`, `budget 40 turns` — edit them in `.grooph/review-loop/LEAD.md` §6 for this run, or in the graph document to keep them.
