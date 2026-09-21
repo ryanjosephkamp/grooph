@@ -23,6 +23,7 @@ import type {
   PolicyScope,
   Profile,
   Template,
+  TemplateCredit,
   TemplateKind,
   TemplateSlot,
 } from "./types.js";
@@ -274,6 +275,7 @@ export type TemplateMeta = {
   slots?: TemplateSlot[];
   tags?: string[];
   demo?: string;
+  credits?: TemplateCredit[];
 };
 
 /**
@@ -314,6 +316,7 @@ export function extractTemplate(doc: Graph, options: { kind: TemplateKind; nodeI
   if (slots.length > 0) block.slots = slots;
   if (meta.tags !== undefined && meta.tags.length > 0) block.tags = meta.tags;
   if (meta.demo !== undefined) block.demo = meta.demo;
+  if (meta.credits !== undefined && meta.credits.length > 0) block.credits = meta.credits.map((credit) => ({ ...credit }));
 
   const lineage: NonNullable<Graph["lineage"]> = { from: `${doc.id}@${doc.version}` };
   if (doc.lineage?.pattern !== undefined) lineage.pattern = doc.lineage.pattern;
@@ -427,6 +430,7 @@ export type TemplateIndexEntry = {
   /** the template's file, relative to the index */
   file: string;
   demo?: string;
+  credits?: TemplateCredit[];
 };
 
 export type TemplateIndex = { grooph: 0; generated?: string; templates: TemplateIndexEntry[] };
@@ -448,6 +452,7 @@ export function templateIndexEntry(template: Graph, file = `${template.id}.groop
     ...(slots.length > 0 ? { slots } : {}),
     file,
     ...(block.demo !== undefined ? { demo: block.demo } : {}),
+    ...(block.credits !== undefined && block.credits.length > 0 ? { credits: block.credits.map((credit) => ({ ...credit })) } : {}),
   };
 }
 

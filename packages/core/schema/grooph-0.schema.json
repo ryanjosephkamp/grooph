@@ -285,6 +285,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -773,7 +779,9 @@
             "pass",
             "fail",
             "halt",
-            "invalid-evidence"
+            "invalid-evidence",
+            "started",
+            "ending"
           ]
         },
         "verdict": {
@@ -1061,6 +1069,12 @@
         },
         "demo": {
           "type": "string"
+        },
+        "credits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TemplateCredit"
+          }
         }
       },
       "required": [
@@ -1069,6 +1083,25 @@
         "summary",
         "whenToUse",
         "profile"
+      ]
+    },
+    "TemplateCredit": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "note"
       ]
     },
     "TemplateSlot": {
