@@ -132,10 +132,15 @@ test("list shows the built-in library without touching the network", async () =>
 
     const json = capture();
     assert.equal(await grooph(box, ["template", "list", "--json"], json), 0);
-    const listed = JSON.parse(text(json.stdout)) as { templates: { id: string; source: string; kind: string }[] };
+    const listed = JSON.parse(text(json.stdout)) as { templates: { id: string; source: string; kind: string; glyph?: string }[] };
     assert.equal(listed.templates.length, 16);
     assert.ok(listed.templates.every((t) => t.source === "built-in"));
     assert.equal(listed.templates.find((t) => t.id === "human-gated-irreversible")?.kind, "fragment");
+    // Every built-in row points at its bundled glyph (slice 0015, criterion 6), the same bytes patterns/glyphs/ holds.
+    for (const t of listed.templates) {
+      assert.match(t.glyph ?? "", /\/patterns\/glyphs\/[a-z-]+\.svg$/, `${t.id} has a glyph path`);
+      assert.equal(readFileSync(t.glyph!, "utf8"), readFileSync(join(patterns, "glyphs", `${t.id}.svg`), "utf8"), `${t.id}: the bundled glyph`);
+    }
   } finally {
     box.cleanup();
   }
@@ -153,10 +158,12 @@ test("project shadows user shadows built-in, and list says so", async () => {
 
     const list = capture();
     await grooph(box, ["template", "list", "--json"], list);
-    const rows = (JSON.parse(text(list.stdout)) as { templates: { id: string; source: string; shadowedBy?: string }[] }).templates.filter(
+    const rows = (JSON.parse(text(list.stdout)) as { templates: { id: string; source: string; shadowedBy?: string; glyph?: string }[] }).templates.filter(
       (t) => t.id === "review-gate",
     );
     assert.deepEqual(rows.map((r) => [r.source, r.shadowedBy]), [["project", undefined], ["user", "project"], ["built-in", "project"]]);
+    // A registry without pre-drawn glyphs gives no path (grooph glyph draws one); the built-in one always has it.
+    assert.deepEqual(rows.map((r) => r.glyph === undefined), [true, true, false]);
   } finally {
     box.cleanup();
   }
@@ -397,6 +404,11 @@ test("--registry names the remote to use, as an index URL or its folder", async 
     assert.equal(await grooph(box, ["template", "list", "--registry", `${base}/lib/index.json`], list), 0);
     assert.match(text(list.stdout), new RegExp(`remote \\(${base}/lib/index\\.json\\)\\n {2}review-gate .*\\(shadowed by the built-in one\\)`));
     assert.match(text(list.stdout), /17 templates\./);
+    // A remote row's glyph is the URL beside its registry (the published library keeps glyphs/ there).
+    const json = capture();
+    assert.equal(await grooph(box, ["template", "list", "--registry", `${base}/lib/index.json`, "--json"], json), 0);
+    const remoteRow = (JSON.parse(text(json.stdout)) as { templates: { id: string; source: string; glyph?: string }[] }).templates.find((t) => t.id === "remote-grind")!;
+    assert.equal(remoteRow.glyph, `${base}/lib/glyphs/remote-grind.svg`);
   } finally {
     box.cleanup();
   }

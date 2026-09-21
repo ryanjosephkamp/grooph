@@ -1876,66 +1876,6 @@ a {
   align-items: flex-start;
   gap: 8px;
 }
-.mini {
-  width: 100%;
-  border-radius: 12px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  pointer-events: none; /* a swipe over the picture still moves the cards */
-  overflow: hidden;
-}
-.mini .react-flow {
-  background: transparent;
-}
-.mnode {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 136px;
-  min-height: 46px;
-  padding: 5px 8px;
-  border: 1px solid var(--line-strong);
-  border-radius: 9px;
-  background: var(--surface);
-}
-.mnode.gnode-stop {
-  border-radius: 23px;
-}
-.mnode.in-loop {
-  outline: 1.5px solid var(--loop);
-  outline-offset: 1.5px;
-}
-.mnode-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.mnode-name {
-  font-size: 12.5px;
-  font-weight: 680;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mnode-sub {
-  font-size: 10.5px;
-  color: var(--ink-3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.mini .gedge-label {
-  min-height: 18px;
-  padding: 0 6px;
-  font-size: 10px;
-}
-.mini .gedge-label.is-quiet {
-  width: 9px;
-  height: 9px;
-  min-height: 0;
-  padding: 0;
-}
 .ccard-actions {
   display: none; /* on a phone the bar below carries them */
 }
@@ -2127,9 +2067,23 @@ a {
   text-decoration: none;
   box-shadow: var(--shadow);
 }
+/* slice 0015: the glyph beside the text, the row built to scan (decision 0007) */
+.template-row {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px 10px 10px;
+}
 .template-row:active,
 .insert-row:active {
   background: var(--surface-2);
+}
+.template-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 .template-title {
   display: flex;
@@ -2138,6 +2092,7 @@ a {
   gap: 8px;
   font-size: 16px;
   font-weight: 660;
+  line-height: 1.25;
 }
 .template-when,
 .template-not,
@@ -2145,6 +2100,15 @@ a {
   font-size: 14px;
   line-height: 1.4;
   color: var(--ink-2);
+}
+.template-row .template-when {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 13.5px;
+  line-height: 1.35;
 }
 .template-label {
   font-weight: 700;
@@ -2155,6 +2119,187 @@ a {
 }
 .template-profile {
   margin-top: 2px;
+}
+.template-meters {
+  display: flex;
+  gap: 12px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.template-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+}
+
+/* ─── slice 0015: the glyph, and browsing the library ─────────────────── */
+
+.glyph {
+  display: block;
+}
+.glyph svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* A thumbnail beside a row's text: fixed box, the drawing fitted and centred. */
+.template-glyph {
+  flex: none;
+  width: 92px;
+  height: 58px;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.graph-glyph {
+  flex: none;
+  width: 72px;
+  height: 44px;
+  padding: 3px;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.graph-open {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.graph-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ccard-glyph {
+  width: 100%;
+  max-height: 180px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.ccard-glyph svg {
+  max-height: 160px;
+  margin: 0 auto;
+}
+.glyph-card {
+  margin: 0 0 12px;
+}
+.glyph-large {
+  width: 100%;
+  max-height: 200px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.glyph-large svg {
+  max-height: 176px;
+  margin: 0 auto;
+}
+.glyph-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.glyph-note {
+  margin-top: 6px;
+}
+
+.browse {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.browse-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.browse-q {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.browse-toggle {
+  flex: none;
+  gap: 6px;
+}
+.browse-toggle.is-on {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.browse-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+.browse-meta {
+  font-size: 13.5px;
+  min-height: 36px;
+}
+.browse-shown {
+  flex: 1 1 auto;
+  font-variant-numeric: tabular-nums;
+}
+.browse-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.browse-sort .input {
+  width: auto;
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+.browse-clear {
+  font-size: 13.5px;
+}
+.browse-filters {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.browse-group {
+  display: grid;
+  gap: 6px;
+}
+.browse-group-label {
+  font-size: 12px;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.browse-chips .chip {
+  min-height: 40px;
+}
+.chip-more {
+  border-style: dashed;
+  color: var(--accent);
+}
+.browse-none {
+  margin-top: 16px;
+}
+.templates .list-title {
+  margin-top: 16px;
 }
 .templates-hint {
   margin-top: 20px;

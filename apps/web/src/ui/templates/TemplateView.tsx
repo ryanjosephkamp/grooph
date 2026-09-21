@@ -1,9 +1,10 @@
-import { validate, type Graph } from "@grooph/core";
+import { glyph, mermaid, validate, type Graph } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
-import { download } from "../../doc/exportPackage.js";
+import { copyText, download } from "../../doc/exportPackage.js";
 import { builtInTemplate, slotsOf, type TemplateSource } from "../../doc/templates.js";
 import { deleteUserTemplate, getUserTemplate, templateFileName, templateFileText } from "../../store/templates.js";
+import { Glyph } from "../Glyph.js";
 import { GraphViewer } from "../open/GraphViewer.js";
 import { Credits } from "./Credits.js";
 import { ProfileChips } from "./ProfileChips.js";
@@ -81,6 +82,7 @@ function TemplateDetails({ source, doc }: { source: TemplateSource; doc: Graph }
   const [confirm, setConfirm] = useState(false);
   return (
     <div className="inspector template-details">
+      <GlyphCard doc={doc} />
       <p className="prose">{t.summary}</p>
       {t.kind === "graph" ? (
         <a className="btn btn-primary template-use" href={templateHref(source, doc.id, true)}>
@@ -151,6 +153,38 @@ function TemplateDetails({ source, doc }: { source: TemplateSource; doc: Graph }
             <span className="mono">grooph template add &lt;url&gt;</span>.
           </p>
         </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The glyph at the top of the template page (slice 0015), with the two ways
+ * to take it along: the SVG as a file, through the app's download path, and
+ * the Mermaid projection on the clipboard, through its copy path (a page
+ * cannot start a download by itself).
+ */
+function GlyphCard({ doc }: { doc: Graph }) {
+  const [note, setNote] = useState<string | null>(null);
+  return (
+    <div className="glyph-card">
+      <Glyph doc={doc} className="glyph-large" />
+      <div className="glyph-actions">
+        <button type="button" className="btn btn-small" onClick={() => download(`${doc.id}.svg`, `${glyph(doc)}\n`, "image/svg+xml")}>
+          Save glyph
+        </button>
+        <button
+          type="button"
+          className="btn btn-small"
+          onClick={async () => setNote((await copyText(mermaid(doc))) ? "Mermaid copied. It is a one-way picture: edit the document, not the text." : "Could not copy; the Mermaid text is what grooph mermaid prints.")}
+        >
+          Copy Mermaid
+        </button>
+      </div>
+      {note ? (
+        <p className="field-hint glyph-note" role="status">
+          {note}
+        </p>
       ) : null}
     </div>
   );

@@ -14,7 +14,7 @@ const dir = join(repoRoot, "handoffs/0006-executive-path");
 test.skip(!process.env["GROOPH_SHOTS"], "screenshots are made on request (GROOPH_SHOTS=1)");
 
 async function settle(page: Page): Promise<void> {
-  await expect(page.locator(".ccard").first().locator(".mini .react-flow__node").first()).toBeVisible();
+  await expect(page.locator(".ccard").first().locator(".ccard-glyph svg")).toBeVisible();
   await page.waitForTimeout(400);
 }
 

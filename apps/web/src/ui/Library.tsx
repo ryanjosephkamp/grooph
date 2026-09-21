@@ -29,6 +29,7 @@ import {
 import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
 import { listRuns, saveRun } from "../store/runs.js";
 import { saveUserTemplate } from "../store/templates.js";
+import { Glyph } from "./Glyph.js";
 import { PersistNotice } from "./Notices.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
 
@@ -273,10 +274,13 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
               ) : (
                 <>
                   <button type="button" className="graph-open" onClick={() => open(r.key)}>
-                    <span className="graph-name">{r.doc.name || "Untitled"}</span>
-                    <span className="graph-meta">
-                      <span className="mono">{r.doc.id}</span> · {r.doc.nodes.length} node{r.doc.nodes.length === 1 ? "" : "s"} ·{" "}
-                      {r.doc.loops.length} loop{r.doc.loops.length === 1 ? "" : "s"} · {when(r.updatedAt)}
+                    <Glyph doc={r.doc} className="graph-glyph" decorative />
+                    <span className="graph-text">
+                      <span className="graph-name">{r.doc.name || "Untitled"}</span>
+                      <span className="graph-meta">
+                        <span className="mono">{r.doc.id}</span> · {r.doc.nodes.length} node{r.doc.nodes.length === 1 ? "" : "s"} ·{" "}
+                        {r.doc.loops.length} loop{r.doc.loops.length === 1 ? "" : "s"} · {when(r.updatedAt)}
+                      </span>
                     </span>
                   </button>
                   <button

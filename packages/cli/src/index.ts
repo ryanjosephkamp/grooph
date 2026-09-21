@@ -14,6 +14,7 @@ import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
+import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
 import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
@@ -43,6 +44,8 @@ Usage
   grooph canonicalize <file> [--write]
   grooph export <file> --target <harness> --into <dir>
   grooph shape <file> [--json]
+  grooph glyph <file> [--out <svg>] [--scale <n>]
+  grooph mermaid <file> [--out <file>]
   grooph share <graph | proposal set | run dir | run bundle> [--base <url>] [--open] [--out <file>]
   grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
   grooph template list | show | use | insert | save | add …   (grooph template help)
@@ -69,6 +72,8 @@ Commands
   export         Validate for export, then write the harness package into <dir> and print the
                  kickoff prompt. Refuses, with the reasons, when the document has errors.
   shape          Counts and brakes at a glance: agents, gates, loops, worst-case rounds, budgets.
+  glyph          The graph's shape as a small wordless SVG: the picture the app and the write-ups show.
+  mermaid        A one-way Mermaid flowchart of the graph (it never round-trips; edit the document).
   share          A link that opens a graph, a proposal set of candidate graphs to compare, or a
                  run, in the app on any device. The document rides in the link; nothing is uploaded.
   pick           Write the chosen candidate of a proposal set out as a graph, ready to export.
@@ -209,6 +214,22 @@ export async function run(
         return shapeCommand(io, file, { json: values["json"] === true });
       }
 
+      case "glyph": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, scale: { type: "string" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "glyph needs a file: grooph glyph <graph file> [--out <svg file>]");
+        const scale = values["scale"] === undefined ? undefined : Number(values["scale"]);
+        if (scale !== undefined && !(scale > 0)) return usageError(io, `--scale must be a positive number, got "${values["scale"]}"`);
+        return glyphCommand(io, file, { ...(values["out"] !== undefined ? { out: values["out"] } : {}), ...(scale !== undefined ? { scale } : {}) });
+      }
+
+      case "mermaid": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "mermaid needs a file: grooph mermaid <graph file> [--out <file>]");
+        return mermaidCommand(io, file, values["out"] !== undefined ? { out: values["out"] } : {});
+      }
+
       case "share": {
         const { positionals, values } = parseArgs({
           args: rest,
@@ -337,6 +358,8 @@ const COMMAND_HELP: Record<string, string> = {
   watch: WATCH_HELP,
   pick: PICK_HELP,
   shape: SHAPE_HELP,
+  glyph: GLYPH_HELP,
+  mermaid: MERMAID_HELP,
 };
 
 function usageError(io: Output, message: string): number {

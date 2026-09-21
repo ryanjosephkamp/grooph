@@ -7,7 +7,7 @@
  */
 
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import {
   canonicalize,
@@ -118,12 +118,24 @@ export async function templateList(io: Output, env: RegistryEnv, flags: ListFlag
   }
 
   if (flags.json === true) {
+    // `glyph` (slice 0015): the template's pre-drawn glyph beside its registry, when there is one (always for the
+    // built-in library and the published one); otherwise `grooph glyph <location>` draws it.
+    const localGlyph = (r: Found): { glyph: string } | {} => {
+      const path = join(dirname(r.location), "glyphs", `${r.doc.id}.svg`);
+      return existsSync(path) ? { glyph: path } : {};
+    };
     io.out(
       JSON.stringify(
         {
           templates: [
-            ...rows.map((r) => ({ ...r.entry, source: r.source, location: r.location, ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}) })),
-            ...remote.map((r) => ({ ...r.entry, source: "remote", location: new URL(r.entry.file, r.url).href, ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}) })),
+            ...rows.map((r) => ({ ...r.entry, source: r.source, location: r.location, ...localGlyph(r), ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}) })),
+            ...remote.map((r) => ({
+              ...r.entry,
+              source: "remote",
+              location: new URL(r.entry.file, r.url).href,
+              glyph: new URL(`glyphs/${r.entry.id}.svg`, r.url).href,
+              ...(r.shadowedBy ? { shadowedBy: r.shadowedBy } : {}),
+            })),
           ],
           skipped,
           errors: remoteErrors,

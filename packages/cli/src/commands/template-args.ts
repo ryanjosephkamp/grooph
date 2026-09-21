@@ -24,7 +24,9 @@ pattern library, and only then remotely: each --registry <url> (an index.json, o
 holding one), or else the published library (${"$"}GROOPH_REGISTRY overrides it).
 
   list     Every local template with its kind, profile and when-to-use line; --registry adds a
-           remote registry's. A local template shadows a later one with the same id.
+           remote registry's. A local template shadows a later one with the same id. --json
+           adds each row's index entry, source and location, and \`glyph\`: the path or URL of
+           its pre-drawn glyph where the registry keeps one (grooph glyph draws any other).
   show     One template: summary, when to use and not, profile, slots with their questions,
            nodes, edges and loops.
   use      A new graph from a whole-graph template: slots filled from --set, a new id and name,

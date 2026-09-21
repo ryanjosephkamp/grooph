@@ -46,6 +46,8 @@ type TemplateIndex = { grooph: 0; generated?: string; templates: {
   profile: Profile; tags?: string[]; slots?: string[]; file: string; demo?: string; credits?: { name: string; url: string; note: string }[] }[] };
 ```
 
+Since slice 0015 a registry may also hold `glyphs/<id>.svg`, the wordless shape of each template drawn by core's `glyph()` (the drawing language is the header of `packages/core/src/glyph.ts`; `grooph glyph <file>` draws any document). The built-in index is regenerated with its glyphs and `patterns-index.mjs --check` fails on a stale, missing or stray one; `template list --json` names a row's `glyph` path only where the registry keeps one.
+
 Resolution order by name (template id), first hit wins:
 
 1. **Project:** `.grooph/templates/` in the working tree.

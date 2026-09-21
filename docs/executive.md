@@ -52,7 +52,7 @@ Rules (`validateProposalSet` in core, same issue shape as graphs): ids unique; o
 
 What `#/open` shows for `kind: "proposals"`; a single graph opens in the read-only canvas with the same Save button.
 
-- Phone first: the brief at the top, then one card per candidate, swipeable. A card carries the label, the recommended badge with its why, profile chips, the shape line ("4 agents · 1 loop · up to 4 rounds · 10 dispatches"), rationale, pros and cons, validation status, a read-only auto-laid-out canvas, and "Open full graph".
+- Phone first: the brief at the top, then one card per candidate, swipeable. A card carries the label, the recommended badge with its why, profile chips, the shape line ("4 agents · 1 loop · up to 4 rounds · 10 dispatches"), rationale, pros and cons, validation status, the graph's glyph (its wordless shape, in place of the earlier compact canvas since slice 0015), and "Open full graph".
 - At desktop width the cards sit side by side with aligned rows, so the differences read across.
 - **Choose** copies one line for the chat: `I pick "<label>" (<candidate id>) from <set id>.` The owner may also just say the label.
 - **Save to this device** stores the chosen graph (or all of them) in the library, where it is editable like any other.

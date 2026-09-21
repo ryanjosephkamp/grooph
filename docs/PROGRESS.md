@@ -6,8 +6,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). On 2026-09-21 the owner accepted the roadmap (decisions 0010 and 0011): credits and folds (0014), the templates page with a glyph (0015), paired comparisons against a big prompt (0016, stage 10a), prior-art templates (0017), elaborate templates (0018); stage 8 follows. Codex is deferred without a date.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** confirm slice 0015 and paste its prompt into an Opus 5 session. **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
-- **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
+- **Next action (driver):** write the comparison protocol and draft handoff 0016 (paired comparisons, stage 10a). **Owner:** the comparison spend ($100 cap on a new ledger) needs approval when the handoff is presented; your own `/grooph-design` run stays on your schedule. **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
+- **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); the templates page with search, filters, sort and a glyph per template; `grooph glyph` and `grooph mermaid`; credits on templates; `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
 
@@ -15,9 +15,7 @@ _(none)_
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0015 (`handoffs/0015-templates-browse-glyph/HANDOFF.md`): search, filter and sort on the templates page; the glyph in core; `grooph glyph` and `grooph mermaid`; glyphs on the site and in the write-ups. No spend. | Yes |
+_(nothing until handoff 0016 is drafted)_
 
 ## Deferred until the owner reopens Codex
 
@@ -27,6 +25,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-21 | Slice 0015 reconciled and merged: `glyph()` and `mermaid()` in core with the layered layout moved there; `grooph glyph` and `grooph mermaid`; the templates page with search, filters, sort and per-viewer persistence; glyphs on the list, the template page, the compare cards, the graph list, `patterns/glyphs/` and the write-up tables. Stage 13 done. No spend. |
 | 2026-09-21 | Slice 0014 reconciled and merged: `credits` on templates (taste-polish, ownership-not-swarm, spec-then-loop credited; shown in the index, CLI, app and compare card), blind A/B in the taste-polish critic, `skills` on a node mapped to the agent file, the `ending` marker in the brief and the check, the report sentence. No spend. |
 | 2026-09-21 | Roadmap review: prior-art analysis and roadmap answers published from `handoffs/briefs/`; owner accepted all recommendations. Decisions 0010 (prior art credited, adapted, proved) and 0011 (paired comparisons, three arms, own ledger); amendment A-010 (sources, positioning); `credits` in the template block; `skills` on a node and the `ending` note in graph-ir; scheduled-run section in the target doc; two sentences in the design skill; stages 10a/10b, 13–15 and slices 0014–0018 in the plan; slice 0003 reassigned to Opus. Handoff 0014 drafted. |
 | 2026-09-21 | Slice 0013 merged after fix pass 1: the ledger counts a retry only when it reached a lead; `fresh-grind-rare-judge` re-proved green ($2.97; the package's own judge ran the held-out suite, no amendment, next-phase back edge, exact dispatch counts, per-round copies kept). All sixteen proving records pass the check. |

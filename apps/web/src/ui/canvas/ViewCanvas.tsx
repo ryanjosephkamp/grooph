@@ -1,40 +1,16 @@
-import type { Graph, Id, Issue, Node as DocNode, RunSummary } from "@grooph/core";
-import { Background, BackgroundVariant, Handle, Position, ReactFlow, useReactFlow, type EdgeTypes, type Node, type NodeProps, type NodeTypes } from "@xyflow/react";
-import { memo, useEffect, useMemo, useState } from "react";
+import type { Graph, Id, Issue, RunSummary } from "@grooph/core";
+import { Background, BackgroundVariant, ReactFlow, useReactFlow, type EdgeTypes, type NodeTypes } from "@xyflow/react";
+import { useEffect, useMemo, useState } from "react";
 
-import { KIND_LABEL } from "../../doc/catalog.js";
 import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
-import { MINI_BOX, NODE_HEIGHT, NODE_WIDTH, autoLayout, resolvePositions } from "../../doc/layout.js";
+import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, type Box } from "./bends.js";
 import { FIT } from "./fit.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
 
-type MiniData = { node: DocNode; loopColor?: number };
-type MiniFlowNode = Node<MiniData, "mini">;
-
-/** A node small enough that a whole candidate fits a phone card: kind, name, and role with tier. */
-const MiniNode = memo(function MiniNode({ data }: NodeProps<MiniFlowNode>) {
-  const { node } = data;
-  const sub =
-    node.kind === "agent"
-      ? [typeof node.role === "string" ? node.role : node.role.custom, node.model?.tier].filter(Boolean).join(" · ")
-      : KIND_LABEL[node.kind].toLowerCase();
-  return (
-    <div className={`mnode gnode-${node.kind}${data.loopColor !== undefined ? ` in-loop loop-c${data.loopColor % 4}` : ""}`} data-node-id={node.id}>
-      <Handle type="target" position={Position.Top} isConnectable={false} className="ghandle" />
-      <span className={`kind-mark kind-${node.kind}`} aria-hidden="true" />
-      <span className="mnode-text">
-        <span className="mnode-name">{node.name || node.id}</span>
-        <span className="mnode-sub">{sub}</span>
-      </span>
-      <Handle type="source" position={Position.Bottom} isConnectable={false} className="ghandle" />
-    </div>
-  );
-});
-
-const nodeTypes: NodeTypes = { graph: GraphNode, mini: MiniNode };
+const nodeTypes: NodeTypes = { graph: GraphNode };
 const edgeTypes: EdgeTypes = { graph: GraphEdge };
 
 type Size = { width: number; height: number };
@@ -44,26 +20,25 @@ export type Highlight = { nodes: Id[]; edges: Id[]; loop?: Id };
 
 /**
  * A read-only projection of a graph: nothing here writes to any document.
- * `mini` is the compare card's picture (compact nodes, laid out automatically,
- * fitted, inert so a swipe passes through); `full` is the link viewer's canvas
- * (the document's own layout, pan and zoom, nodes tappable for details).
+ * The link viewer's canvas (the document's own layout, pan and zoom, nodes
+ * tappable for details). The compare card's compact picture that lived here
+ * is the glyph since slice 0015.
  *
  * With `run`, each node carries its run state (icon and label as well as
  * colour) and `highlight` lights up the object a timeline note is about.
  */
 export function ViewCanvas(props: {
   doc: Graph;
-  variant: "mini" | "full";
+  variant: "full";
   issues?: Issue[];
   selected?: Id;
   onNodeTap?: (id: Id) => void;
   run?: RunSummary;
   highlight?: Highlight;
 }) {
-  const { doc, variant } = props;
-  const mini = variant === "mini";
+  const { doc } = props;
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
-  const positions = useMemo(() => (mini ? autoLayout(doc, 2, MINI_BOX) : resolvePositions(doc).positions), [doc, mini]);
+  const positions = useMemo(() => resolvePositions(doc).positions, [doc]);
   const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
 
   const nodes = useMemo(
@@ -71,7 +46,6 @@ export function ViewCanvas(props: {
       doc.nodes.map((node) => {
         const loops = doc.loops.map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members })).filter((l) => l.members.includes(node.id));
         const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
-        if (mini) return { ...base, type: "mini" as const, data: { node, loopColor: loops[0]?.color } } satisfies MiniFlowNode;
         const run = props.run?.nodes[node.id];
         const loopIndex = props.highlight?.loop !== undefined ? doc.loops.findIndex((l) => l.id === props.highlight!.loop) : -1;
         return {
@@ -89,7 +63,7 @@ export function ViewCanvas(props: {
           },
         } satisfies GraphFlowNode;
       }),
-    [doc, positions, measured, mini, severity, props.selected, props.run, props.highlight],
+    [doc, positions, measured, severity, props.selected, props.run, props.highlight],
   );
 
   const edges: GraphFlowEdge[] = useMemo(() => {
@@ -97,7 +71,7 @@ export function ViewCanvas(props: {
     const boxes: Record<Id, Box> = {};
     for (const n of doc.nodes) {
       const p = positions[n.id] ?? { x: 0, y: 0 };
-      boxes[n.id] = { x: p.x, y: p.y, w: measured[n.id]?.width ?? (mini ? MINI_BOX.width : NODE_WIDTH), h: measured[n.id]?.height ?? (mini ? MINI_BOX.height : NODE_HEIGHT) };
+      boxes[n.id] = { x: p.x, y: p.y, w: measured[n.id]?.width ?? NODE_WIDTH, h: measured[n.id]?.height ?? NODE_HEIGHT };
     }
     const bends = edgeBends(doc, boxes);
     return doc.edges
@@ -120,10 +94,10 @@ export function ViewCanvas(props: {
           },
         };
       });
-  }, [doc, positions, measured, mini, severity, props.highlight]);
+  }, [doc, positions, measured, severity, props.highlight]);
 
   return (
-    <ReactFlow<GraphFlowNode | MiniFlowNode, GraphFlowEdge>
+    <ReactFlow<GraphFlowNode, GraphFlowEdge>
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
@@ -133,33 +107,23 @@ export function ViewCanvas(props: {
         for (const change of changes) if (change.type === "dimensions" && change.dimensions) sizes[change.id] = change.dimensions;
         if (Object.keys(sizes).length > 0) setMeasured((m) => ({ ...m, ...sizes }));
       }}
-      onNodeClick={mini ? undefined : (_, node) => props.onNodeTap?.(node.id)}
+      onNodeClick={(_, node) => props.onNodeTap?.(node.id)}
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
       deleteKeyCode={null}
       selectionKeyCode={null}
       multiSelectionKeyCode={null}
-      panOnDrag={!mini}
-      zoomOnPinch={!mini}
-      zoomOnScroll={!mini}
-      zoomOnDoubleClick={!mini}
       panOnScroll={false}
-      preventScrolling={!mini}
       nodeClickDistance={6}
-      minZoom={mini ? 0.3 : 0.2}
-      maxZoom={mini ? 1.1 : 2}
+      minZoom={0.2}
+      maxZoom={2}
       fitView
-      fitViewOptions={
-        mini
-          ? { padding: 0.08, maxZoom: 1.1 }
-          : // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
-            { ...FIT, padding: props.run ? { top: "56px", bottom: "12px", x: "12px" } : { top: "64px", bottom: "100px", x: "20px" } }
-      }
-      proOptions={{ hideAttribution: mini }}
+      // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
+      fitViewOptions={{ ...FIT, padding: props.run ? { top: "56px", bottom: "12px", x: "12px" } : { top: "64px", bottom: "100px", x: "20px" } }}
       attributionPosition="top-right"
     >
-      {mini ? null : <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />}
+      <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
       {props.highlight ? <FocusOn ids={props.highlight.nodes} /> : null}
     </ReactFlow>
   );
@@ -175,12 +139,4 @@ function FocusOn({ ids }: { ids: Id[] }) {
     void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: 250 });
   }, [key, flow]);
   return null;
-}
-
-/** The height a card gives its picture: the laid-out graph at full size, within reason. */
-export function miniHeight(doc: Graph): number {
-  const positions = Object.values(autoLayout(doc, 2, MINI_BOX));
-  if (positions.length === 0) return 120;
-  const rows = Math.max(...positions.map((p) => p.y)) + MINI_BOX.height;
-  return Math.max(140, Math.min(400, rows + 36));
 }

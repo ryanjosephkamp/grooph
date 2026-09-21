@@ -100,7 +100,10 @@ test("a three-candidate link opens the comparison with each card's facts above t
   await expect(lean.getByRole("list", { name: "Profile" }).getByRole("listitem")).toHaveText(["Low cost", "Fast", "Light rigor"]);
   await expect(card(page, "reviewed").locator(".ccard-status")).toContainText("1 warning");
   await expect(card(page, "reviewed").locator(".cons li")).toHaveCount(2);
-  await expect(lean.locator(".mini .react-flow__node")).toHaveCount(3);
+  // The card's picture is the glyph (slice 0015): three node shapes, one hull, no words.
+  await expect(lean.locator(".ccard-glyph svg")).toBeVisible();
+  await expect(lean.locator(".ccard-glyph svg rect[width='22'], .ccard-glyph svg path[stroke-width='1.8'], .ccard-glyph svg circle[r='6']")).toHaveCount(3);
+  await expect(lean.locator(".ccard-glyph svg text")).toHaveCount(0);
   // Nothing is stored by opening.
   await page.goto("./");
   await expect(page.getByText("No graphs on this device yet.")).toBeVisible();

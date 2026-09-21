@@ -43,7 +43,9 @@ for (const id of ids) {
 }
 
 const total = rows.reduce((sum, row) => sum + Number(row.cost.slice(1)), 0);
+// The first column carries the template's glyph (slice 0015): patterns/glyphs/<id>.svg, relative to experiments/patterns/.
+const shape = (id) => `<img src="../../patterns/glyphs/${id}.svg" alt="" width="120"><br>[\`${id}\`](${id}/README.md)`;
 console.log("| Template | Run | Last round | Back edge taken, caught by | Ending | Cost | Harness turns | Denials | Dispatch count | `--check` |");
 console.log("|---|---|---|---|---|---|---|---|---|---|");
-for (const row of rows) console.log(`| [\`${row.id}\`](${row.id}/README.md) | \`${row.run}\` | ${row.rounds} | ${row.back} | ${row.ending} | ${row.cost} | ${row.turns} | ${row.denials} | ${row.accuracy} | ${row.check} |`);
+for (const row of rows) console.log(`| ${shape(row.id)} | \`${row.run}\` | ${row.rounds} | ${row.back} | ${row.ending} | ${row.cost} | ${row.turns} | ${row.denials} | ${row.accuracy} | ${row.check} |`);
 console.log(`\n${rows.length} records, $${total.toFixed(2)} in all.`);

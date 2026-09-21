@@ -1,0 +1,306 @@
+{
+  "grooph": 0,
+  "id": "glyph-vocabulary",
+  "name": "Glyph vocabulary",
+  "version": 1,
+  "goal": "Exercise every shape and line the glyph draws: writer, critic, other agent, check, gate, merge, stop and halt, an irreversible step, pass, fail, verdict and approval edges, and a loop nested in another.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "A test document for the glyph and the Mermaid projection (slice 0015), not a pattern. A planner and a researcher feed a builder whose work runs through a grind loop on tests inside a judgment loop on a critic; a docs writer's output merges with the builder's before a human gate, which either approves the irreversible merge or halts.",
+  "nodes": [
+    {
+      "id": "plan",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Write the plan.",
+      "outputs": [
+        "PLAN.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "scout",
+      "kind": "agent",
+      "name": "Scout",
+      "role": "researcher",
+      "model": {
+        "tier": "fast"
+      },
+      "brief": "Find prior art.",
+      "outputs": [
+        "NOTES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "web"
+      ]
+    },
+    {
+      "id": "build",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Build it.",
+      "outputs": [
+        "src/"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "pnpm test",
+        "pass": "exit 0"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "brief": "Judge the change against the plan.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "docs",
+      "kind": "agent",
+      "name": "Docs writer",
+      "role": "synthesizer",
+      "model": {
+        "tier": "fast"
+      },
+      "brief": "Write the docs.",
+      "outputs": [
+        "docs/"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ],
+      "owns": [
+        "docs"
+      ]
+    },
+    {
+      "id": "merge",
+      "kind": "merge",
+      "name": "Merge",
+      "merges": [
+        "src",
+        "docs"
+      ]
+    },
+    {
+      "id": "gate",
+      "kind": "human-gate",
+      "name": "Ship?",
+      "prompt": "Merge to main?",
+      "options": [
+        "approve",
+        "reject"
+      ]
+    },
+    {
+      "id": "ship",
+      "kind": "agent",
+      "name": "Ship",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "brief": "Merge the branch.",
+      "outputs": [
+        "merge commit"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-commands"
+      ],
+      "irreversible": [
+        "merge"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    },
+    {
+      "id": "halt",
+      "kind": "stop",
+      "name": "Halt",
+      "outcome": "halt"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-plan-build",
+      "from": "plan",
+      "to": "build"
+    },
+    {
+      "id": "e-scout-build",
+      "from": "scout",
+      "to": "build"
+    },
+    {
+      "id": "e-build-tests",
+      "from": "build",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "build",
+      "when": "fail"
+    },
+    {
+      "id": "e-tests-critic",
+      "from": "tests",
+      "to": "critic",
+      "when": "pass"
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "build",
+      "when": "fail"
+    },
+    {
+      "id": "e-critic-evidence",
+      "from": "critic",
+      "to": "build",
+      "when": {
+        "verdict": "needs-evidence"
+      }
+    },
+    {
+      "id": "e-critic-merge",
+      "from": "critic",
+      "to": "merge",
+      "when": "pass"
+    },
+    {
+      "id": "e-docs-merge",
+      "from": "docs",
+      "to": "merge"
+    },
+    {
+      "id": "e-merge-gate",
+      "from": "merge",
+      "to": "gate"
+    },
+    {
+      "id": "e-gate-ship",
+      "from": "gate",
+      "to": "ship",
+      "when": "pass",
+      "approval": true
+    },
+    {
+      "id": "e-gate-halt",
+      "from": "gate",
+      "to": "halt",
+      "when": "fail"
+    },
+    {
+      "id": "e-ship-done",
+      "from": "ship",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "build",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 10
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "name": "Review",
+      "members": [
+        "build",
+        "tests",
+        "critic"
+      ],
+      "back": [
+        "e-critic-fail",
+        "e-critic-evidence"
+      ],
+      "bar": {
+        "name": "Plan met",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "REVIEW.md"
+          }
+        ],
+        "acceptance": "The critic finds nothing a reader of PLAN.md would miss."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 12
+        }
+      ]
+    }
+  ]
+}
