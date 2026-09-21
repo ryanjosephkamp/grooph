@@ -1,6 +1,6 @@
 # Handoff 0014 · Credits and folds
 
-**Stage:** 4 and 6 · **Implementer:** Opus 5 · **Effort:** `high` (floor `medium`: small, well-specified changes with tests and goldens; `high` because the brief wording is a runtime contract) · **Branch:** `slice/0014-credits-and-folds` · **Drafted:** 2026-09-21 · **Confirmed by owner:** pending · **Spend:** none (no model run, no ledger write)
+**Stage:** 4 and 6 · **Implementer:** Opus 5 · **Effort:** `high` (floor `medium`: small, well-specified changes with tests and goldens; `high` because the brief wording is a runtime contract) · **Branch:** `slice/0014-credits-and-folds` · **Drafted:** 2026-09-21 · **Confirmed by owner:** 2026-09-21 · **Spend:** none (no model run, no ledger write)
 
 ## Objective
 

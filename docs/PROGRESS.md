@@ -6,18 +6,16 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). On 2026-09-21 the owner accepted the roadmap (decisions 0010 and 0011): credits and folds (0014), the templates page with a glyph (0015), paired comparisons against a big prompt (0016, stage 10a), prior-art templates (0017), elaborate templates (0018); stage 8 follows. Codex is deferred without a date.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** confirm slice 0014 and paste its prompt into an Opus 5 session. Independently: run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
+- **Next action (owner):** run the slice 0014 implementer session, then bring its handback to the driver. Independently: run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
 
-_(none)_
+- **Slice 0014** (`handoffs/0014-credits-and-folds/`): confirmed 2026-09-21; no spend. Awaiting the implementer session.
 
 ## Waiting on the owner
 
-| Item | Recommended answer |
-|---|---|
-| Confirm slice 0014 (`handoffs/0014-credits-and-folds/HANDOFF.md`): credits on templates, blind A/B wording, `skills` on a node, the `ending` note. No spend. | Yes |
+_(nothing: slice 0014 confirmed 2026-09-21)_
 
 ## Deferred until the owner reopens Codex
 
