@@ -1,0 +1,224 @@
+{
+  "template": "spec-then-loop",
+  "arm": "B",
+  "replicate": 1,
+  "project": "spec-then-loop",
+  "graph_id": "word-wrap",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/spec-then-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-PSal5Y.harness/held-out",
+      "files": [
+        {
+          "path": "wrap-invariants.test.mjs",
+          "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "spec-then-loop",
+    "template_version": 1,
+    "graph_id": "word-wrap",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-PSal5Y"
+  },
+  "derivation": {
+    "graph": "word-wrap",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "planner",
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "build"
+    ],
+    "gates": [
+      "spec-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.54205275,
+      "output_tokens": 22986
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.7662445,
+      "output_tokens": 5704
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-opus-5",
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 2.308297,
+  "harness_turns": 10,
+  "duration_s": 269,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.54205275,
+        "output_tokens": 22986
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 0.7662445,
+        "output_tokens": 5704
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-opus-5",
+        "claude-fable-5-1"
+      ]
+    },
+    "cost_usd": 2.308297,
+    "harness_turns": 10,
+    "duration_s": 269,
+    "wall_s": 271,
+    "permission_denials": [],
+    "subagents_dispatched": 3,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Planner: write ACCEPTANCE.md"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement wrap, round 0"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: judge change vs ACCEPTANCE.md"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 24,
+      "session_id": "275c8bc8-10ae-44b0-a28a-8b640f14c421",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.593154,
+      "reported_cost_usd": 0.5931542499999999,
+      "max_budget_usd": 9,
+      "harness_turns": 2,
+      "duration_s": 54,
+      "wall_s": 55,
+      "gate": {
+        "halted": true,
+        "changed": [
+          "ACCEPTANCE.md"
+        ],
+        "planning_outputs_present": [
+          "ACCEPTANCE.md"
+        ],
+        "built": [],
+        "resumed": true
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "`npm test` passes, all tests green.\n\n**Out of scope:** hyphenation / hard-splitting long words; wide/CJK chars, combining marks, ANSI codes, tab expansion (width = JS string length); indentation, prefixes, justification, CLI; changes to `countWords`.\n\nThe planner flagged one judgment call: item 6 leaves over-long words unbroken rather than hard-splitting them. If you'd rather hard-break, items 5, 6 and the first out-of-scope bullet would flip together.\n\n**Is this the right definition of done?** Reply **approve** to dispatch the builder, or **reject** to end the run so the task can be restated."
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 25,
+      "session_id": "275c8bc8-10ae-44b0-a28a-8b640f14c421",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.715143,
+      "reported_cost_usd": 1.715143,
+      "max_budget_usd": 9,
+      "harness_turns": 8,
+      "duration_s": 215,
+      "wall_s": 216,
+      "gate": {
+        "answer": "approve",
+        "gate": "spec-gate"
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--resume",
+        "275c8bc8-10ae-44b0-a28a-8b640f14c421"
+      ],
+      "output": "claude-output-resume.json",
+      "reply_tail": "pass, 0 fail (run by builder, by me, and independently by the critic). REVIEW.md marks all 13 acceptance items as holding, each with a file:line or test citation. `package.json`, `src/count.mjs`, `tests/count.test.mjs` untouched.\n\n**One design choice both builder and critic flagged, within spec:** runs of multiple blank lines between paragraphs collapse to a single blank line. ACCEPTANCE.md item 8 is silent on that case; if you want runs preserved verbatim, it's a one-line change in `src/wrap.mjs:25-34` plus one test assertion.\n\nNothing has been committed — say the word if you'd like a commit."
+    }
+  ],
+  "base_commit": "08b79c42072f9d8f0245d344c954e6f11e6ed024",
+  "project_files_changed": [
+    "A ACCEPTANCE.md",
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-PSal5Y",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}
