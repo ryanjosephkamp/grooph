@@ -11,7 +11,10 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0015
+
+- Criterion 1 met (`7458224`): `glyph(document, options?)` in core draws the wordless SVG (writer square, critic diamond, other-agent rounded square, check hexagon, gate octagon, merge circle, stop dot, irreversible bar; pass solid, fail dashed, verdict dotted, approval doubled; back edges returning in lanes; a dashed hull per loop), byte-identical for the same document, from the document's `layout` or the layered layout now in core (`layerNodes`, `autoLayout`, `resolvePositions`); colours are CSS variables with fallbacks; `<title>` carries the name. `pnpm --filter @grooph/core test`: 273 pass.
+- Criterion 2 met (`57c54ef`): `grooph glyph <file> [--out <svg>] [--scale <n>]` and `grooph mermaid <file> [--out <file>]`, both with `--help`; `mermaid()` in core emits `flowchart LR` with a subgraph per loop (nested), shaped labels, `when`/`approval` edge labels, dotted back edges, a styled note per stop and a one-way header. Unit tests cover fix-until-green (loop, back edge), review-loop (gate, layout), approval-fragment (irreversible, fragment) and a new `fixtures/valid/glyph-vocabulary.grooph.json` (every shape and line, nested loops); all eight sample outputs parse in Mermaid 11. `pnpm --filter @grooph/cli test`: 60 pass.
 
 ## Waiting on the owner
 
