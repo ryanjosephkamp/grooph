@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { SHARE_LINK_WARN, canonicalize, decodeSharePayload, parseGraphText, sharePayloadFrom, type Graph, type ProposalSet } from "@grooph/core";
+import { SHARE_LINK_WARN, canonicalize, decodeSharePayload, glyph, mermaid, parseGraphText, sharePayloadFrom, type Graph, type ProposalSet } from "@grooph/core";
 
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -278,12 +278,81 @@ test("shape prints the line and the tiers, or the shape as JSON", async () => {
   assert.match(text(io.stderr), /is not a graph document/);
 });
 
+// ─── glyph and mermaid (slice 0015) ───────────────────────────────────────
+
+test("glyph prints the SVG core draws, byte for byte, or writes it with --out; --scale sets the size attributes", async () => {
+  let io = capture();
+  assert.equal(await grooph(["glyph", reviewLoopPath], io), 0);
+  const doc = parseGraphText(readFileSync(reviewLoopPath, "utf8")).doc!;
+  assert.equal(text(io.stdout), glyph(doc));
+  assert.deepEqual(io.stderr, []);
+  assert.match(text(io.stdout), /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox=/);
+  assert.match(text(io.stdout), /<title>Review loop<\/title>/);
+  assert.doesNotMatch(text(io.stdout).replace(/<title>.*<\/title>/, ""), /Builder|Critic|Merge approval|Done/, "no words");
+
+  const dir = mkdtempSync(join(tmpdir(), "grooph-glyph-"));
+  try {
+    io = capture();
+    assert.equal(await grooph(["glyph", reviewLoopPath, "--out", join(dir, "sub", "review-loop.svg"), "--scale", "2"], io), 0);
+    assert.deepEqual(io.stdout, [`wrote ${join(dir, "sub", "review-loop.svg")}`]);
+    assert.equal(readFileSync(join(dir, "sub", "review-loop.svg"), "utf8"), `${glyph(doc, { scale: 2 })}\n`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  io = capture();
+  assert.equal(await grooph(["glyph", csvSet], io), 1);
+  assert.match(text(io.stderr), /is not a graph document/);
+  io = capture();
+  assert.equal(await grooph(["glyph", reviewLoopPath, "--scale", "0"], io), 1);
+  assert.match(text(io.stderr), /--scale must be a positive number/);
+  io = capture();
+  assert.equal(await grooph(["glyph"], io), 1);
+  assert.match(text(io.stderr), /glyph needs a file/);
+});
+
+test("mermaid prints a one-way flowchart LR with a subgraph per loop, labels and stop notes, or writes it with --out", async () => {
+  let io = capture();
+  assert.equal(await grooph(["mermaid", reviewLoopPath], io), 0);
+  const doc = parseGraphText(readFileSync(reviewLoopPath, "utf8")).doc!;
+  assert.equal(`${text(io.stdout)}\n`, mermaid(doc));
+  const lines = text(io.stdout).split("\n");
+  assert.equal(lines[0], "%% grooph mermaid: a projection of Review loop (review-loop@1). One way only: it does not round-trip.");
+  assert.equal(lines[2], "flowchart LR");
+  assert.match(text(io.stdout), /subgraph n_review_cycle\["Build-review cycle · judgment loop"\]/);
+  assert.match(text(io.stdout), /n_critic -\.->\|"fail"\| n_builder/);
+  assert.match(text(io.stdout), /n_merge_gate\[\/"Merge approval"\\\]/);
+  assert.equal(text(io.stdout).match(/:::stop$/gm)!.length, doc.loops[0]!.stops.length, "a note per stop");
+
+  const dir = mkdtempSync(join(tmpdir(), "grooph-mermaid-"));
+  try {
+    io = capture();
+    assert.equal(await grooph(["mermaid", reviewLoopPath, "--out", join(dir, "review-loop.mmd")], io), 0);
+    assert.equal(readFileSync(join(dir, "review-loop.mmd"), "utf8"), mermaid(doc));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  io = capture();
+  assert.equal(await grooph(["mermaid", csvSet], io), 1);
+  assert.match(text(io.stderr), /is not a graph document/);
+  io = capture();
+  assert.equal(await grooph(["mermaid"], io), 1);
+  assert.match(text(io.stderr), /mermaid needs a file/);
+});
+
 test("every command answers --help with exit 0; share's page carries the proposal set format", async () => {
   let io = capture();
   assert.equal(await grooph(["share", "--help"], io), 0);
   assert.match(text(io.stdout), /"groophProposals": 0/);
   assert.match(text(io.stdout), /Leave "shape" out: share computes it\./);
-  for (const command of ["pick", "shape", "validate", "export", "new", "apply"]) {
+  io = capture();
+  assert.equal(await grooph(["glyph", "--help"], io), 0);
+  assert.match(text(io.stdout), /^grooph glyph <graph file> \[--out <svg file>\]/);
+  io = capture();
+  assert.equal(await grooph(["mermaid", "--help"], io), 0);
+  assert.match(text(io.stdout), /One way only/);
+  for (const command of ["pick", "shape", "glyph", "mermaid", "validate", "export", "new", "apply"]) {
     io = capture();
     assert.equal(await grooph([command, "--help"], io), 0, command);
     assert.ok(io.stdout.length > 0 && io.stderr.length === 0, command);

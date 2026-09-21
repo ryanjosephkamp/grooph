@@ -38,12 +38,15 @@ jobs:
       # The build bakes in the base path /grooph/ (apps/web/vite.config.ts).
       - run: pnpm --filter @grooph/web build
 
-      # Never publish a stale index: it is what remote registries read.
+      # Never publish a stale index: it is what remote registries read. The
+      # glyphs (patterns/glyphs/, slice 0015) go with it, so a write-up and
+      # `grooph template list --json` can point at one per template.
       - name: publish the pattern library beside the app
         run: |
           pnpm --filter @grooph/core build
           node scripts/patterns-index.mjs --check
           cp -R patterns apps/web/dist/patterns
+          test -f apps/web/dist/patterns/glyphs/review-gate.svg
 
       - name: publish the pattern proving runs
         run: |

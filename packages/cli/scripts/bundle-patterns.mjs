@@ -5,7 +5,7 @@
  * files wherever it is installed. Run by `pnpm build` after tsc.
  */
 
-import { copyFileSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,4 +17,8 @@ rmSync(to, { recursive: true, force: true });
 mkdirSync(to, { recursive: true });
 const files = readdirSync(from).filter((name) => name.endsWith(".grooph.json") || name === "index.json");
 for (const file of files) copyFileSync(join(from, file), join(to, file));
-console.log(`bundled ${files.length} pattern files into dist/patterns/`);
+// The pre-drawn glyphs too (slice 0015), so `template list --json` can point at one per built-in template.
+const glyphs = existsSync(join(from, "glyphs")) ? readdirSync(join(from, "glyphs")).filter((name) => name.endsWith(".svg")) : [];
+if (glyphs.length > 0) mkdirSync(join(to, "glyphs"), { recursive: true });
+for (const file of glyphs) copyFileSync(join(from, "glyphs", file), join(to, "glyphs", file));
+console.log(`bundled ${files.length} pattern files and ${glyphs.length} glyphs into dist/patterns/`);

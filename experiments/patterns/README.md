@@ -72,22 +72,22 @@ One kept run per template (`run/`; for `review-gate`, `spec-then-loop`, `special
 
 | Template | Batch | Back edge taken, caught by | Denials | Dispatch count | `--check` |
 |---|---|---|---|---|---|
-| [`contradiction-seeker`](contradiction-seeker/README.md) | first | none | 8 | no count kept | pass |
-| [`debate-then-build`](debate-then-build/README.md) | second | none | 1 | exact (3) | pass |
-| [`dual-bar`](dual-bar/README.md) | second | none | 2 | exact (2) | pass |
-| [`fresh-grind-rare-judge`](fresh-grind-rare-judge/README.md) | second (re-proved after 0012) | yes: e-judge-next-phase; caught by judge (next-phase) | 3 | exact (3, 6) | pass |
-| [`grind-loop`](grind-loop/README.md) | first | none | 3 | no count kept | pass |
-| [`heterogeneous-critic`](heterogeneous-critic/README.md) | second | yes: e-critic-fail; caught by critic (fail) | 9 | exact (2, 4) | pass |
-| [`human-gated-irreversible`](human-gated-irreversible/README.md) | second | none | 1 | no count kept | pass |
-| [`metric-sandwich`](metric-sandwich/README.md) | first | none | 4 | no count kept | pass |
-| [`ownership-not-swarm`](ownership-not-swarm/README.md) | second | none | 2 | no count kept | pass |
-| [`red-team-loop`](red-team-loop/README.md) | second | none | 2 | exact (2) | pass |
-| [`retrospective-rewrite`](retrospective-rewrite/README.md) | second | none | 2 | no count kept | pass |
-| [`review-gate`](review-gate/README.md) | first (re-proved after 0010) | none | 2 | no count kept | pass |
-| [`spec-then-loop`](spec-then-loop/README.md) | first (re-proved after 0010) | none | 14 | exact (2) | pass |
-| [`specialist-critic-bank`](specialist-critic-bank/README.md) | second (re-proved after 0012) | none | 0 | exact (6) | pass |
-| [`taste-polish`](taste-polish/README.md) | second | yes: e-critic-fail; caught by critic (fail) | 7 | exact (3, 6) | pass |
-| [`tournament-then-judge`](tournament-then-judge/README.md) | second | none | 0 | no count kept | pass |
+| <img src="../../patterns/glyphs/contradiction-seeker.svg" alt="" width="120"><br>[`contradiction-seeker`](contradiction-seeker/README.md) | first | none | 8 | no count kept | pass |
+| <img src="../../patterns/glyphs/debate-then-build.svg" alt="" width="120"><br>[`debate-then-build`](debate-then-build/README.md) | second | none | 1 | exact (3) | pass |
+| <img src="../../patterns/glyphs/dual-bar.svg" alt="" width="120"><br>[`dual-bar`](dual-bar/README.md) | second | none | 2 | exact (2) | pass |
+| <img src="../../patterns/glyphs/fresh-grind-rare-judge.svg" alt="" width="120"><br>[`fresh-grind-rare-judge`](fresh-grind-rare-judge/README.md) | second (re-proved after 0012) | yes: e-judge-next-phase; caught by judge (next-phase) | 3 | exact (3, 6) | pass |
+| <img src="../../patterns/glyphs/grind-loop.svg" alt="" width="120"><br>[`grind-loop`](grind-loop/README.md) | first | none | 3 | no count kept | pass |
+| <img src="../../patterns/glyphs/heterogeneous-critic.svg" alt="" width="120"><br>[`heterogeneous-critic`](heterogeneous-critic/README.md) | second | yes: e-critic-fail; caught by critic (fail) | 9 | exact (2, 4) | pass |
+| <img src="../../patterns/glyphs/human-gated-irreversible.svg" alt="" width="120"><br>[`human-gated-irreversible`](human-gated-irreversible/README.md) | second | none | 1 | no count kept | pass |
+| <img src="../../patterns/glyphs/metric-sandwich.svg" alt="" width="120"><br>[`metric-sandwich`](metric-sandwich/README.md) | first | none | 4 | no count kept | pass |
+| <img src="../../patterns/glyphs/ownership-not-swarm.svg" alt="" width="120"><br>[`ownership-not-swarm`](ownership-not-swarm/README.md) | second | none | 2 | no count kept | pass |
+| <img src="../../patterns/glyphs/red-team-loop.svg" alt="" width="120"><br>[`red-team-loop`](red-team-loop/README.md) | second | none | 2 | exact (2) | pass |
+| <img src="../../patterns/glyphs/retrospective-rewrite.svg" alt="" width="120"><br>[`retrospective-rewrite`](retrospective-rewrite/README.md) | second | none | 2 | no count kept | pass |
+| <img src="../../patterns/glyphs/review-gate.svg" alt="" width="120"><br>[`review-gate`](review-gate/README.md) | first (re-proved after 0010) | none | 2 | no count kept | pass |
+| <img src="../../patterns/glyphs/spec-then-loop.svg" alt="" width="120"><br>[`spec-then-loop`](spec-then-loop/README.md) | first (re-proved after 0010) | none | 14 | exact (2) | pass |
+| <img src="../../patterns/glyphs/specialist-critic-bank.svg" alt="" width="120"><br>[`specialist-critic-bank`](specialist-critic-bank/README.md) | second (re-proved after 0012) | none | 0 | exact (6) | pass |
+| <img src="../../patterns/glyphs/taste-polish.svg" alt="" width="120"><br>[`taste-polish`](taste-polish/README.md) | second | yes: e-critic-fail; caught by critic (fail) | 7 | exact (3, 6) | pass |
+| <img src="../../patterns/glyphs/tournament-then-judge.svg" alt="" width="120"><br>[`tournament-then-judge`](tournament-then-judge/README.md) | second | none | 0 | no count kept | pass |
 
 ## What the second batch showed
 
