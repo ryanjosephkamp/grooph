@@ -46,7 +46,7 @@ A: held-out 88/88, cost $2.43–$2.56 (n = 3) · B: held-out 88/88, cost $2.26�
 
 ## The judge's reasons
 
-One call, `claude-fable-5-1`, no tools, nine candidates under random letters ([`judge/transcript.md`](judge/transcript.md), [`judge/verdict.json`](judge/verdict.json), $0.86). Seven scored 5/5; B-2 and A-3 scored 4/5 — B-2 for preserving every input newline verbatim against its own acceptance item, A-3 for hard-splitting long words, "which departs from the conventional meaning of word wrapping". The three A runs took ranks 6, 7 and 9; the ranking is B, C, B, C, C, A, A, B, A.
+One call, `claude-fable-5-1`, no tools, nine candidates under random letters ([`judge/transcript.md`](judge/transcript.md), [`judge/verdict.json`](judge/verdict.json), $1.12). Seven scored 5/5; B-2 and A-3 scored 4/5 — B-2 for preserving every input newline verbatim against its own acceptance item, A-3 for hard-splitting long words, "which departs from the conventional meaning of word wrapping". The three A runs took ranks 6, 7 and 9; the ranking is B, C, B, C, C, A, A, B, A.
 
 1. **B-1** (letter T, 5/5): Paragraph-aware wrapping that collapses blank-line runs and drops leading and trailing blanks (src/wrap.mjs lines 21 to 36) is correct and terminal-friendly. The tests are the most exhaustive: width loops, blank lines containing only whitespace, and the long-word-then-resume case at tests/wrap.test.mjs lines 47 to 58.
 2. **C-2** (letter H, 5/5): Blank-line paragraphs are preserved while single newlines collapse (src/wrap.mjs lines 19 to 23), a sensible middle ground, and the regex is verified against four consecutive newlines and leading and trailing blanks (tests/wrap.test.mjs lines 54 to 59). Width 1 and edge-space checks round out solid regression coverage.

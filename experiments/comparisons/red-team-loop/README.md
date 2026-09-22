@@ -41,7 +41,7 @@ Permission refusals were highest in the prompt arms (B 10–18, C 6–14, A 5): 
 
 ## The judge's reasons
 
-One call, `claude-fable-5-1`, no tools, six candidates under random letters ([`judge/transcript.md`](judge/transcript.md), [`judge/verdict.json`](judge/verdict.json), $0.72). Five scored 5/5 and B-1 4/5; the ranking rests on the tests' rigor (an oracle fuzz, an exhaustive short-string sweep with content checks, a round-trip) and the ranking is C, B, C, A, A, B: both A runs sit in the lower half, for fuzz tests that "check only result shape, not content against an oracle".
+One call, `claude-fable-5-1`, no tools, six candidates under random letters ([`judge/transcript.md`](judge/transcript.md), [`judge/verdict.json`](judge/verdict.json), $1.90). Five scored 5/5 and B-1 4/5; the ranking rests on the tests' rigor (an oracle fuzz, an exhaustive short-string sweep with content checks, a round-trip) and the ranking is C, B, C, A, A, B: both A runs sit in the lower half, for fuzz tests that "check only result shape, not content against an oracle".
 
 1. **C-1** (letter G, 5/5): Correct parser with lazy parts accumulation and an index on CsvError. Tests are the most rigorous: oracle fuzz, exhaustive length-6 sweep with verified count, round-trip encoding, statelessness/mutation checks, and per-shape perf tests each asserting content.
 2. **B-2** (letter E, 5/5): Correct parser with a compatible position field on CsvError. Tests include an independent reference over all strings to length 5, a 20 000-case serializer round-trip fuzz, position assertions, and sixteen large-record shapes with a separate content-correctness test. Nothing unmet.
