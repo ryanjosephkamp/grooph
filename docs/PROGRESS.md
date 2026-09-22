@@ -13,6 +13,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ### Slice 0017 · prior-art templates (implementer: Opus 5, branch `slice/0017-prior-art-templates`)
 
+- 2026-09-22 · Criterion 2 met: four tasks pre-registered before their runs, each with why a first pass should fail and the expected round-0 probability (`ralph-loop` a four-item plan whose item-2 cases pin what item 1 left open; `patrol-pulse` two faults in routine noise with one already ticketed; `gauntlet-decomposed` two pieces of a card against a held-out reference; `merge-queue` a three-patch batch with one breaking change).
+- 2026-09-22 · Criterion 3, three of four runs: `patrol-pulse` $1.31 green (no loop; one ticket filed, one deduped, halt at the gate), `merge-queue` $1.09 green (`e-bisect-integrate` taken, 002 held, halt at `land-gate`, nothing landed), `ralph-loop` $2.52 with both back edges taken and five passes to `done`, but `--check` red on one assertion: the fix-round builder read the held-out case file it was told not to. Kept red (decision 0009). The `ending` line appeared for the first time, in `ralph-loop`.
 - 2026-09-22 · Criterion 1 met: `ralph-loop`, `patrol-pulse`, `gauntlet-decomposed` and the `merge-queue` fragment under `patterns/` with credits; index, README and 20 glyphs regenerated; `patterns.test.ts` covers the four (plan-check command, read-only investigator, nested loops with the outer bar on `PIECES.md`, the fragment inserted into a grind-loop host). Count-only edits to the CLI and web e2e tests (16 → 20) sit in their own commit, outside the allowed changes.
 
 ## Waiting on the owner
