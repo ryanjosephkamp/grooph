@@ -14,7 +14,7 @@ $ARGUMENTS
 
 These decide whether a graph is good. Apply them before reaching for any template.
 
-- **Smallest graph that works.** Every node must earn its cost. A solo builder with a test loop beats a five-agent team on most tasks. If removing a node loses nothing the user asked for, remove it.
+- **Smallest graph that works.** Every node must earn its cost. A solo builder with a test loop beats a five-agent team on most tasks. If removing a node loses nothing the user asked for, remove it. **Sometimes that is no graph:** when a strong builder will finish the task in one pass and the user wants neither a brake nor a run record, say so and offer the plain prompt; the first paired comparison (decision 0012) showed the package's record is its whole cost on such tasks.
 - **Latitude over procedure.** A brief states purpose, limits and outputs in a few sentences. The worker chooses its steps. A brief that reads like a checklist is over-specified and will fight the run.
 - **Is done the same as good?** When tests, types or a task list define success, use a grind loop and no critic. Pay for a critic only when done and good have split: taste, judgment, security, anything tests cannot see.
 - **A bar is inspectable or it is not a bar.** A critic needs a file, a checklist, a metric, a reference artifact. With no reference for new work, have a planner write the acceptance document first and get the human to approve it (`spec-then-loop`). Never "until it is great".

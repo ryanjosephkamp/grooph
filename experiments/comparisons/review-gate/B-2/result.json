@@ -1,0 +1,162 @@
+{
+  "template": "review-gate",
+  "arm": "B",
+  "replicate": 2,
+  "project": "review-gate",
+  "graph_id": "truncate",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-B-4swW4O.harness/held-out",
+      "files": [
+        {
+          "path": "truncate-cases.test.mjs",
+          "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+        }
+      ],
+      "substituted_in": [
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "review-gate",
+    "template_version": 1,
+    "graph_id": "truncate",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-B-4swW4O"
+  },
+  "derivation": {
+    "graph": "truncate",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.04990775,
+      "output_tokens": 13962
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.049908,
+  "harness_turns": 9,
+  "duration_s": 160,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.04990775,
+        "output_tokens": 13962
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 1.049908,
+    "harness_turns": 9,
+    "duration_s": 160,
+    "wall_s": 161,
+    "permission_denials": [],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement truncate"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: review truncate change"
+      }
+    ],
+    "held_out_touched": {
+      "general-purpose (Critic: review truncate change)": 1
+    }
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 12,
+      "session_id": "e5c0c877-63c0-42b9-827e-8842a45984aa",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.049908,
+      "reported_cost_usd": 1.04990775,
+      "max_budget_usd": 9,
+      "harness_turns": 9,
+      "duration_s": 160,
+      "wall_s": 161,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "IEW.md`, all 7 checklist items **Met** with file:line citations, and independently ran:\n- `npm test` → 12/12 pass, exit 0\n- the held-out suite → 41/41 pass (covers non-ASCII, newlines, String objects, Symbol/boolean `text`, BigInt/boolean/array/-Infinity `max`)\n\n`git status` shows only the four files above changed.\n\n---\n\n**Merge approval:** The critic passed the change against the checklist. Merge it?\n\n- **approve** → run ends with outcome success (I still won't merge; that's yours).\n- **reject** with feedback → the feedback goes to a fresh builder on edge `e-merge-gate-reject` (round 1 of 4)."
+    }
+  ],
+  "base_commit": "16fa0b592d63bb56d96f06f190cff0a905ee4580",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-B-4swW4O",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

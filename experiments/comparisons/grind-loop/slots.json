@@ -1,0 +1,8 @@
+{
+  "name": "Semver compare",
+  "values": {
+    "task": "Implement `compare(a, b)` in src/semver.mjs so that every test in tests/semver.test.mjs passes. The tests are the specification: do not change them. A held-out set of cases exists outside this project and is run against your result after you finish; it is not yours to read or run.",
+    "test-command": "npm test"
+  },
+  "about": "Copied from experiments/patterns/grind-loop/slots.json with one sentence added: a held-out suite exists and is run by the scorer after the run. grind-loop has no reviewer node, so nothing in the run is told where it is; every arm gets the same sentence."
+}

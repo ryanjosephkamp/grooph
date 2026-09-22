@@ -13,6 +13,8 @@ The owner reads on a phone and cannot see tool calls. The report is how they aud
    ```bash
    scripts/prove-pattern.sh --status
    node scripts/lib/prove-summary.mjs
+   scripts/compare.sh --status
+   node scripts/lib/compare-summary.mjs --index
    git log --oneline | wc -l
    ```
    Re-run `pnpm -r test` when the test counts are to be stated. A figure that has no file or command behind it is not stated.
@@ -21,10 +23,10 @@ The owner reads on a phone and cannot see tool calls. The report is how they aud
    - **At a glance**: the handful of figures that matter, each with its source path.
    - **What grooph can do today**, with the live URLs.
    - **What has been done**, dated, from the Done table and the slice ledger.
-   - **What a proving run records and where**: the audit map (ledger, `result.json`, `notes.jsonl`, `PROGRESS.md`, the working copy, digest, diff, package, write-up) and the commands that re-derive the tables.
+   - **What a proving run records and where**: the audit map (ledger, `result.json`, `notes.jsonl`, `PROGRESS.md`, the working copy, digest, diff, package, write-up) and the commands that re-derive the tables. The same for comparisons (`experiments/comparisons/`: per-arm run folders, `score.json`, the judge's transcript and verdict with its separate mapping, `scripts/compare.sh --status`, `node scripts/lib/compare-summary.mjs`).
    - **Results**: the per-template table from `prove-summary.mjs`, a chart only when the data warrants one (load the `dataviz` skill first), the batch comparison.
    - **Findings**, each pointing at the write-up or handback it comes from.
-   - **Effectiveness, speed, cost**: three separate answers. Effectiveness against alternatives is "unknown" until a paired run exists; speed is measured but uncompared; cost is the ledger. Say what each figure is and is not.
+   - **Effectiveness, speed, cost**: three separate answers. Effectiveness comes only from `experiments/comparisons/` and its decisions (0011, 0012): state each study's required lines as written, what the arms compared, and what remains unmeasured (as of study one: a loop that turns). Speed and cost are measured per arm and per run; say what each figure is and is not.
    - **The immediate next step and why**, then **on the horizon**, then **known risks**.
 3. **Honesty rules.** Distinguish records kept in the repository from figures only summarised in a handback. A record that fails its check is shown red, not omitted. A design bet that did not pay is a result. Rounded figures say "about". Nothing is described as done that is only drafted.
 4. **Add what this report needs** beyond the minimum: anything the owner asked for by name; a decision that is waiting on them, with the recommended answer; a change since the last report; a figure whose trend now matters (spend against cap, back-edge rate, denial counts).

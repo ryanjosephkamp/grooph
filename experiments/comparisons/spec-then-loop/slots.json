@@ -1,0 +1,8 @@
+{
+  "name": "Word wrap",
+  "values": {
+    "task": "Add word wrapping to this project: a function that wraps text to a given width.",
+    "test-command": "npm test"
+  },
+  "about": "Copied unchanged from experiments/patterns/spec-then-loop/slots.json. The held-out suite beside this project is the scorer's only: nothing in the run names it."
+}

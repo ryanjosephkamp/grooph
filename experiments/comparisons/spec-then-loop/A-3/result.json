@@ -1,0 +1,286 @@
+{
+  "template": "spec-then-loop",
+  "template_version": "spec-then-loop@2",
+  "slots": {
+    "values": {
+      "task": "Add word wrapping to this project: a function that wraps text to a given width.",
+      "test-command": "npm test"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-ramr1n.harness/held-out",
+    "files": [
+      {
+        "path": "wrap-invariants.test.mjs",
+        "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "word-wrap",
+  "run_id": "20260921-235057",
+  "run_ids": [
+    "20260921-235057"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.8696997499999999,
+      "output_tokens": 22021
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.557188,
+      "output_tokens": 5740
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "word-wrap--critic": [
+      "claude-opus-5"
+    ],
+    "word-wrap--planner": [
+      "claude-fable-5-1"
+    ],
+    "word-wrap--builder": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 2.426888,
+  "harness_turns": 27,
+  "lead_turns": null,
+  "duration_s": 241,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "word-wrap--critic": 1,
+    "word-wrap--planner": 1,
+    "word-wrap--builder": 1
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 34,
+      "session_id": "fcc9cf72-9a4c-4ff4-ae16-4edefbdebaff",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.798691,
+      "reported_cost_usd": 0.7986905,
+      "max_budget_usd": 9,
+      "harness_turns": 15,
+      "duration_s": 85,
+      "wall_s": 86,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "`wrap(\"a\\n\\nb\", 5)` → `\"a\\n\\nb\"`\n12. No output line has leading or trailing spaces\n13. `npm test` passes, old and new tests green\n\n**Out of scope:** hyphenation/justification/padding, display width of wide chars/emoji/ANSI, tabs beyond whitespace, CLI or default export, changes to `count.mjs`.\n\n**Is ACCEPTANCE.md the right definition of done?** Reply **approve** to start the build loop, or **reject** to end the run so the task can be restated. (If you want a line changed rather than the whole thing rejected, say what — I'd record that as a proposal since the acceptance file is the loop's bar.)"
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 35,
+      "session_id": "fcc9cf72-9a4c-4ff4-ae16-4edefbdebaff",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.628197,
+      "reported_cost_usd": 1.6281972499999997,
+      "max_budget_usd": 9,
+      "harness_turns": 12,
+      "duration_s": 156,
+      "wall_s": 157,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--resume",
+        "fcc9cf72-9a4c-4ff4-ae16-4edefbdebaff"
+      ],
+      "output": "claude-output-2.json",
+      "reply_tail": "`notes.jsonl` with 13 lines).\n\n**Left over:**\n- The change is **uncommitted**: `src/wrap.mjs`, `tests/wrap.test.mjs`, a modified `README.md`, plus `ACCEPTANCE.md`, `CHANGES.md`, `REVIEW.md` at the project root and the run folder. Say the word if you want it committed.\n- One open design choice the builder flagged (ACCEPTANCE.md line 10 doesn't pin it): a word longer than `width` that follows other words starts on a fresh line rather than filling the remaining slack — `wrap(\"a abcdefgh b\", 3)` → `\"a\\nabc\\ndef\\ngh\\nb\"`. It's tested explicitly, so it's easy to flip if you prefer the other reading."
+    }
+  ],
+  "base_commit": "68ebc4337daeb03c8d85655bd653c8e33cc56d1e",
+  "source_sha256_before": "eab88bf9a79f3a1fc24d242bc8ec7e438fbcd590d84b825d18dc3184e6b53fb6",
+  "project_files_changed": [
+    "A ACCEPTANCE.md",
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-ramr1n",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source",
+  "arm": "A",
+  "replicate": 3,
+  "project": "spec-then-loop",
+  "conditions": {
+    "task": "experiments/comparisons/spec-then-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-ramr1n.harness/held-out",
+      "files": [
+        {
+          "path": "wrap-invariants.test.mjs",
+          "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "spec-then-loop",
+    "template_version": 1,
+    "graph_id": "word-wrap",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-ramr1n"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.8696997499999999,
+        "output_tokens": 22021
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 0.557188,
+        "output_tokens": 5740
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "word-wrap--critic": [
+        "claude-opus-5"
+      ],
+      "word-wrap--planner": [
+        "claude-fable-5-1"
+      ],
+      "word-wrap--builder": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 2.426888,
+    "harness_turns": 27,
+    "duration_s": 241,
+    "wall_s": 243,
+    "permission_denials": [],
+    "subagents_dispatched": 3,
+    "dispatches": [
+      {
+        "subagent_type": "word-wrap--planner",
+        "description": "Planner: write ACCEPTANCE.md"
+      },
+      {
+        "subagent_type": "word-wrap--builder",
+        "description": "Builder: implement wrap, round 0"
+      },
+      {
+        "subagent_type": "word-wrap--critic",
+        "description": "Critic: judge round 0 change"
+      }
+    ],
+    "held_out_touched": {},
+    "record": {
+      "rounds": {
+        "loop_passes": 1,
+        "rounds_recorded": 1,
+        "last_round": 0
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "stop node done",
+        "stop bar-passed"
+      ],
+      "back_edges": {
+        "later_rounds": 0,
+        "edge_notes": [],
+        "mentioned": [],
+        "caught_by": [],
+        "taken": false
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0010",
+          "loop": "build",
+          "round": 0,
+          "recorded": 2,
+          "started": 2,
+          "off": 0
+        }
+      ],
+      "amendments": [],
+      "halt_notes": [
+        "node:spec-gate"
+      ]
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20260921-235057: the clock form",
+      "ACCEPTANCE.md: planner Write ACCEPTANCE.md",
+      "REVIEW.md: critic Write REVIEW.md",
+      "word-wrap--critic (Critic: judge round 0 change) read ACCEPTANCE.md, src/count.mjs, README.md, package.json; ran `git diff`, `git diff --no-index /dev/null src/wrap.mjs`, `git diff --no-index /dev/null tests/wrap.test.mjs`, `git diff --no-index /dev/null CHANGES.md`, `npm test 2>&1`",
+      "`ending` line before the final note",
+      "ending as expected: stop node done, stop bar-passed",
+      "dispatch count: n-0010 build r0 recorded 2, started lines 2 (exact)",
+      "no back edge taken: every loop note is round 0 and no back edge is named",
+      "verdicts in order: critic → pass",
+      "held-out evidence (wrap-invariants.test.mjs): touched by nobody; named in 0 dispatch prompt(s)",
+      "timestamps: 15 given, 0 out of append order"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "stop node done, stop bar-passed"
+  }
+}

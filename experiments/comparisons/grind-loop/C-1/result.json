@@ -1,0 +1,160 @@
+{
+  "template": "grind-loop",
+  "arm": "C",
+  "replicate": 1,
+  "project": "grind-loop",
+  "graph_id": "semver-compare",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/grind-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-C-oxLgsu.harness/held-out",
+      "files": [
+        {
+          "path": "semver-cases.test.mjs",
+          "sha256": "8e2e6b3c80eae6e34d5ddc957c5c47e7fbbf6e80650509000fb999665f2eb4a8"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "grind-loop",
+    "template_version": 1,
+    "graph_id": "semver-compare",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-C-oxLgsu"
+  },
+  "derivation": {
+    "graph": "semver-compare",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder"
+    ],
+    "loops": [
+      "grind"
+    ],
+    "gates": [],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 5,
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 0.20627700000000002,
+      "output_tokens": 1223
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.0961931,
+      "output_tokens": 3714
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 0.30247,
+  "harness_turns": 3,
+  "duration_s": 53,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 0.20627700000000002,
+        "output_tokens": 1223
+      },
+      "claude-sonnet-5": {
+        "cost_usd": 0.0961931,
+        "output_tokens": 3714
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5"
+      ]
+    },
+    "cost_usd": 0.30247,
+    "harness_turns": 3,
+    "duration_s": 53,
+    "wall_s": 54,
+    "permission_denials": [],
+    "subagents_dispatched": 1,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement semver compare"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 3,
+      "session_id": "47dfaee5-1689-477c-8cb2-7dcc977bfab7",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.30247,
+      "reported_cost_usd": 0.3024701,
+      "max_budget_usd": 9,
+      "harness_turns": 3,
+      "duration_s": 53,
+      "wall_s": 54,
+      "says_done": true,
+      "tests_after": true,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": "`tests` passes: exit code 0, 10/10 pass, 0 skipped. Taking `e-tests-pass` → `done`.\n\n**Run summary**\n- Round 1, `builder` (sonnet): implemented `compare(a, b)` in `src/semver.mjs` with full SemVer 2.0.0 semantics — strict grammar validation (`TypeError` for non-strings, `RangeError` for malformed), numeric major/minor/patch, §11 pre-release precedence (numeric < alphanumeric, field-by-field, longer wins on tie), build metadata ignored. `CHANGES.md` written.\n- `tests` check: `npm test` exit 0, 10 pass / 0 fail / 0 skipped. Tests were not modified.\n- Outcome: success.\n\ndone: yes"
+    }
+  ],
+  "base_commit": "c1cb3052d8e6047b0436f2e567ad67d254a85869",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M src/semver.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-grind-loop-C-oxLgsu",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 5 said done and the tests passed"
+  },
+  "home_redactions": 0
+}

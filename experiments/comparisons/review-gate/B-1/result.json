@@ -1,0 +1,162 @@
+{
+  "template": "review-gate",
+  "arm": "B",
+  "replicate": 1,
+  "project": "review-gate",
+  "graph_id": "truncate",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-B-yNxyIL.harness/held-out",
+      "files": [
+        {
+          "path": "truncate-cases.test.mjs",
+          "sha256": "dc489a3b05f2916499526c1e9343530a40fcce73926a0f788c343ce5b913357b"
+        }
+      ],
+      "substituted_in": [
+        "docs/REVIEW-CHECKLIST.md"
+      ]
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "review-gate",
+    "template_version": 1,
+    "graph_id": "truncate",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-B-yNxyIL"
+  },
+  "derivation": {
+    "graph": "truncate",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.08035225,
+      "output_tokens": 14579
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "claude": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 1.080352,
+  "harness_turns": 9,
+  "duration_s": 161,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.08035225,
+        "output_tokens": 14579
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "claude": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 1.080352,
+    "harness_turns": 9,
+    "duration_s": 161,
+    "wall_s": 162,
+    "permission_denials": [],
+    "subagents_dispatched": 2,
+    "dispatches": [
+      {
+        "subagent_type": "claude",
+        "description": "Builder: implement truncate"
+      },
+      {
+        "subagent_type": "claude",
+        "description": "Critic: judge truncate change"
+      }
+    ],
+    "held_out_touched": {
+      "claude": 1
+    }
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 9,
+      "session_id": "2fb33a47-2ddb-4b6c-b761-6046fca9c943",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.080352,
+      "reported_cost_usd": 1.08035225,
+      "max_budget_usd": 9,
+      "harness_turns": 9,
+      "duration_s": 161,
+      "wall_s": 162,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": " `padStart` entry style.\n- `CHANGES.md` — round-0 summary.\n\n**Critic** (fresh context) ran everything itself and wrote `REVIEW.md`: all 7 checklist items cited as met with file and line; `npm test` 12/12 pass, 0 skipped/todo, exit 0; held-out suite 41/41 pass; `git status` shows nothing changed outside `src/`, `tests/`, `CHANGELOG.md` and the review's own files. **Verdict: pass.**\n\n---\n\n**Merge approval:** The critic passed the change against the checklist. Merge it?\n\n- **approve** → run ends with outcome success.\n- **reject** (with feedback) → your feedback goes to a fresh builder as round 1."
+    }
+  ],
+  "base_commit": "64c2d989b560c47ed585e4a3072057354e3660ae",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/truncate.mjs",
+    "A tests/truncate.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-review-gate-B-yNxyIL",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

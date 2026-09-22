@@ -1,0 +1,59 @@
+{
+  "scored_at": "2026-09-21T21:44:13.525Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/semver-cases.test.mjs",
+    "cases": 62,
+    "passed": 61,
+    "failed": 1,
+    "skipped": 0,
+    "rate": 0.984,
+    "failing": [
+      "1.0.0-99999999999999999998 < 1.0.0-99999999999999999999: numeric identifiers beyond 2^53 still compare as numbers"
+    ],
+    "exit": 1,
+    "suite": [
+      {
+        "path": "semver-cases.test.mjs",
+        "sha256": "8e2e6b3c80eae6e34d5ddc957c5c47e7fbbf6e80650509000fb999665f2eb4a8"
+      }
+    ]
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 10,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "CHANGES.md",
+      "src/semver.mjs"
+    ],
+    "outside": [],
+    "protected": [
+      "tests/semver.test.mjs"
+    ],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "stop node done"
+  }
+}

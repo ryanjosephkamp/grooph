@@ -1,8 +1,24 @@
 {
   "about": "What --check asserts for this template beyond the common rules: the builder and the red team ran as their own subagents; the red team wrote only under traces/ (its owns) and nobody else wrote there; the run ended by the pass edge to the stop node or by diminishing returns. The design bet (write-up): the first hardening leaves something the red team can reproduce, so at least one trace is written and e-red-team-fail is taken.",
-  "agents": ["builder", "red-team"],
-  "reports": {},
-  "ownership": { "red-team": ["traces"] },
+  "agents": [
+    "builder",
+    "red-team"
+  ],
+  "reports": {
+    "red-team": [
+      "ATTACK.md"
+    ]
+  },
+  "ownership": {
+    "red-team": [
+      "traces"
+    ]
+  },
   "backEdge": true,
-  "ending": ["stop node done", "stop diminishing-returns", "stop max-iterations", "stop budget"]
+  "ending": [
+    "stop node done",
+    "stop diminishing-returns",
+    "stop max-iterations",
+    "stop budget"
+  ]
 }

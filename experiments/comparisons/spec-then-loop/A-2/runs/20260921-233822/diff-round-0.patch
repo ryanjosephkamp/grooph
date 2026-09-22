@@ -1,0 +1,134 @@
+diff --git a/README.md b/README.md
+index 0cac2e6..8d1dae1 100644
+--- a/README.md
++++ b/README.md
+@@ -7,3 +7,9 @@ import { countWords } from "./src/count.mjs";
+ 
+ countWords("one two  three"); // 3
+ ```
++
++```js
++import { wrap } from "./src/wrap.mjs";
++
++wrap("the quick brown fox", 10); // "the quick\nbrown fox"
++```
+diff --git a/src/wrap.mjs b/src/wrap.mjs
+new file mode 100644
+index 0000000..13fd11c
+--- /dev/null
++++ b/src/wrap.mjs
+@@ -0,0 +1,32 @@
++/**
++ * Wraps `text` to lines no longer than `width` characters, breaking only
++ * between words (runs of non-whitespace). Words are packed greedily and
++ * joined by one space; a single word longer than `width` is placed on its
++ * own line unbroken. Lines are joined with "\n".
++ *
++ * @param {string} text
++ * @param {number} width
++ * @returns {string}
++ */
++export function wrap(text, width) {
++  if (typeof text !== "string") throw new TypeError("wrap: text must be a string");
++  if (!Number.isInteger(width) || width < 1) {
++    throw new TypeError("wrap: width must be a positive integer");
++  }
++  const words = text.trim().split(/\s+/);
++  if (words[0] === "") return "";
++
++  const lines = [];
++  let line = words[0];
++  for (let i = 1; i < words.length; i++) {
++    const word = words[i];
++    if (line.length + 1 + word.length <= width) {
++      line += " " + word;
++    } else {
++      lines.push(line);
++      line = word;
++    }
++  }
++  lines.push(line);
++  return lines.join("\n");
++}
+diff --git a/tests/wrap.test.mjs b/tests/wrap.test.mjs
+new file mode 100644
+index 0000000..995cd59
+--- /dev/null
++++ b/tests/wrap.test.mjs
+@@ -0,0 +1,57 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++
++import { wrap } from "../src/wrap.mjs";
++
++test("wrap throws a TypeError when text is not a string", () => {
++  for (const bad of [undefined, null, 42, ["a"], { text: "a" }]) {
++    assert.throws(() => wrap(bad, 10), { name: "TypeError", message: /^wrap:/ });
++  }
++});
++
++test("wrap throws a TypeError when width is not a positive integer", () => {
++  for (const bad of [0, -1, 1.5, NaN, "10", undefined, Infinity]) {
++    assert.throws(() => wrap("a b", bad), { name: "TypeError", message: /^wrap:/ });
++  }
++});
++
++test("wrap returns a string joined with newlines, no line longer than width", () => {
++  const out = wrap("one two three four five six seven", 9);
++  assert.equal(typeof out, "string");
++  for (const line of out.split("\n")) assert.ok(line.length <= 9, `"${line}" exceeds width`);
++  assert.equal(out, "one two\nthree\nfour five\nsix seven");
++});
++
++test("wrap places a word longer than width on its own line unbroken", () => {
++  assert.equal(wrap("a supercalifragilistic b", 5), "a\nsupercalifragilistic\nb");
++  assert.equal(wrap("supercalifragilistic", 5), "supercalifragilistic");
++});
++
++test("wrap treats any run of whitespace as one separator", () => {
++  assert.equal(wrap("a  b\tc\nd\r\n e", 20), "a b c d e");
++  assert.equal(wrap("a  b\tc\nd", 3), "a b\nc d");
++});
++
++test("wrap returns text that already fits as a single line", () => {
++  assert.equal(wrap("a b", 10), "a b");
++});
++
++test("wrap has no leading or trailing whitespace and no trailing newline", () => {
++  assert.equal(wrap("  a b  ", 10), "a b");
++  assert.equal(wrap("\n a b \n", 1), "a\nb");
++});
++
++test("wrap returns an empty string for empty or whitespace-only input", () => {
++  assert.equal(wrap("", 10), "");
++  assert.equal(wrap("   ", 10), "");
++  assert.equal(wrap("\n\t ", 10), "");
++});
++
++test("wrap is greedy", () => {
++  assert.equal(wrap("the quick brown fox", 10), "the quick\nbrown fox");
++});
++
++test("wrap treats the width boundary as inclusive", () => {
++  assert.equal(wrap("ab cd", 5), "ab cd");
++  assert.equal(wrap("ab cd", 4), "ab\ncd");
++});
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..52b02a2
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,13 @@
++# Changes
++
++## Round 0
++
++- Added `src/wrap.mjs` exporting `wrap(text, width)`: greedy word wrap that
++  joins lines with `"\n"`, treats any whitespace run as one separator, never
++  splits a word (over-long words go on their own line), trims leading and
++  trailing whitespace, returns `""` for empty/whitespace-only input, and
++  throws a `TypeError` prefixed `wrap:` for a non-string `text` or a `width`
++  that is not a positive integer. JSDoc matches the `countWords` style.
++- Added `tests/wrap.test.mjs` (`node:test` + `node:assert/strict`) covering
++  ACCEPTANCE.md items 3 through 10.
++- Added a `wrap` example to `README.md` alongside the `countWords` example.

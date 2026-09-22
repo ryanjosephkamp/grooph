@@ -1,0 +1,59 @@
+{
+  "scored_at": "2026-09-21T23:22:45.830Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/csv-cases.test.mjs",
+    "cases": 73,
+    "passed": 73,
+    "failed": 0,
+    "skipped": 0,
+    "rate": 1,
+    "failing": [],
+    "exit": 0,
+    "suite": [
+      {
+        "path": "csv-cases.test.mjs",
+        "sha256": "2fea51cccd1c79d1e03880466f6ad5532fc96115dfa0aec68ec3502665bd30fa"
+      }
+    ]
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "traces/",
+      "ATTACK.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "ATTACK.md",
+      "CHANGES.md",
+      "src/csv.mjs",
+      "tests/csv.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "iteration 1 of 5 said done and the tests passed"
+  }
+}

@@ -1,0 +1,224 @@
+{
+  "template": "spec-then-loop",
+  "arm": "B",
+  "replicate": 2,
+  "project": "spec-then-loop",
+  "graph_id": "word-wrap",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/spec-then-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-pHmrV5.harness/held-out",
+      "files": [
+        {
+          "path": "wrap-invariants.test.mjs",
+          "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "spec-then-loop",
+    "template_version": 1,
+    "graph_id": "word-wrap",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-pHmrV5"
+  },
+  "derivation": {
+    "graph": "word-wrap",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "planner",
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "build"
+    ],
+    "gates": [
+      "spec-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.62749775,
+      "output_tokens": 24437
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.632133,
+      "output_tokens": 6154
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-fable-5-1",
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 2.259631,
+  "harness_turns": 11,
+  "duration_s": 291,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.62749775,
+        "output_tokens": 24437
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 0.632133,
+        "output_tokens": 6154
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-fable-5-1",
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 2.259631,
+    "harness_turns": 11,
+    "duration_s": 291,
+    "wall_s": 293,
+    "permission_denials": [],
+    "subagents_dispatched": 3,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Planner: write ACCEPTANCE.md"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement wrap()"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: judge change vs ACCEPTANCE.md"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 30,
+      "session_id": "2dbaca41-c7c7-49ef-b5a4-082ae3d1cb62",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.530843,
+      "reported_cost_usd": 0.5308430000000001,
+      "max_budget_usd": 9,
+      "harness_turns": 2,
+      "duration_s": 59,
+      "wall_s": 60,
+      "gate": {
+        "halted": true,
+        "changed": [
+          "ACCEPTANCE.md"
+        ],
+        "planning_outputs_present": [
+          "ACCEPTANCE.md"
+        ],
+        "built": [],
+        "resumed": true
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": " item 11 (newlines honoured as paragraph breaks vs. collapsed as whitespace) and item 9 (long words left unbroken vs. hard-broken). Note also a small tension between items 6 and 10: item 6 says text that fits is \"returned unchanged\", while item 10 collapses spaces and trims — e.g. `wrap(\"a  b\", 10)`. The builder will have to pick one reading; if you want it unambiguous, one edit to item 6 (e.g. \"…is returned on a single line\") would settle it.\n\n**Is ACCEPTANCE.md the right definition of done?** Reply **approve** to dispatch the builder, or **reject** to end the run so the task can be restated."
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 31,
+      "session_id": "2dbaca41-c7c7-49ef-b5a4-082ae3d1cb62",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.728788,
+      "reported_cost_usd": 1.7287877500000004,
+      "max_budget_usd": 9,
+      "harness_turns": 9,
+      "duration_s": 232,
+      "wall_s": 233,
+      "gate": {
+        "answer": "approve",
+        "gate": "spec-gate"
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--resume",
+        "2dbaca41-c7c7-49ef-b5a4-082ae3d1cb62"
+      ],
+      "output": "claude-output-resume.json",
+      "reply_tail": "adictory on two corner inputs — `\"  a  b  \"` at width 80 (item 6 \"unchanged\" vs item 10 \"collapse spaces\") and `\"\\n\\n\"` (item 11 \"preserve blank lines\" vs item 12 \"whitespace-only → `\"\"`\"). The builder resolved both by letting the more specific rule govern (normalisation always applies; whitespace-only input returns `\"\"`), and the critic judged that reading consistent with the file as written. If you'd rather `\"\\n\\n\"` round-trip as blank lines, that's a one-line change to item 12 and the `text.trim()` guard in `src/wrap.mjs:21`.\n\nNothing has been committed; say the word if you'd like a commit."
+    }
+  ],
+  "base_commit": "c083ceb5de95bca642f08095f631f78a522efb33",
+  "project_files_changed": [
+    "A ACCEPTANCE.md",
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-pHmrV5",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

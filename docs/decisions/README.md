@@ -15,3 +15,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0009 | [Proving records are evidence](0009-proving-records-are-evidence.md) |
 | 0010 | [Prior art is credited, adapted within the spec, and proved before it ships](0010-prior-art-and-attribution.md) |
 | 0011 | [Paired comparisons are the effectiveness evidence](0011-paired-comparisons.md) |
+| 0012 | [What the first comparison showed, and the protocol's second version](0012-first-comparison.md) |
