@@ -465,8 +465,38 @@
       "run_id": "20260922-052016",
       "retry": null,
       "note": ""
+    },
+    {
+      "n": 30,
+      "template": "gauntlet-decomposed",
+      "kind": "kickoff",
+      "started": "2026-09-22T15:18:50.845Z",
+      "ended": "2026-09-22T15:22:13.770Z",
+      "status": "ok",
+      "cost_usd": 1.588873,
+      "reported_cost_usd": 1.5888729999999998,
+      "max_budget_usd": 9,
+      "session_id": "bd28c10e-90ad-4440-9fd9-519f01c83045",
+      "run_id": "20260922-151855",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 31,
+      "template": "gauntlet-decomposed",
+      "kind": "resume",
+      "started": "2026-09-22T15:22:13.773Z",
+      "ended": "2026-09-22T15:31:29.752Z",
+      "status": "ok",
+      "cost_usd": 5.357056,
+      "reported_cost_usd": 5.35705575,
+      "max_budget_usd": 9,
+      "session_id": "bd28c10e-90ad-4440-9fd9-519f01c83045",
+      "run_id": "20260922-151855",
+      "retry": null,
+      "note": "scripted answer \"approve\" at decomposition-gate"
     }
   ],
-  "spent_usd": 50.56681,
-  "remaining_usd": 24.43319
+  "spent_usd": 57.512739,
+  "remaining_usd": 17.487261
 }
