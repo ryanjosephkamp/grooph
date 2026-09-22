@@ -22,21 +22,21 @@ const ids = async (page: import("@playwright/test").Page): Promise<string[]> => 
 
 test("search narrows the list as you type, over title, summary, when-to-use and tags; Clear brings everything back", async ({ page }) => {
   await page.goto("./#/templates");
-  await expect(page.locator(".browse-shown")).toHaveText("16 templates");
+  await expect(page.locator(".browse-shown")).toHaveText("20 templates");
   const search = page.getByRole("searchbox", { name: "Search templates" });
   await search.fill("gate");
-  await expect(page.locator(".browse-shown")).toHaveText("5 of 16");
-  expect(await ids(page)).toEqual(["debate-then-build", "heterogeneous-critic", "human-gated-irreversible", "review-gate", "spec-then-loop"]);
+  await expect(page.locator(".browse-shown")).toHaveText("7 of 20");
+  expect(await ids(page)).toEqual(["debate-then-build", "heterogeneous-critic", "human-gated-irreversible", "merge-queue", "patrol-pulse", "review-gate", "spec-then-loop"]);
   // A tag, then two terms that must both match.
   await search.fill("counterexample");
   expect(await ids(page)).toEqual(["contradiction-seeker"]);
   await search.fill("gate human");
-  expect(await ids(page)).toEqual(["debate-then-build", "heterogeneous-critic", "human-gated-irreversible", "review-gate", "spec-then-loop"]);
+  expect(await ids(page)).toEqual(["debate-then-build", "heterogeneous-critic", "human-gated-irreversible", "merge-queue", "patrol-pulse", "review-gate", "spec-then-loop"]);
   await search.fill("zzzz");
   await expect(page.locator(".browse-none")).toContainText("No template matches.");
   await expect(rows(page)).toHaveCount(0);
   await page.locator(".browse-none").getByRole("button", { name: "Clear the search and filters" }).tap();
-  await expect(rows(page)).toHaveCount(16);
+  await expect(rows(page)).toHaveCount(20);
   await expect(search).toHaveValue("");
 });
 
@@ -47,17 +47,17 @@ test("a filter combination: kind, a profile axis and a tag together; the count o
   await filters.tap();
   await expect(filters).toHaveAttribute("aria-expanded", "true");
 
-  // High rigor: six.
+  // High rigor: seven.
   await page.getByRole("group", { name: "Rigor" }).getByRole("button", { name: "High rigor" }).tap();
-  await expect(page.locator(".browse-shown")).toHaveText("6 of 16");
-  expect(await ids(page)).toEqual(["fresh-grind-rare-judge", "heterogeneous-critic", "red-team-loop", "spec-then-loop", "specialist-critic-bank", "taste-polish"]);
+  await expect(page.locator(".browse-shown")).toHaveText("7 of 20");
+  expect(await ids(page)).toEqual(["fresh-grind-rare-judge", "gauntlet-decomposed", "heterogeneous-critic", "red-team-loop", "spec-then-loop", "specialist-critic-bank", "taste-polish"]);
   // Two values on one axis widen it; a tag narrows across.
   await page.getByRole("group", { name: "Rigor" }).getByRole("button", { name: "Standard rigor" }).tap();
-  await expect(page.locator(".browse-shown")).toHaveText("15 of 16");
+  await expect(page.locator(".browse-shown")).toHaveText("18 of 20");
   await page.getByRole("group", { name: "Tags" }).getByRole("button", { name: "human-gate", exact: true }).tap();
-  expect(await ids(page)).toEqual(["debate-then-build", "heterogeneous-critic", "human-gated-irreversible", "review-gate", "spec-then-loop"]);
+  expect(await ids(page)).toEqual(["debate-then-build", "heterogeneous-critic", "human-gated-irreversible", "merge-queue", "patrol-pulse", "review-gate", "spec-then-loop"]);
   await page.getByRole("group", { name: "Kind" }).getByRole("button", { name: "Fragment" }).tap();
-  expect(await ids(page)).toEqual(["human-gated-irreversible"]);
+  expect(await ids(page)).toEqual(["human-gated-irreversible", "merge-queue"]);
   await expect(filters).toHaveText("Filters4");
   await expect(filters.locator(".browse-count")).toHaveText("4");
 
@@ -69,7 +69,7 @@ test("a filter combination: kind, a profile axis and a tag together; the count o
   await expect(tags.getByRole("button", { name: "zero-to-one", exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Clear", exact: true }).tap();
-  await expect(rows(page)).toHaveCount(16);
+  await expect(rows(page)).toHaveCount(20);
   await expect(filters).toHaveText("Filters");
   // Cleared, the panel stays open.
   await expect(filters).toHaveAttribute("aria-expanded", "true");
@@ -92,8 +92,8 @@ test("sort by cost, speed, rigor or name", async ({ page }) => {
 
   await sort.selectOption("rigor");
   // High rigor first.
-  expect(await first()).toEqual(["fresh-grind-rare-judge", "heterogeneous-critic", "red-team-loop"]);
-  expect((await ids(page)).at(-1)).toBe("grind-loop");
+  expect(await first()).toEqual(["fresh-grind-rare-judge", "gauntlet-decomposed", "heterogeneous-critic"]);
+  expect((await ids(page)).at(-1)).toBe("ralph-loop");
 
   await sort.selectOption("name");
   expect(await first()).toEqual(["contradiction-seeker", "debate-then-build", "dual-bar"]);
@@ -129,9 +129,9 @@ test("the selection survives opening a template and coming back, and a reload; s
     });
   });
   await page.reload();
-  await expect(rows(page)).toHaveCount(16);
+  await expect(rows(page)).toHaveCount(20);
   await page.getByRole("searchbox", { name: "Search templates" }).fill("grind");
-  await expect(page.locator(".browse-shown")).toHaveText("5 of 16");
+  await expect(page.locator(".browse-shown")).toHaveText("6 of 20");
 });
 
 test("the glyph on the list, the template page and the graph list at phone width: core's drawing, no words, in the theme", async ({ page }) => {
@@ -158,9 +158,9 @@ test("the glyph on the list, the template page and the graph list at phone width
   expect(stroke).not.toBe("none");
   expect(stroke).toMatch(/^rgb\(/);
 
-  // The sixteen rows fit the width and stack in one column on a phone.
+  // The twenty rows fit the width and stack in one column on a phone.
   const boxes = await page.locator(".template-row").evaluateAll((els) => els.map((el) => el.getBoundingClientRect()));
-  expect(boxes).toHaveLength(16);
+  expect(boxes).toHaveLength(20);
   for (const b of boxes) expect(b.right).toBeLessThanOrEqual(400);
   expect(new Set(boxes.map((b) => Math.round(b.left))).size).toBe(1);
 
