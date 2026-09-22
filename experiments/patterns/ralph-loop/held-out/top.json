@@ -1,0 +1,6 @@
+[
+  { "name": "most frequent first", "fn": "topWords", "args": ["b a b c a b", 2], "expect": [["b", 3], ["a", 2]] },
+  { "name": "ties break alphabetically", "fn": "topWords", "args": ["pear apple pear apple fig", 3], "expect": [["apple", 2], ["pear", 2], ["fig", 1]] },
+  { "name": "fewer than n when the text is short", "fn": "topWords", "args": ["one one", 5], "expect": [["one", 2]] },
+  { "name": "n of zero is nothing", "fn": "topWords", "args": ["a b", 0], "expect": [] }
+]

@@ -1,0 +1,8 @@
+[
+  { "name": "counts in first-seen order", "fn": "frequencies", "args": ["the cat and the hat"], "expect": [["the", 2], ["cat", 1], ["and", 1], ["hat", 1]] },
+  { "name": "hyphens are punctuation: rock-and-roll is three words", "fn": "frequencies", "args": ["Rock-and-roll, rock and ROLL!"], "expect": [["rock", 2], ["and", 2], ["roll", 2]] },
+  { "name": "a typographic apostrophe is an apostrophe", "fn": "frequencies", "args": ["it's it’s"], "expect": [["it's", 2]] },
+  { "name": "apostrophes at a word's edges are punctuation", "fn": "frequencies", "args": ["'quoted' quoted"], "expect": [["quoted", 2]] },
+  { "name": "digits are words", "fn": "frequencies", "args": ["3 three 3"], "expect": [["3", 2], ["three", 1]] },
+  { "name": "empty text has no counts", "fn": "frequencies", "args": [""], "expect": [] }
+]
