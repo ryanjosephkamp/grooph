@@ -16,3 +16,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0010 | [Prior art is credited, adapted within the spec, and proved before it ships](0010-prior-art-and-attribution.md) |
 | 0011 | [Paired comparisons are the effectiveness evidence](0011-paired-comparisons.md) |
 | 0012 | [What the first comparison showed, and the protocol's second version](0012-first-comparison.md) |
+| 0013 | [grooph's value as of study one, and the pivot if study two agrees](0013-value-as-of-study-one.md) |
