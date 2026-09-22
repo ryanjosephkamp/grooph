@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). On 2026-09-21 the owner accepted the roadmap (decisions 0010 and 0011); 0014 and 0015 are merged. **Study one of the paired comparisons (0016, 2026-09-22) found the graph earned its cost in none of four projects**: identical held-out scores in every arm, the package's extra cost is its run record, no loop turned, and structure showed only as brakes (decision 0012). Next: prior-art templates (0017), then comparison study two under protocol v2 (0019), then elaborate templates (0018). Codex is deferred without a date.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (owner):** confirm that the scripted `approve` at `spec-then-loop`'s gate in study one was your decision (the implementer reports asking you in that session). **Driver:** draft handoff 0017 (prior-art templates), with tasks designed to fail at round 0. **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
+- **Next action (owner):** confirm slice 0017 (four prior-art templates, tasks built to fail at round 0) and the proving cap raise from $55.00 to $75.00, then paste its prompt into an Opus 5 session. **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); the templates page with search, filters, sort and a glyph per template; `grooph glyph` and `grooph mermaid`; credits on templates; `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
@@ -17,7 +17,7 @@ _(none)_
 
 | Item | Recommended answer |
 |---|---|
-| Confirm that the one scripted `approve` per run at `spec-then-loop`'s gate in comparison study one was your decision, as the implementer reports | Yes, if it was; if not, say so and the project's rows are marked as not owner-approved |
+| Confirm slice 0017 (`handoffs/0017-prior-art-templates/HANDOFF.md`) and raise the proving cap to $75.00 (about $15 expected for four runs) | Yes |
 
 ## Deferred until the owner reopens Codex
 
@@ -27,6 +27,7 @@ _(none)_
 
 | Date | What |
 |---|---|
+| 2026-09-22 | Owner confirmed that the scripted `approve` at `spec-then-loop`'s gate in comparison study one was their decision. Handoff 0017 drafted. |
 | 2026-09-22 | Slice 0016 reconciled and merged: comparison study one (four templates, three arms, 27 runs, four blind judgments, $60.62 of $100.00). The graph earned its cost in none; decision 0012 records why (the prose kept the design; no loop turned) and revises the protocol (arm D, tasks that fail at round 0). Design skill: no graph is sometimes the answer. Status skill: effectiveness from the comparison records. |
 | 2026-09-21 | Slice 0015 reconciled and merged: `glyph()` and `mermaid()` in core with the layered layout moved there; `grooph glyph` and `grooph mermaid`; the templates page with search, filters, sort and per-viewer persistence; glyphs on the list, the template page, the compare cards, the graph list, `patterns/glyphs/` and the write-up tables. Stage 13 done. No spend. |
 | 2026-09-21 | Slice 0014 reconciled and merged: `credits` on templates (taste-polish, ownership-not-swarm, spec-then-loop credited; shown in the index, CLI, app and compare card), blind A/B in the taste-polish critic, `skills` on a node mapped to the agent file, the `ending` marker in the brief and the check, the report sentence. No spend. |
