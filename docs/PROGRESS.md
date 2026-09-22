@@ -21,6 +21,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 - 2026-09-22 · criterion 7 met: four project READMEs with the generated table, the judge's reasons and the required line (the graph earned its cost in none of the four); `experiments/comparisons/README.md` indexes them with the spend and the can/cannot paragraph.
 - 2026-09-22 · criterion 8 met: `deploy.yml` copies `experiments/comparisons/` beside `experiments/patterns/`.
 - 2026-09-22 · criterion 9 met: `pnpm -r build && pnpm -r test` (273 + 60 node tests, 49 web), `test:e2e` 60 passed, `patterns-index --check`, `check-brake-values`, `compare.sh --test` 19 pass, all sixteen proving records PASS `--check`, `experiments/patterns/` unchanged against main, CI green on the branch.
+- 2026-09-22 · **done** — handback at `handoffs/0016-paired-comparisons/HANDBACK.md`; head commit recorded there. Ledger $60.62 of $100.00; the graph earned its cost in none of the four projects by their pre-registered tests; the derived prompt kept the design and every prompt-arm session reproduced it.
 - 2026-09-21 · criterion 4 met: `scripts/lib/compare-score.mjs` (held-out, tests, scope with protected files, ending) writes `score.json`; fixture test covers each measure; `--score <run dir>` rebuilds the tree from `task/` + `project.diff`.
 
 ## Waiting on the owner
