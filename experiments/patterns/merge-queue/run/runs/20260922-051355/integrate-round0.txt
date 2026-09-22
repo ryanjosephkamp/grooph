@@ -1,0 +1,54 @@
+
+> textkit@0.7.0 integrate
+> node scripts/integrate.mjs
+
+integrate: applied queue/001-slug-accents.patch
+integrate: applied queue/002-search-case.patch
+integrate: applied queue/003-limit-negative.patch
+✔ formats cents with thousands separators (0.416ms)
+✔ a negative amount keeps its sign in front of the symbol (0.065125ms)
+✔ the first n items (0.657167ms)
+✔ n must be an integer (0.191125ms)
+✔ a negative n means none, not the last few (0.106ms)
+✔ finds titles containing the query (0.665875ms)
+✖ an exact title match comes first, the rest keep their order (8.035125ms)
+✔ case does not matter (0.099541ms)
+✔ lower case, hyphens between words, nothing at the ends (0.455ms)
+✔ accents are stripped, not dropped with their letter (0.092958ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 67.74275
+
+✖ failing tests:
+
+test at tests/search.test.mjs:19:1
+✖ an exact title match comes first, the rest keep their order (8.035125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      3,
+      2,
+  +   4
+    ]
+  
+      at TestContext.<anonymous> (file:///private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/textkit-integrate-V3xBXt/tests/search.test.mjs:20:10)
+      at Test.runInAsyncScope (node:async_hooks:213:14)
+      at Test.run (node:internal/test_runner/test:1106:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:788:18)
+      at Test.postRun (node:internal/test_runner/test:1235:19)
+      at Test.run (node:internal/test_runner/test:1163:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 3, 2, 4 ],
+    expected: [ 3, 2 ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+integrate: 3 change(s) applied; tests FAIL
