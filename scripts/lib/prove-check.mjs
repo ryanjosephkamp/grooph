@@ -45,6 +45,13 @@
  *      an `ending` line with nothing after it (a run cut off while finishing), is a
  *      finding, never a problem: the kept records predate the marker (decision 0009).
  *
+ * Added for slice 0017 (handoff 0017, criterion 3):
+ *
+ *  17. `added`: for a file the run changed, how many added lines in project.diff
+ *      match a pattern (`{ "<file>": { "pattern": "<regex>", "count": n } }`): the
+ *      ticket store gained exactly one ticket, the queue file held exactly one
+ *      change. A count that differs is a problem; the matching lines are a finding.
+ *
  * Problems fail the check. Findings are reported, not judged: they are what the
  * write-up is made of (what the lead did that the package did not intend, which
  * files a critic read, the permission denials, whether a back edge fired).
@@ -491,6 +498,16 @@ export async function checkRun(evidenceDir, { core, template }) {
   for (const name of expect.absent ?? []) {
     if (changedFiles.some((file) => file === name || file.endsWith(`/${name}`))) problems.push(`${name} exists in the project after the run, and the template expects it never to be written`);
     else findings.push(`${name} absent, as expected`);
+  }
+
+  // ── 17. added lines in a file the run changed ──────────────────────────
+  const diffText = existsSync(diffPath) ? readFileSync(diffPath, "utf8") : "";
+  for (const [file, want] of Object.entries(expect.added ?? {})) {
+    const hunk = diffText.split(/^diff --git /m).find((part) => part.startsWith(`a/${file} b/${file}`));
+    const added = hunk ? hunk.split("\n").filter((line) => line.startsWith("+") && !line.startsWith("+++")).map((line) => line.slice(1)) : [];
+    const matching = added.filter((line) => new RegExp(want.pattern).test(line));
+    if (typeof want.count === "number" && matching.length !== want.count) problems.push(`${file}: ${matching.length} added line(s) match /${want.pattern}/; the template expects ${want.count}`);
+    else findings.push(`${file}: ${matching.length} added line(s) match /${want.pattern}/${matching.length > 0 ? `: ${matching.map((line) => `"${line.trim().slice(0, 80)}"`).join(", ")}` : ""}`);
   }
 
   // ── 10. ownership: an owner writes only under its owns, and nobody else writes there ──

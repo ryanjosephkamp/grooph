@@ -21,7 +21,7 @@ const HOME = process.env.HOME ?? "";
 const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR ?? join(HOME, ".claude");
 const RUN_TIMEOUT_MS = 60 * 60 * 1000;
 
-/** The templates the runner may run: the sixteen built-in patterns (handoff 0009 named five; handoff 0011 the rest). */
+/** The templates the runner may run: the sixteen built-in patterns (handoff 0009 named five; handoff 0011 the rest) and the four from prior art (handoff 0017). */
 const PROVABLE = [
   "grind-loop",
   "review-gate",
@@ -39,6 +39,10 @@ const PROVABLE = [
   "tournament-then-judge",
   "retrospective-rewrite",
   "human-gated-irreversible",
+  "ralph-loop",
+  "patrol-pulse",
+  "gauntlet-decomposed",
+  "merge-queue",
 ];
 
 /**
@@ -64,8 +68,9 @@ const TEXT_FILE = /\.(md|json|mjs|js|txt|cjs|ts)$/i;
  * the first batch's denials were all shell plumbing of this kind, a turn each.
  * Since slice 0012 `git add -N` (intent-to-add stages nothing: it only makes an
  * added file show in `git diff`, which is what the leads of the second batch
- * wanted from it, seven denials across two runs). `git add` in any other form
- * still matches no rule.
+ * wanted from it, seven denials across two runs). Since slice 0017 `git add` in
+ * any form and `git commit`: the ralph-loop builder commits on green, which is
+ * the pattern's point, and the scratch project is a throwaway repository.
  */
 export const BASE_SETTINGS = {
   permissions: {
@@ -75,7 +80,8 @@ export const BASE_SETTINGS = {
       "Bash(npm run:*)",
       "Bash(node:*)",
       "Bash(git diff:*)",
-      "Bash(git add -N:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",

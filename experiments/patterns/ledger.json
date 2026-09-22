@@ -1,5 +1,5 @@
 {
-  "cap_usd": 55,
+  "cap_usd": 75,
   "cap_history": [
     {
       "from_usd": 25,
@@ -19,6 +19,12 @@
       "to_usd": 9,
       "on": "2026-09-20",
       "by": "driver, for slice 0013: specialist-critic-bank halted on the $6 ceiling after two rounds ($5.76); a third round needs headroom. Pending owner confirmation of the handoff"
+    },
+    {
+      "from_usd": 55,
+      "to_usd": 75,
+      "on": "2026-09-22",
+      "by": "owner, for slice 0017 (four prior-art templates, about $15 expected), confirmed by pasting the handoff prompt; recorded by the implementer through prove-ledger.mjs"
     }
   ],
   "refuse_below_usd": 6,
@@ -417,5 +423,5 @@
     }
   ],
   "spent_usd": 45.641348,
-  "remaining_usd": 9.358652
+  "remaining_usd": 29.358652
 }
