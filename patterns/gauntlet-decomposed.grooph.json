@@ -1,0 +1,427 @@
+{
+  "grooph": 0,
+  "id": "gauntlet-decomposed",
+  "name": "Gauntlet, decomposed",
+  "version": 1,
+  "goal": "{{task}} Done when every piece in PIECES.md is ticked by its critic against {{reference}}, the whole has been compared once more, and the human releases it.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Gauntlet, decomposed",
+    "summary": "A planner cuts the work into pieces and a human approves the cut; one piece at a time an owner polishes while a fresh frontier critic compares captures blind against the reference; an integrator and a final blind comparison close it.",
+    "whenToUse": "A rendered artifact must match a named reference and is too large for one owner and one critic: the pieces have real seams, each can be captured and judged alone, and they are coupled enough to build in sequence.",
+    "notFor": "One small artifact (taste-polish), no reference (spec-then-loop), or independent pieces that could fan out (ownership-not-swarm); never a way to keep going until the reference loses.",
+    "profile": {
+      "cost": "high",
+      "speed": "slow",
+      "rigor": "high"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be built or changed? One or two sentences a planner can cut into pieces.",
+        "example": "Make the summary card rendered by `npm run render` from src/card.mjs match the reference card, piece by piece."
+      },
+      {
+        "key": "reference",
+        "ask": "What named reference should the result be compared against: a file, a URL or a capture?",
+        "example": "references/card-reference.svg"
+      },
+      {
+        "key": "capture-command",
+        "ask": "Which command captures the artifact for the critics (screenshots, a rendered file, a text dump)?",
+        "example": "npm run capture"
+      }
+    ],
+    "tags": [
+      "loop",
+      "gauntlet",
+      "reference",
+      "nested"
+    ],
+    "demo": "experiments/patterns/gauntlet-decomposed/README.md",
+    "credits": [
+      {
+        "name": "Matt Shumer's Gauntlet Loop and the Claude of Duty repository",
+        "url": "https://github.com/mshumer/Claude-of-Duty",
+        "note": "decompose, then builder plus fresh critic per piece against a real reference, blind side by side; here bounded, and pieces run in sequence because the repository's own note says fan-out lost on coupled work"
+      }
+    ]
+  },
+  "description": "The Gauntlet with its pieces, bounded. A frontier planner writes PIECES.md (pieces along real seams, each with an owner scope, a reference cut, an acceptance and a box) and a human approves the cut. The outer loop takes one piece per round: the owner works inside its scope and captures, a check refuses bad captures, and a fresh frontier critic compares the captures blind against the piece's cut of the reference, ticking the box on a pass; the inner loop returns the top gaps to the owner. When no piece remains an integrator assembles the whole, a fresh final critic compares it blind, and a human gate releases it. Both loops are capped and budgeted; no brief asks for a win over the reference.",
+  "nodes": [
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Cut the task into pieces along the real seams of the artifact and the code, few enough to build in sequence, and write PIECES.md: one entry per piece with its owner scope (what it may change), its cut of {{reference}} (what it must match), its acceptance, and an unchecked box for the critic. Order the pieces so each can be judged on its own once the earlier ones are done. Plan only; build nothing.",
+      "inputs": [
+        "the task",
+        "{{reference}}",
+        "the project"
+      ],
+      "outputs": [
+        "PIECES.md: the pieces in order, each with owner scope, reference cut, acceptance and a box"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "decomposition-gate",
+      "kind": "human-gate",
+      "name": "Approve the pieces",
+      "prompt": "PIECES.md cuts the work into pieces, each with an owner scope, a reference cut and an acceptance. Are these the right pieces, in the right order?",
+      "options": [
+        "approve",
+        "revise"
+      ]
+    },
+    {
+      "id": "owner",
+      "kind": "agent",
+      "name": "Piece owner",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "You own the first unchecked piece of PIECES.md and change only what its owner scope allows, working from its acceptance and, from the second round on, the ranked gaps in GAPS.md, largest first, without regressing what already matches. Capture with `{{capture-command}}` before you report, and say which gaps you closed and which you left on purpose. The reference itself is the critic's; you work from the piece's cut of it.",
+      "inputs": [
+        "PIECES.md",
+        "GAPS.md (from the second round on)"
+      ],
+      "outputs": [
+        "the revised piece",
+        "captures/ of this revision",
+        "CHANGES.md: what changed, gaps closed"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "capture-check",
+      "kind": "check",
+      "name": "Capture check",
+      "check": {
+        "kind": "evidence",
+        "run": "{{capture-command}}",
+        "pass": "every capture exists, opens, is legible at full size, and shows the current revision"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Piece critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Compare the captures of the current piece against its cut of {{reference}} side by side with the labels stripped and in random order, say which is better and why, then rank the gaps that matter most, at most five, each with where it shows and what closing it would look like. You judge; you do not fix. Report invalid-evidence rather than guessing when a capture is missing or unreadable. Verdict pass only when no gap you would call major remains, and on a pass tick the piece's box in PIECES.md.",
+      "inputs": [
+        "captures/ of the current revision",
+        "{{reference}}",
+        "PIECES.md"
+      ],
+      "outputs": [
+        "GAPS.md: which is better and why, ranked gaps, a verdict line",
+        "PIECES.md with the box ticked on a pass",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "next-piece",
+      "kind": "check",
+      "name": "A piece remains?",
+      "description": "Pass means more work: an unchecked piece remains. Fail means every box is ticked.",
+      "check": {
+        "kind": "command",
+        "run": "grep -q '^- \\[ \\]' PIECES.md",
+        "pass": "exit code 0: an unchecked piece remains in PIECES.md"
+      }
+    },
+    {
+      "id": "integrator",
+      "kind": "agent",
+      "name": "Integrator",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Assemble the finished pieces into the whole without reworking any: resolve what shows only where they meet, then capture the whole with `{{capture-command}}`. Report what the assembly changed.",
+      "inputs": [
+        "PIECES.md",
+        "the project"
+      ],
+      "outputs": [
+        "the assembled artifact",
+        "captures/ of the whole",
+        "ASSEMBLY.md: what the assembly changed"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "final-critic",
+      "kind": "agent",
+      "name": "Final critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Compare the captures of the whole against {{reference}} side by side with the labels stripped and in random order, say which is better and why, then rank the gaps that remain, at most five. You judge; you do not fix. Verdict pass when no major gap remains; the human decides with your report either way.",
+      "inputs": [
+        "captures/ of the whole",
+        "{{reference}}"
+      ],
+      "outputs": [
+        "FINAL.md: which is better and why, ranked gaps, a verdict line",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "release-gate",
+      "kind": "human-gate",
+      "name": "Release",
+      "prompt": "Every piece passed its critic and FINAL.md compares the whole against the reference. Release it as it is?"
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-planner-gate",
+      "from": "planner",
+      "to": "decomposition-gate"
+    },
+    {
+      "id": "e-gate-owner",
+      "from": "decomposition-gate",
+      "to": "owner",
+      "when": "pass"
+    },
+    {
+      "id": "e-owner-capture-check",
+      "from": "owner",
+      "to": "capture-check"
+    },
+    {
+      "id": "e-capture-check-fail",
+      "from": "capture-check",
+      "to": "owner",
+      "when": "fail",
+      "evidence": [
+        "capture check output"
+      ]
+    },
+    {
+      "id": "e-capture-check-critic",
+      "from": "capture-check",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "captures/ of the current revision",
+        "{{reference}}",
+        "PIECES.md"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "owner",
+      "when": "fail",
+      "evidence": [
+        "GAPS.md"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "next-piece",
+      "when": "pass"
+    },
+    {
+      "id": "e-next-piece-pass",
+      "from": "next-piece",
+      "to": "owner",
+      "when": "pass",
+      "evidence": [
+        "PIECES.md"
+      ]
+    },
+    {
+      "id": "e-next-piece-fail",
+      "from": "next-piece",
+      "to": "integrator",
+      "when": "fail"
+    },
+    {
+      "id": "e-integrator-final-critic",
+      "from": "integrator",
+      "to": "final-critic",
+      "evidence": [
+        "captures/ of the whole",
+        "{{reference}}"
+      ]
+    },
+    {
+      "id": "e-final-critic-release-gate",
+      "from": "final-critic",
+      "to": "release-gate",
+      "evidence": [
+        "FINAL.md"
+      ]
+    },
+    {
+      "id": "e-release-gate-done",
+      "from": "release-gate",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "polish",
+      "name": "Polish a piece",
+      "members": [
+        "owner",
+        "capture-check",
+        "critic"
+      ],
+      "back": [
+        "e-capture-check-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "The piece matches its cut",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "{{reference}}",
+            "note": "the piece's cut of it"
+          },
+          {
+            "kind": "artifact",
+            "ref": "captures/ of the current revision"
+          },
+          {
+            "kind": "checklist",
+            "ref": "PIECES.md"
+          }
+        ],
+        "acceptance": "The critic finds no major gap between the captures and the piece's cut of {{reference}}, and every capture is current and readable."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "major gaps remaining"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 10
+        }
+      ]
+    },
+    {
+      "id": "pieces",
+      "name": "Pieces",
+      "members": [
+        "owner",
+        "capture-check",
+        "critic",
+        "next-piece"
+      ],
+      "back": [
+        "e-next-piece-pass"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Every piece done",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "PIECES.md",
+            "note": "one box per piece, ticked by its critic"
+          }
+        ],
+        "acceptance": "Every box in PIECES.md is ticked by the critic with a pass verdict on record."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed",
+          "then": "integrator"
+        },
+        {
+          "kind": "human",
+          "every": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 4
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 42
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}
