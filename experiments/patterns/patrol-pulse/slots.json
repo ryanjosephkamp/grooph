@@ -1,0 +1,9 @@
+{
+  "about": "One pulse over yesterday's log of a small orders API. The scan lists every ERROR and WARN line; README.md says which WARN lines are routine; TICKETS.md already holds one of the two genuine faults (T-0007, the webhook signature mismatches), so the investigator must find both and the writer must file one and reference one.",
+  "name": "Orders API patrol",
+  "values": {
+    "task": "Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise.",
+    "scan-command": "grep -n -E ' (ERROR|WARN) ' logs/app.log",
+    "ticket-store": "TICKETS.md"
+  }
+}
