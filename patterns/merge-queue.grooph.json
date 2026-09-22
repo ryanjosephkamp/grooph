@@ -1,0 +1,199 @@
+{
+  "grooph": 0,
+  "id": "merge-queue",
+  "name": "Merge queue",
+  "version": 1,
+  "template": {
+    "kind": "fragment",
+    "title": "Merge queue",
+    "summary": "An integration check on the queued batch; a failure goes to a bisector that finds the change at fault and leaves the rest queued; a pass waits for a human, who lets one node land the batch.",
+    "whenToUse": "Several reviewed changes wait to land together and the integration command (build, lint, tests) is the arbiter: insert this before the host's stop node so a batch lands only green and only on a human's word.",
+    "notFor": "A single change (human-gated-irreversible is enough), or a host whose changes are not yet reviewed: the queue integrates, it does not review.",
+    "profile": {
+      "cost": "low",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "integration-command",
+        "ask": "Which command integrates the queued batch and exits 0 only when it builds, lints and passes its tests?",
+        "example": "npm run integrate"
+      },
+      {
+        "key": "queue-file",
+        "ask": "Which file lists the queued changes and their status, in landing order?",
+        "example": "QUEUE.md"
+      },
+      {
+        "key": "land-command",
+        "ask": "Which command lands the queued batch, once?",
+        "example": "npm run land"
+      }
+    ],
+    "tags": [
+      "fragment",
+      "merge",
+      "bisect",
+      "human-gate",
+      "irreversible",
+      "brake"
+    ],
+    "demo": "experiments/patterns/merge-queue/README.md",
+    "credits": [
+      {
+        "name": "Steve Yegge's Gas Town Refinery",
+        "url": "https://github.com/gastownhall/gastown",
+        "note": "a merge queue that integrates a batch, bisects on failure and lands by a human's word"
+      },
+      {
+        "name": "Bors",
+        "url": "https://github.com/bors-ng/bors-ng",
+        "note": "batch then bisect"
+      }
+    ]
+  },
+  "description": "A merge queue as a fragment. The integration check runs the integration command on the whole queued batch. On a failure a bisector splits the batch, finds the change that fails, holds it with the reason and leaves the rest queued, so the next integration is of a batch that can pass. On a pass a human gate asks, and one node carries out the land command once. The loop stops at its round cap or its dispatch budget; insert it before the host's stop node, as the human-gated-irreversible fragment is.",
+  "nodes": [
+    {
+      "id": "integrate",
+      "kind": "check",
+      "name": "Integrate the batch",
+      "check": {
+        "kind": "command",
+        "run": "{{integration-command}}",
+        "pass": "exit code 0: the queued batch builds, lints and passes its tests together"
+      }
+    },
+    {
+      "id": "bisect",
+      "kind": "agent",
+      "name": "Bisector",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "The queued batch in {{queue-file}} fails `{{integration-command}}`: split the batch, run the integration on the parts, and find the change at fault. Hold that change in {{queue-file}} with the failure as the reason and leave every other change queued in its order; change nothing else, and fix nothing. Report what failed, how you found it and what stays queued in BISECT.md.",
+      "inputs": [
+        "the integration output",
+        "{{queue-file}}",
+        "the project"
+      ],
+      "outputs": [
+        "{{queue-file}} with the change at fault held and the rest queued",
+        "BISECT.md: the change at fault, how it was found, what stays queued"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "owns": [
+        "{{queue-file}}"
+      ]
+    },
+    {
+      "id": "land-gate",
+      "kind": "human-gate",
+      "name": "Land the batch",
+      "prompt": "The queued batch in {{queue-file}} integrates green (BISECT.md, if present, says what was held and why). Land it now? It cannot be taken back.",
+      "options": [
+        "land",
+        "stop"
+      ]
+    },
+    {
+      "id": "land",
+      "kind": "agent",
+      "name": "Land",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Carry out `{{land-command}}` exactly once for the batch queued in {{queue-file}}. Do nothing else, and do not retry on failure; report the result instead. Write down what landed so a human can check it.",
+      "inputs": [
+        "{{queue-file}}",
+        "the human's go-ahead"
+      ],
+      "outputs": [
+        "LANDING.md: what landed and the command's result"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "irreversible": [
+        "merge"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-integrate-fail",
+      "from": "integrate",
+      "to": "bisect",
+      "when": "fail",
+      "evidence": [
+        "the integration output",
+        "{{queue-file}}"
+      ]
+    },
+    {
+      "id": "e-bisect-integrate",
+      "from": "bisect",
+      "to": "integrate"
+    },
+    {
+      "id": "e-integrate-land-gate",
+      "from": "integrate",
+      "to": "land-gate",
+      "when": "pass"
+    },
+    {
+      "id": "e-land-gate-land",
+      "from": "land-gate",
+      "to": "land",
+      "when": "pass"
+    },
+    {
+      "id": "e-land-done",
+      "from": "land",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "queue",
+      "name": "Queue",
+      "members": [
+        "integrate",
+        "bisect"
+      ],
+      "back": [
+        "e-bisect-integrate"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 4
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 9
+        }
+      ]
+    }
+  ]
+}

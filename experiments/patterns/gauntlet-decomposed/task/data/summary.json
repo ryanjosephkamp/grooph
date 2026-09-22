@@ -1,0 +1,11 @@
+{
+  "title": "Northwind Stores",
+  "period": "12 months to August 2026",
+  "stats": [
+    { "label": "Revenue", "value": 1423000, "unit": "usd", "delta": 0.124 },
+    { "label": "Orders", "value": 38210, "unit": "count", "delta": -0.031 },
+    { "label": "Avg order", "value": 3724, "unit": "cents", "delta": 0.158 }
+  ],
+  "months": ["Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug"],
+  "monthly": [98400, 104100, 131600, 142300, 96200, 101800, 118900, 122400, 127100, 130800, 124600, 124800]
+}

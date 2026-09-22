@@ -1,0 +1,188 @@
+{
+  "grooph": 0,
+  "id": "ralph-loop",
+  "name": "Ralph loop",
+  "version": 1,
+  "goal": "{{task}} Done when every item in {{plan-file}} is marked done and `{{test-command}}` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Ralph loop",
+    "summary": "A fresh builder takes the top unchecked item of a plan file each round, commits on green and appends what it learned to an agent file, until the plan is empty.",
+    "whenToUse": "The work is already a prioritised list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.",
+    "notFor": "One item that needs judgment rather than a test (use review-gate or taste-polish), or a plan whose items are too large or too coupled to finish one at a time.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "light"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What is the work as a whole, in one or two sentences? The plan file holds the items.",
+        "example": "Build the text-statistics module the plan describes, one item at a time."
+      },
+      {
+        "key": "plan-file",
+        "ask": "Which file holds the plan: a Markdown checklist, top item first, `- [ ]` open and `- [x]` done?",
+        "example": "PLAN.md"
+      },
+      {
+        "key": "agent-file",
+        "ask": "Which file holds the operating notes the builder reads first and may append learnings to?",
+        "example": "AGENT.md"
+      },
+      {
+        "key": "test-command",
+        "ask": "Which command runs the tests?",
+        "example": "npm test"
+      }
+    ],
+    "tags": [
+      "loop",
+      "grind",
+      "plan",
+      "tests",
+      "fresh-context"
+    ],
+    "demo": "experiments/patterns/ralph-loop/README.md",
+    "credits": [
+      {
+        "name": "Geoffrey Huntley's ralph loop",
+        "url": "https://ghuntley.com/ralph/",
+        "note": "one prompt piped into a fresh session per pass; one item of work per pass from a plan file; state on disk; the human as the brake, here replaced by stops"
+      }
+    ]
+  },
+  "description": "The plan file is the unit of work. Each round a fresh builder takes the top unchecked item, makes it true, runs the tests, and on green marks it done, commits and appends what it learned to the agent file. A test check catches an item that broke something; a plan check sends the builder back for the next item while any remains. The loop stops when the plan is empty, when the same failure repeats, at its round cap or at its dispatch budget: the stops the original loop leaves to the human.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Read {{agent-file}} first, then take only the top unchecked item of {{plan-file}}: make it true in the code with tests, run `{{test-command}}`, and on green mark the item done, append what you learned to {{agent-file}} and commit. Never start a second item, and never skip, weaken or delete a test to get a pass. On a later round, start from the failing output you are handed, which may come from the item you just marked done. Report the item you took, what changed and whether the tests passed.",
+      "inputs": [
+        "{{plan-file}}",
+        "{{agent-file}}",
+        "the project",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change for the item, with tests",
+        "{{plan-file}} with the item marked done",
+        "{{agent-file}} with what was learned appended",
+        "a commit on green"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "{{test-command}}",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "plan-check",
+      "kind": "check",
+      "name": "Plan empty?",
+      "description": "Counts the unchecked items left in the plan. grep prints the count and exits 1 when it is zero, so the printed count is the result, not the exit code.",
+      "check": {
+        "kind": "command",
+        "run": "grep -c '^- \\[ \\]' {{plan-file}}",
+        "pass": "the printed count is 0: no unchecked item remains in {{plan-file}}"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-plan-check",
+      "from": "tests",
+      "to": "plan-check",
+      "when": "pass"
+    },
+    {
+      "id": "e-plan-check-fail",
+      "from": "plan-check",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "{{plan-file}}"
+      ],
+      "label": "next item"
+    },
+    {
+      "id": "e-plan-check-pass",
+      "from": "plan-check",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "ralph",
+      "name": "Ralph",
+      "members": [
+        "builder",
+        "tests",
+        "plan-check"
+      ],
+      "back": [
+        "e-tests-fail",
+        "e-plan-check-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "the same test failure"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 17
+        }
+      ]
+    }
+  ]
+}

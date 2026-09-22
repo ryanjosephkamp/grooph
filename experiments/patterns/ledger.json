@@ -1,5 +1,5 @@
 {
-  "cap_usd": 55,
+  "cap_usd": 75,
   "cap_history": [
     {
       "from_usd": 25,
@@ -19,6 +19,12 @@
       "to_usd": 9,
       "on": "2026-09-20",
       "by": "driver, for slice 0013: specialist-critic-bank halted on the $6 ceiling after two rounds ($5.76); a third round needs headroom. Pending owner confirmation of the handoff"
+    },
+    {
+      "from_usd": 55,
+      "to_usd": 75,
+      "on": "2026-09-22",
+      "by": "owner, for slice 0017 (four prior-art templates, about $15 expected), confirmed by pasting the handoff prompt; recorded by the implementer through prove-ledger.mjs"
     }
   ],
   "refuse_below_usd": 6,
@@ -414,8 +420,83 @@
       "run_id": "20260921-044114",
       "retry": "0013 re-proof after the auth failure",
       "note": "retry: 0013 re-proof after the auth failure"
+    },
+    {
+      "n": 27,
+      "template": "patrol-pulse",
+      "kind": "kickoff",
+      "started": "2026-09-22T05:05:18.145Z",
+      "ended": "2026-09-22T05:09:20.223Z",
+      "status": "ok",
+      "cost_usd": 1.309644,
+      "reported_cost_usd": 1.3096440999999999,
+      "max_budget_usd": 9,
+      "session_id": "64c3a010-73bf-479c-be02-aebb243df7c8",
+      "run_id": "20260922-050527",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 28,
+      "template": "merge-queue",
+      "kind": "kickoff",
+      "started": "2026-09-22T05:13:46.586Z",
+      "ended": "2026-09-22T05:16:58.447Z",
+      "status": "ok",
+      "cost_usd": 1.094906,
+      "reported_cost_usd": 1.0949061999999998,
+      "max_budget_usd": 9,
+      "session_id": "c245ee11-107b-4a62-a446-5e37c83dba8d",
+      "run_id": "20260922-051355",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 29,
+      "template": "ralph-loop",
+      "kind": "kickoff",
+      "started": "2026-09-22T05:20:07.475Z",
+      "ended": "2026-09-22T05:28:23.073Z",
+      "status": "ok",
+      "cost_usd": 2.520912,
+      "reported_cost_usd": 2.5209119,
+      "max_budget_usd": 9,
+      "session_id": "b14fe855-5e0c-4d8d-ae91-964200b29ed1",
+      "run_id": "20260922-052016",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 30,
+      "template": "gauntlet-decomposed",
+      "kind": "kickoff",
+      "started": "2026-09-22T15:18:50.845Z",
+      "ended": "2026-09-22T15:22:13.770Z",
+      "status": "ok",
+      "cost_usd": 1.588873,
+      "reported_cost_usd": 1.5888729999999998,
+      "max_budget_usd": 9,
+      "session_id": "bd28c10e-90ad-4440-9fd9-519f01c83045",
+      "run_id": "20260922-151855",
+      "retry": null,
+      "note": ""
+    },
+    {
+      "n": 31,
+      "template": "gauntlet-decomposed",
+      "kind": "resume",
+      "started": "2026-09-22T15:22:13.773Z",
+      "ended": "2026-09-22T15:31:29.752Z",
+      "status": "ok",
+      "cost_usd": 5.357056,
+      "reported_cost_usd": 5.35705575,
+      "max_budget_usd": 9,
+      "session_id": "bd28c10e-90ad-4440-9fd9-519f01c83045",
+      "run_id": "20260922-151855",
+      "retry": null,
+      "note": "scripted answer \"approve\" at decomposition-gate"
     }
   ],
-  "spent_usd": 45.641348,
-  "remaining_usd": 9.358652
+  "spent_usd": 57.512739,
+  "remaining_usd": 17.487261
 }

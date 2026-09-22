@@ -1,0 +1,10 @@
+{
+  "name": "orders-api",
+  "private": true,
+  "version": "1.4.2",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "scan": "grep -n -E ' (ERROR|WARN) ' logs/app.log"
+  }
+}

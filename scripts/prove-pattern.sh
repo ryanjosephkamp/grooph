@@ -20,7 +20,7 @@
 #   2. instantiates the template with experiments/patterns/<id>/slots.json through
 #      the CLI built from this branch (the built-in library only: no user templates,
 #      no remote registry) and exports the Claude Code package into it. A fragment
-#      (human-gated-irreversible) is proved inside a host: slots.json names the host
+#      (human-gated-irreversible, merge-queue) is proved inside a host: slots.json names the host
 #      template and its values, the fragment's values, and the grooph ops that wire
 #      the inserted nodes in (grooph template use, template insert, apply);
 #   3. asks the ledger (experiments/patterns/ledger.json) whether it may spend: it

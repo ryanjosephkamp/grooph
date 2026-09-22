@@ -1,0 +1,234 @@
+{
+  "grooph": 0,
+  "id": "land-the-textkit-batch",
+  "name": "Land the textkit batch",
+  "version": 1,
+  "goal": "Fix `formatMoney` in src/format.mjs so that tests/format.test.mjs passes: a negative amount keeps its sign in front of the currency symbol (`-$1,234.56`). Touch nothing under queue/ and leave QUEUE.md alone; the merge queue handles the batch after the tree is green. Done when `npm test` passes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "grind-loop",
+    "from": "grind-loop@1"
+  },
+  "description": "A builder changes the code and a check runs the tests. A failure goes back to the builder with the test output; a pass ends the run. The check is the bar, so there is no critic. The loop stops at its round cap or its time budget if the tests never pass.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Make the task true by changing the code, adding tests where they are missing. Do not skip, weaken or delete a test to get a pass. On a later round, start from the failing output you are handed. Report what you changed and which tests now pass.",
+      "inputs": [
+        "the task",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change",
+        "CHANGES.md: what changed this round and why"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "integrate",
+      "kind": "check",
+      "name": "Integrate the batch",
+      "check": {
+        "kind": "command",
+        "run": "npm run integrate",
+        "pass": "exit code 0: the queued batch builds, lints and passes its tests together"
+      }
+    },
+    {
+      "id": "bisect",
+      "kind": "agent",
+      "name": "Bisector",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "The queued batch in QUEUE.md fails `npm run integrate`: split the batch, run the integration on the parts, and find the change at fault. Hold that change in QUEUE.md with the failure as the reason and leave every other change queued in its order; change nothing else, and fix nothing. Report what failed, how you found it and what stays queued in BISECT.md.",
+      "inputs": [
+        "the integration output",
+        "QUEUE.md",
+        "the project"
+      ],
+      "outputs": [
+        "QUEUE.md with the change at fault held and the rest queued",
+        "BISECT.md: the change at fault, how it was found, what stays queued"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "owns": [
+        "QUEUE.md"
+      ]
+    },
+    {
+      "id": "land-gate",
+      "kind": "human-gate",
+      "name": "Land the batch",
+      "prompt": "The queued batch in QUEUE.md integrates green (BISECT.md, if present, says what was held and why). Land it now? It cannot be taken back.",
+      "options": [
+        "land",
+        "stop"
+      ]
+    },
+    {
+      "id": "land",
+      "kind": "agent",
+      "name": "Land",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Carry out `npm run land` exactly once for the batch queued in QUEUE.md. Do nothing else, and do not retry on failure; report the result instead. Write down what landed so a human can check it.",
+      "inputs": [
+        "QUEUE.md",
+        "the human's go-ahead"
+      ],
+      "outputs": [
+        "LANDING.md: what landed and the command's result"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "irreversible": [
+        "merge"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-pass",
+      "from": "tests",
+      "to": "integrate",
+      "when": "pass"
+    },
+    {
+      "id": "e-integrate-fail",
+      "from": "integrate",
+      "to": "bisect",
+      "when": "fail",
+      "evidence": [
+        "the integration output",
+        "QUEUE.md"
+      ]
+    },
+    {
+      "id": "e-bisect-integrate",
+      "from": "bisect",
+      "to": "integrate"
+    },
+    {
+      "id": "e-integrate-land-gate",
+      "from": "integrate",
+      "to": "land-gate",
+      "when": "pass"
+    },
+    {
+      "id": "e-land-gate-land",
+      "from": "land-gate",
+      "to": "land",
+      "when": "pass"
+    },
+    {
+      "id": "e-land-done",
+      "from": "land",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "grind",
+      "name": "Grind",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    },
+    {
+      "id": "queue",
+      "name": "Queue",
+      "members": [
+        "integrate",
+        "bisect"
+      ],
+      "back": [
+        "e-bisect-integrate"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 4
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 9
+        }
+      ]
+    }
+  ]
+}

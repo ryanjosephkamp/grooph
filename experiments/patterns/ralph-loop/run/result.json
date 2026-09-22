@@ -1,0 +1,142 @@
+{
+  "template": "ralph-loop",
+  "template_version": "ralph-loop@1",
+  "slots": {
+    "values": {
+      "task": "Build the wordbank text-statistics module the plan describes, one item at a time.",
+      "plan-file": "PLAN.md",
+      "agent-file": "AGENT.md",
+      "test-command": "npm test"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-ralph-loop-akkPxC.harness/held-out",
+    "files": [
+      {
+        "path": "frequencies.json",
+        "sha256": "949cbc3fc405ab1ad637ee50447fcf663c3830fcdc4a8aab7719c63e09514a9e"
+      },
+      {
+        "path": "summary.json",
+        "sha256": "9fde0a2966cdf2254e6672f006ee6701034305c1c04660d2842e399b09d9fa28"
+      },
+      {
+        "path": "tokenize.json",
+        "sha256": "d040feddb710bc6e4812d97013414debcd35fac31efb09781e3ddcb5a048e076"
+      },
+      {
+        "path": "top.json",
+        "sha256": "f89c08fc1f5ee9948c4637dbc6aa119be94acca675f1945ac296c5ec9a2d0b28"
+      }
+    ],
+    "substituted_in": [
+      "tests/acceptance.test.mjs"
+    ]
+  },
+  "graph_id": "wordbank-plan",
+  "run_id": "20260922-052016",
+  "run_ids": [
+    "20260922-052016"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 2.08561,
+      "output_tokens": 18380
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.4353018999999999,
+      "output_tokens": 17459
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "wordbank-plan--builder": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 2.520912,
+  "harness_turns": 51,
+  "lead_turns": null,
+  "duration_s": 495,
+  "rounds": {
+    "loop_passes": 5,
+    "rounds_recorded": 5,
+    "last_round": 4
+  },
+  "stop_fired": [],
+  "ending": [
+    "stop node done"
+  ],
+  "subagents": {
+    "wordbank-plan--builder": 5
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0003\",\"run\":\"20260922-052016\",\"at\":\"node:builder\",\"started\":\"2026-09-22T05:20:32Z\",\"ended\":\"'\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"'\",\"outcome\":\"pass\",\"verdict\":\"done\",\"round\":0,\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"text\":\"builder took item tokenize; reports npm test green, PLAN.md ticked, commit ad5ca27\"}' >> .grooph/wordbank-plan/runs/20260922-052016/notes.jsonl; printf '%s\\n' '{\"id\":\"n-0004\",\"run\":\"20260922-052016\",\"at\":\"node:tests\",\"started\":\"'\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"'\",\"outcome\":\"started\",\"round\":0,\"text\":\"tests check: npm test\"}' >> .grooph/wordbank-plan/runs/20260922-052016/notes.jsonl; npm test 2>&1 | tail -30; echo \"EXIT=${PIPESTATUS[0]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "npm test 2>&1 | tail -30; echo \"EXIT=${pipestatus[1]}\""
+    },
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0008\",\"run\":\"20260922-052016\",\"at\":\"node:builder\",\"started\":\"'\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"'\",\"outcome\":\"started\",\"round\":1,\"text\":\"builder dispatched, round 1 (next item)\"}' >> .grooph/wordbank-plan/runs/20260922-052016/notes.jsonl; tail -1 .grooph/wordbank-plan/runs/20260922-052016/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0011\",\"run\":\"20260922-052016\",\"at\":\"node:tests\",\"started\":\"2026-09-22T05:23:04Z\",\"ended\":\"2026-09-22T05:23:14Z\",\"outcome\":\"fail\",\"round\":1,\"cost\":{\"measure\":\"dispatches\",\"amount\":1},\"evidence\":[\"npm test output: 22 tests, 21 pass, 1 fail, exit 1\"],\"text\":\"FAIL tests/acceptance.test.mjs: frequencies - a typographic apostrophe is an apostrophe: frequencies(text with it’s twice) expected [[it's,2]] got [[it's,1],[it,1],[s,1]] (U+2019 not treated as in-word apostrophe). Back edge e-tests-fail to builder.\"}' '{\"id\":\"n-0012\",\"run\":\"20260922-052016\",\"at\":\"loop:ralph\",\"ended\":\"2026-09-22T05:23:14Z\",\"outcome\":\"pass\",\"round\":1,\"cost\":{\"measure\":\"dispatches\",\"amount\":5},\"text\":\"round 1 done (frequencies; tests fail on typographic-apostrophe acceptance case). Stops before round 2: diminishing-returns no (first occurrence of this failure); max-iterations 5 no (round 2); budget 17 no (5 used). Continue.\"}' >> .grooph/wordbank-plan/runs/20260922-052016/notes.jsonl"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 29,
+      "session_id": "b14fe855-5e0c-4d8d-ae91-964200b29ed1",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 2.520912,
+      "reported_cost_usd": 2.5209119,
+      "max_budget_usd": 9,
+      "harness_turns": 51,
+      "duration_s": 495,
+      "wall_s": 496,
+      "notes_after": 33,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "6624596708d75f662097ee92720041191c4fb2da",
+  "source_sha256_before": "e06e2798f710221633f17a4193692be26b23d5d3a3db3619fa7de07facfa2520",
+  "project_files_changed": [
+    "M AGENT.md",
+    "M PLAN.md",
+    "M src/text.mjs",
+    "A tests/frequencies.test.mjs",
+    "A tests/summary.test.mjs",
+    "A tests/tokenize.test.mjs",
+    "A tests/top.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-ralph-loop-akkPxC",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

@@ -34,7 +34,7 @@ for (const scheme of ["light", "dark"] as const) {
       await page.getByRole("searchbox", { name: "Search templates" }).fill("gate");
       await page.getByRole("button", { name: /^Filters/ }).tap();
       await page.getByRole("group", { name: "Rigor" }).getByRole("button", { name: "High rigor" }).tap();
-      await expect(page.locator(".browse-shown")).toHaveText("2 of 16");
+      await expect(page.locator(".browse-shown")).toHaveText("2 of 20");
       await shot(page, `templates-open-phone-${scheme}`);
     });
 

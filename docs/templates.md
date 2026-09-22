@@ -81,7 +81,7 @@ One document per spec §10 pattern, under `patterns/<id>.grooph.json`. Rules for
 - Critics are `fresh`, have an evidence list, allow `write-outputs` for their report, and deny `edit-files`. A judging node that must run anything (tests, held-out cases) has `run-tests` or `run-commands`: batch two's `fresh-grind-rare-judge` judge could not, and its lead had to amend the graph and dispatch a stand-in (review 0011).
 - `adaptation` is left unset (adaptive) except where the pattern says otherwise.
 - Common slots: `task` (what to build or change), `test-command`, and the pattern's own bar reference.
-- A pattern that takes its shape or name from published work carries `credits` (decision 0010). Today: `taste-polish` (Matt Shumer's Gauntlet Loop and the Claude of Duty repository), `ownership-not-swarm` (the Claude of Duty process note: sequential ownership beat fan-out on coupled systems), `spec-then-loop` (the answer-key-first modification of Matt Pocock's Wayfinder, known from a secondary write-up).
+- A pattern that takes its shape or name from published work carries `credits` (decision 0010). Today: `taste-polish` (Matt Shumer's Gauntlet Loop and the Claude of Duty repository), `ownership-not-swarm` (the Claude of Duty process note: sequential ownership beat fan-out on coupled systems), `spec-then-loop` (the answer-key-first modification of Matt Pocock's Wayfinder, known from a secondary write-up), and since slice 0017 `ralph-loop` (Geoffrey Huntley), `patrol-pulse` (the Lloyd write-up, a secondary source, and Gas Town's patrols), `gauntlet-decomposed` (Matt Shumer), `merge-queue` (Gas Town's Refinery and Bors).
 
 | id | kind | Shape | Bar and stops | Profile (cost · speed · rigor) |
 |---|---|---|---|---|

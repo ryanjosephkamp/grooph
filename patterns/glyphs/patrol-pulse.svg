@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-18 -15 268 69" width="268" height="69" role="img" fill="none" stroke-linecap="round" stroke-linejoin="round" class="grooph-glyph">
+<title>Patrol pulse</title>
+<path d="M13.8,24.5 L111.1,42.4" stroke-width="1.6" stroke-dasharray="5 3" style="stroke:var(--warning, #955500)"/>
+<path d="M111.1,42.4 L103.6,44.6 L104.9,37.7 Z" style="fill:var(--warning, #955500)"/>
+<path d="M14,22 L43,22" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M43,22 L36,25.5 L36,18.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M71.2,26.1 L111.6,40.9" stroke-width="1.6" stroke-dasharray="1.5 3.5" style="stroke:var(--ink-3, #6b7370)"/>
+<path d="M111.6,40.9 L103.8,41.8 L106.2,35.2 Z" style="fill:var(--ink-3, #6b7370)"/>
+<path d="M71.2,17.9 L106.2,5.1" stroke-width="1.6" stroke-dasharray="1.5 3.5" style="stroke:var(--ink-3, #6b7370)"/>
+<path d="M106.2,5.1 L100.8,10.8 L98.4,4.2 Z" style="fill:var(--ink-3, #6b7370)"/>
+<path d="M131.9,4.4 L165,16.5" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M165,16.5 L157.2,17.4 L159.6,10.8 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M194,22 L231,22" stroke-width="1.6" style="stroke:var(--edge, #5c6663)"/>
+<path d="M231,22 L224,25.5 L224,18.5 Z" style="fill:var(--edge, #5c6663)"/>
+<path d="M-7,10 L7,10 L14,22 L7,34 L-7,34 L-14,22 Z" stroke-width="1.8" style="fill:var(--surface, #ffffff);stroke:var(--kind-check, #2b5f9e)"/>
+<path d="M60,8 L74,22 L60,36 L46,22 Z" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<rect x="109" y="-11" width="22" height="22" rx="2" stroke-width="1.8" style="fill:var(--accent-soft, #e3efe9);stroke:var(--kind-agent, #1f5f4a)"/>
+<path d="M192,27 L185,34 L175,34 L168,27 L168,17 L175,10 L185,10 L192,17 Z" stroke-width="2.4" style="fill:var(--surface, #ffffff);stroke:var(--kind-human-gate, #b25e09)"/>
+<circle cx="120" cy="44" r="6" style="fill:var(--ink, #2b302e)"/>
+<circle cx="240" cy="22" r="6" style="fill:var(--ink, #2b302e)"/>
+</svg>

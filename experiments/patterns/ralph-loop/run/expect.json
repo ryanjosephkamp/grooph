@@ -1,0 +1,9 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the builder ran as its own subagent at least four times (one item per pass); PLAN.md ends with all four items ticked; the builder never read the held-out cases (the lead's `npm test` runs them without naming the folder, so nobody 'touches' it by the digest's measure); a back edge was taken; the run ended at the stop node. The design bet (write-up): e-plan-check-fail returns the builder three times (one item per pass) and e-tests-fail returns it at least once, on the item-2 round, when the held-out cases for item 2 pin what item 1 left open.",
+  "agents": ["builder"],
+  "dispatches": { "builder": { "min": 4 } },
+  "added": { "PLAN.md": { "pattern": "^- \\[x\\] \\*\\*", "count": 4 } },
+  "heldOut": { "notReaders": ["builder"] },
+  "backEdge": true,
+  "ending": ["stop node done"]
+}

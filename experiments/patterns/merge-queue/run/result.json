@@ -1,0 +1,118 @@
+{
+  "template": "merge-queue",
+  "template_version": "merge-queue@1",
+  "host": {
+    "template": "grind-loop@1",
+    "steps": [
+      "grooph template use grind-loop",
+      "grooph template insert merge-queue",
+      "grooph apply (3 ops: updateEdge, removeNode, renameId)"
+    ]
+  },
+  "slots": {
+    "host": {
+      "task": "Fix `formatMoney` in src/format.mjs so that tests/format.test.mjs passes: a negative amount keeps its sign in front of the currency symbol (`-$1,234.56`). Touch nothing under queue/ and leave QUEUE.md alone; the merge queue handles the batch after the tree is green.",
+      "test-command": "npm test"
+    },
+    "insert": {
+      "integration-command": "npm run integrate",
+      "queue-file": "QUEUE.md",
+      "land-command": "npm run land"
+    }
+  },
+  "graph_id": "land-the-textkit-batch",
+  "run_id": "20260922-051355",
+  "run_ids": [
+    "20260922-051355"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 1.0450624999999998,
+      "output_tokens": 11028
+    },
+    "claude-sonnet-5": {
+      "cost_usd": 0.049843700000000005,
+      "output_tokens": 1544
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "land-the-textkit-batch--bisect": [
+      "claude-opus-5"
+    ],
+    "land-the-textkit-batch--builder": [
+      "claude-sonnet-5"
+    ]
+  },
+  "cost_usd": 1.094906,
+  "harness_turns": 21,
+  "lead_turns": null,
+  "duration_s": 191,
+  "rounds": {
+    "loop_passes": 3,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [],
+  "ending": [
+    "halt at land-gate"
+  ],
+  "subagents": {
+    "land-the-textkit-batch--bisect": 1,
+    "land-the-textkit-batch--builder": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "echo '{\"id\":\"n-0002\",\"run\":\"20260922-051355\",\"at\":\"node:builder\",\"started\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\",\"outcome\":\"started\",\"round\":0,\"text\":\"dispatch builder, round 0; grind stops checked: 0/5 iterations, 0/30 minutes, none fired\"}' >> .grooph/land-the-textkit-batch/runs/20260922-051355/notes.jsonl"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 28,
+      "session_id": "c245ee11-107b-4a62-a446-5e37c83dba8d",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.094906,
+      "reported_cost_usd": 1.0949061999999998,
+      "max_budget_usd": 9,
+      "harness_turns": 21,
+      "duration_s": 191,
+      "wall_s": 192,
+      "notes_after": 15,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "d81944f4d6a4fca55515d3571db6a6331cc9fe50",
+  "source_sha256_before": "7fa7e8b263a81b512ace30a55e367fac611eacfe3f787a93e239a23f297aef35",
+  "project_files_changed": [
+    "A BISECT.md",
+    "A CHANGES.md",
+    "M QUEUE.md",
+    "M src/format.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-merge-queue-trvSld",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}

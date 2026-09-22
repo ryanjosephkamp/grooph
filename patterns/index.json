@@ -105,6 +105,39 @@
       "demo": "experiments/patterns/fresh-grind-rare-judge/README.md"
     },
     {
+      "id": "gauntlet-decomposed",
+      "version": 1,
+      "kind": "graph",
+      "title": "Gauntlet, decomposed",
+      "summary": "A planner cuts the work into pieces and a human approves the cut; one piece at a time an owner polishes while a fresh frontier critic compares captures blind against the reference; an integrator and a final blind comparison close it.",
+      "whenToUse": "A rendered artifact must match a named reference and is too large for one owner and one critic: the pieces have real seams, each can be captured and judged alone, and they are coupled enough to build in sequence.",
+      "profile": {
+        "cost": "high",
+        "speed": "slow",
+        "rigor": "high"
+      },
+      "tags": [
+        "loop",
+        "gauntlet",
+        "reference",
+        "nested"
+      ],
+      "slots": [
+        "task",
+        "reference",
+        "capture-command"
+      ],
+      "file": "gauntlet-decomposed.grooph.json",
+      "demo": "experiments/patterns/gauntlet-decomposed/README.md",
+      "credits": [
+        {
+          "name": "Matt Shumer's Gauntlet Loop and the Claude of Duty repository",
+          "url": "https://github.com/mshumer/Claude-of-Duty",
+          "note": "decompose, then builder plus fresh critic per piece against a real reference, blind side by side; here bounded, and pieces run in sequence because the repository's own note says fan-out lost on coupled work"
+        }
+      ]
+    },
+    {
       "id": "grind-loop",
       "version": 1,
       "kind": "graph",
@@ -180,6 +213,46 @@
       "demo": "experiments/patterns/human-gated-irreversible/README.md"
     },
     {
+      "id": "merge-queue",
+      "version": 1,
+      "kind": "fragment",
+      "title": "Merge queue",
+      "summary": "An integration check on the queued batch; a failure goes to a bisector that finds the change at fault and leaves the rest queued; a pass waits for a human, who lets one node land the batch.",
+      "whenToUse": "Several reviewed changes wait to land together and the integration command (build, lint, tests) is the arbiter: insert this before the host's stop node so a batch lands only green and only on a human's word.",
+      "profile": {
+        "cost": "low",
+        "speed": "medium",
+        "rigor": "standard"
+      },
+      "tags": [
+        "fragment",
+        "merge",
+        "bisect",
+        "human-gate",
+        "irreversible",
+        "brake"
+      ],
+      "slots": [
+        "integration-command",
+        "queue-file",
+        "land-command"
+      ],
+      "file": "merge-queue.grooph.json",
+      "demo": "experiments/patterns/merge-queue/README.md",
+      "credits": [
+        {
+          "name": "Steve Yegge's Gas Town Refinery",
+          "url": "https://github.com/gastownhall/gastown",
+          "note": "a merge queue that integrates a batch, bisects on failure and lands by a human's word"
+        },
+        {
+          "name": "Bors",
+          "url": "https://github.com/bors-ng/bors-ng",
+          "note": "batch then bisect"
+        }
+      ]
+    },
+    {
       "id": "metric-sandwich",
       "version": 1,
       "kind": "graph",
@@ -235,6 +308,80 @@
           "name": "Claude of Duty process note (Matt Shumer)",
           "url": "https://github.com/mshumer/Claude-of-Duty",
           "note": "sequential ownership beat parallel fan-out on coupled systems in the repository's own write-up"
+        }
+      ]
+    },
+    {
+      "id": "patrol-pulse",
+      "version": 1,
+      "kind": "graph",
+      "title": "Patrol pulse",
+      "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritises; one pulse is one run.",
+      "whenToUse": "Something should be looked at on a schedule (a log, a queue, a report) and the output of each look is a triaged record for a human, never a change: run the package under the harness's scheduler and each pulse is a run.",
+      "profile": {
+        "cost": "low",
+        "speed": "fast",
+        "rigor": "standard"
+      },
+      "tags": [
+        "pulse",
+        "scheduled",
+        "read-only",
+        "tickets",
+        "human-gate"
+      ],
+      "slots": [
+        "task",
+        "scan-command",
+        "ticket-store"
+      ],
+      "file": "patrol-pulse.grooph.json",
+      "demo": "experiments/patterns/patrol-pulse/README.md",
+      "credits": [
+        {
+          "name": "u/croovies's \"Lloyd\" heartbeat orchestrator, as written up by explainx.ai (2026-08-14; a secondary source)",
+          "url": "https://www.explainx.ai/blog/claude-code-loop-orchestrator-heartbeat-ticket-memory-august-2026",
+          "note": "a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritise"
+        },
+        {
+          "name": "Steve Yegge's Gas Town patrols",
+          "url": "https://github.com/gastownhall/gastown",
+          "note": "patrol agents that loop by design; here one pulse is one run"
+        }
+      ]
+    },
+    {
+      "id": "ralph-loop",
+      "version": 1,
+      "kind": "graph",
+      "title": "Ralph loop",
+      "summary": "A fresh builder takes the top unchecked item of a plan file each round, commits on green and appends what it learned to an agent file, until the plan is empty.",
+      "whenToUse": "The work is already a prioritised list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.",
+      "profile": {
+        "cost": "low",
+        "speed": "fast",
+        "rigor": "light"
+      },
+      "tags": [
+        "loop",
+        "grind",
+        "plan",
+        "tests",
+        "fresh-context"
+      ],
+      "slots": [
+        "task",
+        "plan-file",
+        "agent-file",
+        "test-command"
+      ],
+      "file": "ralph-loop.grooph.json",
+      "demo": "experiments/patterns/ralph-loop/README.md",
+      "credits": [
+        {
+          "name": "Geoffrey Huntley's ralph loop",
+          "url": "https://ghuntley.com/ralph/",
+          "note": "one prompt piped into a fresh session per pass; one item of work per pass from a plan file; state on disk; the human as the brake, here replaced by stops"
         }
       ]
     },
