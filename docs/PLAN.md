@@ -62,8 +62,8 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0016 | 10a | Paired comparisons, first study: runner arms and blind judge; four projects, three arms, two runs; own ledger ($100 cap) | Opus 5; protocol in `docs/comparisons.md` | done 2026-09-22 ($60.62; 27 runs; the graph earned its cost in none; decision 0012) |
 | 0017 | 14 | Prior-art templates: `ralph-loop`, `patrol-pulse`, `gauntlet-decomposed`, `merge-queue`, proved (about $15) | Opus 5 | done 2026-09-22 ($11.87; two loops turned; `gauntlet-decomposed` planner leak fixed at reconcile, record red until 0020) |
 | 0018 | 15 | Elaborate templates: `mayor-and-polecats` and two or three composites, proved (about $25) | Opus 5 | todo, after 0019 and the owner's own `/grooph-design` run |
-| 0019 | 10a | Comparison study two under protocol v2: arm D, tasks built to fail at round 0, `heterogeneous-critic`, `taste-polish`, `review-gate` (harder task); about $80 | Opus 5; driver designs the tasks | next; handoff to draft; needs a cap |
-| 0020 | 14 | Re-prove `gauntlet-decomposed` v2 (planner names, never copies, the reference cut); rename `patrol-pulse`'s output and re-check; about $8 | Opus 5 | todo, with 0019's spend approval |
+| 0019 | 10a | Comparison study two under protocol v2: arm D, tasks built to fail at round 0, `heterogeneous-critic`, `taste-polish`, `review-gate` (harder task); about $80 | Opus 5 | handoff drafted (`handoffs/0019-comparison-study-two/`), awaiting owner confirmation and the comparisons cap raise to $150.00 |
+| 0020 | 14 | Re-prove `gauntlet-decomposed` v2 (planner names, never copies, the reference cut); rename `patrol-pulse`'s output and re-check; about $8 | Opus 5 | folded into handoff 0019 (criterion 6) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)

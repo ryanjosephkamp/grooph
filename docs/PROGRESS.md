@@ -6,7 +6,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Stage:** 0–7 are done. Stage 6 closed with all sixteen templates proved ($39.58 of the $45.00 cap): four back edges taken in batch two, every gate halted and recorded, two records published red for true reasons (a stand-in judge after an `allow` amendment; a halt on the session ceiling). Slice 0012 fixed what those runs exposed in the brief and the runner. Slice 0013 re-proved both red records green, so all sixteen records pass the check ($45.64 of the $55.00 cap spent in all). On 2026-09-21 the owner accepted the roadmap (decisions 0010 and 0011); 0014 and 0015 are merged. **Study one of the paired comparisons (0016, 2026-09-22) found the graph earned its cost in none of four projects**: identical held-out scores in every arm, the package's extra cost is its run record, no loop turned, and structure showed only as brakes (decision 0012). Slice 0017 added four prior-art templates with credits (twenty in the library); two loops turned by design, `patrol-pulse` filed and deduplicated tickets, and `gauntlet-decomposed`'s planner leaked the reference into its plan (fixed at reconcile; re-proof in 0020). Next: comparison study two under protocol v2 (0019) with 0020's re-proof, then elaborate templates (0018). Codex is deferred without a date.
 - **Live:** app https://ryanjosephkamp.github.io/grooph/ · templates https://ryanjosephkamp.github.io/grooph/patterns/index.json · proving runs https://ryanjosephkamp.github.io/grooph/experiments/patterns/ledger.json (write-ups are in the repo under `experiments/patterns/`)
-- **Next action (driver):** design study two's three tasks and draft handoff 0019 (with 0020's re-proof folded into its spend approval). **Owner:** your own `/grooph-design` run before slice 0018. **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
+- **Next action (owner):** confirm slice 0019 (comparison study two under protocol v2, with the 0020 re-proofs) and the comparisons cap raise to $150.00, then paste its prompt into an Opus 5 session. Your own `/grooph-design` run before slice 0018. **Owner, independently:** run `/grooph-design` on a real project of yours and bring the record (the stage-5 test still outstanding; before slice 0018 at the latest).
 - **What works today:** everything through slice 0007, plus: `grooph runs list | show | bundle`, `grooph adopt`, `grooph share <run>`, `grooph watch` (local monitor; `--host` for the phone on the same network); the run view in the app (states on the canvas, timeline, what the run changed, adopt or discard, apply a proposal to a copy, pin notes, the stop that fired); the templates page with search, filters, sort and a glyph per template; `grooph glyph` and `grooph mermaid`; credits on templates; twenty templates, four from prior art; `dispatches` budgets end to end; `scripts/prove-pattern.sh` with a spend ledger, held-out evidence and fragment hosts; nineteen real run records, all sixteen templates with a published write-up.
 
 ## In flight
@@ -15,7 +15,9 @@ _(none)_
 
 ## Waiting on the owner
 
-_(nothing until handoff 0019 is drafted)_
+| Item | Recommended answer |
+|---|---|
+| Confirm slice 0019 (`handoffs/0019-comparison-study-two/HANDOFF.md`) and raise the comparisons cap from $100.00 to $150.00 (about $75 expected; the two re-proofs use the proving ledger's remaining $17.49) | Yes |
 
 ## Deferred until the owner reopens Codex
 
