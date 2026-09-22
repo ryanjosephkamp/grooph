@@ -1,0 +1,305 @@
+{
+  "template": "spec-then-loop",
+  "template_version": "spec-then-loop@2",
+  "slots": {
+    "values": {
+      "task": "Add word wrapping to this project: a function that wraps text to a given width.",
+      "test-command": "npm test"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-90xmCY.harness/held-out",
+    "files": [
+      {
+        "path": "wrap-invariants.test.mjs",
+        "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "word-wrap",
+  "run_id": "20260921-233822",
+  "run_ids": [
+    "20260921-233822"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 2.0983202499999996,
+      "output_tokens": 21975
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.46509750000000005,
+      "output_tokens": 4816
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "word-wrap--planner": [
+      "claude-fable-5-1"
+    ],
+    "word-wrap--builder": [
+      "claude-opus-5"
+    ],
+    "word-wrap--critic": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 2.563418,
+  "harness_turns": 27,
+  "lead_turns": null,
+  "duration_s": 238,
+  "rounds": {
+    "loop_passes": 1,
+    "rounds_recorded": 1,
+    "last_round": 0
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "word-wrap--planner": 1,
+    "word-wrap--builder": 1,
+    "word-wrap--critic": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-233822\",\"at\":\"graph\",\"started\":\"2026-09-21T23:38:22Z\",\"text\":\"run started\"}' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260921-233822\\\",\\\"at\\\":\\\"node:planner\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"text\\\":\\\"dispatching planner\\\"}\" >> .grooph/word-wrap/runs/20260921-233822/notes.jsonl; cat .grooph/word-wrap/runs/20260921-233822/notes.jsonl"
+    },
+    {
+      "tool": "Bash",
+      "command": "git hash-object src/wrap.mjs tests/wrap.test.mjs CHANGES.md README.md"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 28,
+      "session_id": "7ebe99a9-2dca-4b11-81c4-71ecb98d8e02",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.77903,
+      "reported_cost_usd": 0.7790297499999999,
+      "max_budget_usd": 9,
+      "harness_turns": 12,
+      "duration_s": 77,
+      "wall_s": 78,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": " covering items 3–10.\n12. `npm test` exits 0.\n13. README gains a `wrap` example.\n\n**Out of scope:** hyphenation, preserving paragraph breaks, indentation/justification, Unicode width (uses `.length`), ANSI, CLI.\n\nThe planner flagged one judgement call: input newlines are **collapsed** (item 5), not preserved as paragraph breaks. If you want paragraphs preserved, that item and the out-of-scope list should change before approval.\n\n**Is ACCEPTANCE.md the right definition of done? — `approve` | `reject`** (rejecting ends the run so the task can be restated). Reply here and the same run id resumes."
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 29,
+      "session_id": "7ebe99a9-2dca-4b11-81c4-71ecb98d8e02",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.784388,
+      "reported_cost_usd": 1.7843879999999996,
+      "max_budget_usd": 9,
+      "harness_turns": 15,
+      "duration_s": 161,
+      "wall_s": 162,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--resume",
+        "7ebe99a9-2dca-4b11-81c4-71ecb98d8e02"
+      ],
+      "output": "claude-output-2.json",
+      "reply_tail": "ace collapsed, over-long words unbroken, `TypeError` with `wrap:` prefix on bad input), `tests/wrap.test.mjs`, and a `wrap` example in `README.md`.\n\n**Left over:** everything is uncommitted in the working tree — the code change, plus `ACCEPTANCE.md`, `CHANGES.md`, `REVIEW.md` at the project root and the run folder `.grooph/word-wrap/runs/20260921-233822/` (working copy, `notes.jsonl`, `PROGRESS.md`, round-0 diff, test output, and review copy). Say the word if you want the code change committed, and whether the three root-level run artefacts should go in with it or be moved into the run folder."
+    }
+  ],
+  "base_commit": "21aa7bb36e74c4c9720e5f336bfb82e0d2223170",
+  "source_sha256_before": "eab88bf9a79f3a1fc24d242bc8ec7e438fbcd590d84b825d18dc3184e6b53fb6",
+  "project_files_changed": [
+    "A ACCEPTANCE.md",
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-90xmCY",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source",
+  "arm": "A",
+  "replicate": 2,
+  "project": "spec-then-loop",
+  "conditions": {
+    "task": "experiments/comparisons/spec-then-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-90xmCY.harness/held-out",
+      "files": [
+        {
+          "path": "wrap-invariants.test.mjs",
+          "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "spec-then-loop",
+    "template_version": 1,
+    "graph_id": "word-wrap",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-A-90xmCY"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 2.0983202499999996,
+        "output_tokens": 21975
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 0.46509750000000005,
+        "output_tokens": 4816
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "word-wrap--planner": [
+        "claude-fable-5-1"
+      ],
+      "word-wrap--builder": [
+        "claude-opus-5"
+      ],
+      "word-wrap--critic": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 2.563418,
+    "harness_turns": 27,
+    "duration_s": 238,
+    "wall_s": 240,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-233822\",\"at\":\"graph\",\"started\":\"2026-09-21T23:38:22Z\",\"text\":\"run started\"}' \"{\\\"id\\\":\\\"n-0002\\\",\\\"run\\\":\\\"20260921-233822\\\",\\\"at\\\":\\\"node:planner\\\",\\\"started\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\",\\\"outcome\\\":\\\"started\\\",\\\"text\\\":\\\"dispatching planner\\\"}\" >> .grooph/word-wrap/runs/20260921-233822/notes.jsonl; cat .grooph/word-wrap/runs/20260921-233822/notes.jsonl"
+      },
+      {
+        "tool": "Bash",
+        "command": "git hash-object src/wrap.mjs tests/wrap.test.mjs CHANGES.md README.md"
+      }
+    ],
+    "subagents_dispatched": 3,
+    "dispatches": [
+      {
+        "subagent_type": "word-wrap--planner",
+        "description": "Planner: write ACCEPTANCE.md"
+      },
+      {
+        "subagent_type": "word-wrap--builder",
+        "description": "Builder: implement word wrap"
+      },
+      {
+        "subagent_type": "word-wrap--critic",
+        "description": "Critic: judge round 0 change"
+      }
+    ],
+    "held_out_touched": {},
+    "record": {
+      "rounds": {
+        "loop_passes": 1,
+        "rounds_recorded": 1,
+        "last_round": 0
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "stop node done",
+        "stop bar-passed"
+      ],
+      "back_edges": {
+        "later_rounds": 0,
+        "edge_notes": [],
+        "mentioned": [],
+        "caught_by": [],
+        "taken": false
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0010",
+          "loop": "build",
+          "round": 0,
+          "recorded": 2,
+          "started": 2,
+          "off": 0
+        }
+      ],
+      "amendments": [],
+      "halt_notes": [
+        "node:spec-gate"
+      ]
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20260921-233822: the clock form",
+      "ACCEPTANCE.md: planner Write ACCEPTANCE.md",
+      "REVIEW.md: critic Write REVIEW.md",
+      "word-wrap--critic (Critic: judge round 0 change) read ACCEPTANCE.md, .grooph/word-wrap/runs/20260921-233822/diff-round-0.patch, .grooph/word-wrap/runs/20260921-233822/npm-test-round-0.txt, src/count.mjs, tests/count.test.mjs, README.md, src/wrap.mjs, tests/wrap.test.mjs; ran `npm test`",
+      "`ending` line before the final note",
+      "ending as expected: stop node done, stop bar-passed",
+      "dispatch count: n-0010 build r0 recorded 2, started lines 2 (exact)",
+      "no back edge taken: every loop note is round 0 and no back edge is named",
+      "verdicts in order: critic → pass",
+      "held-out evidence (wrap-invariants.test.mjs): touched by nobody; named in 0 dispatch prompt(s)",
+      "timestamps: 16 given, 0 out of append order",
+      "permission denials: Bash `printf '%s\\n' '{\"id\":\"n-0001\",\"run\":\"20260921-233822\",\"at\":\"graph\",\"started\":\"20`; Bash `git hash-object src/wrap.mjs tests/wrap.test.mjs CHANGES.md README.md`"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "stop node done, stop bar-passed"
+  }
+}

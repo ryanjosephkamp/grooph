@@ -1,0 +1,229 @@
+{
+  "template": "spec-then-loop",
+  "arm": "C",
+  "replicate": 3,
+  "project": "spec-then-loop",
+  "graph_id": "word-wrap",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/spec-then-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q.harness/held-out",
+      "files": [
+        {
+          "path": "wrap-invariants.test.mjs",
+          "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "spec-then-loop",
+    "template_version": 1,
+    "graph_id": "word-wrap",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q"
+  },
+  "derivation": {
+    "graph": "word-wrap",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "planner",
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "build"
+    ],
+    "gates": [
+      "spec-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 4,
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.3991132499999999,
+      "output_tokens": 18016
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.5623095,
+      "output_tokens": 4868
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "general-purpose": [
+      "claude-opus-5",
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 1.961423,
+  "harness_turns": 13,
+  "duration_s": 206,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.3991132499999999,
+        "output_tokens": 18016
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 0.5623095,
+        "output_tokens": 4868
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "general-purpose": [
+        "claude-opus-5",
+        "claude-fable-5-1"
+      ]
+    },
+    "cost_usd": 1.961423,
+    "harness_turns": 13,
+    "duration_s": 206,
+    "wall_s": 207,
+    "permission_denials": [],
+    "subagents_dispatched": 3,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Planner: write ACCEPTANCE.md"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement wrapText"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: judge change vs ACCEPTANCE.md"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 38,
+      "session_id": "c7d314dc-180f-43f5-8dc2-d945b642265d",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.516857,
+      "reported_cost_usd": 0.5168572499999999,
+      "max_budget_usd": 9,
+      "harness_turns": 3,
+      "duration_s": 51,
+      "wall_s": 51,
+      "gate": {
+        "halted": true,
+        "changed": [
+          "ACCEPTANCE.md"
+        ],
+        "planning_outputs_present": [
+          "ACCEPTANCE.md"
+        ],
+        "built": [],
+        "resumed": true
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": "fication, or alignment options.\n- Unicode display width (wide characters, combining marks, ANSI escapes); width is measured in JS string length.\n- A command-line interface or any change to `package.json`.\n```\n\nThe planner flagged one judgment call: **item 7** treats input newlines as ordinary whitespace (single-paragraph re-flow). If you'd rather preserve paragraph breaks, item 7 and the first out-of-scope bullet should flip together.\n\n**Is ACCEPTANCE.md the right definition of done?** Reply `approve` to dispatch the builder, or `reject` (ideally with what to restate) to end the run.\n\ndone: no"
+    },
+    {
+      "kind": "resume",
+      "iteration": 1,
+      "ledger_n": 39,
+      "session_id": "c7d314dc-180f-43f5-8dc2-d945b642265d",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.444566,
+      "reported_cost_usd": 1.4445655,
+      "max_budget_usd": 9,
+      "harness_turns": 10,
+      "duration_s": 155,
+      "wall_s": 156,
+      "says_done": true,
+      "tests_after": true,
+      "gate": {
+        "answer": "approve",
+        "gate": "spec-gate"
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--resume",
+        "c7d314dc-180f-43f5-8dc2-d945b642265d"
+      ],
+      "output": "claude-output-1-resume.json",
+      "reply_tail": "bad args.\n- `tests/wrap.test.mjs` — 8 tests (`node:test` + `node:assert/strict`), one per acceptance items 2–9.\n- `README.md` — `wrapText` usage example beside `countWords`.\n- `CHANGES.md` — builder's record of the round.\n- `ACCEPTANCE.md` (planner, approved by you) and `REVIEW.md` (critic).\n\n**Done check:** the critic's `REVIEW.md` shows all 12 acceptance lines hold, each cited to `src/wrap.mjs` line numbers and a named test; `npm test` exits 0 with 9/9 passing (confirmed independently by the builder, me, and the critic).\n\nNothing is committed — say the word if you'd like a commit.\n\ndone: yes"
+    }
+  ],
+  "base_commit": "3671bbd244a3259d5a468a04bd9f28ded740c975",
+  "project_files_changed": [
+    "A ACCEPTANCE.md",
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 4 said done and the tests passed"
+  },
+  "home_redactions": 0
+}

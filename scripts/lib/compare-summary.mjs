@@ -65,7 +65,7 @@ export function projectRows(project) {
       turns: result.harness_turns ?? null,
       refusals: (result.permission_denials ?? []).length,
       subagents: result.process?.subagents_dispatched ?? null,
-      iterations: result.arm === "C" ? result.invocations.length : null,
+      iterations: result.arm === "C" ? new Set(result.invocations.map((i) => i.iteration).filter(Boolean)).size : null,
       record: result.process?.record ?? null,
       judge: judged ? { letter, score: judged.score, reasons: judged.reasons, rank: rank || null } : letter ? { letter, score: null, reasons: null, rank: null } : null,
       held_out_touched: heldOutTouched(join(dir, name), result),

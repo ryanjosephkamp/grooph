@@ -1,0 +1,238 @@
+{
+  "template": "spec-then-loop",
+  "arm": "B",
+  "replicate": 3,
+  "project": "spec-then-loop",
+  "graph_id": "word-wrap",
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/spec-then-loop/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-5Qdha3.harness/held-out",
+      "files": [
+        {
+          "path": "wrap-invariants.test.mjs",
+          "sha256": "21f5a9903ceffde55490ae2baedf52a43a323584675c40d9d7361a66cd362f16"
+        }
+      ],
+      "substituted_in": []
+    },
+    "lead_model": "claude-opus-5",
+    "lead_effort": "high",
+    "permission_allow_rules": 25,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.278 (Claude Code)",
+    "template": "spec-then-loop",
+    "template_version": 1,
+    "graph_id": "word-wrap",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-5Qdha3"
+  },
+  "derivation": {
+    "graph": "word-wrap",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "planner",
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "build"
+    ],
+    "gates": [
+      "spec-gate"
+    ],
+    "held_out_mentions": {
+      "package": 0,
+      "prompt": 0
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5": {
+      "cost_usd": 1.4070515,
+      "output_tokens": 18865
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 0.8849834999999999,
+      "output_tokens": 10106
+    },
+    "claude-opus-5[1m]": {
+      "cost_usd": 0.36796399999999996,
+      "output_tokens": 5854
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "claude": [
+      "claude-fable-5-1",
+      "claude-opus-5"
+    ],
+    "Explore": [
+      "claude-opus-5"
+    ]
+  },
+  "cost_usd": 2.659999,
+  "harness_turns": 11,
+  "duration_s": 285,
+  "process": {
+    "models": {
+      "claude-opus-5": {
+        "cost_usd": 1.4070515,
+        "output_tokens": 18865
+      },
+      "claude-fable-5-1": {
+        "cost_usd": 0.8849834999999999,
+        "output_tokens": 10106
+      },
+      "claude-opus-5[1m]": {
+        "cost_usd": 0.36796399999999996,
+        "output_tokens": 5854
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5"
+      ],
+      "claude": [
+        "claude-fable-5-1",
+        "claude-opus-5"
+      ],
+      "Explore": [
+        "claude-opus-5"
+      ]
+    },
+    "cost_usd": 2.659999,
+    "harness_turns": 11,
+    "duration_s": 285,
+    "wall_s": 287,
+    "permission_denials": [],
+    "subagents_dispatched": 3,
+    "dispatches": [
+      {
+        "subagent_type": "claude",
+        "description": "Planner: write ACCEPTANCE.md"
+      },
+      {
+        "subagent_type": "claude",
+        "description": "Builder: implement wrap()"
+      },
+      {
+        "subagent_type": "claude",
+        "description": "Critic: judge change vs ACCEPTANCE.md"
+      }
+    ],
+    "held_out_touched": {}
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 36,
+      "session_id": "058b5767-e27d-4849-b5b2-f070c679efd5",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.855185,
+      "reported_cost_usd": 0.85518525,
+      "max_budget_usd": 9,
+      "harness_turns": 2,
+      "duration_s": 119,
+      "wall_s": 120,
+      "gate": {
+        "halted": true,
+        "changed": [
+          "ACCEPTANCE.md"
+        ],
+        "planning_outputs_present": [
+          "ACCEPTANCE.md"
+        ],
+        "built": [],
+        "resumed": true
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "spec mirrors that: sibling `src/wrap.mjs`, mirrored test file, README example, the same whitespace-run definition of \"word\" and the same `\"<fn>: ...\"` error-message convention. Width is pinned to `String.prototype.length` and long words are left unbroken to keep the first cut small.\n\n## Your decision\n\n**Is ACCEPTANCE.md the right definition of done?**\n\n- **approve** → I dispatch the builder, then the critic, and loop (max 4 rounds / 10 dispatches) until every line holds and `npm test` passes.\n- **reject** → the run ends so the task can be restated.\n\nNothing is merged or built until you answer."
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 37,
+      "session_id": "058b5767-e27d-4849-b5b2-f070c679efd5",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.804814,
+      "reported_cost_usd": 1.80481375,
+      "max_budget_usd": 9,
+      "harness_turns": 9,
+      "duration_s": 166,
+      "wall_s": 167,
+      "gate": {
+        "answer": "approve",
+        "gate": "spec-gate"
+      },
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5",
+        "--effort",
+        "high",
+        "--resume",
+        "058b5767-e27d-4849-b5b2-f070c679efd5"
+      ],
+      "output": "claude-output-resume.json",
+      "reply_tail": "ap: text must be a string\")` and `RangeError(\"wrap: width must be an integer >= 1\")`.\n- `tests/wrap.test.mjs` — 8 `node:test` tests covering items 4–10 including all five required concrete cases, plus a UTF-16 code-unit check with emoji.\n- `README.md` — `wrap` example added beside `countWords`.\n- Artifacts from the graph: `ACCEPTANCE.md`, `CHANGES.md`, `REVIEW.md`.\n- `src/count.mjs`, `tests/count.test.mjs`, `package.json` untouched (confirmed by the critic via `git status`).\n\nNothing has been committed — say the word if you want the change committed (with or without the three graph artifacts)."
+    }
+  ],
+  "base_commit": "21e0b1bd9e2f770caf76c872bc827096ab840ec7",
+  "project_files_changed": [
+    "A ACCEPTANCE.md",
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/wrap.mjs",
+    "A tests/wrap.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-B-5Qdha3",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

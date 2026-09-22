@@ -1,0 +1,238 @@
+[
+  {
+    "session": "c7d314dc-180f-43f5-8dc2-d945b642265d",
+    "who": "lead",
+    "transcript": "c7d314dc-180f-43f5-8dc2-d945b642265d.jsonl",
+    "description": null,
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-21T23:59:42.600Z",
+    "ended": "2026-09-22T00:03:09.272Z",
+    "assistant_messages": 18,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-09-21T23:59:46.518Z",
+        "command": "ls -la && cat package.json 2>/dev/null && git log --oneline | head"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-21T23:59:56.922Z",
+        "subagent_type": "general-purpose",
+        "description": "Planner: write ACCEPTANCE.md",
+        "prompt": "You are the Planner node (role: planner, effort: high).\n\n**Brief.** Turn the task into ACCEPTANCE.md: the observable behaviours that would make it done, each checkable by reading code or running `npm test`. Name what is out of scope. Keep it short enough to review in a minute, and write no code.\n\n**Task.** Add word wrapping to this project: a function that wraps text to a given width. Done when every line of an approved ACCEPTANCE.md is shown to hold and `npm test` passes.\n\n**Inputs.** The task (above). You may read the project to understand its conventions (project root: /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q — it has package.json, README.md, src/, tests/; tests run with `node --test tests/*.test.mjs`).\n\n**Outputs.** Write `/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q/ACCEPTANCE.md` yourself. You may create or overwrite only that file, and no other file.\n\n**Capabilities.** Allowed tools: Read, Write, Glob, Grep only. Do not run shell commands. Do not write code.\n\nFormat ACCEPTANCE.md as a numbered list of short, concrete, observable behaviours (each one line, each checkable by reading code or by a test), followed by a short \"Out of scope\" section. When done, report the contents of ACCEPTANCE.md in your reply."
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-22T00:00:42.943Z",
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement wrapText",
+        "prompt": "You are the Builder node (role: builder, effort: high).\n\n**Brief.** Do the task until every line of ACCEPTANCE.md holds. The acceptance file is fixed: if a line is wrong, say so in your report rather than working around it. Run `npm test` before you report.\n\n**Task.** Add word wrapping to this project: a function that wraps text to a given width. Done when every line of the approved ACCEPTANCE.md is shown to hold and `npm test` passes.\n\n**Inputs.**\n- The task (above).\n- `ACCEPTANCE.md` at the project root — read it first; it is the bar.\n- The project, which you may read and change. Project root: /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q (package.json, README.md, src/, tests/; tests run with `npm test` = `node --test tests/*.test.mjs`). Match the conventions of the existing `src/count.mjs` and `tests/count.test.mjs`.\n\n**Outputs.** Leave all of these behind before you report:\n- The change, with tests (per ACCEPTANCE.md: `src/wrap.mjs`, `tests/wrap.test.mjs`, README.md update).\n- `CHANGES.md` at the project root: what changed this round.\n\nDo not edit ACCEPTANCE.md or package.json. Do not commit.\n\n**Capabilities.** Allowed tools: Read, Edit, Write, Glob, Grep, Bash. Run commands bare from the project root (your working directory is already the project root): no `cd … && …` compound forms, no `git -C <path>`; each refused command costs a turn.\n\nReport: a summary of what you did, the full output of `npm test`, and any acceptance line you believe is wrong or could not satisfy."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:29.698Z",
+        "command": "git status --short"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:30.994Z",
+        "command": "git diff"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:32.813Z",
+        "command": "git diff --no-index /dev/null src/wrap.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:34.417Z",
+        "command": "git diff --no-index /dev/null tests/wrap.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:35.943Z",
+        "command": "git diff --no-index /dev/null CHANGES.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:37.590Z",
+        "command": "npm test 2>&1"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-09-22T00:02:14.630Z",
+        "subagent_type": "general-purpose",
+        "description": "Critic: judge change vs ACCEPTANCE.md",
+        "prompt": "You are the Critic node (role: critic, effort: high).\n\n**Brief.** Judge the change against ACCEPTANCE.md line by line, citing the file and line or the test that shows each one holds; use the repository only to understand what the change touches. Run `npm test` yourself. You judge; you do not fix, and you do not edit the acceptance file. Verdict pass only when every line holds; invalid-evidence when the diff or the file cannot be read.\n\n**Inputs.**\n- Diff of the change (below).\n- The repository as the change leaves it, read-only. Project root (your working directory): /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-compare-spec-then-loop-C-4rmV0Q\n- `ACCEPTANCE.md` at the project root — read it yourself; it is the bar.\n- Output of `npm test` as run by the lead (below); run it again yourself to confirm.\n\n**Outputs.** Leave both behind before you report:\n- `REVIEW.md` at the project root: one line per acceptance item (item number, holds/fails, citation of file:line or test name), and a final verdict line `verdict: pass` | `verdict: fail` | `verdict: invalid-evidence`.\n- Your verdict, stated clearly in your reply.\n\n**Capabilities.** Allowed tools: Read, Write, Glob, Grep, Bash. The Edit tool is withheld. With Write you may create or overwrite only REVIEW.md, no other file. Run commands bare from the project root: no `cd … && …`, no `git -C <path>`.\n\n---\n\n## Diff of the change\n\n### git diff (tracked files)\n\n```diff\ndiff --git a/README.md b/README.md\nindex 0cac2e6..e661d5e 100644\n--- a/README.md\n+++ b/README.md\n@@ -4,6 +4,14 @@ Small helpers for laying out plain text in a terminal.\n \n ```js\n import { countWords } from \"./src/count.mjs\";\n+import { wrapText } from \"./src/wrap.mjs\";\n \n countWords(\"one two  three\"); // 3\n+\n+wrapText(\"the quick brown fox\", 10); // \"the quick\\nbrown fox\"\n ```\n+\n+`wrapText(text, width)` re-flows `text` as a single paragraph so that no line\n+is longer than `width` characters. Words are never split; a word longer than\n+`width` is placed alone on its own line. Whitespace runs (including newlines)\n+collapse to a single space, and empty or whitespace-only input returns `\"\"`.\n```\n\n### New file: src/wrap.mjs\n\n```diff\ndiff --git a/src/wrap.mjs b/src/wrap.mjs\nnew file mode 100644\n--- /dev/null\n+++ b/src/wrap.mjs\n@@ -0,0 +1,38 @@\n+/**\n+ * Wraps `text` so that no line is longer than `width` characters, without\n+ * splitting words (runs of characters that are not whitespace).\n+ *\n+ * The input is re-flowed as a single paragraph: every run of whitespace,\n+ * including newlines, collapses to a single space. Wrapping is greedy: each\n+ * line holds as many words as fit. A word longer than `width` is placed alone\n+ * on its own line, unsplit. Lines are joined with `\\n` and there is no\n+ * trailing newline. Empty or whitespace-only input returns `\"\"`.\n+ *\n+ * @param {string} text\n+ * @param {number} width  positive integer\n+ * @returns {string}\n+ */\n+export function wrapText(text, width) {\n+  if (typeof text !== \"string\") throw new TypeError(\"wrapText: text must be a string\");\n+  if (!Number.isInteger(width) || width < 1) {\n+    throw new TypeError(\"wrapText: width must be a positive integer\");\n+  }\n+\n+  const words = text.trim().split(/\\s+/);\n+  if (words[0] === \"\") return \"\";\n+\n+  const lines = [];\n+  let line = \"\";\n+  for (const word of words) {\n+    if (line === \"\") {\n+      line = word;\n+    } else if (line.length + 1 + word.length <= width) {\n+      line += \" \" + word;\n+    } else {\n+      lines.push(line);\n+      line = word;\n+    }\n+  }\n+  lines.push(line);\n+  return lines.join(\"\\n\");\n+}\n```\n\n### New file: tests/wrap.test.mjs\n\n```diff\ndiff --git a/tests/wrap.test.mjs b/tests/wrap.test.mjs\nnew file mode 100644\n--- /dev/null\n+++ b/tests/wrap.test.mjs\n@@ -0,0 +1,71 @@\n+import assert from \"node:assert/strict\";\n+import { test } from \"node:test\";\n+\n+import { wrapText } from \"../src/wrap.mjs\";\n+\n+// Item 2: argument validation.\n+test(\"wrapText throws a TypeError for bad arguments\", () => {\n+  assert.throws(() => wrapText(42, 10), TypeError);\n+  assert.throws(() => wrapText(null, 10), TypeError);\n+  assert.throws(() => wrapText(\"text\", 0), TypeError);\n+  assert.throws(() => wrapText(\"text\", -1), TypeError);\n+  assert.throws(() => wrapText(\"text\", 2.5), TypeError);\n+  assert.throws(() => wrapText(\"text\", \"10\"), TypeError);\n+  assert.throws(() => wrapText(\"text\", NaN), TypeError);\n+  assert.throws(() => wrapText(\"text\", Infinity), TypeError);\n+});\n+\n+// Item 1 (returns a string) and item 3: words are never split.\n+test(\"wrapText never splits words; whole words move to the next line\", () => {\n+  const result = wrapText(\"aaa bbb ccc\", 7);\n+  assert.equal(typeof result, \"string\");\n+  assert.equal(result, \"aaa bbb\\nccc\");\n+  for (const line of result.split(\"\\n\")) {\n+    for (const word of line.split(\" \")) {\n+      assert.ok([\"aaa\", \"bbb\", \"ccc\"].includes(word));\n+    }\n+  }\n+});\n+\n+// Item 4: no line exceeds width, except an over-long word alone on its line.\n+test(\"wrapText keeps lines within width; over-long words stand alone unsplit\", () => {\n+  const wrapped = wrapText(\"one two three four five six seven\", 9);\n+  for (const line of wrapped.split(\"\\n\")) assert.ok(line.length <= 9, line);\n+\n+  assert.equal(wrapText(\"a supercalifragilistic b\", 5), \"a\\nsupercalifragilistic\\nb\");\n+  assert.equal(wrapText(\"supercalifragilistic\", 5), \"supercalifragilistic\");\n+});\n+\n+// Item 5: joined with \"\\n\", no trailing newline, no trailing spaces.\n+test(\"wrapText joins with newline and leaves no trailing newline or spaces\", () => {\n+  const wrapped = wrapText(\"one two three\", 3);\n+  assert.equal(wrapped, \"one\\ntwo\\nthree\");\n+  assert.ok(!wrapped.endsWith(\"\\n\"));\n+  for (const line of wrapped.split(\"\\n\")) assert.equal(line, line.trimEnd());\n+  assert.ok(!wrapText(\"trailing   \", 20).endsWith(\" \"));\n+});\n+\n+// Item 6: whitespace runs collapse to a single space between words.\n+test(\"wrapText collapses whitespace runs to a single space\", () => {\n+  assert.equal(wrapText(\"one   two\\t\\tthree\\n\\n four\", 80), \"one two three four\");\n+});\n+\n+// Item 7: input newlines do not force breaks; text is re-flowed.\n+test(\"wrapText re-flows input newlines as a single paragraph\", () => {\n+  assert.equal(wrapText(\"one\\ntwo\\nthree\", 80), \"one two three\");\n+  assert.equal(wrapText(\"one\\ntwo\\nthree four\", 9), \"one two\\nthree\\nfour\");\n+});\n+\n+// Item 8: empty or whitespace-only input.\n+test(\"wrapText returns the empty string for empty or whitespace-only input\", () => {\n+  assert.equal(wrapText(\"\", 10), \"\");\n+  assert.equal(wrapText(\"   \\n\\t \", 10), \"\");\n+});\n+\n+// Item 9: greedy wrapping.\n+test(\"wrapText wraps greedily\", () => {\n+  assert.equal(wrapText(\"the quick brown fox\", 10), \"the quick\\nbrown fox\");\n+  assert.equal(wrapText(\"the quick brown fox\", 9), \"the quick\\nbrown fox\");\n+  assert.equal(wrapText(\"the quick brown fox\", 15), \"the quick brown\\nfox\");\n+  assert.equal(wrapText(\"the quick brown fox\", 100), \"the quick brown fox\");\n+});\n```\n\n### New file: CHANGES.md\n\n```diff\ndiff --git a/CHANGES.md b/CHANGES.md\nnew file mode 100644\n--- /dev/null\n+++ b/CHANGES.md\n@@ -0,0 +1,13 @@\n+# Changes\n+\n+## Word wrapping\n+\n+- Added `src/wrap.mjs` exporting `wrapText(text, width)`: greedy word wrap\n+  that never splits words, collapses whitespace runs (including newlines) to\n+  a single space, places over-long words alone on their own line, joins lines\n+  with `\\n` with no trailing newline, and returns `\"\"` for empty or\n+  whitespace-only input. Throws `TypeError` for a non-string `text` or a\n+  `width` that is not a positive integer.\n+- Added `tests/wrap.test.mjs` (`node:test` + `node:assert/strict`) covering\n+  ACCEPTANCE.md items 2 through 9.\n+- Updated `README.md` with a `wrapText` usage example alongside `countWords`.\n```\n\n(ACCEPTANCE.md is also untracked, written by the planner; it is not part of the change.)\n\n## Output of `npm test` (lead's run)\n\n```\n> textwrap@0.1.0 test\n> node --test tests/*.test.mjs\n\n✔ countWords counts runs of non-whitespace (0.345459ms)\n✔ wrapText throws a TypeError for bad arguments (0.523125ms)\n✔ wrapText never splits words; whole words move to the next line (0.140792ms)\n✔ wrapText keeps lines within width; over-long words stand alone unsplit (0.055667ms)\n✔ wrapText joins with newline and leaves no trailing newline or spaces (0.073458ms)\n✔ wrapText collapses whitespace runs to a single space (0.7ms)\n✔ wrapText re-flows input newlines as a single paragraph (0.054ms)\n✔ wrapText returns the empty string for empty or whitespace-only input (0.048417ms)\n✔ wrapText wraps greedily (0.098541ms)\nℹ tests 9\nℹ suites 0\nℹ pass 9\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 46.731542\n```"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:03:02.443Z",
+        "file": "REVIEW.md"
+      }
+    ]
+  },
+  {
+    "session": "c7d314dc-180f-43f5-8dc2-d945b642265d",
+    "who": "general-purpose",
+    "transcript": "agent-ae6e66b643b80454a.jsonl",
+    "description": "Builder: implement wrapText",
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-22T00:00:42.955Z",
+    "ended": "2026-09-22T00:01:27.811Z",
+    "assistant_messages": 14,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:46.229Z",
+        "file": "ACCEPTANCE.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:48.303Z",
+        "file": "src/count.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:48.342Z",
+        "file": "tests/count.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:48.946Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:49.694Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-22T00:00:56.181Z",
+        "file": "src/wrap.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-22T00:01:09.746Z",
+        "file": "tests/wrap.test.mjs"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-09-22T00:01:12.995Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-22T00:01:16.297Z",
+        "file": "CHANGES.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:01:17.789Z",
+        "command": "npm test 2>&1"
+      }
+    ]
+  },
+  {
+    "session": "c7d314dc-180f-43f5-8dc2-d945b642265d",
+    "who": "general-purpose",
+    "transcript": "agent-aefa8ac32a62a0659.jsonl",
+    "description": "Planner: write ACCEPTANCE.md",
+    "models": [
+      "claude-fable-5-1"
+    ],
+    "started": "2026-09-21T23:59:56.930Z",
+    "ended": "2026-09-22T00:00:24.213Z",
+    "assistant_messages": 10,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:00.121Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:01.053Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "ToolSearch",
+        "at": "2026-09-22T00:00:01.519Z"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:03.469Z",
+        "file": "src/count.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:00:04.110Z",
+        "file": "tests/count.test.mjs"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-22T00:00:15.275Z",
+        "file": "ACCEPTANCE.md"
+      }
+    ]
+  },
+  {
+    "session": "c7d314dc-180f-43f5-8dc2-d945b642265d",
+    "who": "general-purpose",
+    "transcript": "agent-af485d1182cfb1d9e.jsonl",
+    "description": "Critic: judge change vs ACCEPTANCE.md",
+    "models": [
+      "claude-opus-5"
+    ],
+    "started": "2026-09-22T00:02:14.636Z",
+    "ended": "2026-09-22T00:03:00.425Z",
+    "assistant_messages": 15,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:02:19.684Z",
+        "file": "ACCEPTANCE.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:02:20.567Z",
+        "file": "src/wrap.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:02:21.512Z",
+        "file": "tests/wrap.test.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:02:22.187Z",
+        "command": "npm test 2>&1"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:02:26.261Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-09-22T00:02:27.212Z",
+        "file": "src/count.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-09-22T00:02:28.008Z",
+        "command": "git status --porcelain && git diff --stat -- package.json && cat package.json"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-09-22T00:02:53.952Z",
+        "file": "REVIEW.md"
+      }
+    ]
+  }
+]
