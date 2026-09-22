@@ -11,7 +11,9 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-_(none)_
+### Slice 0017 · prior-art templates (implementer: Opus 5, branch `slice/0017-prior-art-templates`)
+
+- 2026-09-22 · Criterion 1 met: `ralph-loop`, `patrol-pulse`, `gauntlet-decomposed` and the `merge-queue` fragment under `patterns/` with credits; index, README and 20 glyphs regenerated; `patterns.test.ts` covers the four (plan-check command, read-only investigator, nested loops with the outer bar on `PIECES.md`, the fragment inserted into a grind-loop host). Count-only edits to the CLI and web e2e tests (16 → 20) sit in their own commit, outside the allowed changes.
 
 ## Waiting on the owner
 
