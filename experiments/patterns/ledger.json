@@ -420,8 +420,23 @@
       "run_id": "20260921-044114",
       "retry": "0013 re-proof after the auth failure",
       "note": "retry: 0013 re-proof after the auth failure"
+    },
+    {
+      "n": 27,
+      "template": "patrol-pulse",
+      "kind": "kickoff",
+      "started": "2026-09-22T05:05:18.145Z",
+      "ended": "2026-09-22T05:09:20.223Z",
+      "status": "ok",
+      "cost_usd": 1.309644,
+      "reported_cost_usd": 1.3096440999999999,
+      "max_budget_usd": 9,
+      "session_id": "64c3a010-73bf-479c-be02-aebb243df7c8",
+      "run_id": "20260922-050527",
+      "retry": null,
+      "note": ""
     }
   ],
-  "spent_usd": 45.641348,
-  "remaining_usd": 29.358652
+  "spent_usd": 46.950992,
+  "remaining_usd": 28.049008
 }
