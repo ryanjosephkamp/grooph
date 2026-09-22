@@ -1,0 +1,21 @@
+# gauntlet-decomposed · one proving run
+
+_Pre-registered 2026-09-22, before the run; the sections after "Pre-registration" are written from the record afterwards._
+
+**Credits:** Matt Shumer's Gauntlet Loop and the Claude of Duty repository: decompose, then builder plus fresh critic per piece against a real reference, blind side by side; here bounded, and pieces run in sequence because the repository's own note says fan-out lost on coupled work.
+
+## Pre-registration
+
+**Task.** [`task/`](task/): `summary-card`, a 640 × 360 SVG card for a monthly review deck, composed by `src/card.mjs` from two pieces along a real seam: `src/header.mjs` (title, period, three stat tiles) and `src/trend.mjs` (twelve monthly bars). The first version is crude: raw integers in a line of 12px text, black bars, no margins, no months, no tiles. [`BRIEF.md`](task/BRIEF.md) says in words what the card should be; `npm run capture` writes `captures/card.svg` and `captures/CAPTURE.md`, an element-by-element account (group, kind, position, size, colour, text) a critic can set beside any other SVG described the same way. The reference is held out ([`held-out/`](held-out/)): the card itself, the same element-by-element description of it, and [`REFERENCE.md`](held-out/REFERENCE.md), ten ranked points with what counts as major.
+
+**The mechanism: a held-out reference, cut per piece.** The planner reads the reference and cuts the pieces with a reference cut each; the piece critic and the final critic judge against it; the owner and the integrator work from `PIECES.md` and are told it is not theirs to read.
+
+**Why a first pass should fail.** For piece 1 (the header) the brief's words admit an obvious rendering that the reference contradicts on properties only a side-by-side shows: the reference's three tiles span the card's inner width on a shared value baseline, the change line is coloured and marked by sign (green ▲ / red ▼, and Orders *fell*), and the values are in a compact spoken form. A builder working from `BRIEF.md` alone will plausibly produce three left-aligned labelled numbers of its own spacing, uncoloured, and perhaps `$1,423,000`. Each of those is major by `REFERENCE.md`'s own definition. The bet: **`e-critic-fail` fires at least once, both pieces end ticked in `PIECES.md`, the owner and the integrator never read the held-out folder, both critics do, and the run halts at `release-gate`.**
+
+**Expected probability.** Round-0 pass for piece 1: about 0.25 (the brief names the compact form, so that one gap is likely closed; the tile geometry and the signed colour are not named). At least one `e-critic-fail` across the two pieces: about 0.85. Both pieces ticked within the outer cap: about 0.8, the risk being the session's dollar ceiling rather than the graph's stops. What `--check` asserts is in [`expect.json`](expect.json): five agents as their own subagents, `dispatches` (owner ≥ 2, critic ≥ 2), each critic's own report, `heldOut` readers and non-readers, `backEdge`, `ending: halt at release-gate`.
+
+**One scripted gate answer.** This graph's first gate, `decomposition-gate`, stands between the planner and everything the template is for. The owner decided on 2026-09-22 that this gate, and only this one, gets a scripted `approve` once the run has halted there with its note, as `spec-then-loop`'s first gate did in batch one; the release gate at the end is answered by nobody, and the halt there is the ending. The scripted answer is a second invocation on the same session, labelled in the ledger.
+
+**Shape.** `planner` (frontier) → `decomposition-gate` → loop `pieces` (judgment, one piece per outer round; bar: every box in `PIECES.md` ticked; stops bar-passed → `integrator`, human every 2, max-iterations 4, budget 42 dispatches) over `owner` (strong) → `capture-check` (`npm run capture`) → `critic` (frontier, fresh; inner loop `polish`: bar-passed, diminishing-returns 2, max-iterations 3, budget 10) → `next-piece` check (`grep -q '^- \[ \]' PIECES.md`) → owner on pass, `integrator` on fail → `final-critic` (frontier, fresh) → `release-gate` → `done`.
+
+**Spend expected:** about $6 to $8 over two invocations (kickoff to the gate, then the resume through both pieces and the ending), each capped at $9.00. Ledger cap $75.00, $24.43 available before this run.
