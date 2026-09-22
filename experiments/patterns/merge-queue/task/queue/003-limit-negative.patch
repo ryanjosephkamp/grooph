@@ -1,0 +1,24 @@
+diff --git a/src/limit.mjs b/src/limit.mjs
+index a4dcb57..ecd004b 100644
+--- a/src/limit.mjs
++++ b/src/limit.mjs
+@@ -1,5 +1,5 @@
+-/** The first `n` items of a list. */
++/** The first `n` items of a list; a negative `n` means none. */
+ export function limit(list, n) {
+   if (!Number.isInteger(n)) throw new TypeError("n must be an integer");
+-  return list.slice(0, n);
++  return n < 0 ? [] : list.slice(0, n);
+ }
+diff --git a/tests/limit.test.mjs b/tests/limit.test.mjs
+index f40155e..3b5a6c3 100644
+--- a/tests/limit.test.mjs
++++ b/tests/limit.test.mjs
+@@ -12,3 +12,7 @@ test("the first n items", () => {
+ test("n must be an integer", () => {
+   assert.throws(() => limit([1, 2, 3], 1.5), TypeError);
+ });
++
++test("a negative n means none, not the last few", () => {
++  assert.deepEqual(limit([1, 2, 3], -1), []);
++});

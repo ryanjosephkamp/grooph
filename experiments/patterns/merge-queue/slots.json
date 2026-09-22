@@ -1,0 +1,23 @@
+{
+  "about": "A fragment is proved inside a host, as human-gated-irreversible was: grind-loop is instantiated (its builder fixes the one failing test on the tree), merge-queue is inserted with `grooph template insert`, and the ops route the tests' pass edge into the integration check and drop the host's own stop node, so the graph reads builder → tests → integrate → (fail) bisect → integrate; (pass) land-gate → land → done. The batch of three queued patches has one (002) that breaks an existing test.",
+  "name": "Land the textkit batch",
+  "host": {
+    "template": "grind-loop",
+    "values": {
+      "task": "Fix `formatMoney` in src/format.mjs so that tests/format.test.mjs passes: a negative amount keeps its sign in front of the currency symbol (`-$1,234.56`). Touch nothing under queue/ and leave QUEUE.md alone; the merge queue handles the batch after the tree is green.",
+      "test-command": "npm test"
+    }
+  },
+  "insert": {
+    "values": {
+      "integration-command": "npm run integrate",
+      "queue-file": "QUEUE.md",
+      "land-command": "npm run land"
+    }
+  },
+  "ops": [
+    { "op": "updateEdge", "id": "e-tests-pass", "set": { "to": "integrate" } },
+    { "op": "removeNode", "id": "done" },
+    { "op": "renameId", "from": "done-2", "to": "done" }
+  ]
+}

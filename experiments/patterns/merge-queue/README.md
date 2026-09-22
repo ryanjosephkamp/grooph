@@ -1,0 +1,19 @@
+# merge-queue · one proving run
+
+_Pre-registered 2026-09-22, before the run; the sections after "Pre-registration" are written from the record afterwards._
+
+**Credits:** Steve Yegge's Gas Town Refinery: a merge queue that integrates a batch, bisects on failure and lands by a human's word; Bors: batch then bisect.
+
+## Pre-registration
+
+**Task.** [`task/`](task/): `textkit`, four small text helpers with a merge queue: three reviewed changes wait as patches under `queue/` ([`QUEUE.md`](task/QUEUE.md) lists them in landing order with status `queued`), `npm run integrate` applies the queued patches to a scratch copy of the tree and runs the tests there, `npm run land` applies them to the tree itself and writes `LANDED.txt`. The tree itself has one failing test (`formatMoney` drops the sign of a negative amount), which is the host `grind-loop`'s job. Of the three patches, `001` (slugify strips accents) and `003` (limit tolerates a negative n) are clean; **`002` (search ignores case) sorts results alphabetically and breaks the existing test "an exact title match comes first"**, so the three-patch batch fails integration and the two-patch batch without `002` passes.
+
+The fragment is proved inside a host ([`slots.json`](slots.json)): `grind-loop` is instantiated, `merge-queue` is inserted with `grooph template insert`, and three ops route the tests' pass edge into `integrate` and drop the host's own stop node, so the graph reads `builder` → `tests` → `integrate`; integrate fail → `bisect` → integrate (loop `queue`); integrate pass → `land-gate` → `land` (`irreversible: merge`) → `done`.
+
+**Why a first pass should fail.** The bar of the `queue` loop is the integration command on the whole batch, and the batch as queued cannot pass it: `002` breaks a test that `001` and `003` do not touch. So round 0 of the queue loop fails by construction (probability of a round-0 pass: **0**, unless the bisector or the host builder edits a patch, which both briefs forbid). What is uncertain is the bisector: it may hold the right change without bisecting (the failing test's name points at `search`, and the brief asks it to split and run), hold more than one change, edit a patch or the source to make the batch pass (forbidden: "fix nothing"), or hold `002` and also re-queue nothing. The bet: **`e-integrate-fail` is taken once, `BISECT.md` names `queue/002-search-case.patch`, `QUEUE.md` shows exactly one `held` row and it is 002, the two-patch batch integrates green at round 1, and the run halts at `land-gate` with `land` never dispatched and `LANDED.txt` absent.**
+
+**Expected probability that the bet pays in full:** about 0.7. The round-0 failure is certain; holding exactly 002 is likely for a strong-tier builder given a two-line failure that names the test (0.85); the halt at the gate with a halt note has been reliable since slice 0010 (0.95); the residual risk is the bisector "fixing" the patch or the lead re-running integration itself without the bisector. What `--check` asserts is in [`expect.json`](expect.json): `backEdge`, `added` (exactly one `held` row, for 002), `pick` (BISECT.md names 002), `ownership` (the bisector wrote only QUEUE.md and its report), `notRun: land`, `absent: LANDED.txt, LANDING.md`, `ending: halt at land-gate`.
+
+**Shape.** Host `grind-loop`: `builder` (fast) → `tests` check; fail → builder (loop `grind`: max-iterations 5, budget 30 minutes). Fragment: `integrate` check (`npm run integrate`) → fail → `bisect` (strong builder; owns QUEUE.md) → integrate; pass → `land-gate` ("Land it now? It cannot be taken back.") → `land` (strong; `irreversible: merge`; runs `npm run land` once) → `done`. Loop `queue` (grind): max-iterations 4, budget 9 dispatches.
+
+**Spend expected:** about $2.00 (a builder round, two integrations, one bisector dispatch). Ledger cap $75.00, $28.05 available before this run.
