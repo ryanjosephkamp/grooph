@@ -259,3 +259,11 @@ test("sessions prints what the hook saw, from one source or several, as text or 
     assert.match(text(io.stdout), new RegExp(`^grooph ${command} `));
   }
 });
+
+test("this repository's own installed hook is the hook the CLI ships, and its settings are what install writes", () => {
+  // grooph watches its own sessions (decision 0015). The installed copy must not drift from the source.
+  const installed = join(repoRoot, ".grooph", "hooks", "grooph-event.mjs");
+  assert.equal(readFileSync(installed, "utf8"), readFileSync(hookSource(), "utf8"), "run `grooph hooks install` at the repository root and commit the result");
+  const settings = JSON.parse(readFileSync(join(repoRoot, ".claude", "settings.json"), "utf8")) as { hooks: Record<string, unknown> };
+  assert.deepEqual(settings.hooks, hookEntries("claude-code", false));
+});

@@ -39,7 +39,7 @@ It is a check, not a build. If something is broken, fix it only where a fix is s
 
 - `spec/**` and the schemas: the contract does not move in a check.
 - Anything under `~/.codex` without the owner's yes in this session, each time. Hook trust and project trust are his to grant in `/hooks`; never pass `--dangerously-bypass-hook-trust` for a session he has not seen.
-- `.codex/hooks.json` and `.grooph/hooks/` are installed in this worktree already and are not committed in this slice. Whether grooph's own repository carries them is the owner's decision.
+- `.codex/hooks.json` is installed in this worktree already and is not committed in this slice. (The hook script itself, `.grooph/hooks/grooph-event.mjs`, and the Claude Code entries in `.claude/settings.json` are in the repository since 2026-10-01, by the owner's decision. Whether the repository also carries Codex's entries is his to decide after this check.)
 - Starting more than a handful of short sessions. This is a check on trivial tasks. Anything larger waits for the owner's word (decision 0014).
 - The Codex compile target (stage 9). It is its own slice and waits for the owner's go.
 - Merging, tagging, or pushing to `main`. Push only this branch.
