@@ -31,7 +31,7 @@ import {
 import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
 import { listRuns, saveRun } from "../store/runs.js";
 import { saveUserTemplate } from "../store/templates.js";
-import { Glyph } from "./Glyph.js";
+import { Glyph, hasLongGlyph } from "./Glyph.js";
 import { PersistNotice } from "./Notices.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
 
@@ -285,7 +285,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
                 />
               ) : (
                 <>
-                  <button type="button" className="graph-open" onClick={() => open(r.key)}>
+                  <button type="button" className={`graph-open${hasLongGlyph(r.doc) ? " has-long-glyph" : ""}`} onClick={() => open(r.key)}>
                     <Glyph doc={r.doc} className="graph-glyph" decorative />
                     <span className="graph-text">
                       <span className="graph-name">{r.doc.name || "Untitled"}</span>

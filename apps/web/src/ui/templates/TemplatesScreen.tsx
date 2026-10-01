@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { EMPTY_BROWSE, SORT_LABEL, activeFilters, allTags, browse, isDefault, loadBrowse, saveBrowse, toggled, type Browse, type SortKey } from "../../doc/browse.js";
 import { BUILT_IN_TEMPLATES, PROFILE_LEVEL, PROFILE_OPTIONS, PROFILE_TEXT, type TemplateSource } from "../../doc/templates.js";
 import { listUserTemplates } from "../../store/templates.js";
-import { Glyph } from "../Glyph.js";
+import { Glyph, hasLongGlyph } from "../Glyph.js";
 
 export const templateHref = (source: TemplateSource, id: string, use = false): string =>
   `#/templates/${source}/${encodeURIComponent(id)}${use ? "/use" : ""}`;
@@ -226,7 +226,7 @@ function TemplateList({ source, docs }: { source: TemplateSource; docs: readonly
         const t = doc.template!;
         return (
           <li key={doc.id}>
-            <a className="template-row" href={templateHref(source, doc.id)} data-template={doc.id}>
+            <a className={`template-row${hasLongGlyph(doc) ? " has-long-glyph" : ""}`} href={templateHref(source, doc.id)} data-template={doc.id}>
               <Glyph doc={doc} className="template-glyph" decorative />
               <span className="template-text">
                 <span className="template-title">

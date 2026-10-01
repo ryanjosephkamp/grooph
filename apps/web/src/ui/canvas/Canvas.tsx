@@ -13,7 +13,7 @@ import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
-import { edgeBends, type Box } from "./bends.js";
+import { edgeBends, labelSpots, type Box } from "./bends.js";
 import { EDITOR_PAD, FIT } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
@@ -78,14 +78,15 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
     [doc, positions, drag, measured, severity, selectedNode, highlight, mode, picking, focusLoop, focusLoopColor],
   );
 
-  const bends = useMemo(() => {
+  const curves = useMemo(() => {
     const boxes: Record<Id, Box> = {};
     for (const n of doc.nodes) {
       const p = drag[n.id] ?? positions[n.id] ?? { x: 0, y: 0 };
       const size = measured[n.id];
       boxes[n.id] = { x: p.x, y: p.y, w: size?.width ?? NODE_WIDTH, h: size?.height ?? NODE_HEIGHT };
     }
-    return edgeBends(doc, boxes);
+    const bends = edgeBends(doc, boxes);
+    return { bends, spots: labelSpots(doc, boxes, bends) };
   }, [doc, positions, drag, measured]);
 
   const edges: GraphFlowEdge[] = useMemo(() => {
@@ -103,7 +104,8 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
             edge,
             back: loopIndex >= 0,
             loopColor: loopIndex >= 0 ? loopIndex : undefined,
-            bend: bends.get(edge.id) ?? 0,
+            bend: curves.bends.get(edge.id) ?? 0,
+            labelAt: curves.spots.get(edge.id),
             severity: severity.get(edge.id),
             selected: edge.id === selectedEdge,
             highlighted: highlight.edges.has(edge.id),
@@ -111,7 +113,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
           },
         };
       });
-  }, [doc, bends, severity, selectedEdge, highlight, picking]);
+  }, [doc, curves, severity, selectedEdge, highlight, picking]);
 
   const onNodesChange = useCallback(
     (changes: NodeChange<GraphFlowNode>[]) => {

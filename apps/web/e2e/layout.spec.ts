@@ -167,3 +167,29 @@ async function toolbarFit(page: import("@playwright/test").Page): Promise<void> 
   await page.getByRole("toolbar", { name: "Canvas" }).getByRole("button", { name: "Fit" }).click();
   await page.waitForTimeout(350);
 }
+
+/** Review item 12: an edge's label never sits on a node. The label of a back edge that crosses a fan-out slides along its curve. */
+for (const [name, viewport] of [
+  ["a phone", { width: 400, height: 800 }],
+  ["a computer", { width: 1280, height: 800 }],
+] as const) {
+  test(`no edge label covers a node in the critic bank and the gauntlet, on ${name}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    for (const template of ["specialist-critic-bank", "gauntlet-decomposed"]) {
+      await page.goto(`./#/templates/built-in/${template}`);
+      await expect(page.locator(".react-flow__node").first()).toBeVisible();
+      await expect(page.locator(".gedge-label").first()).toBeVisible();
+      const covered = await page.evaluate(() => {
+        const rect = (el: Element) => el.getBoundingClientRect();
+        const nodes = [...document.querySelectorAll(".react-flow__node")].map(rect);
+        return [...document.querySelectorAll(".gedge-label")]
+          .filter((label) => {
+            const l = rect(label);
+            return nodes.some((n) => l.left < n.right - 1 && l.right > n.left + 1 && l.top < n.bottom - 1 && l.bottom > n.top + 1);
+          })
+          .map((label) => label.getAttribute("aria-label"));
+      });
+      expect(covered, `${template}: labels on a node`).toEqual([]);
+    }
+  });
+}
