@@ -207,6 +207,9 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
       }
       case "subagent-stop": {
         if (e.agent === undefined) break;
+        // A stop with no type from an agent never seen starting is the harness's own helper (Claude Code runs
+        // internal agents for prompt suggestions and side questions, and reports their stops with an empty type).
+        if (e.type === undefined && !agents.has(`${key}\u0000${e.agent}`)) break;
         const a = agent(e.agent);
         a.state = "done";
         a.ended = e.t;

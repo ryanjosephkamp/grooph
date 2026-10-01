@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { durationText, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
-import { EVENTS_DIR, eventFiles, parseSource, readLive, type EventSource } from "../events-io.js";
+import { EVENTS_DIR, eventFiles, parseSource, readLive, sourceExists, type EventSource } from "../events-io.js";
 import { writeText } from "../io.js";
 import { plural, type Output } from "../print.js";
 
@@ -38,8 +38,10 @@ What the event hook has seen: each session, and under it each subagent with whet
 running or done, for how long, and its last tool. With no source, ./.grooph/events/.
 
   <source>   an events file, a folder of them, or a project folder (its .grooph/events/).
-             Several merge into one list, in time order. name=path shows that source's
-             sessions under a name: a lane, a machine, a harness.
+             git:<ref> reads .grooph/events/ from a git ref without checking it out:
+             a lane that commits its events is read from its pushed branch, as
+             git:origin/lane-a. Several sources merge into one list, in time order.
+             name=<source> shows that source's sessions under a name: a lane, a machine.
   --json     the same as data: the live view grooph watch serves (docs/subagents.md)
 
 Reads files; starts nothing, asks no harness anything, and writes nothing.`;
@@ -264,8 +266,8 @@ export function sessionLines(s: LiveSession, now: string): string[] {
 export function sessionsCommand(io: Output, args: string[], flags: { json?: boolean } = {}): number {
   const sources: EventSource[] = args.length > 0 ? args.map(parseSource) : [{ path: "." }];
   for (const source of sources) {
-    if (!existsSync(resolve(source.path))) {
-      io.err(`grooph: no such file or folder: ${source.path}`);
+    if (!sourceExists(source)) {
+      io.err(source.ref !== undefined ? `grooph: no such git ref here: ${source.ref} (fetch it first, and run this inside the repository)` : `grooph: no such file or folder: ${source.path}`);
       return 1;
     }
   }
@@ -275,7 +277,7 @@ export function sessionsCommand(io: Output, args: string[], flags: { json?: bool
     return 0;
   }
   if (view.sessions.length === 0) {
-    io.out(`no sessions recorded in ${sources.map((s) => s.path).join(", ")}. The event hook writes them: grooph hooks install`);
+    io.out(`no sessions recorded in ${sources.map((s) => s.path ?? `git:${s.ref}`).join(", ")}. The event hook writes them: grooph hooks install`);
     return 0;
   }
   view.sessions.forEach((s, i) => {

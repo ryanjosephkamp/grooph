@@ -25,9 +25,11 @@ grooph app and two read-only endpoints, read again from disk on every request:
   <graph dir>   .grooph/<graph-id>/: whichever of its runs is newest, followed as new ones start
   (nothing)     the newest run of any graph under ./.grooph/; if there is none, the sessions
   --sessions    open on the sessions even when there is a run
-  --events <s>  more events to merge in, as often as wanted: a file, a folder of files, or
-                another project's folder. name=path shows its sessions under that name.
-                The project's own .grooph/events/ is always read.
+  --events <s>  more events to merge in, as often as wanted: a file, a folder of files,
+                another project's folder, or git:<ref> for a branch that carries its
+                .grooph/events/ (read from the watched project's repository, no checkout).
+                name=<source> shows its sessions under that name. The project's own
+                .grooph/events/ is always read.
   --port <n>    default 4174; 0 picks a free one
   --host <h>    default 127.0.0.1, this machine only. Another address (0.0.0.0 for every
                 interface) lets anyone on that network read all of it while watch runs.
@@ -98,7 +100,8 @@ export type Watcher = { url: string; port: number; host: string; close: () => Pr
  */
 export function startWatch(options: { target: WatchTarget; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[] }): Promise<Watcher> {
   const dist = resolve(options.webDist);
-  const sources: EventSource[] = [{ path: projectRoot(options.target.path) }, ...(options.events ?? [])];
+  const root = projectRoot(options.target.path);
+  const sources: EventSource[] = [{ path: root }, ...(options.events ?? [])];
   /** Where a visit to the bare address lands: the run when there is one, unless the sessions were asked for. */
   const home = (): string => {
     if (options.sessions) return SESSIONS_ROUTE;
@@ -131,7 +134,7 @@ export function startWatch(options: { target: WatchTarget; webDist: string; port
       res.end();
       return;
     }
-    if (path === LIVE_ENDPOINT) return send(res, 200, TYPES[".json"]!, `${JSON.stringify(readLive(sources))}\n`, head, { "Cache-Control": "no-store" });
+    if (path === LIVE_ENDPOINT) return send(res, 200, TYPES[".json"]!, `${JSON.stringify(readLive(sources, undefined, root))}\n`, head, { "Cache-Control": "no-store" });
     if (path === ENDPOINT) {
       try {
         const run = currentRun(options.target);
@@ -241,7 +244,7 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
     if (!(err instanceof LoadError)) throw err;
     io.out(`watching ${what}: nothing to show yet (${err.message}); the view waits for it`);
   }
-  const live = readLive([{ path: projectRoot(target.path) }, ...(flags.events ?? [])]);
+  const live = readLive([{ path: projectRoot(target.path) }, ...(flags.events ?? [])], undefined, projectRoot(target.path));
   const working = live.sessions.filter((s) => s.state === "working").length;
   io.out(
     live.sessions.length === 0

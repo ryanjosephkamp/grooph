@@ -224,6 +224,31 @@ test("sessions prints what the hook saw, from one source or several, as text or 
     assert.equal(live.sessions.length, 4);
     assert.deepEqual(live.issues, [{ source: "half.jsonl", line: 2, message: "not JSON" }]);
   });
+  // A lane that commits its events is read from its branch, with nothing checked out: the repository is the carrier.
+  await withProject(async (dir) => {
+    const git = (...args: string[]) => spawnSync("git", ["-C", dir, "-c", "user.name=t", "-c", "user.email=t@example.test", ...args], { encoding: "utf8" });
+    git("init", "-q", "-b", "main");
+    writeFileSync(join(dir, "README.md"), "x");
+    git("add", "-A");
+    git("commit", "-q", "-m", "start");
+    git("checkout", "-q", "-b", "lane-a");
+    cpSync(join(eventsFixtures, "codex-two-subagents.jsonl"), join(dir, ".grooph", "events", "codex.jsonl"), { recursive: true });
+    git("add", "-A");
+    git("commit", "-q", "-m", "events");
+    git("checkout", "-q", "main");
+    assert.equal(existsSync(join(dir, ".grooph")), false);
+    const view = readLive([parseSource("lane-a=git:lane-a")], undefined, dir);
+    assert.deepEqual(view.sessions.map((s) => [s.source, s.harness, s.agents.length]), [["lane-a", "codex", 2]]);
+    assert.deepEqual(readLive([parseSource("git:main")], undefined, dir).sessions, []);
+    assert.deepEqual(readLive([parseSource("git:no-such-branch")], undefined, dir).sessions, []);
+    assert.deepEqual(readLive([{ ref: "main; rm -rf /" }], undefined, dir).sessions, []);
+  });
+  assert.deepEqual(parseSource("lane-a=git:origin/lane-a"), { name: "lane-a", ref: "origin/lane-a" });
+  assert.deepEqual(parseSource("git:origin/lane-a"), { ref: "origin/lane-a" });
+  io = capture();
+  assert.equal(await grooph(["sessions", "git:definitely/not-a-ref"], io), 1);
+  assert.match(text(io.stderr), /no such git ref here/);
+
   io = capture();
   assert.equal(await grooph(["sessions", "/no/such/place"], io), 1);
   assert.deepEqual(parseSource("lane-a=some/path"), { name: "lane-a", path: "some/path" });

@@ -82,6 +82,8 @@ test("several files merge into one list; a waiting session, a resumed subagent a
   // The hook was installed after a subagent started: its stop still names it.
   const late = summarizeSessions([e(3, "subagent-stop", { agent: "z", type: "critic" })])[0]!;
   assert.deepEqual(late.agents.map((a) => `${a.type}:${a.state}`), ["critic:done"]);
+  // The harness's own helper agents stop with no type and were never seen starting: they are not the session's subagents.
+  assert.deepEqual(summarizeSessions([e(0, "session-start"), e(2, "subagent-stop", { agent: "internal" })])[0]!.agents, []);
   // A closed session whose subagent is still going is still working.
   assert.equal(summarizeSessions([e(0, "subagent-start", { agent: "a" }), e(1, "session-end")])[0]!.state, "working");
 });

@@ -355,7 +355,7 @@ export async function run(
         if (host.trim() === "") return usageError(io, "--host needs an address, like 127.0.0.1 or 0.0.0.0");
         const events = (values["events"] ?? []).map(parseSource);
         for (const source of events) {
-          if (!existsSync(source.path)) return usageError(io, `--events ${source.path}: no such file or folder`);
+          if (source.ref === undefined && !existsSync(source.path)) return usageError(io, `--events ${source.path}: no such file or folder`);
         }
         return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true, sessions: values["sessions"] === true, ...(events.length > 0 ? { events } : {}) }, {
           openUrl: env.openUrl ?? openUrl,
