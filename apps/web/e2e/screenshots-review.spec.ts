@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { REAL_RUN, bundleText, csvSet, fixturePath, importDocument, linkFor, node, repoRoot, runBundle } from "./support.js";
+import { bundleText, csvSet, fixturePath, importDocument, linkFor, node, repoRoot, runBundle } from "./support.js";
 
 /**
  * The fresh-eyes review (docs/review-2026-10.md): the main screens at the two
@@ -18,7 +18,6 @@ test.skip(!process.env["GROOPH_SHOTS"], "screenshots are made on request (GROOPH
 test.beforeAll(() => mkdirSync(dir, { recursive: true }));
 
 const noticeSeen = (page: Page) => page.addInitScript(() => localStorage.setItem("grooph.persistence", JSON.stringify({ result: "denied", seen: true })));
-const pattern = (id: string) => readFileSync(join(repoRoot, "patterns", `${id}.grooph.json`), "utf8");
 
 const SIZES = {
   phone: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
@@ -85,6 +84,3 @@ for (const [size, use] of Object.entries(SIZES)) {
     });
   }
 }
-
-void REAL_RUN;
-void pattern;

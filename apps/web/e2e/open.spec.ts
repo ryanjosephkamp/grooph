@@ -252,3 +252,31 @@ test("the compare view opens on the recommended candidate, in view (review 0006,
   // The sticky bar acts on the card in view.
   await expect(page.locator(".compare-bar").getByRole("button", { name: "Choose Rigorous" })).toBeVisible();
 });
+
+/**
+ * Review 2026-10: a `%` that is not an escape, anywhere in a link, never
+ * blanks the app. The payload is base64url, so a `%` in it means the link was
+ * re-encoded or cut on the way; the screen for a link that cannot be opened
+ * shows, with its way back. (`#/g/<key>` and `#/run/<key>` are in runs.spec.)
+ */
+test("a malformed % in a share link, its candidate or a template address shows a screen with a way back, not a blank page", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+
+  for (const hash of ["#/open?d=%E0%A4%A", "#/open?d=abc%", "#/open?d=%ZZ&c=%E0%A4%A", "#/open?%"]) {
+    await page.goto(`./${hash}`);
+    await expect(page.getByRole("heading", { name: "This link could not be opened" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /graphs/i }).first()).toBeVisible();
+  }
+
+  // A good payload with a malformed candidate still opens the comparison.
+  await page.goto(`${linkFor(csvSet())}&c=%E0%A4%A`);
+  await expect(page.locator(".ccard").first()).toBeVisible();
+
+  await page.goto("./#/templates/built-in/%E0%A4%A");
+  await expect(page.getByRole("link", { name: /templates/i }).first()).toBeVisible();
+  await page.goto("./#/templates/built-in/review-gate%");
+  await expect(page.getByRole("link", { name: /templates/i }).first()).toBeVisible();
+
+  expect(errors).toEqual([]);
+});
