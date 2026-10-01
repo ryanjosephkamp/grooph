@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { durationText, nodesLive, parseEvents, secondsBetween, sessionLine, summarizeSessions, type SessionEvent } from "../src/events.js";
+import { SAID_MAX, durationText, nodesLive, parseEvents, planLine, secondsBetween, sessionLine, summarizeSessions, type SessionEvent } from "../src/events.js";
 import { parseGraphText } from "../src/parse.js";
 import { fixturesDir, read } from "./helpers.js";
 
@@ -101,4 +101,64 @@ test("an events file is read line by line: a half-written or foreign line is an 
 
 test("durations read as a person says them", () => {
   assert.deepEqual([0, 8, 60, 200, 3600, 3900].map(durationText), ["0 s", "8 s", "1 min", "3 min 20 s", "1 h", "1 h 5 min"]);
+});
+
+test("a plan a lead declared sits beside what the hooks saw: a real session that planned two subagents and started both", () => {
+  const parsed = parseEvents(fixture("claude-code-planned.jsonl"));
+  assert.deepEqual(parsed.issues, []);
+  const [s, ...rest] = summarizeSessions(parsed.events);
+  assert.equal(rest.length, 0, "a plan and a note that name their session make no session of their own");
+  assert.deepEqual(s!.agents.map((a) => `${a.type}:${a.state}`), ["Explore:done", "general-purpose:done"]);
+  assert.equal(s!.plans!.length, 1);
+  const plan = s!.plans![0]!;
+  assert.deepEqual(plan.agents.map((a) => [a.type, a.started, a.running]), [["Explore", 1, 0], ["general-purpose", 1, 0]]);
+  assert.deepEqual(plan.unplanned, []);
+  assert.equal(planLine(plan), "2 of 2 started");
+  assert.equal(s!.notes!.length, 1);
+  assert.match(s!.notes![0]!.text, /alpha/);
+});
+
+test("a plan is judged on what started after it: more than planned, something unplanned, a re-plan, and no session to belong to", () => {
+  const e = (t: number, event: SessionEvent["event"], more: Partial<SessionEvent> = {}): SessionEvent => ({ v: 1, t: new Date(Date.UTC(2026, 9, 1, 4, 0, t)).toISOString(), harness: "claude-code", event, session: "s1", ...more });
+  const s = summarizeSessions([
+    e(0, "session-start"),
+    e(1, "subagent-start", { agent: "early", type: "Explore" }), // before the plan: not counted against it
+    e(2, "plan", { text: "Round one", agents: [{ type: "builder", count: 2 }, { type: "critic", purpose: "judge the diff" }] }),
+    e(3, "subagent-start", { agent: "b1", type: "builder" }),
+    e(4, "subagent-start", { agent: "b2", type: "builder" }),
+    e(5, "subagent-start", { agent: "b3", type: "builder" }),
+    e(6, "subagent-start", { agent: "x1", type: "general-purpose" }),
+    e(7, "subagent-stop", { agent: "b1", type: "builder" }),
+  ])[0]!;
+  const plan = s.plans![0]!;
+  assert.deepEqual(plan.agents.map((a) => [a.type, a.count ?? 1, a.started, a.running]), [["builder", 2, 3, 2], ["critic", 1, 0, 0]]);
+  assert.deepEqual(plan.unplanned, ["general-purpose"]);
+  assert.equal(planLine(plan), "2 of 3 started, 2 running; not in the plan: 1 more builder, general-purpose");
+
+  // A new plan takes over from its own time on; the old one keeps what happened under it.
+  const two = summarizeSessions([e(0, "plan", { agents: [{ type: "a" }] }), e(1, "subagent-start", { agent: "1", type: "a" }), e(5, "plan", { agents: [{ type: "b" }] }), e(6, "subagent-start", { agent: "2", type: "b" })])[0]!;
+  assert.deepEqual(two.plans!.map((p) => planLine(p)), ["1 of 1 started, 1 running", "1 of 1 started, 1 running"]);
+  assert.deepEqual(two.plans!.map((p) => p.agents.map((a) => a.type)), [["a"], ["b"]]);
+
+  // The MCP server was not told a session id: what it said goes to the session that had most recently started.
+  const loose = summarizeSessions([e(0, "session-start"), e(3, "note", { session: "mcp-abc", text: "waiting on the review" }), e(4, "plan", { session: "mcp-abc", agents: [{ type: "Explore" }] })]);
+  assert.equal(loose.length, 1);
+  assert.deepEqual([loose[0]!.notes!.length, loose[0]!.plans!.length], [1, 1]);
+  // With no hook installed there is no session to join: the plan still shows, as a session of its own.
+  const alone = summarizeSessions([e(1, "plan", { session: "mcp-abc", cwd: "/work/demo", agents: [{ type: "Explore" }] })]);
+  assert.deepEqual(alone.map((x) => [x.id, x.state, x.agents.length, x.plans!.length]), [["mcp-abc", "waiting", 0, 1]]);
+});
+
+test("text is read only where a lead wrote it on purpose, and is cut to a line", () => {
+  const long = "x".repeat(SAID_MAX + 50);
+  const parsed = parseEvents(
+    [
+      JSON.stringify({ v: 1, t: "2026-10-01T04:00:00Z", harness: "codex", session: "s", event: "note", text: long }),
+      JSON.stringify({ v: 1, t: "2026-10-01T04:00:01Z", harness: "codex", session: "s", event: "tool", tool: "Bash", text: "must not be kept", agents: [{ type: "x" }] }),
+      JSON.stringify({ v: 1, t: "2026-10-01T04:00:02Z", harness: "codex", session: "s", event: "plan", agents: [{ type: "worker", count: 3, secret: "no" }, { purpose: "no type" }, "nonsense", { type: "explorer", count: 1 }] }),
+    ].join("\n"),
+  ).events;
+  assert.equal(parsed[0]!.text!.length, SAID_MAX);
+  assert.deepEqual(Object.keys(parsed[1]!).sort(), ["event", "harness", "session", "t", "tool", "v"]);
+  assert.deepEqual(parsed[2]!.agents, [{ type: "worker", count: 3 }, { type: "explorer" }]);
 });

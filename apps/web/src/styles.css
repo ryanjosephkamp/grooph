@@ -3540,3 +3540,71 @@ div.field-diff.ins {
   margin: 8px auto 0;
   padding: 0 4px;
 }
+
+/* A plan and notes a lead left through the MCP server, beside what the hook saw. */
+.live-plan {
+  padding: 10px 14px 8px;
+  border-top: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.live-plan-head {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.live-plan-sum {
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+.live-plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.live-plan-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 10px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.live-plan-type {
+  font-weight: 600;
+}
+.live-plan-state {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+[data-plan-state="started"] .live-plan-state {
+  color: var(--ok);
+}
+[data-plan-state="running"] .live-plan-state {
+  color: var(--accent);
+  font-weight: 650;
+}
+.live-plan-purpose {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.live-plan-extra {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--warning);
+}
+.live-notes {
+  list-style: none;
+  margin: 0;
+  padding: 8px 14px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.live-notes li {
+  padding: 2px 0 2px 10px;
+  border-left: 3px solid var(--line-strong);
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}

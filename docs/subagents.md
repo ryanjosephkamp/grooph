@@ -183,9 +183,41 @@ A source is a file, a folder, another project's folder, or `git:<ref>`: a branch
 
 That last form is how sessions on other machines are seen. A cloud session's events are files in its own clone, and nothing outside can read them until they travel. The repository is the carrier: a lane that commits `.grooph/events/` with its work is visible, after a `git fetch`, to anyone who can fetch its branch. It is as live as the lane's last push, and no more.
 
+**A plan beside it.** When the lead has declared what it means to start (§7), the session shows that plan with each line marked as it happens.
+
 **What the view cannot show.** What an agent is thinking or saying (not recorded, by design); a subagent whose session has no hook installed; a Codex session before its hook is trusted; a cloud lane between pushes; and which Codex subagent started which.
 
-## 7. Documented, seen, unknown: the summary
+## 7. The MCP server: a plan beside what happened
+
+A hook tells grooph what a session did. It cannot say what the session meant to do. For that the lead has to say so, and the Model Context Protocol is how a session calls an outside program on purpose. `grooph mcp` is such a program: four tools, all of which record or report, none of which starts or changes anything.
+
+| Tool | What the lead does with it |
+|---|---|
+| `grooph_plan` | declares the subagents it is about to start: for each kind, its type, what it is for, how many |
+| `grooph_note` | leaves one or two sentences for whoever is watching |
+| `grooph_running` | asks what the hook has seen: sessions, subagents, what is running, and each plan with how much of it has started |
+| `grooph_validate` | checks a graph or an operation map file, and gets the issues back |
+
+```bash
+claude mcp add grooph -- grooph mcp                      # Claude Code
+```
+
+```toml
+# Codex, in ~/.codex/config.toml
+[mcp_servers.grooph]
+command = "grooph"
+args = ["mcp", "--harness", "codex"]
+```
+
+A plan and a note are appended to `.grooph/events/said-<session id>.jsonl`, beside the hook's files and never in them. They are the only text in that folder, and they are there because a lead chose to say them: the rule that the *hook* records no content is unchanged. The live view sets each plan beside its session: every planned kind is marked not started, started or running by counting the subagents of that type the hook saw start after the plan, and anything that started without being planned is named.
+
+Claude Code gives an MCP server the session's id (`CLAUDE_CODE_SESSION_ID` in its environment), so a plan lands on the right session. [seen] Where a harness does not, the plan goes to the session that had most recently started in that project.
+
+**What was tried, and what was not.** One real Claude Code session, with the hook and the server attached, was told to plan, start two subagents, ask what was running and leave a note. It did all four; the plan read "2 of 2 started" beside the two subagents the hook recorded (`fixtures/events/claude-code-planned.jsonl`). That shows the tools work. It does not show that a lead coordinates better for having them: that is an open question, and one session told what to do is not a test of it. With Codex the server was run as a process and not from a Codex session.
+
+A graph is already a declared plan, and a far stricter one. These tools are for the sessions that have none.
+
+## 8. Documented, seen, unknown: the summary
 
 | Question | Claude Code | Codex |
 |---|---|---|
@@ -198,7 +230,7 @@ That last form is how sessions on other machines are seen. A cloud session's eve
 | Which agent started which? | from the `Agent` tool's result [seen] | not available to a hook [seen] |
 | Does it need approval before it runs? | no [doc] | yes, per hook, by hash [doc] |
 
-## 8. Sources
+## 9. Sources
 
 Claude Code, read 2026-09-30 against 2.1.280:
 [Subagents](https://code.claude.com/docs/en/sub-agents) ·

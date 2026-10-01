@@ -218,10 +218,10 @@ test("sessions prints what the hook saw, from one source or several, as text or 
     assert.equal(await grooph(["sessions", dir], io), 0);
     assert.match(text(io.stdout), /no sessions recorded.*grooph hooks install/);
     cpSync(eventsFixtures, join(dir, ".grooph", "events"), { recursive: true });
-    assert.equal(readLive([{ path: dir }], () => new Date("2026-10-01T02:01:10Z")).sessions.length, 3);
+    assert.equal(readLive([{ path: dir }], () => new Date("2026-10-01T02:01:10Z")).sessions.length, 4);
     writeFileSync(join(dir, ".grooph", "events", "half.jsonl"), '{"v":1,"t":"2026-10-01T02:00:00Z","harness":"codex","session":"h","event":"session-start"}\n{"v":1,"t":"2026-10');
     const live = readLive([{ path: dir }]);
-    assert.equal(live.sessions.length, 4);
+    assert.equal(live.sessions.length, 5);
     assert.deepEqual(live.issues, [{ source: "half.jsonl", line: 2, message: "not JSON" }]);
   });
   // A lane that commits its events is read from its branch, with nothing checked out: the repository is the carrier.

@@ -22,10 +22,11 @@ One core, three shells. The core is pure: no DOM, no Node-only APIs, no network.
 - **Storage is a shell concern.** Browser: IndexedDB. CLI: files in the working tree (`.grooph/`). Nothing in core knows where a document came from.
 - **No LLM in the loop.** grooph never calls a model. The executive is the harness session using the CLI or MCP server (decision 0002).
 - **Two documents, one core.** A graph is one session and its subagents, and it compiles. An operation map (`docs/operation-map.md`) is several sessions and the handoffs between them, and it does not: core parses, validates, canonicalizes and draws it, and no compiler takes it.
+- **What a harness's hooks saw is read, never steered.** Session events (`docs/subagents.md`) are files a hook appends to; core sums them into sessions and subagents. Nothing in grooph writes to a running session.
 - **Layout is separable.** `layout` is stripped for validation size and for diffs; the canvas auto-lays out documents without it.
 
 ## Repo shape
 
-pnpm workspace. `packages/core` is the only package with no workspace dependencies. `apps/web` depends on core only. `packages/cli` and `packages/mcp` depend on core; `cli` may depend on `web`'s built bundle for `serve`.
+pnpm workspace. `packages/core` is the only package with no workspace dependencies. `apps/web` depends on core only. `packages/cli` depends on core, and serves `web`'s built bundle for `watch`. The MCP server is not a package of its own: it is `grooph mcp` in the CLI (`packages/cli/src/mcp.ts`), a few tools over the same core and the same files, with no dependency of its own (slice 0028). The diagram above still shows it as a third shell, which is what it is; it shares the CLI's install.
 
 Implementers choose everything inside a package (test runner, schema library, state management) and record it in their handback.
