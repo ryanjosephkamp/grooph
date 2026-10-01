@@ -102,12 +102,12 @@ function AgentRow({ agent, now, depth, quiet }: { agent: LiveAgent; now: string;
 }
 
 /** What the lead said it would start, each line ticked off against what the hook saw start. */
-function PlanBlock({ plan }: { plan: LivePlan }) {
+function PlanBlock({ plan, quiet }: { plan: LivePlan; quiet: boolean }) {
   return (
     <div className="live-plan" data-plan>
       <p className="live-plan-head">
         <span className="badge badge-quiet">plan</span> {plan.title ?? "Declared subagents"}
-        <span className="live-plan-sum">{planLine(plan)}</span>
+        <span className="live-plan-sum">{planLine(plan, quiet)}</span>
       </p>
       <ul className="live-plan-list">
         {plan.agents.map((a, i) => {
@@ -119,7 +119,7 @@ function PlanBlock({ plan }: { plan: LivePlan }) {
                 {wanted > 1 ? `${wanted} × ` : ""}
                 {typeParts(a.type).name}
               </span>
-              <span className="live-plan-state">{state === "running" ? `${a.running} running` : state === "started" ? "started" : state === "partly" ? `${a.started} of ${wanted} started` : "not started"}</span>
+              <span className="live-plan-state">{state === "running" ? `${a.running} ${quiet ? "not seen to finish" : "running"}` : state === "started" ? "started" : state === "partly" ? `${a.started} of ${wanted} started` : "not started"}</span>
               {a.purpose ? <span className="live-plan-purpose">{a.purpose}</span> : null}
             </li>
           );
@@ -165,7 +165,7 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
           {session.state === "ended" ? ` · ran ${durationText(secondsBetween(session.started, session.ended ?? session.lastAt))}` : quiet ? ` · ${session.state} then` : ` · last seen ${seen < 5 ? "just now" : `${durationText(seen)} ago`}`}
         </p>
       </header>
-      {session.plans && session.plans.length > 0 ? <PlanBlock plan={session.plans[session.plans.length - 1]!} /> : null}
+      {session.plans && session.plans.length > 0 ? <PlanBlock plan={session.plans[session.plans.length - 1]!} quiet={quiet} /> : null}
       {rows.length > 0 ? (
         <ul className="live-agents" aria-label="Subagents">
           {rows.map(({ agent, depth }) => (
@@ -216,9 +216,9 @@ export function LiveSessions() {
   const sorted = [...sessions].sort((a, b) => order[a.state] - order[b.state] || (a.lastAt < b.lastAt ? 1 : -1));
   const groups = new Map<string, LiveSession[]>();
   for (const s of sorted) groups.set(s.source ?? "", [...(groups.get(s.source ?? "") ?? []), s]);
-  const at = live.view?.at;
-  const working = sessions.filter((s) => s.state === "working" && !isQuiet(s, at)).length;
-  const runningAgents = sessions.reduce((n, s) => n + (isQuiet(s, at) ? 0 : s.agents.filter((a) => a.state === "running").length), 0);
+  // The header counts by the same clock as the cards: a session goes quiet in both at once.
+  const working = sessions.filter((s) => s.state === "working" && !isQuiet(s, now)).length;
+  const runningAgents = sessions.reduce((n, s) => n + (isQuiet(s, now) ? 0 : s.agents.filter((a) => a.state === "running").length), 0);
 
   return (
     <div className="live-view">

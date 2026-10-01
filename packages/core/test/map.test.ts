@@ -246,6 +246,8 @@ test("a map lit by its sessions' hooks: a source read under a map session's name
   assert.equal(mapLiveLine(stale["operator"]!, later), "last seen 3 h ago");
   assert.equal(mapLiveLine(stale["workers"]!, later), "ended · 0 running, 3 done");
   assert.equal(mapLiveLine({ sessions: 12, working: 2, waiting: 0, ended: 7, quiet: 3, agentsRunning: 4, agentsDone: 9, lastAt: "x" }, later), "2 of 12 working · 4 running, 9 done");
+  // A family with one member that ended a minute ago and one silent for three hours was last seen three hours ago.
+  assert.equal(mapLiveLine({ sessions: 2, working: 0, waiting: 0, ended: 1, quiet: 1, agentsRunning: 0, agentsDone: 2, lastAt: new Date(Date.parse(later) - 60_000).toISOString(), quietLastAt: stale["operator"]!.lastAt }, later), "last seen 3 h ago");
   const quietPicture = mapPicture(map, { theme: "light", live: stale, at: later });
   assert.match(quietPicture, /<g data-session="operator" data-live="quiet">/);
   assert.match(quietPicture, />last seen 3 h ago</);

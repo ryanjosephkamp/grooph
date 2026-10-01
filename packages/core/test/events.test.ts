@@ -71,6 +71,14 @@ test("a record is as fresh as its last line: half an hour on, a session is last 
   const e = (sec: number, event: string, extra: object = {}) => ({ v: 1 as const, t: new Date(last + sec * 1000).toISOString(), harness: "claude-code" as const, event, session: "s", ...extra }) as SessionEvent;
   const waiting = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(9, "turn-end")])[0]!;
   assert.equal(sessionLine(waiting, after(2 * 3600 + 9)), "claude-code · last seen 2 h ago, waiting then · no subagents yet");
+  // A lead that says something was heard from then: a note or a plan counts, though no hook fired.
+  const noted = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(3 * 3600, "note", { text: "still at it" })])[0]!;
+  assert.equal(isQuiet(noted, after(3 * 3600 + 30)), false);
+  assert.equal(isQuiet(noted, after(4 * 3600)), true);
+  // A plan's line does not call a subagent running in a session gone quiet.
+  const planned = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(2, "plan", { agents: [{ type: "builder" }] }), e(3, "subagent-start", { agent: "a", type: "builder" })])[0]!;
+  assert.equal(planLine(planned.plans![0]!), "1 of 1 started, 1 running");
+  assert.equal(planLine(planned.plans![0]!, isQuiet(planned, after(3600))), "1 of 1 started, 1 not seen to finish");
   const ended = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(9, "turn-end"), e(10, "session-end")])[0]!;
   assert.equal(isQuiet(ended, after(90 * 86400)), false);
   assert.equal(sessionLine(ended, after(90 * 86400)), "claude-code · ended · no subagents yet");

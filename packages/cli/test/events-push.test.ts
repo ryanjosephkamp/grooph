@@ -224,6 +224,12 @@ test("with --push a second hook sends the events when a turn ends: silent, never
     io = capture();
     assert.equal(await run(["hooks", "install", "--dir", lane, "--push-branch", "x; rm -rf ~"], io), 1);
     assert.match(text(io.stderr), /--push-branch takes a plain branch name/);
+    // Nor a name git would refuse on every turn, or the branch of work itself: said at install, not swallowed at each turn's end.
+    for (const [name, why] of [["a..b", /is not a branch name git accepts/], ["x.lock", /is not a branch name git accepts/], ["main", /is the branch checked out here/]] as const) {
+      io = capture();
+      assert.equal(await run(["hooks", "install", "--dir", lane, "--push-branch", name], io), 1, name);
+      assert.match(text(io.stderr), why);
+    }
     assert.equal(settings().hooks["Stop"]!.length, 2);
     io = capture();
     assert.equal(await run(["hooks", "install", "--dir", lane, "--harness", "codex", "--push-branch", "claude/grooph-events-lane"], io), 0);
@@ -277,6 +283,38 @@ test("with --push a second hook sends the events when a turn ends: silent, never
     assert.equal(await run(["hooks", "remove", "--dir", lane, "--harness", "claude-code,codex"], io), 0);
     assert.equal(existsSync(join(lane, ".grooph", "hooks", "grooph-events-push.mjs")), false);
     assert.equal(JSON.stringify(settings()).includes("grooph-events-push"), false);
+  });
+});
+
+test("events push leaves FETCH_HEAD as the session left it, and a push that loses a race is made again on top of the winner", async () => {
+  await withRemote(async ({ remote, lane, root }) => {
+    // A session fetched something and means to use FETCH_HEAD next: it must still be what it fetched.
+    git(lane, "fetch", "--quiet", "origin", "main");
+    const fetchHead = readFileSync(join(lane, ".git", "FETCH_HEAD"), "utf8");
+    addEvents(lane, "5aac1305.jsonl", NESTED);
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], capture()), 0); // the branch is new
+    appendFileSync(join(lane, ".grooph", "events", "5aac1305.jsonl"), '{"v":1,"t":"2026-10-01T02:00:00.000Z","harness":"claude-code","event":"turn-start","session":"5aac1305-f22d-4cad-a6e7-810700aeb49e"}\n');
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], capture()), 0); // the branch exists
+    assert.equal(readFileSync(join(lane, ".git", "FETCH_HEAD"), "utf8"), fetchHead);
+
+    // Two clones, one branch, both sending at once: git refuses the slower one, which looks again and goes on top.
+    // The race is made to happen: a hook on the remote lets the other clone's push in just before this one's lands.
+    const other = join(root, "other");
+    git(root, "clone", "--quiet", remote, other);
+    addEvents(other, "01a0f519.jsonl", CODEX);
+    const once = join(root, "raced");
+    writeFileSync(
+      join(remote, "hooks", "pre-receive"),
+      `#!/bin/sh\n# The first push to arrive finds the other clone's commit already there.\nif [ ! -e "${once}" ]; then touch "${once}"; unset GIT_DIR GIT_QUARANTINE_PATH GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES; node "${join(repoRoot, "packages", "cli", "bin", "grooph.js")}" events push --dir "${other}" --branch grooph-events/shared >/dev/null 2>&1; exit 1; fi\nexit 0\n`,
+      { mode: 0o755 },
+    );
+    appendFileSync(join(lane, ".grooph", "events", "5aac1305.jsonl"), '{"v":1,"t":"2026-10-01T02:00:05.000Z","harness":"claude-code","event":"turn-end","session":"5aac1305-f22d-4cad-a6e7-810700aeb49e"}\n');
+    const io = capture();
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], io), 0, text(io.stderr));
+    assert.equal(existsSync(once), true, "the race did not happen");
+    assert.match(text(io.stdout), /^Sent 2 event files to origin grooph-events\/shared/);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/shared"), ".grooph/events/01a0f519.jsonl\n.grooph/events/5aac1305.jsonl");
+    assert.match(git(remote, "show", "grooph-events/shared:.grooph/events/5aac1305.jsonl"), /"event":"turn-end"/);
   });
 });
 

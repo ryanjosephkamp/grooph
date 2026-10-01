@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -213,9 +214,27 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
       return 1;
     }
     // The branch goes into a command a shell will run: only what a branch name needs.
-    if (flags.pushBranch !== undefined && !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(flags.pushBranch)) {
-      io.err(`grooph: --push-branch takes a plain branch name (letters, digits, ".", "_", "-", "/"); got "${flags.pushBranch}". Nothing was changed.`);
-      return 1;
+    if (flags.pushBranch !== undefined) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(flags.pushBranch)) {
+        io.err(`grooph: --push-branch takes a plain branch name (letters, digits, ".", "_", "-", "/"); got "${flags.pushBranch}". Nothing was changed.`);
+        return 1;
+      }
+      // And a name the push would refuse on every turn, silently, is refused here, aloud.
+      const gitSays = (args: string[]): string | undefined => {
+        try {
+          return execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+        } catch {
+          return undefined;
+        }
+      };
+      if (gitSays(["check-ref-format", "--branch", flags.pushBranch]) === undefined && gitSays(["rev-parse", "--git-dir"]) !== undefined) {
+        io.err(`grooph: "${flags.pushBranch}" is not a branch name git accepts. Nothing was changed.`);
+        return 1;
+      }
+      if (gitSays(["rev-parse", "--abbrev-ref", "HEAD"]) === flags.pushBranch) {
+        io.err(`grooph: "${flags.pushBranch}" is the branch checked out here: the events go to a branch of their own, never to a branch of work. Nothing was changed.`);
+        return 1;
+      }
     }
     const plans: { path: string; text: string }[] = [];
     for (const harness of list) {
@@ -254,7 +273,8 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     io.out(`send them to a branch of their own: grooph events push (or, with no grooph there, node ${PUSH_REL}).`);
     if (flags.push === true || flags.pushBranch !== undefined) {
       io.out(`With --push, that is done at the end of every turn, in the background, to ${flags.pushBranch ?? "grooph-events/<the branch checked out>"}: a session`);
-      io.out("cannot send what it writes as it stops, so this is how its last turn is seen elsewhere. It prints nothing and never fails a turn.");
+      io.out("cannot send what it writes as it stops, so this is how its last turn is seen elsewhere. It prints nothing, never asks for a");
+      io.out("password and never fails a turn. A run that exits the moment its turn ends (claude -p) may be gone before it finishes.");
     } else {
       io.out("A session cannot send what it writes as it stops. To send at the end of every turn instead, install with --push.");
     }
@@ -362,7 +382,7 @@ export function sessionLines(s: LiveSession, now: string): string[] {
   };
   walk(undefined, 0);
   // What its lead said through the MCP server, beside what the hooks saw.
-  for (const plan of s.plans ?? []) lines.push(`  plan${plan.title ? ` "${plan.title}"` : ""}: ${planLine(plan)}`);
+  for (const plan of s.plans ?? []) lines.push(`  plan${plan.title ? ` "${plan.title}"` : ""}: ${planLine(plan, quiet)}`);
   for (const note of s.notes ?? []) lines.push(`  note: ${note.text}`);
   return lines;
 }

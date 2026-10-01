@@ -312,6 +312,8 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
       if (e.cwd !== undefined) s.cwd = e.cwd;
       list.push(s);
     }
+    // A session that says something was heard from then, whatever its hooks last saw.
+    if (e.t > s.lastAt) s.lastAt = e.t;
     if (e.event === "note") {
       if (e.text !== undefined) (s.notes ??= []).push({ t: e.t, text: e.text });
     } else {
@@ -336,14 +338,17 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
   return list;
 }
 
-/** One line for a plan's progress: "2 of 3 started, 1 running; not in the plan: Explore". */
-export function planLine(plan: LivePlan): string {
+/**
+ * One line for a plan's progress: "2 of 3 started, 1 running; not in the plan: Explore".
+ * In a session gone quiet (`quiet`), a subagent with no stop on record is "not seen to finish", not "running".
+ */
+export function planLine(plan: LivePlan, quiet = false): string {
   const wanted = plan.agents.reduce((n, a) => n + (a.count ?? 1), 0);
   const started = plan.agents.reduce((n, a) => n + Math.min(a.started, a.count ?? 1), 0);
   const running = plan.agents.reduce((n, a) => n + a.running, 0);
   const extra = plan.agents.filter((a) => a.started > (a.count ?? 1)).map((a) => `${a.started - (a.count ?? 1)} more ${a.type}`);
   const outside = [...extra, ...plan.unplanned];
-  return `${started} of ${wanted} started${running > 0 ? `, ${running} running` : ""}${outside.length > 0 ? `; not in the plan: ${outside.join(", ")}` : ""}`;
+  return `${started} of ${wanted} started${running > 0 ? `, ${running} ${quiet ? "not seen to finish" : "running"}` : ""}${outside.length > 0 ? `; not in the plan: ${outside.join(", ")}` : ""}`;
 }
 
 /** One line for a session: "claude-code · working · 2 running, 3 done". */
@@ -447,6 +452,8 @@ export type MapSessionLive = {
   lastAt: string;
   /** of those not ended, how many have gone quiet (`isQuiet`); they are not counted as working or waiting */
   quiet?: number;
+  /** the last thing seen from the quiet ones: a family with one member ended a minute ago and one silent for hours was last seen hours ago */
+  quietLastAt?: string;
 };
 
 /**
@@ -464,8 +471,10 @@ export function mapLive(sessions: readonly LiveSession[], map: OperationMap, at?
     const m = (out[s.source] ??= { sessions: 0, working: 0, waiting: 0, ended: 0, agentsRunning: 0, agentsDone: 0, lastAt: s.lastAt });
     m.sessions += 1;
     const quiet = isQuiet(s, at);
-    if (quiet) m.quiet = (m.quiet ?? 0) + 1;
-    else m[s.state] += 1;
+    if (quiet) {
+      m.quiet = (m.quiet ?? 0) + 1;
+      if (m.quietLastAt === undefined || s.lastAt > m.quietLastAt) m.quietLastAt = s.lastAt;
+    } else m[s.state] += 1;
     for (const a of s.agents) {
       // A subagent a quiet session never reported as finished is not running, as far as anyone can tell.
       if (a.state === "running" && !quiet) m.agentsRunning += 1;
@@ -480,7 +489,7 @@ export function mapLive(sessions: readonly LiveSession[], map: OperationMap, at?
 export function mapLiveLine(live: MapSessionLive, at?: string): string {
   const quiet = live.quiet ?? 0;
   const of = (n: number, word: string): string => (live.sessions > 1 ? `${n} of ${live.sessions} ${word}` : word);
-  const seen = at !== undefined ? `last seen ${durationText(secondsBetween(live.lastAt, at))} ago` : "gone quiet";
+  const seen = at !== undefined ? `last seen ${durationText(secondsBetween(live.quietLastAt ?? live.lastAt, at))} ago` : "gone quiet";
   const state = live.working > 0 ? of(live.working, "working") : live.waiting > 0 ? of(live.waiting, "waiting") : quiet > 0 ? seen : "ended";
   // Gone quiet, the line says only when it was last seen: a count of subagents from a stale record would read as news.
   const agents = live.agentsRunning + live.agentsDone === 0 || (quiet > 0 && live.working + live.waiting === 0) ? "" : ` · ${live.agentsRunning} running, ${live.agentsDone} done`;

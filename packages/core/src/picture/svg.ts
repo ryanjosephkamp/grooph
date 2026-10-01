@@ -24,7 +24,7 @@ export type PictureOptions = {
 
 /** What a map's picture may also be given: what the hooks saw of its sessions, and when that was read. */
 export type MapPictureOptions = PictureOptions & {
-  live?: Record<string, { sessions: number; working: number; waiting: number; ended: number; agentsRunning: number; agentsDone: number; lastAt: string; quiet?: number }>;
+  live?: Record<string, { sessions: number; working: number; waiting: number; ended: number; agentsRunning: number; agentsDone: number; lastAt: string; quiet?: number; quietLastAt?: string }>;
   /** when the live state was read, ISO 8601; shown in the caption */
   at?: string;
 };
