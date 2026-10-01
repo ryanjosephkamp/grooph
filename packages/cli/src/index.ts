@@ -15,6 +15,7 @@ import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
+import { hooksCommand, sessionsCommand, HOOKS_HELP, SESSIONS_HELP } from "./commands/hooks.js";
 import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
@@ -55,7 +56,9 @@ Usage
   grooph template list | show | use | insert | save | add …   (grooph template help)
   grooph runs list [<dir>] | show <run dir> [--json] | bundle <run dir> --out <file>
   grooph adopt <run dir> [--into <graph file>] [--write]
-  grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]
+  grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--port 4174] [--host 127.0.0.1] [--open]
+  grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
+  grooph sessions [<source>...] [--json]
   grooph <command> --help
   grooph --version
 
@@ -92,7 +95,11 @@ Commands
                  changed and why, proposals, timeline), or bundle one into a single file.
   adopt          Take a run's working copy as the graph's next version (--write to save it).
   watch          Serve the app and the run, read live from disk, to a browser on this machine
-                 (or, with --host, the local network). Read-only.
+                 (or, with --host, the local network). Read-only. --sessions shows every
+                 session the event hook has seen, with its subagents as they start and stop.
+  hooks          Install the event hook into a project: one line per session or subagent
+                 start and stop, appended to .grooph/events/. It records; it cannot steer.
+  sessions       What the hook has seen, as text or JSON: sessions, subagents, what is running.
 
 Targets
   ${KNOWN_TARGETS.join(", ")}
@@ -352,6 +359,22 @@ export async function run(
         });
       }
 
+      case "hooks": {
+        const [sub, ...args] = rest;
+        const { values } = parseArgs({ args, allowPositionals: true, options: { dir: { type: "string" }, harness: { type: "string" }, tools: { type: "boolean" }, local: { type: "boolean" } } });
+        return hooksCommand(io, sub, {
+          ...(values["dir"] !== undefined ? { dir: values["dir"] } : {}),
+          ...(values["harness"] !== undefined ? { harness: values["harness"] } : {}),
+          tools: values["tools"] === true,
+          local: values["local"] === true,
+        });
+      }
+
+      case "sessions": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
+        return sessionsCommand(io, positionals, { json: values["json"] === true });
+      }
+
       case "template": {
         const outcome = await templateCommand(io, rest, { ...defaultRegistryEnv(), ...env });
         if (typeof outcome === "number") return outcome;
@@ -400,6 +423,8 @@ const COMMAND_HELP: Record<string, string> = {
   image: IMAGE_HELP,
   outline: OUTLINE_HELP,
   page: PAGE_HELP,
+  hooks: HOOKS_HELP,
+  sessions: SESSIONS_HELP,
 };
 
 function usageError(io: Output, message: string): number {
