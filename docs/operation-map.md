@@ -137,6 +137,23 @@ The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto
 
 In the app, Import on the first screen takes a `.grooph-map.json` and opens the same view as the link. A map is looked at, not stored.
 
+## 4b. A live map
+
+A map says who exists. The event hook says who is at work ([`subagents.md`](subagents.md)). Put together, the picture marks each session with what the hook has seen of it: a filled dot and `working · 2 running, 5 done`, a ring and `waiting`, or `ended`.
+
+The tie is a name on the command line, not a field in the map: events read under a map session's id belong to that session.
+
+```bash
+grooph image ops.grooph-map.json --out ops-now.png \
+  --events operator=. --events workers=git:origin/lane-a --events workers=git:origin/lane-b
+grooph page  ops.grooph-map.json --out ops-now.html --events operator=.
+grooph watch --map ops.grooph-map.json --events operator=. --events workers=git:origin/lane-a
+```
+
+A source is an events file, a folder, a project, or `git:<ref>`. Several sources under one name are summed, which is how a family of twelve reads `3 of 12 working`. A session with no source of its name is drawn as the map alone draws it. `image` and `page` are snapshots, stamped with the time they were read; `watch` serves a page that asks again every two seconds.
+
+The map document is not changed by any of this, and still holds no state: `mapLive(sessions, map)` in core computes the marks, and `mapPicture(map, { live, at })` draws them. A map remains something that is drawn and validated, never run; what is laid over it is observation (amendment A-012).
+
 ## 5. Canonical form
 
 As a graph's (`graph-ir.md` §7): two-space indent, LF, one trailing newline, keys in the order the types above list them, arrays in document order, unknown keys kept and sorted after the known ones.
@@ -151,4 +168,4 @@ An Operator session in the cloud starts and steers a family of worker sessions, 
 
 ## 7. Deferred
 
-Named so nobody designs them twice: a saved `layout` for a map (the picture is automatic in v0); a graph pointing at another graph; live state on a map from several sessions' event files (the events are slice 0027; `docs/subagents.md`); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).
+Named so nobody designs them twice: a saved `layout` for a map (the picture is automatic in v0); a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).

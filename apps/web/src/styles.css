@@ -3608,3 +3608,15 @@ div.field-diff.ins {
   margin: 4px 0;
   overflow-wrap: anywhere;
 }
+
+.live-map {
+  max-width: 640px;
+  margin: 0 auto 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.live-map .map-picture {
+  max-width: none;
+  padding: 0;
+}

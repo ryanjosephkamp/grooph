@@ -22,6 +22,13 @@ export type PictureOptions = {
   width?: number;
 };
 
+/** What a map's picture may also be given: what the hooks saw of its sessions, and when that was read. */
+export type MapPictureOptions = PictureOptions & {
+  live?: Record<string, { sessions: number; working: number; waiting: number; ended: number; agentsRunning: number; agentsDone: number; lastAt: string }>;
+  /** when the live state was read, ISO 8601; shown in the caption */
+  at?: string;
+};
+
 export const PICTURE_WIDTH = 400;
 
 /** The app's tokens (apps/web/src/styles.css) as plain colours, so a picture stands on its own. */

@@ -50,15 +50,15 @@ Usage
   grooph shape <file> [--json]
   grooph glyph <file> [--out <svg>] [--scale <n>]
   grooph mermaid <file> [--out <file>]
-  grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto]
+  grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--events <id>=<source>]...
   grooph outline <graph | operation map> [--out <file.md>]
-  grooph page <graph | operation map> --out <file.html>
+  grooph page <graph | operation map> --out <file.html> [--events <id>=<source>]...
   grooph share <graph | proposal set | run dir | run bundle | operation map> [--base <url>] [--open] [--out <file>]
   grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
   grooph template list | show | use | insert | save | add …   (grooph template help)
   grooph runs list [<dir>] | show <run dir> [--json] | bundle <run dir> --out <file>
   grooph adopt <run dir> [--into <graph file>] [--write]
-  grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--port 4174] [--host 127.0.0.1] [--open]
+  grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
   grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
   grooph sessions [<source>...] [--json]
   grooph mcp [--dir <project>] [--harness <name>]
@@ -252,7 +252,7 @@ export async function run(
       }
 
       case "image": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" } } });
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, events: { type: "string", multiple: true } } });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "image needs a file: grooph image <graph | operation map> [--out <file.svg | file.png>]");
         const scale = values["scale"] === undefined ? undefined : Number(values["scale"]);
@@ -261,6 +261,7 @@ export async function run(
           ...(values["out"] !== undefined ? { out: values["out"] } : {}),
           ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}),
           ...(scale !== undefined ? { scale } : {}),
+          ...(values["events"] ? { events: values["events"].map(parseSource) } : {}),
         });
       }
 
@@ -272,11 +273,11 @@ export async function run(
       }
 
       case "page": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" } } });
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, events: { type: "string", multiple: true } } });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "page needs a file: grooph page <graph | operation map> --out <file.html>");
         if (values["out"] === undefined) return usageError(io, "page needs --out <file.html>, the one file to write");
-        return pageCommand(io, file, { out: values["out"], version: VERSION });
+        return pageCommand(io, file, { out: values["out"], version: VERSION, ...(values["events"] ? { events: values["events"].map(parseSource) } : {}) });
       }
 
       case "share": {
@@ -351,8 +352,9 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" }, sessions: { type: "boolean" }, events: { type: "string", multiple: true } },
+          options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" }, sessions: { type: "boolean" }, events: { type: "string", multiple: true }, map: { type: "string" } },
         });
+        if (values["map"] !== undefined && !existsSync(values["map"])) return usageError(io, `--map ${values["map"]}: no such file`);
         const port = values["port"] === undefined ? 4174 : Number(values["port"]);
         if (!Number.isInteger(port) || port < 0 || port > 65535) return usageError(io, `--port must be a port number from 0 to 65535, got "${values["port"]}"`);
         const host = values["host"] ?? "127.0.0.1";
@@ -361,7 +363,7 @@ export async function run(
         for (const source of events) {
           if (source.ref === undefined && !existsSync(source.path)) return usageError(io, `--events ${source.path}: no such file or folder`);
         }
-        return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true, sessions: values["sessions"] === true, ...(events.length > 0 ? { events } : {}) }, {
+        return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true, sessions: values["sessions"] === true || values["map"] !== undefined, ...(events.length > 0 ? { events } : {}), ...(values["map"] !== undefined ? { map: values["map"] } : {}) }, {
           openUrl: env.openUrl ?? openUrl,
           ...(env.signal ? { signal: env.signal } : {}),
           ...(env.env ? { env: env.env } : {}),

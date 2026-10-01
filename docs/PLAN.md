@@ -80,6 +80,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0026 | 21 | Operation maps: amendment A-011, schema, validator rules, the sample, the picture, the view | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0024; no spend) |
 | 0027 | 22 | Live subagents: event hooks for Claude Code and Codex, `grooph watch` over events, `docs/subagents.md` (takes over the hooks of 0021 and the live half of 0023) | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0025). Nine small sessions to learn what hooks receive and to run the hook for real: four in Claude Code ($0.62 in all) and five short Codex runs on the subscription |
 | 0028 | 22 | MCP server over the same core: declare planned subagents, write a note, what is running, validate a document | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0027). One real session to check the tools work ($0.23); whether they help a lead is untested |
+| 0029 | 21, 22 | The live map (hook state drawn on an operation map: `image` and `page --events`, `watch --map`) and `docs/HANDBACK-operator.md` | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0028; no spend) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)

@@ -11,6 +11,7 @@
  */
 
 import { canonicalize } from "./canonicalize.js";
+import { mapLiveLine, type MapSessionLive } from "./events.js";
 import { formatIssue, type IssueLike } from "./issues.js";
 import { canonicalizeMap, isMapLike, validateMap } from "./map.js";
 import { mapOutline, outline, type OutlineSection } from "./outline.js";
@@ -25,6 +26,10 @@ export type OfflinePageOptions = {
   version?: string;
   /** A link that opens the same document in the app, for when there is a network. */
   link?: string;
+  /** For an operation map: what the hooks saw of its sessions (`mapLive`), drawn on the picture and said in the outline. */
+  live?: Record<string, MapSessionLive>;
+  /** When that live state was read, ISO 8601. */
+  at?: string;
 };
 
 const CSS = `
@@ -96,8 +101,15 @@ function sectionHtml(section: OutlineSection, first: boolean): string {
 export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptions = {}): string {
   const map = isMapLike(doc) ? (doc as OperationMap) : undefined;
   const graph = map ? undefined : (doc as Graph);
-  const svg = (map ? mapPicture(map) : picture(graph!)).trimEnd();
+  const svg = (map ? mapPicture(map, options.live ? { live: options.live, ...(options.at ? { at: options.at } : {}) } : {}) : picture(graph!)).trimEnd();
   const sections = map ? mapOutline(map) : outline(graph!);
+  if (map && options.live) {
+    // A snapshot: what each session was doing when the page was made, first in its section.
+    for (const section of sections) {
+      const now = section.kind === "Session" ? options.live[section.id] : undefined;
+      if (now) section.items.unshift({ label: options.at ? `At ${options.at.slice(0, 16).replace("T", " ")} UTC` : "When this page was made", text: mapLiveLine(now) });
+    }
+  }
   const issues: IssueLike[] = map ? validateMap(map) : validate(graph!, { forExport: true });
   const errors = issues.filter((i) => i.severity === "error").length;
   const text = map ? canonicalizeMap(map) : canonicalize(graph!);
@@ -125,7 +137,9 @@ export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptio
     `<body>`,
     `<main id="top">`,
     `<div class="bar"><strong>${esc(name)}</strong><button type="button" id="theme">Light / dark</button><button type="button" id="save">Save document</button></div>`,
-    `<p class="note">A grooph ${what}, whole in this one file. It needs no network. Tap a card to read about it below.</p>`,
+    `<p class="note">A grooph ${what}, whole in this one file. It needs no network. Tap a card to read about it below.${
+      map && options.live ? " The marks on the cards are a snapshot of what the event hook had seen when the page was made; the page does not update itself." : ""
+    }</p>`,
     `<div class="picture">${svg}</div>`,
     `<section id="s-validation"><p class="kind">Validation</p><h2>${esc(verdict)}</h2>${
       issues.length > 0 ? `<ul class="issues">${issues.map((i) => `<li class="${i.severity}">${esc(formatIssue(i))}</li>`).join("")}</ul>` : ""

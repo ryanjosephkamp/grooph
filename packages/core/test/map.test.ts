@@ -11,6 +11,8 @@ import { test } from "node:test";
 
 import { Ajv2020 } from "ajv/dist/2020.js";
 
+import { mapLive, mapLiveLine, parseEvents, summarizeSessions } from "../src/events.js";
+import { offlinePage } from "../src/offline.js";
 import { MAP_CODES, canonicalizeMap, carrierText, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
 import { parseGraphText } from "../src/parse.js";
 import { mapPicture } from "../src/picture/map-picture.js";
@@ -156,4 +158,32 @@ test("an auto picture follows the viewer's colour scheme; a broken map still dra
   assert.ok(svg.includes('data-handoff-row="h-gone"') && svg.includes("no carrier named"));
   // An empty map is a title and nothing else.
   assert.match(mapPicture({ groophMap: 0, id: "empty", name: "Empty", version: 1, lanes: [], sessions: [], handoffs: [] }, { theme: "dark" }), /^<svg [^>]*data-picture="map"/);
+});
+
+test("a map lit by its sessions' hooks: a source read under a map session's name marks that session, and nothing else changes", () => {
+  const map = parseMapText(read(join(mapsDir, "valid/owner-operation-2026-09-30.grooph-map.json"))).map!;
+  const events = (name: string, source: string) => parseEvents(read(join(fixturesDir, "events", name))).events.map((e) => ({ ...e, source }));
+  const sessions = summarizeSessions([...events("claude-code-running.jsonl", "operator"), ...events("claude-code-nested.jsonl", "workers"), ...events("codex-two-subagents.jsonl", "codex"), ...events("claude-code-planned.jsonl", "somewhere-else")].sort((a, b) => (a.t < b.t ? -1 : 1)));
+  const live = mapLive(sessions, map);
+  assert.deepEqual(Object.keys(live).sort(), ["codex", "operator", "workers"]);
+  assert.deepEqual([live["operator"]!.working, live["operator"]!.agentsRunning, live["operator"]!.agentsDone], [1, 1, 1]);
+  assert.equal(mapLiveLine(live["operator"]!), "working · 1 running, 1 done");
+  assert.equal(mapLiveLine(live["workers"]!), "ended · 0 running, 3 done");
+  assert.equal(mapLiveLine({ sessions: 12, working: 2, waiting: 3, ended: 7, agentsRunning: 4, agentsDone: 9, lastAt: "x" }), "2 of 12 working · 4 running, 9 done");
+  assert.equal(mapLiveLine({ sessions: 1, working: 0, waiting: 1, ended: 0, agentsRunning: 0, agentsDone: 0, lastAt: "x" }), "waiting");
+
+  const plain = mapPicture(map, { theme: "light" });
+  const lit = mapPicture(map, { theme: "light", live, at: "2026-10-01T02:01:10.000Z" });
+  assert.ok(!plain.includes("data-live"));
+  assert.match(lit, /<g data-session="operator" data-live="working">/);
+  assert.match(lit, /<g data-session="workers" data-live="ended">/);
+  assert.ok(!/<g data-session="routines" data-live/.test(lit), "a session with no source of its name is drawn as the map alone draws it");
+  assert.ok(lit.includes(">working · 1 running, 1 done<") && lit.includes("live at 2026-10-01 02:01 UTC"));
+  // The map itself is not touched: live state is given to the picture, never written into the document.
+  assert.equal(canonicalizeMap(map), read(join(mapsDir, "valid/owner-operation-2026-09-30.grooph-map.json")));
+
+  const page = offlinePage(map, { live, at: "2026-10-01T02:01:10.000Z" });
+  assert.ok(page.includes('data-live="working"') && page.includes("<dt>At 2026-10-01 02:01 UTC</dt><dd>working · 1 running, 1 done</dd>"));
+  assert.ok(page.includes("the page does not update itself"));
+  assert.ok(!offlinePage(map).includes("data-live"));
 });

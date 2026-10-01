@@ -23,7 +23,7 @@ export * from "./map.js";
 export { mapSchema, mapJsonSchema, MAP_SCHEMA_ID } from "./schema/map.js";
 export { mapPicture, handoffNumbers, CARRIER_STYLE } from "./picture/map-picture.js";
 export { picture } from "./picture/graph-picture.js";
-export { PICTURE_WIDTH, type PictureOptions, type PictureTheme } from "./picture/svg.js";
+export { PICTURE_WIDTH, type MapPictureOptions, type PictureOptions, type PictureTheme } from "./picture/svg.js";
 export * from "./outline.js";
 export { offlinePage, type OfflinePageOptions } from "./offline.js";
 export * from "./events.js";

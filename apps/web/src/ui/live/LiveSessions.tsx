@@ -1,4 +1,4 @@
-import { durationText, planLine, secondsBetween, type LiveAgent, type LivePlan, type LiveSession, type LiveView } from "@grooph/core";
+import { durationText, mapLive, mapPicture, parseMap, planLine, secondsBetween, type LiveAgent, type LivePlan, type LiveSession, type LiveView, type OperationMap } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
 import { POLL_MS } from "../run/RunScreens.js";
@@ -14,7 +14,11 @@ export const sessionsEndpoint = (): string => new URL("api/live.json", document.
 export function parseLiveView(text: string): LiveView | undefined {
   try {
     const json = JSON.parse(text) as Partial<LiveView>;
-    return json !== null && typeof json === "object" && json.groophLive === 0 && Array.isArray(json.sessions) && typeof json.at === "string" ? (json as LiveView) : undefined;
+    if (json === null || typeof json !== "object" || json.groophLive !== 0 || !Array.isArray(json.sessions) || typeof json.at !== "string") return undefined;
+    // A map that came with the sessions is checked like any map from outside; one that does not parse is left out.
+    const { map: given, ...rest } = json as LiveView;
+    const map = given !== undefined ? parseMap(given).map : undefined;
+    return map ? { ...rest, map } : rest;
   } catch {
     return undefined;
   }
@@ -172,6 +176,16 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
   );
 }
 
+/** The operation map the sessions belong on, with what the hooks saw drawn on each of its sessions. */
+function LiveMap({ map, view }: { map: OperationMap; view: LiveView }) {
+  const svg = useMemo(() => mapPicture(map, { live: mapLive(view.sessions, map), at: view.at }), [map, view]);
+  return (
+    <section className="live-map" aria-label={`Operation map: ${map.name}`}>
+      <div className="map-picture" dangerouslySetInnerHTML={{ __html: svg }} />
+    </section>
+  );
+}
+
 /**
  * `#/live` (docs/subagents.md §6): every session the event hook has recorded,
  * each with its subagents as they start and stop, from one harness or several.
@@ -221,6 +235,7 @@ export function LiveSessions() {
           </p>
         ) : null}
         {!live.view && !live.error ? <p className="muted live-empty">Asking the server this page came from for its sessions.</p> : null}
+        {live.view?.map ? <LiveMap map={live.view.map} view={live.view} /> : null}
         {live.view && sessions.length === 0 ? (
           <div className="live-empty">
             <p>No sessions recorded yet.</p>

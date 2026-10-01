@@ -12,7 +12,7 @@
  */
 
 import type { RunSummary } from "./runs.js";
-import type { Graph, HarnessId, Id } from "./types.js";
+import type { Graph, HarnessId, Id, OperationMap } from "./types.js";
 
 export const EVENTS_VERSION = 1;
 
@@ -190,6 +190,8 @@ export type LiveView = {
   sessions: LiveSession[];
   /** lines that could not be read, per source */
   issues?: { source: string; line: number; message: string }[];
+  /** the operation map these sessions belong on, when the reader was given one (`grooph watch --map`) */
+  map?: OperationMap;
 };
 
 /**
@@ -412,4 +414,50 @@ export function overlayRun(summary: RunSummary, live: Record<Id, NodeLive>): Run
     changed = true;
   }
   return changed ? { ...summary, nodes } : summary;
+}
+
+// ─── an operation map, seen through its sessions' hooks ───────────────────
+
+/** What the hooks saw of one session on a map: every recorded session read under that map session's name, summed. */
+export type MapSessionLive = {
+  /** recorded sessions under this name */
+  sessions: number;
+  working: number;
+  waiting: number;
+  ended: number;
+  agentsRunning: number;
+  agentsDone: number;
+  /** the last thing seen from any of them */
+  lastAt: string;
+};
+
+/**
+ * A map's sessions as the hooks saw them. The tie is the name a source was
+ * read under: events read as `operator=<source>` belong to the map session
+ * whose id is `operator` (docs/operation-map.md §4b). The map says who
+ * exists; the events say who is at work. A session on the map with no source
+ * of that name has no entry, and is drawn as the map alone would draw it.
+ */
+export function mapLive(sessions: readonly LiveSession[], map: OperationMap): Record<Id, MapSessionLive> {
+  const ids = new Set(map.sessions.map((s) => s.id));
+  const out: Record<Id, MapSessionLive> = {};
+  for (const s of sessions) {
+    if (s.source === undefined || !ids.has(s.source)) continue;
+    const m = (out[s.source] ??= { sessions: 0, working: 0, waiting: 0, ended: 0, agentsRunning: 0, agentsDone: 0, lastAt: s.lastAt });
+    m.sessions += 1;
+    m[s.state] += 1;
+    for (const a of s.agents) {
+      if (a.state === "running") m.agentsRunning += 1;
+      else m.agentsDone += 1;
+    }
+    if (s.lastAt > m.lastAt) m.lastAt = s.lastAt;
+  }
+  return out;
+}
+
+/** One line for a map session's live state: "working · 3 subagents running, 5 done" or "2 of 12 working · …". */
+export function mapLiveLine(live: MapSessionLive): string {
+  const state = live.working > 0 ? (live.sessions > 1 ? `${live.working} of ${live.sessions} working` : "working") : live.waiting > 0 ? (live.sessions > 1 ? `${live.waiting} of ${live.sessions} waiting` : "waiting") : "ended";
+  const agents = live.agentsRunning + live.agentsDone === 0 ? "" : ` · ${live.agentsRunning} running, ${live.agentsDone} done`;
+  return `${state}${agents}`;
 }

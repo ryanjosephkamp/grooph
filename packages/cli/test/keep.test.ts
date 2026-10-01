@@ -154,3 +154,35 @@ test("a file that is neither a graph nor a map is named, and nothing is written;
     assert.match(text(io.stdout), new RegExp(`^grooph ${command} <graph \\| operation map>`));
   }
 });
+
+test("image and page mark a map's sessions with what the event hook has seen, from sources named for them", async () => {
+  const events = join(repoRoot, "fixtures", "events");
+  await withScratch(async (dir) => {
+    let io = capture();
+    const out = join(dir, "live.svg");
+    assert.equal(await grooph(["image", sampleMap, "--theme", "light", "--out", out, "--events", `operator=${join(events, "claude-code-running.jsonl")}`, "--events", `codex=${join(events, "codex-two-subagents.jsonl")}`], io), 0, text(io.stderr));
+    const svg = readFileSync(out, "utf8");
+    assert.match(svg, /<g data-session="operator" data-live="working">/);
+    assert.match(svg, /<g data-session="codex" data-live="ended">/);
+    assert.match(svg, />live at \d{4}-\d\d-\d\d \d\d:\d\d UTC/);
+
+    io = capture();
+    assert.equal(await grooph(["page", sampleMap, "--out", join(dir, "live.html"), "--events", `workers=${join(events, "claude-code-nested.jsonl")}`], io), 0, text(io.stderr));
+    const html = readFileSync(join(dir, "live.html"), "utf8");
+    assert.ok(html.includes('data-session="workers" data-live="ended"') && html.includes("ended · 0 running, 3 done"));
+
+    // A source has to say which session it is; a graph has no sessions to light; a missing source is named.
+    for (const [argv, said] of [
+      [["image", sampleMap, "--events", join(events, "codex-two-subagents.jsonl")], /name each source for the map session it belongs to.*This map's sessions: operator, workers/],
+      [["image", sampleMap, "--events", `nobody=${join(events, "codex-two-subagents.jsonl")}`], /name each source for the map session/],
+      [["image", sampleMap, "--events", "operator=/no/such/place"], /no such file or folder/],
+      [["image", reviewLoop, "--events", `builder=${join(events, "codex-two-subagents.jsonl")}`], /lights the sessions of an operation map; this file is a graph/],
+      [["page", reviewLoop, "--out", join(dir, "x.html"), "--events", `builder=${join(events, "codex-two-subagents.jsonl")}`], /this file is a graph/],
+    ] as const) {
+      io = capture();
+      assert.equal(await grooph([...argv], io), 1, argv.join(" "));
+      assert.match(text(io.stderr), said);
+    }
+    assert.equal(existsSync(join(dir, "x.html")), false);
+  });
+});
