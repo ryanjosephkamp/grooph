@@ -7,16 +7,16 @@
  */
 
 import assert from "node:assert/strict";
-import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { canonicalize, decodeSharePayload, parseGraphText, parseRunBundleText, sharePayloadFrom, summarizeRun, type Graph, type RunBundle } from "@grooph/core";
+import { canonicalize, decodeSharePayload, parseGraphText, parseRunBundleText, sharePayloadFrom, summarizeRun, type Graph, type LiveView, type RunBundle } from "@grooph/core";
 
-import { ENDPOINT, findWebDist, startWatch, watchTarget } from "../src/commands/watch.js";
+import { ENDPOINT, LIVE_ENDPOINT, findWebDist, startWatch, watchTarget } from "../src/commands/watch.js";
 import { run, type CliEnv } from "../src/index.js";
 import type { Output } from "../src/print.js";
 import { inflateRaw } from "../src/share-io.js";
@@ -375,7 +375,7 @@ test("watch on a graph folder follows the newest run, and says so while there is
   }
 });
 
-async function watchUntilListening(argv: string[], env: NodeJS.ProcessEnv): Promise<{ io: Capture; code: number }> {
+async function watchUntilListening(argv: string[], env: NodeJS.ProcessEnv, endpoint: string = ENDPOINT): Promise<{ io: Capture; code: number }> {
   const io = capture();
   const stop = new AbortController();
   const running = grooph(argv, io, { signal: stop.signal, env });
@@ -383,7 +383,7 @@ async function watchUntilListening(argv: string[], env: NodeJS.ProcessEnv): Prom
   const url = io.stdout.find((l) => l.startsWith("open http"))?.slice("open ".length);
   if (url) {
     const port = Number(new URL(url).port);
-    assert.equal((await get(port, ENDPOINT)).status, 200);
+    assert.equal((await get(port, endpoint)).status, 200);
   }
   stop.abort();
   return { io, code: await running };
@@ -395,14 +395,14 @@ test("grooph watch prints where to look; with --host it warns that the network c
   try {
     const local = await watchUntilListening(["watch", runDir(dir, "run-live"), "--port", "0"], { GROOPH_WEB_DIST: dist });
     assert.equal(local.code, 0);
-    assert.match(text(local.io.stdout), /watching .*20260919-1100-live: running\nopen http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/run\?live\nread-only/);
+    assert.match(text(local.io.stdout), /watching .*20260919-1100-live: running\nsessions: none recorded under .*\.grooph\/events\/ yet \(grooph hooks install records them\)\nopen http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/run\?live\nread-only/);
     assert.deepEqual(local.io.stderr, []);
     assert.equal(local.io.stdout.at(-1), "stopped");
 
     const lan = await watchUntilListening(["watch", join(dir, ".grooph", "run-live"), "--port", "0", "--host", "0.0.0.0"], { GROOPH_WEB_DIST: dist });
     assert.equal(lan.code, 0);
     assert.match(text(lan.io.stdout), /the newest run under .*run-live\/runs\/ \(now 20260919-1100-live\)/);
-    assert.match(text(lan.io.stderr), /warning: listening on 0\.0\.0\.0, so anyone on this network can read this run while watch runs; there is no password\./);
+    assert.match(text(lan.io.stderr), /warning: listening on 0\.0\.0\.0, so anyone on this network can read this run and these sessions while watch runs; there is no password\./);
 
     const unbuilt = capture();
     assert.equal(await grooph(["watch", runDir(dir, "run-live"), "--port", "0"], unbuilt, { env: { GROOPH_WEB_DIST: join(dist, "nope") }, signal: AbortSignal.abort() }), 1);
@@ -413,6 +413,64 @@ test("grooph watch prints where to look; with --host it warns that the network c
   } finally {
     rmSync(dir, { recursive: true, force: true });
     rmSync(dist, { recursive: true, force: true });
+  }
+});
+
+test("watch serves the sessions the event hook recorded: the project's own, more with --events, and the run's nodes as the hooks saw them", async () => {
+  const dir = project("run-live");
+  const dist = fakeDist();
+  const eventsFixtures = join(repoRoot, "fixtures", "events");
+  const other = mkdtempSync(join(tmpdir(), "grooph-watch-other-"));
+  try {
+    // No events yet: the bare address lands on the run, and the sessions are an empty list.
+    let watcher = await startWatch({ target: watchTarget(runDir(dir, "run-live")), webDist: dist, port: 0, host: "127.0.0.1" });
+    try {
+      assert.match(watcher.url, /#\/run\?live$/);
+      const empty = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
+      assert.equal(empty.groophLive, 0);
+      assert.deepEqual(empty.sessions, []);
+
+      // The hook writes while watch runs; the next request sees it. Nothing is cached.
+      mkdirSync(join(dir, ".grooph", "events"), { recursive: true });
+      copyFileSync(join(eventsFixtures, "claude-code-running.jsonl"), join(dir, ".grooph", "events", "s1.jsonl"));
+      const one = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
+      assert.deepEqual(one.sessions.map((s) => [s.state, s.agents.map((a) => a.state)]), [["working", ["done", "running"]]]);
+      assert.equal((await get(watcher.port, LIVE_ENDPOINT, { method: "POST" })).status, 405);
+      assert.equal((await get(watcher.port, LIVE_ENDPOINT, { host: "evil.example:80" })).status, 421);
+    } finally {
+      await watcher.close();
+    }
+
+    // Several sessions' files merge, each under the name it was given; --sessions lands on them.
+    copyFileSync(join(eventsFixtures, "codex-two-subagents.jsonl"), join(other, "codex.jsonl"));
+    watcher = await startWatch({ target: watchTarget(runDir(dir, "run-live")), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, events: [{ name: "mac-codex", path: other }] });
+    try {
+      assert.match(watcher.url, /#\/live$/);
+      assert.equal((await get(watcher.port, "/")).headers["location"], "/grooph/#/live");
+      const both = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
+      assert.deepEqual(both.sessions.map((s) => [s.source, s.harness]).sort(), [[undefined, "claude-code"], ["mac-codex", "codex"]]);
+    } finally {
+      await watcher.close();
+    }
+
+    // A project with no run at all opens on the sessions.
+    const bare = mkdtempSync(join(tmpdir(), "grooph-watch-bare-"));
+    try {
+      watcher = await startWatch({ target: watchTarget(bare), webDist: dist, port: 0, host: "127.0.0.1" });
+      assert.match(watcher.url, /#\/live$/);
+      await watcher.close();
+      const said = await watchUntilListening(["watch", bare, "--port", "0", "--events", `lane-a=${other}`], { GROOPH_WEB_DIST: dist }, LIVE_ENDPOINT);
+      assert.match(text(said.io.stdout), /sessions: 1 recorded, 0 working \(codex · ended · 0 running, 2 done\)\nopen http:\/\/127\.0\.0\.1:\d+\/grooph\/#\/live/);
+      const missing = capture();
+      assert.equal(await grooph(["watch", bare, "--events", join(bare, "nope")], missing), 1);
+      assert.match(text(missing.stderr), /--events .*nope: no such file or folder/);
+    } finally {
+      rmSync(bare, { recursive: true, force: true });
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(dist, { recursive: true, force: true });
+    rmSync(other, { recursive: true, force: true });
   }
 });
 

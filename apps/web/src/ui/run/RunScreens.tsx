@@ -1,8 +1,9 @@
-import { parseRunBundleText, summarizeRun, type RunBundle } from "@grooph/core";
+import { nodesLive, parseRunBundleText, summarizeRun, type Id, type NodeLive, type RunBundle } from "@grooph/core";
 import { useEffect, useState } from "react";
 
 import type { RunRecord } from "../../store/db.js";
 import { getRun } from "../../store/runs.js";
+import { parseLiveView, sessionsEndpoint } from "../live/LiveSessions.js";
 import { RunView } from "./RunView.js";
 
 /** How often a live view asks `grooph watch` again (docs/runs.md §4). */
@@ -15,7 +16,27 @@ export const POLL_MS = 2000;
  */
 export const liveEndpoint = (): string => new URL("api/run.json", document.baseURI).href;
 
-type Live = { bundle?: RunBundle; updatedAt: number; error?: string; polling: boolean };
+type Live = { bundle?: RunBundle; updatedAt: number; error?: string; polling: boolean; hooks?: Record<Id, NodeLive> };
+
+/**
+ * What the event hook saw of this run's nodes (docs/subagents.md §6), from the
+ * same server. An older `grooph watch` has no such endpoint, and a project
+ * with no hook has no events: either way there is nothing to lay over the
+ * run, and the run view is as it was.
+ */
+async function hooksFor(bundle: RunBundle): Promise<Record<Id, NodeLive> | undefined> {
+  try {
+    const res = await fetch(sessionsEndpoint(), { cache: "no-store" });
+    if (!res.ok || !(res.headers.get("content-type") ?? "").includes("application/json")) return undefined;
+    const view = parseLiveView(await res.text());
+    if (!view) return undefined;
+    const since = bundle.notes.map((n) => n.started ?? n.ended).find((t): t is string => t !== undefined && !Number.isNaN(Date.parse(t)));
+    const seen = nodesLive(view.sessions, bundle.working, since ? new Date(since).toISOString() : undefined);
+    return Object.keys(seen).length > 0 ? seen : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** `#/run?live`: the run `grooph watch` serves, asked again every two seconds until it ends. */
 export function LiveRun() {
@@ -46,7 +67,8 @@ export function LiveRun() {
             setLive((l) => ({ ...l, error: "grooph watch sent something that is not a run; it may be a different version of grooph." }));
           } else {
             ended = summarizeRun(parsed.bundle.notes, parsed.bundle.working).state === "ended";
-            setLive({ bundle: parsed.bundle, updatedAt: Date.now(), polling: !ended });
+            const hooks = ended ? undefined : await hooksFor(parsed.bundle);
+            setLive({ bundle: parsed.bundle, updatedAt: Date.now(), polling: !ended, ...(hooks ? { hooks } : {}) });
           }
         }
       } catch {
@@ -73,7 +95,7 @@ export function LiveRun() {
       </main>
     );
   }
-  return <RunView bundle={live.bundle} origin={{ kind: "live", updatedAt: live.updatedAt, polling: live.polling, ...(live.error ? { error: live.error } : {}) }} />;
+  return <RunView bundle={live.bundle} origin={{ kind: "live", updatedAt: live.updatedAt, polling: live.polling, ...(live.error ? { error: live.error } : {}) }} {...(live.hooks ? { hooks: live.hooks } : {})} />;
 }
 
 /** `#/run/<key>`: a run kept on this device. */

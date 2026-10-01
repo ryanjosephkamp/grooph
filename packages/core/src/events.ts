@@ -11,6 +11,7 @@
  * says that something ran, not what it said.
  */
 
+import type { RunSummary } from "./runs.js";
 import type { Graph, HarnessId, Id } from "./types.js";
 
 export const EVENTS_VERSION = 1;
@@ -290,4 +291,22 @@ export function nodesLive(sessions: readonly LiveSession[], graph: Graph, since?
     }
   }
   return out;
+}
+
+/**
+ * A run's summary with what the hooks saw laid over it: a node whose
+ * subagent is running now is `running`, whatever the lead has or has not
+ * written yet. Nothing else changes: an outcome is the lead's to state, and a
+ * hook cannot know one.
+ */
+export function overlayRun(summary: RunSummary, live: Record<Id, NodeLive>): RunSummary {
+  const nodes = { ...summary.nodes };
+  let changed = false;
+  for (const [id, seen] of Object.entries(live)) {
+    const node = nodes[id];
+    if (!node || seen.running === 0 || node.state === "running") continue;
+    nodes[id] = { ...node, state: "running", runs: Math.max(node.runs, seen.runs) };
+    changed = true;
+  }
+  return changed ? { ...summary, nodes } : summary;
 }

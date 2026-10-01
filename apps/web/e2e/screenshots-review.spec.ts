@@ -100,3 +100,22 @@ test.describe("slice 0025, phone light", () => {
     await page.screenshot({ path: join(dir, "keep-phone-light.png") });
   });
 });
+
+test.describe("slice 0027, phone", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    test(`live sessions, ${scheme}`, async ({ browser }) => {
+      const { parseEvents, summarizeSessions } = await import("@grooph/core");
+      const events = ["claude-code-running.jsonl", "codex-two-subagents.jsonl", "claude-code-nested.jsonl"].flatMap((name, i) =>
+        parseEvents(readFileSync(join(repoRoot, "fixtures/events", name), "utf8")).events.map((e) => ({ ...e, source: i === 1 ? "the Mac" : "cloud lanes" })),
+      );
+      const view = { groophLive: 0, at: "2026-10-01T02:01:10.000Z", sessions: summarizeSessions(events.sort((a, b) => (a.t < b.t ? -1 : 1))) };
+      const context = await browser.newContext({ ...SIZES.phone, colorScheme: scheme, reducedMotion: "reduce" });
+      const page = await context.newPage();
+      await page.route("**/grooph/api/live.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(view) }));
+      await page.goto("./#/live");
+      await expect(page.locator(".live-session").first()).toBeVisible();
+      await page.screenshot({ path: join(dir, `live-phone-${scheme}.png`), fullPage: false });
+      await context.close();
+    });
+  }
+});

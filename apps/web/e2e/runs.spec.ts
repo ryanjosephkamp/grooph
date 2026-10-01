@@ -368,8 +368,9 @@ test("the app requests nothing but its own files and, in a live view, the watch 
 
   const elsewhere = requests.filter((u) => new URL(u).origin !== origin && !u.startsWith("data:"));
   expect(elsewhere).toEqual([]);
-  const live = requests.filter((u) => u.includes("api/run.json"));
-  expect(new Set(live)).toEqual(new Set([`${origin}/grooph/api/run.json`]));
+  // In a live view it asks the server it was opened from for the run and for the sessions the hook recorded, and nothing else.
+  const live = requests.filter((u) => u.includes("/api/"));
+  expect(new Set(live)).toEqual(new Set([`${origin}/grooph/api/run.json`, `${origin}/grooph/api/live.json`]));
 });
 
 /* ─── slice 0010 carries ─────────────────────────────────────────────────── */

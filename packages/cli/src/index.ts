@@ -5,7 +5,7 @@
  * Exit codes: 0 fine · 1 the document is wrong, or the invocation is · 2 a crash.
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
 import { KNOWN_TARGETS, TemplateError, type CompileTarget } from "@grooph/core";
@@ -25,6 +25,7 @@ import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
 import { validateCommand } from "./commands/validate.js";
 import { watchCommand, WATCH_HELP } from "./commands/watch.js";
+import { parseSource } from "./events-io.js";
 import { stdio, type Output } from "./print.js";
 import { RegistryError, defaultRegistryEnv, type RegistryEnv } from "./registry.js";
 import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
@@ -346,13 +347,17 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" } },
+          options: { port: { type: "string" }, host: { type: "string" }, open: { type: "boolean" }, sessions: { type: "boolean" }, events: { type: "string", multiple: true } },
         });
         const port = values["port"] === undefined ? 4174 : Number(values["port"]);
         if (!Number.isInteger(port) || port < 0 || port > 65535) return usageError(io, `--port must be a port number from 0 to 65535, got "${values["port"]}"`);
         const host = values["host"] ?? "127.0.0.1";
         if (host.trim() === "") return usageError(io, "--host needs an address, like 127.0.0.1 or 0.0.0.0");
-        return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true }, {
+        const events = (values["events"] ?? []).map(parseSource);
+        for (const source of events) {
+          if (!existsSync(source.path)) return usageError(io, `--events ${source.path}: no such file or folder`);
+        }
+        return await watchCommand(io, positionals[0], { port, host, open: values["open"] === true, sessions: values["sessions"] === true, ...(events.length > 0 ? { events } : {}) }, {
           openUrl: env.openUrl ?? openUrl,
           ...(env.signal ? { signal: env.signal } : {}),
           ...(env.env ? { env: env.env } : {}),
