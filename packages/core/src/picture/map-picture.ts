@@ -7,6 +7,11 @@
  * criss-cross: drawn through the lanes they would cover the words. In the
  * margin each has its own track, its number says which line of the list it
  * is, and its line style says what carries it.
+ *
+ * The words come first. The cards keep most of a lane's width however many
+ * handoffs there are (the tracks move closer together instead), and a name,
+ * a model or a role that does not fit on its line goes onto the next one:
+ * nothing is cut short while there is room to say it.
  */
 
 import { mapLiveLine } from "../events.js";
@@ -17,8 +22,11 @@ import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, text
 const M = 12; // page margin
 const PAD = 8; // inside a lane
 const CARD_PAD = 10;
-const TRACK = 13; // between arcs in the margin
+const TRACK = 13; // between arcs in the margin, when there is room
+const TRACK_MIN = 6.5; // and when there is not: a map with one hub has a track per handoff
 const TRACK_LEAD = 16; // from a card's edge to the first track
+const TRACK_TAIL = 14; // from the last track to the lane's edge
+const CARD_SHARE = 0.56; // the least of a lane's inner width its cards keep
 const SLOT = 13; // between two arc ends on one card
 
 /** How each carrier kind is drawn: the colour and dash of its arc and of its line in the list. */
@@ -36,7 +44,7 @@ export const CARRIER_STYLE: Record<CarrierKind | "none", { colour: Colour; dash?
 const HARNESS_LABEL: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 const LIFETIME_LABEL: Record<string, string> = { "long-lived": "long-lived", "per-task": "per task", scheduled: "scheduled" };
 
-type Card = { session: Session; lines: { role: string[]; meta: string }; height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
+type Card = { session: Session; height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
 
 /**
  * An operation map as one SVG with its words on it, laid out for a phone.
@@ -72,9 +80,12 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   // Tracks depend only on the order of the ends down the page, so the margin's width is known before any card is measured.
   const position = (id: Id, handoff: Id, end: "from" | "to"): number => order.get(id)! * 1000 + slots.get(id)!.findIndex((s) => s.handoff === handoff && s.end === end);
   const { tracks, count } = assignTracks(handoffs.map((h) => ({ from: position(h.from, h.id, "from"), to: position(h.to, h.id, "to") })));
-  const margin = handoffs.length === 0 ? 0 : TRACK_LEAD + (count - 1) * TRACK + 14;
   const laneX = M;
   const laneW = W - 2 * M;
+  // The margin grows with the tracks until the cards would lose their share; then the tracks close up.
+  const widest = (laneW - 2 * PAD) * (1 - CARD_SHARE);
+  const track = count <= 1 ? TRACK : Math.max(TRACK_MIN, Math.min(TRACK, (widest - TRACK_LEAD - TRACK_TAIL) / (count - 1)));
+  const margin = handoffs.length === 0 ? 0 : TRACK_LEAD + (count - 1) * track + TRACK_TAIL;
   const cardX = laneX + PAD;
   const cardW = laneW - 2 * PAD - margin;
   const textW = cardW - 2 * CARD_PAD;
@@ -106,11 +117,15 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     // The lane's words keep to the cards' column: the margin beside them belongs to the arcs.
     const headW = cardW - 2;
     const placeLabel = lane.place ?? "";
-    const placeW = placeLabel ? textWidth(placeLabel, 9.5, "bold") + 12 : 0;
-    const laneName = truncate(lane.name || lane.id, headW - placeW - 8, 12.5, "bold");
-    inner.push(text(laneX + PAD + 2, cy, laneName, { size: 12.5, fill: ink("ink"), weight: "bold" }));
-    if (placeLabel) inner.push(pill(laneX + PAD + 2 + textWidth(laneName, 12.5, "bold") + 8, cy - 0.5, placeLabel, { size: 9.5, fill: ink("surface"), ink: ink("ink-2"), stroke: ink("line-strong") }).svg);
-    for (const line of wrap(`${lane.machine} · ${lane.account}`, headW, 10.5, 2)) {
+    const place = placeLabel ? pill(0, 0, placeLabel, { size: 9.5, fill: ink("surface"), ink: ink("ink-2"), stroke: ink("line-strong") }) : undefined;
+    const nameLines = wrap(lane.name || lane.id, headW - (place ? place.width + 8 : 0), 12.5, 2, "bold");
+    nameLines.forEach((line, k) => {
+      if (k > 0) cy += 15;
+      inner.push(text(laneX + PAD + 2, cy, line, { size: 12.5, fill: ink("ink"), weight: "bold" }));
+      // The place sits at the column's right edge, on the name's first line, wherever the name ends.
+      if (k === 0 && place) inner.push(pill(cardX + cardW - place.width, cy - 0.5, placeLabel, { size: 9.5, fill: ink("surface"), ink: ink("ink-2"), stroke: ink("line-strong") }).svg);
+    });
+    for (const line of wrap(`${lane.machine} · ${lane.account}`, headW, 10.5, 3)) {
       cy += 13.5;
       inner.push(text(laneX + PAD + 2, cy, line, { size: 10.5, fill: ink("ink-3") }));
     }
@@ -119,37 +134,52 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const members = sessions.filter((s) => s.lane === lane.id);
     for (const session of members) {
       const ends = slots.get(session.id) ?? [];
-      const role = wrap(session.role, textW, 11, 3);
-      const meta = [session.lifetime ? LIFETIME_LABEL[session.lifetime] : undefined, session.repo].filter(Boolean).join(" · ");
+      const family = (session.count ?? 1) > 1;
+      const countLabel = family ? `×${session.count}` : "";
+      const countW = family ? textWidth(countLabel, 10.5, "bold") + 12 : 0;
+      const harness = HARNESS_LABEL[session.harness] ?? session.harness;
       const now = live[session.id];
-      const content = CARD_PAD + 13 + 4 + 12 + 3 + role.length * 13.5 + (meta ? 14 : 0) + (session.graph ? 15 : 0) + (now ? 19 : 0) + CARD_PAD - 3;
-      const height = Math.max(content, (ends.length + 1) * SLOT + 4);
-      cards.set(session.id, { session, lines: { role, meta }, height, y: cy, slots: ends });
+      // Every line of words is wrapped before the card is sized. The name's first line shares its row with the count.
+      const name = wrap(session.name || session.id, textW - (family ? countW + 6 : 0), 13.5, 2, "bold");
+      // The harness and the model share a line when they fit; otherwise each has its own.
+      const together = session.model ? `${harness} · ${session.model}` : harness;
+      const runsOn = !session.model || textWidth(together, 10.5, "bold") <= textW ? [truncate(together, textW, 10.5, "bold")] : [truncate(harness, textW, 10.5, "bold"), ...wrap(session.model, textW, 10.5, 2, "bold")];
+      const meta = [session.lifetime ? LIFETIME_LABEL[session.lifetime] : undefined, session.repo].filter(Boolean).join(" · ");
+      const metaLines = meta ? wrap(meta, textW, 10, 3) : [];
+      const fixed = CARD_PAD + name.length * 16 + 1 + runsOn.length * 13 + 2 + metaLines.length * 13 + (metaLines.length ? 1 : 0) + (session.graph ? 15 : 0) + (now ? 19 : 0) + CARD_PAD - 3;
+      const forSlots = (ends.length + 1) * SLOT + 4;
+      // The role has five lines, and more when the card is tall anyway because many arcs end on it.
+      const role = wrap(session.role, textW, 11, Math.max(5, Math.floor((forSlots - fixed) / 13.5)));
+      const height = Math.max(fixed + role.length * 13.5, forSlots);
+      cards.set(session.id, { session, height, y: cy, slots: ends });
 
       const g: string[] = [];
-      const family = (session.count ?? 1) > 1;
       if (family) {
         // A family is a stack: two more card edges behind the first.
         g.push(rect(cardX + 6, cy + 6, cardW - 6, height - 2, { fill: ink("surface"), stroke: ink("line"), rx: 9 }));
         g.push(rect(cardX + 3, cy + 3, cardW - 3, height - 1, { fill: ink("surface"), stroke: ink("line"), rx: 9 }));
       }
       g.push(rect(cardX, cy, cardW, height, { fill: ink("surface"), stroke: ink("line-strong"), rx: 9, mark: "card" }));
-      let ty = cy + CARD_PAD + 11;
-      const countLabel = family ? `×${session.count}` : "";
-      const countW = family ? textWidth(countLabel, 10.5, "bold") + 12 : 0;
-      g.push(text(cardX + CARD_PAD, ty, truncate(session.name || session.id, textW - countW - (family ? 6 : 0), 13.5, "bold"), { size: 13.5, fill: ink("ink"), weight: "bold" }));
-      if (family) g.push(pill(cardX + cardW - CARD_PAD - countW, ty - 0.5, countLabel, { size: 10.5, fill: ink("accent-soft"), ink: ink("accent") }).svg);
-      ty += 15;
-      const harness = HARNESS_LABEL[session.harness] ?? session.harness;
-      g.push(text(cardX + CARD_PAD, ty, truncate(session.model ? `${harness} · ${session.model}` : harness, textW, 10.5, "bold"), { size: 10.5, fill: ink(session.harness === "codex" ? "check" : "accent"), weight: "bold" }));
-      ty += 3;
+      let ty = cy + CARD_PAD - 5;
+      name.forEach((line, k) => {
+        ty += 16;
+        g.push(text(cardX + CARD_PAD, ty, line, { size: 13.5, fill: ink("ink"), weight: "bold" }));
+        if (k === 0 && family) g.push(pill(cardX + cardW - CARD_PAD - countW, ty - 0.5, countLabel, { size: 10.5, fill: ink("accent-soft"), ink: ink("accent") }).svg);
+      });
+      ty += 1;
+      for (const line of runsOn) {
+        ty += 13;
+        g.push(text(cardX + CARD_PAD, ty, line, { size: 10.5, fill: ink(session.harness === "codex" ? "check" : "accent"), weight: "bold" }));
+      }
+      ty += 2;
       for (const line of role) {
         ty += 13.5;
         g.push(text(cardX + CARD_PAD, ty, line, { size: 11, fill: ink("ink-2") }));
       }
-      if (meta) {
-        ty += 14;
-        g.push(text(cardX + CARD_PAD, ty, truncate(meta, textW, 10), { size: 10, fill: ink("ink-3") }));
+      if (metaLines.length) ty += 1;
+      for (const line of metaLines) {
+        ty += 13;
+        g.push(text(cardX + CARD_PAD, ty, line, { size: 10, fill: ink("ink-3") }));
       }
       if (session.graph) {
         ty += 15;
@@ -194,7 +224,7 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const colour = ink(style.colour);
     const y1 = slotY(h.from, h.id, "from");
     const y2 = slotY(h.to, h.id, "to");
-    const x = edgeX + TRACK_LEAD + tracks[i]! * TRACK;
+    const x = edgeX + TRACK_LEAD + tracks[i]! * track;
     const r = Math.min(6, Math.abs(y2 - y1) / 2);
     const dir = y2 >= y1 ? 1 : -1;
     const d = `M${fmt(edgeX)},${fmt(y1)} H${fmt(x - r)} Q${fmt(x)},${fmt(y1)} ${fmt(x)},${fmt(y1 + dir * r)} V${fmt(y2 - dir * r)} Q${fmt(x)},${fmt(y2)} ${fmt(x - r)},${fmt(y2)} H${fmt(edgeX + 5.5)}`;
@@ -205,7 +235,7 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const hi = Math.max(y1, y2) - 9;
     const clear = (at: number): boolean => badges.every((b) => Math.abs(b.x - x) > 15.5 || Math.abs(b.y - at) > 15.5);
     let badgeY = (y1 + y2) / 2;
-    for (let step = 1; !clear(badgeY) && step < 40; step++) {
+    for (let step = 1; !clear(badgeY) && step < 160; step++) {
       const at = (y1 + y2) / 2 + (step % 2 === 1 ? 1 : -1) * Math.ceil(step / 2) * 8;
       if (at >= lo && at <= hi && clear(at)) badgeY = at;
     }
@@ -237,15 +267,21 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       row.push(`<circle cx="${fmt(M + 8)}" cy="${fmt(y - 4)}" r="7.2" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>`);
       row.push(text(M + 8, y - 0.7, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" }));
       const who = h.from === h.to ? `${nameOf(h.from)} → itself` : `${nameOf(h.from)} → ${nameOf(h.to)}`;
-      row.push(text(listX, y, truncate(who, listW, 12, "bold"), { size: 12, fill: ink("ink"), weight: "bold" }));
+      wrap(who, listW, 12, 2, "bold").forEach((line, k) => {
+        if (k > 0) y += 14;
+        row.push(text(listX, y, line, { size: 12, fill: ink("ink"), weight: "bold" }));
+      });
       y += 14;
       const carried = h.carrier ? carrierText(h.carrier) || `${CARRIER_LABEL[h.carrier.kind]} (not named)` : "no carrier named";
       row.push(
         `<path d="M${fmt(listX)},${fmt(y - 3.5)} h18" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>`,
       );
-      row.push(text(listX + 24, y, truncate(carried, listW - 24, 11, "bold"), { size: 11, fill: colour, weight: "bold" }));
+      wrap(carried, listW - 24, 11, 2, "bold").forEach((line, k) => {
+        if (k > 0) y += 13.5;
+        row.push(text(listX + 24, y, line, { size: 11, fill: colour, weight: "bold" }));
+      });
       if (h.what) {
-        for (const line of wrap(h.what, listW, 11, 2)) {
+        for (const line of wrap(h.what, listW, 11, 4)) {
           y += 13.5;
           row.push(text(listX, y, line, { size: 11, fill: ink("ink-2") }));
         }

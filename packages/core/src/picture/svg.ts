@@ -119,24 +119,55 @@ export const fmt = (n: number): string => {
 export const esc = (text: string): string => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /**
- * The width of text in a system sans font, estimated without a browser: the
- * usual advance of each class of character, in ems. It runs a little wide on
- * purpose, so a line that is said to fit does.
+ * Advances in thousandths of an em for the characters from space to tilde: for each, the wider of Verdana and Arial,
+ * read from the fonts' own tables. A picture does not know which font will draw it: `system-ui` is San Francisco on
+ * a Mac, Roboto on a phone, and DejaVu Sans on a Linux machine with nothing else, which is a tenth wider than Arial.
+ * Measured for a narrow font, a line that "fits" runs past its box on the wide one (the Operator's first PNG, drawn
+ * on Linux, did). So the measure is of the widest font a picture is likely to meet, and narrower ones leave slack.
+ */
+const REGULAR = [
+  352, 394, 459, 818, 636, 1076, 727, 269, 454, 454, 636, 818, 364, 454, 364, 454, 636, 636, 636, 636, 636, 636, 636, 636, 636, 636, 454, 454, 818, 818, 818, 556, 1015,
+  684, 686, 722, 771, 667, 611, 778, 751, 421, 500, 693, 557, 843, 748, 787, 667, 787, 722, 684, 616, 732, 684, 989, 685, 667, 685, 454, 454, 454, 818, 636, 636,
+  601, 623, 521, 623, 596, 352, 623, 633, 274, 344, 592, 274, 973, 633, 607, 623, 623, 427, 521, 394, 633, 592, 818, 592, 592, 525, 635, 454, 635, 818,
+];
+const BOLD = [
+  342, 402, 587, 867, 711, 1272, 862, 332, 543, 543, 711, 867, 361, 480, 361, 689, 711, 711, 711, 711, 711, 711, 711, 711, 711, 711, 402, 402, 867, 867, 867, 617, 975,
+  776, 762, 724, 830, 683, 650, 811, 837, 546, 556, 771, 637, 948, 847, 850, 733, 850, 782, 710, 682, 812, 764, 1128, 764, 737, 692, 543, 689, 543, 867, 711, 711,
+  668, 699, 588, 699, 664, 422, 699, 712, 342, 403, 671, 342, 1058, 712, 687, 699, 699, 497, 593, 456, 712, 650, 980, 669, 651, 597, 711, 543, 711, 867,
+];
+/** The few characters outside that range the pictures write themselves: [regular, bold]. */
+const OTHER: Record<string, [number, number]> = {
+  "·": [364, 361],
+  "→": [1000, 1000],
+  "×": [818, 867],
+  "…": [1000, 1049],
+  "—": [1000, 1000],
+  "–": [636, 711],
+  "’": [269, 332],
+  "‘": [269, 332],
+  "“": [459, 587],
+  "”": [459, 587],
+};
+/** DejaVu Sans runs a little wider than Verdana in some lowercase letters; this covers it. */
+const SLACK = 1.03;
+
+/**
+ * The width of text, estimated without a browser, for the widest sans font a picture is likely to be drawn with.
+ * A line that is said to fit does, on a Mac, a phone or a bare Linux machine; on the narrower fonts it ends short.
  */
 export function textWidth(text: string, size: number, weight: "regular" | "bold" | "mono" = "regular"): number {
   if (weight === "mono") return text.length * size * 0.62;
-  let ems = 0;
+  const table = weight === "bold" ? BOLD : REGULAR;
+  const column = weight === "bold" ? 1 : 0;
+  let thousandths = 0;
   for (const ch of text) {
-    if (ch === " ") ems += 0.28;
-    else if ("iljI.,:;'|!".includes(ch)) ems += 0.28;
-    else if ("ftr()[]-·/".includes(ch)) ems += 0.38;
-    else if ("mwMW@".includes(ch)) ems += 0.88;
-    else if (ch >= "A" && ch <= "Z") ems += 0.68;
-    else if (ch >= "0" && ch <= "9") ems += 0.6;
-    else if (ch.codePointAt(0)! > 0x2e80) ems += 1;
-    else ems += 0.55;
+    const code = ch.codePointAt(0)!;
+    if (code >= 32 && code <= 126) thousandths += table[code - 32]!;
+    else if (OTHER[ch]) thousandths += OTHER[ch]![column];
+    else if (code > 0x2e80) thousandths += 1000;
+    else thousandths += weight === "bold" ? 720 : 650; // an accented letter, or a symbol not in the table
   }
-  return ems * size * (weight === "bold" ? 1.06 : 1);
+  return (thousandths / 1000) * size * SLACK;
 }
 
 /** Cut text to a width, ending in an ellipsis when something was cut. */
