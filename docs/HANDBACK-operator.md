@@ -136,7 +136,7 @@ grooph hooks install --harness claude-code,codex --tools    # both, and each too
 It writes two things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, about a hundred lines, readable) and the harness's settings (`.claude/settings.json`, or `.codex/hooks.json`), touching nothing else in them. `grooph hooks status` shows what is installed; `grooph hooks remove` takes it out.
 
 - **Claude Code**: commit both files. Claude Code's documentation says a repository's `.claude/settings.json` hooks run in a cloud session **that has one repository**. Sessions started after that record themselves.
-- **Codex**: the same, plus one human step. Codex runs a hook only after someone has reviewed it: open `/hooks` in Codex in that project and trust it. Ryan does this once per project.
+- **Codex**: project hooks need a trusted project layer and approval of each hook definition. In the CLI, Ryan reviews them in `/hooks`; a changed definition needs review again ([Codex hooks](https://learn.chatgpt.com/docs/hooks)). Verify the chat's actual working folder: slice 0032 found the entries installed in the intended worktree, while the desktop chat ran in a different worktree and recorded no events.
 - Both need `node` on the path where the session runs.
 
 The hook prints nothing, always exits 0, and writes ids, names and times: never a prompt, a tool's input or output, or a reply. It cannot change what a session does.
@@ -213,7 +213,7 @@ They record and report. None starts or changes anything. Whether using them make
 
 - **Merged only on Ryan's word.** If `main` lacks this file, eight stacked pull requests are still waiting on it; the branch named in section 1 is then the source, and there is no tag yet.
 - **No cloud session was run.** The hook was run in real sessions on Ryan's Mac, in both harnesses. That a cloud session runs a repository's hooks is from Claude Code's documentation, and holds for a session with **one** repository; a session with several starts above the clones and does not read their settings. You are the first to try it: check `.grooph/events/` after a lane's first subagent.
-- **Codex in the cloud is unknown.** Its documentation does not say whether hooks run in cloud tasks. Locally it needs the one-time trust in `/hooks`. A project-level `.codex/hooks.json` was not seen loading after trust (the same hook was run by passing it for one invocation).
+- **Codex in the cloud is unknown.** This check does not establish hooks in Codex cloud tasks. Locally, both project-layer trust and hook-definition trust are required. The earlier CLI check ran the hook by passing it for one invocation; slice 0032's desktop chat and two trivial subagents produced no events in the intended project, with a different session working folder and Ryan reporting no hooks found. Loading after trust in the intended folder remains unverified ([record](../experiments/hooks/2026-10-01/codex-1-interactive-project-hooks/check.json)).
 - **As live as the last push.** A lane's events are invisible until committed and pushed, and a watching machine has to fetch.
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
 - **Clocks.** Events from different machines are ordered by each machine's clock.

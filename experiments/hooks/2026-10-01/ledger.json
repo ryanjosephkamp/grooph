@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-01",
+  "machine": "Ryan's Mac",
+  "unique_sessions": 1,
+  "checks": 2,
+  "note": "Two checks of the same parent chat, not two separately launched sessions. Empty transcript lists are an evidence gap, not a completed transcript check.",
+  "runs": [
+    {
+      "run": "codex-1-interactive-project-hooks",
+      "harness": "codex",
+      "client": "desktop",
+      "version": "installed CLI 0.159.3; desktop build unverified",
+      "session": "01a0f5e4-e4bc-7120-8657-ad009213b886",
+      "model": null,
+      "model_basis": "Owner default requested; exact model not verified",
+      "purpose": "Interactive project hook discovery",
+      "command": "Owner-opened desktop chat; no implementer command launched it",
+      "cost_basis": "No dollar cost, billing or token usage reported to this check",
+      "files": [
+        "check.json",
+        "observations.json",
+        "events.jsonl"
+      ],
+      "transcripts": [],
+      "transcript_status": "not obtained: requested owner permission remains pending",
+      "evidence_complete": false
+    },
+    {
+      "run": "codex-2-interactive-subagents",
+      "harness": "codex",
+      "client": "desktop",
+      "version": "installed CLI 0.159.3; desktop build unverified",
+      "session": "01a0f5e4-e4bc-7120-8657-ad009213b886",
+      "model": null,
+      "model_basis": "Owner default requested; exact model not verified",
+      "purpose": "Two trivial subagents: README first word and echo hello",
+      "command": "Owner-opened desktop chat; no implementer command launched it",
+      "cost_basis": "No dollar cost, billing or token usage reported to this check",
+      "files": [
+        "check.json",
+        "observations.json",
+        "events.jsonl"
+      ],
+      "transcripts": [],
+      "transcript_status": "not obtained: requested owner permission remains pending",
+      "evidence_complete": false
+    }
+  ]
+}

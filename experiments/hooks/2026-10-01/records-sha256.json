@@ -1,0 +1,60 @@
+{
+  "scope": "Committed experiment artifacts only; not harness transcript checksums",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2219,
+      "sha256": "08167de70cf0632375ce62bfd3b7b2cd3888abb6b73193df886e8c35190b61a2"
+    },
+    {
+      "path": "codex-1-interactive-project-hooks/check.json",
+      "bytes": 1050,
+      "sha256": "382eb39caab0c7f5267ebaddd024df82f8c0eebe6556c7e97ec92d5f975876ec"
+    },
+    {
+      "path": "codex-1-interactive-project-hooks/events.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "codex-1-interactive-project-hooks/observations.json",
+      "bytes": 724,
+      "sha256": "7805381cb5df051841e77775a15d37e2a3d12359ade7c37965bd68bfa0b39cfb"
+    },
+    {
+      "path": "codex-2-interactive-subagents/check.json",
+      "bytes": 1411,
+      "sha256": "af48058ed70d64cff011bd472955ab9223d3b4f1127981ad2035f404ae6be287"
+    },
+    {
+      "path": "codex-2-interactive-subagents/events.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "codex-2-interactive-subagents/observations.json",
+      "bytes": 724,
+      "sha256": "dce182a71ddff198dd66e98ba7bbe546217e99fe6af642bc627b949223f07ebb"
+    },
+    {
+      "path": "codex-statement-review.md",
+      "bytes": 5972,
+      "sha256": "469d683c7dea631e6664b70f69ba1ece30c934ce47b0e2474f260365e4c4721f"
+    },
+    {
+      "path": "document-changes.json",
+      "bytes": 8519,
+      "sha256": "854adb86d508c811495d28a05a3e1ddb72d55d5a75ee1fac20f2a53c5bc14221"
+    },
+    {
+      "path": "ledger.json",
+      "bytes": 1897,
+      "sha256": "5fd60f57c3c9179d4b86ba07962ba2a49669bce26d6173e8a329ae710eb7b342"
+    },
+    {
+      "path": "verification.txt",
+      "bytes": 612,
+      "sha256": "6354f57171c3ade239bb56cd8107b83853c9db27c62b0f43efc9f4b3b8ee316b"
+    }
+  ]
+}

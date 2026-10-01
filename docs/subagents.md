@@ -5,7 +5,7 @@ How a session hands work to subagents, how that is coordinated, what a hook is t
 Every statement here is marked:
 
 - **[doc]** the harness's own documentation says so. The page is linked.
-- **[seen]** grooph observed it, in one small session on 2026-09-30, with Claude Code 2.1.280 or Codex CLI 0.159.2. The records are in [`handoffs/0027-live-subagents/experiments/`](../handoffs/0027-live-subagents/experiments/). One session is one data point: true that day, on that version.
+- **[seen]** grooph observed it in the named run or tool interface. The original records use Claude Code 2.1.280 or Codex CLI 0.159.2 on 2026-09-30 and are in [`handoffs/0027-live-subagents/experiments/`](../handoffs/0027-live-subagents/experiments/). The Codex desktop check of 2026-10-01, with installed CLI 0.159.3, is in [`experiments/hooks/2026-10-01/`](../experiments/hooks/2026-10-01/). An observation applies to that client and run; the installed CLI version does not identify the desktop app build.
 - **[unknown]** neither. Said so rather than guessed.
 
 Both harnesses change between releases. When this page and a harness disagree, the harness is right and this page is stale.
@@ -46,15 +46,15 @@ That is the whole mechanism in both harnesses. Three things follow from it.
 
 **On by default.** "Current Codex releases enable subagent workflows by default." The switch is `agents.enabled` in `~/.codex/config.toml` (default `true`); `agents.max_concurrent_threads_per_session` caps how many run at once, and `agents.default_subagent_model` and `agents.default_subagent_reasoning_effort` set what they run on. [doc] ([subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents), [config reference](https://learn.chatgpt.com/docs/config-file/config-reference))
 
-**Starting one.** Codex starts subagents "after a direct request or applicable project or skill instruction": it does not decide to on its own. [doc] In four small sessions asked for two subagents, the model started them in three and declined in one, saying its instructions forbade delegating; the plainest request that named the tools ("I explicitly ask you to use subagents … call spawn_agent twice") worked. [seen] The tools are `spawn_agent`, `send_input`, `resume_agent`, `wait_agent` and `close_agent`. [doc] A hook sees them as `collaborationspawn_agent` and `collaborationwait_agent`. [seen]
+**Starting one.** Codex starts subagents "after a direct request or applicable project or skill instruction": it does not decide to on its own. [doc] In four small sessions asked for two subagents, the model started them in three and declined in one, saying its instructions forbade delegating; the plainest request that named the tools ("I explicitly ask you to use subagents … call spawn_agent twice") worked. [seen] The CLI 0.159.2 recording names `collaborationspawn_agent` and `collaborationwait_agent` in hook inputs. [seen] This desktop session instead exposes `spawn_agent`, `send_message`, `followup_task`, `interrupt_agent`, `list_agents` and `wait_agent`; it used `spawn_agent` twice and received both final answers. [seen: desktop tool interface and slice 0032] No interactive hook input was captured, so its hook tool names remain [unknown].
 
-**What it starts with.** A subagent inherits the parent's model, effort and sandbox unless told otherwise. [doc] Whether it sees the parent's conversation is not in the documentation; the spawn call in the session observed carried `fork_turns: "none"`, which reads as "none of it". [seen]
+**What it starts with.** Model and effort come from explicit settings or configured agent defaults, otherwise from the parent; the parent turn's sandbox and approval overrides carry over. [doc] ([subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)) This desktop tool interface defines `fork_turns: "none"` as no surrounding history and `"all"` as the default, with selected recent turns also available. [seen: desktop tool interface] Both slice-0032 test agents used `"none"`; this was not a separate test of context isolation.
 
 **Types.** Three built in: `default`, `worker` and `explorer`. Custom ones are TOML files in `~/.codex/agents/` or the project's `.codex/agents/`, each with a `name`, a `description` and `developer_instructions`. [doc] Asked for "an explorer" and "a worker" in plain words, the model spawned two agents of type `default`: the type is what the spawn call names, not what the prompt calls it. [seen]
 
-**What comes back.** Summaries: "Codex waits until all requested results are available, then returns a consolidated response." [doc]
+**What comes back.** The main thread collects the subagent results into its final response. [doc] ([subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)) In slice 0032, each final answer arrived separately while the lead continued working: `grooph` and `hello`. [seen] The lead need not block all its other work while it waits.
 
-**Subagents starting subagents.** Not in the documentation. [unknown]
+**Subagents starting subagents.** The desktop tool instructions in slice 0032 allow subagents to spawn their own subagents and to message other agents. [seen: tool interface] Nested execution and its hook events were not tried in this check. [unknown] This also qualifies §4's description: Codex can pass parent history and messages, so its lead is not necessarily the only agent with the whole conversation, and it does have agent-to-agent messaging.
 
 **Where its transcript is.** Each thread, a subagent's included, gets its own file: `~/.codex/sessions/YYYY/MM/DD/rollout-<time>-<thread id>.jsonl`. [seen] The documentation says only that transcripts are under `~/.codex/sessions` and that their format "isn't a stable interface". [doc]
 
@@ -158,7 +158,7 @@ grooph hooks install --harness codex      # Codex: .codex/hooks.json
 grooph hooks install --harness claude-code,codex --tools   # both, and every tool call's name
 ```
 
-`install` says what it wrote, changes nothing else in those settings files, and is undone by `grooph hooks remove`. Without `--tools` only starts, stops and the spawn tool are recorded; with it, each finished tool call adds a line with the tool's name, so a subagent shows its last tool. In Codex, open `/hooks` once and trust the hook: Codex will not run it before you have. Both need `node` on the path.
+`install` says what it wrote, changes nothing else in those settings files, and is undone by `grooph hooks remove`. Without `--tools` only starts, stops and the spawn tool are recorded; with it, each finished tool call adds a line with the tool's name, so a subagent shows its last tool. In the Codex CLI, `/hooks` reviews discovered hooks; project hooks also need the project layer trusted, and a changed definition needs renewed review. [doc] ([hooks](https://learn.chatgpt.com/docs/hooks)) Both need `node` on the path.
 
 Then start a session as you always do, and:
 
@@ -189,6 +189,8 @@ That last form is how sessions on other machines are seen. A cloud session's eve
 
 **What the view cannot show.** What an agent is thinking or saying (not recorded, by design); a subagent whose session has no hook installed; a Codex session before its hook is trusted; a cloud lane between pushes; and which Codex subagent started which.
 
+**Codex desktop check, 2026-10-01.** Ryan reported that he could not find grooph's hooks in `/hooks`. The requested worktree `/Users/noir/Documents/grooph-codex` had seven Codex entries installed, but `grooph sessions --json` returned no sessions before or after two trivial subagents finished. [seen] This chat actually started in the separate detached worktree `/Users/noir/.codex/worktrees/7a29/grooph-codex`; its tracked tree has no Codex hook entries. Changing a shell command's working directory does not move the chat. This is a missing interactive recording with a folder mismatch, not a test of a trusted project hook failing in the intended folder. The hook payload table above remains the earlier CLI observation; there were no new inputs to compare. See [the check record](../experiments/hooks/2026-10-01/codex-1-interactive-project-hooks/check.json).
+
 ## 7. The MCP server: a plan beside what happened
 
 A hook tells grooph what a session did. It cannot say what the session meant to do. For that the lead has to say so, and the Model Context Protocol is how a session calls an outside program on purpose. `grooph mcp` is such a program: four tools, all of which record or report, none of which starts or changes anything.
@@ -215,7 +217,7 @@ A plan and a note are appended to `.grooph/events/said-<session id>.jsonl`, besi
 
 Claude Code gives an MCP server the session's id (`CLAUDE_CODE_SESSION_ID` in its environment), so a plan lands on the right session. [seen] Where a harness does not, the plan goes to the session that had most recently started in that project.
 
-**What was tried, and what was not.** One real Claude Code session, with the hook and the server attached, was told to plan, start two subagents, ask what was running and leave a note. It did all four; the plan read "2 of 2 started" beside the two subagents the hook recorded (`fixtures/events/claude-code-planned.jsonl`). That shows the tools work. It does not show that a lead coordinates better for having them: that is an open question, and one session told what to do is not a test of it. With Codex the server was run as a process and not from a Codex session.
+**What was tried, and what was not.** One real Claude Code session, with the hook and the server attached, was told to plan, start two subagents, ask what was running and leave a note. It did all four; the plan read "2 of 2 started" beside the two subagents the hook recorded (`fixtures/events/claude-code-planned.jsonl`). That shows the tools work. It does not show that a lead coordinates better for having them: that is an open question, and one session told what to do is not a test of it. The earlier Codex check ran the server as a process, without attaching it to a Codex session. Slice 0032 requested owner permission for a single CLI invocation with temporary MCP settings; that test remains untried pending permission. [unknown] Project-scoped MCP configuration is also documented, but adding it was not authorized in this slice ([MCP](https://learn.chatgpt.com/docs/extend/mcp?surface=cli), [one-off overrides](https://learn.chatgpt.com/docs/config-file/config-advanced)).
 
 A graph is already a declared plan, and a far stricter one. These tools are for the sessions that have none.
 
@@ -226,7 +228,7 @@ A graph is already a declared plan, and a far stricter one. These tools are for 
 | Does a hook learn that a subagent started and stopped, with its id and type? | yes [doc] [seen] | yes [doc] [seen] |
 | Do tool calls inside a subagent carry its id? | yes [doc] [seen] | yes [seen]; not on the documentation page |
 | Can a hook that prints nothing and exits 0 change what an agent does? | no [doc] | no [doc] |
-| Does a project's hook run in a headless session? | yes [doc] [seen] | yes [seen] |
+| Does a project's hook run in a headless session? | yes [doc] [seen] | the hook passed for one invocation ran [seen]; automatic project-file loading was not established |
 | Does it run in the vendor's cloud? | yes, in a session with one repository [doc]; not tried | [unknown] |
 | Where are subagent transcripts? | `…/{sessionId}/subagents/agent-{agentId}.jsonl` [doc] [seen] | one rollout file per thread [seen] |
 | Which agent started which? | from the `Agent` tool's result [seen] | not available to a hook [seen] |
@@ -243,7 +245,7 @@ Claude Code, read 2026-09-30 against 2.1.280:
 [Claude Code on the web](https://code.claude.com/docs/en/claude-code-on-the-web) ·
 [Agent teams](https://code.claude.com/docs/en/agent-teams)
 
-Codex, read 2026-09-30 against CLI 0.159.2:
+Codex, originally read 2026-09-30 against CLI 0.159.2; hooks, subagents, configuration and MCP documentation rechecked 2026-10-01 for slice 0032 (installed CLI 0.159.3; desktop build not established):
 [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) ·
 [Hooks](https://learn.chatgpt.com/docs/hooks) ·
 [Config reference](https://learn.chatgpt.com/docs/config-file/config-reference) ·

@@ -12,7 +12,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 ## In flight
 
-- **Slice 0032, the live view checked from inside Codex** (branch `slice/0032-codex-live-check`, 2026-09-30): handoff drafted; the worktree `/Users/noir/Documents/grooph-codex` is built with the Codex hook installed. Waits on the owner: trust the hook in `/hooks`, paste the prompt.
+- **Slice 0032, the live view checked from inside Codex** (branch `slice/0032-codex-live-check`, 2026-09-30): handoff drafted; the worktree `/Users/noir/Documents/grooph-codex` is built with the Codex hook installed. Waits on the owner: trust the hook in `/hooks`, paste the prompt. Check 2026-10-01: Ryan could not find the hooks; the desktop chat opened a different detached worktree. Two trivial subagents finished, but the intended project still had no recorded sessions. Codex documentation corrections and the bounded record are in [HANDBACK.md](../handoffs/0032-codex-live-check/HANDBACK.md); transcript access and native MCP remain pending owner permission, and trusted project loading in the intended folder remains unverified.
 
 - **Slice 0033, polish** (branch `slice/0033-polish-labels-glyphs`, 2026-10-01): the two display flaws the review left open. An edge's label slides off a node it would cover (review item 12); a long graph's glyph gets a band of its own in list rows (item 13). Web 57 unit and 89 browser tests pass. Pull request #9 open; **waits for the owner's word to merge**.
 
