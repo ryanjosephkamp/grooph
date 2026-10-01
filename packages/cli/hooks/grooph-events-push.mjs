@@ -14,6 +14,9 @@
  *                     prefix, for example --branch claude/grooph-events-lane-a
  *   --remote <name>   default: origin
  *   --no-push         make the commit and print its id; send nothing
+ *   --hook            run as a harness hook at the end of a turn (grooph hooks install --push):
+ *                     wait a moment for the event hook's own line, then push; print nothing
+ *                     and exit 0 whatever happens; give way if another push is under way
  *
  * What it does, and all it does:
  *   - it makes one commit whose tree is .grooph/events/ and nothing else, on top
@@ -35,7 +38,7 @@
  * runs the same code.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -224,7 +227,49 @@ export function main(argv, project, out = console.log, err = console.error) {
   }
 }
 
+/**
+ * As a hook at the end of a turn. A session's events are only seen elsewhere when they are sent, and a session
+ * cannot send what it writes as it stops: so this runs when a turn ends, after the event hook's line for that end.
+ * It keeps the event hook's promises: nothing printed, exit 0 whatever happens, nothing the harness reads back.
+ * It is not the event hook, and it is installed only when asked for (--push).
+ *
+ * A harness runs the hooks of one event side by side, so the turn's own last line may not be written yet:
+ * `settle` waits for it. One push at a time: a lock folder beside the events; a lock older than two minutes
+ * was left by a push that died, and is taken over.
+ */
+export async function hookMain(argv, project, settle = Number(process.env.GROOPH_PUSH_SETTLE_MS ?? 1500)) {
+  const lock = join(project, EVENTS, ".pushing");
+  let mine = false;
+  try {
+    await new Promise((done) => setTimeout(done, Number.isFinite(settle) && settle >= 0 ? settle : 1500));
+    if (!existsSync(join(project, EVENTS))) return 0;
+    try {
+      mkdirSync(lock);
+      mine = true;
+    } catch {
+      if (Date.now() - statSync(lock).mtimeMs < 120_000) return 0; // another push is under way; the next turn's will carry this one's lines
+      rmSync(lock, { recursive: true, force: true });
+      mkdirSync(lock);
+      mine = true;
+    }
+    main(argv.filter((arg) => arg !== "--hook"), project, () => {}, () => {});
+  } catch {
+    // A hook that fails must not fail a turn.
+  } finally {
+    if (mine) {
+      try {
+        rmSync(lock, { recursive: true, force: true });
+      } catch {
+        // left for the next push to take over
+      }
+    }
+  }
+  return 0;
+}
+
 const invoked = process.argv[1] ? realpathSync(process.argv[1]) : "";
 if (invoked === realpathSync(fileURLToPath(import.meta.url))) {
-  process.exitCode = main(process.argv.slice(2), projectOf(invoked, process.cwd()));
+  const argv = process.argv.slice(2);
+  const project = projectOf(invoked, process.cwd());
+  process.exitCode = argv.includes("--hook") ? await hookMain(argv, project) : main(argv, project);
 }
