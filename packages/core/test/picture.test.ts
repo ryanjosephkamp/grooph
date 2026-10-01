@@ -15,6 +15,7 @@ import { offlinePage } from "../src/offline.js";
 import { mapOutline, outline, outlineMarkdown } from "../src/outline.js";
 import { parseGraphText } from "../src/parse.js";
 import { picture } from "../src/picture/graph-picture.js";
+import { mapPicture } from "../src/picture/map-picture.js";
 import { assignTracks, textWidth, truncate, wrap } from "../src/picture/svg.js";
 import type { Graph } from "../src/types.js";
 import { fixturesDir, read, repoRoot, validFixtures } from "./helpers.js";
@@ -85,6 +86,49 @@ test("text is measured without a browser: wrapping keeps every word, truncation 
   const { tracks, count } = assignTracks([{ from: 0, to: 10 }, { from: 2, to: 4 }, { from: 5, to: 8 }, { from: 11, to: 12 }]);
   assert.equal(count, 2);
   assert.deepEqual(tracks, [1, 0, 0, 0]); // the short spans take the inner track; the long one goes around
+});
+
+test("text is measured for the widest font a picture is likely to meet, so a line that fits does on Linux too", () => {
+  // Advances in ems read from Verdana with a font tool, once, on 2026-10-01. Verdana is about as wide as DejaVu Sans,
+  // which is what a bare Linux machine draws `sans-serif` with, and a tenth wider than Arial, which the measure used to assume.
+  const regular: [string, number][] = [
+    ["Each builds one piece of Splashery on its own branch. Opus 5.5 now; Sonnet 5.5 for lighter work (none running)", 56.85],
+    ["a results file per run on a results branch: a RESULT line, the tree tested, each failure and its owner", 50.0],
+    ["scheduled message · every 30-45 min", 19.26],
+    ["WWW MMM @@@ 000 iii lll", 13.81],
+  ];
+  const bold: [string, number][] = [
+    ["Splashery lanes", 8.86],
+    ["Claude Code · claude-opus-5-5", 17.2],
+    ["Operator → One-off helpers", 15.45],
+    ["Ryan's operation, October 1, 2026", 19.24],
+  ];
+  for (const [words, ems] of regular) {
+    assert.ok(textWidth(words, 1) >= ems, `"${words.slice(0, 30)}…" measured ${textWidth(words, 1).toFixed(2)}, drawn ${ems} in a wide font`);
+    assert.ok(textWidth(words, 1) <= ems * 1.06, `"${words.slice(0, 30)}…" measured far wider than any font draws it`);
+  }
+  for (const [words, ems] of bold) {
+    assert.ok(textWidth(words, 1, "bold") >= ems, `bold "${words}" measured ${textWidth(words, 1, "bold").toFixed(2)}, drawn ${ems}`);
+    assert.ok(textWidth(words, 1, "bold") <= ems * 1.06);
+  }
+});
+
+test("a map with one hub keeps its words: the cards keep most of the lane, names and models are whole, and a tall card uses its room", () => {
+  const map = parseMapText(read(join(fixturesDir, "maps", "valid", "owner-operation-2026-10-01.grooph-map.json"))).map!;
+  const svg = mapPicture(map, { theme: "light" });
+  // Eighteen handoffs, nearly all through the Operator, are eighteen tracks: the tracks close up and the cards keep their share.
+  const cardWidths = [...svg.matchAll(/<rect data-card="" x="[\d.]+" y="[\d.]+" width="([\d.]+)"/g)].map((m) => Number(m[1]));
+  assert.equal(cardWidths.length, map.sessions.length);
+  for (const w of cardWidths) assert.ok(w >= 0.56 * (400 - 2 * 12 - 2 * 8) - 0.5, `a card is ${w} units wide`);
+  // The Operator found "Splashery la…" and "Cloud, account…" in 0.1.0.
+  const words = [...svg.matchAll(/<text [^>]*>([^<]*)<\/text>/g)].map((m) => m[1]!);
+  for (const whole of ["Splashery lanes", "Digest and patrol", "Research lanes", "One-off helpers", "Cloud, account B", "claude-opus-5-5", "claude-sonnet-5-5"]) assert.ok(words.includes(whole), `"${whole}" is not drawn whole`);
+  // The Operator's card is tall because seventeen arcs end on it; its role is all there, and so is every other session's.
+  assert.ok(words.includes("project too"), "the Operator's role stops before its last words");
+  const cut = words.filter((w) => w.endsWith("…"));
+  assert.deepEqual(cut, [], "words cut short");
+  // Every handoff's line in the list is whole too.
+  for (const h of map.handoffs) if (h.what) assert.ok(words.includes(h.what.split(" ").slice(-1)[0]!) || words.some((w) => w.endsWith(h.what!.split(" ").slice(-2).join(" "))), `handoff ${h.id}: its last words are missing`);
 });
 
 test("the outline reads top to bottom: the graph, each node with its whole brief, each edge as a sentence, each loop with its stops", () => {

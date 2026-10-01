@@ -123,7 +123,7 @@ A handoff carried by a `person` is a true statement about an operation, so it is
 
 ## 4. The picture
 
-`mapPicture(map, { theme })` in core draws a map as one SVG, laid out for a phone: lanes stacked top to bottom, each session a card in its lane, each handoff an arc in the margin with a number, and a numbered list of the handoffs below (who to whom, by what carrier, carrying what). Line style says the carrier kind. It is a projection: it never round-trips, and edits happen in the document.
+`mapPicture(map, { theme })` in core draws a map as one SVG, laid out for a phone: lanes stacked top to bottom, each session a card in its lane, each handoff an arc in the margin with a number, and a numbered list of the handoffs below (who to whom, by what carrier, carrying what). Line style says the carrier kind. It is a projection: it never round-trips, and edits happen in the document. The words come first: the cards keep a little over half of a lane's width however many handoffs there are (the tracks in the margin close up instead), and a name, a model or a role that does not fit its line goes onto the next.
 
 The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto`) and what the app shows for a map opened from a link or a file. `light` and `dark` write the colours into the file; `auto` carries both and follows the viewer's colour scheme. In the app a session or a handoff opens what the document says about it, and the map's issues are behind the status, as a graph's are.
 

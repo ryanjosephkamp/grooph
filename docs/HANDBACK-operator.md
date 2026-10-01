@@ -219,7 +219,7 @@ They record and report. None starts or changes anything. Whether using them make
 - **Clocks.** Events from different machines are ordered by each machine's clock.
 - **The tie between a source and a map session is the name you give on the command line.** It is not in the map file. Give a wrong name and the wrong card lights.
 - **What an agent said is not recorded**, by design. The view says that something ran, when and for how long.
-- **The picture is automatic.** No hand-placed layout for a map. Past about fifteen sessions or a very tangled set of handoffs the margin of arcs widens and the cards narrow.
+- **The picture is automatic.** No hand-placed layout for a map. Each handoff has a track of its own in the margin. The cards keep a little over half of a lane's width whatever the count: the tracks close up instead, down to about twenty handoffs through one hub. Past that the margin widens again and the cards narrow.
 - **A map lives in files.** The app opens one from a link or a file and does not keep it; there is no editor for a map but a text editor and you.
 - **Sessions observed were all under a minute.** Long sessions are untested; the reader takes the last 4 MB of an events file.
 - **The hook lives in the working tree.** A lane that checks out a branch made before the hook was committed stops recording until it is back on a branch that has it. Commit the hook to the default branch first, then start lanes.
@@ -264,8 +264,8 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 
 | You said | State |
 |---|---|
-| The picture clips text at the right edge on Linux; titles and lane names are cut short beside their badges | open |
-| A card's text stops at three lines while the card has room | open |
+| The picture clips text at the right edge on Linux; titles and lane names are cut short beside their badges | **fixed.** The cause was the one you guessed: lines were measured for a narrow font and Linux drew them a tenth wider. Text is now measured for the widest font a picture is likely to meet. Names, models and lane names wrap onto a second line instead of being cut, and the cards keep most of the lane's width: with eighteen handoffs yours were about 110 units wide of 400 and are now about 200 |
+| A card's text stops at three lines while the card has room | **fixed.** A role has five lines, and as many more as fit when the card is tall because many arcs end on it. Your own card now says all of its role |
 | `pnpm install` aborts without a terminal when an older `node_modules` is there | fixed here: section 2 now says `CI=true pnpm install --frozen-lockfile` |
 | Committing `.grooph/events/` with a lane's work puts event files into every pull request; the events need a ref of their own | open |
 | No way to draw a person: the owner is the hub and cannot be a node; no carrier for a notification to a person | open |
