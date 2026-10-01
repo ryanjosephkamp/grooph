@@ -133,9 +133,9 @@ grooph hooks install --harness codex          # Codex
 grooph hooks install --harness claude-code,codex --tools    # both, and each tool call's name
 ```
 
-It writes two things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, about a hundred lines, readable) and the harness's settings (`.claude/settings.json`, or `.codex/hooks.json`), touching nothing else in them. `grooph hooks status` shows what is installed; `grooph hooks remove` takes it out.
+It writes three things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, about a hundred lines, readable), `.grooph/hooks/grooph-events-push.mjs` (the script a lane runs to send its events, below), and the harness's settings (`.claude/settings.json`, or `.codex/hooks.json`), touching nothing else in them. Add `.grooph/events/` to the repository's `.gitignore`. `grooph hooks status` shows what is installed; `grooph hooks remove` takes it out.
 
-- **Claude Code**: commit both files. Claude Code's documentation says a repository's `.claude/settings.json` hooks run in a cloud session **that has one repository**. Sessions started after that record themselves.
+- **Claude Code**: commit all three. Claude Code's documentation says a repository's `.claude/settings.json` hooks run in a cloud session **that has one repository**. Sessions started after that record themselves.
 - **Codex**: commit the hook file too (`.codex/hooks.json`). The Codex app runs each chat in its own copy of the repository, which holds only what git tracks; an uncommitted hook file is not there, and that is why Ryan's first try recorded nothing. Then two things are Ryan's: the folder must be one Codex trusts, and each hook is reviewed once in `/hooks` (again if it changes) ([Codex hooks](https://learn.chatgpt.com/docs/hooks)). Without either, the hook is skipped and Codex says nothing.
 - Both need `node` on the path where the session runs.
 
@@ -143,15 +143,25 @@ The hook prints nothing, always exits 0, and writes ids, names and times: never 
 
 ### Where the events are, and how they reach you
 
-Each session writes `.grooph/events/<session id>.jsonl` **in its own clone**. Nothing outside that machine can read it until it travels, and the repository is the carrier:
+Each session writes `.grooph/events/<session id>.jsonl` **in its own clone**. Nothing outside that machine can read it until it travels. You asked that it not travel with the work, and it no longer has to: the events go to **a branch of their own**.
 
-- Have each lane commit `.grooph/events/` with its work. Then its events are on its branch.
-- Read a branch without checking it out, after `git fetch`: the source `git:<ref>`.
+A lane sends them with one command, which needs no grooph installed in its sandbox, only Node and git:
+
+```bash
+node .grooph/hooks/grooph-events-push.mjs                                  # to the branch grooph-events/<the lane's branch>
+node .grooph/hooks/grooph-events-push.mjs --branch claude/grooph-events-lane-a    # or a name of your choosing
+```
+
+It makes one commit whose tree is `.grooph/events/` and nothing else, on top of what that branch already holds, and pushes it. It never touches the working tree, the index, `HEAD` or the lane's own branch, so nothing reaches a pull request or `main`. Files already on the branch that this lane does not have are kept, and a file two lanes both have is never made shorter, so several lanes may share one branch if you prefer one to many. **It refuses any branch that holds something other than events, and the branch the lane has checked out**: pointed at a lane's own work branch it would otherwise replace the work with the event files, so it will not. If a lane's checkout is detached, give it `--branch`. Run it when a round ends, and as often as you like in between: with nothing new it says so and makes no commit. Where grooph is installed, `grooph events push` is the same code.
+
+If your harness lets a session push only under a prefix, give the whole branch name with `--branch`. It was not run in a cloud sandbox: you will be the first.
+
+Then, where you read, after `git fetch`:
 
 ```bash
 grooph sessions                                        # this clone's own events, as text
-grooph sessions lane-a=git:origin/lane-a lane-b=git:origin/lane-b
-grooph sessions workers=git:origin/lane-a --json       # the same as data
+grooph sessions lane-a=git:origin/grooph-events/lane-a lane-b=git:origin/grooph-events/lane-b
+grooph sessions workers=git:origin/claude/grooph-events-team --json       # the same as data
 ```
 
 Output, per session: its harness, whether it is `working`, `waiting` or `ended`, and each subagent with its type, running or done, for how long, its tool calls and its last tool.
@@ -163,9 +173,9 @@ Name each source for the **map session id** it belongs to, and the map is drawn 
 ```bash
 grooph image ops.grooph-map.json --theme light --out ops-now.png \
   --events operator=. \
-  --events workers=git:origin/lane-a \
-  --events test-runners=git:origin/tests
-grooph page ops.grooph-map.json --out ops-now.html --events operator=. --events workers=git:origin/lane-a
+  --events workers=git:origin/grooph-events/lane-a \
+  --events test-runners=git:origin/grooph-events/tests
+grooph page ops.grooph-map.json --out ops-now.html --events operator=. --events workers=git:origin/grooph-events/lane-a
 ```
 
 Each named session's card gains a line: a filled dot and `working · 2 running, 5 done`, a ring and `waiting`, or `ended`. Several sources may share one name (a family's lanes): they are summed, as `3 of 12 working`. The caption says when it was read. A session with no source is drawn as the map alone draws it. **The picture is a snapshot.** Run the command again for a newer one; that is your "live": regenerate when you wake, then send the PNG or the page.
@@ -173,7 +183,7 @@ Each named session's card gains a line: a filled dot and `working · 2 running, 
 On a machine with a browser, the same thing updates by itself:
 
 ```bash
-grooph watch --map ops.grooph-map.json --events operator=git:origin/operator --events workers=git:origin/lane-a
+grooph watch --map ops.grooph-map.json --events operator=git:origin/grooph-events/operator --events workers=git:origin/grooph-events/lane-a
 grooph watch --sessions --host 0.0.0.0        # sessions only; reachable from a phone on the same network
 ```
 
@@ -204,8 +214,8 @@ They record and report. None starts or changes anything. Whether using them make
 
 1. Clone and build grooph where you run (section 2).
 2. Write `ops.grooph-map.json` for the operation as it really is, from the sample. `grooph validate` until it is clean; fix what it names.
-3. In each repository a lane works in: `grooph hooks install`, commit the two files, and have lanes commit `.grooph/events/` with their work.
-4. When you wake: `git fetch`, then `grooph image ops.grooph-map.json --out ops-now.png --events <session id>=git:origin/<branch> …`, one `--events` per lane you can see.
+3. In each repository a lane works in: `grooph hooks install`, commit the three files, add `.grooph/events/` to `.gitignore`, and have each lane run `node .grooph/hooks/grooph-events-push.mjs` when a round ends.
+4. When you wake: `git fetch`, then `grooph image ops.grooph-map.json --out ops-now.png --events <session id>=git:origin/grooph-events/<branch> …`, one `--events` per lane you can see.
 5. Send Ryan the PNG, or `grooph page … --out ops-now.html` for a page he can open with no network and tap through.
 6. Keep the map in a repository. When the operation changes, change the file.
 
@@ -214,7 +224,7 @@ They record and report. None starts or changes anything. Whether using them make
 - **Merged only on Ryan's word.** If `main` lacks this file, eight stacked pull requests are still waiting on it; the branch named in section 1 is then the source, and there is no tag yet.
 - **No cloud session was run.** The hook was run in real sessions on Ryan's Mac, in both harnesses. That a cloud session runs a repository's hooks is from Claude Code's documentation, and holds for a session with **one** repository; a session with several starts above the clones and does not read their settings. You are the first to try it: check `.grooph/events/` after a lane's first subagent.
 - **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. The same in the app's worktree mode: its copy was recorded too, with no further review. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
-- **As live as the last push.** A lane's events are invisible until committed and pushed, and a watching machine has to fetch.
+- **As live as the last push.** A lane's events are invisible until it sends them (`grooph-events-push.mjs`), and a watching machine has to fetch.
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
 - **Clocks.** Events from different machines are ordered by each machine's clock.
 - **The tie between a source and a map session is the name you give on the command line.** It is not in the map file. Give a wrong name and the wrong card lights.
@@ -267,6 +277,6 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 | The picture clips text at the right edge on Linux; titles and lane names are cut short beside their badges | **fixed.** The cause was the one you guessed: lines were measured for a narrow font and Linux drew them a tenth wider. Text is now measured for the widest font a picture is likely to meet. Names, models and lane names wrap onto a second line instead of being cut, and the cards keep most of the lane's width: with eighteen handoffs yours were about 110 units wide of 400 and are now about 200 |
 | A card's text stops at three lines while the card has room | **fixed.** A role has five lines, and as many more as fit when the card is tall because many arcs end on it. Your own card now says all of its role |
 | `pnpm install` aborts without a terminal when an older `node_modules` is there | fixed here: section 2 now says `CI=true pnpm install --frozen-lockfile` |
-| Committing `.grooph/events/` with a lane's work puts event files into every pull request; the events need a ref of their own | open |
+| Committing `.grooph/events/` with a lane's work puts event files into every pull request; the events need a ref of their own | **built**, as you sketched it: `grooph events push`, and the same code as a script beside the hook so a lane needs no grooph (section 4). One commit holding only that folder, on a branch of its own, read with the matching `git:` source. Tested against real repositories; not yet run in a cloud sandbox |
 | No way to draw a person: the owner is the hub and cannot be a node; no carrier for a notification to a person | open |
 | No mark for a session that wakes itself on a schedule | open |

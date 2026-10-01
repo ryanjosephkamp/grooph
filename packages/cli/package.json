@@ -13,7 +13,8 @@
   },
   "files": [
     "bin",
-    "dist"
+    "dist",
+    "hooks"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/bundle-patterns.mjs",

@@ -15,7 +15,7 @@ import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
-import { hooksCommand, sessionsCommand, HOOKS_HELP, SESSIONS_HELP } from "./commands/hooks.js";
+import { eventsCommand, hooksCommand, sessionsCommand, EVENTS_HELP, HOOKS_HELP, SESSIONS_HELP } from "./commands/hooks.js";
 import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
@@ -61,6 +61,7 @@ Usage
   grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
   grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
   grooph sessions [<source>...] [--json]
+  grooph events push [--branch <name>] [--remote <name>] [--no-push] [--dir <project>]
   grooph mcp [--dir <project>] [--harness <name>]
   grooph <command> --help
   grooph --version
@@ -381,6 +382,14 @@ export async function run(
         });
       }
 
+      case "events": {
+        // --dir is grooph's; the rest are the script's own and are passed through as written.
+        const [sub, ...args] = rest;
+        const at = args.indexOf("--dir");
+        const dir = at >= 0 ? args[at + 1] : undefined;
+        return eventsCommand(io, sub, at >= 0 ? [...args.slice(0, at), ...args.slice(at + 2)] : args, dir);
+      }
+
       case "sessions": {
         const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
         return sessionsCommand(io, positionals, { json: values["json"] === true });
@@ -473,6 +482,7 @@ const COMMAND_HELP: Record<string, string> = {
   page: PAGE_HELP,
   hooks: HOOKS_HELP,
   sessions: SESSIONS_HELP,
+  events: EVENTS_HELP,
   mcp: MCP_HELP,
 };
 

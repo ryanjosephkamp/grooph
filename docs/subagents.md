@@ -178,12 +178,12 @@ The sessions screen shows each session, whether it is working, waiting or ended,
 
 ```bash
 grooph sessions lanes=../splashery mac-codex=../codex-project
-grooph watch --sessions --events lane-a=git:origin/lane-a --events lane-b=git:origin/lane-b
+grooph watch --sessions --events lane-a=git:origin/grooph-events/lane-a --events lane-b=git:origin/grooph-events/lane-b
 ```
 
 A source is a file, a folder, another project's folder, or `git:<ref>`: a branch whose tree holds `.grooph/events/`, read without checking it out. The name before `=` is shown above that source's sessions.
 
-That last form is how sessions on other machines are seen. A cloud session's events are files in its own clone, and nothing outside can read them until they travel. The repository is the carrier: a lane that commits `.grooph/events/` with its work is visible, after a `git fetch`, to anyone who can fetch its branch. It is as live as the lane's last push, and no more.
+That last form is how sessions on other machines are seen. A cloud session's events are files in its own clone, and nothing outside can read them until they travel. The repository is the carrier, but the events do not ride with the work: committed on a lane's branch they would be in every pull request. `grooph events push` puts them on **a branch of their own** instead: one commit whose tree is `.grooph/events/` and nothing else, on top of what that branch already holds, pushed to `grooph-events/<the lane's branch>` (or the name given with `--branch`). It does not touch the working tree, the index, `HEAD` or the branch checked out. It writes only to a branch that holds events and nothing else: named a branch with any other file on it, or the branch checked out, it refuses and sends nothing, because the commit it makes would otherwise replace that branch's work. A file two clones both have is joined line by line and never made shorter. `grooph hooks install` puts the same code beside the hook as `.grooph/hooks/grooph-events-push.mjs`, so a session with Node and git and no grooph can run it. Whoever watches fetches, and reads `git:origin/grooph-events/<branch>`. It is as live as the last push. [tested against real repositories in `packages/cli/test/events-push.test.ts`; not run in a cloud sandbox]
 
 **On an operation map.** Read a source under the id of a session on an [operation map](operation-map.md) and that session's card shows what the hook saw: `grooph image ops.grooph-map.json --events operator=. --events workers=git:origin/lane-a`, the same for `grooph page`, and `grooph watch --map ops.grooph-map.json …` for a page that updates. Details in `operation-map.md` §4b.
 
