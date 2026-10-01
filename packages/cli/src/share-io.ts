@@ -12,9 +12,11 @@ import { deflateRawSync, inflateRawSync } from "node:zlib";
 import {
   formatIssue,
   isCandidateFile,
+  isMapLike,
   isProposalSetLike,
   isRunBundleLike,
   parseGraph,
+  parseMap,
   parseProposalSet,
   parseRunBundle,
   type Candidate,
@@ -22,6 +24,7 @@ import {
   type Graph,
   type InflateRaw,
   type IssueLike,
+  type OperationMap,
   type ProposalSet,
   type RunBundle,
 } from "@grooph/core";
@@ -36,7 +39,8 @@ export const inflateRaw: InflateRaw = (bytes, maxOutput) => inflateRawSync(bytes
 export type Loaded =
   | { kind: "graph"; doc: Graph }
   | { kind: "proposals"; doc: ProposalSet; files: Record<string, string> }
-  | { kind: "run"; doc: RunBundle };
+  | { kind: "run"; doc: RunBundle }
+  | { kind: "map"; doc: OperationMap };
 
 /** Something the user can fix, with the issue lines that say what. */
 export class LoadError extends Error {
@@ -59,9 +63,14 @@ function readJson(file: string): unknown {
   }
 }
 
-/** A graph document, a proposal set with every `{ file }` candidate read and inlined, or a run bundle file. */
+/** A graph document, a proposal set with every `{ file }` candidate read and inlined, a run bundle file, or an operation map. */
 export function loadShareable(file: string, cwd = process.cwd()): Loaded {
   const json = readJson(file);
+  if (isMapLike(json)) {
+    const parsed = parseMap(json);
+    if (!parsed.map) throw new LoadError(`${file} is not an operation map grooph can read`, lines(parsed.issues));
+    return { kind: "map", doc: parsed.map };
+  }
   if (isRunBundleLike(json)) {
     const parsed = parseRunBundle(json);
     if (!parsed.bundle) throw new LoadError(`${file} is not a run bundle grooph can read`, parsed.issues);

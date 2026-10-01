@@ -168,9 +168,9 @@ export function text(x: number, y: number, content: string, o: TextOptions): str
   return `<text x="${fmt(x)}" y="${fmt(y)}" font-size="${fmt(o.size)}"${family}${bold}${anchor} style="fill:${o.fill}">${esc(content)}</text>`;
 }
 
-export function rect(x: number, y: number, w: number, h: number, o: { fill?: string; stroke?: string; rx?: number; width?: number; dash?: string }): string {
+export function rect(x: number, y: number, w: number, h: number, o: { fill?: string; stroke?: string; rx?: number; width?: number; dash?: string; mark?: string }): string {
   const style = [`fill:${o.fill ?? "none"}`, ...(o.stroke ? [`stroke:${o.stroke}`] : [])].join(";");
-  return `<rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}"${o.rx ? ` rx="${fmt(o.rx)}"` : ""}${o.stroke ? ` stroke-width="${fmt(o.width ?? 1)}"` : ""}${o.dash ? ` stroke-dasharray="${o.dash}"` : ""} style="${style}"/>`;
+  return `<rect${o.mark ? ` data-${o.mark}=""` : ""} x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(h)}"${o.rx ? ` rx="${fmt(o.rx)}"` : ""}${o.stroke ? ` stroke-width="${fmt(o.width ?? 1)}"` : ""}${o.dash ? ` stroke-dasharray="${o.dash}"` : ""} style="${style}"/>`;
 }
 
 /** A pill with text in it, its left edge at `x` and its text baseline at `y`; returns the markup and the pill's width. */

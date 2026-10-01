@@ -15,6 +15,7 @@ import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
+import { imageCommand, IMAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
 import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
@@ -35,7 +36,7 @@ export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env
 
 export const VERSION = "0.0.0";
 
-const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages.
+const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
 
 Usage
   grooph new --name <name> [--goal <goal>] [--target <harness>] [--out <file>] [--force]
@@ -46,7 +47,8 @@ Usage
   grooph shape <file> [--json]
   grooph glyph <file> [--out <svg>] [--scale <n>]
   grooph mermaid <file> [--out <file>]
-  grooph share <graph | proposal set | run dir | run bundle> [--base <url>] [--open] [--out <file>]
+  grooph image <operation map> [--out <file.svg>] [--theme light | dark | auto]
+  grooph share <graph | proposal set | run dir | run bundle | operation map> [--base <url>] [--open] [--out <file>]
   grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
   grooph template list | show | use | insert | save | add …   (grooph template help)
   grooph runs list [<dir>] | show <run dir> [--json] | bundle <run dir> --out <file>
@@ -67,15 +69,18 @@ Commands
                  Any graph document works, a run's working copy included. Exits 1 when
                  there are errors. --for-export also applies the export-only rules
                  (E_NO_TARGET, E_NO_GOAL); --json prints the issue list as JSON.
-                 A proposal set is not a graph: grooph share checks one.
+                 A proposal set is not a graph: grooph share checks one. An operation map
+                 (*.grooph-map.json) is checked against its own rules, docs/operation-map.md §3.
   canonicalize   Print the document in canonical form (graph-ir §7), or rewrite it with --write.
   export         Validate for export, then write the harness package into <dir> and print the
                  kickoff prompt. Refuses, with the reasons, when the document has errors.
   shape          Counts and brakes at a glance: agents, gates, loops, worst-case rounds, budgets.
   glyph          The graph's shape as a small wordless SVG: the picture the app and the write-ups show.
   mermaid        A one-way Mermaid flowchart of the graph (it never round-trips; edit the document).
-  share          A link that opens a graph, a proposal set of candidate graphs to compare, or a
-                 run, in the app on any device. The document rides in the link; nothing is uploaded.
+  image          The picture of an operation map with its words on it, laid out for a phone:
+                 lanes, session cards, numbered handoffs and what carries each. Light, dark or auto.
+  share          A link that opens a graph, a proposal set of candidate graphs to compare, a
+                 run or an operation map, in the app on any device. The document rides in the link; nothing is uploaded.
   pick           Write the chosen candidate of a proposal set out as a graph, ready to export.
   template       Reusable graphs and fragments by name: the built-in pattern library, your own
                  in .grooph/templates/ and ~/.grooph/templates/, and published registries.
@@ -230,6 +235,13 @@ export async function run(
         return mermaidCommand(io, file, values["out"] !== undefined ? { out: values["out"] } : {});
       }
 
+      case "image": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "image needs a file: grooph image <operation map> [--out <file.svg>]");
+        return imageCommand(io, file, { ...(values["out"] !== undefined ? { out: values["out"] } : {}), ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}) });
+      }
+
       case "share": {
         const { positionals, values } = parseArgs({
           args: rest,
@@ -360,6 +372,7 @@ const COMMAND_HELP: Record<string, string> = {
   shape: SHAPE_HELP,
   glyph: GLYPH_HELP,
   mermaid: MERMAID_HELP,
+  image: IMAGE_HELP,
 };
 
 function usageError(io: Output, message: string): number {

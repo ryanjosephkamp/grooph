@@ -11,7 +11,8 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 5. [`docs/templates.md`](docs/templates.md) — templates, registries and the pattern library. Read before touching `patterns/` or any template code.
 6. [`docs/executive.md`](docs/executive.md) — proposal sets, share links, the compare view, and how the `grooph-design` skill (under `plugins/grooph/`) uses them.
 7. [`docs/runs.md`](docs/runs.md) — run folders, notes back, adoption of a run's working copy, the monitor. [`docs/comparisons.md`](docs/comparisons.md) — the paired-comparison protocol (stage 10a).
-8. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
+8. [`docs/operation-map.md`](docs/operation-map.md) — the operation map: the second kind of document, for work that spans sessions, harnesses and accounts. Read before touching `fixtures/maps/` or any map code.
+9. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
 
 ## Roles
 
@@ -24,6 +25,7 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 
 - **Spec wins.** When a convenience idea conflicts with the spec, log an amendment first or drop the idea.
 - **Document first.** The graph document is the single source of truth. The canvas, the outline view and every package are projections of it.
+- **A graph is one session.** The lead is the harness's main session and every other agent node is its subagent. What spans sessions is an operation map (amendment A-011), which is drawn and validated and never compiled.
 - **Every rule has a code and a fixture.** Each validation rule in `docs/graph-ir.md` has a stable code (`E_…` hard error, `W_…` warning), a failing fixture and a passing fixture under `fixtures/`. Patterns under `patterns/` must validate clean.
 - **No LLM calls inside grooph.** The executive is the harness session, reaching grooph through the skill and the CLI (an MCP wrapper comes later).
 - **Agents author, humans review.** Most graphs are built by an agent from a template or from scratch; the web app is for review, editing and reuse (decision 0007).
@@ -44,7 +46,7 @@ handoffs/briefs/  sources of the gate briefs published as Artifacts, with their 
 packages/    core (schema, validate, compile) · cli · mcp        — created in slice 0001
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
-fixtures/    graphs per error code, golden packages
+fixtures/    graphs per error code, golden packages; operation maps per map rule, with the sample
 experiments/ paired harness runs (later)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin
 .claude/skills/  project skills: grooph-handoff, grooph-handback, grooph-reconcile, grooph-status

@@ -1,8 +1,10 @@
 import {
   ShareError,
   formatIssue,
+  isMapLike,
   isProposalSetLike,
   isRunBundleLike,
+  parseMap,
   parseProposalSet,
   parseRunBundle,
   followsName,
@@ -106,6 +108,16 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       }
       const { record } = await saveRun(parsed.bundle);
       location.hash = runHref(record.key);
+      return;
+    }
+    if (isMapLike(json)) {
+      // An operation map (docs/operation-map.md) opens as its picture, like its link; a map is looked at, not stored.
+      const parsed = parseMap(json);
+      if (!parsed.map) {
+        setImportProblem({ name: file.name, issues: parsed.issues, what: "It is an operation map grooph cannot read." });
+        return;
+      }
+      location.hash = openRouteFor(parsed.map);
       return;
     }
     if (isProposalSetLike(json)) {
@@ -251,8 +263,8 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
         <div className="library-empty">
           <p>No graphs on this device yet.</p>
           <p className="muted">
-            Start a new one, or import a <span className="mono">.grooph.json</span> graph, a <span className="mono">.grooph-proposals.json</span> set or a{" "}
-            <span className="mono">.grooph-run.json</span> run.
+            Start a new one, or import a <span className="mono">.grooph.json</span> graph, a <span className="mono">.grooph-proposals.json</span> set, a{" "}
+            <span className="mono">.grooph-run.json</span> run or a <span className="mono">.grooph-map.json</span> operation map.
           </p>
         </div>
       ) : (

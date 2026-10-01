@@ -129,7 +129,7 @@ export function mapPicture(map: OperationMap, options: PictureOptions = {}): str
         g.push(rect(cardX + 6, cy + 6, cardW - 6, height - 2, { fill: ink("surface"), stroke: ink("line"), rx: 9 }));
         g.push(rect(cardX + 3, cy + 3, cardW - 3, height - 1, { fill: ink("surface"), stroke: ink("line"), rx: 9 }));
       }
-      g.push(rect(cardX, cy, cardW, height, { fill: ink("surface"), stroke: ink("line-strong"), rx: 9 }));
+      g.push(rect(cardX, cy, cardW, height, { fill: ink("surface"), stroke: ink("line-strong"), rx: 9, mark: "card" }));
       let ty = cy + CARD_PAD + 11;
       const countLabel = family ? `×${session.count}` : "";
       const countW = family ? textWidth(countLabel, 10.5, "bold") + 12 : 0;
@@ -235,7 +235,7 @@ export function mapPicture(map: OperationMap, options: PictureOptions = {}): str
         }
       }
       y += 11;
-      body.push(`<g data-handoff-row="${h.id}">${rect(M - 4, top - 2, W - 2 * M + 8, y - top - 3, { fill: "transparent", rx: 8 })}${row.join("")}</g>`);
+      body.push(`<g data-handoff-row="${h.id}">${rect(M - 4, top - 2, W - 2 * M + 8, y - top - 3, { fill: "transparent", rx: 8, mark: "row" })}${row.join("")}</g>`);
     }
   }
 

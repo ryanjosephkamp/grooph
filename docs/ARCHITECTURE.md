@@ -21,6 +21,7 @@ One core, three shells. The core is pure: no DOM, no Node-only APIs, no network.
 - **Compilers are pure and golden-tested.** `compile(doc, target) → { files: Record<path, string>, kickoff: string, warnings }`. Placing files on disk, zipping, or wrapping into a paste-only prompt are shell concerns.
 - **Storage is a shell concern.** Browser: IndexedDB. CLI: files in the working tree (`.grooph/`). Nothing in core knows where a document came from.
 - **No LLM in the loop.** grooph never calls a model. The executive is the harness session using the CLI or MCP server (decision 0002).
+- **Two documents, one core.** A graph is one session and its subagents, and it compiles. An operation map (`docs/operation-map.md`) is several sessions and the handoffs between them, and it does not: core parses, validates, canonicalizes and draws it, and no compiler takes it.
 - **Layout is separable.** `layout` is stripped for validation size and for diffs; the canvas auto-lays out documents without it.
 
 ## Repo shape

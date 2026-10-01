@@ -11,6 +11,7 @@ import {
   type Graph,
   type InflateRaw,
   type OpenedShare,
+  type OperationMap,
   type ProposalSet,
 } from "@grooph/core";
 import { deflateSync, inflateSync } from "fflate";
@@ -36,6 +37,6 @@ export function openPayload(payload: string): OpenedShare {
 }
 
 /** The in-app route for a document: what `grooph share` would link to, without leaving the device. */
-export function openRouteFor(doc: Graph | ProposalSet): string {
+export function openRouteFor(doc: Graph | ProposalSet | OperationMap): string {
   return `#/open?d=${encodeSharePayload(buildShareEnvelope(doc), deflateRaw)}`;
 }

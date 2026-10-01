@@ -7,18 +7,23 @@ import {
   ShareError,
   buildShareEnvelope,
   canonicalize,
+  canonicalizeMap,
   canonicalizeProposals,
   canonicalizeRunBundle,
   encodeSharePayload,
   estimateShape,
   formatIssue,
+  mapShape,
+  mapShapeLine,
   runStateLine,
   shapeLine,
   shareLink,
   validate,
   summarizeRun,
+  validateMap,
   validateProposalSet,
   type Graph,
+  type OperationMap,
   type ProposalSet,
   type RunBundle,
 } from "@grooph/core";
@@ -30,15 +35,19 @@ import { LoadError, deflateRaw, loadShareable, shown, type Loaded, type OpenUrl 
 
 export type ShareFlags = { base?: string; open?: boolean; out?: string };
 
-export const SHARE_HELP = `grooph share <graph | proposal set | run dir | run bundle> [--base <url>] [--open] [--out <file>]
+export const SHARE_HELP = `grooph share <graph | proposal set | run dir | run bundle | operation map> [--base <url>] [--open] [--out <file>]
 
-Turn a graph, a set of one to four candidate graphs, or a run into a link that opens it in
-the grooph app on any device. The document travels in the link's #fragment, which browsers
+Turn a graph, a set of one to four candidate graphs, a run or an operation map into a link
+that opens it in the grooph app on any device. The document travels in the link's #fragment, which browsers
 do not send to any server; nothing is uploaded.
 
 A run folder (.grooph/<graph-id>/runs/<run-id>/) or a *.grooph-run.json bundle opens in the
 run view: what ran, what the run changed and why, its proposals, and its notes. --out then
 writes the bundle, the fallback when the link is too long.
+
+An operation map (*.grooph-map.json, docs/operation-map.md) opens as its picture with its
+handoffs listed. A map is never compiled, so one with rule errors still shares: the view
+shows them.
 
 Validates first and refuses a graph, or a candidate, with errors. Inlines { "file" }
 candidates, computes each candidate's shape, prints the comparison and the link with its
@@ -109,6 +118,7 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
   }
 
   if (envelope.kind === "proposals") printSet(io, envelope.doc);
+  else if (envelope.kind === "map") printMap(io, envelope.doc);
   else if (envelope.kind === "run") printRun(io, envelope.doc);
   else printGraph(io, envelope.doc);
 
@@ -121,7 +131,13 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
     }
     writeText(
       flags.out,
-      envelope.kind === "proposals" ? canonicalizeProposals(envelope.doc) : envelope.kind === "run" ? canonicalizeRunBundle(envelope.doc) : canonicalize(envelope.doc),
+      envelope.kind === "proposals"
+        ? canonicalizeProposals(envelope.doc)
+        : envelope.kind === "run"
+          ? canonicalizeRunBundle(envelope.doc)
+          : envelope.kind === "map"
+            ? canonicalizeMap(envelope.doc)
+            : canonicalize(envelope.doc),
     );
     io.out(`wrote ${shown(resolve(flags.out))} (self-contained; import it in the app, or share that file)`);
   }
@@ -156,6 +172,12 @@ function printRun(io: Output, bundle: RunBundle): void {
   io.out(`run ${bundle.run} · ${bundle.working.name} (${bundle.working.id}) · ${runStateLine(summary)}`);
   io.out(`  ${plural(bundle.notes.length, "note")} · ${plural(summary.amendments.length, "amendment")} · ${plural(summary.proposals.length, "proposal")}`);
   if (bundle.issues && bundle.issues.length > 0) io.out(`  ${plural(bundle.issues.length, "line")} of notes.jsonl could not be read; the run view lists them`);
+}
+
+function printMap(io: Output, map: OperationMap): void {
+  io.out(`${map.id} · ${map.name}${map.asOf ? ` · as of ${map.asOf}` : ""}`);
+  io.out(`  ${mapShapeLine(mapShape(map))}`);
+  for (const issue of validateMap(map)) io.out(`  ${formatIssue(issue)}`);
 }
 
 function printGraph(io: Output, graph: Graph): void {

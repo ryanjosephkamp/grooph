@@ -121,7 +121,20 @@ Same output as a graph's: a list of `{ code, severity, message, at }`. Codes are
 
 `mapPicture(map, { theme })` in core draws a map as one SVG, laid out for a phone: lanes stacked top to bottom, each session a card in its lane, each handoff an arc in the margin with a number, and a numbered list of the handoffs below (who to whom, by what carrier, carrying what). Line style says the carrier kind. It is a projection: it never round-trips, and edits happen in the document.
 
-The same picture is what `grooph image` writes, what the app shows for a map opened from a link or a file, and what the offline page holds.
+The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto`) and what the app shows for a map opened from a link or a file. `light` and `dark` write the colours into the file; `auto` carries both and follows the viewer's colour scheme. In the app a session or a handoff opens what the document says about it, and the map's issues are behind the status, as a graph's are.
+
+## 4a. Where a map goes
+
+| Command | What it does with a map |
+|---|---|
+| `grooph validate <map>` | the rules of §3; a `graph` pointer that is a path is looked up beside the map |
+| `grooph canonicalize <map> [--write]` | canonical form (§5) |
+| `grooph shape <map> [--json]` | lanes, sessions, handoffs, how many a person carries |
+| `grooph image <map> [--out <file.svg>] [--theme …]` | the picture |
+| `grooph share <map>` | a link that opens the map in the app; a map with rule errors still shares, and the view names them |
+| `grooph export <map> …` | refused, by name: a map is never compiled |
+
+In the app, Import on the first screen takes a `.grooph-map.json` and opens the same view as the link. A map is looked at, not stored.
 
 ## 5. Canonical form
 
@@ -129,7 +142,11 @@ As a graph's (`graph-ir.md` §7): two-space indent, LF, one trailing newline, ke
 
 ## 6. Example
 
-[`fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json): the owner's operation on 2026-09-30, kept generic where a detail is not needed. An Operator session in the cloud starts and steers a family of worker sessions, test runners and scheduled routines for one project; a second project has its own lanes; Codex runs on the Mac; this repository's own session runs on the Mac under another account. The repositories carry almost everything that crosses an account, and the owner carries the rest.
+[`fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json): the owner's operation on 2026-09-30, kept generic where a detail is not needed. Its picture, as `grooph image` draws it: [light](../fixtures/maps/pictures/ryans-operation-2026-09-30.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-09-30.dark.svg).
+
+<img src="../fixtures/maps/pictures/ryans-operation-2026-09-30.light.svg" alt="The sample operation map: three lanes, seven sessions, ten numbered handoffs" width="400">
+ 
+An Operator session in the cloud starts and steers a family of worker sessions, test runners and scheduled routines for one project; a second project has its own lanes; Codex runs on the Mac; this repository's own session runs on the Mac under another account. The repositories carry almost everything that crosses an account, and the owner carries the rest. What the brief did not say is written in the map's `description` as assumed.
 
 ## 7. Deferred
 

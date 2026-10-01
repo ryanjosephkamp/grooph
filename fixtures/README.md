@@ -12,7 +12,12 @@ fixtures/
   proposals/valid/<set>/              proposal sets (docs/executive.md §1) that validate clean, with their { file } graphs beside them
   proposals/invalid/<CODE>/<name>.grooph-proposals.json   proposal sets that report exactly that code
   golden/<harness>/<graph>/           expected compiler output, byte-for-byte
+  maps/valid/<name>.grooph-map.json            operation maps (docs/operation-map.md) that validate clean
+  maps/invalid/<CODE>/<name>.grooph-map.json   maps that report exactly that code
+  maps/pictures/<map-id>.<theme>.svg           the sample map's picture, light and dark, byte-for-byte
 ```
+
+Maps are checked by `packages/core/test/map.test.ts`, by the same rules as graphs: every code in `MAP_CODES` has a folder with at least one map in it, each invalid map reports exactly its folder's code, each valid map is clean and canonical, and the pictures are what `mapPicture` draws (regenerate with `pnpm --filter @grooph/core run golden:write`, and look at them).
 
 Every rule code in `docs/graph-ir.md` §3 has at least one failing fixture under `invalid/`. CI fails when a code has no fixture. Every fixture is stored in canonical form (graph-ir §7).
 
