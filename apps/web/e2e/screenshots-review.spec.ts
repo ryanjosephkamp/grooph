@@ -8,12 +8,13 @@ import { bundleText, csvSet, fixturePath, importDocument, linkFor, node, repoRoo
 /**
  * The fresh-eyes review (docs/review-2026-10.md): the main screens at the two
  * sizes the review names, a 390 px phone and a 1280 px computer, light and
- * dark. Made only on request, into GROOPH_SHOT_DIR (default: the review's
- * folder under docs/):
+ * dark. Made only on request, into GROOPH_SHOT_DIR (default:
+ * apps/web/test-results/review-shots, which git ignores; the review keeps the
+ * few it shows under docs/review-2026-10/):
  *
  *   GROOPH_SHOTS=1 pnpm --filter @grooph/web exec playwright test e2e/screenshots-review.spec.ts
  */
-const dir = process.env["GROOPH_SHOT_DIR"] ?? join(repoRoot, "docs/review-2026-10");
+const dir = process.env["GROOPH_SHOT_DIR"] ?? join(repoRoot, "apps/web/test-results/review-shots");
 test.skip(!process.env["GROOPH_SHOTS"], "screenshots are made on request (GROOPH_SHOTS=1)");
 test.beforeAll(() => mkdirSync(dir, { recursive: true }));
 
