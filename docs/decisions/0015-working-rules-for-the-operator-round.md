@@ -23,3 +23,4 @@ After the first working turn of the operator round (decision 0014) left seven st
 - `handoffs/README.md` gains a section on Codex as an implementer; slice 0032 is the first.
 - The "Who merges" row in `docs/PROGRESS.md` is answered: the session, on his word.
 - 2026-10-01: on his word the eight pull requests of the round were merged and tagged `v0.1.0`, and grooph's own event hook was installed in this repository (`.claude/settings.json`, `.grooph/hooks/`), so `grooph watch --sessions` here shows the sessions working on grooph. A test keeps the installed copy equal to the shipped hook.
+- 2026-10-01, later: on his word pull requests #9 (slice 0033) and #11 (slice 0032, reconciled) were merged, and the repository now carries Codex's hook entries as well (`.codex/hooks.json`): the Codex app works in its own copy of a repository, which holds only committed files. He also allowed the transcripts of his Codex chat to be copied into the record's ignored `local/` folder.

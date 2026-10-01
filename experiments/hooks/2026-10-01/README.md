@@ -27,3 +27,7 @@ The driver session (Claude Code) read the handback and then answered what the de
 For runs 5 to 7 the Codex entries were installed in the main clone with `grooph hooks install --harness codex` and removed afterwards; nothing under `~/.codex` was edited, and the MCP server was attached by a `-c` override that is not saved. `mcp-server-env.json` in run 7 is what a small wrapper saw before starting the server: Codex gave it no variable naming the session.
 
 What this leaves unseen: a hook reviewed by the owner in `/hooks` and then running in an interactive chat, in the CLI or in the app.
+
+## Added on the owner's word: the desktop chat's transcripts
+
+Codex asked to copy its own chat's transcripts into the record and waited for an answer. The owner said yes on 2026-10-01. Four files are now in `local/codex-1-interactive-project-hooks/` (not in git), with their checksums in the ledger: the chat, its two subagents (`/root/readme_word`, `/root/hello_check`), and a fourth thread the app started itself, which its header calls `guardian` and which ran on `codex-auto-review`. Only the headers were read. They settle what the handback had to leave open: the chat was **Codex Desktop**, its header gives CLI version **0.159.2**, and the chat and both subagents ran on **gpt-6.1-sol at effort xhigh**, in `~/.codex/worktrees/7a29/grooph-codex`.

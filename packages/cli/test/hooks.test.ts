@@ -267,4 +267,7 @@ test("this repository's own installed hook is the hook the CLI ships, and its se
   assert.equal(readFileSync(installed, "utf8"), readFileSync(hookSource(), "utf8"), "run `grooph hooks install` at the repository root and commit the result");
   const settings = JSON.parse(readFileSync(join(repoRoot, ".claude", "settings.json"), "utf8")) as { hooks: Record<string, unknown> };
   assert.deepEqual(settings.hooks, hookEntries("claude-code", false));
+  // Codex's entries are committed too: the Codex app works in its own copy of the repository, which holds only committed files (slice 0032).
+  const codex = JSON.parse(readFileSync(join(repoRoot, ".codex", "hooks.json"), "utf8")) as { hooks: Record<string, unknown> };
+  assert.deepEqual(codex.hooks, hookEntries("codex", false));
 });
