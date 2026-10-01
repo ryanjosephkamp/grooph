@@ -43,4 +43,14 @@ One file. Its content security policy is `default-src 'none'` with inline style 
 
 A document with rule errors still makes a page, with the errors listed. One that does not match its schema cannot be drawn, and the command says why. Text from the document is escaped everywhere it is shown, and the embedded JSON cannot close its own script element.
 
-It is a page to read, not the app: nothing in it edits. The installable offline app (stage 8) is the other half and is not built yet.
+It is a page to read, not the app: nothing in it edits.
+
+## The app itself, offline
+
+The other half (stage 8, slice 0030). The app at https://ryanjosephkamp.github.io/grooph/ is installable: on a phone, "Add to Home screen" or "Install app" in the browser's menu gives it its own icon and window. Once it has been opened with a network it opens without one: a service worker (`apps/web/public/sw.js`) keeps the app's own files, and the graphs were already kept in the browser. The built-in templates are part of the app, so they are there too.
+
+- The page is fetched from the network whenever there is one, so a new version is picked up on the next visit; the cached copy is for when there is none.
+- Only grooph's own files are cached. `grooph watch`'s live endpoints are never cached, and nothing is sent anywhere.
+- A share link opened for the first time with no network still opens: the document rides in the link, and the app that reads it is on the device.
+
+Tested in Chromium with the network switched off (`apps/web/e2e/offline.spec.ts`). Not tried: installing on a real phone, and Safari.

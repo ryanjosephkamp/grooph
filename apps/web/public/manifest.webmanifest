@@ -1,0 +1,16 @@
+{
+  "name": "grooph",
+  "short_name": "grooph",
+  "description": "Loop graphs for coding agents: draw, validate, export. Works with no network; your graphs stay on this device.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f1f4f3",
+  "theme_color": "#1f5f4a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
