@@ -3,8 +3,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 6044,
-      "sha256": "9676f768f96b8ab818f0a194bec4237594168bbe2181a8d160e0b13936de5210"
+      "bytes": 6994,
+      "sha256": "a839b9ee4c63ac1abf4b3eabf9fd414a9a5d0c52242a34e968cba6eb4999bbe3"
     },
     {
       "path": "codex-1-interactive-project-hooks/check.json",
@@ -137,6 +137,16 @@
       "sha256": "8c46a82c75a4ad3bbd558e35a142e11e406efd30a6fe7d718083eeef96c980e8"
     },
     {
+      "path": "codex-9-desktop-worktree-reviewed-hook/check.json",
+      "bytes": 1987,
+      "sha256": "7b469c490c159a443cf654fb3058146f92ba8bf120ddadb6f628340fa21dd118"
+    },
+    {
+      "path": "codex-9-desktop-worktree-reviewed-hook/events.jsonl",
+      "bytes": 1704,
+      "sha256": "f31a5144869b64bd4f6a06e532fda06b489561ba7317668f09d2b9bad4b2c2cb"
+    },
+    {
       "path": "codex-statement-review.md",
       "bytes": 5972,
       "sha256": "469d683c7dea631e6664b70f69ba1ece30c934ce47b0e2474f260365e4c4721f"
@@ -148,8 +158,8 @@
     },
     {
       "path": "ledger.json",
-      "bytes": 16114,
-      "sha256": "cec86e658a016a9b26956316a5973dcc2879d94702ce072e958fb905a9c7239f"
+      "bytes": 18212,
+      "sha256": "04cb2ccbf242f834fa4c664f569a647ff1ed5ba6d262e9d8acc20086e14ee4a8"
     },
     {
       "path": "verification.txt",

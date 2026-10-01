@@ -109,6 +109,17 @@ test("a handoff with no carrier is refused by name, with what to write", () => {
   assert.match(unnamed[0]!.message, /carried by a person that is not named; set carrier\.who/);
 });
 
+test("the sample as the Operator corrected it: eight sessions, eighteen handoffs, three that wait on a person", () => {
+  const map = parseMapText(read(join(mapsDir, "valid/owner-operation-2026-10-01.grooph-map.json"))).map!;
+  const shape = mapShape(map);
+  assert.equal(mapShapeLine(shape), "3 lanes · 8 sessions (21 counting families) · 18 handoffs, 3 carried by a person");
+  assert.deepEqual(shape.carriers, { "session-message": 3, "scheduled-message": 3, "pull-request": 2, "review-page": 1, branch: 6, person: 3 });
+  assert.deepEqual(shape.byHand.map((h) => h.handoff), ["h-fresh-routines", "h-brief-codex", "h-brief-grooph"]);
+  // The Operator wakes itself, and the research lanes build on each other: a handoff may start and end at one session.
+  assert.deepEqual(map.handoffs.filter((h) => h.from === h.to).map((h) => h.id), ["h-self-wake", "h-research-each-other"]);
+  assert.deepEqual(validateMap(map), []);
+});
+
 test("the sample: the owner's operation at a glance", () => {
   const map = parseMapText(read(join(mapsDir, "valid/owner-operation-2026-09-30.grooph-map.json"))).map!;
   const shape = mapShape(map);

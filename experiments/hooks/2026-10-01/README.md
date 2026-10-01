@@ -38,4 +38,10 @@ After the hook file was committed (pull request #12), the owner opened the Codex
 
 Two other things turned up in the same folder's events. A second session id began half a second after the chat, ran one turn and has no transcript file: a thread the app started for itself, which the hook cannot tell from a real session. And a lone session end from 27 seconds earlier, which fits the CLI session where the hooks were trusted. Neither was established beyond that.
 
-Not seen: the app's worktree mode, and a session's end from the app.
+Not seen then: the app's worktree mode, and a session's end from the app.
+
+## And in worktree mode
+
+The owner ran the same prompt once more with Worktree chosen. The app made its own copy at `~/.codex/worktrees/7a32/grooph`, at the commit that carries the hook file, and **the hook recorded the chat there too**, with both subagents ([`codex-9-desktop-worktree-reviewed-hook/`](codex-9-desktop-worktree-reviewed-hook/)). He reviewed nothing again: the review done once in the CLI, and the folder's trust, carried into the app's copy. The events are in that copy's own `.grooph/events/`, so they are read with `grooph sessions ~/.codex/worktrees/7a32/grooph`.
+
+The app reported 1 min 46 s for this run against 11 s locally. The hook's own timestamps say where it went: 43 s before the turn began, 49 s more before the first subagent started, and 6 s per subagent against 1 to 2. The hook is the same in both runs and only appends a line, so it is not the cause; what the app was doing in those gaps was not established.
