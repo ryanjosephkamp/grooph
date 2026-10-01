@@ -3,8 +3,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 4262,
-      "sha256": "57fb99ad1d95c5e17281062aa6a3ad29f0313a7c0da316798e2f5e72739bf2d0"
+      "bytes": 5017,
+      "sha256": "dd33acbf93034443ce188912f03c5ddcb29da367986f1f4620c31893e936af00"
     },
     {
       "path": "codex-1-interactive-project-hooks/check.json",
@@ -128,8 +128,8 @@
     },
     {
       "path": "ledger.json",
-      "bytes": 10467,
-      "sha256": "a4bc2eb561e04bcbb1460629876e7f1909255b8a82ab022d876a09873de4ea81"
+      "bytes": 13895,
+      "sha256": "a0d267f2d379731ff2e3bf8c4eba11c9ec97a017764bee9222142051864a6366"
     },
     {
       "path": "verification.txt",

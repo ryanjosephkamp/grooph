@@ -3,16 +3,16 @@
   "machine": "Ryan's Mac",
   "unique_sessions": 6,
   "checks": 7,
-  "note": "Two checks of the same parent chat, not two separately launched sessions. Empty transcript lists are an evidence gap, not a completed transcript check. Rows codex-3 to codex-7 are five separate headless sessions the driver started at reconcile on 2026-10-01; each has its exec stream saved as it ran and its rollout's checksum.",
+  "note": "Two checks of the same parent chat, not two separately launched sessions. Empty transcript lists are an evidence gap, not a completed transcript check. Rows codex-3 to codex-7 are five separate headless sessions the driver started at reconcile on 2026-10-01; each has its exec stream saved as it ran and its rollout's checksum. The owner allowed the desktop chat's transcripts to be copied on 2026-10-01; rows codex-1 and codex-2 now carry their checksums. A fourth thread appears beside the chat and its two subagents: Codex's own reviewer, which the app started.",
   "runs": [
     {
       "run": "codex-1-interactive-project-hooks",
       "harness": "codex",
       "client": "desktop",
-      "version": "installed CLI 0.159.3; desktop build unverified",
+      "version": "Codex Desktop; cli_version 0.159.2 in the chat's own header (the `codex` on Codex's path reported 0.159.3)",
       "session": "01a0f5e4-e4bc-7120-8657-ad009213b886",
-      "model": null,
-      "model_basis": "Owner default requested; exact model not verified",
+      "model": "gpt-6.1-sol, reasoning effort xhigh",
+      "model_basis": "read from the chat's rollout header and first turn at reconcile, with the owner's permission of 2026-10-01",
       "purpose": "Interactive project hook discovery",
       "command": "Owner-opened desktop chat; no implementer command launched it",
       "cost_basis": "No dollar cost, billing or token usage reported to this check",
@@ -21,18 +21,43 @@
         "observations.json",
         "events.jsonl"
       ],
-      "transcripts": [],
-      "transcript_status": "not obtained: requested owner permission remains pending",
-      "evidence_complete": false
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-16-53-01a0f5e4-e4bc-7120-8657-ad009213b886.jsonl",
+          "sha256": "53d2201d938d3a945900ac47df289fc9507b55620d50aaba1ea976acec9af2dc",
+          "bytes": 1797934,
+          "what": "the chat itself: Codex Desktop, cli_version 0.159.2 in its header, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-24-01a0f5e6-4853-7493-8c4c-c1506bd6dad5.jsonl",
+          "sha256": "0a8b1bc46be797953cf49b45f719363a88b2e9a50b73102ec0be377241cd7bca",
+          "bytes": 140925,
+          "what": "subagent /root/readme_word, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-28-01a0f5e6-55ec-7613-98a4-9f1ad505f065.jsonl",
+          "sha256": "b3e57a620a0bbd97cf0d682a6fbae13141d8eb529ac44683e1e0162c82ed72cb",
+          "bytes": 132180,
+          "what": "subagent /root/hello_check, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-15-01a0f5e6-2531-7800-9a00-69032d250299.jsonl",
+          "sha256": "cc9df43e90d8392f43ba0452e18dbbb0f2fc676415363efcfafd5452cdb8497a",
+          "bytes": 357565,
+          "what": "Codex's own reviewer (its header calls it guardian; model codex-auto-review, effort low), started by the app, not by the chat's lead"
+        }
+      ],
+      "transcript_status": "copied to local/codex-1-interactive-project-hooks/ on 2026-10-01 with the owner's permission; the chat had ended (last written 01:24 local time). Only header fields were read: ids, folder, model, effort, and which thread started which.",
+      "evidence_complete": true
     },
     {
       "run": "codex-2-interactive-subagents",
       "harness": "codex",
       "client": "desktop",
-      "version": "installed CLI 0.159.3; desktop build unverified",
+      "version": "Codex Desktop; cli_version 0.159.2 in the chat's own header (the `codex` on Codex's path reported 0.159.3)",
       "session": "01a0f5e4-e4bc-7120-8657-ad009213b886",
-      "model": null,
-      "model_basis": "Owner default requested; exact model not verified",
+      "model": "gpt-6.1-sol, reasoning effort xhigh",
+      "model_basis": "read from the chat's rollout header and first turn at reconcile, with the owner's permission of 2026-10-01",
       "purpose": "Two trivial subagents: README first word and echo hello",
       "command": "Owner-opened desktop chat; no implementer command launched it",
       "cost_basis": "No dollar cost, billing or token usage reported to this check",
@@ -41,9 +66,28 @@
         "observations.json",
         "events.jsonl"
       ],
-      "transcripts": [],
-      "transcript_status": "not obtained: requested owner permission remains pending",
-      "evidence_complete": false
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-24-01a0f5e6-4853-7493-8c4c-c1506bd6dad5.jsonl",
+          "sha256": "0a8b1bc46be797953cf49b45f719363a88b2e9a50b73102ec0be377241cd7bca",
+          "bytes": 140925,
+          "what": "subagent /root/readme_word, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-28-01a0f5e6-55ec-7613-98a4-9f1ad505f065.jsonl",
+          "sha256": "b3e57a620a0bbd97cf0d682a6fbae13141d8eb529ac44683e1e0162c82ed72cb",
+          "bytes": 132180,
+          "what": "subagent /root/hello_check, gpt-6.1-sol at effort xhigh"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T01-18-15-01a0f5e6-2531-7800-9a00-69032d250299.jsonl",
+          "sha256": "cc9df43e90d8392f43ba0452e18dbbb0f2fc676415363efcfafd5452cdb8497a",
+          "bytes": 357565,
+          "what": "Codex's own reviewer (its header calls it guardian; model codex-auto-review, effort low), started by the app, not by the chat's lead"
+        }
+      ],
+      "transcript_status": "copied to local/codex-1-interactive-project-hooks/ on 2026-10-01 with the owner's permission; the chat had ended (last written 01:24 local time). Only header fields were read: ids, folder, model, effort, and which thread started which.",
+      "evidence_complete": true
     },
     {
       "run": "codex-3-exec-project-hooks-bypass",
