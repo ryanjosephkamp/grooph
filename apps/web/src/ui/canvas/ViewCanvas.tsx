@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
-import { edgeBends, type Box } from "./bends.js";
+import { edgeBends, labelSpots, type Box } from "./bends.js";
 import { RUN_PAD, VIEWER_PAD, fitOptions } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
@@ -77,6 +77,7 @@ export function ViewCanvas(props: {
       boxes[n.id] = { x: p.x, y: p.y, w: measured[n.id]?.width ?? NODE_WIDTH, h: measured[n.id]?.height ?? NODE_HEIGHT };
     }
     const bends = edgeBends(doc, boxes);
+    const spots = labelSpots(doc, boxes, bends);
     return doc.edges
       .filter((e) => known.has(e.from) && known.has(e.to))
       .map((edge) => {
@@ -91,6 +92,7 @@ export function ViewCanvas(props: {
             back: loopIndex >= 0,
             loopColor: loopIndex >= 0 ? loopIndex : undefined,
             bend: bends.get(edge.id) ?? 0,
+            labelAt: spots.get(edge.id),
             severity: severity.get(edge.id),
             selected: false,
             highlighted: props.highlight?.edges.includes(edge.id) ?? false,

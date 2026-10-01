@@ -14,7 +14,7 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Slice 0032, the live view checked from inside Codex** (branch `slice/0032-codex-live-check`, 2026-09-30): handoff drafted; the worktree `/Users/noir/Documents/grooph-codex` is built with the Codex hook installed. Waits on the owner: trust the hook in `/hooks`, paste the prompt.
 
-- **Slice 0033, polish** (branch `slice/0033-polish-labels-glyphs`, 2026-10-01): the two display flaws the review left open. An edge's label slides off a node it would cover (review item 12); a long graph's glyph gets a band of its own in list rows (item 13). Web 57 unit and 89 browser tests pass. Pull request #9 open; **waits for the owner's word to merge**.
+- **Slice 0033, polish** (branch `slice/0033-polish-labels-glyphs`, 2026-10-01): the two display flaws the review left open. An edge's label slides off a node it would cover (review item 12); a long graph's glyph gets a band of its own in list rows (item 13). An independent read by a subagent found two label-measuring defects, fixed with a test. Web 58 unit and 89 browser tests pass. Pull request #9 open; **waits for the owner's word to merge**.
 
 ## Waiting on the owner
 

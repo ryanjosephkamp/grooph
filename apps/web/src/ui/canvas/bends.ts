@@ -8,6 +8,11 @@
  * - An edge whose straight line would cross another node bows far enough to
  *   clear it, on whichever side needs less.
  * - Edges that share a pair of nodes bow apart so none is drawn over another.
+ *
+ * And where each edge's label sits along its curve: at the middle, unless
+ * that would put it on a node (a back edge across a fan-out lands on the
+ * node between), in which case it slides along the curve to the nearest
+ * clear point.
  */
 import type { Graph, Id } from "@grooph/core";
 
@@ -71,4 +76,96 @@ export function edgeBends(doc: Graph, boxes: Record<Id, Box>): Map<Id, number> {
     bends.set(edge.id, Math.max(-MAX_BEND, Math.min(MAX_BEND, bend)));
   }
   return bends;
+}
+
+export type Pt = { x: number; y: number };
+/** An edge as drawn: a straight line, or a quadratic curve through `control`. */
+export type Curve = { start: Pt; end: Pt; control?: Pt };
+
+const centre = (b: Box): Pt => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+
+/** Where the ray from the box's centre towards `toward` leaves the box, pushed out by `gap`. */
+function border(b: Box, toward: Pt, gap: number): Pt {
+  const c = centre(b);
+  const dx = toward.x - c.x;
+  const dy = toward.y - c.y;
+  if (dx === 0 && dy === 0) return c;
+  const t = Math.min(dx === 0 ? Infinity : b.w / 2 / Math.abs(dx), dy === 0 ? Infinity : b.h / 2 / Math.abs(dy));
+  const len = Math.hypot(dx, dy);
+  return { x: c.x + dx * t + (dx / len) * gap, y: c.y + dy * t + (dy / len) * gap };
+}
+
+/** Edges float between node borders, straight or as a quadratic curve bowing `bend` pixels at its middle. */
+export function edgeCurve(a: Box, b: Box, bend: number): Curve {
+  const ca = centre(a);
+  const cb = centre(b);
+  if (bend === 0) return { start: border(a, cb, 2), end: border(b, ca, 4) };
+  const dist = Math.hypot(cb.x - ca.x, cb.y - ca.y) || 1;
+  // right-hand normal in screen coordinates (y grows downward)
+  const nx = -(cb.y - ca.y) / dist;
+  const ny = (cb.x - ca.x) / dist;
+  const control = { x: (ca.x + cb.x) / 2 + nx * bend * 2, y: (ca.y + cb.y) / 2 + ny * bend * 2 };
+  return { start: border(a, control, 2), end: border(b, control, 4), control };
+}
+
+/** The point a fraction `t` of the way along the curve (0 at its start, 1 at its end). */
+export function pointAt({ start, end, control }: Curve, t: number): Pt {
+  if (!control) return { x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t };
+  const u = 1 - t;
+  return { x: u * u * start.x + 2 * u * t * control.x + t * t * end.x, y: u * u * start.y + 2 * u * t * control.y + t * t * end.y };
+}
+
+const LABEL_HEIGHT = 28;
+const LABEL_CLEAR = 4;
+/** The label chip's size, estimated from its words: 12 px text at weight 650 in a 28 px chip with 10 px of padding each side. */
+export function labelSize(text: string, approval: boolean): { w: number; h: number } {
+  if (text === "" && !approval) return { w: 14, h: 14 };
+  return { w: 22 + text.length * 6.9 + (approval ? 66 : 0), h: LABEL_HEIGHT };
+}
+
+/** The words an edge's label shows: its condition, or nothing for an edge that is always taken. */
+export function edgeLabelText(edge: Graph["edges"][number]): string {
+  const when = edge.when ?? "always";
+  return typeof when === "string" ? when : `verdict: ${when.verdict || "…"}`;
+}
+
+/**
+ * The size an edge's label is drawn at when nothing is selected: a 14 px dot for an edge that is always taken
+ * and needs no approval (`quiet` in `GraphEdge`), otherwise a chip with its words and, for an approval, its mark.
+ */
+export function edgeLabelSize(edge: Graph["edges"][number]): { w: number; h: number } {
+  const text = edgeLabelText(edge);
+  const approval = Boolean(edge.approval);
+  return text === "always" && !approval ? labelSize("", false) : labelSize(text, approval);
+}
+
+/**
+ * Where along its curve each edge's label sits, as a fraction (0.5 is the middle). The middle is kept
+ * whenever it is clear. A label that would cover a node, or a label already placed, tries the nearest
+ * points either side, out to 0.15 and 0.85; one with no clear point stays in the middle.
+ */
+export function labelSpots(doc: Graph, boxes: Record<Id, Box>, bends: Map<Id, number>): Map<Id, number> {
+  const spots = new Map<Id, number>();
+  const placed: Box[] = [];
+  const nodes = Object.values(boxes);
+  const hits = (r: Box, others: Box[], pad: number) =>
+    others.some((o) => r.x < o.x + o.w + pad && r.x + r.w > o.x - pad && r.y < o.y + o.h + pad && r.y + r.h > o.y - pad);
+  const steps = [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74, 0.2, 0.8, 0.15, 0.85];
+
+  for (const edge of doc.edges) {
+    const a = boxes[edge.from];
+    const b = boxes[edge.to];
+    if (!a || !b || edge.from === edge.to) continue;
+    const curve = edgeCurve(a, b, bends.get(edge.id) ?? 0);
+    const size = edgeLabelSize(edge);
+    const rectAt = (t: number): Box => {
+      const p = pointAt(curve, t);
+      return { x: p.x - size.w / 2, y: p.y - size.h / 2, w: size.w, h: size.h };
+    };
+    const clearOfNodes = steps.filter((t) => !hits(rectAt(t), nodes, LABEL_CLEAR));
+    const t = clearOfNodes.find((s) => !hits(rectAt(s), placed, 2)) ?? clearOfNodes[0] ?? 0.5;
+    spots.set(edge.id, t);
+    placed.push(rectAt(t));
+  }
+  return spots;
 }

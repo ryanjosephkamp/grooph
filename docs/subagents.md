@@ -187,7 +187,7 @@ That last form is how sessions on other machines are seen. A cloud session's eve
 
 **A plan beside it.** When the lead has declared what it means to start (§7), the session shows that plan with each line marked as it happens.
 
-**What the view cannot show.** What an agent is thinking or saying (not recorded, by design); a subagent whose session has no hook installed; a Codex session before its hook is trusted; a cloud lane between pushes; and which Codex subagent started which.
+**What the view cannot show.** What an agent is thinking or saying (not recorded, by design); a subagent whose session has no hook installed; a Codex session before its hook is trusted; a cloud lane between pushes; and which Codex subagent started which. The hook is a file in the working tree: check out a commit from before it was installed and the session stops recording until the file is back [seen: this repository, 2026-10-01, when its own session switched to an older branch].
 
 ## 7. The MCP server: a plan beside what happened
 

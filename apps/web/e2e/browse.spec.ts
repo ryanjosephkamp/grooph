@@ -198,3 +198,25 @@ test("Save glyph downloads the SVG; Copy Mermaid puts the one-way projection on 
   expect(text).toMatch(/^%% grooph mermaid: a projection of Review gate \(review-gate@1\)\. One way only: it does not round-trip\./);
   expect(text).toContain("flowchart LR");
 });
+
+test("a long graph's glyph gets a band of its own in the templates list, so its shapes are a readable size (review item 13)", async ({ page }) => {
+  await page.goto("./#/templates");
+  const drawnScale = (id: string) =>
+    page.locator(`[data-template="${id}"] .template-glyph svg`).evaluate((svg) => {
+      const view = (svg as SVGSVGElement).viewBox.baseVal;
+      const box = svg.getBoundingClientRect();
+      return Math.min(box.width / view.width, box.height / view.height);
+    });
+  // Nine ranks in a row: it drew at about 0.15 beside the text, a 22-unit node three pixels wide.
+  await expect(page.locator('[data-template="gauntlet-decomposed"]')).toHaveClass(/has-long-glyph/);
+  expect(await drawnScale("gauntlet-decomposed")).toBeGreaterThan(0.5);
+  expect(await drawnScale("debate-then-build")).toBeGreaterThan(0.5);
+  // A short graph keeps its thumbnail beside the text.
+  const short = page.locator('[data-template="review-gate"]');
+  await expect(short).not.toHaveClass(/has-long-glyph/);
+  const glyph = (await short.locator(".template-glyph").boundingBox())!;
+  const text = (await short.locator(".template-text").boundingBox())!;
+  expect(glyph.x + glyph.width).toBeLessThanOrEqual(text.x);
+  // Nothing scrolls sideways.
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
