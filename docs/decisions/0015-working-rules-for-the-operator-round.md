@@ -22,3 +22,4 @@ After the first working turn of the operator round (decision 0014) left seven st
 - `experiments/hooks/README.md` holds the recording rule and `experiments/hooks/check.mjs` checks a ledger against the transcripts on the machine.
 - `handoffs/README.md` gains a section on Codex as an implementer; slice 0032 is the first.
 - The "Who merges" row in `docs/PROGRESS.md` is answered: the session, on his word.
+- 2026-10-01: on his word the eight pull requests of the round were merged and tagged `v0.1.0`, and grooph's own event hook was installed in this repository (`.claude/settings.json`, `.grooph/hooks/`), so `grooph watch --sessions` here shows the sessions working on grooph. A test keeps the installed copy equal to the shipped hook.
