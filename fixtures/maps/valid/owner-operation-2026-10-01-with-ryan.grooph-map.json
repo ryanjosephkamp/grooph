@@ -2,9 +2,9 @@
   "groophMap": 0,
   "id": "ryans-operation-2026-10-01-with-ryan",
   "name": "Ryan's operation, with Ryan drawn",
-  "version": 3,
+  "version": 4,
   "asOf": "2026-10-01",
-  "description": "The same operation as ryans-operation-2026-10-01, redrawn by the grooph session with its owner as a person instead of as a carrier (amendment A-013). The three handoffs the Operator's map said Ryan carries are each drawn as what reaches him and what he then does. A sketch for the Operator to correct: how Ryan and the Operator talk, and what he does with a routine's notification, are read from the Operator's answers, not observed.",
+  "description": "The same operation as ryans-operation-2026-10-01, with its owner drawn as a person (amendment A-013). Corrected by the Operator on October 1, 2026, from how Ryan and the Operator actually talk: in one chat in the Claude app, mostly on his phone, and through private pages on account B that he marks or copies a prompt back from. The names of the product's own pages are left out. Counts are for October 1, 2026, about 5 a.m. UTC.",
   "lanes": [
     {
       "id": "cloud-b",
@@ -32,7 +32,7 @@
     {
       "id": "ryan",
       "name": "Ryan",
-      "role": "Owns the operation. Talks to the Operator in the Claude app, marks the review pages, reads the routines' notifications, and carries prompts to the sessions the Operator cannot reach"
+      "role": "Owns the operation. Talks to the Operator in one chat in the Claude app, mostly on his phone; marks its private pages; reads the morning notifications; carries prompts to the sessions it cannot reach"
     }
   ],
   "sessions": [
@@ -129,7 +129,7 @@
       "carrier": {
         "kind": "session-message"
       },
-      "what": "what he wants done, and what a routine's notification or another session told him, in the Claude app"
+      "what": "what he wants done, in his own words or a file he attaches; his usage numbers; answers he copies back from a decision page's pre-filled prompt; and anything a routine's notification or another session told him"
     },
     {
       "id": "h-operator-ryan",
@@ -138,7 +138,17 @@
       "carrier": {
         "kind": "session-message"
       },
-      "what": "its reports, and the prompts it writes for the sessions it cannot reach"
+      "what": "replies in the chat: reports, questions for him, step-by-step instructions, and the prompts it writes for the sessions it cannot reach; pictures and backups come as files in the chat"
+    },
+    {
+      "id": "h-operator-pages",
+      "from": "operator",
+      "to": "ryan",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private pages on account B"
+      },
+      "what": "decision pages with calls and a pre-filled prompt he copies back; boards he marks"
     },
     {
       "id": "h-start-lanes",
@@ -187,7 +197,17 @@
         "kind": "review-page",
         "where": "private review pages on account B"
       },
-      "what": "good or fix on each preview; the lane and the Operator read the marks"
+      "what": "good or fix, with a note, on each preview; the lane reads them, and the Operator reads them and passes them on"
+    },
+    {
+      "id": "h-ryan-marks-operator",
+      "from": "ryan",
+      "to": "operator",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private pages on account B"
+      },
+      "what": "his marks and notes on the review pages and the boards, which the Operator reads from each page's database"
     },
     {
       "id": "h-start-tests",
@@ -246,7 +266,7 @@
         "kind": "notification",
         "where": "his phone"
       },
-      "what": "each morning's digest and patrol report"
+      "what": "each morning's digest and site patrol, as a push notification; what matters for the Operator he says in the chat"
     },
     {
       "id": "h-start-research",
@@ -313,7 +333,7 @@
       "carrier": {
         "kind": "person"
       },
-      "what": "pastes the Operator's prompts into the grooph session, and brings its answers back"
+      "what": "pastes the Operator's prompts into the grooph session; the session's answers come back through its repository, with a short prompt he pastes to the Operator"
     },
     {
       "id": "h-grooph-back",
