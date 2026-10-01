@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-01",
+  "session": "01a0f879-da2e-7ad2-b098-98f0534d87aa",
+  "harness": "codex-desktop",
+  "mode": "worktree (the app's own copy of the repository)",
+  "cli_version_in_header": "0.159.2",
+  "session_cwd": "~/.codex/worktrees/7a32/grooph",
+  "worktree_commit": "ca627d4 (main, with the committed .codex/hooks.json)",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "before": "The same hooks the owner had trusted in the Codex CLI in /Users/noir/Documents/grooph. He did nothing further: no review in this copy, and ~/.codex/config.toml has no entry for the worktree's folder.",
+  "prompt": "The same as codex-8: two subagents, one word each.",
+  "owner_report": "The chat answered alpha beta; the app listed two finished subagents; it said it worked for 1 min 46 s, against 11 s for the same prompt run locally (a screenshot was given to the driver session).",
+  "result": "The hook recorded the chat in the worktree's own .grooph/events/: a session start, a turn start, two subagents each with a start and a stop, and the turn's end. So the owner's review and the folder's trust carried into the app's copy.",
+  "where_the_time_went": {
+    "thread created (transcript header)": "17:18:55Z",
+    "turn starts (hook)": "17:19:38Z, 43 s later",
+    "first subagent starts (hook)": "17:20:27Z, 49 s into the turn",
+    "second subagent starts": "17:20:29Z",
+    "subagents stop": "17:20:34Z and 17:20:36Z: 6 s each, against 1 to 2 s locally",
+    "turn ends": "17:20:43Z",
+    "reading": "Most of the extra time is before the turn began and before the first subagent started. The hook cannot be the cause: it is the same hook in both runs, it runs in the background, and it only appends a line. What the app did in those two gaps (making the worktree, starting up in it) was not established."
+  },
+  "read_at": "2026-10-01T17:25Z, with the chat open",
+  "not_seen": [
+    "a session end from the desktop app",
+    "whether the app has a /hooks screen of its own"
+  ]
+}

@@ -1,8 +1,8 @@
 {
   "date": "2026-10-01",
   "machine": "Ryan's Mac",
-  "unique_sessions": 7,
-  "checks": 8,
+  "unique_sessions": 8,
+  "checks": 9,
   "note": "Two checks of the same parent chat, not two separately launched sessions. Empty transcript lists are an evidence gap, not a completed transcript check. Rows codex-3 to codex-7 are five separate headless sessions the driver started at reconcile on 2026-10-01; each has its exec stream saved as it ran and its rollout's checksum. The owner allowed the desktop chat's transcripts to be copied on 2026-10-01; rows codex-1 and codex-2 now carry their checksums. A fourth thread appears beside the chat and its two subagents: Codex's own reviewer, which the app started.",
   "runs": [
     {
@@ -299,6 +299,45 @@
         }
       ],
       "transcript_status": "copied to local/ at 2026-10-01T17:05Z while the chat was open; only header fields were read",
+      "evidence_complete": true
+    },
+    {
+      "run": "codex-9-desktop-worktree-reviewed-hook",
+      "harness": "codex",
+      "client": "Codex Desktop, a chat the owner opened in worktree mode",
+      "version": "cli_version 0.159.2 in the chat's header",
+      "session": "01a0f879-da2e-7ad2-b098-98f0534d87aa",
+      "model": "gpt-6-luna, reasoning effort medium",
+      "model_basis": "read from the chat's rollout header and first turn",
+      "purpose": "Does the owner's review carry into the app's own copy of the repository? Yes: the hook recorded the session and two subagents there.",
+      "command": "Owner-opened desktop chat; the prompt is in codex-8's check.json",
+      "cwd": "~/.codex/worktrees/7a32/grooph",
+      "billing": "the ChatGPT sign-in (subscription); no cost or token count was reported to this check",
+      "files": [
+        "check.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T13-18-55-01a0f879-da2e-7ad2-b098-98f0534d87aa.jsonl",
+          "sha256": "a5d10a893abfeb9d73ca34ff93d97a06d1fba0cf55a450dff7e37a044a8b8fdb",
+          "bytes": 147920,
+          "what": "the chat: Codex Desktop, cli_version 0.159.2 in its header, in the app's own worktree, gpt-6-luna at effort medium"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T13-19-45-01a0f87a-b314-7e50-9f6c-bf62cccd7acd.jsonl",
+          "sha256": "c0b9daee82073948832110bf547387a909d09031bd21d237302a7e3a82ab067b",
+          "bytes": 127297,
+          "what": "first subagent, gpt-6-luna at effort medium"
+        },
+        {
+          "path": "~/.codex/sessions/2026/10/01/rollout-2026-10-01T13-19-48-01a0f87a-bb64-7822-8ed5-0ae47f55786e.jsonl",
+          "sha256": "7db546036d3b345752b4b372ca0900d5bb2ad2e979e598d204a852e6e1f8bf30",
+          "bytes": 127306,
+          "what": "second subagent, gpt-6-luna at effort medium"
+        }
+      ],
+      "transcript_status": "copied to local/ at 2026-10-01T17:25Z while the chat was open; only header fields were read",
       "evidence_complete": true
     }
   ]

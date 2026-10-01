@@ -164,11 +164,13 @@ As a graph's (`graph-ir.md` §7): two-space indent, LF, one trailing newline, ke
 
 ## 6. Example
 
-[`fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json): the owner's operation on 2026-09-30, kept generic where a detail is not needed. Its picture, as `grooph image` draws it: [light](../fixtures/maps/pictures/ryans-operation-2026-09-30.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-09-30.dark.svg).
+[`fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json): the owner's operation on 2026-10-01, as the Operator session that runs it corrected it, with the product's own details left out. Its picture, as `grooph image` draws it: [light](../fixtures/maps/pictures/ryans-operation-2026-10-01.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-10-01.dark.svg).
 
-<img src="../fixtures/maps/pictures/ryans-operation-2026-09-30.light.svg" alt="The sample operation map: three lanes, seven sessions, ten numbered handoffs" width="400">
- 
-An Operator session in the cloud starts and steers a family of worker sessions, test runners and scheduled routines for one project; a second project has its own lanes; Codex runs on the Mac; this repository's own session runs on the Mac under another account. The repositories carry almost everything that crosses an account, and the owner carries the rest. What the brief did not say is written in the map's `description` as assumed.
+<img src="../fixtures/maps/pictures/ryans-operation-2026-10-01.light.svg" alt="The sample operation map: three lanes, eight sessions, eighteen numbered handoffs" width="400">
+
+One Operator session in the cloud leads everything on its account: ten worker lanes, two long-lived test runners, short helpers and two morning routines for one project, and three lanes of a second, private project. It starts a lane with the harness's own session tool and steers it afterwards with one-shot scheduled messages. Work comes back as pull requests, as branches, and through review pages the owner marks. Codex on the Mac and this repository's own session are reached only by the owner carrying a prompt, and answer on a branch. Three of the eighteen handoffs wait on a person, and `grooph validate` names them.
+
+The first draft, [`owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json), was drawn from the owner's brief alone and guessed where the brief was silent (seven sessions, ten handoffs). It is kept as a fixture; the difference between the two is what asking the session that runs the operation was worth.
 
 ## 7. Deferred
 

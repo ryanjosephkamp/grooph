@@ -52,8 +52,12 @@ for (const golden of GOLDENS) {
   for (const path of walk(outDir)) process.stdout.write(`  ${relative(outDir, path)}\n`);
 }
 
-/** The sample map (docs/operation-map.md §6) as its picture, light and dark: what `grooph image` writes. */
-const MAP_PICTURES = ["fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"];
+/**
+ * The sample map (docs/operation-map.md §6) as its picture, light and dark: what `grooph image` writes.
+ * The first is the sample as the Operator corrected it; the second is the first draft, drawn from the owner's
+ * brief before anyone who knew the operation had seen it, kept because the tests were written against it.
+ */
+const MAP_PICTURES = ["fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json", "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"];
 
 for (const file of MAP_PICTURES) {
   const parsed = parseMapText(readFileSync(join(repoRoot, file), "utf8"));
