@@ -19,3 +19,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0013 | [grooph's value as of study one, and the pivot if study two agrees](0013-value-as-of-study-one.md) |
 | 0014 | [The operator round: one session drives and builds; a map of sessions beside the graph](0014-the-operator-round.md) |
 | 0015 | [Working rules for the operator round: a page at each gate, merge on the owner's word, every run recorded, Codex through the repository](0015-working-rules-for-the-operator-round.md) |
+| 0016 | [What the Operator's first use changed](0016-what-the-operators-first-use-changed.md) |
