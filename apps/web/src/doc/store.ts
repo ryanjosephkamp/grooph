@@ -6,8 +6,10 @@
  * Undo is a bounded stack of whole documents (the document is immutable, so a
  * step costs only the objects it changed). Typing into one field is one step,
  * not one per keystroke: an edit made by typing (see `typing`) that changes
- * a text field the typing before it changed too, soon after it, joins that
- * step (a name and the id that follows it change together). Taps, drags and deletions are always steps of their own.
+ * a field the typing before it changed too, soon after it, joins that step (a
+ * name and the id that follows it change together; the digits of a number
+ * are one step, as the letters of a name are). Taps, drags and deletions are
+ * always steps of their own.
  */
 import { useSyncExternalStore } from "react";
 
@@ -112,16 +114,20 @@ export const useDoc = (store: DocStore): Graph => useSyncExternalStore(store.sub
 export const useHistory = (store: DocStore): History => useSyncExternalStore(store.subscribe, store.getHistory);
 
 /**
- * The paths of the text fields an edit changed, joined, when every change is
- * one string replacing another at the same place; null for anything
- * structural (an object added or removed, a number, a list growing). Unchanged
- * subtrees are shared between documents, so the walk skips them by identity.
+ * The paths of the typed fields an edit changed, when every change is one
+ * string or number replacing another at the same place, or a string or number
+ * appearing or going where the other document has nothing (a number field
+ * emptied on the way to its next value); null for anything structural (an
+ * object added or removed, a list growing). Unchanged subtrees are shared
+ * between documents, so the walk skips them by identity.
  */
+const isTyped = (v: unknown): v is string | number => typeof v === "string" || typeof v === "number";
+
 export function textFieldsChanged(before: unknown, after: unknown): Set<string> | null {
   const paths: string[] = [];
   const walk = (a: unknown, b: unknown, path: string): boolean => {
     if (a === b) return true;
-    if (typeof a === "string" && typeof b === "string") {
+    if (isTyped(a) && isTyped(b) && typeof a === typeof b) {
       paths.push(path);
       return true;
     }
@@ -130,10 +136,16 @@ export function textFieldsChanged(before: unknown, after: unknown): Set<string> 
       return a.every((item, i) => walk(item, b[i], `${path}/${i}`));
     }
     if (a && b && typeof a === "object" && typeof b === "object" && !Array.isArray(a) && !Array.isArray(b)) {
-      const ka = Object.keys(a);
-      const kb = Object.keys(b);
-      if (ka.length !== kb.length || ka.some((k, i) => k !== kb[i])) return false;
-      return ka.every((k) => walk((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k], `${path}/${k}`));
+      const ra = a as Record<string, unknown>;
+      const rb = b as Record<string, unknown>;
+      for (const k of new Set([...Object.keys(ra), ...Object.keys(rb)])) {
+        const here = `${path}/${k}`;
+        if (k in ra && k in rb) {
+          if (!walk(ra[k], rb[k], here)) return false;
+        } else if (isTyped(k in ra ? ra[k] : rb[k])) paths.push(here);
+        else return false;
+      }
+      return true;
     }
     return false;
   };

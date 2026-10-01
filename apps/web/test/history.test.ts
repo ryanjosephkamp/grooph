@@ -92,10 +92,39 @@ describe("undo and redo (handoff 0007, criterion 6)", () => {
     expect(store.get().goal).toBe("x");
   });
 
-  test("textFieldsChanged names string edits in place, and nothing structural", () => {
+  test("typing a number is one step, through the moment the field is empty (review 0007)", () => {
+    const start = reviewLoop();
+    const { store, tick } = clocked(start);
+    const limit = (n: number | undefined) =>
+      typing(() =>
+        store.update((d) => ({
+          ...d,
+          loops: d.loops.map((l) => ({ ...l, stops: l.stops.map((s) => (s.kind === "max-iterations" ? ({ kind: s.kind, ...(n === undefined ? {} : { n }) } as typeof s) : s)) })),
+        })),
+      );
+    const shown = () => (store.get().loops[0]!.stops.find((s) => s.kind === "max-iterations") as { n?: number }).n;
+    const before = shown();
+    // Select-all and type 12: 1, then 12. Then clear it and type 7.
+    for (const n of [1, 12, undefined, 7]) {
+      limit(n);
+      tick(150);
+    }
+    expect(shown()).toBe(7);
+    expect(store.undo()).toBe(true);
+    expect(shown()).toBe(before);
+    expect(store.get()).toBe(start);
+  });
+
+  test("textFieldsChanged names string and number edits in place, and nothing structural", () => {
     const doc = reviewLoop();
     expect(textFieldsChanged(doc, { ...doc, goal: "x" })).toEqual(new Set(["/goal"]));
-    expect(textFieldsChanged(doc, { ...doc, version: 2 })).toBeNull();
+    expect(textFieldsChanged(doc, { ...doc, version: 2 })).toEqual(new Set(["/version"]));
+    // A typed value appearing or going is the same field; an object or a list doing so is structure.
+    const { goal: _goal, ...noGoal } = doc;
+    expect(textFieldsChanged(doc, noGoal)).toEqual(new Set(["/goal"]));
+    expect(textFieldsChanged(noGoal, doc)).toEqual(new Set(["/goal"]));
+    expect(textFieldsChanged(doc, { ...doc, lineage: { pattern: "review-gate" } })).toBeNull();
+    expect(textFieldsChanged(doc, { ...doc, goal: 3 })).toBeNull();
     expect(textFieldsChanged(doc, { ...doc, nodes: doc.nodes.slice(1) })).toBeNull();
     expect(textFieldsChanged(doc, doc)).toBeNull();
   });

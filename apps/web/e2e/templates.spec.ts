@@ -167,10 +167,11 @@ test("Insert a fragment: the id map is shown once, and the new nodes are selecte
   await expect(node(page, "builder-2")).toBeVisible();
   await expect(node(page, "tests")).toBeVisible();
 
-  // One undo takes the whole insert back.
-  await sheet(page).getByRole("button", { name: "Done" }).tap();
-  await toolbar(page).getByRole("button", { name: "Undo" }).tap();
+  // One undo takes the whole insert back, and the map of an insert that is gone goes with it (review 0007).
+  await page.keyboard.press("Control+z");
   await expect(node(page, "builder-2")).toHaveCount(0);
+  await expect(sheet(page).getByRole("list", { name: "Id map" })).toHaveCount(0);
+  await expect(sheet(page).getByRole("button", { name: "Insert as a subgraph" })).toBeVisible();
   await expect(node(page, "act")).toBeVisible();
 });
 

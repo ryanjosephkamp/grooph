@@ -115,6 +115,33 @@ test("typing into a list field is one step too", async ({ page }) => {
   await expect(inputs).toHaveValue(before);
 });
 
+test("an undo shows in a list field and a number field that still have focus (review 0007)", async ({ page }) => {
+  await open(page);
+  await node(page, "builder").tap();
+  const inputs = sheet(page).getByLabel("Inputs", { exact: true });
+  const before = await inputs.inputValue();
+  await inputs.focus();
+  await inputs.evaluate((el: HTMLTextAreaElement) => el.setSelectionRange(el.value.length, el.value.length));
+  await inputs.pressSequentially(" too", { delay: 40 });
+  await expect(inputs).toHaveValue(`${before} too`);
+  await page.keyboard.press("Control+z");
+  await expect(inputs).toBeFocused();
+  await expect(inputs).toHaveValue(before);
+  await expect(undoButton(page)).toBeDisabled();
+
+  // A number typed digit by digit is one step, and its field follows the undo as well.
+  await page.locator(".loop-pill").first().tap();
+  const rounds = sheet(page).getByLabel("Rounds at most", { exact: true });
+  const was = await rounds.inputValue();
+  await rounds.focus();
+  await rounds.evaluate((el: HTMLInputElement) => el.select());
+  await rounds.pressSequentially("12", { delay: 40 });
+  await expect(rounds).toHaveValue("12");
+  await page.keyboard.press("Control+z");
+  await expect(rounds).toHaveValue(was);
+  await expect(undoButton(page)).toBeDisabled();
+});
+
 test("the undo stack is at least 50 steps deep", async ({ page }) => {
   await open(page);
   await node(page, "critic").tap();
