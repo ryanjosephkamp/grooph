@@ -44,6 +44,9 @@ for (const day of days) {
     const price = run.cost_usd_reported !== undefined ? `$${run.cost_usd_reported.toFixed(4)}` : "subscription";
     console.log(`${run.run.padEnd(30)} ${run.harness.padEnd(12)} ${price.padStart(12)}  transcripts ${same}/${run.transcripts.length} match${gone ? `, ${gone} no longer on this machine` : ""}${notes.length ? `  ! ${notes.join("; ")}` : ""}`);
   }
-  console.log(`${basename(dir)}: ${ledger.runs.length} sessions; Claude Code reported $${cost.toFixed(4)} in all`);
+  // A row is one check; two rows may describe one session (the ledger says so in `unique_sessions`). Codex reports no dollars.
+  const sessions = new Set(ledger.runs.map((r) => r.session ?? r.run)).size;
+  const dollars = ledger.runs.some((r) => r.cost_usd_reported !== undefined) ? `; Claude Code reported $${cost.toFixed(4)} in all` : "; no dollar cost was reported (Codex prints tokens)";
+  console.log(`${basename(dir)}: ${ledger.runs.length} rows, ${sessions} sessions${dollars}`);
 }
 process.exit(bad ? 1 : 0);

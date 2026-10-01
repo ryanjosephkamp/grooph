@@ -1,0 +1,8 @@
+JSON, recorded limits, empty-event provenance, changed passages, rendered local links, ignored-local path, and git diff --check: passed.
+
+node experiments/hooks/check.mjs 2026-10-01
+codex-1-interactive-project-hooks codex        subscription  transcripts 0/0 match
+codex-2-interactive-subagents  codex        subscription  transcripts 0/0 match
+2026-10-01: 2 sessions; Claude Code reported $0.0000 in all
+
+The checker labels two ledger rows as sessions; these are two checks of one parent chat. 0/0 transcript matches verifies no transcripts. The printed Claude Code total is not Codex billing or measured cost.
