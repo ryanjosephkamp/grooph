@@ -46,6 +46,7 @@ export function RunView({ bundle, origin, back = { href: "#/", label: "All graph
   const [selected, setSelected] = useState<Id | null>(null);
   const [kept, setKept] = useState<{ key: string; replaced: boolean } | null>(null);
   const [removing, setRemoving] = useState<"ask" | "done" | null>(null);
+  const [tall, setTall] = useState(false);
 
   const live = origin.kind === "live";
   const notes = orderedNotes(summary, live);
@@ -87,7 +88,7 @@ export function RunView({ bundle, origin, back = { href: "#/", label: "All graph
   };
 
   return (
-    <div className="run-view">
+    <div className={`run-view${tall ? " is-tall" : ""}`}>
       <header className="topbar">
         <a className="icon-btn" href={back.href} aria-label={back.label}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -133,6 +134,12 @@ export function RunView({ bundle, origin, back = { href: "#/", label: "All graph
             })}
           </nav>
         ) : null}
+        <button type="button" className="canvas-size" aria-pressed={tall} onClick={() => setTall((t) => !t)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            {tall ? <path d="M12 21v-7M8 17l4-4 4 4M12 3v7M8 7l4 4 4-4" /> : <path d="M12 14v7M8 18l4 4 4-4M12 10V3M8 6l4-4 4 4" />}
+          </svg>
+          {tall ? "Smaller graph" : "Bigger graph"}
+        </button>
       </main>
 
       <section className="run-panel" aria-label="Run details">

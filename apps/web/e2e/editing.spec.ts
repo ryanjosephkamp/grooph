@@ -27,6 +27,8 @@ test("deleting a node, an edge or a loop shows Deleted · Undo, and Undo brings 
   await expect(toast(page)).toHaveCount(0);
   await expect(status(page)).toHaveText("1 warning");
 
+  // The fixture's own layout is wider than a phone, so it opens zoomed in on its start; the long back edge needs the whole of it.
+  await fit(page);
   await edgeLabel(page, "e-gate-reject").tap();
   await sheet(page).getByRole("button", { name: "Delete edge" }).tap();
   await expect(toast(page)).toContainText("Deleted edge merge-gate → builder");

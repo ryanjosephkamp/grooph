@@ -14,7 +14,8 @@ import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { edgeBends, type Box } from "./bends.js";
-import { FIT } from "./fit.js";
+import { EDITOR_PAD, FIT } from "./fit.js";
+import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
 
@@ -177,6 +178,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       attributionPosition="top-right"
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
+      <OpeningView pad={EDITOR_PAD} />
     </ReactFlow>
   );
 }
