@@ -26,3 +26,4 @@ export { picture } from "./picture/graph-picture.js";
 export { PICTURE_WIDTH, type PictureOptions, type PictureTheme } from "./picture/svg.js";
 export * from "./outline.js";
 export { offlinePage, type OfflinePageOptions } from "./offline.js";
+export * from "./events.js";

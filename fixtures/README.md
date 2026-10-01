@@ -13,6 +13,7 @@ fixtures/
   proposals/invalid/<CODE>/<name>.grooph-proposals.json   proposal sets that report exactly that code
   golden/<harness>/<graph>/           expected compiler output, byte-for-byte
   pictures/<graph-id>.<theme>.svg     two graphs as their pictures (docs/exports.md), light and dark, byte-for-byte
+  events/<name>.jsonl                 session events as the hook writes them (docs/subagents.md); two are real recordings, see events/README.md
   maps/valid/<name>.grooph-map.json            operation maps (docs/operation-map.md) that validate clean
   maps/invalid/<CODE>/<name>.grooph-map.json   maps that report exactly that code
   maps/pictures/<map-id>.<theme>.svg           the sample map's picture, light and dark, byte-for-byte

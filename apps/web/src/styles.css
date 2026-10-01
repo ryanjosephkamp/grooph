@@ -3375,3 +3375,168 @@ div.field-diff.ins {
     padding-right: 10px;
   }
 }
+
+/* ─── live sessions (docs/subagents.md §6) ───────────────────────────── */
+
+.live-view {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+}
+.live-main {
+  overflow: auto;
+  padding: 12px 12px calc(28px + env(safe-area-inset-bottom));
+}
+.live-group {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.live-source {
+  margin: 14px 4px 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+}
+.live-empty {
+  max-width: 640px;
+  margin: 24px auto;
+  padding: 0 8px;
+}
+.live-session {
+  margin: 0 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.live-session.live-working {
+  border-color: var(--accent);
+}
+.live-session-head {
+  padding: 12px 14px 10px;
+}
+.live-session-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.live-harness {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--kind-agent);
+}
+.live-harness-codex {
+  color: var(--kind-check);
+}
+.live-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+.live-state::before {
+  display: none;
+}
+.live-state-working {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.live-state-waiting {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.live-state-ended {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.live-session-sub,
+.live-session-facts {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.live-session-facts {
+  color: var(--ink-2);
+}
+.live-agents {
+  list-style: none;
+  margin: 0;
+  padding: 4px 14px 12px;
+  border-top: 1px solid var(--line);
+}
+.live-agent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0 4px;
+}
+.live-mark {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.live-mark svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.live-agent.is-running .live-mark {
+  background: var(--accent);
+  box-shadow: 0 0 0 0 var(--accent);
+  animation: live-ring 1.6s ease-out infinite;
+}
+@keyframes live-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 9px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-agent.is-running .live-mark {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+}
+.live-agent-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.live-agent-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.live-id {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-3);
+}
+.live-agent-facts {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.live-foot {
+  max-width: 640px;
+  margin: 8px auto 0;
+  padding: 0 4px;
+}

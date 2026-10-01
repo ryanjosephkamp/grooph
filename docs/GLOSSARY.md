@@ -32,3 +32,6 @@ Terms as this project uses them. Definitions that carry rules live in `graph-ir.
 | **Handoff** | Work passing from one session to another, in one direction, by a named carrier. |
 | **Carrier** | What actually moves a handoff across: a branch, a pull request, a session message, a scheduled message, a review page, a person. |
 | **Picture** | A projection with its words on it, laid out for a phone (`mapPicture`). The glyph is the wordless one. |
+| **Session event** | One line a hook appended when a session or a subagent started or stopped (`docs/subagents.md`, A-012): ids, names and times, never content. |
+| **Event hook** | grooph's hook, `.grooph/hooks/grooph-event.mjs`: appends one event and exits 0. It records; it cannot steer. |
+| **Live view** | What `grooph watch` shows from the events: sessions, their subagents, and what is running now. |

@@ -34,7 +34,9 @@ grooph runs show <run dir> [--json]              the summary, amendments, propos
 grooph runs bundle <run dir> --out <file>        self-contained bundle
 grooph share <run dir>                           a link that opens the run view (warns when long; bundle file is the fallback)
 grooph adopt <run dir> [--into <graph file>] [--write]   show the diff; with --write, write the next version (default target .grooph/graphs/<id>.grooph.json)
-grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]
+grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--port 4174] [--host 127.0.0.1] [--open]
+grooph hooks install | status | remove [--harness claude-code,codex] [--tools] [--local]     the event hook (§6)
+grooph sessions [<source>...] [--json]            what the hook has recorded, as text or data
 ```
 
 `watch` serves the built web app and one read-only JSON endpoint with the current bundle, re-read from disk on each request; with a graph dir it follows the newest run. It binds to `127.0.0.1` unless `--host` is given; with another host it prints that anyone on that network can read the run, and the URL to open from a phone. It writes nothing and needs no credentials. It is a local viewer, not a backend (decision 0001 anticipated it).
@@ -57,6 +59,14 @@ grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]
 - The stop that fired is read from a loop note's `stop` field when present (graph-ir §6) and inferred from its text for older runs.
 - The timeline is in append order; timestamps are shown, not trusted for ordering.
 
-## 6. Out of scope here
+## 6. Hook-written events (slice 0027, amendment A-012)
 
-Hook-written start/stop events and token accounting from the harness; a hosted monitor; notifications; editing a run. The monitor must never add instructions to a package beyond the one started note.
+A second file beside the run notes, written by the harness's hooks and not by the lead: `.grooph/events/<session id>.jsonl`, one line when a session or a subagent starts or stops. [`subagents.md`](subagents.md) has its shape, how to install the hook in Claude Code and in Codex, and what each harness tells it.
+
+- `grooph watch` serves it at `/grooph/api/live.json`, read from disk on every request like the run, and merges more sources given with `--events`. `grooph watch --sessions` opens on `#/live`, the sessions and their subagents; so does `grooph watch` in a project that has events and no run.
+- In the run view, a node is drawn running from the moment the hook sees a subagent named `<graph-id>--<node-id>` start, whether or not the lead has written its `started` note (`nodesLive` and `overlayRun` in core). Only events from after the run's first timestamp count. An outcome is still the lead's note: a hook cannot know a verdict.
+- The package, the lead's brief and the run folder are unchanged. A run does not depend on the hook, and the hook adds no instruction to any agent.
+
+## 7. Out of scope here
+
+Token accounting from the harness; a hosted monitor; notifications; editing a run. The monitor must never add instructions to a package beyond the one started note. Asking the lead to write fewer notes because a hook now writes them is slice 0021, and needs its own proving run.

@@ -5,6 +5,7 @@ import type { TemplateSource } from "./doc/templates.js";
 import "./store/persist.js";
 import { EditorScreen } from "./ui/Editor.js";
 import { Library } from "./ui/Library.js";
+import { LiveSessions } from "./ui/live/LiveSessions.js";
 import { OpenScreen } from "./ui/open/OpenScreen.js";
 import { LiveRun, StoredRun } from "./ui/run/RunScreens.js";
 import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
@@ -16,6 +17,7 @@ type Route =
   | { name: "graph"; key: string; fresh: boolean }
   | { name: "open"; payload: string; candidate?: string }
   | { name: "live-run" }
+  | { name: "live" }
   | { name: "run"; key: string }
   | { name: "templates" }
   | { name: "template"; source: TemplateSource; id: string; use: boolean };
@@ -24,7 +26,8 @@ type Route =
  * Hash routes, so GitHub Pages needs no rewrite rules: `#/`, `#/g/<key>`,
  * `#/open?d=<payload>[&c=<candidate>]`, `#/templates`,
  * `#/templates/<built-in|yours>/<id>[/use]`, `#/run?live` (the run `grooph
- * watch` serves) and `#/run/<key>` (a run kept on this device). A run from a
+ * watch` serves), `#/live` (the sessions it serves) and `#/run/<key>` (a run
+ * kept on this device). A run from a
  * link opens at `#/open?d=…` like any share.
  */
 /**
@@ -43,6 +46,7 @@ function decodeKey(raw: string): string {
 
 function parse(hash: string): Route {
   if (hash === "#/run?live") return { name: "live-run" };
+  if (hash === "#/live") return { name: "live" };
   const run = /^#\/run\/([^?]+)$/.exec(hash);
   if (run) return { name: "run", key: decodeKey(run[1]!) };
   if (hash === "#/templates") return { name: "templates" };
@@ -71,6 +75,7 @@ export function App() {
   if (route.name === "graph") return <EditorScreen key={route.key} graphKey={route.key} fresh={route.fresh} />;
   if (route.name === "open") return <OpenScreen payload={route.payload} candidate={route.candidate} />;
   if (route.name === "live-run") return <LiveRun />;
+  if (route.name === "live") return <LiveSessions />;
   if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
   if (route.name === "templates") return <TemplatesScreen />;
   if (route.name === "template") {

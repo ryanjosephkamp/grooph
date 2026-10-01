@@ -1,4 +1,4 @@
-import type { Id, RunBundle } from "@grooph/core";
+import { overlayRun, type Id, type NodeLive, type RunBundle } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
 import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight } from "../../doc/run.js";
@@ -38,9 +38,23 @@ const ago = (ms: number): string => {
  * (apply to a copy). Nothing is applied to any graph without a tap, and a
  * run from a link or a watch is stored only when the person saves it.
  */
-export function RunView({ bundle, origin, back = { href: "#/", label: "All graphs" } }: { bundle: RunBundle; origin: RunOrigin; back?: { href: string; label: string } }) {
+export function RunView({
+  bundle,
+  origin,
+  back = { href: "#/", label: "All graphs" },
+  hooks,
+}: {
+  bundle: RunBundle;
+  origin: RunOrigin;
+  back?: { href: string; label: string };
+  /** what the event hook saw of this run's nodes, when the run is live and a hook is installed */
+  hooks?: Record<Id, NodeLive>;
+}) {
   const model = useMemo(() => runModel(bundle), [bundle]);
   const { summary } = model;
+  // The canvas shows a node running as soon as a hook saw its subagent start, before the lead has noted anything.
+  const onCanvas = useMemo(() => (hooks ? overlayRun(summary, hooks) : summary), [summary, hooks]);
+  const hookRunning = hooks ? Object.values(hooks).reduce((n, h) => n + h.running, 0) : 0;
   const doc = bundle.working;
   const [tab, setTab] = useState<Tab>("timeline");
   const [selected, setSelected] = useState<Id | null>(null);
@@ -108,7 +122,7 @@ export function RunView({ bundle, origin, back = { href: "#/", label: "All graph
       </header>
 
       <main className="stage run-stage">
-        <ViewCanvas doc={doc} variant="full" issues={model.issues} run={summary} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
+        <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
         {loopsIndexed.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">
             {loopsIndexed.map(({ loop, i, run }) => {
@@ -151,7 +165,7 @@ export function RunView({ bundle, origin, back = { href: "#/", label: "All graph
               {origin.error
                 ? `${origin.error} Showing what it last sent, from ${ago(origin.updatedAt)}; still trying.`
                 : origin.polling
-                  ? `Live from grooph watch · updated ${ago(origin.updatedAt)}`
+                  ? `Live from grooph watch · updated ${ago(origin.updatedAt)}${hooks ? ` · the hook sees ${hookRunning} subagent${hookRunning === 1 ? "" : "s"} running` : ""}`
                   : `The run ended; grooph watch sent its last state ${ago(origin.updatedAt)}.`}
             </p>
           ) : null}
