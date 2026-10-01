@@ -37,6 +37,7 @@ handoffs/
 Codex works a slice the same way, with three differences (decision 0015).
 
 - **Its own folder.** Codex works in a git worktree beside this clone, `/Users/noir/Documents/grooph-codex`, so its checkout never moves under a Claude Code session working here. The driver creates it on the slice's branch and builds it: `git worktree add ../grooph-codex slice/NNNN-<slug>`. One worktree, reused: the driver switches it to the next slice's branch.
+- **The Codex app does not work in that folder.** Opened on it, the desktop app makes a worktree of its own under `~/.codex/worktrees/` and runs the chat there (slice 0032). That copy holds only what git tracks, at the commit the folder was on. So everything Codex needs is committed on the slice's branch before the owner opens it: never an untracked file. Codex commits from the named folder, as it did in 0032; the `codex` command in a terminal does work in the folder it is started in.
 - **The repository is the exchange.** `HANDOFF.md` goes in on the slice's branch; `HANDBACK.md` comes back on the same branch, pushed. Nothing else passes between the harnesses, and the owner carries one prompt each way. Codex reads `AGENTS.md` by itself; it has no `grooph-handback` skill, so its handback follows `TEMPLATE-HANDBACK.md` by hand.
 - **`~/.codex` is the owner's.** Hook trust, project trust and MCP servers are his to grant. A handoff says which steps are his, in order, before the prompt.
 

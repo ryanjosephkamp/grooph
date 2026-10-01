@@ -71,6 +71,7 @@ test("install writes the hook and its settings, leaves every other setting alone
     assert.equal(await grooph(["hooks", "install", "--dir", dir, "--harness", "claude-code,codex"], io), 0);
     assert.match(text(io.stdout), /it records, it cannot steer/);
     assert.match(text(io.stdout), /Codex runs a hook only after you have reviewed it/);
+    assert.match(text(io.stdout), /Commit \.codex\/hooks\.json and \.grooph\/hooks\/: the Codex app runs a chat in its own copy of the repository/);
     assert.equal(readFileSync(join(dir, ".grooph", "hooks", "grooph-event.mjs"), "utf8"), readFileSync(hookSource(), "utf8"));
 
     const settings = JSON.parse(readFileSync(join(dir, ".claude", "settings.json"), "utf8")) as { permissions: unknown; hooks: Record<string, { matcher?: string; hooks: { type?: string; command: string; async?: boolean; timeout?: number }[] }[]> };

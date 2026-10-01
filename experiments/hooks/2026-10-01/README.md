@@ -11,3 +11,19 @@ The owner reported that he could not find grooph's hooks. Project trust and hook
 `node experiments/hooks/check.mjs 2026-10-01` can verify these record files, but its `0/0` transcript result cannot satisfy the transcript criterion. The historical all-days check was not run because it reads old `~/.codex` rollouts beyond the pending permission scope. No cost or billing amount was observed; the ledger omits the cost field, as existing Codex rows do. The checker prints its fixed subscription label and a Claude Code total; those are not a measured Codex dollar amount.
 
 The Codex statement audit is `codex-statement-review.md`; exact changed passages are in `document-changes.json` and the handback. Build/test was not required because code did not change.
+
+## Added at reconcile: five headless sessions
+
+The driver session (Claude Code) read the handback and then answered what the desktop chat could not, with five short `codex exec` sessions on the same day. Each has its exec stream saved to a file as it ran, the hook's events where there were any, and a ledger row with its session id, tokens, and its rollout's path and checksum. The rollouts are copied to `local/`, which git ignores.
+
+| Run | Folder | Question | Answer |
+|---|---|---|---|
+| `codex-3-exec-project-hooks-bypass` | Codex's folder (not in the owner's list of trusted folders) | With hook review skipped for the run, does the project's `.codex/hooks.json` load? | No. Nothing was recorded. |
+| `codex-4-exec-project-hooks-trust-override` | the same | And with the folder marked trusted for that run only (`-c projects."…".trust_level`)? | No. |
+| `codex-5-exec-trusted-project-bypass` | the main clone, which the owner's `~/.codex/config.toml` already lists as trusted | The same question in a trusted folder | **Yes.** The hook recorded the session's start, turn and end. |
+| `codex-6-exec-trusted-project-no-bypass` | the same | Without skipping review, does a hook nobody has reviewed run? | No, and Codex printed nothing about it. |
+| `codex-7-exec-mcp-plan-subagents` | the same | With grooph's MCP server attached for the run: plan, two subagents, running, note | **All worked.** Three tool calls returned; the hook recorded both subagents; `grooph sessions` showed the plan as 2 of 2 started with the note. |
+
+For runs 5 to 7 the Codex entries were installed in the main clone with `grooph hooks install --harness codex` and removed afterwards; nothing under `~/.codex` was edited, and the MCP server was attached by a `-c` override that is not saved. `mcp-server-env.json` in run 7 is what a small wrapper saw before starting the server: Codex gave it no variable naming the session.
+
+What this leaves unseen: a hook reviewed by the owner in `/hooks` and then running in an interactive chat, in the CLI or in the app.

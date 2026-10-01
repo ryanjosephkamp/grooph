@@ -23,13 +23,15 @@ under <project>/.grooph/events/. grooph watch and grooph sessions read those fil
   --dir <project>   the project (default: the current folder)
   --harness <list>  claude-code (the default), codex, or both separated by a comma
   --tools           also record every finished tool call (its name only), so a subagent
-                    shows its last tool. Without it, only the spawn tool is recorded.
+                    shows its last tool. Without it, Claude Code's spawn tool is the only one recorded.
   --local           Claude Code only: write .claude/settings.local.json (this machine)
                     instead of .claude/settings.json (shared with the repository)
 
 The hook appends one line and exits 0. It prints nothing, never blocks, and records ids,
 names and times: never a prompt, a tool's input or result, or a reply. It needs Node.
-Codex runs a hook only after you have reviewed it: open /hooks in Codex once and trust it.
+Codex runs a hook only after you have reviewed it (open /hooks in Codex once and trust it),
+and only in a folder it trusts. Commit .codex/hooks.json: the Codex app works in its own copy
+of the repository, which holds only committed files.
 What each harness tells a hook, with sources: docs/subagents.md.`;
 
 export const SESSIONS_HELP = `grooph sessions [<source>...] [--json]
@@ -169,7 +171,12 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     io.out(`From the next session on, ${list.join(" and ")} sessions in this project append to ${EVENTS_DIR}/<session id>.jsonl:`);
     io.out(`  one line when a session or a subagent starts or stops${flags.tools ? ", and one per finished tool call (the tool's name only)" : ""}.`);
     io.out("The hook prints nothing and always exits 0: it records, it cannot steer. It needs node on the PATH.");
-    if (list.includes("codex")) io.out("Codex runs a hook only after you have reviewed it: open /hooks in Codex once and trust it.");
+    if (list.includes("codex")) {
+      // Slice 0032: each of these, when missing, left `grooph sessions` empty with no word from Codex.
+      io.out("Codex runs a hook only after you have reviewed it: open /hooks in Codex once and trust it. The folder must also be one Codex trusts.");
+      io.out("Commit .codex/hooks.json and .grooph/hooks/: the Codex app runs a chat in its own copy of the repository, which holds only committed files.");
+      io.out("If grooph sessions stays empty after a Codex session, one of these is missing. Codex does not say which.");
+    }
     io.out(`Watch: grooph watch --sessions   ·   List: grooph sessions   ·   Undo: grooph hooks remove${flags.harness ? ` --harness ${flags.harness}` : ""}`);
     io.out(`The events are a record of this machine's sessions. Commit ${EVENTS_DIR}/ to share them, or add it to .gitignore.`);
     return 0;

@@ -1,0 +1,4 @@
+{"v":1,"t":"2026-10-01T14:30:19.616Z","harness":"codex","event":"session-start","session":"01a0f7df-85da-7042-9121-05af7c8cb6bc","model":"gpt-6-luna","cwd":"/Users/noir/Documents/grooph"}
+{"v":1,"t":"2026-10-01T14:30:19.616Z","harness":"codex","event":"turn-start","session":"01a0f7df-85da-7042-9121-05af7c8cb6bc","model":"gpt-6-luna","cwd":"/Users/noir/Documents/grooph"}
+{"v":1,"t":"2026-10-01T14:30:21.158Z","harness":"codex","event":"turn-end","session":"01a0f7df-85da-7042-9121-05af7c8cb6bc","model":"gpt-6-luna","cwd":"/Users/noir/Documents/grooph"}
+{"v":1,"t":"2026-10-01T14:30:21.251Z","harness":"codex","event":"session-end","session":"01a0f7df-85da-7042-9121-05af7c8cb6bc","cwd":"/Users/noir/Documents/grooph"}
