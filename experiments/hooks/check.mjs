@@ -8,7 +8,8 @@
  * transcript the harness wrote (under ~/.claude or ~/.codex) still has the
  * checksum the ledger recorded. A transcript that is gone is reported as
  * missing, not as a failure: harnesses clear old transcripts, and the copy in
- * <day>/local/ (not committed) is checked in its place.
+ * <day>/local/ (not committed) is checked in its place. So is one that has
+ * grown since, when its chat was still open at the time.
  */
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -35,10 +36,13 @@ for (const day of days) {
     for (const t of run.transcripts) {
       const path = t.path.replace(/^~/, homedir());
       const copy = kept.find((k) => basename(k) === basename(path));
-      const at = existsSync(path) ? path : copy;
-      if (at === undefined) gone++;
-      else if (sha(at) === t.sha256) same++;
-      else (bad++, notes.push(`${basename(path)} has changed since it was recorded`));
+      // A transcript of a chat that was still open when it was recorded grows afterwards: the copy taken then is the record.
+      const places = [existsSync(path) ? path : undefined, copy].filter((x) => x !== undefined);
+      if (places.length === 0) gone++;
+      else if (places.some((at) => sha(at) === t.sha256)) {
+        same++;
+        if (existsSync(path) && sha(path) !== t.sha256) notes.push(`${basename(path)} has grown since; the copy in local/ matches`);
+      } else (bad++, notes.push(`${basename(path)} has changed since it was recorded`));
     }
     cost += run.cost_usd_reported ?? 0;
     const price = run.cost_usd_reported !== undefined ? `$${run.cost_usd_reported.toFixed(4)}` : "subscription";

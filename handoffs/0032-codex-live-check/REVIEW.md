@@ -63,3 +63,7 @@ All four accepted. Working from the app's worktree was not Codex's choice; leavi
 2. Say whether grooph's repository should carry the Codex hook entries (recommended: yes; it is what makes the next step possible in the app).
 3. Then, once: open a Codex chat on grooph, type `/hooks`, review grooph's entries, start a new chat, ask for anything, and run `grooph sessions` in the folder Codex worked in. That is the one thing still unseen.
 4. Codex asked to copy its own chat's transcript into the record. Yours to allow or not; the review does not depend on it.
+
+## Afterwards, the same day
+
+The owner did steps 2 and 3. The repository carries the Codex entries (pull request #12); he reviewed them in the CLI's `/hooks`; and a Codex desktop chat run locally in the repository was recorded by the hook, with two subagents ([`codex-8-desktop-local-reviewed-hook`](../../experiments/hooks/2026-10-01/codex-8-desktop-local-reviewed-hook/)). The slice's last unseen item is seen. What remains unknown is narrower: the app's worktree mode, and what the second thread is that the app starts beside a chat.

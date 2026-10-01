@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-01",
+  "session": "01a0f868-329f-7e61-bcba-aadcfffc98f7",
+  "harness": "codex-desktop",
+  "mode": "local (not a worktree)",
+  "cli_version_in_header": "0.159.2",
+  "session_cwd": "/Users/noir/Documents/grooph",
+  "model": "gpt-6-luna",
+  "effort": "medium",
+  "before": "The owner opened the Codex CLI in this folder, saw grooph's six entries in /hooks and trusted them. The folder was already on his list of trusted folders. The entries are the committed .codex/hooks.json (pull request #12).",
+  "prompt": "Use spawn_agent twice, in one turn: the first subagent replies with the single word alpha, the second with the single word beta. Wait for both, then tell me the two words. Do not read or change any file.",
+  "owner_report": "The chat answered alpha and beta; the app listed two finished subagents (a screenshot was given to the driver session).",
+  "result": "The hook recorded the chat: a session start, a turn start, two subagents each with a start and a stop, and the turn's end. No session end: the chat was still open when this was read.",
+  "also_recorded": {
+    "events-second-thread.jsonl": "A second session id in the same folder, started half a second after the chat, one turn of 23 seconds, no subagents, and no rollout file under ~/.codex/sessions. The chat did not start it. It is taken to be a helper thread of the app's own; what it is was not established.",
+    "events-earlier-session-end.jsonl": "One line: a session ending 27 seconds before the chat began, with no start recorded and no rollout file found. Consistent with the CLI session in which the hooks were trusted (a session that began before the trust records only what happens after it); not established."
+  },
+  "order_note": "The chat's turn-start line was written before its session-start line, with the same timestamp: both hooks run in the background and race. The reader does not depend on their order.",
+  "read_at": "2026-10-01T17:05Z, with the chat open; a transcript's checksum is of the file as it was then.",
+  "not_seen": [
+    "the same in the app's worktree mode",
+    "whether the desktop app has a /hooks screen of its own (the review was done in the CLI)",
+    "a session end from the desktop app"
+  ]
+}

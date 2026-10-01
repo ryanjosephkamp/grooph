@@ -3,8 +3,8 @@
   "files": [
     {
       "path": "README.md",
-      "bytes": 5017,
-      "sha256": "dd33acbf93034443ce188912f03c5ddcb29da367986f1f4620c31893e936af00"
+      "bytes": 6044,
+      "sha256": "9676f768f96b8ab818f0a194bec4237594168bbe2181a8d160e0b13936de5210"
     },
     {
       "path": "codex-1-interactive-project-hooks/check.json",
@@ -117,6 +117,26 @@
       "sha256": "4c8dc68466f2841bbd56347a79f0586961ad138a9f22176e366efce0479465c0"
     },
     {
+      "path": "codex-8-desktop-local-reviewed-hook/check.json",
+      "bytes": 2231,
+      "sha256": "449161247489a2e98c7657dd52933334bdb770537b0a2dd864489ebc5935813d"
+    },
+    {
+      "path": "codex-8-desktop-local-reviewed-hook/events-earlier-session-end.jsonl",
+      "bytes": 165,
+      "sha256": "a2677518c3efa3f59e981a34dded34317ae638079173c9f881af73ba85438dde"
+    },
+    {
+      "path": "codex-8-desktop-local-reviewed-hook/events-second-thread.jsonl",
+      "bytes": 721,
+      "sha256": "b6e3e857278e1e063e03084087c2d88b88ae973778dc90a9c9f9190af604f210"
+    },
+    {
+      "path": "codex-8-desktop-local-reviewed-hook/events.jsonl",
+      "bytes": 1668,
+      "sha256": "8c46a82c75a4ad3bbd558e35a142e11e406efd30a6fe7d718083eeef96c980e8"
+    },
+    {
       "path": "codex-statement-review.md",
       "bytes": 5972,
       "sha256": "469d683c7dea631e6664b70f69ba1ece30c934ce47b0e2474f260365e4c4721f"
@@ -128,8 +148,8 @@
     },
     {
       "path": "ledger.json",
-      "bytes": 13895,
-      "sha256": "a0d267f2d379731ff2e3bf8c4eba11c9ec97a017764bee9222142051864a6366"
+      "bytes": 16114,
+      "sha256": "cec86e658a016a9b26956316a5973dcc2879d94702ce072e958fb905a9c7239f"
     },
     {
       "path": "verification.txt",

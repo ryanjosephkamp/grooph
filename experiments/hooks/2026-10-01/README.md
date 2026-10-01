@@ -31,3 +31,11 @@ What this leaves unseen: a hook reviewed by the owner in `/hooks` and then runni
 ## Added on the owner's word: the desktop chat's transcripts
 
 Codex asked to copy its own chat's transcripts into the record and waited for an answer. The owner said yes on 2026-10-01. Four files are now in `local/codex-1-interactive-project-hooks/` (not in git), with their checksums in the ledger: the chat, its two subagents (`/root/readme_word`, `/root/hello_check`), and a fourth thread the app started itself, which its header calls `guardian` and which ran on `codex-auto-review`. Only the headers were read. They settle what the handback had to leave open: the chat was **Codex Desktop**, its header gives CLI version **0.159.2**, and the chat and both subagents ran on **gpt-6.1-sol at effort xhigh**, in `~/.codex/worktrees/7a29/grooph-codex`.
+
+## The last piece: a reviewed hook in a desktop chat
+
+After the hook file was committed (pull request #12), the owner opened the Codex CLI in the repository, saw grooph's six entries in `/hooks` and trusted them. He then opened a Codex Desktop chat on the same folder, run locally and not in a worktree, and asked for two subagents. **The hook recorded it**: the session, its turn, and both subagents with a start and a stop each. The record is [`codex-8-desktop-local-reviewed-hook/`](codex-8-desktop-local-reviewed-hook/); `check.json` says what was seen and what was not.
+
+Two other things turned up in the same folder's events. A second session id began half a second after the chat, ran one turn and has no transcript file: a thread the app started for itself, which the hook cannot tell from a real session. And a lone session end from 27 seconds earlier, which fits the CLI session where the hooks were trusted. Neither was established beyond that.
+
+Not seen: the app's worktree mode, and a session's end from the app.
