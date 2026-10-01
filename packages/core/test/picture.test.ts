@@ -1,0 +1,160 @@
+/**
+ * The picture, the outline and the offline page (slice 0025): every graph in
+ * the repository draws, says everything it holds, and does so the same way
+ * twice; the offline page is one file that asks the network for nothing.
+ */
+
+import assert from "node:assert/strict";
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { test } from "node:test";
+
+import { canonicalize } from "../src/canonicalize.js";
+import { canonicalizeMap, parseMapText } from "../src/map.js";
+import { offlinePage } from "../src/offline.js";
+import { mapOutline, outline, outlineMarkdown } from "../src/outline.js";
+import { parseGraphText } from "../src/parse.js";
+import { picture } from "../src/picture/graph-picture.js";
+import { assignTracks, textWidth, truncate, wrap } from "../src/picture/svg.js";
+import type { Graph } from "../src/types.js";
+import { fixturesDir, read, repoRoot, validFixtures } from "./helpers.js";
+
+const graph = (path: string): Graph => parseGraphText(read(path)).doc!;
+const patternsDir = join(repoRoot, "patterns");
+const everyGraph = (): { name: string; doc: Graph }[] => [
+  ...validFixtures().map((f) => ({ name: `fixtures/valid/${f.name}`, doc: graph(f.path) })),
+  ...readdirSync(patternsDir)
+    .filter((name) => name.endsWith(".grooph.json"))
+    .sort()
+    .map((name) => ({ name: `patterns/${name}`, doc: graph(join(patternsDir, name)) })),
+];
+const reviewLoop = (): Graph => graph(join(fixturesDir, "valid", "review-loop.grooph.json"));
+
+test("every graph in the repository draws: each node, edge and loop once, the same bytes twice, 400 units wide", () => {
+  const all = everyGraph();
+  assert.ok(all.length >= 22, `expected the valid fixtures and the twenty patterns, found ${all.length}`);
+  for (const { name, doc } of all) {
+    const svg = picture(doc, { theme: "light" });
+    assert.equal(svg, picture(doc, { theme: "light" }), `${name}: not deterministic`);
+    assert.match(svg, /^<svg [^>]*data-picture="graph" viewBox="0 0 400 [\d.]+"/, name);
+    for (const n of doc.nodes) assert.equal(svg.split(`data-node="${n.id}"`).length - 1, 1, `${name}: node ${n.id} is drawn ${svg.split(`data-node="${n.id}"`).length - 1} times`);
+    for (const e of doc.edges) assert.equal(svg.split(`data-edge="${e.id}"`).length - 1, 1, `${name}: edge ${e.id}`);
+    for (const l of doc.loops) assert.equal(svg.split(`data-loop="${l.id}"`).length - 1, 1, `${name}: loop ${l.id}`);
+    assert.ok(!svg.includes("NaN") && !svg.includes("undefined"), `${name}: a number or a word is missing`);
+    assert.ok(!svg.includes("var(--"), `${name}: a light picture carries its colours`);
+  }
+});
+
+test("the committed pictures are what the code draws, light and dark", () => {
+  for (const doc of [reviewLoop(), graph(join(patternsDir, "specialist-critic-bank.grooph.json"))]) {
+    for (const theme of ["light", "dark"] as const) {
+      const file = join(fixturesDir, "pictures", `${doc.id}.${theme}.svg`);
+      assert.ok(existsSync(file), `${file} is missing: run \`pnpm --filter @grooph/core run golden:write\``);
+      assert.equal(read(file), picture(doc, { theme }), `${file} is stale: run \`pnpm --filter @grooph/core run golden:write\` and look at it`);
+    }
+  }
+});
+
+test("the picture says what the graph holds: names, roles, conditions, the bar and every stop in order", () => {
+  const svg = picture(reviewLoop(), { theme: "light" });
+  for (const said of ["Review loop", "Builder", "Critic", "Merge approval", "Done", "builder · strong · high", "Human gate", ">pass<", ">fail<", "Build-review cycle", "judgment loop", "Bar: Review checklist.", "1. bar passed", "2. max iterations: 4", "3. budget: 40 turns"]) {
+    assert.ok(svg.includes(said), `the picture does not say "${said}"`);
+  }
+  // A back edge is drawn in its loop's colour, dashed, in the right margin; an auto picture follows the viewer.
+  assert.match(svg, /<g data-edge="e-review-fail"><path [^>]*stroke-dasharray="5 3" style="stroke:#7a4cc2"/);
+  assert.match(picture(reviewLoop()), /prefers-color-scheme:dark/);
+  // An empty graph, and one whose edge points nowhere, still draw.
+  const empty: Graph = { grooph: 0, id: "empty", name: "Empty", version: 1, nodes: [], edges: [], loops: [] };
+  assert.ok(picture(empty, { theme: "dark" }).includes("no nodes yet"));
+  const dangling: Graph = { ...reviewLoop(), edges: [...reviewLoop().edges, { id: "e-nowhere", from: "builder", to: "ghost" }] };
+  assert.ok(!picture(dangling, { theme: "light" }).includes('data-edge="e-nowhere"'));
+});
+
+test("text is measured without a browser: wrapping keeps every word, truncation ends in an ellipsis, tracks never share a span", () => {
+  const words = "Compare the diff and test output against the checklist and cite the file and line that satisfies each item";
+  const lines = wrap(words, 180, 11, 10);
+  assert.equal(lines.join(" "), words);
+  for (const line of lines) assert.ok(textWidth(line, 11) <= 180, line);
+  const cut = wrap(words, 180, 11, 2);
+  assert.equal(cut.length, 2);
+  assert.ok(cut[1]!.endsWith("…") && textWidth(cut[1]!, 11) <= 180);
+  assert.equal(truncate("short", 200, 11), "short");
+  assert.deepEqual(wrap("", 100, 11, 2), [""]);
+  assert.equal(wrap("Pneumonoultramicroscopicsilicovolcanoconiosis", 60, 11, 2).length, 1);
+
+  const { tracks, count } = assignTracks([{ from: 0, to: 10 }, { from: 2, to: 4 }, { from: 5, to: 8 }, { from: 11, to: 12 }]);
+  assert.equal(count, 2);
+  assert.deepEqual(tracks, [1, 0, 0, 0]); // the short spans take the inner track; the long one goes around
+});
+
+test("the outline reads top to bottom: the graph, each node with its whole brief, each edge as a sentence, each loop with its stops", () => {
+  const doc = reviewLoop();
+  const sections = outline(doc);
+  assert.deepEqual(
+    sections.map((s) => `${s.kind}:${s.id}`),
+    ["Graph:review-loop", "Agent:builder", "Agent:critic", "Human gate:merge-gate", "Stop:done", "Loop:review-cycle", "Policy:p-critic-isolation", "Policy:p-no-self-grading"],
+  );
+  const critic = sections.find((s) => s.id === "critic")!;
+  const brief = critic.items.find((i) => i.label === "Brief")!.text!;
+  assert.equal(brief, (doc.nodes.find((n) => n.id === "critic") as { brief: string }).brief);
+  const then = critic.items.find((i) => i.label === "Then")!.list!;
+  assert.ok(then.some((line) => /^on fail, to Builder \(back edge: starts the next round; fresh context/.test(line)), then.join(" | "));
+  assert.ok(then.some((line) => /^on pass, to Merge approval/.test(line)));
+  const loop = sections.find((s) => s.kind === "Loop")!;
+  assert.deepEqual(loop.items.find((i) => i.label === "Stops, in order")!.list, [
+    "bar passed: follow the loop's pass exit edges",
+    "max iterations: 4: halt the run and report to the human",
+    "budget: 40 turns: halt the run and report to the human",
+  ]);
+  const md = outlineMarkdown(sections);
+  assert.match(md, /^# Review loop\n/);
+  assert.match(md, /\n## Agent: Critic\n\n`critic`\n/);
+  assert.ok(md.endsWith("\n") && !md.includes("\n\n\n"));
+  for (const { name, doc: any } of everyGraph()) assert.ok(outlineMarkdown(outline(any)).length > 0, name);
+});
+
+test("a map's outline: lanes, each session with what it hands on and is handed, in the map's own words", () => {
+  const map = parseMapText(read(join(fixturesDir, "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"))).map!;
+  const sections = mapOutline(map);
+  assert.equal(sections[0]!.kind, "Operation map");
+  assert.equal(sections.filter((s) => s.kind === "Lane").length, 3);
+  assert.equal(sections.filter((s) => s.kind === "Session").length, 7);
+  const grooph = sections.find((s) => s.id === "grooph")!;
+  assert.deepEqual(grooph.items.find((i) => i.label === "Is handed work")!.list, ["from Operator, by carried by Ryan: the brief for this round, pasted into a fresh session"]);
+  assert.equal(sections.find((s) => s.id === "research")!.items.find((i) => i.label === "Hands work")!.list![0]!.startsWith("to itself, by branch on a private research repository"), true);
+});
+
+test("the offline page is one file that asks the network for nothing, and gives the document back", () => {
+  const doc = reviewLoop();
+  const html = offlinePage(doc, { version: "9.9.9" });
+  assert.equal(html, offlinePage(doc, { version: "9.9.9" }), "not deterministic");
+  assert.match(html, /^<!doctype html>/);
+  assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:">/);
+  // Nothing in the page points at another file or a server: no src, no href but in-page anchors, no url(), no import.
+  assert.deepEqual([...html.matchAll(/\s(?:src|href)="([^"]*)"/g)].map((m) => m[1]).filter((u) => !u!.startsWith("#")), []);
+  assert.ok(!/url\(|@import|<link|<img|<iframe|fetch\(|XMLHttpRequest|WebSocket/.test(html));
+  assert.deepEqual([...html.matchAll(/https?:\/\/[^\s"'<)]+/g)].map((m) => m[0]), ["http://www.w3.org/2000/svg"]);
+  // The picture, the outline and the validator's list are in it.
+  assert.ok(html.includes('data-picture="graph"') && html.includes('id="s-critic"') && html.includes("W_HOMOGENEOUS_CRITICS"));
+  assert.ok(html.includes("0 errors, 1 warning."));
+  assert.ok(html.includes("grooph 9.9.9"));
+  // The document rides inside, and comes back out byte for byte in canonical form.
+  const held = /<script type="application\/json" id="grooph-document" data-name="review-loop\.grooph\.json">([\s\S]*?)<\/script>/.exec(html)![1]!;
+  assert.equal(`${JSON.stringify(JSON.parse(held), null, 2)}\n`, canonicalize(doc));
+
+  // A document that says </script> or <img onerror> in a brief stays text.
+  const hostile: Graph = { ...doc, name: `</script><img src=x onerror=alert(1)>`, goal: `"><script>alert(1)</script>` };
+  const page = offlinePage(hostile);
+  assert.equal(page.split("</script>").length - 1, 2, "the page has exactly its own two script elements");
+  assert.ok(!page.includes("<img"));
+  const heldHostile = /id="grooph-document"[^>]*>([\s\S]*?)<\/script>/.exec(page)![1]!;
+  assert.equal((JSON.parse(heldHostile) as Graph).name, hostile.name);
+
+  // A map makes the same kind of page.
+  const map = parseMapText(read(join(fixturesDir, "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"))).map!;
+  const mapPage = offlinePage(map, { link: "https://example.test/#/open?d=abc" });
+  assert.ok(mapPage.includes('data-picture="map"') && mapPage.includes('id="s-operator"') && mapPage.includes("No issues. Every handoff names its carrier."));
+  assert.ok(mapPage.includes('<a href="https://example.test/#/open?d=abc">open it in the app</a>'));
+  const heldMap = /data-name="ryans-operation-2026-09-30\.grooph-map\.json">([\s\S]*?)<\/script>/.exec(mapPage)![1]!;
+  assert.equal(`${JSON.stringify(JSON.parse(heldMap), null, 2)}\n`, canonicalizeMap(map));
+});

@@ -15,6 +15,7 @@ import { EdgeInspector } from "./inspector/EdgeInspector.js";
 import { GraphInspector } from "./inspector/GraphInspector.js";
 import { LoopInspector } from "./inspector/LoopInspector.js";
 import { NodeInspector } from "./inspector/NodeInspector.js";
+import { Outline, OutlineButton } from "./Outline.js";
 import { IssuesPanel } from "./IssuesPanel.js";
 import { keepGraphId } from "../store/library.js";
 import { RenameWarning } from "./Library.js";
@@ -163,7 +164,9 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
 
   const openPanel = useCallback((next: Panel) => {
     setPanel(next);
-    if (next === null || !["node", "edge", "loop"].includes(next.type)) setExpanded(false);
+    // The outline is for reading, so it opens at full height; the others open as they were.
+    if (next?.type === "outline") setExpanded(true);
+    else if (next === null || !["node", "edge", "loop"].includes(next.type)) setExpanded(false);
     setMode((m) => (m.type === "pick" && !(next?.type === "loop" && next.id === m.loopId) ? { type: "idle" } : m));
   }, []);
 
@@ -318,7 +321,8 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   // Renaming changed an id that a downloaded package was named after (criterion 9).
   const renamedAfterExport = exportedAs !== undefined && doc.id !== exportedAs && followsName(doc.id, doc.name);
 
-  const sheet = sheetFor(panel, doc, issues, fresh, justAdded, renamedAfterExport ? (
+  const openFromOutline = (id: Id, kind: string) => openPanel(kind === "Loop" ? { type: "loop", id } : { type: "node", id });
+  const sheet = sheetFor(panel, doc, issues, fresh, justAdded, openFromOutline, renamedAfterExport ? (
     <RenameWarning exportedAs={exportedAs!} nextId={doc.id} onKeep={() => store.update((d) => keepGraphId(d, exportedAs!))} />
   ) : null);
   const statusClass = errors > 0 ? "status-error" : warnings > 0 ? "status-warning" : "status-ok";
@@ -343,6 +347,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               {doc.target?.harness ?? "no target"} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
             </span>
           </button>
+          <OutlineButton on={panel?.type === "outline"} onClick={() => openPanel(panel?.type === "outline" ? null : { type: "outline" })} />
           <button
             type="button"
             className={`status ${statusClass}`}
@@ -461,7 +466,15 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   );
 }
 
-function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIssues>, fresh: boolean, justAdded: Id | null, renameWarning: ReactNode) {
+function sheetFor(
+  panel: Panel,
+  doc: Graph,
+  issues: ReturnType<typeof computeIssues>,
+  fresh: boolean,
+  justAdded: Id | null,
+  openFromOutline: (id: Id, kind: string) => void,
+  renameWarning: ReactNode,
+) {
   if (!panel) return null;
   switch (panel.type) {
     case "node": {
@@ -480,6 +493,8 @@ function sheetFor(panel: Panel, doc: Graph, issues: ReturnType<typeof computeIss
       return { title: "Validation", subtitle: "as export sees it", body: <IssuesPanel issues={issues} /> };
     case "export":
       return { title: "Export", subtitle: doc.target?.harness ?? "no target", body: <ExportPanel /> };
+    case "outline":
+      return { title: "Outline", subtitle: "the whole graph, to read", body: <Outline doc={doc} onOpen={openFromOutline} /> };
     case "add":
       return { title: "Add a node", subtitle: undefined, body: null };
     case "insert":

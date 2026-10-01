@@ -1,6 +1,7 @@
 /**
  * Regenerate the golden packages under `fixtures/golden/<target>/<graph>/`,
- * and the golden pictures of the sample operation map under `fixtures/maps/pictures/`.
+ * the golden pictures of the sample operation map under `fixtures/maps/pictures/`,
+ * and of two graphs under `fixtures/pictures/`.
  *
  *   pnpm --filter @grooph/core run golden:write
  *
@@ -16,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { compile } from "../compile/index.js";
 import { parseMapText } from "../map.js";
 import { parseGraphText } from "../parse.js";
+import { picture } from "../picture/graph-picture.js";
 import { mapPicture } from "../picture/map-picture.js";
 
 const repoRoot = (() => {
@@ -61,6 +63,21 @@ for (const file of MAP_PICTURES) {
   for (const theme of ["light", "dark"] as const) {
     const out = join(outDir, `${parsed.map.id}.${theme}.svg`);
     writeFileSync(out, mapPicture(parsed.map, { theme }), "utf8");
+    process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+  }
+}
+
+/** Two graphs as their pictures, light and dark: the acceptance graph, and a fan-out with margin edges on both sides. */
+const GRAPH_PICTURES = ["fixtures/valid/review-loop.grooph.json", "patterns/specialist-critic-bank.grooph.json"];
+
+for (const file of GRAPH_PICTURES) {
+  const parsed = parseGraphText(readFileSync(join(repoRoot, file), "utf8"));
+  if (!parsed.doc) throw new Error(`${file} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
+  const outDir = join(repoRoot, "fixtures", "pictures");
+  mkdirSync(outDir, { recursive: true });
+  for (const theme of ["light", "dark"] as const) {
+    const out = join(outDir, `${parsed.doc.id}.${theme}.svg`);
+    writeFileSync(out, picture(parsed.doc, { theme }), "utf8");
     process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
   }
 }

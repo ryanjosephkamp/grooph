@@ -163,7 +163,7 @@ export type TextOptions = { size: number; fill: string; weight?: "regular" | "bo
 /** One line of text with its baseline at `y`. */
 export function text(x: number, y: number, content: string, o: TextOptions): string {
   const family = o.weight === "mono" ? ` font-family="${MONO}"` : "";
-  const bold = o.weight === "bold" ? ' font-weight="650"' : "";
+  const bold = o.weight === "bold" ? ' font-weight="700"' : "";
   const anchor = o.anchor && o.anchor !== "start" ? ` text-anchor="${o.anchor}"` : "";
   return `<text x="${fmt(x)}" y="${fmt(y)}" font-size="${fmt(o.size)}"${family}${bold}${anchor} style="fill:${o.fill}">${esc(content)}</text>`;
 }

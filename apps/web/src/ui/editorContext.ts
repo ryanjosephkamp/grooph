@@ -13,6 +13,7 @@ export type Panel =
   | { type: "graph" }
   | { type: "issues" }
   | { type: "export" }
+  | { type: "outline" }
   | { type: "add" }
   | { type: "insert" }
   | { type: "save-template" }

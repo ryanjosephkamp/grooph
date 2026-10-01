@@ -85,3 +85,18 @@ for (const [size, use] of Object.entries(SIZES)) {
     });
   }
 }
+
+test.describe("slice 0025, phone light", () => {
+  test.use({ ...SIZES.phone, colorScheme: "light" });
+  test("the outline and Keep a copy", async ({ page }) => {
+    await noticeSeen(page);
+    await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+    await page.getByRole("button", { name: "Outline" }).tap();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(dir, "outline-phone-light.png") });
+    await page.getByRole("button", { name: "Export", exact: true }).tap();
+    await page.getByRole("group", { name: "Keep a copy" }).scrollIntoViewIfNeeded();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(dir, "keep-phone-light.png") });
+  });
+});

@@ -15,7 +15,7 @@ import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
-import { imageCommand, IMAGE_HELP } from "./commands/image.js";
+import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
 import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
 import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
@@ -34,7 +34,7 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  */
 export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
-export const VERSION = "0.0.0";
+export const VERSION = "0.1.0";
 
 const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
 
@@ -47,7 +47,9 @@ Usage
   grooph shape <file> [--json]
   grooph glyph <file> [--out <svg>] [--scale <n>]
   grooph mermaid <file> [--out <file>]
-  grooph image <operation map> [--out <file.svg>] [--theme light | dark | auto]
+  grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto]
+  grooph outline <graph | operation map> [--out <file.md>]
+  grooph page <graph | operation map> --out <file.html>
   grooph share <graph | proposal set | run dir | run bundle | operation map> [--base <url>] [--open] [--out <file>]
   grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
   grooph template list | show | use | insert | save | add …   (grooph template help)
@@ -77,8 +79,10 @@ Commands
   shape          Counts and brakes at a glance: agents, gates, loops, worst-case rounds, budgets.
   glyph          The graph's shape as a small wordless SVG: the picture the app and the write-ups show.
   mermaid        A one-way Mermaid flowchart of the graph (it never round-trips; edit the document).
-  image          The picture of an operation map with its words on it, laid out for a phone:
-                 lanes, session cards, numbered handoffs and what carries each. Light, dark or auto.
+  image          The picture of a graph or an operation map with its words on it, laid out for a
+                 phone, as SVG or PNG, light or dark.
+  outline        The whole document to read top to bottom, as Markdown: every brief, edge and stop.
+  page           One HTML file holding the document and a viewer: opens with no network.
   share          A link that opens a graph, a proposal set of candidate graphs to compare, a
                  run or an operation map, in the app on any device. The document rides in the link; nothing is uploaded.
   pick           Write the chosen candidate of a proposal set out as a graph, ready to export.
@@ -236,10 +240,31 @@ export async function run(
       }
 
       case "image": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" } } });
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" } } });
         const file = positionals[0];
-        if (file === undefined) return usageError(io, "image needs a file: grooph image <operation map> [--out <file.svg>]");
-        return imageCommand(io, file, { ...(values["out"] !== undefined ? { out: values["out"] } : {}), ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}) });
+        if (file === undefined) return usageError(io, "image needs a file: grooph image <graph | operation map> [--out <file.svg | file.png>]");
+        const scale = values["scale"] === undefined ? undefined : Number(values["scale"]);
+        if (scale !== undefined && !(scale > 0 && scale <= 8)) return usageError(io, `--scale must be a number above 0 and at most 8, got "${values["scale"]}"`);
+        return await imageCommand(io, file, {
+          ...(values["out"] !== undefined ? { out: values["out"] } : {}),
+          ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}),
+          ...(scale !== undefined ? { scale } : {}),
+        });
+      }
+
+      case "outline": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "outline needs a file: grooph outline <graph | operation map> [--out <file.md>]");
+        return outlineCommand(io, file, values["out"] !== undefined ? { out: values["out"] } : {});
+      }
+
+      case "page": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "page needs a file: grooph page <graph | operation map> --out <file.html>");
+        if (values["out"] === undefined) return usageError(io, "page needs --out <file.html>, the one file to write");
+        return pageCommand(io, file, { out: values["out"], version: VERSION });
       }
 
       case "share": {
@@ -373,6 +398,8 @@ const COMMAND_HELP: Record<string, string> = {
   glyph: GLYPH_HELP,
   mermaid: MERMAID_HELP,
   image: IMAGE_HELP,
+  outline: OUTLINE_HELP,
+  page: PAGE_HELP,
 };
 
 function usageError(io: Output, message: string): number {

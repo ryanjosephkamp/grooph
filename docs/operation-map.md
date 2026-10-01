@@ -130,7 +130,8 @@ The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto
 | `grooph validate <map>` | the rules of §3; a `graph` pointer that is a path is looked up beside the map |
 | `grooph canonicalize <map> [--write]` | canonical form (§5) |
 | `grooph shape <map> [--json]` | lanes, sessions, handoffs, how many a person carries |
-| `grooph image <map> [--out <file.svg>] [--theme …]` | the picture |
+| `grooph image <map> [--out <file.svg \| file.png>] [--theme …]` | the picture, as SVG or PNG |
+| `grooph outline <map>` · `grooph page <map> --out <file.html>` | the map to read top to bottom; the one offline file ([`exports.md`](exports.md)) |
 | `grooph share <map>` | a link that opens the map in the app; a map with rule errors still shares, and the view names them |
 | `grooph export <map> …` | refused, by name: a map is never compiled |
 

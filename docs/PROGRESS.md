@@ -16,6 +16,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Slice 0026, operation maps** (branch `slice/0026-operation-maps`, stacked on 0024, 2026-09-30): amendment A-011 and `docs/operation-map.md`; in core the types, the schema (`grooph-map-0.schema.json`), ten rules each with a fixture, and `mapPicture` (light, dark, auto); in the CLI `validate`, `canonicalize`, `shape`, `share` and the new `image` take a map, and `export` refuses one by name; in the app a map opens from a link or a file as its picture, with sessions and handoffs tappable. The sample is `fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`. Core 305, cli 66, web 54 unit and 72 browser tests pass. Pull request open.
 
+- **Slice 0025, exports** (branch `slice/0025-exports`, stacked on 0026, 2026-09-30): `picture()` draws a whole graph with its words, one phone-width column, light, dark or auto; `outline()` reads a graph or a map top to bottom; `offlinePage()` is one HTML file with the picture, the outline, the validator's list and the document, and a policy that forbids any request. CLI: `grooph image` (SVG and PNG, graphs and maps), `grooph outline`, `grooph page`. App: Keep a copy (PNG, SVG, offline page) in Export and in every read-only viewer; an Outline button in the top bar. Version is 0.1.0. Core 312, cli 71, web 54 unit and 76 browser tests pass. Pull request open. Not built: the installable offline app (stage 8).
+
 ## Waiting on the owner
 
 | Item | Recommended answer |

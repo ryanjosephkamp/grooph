@@ -71,10 +71,19 @@ test("a session and a handoff open what the map says about them, and lead to eac
   // The title opens the map's own facts and the pictures to keep.
   await page.locator(".title-btn").tap();
   await expect(sheet(page)).toContainText("3 lanes · 7 sessions (18 counting families) · 10 handoffs, 2 carried by a person");
-  const [file] = await Promise.all([page.waitForEvent("download"), sheet(page).getByRole("button", { name: "Save picture, dark (SVG)" }).tap()]);
+  const keep = sheet(page).getByRole("group", { name: "Keep a copy" });
+  await keep.getByRole("radio", { name: "Dark" }).tap();
+  const [file] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Picture (SVG)" }).tap()]);
   expect(file.suggestedFilename()).toBe("ryans-operation-2026-09-30.dark.svg");
   const svg = readFileSync((await file.path())!, "utf8");
   expect(svg).toBe(readFileSync(join(mapsDir, "pictures/ryans-operation-2026-09-30.dark.svg"), "utf8"));
+
+  // A map has an offline page too: the picture, every session and handoff in words, and the map itself.
+  const [page2] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Offline page (.html)" }).tap()]);
+  expect(page2.suggestedFilename()).toBe("ryans-operation-2026-09-30.html");
+  const html = readFileSync((await page2.path())!, "utf8");
+  expect(html).toContain('data-picture="map"');
+  expect(html).toContain('id="s-operator"');
 });
 
 test("a handoff with no carrier is drawn, listed as such, and named by the validator", async ({ page }) => {

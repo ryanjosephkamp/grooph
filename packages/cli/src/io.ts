@@ -8,3 +8,9 @@ export function writeText(path: string, contents: string): void {
   mkdirSync(dirname(full), { recursive: true });
   writeFileSync(full, contents, "utf8");
 }
+
+export function writeBytes(path: string, contents: Uint8Array): void {
+  const full = resolve(path);
+  mkdirSync(dirname(full), { recursive: true });
+  writeFileSync(full, contents);
+}

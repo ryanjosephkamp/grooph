@@ -29,7 +29,7 @@ type Graph = {
   groups?: Group[];
   notes?: RunNote[];               // append-only; see §6
   layout?: Record<Id, { x: number; y: number; w?: number; h?: number }>;  // separable; models may ignore
-                                   // Two projections exist and neither round-trips: the glyph (`glyph()` in core, a wordless SVG of the shape) and the Mermaid text (`mermaid()`, spec §6). Edits happen in the document.
+                                   // Projections exist and none round-trips: the glyph (`glyph()` in core, a wordless SVG of the shape), the Mermaid text (`mermaid()`, spec §6), and the picture, the outline and the offline page (`docs/exports.md`). Edits happen in the document.
 };
 
 type HarnessId = "claude-code" | "codex" | string;   // known ids get a profile under docs/targets/

@@ -12,6 +12,7 @@ fixtures/
   proposals/valid/<set>/              proposal sets (docs/executive.md §1) that validate clean, with their { file } graphs beside them
   proposals/invalid/<CODE>/<name>.grooph-proposals.json   proposal sets that report exactly that code
   golden/<harness>/<graph>/           expected compiler output, byte-for-byte
+  pictures/<graph-id>.<theme>.svg     two graphs as their pictures (docs/exports.md), light and dark, byte-for-byte
   maps/valid/<name>.grooph-map.json            operation maps (docs/operation-map.md) that validate clean
   maps/invalid/<CODE>/<name>.grooph-map.json   maps that report exactly that code
   maps/pictures/<map-id>.<theme>.svg           the sample map's picture, light and dark, byte-for-byte
