@@ -108,3 +108,62 @@ test("the run view's canvas can take most of a phone screen, and give it back", 
   await page.getByRole("button", { name: "Smaller graph" }).tap();
   await expect.poll(async () => (await stage.boundingBox())!.height).toBe(before);
 });
+
+/**
+ * Review 2026-10, item 14: on a wide screen the inspector opens beside the
+ * canvas and takes a third of it. A view the app chose is chosen again for
+ * the room left, so no node ends up under the panel; a view the person moved
+ * is theirs and stays.
+ */
+test.describe("on a wide screen", () => {
+  test.use({ viewport: { width: 1280, height: 800 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
+
+  test("opening a node's panel refits the graph beside it, unless the view was moved by hand", async ({ page }) => {
+    await page.goto("./");
+    await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
+    await expect(node(page, "done")).toBeVisible();
+    await page.waitForTimeout(300);
+    for (const id of ["builder", "critic", "merge-gate", "done"]) await expect(node(page, id)).toBeInViewport({ ratio: 0.95 });
+
+    await node(page, "critic").click();
+    await expect(sheet(page).getByRole("heading", { name: "Agent" })).toBeVisible();
+    await page.waitForTimeout(400);
+    const panel = (await sheet(page).boundingBox())!;
+    for (const id of ["builder", "critic", "merge-gate", "done"]) {
+      const box = (await node(page, id).boundingBox())!;
+      expect(box.x + box.width, `${id} is clear of the panel`).toBeLessThanOrEqual(panel.x);
+      expect(box.x).toBeGreaterThanOrEqual(0);
+    }
+
+    // Closed again, the graph takes the whole width back.
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await page.waitForTimeout(400);
+    const wide = (await node(page, "builder").boundingBox())!;
+
+    // Pan by hand, then open the panel: the view the person chose is not touched.
+    const stage = (await page.locator(".stage").boundingBox())!;
+    await page.mouse.move(stage.x + 200, stage.y + 520);
+    await page.mouse.down();
+    await page.mouse.move(stage.x + 260, stage.y + 560, { steps: 6 });
+    await page.mouse.up();
+    const moved = (await node(page, "builder").boundingBox())!;
+    expect(moved.x - wide.x).toBeGreaterThan(40);
+    await node(page, "builder").click();
+    await expect(sheet(page).getByRole("heading", { name: "Agent" })).toBeVisible();
+    await page.waitForTimeout(400);
+    const after = (await node(page, "builder").boundingBox())!;
+    expect(Math.abs(after.width - moved.width)).toBeLessThan(0.5); // no zoom
+
+    // Fit puts the app back in charge of the view.
+    await toolbarFit(page);
+    for (const id of ["builder", "critic", "merge-gate", "done"]) {
+      const box = (await node(page, id).boundingBox())!;
+      expect(box.x + box.width).toBeLessThanOrEqual((await sheet(page).boundingBox())!.x);
+    }
+  });
+});
+
+async function toolbarFit(page: import("@playwright/test").Page): Promise<void> {
+  await page.getByRole("toolbar", { name: "Canvas" }).getByRole("button", { name: "Fit" }).click();
+  await page.waitForTimeout(350);
+}

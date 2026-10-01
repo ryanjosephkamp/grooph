@@ -104,6 +104,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const stageRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Id[]>([]);
+  const viewMoved = useRef(false);
   const [toast, setToast] = useState<(ToastMessage & { after: Graph }) | null>(null);
   const hideToast = useCallback(() => setToast(null), []);
 
@@ -315,6 +316,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
     selection,
     setSelection,
     deleted,
+    viewMoved,
     exportedAs,
     markExported,
   };
@@ -424,7 +426,15 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               </svg>
               Loop
             </button>
-            <button type="button" className="tool" disabled={doc.nodes.length === 0} onClick={() => void flow.fitView({ ...FIT, duration: 250 })}>
+            <button
+              type="button"
+              className="tool"
+              disabled={doc.nodes.length === 0}
+              onClick={() => {
+                viewMoved.current = false;
+                void flow.fitView({ ...FIT, duration: 250 });
+              }}
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
               </svg>

@@ -157,6 +157,10 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       onNodesChange={onNodesChange}
       onNodeClick={(_, node) => onNodeTap(node.id)}
       onEdgeClick={(_, edge) => editor.onEdgeTap(edge.id)}
+      onMoveStart={(event) => {
+        // A move with an event behind it is a hand on the canvas; a fit or a pan the app makes has none.
+        if (event) editor.viewMoved.current = true;
+      }}
       onPaneClick={() => {
         if (editor.mode.type !== "idle") return;
         editor.setHighlight({ nodes: new Set(), edges: new Set(), loops: new Set(), graph: false });
@@ -178,7 +182,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       attributionPosition="top-right"
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
-      <OpeningView pad={EDITOR_PAD} />
+      <OpeningView pad={EDITOR_PAD} refit={editor.viewMoved} />
     </ReactFlow>
   );
 }

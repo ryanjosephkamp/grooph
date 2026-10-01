@@ -23,6 +23,8 @@ export default defineConfig({
     isMobile: true,
     deviceScaleFactor: 2,
     acceptDownloads: true,
+    // The app's service worker (stage 8) answers from its cache; every test but the offline one wants the files as built.
+    serviceWorkers: "block",
     trace: "retain-on-failure",
   },
   projects: [{ name: "phone", use: { browserName: "chromium" } }],

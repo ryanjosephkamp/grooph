@@ -39,6 +39,8 @@ export type Editor = {
   setSelection: (ids: Id[]) => void;
   /** Say what was just deleted, with Undo (criterion 6). Call after the edit. */
   deleted: (what: string) => void;
+  /** Whether the person has panned or zoomed the canvas since it was last fitted: a view someone chose is left alone. */
+  viewMoved: { current: boolean };
   /** The graph id of the last package downloaded from this device, if any. */
   exportedAs?: Id;
   /** Remember that the package was downloaded, under the current id. */
