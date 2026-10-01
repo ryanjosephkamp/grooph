@@ -19,7 +19,6 @@ The one file that says where grooph is right now. The driver rewrites it after e
 | Item | Recommended answer |
 |---|---|
 | Your word to merge the pull request with the Codex desktop result | Say "merge it" |
-| Optional: the same Codex prompt once more with **Worktree** chosen in the app | It would say whether your review carries into the app's own copies. Nothing waits on it |
 | Wide saved layouts in the read-only viewers: keep the document's own layout and open at a readable size (built), or also redraw them top to bottom for a portrait screen | Keep the built behaviour; add the redraw only if it still bothers you on the phone |
 | The sample map's guesses | Now asked of the Operator (`docs/HANDBACK-operator.md` §8): paste the Operator prompt from the gate page and carry the answer back |
 | `~/.local/bin/codex` on this Mac is a dead link (it points at the app's old path; the CLI now lives inside `ChatGPT.app/Contents/Resources/codex-cli/`). Codex's own log also shows a rejected sign-in for a `cloudflare-api` connector on every start | Yours to fix or ignore; neither affects grooph |

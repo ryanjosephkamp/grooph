@@ -23,7 +23,7 @@ git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
 git checkout v0.1.0 2>/dev/null || git checkout slice/0031-evidence-and-policies   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
-pnpm install --frozen-lockfile
+CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
 node packages/cli/bin/grooph.js --version    # 0.1.0
 ```
@@ -102,7 +102,7 @@ A small JSON file, `<name>.grooph-map.json`. It is the thing to keep current. Th
 
 A handoff carried by a person is not an issue, and it is where work waits when Ryan is away. So `grooph validate` lists each one after the issues (`by hand  h-brief-codex  operator → codex: moves only when Ryan carries it`), and `--json` carries the list as `byHand`. Your kit asked for this flag.
 
-**The sample**: [`fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json), "Ryan's operation, September 30, 2026", drawn from his brief: you, your worker lanes as a family of twelve, test runners, routines, the research lanes, this session, and Codex on the Mac, with ten handoffs. It is a starting point and it holds guesses, which its own `description` lists. **You know the real shape; correct it.** Its picture: [light](../fixtures/maps/pictures/ryans-operation-2026-09-30.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-09-30.dark.svg).
+**The sample**: [`fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json), "Ryan's operation, October 1, 2026": **your corrected map**, with Splashery's product details left out because this repository is public (yours, in full, stays with you and Ryan). Three lanes, eight sessions (twenty-one counting families), eighteen handoffs, three that wait on a person. Its picture: [light](../fixtures/maps/pictures/ryans-operation-2026-10-01.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-10-01.dark.svg). The first draft, drawn from the brief with its guesses, is kept beside it as a fixture.
 
 **What to do with a map:**
 
@@ -213,7 +213,7 @@ They record and report. None starts or changes anything. Whether using them make
 
 - **Merged only on Ryan's word.** If `main` lacks this file, eight stacked pull requests are still waiting on it; the branch named in section 1 is then the source, and there is no tag yet.
 - **No cloud session was run.** The hook was run in real sessions on Ryan's Mac, in both harnesses. That a cloud session runs a repository's hooks is from Claude Code's documentation, and holds for a session with **one** repository; a session with several starts above the clones and does not read their settings. You are the first to try it: check `.grooph/events/` after a lane's first subagent.
-- **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. Not seen: the app's worktree mode, where the copy is a different folder. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
+- **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. The same in the app's worktree mode: its copy was recorded too, with no further review. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
 - **As live as the last push.** A lane's events are invisible until committed and pushed, and a watching machine has to fetch.
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
 - **Clocks.** Events from different machines are ordered by each machine's clock.
@@ -225,21 +225,23 @@ They record and report. None starts or changes anything. Whether using them make
 - **The hook lives in the working tree.** A lane that checks out a branch made before the hook was committed stops recording until it is back on a branch that has it. Commit the hook to the default branch first, then start lanes.
 - **Node is required** wherever the hook runs.
 
-## 8. Questions for you
+## 8. What you answered, and what it changed
 
-The sample map was drawn from Ryan's brief alone, and he says you know these better than he does. Each answer changes a line of the sample, so please answer them in your reply (section 10 says how it gets back).
+You answered the nine questions on 2026-10-01 and sent the real map. In short, and without the product's details:
 
-1. **Your lanes.** How do you start a worker lane and message it afterwards: Claude Code's own session tools, or something else? The sample calls it a `session-message`.
-2. **What comes back from a lane.** The sample says a lane returns work as a pull request and you read it there. Is that right, or do you also read the lane's transcript or a file on its branch?
-3. **How many, and how long.** The sample draws twelve worker lanes as one family, per task. What are the real number and lifetime? Are the test runners and the routines separate sessions, as drawn?
-4. **Routines.** What starts them, on what schedule, and which session does a routine's prompt land in?
-5. **The research project.** Which Claude account do its lanes run under, does it have its own lead session, and does anything pass between it and Splashery besides Ryan? The sample puts it under your account with no handoffs to you, as a guess. Keep its name and contents out of your answer: the map only needs the shape.
-6. **Codex.** How does Codex on the Mac get its prompts and return its work: only Ryan pasting, or a branch too? Which repositories?
-7. **Model names.** What does each harness call the model each kind of session runs?
-8. **One repository or several.** Does each of your cloud sessions have exactly one repository? The hook is only documented to run from a repository's settings in that case (section 7).
-9. **After you try the hook**: did `.grooph/events/` fill in a cloud session, and did a subagent's start and stop both appear? That is the one thing nobody has checked.
+| Asked | Your answer | What it changed here |
+|---|---|---|
+| How you start and message a lane | You start one with the harness's session tool (the brief is its first prompt) and steer it afterwards with one-shot scheduled messages into its own session | The sample draws both: a `session-message` to start, a `scheduled-message` to steer |
+| What comes back | A draft pull request per round with a handoff file on the branch; previews on review pages the owner marks; the lane's last message and status, not its transcript | Two handoffs back from the lanes, one of them a `review-page` |
+| How many, how long | Ten worker lanes that run for hours to days; two long-lived test runners; short helpers now and then | Counts and lifetimes in the sample |
+| Routines | Some fire into your own session; two start a fresh session each morning and report to the owner's phone, so anything in them for you comes through him | A handoff from a session to itself; a handoff carried by a person |
+| The second project | Its three lanes run under your account, you are its lead, and nothing passes between the projects but you and the owner | One lead, not two |
+| Codex | Prompts by the owner's hand; work back on a branch | As drawn |
+| Model names | As the harness names them | In the sample |
+| One repository each? | Every lane and test runner has one. The morning routines start with none and clone. Only you have several, so a repository's hooks do not run for you | Section 7 says so |
+| The hook in a cloud session | Not tried yet | Still the one thing unseen in the cloud |
 
-If it is easier, skip the list and send back a corrected `ops.grooph-map.json`: the file answers 1 to 7 by itself.
+What you found wrong or missing is answered in section 12.
 
 ## 9. Evidence
 
@@ -257,3 +259,14 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 ## 11. If something is wrong
 
 `grooph validate` names the rule. `grooph hooks status` says whether the hook is installed. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.
+
+## 12. What you found wrong or missing in 0.1.0
+
+| You said | State |
+|---|---|
+| The picture clips text at the right edge on Linux; titles and lane names are cut short beside their badges | open |
+| A card's text stops at three lines while the card has room | open |
+| `pnpm install` aborts without a terminal when an older `node_modules` is there | fixed here: section 2 now says `CI=true pnpm install --frozen-lockfile` |
+| Committing `.grooph/events/` with a lane's work puts event files into every pull request; the events need a ref of their own | open |
+| No way to draw a person: the owner is the hub and cannot be a node; no carrier for a notification to a person | open |
+| No mark for a session that wakes itself on a schedule | open |
