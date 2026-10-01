@@ -6,7 +6,8 @@ import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, type Box } from "./bends.js";
-import { FIT } from "./fit.js";
+import { RUN_PAD, VIEWER_PAD, fitOptions } from "./fit.js";
+import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
 
@@ -37,6 +38,8 @@ export function ViewCanvas(props: {
   highlight?: Highlight;
 }) {
   const { doc } = props;
+  // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
+  const pad = props.run ? RUN_PAD : VIEWER_PAD;
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
   const positions = useMemo(() => resolvePositions(doc).positions, [doc]);
   const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
@@ -119,11 +122,11 @@ export function ViewCanvas(props: {
       minZoom={0.2}
       maxZoom={2}
       fitView
-      // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
-      fitViewOptions={{ ...FIT, padding: props.run ? { top: "56px", bottom: "12px", x: "12px" } : { top: "64px", bottom: "100px", x: "20px" } }}
+      fitViewOptions={fitOptions(pad)}
       attributionPosition="top-right"
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
+      <OpeningView pad={pad} control />
       {props.highlight ? <FocusOn ids={props.highlight.nodes} /> : null}
     </ReactFlow>
   );

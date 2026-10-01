@@ -104,6 +104,12 @@ function AutoGrow(props: {
   );
 }
 
+const listLines = (text: string): string[] =>
+  text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+
 /**
  * A list of strings, one per line. The raw text is kept locally while the
  * field has focus so a trailing newline survives typing; the document gets
@@ -119,8 +125,10 @@ export function ListInput(props: {
   const joined = (props.value ?? []).join("\n");
   const [text, setText] = useState(joined);
   const focused = useRef(false);
+  // The raw text is the field's own while it has focus, unless the document
+  // moved under it (an undo): then the text follows the document at once.
   useEffect(() => {
-    if (!focused.current) setText(joined);
+    setText((current) => (focused.current && listLines(current).join("\n") === joined ? current : joined));
   }, [joined]);
   return (
     <Field label={props.label} hint={props.hint ?? "One per line."}>
@@ -137,10 +145,7 @@ export function ListInput(props: {
           }}
           onChange={(value) => {
             setText(value);
-            const lines = value
-              .split("\n")
-              .map((line) => line.trim())
-              .filter((line) => line !== "");
+            const lines = listLines(value);
             // A space or a blank line changes the text, not the list: no edit, so no empty undo step.
             if (lines.join("\n") !== joined) typing(() => props.onChange(lines));
           }}
@@ -166,8 +171,13 @@ export function NumberInput(props: {
   const shown = props.value === undefined ? "" : String(props.value);
   const [text, setText] = useState(shown);
   const focused = useRef(false);
+  const parse = (raw: string): number | undefined => {
+    const n = Number(raw);
+    return raw.trim() === "" || !Number.isFinite(n) ? undefined : props.integer ? Math.trunc(n) : n;
+  };
+  // "1." stays as typed while it still means the document's 1; an undo that changes the number shows at once.
   useEffect(() => {
-    if (!focused.current) setText(shown);
+    setText((current) => (focused.current && parse(current) === props.value ? current : shown));
   }, [shown]);
   return (
     <Field label={props.label} hint={props.hint}>

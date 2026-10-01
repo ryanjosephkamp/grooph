@@ -2,6 +2,7 @@ import { TemplateError, insertFragment, type Graph, type Id } from "@grooph/core
 import { useEffect, useState } from "react";
 
 import { emptyHighlight } from "../../doc/issues.js";
+import { useDoc } from "../../doc/store.js";
 import { BUILT_IN_TEMPLATES, filledValues, slotsOf, type TemplateEntry } from "../../doc/templates.js";
 import { listUserTemplates } from "../../store/templates.js";
 import { useEditor } from "../editorContext.js";
@@ -38,6 +39,12 @@ export function InsertPanel() {
       live = false;
     };
   }, []);
+
+  // The map describes an insert that is still in the document; an undo takes both away (review 0007).
+  const doc = useDoc(editor.store);
+  useEffect(() => {
+    if (inserted && !inserted.nodes.every((id) => doc.nodes.some((n) => n.id === id))) setInserted(null);
+  }, [doc, inserted]);
 
   if (inserted) return <InsertedMap inserted={inserted} onDone={() => editor.openPanel(null)} />;
 
