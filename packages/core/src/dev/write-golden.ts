@@ -57,7 +57,13 @@ for (const golden of GOLDENS) {
  * The first is the sample as the Operator corrected it; the second is the first draft, drawn from the owner's
  * brief before anyone who knew the operation had seen it, kept because the tests were written against it.
  */
-const MAP_PICTURES = ["fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json", "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"];
+const MAP_PICTURES = [
+  "fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json",
+  "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json",
+  // The same operation with its owner drawn as a person, and the smallest map that has one (amendment A-013).
+  "fixtures/maps/valid/owner-operation-2026-10-01-with-ryan.grooph-map.json",
+  "fixtures/maps/valid/a-person-and-two-sessions.grooph-map.json",
+];
 
 for (const file of MAP_PICTURES) {
   const parsed = parseMapText(readFileSync(join(repoRoot, file), "utf8"));

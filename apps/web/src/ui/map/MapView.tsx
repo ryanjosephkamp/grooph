@@ -1,8 +1,10 @@
 import {
   CARRIER_LABEL,
   canonicalizeMap,
-  carrierText,
+  endName,
+  handoffCarrierText,
   handoffsOf,
+  wakesItself,
   mapPicture,
   mapShape,
   mapShapeLine,
@@ -10,6 +12,7 @@ import {
   type Id,
   type IssueLike,
   type OperationMap,
+  type Person,
   type Session,
 } from "@grooph/core";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -19,7 +22,7 @@ import { Keep } from "../Keep.js";
 import { IssueList } from "../open/Details.js";
 import { Sheet } from "../Sheet.js";
 
-type Panel = { type: "session"; id: Id } | { type: "handoff"; id: Id } | { type: "issues" } | { type: "about" } | null;
+type Panel = { type: "session"; id: Id } | { type: "person"; id: Id } | { type: "handoff"; id: Id } | { type: "issues" } | { type: "about" } | null;
 
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 
@@ -52,7 +55,7 @@ function byHand(map: OperationMap) {
     <ul className="map-by-hand" data-testid="map-by-hand">
       {waiting.map((h) => (
         <li key={h.handoff}>
-          <span className="mono">{h.from}</span> → <span className="mono">{h.to}</span>: moves only when {h.who === "" ? "a person" : h.who} carries it
+          <span className="mono">{h.from}</span> → <span className="mono">{h.to}</span>: moves only when {h.who === "" ? "a person" : h.who} {h.starts ? "does" : "carries"} it
         </li>
       ))}
     </ul>
@@ -80,8 +83,10 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
   const statusClass = errors > 0 ? "status-error" : warnings > 0 ? "status-warning" : "status-ok";
   const statusText = errors > 0 ? `${errors} error${errors === 1 ? "" : "s"}` : warnings > 0 ? `${warnings} warning${warnings === 1 ? "" : "s"}` : "Valid";
 
-  const nameOf = (id: Id): string => map.sessions.find((s) => s.id === id)?.name || id;
+  const nameOf = (id: Id): string => endName(map, id);
   const numberOf = (id: Id): number => map.handoffs.findIndex((h) => h.id === id) + 1;
+  /** Open what a handoff's end is: the session, or the person. */
+  const openEnd = (id: Id) => setPanel({ type: (map.people ?? []).some((p) => p.id === id) ? "person" : "session", id });
   const toggle = (next: Exclude<Panel, null>) =>
     setPanel((p) => (p && p.type === next.type && ("id" in p ? p.id === (next as { id: Id }).id : true) ? null : next));
 
@@ -93,6 +98,11 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
       el.setAttribute("tabindex", "0");
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", `Session ${nameOf(el.dataset["session"]!)}`);
+    }
+    for (const el of root.querySelectorAll<SVGGElement>("[data-person]")) {
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("role", "button");
+      el.setAttribute("aria-label", `Person ${nameOf(el.dataset["person"]!)}`);
     }
     for (const el of root.querySelectorAll<SVGGElement>("[data-handoff], [data-handoff-row]")) {
       const id = el.dataset["handoff"] ?? el.dataset["handoffRow"]!;
@@ -109,6 +119,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     if (!root) return;
     for (const el of root.querySelectorAll(".is-on")) el.classList.remove("is-on");
     if (panel?.type === "session") root.querySelector(`[data-session="${CSS.escape(panel.id)}"]`)?.classList.add("is-on");
+    if (panel?.type === "person") root.querySelector(`[data-person="${CSS.escape(panel.id)}"]`)?.classList.add("is-on");
     if (panel?.type === "handoff") {
       for (const el of root.querySelectorAll(`[data-handoff="${CSS.escape(panel.id)}"], [data-handoff-row="${CSS.escape(panel.id)}"]`)) el.classList.add("is-on");
     }
@@ -119,6 +130,11 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     const session = target.closest<SVGGElement>("[data-session]");
     if (session) {
       toggle({ type: "session", id: session.dataset["session"]! });
+      return true;
+    }
+    const person = target.closest<SVGGElement>("[data-person]");
+    if (person) {
+      toggle({ type: "person", id: person.dataset["person"]! });
       return true;
     }
     const handoff = target.closest<SVGGElement>("[data-handoff], [data-handoff-row]");
@@ -135,9 +151,13 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
       const s = map.sessions.find((x) => x.id === panel.id);
       return s ? { title: "Session", subtitle: s.id, body: <SessionDetails map={map} session={s} onHandoff={(id) => setPanel({ type: "handoff", id })} /> } : null;
     }
+    if (panel.type === "person") {
+      const p = (map.people ?? []).find((x) => x.id === panel.id);
+      return p ? { title: "Person", subtitle: p.id, body: <PersonDetails map={map} person={p} onHandoff={(id) => setPanel({ type: "handoff", id })} /> } : null;
+    }
     if (panel.type === "handoff") {
       const h = map.handoffs.find((x) => x.id === panel.id);
-      return h ? { title: `Handoff ${numberOf(h.id)}`, subtitle: h.id, body: <HandoffDetails map={map} handoff={h} onSession={(id) => setPanel({ type: "session", id })} /> } : null;
+      return h ? { title: `Handoff ${numberOf(h.id)}`, subtitle: h.id, body: <HandoffDetails map={map} handoff={h} onSession={openEnd} /> } : null;
     }
     if (panel.type === "issues") {
       return {
@@ -219,7 +239,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
 }
 
 function HandoffLine({ map, handoff, onOpen }: { map: OperationMap; handoff: Handoff; onOpen: (id: Id) => void }) {
-  const nameOf = (id: Id): string => map.sessions.find((s) => s.id === id)?.name || id;
+  const nameOf = (id: Id): string => endName(map, id);
   const n = map.handoffs.findIndex((h) => h.id === handoff.id) + 1;
   return (
     <li>
@@ -230,15 +250,47 @@ function HandoffLine({ map, handoff, onOpen }: { map: OperationMap; handoff: Han
             {handoff.from === handoff.to ? `${nameOf(handoff.from)} → itself` : `${nameOf(handoff.from)} → ${nameOf(handoff.to)}`}
           </strong>
           <br />
-          {carrierText(handoff.carrier) || "no carrier named"}
+          {handoffCarrierText(map, handoff) || "no carrier named"}
         </span>
       </button>
     </li>
   );
 }
 
+/** What the map says about a person, and the handoffs that start and end with them. */
+function PersonDetails({ map, person, onHandoff }: { map: OperationMap; person: Person; onHandoff: (id: Id) => void }) {
+  const { out, in: inbound } = handoffsOf(map, person.id);
+  return (
+    <div className="inspector">
+      <Rows
+        rows={[
+          ["Name", person.name],
+          ["Role", person.role ? <p className="prose">{person.role}</p> : undefined],
+          ["About", person.description ? <p className="prose">{person.description}</p> : undefined],
+        ]}
+      />
+      <p className="field-hint">A person is not a session: on no machine, under no account, never run. What starts with them moves only when they do it.</p>
+      <h3 className="files-title">Hands work to</h3>
+      {out.length === 0 ? <p className="field-hint">Nothing starts with this person on the map.</p> : null}
+      <ul className="map-handoffs">
+        {out.map((h) => (
+          <HandoffLine key={h.id} map={map} handoff={h} onOpen={onHandoff} />
+        ))}
+      </ul>
+      <h3 className="files-title">Is handed work by</h3>
+      {inbound.length === 0 ? <p className="field-hint">Nothing on the map reaches this person.</p> : null}
+      <ul className="map-handoffs">
+        {inbound.map((h) => (
+          <HandoffLine key={h.id} map={map} handoff={h} onOpen={onHandoff} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function SessionDetails({ map, session, onHandoff }: { map: OperationMap; session: Session; onHandoff: (id: Id) => void }) {
   const lane = map.lanes.find((l) => l.id === session.lane);
+  const wakes = wakesItself(map, session.id);
   const { out, in: inbound } = handoffsOf(map, session.id);
   return (
     <div className="inspector">
@@ -250,6 +302,7 @@ function SessionDetails({ map, session, onHandoff }: { map: OperationMap; sessio
           ["Model", session.model],
           ["How many", session.count && session.count > 1 ? `${session.count} like sessions, drawn as one` : undefined],
           ["Lifetime", session.lifetime === "per-task" ? "per task" : session.lifetime],
+          ["Wakes itself", wakes === undefined ? undefined : wakes === "" ? "on a schedule" : wakes],
           ["Lane", lane ? `${lane.name} (${lane.machine}, ${lane.account})` : <span className="mono">{session.lane}</span>],
           ["Repository", session.repo],
           ["Its graph", session.graph ? <GraphPointer pointer={session.graph} /> : undefined],
@@ -276,7 +329,7 @@ function SessionDetails({ map, session, onHandoff }: { map: OperationMap; sessio
 
 function HandoffDetails({ map, handoff, onSession }: { map: OperationMap; handoff: Handoff; onSession: (id: Id) => void }) {
   const session = (id: Id): ReactNode => {
-    const s = map.sessions.find((x) => x.id === id);
+    const s = map.sessions.find((x) => x.id === id) ?? (map.people ?? []).find((x) => x.id === id);
     return s ? (
       <button type="button" className="chip chip-small" onClick={() => onSession(id)}>
         {s.name || s.id}
@@ -292,7 +345,7 @@ function HandoffDetails({ map, handoff, onSession }: { map: OperationMap; handof
         rows={[
           ["From", session(handoff.from)],
           ["To", session(handoff.to)],
-          ["Carried by", c ? carrierText(c) || `${CARRIER_LABEL[c.kind]} (not named)` : "no carrier named"],
+          ["Carried by", c ? handoffCarrierText(map, handoff) || `${CARRIER_LABEL[c.kind]} (not named)` : "no carrier named"],
           ["Carrier kind", c ? CARRIER_LABEL[c.kind] : undefined],
           ["What", handoff.what ? <p className="prose">{handoff.what}</p> : undefined],
           ["Label", handoff.label],

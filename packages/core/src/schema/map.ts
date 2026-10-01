@@ -23,6 +23,16 @@ const lane = obj(
   { name: "Lane" },
 );
 
+const person = obj(
+  {
+    id: id(),
+    name: str(),
+    role: opt(str()),
+    description: opt(str()),
+  },
+  { name: "Person" },
+);
+
 const session = obj(
   {
     id: id(),
@@ -51,6 +61,7 @@ const carrier = tagged(
     "scheduled-message": obj({ kind: carrierKind("scheduled-message"), schedule: opt(str()) }),
     "review-page": obj({ kind: carrierKind("review-page"), where: opt(str()) }),
     person: obj({ kind: carrierKind("person"), who: opt(str()) }),
+    notification: obj({ kind: carrierKind("notification"), where: opt(str()) }),
     other: obj({ kind: carrierKind("other"), name: opt(str()) }),
   },
   { name: "Carrier", label: "carrier" },
@@ -77,6 +88,7 @@ export const mapSchema = obj(
     asOf: opt(str({ pattern: /^\d{4}-\d{2}-\d{2}$/, patternName: "date as YYYY-MM-DD" })),
     description: opt(str()),
     lanes: arr(lane),
+    people: opt(arr(person)),
     sessions: arr(session),
     handoffs: arr(handoff),
   },
@@ -92,7 +104,7 @@ export function mapJsonSchema(): string {
     $id: MAP_SCHEMA_ID,
     title: "grooph operation map v0",
     description:
-      "A grooph operation map: harness sessions, the handoffs between them and the lanes they run in. Drawn and validated, never compiled. Normative source: docs/operation-map.md §1. Generated from packages/core/src/schema/map.ts; do not edit by hand.",
+      "A grooph operation map: harness sessions, the people they work with, the handoffs between them and the lanes they run in. Drawn and validated, never compiled. Normative source: docs/operation-map.md §1. Generated from packages/core/src/schema/map.ts; do not edit by hand.",
   });
 }
 

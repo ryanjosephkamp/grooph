@@ -11,7 +11,7 @@
 
 import { indexGraph } from "./graph-index.js";
 import { layerNodes } from "./layout.js";
-import { CARRIER_LABEL, carrierText, mapShape, mapShapeLine } from "./map.js";
+import { CARRIER_LABEL, endName, handoffCarrierText, mapShape, mapShapeLine, wakesItself } from "./map.js";
 import { estimateShape, shapeLine, tierLine } from "./proposals.js";
 import { describeStop, loopMode, stopAction } from "./semantics.js";
 import type { Edge, Graph, Id, Node, OperationMap } from "./types.js";
@@ -147,11 +147,26 @@ export function outline(doc: Graph): OutlineSection[] {
 
 /** An operation map, top to bottom: the map, each lane with its sessions, then every handoff. */
 export function mapOutline(map: OperationMap): OutlineSection[] {
-  const nameOf = (id: Id): string => map.sessions.find((s) => s.id === id)?.name || id;
+  const nameOf = (id: Id): string => endName(map, id);
   const harness = (h: string): string => (h === "claude-code" ? "Claude Code" : h === "codex" ? "Codex" : h);
+  const said = (h: (typeof map.handoffs)[number], toward: "to" | "from"): string =>
+    `${toward} ${h.from === h.to ? "itself" : nameOf(h[toward])}, by ${handoffCarrierText(map, h) || (h.carrier ? `${CARRIER_LABEL[h.carrier.kind]} (not named)` : "no named carrier")}${h.what ? `: ${h.what}` : ""}`;
   const sections: OutlineSection[] = [
     { id: map.id, kind: "Operation map", title: map.name || map.id, items: [...item("As of", map.asOf), ...item("Shape", mapShapeLine(mapShape(map))), ...item("About", map.description), ...item("Version", `${map.id}@${map.version}`)] },
   ];
+  for (const p of map.people ?? []) {
+    sections.push({
+      id: p.id,
+      kind: "Person",
+      title: p.name || p.id,
+      items: [
+        ...item("Role", p.role),
+        ...item("About", p.description),
+        ...item("Hands work", map.handoffs.filter((h) => h.from === p.id).map((h) => said(h, "to"))),
+        ...item("Is handed work", map.handoffs.filter((h) => h.to === p.id).map((h) => said(h, "from"))),
+      ],
+    });
+  }
   for (const lane of map.lanes) {
     sections.push({
       id: lane.id,
@@ -160,8 +175,7 @@ export function mapOutline(map: OperationMap): OutlineSection[] {
       items: [...item("Machine", `${lane.machine}${lane.place ? ` (${lane.place})` : ""}`), ...item("Account", lane.account), ...item("About", lane.description), ...item("Sessions", map.sessions.filter((s) => s.lane === lane.id).map((s) => s.name || s.id))],
     });
     for (const s of map.sessions.filter((x) => x.lane === lane.id)) {
-      const said = (h: (typeof map.handoffs)[number], toward: "to" | "from"): string =>
-        `${toward} ${h.from === h.to ? "itself" : nameOf(h[toward])}, by ${carrierText(h.carrier) || (h.carrier ? `${CARRIER_LABEL[h.carrier.kind]} (not named)` : "no named carrier")}${h.what ? `: ${h.what}` : ""}`;
+      const wakes = wakesItself(map, s.id);
       sections.push({
         id: s.id,
         kind: "Session",
@@ -171,6 +185,7 @@ export function mapOutline(map: OperationMap): OutlineSection[] {
           ...item("Runs on", [harness(s.harness), s.model].filter(Boolean).join(" · ")),
           ...item("How many", s.count && s.count > 1 ? `${s.count} like sessions, drawn as one` : undefined),
           ...item("Lifetime", s.lifetime === "per-task" ? "per task" : s.lifetime),
+          ...item("Wakes itself", wakes === undefined ? undefined : wakes === "" ? "on a schedule" : wakes),
           ...item("Repository", s.repo),
           ...item("Its graph", s.graph),
           ...item("About", s.description),

@@ -1,7 +1,8 @@
 /**
- * The picture of an operation map (docs/operation-map.md §4): lanes stacked
- * top to bottom, each session a card in its lane, each handoff a numbered arc
- * in the right-hand margin, and the handoffs listed below with their carriers.
+ * The picture of an operation map (docs/operation-map.md §4): the people it
+ * names in a band at the top, then lanes stacked top to bottom, each session a
+ * card in its lane, each handoff a numbered arc in the right-hand margin, and
+ * the handoffs listed below with their carriers.
  *
  * Arcs run in a margin and not between the cards because a map's handoffs
  * criss-cross: drawn through the lanes they would cover the words. In the
@@ -15,8 +16,8 @@
  */
 
 import { mapLiveLine } from "../events.js";
-import { CARRIER_LABEL, carrierText, mapShape, mapShapeLine } from "../map.js";
-import type { CarrierKind, Handoff, Id, OperationMap, Session } from "../types.js";
+import { CARRIER_LABEL, endName, handoffCarrierText, mapShape, mapShapeLine, wakesItself } from "../map.js";
+import type { CarrierKind, Handoff, Id, OperationMap } from "../types.js";
 import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Colour, type Ink, type MapPictureOptions } from "./svg.js";
 
 const M = 12; // page margin
@@ -26,7 +27,8 @@ const TRACK = 13; // between arcs in the margin, when there is room
 const TRACK_MIN = 6.5; // and when there is not: a map with one hub has a track per handoff
 const TRACK_LEAD = 16; // from a card's edge to the first track
 const TRACK_TAIL = 14; // from the last track to the lane's edge
-const CARD_SHARE = 0.56; // the least of a lane's inner width its cards keep
+const CARD_SHARE = 0.56; // the share of a lane's inner width its cards keep while the tracks can still close up
+const CARD_LEAST = 120; // and the width they never go below, however many tracks there are
 const SLOT = 13; // between two arc ends on one card
 
 /** How each carrier kind is drawn: the colour and dash of its arc and of its line in the list. */
@@ -37,6 +39,8 @@ export const CARRIER_STYLE: Record<CarrierKind | "none", { colour: Colour; dash?
   "scheduled-message": { colour: "merge", dash: "1.5 3", width: 1.8 },
   "review-page": { colour: "loop-3", dash: "7 3 1.5 3", width: 1.4 },
   person: { colour: "gate", width: 2.4 },
+  // Round dots: nobody carries it, it just arrives.
+  notification: { colour: "loop-1", dash: "0.1 4.5", width: 2.6 },
   other: { colour: "ink-3", dash: "3 3", width: 1.4 },
   none: { colour: "error", dash: "2 2", width: 1.4 },
 };
@@ -44,7 +48,7 @@ export const CARRIER_STYLE: Record<CarrierKind | "none", { colour: Colour; dash?
 const HARNESS_LABEL: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 const LIFETIME_LABEL: Record<string, string> = { "long-lived": "long-lived", "per-task": "per task", scheduled: "scheduled" };
 
-type Card = { session: Session; height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
+type Card = { height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
 
 /**
  * An operation map as one SVG with its words on it, laid out for a phone.
@@ -60,7 +64,9 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   const lanes = map.lanes;
   const laneIds = new Set(lanes.map((l) => l.id));
   const sessions = map.sessions.filter((s) => laneIds.has(s.lane));
-  const order = new Map<Id, number>(); // the order the cards are drawn in
+  const people = map.people ?? [];
+  const order = new Map<Id, number>(); // the order the cards are drawn in: people first, then each lane's sessions
+  for (const p of people) order.set(p.id, order.size);
   for (const lane of lanes) for (const s of sessions) if (s.lane === lane.id) order.set(s.id, order.size);
   const handoffs = map.handoffs.filter((h) => order.has(h.from) && order.has(h.to));
   const numberOf = new Map<Id, number>(map.handoffs.map((h, i) => [h.id, i + 1]));
@@ -82,9 +88,12 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   const { tracks, count } = assignTracks(handoffs.map((h) => ({ from: position(h.from, h.id, "from"), to: position(h.to, h.id, "to") })));
   const laneX = M;
   const laneW = W - 2 * M;
-  // The margin grows with the tracks until the cards would lose their share; then the tracks close up.
-  const widest = (laneW - 2 * PAD) * (1 - CARD_SHARE);
-  const track = count <= 1 ? TRACK : Math.max(TRACK_MIN, Math.min(TRACK, (widest - TRACK_LEAD - TRACK_TAIL) / (count - 1)));
+  // The margin grows with the tracks until the cards would lose their share; then the tracks close up, as far as
+  // TRACK_MIN. Past that the margin grows again, until the cards are at their least width; then the tracks close
+  // further, without limit. A map with fifty handoffs through one hub is a tangle, and still a picture.
+  const inner = laneW - 2 * PAD;
+  const fit = (room: number): number => (room - TRACK_LEAD - TRACK_TAIL) / (count - 1);
+  const track = count <= 1 ? TRACK : Math.min(TRACK, Math.max(TRACK_MIN, fit(inner * (1 - CARD_SHARE))), Math.max(fit(inner - CARD_LEAST), fit(inner * (1 - CARD_SHARE))));
   const margin = handoffs.length === 0 ? 0 : TRACK_LEAD + (count - 1) * track + TRACK_TAIL;
   const cardX = laneX + PAD;
   const cardW = laneW - 2 * PAD - margin;
@@ -107,9 +116,44 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   }
   y += 12;
 
-  // Lanes and their cards.
   const cards = new Map<Id, Card>();
   const cardSvg: string[] = [];
+
+  // People: a band of their own above the lanes. A person is on no machine and under no account.
+  if (people.length > 0) {
+    const top = y;
+    const inner: string[] = [];
+    let cy = top + PAD + 12;
+    inner.push(text(laneX + PAD + 2, cy, people.length === 1 ? "Person" : "People", { size: 12.5, fill: ink("ink"), weight: "bold" }));
+    cy += 9.5;
+    for (const person of people) {
+      const ends = slots.get(person.id) ?? [];
+      const name = wrap(person.name || person.id, textW, 13.5, 2, "bold");
+      const fixed = CARD_PAD + name.length * 16 + CARD_PAD - 3;
+      const forSlots = (ends.length + 1) * SLOT + 4;
+      const role = person.role ? wrap(person.role, textW, 11, Math.max(8, Math.floor((forSlots - fixed - 2) / 13.5))) : [];
+      const height = Math.max(fixed + (role.length ? 2 + role.length * 13.5 : 0), forSlots);
+      cards.set(person.id, { height, y: cy, slots: ends });
+      const g: string[] = [rect(cardX, cy, cardW, height, { fill: ink("gate-soft"), stroke: ink("gate"), rx: 14, width: 1.4, mark: "card" })];
+      let ty = cy + CARD_PAD - 5;
+      for (const line of name) {
+        ty += 16;
+        g.push(text(cardX + CARD_PAD, ty, line, { size: 13.5, fill: ink("ink"), weight: "bold" }));
+      }
+      ty += 2;
+      for (const line of role) {
+        ty += 13.5;
+        g.push(text(cardX + CARD_PAD, ty, line, { size: 11, fill: ink("ink-2") }));
+      }
+      cardSvg.push(`<g data-person="${person.id}">${g.join("")}</g>`);
+      cy += height + 8;
+    }
+    const bottom = cy + PAD - 8;
+    body.push(`<g data-people="">${rect(laneX, top, laneW, bottom - top, { fill: ink("surface-2"), stroke: ink("line"), rx: 12, dash: "5 4" })}${inner.join("")}</g>`);
+    y = bottom + 10;
+  }
+
+  // Lanes and their cards.
   for (const lane of lanes) {
     const top = y;
     const inner: string[] = [];
@@ -140,18 +184,22 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       const harness = HARNESS_LABEL[session.harness] ?? session.harness;
       const now = live[session.id];
       // Every line of words is wrapped before the card is sized. The name's first line shares its row with the count.
-      const name = wrap(session.name || session.id, textW - (family ? countW + 6 : 0), 13.5, 2, "bold");
+      const name = wrap(session.name || session.id, (line) => textW - (family && line === 0 ? countW + 6 : 0), 13.5, 2, "bold");
       // The harness and the model share a line when they fit; otherwise each has its own.
       const together = session.model ? `${harness} · ${session.model}` : harness;
       const runsOn = !session.model || textWidth(together, 10.5, "bold") <= textW ? [truncate(together, textW, 10.5, "bold")] : [truncate(harness, textW, 10.5, "bold"), ...wrap(session.model, textW, 10.5, 2, "bold")];
       const meta = [session.lifetime ? LIFETIME_LABEL[session.lifetime] : undefined, session.repo].filter(Boolean).join(" · ");
       const metaLines = meta ? wrap(meta, textW, 10, 3) : [];
-      const fixed = CARD_PAD + name.length * 16 + 1 + runsOn.length * 13 + 2 + metaLines.length * 13 + (metaLines.length ? 1 : 0) + (session.graph ? 15 : 0) + (now ? 19 : 0) + CARD_PAD - 3;
+      // A session that sends itself a scheduled message wakes itself: said on its card, with the schedule when the handoff names one.
+      const wakes = wakesItself(map, session.id);
+      const wakesLines = wakes === undefined ? [] : wrap(wakes === "" ? "wakes itself" : `wakes itself · ${wakes}`, textW - 13, 10, 2, "bold");
+      const fixed =
+        CARD_PAD + name.length * 16 + 1 + runsOn.length * 13 + 2 + metaLines.length * 13 + (metaLines.length ? 1 : 0) + (wakesLines.length ? 2 + wakesLines.length * 13 : 0) + (session.graph ? 15 : 0) + (now ? 19 : 0) + CARD_PAD - 3;
       const forSlots = (ends.length + 1) * SLOT + 4;
       // The role has five lines, and more when the card is tall anyway because many arcs end on it.
       const role = wrap(session.role, textW, 11, Math.max(5, Math.floor((forSlots - fixed) / 13.5)));
       const height = Math.max(fixed + role.length * 13.5, forSlots);
-      cards.set(session.id, { session, height, y: cy, slots: ends });
+      cards.set(session.id, { height, y: cy, slots: ends });
 
       const g: string[] = [];
       if (family) {
@@ -181,6 +229,12 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
         ty += 13;
         g.push(text(cardX + CARD_PAD, ty, line, { size: 10, fill: ink("ink-3") }));
       }
+      wakesLines.forEach((line, k) => {
+        // A dotted ring, as a scheduled message's line is dotted.
+        ty += k === 0 ? 15 : 13;
+        if (k === 0) g.push(`<circle data-wakes="" cx="${fmt(cardX + CARD_PAD + 4.2)}" cy="${fmt(ty - 3.4)}" r="3.6" fill="none" stroke-width="1.8" stroke-dasharray="1.5 2.2" style="stroke:${ink("merge")}"/>`);
+        g.push(text(cardX + CARD_PAD + 13, ty, line, { size: 10, fill: ink("merge"), weight: "bold" }));
+      });
       if (session.graph) {
         ty += 15;
         g.push(text(cardX + CARD_PAD, ty, truncate(`graph: ${session.graph}`, textW, 10, "mono"), { size: 10, fill: ink("loop-0"), weight: "mono" }));
@@ -254,7 +308,7 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     y += 6;
     body.push(text(M, y + 11, "Handoffs", { size: 12.5, fill: ink("ink"), weight: "bold" }));
     y += 20;
-    const nameOf = (id: Id): string => map.sessions.find((s) => s.id === id)?.name || id;
+    const nameOf = (id: Id): string => endName(map, id);
     const listX = M + 24;
     const listW = W - M - listX;
     for (const h of map.handoffs) {
@@ -272,7 +326,7 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
         row.push(text(listX, y, line, { size: 12, fill: ink("ink"), weight: "bold" }));
       });
       y += 14;
-      const carried = h.carrier ? carrierText(h.carrier) || `${CARRIER_LABEL[h.carrier.kind]} (not named)` : "no carrier named";
+      const carried = h.carrier ? handoffCarrierText(map, h) || `${CARRIER_LABEL[h.carrier.kind]} (not named)` : "no carrier named";
       row.push(
         `<path d="M${fmt(listX)},${fmt(y - 3.5)} h18" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>`,
       );

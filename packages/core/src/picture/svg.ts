@@ -178,20 +178,24 @@ export function truncate(text: string, width: number, size: number, weight: "reg
   return `${out.trimEnd()}…`;
 }
 
-/** Break text into lines no wider than `width`, at most `maxLines` of them; the last ends in an ellipsis when text is left over. */
-export function wrap(text: string, width: number, size: number, maxLines: number, weight: "regular" | "bold" | "mono" = "regular"): string[] {
+/**
+ * Break text into lines no wider than `width`, at most `maxLines` of them; the last ends in an ellipsis when text is left over.
+ * `width` may differ by line (a first line that shares its row with a badge): give a function of the line's index.
+ */
+export function wrap(text: string, width: number | ((line: number) => number), size: number, maxLines: number, weight: "regular" | "bold" | "mono" = "regular"): string[] {
+  const widthOf = typeof width === "number" ? () => width : width;
   const words = text.trim().split(/\s+/).filter((w) => w !== "");
   const lines: string[] = [];
   let i = 0;
   while (i < words.length && lines.length < maxLines) {
     let line = words[i++]!;
-    while (i < words.length && textWidth(`${line} ${words[i]!}`, size, weight) <= width) line = `${line} ${words[i++]!}`;
+    while (i < words.length && textWidth(`${line} ${words[i]!}`, size, weight) <= widthOf(lines.length)) line = `${line} ${words[i++]!}`;
     lines.push(line);
   }
   if (lines.length === 0) return [""];
   if (i < words.length) lines[lines.length - 1] = `${lines[lines.length - 1]!} ${words.slice(i).join(" ")}`;
   // A line still too wide is one long word, or the last line carrying what was left over.
-  return lines.map((line) => truncate(line, width, size, weight));
+  return lines.map((line, k) => truncate(line, widthOf(k), size, weight));
 }
 
 // ─── shapes ───────────────────────────────────────────────────────────────

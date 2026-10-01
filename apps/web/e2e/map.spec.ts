@@ -141,3 +141,33 @@ test("the map says what a person carries by hand, and a session's graph link ope
   await page.getByTestId("map-graph-link").tap();
   await expect(page.locator(".title-name")).toHaveText("Review loop");
 });
+
+test("a person on the map opens what the map says about them, and a session that wakes itself says how (amendment A-013)", async ({ page }) => {
+  const map = mapOf("valid/a-person-and-two-sessions.grooph-map.json");
+  await page.goto(linkFor(map));
+  await expect(page.locator(".title-sub")).toContainText("operation map · read-only");
+  await expect(page.getByRole("button", { name: "Validation: Valid" })).toBeVisible();
+
+  await page.locator('[data-person="owner"]').tap();
+  await expect(sheet(page).getByRole("heading", { name: "Person" })).toBeVisible();
+  await expect(sheet(page)).toContainText("Asks for the work and reads the result");
+  await expect(sheet(page)).toContainText("A person is not a session");
+  await expect(page.locator('[data-person="owner"]')).toHaveClass(/is-on/);
+  // What starts with the person, and what reaches them: a notification.
+  await expect(sheet(page).getByRole("button", { name: /The owner → Lead/ })).toBeVisible();
+  await sheet(page).getByRole("button", { name: /Lead → The owner/ }).tap();
+  await expect(sheet(page).getByRole("heading", { name: "Handoff 5" })).toBeVisible();
+  await expect(sheet(page)).toContainText("notification, e-mail");
+  // From a handoff, the person's name leads back to the person, and a session's to the session.
+  await sheet(page).getByRole("button", { name: "The owner", exact: true }).tap();
+  await expect(sheet(page).getByRole("heading", { name: "Person" })).toBeVisible();
+
+  await page.locator('[data-session="lead"]').tap();
+  await expect(sheet(page).getByRole("heading", { name: "Session" })).toBeVisible();
+  await expect(sheet(page)).toContainText("Wakes itself");
+  await expect(sheet(page)).toContainText("every hour");
+
+  // The map's own summary names what waits on the person.
+  await page.locator(".title-btn").tap();
+  await expect(page.getByTestId("map-by-hand").getByRole("listitem")).toHaveText(["owner → lead: moves only when The owner does it"]);
+});

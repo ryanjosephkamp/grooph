@@ -378,8 +378,19 @@ export type OperationMap = {
   description?: string;
 
   lanes: Lane[];
+  /** the people the sessions hand work to and take it from (amendment A-013); absent on a map that draws none */
+  people?: Person[];
   sessions: Session[];
   handoffs: Handoff[];
+};
+
+/** Someone a session hands work to or takes it from. Not a session: no lane, no harness, never run. */
+export type Person = {
+  id: Id;
+  name: string;
+  /** what this person does in the operation, in one line */
+  role?: string;
+  description?: string;
 };
 
 /** One machine under one account. */
@@ -422,14 +433,17 @@ export type Carrier =
   | { kind: "scheduled-message"; schedule?: string }
   | { kind: "review-page"; where?: string }
   | { kind: "person"; who?: string }
+  | { kind: "notification"; where?: string }
   | { kind: "other"; name?: string };
 
 export type CarrierKind = Carrier["kind"];
 
-/** Work passing from one session to another, by a named carrier. */
+/** Work passing from one session to another, or between a session and a person, by a named carrier. */
 export type Handoff = {
   id: Id;
+  /** a session, or a person */
   from: Id;
+  /** a session, or a person */
   to: Id;
   /** required by rule (`E_HANDOFF_NO_CARRIER`), so its absence gets a named error */
   carrier?: Carrier;
