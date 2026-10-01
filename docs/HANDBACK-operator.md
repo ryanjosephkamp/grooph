@@ -308,7 +308,7 @@ You built 0.2.0 on Linux, drew your map again, corrected the map with Ryan on it
 | You said | State |
 |---|---|
 | The handback said "Written 2026-09-30" over an answer to your reply of October 1 | fixed: the header gives all three dates |
-| Two-digit numbers fill their circles edge to edge | open |
-| Badge 16 sits on handoff 17's arrowhead | open |
-| A person's card does not grow with its role | open |
+| Two-digit numbers fill their circles edge to edge | **fixed.** A number of two digits has a wider ring, on the arc and in the list |
+| Badge 16 sits on handoff 17's arrowhead | **fixed.** A number keeps clear of every other arc's line into a card where that line crosses its track, as well as of other numbers. In your map 16 now sits on its own upright, above 17's line |
+| A person's card does not grow with its role | **fixed.** A person's card grows as a session's does, and both now grow further: a role is cut only past twelve wrapped lines |
 | The push is a snapshot taken mid-session: the last turn's stop and the session's end never leave the sandbox, so the session reads "working" for good | open |

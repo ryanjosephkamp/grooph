@@ -147,6 +147,55 @@ test("however many handoffs a hub has, a card is never narrower than 120 units, 
   assert.deepEqual(wrap("one two three four five six", (line) => (line === 0 ? textWidth("one two", 10) : textWidth("three four five six", 10)), 10, 2), ["one two", "three four five six"]);
 });
 
+test("a handoff's number is readable and unmistakable: two digits get a wider ring, and no number sits on another arc's way into a card", () => {
+  for (const name of ["owner-operation-2026-10-01", "owner-operation-2026-10-01-with-ryan", "owner-operation-2026-09-30"]) {
+    const map = parseMapText(read(join(fixturesDir, "maps", "valid", `${name}.grooph-map.json`))).map!;
+    const svg = mapPicture(map, { theme: "light" });
+    const arcs = [...svg.matchAll(/<g data-handoff="([^"]+)"><path d="M[\d.]+,([\d.]+) H[\d.]+ Q([\d.]+),[\d.]+ [^"]*? Q[\d.]+,([\d.]+) [^"]*"[\s\S]*?<g data-badge="">(<circle cx="([\d.]+)" cy="([\d.]+)"|<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)")[\s\S]*?<text [^>]*>(\d+)<\/text>/g)].map((m) => ({
+      id: m[1]!,
+      y1: Number(m[2]),
+      x: Number(m[3]),
+      y2: Number(m[4]),
+      // a circle is given by its centre; a pill by its corner and width, 14.4 tall
+      badgeX: m[6] !== undefined ? Number(m[6]) : Number(m[8]) + Number(m[10]) / 2,
+      badgeY: m[7] !== undefined ? Number(m[7]) : Number(m[9]) + 7.2,
+      half: m[10] !== undefined ? Number(m[10]) / 2 : 7.2,
+      n: m[11]!,
+    }));
+    assert.equal(arcs.length, map.handoffs.length, `${name}: every arc and its number were read`);
+    for (const a of arcs) {
+      // The Operator's first Linux picture had 10 to 18 touching their rings: a 14.4-unit circle around 12.5 units of digits.
+      if (a.n.length > 1) assert.ok(a.half * 2 >= textWidth(a.n, 8.5, "bold") + 6, `${name}: ${a.n} has ${a.half * 2} units for its digits`);
+      else assert.equal(a.half, 7.2);
+      assert.ok(Math.abs(a.badgeX - a.x) < 0.2, `${name}: ${a.n} is on its own arc's upright`);
+      // Another arc's level run, where it crosses this arc's track on its way to a card, is at least 9.5 units from the number.
+      for (const o of arcs) {
+        if (o.id === a.id || o.x < a.x - a.half - 1) continue;
+        for (const level of [o.y1, o.y2]) assert.ok(Math.abs(level - a.badgeY) >= 9.5, `${name}: number ${a.n} sits ${Math.abs(level - a.badgeY).toFixed(1)} units from handoff ${o.n}'s line into a card`);
+      }
+      for (const o of arcs) if (o.id !== a.id && Math.abs(o.badgeX - a.badgeX) <= o.half + a.half + 1) assert.ok(Math.abs(o.badgeY - a.badgeY) >= 15, `${name}: numbers ${a.n} and ${o.n} overlap`);
+    }
+  }
+});
+
+test("a card grows with its role, a person's as a session's: nothing is cut at eight lines", () => {
+  const map = parseMapText(read(join(fixturesDir, "maps", "valid", "a-person-and-two-sessions.grooph-map.json"))).map!;
+  const long =
+    "Owns the operation. Talks to the lead in one chat, mostly on a phone; marks the private pages (reviews, decisions, two boards and the weekly ideas); reads the morning notifications and says in the chat what matters in them; carries prompts to the sessions the lead cannot reach, and brings their answers back";
+  const svg = mapPicture({ ...map, people: [{ ...map.people![0]!, role: long }], sessions: map.sessions.map((s) => (s.id === "worker" ? { ...s, role: long } : s)) }, { theme: "light" });
+  const words = [...svg.matchAll(/<text [^>]*>([^<]*)<\/text>/g)].map((m) => m[1]!);
+  assert.deepEqual(words.filter((w) => w.endsWith("…")), []);
+  assert.equal(words.filter((w) => w === "back" || w.endsWith(" back")).length, 2, "the person's role and the session's both run to their last word");
+  // And each card is as tall as its words.
+  for (const who of ['data-person="owner"', 'data-session="worker"']) {
+    const g = svg.slice(svg.indexOf(`<g ${who}`));
+    const group = g.slice(0, g.indexOf("</g>"));
+    const card = /<rect data-card="" x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="([\d.]+)"/.exec(group)!;
+    const lowest = Math.max(...[...group.matchAll(/<text x="[\d.]+" y="([\d.]+)"/g)].map((m) => Number(m[1])));
+    assert.ok(lowest + 5 <= Number(card[1]) + Number(card[2]), `${who}: text at ${lowest} in a card that ends at ${Number(card[1]) + Number(card[2])}`);
+  }
+});
+
 test("a person is drawn in a band above the lanes, a notification as a line of dots, and a session that wakes itself says so", () => {
   const map = parseMapText(read(join(fixturesDir, "maps", "valid", "a-person-and-two-sessions.grooph-map.json"))).map!;
   const svg = mapPicture(map, { theme: "light" });
