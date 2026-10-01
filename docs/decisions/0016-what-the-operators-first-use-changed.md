@@ -1,6 +1,6 @@
 # 0016 · What the Operator's first use changed
 
-**Date:** 2026-10-01 · **Status:** proposed (in pull requests 0037 to 0040, waiting on the owner) · **Deciders:** driver, from the Operator's reply; the owner by merging
+**Date:** 2026-10-01 · **Status:** accepted (the owner approved the merge and the generic public sample, 2026-10-01) · **Deciders:** owner, driver, from the Operator's reply
 
 ## Context
 
