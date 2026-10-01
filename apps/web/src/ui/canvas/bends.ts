@@ -130,6 +130,16 @@ export function edgeLabelText(edge: Graph["edges"][number]): string {
 }
 
 /**
+ * The size an edge's label is drawn at when nothing is selected: a 14 px dot for an edge that is always taken
+ * and needs no approval (`quiet` in `GraphEdge`), otherwise a chip with its words and, for an approval, its mark.
+ */
+export function edgeLabelSize(edge: Graph["edges"][number]): { w: number; h: number } {
+  const text = edgeLabelText(edge);
+  const approval = Boolean(edge.approval);
+  return text === "always" && !approval ? labelSize("", false) : labelSize(text, approval);
+}
+
+/**
  * Where along its curve each edge's label sits, as a fraction (0.5 is the middle). The middle is kept
  * whenever it is clear. A label that would cover a node, or a label already placed, tries the nearest
  * points either side, out to 0.15 and 0.85; one with no clear point stays in the middle.
@@ -147,8 +157,7 @@ export function labelSpots(doc: Graph, boxes: Record<Id, Box>, bends: Map<Id, nu
     const b = boxes[edge.to];
     if (!a || !b || edge.from === edge.to) continue;
     const curve = edgeCurve(a, b, bends.get(edge.id) ?? 0);
-    const text = edgeLabelText(edge);
-    const size = labelSize(text === "always" ? "" : text, edge.approval !== undefined);
+    const size = edgeLabelSize(edge);
     const rectAt = (t: number): Box => {
       const p = pointAt(curve, t);
       return { x: p.x - size.w / 2, y: p.y - size.h / 2, w: size.w, h: size.h };

@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import type { Graph } from "@grooph/core";
 
 import { NODE_HEIGHT, NODE_WIDTH, autoLayout } from "../src/doc/layout.js";
-import { edgeBends, edgeCurve, edgeLabelText, labelSize, labelSpots, pointAt, type Box } from "../src/ui/canvas/bends.js";
+import { edgeBends, edgeCurve, edgeLabelSize, labelSize, labelSpots, pointAt, type Box } from "../src/ui/canvas/bends.js";
 import { repoRoot, reviewLoop } from "./helpers.js";
 
 const boxesFor = (doc: Graph, positions: Record<string, { x: number; y: number }>): Record<string, Box> =>
@@ -67,8 +67,7 @@ describe("edge labels", () => {
   const labelRect = (doc: Graph, boxes: Record<string, Box>, bends: Map<string, number>, id: string, t: number): Box => {
     const edge = doc.edges.find((e) => e.id === id)!;
     const p = pointAt(edgeCurve(boxes[edge.from]!, boxes[edge.to]!, bends.get(id) ?? 0), t);
-    const text = edgeLabelText(edge);
-    const size = labelSize(text === "always" ? "" : text, edge.approval !== undefined);
+    const size = edgeLabelSize(edge);
     return { x: p.x - size.w / 2, y: p.y - size.h / 2, w: size.w, h: size.h };
   };
   const covered = (doc: Graph, columns: number, spotsOf: (boxes: Record<string, Box>, bends: Map<string, number>) => Map<string, number>): string[] => {
@@ -92,6 +91,30 @@ describe("edge labels", () => {
       expect(covered(doc, columns, () => new Map()).length, `columns ${columns}, labels in the middle`).toBeGreaterThan(0);
       expect(covered(doc, columns, (boxes, bends) => labelSpots(doc, boxes, bends)), `columns ${columns}, labels placed`).toEqual([]);
     }
+  });
+
+  it("measures a label as it is drawn: an approval on an always edge is a chip with both, and `approval: false` is no chip", () => {
+    const edge = (extra: object) => ({ id: "e", from: "a", to: "b", ...extra }) as Graph["edges"][number];
+    expect(edgeLabelSize(edge({}))).toEqual({ w: 14, h: 14 });
+    expect(edgeLabelSize(edge({ approval: false }))).toEqual({ w: 14, h: 14 });
+    expect(edgeLabelSize(edge({ approval: true }))).toEqual(labelSize("always", true));
+    expect(edgeLabelSize(edge({ when: "fail" }))).toEqual(labelSize("fail", false));
+    expect(edgeLabelSize(edge({ when: "fail", approval: false }))).toEqual(labelSize("fail", false));
+
+    // An approval edge that passes a node: measured as the dot it would sit in the middle, over the node; measured as drawn, it moves.
+    const doc = { ...reviewLoop(), loops: [], nodes: reviewLoop().nodes.slice(0, 3), edges: [] } as Graph;
+    const [a, between, b] = doc.nodes.map((n) => n.id) as [string, string, string];
+    doc.edges = [{ id: "e", from: a, to: b, approval: true }] as Graph["edges"];
+    const boxes: Record<string, Box> = {
+      [a]: { x: 0, y: 0, w: NODE_WIDTH, h: NODE_HEIGHT },
+      [between]: { x: 0, y: 160, w: NODE_WIDTH, h: NODE_HEIGHT },
+      [b]: { x: 280, y: 320, w: NODE_WIDTH, h: NODE_HEIGHT },
+    };
+    const bends = edgeBends(doc, boxes);
+    const spot = labelSpots(doc, boxes, bends).get("e")!;
+    expect(spot).not.toBe(0.5);
+    expect(overlaps(labelRect(doc, boxes, bends, "e", 0.5), boxes[between]!)).toBe(true);
+    expect(Object.values(boxes).some((box) => overlaps(labelRect(doc, boxes, bends, "e", spot), box))).toBe(false);
   });
 
   it("leaves no label on a node in any built-in template, in the phone's two columns and in four", () => {

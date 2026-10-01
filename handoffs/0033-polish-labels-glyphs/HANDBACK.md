@@ -13,15 +13,26 @@ The two display flaws the fresh-eyes review left open (`docs/review-2026-10.md`,
 
 | Claim | Command | Result |
 |---|---|---|
-| The middle is kept when clear; the critic bank's covered labels move; no label covers a node in any of the twenty templates, in two columns and in four | `pnpm --filter @grooph/web test` | 57 pass (3 new) |
+| The middle is kept when clear; the critic bank's covered labels move; no label covers a node in any of the twenty templates, in two columns and in four | `pnpm --filter @grooph/web test` | 58 pass (4 new) |
 | In a browser, at phone and computer widths, no label's box overlaps a node's in the critic bank and the gauntlet | `npx playwright test e2e/layout.spec.ts -g "no edge label"` | 2 pass; both **fail** with the placement switched off (7 and 3 labels on nodes), so the test sees the defect |
 | The gauntlet's and the debate's glyphs draw above half size in the list; a short graph keeps its thumbnail beside the text; nothing scrolls sideways | `npx playwright test e2e/browse.spec.ts -g "long graph"` | 1 pass |
 | Nothing else moved | `npx playwright test` | 89 pass |
+| The hook's limit found on the way (a checkout of a branch from before the hook stops the recording) is written into `docs/subagents.md` and `docs/HANDBACK-operator.md` | read | one sentence each |
 | Looked at | two screenshots: the templates list on a phone, the critic bank on a computer | the bands read as part of the row; both `fail` labels sit on their curves between nodes |
+
+## An independent read
+
+A subagent with no part in writing the change reviewed the diff (4 minutes; it is the first subagent this repository's own hook recorded). It found two defects in how a label is measured, both fixed in this branch with a test:
+
+- an edge that is always taken **and** needs approval is drawn as a chip reading "always" with the approval mark, and was measured as the 14 px dot, about 40 px too narrow, so it could stay in the middle over a node;
+- `approval: false`, which the schema allows and an agent may write, was measured as an approval chip.
+
+It checked the moved geometry against the old over 200,000 random cases (identical paths), and found no stale glyph from the cache (documents are replaced, never changed in place) and no CSS rule that overrides the band.
 
 ## Not verified
 
 - A graph with a hand-made layout dense enough that no point on an edge is clear: the label stays in the middle, as before. No built-in template is that dense.
+- An always-taken edge is a dot until it is selected, highlighted or being picked for a loop; then it shows the word "always" in a chip, which is measured as the dot. It can cover a node while selected, as it could before this slice.
 - The label's size is estimated from its text (6.9 px a character at 12 px, weight 650), not measured. The browser test measures the real boxes for two templates; a much longer verdict label than any template has could be off by a few pixels.
 
 ## Decisions made here

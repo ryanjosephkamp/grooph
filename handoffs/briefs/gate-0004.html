@@ -1,0 +1,194 @@
+<title>grooph Gate 0004</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, 760px; status strip first, then answers, the ask, three prompts, evidence. House style of handoffs/briefs. */
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#7b8494;--line:#d9ded8;--accent:#2f6f8f;--accent-ink:#ffffff;--accent-soft:#dbe9f0;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--wait-bg:#fbf3dc;--wait-ink:#6b4e00;--note-bg:#f1f3ef;--paper:#ffffff;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px;padding-inline:16px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.9rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:600;margin-top:44px;padding-top:14px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:26px}
+p{margin:10px 0;max-width:68ch}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--note-bg);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ul,ol{padding-left:20px}li{margin:6px 0;max-width:68ch}
+a{color:var(--accent)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:18px 0 6px}
+.chip{border-radius:6px;padding:9px 12px;font-size:.88rem;line-height:1.35;min-width:0}
+.chip b{display:block;font-family:var(--head);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.chip.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.chip.wait{background:var(--wait-bg);color:var(--wait-ink)}
+.chip.plain{background:var(--note-bg);color:var(--ink2)}
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 16px 8px;margin:14px 0}
+.ask li{margin:10px 0}
+.rec{color:var(--ink2);font-size:.93rem;display:block;margin-top:2px}
+.rec b{color:var(--accent);font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;margin-right:4px}
+.prompt{position:relative;margin:12px 0}
+.prompt pre{padding-top:44px;border:1px solid var(--line)}
+.copy{position:absolute;top:8px;right:8px;font-family:var(--head);font-weight:600;font-size:.82rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:7px 14px;cursor:pointer}
+.copy:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.steps{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 16px;margin:12px 0}
+details{margin:14px 0}
+summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accent)}
+.pic{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;text-align:center}
+.pic img{max-width:100%;width:400px;height:auto}
+.cap{font-size:.84rem;color:var(--ink3);margin-top:6px}
+.small{font-size:.88rem;color:var(--ink2)}
+</style>
+<div class="wrap">
+<div class="eyebrow">Gate 0004 · 2026-10-01 · the operator round</div>
+<h1>0.1.0 is merged and tagged. Both prompts are safe to use now.</h1>
+<p class="meta">From the grooph session on your Mac (Opus 5.5). Everything you approved is done. The Operator and Codex prompts are repeated below so you do not need the last page.</p>
+
+<div class="strip">
+<div class="chip ok"><b>Merged</b>#1 to #8, in order, then #10. <code>main</code> green after each.</div>
+<div class="chip ok"><b>Tagged</b><code>v0.1.0</code>, pushed.</div>
+<div class="chip ok"><b>Live app</b>Deployed and opened: a map link works on the public site.</div>
+<div class="chip wait"><b>Open</b>One pull request, #9, waits for your word.</div>
+</div>
+
+<h2>Use these now</h2>
+<h3>For the Operator</h3>
+<p>Paste this on your other account. It finds everything on <code>main</code>, at tag <code>v0.1.0</code>. Step 5 adds two small files to one Splashery repository; delete that step if you do not want that yet.</p>
+<div class="prompt"><button class="copy" data-target="p-operator" type="button">Copy</button><pre id="p-operator">grooph 0.1.0 is ready for you. It is what you asked the grooph session to build: a document that describes the whole operation (an &quot;operation map&quot;), pictures of it you can send me, and a live view of sessions and their subagents, fed by a hook.
+
+1. Clone https://github.com/ryanjosephkamp/grooph (public). If main has docs/HANDBACK-operator.md, use main (tag v0.1.0). If it does not yet, check out the branch slice/0031-evidence-and-policies, which holds the same work.
+2. Read docs/HANDBACK-operator.md first. It has the install commands, the map format, how to turn on the live view, a recipe for the whole operation, and the known limits. docs/operation-map.md and docs/subagents.md are the full references.
+3. Build it (section 2). Then write our real operation map, starting from the sample at fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json. Run grooph validate on it until it is clean, then make a picture with grooph image ops.grooph-map.json --theme light --out ops.png and send it to me.
+4. Answer the nine questions in section 8 of the handback. The grooph session drew the sample from my brief alone and guessed where the brief was silent; you know the real shape. A corrected map file answers most of them by itself. Keep the research project&#x27;s name and contents out of your answer: the map only needs the shape.
+5. Try the hook in one lane&#x27;s repository (section 4) and tell me whether .grooph/events/ filled in a cloud session with a subagent&#x27;s start and stop. Nobody has checked that yet. It adds two small files to that repository; tell me which repository before you do it.
+
+Give me your answers as one message I can copy, or commit them where I can read them and tell me the path. I carry them back to the grooph session by hand: it cannot read your pages and you cannot read its.
+
+Do not change anything in the grooph repository. If something in it is wrong or missing, tell me and I will pass it on.</pre></div>
+
+<h3>For Codex</h3>
+<div class="steps"><ol>
+<li>Open Codex on the Mac in the folder <code>/Users/noir/Documents/grooph-codex</code>. If it asks whether you trust the folder, say yes.</li>
+<li>Type <code>/hooks</code>. You should see grooph's entries. Trust them. If it shows nothing, that is the first finding: tell Codex so.</li>
+<li>Start a <b>new</b> session in the same folder, and paste the prompt.</li>
+</ol></div>
+<div class="prompt"><button class="copy" data-target="p-codex" type="button">Copy</button><pre id="p-codex">You are the implementer for grooph slice 0032, working in Codex on Ryan&#x27;s Mac.
+
+Folder: /Users/noir/Documents/grooph-codex, a git worktree of github.com/ryanjosephkamp/grooph on branch slice/0032-codex-live-check. The grooph command is on the path (if not: node packages/cli/bin/grooph.js).
+
+Read AGENTS.md, then handoffs/0032-codex-live-check/HANDOFF.md, and do what it says. It is a check of grooph&#x27;s live view from inside Codex, on trivial tasks: a few short sessions at most. Stay inside its allowed changes, and ask Ryan before anything that touches ~/.codex.
+
+Ryan has just opened /hooks in this folder and trusted grooph&#x27;s hook (or will tell you that /hooks showed nothing).
+
+Finish by writing handoffs/0032-codex-live-check/HANDBACK.md from handoffs/TEMPLATE-HANDBACK.md, committing with a message like &quot;docs: handback 0032&quot;, and pushing the branch. Then tell Ryan what you found in three plain sentences; he reads on his phone and will carry your answer to the grooph session in Claude Code.</pre></div>
+<p class="small">The Codex folder is up to date with <code>main</code> and rebuilt. It reports version 0.1.0 and shows the Codex hook installed.</p>
+
+<h2>What was done</h2>
+<ul>
+<li><b>The merge.</b> Eight pull requests went into <code>main</code> oldest first, each as a merge commit, with no squash and no rewritten history. There were no conflicts. After each one I waited for the checks on <code>main</code>, and all eight passed.</li>
+<li><b>The tag.</b> <code>v0.1.0</code> is on the merge of #8 and pushed.</li>
+<li><b>The live app.</b> The deploy succeeded. I then opened the public site in a browser: the sample map drew its 7 sessions and 10 handoffs, the list of what you carry by hand showed 2, and the templates page listed 20.</li>
+<li><b>The progress update</b> (#10), merged under the approval you gave for it. It also carries the next item.</li>
+<li><b>grooph's hook is installed in this repository.</b> It is already recording this session. I started one reviewer subagent and watched it appear within seconds.</li>
+<li><b>The polish slice</b> (#9): an edge's label no longer sits on a node's name, and long graphs are readable in the templates list. It is open and waits for your word.</li>
+<li><b>Your brief stays</b> in the repository as written, and I left your two idle sessions alone.</li>
+</ul>
+
+<h3>Watch my subagents</h3>
+<p>On the Mac, in the grooph folder:</p>
+<pre>grooph sessions</pre>
+<p>That prints what is running now. For a page that updates by itself, reachable from your phone when it is on the same Wi-Fi as the Mac:</p>
+<pre>grooph watch --sessions --host 0.0.0.0</pre>
+<p class="small">It prints the address to open. I have not tried it from a phone on your network.</p>
+
+<h2>What you need to do</h2>
+<div class="ask"><ol>
+<li><b>Paste the Operator prompt</b> and bring its answer back.
+<span class="rec"><b>I recommend</b>now.</span></li>
+<li><b>Run the Codex check.</b>
+<span class="rec"><b>I recommend</b>now, or whenever Codex is open. Nothing waits on it.</span></li>
+<li><b>Say whether #9 may be merged.</b>
+<span class="rec"><b>I recommend</b>yes. It changes how two things are drawn in the app and nothing else. A second reviewer with fresh eyes read it and found two small measuring mistakes, both now fixed with a test.</span></li>
+</ol></div>
+
+<h2>The next prompt for me</h2>
+<p>Send this when you have the Operator's answer. Replace <code>operator_answer</code> with what it said. If Codex is not done, delete that paragraph.</p>
+<div class="prompt"><button class="copy" data-target="p-next" type="button">Copy</button><pre id="p-next">Merge pull request #9 on ryanjosephkamp/grooph with a merge commit and wait for CI on main.
+
+The Operator&#x27;s answer is below. Correct the sample map and docs/HANDBACK-operator.md from it, and fix anything it says is wrong or missing in grooph.
+
+operator_answer
+
+Codex has finished slice 0032 and pushed its branch. Read its HANDBACK.md, write the REVIEW.md, and bring what should be kept into a pull request. (I will delete this paragraph if Codex is not done yet.)
+
+Open pull requests for your changes and wait for my word before merging them. Touch only the grooph repository. Do not start the Codex compile target or study two yet. Finish with a gate page like this one.</pre></div>
+<p class="small"><b>Mode:</b> normal. <b>Effort:</b> leave it where it is. If you only want #9 merged for now, "merge #9" is enough.</p>
+
+<h2>Where this sits</h2>
+<div class="scroll"><table>
+<tr><th>Step</th><th>Who</th><th>State</th></tr>
+<tr><td>Round one: review, pictures, maps, live view, MCP server, handback</td><td>me</td><td>merged; version 0.1.0</td></tr>
+<tr><td>The Operator builds the real map and answers nine questions</td><td>Operator; you carry</td><td>ready for you</td></tr>
+<tr><td>The live view checked inside Codex</td><td>Codex; you start it</td><td>ready for you</td></tr>
+<tr><td>Polish: labels and long glyphs</td><td>me</td><td>built; #9 waits for your word</td></tr>
+<tr><td>Correct the sample from the Operator's answers; review Codex's work</td><td>me</td><td>after you bring them</td></tr>
+<tr><td>Codex compile target; study two with Opus 5.5 and Sonnet 5.5</td><td>on your go only</td><td>waiting</td></tr>
+</table></div>
+
+<h2>Checked, and not checked</h2>
+<div class="scroll"><table>
+<tr><th>Pull request</th><th>Merged at</th><th>Checks on main</th></tr>
+<tr><td>#1 fresh-eyes review</td><td class="num">23:57</td><td>passed</td></tr>
+<tr><td>#2 operation maps</td><td class="num">23:59</td><td>passed</td></tr>
+<tr><td>#3 pictures, outline, offline page</td><td class="num">00:01</td><td>passed</td></tr>
+<tr><td>#4 live subagents</td><td class="num">00:03</td><td>passed</td></tr>
+<tr><td>#5 MCP server</td><td class="num">00:05</td><td>passed</td></tr>
+<tr><td>#6 live map, handback</td><td class="num">00:07</td><td>passed</td></tr>
+<tr><td>#7 offline app</td><td class="num">00:09</td><td>passed</td></tr>
+<tr><td>#8 evidence, working rules</td><td class="num">00:11</td><td>passed</td></tr>
+<tr><td>#10 progress update, the hook</td><td class="num">00:16</td><td>passed</td></tr>
+</table></div>
+<ul>
+<li><b>Checked:</b> <code>main</code> after #8 holds exactly the files of the last branch (the two trees have the same hash).</li>
+<li><b>Checked:</b> on <code>main</code>, 323 core, 83 command-line and 54 app tests pass, and 86 browser tests. On #9, 58 app and 89 browser tests pass.</li>
+<li><b>Checked:</b> the new label test fails when the fix is switched off, so it really sees the flaw.</li>
+<li><b>Checked:</b> an independent reviewer compared the moved drawing code with the old over 200,000 random cases and got identical results. It found two mistakes in how a label is measured; both are fixed.</li>
+<li><b>Not checked:</b> the hook in a cloud session, and Codex loading a project's hook file after trust. Those are what the two prompts are for.</li>
+<li><b>Not checked:</b> the watch page from your phone; pinching on a real phone; starting sessions on the Mac from your phone.</li>
+</ul>
+
+<h2>Open items</h2>
+<ul>
+<li><b>Found today:</b> the hook is a file in the repository, so a session that checks out a branch made before the hook was added stops recording until it is back. It happened to me for a minute. It is now written into the known limits, with advice for the Operator: commit the hook to the default branch before starting lanes. That note is in #9.</li>
+<li>The tag is on the merge of #8. <code>main</code> is one merge ahead of it (#10: the progress page and the hook). The Operator can use either.</li>
+<li>The sample map still holds guesses until the Operator answers.</li>
+</ul>
+
+<h2>How to undo</h2>
+<p>Each pull request is its own merge commit on <code>main</code> and can be reverted alone. The state before the round is the branch <code>archive/study-one-wip</code>. The hook comes out with <code>grooph hooks remove</code>. The Codex folder is removed with <code>git worktree remove ../grooph-codex</code>.</p>
+</div>
+<script>
+document.querySelectorAll('.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var pre = document.getElementById(btn.getAttribute('data-target'));
+    var text = pre.textContent;
+    function done() { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); }
+    function fallback() {
+      try {
+        var range = document.createRange(); range.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        if (document.execCommand('copy')) { sel.removeAllRanges(); done(); } else { btn.textContent = 'Selected: copy it'; }
+      } catch (e) { btn.textContent = 'Select and copy'; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+});
+</script>

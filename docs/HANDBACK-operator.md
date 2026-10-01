@@ -222,6 +222,7 @@ They record and report. None starts or changes anything. Whether using them make
 - **The picture is automatic.** No hand-placed layout for a map. Past about fifteen sessions or a very tangled set of handoffs the margin of arcs widens and the cards narrow.
 - **A map lives in files.** The app opens one from a link or a file and does not keep it; there is no editor for a map but a text editor and you.
 - **Sessions observed were all under a minute.** Long sessions are untested; the reader takes the last 4 MB of an events file.
+- **The hook lives in the working tree.** A lane that checks out a branch made before the hook was committed stops recording until it is back on a branch that has it. Commit the hook to the default branch first, then start lanes.
 - **Node is required** wherever the hook runs.
 
 ## 8. Questions for you
