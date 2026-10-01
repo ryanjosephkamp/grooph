@@ -1,4 +1,4 @@
-import { durationText, secondsBetween, type LiveAgent, type LiveSession, type LiveView } from "@grooph/core";
+import { durationText, planLine, secondsBetween, type LiveAgent, type LivePlan, type LiveSession, type LiveView } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
 import { POLL_MS } from "../run/RunScreens.js";
@@ -91,6 +91,35 @@ function AgentRow({ agent, now, depth }: { agent: LiveAgent; now: string; depth:
   );
 }
 
+/** What the lead said it would start, each line ticked off against what the hook saw start. */
+function PlanBlock({ plan }: { plan: LivePlan }) {
+  return (
+    <div className="live-plan" data-plan>
+      <p className="live-plan-head">
+        <span className="badge badge-quiet">plan</span> {plan.title ?? "Declared subagents"}
+        <span className="live-plan-sum">{planLine(plan)}</span>
+      </p>
+      <ul className="live-plan-list">
+        {plan.agents.map((a, i) => {
+          const wanted = a.count ?? 1;
+          const state = a.running > 0 ? "running" : a.started >= wanted ? "started" : a.started > 0 ? "partly" : "waiting";
+          return (
+            <li key={`${a.type}-${i}`} data-plan-state={state}>
+              <span className="live-plan-type">
+                {wanted > 1 ? `${wanted} × ` : ""}
+                {typeParts(a.type).name}
+              </span>
+              <span className="live-plan-state">{state === "running" ? `${a.running} running` : state === "started" ? "started" : state === "partly" ? `${a.started} of ${wanted} started` : "not started"}</span>
+              {a.purpose ? <span className="live-plan-purpose">{a.purpose}</span> : null}
+            </li>
+          );
+        })}
+      </ul>
+      {plan.unplanned.length > 0 ? <p className="live-plan-extra">Started without being in the plan: {plan.unplanned.map((t) => typeParts(t).name).join(", ")}</p> : null}
+    </div>
+  );
+}
+
 function SessionCard({ session, now }: { session: LiveSession; now: string }) {
   const ids = new Set(session.agents.map((a) => a.id));
   const rows: { agent: LiveAgent; depth: number }[] = [];
@@ -124,10 +153,18 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
           {session.state === "ended" ? ` · ran ${durationText(secondsBetween(session.started, session.ended ?? session.lastAt))}` : ` · last seen ${seen < 5 ? "just now" : `${durationText(seen)} ago`}`}
         </p>
       </header>
+      {session.plans && session.plans.length > 0 ? <PlanBlock plan={session.plans[session.plans.length - 1]!} /> : null}
       {rows.length > 0 ? (
         <ul className="live-agents" aria-label="Subagents">
           {rows.map(({ agent, depth }) => (
             <AgentRow key={agent.id} agent={agent} now={now} depth={depth} />
+          ))}
+        </ul>
+      ) : null}
+      {session.notes && session.notes.length > 0 ? (
+        <ul className="live-notes" aria-label="Notes from the lead">
+          {session.notes.slice(-3).map((n) => (
+            <li key={n.t}>{n.text}</li>
           ))}
         </ul>
       ) : null}
@@ -205,7 +242,7 @@ export function LiveSessions() {
             {live.view.issues.length} line{live.view.issues.length === 1 ? "" : "s"} of the events could not be read (the first: {live.view.issues[0]!.source}, line {live.view.issues[0]!.line}).
           </p>
         ) : null}
-        <p className="field-hint live-foot">This shows that something ran, when and for how long. What an agent said is not recorded.</p>
+        <p className="field-hint live-foot">This shows that something ran, when and for how long. What an agent said is not recorded, except a plan or a note its lead chose to leave.</p>
       </main>
     </div>
   );

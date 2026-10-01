@@ -44,7 +44,7 @@ Worth stating, because each is a thing that usually has to be recreated and here
 - **No routine and no scheduled task.** grooph never had one. (This machine has one enabled routine, `Judge the nightly queue`, 07:00 daily — it belongs to `ars-magna` and touches nothing here. Leave it alone when handing grooph over, and if you ever recreate it on the new account, disable the old one first: two enabled routines on one repository judge the same work twice and collide on the same branch.)
 - **No connector.** The session's connectors (Claude Docs, visualize, resmon, scheduled-tasks) are other projects' or general-purpose. grooph's agent surface is the `grooph` CLI and the `grooph-design` skill, both files in the clone.
 - **No API key, no `.env`, no hosted service.** Decision 0001: static, local-first, no backend. grooph makes no model calls of its own.
-- **No MCP server yet.** The MCP wrapper is a later stage; today an agent reaches grooph through the shell.
+- **An MCP server that is only a command.** `grooph mcp` (slice 0028) is part of the CLI in the clone. A session that wants it adds it to its own harness settings (`claude mcp add grooph -- grooph mcp`); nothing is registered with an account.
 
 ## The order to switch in
 

@@ -26,7 +26,14 @@ export type SessionEventKind =
   | "subagent-start"
   | "subagent-stop"
   /** a tool call finished, in the main session or inside a subagent */
-  | "tool";
+  | "tool"
+  /** said by a lead through grooph's MCP server, not seen by a hook: the subagents it means to start */
+  | "plan"
+  /** said by a lead through grooph's MCP server: a short note for whoever is watching */
+  | "note";
+
+/** One line of a declared plan: a kind of subagent, what it is for, and how many. */
+export type PlannedAgent = { type: string; purpose?: string; count?: number };
 
 export type SessionEvent = {
   v: typeof EVENTS_VERSION;
@@ -49,9 +56,16 @@ export type SessionEvent = {
   cwd?: string;
   /** where the harness keeps the subagent's transcript, on its stop; a path on that machine */
   transcript?: string;
+  /** on a `plan`: its title; on a `note`: the note. The only text in an events folder, and only because a lead chose to say it. */
+  text?: string;
+  /** on a `plan`: the subagents the lead means to start */
+  agents?: PlannedAgent[];
 };
 
-const KINDS: readonly string[] = ["session-start", "session-end", "turn-start", "turn-end", "subagent-start", "subagent-stop", "tool"];
+/** The longest a note or a plan's title may be; longer text is cut. A note is a line for a person, not a transcript. */
+export const SAID_MAX = 600;
+
+const KINDS: readonly string[] = ["session-start", "session-end", "turn-start", "turn-end", "subagent-start", "subagent-stop", "tool", "plan", "note"];
 
 export type EventIssue = { line: number; message: string };
 
@@ -90,6 +104,21 @@ export function parseEvents(input: string): { events: SessionEvent[]; issues: Ev
       const value = text(r[key]);
       if (value !== undefined) out[key] = value;
     }
+    // Text is read only on the two kinds a lead writes on purpose; a hook's line has nowhere to carry any.
+    if (out.event === "plan" || out.event === "note") {
+      const said = text(r["text"]);
+      if (said !== undefined) out.text = said.slice(0, SAID_MAX);
+      if (out.event === "plan" && Array.isArray(r["agents"])) {
+        out.agents = (r["agents"] as unknown[]).slice(0, 50).flatMap((a): PlannedAgent[] => {
+          if (typeof a !== "object" || a === null) return [];
+          const type = text((a as Record<string, unknown>)["type"]);
+          if (!type) return [];
+          const purpose = text((a as Record<string, unknown>)["purpose"]);
+          const count = (a as Record<string, unknown>)["count"];
+          return [{ type: type.slice(0, 120), ...(purpose ? { purpose: purpose.slice(0, SAID_MAX) } : {}), ...(typeof count === "number" && Number.isInteger(count) && count > 1 && count <= 500 ? { count } : {}) }];
+        });
+      }
+    }
     events.push(out);
   });
   return { events, issues };
@@ -118,6 +147,19 @@ export type LiveAgent = {
   transcript?: string;
 };
 
+/** A plan a lead declared, with how much of it the hooks have seen happen. */
+export type LivePlan = {
+  t: string;
+  title?: string;
+  agents: (PlannedAgent & {
+    /** subagents of this type the hooks saw start after the plan was declared */
+    started: number;
+    running: number;
+  })[];
+  /** subagents that started after the plan and are of no type it named */
+  unplanned: string[];
+};
+
 export type LiveSession = {
   id: string;
   harness: HarnessId;
@@ -134,6 +176,10 @@ export type LiveSession = {
   tools: number;
   lastTool?: string;
   agents: LiveAgent[];
+  /** what its lead declared through the MCP server, newest last, each with what happened since */
+  plans?: LivePlan[];
+  /** what its lead noted through the MCP server */
+  notes?: { t: string; text: string }[];
 };
 
 /** Everything a live view shows, as one JSON value: what `grooph watch` serves and `grooph sessions --json` prints. */
@@ -155,8 +201,14 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
   const sessions = new Map<string, LiveSession>();
   const agents = new Map<string, LiveAgent>(); // by session key + agent id
   const turnOpen = new Map<string, boolean>();
+  const said: (SessionEvent & { source?: string })[] = [];
 
   for (const e of events) {
+    // What a lead said is set beside what the hooks saw, once the sessions are known.
+    if (e.event === "plan" || e.event === "note") {
+      said.push(e);
+      continue;
+    }
     const key = `${e.harness}\u0000${e.session}`;
     let s = sessions.get(key);
     if (!s) {
@@ -241,7 +293,55 @@ export function summarizeSessions(events: readonly (SessionEvent & { source?: st
     const running = s.agents.some((a) => a.state === "running");
     s.state = s.ended !== undefined && !running ? "ended" : running || turnOpen.get(key) ? "working" : "waiting";
   }
-  return [...sessions.values()];
+
+  // A plan or a note belongs to the session it names. The MCP server is not always told a session id, so one that
+  // names no known session goes to the session of the same source that had most recently started when it was said.
+  // Said with no session to belong to (no hook installed), it makes a session of its own, so it is still shown.
+  const list = [...sessions.values()];
+  for (const e of said) {
+    let s = list.find((x) => x.id === e.session && x.harness === e.harness) ?? list.find((x) => x.id === e.session);
+    if (!s) {
+      const near = list.filter((x) => x.source === e.source && x.started <= e.t).sort((a, b) => (a.started < b.started ? 1 : -1));
+      s = near[0];
+    }
+    if (!s) {
+      s = { id: e.session, harness: e.harness, state: "waiting", started: e.t, lastAt: e.t, tools: 0, agents: [] };
+      if (e.source !== undefined) s.source = e.source;
+      if (e.cwd !== undefined) s.cwd = e.cwd;
+      list.push(s);
+    }
+    if (e.event === "note") {
+      if (e.text !== undefined) (s.notes ??= []).push({ t: e.t, text: e.text });
+    } else {
+      (s.plans ??= []).push({ t: e.t, ...(e.text !== undefined ? { title: e.text } : {}), agents: (e.agents ?? []).map((a) => ({ ...a, started: 0, running: 0 })), unplanned: [] });
+    }
+  }
+  // Each plan against what started after it, up to the next plan: a lead that re-plans is judged on its latest plan.
+  for (const s of list) {
+    const plans = s.plans ?? [];
+    plans.forEach((plan, i) => {
+      const until = plans[i + 1]?.t;
+      const since = s.agents.filter((a) => a.started >= plan.t && (until === undefined || a.started < until));
+      for (const a of since) {
+        const planned = plan.agents.find((p) => p.type === a.type);
+        if (planned) {
+          planned.started += 1;
+          if (a.state === "running") planned.running += 1;
+        } else if (!plan.unplanned.includes(a.type)) plan.unplanned.push(a.type);
+      }
+    });
+  }
+  return list;
+}
+
+/** One line for a plan's progress: "2 of 3 started, 1 running; not in the plan: Explore". */
+export function planLine(plan: LivePlan): string {
+  const wanted = plan.agents.reduce((n, a) => n + (a.count ?? 1), 0);
+  const started = plan.agents.reduce((n, a) => n + Math.min(a.started, a.count ?? 1), 0);
+  const running = plan.agents.reduce((n, a) => n + a.running, 0);
+  const extra = plan.agents.filter((a) => a.started > (a.count ?? 1)).map((a) => `${a.started - (a.count ?? 1)} more ${a.type}`);
+  const outside = [...extra, ...plan.unplanned];
+  return `${started} of ${wanted} started${running > 0 ? `, ${running} running` : ""}${outside.length > 0 ? `; not in the plan: ${outside.join(", ")}` : ""}`;
 }
 
 /** One line for a session: "claude-code · working · 2 running, 3 done". */

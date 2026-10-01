@@ -14,7 +14,7 @@ grooph is an **authoring and compilation surface**, not a runtime. You (or an ag
 - **Operation maps.** A second, smaller document for work that spans sessions: which sessions exist (harness, account, machine, model, role), and what carries work between them (a branch, a pull request, a message, a person). Drawn and checked, never run. [`docs/operation-map.md`](docs/operation-map.md)
 - **A live view of subagents.** A hook that appends one line when a session or a subagent starts or stops, in Claude Code and in Codex, and a screen that shows what is running now. It records ids, names and times, never what an agent said, and it cannot steer. [`docs/subagents.md`](docs/subagents.md)
 - **A pattern library** of named loop shapes (grind loop, review gate, spec-then-loop, metric sandwich, specialist critic bank, …). Gauntlet-style polish is one template among them, never the default.
-- **An agent surface.** A CLI and a skill (`/grooph-design`) so a Claude Code session can propose two or three candidate graphs for your goal, build them in grooph, and show you the comparison. An MCP server over the same operations is planned, not built yet; so is the Codex target.
+- **An agent surface.** A CLI and a skill (`/grooph-design`) so a Claude Code session can propose two or three candidate graphs for your goal, build them in grooph, and show you the comparison. A small MCP server (`grooph mcp`) lets a session declare the subagents it plans to start, leave a note, ask what is running, and validate a document. The Codex compile target is planned, not built yet.
 
 ## What it is not
 

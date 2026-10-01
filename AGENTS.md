@@ -46,7 +46,7 @@ spec/        capability spec (frozen) + amendments
 docs/        PLAN, PROGRESS, ARCHITECTURE, GLOSSARY, graph-ir, targets/, decisions/
 handoffs/    protocol, templates, one folder per slice (HANDOFF, HANDBACK, REVIEW)
 handoffs/briefs/  sources of the gate briefs published as Artifacts, with their URLs
-packages/    core (schema, validate, compile) · cli · mcp        — created in slice 0001
+packages/    core (schema, validate, compile, pictures, events) · cli (commands, the event hook, the MCP server)
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
 fixtures/    graphs per error code, golden packages; operation maps per map rule, with the sample

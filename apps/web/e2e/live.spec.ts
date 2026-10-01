@@ -91,7 +91,7 @@ test("several sessions' files show side by side under their names: both harnesse
   await expect(codex.locator(".live-agent")).toHaveCount(2);
   await expect(codex.locator(".live-state")).toHaveText("Ended");
   // Nothing an agent said is on the screen, because none of it is in the events.
-  await expect(page.locator(".live-foot")).toContainText("What an agent said is not recorded.");
+  await expect(page.locator(".live-foot")).toContainText("What an agent said is not recorded, except a plan or a note its lead chose to leave.");
   // It fits a phone: nothing scrolls sideways.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
@@ -137,4 +137,34 @@ test("a live run shows a node running as soon as the hook sees its subagent, bef
   await expect(page.locator("p.run-origin")).toContainText("the hook sees 1 subagent running");
   // The builder's outcome is still the lead's word: a hook cannot know one.
   await expect(runBadge(page, "builder")).toHaveText("passed");
+});
+
+test("a plan the lead declared is shown beside what the hook saw, with its note", async ({ page }) => {
+  // A real session: the lead called grooph_plan, started the two subagents it planned, and left a note.
+  await stubSessions(page, [view(eventsOf("claude-code-planned.jsonl"), "2026-10-01T01:52:10.000Z")]);
+  await page.goto("./#/live");
+  const card = page.locator(".live-session");
+  await expect(card).toHaveCount(1);
+  const plan = card.locator("[data-plan]");
+  await expect(plan.locator(".live-plan-sum")).toHaveText("2 of 2 started");
+  await expect(plan.locator("li")).toHaveCount(2);
+  await expect(plan.locator("li").nth(0)).toHaveAttribute("data-plan-state", "started");
+  await expect(plan.locator("li").nth(0)).toContainText("Explore");
+  await expect(card.getByRole("list", { name: "Notes from the lead" })).toContainText("alpha");
+  await expect(card.locator(".live-agent")).toHaveCount(2);
+
+  // A plan that is not kept says so: something planned and never started, something started and never planned.
+  const e = (t: number, event: SessionEvent["event"], more: Partial<SessionEvent> = {}): SessionEvent => ({ v: 1, t: new Date(Date.UTC(2026, 9, 1, 4, 0, t)).toISOString(), harness: "codex", event, session: "s9", ...more });
+  await page.unroute("**/grooph/api/live.json");
+  await stubSessions(page, [
+    view(
+      [e(0, "session-start"), e(1, "plan", { text: "Round one", agents: [{ type: "worker", count: 2 }, { type: "explorer", purpose: "map the code first" }] }), e(3, "subagent-start", { agent: "w1", type: "worker" }), e(4, "subagent-start", { agent: "d1", type: "default" })],
+      "2026-10-01T04:00:20.000Z",
+    ),
+  ]);
+  await expect(plan.locator(".live-plan-sum")).toHaveText("1 of 3 started, 1 running; not in the plan: default", { timeout: 8_000 });
+  await expect(plan.locator("li").nth(0)).toHaveAttribute("data-plan-state", "running");
+  await expect(plan.locator("li").nth(1)).toHaveAttribute("data-plan-state", "waiting");
+  await expect(plan.locator("li").nth(1)).toContainText("map the code first");
+  await expect(plan.locator(".live-plan-extra")).toHaveText("Started without being in the plan: default");
 });

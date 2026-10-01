@@ -26,6 +26,7 @@ import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
 import { validateCommand } from "./commands/validate.js";
 import { watchCommand, WATCH_HELP } from "./commands/watch.js";
 import { parseSource } from "./events-io.js";
+import { serve as serveMcp, toolNames } from "./mcp.js";
 import { stdio, type Output } from "./print.js";
 import { RegistryError, defaultRegistryEnv, type RegistryEnv } from "./registry.js";
 import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
@@ -60,6 +61,7 @@ Usage
   grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--port 4174] [--host 127.0.0.1] [--open]
   grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
   grooph sessions [<source>...] [--json]
+  grooph mcp [--dir <project>] [--harness <name>]
   grooph <command> --help
   grooph --version
 
@@ -101,6 +103,8 @@ Commands
   hooks          Install the event hook into a project: one line per session or subagent
                  start and stop, appended to .grooph/events/. It records; it cannot steer.
   sessions       What the hook has seen, as text or JSON: sessions, subagents, what is running.
+  mcp            An MCP server on standard input and output, for a session to call: declare a
+                 plan, leave a note, ask what is running, validate a document.
 
 Targets
   ${KNOWN_TARGETS.join(", ")}
@@ -380,6 +384,17 @@ export async function run(
         return sessionsCommand(io, positionals, { json: values["json"] === true });
       }
 
+      case "mcp": {
+        const { values } = parseArgs({ args: rest, allowPositionals: false, options: { dir: { type: "string" }, harness: { type: "string" } } });
+        const e = env.env ?? process.env;
+        const project = values["dir"] ?? e["CLAUDE_PROJECT_DIR"] ?? process.cwd();
+        // The harness does not always tell an MCP server which session it serves; then the id is this server's own.
+        const session = e["CLAUDE_CODE_SESSION_ID"] ?? e["CODEX_SESSION_ID"] ?? `mcp-${Date.now().toString(36)}-${process.pid}`;
+        const harness = values["harness"] ?? (e["CLAUDECODE"] ? "claude-code" : e["CODEX_HOME"] || e["CODEX_SESSION_ID"] ? "codex" : "unknown");
+        await serveMcp({ project, version: VERSION, harness, session, now: () => new Date() });
+        return 0;
+      }
+
       case "template": {
         const outcome = await templateCommand(io, rest, { ...defaultRegistryEnv(), ...env });
         if (typeof outcome === "number") return outcome;
@@ -415,6 +430,32 @@ export async function run(
   }
 }
 
+const MCP_HELP = `grooph mcp [--dir <project>] [--harness <name>]
+
+Run grooph's MCP server on standard input and output, for a coding session to call. Four
+tools, all of which record or report and none of which starts or changes anything:
+
+  grooph_plan      declare the subagents the session is about to start
+  grooph_note      leave a short note for whoever is watching
+  grooph_running   what the event hook has seen: sessions, subagents, what is running,
+                   and each declared plan with how much of it has started
+  grooph_validate  check a graph or an operation map file
+
+A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl, beside the
+hook's files, and shown with the session in grooph watch --sessions and grooph sessions.
+
+Add it to a harness:
+  Claude Code   claude mcp add grooph -- grooph mcp
+                or in .mcp.json: { "mcpServers": { "grooph": { "command": "grooph", "args": ["mcp"] } } }
+  Codex         in ~/.codex/config.toml:  [mcp_servers.grooph]
+                                          command = "grooph"
+                                          args = ["mcp", "--harness", "codex"]
+
+  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in)
+  --harness <name>  claude-code or codex, when it cannot be told from the environment
+
+No model is called and nothing leaves the machine. docs/subagents.md §7.`;
+
 /** `grooph <command> --help`: the command's own page where it has one, else the overview. */
 const COMMAND_HELP: Record<string, string> = {
   share: SHARE_HELP,
@@ -430,7 +471,10 @@ const COMMAND_HELP: Record<string, string> = {
   page: PAGE_HELP,
   hooks: HOOKS_HELP,
   sessions: SESSIONS_HELP,
+  mcp: MCP_HELP,
 };
+
+void toolNames;
 
 function usageError(io: Output, message: string): number {
   io.err(`grooph: ${message}`);

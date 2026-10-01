@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { durationText, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
+import { durationText, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
 import { EVENTS_DIR, eventFiles, parseSource, readLive, sourceExists, type EventSource } from "../events-io.js";
 import { writeText } from "../io.js";
@@ -259,6 +259,9 @@ export function sessionLines(s: LiveSession, now: string): string[] {
     }
   };
   walk(undefined, 0);
+  // What its lead said through the MCP server, beside what the hooks saw.
+  for (const plan of s.plans ?? []) lines.push(`  plan${plan.title ? ` "${plan.title}"` : ""}: ${planLine(plan)}`);
+  for (const note of s.notes ?? []) lines.push(`  note: ${note.text}`);
   return lines;
 }
 

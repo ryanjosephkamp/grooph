@@ -20,6 +20,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 - **Slice 0027, live subagents** (branch `slice/0027-live-subagents`, stacked on 0025, 2026-09-30): amendment A-012 and `docs/subagents.md` (how subagents and hooks work in each harness; documented, seen and unknown, with sources). The event hook (`packages/cli/hooks/grooph-event.mjs`), `grooph hooks install | status | remove` for Claude Code and Codex, `grooph sessions`, `grooph watch --sessions` and `--events` (files, folders, `git:<ref>`), the `#/live` screen, and a run's nodes lit from hook events. Verified with real sessions in both harnesses: Claude Code 2.1.280 (three subagents, one nested) and Codex CLI 0.159.2 (two subagents). Core 319, cli 77, web 54 unit and 80 browser tests pass. Pull request open.
 
+- **Slice 0028, MCP server** (branch `slice/0028-mcp`, stacked on 0027, 2026-09-30): `grooph mcp`, a dependency-free MCP server on standard input and output with four tools: `grooph_plan`, `grooph_note`, `grooph_running`, `grooph_validate`. A plan and a note go to `.grooph/events/said-<session>.jsonl`; the live view sets a plan beside what the hook saw (started, running, not in the plan). One real Claude Code session used all four ($0.23). Core 322, cli 81, web 54 unit and 81 browser tests pass. Pull request open.
+
 ## Waiting on the owner
 
 | Item | Recommended answer |
