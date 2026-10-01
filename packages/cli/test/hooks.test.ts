@@ -15,7 +15,7 @@ import { test } from "node:test";
 
 import type { LiveView } from "@grooph/core";
 
-import { hookEntries, hookSource } from "../src/commands/hooks.js";
+import { hookEntries, hookSource, pushSource } from "../src/commands/hooks.js";
 import { parseSource, readLive } from "../src/events-io.js";
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -265,6 +265,7 @@ test("this repository's own installed hook is the hook the CLI ships, and its se
   // grooph watches its own sessions (decision 0015). The installed copy must not drift from the source.
   const installed = join(repoRoot, ".grooph", "hooks", "grooph-event.mjs");
   assert.equal(readFileSync(installed, "utf8"), readFileSync(hookSource(), "utf8"), "run `grooph hooks install` at the repository root and commit the result");
+  assert.equal(readFileSync(join(repoRoot, ".grooph", "hooks", "grooph-events-push.mjs"), "utf8"), readFileSync(pushSource(), "utf8"), "run `grooph hooks install --harness claude-code,codex` at the repository root and commit the result");
   const settings = JSON.parse(readFileSync(join(repoRoot, ".claude", "settings.json"), "utf8")) as { hooks: Record<string, unknown> };
   assert.deepEqual(settings.hooks, hookEntries("claude-code", false));
   // Codex's entries are committed too: the Codex app works in its own copy of the repository, which holds only committed files (slice 0032).

@@ -1,6 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { durationText, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
@@ -41,8 +41,9 @@ running or done, for how long, and its last tool. With no source, ./.grooph/even
 
   <source>   an events file, a folder of them, or a project folder (its .grooph/events/).
              git:<ref> reads .grooph/events/ from a git ref without checking it out:
-             a lane that commits its events is read from its pushed branch, as
-             git:origin/lane-a. Several sources merge into one list, in time order.
+             a lane that sends its events with grooph events push is read, after a
+             fetch, as git:origin/grooph-events/<its branch>. Several sources merge
+             into one list, in time order.
              name=<source> shows that source's sessions under a name: a lane, a machine.
   --json     the same as data: the live view grooph watch serves (docs/subagents.md)
 
@@ -50,6 +51,51 @@ Reads files; starts nothing, asks no harness anything, and writes nothing.`;
 
 const MARK = "grooph-event.mjs";
 const HOOK_REL = join(".grooph", "hooks", MARK);
+const PUSH = "grooph-events-push.mjs";
+const PUSH_REL = join(".grooph", "hooks", PUSH);
+
+/** The script that sends events to a branch of their own, as this CLI ships it: packages/cli/hooks/grooph-events-push.mjs. */
+export const pushSource = (): string => fileURLToPath(new URL(`../../../hooks/${PUSH}`, import.meta.url));
+
+export const EVENTS_HELP = `grooph events push [--branch <name>] [--remote <name>] [--no-push] [--dir <project>]
+
+Send this project's session events to a branch of their own, so another machine can
+read them and no pull request ever carries them.
+
+  --branch <name>   the branch to write. Default: grooph-events/<the branch checked out>.
+                    Give the whole name when a harness only lets a session push under a
+                    prefix, for example --branch claude/grooph-events-lane-a
+  --remote <name>   default: origin
+  --no-push         make the commit and print its id; send nothing
+  --dir <project>   default: the current directory
+
+It makes one commit whose tree is .grooph/events/ and nothing else, on top of what that
+branch already holds, and pushes it. It never touches the working tree, the index, HEAD
+or the branch checked out. Event files already on the branch that this clone does not
+have are kept, and a file both have is never made shorter, so sessions may share one.
+
+It writes only to a branch that holds events and nothing else: a branch with any other
+file on it, and the branch checked out here, are refused. With no branch checked out
+(a detached worktree) it needs --branch.
+
+A session with no grooph installed runs the same code as a script that
+grooph hooks install puts beside the hook:
+  node .grooph/hooks/grooph-events-push.mjs
+
+Read them elsewhere, after a fetch:
+  grooph sessions lane-a=git:origin/grooph-events/<branch>`;
+
+type PushModule = { main(argv: string[], project: string, out?: (line: string) => void, err?: (line: string) => void): number };
+
+/** `grooph events push`: the shipped script, run in this process. */
+export async function eventsCommand(io: Output, sub: string | undefined, args: string[], dir: string | undefined): Promise<number> {
+  if (sub !== "push") {
+    io.err(sub === undefined ? "grooph: events needs push (grooph events --help)" : `grooph: unknown events command "${sub}"; it is push`);
+    return 1;
+  }
+  const mod = (await import(pathToFileURL(pushSource()).href)) as PushModule;
+  return mod.main(args, resolve(dir ?? "."), (line) => io.out(line), (line) => io.err(line));
+}
 
 /** The hook as this CLI ships it: packages/cli/hooks/grooph-event.mjs. */
 export const hookSource = (): string => fileURLToPath(new URL("../../../hooks/grooph-event.mjs", import.meta.url));
@@ -163,6 +209,8 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     mkdirSync(dirname(hookFile), { recursive: true });
     copyFileSync(hookSource(), hookFile);
     io.out(`wrote ${shownPath(hookFile)}`);
+    copyFileSync(pushSource(), join(dir, PUSH_REL));
+    io.out(`wrote ${shownPath(join(dir, PUSH_REL))}`);
     for (const plan of plans) {
       writeText(plan.path, plan.text);
       io.out(`wrote ${shownPath(plan.path)}`);
@@ -178,7 +226,8 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
       io.out("If grooph sessions stays empty after a Codex session, one of these is missing. Codex does not say which.");
     }
     io.out(`Watch: grooph watch --sessions   ·   List: grooph sessions   ·   Undo: grooph hooks remove${flags.harness ? ` --harness ${flags.harness}` : ""}`);
-    io.out(`The events are a record of this machine's sessions. Commit ${EVENTS_DIR}/ to share them, or add it to .gitignore.`);
+    io.out(`The events are a record of this machine's sessions: add ${EVENTS_DIR}/ to .gitignore. To let another machine read them,`);
+    io.out(`send them to a branch of their own: grooph events push (or, with no grooph there, node ${PUSH_REL}).`);
     return 0;
   }
 
@@ -209,9 +258,12 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         }
       }),
     );
-    if (!stillUsed && existsSync(hookFile)) {
-      rmSync(hookFile);
-      io.out(`removed ${shownPath(hookFile)}`);
+    if (!stillUsed) {
+      for (const file of [hookFile, join(dir, PUSH_REL)]) {
+        if (!existsSync(file)) continue;
+        rmSync(file);
+        io.out(`removed ${shownPath(file)}`);
+      }
     }
     io.out(`The events in ${EVENTS_DIR}/ are kept.`);
     return 0;
