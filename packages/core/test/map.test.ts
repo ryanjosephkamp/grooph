@@ -13,7 +13,7 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 
 import { mapLive, mapLiveLine, parseEvents, summarizeSessions } from "../src/events.js";
 import { offlinePage } from "../src/offline.js";
-import { MAP_CODES, canonicalizeMap, carrierText, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
+import { MAP_CODES, byHandLines, canonicalizeMap, carrierText, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
 import { parseGraphText } from "../src/parse.js";
 import { mapPicture } from "../src/picture/map-picture.js";
 import { mapJsonSchema, MAP_SCHEMA_ID } from "../src/schema/map.js";
@@ -123,6 +123,10 @@ test("the sample: the owner's operation at a glance", () => {
   assert.equal(carrierText(map.handoffs[7]!.carrier), "branch main on ryanjosephkamp/grooph");
   assert.equal(carrierText(map.handoffs[6]!.carrier), "carried by Ryan");
   assert.equal(carrierText({ kind: "person" }), "");
+  // What a person carries is said, and is not an issue: a map that admits it is a true map.
+  assert.deepEqual(shape.byHand.map((h) => h.handoff), map.handoffs.filter((h) => h.carrier?.kind === "person").map((h) => h.id));
+  assert.equal(byHandLines(shape).length, 2);
+  assert.match(byHandLines(shape)[0]!, /^by hand {2}\S+ {2}\S+ → \S+: moves only when .+ carries it$/);
 });
 
 test("the picture of the sample is the committed one, in both themes, and says everything the map does", () => {

@@ -1,0 +1,9 @@
+{"type":"thread.started","thread_id":"01a0f519-47ac-77d0-b6d1-d1197c151582"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I can’t carry out the requested delegation in this session because the active collaboration instructions prohibit spawning subagents. I’ll check the file and command directly, then report what’s available."}}
+{"type":"item.started","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'head -c 200 notes.txt; echo; echo hello'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"command_execution","command":"/bin/zsh -lc 'head -c 200 notes.txt; echo; echo hello'","aggregated_output":"alpha beta gamma\n\nhello\n","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_4","type":"agent_message","text":"alpha hello"}}
+{"type":"turn.completed","usage":{"input_tokens":46388,"cached_input_tokens":43520,"cache_write_input_tokens":0,"output_tokens":93,"reasoning_output_tokens":0}}

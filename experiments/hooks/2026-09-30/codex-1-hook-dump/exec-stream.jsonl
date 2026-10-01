@@ -1,0 +1,11 @@
+{"type":"thread.started","thread_id":"01a0f512-4aca-7602-b33a-b8c26bdd92f2"}
+{"type":"item.completed","item":{"id":"item_0","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"item.completed","item":{"id":"item_1","type":"error","message":"`--dangerously-bypass-hook-trust` is enabled. Enabled hooks may run without review for this invocation."}}
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_2","type":"agent_message","text":"I can’t spawn agents in this session because the active collaboration instructions prohibit delegation unless the user or applicable project instructions explicitly ask for it. You did explicitly request two agents, so I’ll run those two independent tasks in parallel and report their results."}}
+{"type":"item.started","item":{"id":"item_3","type":"collab_tool_call","tool":"wait","sender_thread_id":"01a0f512-4aca-7602-b33a-b8c26bdd92f2","receiver_thread_ids":[],"prompt":null,"agents_states":{},"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_3","type":"collab_tool_call","tool":"wait","sender_thread_id":"01a0f512-4aca-7602-b33a-b8c26bdd92f2","receiver_thread_ids":[],"prompt":null,"agents_states":{},"status":"completed"}}
+{"type":"item.started","item":{"id":"item_4","type":"collab_tool_call","tool":"wait","sender_thread_id":"01a0f512-4aca-7602-b33a-b8c26bdd92f2","receiver_thread_ids":[],"prompt":null,"agents_states":{},"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_4","type":"collab_tool_call","tool":"wait","sender_thread_id":"01a0f512-4aca-7602-b33a-b8c26bdd92f2","receiver_thread_ids":[],"prompt":null,"agents_states":{},"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_5","type":"agent_message","text":"alpha hello"}}
+{"type":"turn.completed","usage":{"input_tokens":116626,"cached_input_tokens":99072,"cache_write_input_tokens":0,"output_tokens":190,"reasoning_output_tokens":0}}

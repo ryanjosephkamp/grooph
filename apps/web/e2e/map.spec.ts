@@ -122,3 +122,22 @@ test("on a wide screen the picture keeps its phone width and the details sit bes
   const panel = (await sheet(page).boundingBox())!;
   expect(panel.x).toBeGreaterThan(picture.x + picture.width - 1);
 });
+
+test("the map says what a person carries by hand, and a session's graph link opens that graph in the app", async ({ page }) => {
+  const sample = mapOf(SAMPLE);
+  const graph = JSON.parse(readFileSync(join(repoRoot, "fixtures/valid/review-loop.grooph.json"), "utf8")) as Parameters<typeof buildShareEnvelope>[0];
+  await page.goto("./");
+  const base = page.url().split("#")[0]!;
+  const graphLink = `${base}#/open?d=${encodeSharePayload(buildShareEnvelope(graph), (bytes) => deflateRawSync(bytes, { level: 9 }))}`;
+  const map: OperationMap = { ...sample, sessions: sample.sessions.map((s) => (s.id === "grooph" ? { ...s, graph: graphLink } : s)) };
+  await page.goto(linkFor(map));
+
+  await page.locator(".title-btn").tap();
+  const byHand = page.getByTestId("map-by-hand").getByRole("listitem");
+  await expect(byHand).toHaveCount(2);
+  await expect(byHand.first()).toHaveText("operator → grooph: moves only when Ryan carries it");
+
+  await page.locator('[data-session="grooph"]').tap();
+  await page.getByTestId("map-graph-link").tap();
+  await expect(page.locator(".title-name")).toHaveText("Review loop");
+});

@@ -82,6 +82,8 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0028 | 22 | MCP server over the same core: declare planned subagents, write a note, what is running, validate a document | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0027). One real session to check the tools work ($0.23); whether they help a lead is untested |
 | 0029 | 21, 22 | The live map (hook state drawn on an operation map: `image` and `page --events`, `watch --map`) and `docs/HANDBACK-operator.md` | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0028; no spend) |
 | 0030 | 8, 19 | The installable offline app (manifest, icons, service worker); refit beside the panel on a wide screen (review item 14) | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0029; no spend) |
+| 0031 | 20, 21 | The evidence for the hook and MCP runs (`experiments/hooks/`, a ledger and a checker); hand-carried handoffs said by the validator; a session's graph link opens; questions for the Operator; decision 0015 (working rules) | Opus 5.5 | in review 2026-09-30 (pull request, stacked on 0030; no spend) |
+| 0032 | 20 | The live view checked from inside Codex: project hooks after trust, an interactive session's events, the MCP server from Codex, a review of the Codex half of `docs/subagents.md` | Codex | handoff drafted 2026-09-30; waits on the owner (three steps and a prompt) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)

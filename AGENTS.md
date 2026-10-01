@@ -23,7 +23,7 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 - **Driver** (a Fable 5.1 session): plans, designs the graph document, writes handoffs, reviews handbacks, merges to `main`, keeps `docs/` current.
 - **Implementer** (Opus 5, or Astra in Codex for Codex-specific slices): works one slice from `handoffs/NNNN-<slug>/HANDOFF.md` and ends by writing `HANDBACK.md` there.
 
-If your prompt names a slice folder, you are an implementer: read that `HANDOFF.md` before anything else, stay inside its allowed changes, and finish with the `grooph-handback` skill. If you are the driver, `handoffs/README.md` holds the protocol.
+If your prompt names a slice folder, you are an implementer: read that `HANDOFF.md` before anything else, stay inside its allowed changes, and finish with the `grooph-handback` skill. In Codex there is no such skill: write `HANDBACK.md` from `handoffs/TEMPLATE-HANDBACK.md`, commit, and push your branch (`handoffs/README.md`, "Codex as an implementer"). If you are the driver, `handoffs/README.md` holds the protocol.
 
 ## Conventions
 
@@ -38,6 +38,8 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 - **Latitude over procedure.** Briefs state purpose, limits and outputs. The smallest graph that works beats a thorough one.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
 - **State lives in `docs/PROGRESS.md`, reasons in `docs/decisions/`.** README stays a product description.
+- **A run is recorded before its result is used.** Any model session started by command gets a folder under `experiments/`, the harness's output saved as it runs, and a ledger row with its session id and reported cost (decision 0015; `experiments/hooks/README.md`).
+- **Merges to `main` wait for the owner's word** until he says otherwise (decision 0015).
 - **Publish only from a file the repo keeps.** A published page (a gate brief, a share-link wrapper) belongs to the Claude account that published it and cannot be handed to another. Write its source into `handoffs/briefs/` first, publish from there, then record the URL beside it in that folder's table. Never publish from a session scratchpad: that directory is expected to vanish.
 - **Tooling:** TypeScript monorepo, `pnpm` workspaces. Package-level choices belong to the implementer and are recorded in the handback.
 

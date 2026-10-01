@@ -44,6 +44,32 @@ function Rows({ rows }: { rows: [string, ReactNode][] }) {
  * handoff for what the document says about it; the validator's list is behind
  * the status. Nothing here edits or stores the map, and a map is never run.
  */
+/** The handoffs that wait on a person: where work stalls when that person is away. Said, not warned about. */
+function byHand(map: OperationMap) {
+  const waiting = mapShape(map).byHand;
+  if (waiting.length === 0) return undefined;
+  return (
+    <ul className="map-by-hand" data-testid="map-by-hand">
+      {waiting.map((h) => (
+        <li key={h.handoff}>
+          <span className="mono">{h.from}</span> → <span className="mono">{h.to}</span>: moves only when {h.who === "" ? "a person" : h.who} carries it
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A session's pointer to its own loop graph. A web link opens (a share link opens the graph in this app); anything else is shown as written. */
+function GraphPointer({ pointer }: { pointer: string }) {
+  if (!/^https?:\/\//i.test(pointer)) return <span className="mono">{pointer}</span>;
+  const here = pointer.startsWith(`${location.origin}${location.pathname}#`);
+  return (
+    <a className="mono map-graph-link" href={pointer} data-testid="map-graph-link" {...(here ? {} : { target: "_blank", rel: "noreferrer" })}>
+      Open its graph
+    </a>
+  );
+}
+
 export function MapView({ map, issues, back = { href: "#/", label: "All graphs" } }: { map: OperationMap; issues: readonly IssueLike[]; back?: { href: string; label: string } }) {
   const svg = useMemo(() => mapPicture(map), [map]);
   const [panel, setPanel] = useState<Panel>(null);
@@ -136,6 +162,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
               ["Name", map.name],
               ["As of", map.asOf],
               ["Shape", mapShapeLine(mapShape(map))],
+              ["By hand", byHand(map)],
               ["About", map.description ? <p className="prose">{map.description}</p> : undefined],
             ]}
           />
@@ -225,7 +252,7 @@ function SessionDetails({ map, session, onHandoff }: { map: OperationMap; sessio
           ["Lifetime", session.lifetime === "per-task" ? "per task" : session.lifetime],
           ["Lane", lane ? `${lane.name} (${lane.machine}, ${lane.account})` : <span className="mono">{session.lane}</span>],
           ["Repository", session.repo],
-          ["Its graph", session.graph ? <span className="mono">{session.graph}</span> : undefined],
+          ["Its graph", session.graph ? <GraphPointer pointer={session.graph} /> : undefined],
           ["About", session.description ? <p className="prose">{session.description}</p> : undefined],
         ]}
       />

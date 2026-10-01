@@ -290,6 +290,8 @@ export type MapShape = {
   harnesses: Record<string, number>;
   /** handoffs whose two sessions are in different lanes */
   crossLane: number;
+  /** the handoffs a person carries, in document order: each moves only when that person moves it */
+  byHand: { handoff: Id; from: Id; to: Id; who: string }[];
 };
 
 export function mapShape(map: OperationMap): MapShape {
@@ -313,7 +315,16 @@ export function mapShape(map: OperationMap): MapShape {
       const to = sessions.get(h.to);
       return from !== undefined && to !== undefined && from.lane !== to.lane;
     }).length,
+    byHand: map.handoffs.flatMap((h) => (h.carrier?.kind === "person" ? [{ handoff: h.id, from: h.from, to: h.to, who: h.carrier.who ?? "" }] : [])),
   };
+}
+
+/**
+ * The handoffs that wait on a person, one line each. Not an issue: a map that says so is a true map. It is said
+ * beside the issues because these are where work stalls when that person is away.
+ */
+export function byHandLines(shape: MapShape): string[] {
+  return shape.byHand.map((h) => `by hand  ${h.handoff}  ${h.from} → ${h.to}: moves only when ${h.who === "" ? "a person" : h.who} carries it`);
 }
 
 /** One line for a map's shape: "4 lanes · 9 sessions (24 counting families) · 12 handoffs, 3 carried by a person". */
