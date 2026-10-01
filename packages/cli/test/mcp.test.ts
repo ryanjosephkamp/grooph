@@ -105,7 +105,7 @@ test("validate checks a graph or a map by path, relative to the project or absol
     const map = call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json") });
     assert.match(textOf(map), /^operation map two-sessions: 1 lane · 2 sessions · 2 handoffs\n1 error, 0 warnings\nerror {2}E_HANDOFF_NO_CARRIER/);
     assert.equal((map.result!["structuredContent"] as { ok: boolean }).ok, false);
-    assert.match(textOf(call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /no issues$/);
+    assert.match(textOf(call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nno issues\nby hand {2}h-brief-grooph {2}operator → grooph: moves only when Ryan carries it\nby hand/);
     assert.equal(call(ctx, "grooph_validate", { path: "nope.json" }).result!["isError"], true);
   });
 });

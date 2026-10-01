@@ -53,6 +53,12 @@ test("validate checks a map against the map's rules: the sample is clean, a hand
   assert.equal(await grooph(["validate", sample], io), 0);
   assert.match(text(io.stdout), /3 lanes · 7 sessions \(18 counting families\) · 10 handoffs, 2 carried by a person/);
   assert.match(text(io.stdout), /no issues/);
+  // What Ryan carries himself is said after the issues, and is not one of them.
+  assert.equal(text(io.stdout).match(/^by hand {2}.+: moves only when Ryan carries it$/gm)?.length, 2);
+
+  io = capture();
+  assert.equal(await grooph(["validate", sample, "--json"], io), 0);
+  assert.equal((JSON.parse(text(io.stdout)) as { byHand: unknown[] }).byHand.length, 2);
 
   io = capture();
   assert.equal(await grooph(["validate", join(maps, "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json")], io), 1);

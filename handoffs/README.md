@@ -31,3 +31,13 @@ handoffs/
 - Verification claims name the command and the observed result. "Tests pass" without the command is not a verification.
 - Decisions the implementer made inside the boundary are recorded in the handback, with reasons; the driver promotes durable ones to `docs/decisions/`.
 - A blocked slice ends early with an honest handback rather than a workaround outside the boundary.
+
+## Codex as an implementer
+
+Codex works a slice the same way, with three differences (decision 0015).
+
+- **Its own folder.** Codex works in a git worktree beside this clone, `/Users/noir/Documents/grooph-codex`, so its checkout never moves under a Claude Code session working here. The driver creates it on the slice's branch and builds it: `git worktree add ../grooph-codex slice/NNNN-<slug>`. One worktree, reused: the driver switches it to the next slice's branch.
+- **The repository is the exchange.** `HANDOFF.md` goes in on the slice's branch; `HANDBACK.md` comes back on the same branch, pushed. Nothing else passes between the harnesses, and the owner carries one prompt each way. Codex reads `AGENTS.md` by itself; it has no `grooph-handback` skill, so its handback follows `TEMPLATE-HANDBACK.md` by hand.
+- **`~/.codex` is the owner's.** Hook trust, project trust and MCP servers are his to grant. A handoff says which steps are his, in order, before the prompt.
+
+The driver may also run `codex exec` itself for a small check (`experiments/hooks/README.md` says how such a run is recorded). A slice goes to an interactive Codex session when it needs the owner present, Codex's own judgment, or more than a few minutes.

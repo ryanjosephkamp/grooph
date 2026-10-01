@@ -16,7 +16,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
-import { SAID_MAX, formatIssue, isMapLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap, type IssueLike, type PlannedAgent, type SessionEvent } from "@grooph/core";
+import { SAID_MAX, byHandLines, formatIssue, isMapLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap, type IssueLike, type OperationMap, type PlannedAgent, type SessionEvent } from "@grooph/core";
 
 import { sessionLines } from "./commands/hooks.js";
 import { EVENTS_DIR, readLive } from "./events-io.js";
@@ -142,8 +142,10 @@ const TOOLS: Tool[] = [
       }
       let issues: IssueLike[];
       let head: string;
+      let map: OperationMap | undefined;
       if (isMapLike(json)) {
         const parsed = parseMapText(text);
+        map = parsed.map;
         issues = parsed.map
           ? validateMap(parsed.map, {
               resolveGraph: (ref) => {
@@ -160,7 +162,8 @@ const TOOLS: Tool[] = [
         head = parsed.doc ? `graph ${parsed.doc.id}` : "not a graph document grooph can read";
       }
       const errors = issues.filter((i) => i.severity === "error").length;
-      const body = issues.length === 0 ? "no issues" : [`${errors} error${errors === 1 ? "" : "s"}, ${issues.length - errors} warning${issues.length - errors === 1 ? "" : "s"}`, ...issues.map(formatIssue)].join("\n");
+      const byHand = map ? byHandLines(mapShape(map)) : [];
+      const body = [...(issues.length === 0 ? ["no issues"] : [`${errors} error${errors === 1 ? "" : "s"}, ${issues.length - errors} warning${issues.length - errors === 1 ? "" : "s"}`, ...issues.map(formatIssue)]), ...byHand].join("\n");
       return { text: `${head}\n${body}`, data: { ok: errors === 0, issues } };
     },
   },

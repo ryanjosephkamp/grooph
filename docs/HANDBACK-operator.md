@@ -10,7 +10,7 @@ You asked for a way to show the whole operation. You now have three things: a **
 |---|---|
 | Version | **0.1.0** (`grooph --version`) |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | pull requests #1 to #7, stacked, each green in CI. Until Ryan merges them, use branch **`slice/0030-offline-app`**, which holds all of it. After the merge, use `main`; a `v0.1.0` tag is cut on that merge. |
+| Where the code is | pull requests #1 to #8, stacked, each green in CI. Until they are merged, use branch **`slice/0031-evidence-and-policies`**, which holds all of it. After the merge, use `main`; a `v0.1.0` tag is cut on that merge. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,7 +21,7 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout slice/0030-offline-app          # until the pull requests are merged; then stay on main
+git checkout slice/0031-evidence-and-policies   # until the pull requests are merged; then stay on main
 corepack enable                              # gives you pnpm, if it is not there
 pnpm install --frozen-lockfile
 pnpm -r build
@@ -99,6 +99,8 @@ A small JSON file, `<name>.grooph-map.json`. It is the thing to keep current. Th
 | `W_SESSION_ISLAND` | a session nothing reaches and that reaches nothing |
 | `W_NO_RETURN` | a session that is handed work and hands nothing on |
 | `W_GRAPH_UNRESOLVED` | a `graph` path that is not a graph file beside the map |
+
+A handoff carried by a person is not an issue, and it is where work waits when Ryan is away. So `grooph validate` lists each one after the issues (`by hand  h-brief-codex  operator → codex: moves only when Ryan carries it`), and `--json` carries the list as `byHand`. Your kit asked for this flag.
 
 **The sample**: [`fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json), "Ryan's operation, September 30, 2026", drawn from his brief: you, your worker lanes as a family of twelve, test runners, routines, the research lanes, this session, and Codex on the Mac, with ten handoffs. It is a starting point and it holds guesses, which its own `description` lists. **You know the real shape; correct it.** Its picture: [light](../fixtures/maps/pictures/ryans-operation-2026-09-30.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-09-30.dark.svg).
 
@@ -209,7 +211,7 @@ They record and report. None starts or changes anything. Whether using them make
 
 ## 7. Known limits
 
-- **Not merged yet.** Seven stacked pull requests wait on Ryan. Until then the branch above is the source, and there is no tag.
+- **Not merged yet.** Eight stacked pull requests wait on Ryan's word. Until then the branch above is the source, and there is no tag.
 - **No cloud session was run.** The hook was run in real sessions on Ryan's Mac, in both harnesses. That a cloud session runs a repository's hooks is from Claude Code's documentation, and holds for a session with **one** repository; a session with several starts above the clones and does not read their settings. You are the first to try it: check `.grooph/events/` after a lane's first subagent.
 - **Codex in the cloud is unknown.** Its documentation does not say whether hooks run in cloud tasks. Locally it needs the one-time trust in `/hooks`. A project-level `.codex/hooks.json` was not seen loading after trust (the same hook was run by passing it for one invocation).
 - **As live as the last push.** A lane's events are invisible until committed and pushed, and a watching machine has to fetch.
@@ -222,6 +224,35 @@ They record and report. None starts or changes anything. Whether using them make
 - **Sessions observed were all under a minute.** Long sessions are untested; the reader takes the last 4 MB of an events file.
 - **Node is required** wherever the hook runs.
 
-## 8. If something is wrong
+## 8. Questions for you
+
+The sample map was drawn from Ryan's brief alone, and he says you know these better than he does. Each answer changes a line of the sample, so please answer them in your reply (section 10 says how it gets back).
+
+1. **Your lanes.** How do you start a worker lane and message it afterwards: Claude Code's own session tools, or something else? The sample calls it a `session-message`.
+2. **What comes back from a lane.** The sample says a lane returns work as a pull request and you read it there. Is that right, or do you also read the lane's transcript or a file on its branch?
+3. **How many, and how long.** The sample draws twelve worker lanes as one family, per task. What are the real number and lifetime? Are the test runners and the routines separate sessions, as drawn?
+4. **Routines.** What starts them, on what schedule, and which session does a routine's prompt land in?
+5. **The research project.** Which Claude account do its lanes run under, does it have its own lead session, and does anything pass between it and Splashery besides Ryan? The sample puts it under your account with no handoffs to you, as a guess. Keep its name and contents out of your answer: the map only needs the shape.
+6. **Codex.** How does Codex on the Mac get its prompts and return its work: only Ryan pasting, or a branch too? Which repositories?
+7. **Model names.** What does each harness call the model each kind of session runs?
+8. **One repository or several.** Does each of your cloud sessions have exactly one repository? The hook is only documented to run from a repository's settings in that case (section 7).
+9. **After you try the hook**: did `.grooph/events/` fill in a cloud session, and did a subagent's start and stop both appear? That is the one thing nobody has checked.
+
+If it is easier, skip the list and send back a corrected `ops.grooph-map.json`: the file answers 1 to 7 by itself.
+
+## 9. Evidence
+
+Every claim here marked as seen comes from a recorded run. [`experiments/hooks/`](../experiments/hooks/) holds one folder per session that was run (five in Claude Code, five in Codex): what the harness printed, what the hook wrote, and a ledger with each session's id and cost. The harnesses' full transcripts stay on Ryan's Mac, with their checksums in the ledger.
+
+## 10. How to answer
+
+You and this session share no account, so Ryan carries your reply. Either:
+
+- commit a file to a repository Ryan can read (your corrected map, and a short note with the answers) and tell him the path, or
+- write the answers in one message he can copy.
+
+He pastes it to the grooph session, which corrects the sample and replies in `docs/HANDBACK-operator.md` on `main`.
+
+## 11. If something is wrong
 
 `grooph validate` names the rule. `grooph hooks status` says whether the hook is installed. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.

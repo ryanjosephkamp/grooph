@@ -1,0 +1,437 @@
+{
+  "date": "2026-09-30",
+  "machine": "the owner's Mac",
+  "runs": [
+    {
+      "run": "cc-1-hook-dump",
+      "harness": "claude-code",
+      "version": "2.1.280",
+      "purpose": "Dump what each of eight hooks receives; two subagents (one custom, one built-in).",
+      "command": "claude -p <prompt> --model sonnet --max-budget-usd 0.60 --permission-mode acceptEdits --settings <allow Bash(echo:*), Read> --output-format json",
+      "session": "2fb3a6ca-0e82-4e48-b5a1-54b878d74570",
+      "model_usage": {
+        "claude-sonnet-5": {
+          "cost_usd": 0.1443,
+          "input": 8,
+          "output": 413,
+          "cache_read": 73445,
+          "cache_write": 39773
+        },
+        "claude-haiku-4-5-20251001": {
+          "cost_usd": 0.0065,
+          "input": 5226,
+          "output": 257,
+          "cache_read": 0,
+          "cache_write": 0
+        }
+      },
+      "cost_usd_reported": 0.1508,
+      "cost_basis": "what Claude Code printed as total_cost_usd: list price for the tokens used; on a subscription it is usage, not a charge",
+      "duration_ms": 6883,
+      "turns": 3,
+      "result": "alpha / hello",
+      "files": [
+        "result.json",
+        "hook-inputs.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp-cc/2fb3a6ca-0e82-4e48-b5a1-54b878d74570.jsonl",
+          "sha256": "e21a3538bceda35afdcadc2fc1b22b61ea58a4a90d02e09f127106031d70e9bb",
+          "bytes": 219164
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp-cc/2fb3a6ca-0e82-4e48-b5a1-54b878d74570/subagents/agent-a043f0a6f6c9270c8.jsonl",
+          "sha256": "ae9542d5513349aeae6f61b4cefadca6dd29f6281676eb59f649f3b51650ba9b",
+          "bytes": 28154
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp-cc/2fb3a6ca-0e82-4e48-b5a1-54b878d74570/subagents/agent-a043f0a6f6c9270c8.meta.json",
+          "sha256": "ce19c5b103f284c07b8df257fda4301f668303c183ff500d4e0cc0a43fcc4356",
+          "bytes": 189
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp-cc/2fb3a6ca-0e82-4e48-b5a1-54b878d74570/subagents/agent-a52dd83149b6f83b3.jsonl",
+          "sha256": "67d6f32354ba866aac2ba54a74fae66bb414963526427d96a001e62a675ab1b6",
+          "bytes": 134604
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp-cc/2fb3a6ca-0e82-4e48-b5a1-54b878d74570/subagents/agent-a52dd83149b6f83b3.meta.json",
+          "sha256": "a7e5de3bec5fc68149dc831a4252a6d36390321e289e83d9c90dae61eca8bb79",
+          "bytes": 187
+        }
+      ]
+    },
+    {
+      "run": "cc-2-real-hook-nested",
+      "harness": "claude-code",
+      "version": "2.1.280",
+      "purpose": "The real hook (installed with --tools); a subagent that starts its own subagent. Stop hook in the background: the session's end was not recorded.",
+      "command": "claude -p <prompt> --model sonnet --max-budget-usd 0.80 --permission-mode acceptEdits --settings <allow> --output-format json",
+      "session": "aa35c7a6-1bc2-4988-836f-a8e574a1cbe7",
+      "model_usage": {
+        "claude-sonnet-5": {
+          "cost_usd": 0.2683,
+          "input": 20,
+          "output": 983,
+          "cache_read": 179636,
+          "cache_write": 78304
+        }
+      },
+      "cost_usd_reported": 0.2683,
+      "cost_basis": "what Claude Code printed as total_cost_usd: list price for the tokens used; on a subscription it is usage, not a charge",
+      "duration_ms": 1393,
+      "turns": 1,
+      "result": "alpha, hello",
+      "files": [
+        "result.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7.jsonl",
+          "sha256": "857b3ff556d7ada79947e4c7c484f9bf7b9958ba5abe944bedfd5f02a8adb553",
+          "bytes": 225333
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7/subagents/agent-a67a718e7238a1ad9.jsonl",
+          "sha256": "c3ef512f87efeb21bb334a093a7db56133447f26ad4719087e13d0aaffa897ce",
+          "bytes": 108079
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7/subagents/agent-a67a718e7238a1ad9.meta.json",
+          "sha256": "853968a4c95684fc38a0ad22b1bde9ef70f6d90163eb2ac8666434c93381703a",
+          "bytes": 221
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7/subagents/agent-ab5e7248cd004a487.jsonl",
+          "sha256": "b54d648ee98d746915a80754818e8c148062d93f9d81f714278666daca0708b9",
+          "bytes": 128452
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7/subagents/agent-ab5e7248cd004a487.meta.json",
+          "sha256": "234d1f11cc39039e8316bfd909cdb744d6fcc88f025296cb5477b28f4fda525b",
+          "bytes": 201
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7/subagents/agent-ac54cc4b7e3d74ca9.jsonl",
+          "sha256": "def9678e80f75f7dd39385fb7555b59ca4a1b5c899c27aa9baf422e927d6425d",
+          "bytes": 127101
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/aa35c7a6-1bc2-4988-836f-a8e574a1cbe7/subagents/agent-ac54cc4b7e3d74ca9.meta.json",
+          "sha256": "f4d385d727ecfaafb41eb0324b49d7b6644696f65fcaf9075c4ddb8a3527eb60",
+          "bytes": 187
+        }
+      ]
+    },
+    {
+      "run": "cc-3-stop-waited",
+      "harness": "claude-code",
+      "version": "2.1.280",
+      "purpose": "One word reply, to see whether a waited-for Stop hook records the session's end. It does.",
+      "command": "claude -p 'Reply with the single word ok.' --model haiku --max-budget-usd 0.20 --output-format json",
+      "session": "b661a57b-6842-493e-807e-a520491a8e7a",
+      "model_usage": {
+        "claude-haiku-4-5-20251001": {
+          "cost_usd": 0.0189,
+          "input": 10,
+          "output": 41,
+          "cache_read": 13689,
+          "cache_write": 8647
+        }
+      },
+      "cost_usd_reported": 0.0189,
+      "cost_basis": "what Claude Code printed as total_cost_usd: list price for the tokens used; on a subscription it is usage, not a charge",
+      "duration_ms": 1124,
+      "turns": 1,
+      "result": "ok",
+      "files": [
+        "result.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/b661a57b-6842-493e-807e-a520491a8e7a.jsonl",
+          "sha256": "a76024bb301e0768ac421d27487913d85891adef9f842c99eb5d23edf939c889",
+          "bytes": 177743
+        }
+      ]
+    },
+    {
+      "run": "cc-4-real-hook-nested-again",
+      "harness": "claude-code",
+      "version": "2.1.280",
+      "purpose": "The nested run again with Stop waited for: the last turn and the session's end are recorded. This recording is fixtures/events/claude-code-nested.jsonl.",
+      "command": "claude -p <prompt> --model sonnet --max-budget-usd 0.80 --permission-mode acceptEdits --settings <allow> --output-format json",
+      "session": "5aac1305-f22d-4cad-a6e7-810700aeb49e",
+      "model_usage": {
+        "claude-sonnet-5": {
+          "cost_usd": 0.1811,
+          "input": 22,
+          "output": 1080,
+          "cache_read": 234265,
+          "cache_write": 41926
+        }
+      },
+      "cost_usd_reported": 0.1811,
+      "cost_basis": "what Claude Code printed as total_cost_usd: list price for the tokens used; on a subscription it is usage, not a charge",
+      "duration_ms": 2259,
+      "turns": 1,
+      "result": "alpha, hello",
+      "files": [
+        "result.json",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e.jsonl",
+          "sha256": "d759a35a67219cd0d418270e7aee353b2bd6ab544309ea1c4d49affca19b8eb0",
+          "bytes": 223205
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e/subagents/agent-a3c7f127015e09ab9.jsonl",
+          "sha256": "bda4a16269beb90b482357e4c6121a8a52a925649d6262c86719cb2f904b0463",
+          "bytes": 128622
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e/subagents/agent-a3c7f127015e09ab9.meta.json",
+          "sha256": "6cb3f1f89ba0a0d5b94214ff74be517c0860868a0dc8af72a1c78a757880085f",
+          "bytes": 212
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e/subagents/agent-a85e3d56b6dc2472e.jsonl",
+          "sha256": "c3015eb2ff5f36811f5d93b0fe12e15d015ab4470df9de72d4281a60f6f49210",
+          "bytes": 127193
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e/subagents/agent-a85e3d56b6dc2472e.meta.json",
+          "sha256": "f8b4678dcd1f13a874f3044a9ff388bc3cfbf6b8f97d6d7726313badf17e8369",
+          "bytes": 193
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e/subagents/agent-aafd93d37fa11c02e.jsonl",
+          "sha256": "6c754ed2b2e14df20388adc62f611d177e87f11186afb69528ed35749e9dcb66",
+          "bytes": 112153
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/5aac1305-f22d-4cad-a6e7-810700aeb49e/subagents/agent-aafd93d37fa11c02e.meta.json",
+          "sha256": "6ab5013fbebe2537b4e10de9ebb477b8a59f5ecf9f87c13b9ef5f401a2dd7291",
+          "bytes": 221
+        }
+      ]
+    },
+    {
+      "run": "cc-5-mcp-plan",
+      "harness": "claude-code",
+      "version": "2.1.280",
+      "purpose": "The MCP server attached: plan, two subagents, running, note. This recording is fixtures/events/claude-code-planned.jsonl.",
+      "command": "claude -p <prompt> --model sonnet --max-budget-usd 0.90 --permission-mode acceptEdits --mcp-config mcp.json --settings <allow incl. mcp__grooph__*> --output-format json",
+      "session": "b86d0067-c821-4708-b85d-5d8a52ddb9f7",
+      "model_usage": {
+        "claude-sonnet-5": {
+          "cost_usd": 0.2294,
+          "input": 20,
+          "output": 1187,
+          "cache_read": 243471,
+          "cache_write": 57517
+        }
+      },
+      "cost_usd_reported": 0.2294,
+      "cost_basis": "what Claude Code printed as total_cost_usd: list price for the tokens used; on a subscription it is usage, not a charge",
+      "duration_ms": 23502,
+      "turns": 7,
+      "result": "First word of notes.txt: **alpha**\nEcho output: **hello**",
+      "files": [
+        "result.json",
+        "events.jsonl",
+        "said.jsonl",
+        "mcp.json"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/b86d0067-c821-4708-b85d-5d8a52ddb9f7.jsonl",
+          "sha256": "f5a20fc4b75088f4752346e9d6d736521eb3a24a8713d3a68719334d230a9afb",
+          "bytes": 262365
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/b86d0067-c821-4708-b85d-5d8a52ddb9f7/subagents/agent-a1461789324b4ebad.jsonl",
+          "sha256": "ee96b1ee0a514fea2cb221a19f3b2f18aba18af0b1db8761441209ce422ac8df",
+          "bytes": 109183
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/b86d0067-c821-4708-b85d-5d8a52ddb9f7/subagents/agent-a1461789324b4ebad.meta.json",
+          "sha256": "679bfcf70898d118efd3daa63c2fd94f55be3c2eb1c3e84d26e6dead1bc2217c",
+          "bytes": 185
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/b86d0067-c821-4708-b85d-5d8a52ddb9f7/subagents/agent-a420c2229f32a5619.jsonl",
+          "sha256": "59a222b37d6eb1e6b633a9ef10784cd961302d6630720d0477539abbd65e196d",
+          "bytes": 135269
+        },
+        {
+          "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph-3e9d2b43-91b3-40a4-9859-23f9fc76c901-scratchpad-exp2/b86d0067-c821-4708-b85d-5d8a52ddb9f7/subagents/agent-a420c2229f32a5619.meta.json",
+          "sha256": "af0eda4f44186f04fd581e6e42462e4a0fdfce474e409e86d40c24c8b48bf795",
+          "bytes": 187
+        }
+      ]
+    },
+    {
+      "run": "codex-1-hook-dump",
+      "harness": "codex",
+      "version": "codex-cli 0.159.2",
+      "purpose": "Dump what each of eight hooks receives; two subagents asked for.",
+      "command": "codex exec -c hooks.<Event>=[\u2026dump.sh\u2026] \u00d78 --dangerously-bypass-hook-trust --skip-git-repo-check -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" --json <prompt> < /dev/null",
+      "model": "gpt-6-luna, reasoning effort low",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 116626,
+        "cached_input_tokens": 99072,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 190,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-26-51-01a0f512-4aca-7602-b33a-b8c26bdd92f2.jsonl",
+          "sha256": "3c3edc45de0cc691264e546f7b6f963fd43deba25f7f96d1e9935a07b87b7f27",
+          "bytes": 102504
+        },
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-26-58-01a0f512-65d8-7873-ad79-b17b15c8bf5c.jsonl",
+          "sha256": "d6a679cce6df938f0c0636718258fa34cece132fde888c9008f4a826d1b40771",
+          "bytes": 103979
+        },
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-27-00-01a0f512-6c12-79b1-955b-cee6fc91492d.jsonl",
+          "sha256": "27435d29bf941322675bc696a8b0474705deae2d1f83981152a5f512dbc6af3d",
+          "bytes": 103829
+        }
+      ],
+      "note": "The raw hook inputs are kept only in local/ and not committed: they include the tool calls of Codex's own background memory session. The key-by-key summary is handoffs/0027-live-subagents/experiments/codex-0.159.2.md. A first attempt hung waiting on standard input and was killed before any model call."
+    },
+    {
+      "run": "codex-2-project-hooks-json",
+      "harness": "codex",
+      "version": "codex-cli 0.159.2",
+      "purpose": "The real hook from a project .codex/hooks.json, with the project marked trusted for one invocation. The session ran; the project's hooks did not load, so nothing was recorded.",
+      "command": "codex exec --dangerously-bypass-hook-trust --skip-git-repo-check -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" -c projects.\"<dir>\".trust_level=\"trusted\" --json <prompt> < /dev/null",
+      "model": "gpt-6-luna, reasoning effort low",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 116494,
+        "cached_input_tokens": 110336,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 158,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-33-23-01a0f518-43b6-7eb3-aa77-63cf3ff1d1a0.jsonl",
+          "sha256": "f073ca530a7592d0439cb7d68e241775a3d877c75e7bce61f43d9204b9c193dd",
+          "bytes": 102084
+        },
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-33-29-01a0f518-5bb4-7101-9af0-f66a0347af02.jsonl",
+          "sha256": "27e70cf763c9523926579174288fc575b7f27f044d42814eeb0c4885f58e2643",
+          "bytes": 156144
+        },
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-33-30-01a0f518-6180-7793-b3a6-6411cda8b49b.jsonl",
+          "sha256": "4c63a01cd3d79e144df0ba9b0cfcad571f944a33678e002b288faff588a89c44",
+          "bytes": 156301
+        }
+      ]
+    },
+    {
+      "run": "codex-3-which-hooks-load",
+      "harness": "codex",
+      "version": "codex-cli 0.159.2",
+      "purpose": "One word reply with a probe hook in both places: the one passed on the command line ran, the one in the project's hooks.json did not.",
+      "command": "codex exec \u2026 -c hooks.SessionStart=[\u2026probe.sh cli-override\u2026] --json 'Reply with the single word ok.' < /dev/null",
+      "model": "gpt-6-luna, reasoning effort low",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 23069,
+        "cached_input_tokens": 9984,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-34-02-01a0f518-deaa-7592-bdbc-411683de5168.jsonl",
+          "sha256": "f50a6d76f37c16fa0ba66c8bd160f6143a976367c78118f86617737721aeac64",
+          "bytes": 84588
+        }
+      ]
+    },
+    {
+      "run": "codex-4-real-hook-declined",
+      "harness": "codex",
+      "version": "codex-cli 0.159.2",
+      "purpose": "The real hook's entries passed for one invocation. The hook recorded the session; the model declined to start subagents.",
+      "command": "codex exec -c hooks.<Event>=<grooph's entries> \u00d77 --dangerously-bypass-hook-trust --skip-git-repo-check -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" --json <prompt> < /dev/null",
+      "model": "gpt-6-luna, reasoning effort low",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": {
+        "input_tokens": 46388,
+        "cached_input_tokens": 43520,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 93,
+        "reasoning_output_tokens": 0
+      },
+      "files": [
+        "exec-stream.jsonl",
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-34-29-01a0f519-47ac-77d0-b6d1-d1197c151582.jsonl",
+          "sha256": "7a5f3a871e9e411c09289a514a959f8331d41dd1041c271392cfecf3f640e558",
+          "bytes": 90407
+        }
+      ]
+    },
+    {
+      "run": "codex-5-real-hook-subagents",
+      "harness": "codex",
+      "version": "codex-cli 0.159.2",
+      "purpose": "The same with a firmer prompt: two subagents recorded by the real hook. This recording is fixtures/events/codex-two-subagents.jsonl.",
+      "command": "codex exec -c hooks.<Event>=<grooph's entries> \u00d77 --dangerously-bypass-hook-trust --skip-git-repo-check -s read-only -m gpt-6-luna -c model_reasoning_effort=\"low\" --json <prompt> < /dev/null",
+      "model": "gpt-6-luna, reasoning effort low",
+      "billing": "the ChatGPT sign-in (subscription); Codex prints tokens, not dollars",
+      "tokens": null,
+      "files": [
+        "events.jsonl"
+      ],
+      "transcripts": [
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-34-56-01a0f519-b192-7051-9e44-1eb408523861.jsonl",
+          "sha256": "d02bb8f0d4e446409ec01a6f1b8503f35e66e49295668c5c13741b97b66906a7",
+          "bytes": 102193
+        },
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-35-02-01a0f519-c6e1-7df0-a2ee-db8b387e24da.jsonl",
+          "sha256": "7764338dfd242e83a5bec28526d123151b9d947b665300f8589d551f51a044fb",
+          "bytes": 156206
+        },
+        {
+          "path": "~/.codex/sessions/2026/09/30/rollout-2026-09-30T21-35-03-01a0f519-ccc3-7e13-9047-e5e8df10e181.jsonl",
+          "sha256": "ab02a3dabcd22356f982b576ab00a112c0fbc57a05b4a05b83e17a80bb4044b7",
+          "bytes": 156313
+        }
+      ],
+      "note": "The exec stream of this run was read in the session and not saved to a file; the hook's events and Codex's own rollout files are its record."
+    }
+  ]
+}

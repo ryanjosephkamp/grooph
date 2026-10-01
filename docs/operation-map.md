@@ -58,7 +58,7 @@ type Session = {
 };
 ```
 
-`graph` is a pointer, not a copy. The map stays small (spec §4.7) and the graph stays the single source of truth for what happens inside that session. This is the first form of the nested-graph reference `graph-ir.md` §9 defers: a session points down at a graph; a graph does not yet point at another graph.
+`graph` is a pointer, not a copy. When it is a web link (a share link from `grooph share <graph>`, say) the app opens it from the session's details, so a session on the map leads into its own loop graph. The map stays small (spec §4.7) and the graph stays the single source of truth for what happens inside that session. This is the first form of the nested-graph reference `graph-ir.md` §9 defers: a session points down at a graph; a graph does not yet point at another graph.
 
 ### Handoffs
 
@@ -117,6 +117,10 @@ Same output as a graph's: a list of `{ code, severity, message, at }`. Codes are
 | `W_UNKNOWN_KEY` | A key the schema does not know. Kept and preserved, as in a graph. |
 | `W_DOC_TOO_LARGE` | The canonical form exceeds 24,000 characters: the same "rewrite in one pass" budget as a graph. |
 
+### Said, not warned: what a person carries
+
+A handoff carried by a `person` is a true statement about an operation, so it is not an issue and a map full of them still validates clean. It is where work stalls when that person is away, so grooph says it every time it checks a map: `grooph validate` lists each one after the issues (`by hand  <handoff>  <from> → <to>: moves only when <who> carries it`), `--json` and `grooph shape --json` carry the same list as `byHand`, `grooph_validate` returns it, and the app shows it in the map's details. The picture already draws these handoffs in the gate colour.
+
 ## 4. The picture
 
 `mapPicture(map, { theme })` in core draws a map as one SVG, laid out for a phone: lanes stacked top to bottom, each session a card in its lane, each handoff an arc in the margin with a number, and a numbered list of the handoffs below (who to whom, by what carrier, carrying what). Line style says the carrier kind. It is a projection: it never round-trips, and edits happen in the document.
@@ -127,7 +131,7 @@ The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto
 
 | Command | What it does with a map |
 |---|---|
-| `grooph validate <map>` | the rules of §3; a `graph` pointer that is a path is looked up beside the map |
+| `grooph validate <map>` | the rules of §3, then what a person carries by hand; a `graph` pointer that is a path is looked up beside the map |
 | `grooph canonicalize <map> [--write]` | canonical form (§5) |
 | `grooph shape <map> [--json]` | lanes, sessions, handoffs, how many a person carries |
 | `grooph image <map> [--out <file.svg \| file.png>] [--theme …]` | the picture, as SVG or PNG |

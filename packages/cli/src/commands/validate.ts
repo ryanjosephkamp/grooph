@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import { hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap } from "@grooph/core";
+import { byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap } from "@grooph/core";
 
 import { readText } from "../io.js";
 import { printIssues, type Output } from "../print.js";
@@ -44,10 +44,13 @@ export function validateCommand(io: Output, file: string, flags: ValidateFlags =
           },
         })
       : parsed.issues;
-    if (flags.json === true) io.out(JSON.stringify({ file, ok: !hasErrors(issues), kind: "map", issues }, null, 2));
+    const shape = parsed.map ? mapShape(parsed.map) : undefined;
+    if (flags.json === true) io.out(JSON.stringify({ file, ok: !hasErrors(issues), kind: "map", issues, ...(shape ? { byHand: shape.byHand } : {}) }, null, 2));
     else {
-      if (parsed.map) io.out(`${parsed.map.id}: ${mapShapeLine(mapShape(parsed.map))}`);
+      if (parsed.map && shape) io.out(`${parsed.map.id}: ${mapShapeLine(shape)}`);
       printIssues(io, issues, file);
+      // Said after the issues and never counted among them (docs/operation-map.md §3).
+      if (shape) for (const line of byHandLines(shape)) io.out(line);
     }
     return hasErrors(issues) ? 1 : 0;
   }
