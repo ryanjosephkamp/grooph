@@ -1,0 +1,136 @@
+# The operation map (v0)
+
+A second kind of grooph document, beside the graph. A **graph** is one harness session and its subagents: the lead is the main session and every other agent node is a subagent (`graph-ir.md` §1 and §2). An **operation map** is the picture one level up: several sessions, in different harnesses, on different machines and accounts, and how work passes between them.
+
+A map is **drawn and validated. It is never compiled, exported as a package or run** (amendment A-011). grooph still starts nothing and supervises nothing. This page is normative for the map as `graph-ir.md` is for the graph.
+
+Encoding: JSON, canonical form (§5). File extension `.grooph-map.json`. Published JSON Schema: `packages/core/schema/grooph-map-0.schema.json`, generated from the types below; the types win when they disagree.
+
+## 1. Shape
+
+TypeScript notation, normative. Ids are kebab-case and unique across the map itself, its lanes, its sessions and its handoffs.
+
+```ts
+type OperationMap = {
+  groophMap: 0;                    // document schema version. A graph carries `grooph`; a map carries `groophMap`. Neither key appears in the other.
+  id: Id;
+  name: string;
+  version: number;
+  asOf?: string;                   // the day the map describes, as YYYY-MM-DD. A map is a snapshot; operations move.
+  description?: string;
+
+  lanes: Lane[];
+  sessions: Session[];
+  handoffs: Handoff[];
+};
+```
+
+### Lanes
+
+A lane is one machine under one account: the unit inside which sessions can see each other's files and, usually, talk through the harness. Everything that crosses a lane boundary needs a carrier both sides can reach.
+
+```ts
+type Lane = {
+  id: Id; name: string;
+  machine: string;                 // where its sessions run: "MacBook", "cloud sandboxes"
+  place?: "local" | "cloud";
+  account: string;                 // whose sign-in the sessions use: "Claude account A", "OpenAI account"
+  description?: string;
+};
+```
+
+### Sessions
+
+A session is one harness session, or a family of like sessions drawn as one.
+
+```ts
+type Session = {
+  id: Id; name: string;
+  lane: Id;                        // the lane it runs in
+  harness: HarnessId;              // "claude-code" | "codex" | any other string
+  model?: string;                  // as the harness names it today; free text, not a tier (a map records what is, a graph asks for a class)
+  role: string;                    // what this session is for, in one line
+  lifetime?: "long-lived" | "per-task" | "scheduled";
+  count?: number;                  // a family: twelve worker sessions are one node with count 12
+  graph?: string;                  // the loop graph this session runs: a path or URL to a `.grooph.json`, or "<graph-id>@<version>"
+  repo?: string;                   // the repository it works in
+  description?: string;
+};
+```
+
+`graph` is a pointer, not a copy. The map stays small (spec §4.7) and the graph stays the single source of truth for what happens inside that session. This is the first form of the nested-graph reference `graph-ir.md` §9 defers: a session points down at a graph; a graph does not yet point at another graph.
+
+### Handoffs
+
+A handoff is work passing from one session to another. It always names its carrier: the thing that actually moves the work across.
+
+```ts
+type Handoff = {
+  id: Id;
+  from: Id; to: Id;                // session ids; the same id twice is a session that wakes itself
+  carrier?: Carrier;               // required by rule (E_HANDOFF_NO_CARRIER), so its absence gets a named error and not a schema path
+  what?: string;                   // what is handed over: "a slice handoff", "test results"
+  label?: string;
+};
+
+type Carrier =
+  | { kind: "branch"; repo?: string; ref?: string }        // a repository branch both sides can fetch
+  | { kind: "pull-request"; repo?: string }                // a pull request on that repository
+  | { kind: "session-message" }                            // the harness's own channel: one session starts or messages another
+  | { kind: "scheduled-message"; schedule?: string }       // a routine or timer that puts a prompt into a session
+  | { kind: "review-page"; where?: string }                // a published page someone reads; `where` says where it lives
+  | { kind: "person"; who?: string }                       // a person carrying a prompt from one session to another
+  | { kind: "other"; name?: string };                      // anything else, named
+```
+
+## 2. Semantics
+
+A map describes; it does not instruct. Nothing reads a map at run time.
+
+- **A session is the unit of context.** What is inside a session (its subagents, its loops, its brakes) is a graph's business. The map shows only that the session exists, what it runs on, and what it exchanges with the others.
+- **A handoff is one direction.** Work that goes out and comes back is two handoffs, usually with two different carriers (a message out, a pull request back).
+- **A carrier is what both ends can reach.** A branch needs a repository both sides can fetch. A session message needs one harness and one account. A person can cross anything, and is the slowest carrier there is.
+- **A family is one node.** `count` says how many; the handoffs to and from it are to and from each member.
+- **A map is a snapshot.** `asOf` dates it. A map that is out of date is wrong, not harmful: nothing depends on it.
+
+## 3. Validation rules
+
+Same output as a graph's: a list of `{ code, severity, message, at }`. Codes are stable. Each has a failing fixture under `fixtures/maps/invalid/<CODE>/` and the valid maps under `fixtures/maps/valid/` raise none.
+
+### Structural (the graph's codes, with the same meaning)
+
+| Code | Rule |
+|---|---|
+| `E_SCHEMA` | The document fails the map schema. The message names the path. |
+| `E_DUPLICATE_ID` | An id appears more than once across the map, its lanes, its sessions and its handoffs. |
+| `E_DANGLING_REF` | A session names a lane that does not exist, or a handoff names a session that does not exist. |
+
+### The map's own
+
+| Code | Rule |
+|---|---|
+| `E_HANDOFF_NO_CARRIER` | A handoff has no `carrier`, or its carrier does not name what carries it: a `branch` or `pull-request` with no `repo`, a `person` with no `who`, a `review-page` with no `where`, an `other` with no `name`. "Somehow" is not a carrier. |
+| `W_CARRIER_CANNOT_CROSS` | A handoff's carrier lives inside one harness or one account, and the two sessions are not in the same one: a `session-message` or `scheduled-message` between sessions whose lanes have different accounts or whose harnesses differ; a `review-page` between sessions whose lanes have different accounts (a published page belongs to the account that published it). A warning, because a harness may bridge this one day; today such a handoff is usually a person in disguise. |
+| `W_SESSION_ISLAND` | A session has no handoff in or out. Nothing reaches it and it reaches nothing. |
+| `W_NO_RETURN` | A session receives a handoff and hands nothing on. Work goes in and no result comes out by any named carrier. |
+| `W_GRAPH_UNRESOLVED` | A session's `graph` pointer was checked and did not lead to a graph document. Raised only where the checker can look (the CLI, for a path beside the map); a map in a link is not checked. |
+| `W_UNKNOWN_KEY` | A key the schema does not know. Kept and preserved, as in a graph. |
+| `W_DOC_TOO_LARGE` | The canonical form exceeds 24,000 characters: the same "rewrite in one pass" budget as a graph. |
+
+## 4. The picture
+
+`mapPicture(map, { theme })` in core draws a map as one SVG, laid out for a phone: lanes stacked top to bottom, each session a card in its lane, each handoff an arc in the margin with a number, and a numbered list of the handoffs below (who to whom, by what carrier, carrying what). Line style says the carrier kind. It is a projection: it never round-trips, and edits happen in the document.
+
+The same picture is what `grooph image` writes, what the app shows for a map opened from a link or a file, and what the offline page holds.
+
+## 5. Canonical form
+
+As a graph's (`graph-ir.md` §7): two-space indent, LF, one trailing newline, keys in the order the types above list them, arrays in document order, unknown keys kept and sorted after the known ones.
+
+## 6. Example
+
+[`fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json): the owner's operation on 2026-09-30, kept generic where a detail is not needed. An Operator session in the cloud starts and steers a family of worker sessions, test runners and scheduled routines for one project; a second project has its own lanes; Codex runs on the Mac; this repository's own session runs on the Mac under another account. The repositories carry almost everything that crosses an account, and the owner carries the rest.
+
+## 7. Deferred
+
+Named so nobody designs them twice: a saved `layout` for a map (the picture is automatic in v0); a graph pointing at another graph; live state on a map from several sessions' event files (the events are slice 0027; `docs/subagents.md`); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).
