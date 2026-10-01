@@ -12,7 +12,8 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 6. [`docs/executive.md`](docs/executive.md) — proposal sets, share links, the compare view, and how the `grooph-design` skill (under `plugins/grooph/`) uses them.
 7. [`docs/runs.md`](docs/runs.md) — run folders, notes back, adoption of a run's working copy, the monitor. [`docs/comparisons.md`](docs/comparisons.md) — the paired-comparison protocol (stage 10a).
 8. [`docs/operation-map.md`](docs/operation-map.md) — the operation map: the second kind of document, for work that spans sessions, harnesses and accounts. Read before touching `fixtures/maps/` or any map code.
-9. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
+9. [`docs/exports.md`](docs/exports.md) — the picture, the outline and the offline page. Read before touching `packages/core/src/picture/`.
+10. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
 
 ## Roles
 

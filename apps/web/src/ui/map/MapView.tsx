@@ -14,6 +14,8 @@ import {
 } from "@grooph/core";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { download } from "../../doc/exportPackage.js";
+import { Keep } from "../Keep.js";
 import { IssueList } from "../open/Details.js";
 import { Sheet } from "../Sheet.js";
 
@@ -34,15 +36,6 @@ function Rows({ rows }: { rows: [string, ReactNode][] }) {
         ))}
     </dl>
   );
-}
-
-function download(name: string, text: string, type: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /**
@@ -148,16 +141,11 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
           />
           <p className="field-hint">A map shows sessions and what passes between them. It is drawn and checked, never run.</p>
           <div className="export-actions">
-            <button type="button" className="btn" onClick={() => download(`${map.id}.light.svg`, mapPicture(map, { theme: "light" }), "image/svg+xml")}>
-              Save picture, light (SVG)
-            </button>
-            <button type="button" className="btn" onClick={() => download(`${map.id}.dark.svg`, mapPicture(map, { theme: "dark" }), "image/svg+xml")}>
-              Save picture, dark (SVG)
-            </button>
             <button type="button" className="btn" onClick={() => download(`${map.id}.grooph-map.json`, canonicalizeMap(map), "application/json")}>
               Download map (.grooph-map.json)
             </button>
           </div>
+          <Keep doc={map} />
         </div>
       ),
     };

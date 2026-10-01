@@ -12,6 +12,7 @@ import {
 } from "../doc/exportPackage.js";
 import { useDoc } from "../doc/store.js";
 import { useEditor } from "./editorContext.js";
+import { Keep } from "./Keep.js";
 
 /**
  * Export (spec §9): refused with the error list when the graph does not
@@ -54,6 +55,7 @@ export function ExportPanel() {
           </button>
         </div>
         <div className="export-actions">{downloadGraph}</div>
+        <Keep doc={doc} />
       </div>
     );
   }
@@ -89,6 +91,8 @@ export function ExportPanel() {
       <p className="field-hint">
         Unzip at the root of the project the run works in, then paste the kickoff prompt into a Claude Code session opened there.
       </p>
+
+      <Keep doc={doc} />
 
       {warnings.length > 0 ? (
         <div className="warnings">

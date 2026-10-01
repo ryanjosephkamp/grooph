@@ -3306,3 +3306,72 @@ div.field-diff.ins {
   font-weight: 700;
   color: var(--ink);
 }
+
+/* ─── keep a copy; the outline ────────────────────────────────────────── */
+
+.keep {
+  margin-top: 14px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.outline {
+  padding: 4px 16px 28px;
+}
+.outline-section {
+  padding: 14px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+.outline-section:last-child {
+  border-bottom: 0;
+}
+.outline-kind {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.outline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.outline-head h3 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+}
+.outline-items {
+  margin: 4px 0 0;
+}
+.outline-item dt {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.outline-item dd {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+.outline-item .plain-list {
+  margin: 0;
+}
+/* The outline's way in sits between the name and the status; on a phone it gives the name back what room it can. */
+@media (max-width: 479px) {
+  .editor:not(.viewer) > .topbar {
+    gap: 4px;
+  }
+  .editor:not(.viewer) > .topbar .icon-btn[aria-label="Outline"] {
+    width: 38px;
+  }
+  .editor:not(.viewer) > .topbar .topbar-export {
+    padding: 0 11px;
+  }
+  .editor:not(.viewer) > .topbar .status {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}

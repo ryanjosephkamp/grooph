@@ -5,10 +5,12 @@ import { KIND_LABEL } from "../../doc/catalog.js";
 import { countBySeverity } from "../../doc/issues.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { Sheet } from "../Sheet.js";
+import { Keep } from "../Keep.js";
+import { Outline, OutlineButton } from "../Outline.js";
 import { GraphDetails, IssueList, LoopDetails, NodeDetails } from "./Details.js";
 import { editorHref, useSaveFromLink } from "./save.js";
 
-type Panel = { type: "node"; id: Id } | { type: "loop"; id: Id } | { type: "graph" } | { type: "issues" } | { type: "about" } | null;
+type Panel = { type: "node"; id: Id } | { type: "loop"; id: Id } | { type: "graph" } | { type: "issues" } | { type: "about" } | { type: "outline" } | null;
 
 /**
  * A graph from a link, read-only: look at it, tap for details, save it to the
@@ -55,7 +57,21 @@ export function GraphViewer({
       return loop ? { title: "Loop", subtitle: loop.id, body: <LoopDetails doc={doc} loop={loop} /> } : null;
     }
     if (panel.type === "about") return about ?? null;
-    if (panel.type === "graph") return { title: "Graph", subtitle: doc.id, body: <GraphDetails doc={doc} /> };
+    if (panel.type === "outline") return { title: "Outline", subtitle: "the whole graph, to read", body: <Outline doc={doc} /> };
+    if (panel.type === "graph") {
+      return {
+        title: "Graph",
+        subtitle: doc.id,
+        body: (
+          <>
+            <GraphDetails doc={doc} />
+            <div className="inspector">
+              <Keep doc={doc} />
+            </div>
+          </>
+        ),
+      };
+    }
     return { title: "Validation", subtitle: "as export sees it", body: <IssueList issues={issues} /> };
   })();
 
@@ -71,6 +87,13 @@ export function GraphViewer({
           <span className="title-name">{doc.name || doc.id}</span>
           <span className="title-sub">{context ?? "from a link"} · read-only</span>
         </button>
+        <OutlineButton
+          on={panel?.type === "outline"}
+          onClick={() => {
+            setExpanded(panel?.type !== "outline");
+            toggle({ type: "outline" });
+          }}
+        />
         <button type="button" className={`status ${statusClass}`} aria-label={`Validation: ${statusText}`} onClick={() => toggle({ type: "issues" })}>
           {statusText}
         </button>

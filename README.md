@@ -7,7 +7,8 @@ grooph is an **authoring and compilation surface**, not a runtime. You (or an ag
 ## What it is
 
 - **One graph document.** Small enough for a model to read and rewrite in one pass. Diffable, validatable, versioned.
-- **A human view of it.** A draggable canvas with form-based panels for every node, edge and loop, built phone first. A read-through outline of the whole graph is planned, not built yet.
+- **Human views of it.** A draggable canvas with form-based panels for every node, edge and loop, built phone first; and an outline that reads the whole graph top to bottom, every brief in full.
+- **Things to keep.** The whole graph as a picture with its words on it (SVG or PNG, light or dark, laid out for a phone), and one offline HTML file that holds the graph and a viewer and needs no network. [`docs/exports.md`](docs/exports.md)
 - **A validator** that refuses to export loops without stops, taste loops without bars, critics that share the builder's context, coupled artifacts with two owners, and irreversible actions without a human gate.
 - **A compiler** that emits lead brief, per-node briefs, loop policy, evidence rules, human-gate list and a progress-log contract in the target harness's own units.
 - **Operation maps.** A second, smaller document for work that spans sessions: which sessions exist (harness, account, machine, model, role), and what carries work between them (a branch, a pull request, a message, a person). Drawn and checked, never run. [`docs/operation-map.md`](docs/operation-map.md)

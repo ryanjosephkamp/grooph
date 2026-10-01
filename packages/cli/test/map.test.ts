@@ -112,7 +112,7 @@ test("canonicalize and shape take a map; the sample is already canonical", async
   assert.equal((JSON.parse(text(io.stdout)) as { crossLane: number }).crossLane, 4);
 });
 
-test("image prints the picture core draws, byte for byte, or writes it; themes are light, dark and auto; a graph is pointed at glyph", async () => {
+test("image prints the picture core draws, byte for byte, or writes it; themes are light, dark and auto", async () => {
   const map = parseMapText(readFileSync(sample, "utf8")).map!;
   let io = capture();
   assert.equal(await grooph(["image", sample, "--theme", "light"], io), 0);
@@ -127,19 +127,16 @@ test("image prints the picture core draws, byte for byte, or writes it; themes a
     assert.equal(await grooph(["image", sample, "--theme", "dark", "--out", out], io), 0);
     assert.equal(readFileSync(out, "utf8"), readFileSync(join(maps, "pictures", "ryans-operation-2026-09-30.dark.svg"), "utf8"));
     io = capture();
-    assert.equal(await grooph(["image", sample, "--out", join(dir, "ops.png")], io), 1);
-    assert.match(text(io.stderr), /image writes an SVG file/);
+    assert.equal(await grooph(["image", sample, "--out", join(dir, "ops.jpg")], io), 1);
+    assert.match(text(io.stderr), /image writes an SVG or a PNG/);
   });
 
   io = capture();
   assert.equal(await grooph(["image", sample, "--theme", "sepia"], io), 1);
   assert.match(text(io.stderr), /--theme is light, dark or auto/);
   io = capture();
-  assert.equal(await grooph(["image", reviewLoop], io), 1);
-  assert.match(text(io.stderr), /is not an operation map.*grooph glyph/);
-  io = capture();
   assert.equal(await grooph(["image", "--help"], io), 0);
-  assert.match(text(io.stdout), /^grooph image <operation map>/);
+  assert.match(text(io.stdout), /^grooph image <graph \| operation map>/);
 });
 
 test("share makes a link that opens to the same map, rule errors and all, and --out writes the canonical file", async () => {
