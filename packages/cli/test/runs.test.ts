@@ -453,6 +453,23 @@ test("watch serves the sessions the event hook recorded: the project's own, more
       await watcher.close();
     }
 
+    // With --map, the operation map travels with the sessions, read again on each request; a source named for a map session is that session's.
+    const mapFile = join(other, "ops.grooph-map.json");
+    copyFileSync(join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"), mapFile);
+    watcher = await startWatch({ target: watchTarget(runDir(dir, "run-live")), webDist: dist, port: 0, host: "127.0.0.1", sessions: true, map: mapFile, events: [{ name: "codex", path: join(other, "codex.jsonl") }] });
+    try {
+      const withMap = JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView;
+      assert.equal(withMap.map!.id, "ryans-operation-2026-09-30");
+      assert.ok(withMap.sessions.some((s) => s.source === "codex"));
+      writeFileSync(mapFile, "{ not json");
+      assert.equal((JSON.parse((await get(watcher.port, LIVE_ENDPOINT)).body) as LiveView).map, undefined);
+    } finally {
+      await watcher.close();
+    }
+    const badMap = capture();
+    assert.equal(await grooph(["watch", runDir(dir, "run-live"), "--map", mapFile, "--port", "0"], badMap, { env: { GROOPH_WEB_DIST: dist }, signal: AbortSignal.abort() }), 1);
+    assert.match(text(badMap.stderr), /--map .* is not an operation map grooph can read/);
+
     // A project with no run at all opens on the sessions.
     const bare = mkdtempSync(join(tmpdir(), "grooph-watch-bare-"));
     try {

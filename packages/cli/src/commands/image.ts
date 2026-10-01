@@ -3,6 +3,7 @@ import { extname } from "node:path";
 import {
   formatIssue,
   isMapLike,
+  mapLive,
   mapOutline,
   mapPicture,
   offlinePage,
@@ -16,10 +17,11 @@ import {
   type PictureTheme,
 } from "@grooph/core";
 
+import { readLive, sourceExists, type EventSource } from "../events-io.js";
 import { readText, writeBytes, writeText } from "../io.js";
 import type { Output } from "../print.js";
 
-export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>]
+export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -39,6 +41,12 @@ the handoffs listed below with what carries each.
   --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide); --scale changes
                          that. A PNG is one theme: light unless --theme dark.
 
+  --events <id>=<src>    for an operation map: draw what the event hook has seen on the
+                         session with that id (working, waiting or ended; subagents running
+                         and done). <src> is an events file, a folder, a project, or
+                         git:<ref>. As often as wanted. A snapshot of now: run it again
+                         for a newer one. docs/operation-map.md §4b.
+
 Deterministic: the same document and theme give the same SVG bytes. The PNG is drawn
 with this machine's fonts, so it can differ by machine. For the wordless shape, grooph glyph.`;
 
@@ -48,13 +56,17 @@ The whole document to read from top to bottom, as Markdown: a graph's every node
 its full brief, each edge as a sentence, each loop with its bar and stops; a map's lanes,
 sessions and handoffs. One way only: edit the document, never the outline.`;
 
-export const PAGE_HELP = `grooph page <graph | operation map> --out <file.html>
+export const PAGE_HELP = `grooph page <graph | operation map> --out <file.html> [--events <id>=<source>]...
 
 One HTML file that holds the document and a viewer for it: the picture, the outline, the
 validator's list and the document itself. It asks the network for nothing (its content
 security policy forbids every request), so it opens on a phone with no connection, from
 a message, a drive or a folder. Light and dark; tap a card to read about it; Save
 document writes the .grooph.json (or .grooph-map.json) back out for the app to import.
+
+For an operation map, --events <session id>=<source> (as often as wanted) marks each
+session with what the event hook has seen of it, as grooph image does: a snapshot, taken
+when the page is made.
 
 A document with rule errors still makes a page, with the errors listed. One that does
 not match its schema cannot be drawn.`;
@@ -85,7 +97,33 @@ function load(io: Output, file: string): Loaded | undefined {
   return undefined;
 }
 
-type ImageFlags = { out?: string; theme?: string; scale?: number };
+type ImageFlags = { out?: string; theme?: string; scale?: number; events?: EventSource[] };
+
+/**
+ * What the hooks saw of a map's sessions, read now from the sources given.
+ * A source named for a map session (`operator=<source>`) lights that session.
+ * Undefined, with the reason printed, when a source is not there or names no session.
+ */
+function liveFor(io: Output, loaded: Loaded, events: EventSource[] | undefined): { live: NonNullable<ReturnType<typeof mapLive>>; at: string } | undefined | "refused" {
+  if (!events || events.length === 0) return undefined;
+  if (loaded.kind !== "map") {
+    io.err("grooph: --events lights the sessions of an operation map; this file is a graph. For a run of a graph, grooph watch.");
+    return "refused";
+  }
+  const ids = new Set(loaded.doc.sessions.map((s) => s.id));
+  for (const source of events) {
+    if (!sourceExists(source)) {
+      io.err(source.ref !== undefined ? `grooph: --events: no such git ref here: ${source.ref}` : `grooph: --events: no such file or folder: ${source.path}`);
+      return "refused";
+    }
+    if (source.name === undefined || !ids.has(source.name)) {
+      io.err(`grooph: --events ${source.name ?? source.path ?? `git:${source.ref}`}: name each source for the map session it belongs to, as <session id>=<source>. This map's sessions: ${[...ids].join(", ")}`);
+      return "refused";
+    }
+  }
+  const view = readLive(events);
+  return { live: mapLive(view.sessions, loaded.doc), at: view.at };
+}
 
 const THEMES = ["light", "dark", "auto"] as const;
 
@@ -107,7 +145,9 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
   }
   const loaded = load(io, file);
   if (!loaded) return 1;
-  const svg = loaded.kind === "map" ? mapPicture(loaded.doc, { theme: theme as PictureTheme }) : picture(loaded.doc, { theme: theme as PictureTheme });
+  const now = liveFor(io, loaded, flags.events);
+  if (now === "refused") return 1;
+  const svg = loaded.kind === "map" ? mapPicture(loaded.doc, { theme: theme as PictureTheme, ...(now ? now : {}) }) : picture(loaded.doc, { theme: theme as PictureTheme });
 
   if (flags.out === undefined) {
     io.out(svg.replace(/\n$/, ""));
@@ -165,14 +205,16 @@ export function outlineCommand(io: Output, file: string, flags: { out?: string }
 }
 
 /** `grooph page <file> --out <file.html>`. */
-export function pageCommand(io: Output, file: string, flags: { out: string; version: string; link?: string }): number {
+export function pageCommand(io: Output, file: string, flags: { out: string; version: string; link?: string; events?: EventSource[] }): number {
   if (!/\.html?$/i.test(flags.out)) {
     io.err(`grooph: --out ${flags.out}: page writes an HTML file; name it <something>.html`);
     return 1;
   }
   const loaded = load(io, file);
   if (!loaded) return 1;
-  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}) });
+  const now = liveFor(io, loaded, flags.events);
+  if (now === "refused") return 1;
+  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}) });
   writeText(flags.out, html);
   io.out(`wrote ${flags.out} (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB, one file, no network needed)`);
   return 0;

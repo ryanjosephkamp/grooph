@@ -4,14 +4,15 @@ import { networkInterfaces } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { canonicalizeRunBundle, runStateLine, sessionLine } from "@grooph/core";
+import { canonicalizeRunBundle, parseMapText, runStateLine, sessionLine, type LiveView } from "@grooph/core";
 
 import { EVENTS_DIR, readLive, type EventSource } from "../events-io.js";
+import { readText } from "../io.js";
 import type { Output } from "../print.js";
 import { isGraphDir, isRunDir, newestRun, readRun, type LoadedRun } from "../run-io.js";
 import { LoadError, shown, type OpenUrl } from "../share-io.js";
 
-export const WATCH_HELP = `grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--port 4174] [--host 127.0.0.1] [--open]
+export const WATCH_HELP = `grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
 
 Watch from a browser, on this machine or a phone on the same network. Serves the built
 grooph app and two read-only endpoints, read again from disk on every request:
@@ -30,6 +31,9 @@ grooph app and two read-only endpoints, read again from disk on every request:
                 .grooph/events/ (read from the watched project's repository, no checkout).
                 name=<source> shows its sessions under that name. The project's own
                 .grooph/events/ is always read.
+  --map <file>  an operation map to draw above the sessions, each of its sessions marked
+                with what the hook has seen. Name each --events source for the map session
+                it belongs to: --events operator=git:origin/operator. Opens on the sessions.
   --port <n>    default 4174; 0 picks a free one
   --host <h>    default 127.0.0.1, this machine only. Another address (0.0.0.0 for every
                 interface) lets anyone on that network read all of it while watch runs.
@@ -98,7 +102,18 @@ export type Watcher = { url: string; port: number; host: string; close: () => Pr
  * nothing is written. Bound to loopback, it also refuses requests whose Host
  * is not this machine, so a web page cannot reach the run by DNS rebinding.
  */
-export function startWatch(options: { target: WatchTarget; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[] }): Promise<Watcher> {
+export function startWatch(options: { target: WatchTarget; webDist: string; port: number; host: string; sessions?: boolean; events?: EventSource[]; map?: string }): Promise<Watcher> {
+  /** The sessions now, and the operation map they belong on when one was given: read again each time, so an edit to the map shows. */
+  const liveNow = (): LiveView => {
+    const view = readLive(sources, undefined, root);
+    if (options.map === undefined) return view;
+    try {
+      const parsed = parseMapText(readText(options.map));
+      return parsed.map ? { ...view, map: parsed.map } : view;
+    } catch {
+      return view;
+    }
+  };
   const dist = resolve(options.webDist);
   const root = projectRoot(options.target.path);
   const sources: EventSource[] = [{ path: root }, ...(options.events ?? [])];
@@ -134,7 +149,7 @@ export function startWatch(options: { target: WatchTarget; webDist: string; port
       res.end();
       return;
     }
-    if (path === LIVE_ENDPOINT) return send(res, 200, TYPES[".json"]!, `${JSON.stringify(readLive(sources, undefined, root))}\n`, head, { "Cache-Control": "no-store" });
+    if (path === LIVE_ENDPOINT) return send(res, 200, TYPES[".json"]!, `${JSON.stringify(liveNow())}\n`, head, { "Cache-Control": "no-store" });
     if (path === ENDPOINT) {
       try {
         const run = currentRun(options.target);
@@ -212,7 +227,14 @@ export function projectRoot(path: string): string {
 export type WatchEnv = { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
 /** `grooph watch [<run dir> | <graph dir>] [--port 4174] [--host 127.0.0.1] [--open]` (docs/runs.md §3). */
-export async function watchCommand(io: Output, arg: string | undefined, flags: { port: number; host: string; open: boolean; sessions?: boolean; events?: EventSource[] }, env: WatchEnv): Promise<number> {
+export async function watchCommand(io: Output, arg: string | undefined, flags: { port: number; host: string; open: boolean; sessions?: boolean; events?: EventSource[]; map?: string }, env: WatchEnv): Promise<number> {
+  if (flags.map !== undefined) {
+    const parsed = parseMapText(readText(flags.map));
+    if (!parsed.map) {
+      io.err(`grooph: --map ${flags.map} is not an operation map grooph can read (grooph validate ${flags.map} says why)`);
+      return 1;
+    }
+  }
   const target = watchTarget(arg);
   const webDist = findWebDist(env.env);
   if (!webDist) {
@@ -222,7 +244,7 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
 
   let watcher: Watcher;
   try {
-    watcher = await startWatch({ target, webDist, port: flags.port, host: flags.host, ...(flags.sessions ? { sessions: true } : {}), ...(flags.events ? { events: flags.events } : {}) });
+    watcher = await startWatch({ target, webDist, port: flags.port, host: flags.host, ...(flags.sessions ? { sessions: true } : {}), ...(flags.events ? { events: flags.events } : {}), ...(flags.map !== undefined ? { map: flags.map } : {}) });
   } catch (err) {
     const error = err as NodeJS.ErrnoException;
     if (error.code === "EADDRINUSE") {

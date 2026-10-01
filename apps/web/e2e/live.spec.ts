@@ -168,3 +168,26 @@ test("a plan the lead declared is shown beside what the hook saw, with its note"
   await expect(plan.locator("li").nth(1)).toContainText("map the code first");
   await expect(plan.locator(".live-plan-extra")).toHaveText("Started without being in the plan: default");
 });
+
+test("with a map, the operation is drawn above its sessions, each session marked with what the hook saw", async ({ page }) => {
+  const map = JSON.parse(readFileSync(join(repoRoot, "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"), "utf8")) as LiveView["map"];
+  const events = [...eventsOf("claude-code-running.jsonl", "operator"), ...eventsOf("codex-two-subagents.jsonl", "codex")];
+  await stubSessions(page, [{ ...view(events, "2026-10-01T02:01:10.000Z"), map }]);
+  await page.goto("./#/live");
+  const drawn = page.getByRole("region", { name: /^Operation map: Ryan's operation/ });
+  await expect(drawn.locator('svg[data-picture="map"]')).toBeVisible();
+  await expect(drawn.locator('[data-session="operator"]')).toHaveAttribute("data-live", "working");
+  await expect(drawn.locator('[data-session="operator"]')).toContainText("working · 1 running, 1 done");
+  await expect(drawn.locator('[data-session="codex"]')).toHaveAttribute("data-live", "ended");
+  // A session on the map that no source was named for is drawn as the map alone draws it.
+  expect(await drawn.locator('[data-session="routines"]').getAttribute("data-live")).toBeNull();
+  await expect(drawn).toContainText("live at 2026-10-01 02:01 UTC");
+  // The sessions are still listed below, under the names they were read as.
+  await expect(page.locator(".live-source")).toHaveText(["operator", "codex"]);
+
+  // A map that is not one is left out; the sessions still show.
+  await page.unroute("**/grooph/api/live.json");
+  await stubSessions(page, [{ ...view(events, "2026-10-01T02:01:12.000Z"), map: { groophMap: 0, id: "broken" } as unknown as LiveView["map"] }]);
+  await expect(page.getByRole("region", { name: /^Operation map/ })).toHaveCount(0, { timeout: 8_000 });
+  await expect(page.locator(".live-session")).toHaveCount(2);
+});

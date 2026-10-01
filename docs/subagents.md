@@ -183,6 +183,8 @@ A source is a file, a folder, another project's folder, or `git:<ref>`: a branch
 
 That last form is how sessions on other machines are seen. A cloud session's events are files in its own clone, and nothing outside can read them until they travel. The repository is the carrier: a lane that commits `.grooph/events/` with its work is visible, after a `git fetch`, to anyone who can fetch its branch. It is as live as the lane's last push, and no more.
 
+**On an operation map.** Read a source under the id of a session on an [operation map](operation-map.md) and that session's card shows what the hook saw: `grooph image ops.grooph-map.json --events operator=. --events workers=git:origin/lane-a`, the same for `grooph page`, and `grooph watch --map ops.grooph-map.json …` for a page that updates. Details in `operation-map.md` §4b.
+
 **A plan beside it.** When the lead has declared what it means to start (§7), the session shows that plan with each line marked as it happens.
 
 **What the view cannot show.** What an agent is thinking or saying (not recorded, by design); a subagent whose session has no hook installed; a Codex session before its hook is trusted; a cloud lane between pushes; and which Codex subagent started which.

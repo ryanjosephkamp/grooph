@@ -16,6 +16,8 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 10. [`docs/exports.md`](docs/exports.md) — the picture, the outline and the offline page. Read before touching `packages/core/src/picture/`.
 11. [`docs/targets/`](docs/targets/) — one file per compile target. Read before touching an exporter.
 
+[`docs/HANDBACK-operator.md`](docs/HANDBACK-operator.md) is the page for a session outside this repository that wants to use grooph (version, install, the map format, the live view, known limits).
+
 ## Roles
 
 - **Driver** (a Fable 5.1 session): plans, designs the graph document, writes handoffs, reviews handbacks, merges to `main`, keeps `docs/` current.

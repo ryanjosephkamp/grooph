@@ -9,9 +9,10 @@
  * is, and its line style says what carries it.
  */
 
+import { mapLiveLine } from "../events.js";
 import { CARRIER_LABEL, carrierText, mapShape, mapShapeLine } from "../map.js";
 import type { CarrierKind, Handoff, Id, OperationMap, Session } from "../types.js";
-import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Colour, type Ink, type PictureOptions } from "./svg.js";
+import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Colour, type Ink, type MapPictureOptions } from "./svg.js";
 
 const M = 12; // page margin
 const PAD = 8; // inside a lane
@@ -43,7 +44,8 @@ type Card = { session: Session; lines: { role: string[]; meta: string }; height:
  * that holds the picture inline can make them tappable. A session whose lane
  * is unknown, and a handoff whose end is, are left out: the validator names them.
  */
-export function mapPicture(map: OperationMap, options: PictureOptions = {}): string {
+export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): string {
+  const live = options.live ?? {};
   const theme = options.theme ?? "auto";
   const W = options.width ?? PICTURE_WIDTH;
   const ink = inkFor(theme);
@@ -86,7 +88,8 @@ export function mapPicture(map: OperationMap, options: PictureOptions = {}): str
     body.push(text(M, y, line, { size: 17, fill: ink("ink"), weight: "bold" }));
     y += 4;
   }
-  const caption = [map.asOf ? `as of ${map.asOf}` : undefined, mapShapeLine(mapShape(map))].filter(Boolean).join(" · ");
+  const liveAt = options.live && options.at ? `live at ${options.at.slice(0, 16).replace("T", " ")} UTC` : undefined;
+  const caption = [liveAt ?? (map.asOf ? `as of ${map.asOf}` : undefined), mapShapeLine(mapShape(map))].filter(Boolean).join(" · ");
   for (const line of wrap(caption, W - 2 * M, 11, 2)) {
     y += 13;
     body.push(text(M, y, line, { size: 11, fill: ink("ink-3") }));
@@ -118,7 +121,8 @@ export function mapPicture(map: OperationMap, options: PictureOptions = {}): str
       const ends = slots.get(session.id) ?? [];
       const role = wrap(session.role, textW, 11, 3);
       const meta = [session.lifetime ? LIFETIME_LABEL[session.lifetime] : undefined, session.repo].filter(Boolean).join(" · ");
-      const content = CARD_PAD + 13 + 4 + 12 + 3 + role.length * 13.5 + (meta ? 14 : 0) + (session.graph ? 15 : 0) + CARD_PAD - 3;
+      const now = live[session.id];
+      const content = CARD_PAD + 13 + 4 + 12 + 3 + role.length * 13.5 + (meta ? 14 : 0) + (session.graph ? 15 : 0) + (now ? 19 : 0) + CARD_PAD - 3;
       const height = Math.max(content, (ends.length + 1) * SLOT + 4);
       cards.set(session.id, { session, lines: { role, meta }, height, y: cy, slots: ends });
 
@@ -151,7 +155,19 @@ export function mapPicture(map: OperationMap, options: PictureOptions = {}): str
         ty += 15;
         g.push(text(cardX + CARD_PAD, ty, truncate(`graph: ${session.graph}`, textW, 10, "mono"), { size: 10, fill: ink("loop-0"), weight: "mono" }));
       }
-      cardSvg.push(`<g data-session="${session.id}">${g.join("")}</g>`);
+      if (now) {
+        // What the hooks saw: a filled dot while anything is working, a ring while it waits, a grey dot when it has ended.
+        ty += 19;
+        const tone: Colour = now.working > 0 ? "accent" : now.waiting > 0 ? "warning" : "ink-3";
+        const dotX = cardX + CARD_PAD + 4.5;
+        g.push(
+          now.working > 0
+            ? `<circle cx="${fmt(dotX)}" cy="${fmt(ty - 3.6)}" r="4.5" style="fill:${ink(tone)}"/>`
+            : `<circle cx="${fmt(dotX)}" cy="${fmt(ty - 3.6)}" r="3.6" stroke-width="1.8" style="fill:${now.waiting > 0 ? "none" : ink(tone)};stroke:${ink(tone)}"/>`,
+        );
+        g.push(text(cardX + CARD_PAD + 14, ty, truncate(mapLiveLine(now), textW - 14, 10.5, "bold"), { size: 10.5, fill: ink(tone), weight: "bold" }));
+      }
+      cardSvg.push(`<g data-session="${session.id}"${now ? ` data-live="${now.working > 0 ? "working" : now.waiting > 0 ? "waiting" : "ended"}"` : ""}>${g.join("")}</g>`);
       cy += height + (family ? 14 : 8);
     }
     if (members.length === 0) {
