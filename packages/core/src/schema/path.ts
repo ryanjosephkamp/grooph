@@ -14,3 +14,8 @@ export const PROPOSALS_SCHEMA_PATH = fileURLToPath(
 export const RUN_SCHEMA_PATH = fileURLToPath(
   new URL("../../../schema/grooph-run-0.schema.json", import.meta.url),
 );
+
+/** Absolute path of the published operation map schema (docs/operation-map.md §1). */
+export const MAP_SCHEMA_PATH = fileURLToPath(
+  new URL("../../../schema/grooph-map-0.schema.json", import.meta.url),
+);

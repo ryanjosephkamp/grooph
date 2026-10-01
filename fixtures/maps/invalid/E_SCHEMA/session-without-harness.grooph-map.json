@@ -1,0 +1,52 @@
+{
+  "groophMap": 0,
+  "id": "two-sessions",
+  "name": "Two sessions",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "mac",
+      "name": "Laptop",
+      "machine": "laptop",
+      "place": "local",
+      "account": "one account"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "planner",
+      "name": "Planner",
+      "lane": "mac",
+      "harness": "claude-code",
+      "role": "Writes the plan"
+    },
+    {
+      "id": "builder",
+      "name": "Builder",
+      "lane": "mac",
+      "role": "Builds from the plan"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-plan",
+      "from": "planner",
+      "to": "builder",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "the plan"
+    },
+    {
+      "id": "h-result",
+      "from": "builder",
+      "to": "planner",
+      "carrier": {
+        "kind": "branch",
+        "repo": "example/app",
+        "ref": "work"
+      },
+      "what": "the change"
+    }
+  ]
+}

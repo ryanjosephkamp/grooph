@@ -10,6 +10,7 @@ grooph is an **authoring and compilation surface**, not a runtime. You (or an ag
 - **A human view of it.** A draggable canvas with form-based panels for every node, edge and loop, built phone first. A read-through outline of the whole graph is planned, not built yet.
 - **A validator** that refuses to export loops without stops, taste loops without bars, critics that share the builder's context, coupled artifacts with two owners, and irreversible actions without a human gate.
 - **A compiler** that emits lead brief, per-node briefs, loop policy, evidence rules, human-gate list and a progress-log contract in the target harness's own units.
+- **Operation maps.** A second, smaller document for work that spans sessions: which sessions exist (harness, account, machine, model, role), and what carries work between them (a branch, a pull request, a message, a person). Drawn and checked, never run. [`docs/operation-map.md`](docs/operation-map.md)
 - **A pattern library** of named loop shapes (grind loop, review gate, spec-then-loop, metric sandwich, specialist critic bank, …). Gauntlet-style polish is one template among them, never the default.
 - **An agent surface.** A CLI and a skill (`/grooph-design`) so a Claude Code session can propose two or three candidate graphs for your goal, build them in grooph, and show you the comparison. An MCP server over the same operations is planned, not built yet; so is the Codex target.
 

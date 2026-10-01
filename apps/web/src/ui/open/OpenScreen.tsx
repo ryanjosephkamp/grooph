@@ -4,6 +4,7 @@ import { openPayload } from "../../doc/share.js";
 import { Compare } from "./Compare.js";
 import { RunView } from "../run/RunView.js";
 import { GraphViewer } from "./GraphViewer.js";
+import { MapView } from "../map/MapView.js";
 
 /**
  * `#/open?d=…` (docs/executive.md §2–3). A link is untrusted input: core checks
@@ -18,6 +19,7 @@ export function OpenScreen({ payload, candidate }: { payload: string; candidate?
   const { envelope } = opened;
   if (envelope.kind === "graph") return <GraphViewer doc={envelope.doc} back={{ href: "#/", label: "All graphs" }} />;
   if (envelope.kind === "run") return <RunView bundle={envelope.doc} origin={{ kind: "link" }} />;
+  if (envelope.kind === "map") return <MapView map={envelope.doc} issues={opened.issues} />;
 
   const set = envelope.doc;
   if (candidate !== undefined) {

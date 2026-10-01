@@ -1,11 +1,19 @@
 import { join } from "node:path";
 
-import { CompileError, formatIssue, parseGraphText, tryCompile, type CompileTarget } from "@grooph/core";
+import { CompileError, formatIssue, isMapLike, parseGraphText, tryCompile, type CompileTarget } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
 import { printIssues, plural, type Output } from "../print.js";
 
 export type ExportFlags = { target: CompileTarget; into: string };
+
+const looksLikeMap = (text: string): boolean => {
+  try {
+    return isMapLike(JSON.parse(text));
+  } catch {
+    return false;
+  }
+};
 
 /**
  * `grooph export <file> --target claude-code --into <dir>`
@@ -14,7 +22,16 @@ export type ExportFlags = { target: CompileTarget; into: string };
  * (spec §9), writes the package files, then prints the kickoff prompt.
  */
 export function exportCommand(io: Output, file: string, flags: ExportFlags): number {
-  const parsed = parseGraphText(readText(file));
+  const text = readText(file);
+  // Amendment A-011: a map is drawn and validated, never compiled. Say so, by name, before any schema path.
+  if (looksLikeMap(text)) {
+    io.err(
+      `cannot export ${file}: it is an operation map, and a map is never compiled or run. ` +
+        `Export the loop graph one of its sessions points at; draw the map with \`grooph image ${file}\` or share it with \`grooph share ${file}\`.`,
+    );
+    return 1;
+  }
+  const parsed = parseGraphText(text);
   if (!parsed.doc) {
     io.err(`cannot export ${file}: it is not a graph document`);
     printIssues(io, parsed.issues, file);

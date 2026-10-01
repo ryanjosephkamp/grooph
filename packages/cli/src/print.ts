@@ -1,4 +1,4 @@
-import { formatIssue, type Issue } from "@grooph/core";
+import { formatIssue, type IssueLike } from "@grooph/core";
 
 export type Output = { out: (text: string) => void; err: (text: string) => void };
 
@@ -7,13 +7,13 @@ export const stdio: Output = {
   err: (text) => process.stderr.write(`${text}\n`),
 };
 
-export const countIssues = (issues: readonly Issue[]): { errors: number; warnings: number } => ({
+export const countIssues = (issues: readonly IssueLike[]): { errors: number; warnings: number } => ({
   errors: issues.filter((issue) => issue.severity === "error").length,
   warnings: issues.filter((issue) => issue.severity === "warning").length,
 });
 
 /** One line per issue, then a count. The same list the web app and MCP server return. */
-export function printIssues(io: Output, issues: readonly Issue[], subject: string): void {
+export function printIssues(io: Output, issues: readonly IssueLike[], subject: string): void {
   const { errors, warnings } = countIssues(issues);
   for (const issue of issues) (issue.severity === "error" ? io.err : io.out)(formatIssue(issue));
   if (issues.length === 0) {

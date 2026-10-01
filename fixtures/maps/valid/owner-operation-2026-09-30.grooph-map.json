@@ -1,0 +1,197 @@
+{
+  "groophMap": 0,
+  "id": "ryans-operation-2026-09-30",
+  "name": "Ryan's operation, September 30, 2026",
+  "version": 1,
+  "asOf": "2026-09-30",
+  "description": "Drawn from the owner's brief of 2026-09-30 and kept generic where a detail is not needed. The repositories are the only links between accounts and machines, plus Ryan carrying prompts. Assumed, to be corrected by the owner: that the research lanes run on the same cloud account as the Operator and hand work to each other through their own repository; that Codex is given its prompts by hand and returns work through a repository branch; how many test runners and routines there are.",
+  "lanes": [
+    {
+      "id": "cloud-b",
+      "name": "Cloud, Claude account B",
+      "machine": "Claude Code cloud sandboxes",
+      "place": "cloud",
+      "account": "Claude account B"
+    },
+    {
+      "id": "mac-a",
+      "name": "The Mac, Claude account A",
+      "machine": "Ryan's Mac",
+      "place": "local",
+      "account": "Claude account A"
+    },
+    {
+      "id": "mac-openai",
+      "name": "The Mac, OpenAI account",
+      "machine": "Ryan's Mac",
+      "place": "local",
+      "account": "OpenAI account"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "operator",
+      "name": "Operator",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "role": "Keeps the plan; starts and steers the worker sessions, test runners and routines",
+      "lifetime": "long-lived",
+      "repo": "the Splashery repository"
+    },
+    {
+      "id": "workers",
+      "name": "Worker lanes",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "role": "Each builds one piece of Splashery on its own branch",
+      "lifetime": "per-task",
+      "count": 12,
+      "repo": "the Splashery repository"
+    },
+    {
+      "id": "test-runners",
+      "name": "Test runners",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "role": "Run the test suites against a branch and report what failed",
+      "lifetime": "per-task",
+      "repo": "the Splashery repository"
+    },
+    {
+      "id": "routines",
+      "name": "Scheduled routines",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "role": "Wake on a schedule to check on the work and nudge the Operator",
+      "lifetime": "scheduled"
+    },
+    {
+      "id": "research",
+      "name": "Research lanes",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "role": "A private research project, worked in its own cloud sessions",
+      "lifetime": "per-task",
+      "repo": "a private research repository"
+    },
+    {
+      "id": "grooph",
+      "name": "grooph session",
+      "lane": "mac-a",
+      "harness": "claude-code",
+      "model": "Opus 5.5",
+      "role": "Builds grooph: exports, operation maps and the live view the Operator will use",
+      "lifetime": "long-lived",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "lane": "mac-openai",
+      "harness": "codex",
+      "model": "GPT-6.1 Sol and other OpenAI models",
+      "role": "Codex work on the Mac",
+      "lifetime": "per-task"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-start-workers",
+      "from": "operator",
+      "to": "workers",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a task prompt for each lane, and steering while it runs"
+    },
+    {
+      "id": "h-workers-back",
+      "from": "workers",
+      "to": "operator",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "the Splashery repository"
+      },
+      "what": "finished work, one pull request per lane"
+    },
+    {
+      "id": "h-start-tests",
+      "from": "operator",
+      "to": "test-runners",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "which branch to test"
+    },
+    {
+      "id": "h-tests-back",
+      "from": "test-runners",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the Splashery repository"
+      },
+      "what": "test results, committed beside the work"
+    },
+    {
+      "id": "h-routines",
+      "from": "routines",
+      "to": "operator",
+      "carrier": {
+        "kind": "scheduled-message"
+      },
+      "what": "a wake-up with what changed since the last one"
+    },
+    {
+      "id": "h-research",
+      "from": "research",
+      "to": "research",
+      "carrier": {
+        "kind": "branch",
+        "repo": "a private research repository"
+      },
+      "what": "work passed from one research lane to the next"
+    },
+    {
+      "id": "h-brief-grooph",
+      "from": "operator",
+      "to": "grooph",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the brief for this round, pasted into a fresh session"
+    },
+    {
+      "id": "h-grooph-back",
+      "from": "grooph",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "ryanjosephkamp/grooph",
+        "ref": "main"
+      },
+      "what": "docs/HANDBACK-operator.md: the map format and how to run the live view"
+    },
+    {
+      "id": "h-brief-codex",
+      "from": "operator",
+      "to": "codex",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "prompts carried to Codex by hand"
+    },
+    {
+      "id": "h-codex-back",
+      "from": "codex",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the Splashery repository"
+      },
+      "what": "Codex's work, on a branch the Operator can fetch"
+    }
+  ]
+}

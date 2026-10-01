@@ -2,7 +2,7 @@
  * Share links (docs/executive.md §2).
  *
  *   <base>#/open?d=<payload>    payload = base64url( raw DEFLATE( envelope JSON ) )
- *   envelope = { "v": 1, "kind": "graph" | "proposals" | "run", "doc": … }
+ *   envelope = { "v": 1, "kind": "graph" | "proposals" | "run" | "map", "doc": … }
  *
  * Core owns the envelope, the base64url step and every message a person sees
  * when a link will not open. Compression is a shell concern, so core keeps
@@ -15,6 +15,7 @@
  */
 
 import { formatIssue, type Issue, type IssueLike } from "./issues.js";
+import { isMapLike, parseMap, validateMap, type MapIssue } from "./map.js";
 import { parseGraph } from "./parse.js";
 import {
   estimateShape,
@@ -26,9 +27,10 @@ import {
 } from "./proposals.js";
 import { isRunBundleLike, parseRunBundle } from "./runs.js";
 import { graphSchema } from "./schema/graph.js";
+import { mapSchema } from "./schema/map.js";
 import { proposalSetSchema } from "./schema/proposals.js";
 import { runBundleSchema } from "./schema/run.js";
-import type { Graph, ProposalSet, RunBundle } from "./types.js";
+import type { Graph, OperationMap, ProposalSet, RunBundle } from "./types.js";
 import { validate } from "./validate.js";
 
 export const SHARE_VERSION = 1;
@@ -48,7 +50,8 @@ export const SHARE_JSON_MAX = 4_000_000;
 export type ShareEnvelope =
   | { v: typeof SHARE_VERSION; kind: "graph"; doc: Graph }
   | { v: typeof SHARE_VERSION; kind: "proposals"; doc: ProposalSet }
-  | { v: typeof SHARE_VERSION; kind: "run"; doc: RunBundle };
+  | { v: typeof SHARE_VERSION; kind: "run"; doc: RunBundle }
+  | { v: typeof SHARE_VERSION; kind: "map"; doc: OperationMap };
 
 /** Thrown by `buildShareEnvelope` when a document cannot be shared; `issues` says why. */
 export class ShareError extends Error {
@@ -66,7 +69,7 @@ const withoutNotes = (graph: Graph): Graph => {
 };
 
 /**
- * The envelope for a graph, a proposal set or a run bundle, ready to encode.
+ * The envelope for a graph, a proposal set, a run bundle or an operation map, ready to encode.
  * Validates first and refuses what could not be exported: a graph with
  * errors, a set with an invalid or not-yet-inlined candidate. Run notes are
  * dropped, layout is kept, and each candidate's `shape` is computed here,
@@ -76,7 +79,13 @@ const withoutNotes = (graph: Graph): Graph => {
  * the point, and a working copy with errors is still worth looking at (the
  * run view refuses to adopt it).
  */
-export function buildShareEnvelope(doc: Graph | ProposalSet | RunBundle): ShareEnvelope {
+export function buildShareEnvelope(doc: Graph | ProposalSet | RunBundle | OperationMap): ShareEnvelope {
+  if (isMapLike(doc)) {
+    // A map is never compiled, so its rule errors do not block a link: the view shows them. It only has to be a map.
+    const parsed = parseMap(doc);
+    if (!parsed.map) throw new ShareError("this operation map does not match the map schema", parsed.issues);
+    return { v: SHARE_VERSION, kind: "map", doc: mapSchema.canon(parsed.map) as OperationMap };
+  }
   if (isRunBundleLike(doc)) {
     const parsed = parseRunBundle(doc);
     if (!parsed.bundle) {
@@ -246,6 +255,12 @@ export function parseShareEnvelope(json: unknown): OpenedShare {
     return { ok: true, envelope: { v: SHARE_VERSION, kind: "run", doc: parsed.bundle }, issues: validate(parsed.bundle.working, { forExport: true }) };
   }
 
+  if (kind === "map") {
+    const parsed = parseMap(doc);
+    if (!parsed.map) return refuse("The link holds an operation map that does not match the map schema, so it was not opened.", lines(parsed.issues));
+    return { ok: true, envelope: { v: SHARE_VERSION, kind: "map", doc: parsed.map }, issues: validateMap(parsed.map) };
+  }
+
   return refuse(
     typeof kind === "string"
       ? `The link holds a "${kind}", which this version of grooph does not know how to show. Reload the app to update it.`
@@ -256,7 +271,7 @@ export function parseShareEnvelope(json: unknown): OpenedShare {
 const candidateIsFile = (set: ProposalSet, at: readonly string[]): boolean =>
   set.candidates.some((c) => at.includes(c.id) && isCandidateFile(c.graph));
 
-const lines = (issues: readonly (Issue | ProposalIssue)[]): string[] => issues.map(formatIssue);
+const lines = (issues: readonly (Issue | ProposalIssue | MapIssue)[]): string[] => issues.map(formatIssue);
 
 // ─── base64url (RFC 4648 §5, no padding) ──────────────────────────────────
 
