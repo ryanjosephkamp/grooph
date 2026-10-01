@@ -19,3 +19,5 @@ export { autoLayout, layerNodes, resolvePositions, DEFAULT_LAYOUT_BOX, type Layo
 export { glyph, type GlyphOptions } from "./glyph.js";
 export { mermaid } from "./mermaid.js";
 export { runBundleSchema, runJsonSchema, RUN_SCHEMA_ID } from "./schema/run.js";
+export * from "./map.js";
+export { mapSchema, mapJsonSchema, MAP_SCHEMA_ID } from "./schema/map.js";

@@ -360,3 +360,80 @@ export type RunBundle = {
   /** the lines that could not be read */
   issues?: RunNoteIssue[];
 };
+
+/* ------------------------------------------------------------------ *
+ * The operation map, v0 (docs/operation-map.md §1; amendment A-011).
+ * A second kind of document: sessions and the handoffs between them.
+ * Drawn and validated, never compiled. Field order is canonical order.
+ * ------------------------------------------------------------------ */
+
+export type OperationMap = {
+  /** document schema version; a graph carries `grooph`, a map carries `groophMap` */
+  groophMap: 0;
+  id: Id;
+  name: string;
+  version: number;
+  /** the day the map describes, YYYY-MM-DD */
+  asOf?: string;
+  description?: string;
+
+  lanes: Lane[];
+  sessions: Session[];
+  handoffs: Handoff[];
+};
+
+/** One machine under one account. */
+export type Lane = {
+  id: Id;
+  name: string;
+  /** where its sessions run */
+  machine: string;
+  place?: "local" | "cloud";
+  /** whose sign-in the sessions use */
+  account: string;
+  description?: string;
+};
+
+export type SessionLifetime = "long-lived" | "per-task" | "scheduled";
+
+/** One harness session, or a family of like sessions drawn as one. */
+export type Session = {
+  id: Id;
+  name: string;
+  lane: Id;
+  harness: HarnessId;
+  /** as the harness names it today; free text, not a tier */
+  model?: string;
+  /** what this session is for, in one line */
+  role: string;
+  lifetime?: SessionLifetime;
+  /** a family: how many like sessions this node stands for */
+  count?: number;
+  /** the loop graph this session runs: a path or URL to a `.grooph.json`, or "<graph-id>@<version>" */
+  graph?: string;
+  repo?: string;
+  description?: string;
+};
+
+export type Carrier =
+  | { kind: "branch"; repo?: string; ref?: string }
+  | { kind: "pull-request"; repo?: string }
+  | { kind: "session-message" }
+  | { kind: "scheduled-message"; schedule?: string }
+  | { kind: "review-page"; where?: string }
+  | { kind: "person"; who?: string }
+  | { kind: "other"; name?: string };
+
+export type CarrierKind = Carrier["kind"];
+
+/** Work passing from one session to another, by a named carrier. */
+export type Handoff = {
+  id: Id;
+  from: Id;
+  to: Id;
+  /** required by rule (`E_HANDOFF_NO_CARRIER`), so its absence gets a named error */
+  carrier?: Carrier;
+  /** what is handed over */
+  what?: string;
+  label?: string;
+};
