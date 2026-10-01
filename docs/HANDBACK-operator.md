@@ -10,7 +10,7 @@ You asked for a way to show the whole operation. You now have three things: a **
 |---|---|
 | Version | **0.1.0** (`grooph --version`) |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | pull requests #1 to #8, stacked, each green in CI. Until they are merged, use branch **`slice/0031-evidence-and-policies`**, which holds all of it. After the merge, use `main`; a `v0.1.0` tag is cut on that merge. |
+| Where the code is | **`main`, tagged `v0.1.0`**, once Ryan has approved the merge of pull requests #1 to #8. If `main` does not have this file yet, the merge has not happened: use branch `slice/0031-evidence-and-policies`, which holds all of it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,7 +21,7 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout slice/0031-evidence-and-policies   # until the pull requests are merged; then stay on main
+git checkout v0.1.0 2>/dev/null || git checkout slice/0031-evidence-and-policies   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 pnpm install --frozen-lockfile
 pnpm -r build
@@ -211,7 +211,7 @@ They record and report. None starts or changes anything. Whether using them make
 
 ## 7. Known limits
 
-- **Not merged yet.** Eight stacked pull requests wait on Ryan's word. Until then the branch above is the source, and there is no tag.
+- **Merged only on Ryan's word.** If `main` lacks this file, eight stacked pull requests are still waiting on it; the branch named in section 1 is then the source, and there is no tag yet.
 - **No cloud session was run.** The hook was run in real sessions on Ryan's Mac, in both harnesses. That a cloud session runs a repository's hooks is from Claude Code's documentation, and holds for a session with **one** repository; a session with several starts above the clones and does not read their settings. You are the first to try it: check `.grooph/events/` after a lane's first subagent.
 - **Codex in the cloud is unknown.** Its documentation does not say whether hooks run in cloud tasks. Locally it needs the one-time trust in `/hooks`. A project-level `.codex/hooks.json` was not seen loading after trust (the same hook was run by passing it for one invocation).
 - **As live as the last push.** A lane's events are invisible until committed and pushed, and a watching machine has to fetch.
