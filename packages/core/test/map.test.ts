@@ -13,6 +13,7 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 
 import { MAP_CODES, canonicalizeMap, carrierText, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
 import { parseGraphText } from "../src/parse.js";
+import { mapPicture } from "../src/picture/map-picture.js";
 import { mapJsonSchema, MAP_SCHEMA_ID } from "../src/schema/map.js";
 import { MAP_SCHEMA_PATH } from "../src/schema/path.js";
 import { parseGraph } from "../src/parse.js";
@@ -117,7 +118,42 @@ test("the sample: the owner's operation at a glance", () => {
   assert.deepEqual(shape.harnesses, { "claude-code": 17, codex: 1 });
   assert.equal(shape.crossLane, 4);
   assert.equal(mapShapeLine(shape), "3 lanes · 7 sessions (18 counting families) · 10 handoffs, 2 carried by a person");
-  assert.equal(carrierText(map.handoffs[7]!.carrier), "branch ryanjosephkamp/grooph · main");
+  assert.equal(carrierText(map.handoffs[7]!.carrier), "branch main on ryanjosephkamp/grooph");
   assert.equal(carrierText(map.handoffs[6]!.carrier), "carried by Ryan");
   assert.equal(carrierText({ kind: "person" }), "");
+});
+
+test("the picture of the sample is the committed one, in both themes, and says everything the map does", () => {
+  const map = parseMapText(read(join(mapsDir, "valid/owner-operation-2026-09-30.grooph-map.json"))).map!;
+  for (const theme of ["light", "dark"] as const) {
+    const svg = mapPicture(map, { theme });
+    assert.equal(svg, mapPicture(map, { theme }), "not deterministic");
+    assert.equal(
+      read(join(mapsDir, "pictures", `${map.id}.${theme}.svg`)),
+      svg,
+      `fixtures/maps/pictures/${map.id}.${theme}.svg is stale: run \`pnpm --filter @grooph/core run golden:write\` and look at it`,
+    );
+    assert.ok(!svg.includes("var(--"), "a light or dark picture carries its colours, not variables");
+  }
+  const svg = mapPicture(map, { theme: "light" });
+  for (const lane of map.lanes) assert.ok(svg.includes(`data-lane="${lane.id}"`), `lane ${lane.id} is not drawn`);
+  for (const s of map.sessions) assert.ok(svg.includes(`data-session="${s.id}"`) && svg.includes(`>${s.name}<`), `session ${s.id} is not drawn with its name`);
+  for (const h of map.handoffs) assert.ok(svg.includes(`data-handoff="${h.id}"`) && svg.includes(`data-handoff-row="${h.id}"`), `handoff ${h.id} is not drawn and listed`);
+  assert.ok(svg.includes(">×12<"), "the family's count is not drawn");
+  assert.match(svg, /viewBox="0 0 400 /);
+});
+
+test("an auto picture follows the viewer's colour scheme; a broken map still draws what it can", () => {
+  const map = parseMapText(read(join(mapsDir, "valid/two-sessions.grooph-map.json"))).map!;
+  const auto = mapPicture(map);
+  assert.match(auto, /prefers-color-scheme:dark/);
+  assert.ok(auto.includes("var(--gp-ink)"));
+  // A handoff to nowhere and a session in no lane are left out of the drawing, not thrown on; the list still names the handoff.
+  const broken = { ...map, sessions: [...map.sessions, { id: "lost", name: "Lost", lane: "nowhere", harness: "codex", role: "x" }], handoffs: [...map.handoffs, { id: "h-gone", from: "planner", to: "ghost" }] };
+  const svg = mapPicture(broken, { theme: "light" });
+  assert.ok(!svg.includes('data-session="lost"'));
+  assert.ok(!svg.includes('data-handoff="h-gone"'));
+  assert.ok(svg.includes('data-handoff-row="h-gone"') && svg.includes("no carrier named"));
+  // An empty map is a title and nothing else.
+  assert.match(mapPicture({ groophMap: 0, id: "empty", name: "Empty", version: 1, lanes: [], sessions: [], handoffs: [] }, { theme: "dark" }), /^<svg [^>]*data-picture="map"/);
 });

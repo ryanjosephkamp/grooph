@@ -1,5 +1,6 @@
 /**
- * Regenerate the golden packages under `fixtures/golden/<target>/<graph>/`.
+ * Regenerate the golden packages under `fixtures/golden/<target>/<graph>/`,
+ * and the golden pictures of the sample operation map under `fixtures/maps/pictures/`.
  *
  *   pnpm --filter @grooph/core run golden:write
  *
@@ -13,7 +14,9 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compile } from "../compile/index.js";
+import { parseMapText } from "../map.js";
 import { parseGraphText } from "../parse.js";
+import { mapPicture } from "../picture/map-picture.js";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -45,6 +48,21 @@ for (const golden of GOLDENS) {
   }
   process.stdout.write(`wrote ${relative(repoRoot, outDir)} (${Object.keys(result.files).length} files)\n`);
   for (const path of walk(outDir)) process.stdout.write(`  ${relative(outDir, path)}\n`);
+}
+
+/** The sample map (docs/operation-map.md §6) as its picture, light and dark: what `grooph image` writes. */
+const MAP_PICTURES = ["fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"];
+
+for (const file of MAP_PICTURES) {
+  const parsed = parseMapText(readFileSync(join(repoRoot, file), "utf8"));
+  if (!parsed.map) throw new Error(`${file} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
+  const outDir = join(repoRoot, "fixtures", "maps", "pictures");
+  mkdirSync(outDir, { recursive: true });
+  for (const theme of ["light", "dark"] as const) {
+    const out = join(outDir, `${parsed.map.id}.${theme}.svg`);
+    writeFileSync(out, mapPicture(parsed.map, { theme }), "utf8");
+    process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+  }
 }
 
 function walk(dir: string): string[] {

@@ -114,20 +114,20 @@ function carrierName(carrier: Carrier): { field?: string; value?: string } {
   }
 }
 
-/** One line for a carrier: "branch ryan/app · slice/*", "person: the owner". Empty when it names nothing. */
+/** One line for a carrier: "branch main on ryan/app", "carried by Ryan". Empty when it names nothing. */
 export function carrierText(carrier: Carrier | undefined): string {
   if (!carrier) return "";
   switch (carrier.kind) {
     case "branch":
-      return blank(carrier.repo) ? "" : `branch ${carrier.repo}${blank(carrier.ref) ? "" : ` · ${carrier.ref}`}`;
+      return blank(carrier.repo) ? "" : `branch ${blank(carrier.ref) ? "" : `${carrier.ref} `}on ${carrier.repo}`;
     case "pull-request":
-      return blank(carrier.repo) ? "" : `pull request ${carrier.repo}`;
+      return blank(carrier.repo) ? "" : `pull request on ${carrier.repo}`;
     case "session-message":
       return "session message";
     case "scheduled-message":
-      return blank(carrier.schedule) ? "scheduled message" : `scheduled message · ${carrier.schedule}`;
+      return blank(carrier.schedule) ? "scheduled message" : `scheduled message, ${carrier.schedule}`;
     case "review-page":
-      return blank(carrier.where) ? "" : `review page · ${carrier.where}`;
+      return blank(carrier.where) ? "" : `review page: ${carrier.where}`;
     case "person":
       return blank(carrier.who) ? "" : `carried by ${carrier.who}`;
     case "other":
