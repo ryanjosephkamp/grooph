@@ -122,7 +122,7 @@ function liveFor(io: Output, loaded: Loaded, events: EventSource[] | undefined):
     }
   }
   const view = readLive(events);
-  return { live: mapLive(view.sessions, loaded.doc), at: view.at };
+  return { live: mapLive(view.sessions, loaded.doc, view.at), at: view.at };
 }
 
 const THEMES = ["light", "dark", "auto"] as const;

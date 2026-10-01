@@ -3470,6 +3470,10 @@ div.field-diff.ins {
   background: var(--accent-soft);
   color: var(--accent);
 }
+.live-state-quiet {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
 .live-state-waiting {
   background: var(--warning-soft);
   color: var(--warning);

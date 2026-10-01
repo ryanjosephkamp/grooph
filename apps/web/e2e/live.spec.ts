@@ -71,6 +71,22 @@ test("the sessions screen shows each session and its subagents as the hook saw t
   expect(watch.count()).toBeGreaterThanOrEqual(3);
 });
 
+test("a session not heard from for half an hour is not called working: it says when it was last seen", async ({ page }) => {
+  // The same mid-flight recording, read three hours later: what a lane's events look like when they were pushed
+  // before the lane finished. Nothing after the push ever arrives.
+  const running = eventsOf("claude-code-running.jsonl");
+  await stubSessions(page, [view(running, "2026-10-01T05:01:10.000Z")]);
+  await page.goto("./#/live");
+  const card = page.locator(".live-session");
+  await expect(card).toHaveCount(1);
+  await expect(card).toHaveAttribute("data-quiet", "true");
+  await expect(card.locator(".live-state")).toHaveText(/^Last seen 3 h ago$/);
+  await expect(card.locator(".live-dot")).toHaveCount(0);
+  await expect(card.locator(".live-session-facts")).toContainText("1 not seen to finish · 1 done");
+  await expect(card.locator('[data-agent-id="a02"]')).toContainText("not seen to finish, started 3 h");
+  await expect(card.locator('[data-agent-id="a01"]')).toContainText("done in 39 s");
+});
+
 test("several sessions' files show side by side under their names: both harnesses, a subagent under the one that started it", async ({ page }) => {
   await stubSessions(page, [view([...eventsOf("claude-code-nested.jsonl", "cloud lane"), ...eventsOf("codex-two-subagents.jsonl", "the Mac")], "2026-10-01T01:40:00.000Z")]);
   await page.goto("./#/live");

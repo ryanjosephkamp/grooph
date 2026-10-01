@@ -14,6 +14,7 @@ import { canonicalize, offlinePage, outline, outlineMarkdown, parseGraphText, pi
 
 import { VERSION, run } from "../src/index.js";
 import type { Output } from "../src/print.js";
+import { moved } from "./fresh.js";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -160,9 +161,20 @@ test("image and page mark a map's sessions with what the event hook has seen, fr
   await withScratch(async (dir) => {
     let io = capture();
     const out = join(dir, "live.svg");
-    assert.equal(await grooph(["image", sampleMap, "--theme", "light", "--out", out, "--events", `operator=${join(events, "claude-code-running.jsonl")}`, "--events", `codex=${join(events, "codex-two-subagents.jsonl")}`], io), 0, text(io.stderr));
+    // The mid-flight recording, moved to a minute ago: a session at work.
+    const fresh = join(dir, "operator-now.jsonl");
+    writeFileSync(fresh, moved(readFileSync(join(events, "claude-code-running.jsonl"), "utf8"), Date.now()));
+    assert.equal(await grooph(["image", sampleMap, "--theme", "light", "--out", out, "--events", `operator=${fresh}`, "--events", `codex=${join(events, "codex-two-subagents.jsonl")}`], io), 0, text(io.stderr));
     const svg = readFileSync(out, "utf8");
     assert.match(svg, /<g data-session="operator" data-live="working">/);
+    assert.match(svg, />working · 1 running, 1 done</);
+    // As it was recorded, days ago: not ended, and not heard from since, so it is "last seen", never "working".
+    io = capture();
+    assert.equal(await grooph(["image", sampleMap, "--theme", "light", "--out", join(dir, "stale.svg"), "--events", `operator=${join(events, "claude-code-running.jsonl")}`], io), 0, text(io.stderr));
+    const stale = readFileSync(join(dir, "stale.svg"), "utf8");
+    assert.match(stale, /<g data-session="operator" data-live="quiet">/);
+    assert.match(stale, />last seen [^<]+ ago</);
+    assert.doesNotMatch(stale, />working/);
     assert.match(svg, /<g data-session="codex" data-live="ended">/);
     assert.match(svg, />live at \d{4}-\d\d-\d\d \d\d:\d\d UTC/);
 

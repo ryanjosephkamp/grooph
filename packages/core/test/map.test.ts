@@ -238,6 +238,17 @@ test("a map lit by its sessions' hooks: a source read under a map session's name
   assert.equal(mapLiveLine(live["workers"]!), "ended · 0 running, 3 done");
   assert.equal(mapLiveLine({ sessions: 12, working: 2, waiting: 3, ended: 7, agentsRunning: 4, agentsDone: 9, lastAt: "x" }), "2 of 12 working · 4 running, 9 done");
   assert.equal(mapLiveLine({ sessions: 1, working: 0, waiting: 1, ended: 0, agentsRunning: 0, agentsDone: 0, lastAt: "x" }), "waiting");
+  // Read three hours after the last line, the Operator's session is quiet: its card says when it was last seen, and
+  // a session that ended is still ended.
+  const later = new Date(Date.parse(live["operator"]!.lastAt) + 3 * 3600 * 1000).toISOString();
+  const stale = mapLive(sessions, map, later);
+  assert.deepEqual([stale["operator"]!.working, stale["operator"]!.quiet, stale["operator"]!.agentsRunning], [0, 1, 0]);
+  assert.equal(mapLiveLine(stale["operator"]!, later), "last seen 3 h ago");
+  assert.equal(mapLiveLine(stale["workers"]!, later), "ended · 0 running, 3 done");
+  assert.equal(mapLiveLine({ sessions: 12, working: 2, waiting: 0, ended: 7, quiet: 3, agentsRunning: 4, agentsDone: 9, lastAt: "x" }, later), "2 of 12 working · 4 running, 9 done");
+  const quietPicture = mapPicture(map, { theme: "light", live: stale, at: later });
+  assert.match(quietPicture, /<g data-session="operator" data-live="quiet">/);
+  assert.match(quietPicture, />last seen 3 h ago</);
 
   const plain = mapPicture(map, { theme: "light" });
   const lit = mapPicture(map, { theme: "light", live, at: "2026-10-01T02:01:10.000Z" });

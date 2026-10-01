@@ -347,12 +347,28 @@ export function planLine(plan: LivePlan): string {
 }
 
 /** One line for a session: "claude-code · working · 2 running, 3 done". */
-export function sessionLine(s: LiveSession): string {
+/**
+ * How long a session may say nothing before a view stops calling it "working". A record is as fresh as the last
+ * line that reached the reader: a lane's events pushed mid-session never say that its turn ended or that it closed,
+ * and a session whose machine went away never says so either. Past this, a view says when it was last seen.
+ */
+export const QUIET_AFTER_SECONDS = 30 * 60;
+
+/** Whether a session that has not ended has gone quiet by `at`: nothing was heard from it for half an hour. */
+export const isQuiet = (s: Pick<LiveSession, "state" | "lastAt">, at: string | undefined): boolean =>
+  at !== undefined && s.state !== "ended" && secondsBetween(s.lastAt, at) >= QUIET_AFTER_SECONDS;
+
+/**
+ * One line for a session. With `at` (when the record was read), a session gone quiet is said to be "last seen",
+ * with the state it was in then, and its unfinished subagents are "not seen to finish" rather than "running".
+ */
+export function sessionLine(s: LiveSession, at?: string): string {
   const running = s.agents.filter((a) => a.state === "running").length;
   const done = s.agents.length - running;
-  const parts = [s.harness, s.state];
+  const quiet = isQuiet(s, at);
+  const parts = [s.harness, quiet ? `last seen ${durationText(secondsBetween(s.lastAt, at!))} ago, ${s.state} then` : s.state];
   if (s.agents.length === 0) parts.push("no subagents yet");
-  else parts.push(`${running} running, ${done} done`);
+  else parts.push(quiet && running > 0 ? `${running} not seen to finish, ${done} done` : `${running} running, ${done} done`);
   return parts.join(" · ");
 }
 
@@ -429,6 +445,8 @@ export type MapSessionLive = {
   agentsDone: number;
   /** the last thing seen from any of them */
   lastAt: string;
+  /** of those not ended, how many have gone quiet (`isQuiet`); they are not counted as working or waiting */
+  quiet?: number;
 };
 
 /**
@@ -438,17 +456,20 @@ export type MapSessionLive = {
  * exists; the events say who is at work. A session on the map with no source
  * of that name has no entry, and is drawn as the map alone would draw it.
  */
-export function mapLive(sessions: readonly LiveSession[], map: OperationMap): Record<Id, MapSessionLive> {
+export function mapLive(sessions: readonly LiveSession[], map: OperationMap, at?: string): Record<Id, MapSessionLive> {
   const ids = new Set(map.sessions.map((s) => s.id));
   const out: Record<Id, MapSessionLive> = {};
   for (const s of sessions) {
     if (s.source === undefined || !ids.has(s.source)) continue;
     const m = (out[s.source] ??= { sessions: 0, working: 0, waiting: 0, ended: 0, agentsRunning: 0, agentsDone: 0, lastAt: s.lastAt });
     m.sessions += 1;
-    m[s.state] += 1;
+    const quiet = isQuiet(s, at);
+    if (quiet) m.quiet = (m.quiet ?? 0) + 1;
+    else m[s.state] += 1;
     for (const a of s.agents) {
-      if (a.state === "running") m.agentsRunning += 1;
-      else m.agentsDone += 1;
+      // A subagent a quiet session never reported as finished is not running, as far as anyone can tell.
+      if (a.state === "running" && !quiet) m.agentsRunning += 1;
+      else if (a.state !== "running") m.agentsDone += 1;
     }
     if (s.lastAt > m.lastAt) m.lastAt = s.lastAt;
   }
@@ -456,8 +477,12 @@ export function mapLive(sessions: readonly LiveSession[], map: OperationMap): Re
 }
 
 /** One line for a map session's live state: "working · 3 subagents running, 5 done" or "2 of 12 working · …". */
-export function mapLiveLine(live: MapSessionLive): string {
-  const state = live.working > 0 ? (live.sessions > 1 ? `${live.working} of ${live.sessions} working` : "working") : live.waiting > 0 ? (live.sessions > 1 ? `${live.waiting} of ${live.sessions} waiting` : "waiting") : "ended";
-  const agents = live.agentsRunning + live.agentsDone === 0 ? "" : ` · ${live.agentsRunning} running, ${live.agentsDone} done`;
+export function mapLiveLine(live: MapSessionLive, at?: string): string {
+  const quiet = live.quiet ?? 0;
+  const of = (n: number, word: string): string => (live.sessions > 1 ? `${n} of ${live.sessions} ${word}` : word);
+  const seen = at !== undefined ? `last seen ${durationText(secondsBetween(live.lastAt, at))} ago` : "gone quiet";
+  const state = live.working > 0 ? of(live.working, "working") : live.waiting > 0 ? of(live.waiting, "waiting") : quiet > 0 ? seen : "ended";
+  // Gone quiet, the line says only when it was last seen: a count of subagents from a stale record would read as news.
+  const agents = live.agentsRunning + live.agentsDone === 0 || (quiet > 0 && live.working + live.waiting === 0) ? "" : ` · ${live.agentsRunning} running, ${live.agentsDone} done`;
   return `${state}${agents}`;
 }

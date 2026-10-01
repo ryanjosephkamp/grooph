@@ -5,7 +5,7 @@
 
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,6 +14,7 @@ import { test } from "node:test";
 import { parseEvents, summarizeSessions, type LiveView } from "@grooph/core";
 
 import { MCP_PROTOCOL, handle, toolNames, type McpContext } from "../src/mcp.js";
+import { moved } from "./fresh.js";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -78,7 +79,7 @@ test("plan and note append to the session's own said- file, never to a hook's, a
     assert.deepEqual(lines.events.map((e) => [e.event, e.session, e.harness]), [["plan", "sess-1", "claude-code"], ["note", "sess-1", "claude-code"], ["note", "sess-1", "claude-code"]]);
 
     // The hook's file for the same session arrives beside it; running shows the plan against it.
-    cpSync(join(repoRoot, "fixtures", "events", "claude-code-running.jsonl"), join(dir, "hook.jsonl"));
+    writeFileSync(join(dir, "hook.jsonl"), moved(readFileSync(join(repoRoot, "fixtures", "events", "claude-code-running.jsonl"), "utf8"), Date.UTC(2026, 9, 1, 5, 0, 0)));
     const running = call(ctx, "grooph_running", {});
     const view = running.result!["structuredContent"] as LiveView;
     assert.equal(view.groophLive, 0);

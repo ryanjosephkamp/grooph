@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSyn
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { durationText, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
+import { durationText, isQuiet, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
 import { EVENTS_DIR, eventFiles, parseSource, readLive, sourceExists, type EventSource } from "../events-io.js";
 import { writeText } from "../io.js";
@@ -297,9 +297,15 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
 
 const short = (id: string): string => (id.length > 10 ? id.slice(-8) : id);
 
-function agentLine(a: LiveAgent, now: string): string {
-  const mark = a.state === "running" ? "●" : "✓";
-  const time = a.state === "running" ? `running ${durationText(secondsBetween(a.started, now))}` : `done in ${durationText(secondsBetween(a.started, a.ended ?? a.lastAt))}`;
+function agentLine(a: LiveAgent, now: string, quiet: boolean): string {
+  const mark = a.state === "running" ? (quiet ? "?" : "●") : "✓";
+  // In a session gone quiet, a subagent with no stop on record is not known to be running.
+  const time =
+    a.state === "running"
+      ? quiet
+        ? `not seen to finish, started ${durationText(secondsBetween(a.started, now))} ago`
+        : `running ${durationText(secondsBetween(a.started, now))}`
+      : `done in ${durationText(secondsBetween(a.started, a.ended ?? a.lastAt))}`;
   const tools = a.tools > 0 ? ` · ${plural(a.tools, "tool call")}${a.lastTool ? `, last ${a.lastTool}` : ""}` : "";
   return `${mark} ${a.type}  ${short(a.id)}  ${time}${a.stops > 1 ? ` · resumed ${a.stops - 1}×` : ""}${tools}${a.model ? ` · ${a.model}` : ""}`;
 }
@@ -307,13 +313,14 @@ function agentLine(a: LiveAgent, now: string): string {
 /** A session's subagents as an indented tree: a child under the agent that started it, where the harness said. */
 export function sessionLines(s: LiveSession, now: string): string[] {
   const where = s.cwd ? ` · ${s.cwd.split("/").filter(Boolean).pop()}` : "";
-  const lines = [`${s.source ? `[${s.source}] ` : ""}${sessionLine(s)} · session ${short(s.id)}${where}${s.model ? ` · ${s.model}` : ""}`];
+  const quiet = isQuiet(s, now);
+  const lines = [`${s.source ? `[${s.source}] ` : ""}${sessionLine(s, now)} · session ${short(s.id)}${where}${s.model ? ` · ${s.model}` : ""}`];
   const ids = new Set(s.agents.map((a) => a.id));
   const walk = (parent: string | undefined, depth: number): void => {
     for (const a of s.agents) {
       const top = a.parent === undefined || !ids.has(a.parent);
       if (parent === undefined ? !top : a.parent !== parent) continue;
-      lines.push(`${"  ".repeat(depth + 1)}${agentLine(a, now)}`);
+      lines.push(`${"  ".repeat(depth + 1)}${agentLine(a, now, quiet)}`);
       walk(a.id, depth + 1);
     }
   };
