@@ -3265,13 +3265,16 @@ div.field-diff.ins {
   height: auto;
 }
 .map-picture [data-session],
+.map-picture [data-person],
 .map-picture [data-handoff],
 .map-picture [data-handoff-row] {
   cursor: pointer;
   outline: none;
 }
 .map-picture [data-session].is-on > rect[data-card],
-.map-picture [data-session]:focus-visible > rect[data-card] {
+.map-picture [data-session]:focus-visible > rect[data-card],
+.map-picture [data-person].is-on > rect[data-card],
+.map-picture [data-person]:focus-visible > rect[data-card] {
   stroke: var(--accent) !important;
   stroke-width: 2.4;
 }

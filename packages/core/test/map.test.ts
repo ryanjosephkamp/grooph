@@ -13,7 +13,7 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 
 import { mapLive, mapLiveLine, parseEvents, summarizeSessions } from "../src/events.js";
 import { offlinePage } from "../src/offline.js";
-import { MAP_CODES, byHandLines, canonicalizeMap, carrierText, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
+import { MAP_CODES, byHandLines, canonicalizeMap, carrierText, endName, handoffCarrierText, wakesItself, isMapLike, mapShape, mapShapeLine, parseMapText, validateMap, type MapIssue } from "../src/map.js";
 import { parseGraphText } from "../src/parse.js";
 import { mapPicture } from "../src/picture/map-picture.js";
 import { mapJsonSchema, MAP_SCHEMA_ID } from "../src/schema/map.js";
@@ -118,6 +118,58 @@ test("the sample as the Operator corrected it: eight sessions, eighteen handoffs
   // The Operator wakes itself, and the research lanes build on each other: a handoff may start and end at one session.
   assert.deepEqual(map.handoffs.filter((h) => h.from === h.to).map((h) => h.id), ["h-self-wake", "h-research-each-other"]);
   assert.deepEqual(validateMap(map), []);
+});
+
+test("people on a map (A-013): a handoff may start or end at one, a notification reaches one, and what starts with a person waits on them", () => {
+  const map = parseMapText(read(join(mapsDir, "valid/a-person-and-two-sessions.grooph-map.json"))).map!;
+  assert.deepEqual(validateMap(map), []);
+  const shape = mapShape(map);
+  assert.equal(shape.people, 1);
+  assert.equal(mapShapeLine(shape), "1 lane · 2 sessions · 1 person · 5 handoffs, 1 waiting on a person");
+  assert.deepEqual(shape.byHand, [{ handoff: "h-ask", from: "owner", to: "lead", who: "The owner", starts: true }]);
+  assert.deepEqual(byHandLines(shape), ["by hand  h-ask  owner → lead: moves only when The owner does it"]);
+  assert.equal(carrierText({ kind: "notification", where: "e-mail" }), "notification, e-mail");
+  assert.equal(carrierText({ kind: "notification" }), "notification");
+  assert.equal(endName(map, "owner"), "The owner");
+  assert.equal(wakesItself(map, "lead"), "every hour");
+  assert.equal(wakesItself(map, "worker"), undefined);
+
+  const edit = (change: (m: typeof map) => void): MapIssue[] => {
+    const copy = structuredClone(map);
+    change(copy);
+    return validateMap(copy);
+  };
+  // A handoff that starts at a person is carried by them: it need not say who. Between two sessions it must.
+  assert.deepEqual(edit((m) => (m.handoffs[0]!.carrier = { kind: "person" })), []);
+  assert.equal(handoffCarrierText({ ...map, handoffs: [{ ...map.handoffs[0]!, carrier: { kind: "person" } }] }, { ...map.handoffs[0]!, carrier: { kind: "person" } }), "carried by The owner");
+  assert.deepEqual(edit((m) => (m.handoffs[1]!.carrier = { kind: "person" })).map((i) => i.code), ["E_HANDOFF_NO_CARRIER"]);
+  // An id is one thing: a person may not share one with a session; an end that is neither is named as such.
+  assert.deepEqual(edit((m) => m.people!.push({ id: "lead", name: "Someone with a session's id" })).map((i) => i.code), ["E_DUPLICATE_ID"]);
+  const nowhere = edit((m) => (m.handoffs[4]!.to = "nobody"));
+  assert.deepEqual(nowhere.map((i) => i.code), ["E_DANGLING_REF"]);
+  assert.match(nowhere[0]!.message, /ends at "nobody", which is neither a session nor a person/);
+  // A person nothing touches is an island, like a session.
+  const alone = edit((m) => m.people!.push({ id: "visitor", name: "A visitor" }));
+  assert.deepEqual(alone.map((i) => i.code), ["W_SESSION_ISLAND"]);
+  assert.match(alone[0]!.message, /^person "visitor" has no handoff in or out/);
+  // A person handing something to themselves reaches no one: it does not stop them being an island, and nothing waits on it.
+  const toSelf = edit((m) => {
+    m.people!.push({ id: "visitor", name: "A visitor" });
+    m.handoffs.push({ id: "h-self", from: "visitor", to: "visitor", carrier: { kind: "person" } });
+  });
+  assert.deepEqual(toSelf.map((i) => i.code), ["W_SESSION_ISLAND"]);
+  const withSelf = structuredClone(map);
+  withSelf.handoffs.push({ id: "h-self", from: "owner", to: "owner", carrier: { kind: "person" } });
+  assert.deepEqual(mapShape(withSelf).byHand.map((h) => h.handoff), ["h-ask"]);
+  // A person is not a session: no rule about accounts or harnesses applies to what they hand over.
+  assert.deepEqual(edit((m) => (m.handoffs[0]!.carrier = { kind: "review-page", where: "a page" })), []);
+});
+
+test("a map written before people existed says what it said: the same shape line, the same picture, no new key", () => {
+  const old = parseMapText(read(join(mapsDir, "valid/owner-operation-2026-09-30.grooph-map.json"))).map!;
+  assert.equal(mapShape(old).people, undefined);
+  assert.equal(mapShapeLine(mapShape(old)), "3 lanes · 7 sessions (18 counting families) · 10 handoffs, 2 carried by a person");
+  assert.equal(canonicalizeMap(old).includes('"people"'), false);
 });
 
 test("the sample: the owner's operation at a glance", () => {

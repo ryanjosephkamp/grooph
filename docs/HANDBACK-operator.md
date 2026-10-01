@@ -1,4 +1,4 @@
-# Handback to the Operator: grooph 0.1.0
+# Handback to the Operator: grooph 0.2.0
 
 For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. Written 2026-09-30. Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.1.0** (`grooph --version`) |
+| Version | **0.2.0** (`grooph --version`). 0.1.0 was the first handback; what changed since is in section 12 |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`, tagged `v0.1.0`**, once Ryan has approved the merge of pull requests #1 to #8. If `main` does not have this file yet, the merge has not happened: use branch `slice/0031-evidence-and-policies`, which holds all of it. |
+| Where the code is | **`main`**, tagged `v0.2.0` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.1.0, the merge has not happened yet, and branch `slice/0040-people-on-the-map` holds all of it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.1.0 2>/dev/null || git checkout slice/0031-evidence-and-policies   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.2.0 2>/dev/null || git checkout slice/0040-people-on-the-map   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.1.0
+node packages/cli/bin/grooph.js --version    # 0.2.0
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -54,6 +54,10 @@ A small JSON file, `<name>.grooph-map.json`. It is the thing to keep current. Th
     { "id": "cloud-b", "name": "Cloud, account B", "machine": "Claude Code cloud sandboxes", "place": "cloud", "account": "Claude account B" }
   ],
 
+  "people": [                              // optional (0.2.0): who the sessions work with. Not sessions: no lane, never run
+    { "id": "ryan", "name": "Ryan", "role": "optional: what he does in the operation, one line" }
+  ],
+
   "sessions": [                            // one harness session, or a family drawn as one
     {
       "id": "operator", "name": "Operator", "lane": "cloud-b",
@@ -67,7 +71,7 @@ A small JSON file, `<name>.grooph-map.json`. It is the thing to keep current. Th
     }
   ],
 
-  "handoffs": [                            // one direction each; out and back are two
+  "handoffs": [                            // one direction each; out and back are two. Each end is a session or a person
     {
       "id": "h-start", "from": "operator", "to": "workers",
       "carrier": { "kind": "session-message" },
@@ -86,7 +90,8 @@ A small JSON file, `<name>.grooph-map.json`. It is the thing to keep current. Th
 | `session-message` | | the harness's own channel: you starting or messaging a lane |
 | `scheduled-message` | optionally `schedule` | a routine or timer that puts a prompt into a session |
 | `review-page` | `where` | a published page someone reads |
-| `person` | `who` | Ryan carrying a prompt |
+| `person` | `who` (not needed when the handoff starts at a person) | Ryan carrying a prompt |
+| `notification` | optionally `where` | what reaches a person without anyone carrying it: a push notification, an e-mail |
 | `other` | `name` | anything else, named |
 
 **Rules the validator checks** (`grooph validate <file>`; exit 1 on an error):
@@ -96,13 +101,16 @@ A small JSON file, `<name>.grooph-map.json`. It is the thing to keep current. Th
 | `E_SCHEMA`, `E_DUPLICATE_ID`, `E_DANGLING_REF` | the file's shape; a repeated id; a lane or session that is not there |
 | `E_HANDOFF_NO_CARRIER` | a handoff with no carrier, or a carrier that does not say which (a branch with no `repo`, a person with no `who`) |
 | `W_CARRIER_CANNOT_CROSS` | a session or scheduled message between different accounts or harnesses, or a review page between accounts: something else is really carrying it |
-| `W_SESSION_ISLAND` | a session nothing reaches and that reaches nothing |
+| `W_NOTIFY_NOT_PERSON` | a `notification` sent to a session: a notification reaches a person |
+| `W_SESSION_ISLAND` | a session, or a person, nothing reaches and that reaches nothing |
 | `W_NO_RETURN` | a session that is handed work and hands nothing on |
 | `W_GRAPH_UNRESOLVED` | a `graph` path that is not a graph file beside the map |
 
-A handoff carried by a person is not an issue, and it is where work waits when Ryan is away. So `grooph validate` lists each one after the issues (`by hand  h-brief-codex  operator → codex: moves only when Ryan carries it`), and `--json` carries the list as `byHand`. Your kit asked for this flag.
+A handoff carried by a person, or started by one, is not an issue, and it is where work waits when Ryan is away. So `grooph validate` lists each one after the issues (`by hand  h-brief-codex  operator → codex: moves only when Ryan carries it`), and `--json` carries the list as `byHand`. Your kit asked for this flag.
 
 **The sample**: [`fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json), "Ryan's operation, October 1, 2026": **your corrected map**, with Splashery's product details left out because this repository is public (yours, in full, stays with you and Ryan). Three lanes, eight sessions (twenty-one counting families), eighteen handoffs, three that wait on a person. Its picture: [light](../fixtures/maps/pictures/ryans-operation-2026-10-01.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-10-01.dark.svg). The first draft, drawn from the brief with its guesses, is kept beside it as a fixture.
+
+**The same map with Ryan drawn**: [`owner-operation-2026-10-01-with-ryan.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01-with-ryan.grooph-map.json) ([picture](../fixtures/maps/pictures/ryans-operation-2026-10-01-with-ryan.light.svg)). You asked for a way to draw a person; this is your map redrawn that way, as a sketch for you to correct. The three handoffs "carried by Ryan" become what reaches him and what he then does, and `grooph validate` names four that wait on him. How he and you talk, and what he does with a routine's notification, are read from your answers, not observed.
 
 **What to do with a map:**
 
@@ -270,7 +278,7 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 
 `grooph validate` names the rule. `grooph hooks status` says whether the hook is installed. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.
 
-## 12. What you found wrong or missing in 0.1.0
+## 12. What you found wrong or missing in 0.1.0, and what 0.2.0 does about it
 
 | You said | State |
 |---|---|
@@ -278,5 +286,5 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 | A card's text stops at three lines while the card has room | **fixed.** A role has five lines, and as many more as fit when the card is tall because many arcs end on it. Your own card now says all of its role |
 | `pnpm install` aborts without a terminal when an older `node_modules` is there | fixed here: section 2 now says `CI=true pnpm install --frozen-lockfile` |
 | Committing `.grooph/events/` with a lane's work puts event files into every pull request; the events need a ref of their own | **built**, as you sketched it: `grooph events push`, and the same code as a script beside the hook so a lane needs no grooph (section 4). One commit holding only that folder, on a branch of its own, read with the matching `git:` source. Tested against real repositories; not yet run in a cloud sandbox |
-| No way to draw a person: the owner is the hub and cannot be a node; no carrier for a notification to a person | open |
-| No mark for a session that wakes itself on a schedule | open |
+| No way to draw a person: the owner is the hub and cannot be a node; no carrier for a notification to a person | **built** (amendment A-013). A map may name `people`; a handoff may start or end at one; `notification` is a carrier. A person has a band of their own at the top of the picture. What starts with a person is listed with what a person carries. Every 0.1.0 map still loads unchanged |
+| No mark for a session that wakes itself on a schedule | **built.** A session with a scheduled message to itself has a dotted ring and its schedule on its card. Your own card now reads "wakes itself · every 30-45 min" |

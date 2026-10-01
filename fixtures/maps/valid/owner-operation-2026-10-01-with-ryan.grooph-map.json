@@ -1,0 +1,330 @@
+{
+  "groophMap": 0,
+  "id": "ryans-operation-2026-10-01-with-ryan",
+  "name": "Ryan's operation, with Ryan drawn",
+  "version": 3,
+  "asOf": "2026-10-01",
+  "description": "The same operation as ryans-operation-2026-10-01, redrawn by the grooph session with its owner as a person instead of as a carrier (amendment A-013). The three handoffs the Operator's map said Ryan carries are each drawn as what reaches him and what he then does. A sketch for the Operator to correct: how Ryan and the Operator talk, and what he does with a routine's notification, are read from the Operator's answers, not observed.",
+  "lanes": [
+    {
+      "id": "cloud-b",
+      "name": "Cloud, account B",
+      "machine": "Claude Code cloud sandboxes (one environment)",
+      "place": "cloud",
+      "account": "Claude account B"
+    },
+    {
+      "id": "mac-a",
+      "name": "Mac, account A",
+      "machine": "Ryan's Mac",
+      "place": "local",
+      "account": "Claude account A"
+    },
+    {
+      "id": "mac-openai",
+      "name": "Mac, OpenAI",
+      "machine": "Ryan's Mac",
+      "place": "local",
+      "account": "OpenAI account"
+    }
+  ],
+  "people": [
+    {
+      "id": "ryan",
+      "name": "Ryan",
+      "role": "Owns the operation. Talks to the Operator in the Claude app, marks the review pages, reads the routines' notifications, and carries prompts to the sessions the Operator cannot reach"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "operator",
+      "name": "Operator",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Plans; starts, steers and checks every session on account B; merges; keeps the review pages. Extra-high effort. Leads the research project too",
+      "lifetime": "long-lived",
+      "repo": "4 repositories: Splashery's, the research project's and two of Ryan's sites"
+    },
+    {
+      "id": "splashery-lanes",
+      "name": "Splashery lanes",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Each builds one piece of Splashery on its own branch. Opus 5.5 now; Sonnet 5.5 for lighter work (none running)",
+      "lifetime": "per-task",
+      "count": 10,
+      "repo": "splashery"
+    },
+    {
+      "id": "integrators",
+      "name": "Integrators",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Run the full test suite on main plus the PRs named, and report each failure with its owner",
+      "lifetime": "long-lived",
+      "count": 2,
+      "repo": "splashery"
+    },
+    {
+      "id": "helpers",
+      "name": "One-off helpers",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Short jobs the Operator starts when the pace allows: an audit, a catalog (two on September 30, none running now)",
+      "lifetime": "per-task",
+      "repo": "splashery"
+    },
+    {
+      "id": "fresh-routines",
+      "name": "Digest and patrol",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Read-only: a fresh session each morning reads the state (or tests the live site) and reports to Ryan's phone",
+      "lifetime": "scheduled",
+      "count": 2,
+      "repo": "none; each clones splashery"
+    },
+    {
+      "id": "research-lanes",
+      "name": "Research lanes",
+      "lane": "cloud-b",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5 (2), claude-sonnet-5-5 (1)",
+      "role": "A private research project, worked in its own lanes; the Operator is their lead",
+      "lifetime": "per-task",
+      "count": 3,
+      "repo": "the research repo"
+    },
+    {
+      "id": "grooph",
+      "name": "grooph session",
+      "lane": "mac-a",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Builds grooph: exports, operation maps and the live view. High effort",
+      "lifetime": "long-lived",
+      "repo": "grooph"
+    },
+    {
+      "id": "codex",
+      "name": "Codex",
+      "lane": "mac-openai",
+      "harness": "codex",
+      "model": "GPT-6.1 Sol",
+      "role": "Outside checks for the research project: a prior-art review and a claim spot-check so far",
+      "lifetime": "per-task",
+      "repo": "the research repo"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-ryan-operator",
+      "from": "ryan",
+      "to": "operator",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "what he wants done, and what a routine's notification or another session told him, in the Claude app"
+    },
+    {
+      "id": "h-operator-ryan",
+      "from": "operator",
+      "to": "ryan",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "its reports, and the prompts it writes for the sessions it cannot reach"
+    },
+    {
+      "id": "h-start-lanes",
+      "from": "operator",
+      "to": "splashery-lanes",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a new lane: create_session (Claude Code Remote tools) with the brief as its first prompt, its model and its branch"
+    },
+    {
+      "id": "h-steer-lanes",
+      "from": "operator",
+      "to": "splashery-lanes",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "one-shot routine"
+      },
+      "what": "each later message: a new round, a failure to fix, merge main, Ryan's marks"
+    },
+    {
+      "id": "h-lanes-back",
+      "from": "splashery-lanes",
+      "to": "operator",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "splashery"
+      },
+      "what": "one draft PR per round, plus a handoff file on the branch; the Operator reads the lane's last message and status with get_session, not its transcript"
+    },
+    {
+      "id": "h-lanes-clips",
+      "from": "splashery-lanes",
+      "to": "operator",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private review pages on account B"
+      },
+      "what": "a preview of each changed piece; Ryan marks each good or fix, and the Operator and the lane read the marks"
+    },
+    {
+      "id": "h-ryan-marks",
+      "from": "ryan",
+      "to": "splashery-lanes",
+      "carrier": {
+        "kind": "review-page",
+        "where": "private review pages on account B"
+      },
+      "what": "good or fix on each preview; the lane and the Operator read the marks"
+    },
+    {
+      "id": "h-start-tests",
+      "from": "operator",
+      "to": "integrators",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "one-shot routine"
+      },
+      "what": "which PRs and SHAs to merge onto main and test"
+    },
+    {
+      "id": "h-tests-back",
+      "from": "integrators",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "splashery"
+      },
+      "what": "a results file per run on a results branch: a RESULT line, the tree tested, each failure and its owner"
+    },
+    {
+      "id": "h-start-helpers",
+      "from": "operator",
+      "to": "helpers",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a one-off job"
+    },
+    {
+      "id": "h-helpers-back",
+      "from": "helpers",
+      "to": "operator",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "splashery"
+      },
+      "what": "a report or catalog as a docs PR"
+    },
+    {
+      "id": "h-self-wake",
+      "from": "operator",
+      "to": "operator",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "every 30-45 min"
+      },
+      "what": "its own check-ins (one-shot, self-scheduled) and two routines of its own: a backup twice a day and a weekly ideas run"
+    },
+    {
+      "id": "h-routines-notify",
+      "from": "fresh-routines",
+      "to": "ryan",
+      "carrier": {
+        "kind": "notification",
+        "where": "his phone"
+      },
+      "what": "each morning's digest and patrol report"
+    },
+    {
+      "id": "h-start-research",
+      "from": "operator",
+      "to": "research-lanes",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a new lane, as for Splashery; later messages by one-shot routine"
+    },
+    {
+      "id": "h-research-back",
+      "from": "research-lanes",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "each lane's branch and PRs"
+    },
+    {
+      "id": "h-research-each-other",
+      "from": "research-lanes",
+      "to": "research-lanes",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "one lane builds on another's branch"
+    },
+    {
+      "id": "h-ryan-codex",
+      "from": "ryan",
+      "to": "codex",
+      "carrier": {
+        "kind": "person"
+      },
+      "what": "pastes the prompt the Operator wrote into Codex"
+    },
+    {
+      "id": "h-codex-back",
+      "from": "codex",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "Codex's work on its own branch, which the Operator fetches"
+    },
+    {
+      "id": "h-codex-research",
+      "from": "codex",
+      "to": "research-lanes",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the research repo"
+      },
+      "what": "corrections a research lane ports in, when the Operator says so"
+    },
+    {
+      "id": "h-ryan-grooph",
+      "from": "ryan",
+      "to": "grooph",
+      "carrier": {
+        "kind": "person"
+      },
+      "what": "pastes the Operator's prompts into the grooph session, and brings its answers back"
+    },
+    {
+      "id": "h-grooph-back",
+      "from": "grooph",
+      "to": "operator",
+      "carrier": {
+        "kind": "branch",
+        "repo": "grooph",
+        "ref": "main"
+      },
+      "what": "docs/HANDBACK-operator.md; Ryan pastes a short prompt that points to it"
+    }
+  ]
+}

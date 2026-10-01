@@ -26,7 +26,7 @@ Terms as this project uses them. Definitions that carry rules live in `graph-ir.
 | **Executive** | The harness session, using the `grooph-design` skill, that proposes candidate graphs. |
 | **Slice** | The unit of handoff between driver and implementer. |
 | **Handoff / handback / review** | The three files that carry a slice between sessions. |
-| **Operation map** | A second kind of document (`docs/operation-map.md`, A-011): sessions, the handoffs between them, and the lanes they run in. Drawn and validated, never compiled. |
+| **Operation map** | A second kind of document (`docs/operation-map.md`, A-011 and A-013): sessions, the people they work with, the handoffs between them, and the lanes the sessions run in. Drawn and validated, never compiled. |
 | **Session (on a map)** | One harness session, or a family of like sessions drawn as one with a `count`. What happens inside it is a graph's business. |
 | **Lane** | One machine under one account: the unit inside which sessions can reach each other without a carrier that crosses accounts. |
 | **Handoff** | Work passing from one session to another, in one direction, by a named carrier. |

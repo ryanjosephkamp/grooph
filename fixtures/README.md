@@ -16,7 +16,7 @@ fixtures/
   events/<name>.jsonl                 session events as the hook writes them (docs/subagents.md); two are real recordings, see events/README.md
   maps/valid/<name>.grooph-map.json            operation maps (docs/operation-map.md) that validate clean
   maps/invalid/<CODE>/<name>.grooph-map.json   maps that report exactly that code
-  maps/pictures/<map-id>.<theme>.svg           the sample map's picture, light and dark, byte-for-byte
+  maps/pictures/<map-id>.<theme>.svg           the pictures of four maps (the sample, its first draft, the sample with its owner drawn, the smallest map with a person), light and dark, byte-for-byte
 ```
 
 Maps are checked by `packages/core/test/map.test.ts`, by the same rules as graphs: every code in `MAP_CODES` has a folder with at least one map in it, each invalid map reports exactly its folder's code, each valid map is clean and canonical, and the pictures are what `mapPicture` draws (regenerate with `pnpm --filter @grooph/core run golden:write`, and look at them).

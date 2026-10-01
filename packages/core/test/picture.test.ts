@@ -131,6 +131,45 @@ test("a map with one hub keeps its words: the cards keep most of the lane, names
   for (const h of map.handoffs) if (h.what) assert.ok(words.includes(h.what.split(" ").slice(-1)[0]!) || words.some((w) => w.endsWith(h.what!.split(" ").slice(-2).join(" "))), `handoff ${h.id}: its last words are missing`);
 });
 
+test("however many handoffs a hub has, a card is never narrower than 120 units, and a first line may be narrower than the rest", () => {
+  const sample = parseMapText(read(join(fixturesDir, "maps", "valid", "two-sessions.grooph-map.json"))).map!;
+  const lane = sample.lanes[0]!.id;
+  for (const spokes of [20, 30, 52, 90]) {
+    const sessions = [{ id: "hub", name: "Hub", lane, harness: "claude-code", role: "Hands everything out" }, ...Array.from({ length: spokes }, (_, i) => ({ id: `spoke-${i}`, name: `Spoke ${i}`, lane, harness: "claude-code", role: "Takes one thing" }))];
+    const handoffs = Array.from({ length: spokes }, (_, i) => ({ id: `h-${i}`, from: "hub", to: `spoke-${i}`, carrier: { kind: "session-message" as const } }));
+    const svg = mapPicture({ ...sample, sessions, handoffs }, { theme: "light" });
+    const widths = [...svg.matchAll(/<rect data-card="" x="[\d.]+" y="[\d.]+" width="(-?[\d.]+)"/g)].map((m) => Number(m[1]));
+    assert.equal(widths.length, spokes + 1);
+    for (const w of widths) assert.ok(w >= 119.5, `${spokes} handoffs: a card is ${w} units wide`);
+    assert.ok(!/width="-/.test(svg), `${spokes} handoffs: a negative width`);
+  }
+  // A family's name shares its first line with the count; its second line has the whole width.
+  assert.deepEqual(wrap("one two three four five six", (line) => (line === 0 ? textWidth("one two", 10) : textWidth("three four five six", 10)), 10, 2), ["one two", "three four five six"]);
+});
+
+test("a person is drawn in a band above the lanes, a notification as a line of dots, and a session that wakes itself says so", () => {
+  const map = parseMapText(read(join(fixturesDir, "maps", "valid", "a-person-and-two-sessions.grooph-map.json"))).map!;
+  const svg = mapPicture(map, { theme: "light" });
+  assert.equal(svg.split('data-person="owner"').length - 1, 1);
+  assert.ok(svg.indexOf("data-people") < svg.indexOf('data-lane="laptop"'), "the people band is above the lanes");
+  for (const h of map.handoffs) assert.equal(svg.split(`data-handoff="${h.id}"`).length - 1, 1, `handoff ${h.id}`);
+  const words = [...svg.matchAll(/<text [^>]*>([^<]*)<\/text>/g)].map((m) => m[1]!);
+  for (const whole of ["Person", "The owner", "Asks for the work and reads the result", "The owner → Lead", "Lead → The owner", "notification, e-mail", "wakes itself · every hour"]) assert.ok(words.includes(whole), `"${whole}" is not drawn`);
+  assert.equal(svg.split("data-wakes").length - 1, 1, "one session wakes itself");
+  assert.match(svg, /data-handoff="h-done"><path [^>]*stroke-dasharray="0\.1 4\.5"/);
+  // The outline says the same in words.
+  const sections = mapOutline(map);
+  const owner = sections.find((s) => s.kind === "Person")!;
+  assert.deepEqual(owner.items.find((i) => i.label === "Hands work")!.list, ["to Lead, by session message: what is wanted"]);
+  assert.deepEqual(owner.items.find((i) => i.label === "Is handed work")!.list, ["from Lead, by notification, e-mail: done, with a link"]);
+  assert.equal(sections.find((s) => s.id === "lead")!.items.find((i) => i.label === "Wakes itself")!.text, "every hour");
+  // The owner's operation, with the owner drawn: one person, every session and handoff once.
+  const ryan = parseMapText(read(join(fixturesDir, "maps", "valid", "owner-operation-2026-10-01-with-ryan.grooph-map.json"))).map!;
+  const drawn = mapPicture(ryan, { theme: "light" });
+  assert.equal(drawn.split('data-person="ryan"').length - 1, 1);
+  for (const h of ryan.handoffs) assert.equal(drawn.split(`data-handoff="${h.id}"`).length - 1, 1, `handoff ${h.id}`);
+});
+
 test("the outline reads top to bottom: the graph, each node with its whole brief, each edge as a sentence, each loop with its stops", () => {
   const doc = reviewLoop();
   const sections = outline(doc);

@@ -1,6 +1,7 @@
 /**
- * Operation maps (docs/operation-map.md; amendment A-011): sessions, the
- * handoffs between them, and the lanes they run in. Pure, like the rest of
+ * Operation maps (docs/operation-map.md; amendments A-011 and A-013): sessions,
+ * the people they work with, the handoffs between them, and the lanes the
+ * sessions run in. Pure, like the rest of
  * core. A map is parsed, validated, canonicalized and drawn; nothing here
  * compiles one, because a map is never run.
  */
@@ -10,7 +11,7 @@ import { nearestIds } from "./parse.js";
 import type { UnknownKey } from "./schema/dsl.js";
 import { mapSchema } from "./schema/map.js";
 import { didYouMean } from "./suggest.js";
-import type { Carrier, CarrierKind, Handoff, Id, Lane, OperationMap, Session } from "./types.js";
+import type { Carrier, CarrierKind, Handoff, Id, Lane, OperationMap, Person, Session } from "./types.js";
 import { DOC_SIZE_LIMIT } from "./validate.js";
 
 /** The codes a map can raise (docs/operation-map.md §3). The first three and the last two keep their graph-ir meaning. */
@@ -20,6 +21,7 @@ export type MapIssueCode =
   | "E_DANGLING_REF"
   | "E_HANDOFF_NO_CARRIER"
   | "W_CARRIER_CANNOT_CROSS"
+  | "W_NOTIFY_NOT_PERSON"
   | "W_SESSION_ISLAND"
   | "W_NO_RETURN"
   | "W_GRAPH_UNRESOLVED"
@@ -33,6 +35,7 @@ export const MAP_CODES = [
   "E_DANGLING_REF",
   "E_HANDOFF_NO_CARRIER",
   "W_CARRIER_CANNOT_CROSS",
+  "W_NOTIFY_NOT_PERSON",
   "W_SESSION_ISLAND",
   "W_NO_RETURN",
   "W_GRAPH_UNRESOLVED",
@@ -91,6 +94,7 @@ export const CARRIER_LABEL: Record<CarrierKind, string> = {
   "scheduled-message": "scheduled message",
   "review-page": "review page",
   person: "person",
+  notification: "notification",
   other: "other",
 };
 
@@ -110,12 +114,16 @@ function carrierName(carrier: Carrier): { field?: string; value?: string } {
       return { field: "name", value: carrier.name };
     case "session-message":
     case "scheduled-message":
+    case "notification":
       return {};
   }
 }
 
-/** One line for a carrier: "branch main on ryan/app", "carried by Ryan". Empty when it names nothing. */
-export function carrierText(carrier: Carrier | undefined): string {
+/**
+ * One line for a carrier: "branch main on ryan/app", "carried by Ryan". Empty when it names nothing.
+ * `by` is the person a handoff starts at, when it starts at one: they are who carries it unless the carrier says otherwise.
+ */
+export function carrierText(carrier: Carrier | undefined, by?: string): string {
   if (!carrier) return "";
   switch (carrier.kind) {
     case "branch":
@@ -129,7 +137,9 @@ export function carrierText(carrier: Carrier | undefined): string {
     case "review-page":
       return blank(carrier.where) ? "" : `review page: ${carrier.where}`;
     case "person":
-      return blank(carrier.who) ? "" : `carried by ${carrier.who}`;
+      return blank(carrier.who) ? (blank(by) ? "" : `carried by ${by}`) : `carried by ${carrier.who}`;
+    case "notification":
+      return blank(carrier.where) ? "notification" : `notification, ${carrier.where}`;
     case "other":
       return blank(carrier.name) ? "" : carrier.name!;
   }
@@ -153,6 +163,7 @@ export function validateMap(map: OperationMap, options: ValidateMapOptions = {})
 
   const lanes = new Map<Id, Lane>(map.lanes.map((l) => [l.id, l]));
   const sessions = new Map<Id, Session>(map.sessions.map((s) => [s.id, s]));
+  const people = new Map<Id, Person>((map.people ?? []).map((p) => [p.id, p]));
   const issues: MapIssue[] = [];
 
   // E_DUPLICATE_ID
@@ -160,6 +171,7 @@ export function validateMap(map: OperationMap, options: ValidateMapOptions = {})
   const place = (id: Id, where: string) => places.set(id, [...(places.get(id) ?? []), where]);
   place(map.id, "the map's own id");
   map.lanes.forEach((l, i) => place(l.id, `lanes[${i}]`));
+  (map.people ?? []).forEach((p, i) => place(p.id, `people[${i}]`));
   map.sessions.forEach((s, i) => place(s.id, `sessions[${i}]`));
   map.handoffs.forEach((h, i) => place(h.id, `handoffs[${i}]`));
   for (const [id, where] of places) {
@@ -174,8 +186,9 @@ export function validateMap(map: OperationMap, options: ValidateMapOptions = {})
   }
   for (const h of map.handoffs) {
     for (const [end, id] of [["starts at", h.from], ["ends at", h.to]] as const) {
-      if (!sessions.has(id)) {
-        issues.push(issue("E_DANGLING_REF", `handoff "${h.id}" ${end} unknown session "${id}"${didYouMean(id, [...sessions.keys()])}`, [h.id]));
+      if (!sessions.has(id) && !people.has(id)) {
+        const what = people.size > 0 ? `"${id}", which is neither a session nor a person` : `unknown session "${id}"`;
+        issues.push(issue("E_DANGLING_REF", `handoff "${h.id}" ${end} ${what}${didYouMean(id, [...sessions.keys(), ...people.keys()])}`, [h.id]));
       }
     }
   }
@@ -194,6 +207,8 @@ export function validateMap(map: OperationMap, options: ValidateMapOptions = {})
       continue;
     }
     const name = carrierName(h.carrier);
+    // A handoff that starts at a person is carried by that person: it need not say who again.
+    if (h.carrier.kind === "person" && people.has(h.from)) continue;
     if (name.field !== undefined && blank(name.value)) {
       issues.push(
         issue(
@@ -228,12 +243,32 @@ export function validateMap(map: OperationMap, options: ValidateMapOptions = {})
     );
   }
 
+  // W_NOTIFY_NOT_PERSON
+  for (const h of map.handoffs) {
+    if (h.carrier?.kind === "notification" && sessions.has(h.to)) {
+      issues.push(
+        issue(
+          "W_NOTIFY_NOT_PERSON",
+          `handoff "${h.id}" sends a notification to session "${h.to}"; a notification reaches a person, and a session is reached by a message, a branch or a pull request. Name the person it reaches, or the carrier that reaches the session`,
+          [h.id, h.to],
+        ),
+      );
+    }
+  }
+
   // W_SESSION_ISLAND, W_NO_RETURN
   const outbound = new Set(map.handoffs.map((h) => h.from));
   const inbound = new Set(map.handoffs.map((h) => h.to));
   for (const s of map.sessions) {
     if (!outbound.has(s.id) && !inbound.has(s.id)) {
       issues.push(issue("W_SESSION_ISLAND", `session "${s.id}" has no handoff in or out: nothing reaches it and it reaches nothing`, [s.id]));
+    }
+  }
+  // A person handing something to themselves is not a handoff on a map of sessions: it reaches no one.
+  const touches = new Set(map.handoffs.filter((h) => h.from !== h.to).flatMap((h) => [h.from, h.to]));
+  for (const p of map.people ?? []) {
+    if (!touches.has(p.id)) {
+      issues.push(issue("W_SESSION_ISLAND", `person "${p.id}" has no handoff in or out: nothing reaches them and they reach nothing`, [p.id]));
     }
   }
   for (const s of map.sessions) {
@@ -290,12 +325,15 @@ export type MapShape = {
   harnesses: Record<string, number>;
   /** handoffs whose two sessions are in different lanes */
   crossLane: number;
-  /** the handoffs a person carries, in document order: each moves only when that person moves it */
-  byHand: { handoff: Id; from: Id; to: Id; who: string }[];
+  /** the handoffs that wait on a person, in document order: carried by one between two sessions, or started by one */
+  byHand: { handoff: Id; from: Id; to: Id; who: string; starts?: true }[];
+  /** people drawn on the map (amendment A-013); absent when there are none */
+  people?: number;
 };
 
 export function mapShape(map: OperationMap): MapShape {
   const sessions = new Map(map.sessions.map((s) => [s.id, s]));
+  const people = new Map((map.people ?? []).map((p) => [p.id, p]));
   const carriers: MapShape["carriers"] = {};
   for (const h of map.handoffs) {
     const kind = h.carrier?.kind ?? "none";
@@ -315,7 +353,14 @@ export function mapShape(map: OperationMap): MapShape {
       const to = sessions.get(h.to);
       return from !== undefined && to !== undefined && from.lane !== to.lane;
     }).length,
-    byHand: map.handoffs.flatMap((h) => (h.carrier?.kind === "person" ? [{ handoff: h.id, from: h.from, to: h.to, who: h.carrier.who ?? "" }] : [])),
+    byHand: map.handoffs.flatMap((h) => {
+      if (h.from === h.to && people.has(h.from)) return []; // a person to themselves reaches no one
+      const starter = people.get(h.from);
+      // A person who starts a handoff is the one it waits on, whatever carries it from there.
+      if (starter) return [{ handoff: h.id, from: h.from, to: h.to, who: starter.name || starter.id, starts: true as const }];
+      return h.carrier?.kind === "person" ? [{ handoff: h.id, from: h.from, to: h.to, who: h.carrier.who ?? "" }] : [];
+    }),
+    ...(people.size > 0 ? { people: people.size } : {}),
   };
 }
 
@@ -324,18 +369,44 @@ export function mapShape(map: OperationMap): MapShape {
  * beside the issues because these are where work stalls when that person is away.
  */
 export function byHandLines(shape: MapShape): string[] {
-  return shape.byHand.map((h) => `by hand  ${h.handoff}  ${h.from} → ${h.to}: moves only when ${h.who === "" ? "a person" : h.who} carries it`);
+  return shape.byHand.map((h) => `by hand  ${h.handoff}  ${h.from} → ${h.to}: moves only when ${h.who === "" ? "a person" : h.who} ${h.starts ? "does" : "carries"} it`);
 }
 
 /** One line for a map's shape: "4 lanes · 9 sessions (24 counting families) · 12 handoffs, 3 carried by a person". */
 export function mapShapeLine(shape: MapShape): string {
   const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
   const families = shape.sessionsCounted !== shape.sessions ? ` (${shape.sessionsCounted} counting families)` : "";
-  const byPerson = shape.carriers.person ?? 0;
-  return `${plural(shape.lanes, "lane")} · ${plural(shape.sessions, "session")}${families} · ${plural(shape.handoffs, "handoff")}${byPerson > 0 ? `, ${byPerson} carried by a person` : ""}`;
+  const waiting = shape.byHand.length;
+  const people = shape.people ? ` · ${shape.people} ${shape.people === 1 ? "person" : "people"}` : "";
+  // "carried by a person" where every one is carried between two sessions; "waiting on a person" once a person starts some.
+  const how = shape.byHand.some((h) => h.starts) ? "waiting on a person" : "carried by a person";
+  return `${plural(shape.lanes, "lane")} · ${plural(shape.sessions, "session")}${families}${people} · ${plural(shape.handoffs, "handoff")}${waiting > 0 ? `, ${waiting} ${how}` : ""}`;
 }
 
-/** The handoffs that touch a session, for a details panel. */
+/** The name a handoff's end is shown by: the session's, or the person's. */
+export function endName(map: OperationMap, id: Id): string {
+  return map.sessions.find((s) => s.id === id)?.name || (map.people ?? []).find((p) => p.id === id)?.name || id;
+}
+
+/** The person a handoff starts at, when it starts at one. */
+export const starterOf = (map: OperationMap, handoff: Handoff): Person | undefined => (map.people ?? []).find((p) => p.id === handoff.from);
+
+/** One line for what carries a handoff, knowing who starts it: `carrierText` with the starter's name where the carrier leaves it out. */
+export function handoffCarrierText(map: OperationMap, handoff: Handoff): string {
+  const starter = starterOf(map, handoff);
+  return carrierText(handoff.carrier, starter ? starter.name || starter.id : undefined);
+}
+
+/**
+ * How a session wakes itself, when it does: the schedule of a scheduled message it sends to itself, or "" when
+ * the handoff names none. Undefined for a session that does not. The picture marks such a session's card.
+ */
+export function wakesItself(map: OperationMap, session: Id): string | undefined {
+  const own = map.handoffs.find((h) => h.from === session && h.to === session && h.carrier?.kind === "scheduled-message");
+  return own ? (own.carrier?.kind === "scheduled-message" ? (own.carrier.schedule ?? "") : "") : undefined;
+}
+
+/** The handoffs that touch a session or a person, for a details panel. */
 export function handoffsOf(map: OperationMap, session: Id): { out: Handoff[]; in: Handoff[] } {
   return { out: map.handoffs.filter((h) => h.from === session), in: map.handoffs.filter((h) => h.to === session) };
 }
