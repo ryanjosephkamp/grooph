@@ -1,6 +1,6 @@
 # 0018 · A push is never dropped without a sign
 
-**Date:** 2026-10-02 · **Status:** proposed (waits for the owner's word on the merge) · **Deciders:** owner, driver, from the Operator's trial of the turn-end push
+**Date:** 2026-10-02 · **Status:** accepted (the owner approved the merge, 2026-10-02) · **Deciders:** owner, driver, from the Operator's trial of the turn-end push
 
 ## Context
 
