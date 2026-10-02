@@ -171,3 +171,16 @@ test("a person on the map opens what the map says about them, and a session that
   await page.locator(".title-btn").tap();
   await expect(page.getByTestId("map-by-hand").getByRole("listitem")).toHaveText(["owner → lead: moves only when The owner does it"]);
 });
+
+test("a handoff's number and its ring open the handoff, as its line does", async ({ page }) => {
+  const map = mapOf(SAMPLE);
+  await page.goto(linkFor(map));
+  const first = map.handoffs[0]!.id;
+  // The number is drawn over the lines and the ring under them: each is the handoff.
+  await page.locator(`[data-number="${first}"]`).tap();
+  await expect(sheet(page).getByRole("heading", { name: "Handoff 1" })).toBeVisible();
+  await page.locator(`[data-number="${first}"]`).tap();
+  await expect(sheet(page)).toHaveCount(0);
+  await page.locator(`[data-plate="${map.handoffs[1]!.id}"]`).tap({ position: { x: 1, y: 7 } });
+  await expect(sheet(page).getByRole("heading", { name: "Handoff 2" })).toBeVisible();
+});

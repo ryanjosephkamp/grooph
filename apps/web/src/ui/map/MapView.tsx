@@ -137,9 +137,10 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
       toggle({ type: "person", id: person.dataset["person"]! });
       return true;
     }
-    const handoff = target.closest<SVGGElement>("[data-handoff], [data-handoff-row]");
+    // An arc's ring and its number are drawn in layers of their own (under and over the lines), and each opens the handoff too.
+    const handoff = target.closest<SVGGElement>("[data-handoff], [data-handoff-row], [data-plate], [data-number]");
     if (handoff) {
-      toggle({ type: "handoff", id: handoff.dataset["handoff"] ?? handoff.dataset["handoffRow"]! });
+      toggle({ type: "handoff", id: handoff.dataset["handoff"] ?? handoff.dataset["handoffRow"] ?? handoff.dataset["plate"] ?? handoff.dataset["number"]! });
       return true;
     }
     return false;

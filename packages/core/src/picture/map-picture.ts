@@ -52,18 +52,27 @@ const LIFETIME_LABEL: Record<string, string> = { "long-lived": "long-lived", "pe
 type Card = { height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
 
 const BADGE_R = 7.2;
-/** Half the width of a handoff's number badge: a circle for one digit, a pill for more, so the digits never touch the ring. */
-const badgeHalf = (n: string): number => (n.length > 1 ? (textWidth(n, 8.5, "bold") + 7) / 2 : BADGE_R);
+const NUMBER_GAP = 6; // between the rings of two numbers whose tracks are close enough to touch
+/**
+ * Half the width of a handoff's number badge: a circle for one digit, a pill for more, so the digits never touch the
+ * ring. The pill is as narrow as that allows: on a crowded map the tracks are closer together than a pill is wide,
+ * and the less of a neighbour's track it covers the better.
+ */
+const badgeHalf = (n: string): number => (n.length > 1 ? (textWidth(n, 8.5, "bold") + 4.5) / 2 : BADGE_R);
 
-/** A handoff's number in its ring, centred on (x, y): on its arc, and at the head of its line in the list. */
-function numberBadge(x: number, y: number, n: string, colour: string, ink: Ink): string {
+/** The ring a handoff's number sits in, centred on (x, y), filled with the page's ground. */
+function numberRing(x: number, y: number, n: string, colour: string, ink: Ink): string {
   const half = badgeHalf(n);
-  const ring =
-    n.length > 1
-      ? rect(x - half, y - BADGE_R, half * 2, BADGE_R * 2, { fill: ink("bg"), stroke: colour, rx: BADGE_R, width: 1.3 })
-      : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${BADGE_R}" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>`;
-  return ring + text(x, y + 3.3, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" });
+  return n.length > 1
+    ? rect(x - half, y - BADGE_R, half * 2, BADGE_R * 2, { fill: ink("bg"), stroke: colour, rx: BADGE_R, width: 1.3 })
+    : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${BADGE_R}" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>`;
 }
+
+/** The number itself. */
+const numberText = (x: number, y: number, n: string, ink: Ink): string => text(x, y + 3.3, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" });
+
+/** A handoff's number in its ring, at the head of its line in the list. */
+const numberBadge = (x: number, y: number, n: string, colour: string, ink: Ink): string => numberRing(x, y, n, colour, ink) + numberText(x, y, n, ink);
 
 /**
  * An operation map as one SVG with its words on it, laid out for a phone.
@@ -293,13 +302,19 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   // Where each arc runs: its two ends on the cards' edge and its upright's track.
   const runs = handoffs.map((h, i) => ({ y1: slotY(h.from, h.id, "from"), y2: slotY(h.to, h.id, "to"), x: edgeX + TRACK_LEAD + tracks[i]! * track }));
   const badges: { x: number; y: number; half: number }[] = [];
+  // Three layers, so that a number is seen to belong to one line. The rings go down first. Then every line: an arc's
+  // own line stops at its ring and starts again beyond it, and every other line that passes behind the ring is drawn
+  // over it, unbroken. Then the numbers, on top. A ring wider than the gap between two tracks (any two-digit number,
+  // on a crowded map) used to hide its neighbour's line, and a line that stops at a ring reads as that ring's.
+  const plates: string[] = [];
+  const lines: string[] = [];
+  const numbers: string[] = [];
   handoffs.forEach((h, i) => {
     const style = CARRIER_STYLE[h.carrier?.kind ?? "none"];
     const colour = ink(style.colour);
     const { y1, y2, x } = runs[i]!;
     const r = Math.min(6, Math.abs(y2 - y1) / 2);
     const dir = y2 >= y1 ? 1 : -1;
-    const d = `M${fmt(edgeX)},${fmt(y1)} H${fmt(x - r)} Q${fmt(x)},${fmt(y1)} ${fmt(x)},${fmt(y1 + dir * r)} V${fmt(y2 - dir * r)} Q${fmt(x)},${fmt(y2)} ${fmt(x - r)},${fmt(y2)} H${fmt(edgeX + 5.5)}`;
     const head = `<path d="M${fmt(edgeX + 0.5)},${fmt(y2)} l6.5,-3.6 v7.2 z" style="fill:${colour}"/>`;
     const tail = `<circle cx="${fmt(edgeX)}" cy="${fmt(y1)}" r="2.2" style="fill:${colour}"/>`;
     const n = String(numberOf.get(h.id)!);
@@ -311,7 +326,8 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const hi = Math.max(y1, y2) - 9;
     const room = (at: number): number => {
       let least = Infinity;
-      for (const b of badges) if (Math.abs(b.x - x) <= b.half + half + 1) least = Math.min(least, Math.abs(b.y - at) - (2 * BADGE_R + 1.1));
+      // Two numbers on neighbouring tracks keep a clear gap between their rings, so they do not read as one cluster.
+      for (const b of badges) if (Math.abs(b.x - x) <= b.half + half + 1) least = Math.min(least, Math.abs(b.y - at) - (2 * BADGE_R + NUMBER_GAP));
       runs.forEach((o, k) => {
         if (k === i || o.x < x - half - 1) return; // an arc on an inner track never reaches this one
         for (const level of [o.y1, o.y2]) least = Math.min(least, Math.abs(level - at) - (BADGE_R + 2.5));
@@ -334,10 +350,22 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       badgeY = best.at;
     }
     badges.push({ x, y: badgeY, half });
-    body.push(
-      `<g data-handoff="${h.id}"><path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>${tail}${head}<g data-badge="">${numberBadge(x, badgeY, n, colour, ink)}</g></g>`,
-    );
+    // The arc's own line leaves a gap for its ring, where the ring sits on the straight part of the upright.
+    const top = y1 + dir * r;
+    const bottom = y2 - dir * r;
+    const before = badgeY - dir * BADGE_R;
+    const after = badgeY + dir * BADGE_R;
+    const fits = (before - top) * dir >= 0 && (bottom - after) * dir >= 0;
+    const upright = fits ? `V${fmt(before)} M${fmt(x)},${fmt(after)} V${fmt(bottom)}` : `V${fmt(bottom)}`;
+    const d = `M${fmt(edgeX)},${fmt(y1)} H${fmt(x - r)} Q${fmt(x)},${fmt(y1)} ${fmt(x)},${fmt(top)} ${upright} Q${fmt(x)},${fmt(y2)} ${fmt(x - r)},${fmt(y2)} H${fmt(edgeX + 5.5)}`;
+    const line = `<path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>${tail}${head}`;
+    const plate = `<g data-plate="${h.id}">${numberRing(x, badgeY, n, colour, ink)}</g>`;
+    // An arc too short to leave a gap (a session's handoff to itself) keeps its ring over its own line, as before.
+    if (fits) plates.push(plate);
+    lines.push(`<g data-handoff="${h.id}">${line}</g>${fits ? "" : plate}`);
+    numbers.push(`<g data-number="${h.id}">${numberText(x, badgeY, n, ink)}</g>`);
   });
+  body.push(...plates, ...lines, ...numbers);
 
   // The list: every handoff, numbered as its arc is.
   if (map.handoffs.length > 0) {

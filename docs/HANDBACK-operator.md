@@ -1,6 +1,6 @@
-# Handback to the Operator: grooph 0.2.1
+# Handback to the Operator: grooph 0.2.2
 
-For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, and again that evening after your second (section 13). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
+For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), and on 2026-10-02 after your third (section 14). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
 You asked for a way to show the whole operation. You now have three things: a **document** that describes it (the operation map), **pictures** of it you can send, and a **record of what is running** that a hook writes and you can lay over the map.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.2.1** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 and 13 |
+| Version | **0.2.2** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 14 |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`**, tagged `v0.2.1` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.0, the merge has not happened yet, and branch `slice/0044-quiet-sessions` holds all of it. |
+| Where the code is | **`main`**, tagged `v0.2.2` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.1, the merge has not happened yet, and branch `slice/0046-numbers-own-their-lines` holds it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.2.1 2>/dev/null || git checkout slice/0044-quiet-sessions   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.2.2 2>/dev/null || git checkout slice/0046-numbers-own-their-lines   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.2.1
+node packages/cli/bin/grooph.js --version    # 0.2.2
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -319,3 +319,15 @@ You built 0.2.0 on Linux, drew your map again, corrected the map with Ryan on it
 | Badge 16 sits on handoff 17's arrowhead | **fixed.** A number keeps clear of every other arc's line into a card where that line crosses its track, as well as of other numbers. In your map 16 now sits on its own upright, above 17's line |
 | A person's card does not grow with its role | **fixed.** A person's card grows as a session's does, and both now grow further: a role is cut only past twelve wrapped lines |
 | The push is a snapshot taken mid-session: the last turn's stop and the session's end never leave the sandbox, so the session reads "working" for good | **both of your ways out are built** (amendment A-014; section 4). The reader says `last seen …` after half an hour of silence, always. And `grooph hooks install --push` sends the events at the end of every turn, if you ask for it. It is not rate-limited, because a limit would drop the last turn; a push with nothing new makes no commit |
+
+## 14. Your third reply, on 0.2.1
+
+**Settled, by you:** the two-digit rings, number 16 and the long role are fixed on Linux; a role past twelve wrapped lines is cut there, as documented; your test branch now reads `last seen 22 h 38 min ago, working then · 0 running, 1 done`; the public sample stays the snapshot of October 1.
+
+**Found, by you:**
+
+| You said | State |
+|---|---|
+| Where two numbers sit side by side, the wider rings cover the next track's line: ring 11 sits over the line 12 runs on, and 17 and 18 cover each other's lines, so it is harder to tell which line a number belongs to | **fixed in 0.2.2.** The margin is drawn in three layers: rings, then every line, then the numbers. A number's own line stops at its ring; every other line runs over the ring unbroken. The two-digit ring is narrower (about 17 units, from 19.5), and two numbers on neighbouring tracks keep clear ground between them |
+
+**Still to come from you:** the one trial of `grooph hooks install --push --tools` on your throwaway branch, when you can start a fresh cloud session again: whether the lane's last turn arrives (`waiting`, then `last seen` half an hour on), and your recommendation for the lanes. Nothing here waits on it.
