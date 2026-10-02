@@ -1,6 +1,6 @@
 # Handback to the Operator: grooph 0.2.0
 
-For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. Written 2026-09-30. Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
+For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, and again that evening after your second (section 13). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
 You asked for a way to show the whole operation. You now have three things: a **document** that describes it (the operation map), **pictures** of it you can send, and a **record of what is running** that a hook writes and you can lay over the map.
 
@@ -110,7 +110,7 @@ A handoff carried by a person, or started by one, is not an issue, and it is whe
 
 **The sample**: [`fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json), "Ryan's operation, October 1, 2026": **your corrected map**, with Splashery's product details left out because this repository is public (yours, in full, stays with you and Ryan). Three lanes, eight sessions (twenty-one counting families), eighteen handoffs, three that wait on a person. Its picture: [light](../fixtures/maps/pictures/ryans-operation-2026-10-01.light.svg), [dark](../fixtures/maps/pictures/ryans-operation-2026-10-01.dark.svg). The first draft, drawn from the brief with its guesses, is kept beside it as a fixture.
 
-**The same map with Ryan drawn**: [`owner-operation-2026-10-01-with-ryan.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01-with-ryan.grooph-map.json) ([picture](../fixtures/maps/pictures/ryans-operation-2026-10-01-with-ryan.light.svg)). You asked for a way to draw a person; this is your map redrawn that way, as a sketch for you to correct. The three handoffs "carried by Ryan" become what reaches him and what he then does, and `grooph validate` names four that wait on him. How he and you talk, and what he does with a routine's notification, are read from your answers, not observed.
+**The same map with Ryan drawn**: [`owner-operation-2026-10-01-with-ryan.grooph-map.json`](../fixtures/maps/valid/owner-operation-2026-10-01-with-ryan.grooph-map.json) ([picture](../fixtures/maps/pictures/ryans-operation-2026-10-01-with-ryan.light.svg)), **as you corrected it**: twenty-three handoffs, five that wait on Ryan. The public copy leaves out the names of Splashery's own pages; yours stays with you and Ryan.
 
 **What to do with a map:**
 
@@ -230,7 +230,7 @@ They record and report. None starts or changes anything. Whether using them make
 ## 7. Known limits
 
 - **Merged only on Ryan's word.** If `main` lacks this file, eight stacked pull requests are still waiting on it; the branch named in section 1 is then the source, and there is no tag yet.
-- **No cloud session was run.** The hook was run in real sessions on Ryan's Mac, in both harnesses. That a cloud session runs a repository's hooks is from Claude Code's documentation, and holds for a session with **one** repository; a session with several starts above the clones and does not read their settings. You are the first to try it: check `.grooph/events/` after a lane's first subagent.
+- **The cloud: seen by you, not by this session.** You ran the hook in a cloud session with one repository on 2026-10-01: its events file filled, with a subagent's start and stop. A session with several repositories starts above the clones and does not read their settings, so a repository's hooks do not run for it (that is your own session).
 - **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. The same in the app's worktree mode: its copy was recorded too, with no further review. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
 - **As live as the last push.** A lane's events are invisible until it sends them (`grooph-events-push.mjs`), and a watching machine has to fetch.
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
@@ -288,3 +288,27 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 | Committing `.grooph/events/` with a lane's work puts event files into every pull request; the events need a ref of their own | **built**, as you sketched it: `grooph events push`, and the same code as a script beside the hook so a lane needs no grooph (section 4). One commit holding only that folder, on a branch of its own, read with the matching `git:` source. Tested against real repositories; not yet run in a cloud sandbox |
 | No way to draw a person: the owner is the hub and cannot be a node; no carrier for a notification to a person | **built** (amendment A-013). A map may name `people`; a handoff may start or end at one; `notification` is a carrier. A person has a band of their own at the top of the picture. What starts with a person is listed with what a person carries. Every 0.1.0 map still loads unchanged |
 | No mark for a session that wakes itself on a schedule | **built.** A session with a scheduled message to itself has a dotted ring and its schedule on its card. Your own card now reads "wakes itself · every 30-45 min" |
+
+## 13. Your second reply, on 0.2.0
+
+You built 0.2.0 on Linux, drew your map again, corrected the map with Ryan on it, and ran the hook and the events push in a cloud lane. What that settled, and what it found:
+
+**Settled, by you:**
+
+| Was open | Now |
+|---|---|
+| Does the picture clip on Linux | No. Every card's text wraps inside its card, the lane titles wrap, the handoff list stays inside the margin, in light and dark |
+| Does the hook run in a cloud session | Yes, in a session with one repository, started on a branch that carried the three files: a session start, a turn, a subagent's start and stop |
+| May a cloud sandbox push the events branch | Yes, on the first try, with no `--branch`: `grooph-events/<the lane's branch>`, one commit holding only `.grooph/events/`. Your sandbox did not limit the push to the session's own branch |
+| Does another machine read it | Yes: `grooph sessions test=git:origin/grooph-events/<branch>` showed the session and its subagent |
+| Is the public sample right, and safe to publish | Right as of 2026-10-01 about 5 a.m. UTC, and nothing in it needs to come out. It stays a snapshot of that morning; a later one is yours to send when you want it kept |
+
+**Found, by you:**
+
+| You said | State |
+|---|---|
+| The handback said "Written 2026-09-30" over an answer to your reply of October 1 | fixed: the header gives all three dates |
+| Two-digit numbers fill their circles edge to edge | open |
+| Badge 16 sits on handoff 17's arrowhead | open |
+| A person's card does not grow with its role | open |
+| The push is a snapshot taken mid-session: the last turn's stop and the session's end never leave the sandbox, so the session reads "working" for good | open |

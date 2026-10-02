@@ -45,3 +45,11 @@ Not seen then: the app's worktree mode, and a session's end from the app.
 The owner ran the same prompt once more with Worktree chosen. The app made its own copy at `~/.codex/worktrees/7a32/grooph`, at the commit that carries the hook file, and **the hook recorded the chat there too**, with both subagents ([`codex-9-desktop-worktree-reviewed-hook/`](codex-9-desktop-worktree-reviewed-hook/)). He reviewed nothing again: the review done once in the CLI, and the folder's trust, carried into the app's copy. The events are in that copy's own `.grooph/events/`, so they are read with `grooph sessions ~/.codex/worktrees/7a32/grooph`.
 
 The app reported 1 min 46 s for this run against 11 s locally. The hook's own timestamps say where it went: 43 s before the turn began, 49 s more before the first subagent started, and 6 s per subagent against 1 to 2. The hook is the same in both runs and only appends a line, so it is not the cause; what the app was doing in those gaps was not established.
+
+## Reported, not recorded here: the hook in a cloud session
+
+The one place this session cannot watch is a cloud sandbox on the owner's other account. The Operator session ran the check there on 2026-10-01 and reported it; nothing of that run is in this folder or in the ledger, because it was not this session's to record.
+
+As reported: on a throwaway branch of the other project's repository, never merged, the Operator installed the hook with grooph 0.2.0, committed the three files and ignored `.grooph/events/`. A fresh Claude Code cloud session (Sonnet 5.5) with that one repository started one `general-purpose` subagent, then ran `node .grooph/hooks/grooph-events-push.mjs` with no options. The events file held six lines: session start, turn start, the subagent's start and stop, the spawn tool, and a second turn start. The push went through at once to `grooph-events/<the lane's branch>`: one commit holding only `.grooph/events/`. `grooph sessions <name>=git:origin/grooph-events/<that branch>` read it from another machine. The session spent about $0.42, as the Operator reported it.
+
+What it showed that the tests here could not: a cloud sandbox may push a branch other than the one a session works on; and a push is a snapshot, so what the session did after it (the end of its last turn, its own end) never left the sandbox.
