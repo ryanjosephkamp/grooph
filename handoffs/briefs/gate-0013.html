@@ -1,0 +1,148 @@
+<title>grooph Gate 0013</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, 760px; status strip first, then answers, the ask, three prompts, evidence. House style of handoffs/briefs. */
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#7b8494;--line:#d9ded8;--accent:#2f6f8f;--accent-ink:#ffffff;--accent-soft:#dbe9f0;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--wait-bg:#fbf3dc;--wait-ink:#6b4e00;--note-bg:#f1f3ef;--paper:#ffffff;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px;padding-inline:16px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.9rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:600;margin-top:44px;padding-top:14px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:26px}
+p{margin:10px 0;max-width:68ch}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--note-bg);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ul,ol{padding-left:20px}li{margin:6px 0;max-width:68ch}
+a{color:var(--accent)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:18px 0 6px}
+.chip{border-radius:6px;padding:9px 12px;font-size:.88rem;line-height:1.35;min-width:0}
+.chip b{display:block;font-family:var(--head);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.chip.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.chip.wait{background:var(--wait-bg);color:var(--wait-ink)}
+.chip.plain{background:var(--note-bg);color:var(--ink2)}
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 16px 8px;margin:14px 0}
+.ask li{margin:10px 0}
+.rec{color:var(--ink2);font-size:.93rem;display:block;margin-top:2px}
+.rec b{color:var(--accent);font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;margin-right:4px}
+.prompt{position:relative;margin:12px 0}
+.prompt pre{padding-top:44px;border:1px solid var(--line)}
+.copy{position:absolute;top:8px;right:8px;font-family:var(--head);font-weight:600;font-size:.82rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:7px 14px;cursor:pointer}
+.copy:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.steps{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 16px;margin:12px 0}
+details{margin:14px 0}
+summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accent)}
+.pic{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;text-align:center}
+.pic img{max-width:100%;width:400px;height:auto}
+.cap{font-size:.84rem;color:var(--ink3);margin-top:6px}
+.small{font-size:.88rem;color:var(--ink2)}
+</style>
+<div class="wrap">
+<div class="eyebrow">Gate 0013 · 2026-10-02 · version 0.2.2</div>
+<h1>0.2.2 is merged and tagged. The Operator has the next move.</h1>
+<p class="meta">From the grooph session on your Mac (Opus 5.5). You approved pull request #23.</p>
+
+<div class="strip">
+<div class="chip ok"><b>Merged</b>#23, then #24. <code>main</code> green after each.</div>
+<div class="chip ok"><b>Tagged</b><code>v0.2.2</code>, pushed.</div>
+<div class="chip ok"><b>Live app</b>Deployed. The sample map opens on the public site with the new numbers.</div>
+<div class="chip plain"><b>Open</b>Nothing. No pull request is waiting.</div>
+</div>
+
+<h2>What was done</h2>
+<ul>
+<li><b>The merge.</b> #23 went into <code>main</code> as a merge commit with no conflicts, and the checks on <code>main</code> passed.</li>
+<li><b>The tag.</b> <code>v0.2.2</code> is on that merge.</li>
+<li><b>The live app.</b> I opened the sample map on the public site: all 18 numbers are drawn the new way, and tapping a number opens its handoff.</li>
+<li><b>Codex's folder</b> is up to date and rebuilt. It reports 0.2.2.</li>
+<li><b>The progress page</b> is up to date (#24, merged under the approval you gave for it).</li>
+</ul>
+<p>What 0.2.2 changes: on the map picture, a number now stops its own line and no other, so it is clear which line it belongs to.</p>
+
+<h2>What you need to do</h2>
+<div class="ask"><ol>
+<li><b>Carry the reply to the Operator.</b> It is safe to use now: the tag exists.
+<span class="rec"><b>I recommend</b>whenever convenient. It asks for one look at the picture, and reminds the Operator of the end-of-turn trial it already planned on its throwaway branch.</span></li>
+<li><b>Bring back what it finds.</b>
+<span class="rec">Mainly the trial: whether a lane's last turn arrives, and whether the lanes should have the end-of-turn push.</span></li>
+</ol></div>
+
+<h2>The prompt for the Operator</h2>
+<div class="prompt"><button class="copy" data-target="p-operator" type="button">Copy</button><pre id="p-operator">The grooph session has answered your third reply. grooph is now 0.2.2.
+
+1. Update your clone: git fetch --tags, then check out the tag v0.2.2. If that tag does not exist yet, check out the branch slice/0046-numbers-own-their-lines instead. Then CI=true pnpm install --frozen-lockfile and pnpm -r build. grooph --version should say 0.2.2.
+
+2. Read section 14 of docs/HANDBACK-operator.md. The one thing you found is changed: a number&#x27;s own line now stops at its ring, and every other line runs over the ring unbroken, so a number is seen to belong to one line. The two-digit ring is also narrower.
+
+3. Draw ops.grooph-map.json again and look at 11 and 12, and 17 and 18. Tell me whether it is now clear which line each number belongs to. Send me a picture only if it is not.
+
+4. When you can start a fresh cloud session again, do the one trial you planned: install with --push --tools on the throwaway branch, run one short session, read it for &quot;waiting&quot; and again half an hour later for &quot;last seen&quot;. Send me the result and your recommendation for the lanes. The working lanes stay as they are until then.
+
+Answer as before: one message I can copy, or files where I can read them. Do not change anything in the grooph repository.</pre></div>
+
+<h2>The next prompt for me</h2>
+<p>Replace <code>operator_answer</code> with the Operator's reply.</p>
+<div class="prompt"><button class="copy" data-target="p-next" type="button">Copy</button><pre id="p-next">The Operator&#x27;s answer is below. Act on it: correct what it says is still wrong or missing in grooph, and update docs/HANDBACK-operator.md from it.
+
+operator_answer
+
+Open pull requests for your changes and wait for my word before merging them. Touch only the grooph repository. Do not start the Codex compile target or study two yet. Finish with a gate page like this one.</pre></div>
+<p class="small"><b>Mode:</b> normal. <b>Effort:</b> leave it where it is.</p>
+
+<h2>Where this sits</h2>
+<div class="scroll"><table>
+<tr><th>Step</th><th>Who</th><th>State</th></tr>
+<tr><td>Versions 0.1.0 to 0.2.2</td><td>me</td><td>merged and tagged</td></tr>
+<tr><td>The hook in Codex, the app and the cloud</td><td>Codex, you, the Operator</td><td>all seen working</td></tr>
+<tr><td>One trial of the end-of-turn push in a cloud lane</td><td>Operator</td><td>waiting on its session tool</td></tr>
+<tr><td>Codex compile target; study two with Opus 5.5 and Sonnet 5.5</td><td>on your go only</td><td>waiting</td></tr>
+</table></div>
+
+<h2>Checked, and not checked</h2>
+<ul>
+<li><b>Checked:</b> <code>main</code> after #23 holds exactly the files of the branch (the two trees have the same hash).</li>
+<li><b>Checked:</b> 337 core, 90 command-line and 58 app tests, and 92 browser tests.</li>
+<li><b>Checked:</b> the live app, as above.</li>
+<li><b>Not checked:</b> the picture on a real Linux machine with 0.2.2. The Operator's look is the test.</li>
+<li><b>Not checked:</b> the end-of-turn push in a real session.</li>
+</ul>
+
+<h2>One hiccup</h2>
+<p>My first attempt to tag stopped on a harmless git error while fetching, before the tag was made. I noticed, fetched again and tagged. Nothing else was affected.</p>
+
+<h2>Open items</h2>
+<ul>
+<li>The end-of-turn push has still never been run by a real session.</li>
+<li>Your own run of <code>/grooph-design</code> on a real project is still wanted, whenever you like.</li>
+</ul>
+
+<h2>How to undo</h2>
+<p>#23 is its own merge commit on <code>main</code> and can be reverted alone. Versions 0.1.0 to 0.2.1 are still at their tags.</p>
+</div>
+<script>
+document.querySelectorAll('.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var pre = document.getElementById(btn.getAttribute('data-target'));
+    var text = pre.textContent;
+    function done() { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); }
+    function fallback() {
+      try {
+        var range = document.createRange(); range.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        if (document.execCommand('copy')) { sel.removeAllRanges(); done(); } else { btn.textContent = 'Selected: copy it'; }
+      } catch (e) { btn.textContent = 'Select and copy'; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+});
+</script>
