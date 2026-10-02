@@ -147,33 +147,51 @@ test("however many handoffs a hub has, a card is never narrower than 120 units, 
   assert.deepEqual(wrap("one two three four five six", (line) => (line === 0 ? textWidth("one two", 10) : textWidth("three four five six", 10)), 10, 2), ["one two", "three four five six"]);
 });
 
-test("a handoff's number is readable and unmistakable: two digits get a wider ring, and no number sits on another arc's way into a card", () => {
+test("a handoff's number is readable and belongs to one line: two digits get a wider ring, the arc's own line stops at it, and every other line runs over it unbroken", () => {
   for (const name of ["owner-operation-2026-10-01", "owner-operation-2026-10-01-with-ryan", "owner-operation-2026-09-30"]) {
     const map = parseMapText(read(join(fixturesDir, "maps", "valid", `${name}.grooph-map.json`))).map!;
     const svg = mapPicture(map, { theme: "light" });
-    const arcs = [...svg.matchAll(/<g data-handoff="([^"]+)"><path d="M[\d.]+,([\d.]+) H[\d.]+ Q([\d.]+),[\d.]+ [^"]*? Q[\d.]+,([\d.]+) [^"]*"[\s\S]*?<g data-badge="">(<circle cx="([\d.]+)" cy="([\d.]+)"|<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)")[\s\S]*?<text [^>]*>(\d+)<\/text>/g)].map((m) => ({
-      id: m[1]!,
-      y1: Number(m[2]),
-      x: Number(m[3]),
-      y2: Number(m[4]),
-      // a circle is given by its centre; a pill by its corner and width, 14.4 tall
-      badgeX: m[6] !== undefined ? Number(m[6]) : Number(m[8]) + Number(m[10]) / 2,
-      badgeY: m[7] !== undefined ? Number(m[7]) : Number(m[9]) + 7.2,
-      half: m[10] !== undefined ? Number(m[10]) / 2 : 7.2,
-      n: m[11]!,
-    }));
-    assert.equal(arcs.length, map.handoffs.length, `${name}: every arc and its number were read`);
-    for (const a of arcs) {
+    const lines = new Map([...svg.matchAll(/<g data-handoff="([^"]+)"><path d="(M[\d.]+,([\d.]+) H[\d.]+ Q([\d.]+),[^"]*? Q[\d.]+,([\d.]+) [^"]*)"/g)].map((m) => [m[1]!, { d: m[2]!, y1: Number(m[3]), x: Number(m[4]), y2: Number(m[5]), at: m.index! }]));
+    const plates = new Map(
+      [...svg.matchAll(/<g data-plate="([^"]+)">(?:<circle cx="([\d.]+)" cy="([\d.]+)"|<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)")/g)].map((m) => [
+        m[1]!,
+        // a circle is given by its centre; a pill by its corner and width, 14.4 tall
+        { x: m[2] !== undefined ? Number(m[2]) : Number(m[4]) + Number(m[6]) / 2, y: m[3] !== undefined ? Number(m[3]) : Number(m[5]) + 7.2, half: m[6] !== undefined ? Number(m[6]) / 2 : 7.2, at: m.index! },
+      ]),
+    );
+    const numbers = new Map([...svg.matchAll(/<g data-number="([^"]+)"><text [^>]*>(\d+)<\/text>/g)].map((m) => [m[1]!, { n: m[2]!, at: m.index! }]));
+    const drawn = map.handoffs.map((h) => h.id);
+    assert.deepEqual([...lines.keys()], drawn, `${name}: every arc was read`);
+    assert.deepEqual([...plates.keys()].sort(), [...drawn].sort(), `${name}: every ring was read`);
+    assert.deepEqual([...numbers.keys()], drawn, `${name}: every number was read`);
+    const lastLine = Math.max(...[...lines.values()].map((l) => l.at));
+    for (const id of drawn) {
+      const line = lines.get(id)!;
+      const plate = plates.get(id)!;
+      const { n, at } = numbers.get(id)!;
       // The Operator's first Linux picture had 10 to 18 touching their rings: a 14.4-unit circle around 12.5 units of digits.
-      if (a.n.length > 1) assert.ok(a.half * 2 >= textWidth(a.n, 8.5, "bold") + 6, `${name}: ${a.n} has ${a.half * 2} units for its digits`);
-      else assert.equal(a.half, 7.2);
-      assert.ok(Math.abs(a.badgeX - a.x) < 0.2, `${name}: ${a.n} is on its own arc's upright`);
-      // Another arc's level run, where it crosses this arc's track on its way to a card, is at least 9.5 units from the number.
-      for (const o of arcs) {
-        if (o.id === a.id || o.x < a.x - a.half - 1) continue;
-        for (const level of [o.y1, o.y2]) assert.ok(Math.abs(level - a.badgeY) >= 9.5, `${name}: number ${a.n} sits ${Math.abs(level - a.badgeY).toFixed(1)} units from handoff ${o.n}'s line into a card`);
+      if (n.length > 1) assert.ok(plate.half * 2 >= textWidth(n, 8.5, "bold") + 4, `${name}: ${n} has ${plate.half * 2} units for its digits`);
+      else assert.equal(plate.half, 7.2);
+      assert.ok(Math.abs(plate.x - line.x) < 0.2, `${name}: ${n} is on its own arc's upright`);
+      // The number itself is drawn after every line: nothing runs over the digits.
+      assert.ok(at > lastLine, `${name}: ${n} is drawn before a line`);
+      const gap = new RegExp(` V([\\d.]+) M${String(line.x).replace(".", "\\.")},([\\d.]+) V`).exec(line.d);
+      if (gap) {
+        // The arc's own line stops at its ring and starts again beyond it, and the ring is laid down before any line:
+        // so a line that runs behind this ring, on a neighbouring track, is drawn over it and is not broken by it.
+        assert.deepEqual([Number(gap[1]), Number(gap[2])].sort((a, b) => a - b).map((v) => Math.round(v * 10) / 10), [Math.round((plate.y - 7.2) * 10) / 10, Math.round((plate.y + 7.2) * 10) / 10], `${name}: ${n}'s line stops at its ring`);
+        for (const other of lines.values()) assert.ok(plate.at < other.at, `${name}: ${n}'s ring is drawn over a line`);
+      } else {
+        // Too short to leave a gap (a session's handoff to itself): its ring sits over its own line, as it always did.
+        assert.ok(Math.abs(line.y2 - line.y1) < 2 * 7.2 + 2 * 6 + 1, `${name}: ${n} has room for a gap and no gap`);
       }
-      for (const o of arcs) if (o.id !== a.id && Math.abs(o.badgeX - a.badgeX) <= o.half + a.half + 1) assert.ok(Math.abs(o.badgeY - a.badgeY) >= 15, `${name}: numbers ${a.n} and ${o.n} overlap`);
+      // Another arc's level run, where it crosses this arc's track on its way to a card, is at least 9.5 units from the number.
+      for (const [oid, o] of lines) {
+        if (oid === id || o.x < plate.x - plate.half - 1) continue;
+        for (const level of [o.y1, o.y2]) assert.ok(Math.abs(level - plate.y) >= 9.5, `${name}: number ${n} sits ${Math.abs(level - plate.y).toFixed(1)} units from handoff ${numbers.get(oid)!.n}'s line into a card`);
+      }
+      // Two numbers on tracks close enough to touch have clear ground between their rings.
+      for (const [oid, o] of plates) if (oid !== id && Math.abs(o.x - plate.x) <= o.half + plate.half + 1) assert.ok(Math.abs(o.y - plate.y) >= 2 * 7.2 + 5.5, `${name}: numbers ${n} and ${numbers.get(oid)!.n} are ${Math.abs(o.y - plate.y).toFixed(1)} units apart`);
     }
   }
 });

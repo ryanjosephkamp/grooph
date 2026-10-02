@@ -3267,6 +3267,8 @@ div.field-diff.ins {
 .map-picture [data-session],
 .map-picture [data-person],
 .map-picture [data-handoff],
+.map-picture [data-plate],
+.map-picture [data-number],
 .map-picture [data-handoff-row] {
   cursor: pointer;
   outline: none;
