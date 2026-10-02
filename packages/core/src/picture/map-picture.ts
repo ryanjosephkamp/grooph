@@ -28,6 +28,7 @@ const TRACK_MIN = 6.5; // and when there is not: a map with one hub has a track 
 const TRACK_LEAD = 16; // from a card's edge to the first track
 const TRACK_TAIL = 14; // from the last track to the lane's edge
 const CARD_SHARE = 0.56; // the share of a lane's inner width its cards keep while the tracks can still close up
+const ROLE_LINES = 12; // a role is meant to be one line; twelve wrapped lines is where a card stops growing for it
 const CARD_LEAST = 120; // and the width they never go below, however many tracks there are
 const SLOT = 13; // between two arc ends on one card
 
@@ -49,6 +50,20 @@ const HARNESS_LABEL: Record<string, string> = { "claude-code": "Claude Code", co
 const LIFETIME_LABEL: Record<string, string> = { "long-lived": "long-lived", "per-task": "per task", scheduled: "scheduled" };
 
 type Card = { height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
+
+const BADGE_R = 7.2;
+/** Half the width of a handoff's number badge: a circle for one digit, a pill for more, so the digits never touch the ring. */
+const badgeHalf = (n: string): number => (n.length > 1 ? (textWidth(n, 8.5, "bold") + 7) / 2 : BADGE_R);
+
+/** A handoff's number in its ring, centred on (x, y): on its arc, and at the head of its line in the list. */
+function numberBadge(x: number, y: number, n: string, colour: string, ink: Ink): string {
+  const half = badgeHalf(n);
+  const ring =
+    n.length > 1
+      ? rect(x - half, y - BADGE_R, half * 2, BADGE_R * 2, { fill: ink("bg"), stroke: colour, rx: BADGE_R, width: 1.3 })
+      : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${BADGE_R}" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>`;
+  return ring + text(x, y + 3.3, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" });
+}
 
 /**
  * An operation map as one SVG with its words on it, laid out for a phone.
@@ -131,7 +146,8 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       const name = wrap(person.name || person.id, textW, 13.5, 2, "bold");
       const fixed = CARD_PAD + name.length * 16 + CARD_PAD - 3;
       const forSlots = (ends.length + 1) * SLOT + 4;
-      const role = person.role ? wrap(person.role, textW, 11, Math.max(8, Math.floor((forSlots - fixed - 2) / 13.5))) : [];
+      // A person's card grows with what it has to say, as a session's does.
+      const role = person.role ? wrap(person.role, textW, 11, Math.max(ROLE_LINES, Math.floor((forSlots - fixed - 2) / 13.5))) : [];
       const height = Math.max(fixed + (role.length ? 2 + role.length * 13.5 : 0), forSlots);
       cards.set(person.id, { height, y: cy, slots: ends });
       const g: string[] = [rect(cardX, cy, cardW, height, { fill: ink("gate-soft"), stroke: ink("gate"), rx: 14, width: 1.4, mark: "card" })];
@@ -196,8 +212,8 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       const fixed =
         CARD_PAD + name.length * 16 + 1 + runsOn.length * 13 + 2 + metaLines.length * 13 + (metaLines.length ? 1 : 0) + (wakesLines.length ? 2 + wakesLines.length * 13 : 0) + (session.graph ? 15 : 0) + (now ? 19 : 0) + CARD_PAD - 3;
       const forSlots = (ends.length + 1) * SLOT + 4;
-      // The role has five lines, and more when the card is tall anyway because many arcs end on it.
-      const role = wrap(session.role, textW, 11, Math.max(5, Math.floor((forSlots - fixed) / 13.5)));
+      // The card grows with its role, and the role has more room still when the card is tall anyway because many arcs end on it.
+      const role = wrap(session.role, textW, 11, Math.max(ROLE_LINES, Math.floor((forSlots - fixed) / 13.5)));
       const height = Math.max(fixed + role.length * 13.5, forSlots);
       cards.set(session.id, { height, y: cy, slots: ends });
 
@@ -272,34 +288,52 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const k = card.slots.findIndex((s) => s.handoff === handoff && s.end === end);
     return card.y + card.height / 2 + (k - (card.slots.length - 1) / 2) * SLOT;
   };
-  const badges: { x: number; y: number }[] = [];
+  // Where each arc runs: its two ends on the cards' edge and its upright's track.
+  const runs = handoffs.map((h, i) => ({ y1: slotY(h.from, h.id, "from"), y2: slotY(h.to, h.id, "to"), x: edgeX + TRACK_LEAD + tracks[i]! * track }));
+  const badges: { x: number; y: number; half: number }[] = [];
   handoffs.forEach((h, i) => {
     const style = CARRIER_STYLE[h.carrier?.kind ?? "none"];
     const colour = ink(style.colour);
-    const y1 = slotY(h.from, h.id, "from");
-    const y2 = slotY(h.to, h.id, "to");
-    const x = edgeX + TRACK_LEAD + tracks[i]! * track;
+    const { y1, y2, x } = runs[i]!;
     const r = Math.min(6, Math.abs(y2 - y1) / 2);
     const dir = y2 >= y1 ? 1 : -1;
     const d = `M${fmt(edgeX)},${fmt(y1)} H${fmt(x - r)} Q${fmt(x)},${fmt(y1)} ${fmt(x)},${fmt(y1 + dir * r)} V${fmt(y2 - dir * r)} Q${fmt(x)},${fmt(y2)} ${fmt(x - r)},${fmt(y2)} H${fmt(edgeX + 5.5)}`;
     const head = `<path d="M${fmt(edgeX + 0.5)},${fmt(y2)} l6.5,-3.6 v7.2 z" style="fill:${colour}"/>`;
     const tail = `<circle cx="${fmt(edgeX)}" cy="${fmt(y1)}" r="2.2" style="fill:${colour}"/>`;
-    // The number sits on the arc's upright, at its middle unless a neighbour's number is there: then further along.
+    const n = String(numberOf.get(h.id)!);
+    const half = badgeHalf(n);
+    // The number sits on the arc's upright. Two things it must not sit on: another arc's number, and the level run of
+    // another arc where it crosses this track on its way to a card (a number there reads as that arc's, at its arrowhead).
+    // The nearest clear point to the middle is taken; when the margin is too crowded for any, the point with the most room.
     const lo = Math.min(y1, y2) + 9;
     const hi = Math.max(y1, y2) - 9;
-    const clear = (at: number): boolean => badges.every((b) => Math.abs(b.x - x) > 15.5 || Math.abs(b.y - at) > 15.5);
-    let badgeY = (y1 + y2) / 2;
-    for (let step = 1; !clear(badgeY) && step < 160; step++) {
-      const at = (y1 + y2) / 2 + (step % 2 === 1 ? 1 : -1) * Math.ceil(step / 2) * 8;
-      if (at >= lo && at <= hi && clear(at)) badgeY = at;
+    const room = (at: number): number => {
+      let least = Infinity;
+      for (const b of badges) if (Math.abs(b.x - x) <= b.half + half + 1) least = Math.min(least, Math.abs(b.y - at) - (2 * BADGE_R + 1.1));
+      runs.forEach((o, k) => {
+        if (k === i || o.x < x - half - 1) return; // an arc on an inner track never reaches this one
+        for (const level of [o.y1, o.y2]) least = Math.min(least, Math.abs(level - at) - (BADGE_R + 2.5));
+      });
+      return least;
+    };
+    const mid = (y1 + y2) / 2;
+    let badgeY = mid;
+    if (room(mid) < 0 && hi > lo) {
+      let best = { at: mid, room: room(mid) };
+      for (let step = 1; step * 4 <= hi - lo; step++) {
+        for (const at of [mid + step * 4, mid - step * 4]) {
+          if (at < lo || at > hi) continue;
+          const here = room(at);
+          if (here >= 0 && best.room < 0) best = { at, room: here };
+          else if (best.room < 0 && here > best.room) best = { at, room: here };
+        }
+        if (best.room >= 0) break;
+      }
+      badgeY = best.at;
     }
-    badges.push({ x, y: badgeY });
-    const n = String(numberOf.get(h.id)!);
-    const badge =
-      `<circle cx="${fmt(x)}" cy="${fmt(badgeY)}" r="7.2" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>` +
-      text(x, badgeY + 3.3, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" });
+    badges.push({ x, y: badgeY, half });
     body.push(
-      `<g data-handoff="${h.id}"><path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>${tail}${head}${badge}</g>`,
+      `<g data-handoff="${h.id}"><path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>${tail}${head}<g data-badge="">${numberBadge(x, badgeY, n, colour, ink)}</g></g>`,
     );
   });
 
@@ -318,8 +352,7 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       const row: string[] = [];
       const top = y;
       y += 12;
-      row.push(`<circle cx="${fmt(M + 8)}" cy="${fmt(y - 4)}" r="7.2" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>`);
-      row.push(text(M + 8, y - 0.7, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" }));
+      row.push(numberBadge(M + 8, y - 4, n, colour, ink));
       const who = h.from === h.to ? `${nameOf(h.from)} → itself` : `${nameOf(h.from)} → ${nameOf(h.to)}`;
       wrap(who, listW, 12, 2, "bold").forEach((line, k) => {
         if (k > 0) y += 14;
