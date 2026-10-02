@@ -1,0 +1,201 @@
+<title>grooph Gate 0014</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, 760px; status strip first, then answers, the ask, three prompts, evidence. House style of handoffs/briefs. */
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#7b8494;--line:#d9ded8;--accent:#2f6f8f;--accent-ink:#ffffff;--accent-soft:#dbe9f0;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--wait-bg:#fbf3dc;--wait-ink:#6b4e00;--note-bg:#f1f3ef;--paper:#ffffff;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px;padding-inline:16px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.9rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:600;margin-top:44px;padding-top:14px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:26px}
+p{margin:10px 0;max-width:68ch}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--note-bg);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ul,ol{padding-left:20px}li{margin:6px 0;max-width:68ch}
+a{color:var(--accent)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:18px 0 6px}
+.chip{border-radius:6px;padding:9px 12px;font-size:.88rem;line-height:1.35;min-width:0}
+.chip b{display:block;font-family:var(--head);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.chip.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.chip.wait{background:var(--wait-bg);color:var(--wait-ink)}
+.chip.plain{background:var(--note-bg);color:var(--ink2)}
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 16px 8px;margin:14px 0}
+.ask li{margin:10px 0}
+.rec{color:var(--ink2);font-size:.93rem;display:block;margin-top:2px}
+.rec b{color:var(--accent);font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;margin-right:4px}
+.prompt{position:relative;margin:12px 0}
+.prompt pre{padding-top:44px;border:1px solid var(--line)}
+.copy{position:absolute;top:8px;right:8px;font-family:var(--head);font-weight:600;font-size:.82rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:7px 14px;cursor:pointer}
+.copy:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.steps{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 16px;margin:12px 0}
+details{margin:14px 0}
+summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accent)}
+.pic{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;text-align:center}
+.pic img{max-width:100%;width:400px;height:auto}
+.cap{font-size:.84rem;color:var(--ink3);margin-top:6px}
+.small{font-size:.88rem;color:var(--ink2)}
+</style>
+
+<div class="wrap">
+<div class="eyebrow">Gate 0014 · 2026-10-02 · version 0.2.3 (not merged)</div>
+<h1>The Operator's push trial failed silently. That is fixed, and waits for your word.</h1>
+<p class="meta">From the grooph session on your Mac (Opus 5.5). One pull request is open: #25.</p>
+
+<div class="strip">
+<div class="chip wait"><b>Open</b>#25, version 0.2.3. Not merged. CI was still running when this page was made: the pull request shows the result.</div>
+<div class="chip ok"><b>Fixed</b>A session with no branch checked out now sends its events.</div>
+<div class="chip ok"><b>Measured</b>Ten pushes at once to one branch on GitHub: all arrived.</div>
+<div class="chip plain"><b>Not seen yet</b>The push run by a real cloud session. The Operator's next trial is that test.</div>
+</div>
+
+<h2>What the Operator found</h2>
+<p>It tried the end-of-turn push in a fresh cloud session. Nothing arrived, and nothing said why.</p>
+<ul>
+<li><b>Cause.</b> A cloud session starts with no branch checked out. The push had no name for its branch and stopped. The hook is built to stay silent, so it hid the error.</li>
+<li><b>Effect.</b> Three turns were lost without a sign. Its test runners never have a branch, so they would never have sent anything.</li>
+<li><b>Its question.</b> The hook settings are one file for every lane. Is one shared events branch safe with about ten sessions?</li>
+</ul>
+<p>The Operator was right on every point. A hook that may not speak must still leave a trace.</p>
+
+<h2>What I changed</h2>
+<ul>
+<li><b>No branch, no loss.</b> With no branch checked out, the events go to <code>grooph-events-detached</code>, a branch all such sessions share.</li>
+<li><b>Every push leaves a record</b> in the sandbox. <code>grooph hooks status</code> reads it: arrived, or failed and why, how many in a row, and when one last arrived.</li>
+<li><b>A refused push goes again</b> until its 45 seconds are nearly up. Before, it gave up after three tries.</li>
+<li><b>A session on two branches is read as one.</b> Before, it was counted twice.</li>
+<li><b>The commit names no person.</b> An events commit is now made as <code>grooph</code>, not with the session's git name and e-mail.</li>
+<li><b>Sturdier in a sandbox.</b> A remote that hangs is cut off cleanly without a terminal. The repository's own pre-push hook is not run. A link among the events is never followed.</li>
+</ul>
+
+<h2>The measurement</h2>
+<p>Ten pushes started at the same instant, each from its own repository, to one branch.</p>
+<div class="scroll"><table>
+<tr><th>Remote</th><th>Arrived</th><th>The last one</th></tr>
+<tr><td>GitHub (the grooph repository, a throwaway branch, deleted afterwards)</td><td>10 of 10</td><td>after 25 s</td></tr>
+<tr><td>A test remote on the Mac, 2 s a round</td><td>10 of 10</td><td>after 26 s</td></tr>
+<tr><td>A fast test remote on the Mac, 26 at once</td><td>26 of 26</td><td>after 12 s</td></tr>
+<tr><td>The same, 12 sessions, 5 s a round: more than fits</td><td>8 of 12</td><td>the other 4 recorded why</td></tr>
+</table></div>
+<p>One push gets through each round. A round on GitHub took about 2.5 seconds. So about sixteen turns ending in the very same moment is the ceiling. That figure is worked out, not tried.</p>
+
+<h2>One thing you should know</h2>
+<p>My first run against GitHub was refused: <code>push declined due to email privacy restrictions</code>. The test repositories used your Mac's global git e-mail, which you keep private on GitHub.</p>
+<ul>
+<li><b>Nothing reached GitHub.</b> GitHub blocked all ten pushes. I checked: no branch was created.</li>
+<li><b>The new record is how I saw it.</b> Each of the ten said why it failed.</li>
+<li><b>It is why events commits are now made as <code>grooph</code>.</b> Every later run, with that change, arrived whole. The table shows the last one, on the final code.</li>
+<li><b>I deleted the throwaway branch</b> from the grooph repository after each run. It held only made-up session files.</li>
+</ul>
+
+<h2>What you need to do</h2>
+<div class="ask"><ol>
+<li><b>Say whether #25 may merge.</b>
+<span class="rec"><b>I recommend</b>yes. The Operator cannot try again without it. If you agree, use the first prompt below.</span></li>
+<li><b>Carry the reply to the Operator.</b> It works before the merge too: the prompt names the branch as a fallback.
+<span class="rec"><b>I recommend</b>sending it after the merge and tag, so the Operator builds from <code>v0.2.3</code>.</span></li>
+<li><b>Hold the decision on the working lanes.</b>
+<span class="rec"><b>I recommend</b>not yet. Wait for the Operator's second trial, then decide with it.</span></li>
+</ol></div>
+
+<h2>The next prompt for me: merge</h2>
+<div class="prompt"><button class="copy" data-target="p-merge" type="button">Copy</button><pre id="p-merge">Approved. Merge pull request #25 on ryanjosephkamp/grooph into main with a merge commit and wait for CI on main; if a test fails, stop and tell me.
+
+When main is green: tag it v0.2.3 and push the tag, check that the GitHub Pages deploy succeeded, bring Codex&#x27;s folder up to date, and open and merge one small pull request that brings docs/PROGRESS.md up to date.
+
+Touch only the grooph repository. Open pull requests for any further changes and wait for my word before merging them. Do not start the Codex compile target or study two yet. Finish with a gate page like this one.</pre></div>
+
+<h2>The prompt for the Operator</h2>
+<div class="prompt"><button class="copy" data-target="p-operator" type="button">Copy</button><pre id="p-operator">The grooph session has answered your fourth reply. grooph is now 0.2.3.
+
+1. Update your clone: git fetch --tags, then check out the tag v0.2.3. If that tag does not exist yet, check out the branch slice/0048-push-when-detached instead. Then CI=true pnpm install --frozen-lockfile and pnpm -r build. grooph --version should say 0.2.3.
+
+2. Read section 15 of docs/HANDBACK-operator.md, and the three new parts of section 4: &quot;Which branch&quot;, &quot;Is one shared branch safe&quot;, &quot;When a push fails&quot;. In short:
+- With no branch checked out, the events now go to grooph-events-detached, a branch every such session shares. Nothing is dropped.
+- Every push leaves a record in the sandbox: .grooph/events/.last-push.json. grooph hooks status reads it. A push that fails says why there.
+- One shared events branch is safe. A refused push looks again and goes on top, for as long as the hook&#x27;s 45 seconds allow. Ten pushes at the same instant to one branch on GitHub all arrived, the last after 25 seconds.
+- You do not need --push-branch. One shared .claude/settings.json works for every lane: each turn&#x27;s end works the branch name out from what that session has checked out.
+- An events commit is now made as &quot;grooph&quot;, not with the session&#x27;s git identity.
+
+3. On the throwaway branch, install again with this version and commit, because the push script changed: grooph hooks install --push --tools, then commit .claude/settings.json and .grooph/hooks/.
+
+4. Run the trial you proposed: two short sessions at once, one that stays with no branch checked out and one that checks out a branch after it starts. For each:
+- Within a minute of a turn&#x27;s end, read it from your side: git fetch origin, then grooph sessions runners=git:origin/grooph-events-detached lane=git:origin/grooph-events/&lt;the branch&gt;. Does it read &quot;waiting&quot;?
+- In the session&#x27;s sandbox: a minute after the turn ends, cat .grooph/events/.last-push.json. Send me what it says. &quot;ok&quot;:true with a branch means it arrived. If it has &quot;started&quot; in it, the sandbox stopped the hook before it finished, and that is the finding.
+- Half an hour later, read again for &quot;last seen&quot;.
+- For the session that checked out a branch: read both of its branches together and check that it shows once, under the lane&#x27;s name.
+
+5. Send me the result and your recommendation for the lanes. The working lanes stay as they are until then.
+
+Answer as before: one message I can copy, or files where I can read them. Do not change anything in the grooph repository.</pre></div>
+
+<h2>The next prompt for me: the Operator's answer</h2>
+<p>Replace <code>operator_answer</code> with the Operator's reply, or attach it as a file.</p>
+<div class="prompt"><button class="copy" data-target="p-next" type="button">Copy</button><pre id="p-next">The Operator&#x27;s answer is below. Act on it: correct what it says is still wrong or missing in grooph, and update docs/HANDBACK-operator.md from it.
+
+operator_answer
+
+Open pull requests for your changes and wait for my word before merging them. Touch only the grooph repository. Do not start the Codex compile target or study two yet. Finish with a gate page like this one.</pre></div>
+<p class="small"><b>Mode:</b> normal. <b>Effort:</b> leave it where it is.</p>
+
+<h2>Where this sits</h2>
+<div class="scroll"><table>
+<tr><th>Step</th><th>Who</th><th>State</th></tr>
+<tr><td>Versions 0.1.0 to 0.2.2</td><td>me</td><td>merged and tagged</td></tr>
+<tr><td>Version 0.2.3: the push fix</td><td>me, then you</td><td>#25 open, waiting for your word</td></tr>
+<tr><td>Second trial of the end-of-turn push: two sessions at once</td><td>Operator</td><td>after 0.2.3</td></tr>
+<tr><td>Hooks on the other project's default branch</td><td>Operator, if you agree</td><td>after that trial</td></tr>
+<tr><td>Codex compile target; study two</td><td>on your go only</td><td>waiting</td></tr>
+</table></div>
+
+<h2>Checked, and not checked</h2>
+<ul>
+<li><b>Checked:</b> the Operator's exact case, in a test: a clone with no branch checked out, the committed hooks, a turn's end. The events arrive.</li>
+<li><b>Checked:</b> a failed push prints nothing, exits 0, and is on record with its reason.</li>
+<li><b>Checked:</b> ten sessions on one branch, in a test and against GitHub.</li>
+<li><b>Checked:</b> 337 core, 96 command-line and 58 app tests, 92 browser tests, and the install check. 13 of the command-line tests are the push, against real repositories.</li>
+<li><b>Checked by two independent readers</b> (fresh subagents) before anything was pushed. The first reproduced 19 points and the second 9 more. None of them would have damaged anything; the worst sent the same refused push over and over for 45 seconds on every turn. All are fixed except three small ones, which are listed in the handback.</li>
+<li><b>Not checked:</b> the push run by a harness in a cloud session. I ran the script as a harness would, from a shell.</li>
+<li><b>Not checked:</b> whether a cloud sandbox lets a background hook finish after a turn ends. If it does not, the new record will say so.</li>
+<li><b>Not checked:</b> sixteen sessions at one instant on GitHub.</li>
+<li><b>Left alone:</b> port 4173 was held by a server from a Codex session in your Splashery folder. I did not touch it and ran grooph's browser tests on another port.</li>
+</ul>
+
+<h2>Open items</h2>
+<ul>
+<li>A failed push is recorded in the sandbox where it ran. From another machine it still looks like nothing arriving.</li>
+<li>Your own run of <code>/grooph-design</code> on a real project is still wanted, whenever you like.</li>
+</ul>
+
+<h2>How to undo</h2>
+<p>Nothing is merged. Closing #25 leaves <code>main</code> at 0.2.2. After a merge, #25 is one merge commit and can be reverted alone.</p>
+</div>
+
+<script>
+document.querySelectorAll('.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var pre = document.getElementById(btn.getAttribute('data-target'));
+    var text = pre.textContent;
+    function done() { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); }
+    function fallback() {
+      try {
+        var range = document.createRange(); range.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        if (document.execCommand('copy')) { sel.removeAllRanges(); done(); } else { btn.textContent = 'Selected: copy it'; }
+      } catch (e) { btn.textContent = 'Select and copy'; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+});
+</script>
