@@ -21,6 +21,10 @@ Five headless Claude Code sessions (`claude -p`, version 2.1.280) and five Codex
 
 **Claude Code total: $0.8485.** That number is not an estimate made here. It is the sum of `total_cost_usd`, which Claude Code prints at the end of each headless session and which is in each `result.json`. It is the list price of the tokens used; on a subscription it is usage, not a charge. Codex signs in with ChatGPT and prints tokens, not dollars; the tokens are in the ledger. A first Codex attempt hung waiting on standard input and was killed before any model call, so it has no row.
 
+## 2026-10-02: ten pushes to one branch at once
+
+No model session. A script runs the turn-end push in ten repositories at the same instant, against a remote on the Mac and against GitHub, to answer whether sessions may share one events branch. All ten arrived each time; the record and what else it found are in [`2026-10-02/`](2026-10-02/).
+
 ## What is in each folder
 
 | File | From | Holds |

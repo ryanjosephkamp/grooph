@@ -1,0 +1,35 @@
+{
+  "at": "2026-10-02T23:05:36.625Z",
+  "remote": "a made-up remote on this machine, 5000 ms for a fetch and a push",
+  "branch": "grooph-events/trial-shared",
+  "sessions": 12,
+  "arrived": 8,
+  "filesOnBranch": 8,
+  "commitsOnBranch": 8,
+  "silentAndExitZero": true,
+  "seconds": {
+    "first": 5.946,
+    "median": 39.201,
+    "last": 45.159
+  },
+  "triesPerSession": [
+    8,
+    null,
+    1,
+    3,
+    2,
+    null,
+    null,
+    7,
+    6,
+    5,
+    null,
+    4
+  ],
+  "failed": [
+    "no time left after 8 tries: other sessions kept sending to grooph-events/trial-shared first",
+    "no time left after 8 tries: other sessions kept sending to grooph-events/trial-shared first",
+    "no time left after 8 tries: other sessions kept sending to grooph-events/trial-shared first",
+    "no time left after 8 tries: other sessions kept sending to grooph-events/trial-shared first"
+  ]
+}
