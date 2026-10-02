@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { durationText, isQuiet, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
-import { EVENTS_DIR, eventFiles, parseSource, readLive, sourceExists, type EventSource } from "../events-io.js";
+import { EVENTS_DIR, eventFiles, lastPush, parseSource, readLive, sourceExists, type EventSource, type PushRecord } from "../events-io.js";
 import { writeText } from "../io.js";
 import { plural, type Output } from "../print.js";
 
@@ -18,14 +18,18 @@ under <project>/.grooph/events/. grooph watch and grooph sessions read those fil
             harness's hook settings: .claude/settings.json for Claude Code,
             .codex/hooks.json for Codex. Safe to run again: it replaces its own entries
             and leaves every other setting as it was.
-  status    say what is installed, and how many session files there are
+  status    say what is installed, how many session files there are, and how the last
+            push of them went (a push made by the hook says nothing aloud: this is where
+            one that failed is seen)
   remove    take the entries and the hook file out again; the events stay
 
   --dir <project>   the project (default: the current folder)
   --harness <list>  claude-code (the default), codex, or both separated by a comma
   --push            also send the events to their own branch at the end of every turn, in the
                     background (grooph events push). Off unless asked for: it uses the session's
-                    right to push. --push-branch <name> names the branch instead of the default
+                    right to push. The branch is grooph-events/<the branch checked out>, or
+                    grooph-events-detached while none is. --push-branch <name> names one branch
+                    for every session that reads these settings; many sessions may share it.
   --tools           also record every finished tool call (its name only), so a subagent
                     shows its last tool. Without it, Claude Code's spawn tool is the only one recorded.
   --local           Claude Code only: write .claude/settings.local.json (this machine)
@@ -47,7 +51,8 @@ running or done, for how long, and its last tool. With no source, ./.grooph/even
              git:<ref> reads .grooph/events/ from a git ref without checking it out:
              a lane that sends its events with grooph events push is read, after a
              fetch, as git:origin/grooph-events/<its branch>. Several sources merge
-             into one list, in time order.
+             into one list, in time order. A session two sources both hold is shown
+             once, under the source that holds the most of it.
              name=<source> shows that source's sessions under a name: a lane, a machine.
   --json     the same as data: the live view grooph watch serves (docs/subagents.md)
 
@@ -66,7 +71,8 @@ export const EVENTS_HELP = `grooph events push [--branch <name>] [--remote <name
 Send this project's session events to a branch of their own, so another machine can
 read them and no pull request ever carries them.
 
-  --branch <name>   the branch to write. Default: grooph-events/<the branch checked out>.
+  --branch <name>   the branch to write. Default: grooph-events/<the branch checked out>,
+                    and grooph-events-detached when no branch is checked out.
                     Give the whole name when a harness only lets a session push under a
                     prefix, for example --branch claude/grooph-events-lane-a
   --remote <name>   default: origin
@@ -76,11 +82,14 @@ read them and no pull request ever carries them.
 It makes one commit whose tree is .grooph/events/ and nothing else, on top of what that
 branch already holds, and pushes it. It never touches the working tree, the index, HEAD
 or the branch checked out. Event files already on the branch that this clone does not
-have are kept, and a file both have is never made shorter, so sessions may share one.
+have are kept, and a file both have is never made shorter, so many sessions may share
+one. When another session sends first, this one looks again and goes on top of it.
 
 It writes only to a branch that holds events and nothing else: a branch with any other
-file on it, and the branch checked out here, are refused. With no branch checked out
-(a detached worktree) it needs --branch.
+file on it, and the branch checked out here, are refused.
+
+How the last push went is kept in .grooph/events/.last-push.json (never sent), and
+grooph hooks status says it.
 
 A session with no grooph installed runs the same code as a script that
 grooph hooks install puts beside the hook:
@@ -188,7 +197,7 @@ function withOurs(settings: Settings, harness: Harness, tools: boolean, push?: {
 const countOurs = (settings: Settings): number => Object.values(settings.hooks ?? {}).reduce((n, list) => n + (Array.isArray(list) ? list.filter(isOurs).length : 0), 0);
 const hasPush = (settings: Settings): boolean => Object.values(settings.hooks ?? {}).some((list) => Array.isArray(list) && list.some(isPush));
 
-export type HooksFlags = { dir?: string; harness?: string; tools?: boolean; local?: boolean; push?: boolean; pushBranch?: string };
+export type HooksFlags = { dir?: string; harness?: string; tools?: boolean; local?: boolean; push?: boolean; pushBranch?: string; now?: () => Date };
 
 function harnesses(io: Output, flag: string | undefined): Harness[] | undefined {
   const asked = (flag ?? "claude-code").split(",").map((s) => s.trim()).filter((s) => s !== "");
@@ -198,6 +207,42 @@ function harnesses(io: Output, flag: string | undefined): Harness[] | undefined 
     return undefined;
   }
   return [...new Set(asked)] as Harness[];
+}
+
+const clock = (iso: string): string => `${iso.slice(0, 16).replace("T", " ")} UTC`;
+const ago = (iso: string, now: string): string => (secondsBetween(iso, now) < 5 ? "just now" : `${durationText(secondsBetween(iso, now))} ago`);
+
+/** A hook has sixty seconds: a push that began longer ago than that and has not said how it ended was stopped. */
+const PUSH_LIMIT_SECONDS = 60;
+
+/** Whether the record says the events here have not been seen elsewhere: the last push failed, or one began and never ended. */
+export const pushTrouble = (r: PushRecord, now: string): boolean => r.last?.ok === false || (r.started !== undefined && secondsBetween(r.started, now) > PUSH_LIMIT_SECONDS);
+
+/** How the last push went, in words. */
+export function pushLines(r: PushRecord, now: string): string[] {
+  const lines: string[] = [];
+  const arrived = r.arrived ? `The last that arrived: ${clock(r.arrived.at)}, to ${r.arrived.branch}.` : "None has arrived from here.";
+  const kept = `The events are still in ${EVENTS_DIR}/ and go with the next push that works.`;
+  if (r.started !== undefined) {
+    const cut = secondsBetween(r.started, now) > PUSH_LIMIT_SECONDS;
+    lines.push(
+      cut
+        ? `a push began ${ago(r.started, now)} (${clock(r.started)}), at a turn's end, and NEVER FINISHED: it was stopped before it could say why (the sandbox was put to sleep, or the process was killed)`
+        : `a push began ${ago(r.started, now)} (${clock(r.started)}), at a turn's end, and is under way`,
+    );
+    if (cut && r.last?.ok !== false) lines.push(`  ${arrived} ${kept}`);
+  }
+  const last = r.last;
+  if (!last) return lines;
+  const who = last.by === "hook" ? "at a turn's end" : "by hand";
+  const before = r.started !== undefined ? "the one before: " : "last push: ";
+  // What the push said of itself, up to its first full stop: where it sent how much, or that there was nothing new.
+  if (last.ok) lines.push(`${before}${ago(last.at, now)} (${clock(last.at)}), ${who}: ${last.message.split(/\. (?=[A-Z])/)[0]!.replace(/\.$/, "") || "it went through"}${last.tries ? ` (on try ${last.tries}${last.crowded ? ": other sessions were sending to the same branch" : ""})` : ""}`);
+  else {
+    const run = (last.failures ?? 1) > 1 ? `${last.failures} in a row since ${clock(last.failedSince ?? last.at)}. ` : "";
+    lines.push(`${r.started !== undefined ? "the one before" : "last push"} FAILED ${ago(last.at, now)} (${clock(last.at)}), ${who}${last.branch ? `, to ${last.branch}` : ""}: ${last.message || "no reason was recorded"}`, `  ${run}${arrived} ${kept}`);
+  }
+  return lines;
 }
 
 /** `grooph hooks install | status | remove`. */
@@ -231,7 +276,7 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         io.err(`grooph: "${flags.pushBranch}" is not a branch name git accepts. Nothing was changed.`);
         return 1;
       }
-      if (gitSays(["rev-parse", "--abbrev-ref", "HEAD"]) === flags.pushBranch) {
+      if (gitSays(["symbolic-ref", "--quiet", "HEAD"]) === `refs/heads/${flags.pushBranch}`) {
         io.err(`grooph: "${flags.pushBranch}" is the branch checked out here: the events go to a branch of their own, never to a branch of work. Nothing was changed.`);
         return 1;
       }
@@ -272,9 +317,10 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     io.out(`The events are a record of this machine's sessions: add ${EVENTS_DIR}/ to .gitignore. To let another machine read them,`);
     io.out(`send them to a branch of their own: grooph events push (or, with no grooph there, node ${PUSH_REL}).`);
     if (flags.push === true || flags.pushBranch !== undefined) {
-      io.out(`With --push, that is done at the end of every turn, in the background, to ${flags.pushBranch ?? "grooph-events/<the branch checked out>"}: a session`);
+      io.out(`With --push, that is done at the end of every turn, in the background, to ${flags.pushBranch ?? "grooph-events/<the branch checked out> (grooph-events-detached while none is)"}: a session`);
       io.out("cannot send what it writes as it stops, so this is how its last turn is seen elsewhere. It prints nothing, never asks for a");
       io.out("password and never fails a turn. A run that exits the moment its turn ends (claude -p) may be gone before it finishes.");
+      io.out("A push that fails says nothing aloud: grooph hooks status says how the last one went.");
     } else {
       io.out("A session cannot send what it writes as it stops. To send at the end of every turn instead, install with --push.");
     }
@@ -321,6 +367,7 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
 
   if (sub === "status") {
     io.out(`${existsSync(hookFile) ? "installed" : "not installed"}: ${shownPath(hookFile)}`);
+    let anyPush = false;
     for (const harness of ["claude-code", "codex"] as Harness[]) {
       for (const local of harness === "claude-code" ? [false, true] : [false]) {
         const path = settingsPath(dir, harness, local);
@@ -337,11 +384,15 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         } catch {
           // counted above
         }
+        anyPush ||= pushing;
         if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${pushing ? ", one of which sends the events at the end of each turn" : ""}` : `no entries in ${shownPath(path)}`}`);
       }
     }
     const files = eventFiles(dir);
     io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
+    const pushed = lastPush(dir);
+    if (pushed) for (const line of pushLines(pushed, (flags.now ?? (() => new Date()))().toISOString())) io.out(line);
+    else if (anyPush) io.out("no push recorded yet: the first turn to end after this version was installed leaves one");
     return 0;
   }
 
@@ -401,14 +452,25 @@ export function sessionsCommand(io: Output, args: string[], flags: { json?: bool
     io.out(JSON.stringify(view, null, 2));
     return 0;
   }
+  // A project read where it is: if its last push failed, what is listed here has not been seen anywhere else.
+  const unsent = (): void => {
+    for (const source of sources) {
+      const pushed = source.path !== undefined ? lastPush(source.path) : undefined;
+      if (!pushed || !pushTrouble(pushed, view.at)) continue;
+      io.out("");
+      for (const line of pushLines(pushed, view.at)) io.out(`${source.name ? `[${source.name}] ` : ""}${line}`);
+    }
+  };
   if (view.sessions.length === 0) {
     io.out(`no sessions recorded in ${sources.map((s) => s.path ?? `git:${s.ref}`).join(", ")}. The event hook writes them: grooph hooks install`);
+    unsent();
     return 0;
   }
   view.sessions.forEach((s, i) => {
     if (i > 0) io.out("");
     for (const line of sessionLines(s, view.at)) io.out(line);
   });
+  unsent();
   if (view.issues) io.err(`${plural(view.issues.length, "line")} could not be read (the first: ${view.issues[0]!.source} line ${view.issues[0]!.line}, ${view.issues[0]!.message})`);
   return 0;
 }
