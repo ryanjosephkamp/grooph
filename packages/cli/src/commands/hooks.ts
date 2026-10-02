@@ -1,8 +1,9 @@
+import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { durationText, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
+import { durationText, isQuiet, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
 import { EVENTS_DIR, eventFiles, parseSource, readLive, sourceExists, type EventSource } from "../events-io.js";
 import { writeText } from "../io.js";
@@ -22,6 +23,9 @@ under <project>/.grooph/events/. grooph watch and grooph sessions read those fil
 
   --dir <project>   the project (default: the current folder)
   --harness <list>  claude-code (the default), codex, or both separated by a comma
+  --push            also send the events to their own branch at the end of every turn, in the
+                    background (grooph events push). Off unless asked for: it uses the session's
+                    right to push. --push-branch <name> names the branch instead of the default
   --tools           also record every finished tool call (its name only), so a subagent
                     shows its last tool. Without it, Claude Code's spawn tool is the only one recorded.
   --local           Claude Code only: write .claude/settings.local.json (this machine)
@@ -104,6 +108,13 @@ type Harness = "claude-code" | "codex";
 type Entry = { matcher?: string; hooks: { type: "command"; command: string; async?: boolean; timeout: number }[] };
 type Settings = { hooks?: Record<string, unknown[]> } & Record<string, unknown>;
 
+/** The push script as a hook: the same locations, the `--hook` flag, and the branch when one was named. */
+const pushCommand = (harness: Harness, branch: string | undefined): string => {
+  const rel = PUSH_REL.split("\\").join("/");
+  const at = harness === "claude-code" ? `"$CLAUDE_PROJECT_DIR/${rel}"` : `"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/${rel}"`;
+  return `node ${at} --hook${branch ? ` --branch ${branch}` : ""}`;
+};
+
 const COMMAND: Record<Harness, string> = {
   // Claude Code gives a hook the project's root.
   "claude-code": `node "$CLAUDE_PROJECT_DIR/${HOOK_REL.split("\\").join("/")}" claude-code`,
@@ -118,8 +129,12 @@ const COMMAND: Record<Harness, string> = {
  * for, with a few seconds' limit: a background hook started as a headless
  * session exits can be lost (observed in Claude Code 2.1.280: with `Stop` in
  * the background the last turn's end and the session's end were not recorded).
+ *
+ * With `push` (asked for with --push; off otherwise), a second hook at the end of each turn sends the events to
+ * their own branch, in the background: a session cannot send what it writes as it stops, so without this a lane's
+ * last turn never leaves its sandbox. It is a separate script from the event hook, which stays one appended line.
  */
-export function hookEntries(harness: Harness, tools: boolean): Record<string, Entry[]> {
+export function hookEntries(harness: Harness, tools: boolean, push?: { branch?: string }): Record<string, Entry[]> {
   const run = (async: boolean, timeout: number): Entry["hooks"] => [{ type: "command", command: COMMAND[harness], ...(async ? { async: true } : {}), timeout }];
   const entries: Record<string, Entry[]> = {
     SessionStart: [{ hooks: run(true, 10) }],
@@ -129,6 +144,7 @@ export function hookEntries(harness: Harness, tools: boolean): Record<string, En
     SubagentStart: [{ hooks: run(true, 10) }],
     SubagentStop: [{ hooks: run(true, 10) }],
   };
+  if (push) entries["Stop"]!.push({ hooks: [{ type: "command", command: pushCommand(harness, push.branch), async: true, timeout: 60 }] });
   // The spawn tool's result is the one place Claude Code says which agent started which.
   if (tools) entries["PostToolUse"] = [{ hooks: run(true, 10) }];
   else if (harness === "claude-code") entries["PostToolUse"] = [{ matcher: "Agent", hooks: run(true, 10) }];
@@ -146,7 +162,9 @@ function readSettings(path: string): Settings {
 }
 
 const isOurs = (entry: unknown): boolean =>
-  typeof entry === "object" && entry !== null && Array.isArray((entry as Entry).hooks) && (entry as Entry).hooks.some((h) => typeof h?.command === "string" && h.command.includes(MARK));
+  typeof entry === "object" && entry !== null && Array.isArray((entry as Entry).hooks) && (entry as Entry).hooks.some((h) => typeof h?.command === "string" && (h.command.includes(MARK) || h.command.includes(PUSH)));
+const isPush = (entry: unknown): boolean =>
+  typeof entry === "object" && entry !== null && Array.isArray((entry as Entry).hooks) && (entry as Entry).hooks.some((h) => typeof h?.command === "string" && h.command.includes(PUSH));
 
 /** A settings object without grooph's entries; a hook entry that only held ours goes, and an emptied event goes with it. */
 function withoutOurs(settings: Settings): Settings {
@@ -160,16 +178,17 @@ function withoutOurs(settings: Settings): Settings {
   return Object.keys(hooks).length > 0 ? { ...rest, hooks } : rest;
 }
 
-function withOurs(settings: Settings, harness: Harness, tools: boolean): Settings {
+function withOurs(settings: Settings, harness: Harness, tools: boolean, push?: { branch?: string }): Settings {
   const clean = withoutOurs(settings);
   const hooks: Record<string, unknown[]> = { ...(clean.hooks ?? {}) };
-  for (const [event, entries] of Object.entries(hookEntries(harness, tools))) hooks[event] = [...(hooks[event] ?? []), ...entries];
+  for (const [event, entries] of Object.entries(hookEntries(harness, tools, push))) hooks[event] = [...(hooks[event] ?? []), ...entries];
   return { ...clean, hooks };
 }
 
 const countOurs = (settings: Settings): number => Object.values(settings.hooks ?? {}).reduce((n, list) => n + (Array.isArray(list) ? list.filter(isOurs).length : 0), 0);
+const hasPush = (settings: Settings): boolean => Object.values(settings.hooks ?? {}).some((list) => Array.isArray(list) && list.some(isPush));
 
-export type HooksFlags = { dir?: string; harness?: string; tools?: boolean; local?: boolean };
+export type HooksFlags = { dir?: string; harness?: string; tools?: boolean; local?: boolean; push?: boolean; pushBranch?: string };
 
 function harnesses(io: Output, flag: string | undefined): Harness[] | undefined {
   const asked = (flag ?? "claude-code").split(",").map((s) => s.trim()).filter((s) => s !== "");
@@ -194,6 +213,29 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
       io.err(`grooph: ${dir} does not exist`);
       return 1;
     }
+    // The branch goes into a command a shell will run: only what a branch name needs.
+    if (flags.pushBranch !== undefined) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(flags.pushBranch)) {
+        io.err(`grooph: --push-branch takes a plain branch name (letters, digits, ".", "_", "-", "/"); got "${flags.pushBranch}". Nothing was changed.`);
+        return 1;
+      }
+      // And a name the push would refuse on every turn, silently, is refused here, aloud.
+      const gitSays = (args: string[]): string | undefined => {
+        try {
+          return execFileSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+        } catch {
+          return undefined;
+        }
+      };
+      if (gitSays(["check-ref-format", "--branch", flags.pushBranch]) === undefined && gitSays(["rev-parse", "--git-dir"]) !== undefined) {
+        io.err(`grooph: "${flags.pushBranch}" is not a branch name git accepts. Nothing was changed.`);
+        return 1;
+      }
+      if (gitSays(["rev-parse", "--abbrev-ref", "HEAD"]) === flags.pushBranch) {
+        io.err(`grooph: "${flags.pushBranch}" is the branch checked out here: the events go to a branch of their own, never to a branch of work. Nothing was changed.`);
+        return 1;
+      }
+    }
     const plans: { path: string; text: string }[] = [];
     for (const harness of list) {
       const path = settingsPath(dir, harness, flags.local === true);
@@ -204,7 +246,8 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         io.err(`grooph: cannot read ${shownPath(path)}: ${(err as Error).message}. Nothing was changed.`);
         return 1;
       }
-      plans.push({ path, text: `${JSON.stringify(withOurs(settings, harness, flags.tools === true), null, 2)}\n` });
+      const push = flags.push === true || flags.pushBranch !== undefined ? { ...(flags.pushBranch !== undefined ? { branch: flags.pushBranch } : {}) } : undefined;
+      plans.push({ path, text: `${JSON.stringify(withOurs(settings, harness, flags.tools === true, push), null, 2)}\n` });
     }
     mkdirSync(dirname(hookFile), { recursive: true });
     copyFileSync(hookSource(), hookFile);
@@ -228,6 +271,13 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     io.out(`Watch: grooph watch --sessions   ·   List: grooph sessions   ·   Undo: grooph hooks remove${flags.harness ? ` --harness ${flags.harness}` : ""}`);
     io.out(`The events are a record of this machine's sessions: add ${EVENTS_DIR}/ to .gitignore. To let another machine read them,`);
     io.out(`send them to a branch of their own: grooph events push (or, with no grooph there, node ${PUSH_REL}).`);
+    if (flags.push === true || flags.pushBranch !== undefined) {
+      io.out(`With --push, that is done at the end of every turn, in the background, to ${flags.pushBranch ?? "grooph-events/<the branch checked out>"}: a session`);
+      io.out("cannot send what it writes as it stops, so this is how its last turn is seen elsewhere. It prints nothing, never asks for a");
+      io.out("password and never fails a turn. A run that exits the moment its turn ends (claude -p) may be gone before it finishes.");
+    } else {
+      io.out("A session cannot send what it writes as it stops. To send at the end of every turn instead, install with --push.");
+    }
     return 0;
   }
 
@@ -281,7 +331,13 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
           io.out(`${harness}: ${shownPath(path)} could not be read`);
           continue;
         }
-        if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}` : `no entries in ${shownPath(path)}`}`);
+        let pushing = false;
+        try {
+          pushing = n > 0 && hasPush(readSettings(path));
+        } catch {
+          // counted above
+        }
+        if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${pushing ? ", one of which sends the events at the end of each turn" : ""}` : `no entries in ${shownPath(path)}`}`);
       }
     }
     const files = eventFiles(dir);
@@ -297,9 +353,15 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
 
 const short = (id: string): string => (id.length > 10 ? id.slice(-8) : id);
 
-function agentLine(a: LiveAgent, now: string): string {
-  const mark = a.state === "running" ? "●" : "✓";
-  const time = a.state === "running" ? `running ${durationText(secondsBetween(a.started, now))}` : `done in ${durationText(secondsBetween(a.started, a.ended ?? a.lastAt))}`;
+function agentLine(a: LiveAgent, now: string, quiet: boolean): string {
+  const mark = a.state === "running" ? (quiet ? "?" : "●") : "✓";
+  // In a session gone quiet, a subagent with no stop on record is not known to be running.
+  const time =
+    a.state === "running"
+      ? quiet
+        ? `not seen to finish, started ${durationText(secondsBetween(a.started, now))} ago`
+        : `running ${durationText(secondsBetween(a.started, now))}`
+      : `done in ${durationText(secondsBetween(a.started, a.ended ?? a.lastAt))}`;
   const tools = a.tools > 0 ? ` · ${plural(a.tools, "tool call")}${a.lastTool ? `, last ${a.lastTool}` : ""}` : "";
   return `${mark} ${a.type}  ${short(a.id)}  ${time}${a.stops > 1 ? ` · resumed ${a.stops - 1}×` : ""}${tools}${a.model ? ` · ${a.model}` : ""}`;
 }
@@ -307,19 +369,20 @@ function agentLine(a: LiveAgent, now: string): string {
 /** A session's subagents as an indented tree: a child under the agent that started it, where the harness said. */
 export function sessionLines(s: LiveSession, now: string): string[] {
   const where = s.cwd ? ` · ${s.cwd.split("/").filter(Boolean).pop()}` : "";
-  const lines = [`${s.source ? `[${s.source}] ` : ""}${sessionLine(s)} · session ${short(s.id)}${where}${s.model ? ` · ${s.model}` : ""}`];
+  const quiet = isQuiet(s, now);
+  const lines = [`${s.source ? `[${s.source}] ` : ""}${sessionLine(s, now)} · session ${short(s.id)}${where}${s.model ? ` · ${s.model}` : ""}`];
   const ids = new Set(s.agents.map((a) => a.id));
   const walk = (parent: string | undefined, depth: number): void => {
     for (const a of s.agents) {
       const top = a.parent === undefined || !ids.has(a.parent);
       if (parent === undefined ? !top : a.parent !== parent) continue;
-      lines.push(`${"  ".repeat(depth + 1)}${agentLine(a, now)}`);
+      lines.push(`${"  ".repeat(depth + 1)}${agentLine(a, now, quiet)}`);
       walk(a.id, depth + 1);
     }
   };
   walk(undefined, 0);
   // What its lead said through the MCP server, beside what the hooks saw.
-  for (const plan of s.plans ?? []) lines.push(`  plan${plan.title ? ` "${plan.title}"` : ""}: ${planLine(plan)}`);
+  for (const plan of s.plans ?? []) lines.push(`  plan${plan.title ? ` "${plan.title}"` : ""}: ${planLine(plan, quiet)}`);
   for (const note of s.notes ?? []) lines.push(`  note: ${note.text}`);
   return lines;
 }

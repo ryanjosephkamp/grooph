@@ -256,18 +256,20 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
         g.push(text(cardX + CARD_PAD, ty, truncate(`graph: ${session.graph}`, textW, 10, "mono"), { size: 10, fill: ink("loop-0"), weight: "mono" }));
       }
       if (now) {
-        // What the hooks saw: a filled dot while anything is working, a ring while it waits, a grey dot when it has ended.
+        // What the hooks saw: a filled dot while anything is working, a ring while it waits, a grey ring when it has gone
+        // quiet (not ended, and not heard from for half an hour), a grey dot when it has ended.
         ty += 19;
+        const quietOnly = now.working === 0 && now.waiting === 0 && (now.quiet ?? 0) > 0;
         const tone: Colour = now.working > 0 ? "accent" : now.waiting > 0 ? "warning" : "ink-3";
         const dotX = cardX + CARD_PAD + 4.5;
         g.push(
           now.working > 0
             ? `<circle cx="${fmt(dotX)}" cy="${fmt(ty - 3.6)}" r="4.5" style="fill:${ink(tone)}"/>`
-            : `<circle cx="${fmt(dotX)}" cy="${fmt(ty - 3.6)}" r="3.6" stroke-width="1.8" style="fill:${now.waiting > 0 ? "none" : ink(tone)};stroke:${ink(tone)}"/>`,
+            : `<circle cx="${fmt(dotX)}" cy="${fmt(ty - 3.6)}" r="3.6" stroke-width="1.8" style="fill:${now.waiting > 0 || quietOnly ? "none" : ink(tone)};stroke:${ink(tone)}"/>`,
         );
-        g.push(text(cardX + CARD_PAD + 14, ty, truncate(mapLiveLine(now), textW - 14, 10.5, "bold"), { size: 10.5, fill: ink(tone), weight: "bold" }));
+        g.push(text(cardX + CARD_PAD + 14, ty, truncate(mapLiveLine(now, options.at), textW - 14, 10.5, "bold"), { size: 10.5, fill: ink(tone), weight: "bold" }));
       }
-      cardSvg.push(`<g data-session="${session.id}"${now ? ` data-live="${now.working > 0 ? "working" : now.waiting > 0 ? "waiting" : "ended"}"` : ""}>${g.join("")}</g>`);
+      cardSvg.push(`<g data-session="${session.id}"${now ? ` data-live="${now.working > 0 ? "working" : now.waiting > 0 ? "waiting" : (now.quiet ?? 0) > 0 ? "quiet" : "ended"}"` : ""}>${g.join("")}</g>`);
       cy += height + (family ? 14 : 8);
     }
     if (members.length === 0) {

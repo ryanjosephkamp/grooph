@@ -37,7 +37,7 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  */
 export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
-export const VERSION = "0.2.0";
+export const VERSION = "0.2.1";
 
 const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
 
@@ -59,7 +59,7 @@ Usage
   grooph runs list [<dir>] | show <run dir> [--json] | bundle <run dir> --out <file>
   grooph adopt <run dir> [--into <graph file>] [--write]
   grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
-  grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
+  grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--push] [--local]
   grooph sessions [<source>...] [--json]
   grooph events push [--branch <name>] [--remote <name>] [--no-push] [--dir <project>]
   grooph mcp [--dir <project>] [--harness <name>]
@@ -373,12 +373,14 @@ export async function run(
 
       case "hooks": {
         const [sub, ...args] = rest;
-        const { values } = parseArgs({ args, allowPositionals: true, options: { dir: { type: "string" }, harness: { type: "string" }, tools: { type: "boolean" }, local: { type: "boolean" } } });
+        const { values } = parseArgs({ args, allowPositionals: true, options: { dir: { type: "string" }, harness: { type: "string" }, tools: { type: "boolean" }, local: { type: "boolean" }, push: { type: "boolean" }, "push-branch": { type: "string" } } });
         return hooksCommand(io, sub, {
           ...(values["dir"] !== undefined ? { dir: values["dir"] } : {}),
           ...(values["harness"] !== undefined ? { harness: values["harness"] } : {}),
           tools: values["tools"] === true,
           local: values["local"] === true,
+          push: values["push"] === true,
+          ...(values["push-branch"] !== undefined ? { pushBranch: values["push-branch"] } : {}),
         });
       }
 

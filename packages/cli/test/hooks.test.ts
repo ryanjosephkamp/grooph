@@ -17,6 +17,7 @@ import type { LiveView } from "@grooph/core";
 
 import { hookEntries, hookSource, pushSource } from "../src/commands/hooks.js";
 import { parseSource, readLive } from "../src/events-io.js";
+import { moved } from "./fresh.js";
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
 
@@ -209,9 +210,23 @@ test("sessions prints what the hook saw, from one source or several, as text or 
   assert.equal(view.groophLive, 0);
   assert.deepEqual(view.sessions.map((s) => [s.source, s.harness, s.state, s.agents.length]).sort(), [["cloud", "claude-code", "working", 2], ["mac", "codex", "ended", 2]]);
 
+  // A recording from days ago, caught mid-flight, is not called working: it says when it was last seen, and its
+  // unfinished subagent is not known to be running.
   io = capture();
   assert.equal(await grooph(["sessions", join(eventsFixtures, "claude-code-running.jsonl")], io), 0);
-  assert.match(text(io.stdout), /● review-loop--critic {2}a02 {2}running /);
+  assert.match(io.stdout[0]!, /^claude-code · last seen .+ ago, working then · 1 not seen to finish, 1 done · session /);
+  assert.match(text(io.stdout), /\? review-loop--critic {2}a02 {2}not seen to finish, started .+ ago/);
+  assert.match(text(io.stdout), /✓ review-loop--builder {2}a01 {2}done in 39 s/);
+
+  // The same recording a minute old is a session at work.
+  await withProject(async (dir) => {
+    const fresh = join(dir, "now.jsonl");
+    writeFileSync(fresh, moved(readFileSync(join(eventsFixtures, "claude-code-running.jsonl"), "utf8"), Date.now()));
+    io = capture();
+    assert.equal(await grooph(["sessions", fresh], io), 0);
+    assert.match(io.stdout[0]!, /^claude-code · working · 1 running, 1 done · session /);
+    assert.match(text(io.stdout), /● review-loop--critic {2}a02 {2}running /);
+  });
 
   await withProject(async (dir) => {
     // A project folder means its .grooph/events/; an empty one says how to fill it.

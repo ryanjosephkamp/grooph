@@ -4,7 +4,7 @@ import { networkInterfaces } from "node:os";
 import { extname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { canonicalizeRunBundle, parseMapText, runStateLine, sessionLine, type LiveView } from "@grooph/core";
+import { canonicalizeRunBundle, isQuiet, parseMapText, runStateLine, sessionLine, type LiveView } from "@grooph/core";
 
 import { EVENTS_DIR, readLive, type EventSource } from "../events-io.js";
 import { readText } from "../io.js";
@@ -267,11 +267,11 @@ export async function watchCommand(io: Output, arg: string | undefined, flags: {
     io.out(`watching ${what}: nothing to show yet (${err.message}); the view waits for it`);
   }
   const live = readLive([{ path: projectRoot(target.path) }, ...(flags.events ?? [])], undefined, projectRoot(target.path));
-  const working = live.sessions.filter((s) => s.state === "working").length;
+  const working = live.sessions.filter((s) => s.state === "working" && !isQuiet(s, live.at)).length;
   io.out(
     live.sessions.length === 0
       ? `sessions: none recorded under ${shown(join(projectRoot(target.path), EVENTS_DIR))}/ yet (grooph hooks install records them)`
-      : `sessions: ${live.sessions.length} recorded, ${working} working${live.sessions.length === 1 ? ` (${sessionLine(live.sessions[0]!)})` : ""}`,
+      : `sessions: ${live.sessions.length} recorded, ${working} working${live.sessions.length === 1 ? ` (${sessionLine(live.sessions[0]!, live.at)})` : ""}`,
   );
   io.out(`open ${watcher.url}`);
   const route = watcher.url.slice(watcher.url.indexOf("#"));

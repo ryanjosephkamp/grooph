@@ -107,7 +107,7 @@ export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptio
     // A snapshot: what each session was doing when the page was made, first in its section.
     for (const section of sections) {
       const now = section.kind === "Session" ? options.live[section.id] : undefined;
-      if (now) section.items.unshift({ label: options.at ? `At ${options.at.slice(0, 16).replace("T", " ")} UTC` : "When this page was made", text: mapLiveLine(now) });
+      if (now) section.items.unshift({ label: options.at ? `At ${options.at.slice(0, 16).replace("T", " ")} UTC` : "When this page was made", text: mapLiveLine(now, options.at) });
     }
   }
   const issues: IssueLike[] = map ? validateMap(map) : validate(graph!, { forExport: true });

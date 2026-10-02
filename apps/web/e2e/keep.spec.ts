@@ -47,7 +47,7 @@ test("the offline page downloads as one file, opens with the network off, and gi
   expect(file.suggestedFilename()).toBe("review-loop.html");
   const html = await downloadText(file);
   // The app and the CLI make the same page for the same document and version.
-  expect(html).toBe(offlinePage(reviewLoop(), { version: "0.2.0" }));
+  expect(html).toBe(offlinePage(reviewLoop(), { version: "0.2.1" }));
 
   const path = join(tmpdir(), `grooph-offline-${Date.now()}.html`);
   writeFileSync(path, html);

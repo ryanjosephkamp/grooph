@@ -1,4 +1,4 @@
-# Handback to the Operator: grooph 0.2.0
+# Handback to the Operator: grooph 0.2.1
 
 For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, and again that evening after your second (section 13). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.2.0** (`grooph --version`). 0.1.0 was the first handback; what changed since is in section 12 |
+| Version | **0.2.1** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 and 13 |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`**, tagged `v0.2.0` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.1.0, the merge has not happened yet, and branch `slice/0040-people-on-the-map` holds all of it. |
+| Where the code is | **`main`**, tagged `v0.2.1` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.0, the merge has not happened yet, and branch `slice/0044-quiet-sessions` holds all of it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.2.0 2>/dev/null || git checkout slice/0040-people-on-the-map   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.2.1 2>/dev/null || git checkout slice/0044-quiet-sessions   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.2.0
+node packages/cli/bin/grooph.js --version    # 0.2.1
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -162,7 +162,14 @@ node .grooph/hooks/grooph-events-push.mjs --branch claude/grooph-events-lane-a  
 
 It makes one commit whose tree is `.grooph/events/` and nothing else, on top of what that branch already holds, and pushes it. It never touches the working tree, the index, `HEAD` or the lane's own branch, so nothing reaches a pull request or `main`. Files already on the branch that this lane does not have are kept, and a file two lanes both have is never made shorter, so several lanes may share one branch if you prefer one to many. **It refuses any branch that holds something other than events, and the branch the lane has checked out**: pointed at a lane's own work branch it would otherwise replace the work with the event files, so it will not. If a lane's checkout is detached, give it `--branch`. Run it when a round ends, and as often as you like in between: with nothing new it says so and makes no commit. Where grooph is installed, `grooph events push` is the same code.
 
-If your harness lets a session push only under a prefix, give the whole branch name with `--branch`. It was not run in a cloud sandbox: you will be the first.
+If a harness lets a session push only under a prefix, give the whole branch name with `--branch`. Your cloud sandbox took the default name on the first try.
+
+**A push is a snapshot.** What a lane does after it never leaves the sandbox, and a session cannot send what it writes as it stops. You saw it: the lane read "working" for good. Two things answer that, and you chose neither, so here is what each does:
+
+- **The reader is honest about a stale record** (always on). A session that has not ended and has said nothing for half an hour reads `last seen 3 h ago, working then`, and a subagent with no stop on record is `not seen to finish`. So a lane that pushed mid-turn stops looking busy half an hour later. One thing to know: with the default install, a lane that works for more than half an hour in one turn without starting a subagent also writes nothing, and reads `last seen …, working then`. For lanes, install with `--tools`: every finished tool call is then a line.
+- **Sending at the end of every turn** (off unless you ask): `grooph hooks install --push`. A second hook on the turn's end runs the push in the background. It prints nothing, never asks for a password, never fails a turn, gives way to a push already under way, makes a push again when another lane's got there first, and writes only to an events-only branch. A remote that does not answer costs a turn's end about thirteen seconds. Then a lane's last turn does arrive, and it reads `waiting`; its session end still does not (the session is gone by then), so after half an hour it reads `last seen`. The price: one small commit on the events branch per turn, made with the lane's right to push. With `--push-branch claude/grooph-events-<lane>` it names the branch.
+
+Not rate-limited, as you suggested it might be: a push with nothing new makes no commit, and a rate limit would drop exactly the last turn, which is the one that matters.
 
 Then, where you read, after `git fetch`:
 
@@ -232,7 +239,7 @@ They record and report. None starts or changes anything. Whether using them make
 - **Merged only on Ryan's word.** If `main` lacks this file, eight stacked pull requests are still waiting on it; the branch named in section 1 is then the source, and there is no tag yet.
 - **The cloud: seen by you, not by this session.** You ran the hook in a cloud session with one repository on 2026-10-01: its events file filled, with a subagent's start and stop. A session with several repositories starts above the clones and does not read their settings, so a repository's hooks do not run for it (that is your own session).
 - **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. The same in the app's worktree mode: its copy was recorded too, with no further review. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
-- **As live as the last push.** A lane's events are invisible until it sends them (`grooph-events-push.mjs`), and a watching machine has to fetch.
+- **As live as the last push.** A lane's events are invisible until it sends them (`grooph-events-push.mjs`, or at every turn's end with `--push`), and a watching machine has to fetch. A session's own end is never sent. Past half an hour of silence a session is shown as `last seen`, not `working`.
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
 - **Clocks.** Events from different machines are ordered by each machine's clock.
 - **The tie between a source and a map session is the name you give on the command line.** It is not in the map file. Give a wrong name and the wrong card lights.
@@ -311,4 +318,4 @@ You built 0.2.0 on Linux, drew your map again, corrected the map with Ryan on it
 | Two-digit numbers fill their circles edge to edge | **fixed.** A number of two digits has a wider ring, on the arc and in the list |
 | Badge 16 sits on handoff 17's arrowhead | **fixed.** A number keeps clear of every other arc's line into a card where that line crosses its track, as well as of other numbers. In your map 16 now sits on its own upright, above 17's line |
 | A person's card does not grow with its role | **fixed.** A person's card grows as a session's does, and both now grow further: a role is cut only past twelve wrapped lines |
-| The push is a snapshot taken mid-session: the last turn's stop and the session's end never leave the sandbox, so the session reads "working" for good | open |
+| The push is a snapshot taken mid-session: the last turn's stop and the session's end never leave the sandbox, so the session reads "working" for good | **both of your ways out are built** (amendment A-014; section 4). The reader says `last seen …` after half an hour of silence, always. And `grooph hooks install --push` sends the events at the end of every turn, if you ask for it. It is not rate-limited, because a limit would drop the last turn; a push with nothing new makes no commit |

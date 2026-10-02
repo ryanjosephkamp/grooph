@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { SAID_MAX, durationText, nodesLive, parseEvents, planLine, secondsBetween, sessionLine, summarizeSessions, type SessionEvent } from "../src/events.js";
+import { SAID_MAX, durationText, nodesLive, parseEvents, planLine, secondsBetween, sessionLine, summarizeSessions, type SessionEvent, QUIET_AFTER_SECONDS, isQuiet } from "../src/events.js";
 import { parseGraphText } from "../src/parse.js";
 import { fixturesDir, read } from "./helpers.js";
 
@@ -51,6 +51,37 @@ test("a session caught mid-run: one subagent done, one running, the session work
   assert.equal(s!.agents[0]!.tools, 2);
   assert.equal(secondsBetween(s!.agents[0]!.started, s!.agents[0]!.ended!), 39);
   assert.equal(sessionLine(s!), "claude-code · working · 1 running, 1 done");
+});
+
+test("a record is as fresh as its last line: half an hour on, a session is last seen, not working, and its unfinished subagent is not running", () => {
+  const [s] = summarizeSessions(events("claude-code-running.jsonl"));
+  const last = Date.parse(s!.lastAt);
+  const after = (seconds: number): string => new Date(last + seconds * 1000).toISOString();
+  // Fresh: as before.
+  assert.equal(isQuiet(s!, after(60)), false);
+  assert.equal(sessionLine(s!, after(60)), "claude-code · working · 1 running, 1 done");
+  assert.equal(isQuiet(s!, after(QUIET_AFTER_SECONDS - 1)), false);
+  // Stale: the same record, read later. This is what a lane's events pushed mid-session look like for good:
+  // the end of its last turn and its own end never left its sandbox.
+  assert.equal(isQuiet(s!, after(QUIET_AFTER_SECONDS)), true);
+  assert.equal(sessionLine(s!, after(3 * 3600)), "claude-code · last seen 3 h ago, working then · 1 not seen to finish, 1 done");
+  // With no time to read it against, a line says what the record says.
+  assert.equal(sessionLine(s!), "claude-code · working · 1 running, 1 done");
+  // A session that waits is quiet too; one that ended never is, however long ago.
+  const e = (sec: number, event: string, extra: object = {}) => ({ v: 1 as const, t: new Date(last + sec * 1000).toISOString(), harness: "claude-code" as const, event, session: "s", ...extra }) as SessionEvent;
+  const waiting = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(9, "turn-end")])[0]!;
+  assert.equal(sessionLine(waiting, after(2 * 3600 + 9)), "claude-code · last seen 2 h ago, waiting then · no subagents yet");
+  // A lead that says something was heard from then: a note or a plan counts, though no hook fired.
+  const noted = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(3 * 3600, "note", { text: "still at it" })])[0]!;
+  assert.equal(isQuiet(noted, after(3 * 3600 + 30)), false);
+  assert.equal(isQuiet(noted, after(4 * 3600)), true);
+  // A plan's line does not call a subagent running in a session gone quiet.
+  const planned = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(2, "plan", { agents: [{ type: "builder" }] }), e(3, "subagent-start", { agent: "a", type: "builder" })])[0]!;
+  assert.equal(planLine(planned.plans![0]!), "1 of 1 started, 1 running");
+  assert.equal(planLine(planned.plans![0]!, isQuiet(planned, after(3600))), "1 of 1 started, 1 not seen to finish");
+  const ended = summarizeSessions([e(0, "session-start"), e(1, "turn-start"), e(9, "turn-end"), e(10, "session-end")])[0]!;
+  assert.equal(isQuiet(ended, after(90 * 86400)), false);
+  assert.equal(sessionLine(ended, after(90 * 86400)), "claude-code · ended · no subagents yet");
 });
 
 test("a graph's nodes as the hooks saw them: a subagent's type names its node", () => {

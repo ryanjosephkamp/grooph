@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -199,6 +199,122 @@ test("events push never shortens a file and keeps odd names whole: a diverged co
     assert.equal(git(remote, "show", "grooph-events/shared:.grooph/events/naïve session.jsonl"), (line(1) + line(2)).trim());
     assert.equal(git(remote, "show", "grooph-events/shared:.grooph/events/s1.jsonl"), (line(1) + line(2) + line(3) + line(4)).trim(), "the first clone's shorter copy must not undo the join");
     assert.doesNotMatch(execFileSync("git", ["-C", remote, "fsck", "--no-dangling"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), /duplicateEntries|error/);
+  });
+});
+
+test("with --push a second hook sends the events when a turn ends: silent, never failing, one at a time, and still never onto a branch of work", async () => {
+  await withRemote(async ({ remote, lane, root }) => {
+    // Off unless asked for; when asked, one more entry at the end of a turn, in the background, and nothing else changes.
+    let io = capture();
+    assert.equal(await run(["hooks", "install", "--dir", lane], io), 0);
+    assert.match(text(io.stdout), /To send at the end of every turn instead, install with --push\./);
+    const settings = (): { hooks: Record<string, { hooks: { command: string; async?: boolean; timeout: number }[] }[]> } => JSON.parse(readFileSync(join(lane, ".claude", "settings.json"), "utf8"));
+    assert.equal(settings().hooks["Stop"]!.length, 1);
+    io = capture();
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--push"], io), 0);
+    assert.match(text(io.stdout), /With --push, that is done at the end of every turn, in the background, to grooph-events\/<the branch checked out>/);
+    const stop = settings().hooks["Stop"]!;
+    assert.equal(stop.length, 2);
+    assert.deepEqual(stop[1]!.hooks, [{ type: "command", command: 'node "$CLAUDE_PROJECT_DIR/.grooph/hooks/grooph-events-push.mjs" --hook', async: true, timeout: 60 }]);
+    assert.equal(stop[0]!.hooks[0]!.async, undefined, "the event hook's own line at a turn's end is still waited for");
+    io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
+    assert.match(text(io.stdout), /claude-code: 8 hook entries in \.claude\/settings\.json, one of which sends the events at the end of each turn/);
+    // A branch name is a branch name: nothing a shell would read as more.
+    io = capture();
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--push-branch", "x; rm -rf ~"], io), 1);
+    assert.match(text(io.stderr), /--push-branch takes a plain branch name/);
+    // Nor a name git would refuse on every turn, or the branch of work itself: said at install, not swallowed at each turn's end.
+    for (const [name, why] of [["a..b", /is not a branch name git accepts/], ["x.lock", /is not a branch name git accepts/], ["main", /is the branch checked out here/]] as const) {
+      io = capture();
+      assert.equal(await run(["hooks", "install", "--dir", lane, "--push-branch", name], io), 1, name);
+      assert.match(text(io.stderr), why);
+    }
+    assert.equal(settings().hooks["Stop"]!.length, 2);
+    io = capture();
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--harness", "codex", "--push-branch", "claude/grooph-events-lane"], io), 0);
+    const codex = JSON.parse(readFileSync(join(lane, ".codex", "hooks.json"), "utf8")) as ReturnType<typeof settings>;
+    assert.equal(codex.hooks["Stop"]![1]!.hooks[0]!.command, 'node "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.grooph/hooks/grooph-events-push.mjs" --hook --branch claude/grooph-events-lane');
+
+    // As the harness runs it: no output, exit 0, and the events are on their branch.
+    const script = join(lane, ".grooph", "hooks", "grooph-events-push.mjs");
+    const fire = (args: string[] = [], cwd = lane) => spawnSync(process.execPath, [script, "--hook", ...args], { cwd, input: '{"hook_event_name":"Stop"}', encoding: "utf8", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" } });
+    let ran = fire(); // nothing recorded yet
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
+    addEvents(lane, "5aac1305.jsonl", NESTED);
+    const before = untouched(lane);
+    ran = fire();
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/main"), ".grooph/events/5aac1305.jsonl");
+    assert.equal(existsSync(join(lane, ".grooph", "events", ".pushing")), false, "the lock is released");
+    assert.equal(untouched(lane), before);
+
+    // Another push under way: this one gives way, silently. A lock left by a push that died is taken over.
+    mkdirSync(join(lane, ".grooph", "events", ".pushing"));
+    appendFileSync(join(lane, ".grooph", "events", "5aac1305.jsonl"), '{"v":1,"t":"2026-10-01T02:00:00.000Z","harness":"claude-code","event":"turn-end","session":"5aac1305-f22d-4cad-a6e7-810700aeb49e"}\n');
+    const first = git(remote, "rev-parse", "grooph-events/main");
+    ran = fire();
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
+    assert.equal(git(remote, "rev-parse", "grooph-events/main"), first);
+    const longAgo = new Date(Date.now() - 10 * 60_000);
+    utimesSync(join(lane, ".grooph", "events", ".pushing"), longAgo, longAgo);
+    ran = fire();
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
+    assert.equal(git(remote, "rev-parse", "grooph-events/main^"), first);
+    assert.equal(existsSync(join(lane, ".grooph", "events", ".pushing")), false);
+    // The lock is not an event file: it is never sent.
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/main"), ".grooph/events/5aac1305.jsonl");
+
+    // Whatever is wrong, a turn is never failed and nothing is said: a branch of work, a folder that is not a repository.
+    const mainBefore = git(remote, "rev-parse", "main");
+    ran = fire(["--branch", "main"]);
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
+    assert.equal(git(remote, "rev-parse", "main"), mainBefore);
+    const plain = join(root, "plain", ".grooph", "hooks");
+    mkdirSync(plain, { recursive: true });
+    copyFileSync(script, join(plain, "grooph-events-push.mjs"));
+    mkdirSync(join(root, "plain", ".grooph", "events"));
+    writeFileSync(join(root, "plain", ".grooph", "events", "s.jsonl"), "{}\n");
+    const lost = spawnSync(process.execPath, [join(plain, "grooph-events-push.mjs"), "--hook"], { cwd: join(root, "plain"), encoding: "utf8", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" } });
+    assert.deepEqual([lost.status, lost.stdout, lost.stderr], [0, "", ""]);
+
+    // Removing grooph's entries removes this one with them.
+    io = capture();
+    assert.equal(await run(["hooks", "remove", "--dir", lane, "--harness", "claude-code,codex"], io), 0);
+    assert.equal(existsSync(join(lane, ".grooph", "hooks", "grooph-events-push.mjs")), false);
+    assert.equal(JSON.stringify(settings()).includes("grooph-events-push"), false);
+  });
+});
+
+test("events push leaves FETCH_HEAD as the session left it, and a push that loses a race is made again on top of the winner", async () => {
+  await withRemote(async ({ remote, lane, root }) => {
+    // A session fetched something and means to use FETCH_HEAD next: it must still be what it fetched.
+    git(lane, "fetch", "--quiet", "origin", "main");
+    const fetchHead = readFileSync(join(lane, ".git", "FETCH_HEAD"), "utf8");
+    addEvents(lane, "5aac1305.jsonl", NESTED);
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], capture()), 0); // the branch is new
+    appendFileSync(join(lane, ".grooph", "events", "5aac1305.jsonl"), '{"v":1,"t":"2026-10-01T02:00:00.000Z","harness":"claude-code","event":"turn-start","session":"5aac1305-f22d-4cad-a6e7-810700aeb49e"}\n');
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], capture()), 0); // the branch exists
+    assert.equal(readFileSync(join(lane, ".git", "FETCH_HEAD"), "utf8"), fetchHead);
+
+    // Two clones, one branch, both sending at once: git refuses the slower one, which looks again and goes on top.
+    // The race is made to happen: a hook on the remote lets the other clone's push in just before this one's lands.
+    const other = join(root, "other");
+    git(root, "clone", "--quiet", remote, other);
+    addEvents(other, "01a0f519.jsonl", CODEX);
+    const once = join(root, "raced");
+    writeFileSync(
+      join(remote, "hooks", "pre-receive"),
+      `#!/bin/sh\n# The first push to arrive finds the other clone's commit already there.\nif [ ! -e "${once}" ]; then touch "${once}"; unset GIT_DIR GIT_QUARANTINE_PATH GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES; node "${join(repoRoot, "packages", "cli", "bin", "grooph.js")}" events push --dir "${other}" --branch grooph-events/shared >/dev/null 2>&1; exit 1; fi\nexit 0\n`,
+      { mode: 0o755 },
+    );
+    appendFileSync(join(lane, ".grooph", "events", "5aac1305.jsonl"), '{"v":1,"t":"2026-10-01T02:00:05.000Z","harness":"claude-code","event":"turn-end","session":"5aac1305-f22d-4cad-a6e7-810700aeb49e"}\n');
+    const io = capture();
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], io), 0, text(io.stderr));
+    assert.equal(existsSync(once), true, "the race did not happen");
+    assert.match(text(io.stdout), /^Sent 2 event files to origin grooph-events\/shared/);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/shared"), ".grooph/events/01a0f519.jsonl\n.grooph/events/5aac1305.jsonl");
+    assert.match(git(remote, "show", "grooph-events/shared:.grooph/events/5aac1305.jsonl"), /"event":"turn-end"/);
   });
 });
 

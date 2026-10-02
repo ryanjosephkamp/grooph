@@ -89,6 +89,9 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0038 | 20, 21 | The picture fits its words on any machine: text measured for the widest likely font; a map's cards keep their width; names, models and roles wrap | Opus 5.5 | done 2026-10-01 (merged; in 0.2.0; no spend) |
 | 0039 | 22 | `grooph events push`: session events on a branch of their own, sent without touching the work; the same code as a script beside the hook | Opus 5.5 | done 2026-10-01 (merged; in 0.2.0; no spend) |
 | 0040 | 21 | People on an operation map (amendment A-013), the `notification` carrier, a mark on a session that wakes itself; version 0.2.0 | Opus 5.5 | done 2026-10-01 (merged; in 0.2.0; no spend) |
+| 0042 | 21, 22 | The Operator's second answer taken in: the map with the owner drawn as it corrected it; what it saw in a cloud lane, recorded as reported | Opus 5.5 | in review 2026-10-01 (pull request; no spend) |
+| 0043 | 20 | Three small things in the picture: a wider ring for two digits, a number clear of other arcs' lines, a card that grows with its role | Opus 5.5 | in review 2026-10-01 (pull request, stacked on 0042; no spend) |
+| 0044 | 22 | A stale record read honestly ("last seen" after half an hour of silence); `grooph hooks install --push` sends the events at each turn's end (amendment A-014); version 0.2.1 | Opus 5.5 | in review 2026-10-01 (pull request, stacked on 0043; no spend) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)

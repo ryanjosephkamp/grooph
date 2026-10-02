@@ -1,4 +1,4 @@
-import { durationText, mapLive, mapPicture, parseMap, planLine, secondsBetween, type LiveAgent, type LivePlan, type LiveSession, type LiveView, type OperationMap } from "@grooph/core";
+import { durationText, isQuiet, mapLive, mapPicture, parseMap, planLine, secondsBetween, type LiveAgent, type LivePlan, type LiveSession, type LiveView, type OperationMap } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
 import { POLL_MS } from "../run/RunScreens.js";
@@ -64,10 +64,16 @@ function typeParts(type: string): { name: string; of?: string } {
   return cut > 0 ? { name: type.slice(cut + 2), of: type.slice(0, cut) } : { name: type };
 }
 
-function AgentRow({ agent, now, depth }: { agent: LiveAgent; now: string; depth: number }) {
-  const running = agent.state === "running";
+function AgentRow({ agent, now, depth, quiet }: { agent: LiveAgent; now: string; depth: number; quiet: boolean }) {
+  // In a session gone quiet, a subagent with no stop on record is not known to be running.
+  const running = agent.state === "running" && !quiet;
   const { name, of } = typeParts(agent.type);
-  const time = running ? `running ${durationText(secondsBetween(agent.started, now))}` : `done in ${durationText(secondsBetween(agent.started, agent.ended ?? agent.lastAt))}`;
+  const time =
+    agent.state === "running"
+      ? quiet
+        ? `not seen to finish, started ${durationText(secondsBetween(agent.started, now))} ago`
+        : `running ${durationText(secondsBetween(agent.started, now))}`
+      : `done in ${durationText(secondsBetween(agent.started, agent.ended ?? agent.lastAt))}`;
   const facts = [
     time,
     agent.stops > 1 ? `resumed ${agent.stops - 1}×` : undefined,
@@ -76,8 +82,8 @@ function AgentRow({ agent, now, depth }: { agent: LiveAgent; now: string; depth:
   ].filter(Boolean);
   return (
     <li className={`live-agent${running ? " is-running" : ""}`} data-agent-id={agent.id} data-agent-state={agent.state} style={{ marginLeft: depth * 18 }}>
-      <span className="live-mark" role="img" aria-label={running ? "running" : "done"}>
-        {running ? null : (
+      <span className="live-mark" role="img" aria-label={running ? "running" : agent.state === "running" ? "not seen to finish" : "done"}>
+        {running || agent.state === "running" ? null : (
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m5 12.5 4.5 4.5L19 7.5" />
           </svg>
@@ -96,12 +102,12 @@ function AgentRow({ agent, now, depth }: { agent: LiveAgent; now: string; depth:
 }
 
 /** What the lead said it would start, each line ticked off against what the hook saw start. */
-function PlanBlock({ plan }: { plan: LivePlan }) {
+function PlanBlock({ plan, quiet }: { plan: LivePlan; quiet: boolean }) {
   return (
     <div className="live-plan" data-plan>
       <p className="live-plan-head">
         <span className="badge badge-quiet">plan</span> {plan.title ?? "Declared subagents"}
-        <span className="live-plan-sum">{planLine(plan)}</span>
+        <span className="live-plan-sum">{planLine(plan, quiet)}</span>
       </p>
       <ul className="live-plan-list">
         {plan.agents.map((a, i) => {
@@ -113,7 +119,7 @@ function PlanBlock({ plan }: { plan: LivePlan }) {
                 {wanted > 1 ? `${wanted} × ` : ""}
                 {typeParts(a.type).name}
               </span>
-              <span className="live-plan-state">{state === "running" ? `${a.running} running` : state === "started" ? "started" : state === "partly" ? `${a.started} of ${wanted} started` : "not started"}</span>
+              <span className="live-plan-state">{state === "running" ? `${a.running} ${quiet ? "not seen to finish" : "running"}` : state === "started" ? "started" : state === "partly" ? `${a.started} of ${wanted} started` : "not started"}</span>
               {a.purpose ? <span className="live-plan-purpose">{a.purpose}</span> : null}
             </li>
           );
@@ -125,6 +131,7 @@ function PlanBlock({ plan }: { plan: LivePlan }) {
 }
 
 function SessionCard({ session, now }: { session: LiveSession; now: string }) {
+  const quiet = isQuiet(session, now);
   const ids = new Set(session.agents.map((a) => a.id));
   const rows: { agent: LiveAgent; depth: number }[] = [];
   // A subagent sits under the agent that started it, where the harness said which that was.
@@ -141,27 +148,28 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
   const sub = [folder(session.cwd), session.model, `session ${short(session.id)}`].filter(Boolean).join(" · ");
   const seen = secondsBetween(session.lastAt, now);
   return (
-    <section className={`live-session live-${session.state}`} data-session-id={session.id} data-session-state={session.state} aria-label={`${HARNESS[session.harness] ?? session.harness} session ${short(session.id)}`}>
+    <section className={`live-session live-${quiet ? "quiet" : session.state}`} data-session-id={session.id} data-session-state={session.state} data-quiet={quiet || undefined} aria-label={`${HARNESS[session.harness] ?? session.harness} session ${short(session.id)}`}>
       <header className="live-session-head">
         <div className="live-session-title">
           <span className={`live-harness live-harness-${session.harness === "codex" ? "codex" : "claude"}`}>{HARNESS[session.harness] ?? session.harness}</span>
-          <span className={`status live-state live-state-${session.state}`}>
-            {session.state === "working" ? <span className="live-dot is-on" aria-hidden="true" /> : null}
-            {STATE[session.state]}
+          <span className={`status live-state live-state-${quiet ? "quiet" : session.state}`}>
+            {session.state === "working" && !quiet ? <span className="live-dot is-on" aria-hidden="true" /> : null}
+            {/* A record is as fresh as its last line. Past half an hour of silence it is not called working. */}
+            {quiet ? `Last seen ${durationText(seen)} ago` : STATE[session.state]}
           </span>
         </div>
         <p className="live-session-sub">{sub}</p>
         <p className="live-session-facts">
-          {session.agents.length === 0 ? "No subagents yet" : `${running} running · ${session.agents.length - running} done`}
+          {session.agents.length === 0 ? "No subagents yet" : quiet && running > 0 ? `${running} not seen to finish · ${session.agents.length - running} done` : `${running} running · ${session.agents.length - running} done`}
           {session.tools > 0 ? ` · ${session.tools} tool call${session.tools === 1 ? "" : "s"} of its own` : ""}
-          {session.state === "ended" ? ` · ran ${durationText(secondsBetween(session.started, session.ended ?? session.lastAt))}` : ` · last seen ${seen < 5 ? "just now" : `${durationText(seen)} ago`}`}
+          {session.state === "ended" ? ` · ran ${durationText(secondsBetween(session.started, session.ended ?? session.lastAt))}` : quiet ? ` · ${session.state} then` : ` · last seen ${seen < 5 ? "just now" : `${durationText(seen)} ago`}`}
         </p>
       </header>
-      {session.plans && session.plans.length > 0 ? <PlanBlock plan={session.plans[session.plans.length - 1]!} /> : null}
+      {session.plans && session.plans.length > 0 ? <PlanBlock plan={session.plans[session.plans.length - 1]!} quiet={quiet} /> : null}
       {rows.length > 0 ? (
         <ul className="live-agents" aria-label="Subagents">
           {rows.map(({ agent, depth }) => (
-            <AgentRow key={agent.id} agent={agent} now={now} depth={depth} />
+            <AgentRow key={agent.id} agent={agent} now={now} depth={depth} quiet={quiet} />
           ))}
         </ul>
       ) : null}
@@ -178,7 +186,7 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
 
 /** The operation map the sessions belong on, with what the hooks saw drawn on each of its sessions. */
 function LiveMap({ map, view }: { map: OperationMap; view: LiveView }) {
-  const svg = useMemo(() => mapPicture(map, { live: mapLive(view.sessions, map), at: view.at }), [map, view]);
+  const svg = useMemo(() => mapPicture(map, { live: mapLive(view.sessions, map, view.at), at: view.at }), [map, view]);
   return (
     <section className="live-map" aria-label={`Operation map: ${map.name}`}>
       <div className="map-picture" dangerouslySetInnerHTML={{ __html: svg }} />
@@ -208,8 +216,9 @@ export function LiveSessions() {
   const sorted = [...sessions].sort((a, b) => order[a.state] - order[b.state] || (a.lastAt < b.lastAt ? 1 : -1));
   const groups = new Map<string, LiveSession[]>();
   for (const s of sorted) groups.set(s.source ?? "", [...(groups.get(s.source ?? "") ?? []), s]);
-  const working = sessions.filter((s) => s.state === "working").length;
-  const runningAgents = sessions.reduce((n, s) => n + s.agents.filter((a) => a.state === "running").length, 0);
+  // The header counts by the same clock as the cards: a session goes quiet in both at once.
+  const working = sessions.filter((s) => s.state === "working" && !isQuiet(s, now)).length;
+  const runningAgents = sessions.reduce((n, s) => n + (isQuiet(s, now) ? 0 : s.agents.filter((a) => a.state === "running").length), 0);
 
   return (
     <div className="live-view">
