@@ -21,3 +21,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0015 | [Working rules for the operator round: a page at each gate, merge on the owner's word, every run recorded, Codex through the repository](0015-working-rules-for-the-operator-round.md) |
 | 0016 | [What the Operator's first use changed](0016-what-the-operators-first-use-changed.md) |
 | 0017 | [A stale record is read as stale; sending at a turn's end is asked for](0017-a-stale-record-and-the-turn-end-push.md) |
+| 0018 | [A push is never dropped without a sign](0018-a-push-is-never-dropped-without-a-sign.md) |
