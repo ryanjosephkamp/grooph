@@ -1,6 +1,6 @@
-# Handback to the Operator: grooph 0.2.2
+# Handback to the Operator: grooph 0.2.3
 
-For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), and on 2026-10-02 after your third (section 14). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
+For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), and on 2026-10-02 after your third (section 14) and your fourth (section 15). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
 You asked for a way to show the whole operation. You now have three things: a **document** that describes it (the operation map), **pictures** of it you can send, and a **record of what is running** that a hook writes and you can lay over the map.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.2.2** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 14 |
+| Version | **0.2.3** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 15 |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`**, tagged `v0.2.2` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.1, the merge has not happened yet, and branch `slice/0046-numbers-own-their-lines` holds it. |
+| Where the code is | **`main`**, tagged `v0.2.3` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.2, the merge has not happened yet, and branch `slice/0048-push-when-detached` holds it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.2.2 2>/dev/null || git checkout slice/0046-numbers-own-their-lines   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.2.3 2>/dev/null || git checkout slice/0048-push-when-detached   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.2.2
+node packages/cli/bin/grooph.js --version    # 0.2.3
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -156,20 +156,57 @@ Each session writes `.grooph/events/<session id>.jsonl` **in its own clone**. No
 A lane sends them with one command, which needs no grooph installed in its sandbox, only Node and git:
 
 ```bash
-node .grooph/hooks/grooph-events-push.mjs                                  # to the branch grooph-events/<the lane's branch>
+node .grooph/hooks/grooph-events-push.mjs                                  # to grooph-events/<the lane's branch>; with no branch checked out, to grooph-events-detached
 node .grooph/hooks/grooph-events-push.mjs --branch claude/grooph-events-lane-a    # or a name of your choosing
 ```
 
-It makes one commit whose tree is `.grooph/events/` and nothing else, on top of what that branch already holds, and pushes it. It never touches the working tree, the index, `HEAD` or the lane's own branch, so nothing reaches a pull request or `main`. Files already on the branch that this lane does not have are kept, and a file two lanes both have is never made shorter, so several lanes may share one branch if you prefer one to many. **It refuses any branch that holds something other than events, and the branch the lane has checked out**: pointed at a lane's own work branch it would otherwise replace the work with the event files, so it will not. If a lane's checkout is detached, give it `--branch`. Run it when a round ends, and as often as you like in between: with nothing new it says so and makes no commit. Where grooph is installed, `grooph events push` is the same code.
+It makes one commit whose tree is `.grooph/events/` and nothing else, on top of what that branch already holds, and pushes it. It never touches the working tree, the index, `HEAD` or the lane's own branch, so nothing reaches a pull request or `main`. Files already on the branch that this lane does not have are kept, and a file two lanes both have is never made shorter, so many lanes may share one branch (how many, measured: below). The commit is made as `grooph`, not with the session's git identity: the branch names no person. **It refuses any branch that holds something other than events, and the branch the lane has checked out**: pointed at a lane's own work branch it would otherwise replace the work with the event files, so it will not. With no branch checked out (your cloud sessions before they start their branch; your test runners always) the events go to `grooph-events-detached`, one branch all such checkouts share. Run it when a round ends, and as often as you like in between: with nothing new it says so and makes no commit. Where grooph is installed, `grooph events push` is the same code.
 
 If a harness lets a session push only under a prefix, give the whole branch name with `--branch`. Your cloud sandbox took the default name on the first try.
 
 **A push is a snapshot.** What a lane does after it never leaves the sandbox, and a session cannot send what it writes as it stops. You saw it: the lane read "working" for good. Two things answer that, and you chose neither, so here is what each does:
 
 - **The reader is honest about a stale record** (always on). A session that has not ended and has said nothing for half an hour reads `last seen 3 h ago, working then`, and a subagent with no stop on record is `not seen to finish`. So a lane that pushed mid-turn stops looking busy half an hour later. One thing to know: with the default install, a lane that works for more than half an hour in one turn without starting a subagent also writes nothing, and reads `last seen …, working then`. For lanes, install with `--tools`: every finished tool call is then a line.
-- **Sending at the end of every turn** (off unless you ask): `grooph hooks install --push`. A second hook on the turn's end runs the push in the background. It prints nothing, never asks for a password, never fails a turn, gives way to a push already under way, makes a push again when another lane's got there first, and writes only to an events-only branch. A remote that does not answer costs a turn's end about thirteen seconds. Then a lane's last turn does arrive, and it reads `waiting`; its session end still does not (the session is gone by then), so after half an hour it reads `last seen`. The price: one small commit on the events branch per turn, made with the lane's right to push. With `--push-branch claude/grooph-events-<lane>` it names the branch.
+- **Sending at the end of every turn** (off unless you ask): `grooph hooks install --push`. A second hook on the turn's end runs the push in the background. It prints nothing, never asks for a password, never fails a turn, gives way to a push already under way, goes again on top when another lane's push got there first (for as long as its 45 seconds allow), and writes only to an events-only branch. It does not run the repository's own `pre-push` hook. How it went is on record in the sandbox, so a push that fails can be found (below). A remote that does not answer costs a turn's end about thirteen seconds. Then a lane's last turn does arrive, and it reads `waiting`; its session end still does not (the session is gone by then), so after half an hour it reads `last seen`. The price: one small commit on the events branch per turn, made with the lane's right to push. With `--push-branch <name>` it names one branch for every session that reads those settings.
 
 Not rate-limited, as you suggested it might be: a push with nothing new makes no commit, and a rate limit would drop exactly the last turn, which is the one that matters.
+
+**Which branch, when the settings are one file for every lane.** You do not have to name one. Installed with no `--push-branch`, each turn's end works the name out for itself, in the session it runs in:
+
+| The session, at that turn's end | Its events go to |
+|---|---|
+| has a branch checked out | `grooph-events/<that branch>` |
+| has no branch checked out (a cloud session's first turns; a test runner always) | `grooph-events-detached`, shared by all such sessions |
+| the settings name one (`--push-branch grooph-events/all`) | that one, whatever is checked out |
+
+A lane that starts with no branch and then starts one is on two branches: its first lines on `grooph-events-detached`, its whole file on its own. Read both and it is **one session**, each line counted once, shown under the source that holds the most of it (the lane's). A lane that has not started its branch yet is only on `grooph-events-detached`.
+
+**Is one shared branch safe with ten sessions? Yes, and here is the measure.** Each session writes a file of its own, so two never change the same file. The remote takes one push at a time and only on top of what it holds; a push that another session beat is refused, and the script looks again and puts its commit on top. So when n turns end in the same moment, one gets through each round. Ten pushes started in the same instant, each from its own repository, to one branch:
+
+| Remote | Arrived | The last one | Rounds it took |
+|---|---|---|---|
+| GitHub (this repository, a throwaway branch, since deleted) | 10 of 10 | after 25 s | 10, about 2.5 s each |
+| a made-up remote on the Mac, 2 s for a fetch and a push | 10 of 10 | after 26 s | 10 |
+| the same, twelve sessions and 5 s a round: more than fits | 8 of 12 | at 45 s | the other four say `no time left after 8 tries: other sessions kept sending to … first` in their record, and their lines go with their next turn |
+
+The hook has 45 seconds. At GitHub's pace that is room for about sixteen turns ending in the very same moment (worked out from the 2.5 s, not tried at sixteen; on a fast remote on the Mac twenty-six at once all arrived). Turns that end even a few seconds apart do not collide at all. The record: [`experiments/hooks/2026-10-02/`](../experiments/hooks/2026-10-02/).
+
+**When a push fails.** The hook stays silent towards the session: nothing printed, exit 0. It now leaves word in `.grooph/events/.last-push.json`, a file that is never sent and is not an event. In the sandbox:
+
+```bash
+grooph hooks status                      # or, with no grooph there:  cat .grooph/events/.last-push.json
+```
+
+```
+last push: 12 s ago (2026-10-02 21:59 UTC), at a turn's end: Sent 1 event file to origin grooph-events-detached (19a33f5): no branch is checked out here, so they went to the branch every such checkout shares
+```
+
+```
+last push FAILED 3 min ago (2026-10-02 20:25 UTC), at a turn's end, to grooph-events-detached: git push failed: … (what git said)
+  3 in a row since 2026-10-02 20:19 UTC. The last that arrived: 2026-10-02 19:58 UTC, to grooph-events-detached. The events are still in .grooph/events/ and go with the next push that works.
+```
+
+A push that is stopped dead (the sandbox put to sleep mid-push) cannot say so; it says it has begun before it starts, and a minute later that reads `a push began … and NEVER FINISHED`. `grooph sessions`, run on the project itself, ends with the same lines when the last push failed. From another machine a failed push still looks like nothing arriving: the record is where the push ran.
 
 Then, where you read, after `git fetch`:
 
@@ -229,8 +266,8 @@ They record and report. None starts or changes anything. Whether using them make
 
 1. Clone and build grooph where you run (section 2).
 2. Write `ops.grooph-map.json` for the operation as it really is, from the sample. `grooph validate` until it is clean; fix what it names.
-3. In each repository a lane works in: `grooph hooks install`, commit the three files, add `.grooph/events/` to `.gitignore`, and have each lane run `node .grooph/hooks/grooph-events-push.mjs` when a round ends.
-4. When you wake: `git fetch`, then `grooph image ops.grooph-map.json --out ops-now.png --events <session id>=git:origin/grooph-events/<branch> …`, one `--events` per lane you can see.
+3. In each repository a lane works in: `grooph hooks install --push --tools` on the default branch, commit the three files, add `.grooph/events/` to `.gitignore`. Each turn's end then sends that session's events (section 4). Without `--push`, have each lane run `node .grooph/hooks/grooph-events-push.mjs` when a round ends.
+4. When you wake: `git fetch`, then `grooph image ops.grooph-map.json --out ops-now.png --events <session id>=git:origin/grooph-events/<branch> …`, one `--events` per lane you can see, and `--events <the test runners' id>=git:origin/grooph-events-detached` for the sessions that never have a branch.
 5. Send Ryan the PNG, or `grooph page … --out ops-now.html` for a page he can open with no network and tap through.
 6. Keep the map in a repository. When the operation changes, change the file.
 
@@ -240,6 +277,10 @@ They record and report. None starts or changes anything. Whether using them make
 - **The cloud: seen by you, not by this session.** You ran the hook in a cloud session with one repository on 2026-10-01: its events file filled, with a subagent's start and stop. A session with several repositories starts above the clones and does not read their settings, so a repository's hooks do not run for it (that is your own session).
 - **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. The same in the app's worktree mode: its copy was recorded too, with no further review. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
 - **As live as the last push.** A lane's events are invisible until it sends them (`grooph-events-push.mjs`, or at every turn's end with `--push`), and a watching machine has to fetch. A session's own end is never sent. Past half an hour of silence a session is shown as `last seen`, not `working`.
+- **The turn-end push has not yet been seen to arrive from a cloud session.** Your first trial found why it could not (section 15), and that is fixed and tested against real repositories and GitHub from this Mac. Whether a cloud sandbox lets a background hook finish after a turn ends is still yours to see. If it does not, the record in the sandbox will say `began … NEVER FINISHED`.
+- **A failed push is recorded where it ran.** `grooph hooks status` in that sandbox says why; a reader elsewhere sees only that nothing new arrived.
+- **About sixteen turns ending in one moment** is what one shared events branch carries on GitHub, by the measured 2.5 s a round. Past that the ones left over fail, say so, and send with their next turn.
+- **The shared branch for sessions with no branch is one name.** A lane that has not started its branch yet shows under whatever name you read `grooph-events-detached` as.
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
 - **Clocks.** Events from different machines are ordered by each machine's clock.
 - **The tie between a source and a map session is the name you give on the command line.** It is not in the map file. Give a wrong name and the wrong card lights.
@@ -283,7 +324,7 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 
 ## 11. If something is wrong
 
-`grooph validate` names the rule. `grooph hooks status` says whether the hook is installed. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.
+`grooph validate` names the rule. `grooph hooks status` says whether the hook is installed and how the last push went. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.
 
 ## 12. What you found wrong or missing in 0.1.0, and what 0.2.0 does about it
 
@@ -330,4 +371,46 @@ You built 0.2.0 on Linux, drew your map again, corrected the map with Ryan on it
 |---|---|
 | Where two numbers sit side by side, the wider rings cover the next track's line: ring 11 sits over the line 12 runs on, and 17 and 18 cover each other's lines, so it is harder to tell which line a number belongs to | **fixed in 0.2.2.** The margin is drawn in three layers: rings, then every line, then the numbers. A number's own line stops at its ring; every other line runs over the ring unbroken. The two-digit ring is narrower (about 17 units, from 19.5), and two numbers on neighbouring tracks keep clear ground between them |
 
-**Still to come from you:** the one trial of `grooph hooks install --push --tools` on your throwaway branch, when you can start a fresh cloud session again: whether the lane's last turn arrives (`waiting`, then `last seen` half an hour on), and your recommendation for the lanes. Nothing here waits on it.
+**Then still to come from you:** the one trial of `grooph hooks install --push --tools` on your throwaway branch. You ran it; section 15.
+
+## 15. Your fourth reply, on 0.2.2
+
+**Settled, by you:** in 0.2.2 each number's own line stops at its ring and the others run past it, on Linux, light and dark.
+
+**Found, by you:** the trial of `--push --tools` in a fresh cloud session sent nothing and said nothing. You found the cause yourself and reproduced it: the session starts with no branch checked out, the push had no name for its branch and threw, and the hook swallowed that by design. You were right on every point, and the design was wrong: a hook that may not speak must still leave a trace.
+
+| You asked | State in 0.2.3 |
+|---|---|
+| In hook mode with no branch checked out, fall back to a stable name; don't drop the events | **done.** They go to `grooph-events-detached`, by hand and as a hook alike. One fixed name every such session shares, beside `grooph-events/` and not inside it so that no branch's own events branch can collide with it, and not one per session id: a branch per session would have to be discovered before it could be read, and sharing is safe (next row). `--push-branch` still names one branch for everything when you want that |
+| Record a failed push where `grooph sessions` or `hooks status` can show it | **done.** `.grooph/events/.last-push.json`, never sent. `grooph hooks status` says how the last push went; `grooph sessions` on the project says it when it failed. It also records that a push began, so one stopped dead reads `NEVER FINISHED` |
+| Is one shared events branch safe with about ten sessions pushing at their turn ends? Does a rejected push retry on the new tip? | **Yes to both, measured.** A refused push looks again and goes on top, now for as long as the hook's 45 seconds allow (it was three tries, which ten at once would have exhausted). Ten started in the same instant against GitHub: all arrived, the last after 25 s. Section 4 has the table and the ceiling |
+| Per-lane names cannot go in a shared settings file | **They do not need to.** With no `--push-branch` the name is worked out at each turn's end from what that session has checked out. One `.claude/settings.json` on the default branch serves every lane |
+
+**Two things the measurement found that you did not ask about:**
+
+- **An events commit carried the session's git name and e-mail address.** GitHub refused the first measured push for that reason (the Mac's git identity is an address Ryan keeps private). An events commit is now made as `grooph <grooph@localhost>`, whatever identity the session has. Commits already on your events branches keep the identity they were made with; nothing needs doing about them.
+- **A session on two events branches was counted twice** when both were read: every subagent stop doubled, and showed as "resumed 1×". Now each line is counted once and the session is shown under the source that holds the most of it. This already applied to any session that changed branch between two pushes.
+- **Two independent reads of the change found more**, fixed before it was pushed. The ones that would have touched you: the time limit on a call to the remote relied on the shell's job control, which a sandbox with no terminal does not have, so a remote that hung would have left processes behind; a fetch that failed was taken for "the branch does not exist"; the push ran the repository's own `pre-push` hook (a test run, say) once per try; a clone made without file contents (`--filter=blob:none`) could not send to a shared branch at all; a branch name git can never make was retried for the whole 45 seconds on every turn; and a link among the events was followed, so a link a pull request added would have sent whatever it pointed at (that one was older than this change).
+
+**What I would install, for your trial and then for the lanes:**
+
+```bash
+grooph hooks install --push --tools          # no --push-branch; commit .claude/settings.json and .grooph/hooks/
+```
+
+The push script changed, so the copy in `.grooph/hooks/` on your throwaway branch has to be replaced by this version's and committed again. Then, where you read:
+
+```bash
+git fetch origin
+grooph sessions runners=git:origin/grooph-events-detached lane-a=git:origin/grooph-events/<lane a's branch>
+```
+
+**For the trial you proposed** (two short sessions at once, one with no branch and one on a branch), what would tell the most:
+
+1. After the first turn of each: does it read `waiting` from your side, within a minute of the turn's end?
+2. In each sandbox, a minute after a turn ends: `cat .grooph/events/.last-push.json`. `"ok":true` with a `branch`, or the reason it failed. If it has a `"started"` in it, the sandbox stopped the hook before it finished, and that is the finding.
+3. Half an hour on: `last seen … waiting then`.
+4. For the session that starts a branch mid-way: read both of its branches together and check it shows once.
+
+**Not known here:** whether your cloud sandbox lets a background hook run for some seconds after a turn ends; whether it may push `grooph-events-detached` (it accepted `grooph-events/<branch>` on October 1). Both are what the trial shows, and this time a failure says what it was.
+

@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-02T23:03:46.551Z",
+  "remote": "a made-up remote on this machine",
+  "branch": "grooph-events/trial-shared",
+  "sessions": 10,
+  "arrived": 10,
+  "filesOnBranch": 10,
+  "commitsOnBranch": 10,
+  "silentAndExitZero": true,
+  "seconds": {
+    "first": 0.423,
+    "median": 2.422,
+    "last": 3.846
+  },
+  "triesPerSession": [
+    7,
+    1,
+    4,
+    3,
+    5,
+    8,
+    6,
+    4,
+    6,
+    2
+  ],
+  "failed": []
+}
