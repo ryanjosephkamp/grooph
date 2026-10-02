@@ -1,6 +1,6 @@
 # 0017 · A stale record is read as stale; sending at a turn's end is asked for
 
-**Date:** 2026-10-01 · **Status:** proposed (pull requests 0042 to 0044, waiting on the owner) · **Deciders:** driver, from the Operator's cloud run; the owner by merging
+**Date:** 2026-10-01 · **Status:** accepted (the owner approved the merge, 2026-10-02) · **Deciders:** owner, driver, from the Operator's cloud run
 
 ## Context
 
