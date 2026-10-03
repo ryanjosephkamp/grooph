@@ -25,6 +25,10 @@ Five headless Claude Code sessions (`claude -p`, version 2.1.280) and five Codex
 
 No model session. A script runs the turn-end push in ten repositories at the same instant, against a remote on the Mac and against GitHub, to answer whether sessions may share one events branch. All ten arrived each time; the record and what else it found are in [`2026-10-02/`](2026-10-02/).
 
+## 2026-10-03: what a background subagent leaves
+
+No model session. This session's own event file, read for what its seven background subagents left (a start, the `Agent` tool call and a typed stop, each) and for the twenty stop lines with no type that nobody started (Claude Code's own helper after each turn). The record is in [`2026-10-03/`](2026-10-03/).
+
 ## What is in each folder
 
 | File | From | Holds |
