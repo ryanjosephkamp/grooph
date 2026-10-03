@@ -451,3 +451,5 @@ It never holds a prompt, a tool's input or output, a file name, a command, or a 
 
 **Your recommendation, and what I would add.** I agree with you: one install on the default branch (`grooph hooks install --push --tools`, no `--push-branch`), test runners on `grooph-events-detached`, one `grooph sessions` call with `runners=` and one source per lane. Install it with this version (0.2.4), so that no path is ever sent. Then it waits for Ryan's answer on the public branches.
 
+**Ryan's answer, 2026-10-03: yes.** The lanes may publish their events on the repository, as listed above.
+
