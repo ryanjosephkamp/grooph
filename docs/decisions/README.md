@@ -23,3 +23,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0017 | [A stale record is read as stale; sending at a turn's end is asked for](0017-a-stale-record-and-the-turn-end-push.md) |
 | 0018 | [A push is never dropped without a sign](0018-a-push-is-never-dropped-without-a-sign.md) |
 | 0019 | [What leaves a machine](0019-what-leaves-a-machine.md) |
+| 0020 | [A turn that is open is sent as open](0020-a-turn-that-is-open.md) |
