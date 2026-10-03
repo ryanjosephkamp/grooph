@@ -1,6 +1,6 @@
-# Handback to the Operator: grooph 0.2.3
+# Handback to the Operator: grooph 0.2.4
 
-For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), and on 2026-10-02 after your third (section 14) and your fourth (section 15). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
+For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), on 2026-10-02 after your third (section 14) and your fourth (section 15), and on 2026-10-03 after your fifth (section 16). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
 You asked for a way to show the whole operation. You now have three things: a **document** that describes it (the operation map), **pictures** of it you can send, and a **record of what is running** that a hook writes and you can lay over the map.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.2.3** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 15 |
+| Version | **0.2.4** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 16 |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`**, tagged `v0.2.3` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.2, the merge has not happened yet, and branch `slice/0048-push-when-detached` holds it. |
+| Where the code is | **`main`**, tagged `v0.2.4` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.3, the merge has not happened yet, and branch `slice/0050-send-only-this-session` holds it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.2.3 2>/dev/null || git checkout slice/0048-push-when-detached   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.2.4 2>/dev/null || git checkout slice/0050-send-only-this-session   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.2.3
+node packages/cli/bin/grooph.js --version    # 0.2.4
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -162,6 +162,8 @@ node .grooph/hooks/grooph-events-push.mjs --branch claude/grooph-events-lane-a  
 
 It makes one commit whose tree is `.grooph/events/` and nothing else, on top of what that branch already holds, and pushes it. It never touches the working tree, the index, `HEAD` or the lane's own branch, so nothing reaches a pull request or `main`. Files already on the branch that this lane does not have are kept, and a file two lanes both have is never made shorter, so many lanes may share one branch (how many, measured: below). The commit is made as `grooph`, not with the session's git identity: the branch names no person. **It refuses any branch that holds something other than events, and the branch the lane has checked out**: pointed at a lane's own work branch it would otherwise replace the work with the event files, so it will not. With no branch checked out (your cloud sessions before they start their branch; your test runners always) the events go to `grooph-events-detached`, one branch all such checkouts share. Run it when a round ends, and as often as you like in between: with nothing new it says so and makes no commit. Where grooph is installed, `grooph events push` is the same code.
 
+**What is sent is less than what is kept.** The files in the sandbox keep everything the hook wrote. What goes to the branch has a folder's **name** in place of its path, and no path to a subagent's transcript; a reader elsewhere has no use for either. Only whole lines go: one still being written waits for the next push. And at a turn's end the hook sends a file only if it has to do with **its own session**: the session's own file, a file with a line written since that session began, or a file the branch already holds (so an earlier session's end still arrives). Files an earlier session left in a kept sandbox stay where they are (you saw one, section 16). By hand, `--since <time>` does the same; without it, everything in the folder goes. Read the folder and the branch together and each event counts once.
+
 If a harness lets a session push only under a prefix, give the whole branch name with `--branch`. Your cloud sandbox took the default name on the first try.
 
 **A push is a snapshot.** What a lane does after it never leaves the sandbox, and a session cannot send what it writes as it stops. You saw it: the lane read "working" for good. Two things answer that, and you chose neither, so here is what each does:
@@ -277,7 +279,8 @@ They record and report. None starts or changes anything. Whether using them make
 - **The cloud: seen by you, not by this session.** You ran the hook in a cloud session with one repository on 2026-10-01: its events file filled, with a subagent's start and stop. A session with several repositories starts above the clones and does not read their settings, so a repository's hooks do not run for it (that is your own session).
 - **Codex in the cloud is unknown.** Nothing here establishes hooks in Codex cloud tasks. Locally, in `codex exec`: a project's `.codex/hooks.json` loaded in a folder Ryan had trusted, with hook review skipped for that run; it was ignored in a folder not trusted, and an unreviewed hook was skipped silently. After Ryan reviewed the committed hook once in the Codex CLI's `/hooks`, a Codex desktop chat run locally in that folder was recorded, with both its subagents. The same in the app's worktree mode: its copy was recorded too, with no further review. The Codex app also starts a thread of its own beside a chat, which shows in the view as a second session with no subagents. grooph's MCP tools were called from a Codex session and worked ([record](../experiments/hooks/2026-10-01/)).
 - **As live as the last push.** A lane's events are invisible until it sends them (`grooph-events-push.mjs`, or at every turn's end with `--push`), and a watching machine has to fetch. A session's own end is never sent. Past half an hour of silence a session is shown as `last seen`, not `working`.
-- **The turn-end push has not yet been seen to arrive from a cloud session.** Your first trial found why it could not (section 15), and that is fixed and tested against real repositories and GitHub from this Mac. Whether a cloud sandbox lets a background hook finish after a turn ends is still yours to see. If it does not, the record in the sandbox will say `began … NEVER FINISHED`.
+- **The turn-end push in your cloud.** Seen working by you on 2026-10-03: two sessions at once, every turn's push arrived 2 to 5 seconds after the turn ended, the sandbox let each finish (section 16). [reported]
+- **An events branch on a public repository is public.** Section 16 lists exactly what it holds. Treat what is pushed as public for good: deleting a branch does not reach copies others already fetched.
 - **A failed push is recorded where it ran.** `grooph hooks status` in that sandbox says why; a reader elsewhere sees only that nothing new arrived.
 - **About sixteen turns ending in one moment** is what one shared events branch carries on GitHub, by the measured 2.5 s a round. Past that the ones left over fail, say so, and send with their next turn.
 - **The shared branch for sessions with no branch is one name.** A lane that has not started its branch yet shows under whatever name you read `grooph-events-detached` as.
@@ -413,4 +416,38 @@ grooph sessions runners=git:origin/grooph-events-detached lane-a=git:origin/groo
 4. For the session that starts a branch mid-way: read both of its branches together and check it shows once.
 
 **Not known here:** whether your cloud sandbox lets a background hook run for some seconds after a turn ends; whether it may push `grooph-events-detached` (it accepted `grooph-events/<branch>` on October 1). Both are what the trial shows, and this time a failure says what it was.
+
+## 16. Your fifth reply, on 0.2.3
+
+**Settled, by you, in your cloud** (2026-10-03, two Sonnet 5.5 sessions started within a second of each other on the throwaway branch, both with no branch checked out; B started a local branch in its third turn): [reported]
+
+| Was open | Now |
+|---|---|
+| Does a cloud sandbox let the background push finish after a turn ends? | Yes. Every turn's push arrived 2 to 5 seconds after the turn ended; neither session's record had a `started` in it |
+| Do sessions with no branch reach `grooph-events-detached`? | Yes, all of A's turns and B's first two |
+| A session that starts a branch mid-way | B's third turn went to `grooph-events/<its branch>`; read across both branches it shows once, under `lane`, its subagent not doubled |
+| Two sessions on one branch at once | Two pairs of pushes landed two and four seconds apart; nothing lost |
+| `waiting`, then `last seen` | `waiting` 12 s after a turn ended; `last seen 31 min … ago, waiting then` half an hour on |
+| Who the commits are by | `grooph <grooph@localhost>`, every one |
+
+**Found, by you:**
+
+| You said | State in 0.2.4 |
+|---|---|
+| Both fresh sessions also sent an events file from October 1, a session that ran in an earlier sandbox. The environment seems to keep git-ignored files between sessions, so each lane would carry old sessions forward as if they were its own | **fixed.** The harness tells a hook which session's turn ended. At that turn's end the hook now sends a file only if it is that session's own, has a line written since that session began, or is already on the branch. So an old session's file goes to no branch that never had it, while an earlier session's end in the same clone still arrives. Told nothing it can use, it sends everything, as before. The October 1 file already on your two branches stays there, reads `ended`, and goes no further |
+| The repository is public, so the events branches would be public too; you would ask Ryan first | **Right, and it is his call.** Below is exactly what a branch holds, which is a little more than your list. Two of the things on it are now smaller: a folder is sent as its name, not its path, and a subagent transcript's path is no longer sent at all |
+
+**What an events branch holds, all of it**, from 0.2.4 on:
+
+- session ids and subagent ids (random strings);
+- the harness's name, and model names where the harness gives them;
+- agent types: built-in ones, and the names of any custom agents;
+- tool names, with `--tools` (without it, only the tool that starts a subagent). A tool from an MCP server carries the server's name, such as `mcp__github__create_pull_request`, so it shows which services a session is connected to;
+- the time of each session start, turn start and end, subagent start and stop, and finished tool call: when the lanes work, and for how long;
+- the working folder's **name** (before 0.2.4, its whole path);
+- only if a lead uses grooph's own MCP server (your lanes do not): its plan titles, the purpose it gives each planned subagent, and its notes. These are free text the agent writes.
+
+It never holds a prompt, a tool's input or output, a file name, a command, or a reply.
+
+**Your recommendation, and what I would add.** I agree with you: one install on the default branch (`grooph hooks install --push --tools`, no `--push-branch`), test runners on `grooph-events-detached`, one `grooph sessions` call with `runners=` and one source per lane. Install it with this version (0.2.4), so that no path is ever sent. Then it waits for Ryan's answer on the public branches.
 

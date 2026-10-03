@@ -122,7 +122,9 @@ export function readLive(sources: EventSource[], now: () => Date = () => new Dat
         const counts = held.get(session) ?? held.set(session, sources.map(() => 0)).get(session)!;
         counts[at]! += 1;
         // The same line twice in one source is two events (two tool calls in one millisecond); in two sources, one.
-        const line = JSON.stringify(e);
+        // Compared as it is sent: a copy pushed to a branch has a folder's name for its path and no transcript, and
+        // is the same event as the line on the machine that sent it.
+        const line = sameness(e);
         const n = (here.get(line) ?? 0) + 1;
         here.set(line, n);
         if (n <= (kept.get(line) ?? 0)) continue;
@@ -162,6 +164,13 @@ export function readLive(sources: EventSource[], now: () => Date = () => new Dat
   return { groophLive: 0, at: now().toISOString(), sessions: summarizeSessions(ordered), ...(issues.length > 0 ? { issues } : {}) };
 }
 
+/** An event as the push sends it, as text: the key two copies of one event share, wherever each was read. */
+function sameness(e: SessionEvent): string {
+  const { transcript: _path, ...rest } = e;
+  const cwd = typeof rest.cwd === "string" ? (rest.cwd.split(/[\\/]+/).filter(Boolean).pop() ?? "") : undefined;
+  return JSON.stringify(cwd === undefined ? rest : { ...rest, cwd });
+}
+
 /** How the last push of a project's events went, as the push script left it in `.grooph/events/.last-push.json`. */
 export type PushRecord = {
   /** a push by the hook that began and has not said how it ended: under way, or stopped dead */
@@ -182,7 +191,7 @@ export type PushRecord = {
     failedSince?: string;
     failures?: number;
   };
-  /** the last time the remote was known to hold everything this clone had */
+  /** the last push that arrived: what it sent was then on the remote */
   arrived?: { at: string; branch: string; commit: string };
 };
 

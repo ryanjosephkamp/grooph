@@ -37,7 +37,7 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  */
 export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
-export const VERSION = "0.2.3";
+export const VERSION = "0.2.4";
 
 const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
 
@@ -61,7 +61,7 @@ Usage
   grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
   grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--push] [--local]
   grooph sessions [<source>...] [--json]
-  grooph events push [--branch <name>] [--remote <name>] [--no-push] [--dir <project>]
+  grooph events push [--branch <name>] [--remote <name>] [--since <time> [--session <id>]] [--no-push] [--dir <project>]
   grooph mcp [--dir <project>] [--harness <name>]
   grooph <command> --help
   grooph --version

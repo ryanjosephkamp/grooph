@@ -7,7 +7,7 @@
  * they would ride into every pull request. This puts them on a branch that holds
  * nothing else, so another machine can read them and no pull request ever sees them.
  *
- *   node .grooph/hooks/grooph-events-push.mjs [--branch <name>] [--remote <name>] [--no-push]
+ *   node .grooph/hooks/grooph-events-push.mjs [--branch <name>] [--remote <name>] [--since <time> [--session <id>]] [--no-push]
  *
  *   --branch <name>   the branch to write. Default: grooph-events/<the branch checked out here>,
  *                     and grooph-events-detached when no branch is checked out (a cloud session
@@ -16,6 +16,10 @@
  *                     prefix, for example --branch claude/grooph-events-lane-a
  *   --remote <name>   default: origin
  *   --no-push         make the commit and print its id; send nothing
+ *   --since <time>    leave out event files whose last line is older than this, unless the branch
+ *                     already holds them (the hook gives its session's first line: files an
+ *                     earlier session left in the sandbox are not sent to a branch that never had them)
+ *   --session <id>    with --since: this session's own files always go, whatever their times say
  *   --hook            run as a harness hook at the end of a turn (grooph hooks install --push):
  *                     wait a moment for the event hook's own line, then push; print nothing
  *                     and exit 0 whatever happens; give way if another push is under way.
@@ -34,7 +38,10 @@
  *   - it writes only to a branch that holds events and nothing else. A branch
  *     with anything else on it (a work branch, main) is refused, and so is the
  *     branch checked out here: an events branch is never a branch of work;
- *   - it sends what the hook wrote: ids, names and times.
+ *   - it sends what the hook wrote, less two things a reader elsewhere has no use for: a folder is
+ *     sent as its name, not its path, and the path of a subagent's transcript is not sent. Only
+ *     whole lines go; a line still being written waits for the next push. The files here keep
+ *     everything. What is sent is ids, names and times.
  *
  * Read it elsewhere, after a fetch:  grooph sessions lane-a=git:origin/<branch>
  *
@@ -44,7 +51,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, realpathSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -222,6 +229,69 @@ function declined(said) {
   return /hook declined|push declined|protected branch|denied|not permitted|not allowed|unauthori[sz]ed|authentication failed|could not read (username|password)|unable to access|could not resolve host|\b40[13]\b/i.test(reasons);
 }
 
+/**
+ * Whether every line of an event file was written before `since`: its last line is read, since lines are appended
+ * in time. A file whose last line cannot be read is not called old: when in doubt, it is sent.
+ */
+function olderThan(file, since) {
+  try {
+    const text = readFileSync(file, "utf8");
+    const lines = text.split("\n").filter((line) => line.trim() !== "");
+    const t = JSON.parse(lines[lines.length - 1] ?? "")?.t;
+    return typeof t === "string" && !Number.isNaN(Date.parse(t)) && Date.parse(t) < Date.parse(since);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * What leaves this machine of an event file: whole lines only (a line still being written waits for the next push),
+ * each one an event (a line torn by a full disk or a killed process is not one, and is not sent), and in each, a
+ * folder's name in place of its path and no path to a subagent's transcript. A reader elsewhere has no use for a path
+ * on this machine, and a branch others can read should not carry one. The file here is unchanged.
+ *
+ * `branchCopy`: the copy already on the branch, put in the same form so that a copy sent by an older version still
+ * joins line for line. Where an older version's push and this version's both added one event, the branch holds it
+ * twice, once with its path and once without; put in this form they are the same line, and one of them goes.
+ */
+function outbound(text, branchCopy = false) {
+  const seen = new Set();
+  const out = [];
+  for (const line of text.slice(0, text.lastIndexOf("\n") + 1).split("\n")) {
+    if (line === "") continue;
+    const short = shortened(line);
+    if (short === undefined) continue;
+    if (branchCopy && short !== line && seen.has(short)) continue;
+    seen.add(short);
+    out.push(short);
+  }
+  return out.length > 0 ? `${out.join("\n")}\n` : "";
+}
+
+/** One event line in the form it leaves in; undefined when it is not an event (not a JSON object). */
+function shortened(line) {
+  let e;
+  try {
+    e = JSON.parse(line);
+  } catch {
+    return undefined;
+  }
+  if (typeof e !== "object" || e === null || Array.isArray(e)) return undefined;
+  let changed = false;
+  if (typeof e.cwd === "string") {
+    const name = e.cwd.split(/[\\/]+/).filter(Boolean).pop() ?? "";
+    if (name !== e.cwd) {
+      e.cwd = name;
+      changed = true;
+    }
+  }
+  if ("transcript" in e) {
+    delete e.transcript;
+    changed = true;
+  }
+  return changed ? JSON.stringify(e) : line;
+}
+
 /** How many times a push is made before giving up, when run by hand. As a hook the time left decides. */
 const TRIES = 20;
 /** Wait, without giving the turn to anything else: this script does one thing at a time. */
@@ -316,6 +386,13 @@ function send(options, where) {
         .sort()
     : [];
   if (files.length === 0) return { status: "nothing", message: `No events in ${EVENTS}/ yet: nothing to send. The event hook writes them once it is installed (grooph hooks install).` };
+  // As a hook, what this session has to do with. A sandbox may start with files an earlier session left behind (a
+  // cloud environment can keep ignored files from one session to the next); sent to a branch that never had them,
+  // they would read as this session's. So a file goes when it is this session's own, when it has a line since this
+  // session began, or when the branch already holds it: then what it has gained since (an earlier session's end,
+  // a subagent's late stop) still arrives. Which files the branch holds is known once it has been fetched.
+  const ownFiles = options.session ? new Set([`${options.session}.jsonl`, `said-${options.session}.jsonl`]) : new Set();
+  const fresh = new Set(options.since ? files.filter((name) => ownFiles.has(name) || !olderThan(join(dir, name), options.since)) : files);
 
   // `symbolic-ref` names the branch HEAD is on, born or not, and says nothing when HEAD is on no branch. The whole
   // name is asked for: the short one is spelt differently when a tag has the same name.
@@ -427,22 +504,29 @@ function send(options, where) {
       const entries = parent ? entriesOf(project, `${parent}:${EVENTS}`) : new Map();
       // Read or stop: going on without them would drop every other session's file from the branch.
       if (!entries) throw new Error(`the files ${remote} ${branch} holds could not be read. Nothing was sent`);
-      for (const name of files) {
-        const local = readFileSync(join(dir, name), "utf8");
+      const sending = files.filter((name) => fresh.has(name) || entries.has(name));
+      const left = files.length - sending.length;
+      const leftOut = left > 0 ? `, leaving out ${left} older file${left === 1 ? "" : "s"} here that ${left === 1 ? "is" : "are"} not this session's and not on the branch` : "";
+      if (sending.length === 0) return { status: "nothing", branch, message: `Nothing written here since this session began: nothing to send${leftOut}.` };
+      for (const name of sending) {
+        const local = outbound(readFileSync(join(dir, name), "utf8"));
         const had = entries.get(name);
         // The same for the copy on the branch: unread, this clone's copy would replace it, lines and all.
-        const before = had ? must(project, ["cat-file", "blob", had.id]) : undefined;
-        // `git()` trims one trailing newline; the comparison is of lines, so give it back.
-        const text = before === undefined ? local : joined(before === "" ? "" : `${before}\n`, local);
+        const prior = had ? must(project, ["cat-file", "blob", had.id]) : undefined;
+        // `git()` trims one trailing newline; the comparison is of lines, so give it back. The branch's copy is put
+        // in the same form as this one, so that a copy sent by an older version still joins line for line.
+        const text = prior === undefined ? local : joined(outbound(prior === "" ? "" : `${prior}\n`, true), local);
         entries.set(name, { mode: "100644", type: "blob", id: must(project, ["hash-object", "-w", "--stdin"], text) });
       }
       const [top, leaf] = EVENTS.split("/");
       const eventsTree = treeOf(project, entries);
       const root = treeOf(project, new Map([[top, { mode: "040000", type: "tree", id: treeOf(project, new Map([[leaf, { mode: "040000", type: "tree", id: eventsTree }]])) }]]));
-      const count = `${entries.size} event file${entries.size === 1 ? "" : "s"}`;
+      const fileCount = (n) => `${n} event file${n === 1 ? "" : "s"}`;
+      const count = fileCount(sending.length);
+      const held = entries.size > sending.length ? `; the branch holds ${entries.size}` : "";
 
       if (parent && git(project, ["rev-parse", `${parent}^{tree}`]) === root) {
-        return { status: "unchanged", branch, commit: parent, files: entries.size, message: `Nothing new: ${remote} ${branch} already holds ${entries.size === 1 ? "this" : "these"} ${count}.` };
+        return { status: "unchanged", branch, commit: parent, files: entries.size, message: `Nothing new: ${remote} ${branch} already holds ${sending.length === 1 ? "this" : "these"} ${count}${leftOut}.` };
       }
 
       // The commit names no person. Made with the session's own git identity it would put somebody's name and e-mail
@@ -451,7 +535,7 @@ function send(options, where) {
       const when = (options.now ?? new Date()).toISOString();
       const commit = must(project, ["commit-tree", root, ...(parent ? ["-p", parent] : []), "-m", `grooph events: ${entries.size} session file${entries.size === 1 ? "" : "s"}, ${when}`], undefined, AS_GROOPH);
 
-      if (options.push === false) return { status: "committed", branch, commit, files: entries.size, message: `Made commit ${commit.slice(0, 7)} for ${branch} (${count}); not sent (--no-push).` };
+      if (options.push === false) return { status: "committed", branch, commit, files: entries.size, message: `Made commit ${commit.slice(0, 7)} for ${branch} (${count}${held}${leftOut}); not sent (--no-push).` };
 
       made += 1;
       try {
@@ -476,7 +560,7 @@ function send(options, where) {
         files: entries.size,
         tries: made,
         beaten,
-        message: `Sent ${count} to ${remote} ${branch} (${commit.slice(0, 7)})${detached ? ": no branch is checked out here, so they went to the branch every such checkout shares" : ""}. Read them elsewhere after a fetch: grooph sessions <name>=git:${remote}/${branch}`,
+        message: `Sent ${count} to ${remote} ${branch} (${commit.slice(0, 7)})${detached ? ": no branch is checked out here, so they went to the branch every such checkout shares" : ""}${held}${leftOut}. Read them elsewhere after a fetch: grooph sessions <name>=git:${remote}/${branch}`,
       };
     }
   }
@@ -497,17 +581,17 @@ export function main(argv, project, out = console.log, err = console.error, by =
   const options = { project };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
-    if (arg === "--branch" || arg === "--remote") {
+    if (arg === "--branch" || arg === "--remote" || arg === "--since" || arg === "--session") {
       const value = argv[++i];
-      if (!value) {
-        err(`grooph: ${arg} needs a value`);
+      if (!value || (arg === "--since" && Number.isNaN(Date.parse(value))) || (arg === "--session" && !/^[A-Za-z0-9._-]{1,128}$/.test(value))) {
+        err(`grooph: ${arg} needs a value${arg === "--since" ? " that is a time, such as 2026-10-03T00:48:38Z" : arg === "--session" ? ": a session's file name without .jsonl" : ""}`);
         if (by === "hook") record(project, by, { ok: false, message: `${arg} needs a value` });
         return 1;
       }
       options[arg.slice(2)] = value;
     } else if (arg === "--no-push") options.push = false;
     else {
-      err(`grooph: events push does not take "${arg}". Options: --branch <name>, --remote <name>, --no-push`);
+      err(`grooph: events push does not take "${arg}". Options: --branch <name>, --remote <name>, --since <time>, --session <id>, --no-push`);
       if (by === "hook") record(project, by, { ok: false, message: `events push does not take "${arg}"` });
       return 1;
     }
@@ -541,6 +625,10 @@ export function main(argv, project, out = console.log, err = console.error, by =
  * wants a password or never answers costs a turn's end some seconds and never hangs it. A push that is stopped
  * dead leaves its lock, which the next push takes over after two minutes, and the word that it began.
  *
+ * The harness says which session's turn ended (its hook input, on standard input). Only files with a line since
+ * that session's first are sent, so a sandbox that kept an earlier session's files does not send them as its own.
+ * Told nothing, or nothing that names a file here, it sends them all, as by hand.
+ *
  * Silent is not the same as traceless: how the push went is left in `.grooph/events/.last-push.json`, so a push
  * that fails on every turn can be found by looking (`grooph hooks status`), where before it could not be told
  * from a hook that never ran.
@@ -572,6 +660,7 @@ export async function hookMain(argv, project, settle = Number(process.env.GROOPH
     how.env = { ...process.env, GIT_TERMINAL_PROMPT: "0", GIT_ASKPASS: "", SSH_ASKPASS: "", GCM_INTERACTIVE: "never" };
     // ssh asks on the terminal by itself; batch mode stops it. A project's or a person's own ssh command is left alone.
     if (!process.env.GIT_SSH_COMMAND && !git(project, ["config", "core.sshCommand"])) how.env.GIT_SSH_COMMAND = "ssh -oBatchMode=yes -oConnectTimeout=10";
+    const told = await hookInput(1000);
     // A moment, and never more than ten seconds whatever it is set to: the whole run must end inside the hook's limit.
     await new Promise((done) => setTimeout(done, Number.isFinite(settle) && settle >= 0 ? Math.min(settle, 10_000) : 1500));
     if (!existsSync(join(project, EVENTS))) return 0;
@@ -597,7 +686,8 @@ export async function hookMain(argv, project, settle = Number(process.env.GROOPH
       mine = true;
     }
     record(project, "hook", "started");
-    main(argv.filter((arg) => arg !== "--hook"), project, () => {}, () => {}, "hook");
+    const told_ = argv.includes("--since") ? undefined : thisSession(project, told);
+    main([...argv.filter((arg) => arg !== "--hook"), ...(told_ ? ["--since", told_.since, "--session", told_.name] : [])], project, () => {}, () => {}, "hook");
   } catch (e) {
     // A hook that fails must not fail a turn. It leaves word of why.
     record(project, "hook", { ok: false, message: e?.message ?? String(e) });
@@ -605,6 +695,68 @@ export async function hookMain(argv, project, settle = Number(process.env.GROOPH
     release();
   }
   return 0;
+}
+
+/**
+ * What the harness wrote on standard input, as JSON: as soon as what has come is whole, or after `ms`, whichever is
+ * first. Past a megabyte nothing more is kept, but the rest is still read, so the harness is never left writing
+ * into a closed pipe.
+ */
+function hookInput(ms) {
+  return new Promise((done) => {
+    let text = "";
+    let over = false;
+    const parse = () => {
+      try {
+        const json = JSON.parse(text);
+        return typeof json === "object" && json !== null && !Array.isArray(json) ? json : undefined;
+      } catch {
+        return undefined;
+      }
+    };
+    const finish = (json) => {
+      if (over) return;
+      over = true;
+      clearTimeout(timer);
+      process.stdin.pause();
+      process.stdin.unref?.();
+      done(json);
+    };
+    const timer = setTimeout(() => finish(parse()), ms);
+    if (process.stdin.isTTY) return finish(undefined);
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      if (over || text.length > 1_000_000) return;
+      text += chunk;
+      const json = parse();
+      if (json) finish(json);
+    });
+    process.stdin.on("end", () => finish(parse()));
+    process.stdin.on("error", () => finish(undefined));
+  });
+}
+
+/**
+ * The session whose turn ended: its file's name, as the event hook names it, and when it began here (the time of
+ * its file's first line). Undefined when the harness did not say which session, or its file is not here.
+ */
+function thisSession(project, told) {
+  const session = typeof told?.session_id === "string" && told.session_id !== "" ? told.session_id : undefined;
+  if (!session) return undefined;
+  const name = /^[A-Za-z0-9._-]{1,128}$/.test(session) ? session : Buffer.from(session).toString("hex").slice(0, 64);
+  try {
+    const fd = openSync(join(project, EVENTS, `${name}.jsonl`), "r");
+    try {
+      const head = Buffer.alloc(4096);
+      const n = readSync(fd, head, 0, head.length, 0);
+      const t = JSON.parse(head.subarray(0, n).toString("utf8").split("\n")[0])?.t;
+      return typeof t === "string" && !Number.isNaN(Date.parse(t)) ? { name, since: t } : undefined;
+    } finally {
+      closeSync(fd);
+    }
+  } catch {
+    return undefined;
+  }
 }
 
 const invoked = process.argv[1] ? realpathSync(process.argv[1]) : "";

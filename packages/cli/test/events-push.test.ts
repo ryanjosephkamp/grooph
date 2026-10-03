@@ -37,6 +37,20 @@ const git = (cwd: string, ...args: string[]): string =>
   execFileSync("git", ["-C", cwd, "-c", "user.name=test", "-c", "user.email=test@example.invalid", ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 
 const NESTED = join(repoRoot, "fixtures", "events", "claude-code-nested.jsonl");
+/** What a branch holds of an event file: a folder's name for its path, no transcript's path, and whole lines only. */
+const sent = (text: string): string =>
+  text
+    .slice(0, text.lastIndexOf("\n") + 1)
+    .split("\n")
+    .map((line) => {
+      if (line === "") return line;
+      const e = JSON.parse(line) as Record<string, unknown>;
+      if (typeof e["cwd"] === "string") e["cwd"] = (e["cwd"] as string).split("/").filter(Boolean).pop() ?? "";
+      delete e["transcript"];
+      return JSON.stringify(e);
+    })
+    .join("\n")
+    .trim();
 const CODEX = join(repoRoot, "fixtures", "events", "codex-two-subagents.jsonl");
 
 /** A bare remote and a clone of it with one commit on `main`, the hook installed, and `.grooph/events/` ignored. */
@@ -90,7 +104,7 @@ test("events push sends .grooph/events/ to a branch of its own and touches nothi
 
     // The branch on the remote holds the events and nothing else.
     assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/main"), ".grooph/events/5aac1305.jsonl");
-    assert.equal(git(remote, "show", "grooph-events/main:.grooph/events/5aac1305.jsonl"), readFileSync(NESTED, "utf8").trim());
+    assert.equal(git(remote, "show", "grooph-events/main:.grooph/events/5aac1305.jsonl"), sent(readFileSync(NESTED, "utf8")));
     const first = git(remote, "rev-parse", "grooph-events/main");
     assert.equal(git(remote, "rev-list", "--count", "grooph-events/main"), "1");
     // And the work's own branch does not have them.
@@ -124,7 +138,7 @@ test("two clones may share one events branch: each keeps the other's files; a th
     addEvents(other, "01a0f519.jsonl", CODEX);
     io = capture();
     assert.equal(await run(["events", "push", "--branch", "claude/grooph-events-team", "--dir", other], io), 0);
-    assert.match(text(io.stdout), /^Sent 2 event files to origin claude\/grooph-events-team/);
+    assert.match(text(io.stdout), /^Sent 1 event file to origin claude\/grooph-events-team \([0-9a-f]{7}\); the branch holds 2\./);
     assert.equal(git(remote, "ls-tree", "-r", "--name-only", "claude/grooph-events-team"), ".grooph/events/01a0f519.jsonl\n.grooph/events/5aac1305.jsonl");
     assert.equal(git(remote, "rev-list", "--count", "claude/grooph-events-team"), "2");
 
@@ -313,7 +327,7 @@ test("events push leaves FETCH_HEAD as the session left it, and a push that lose
     const io = capture();
     assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/shared"], io), 0, text(io.stderr));
     assert.equal(existsSync(once), true, "the race did not happen");
-    assert.match(text(io.stdout), /^Sent 2 event files to origin grooph-events\/shared/);
+    assert.match(text(io.stdout), /^Sent 1 event file to origin grooph-events\/shared \([0-9a-f]{7}\); the branch holds 2\./);
     assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/shared"), ".grooph/events/01a0f519.jsonl\n.grooph/events/5aac1305.jsonl");
     assert.match(git(remote, "show", "grooph-events/shared:.grooph/events/5aac1305.jsonl"), /"event":"turn-end"/);
     assert.equal(git(remote, "rev-list", "--count", "grooph-events/shared"), "4", "two before, the other clone's, then this one on top of it");
@@ -322,7 +336,7 @@ test("events push leaves FETCH_HEAD as the session left it, and a push that lose
     assert.deepEqual([raced.ok, raced.tries, raced.crowded], [true, 2, true]);
     const said = capture();
     assert.equal(await run(["hooks", "status", "--dir", lane], said), 0);
-    assert.match(text(said.stdout), /^last push: .*, by hand: Sent 2 event files to origin grooph-events\/shared \([0-9a-f]{7}\) \(on try 2: other sessions were sending to the same branch\)$/m);
+    assert.match(text(said.stdout), /^last push: .*, by hand: Sent 1 event file to origin grooph-events\/shared \([0-9a-f]{7}\); the branch holds 2 \(on try 2: other sessions were sending to the same branch\)$/m);
   });
 });
 
@@ -381,7 +395,7 @@ test("a session with no branch checked out still sends at its turn's end, and a 
     const before = untouched(cloud);
     let ran = fireHook(cloud);
     assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
-    assert.equal(git(remote, "show", "grooph-events-detached:.grooph/events/5aac1305.jsonl"), whole.slice(0, 4).join("\n"), "the first turn's lines left the sandbox");
+    assert.equal(git(remote, "show", "grooph-events-detached:.grooph/events/5aac1305.jsonl"), sent(`${whole.slice(0, 4).join("\n")}\n`), "the first turn's lines left the sandbox");
     assert.equal(untouched(cloud), before);
     // The commit names no person, whatever identity the session's git has: the branch holds ids, names of agents and times.
     assert.equal(git(remote, "log", "-1", "--format=%an <%ae> / %cn <%ce>", "grooph-events-detached"), "grooph <grooph@localhost> / grooph <grooph@localhost>");
@@ -398,7 +412,7 @@ test("a session with no branch checked out still sends at its turn's end, and a 
     writeFileSync(file, `${whole.join("\n")}\n`);
     ran = fireHook(cloud);
     assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
-    assert.equal(git(remote, "show", "grooph-events/claude/lane-a:.grooph/events/5aac1305.jsonl"), whole.join("\n"));
+    assert.equal(git(remote, "show", "grooph-events/claude/lane-a:.grooph/events/5aac1305.jsonl"), sent(`${whole.join("\n")}\n`));
     pushed = lastPush(cloud)!;
     assert.deepEqual([pushed.last?.ok, pushed.last?.branch], [true, "grooph-events/claude/lane-a"]);
 
@@ -609,7 +623,7 @@ test("the name of the events branch comes from the branch HEAD is on, born or no
     assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
     assert.equal(lastPush(thin)!.last!.ok, true, lastPush(thin)!.last!.message);
     assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events-detached"), ".grooph/events/01a0f519.jsonl\n.grooph/events/5aac1305.jsonl");
-    assert.equal(git(remote, "show", "grooph-events-detached:.grooph/events/5aac1305.jsonl"), readFileSync(NESTED, "utf8").trim());
+    assert.equal(git(remote, "show", "grooph-events-detached:.grooph/events/5aac1305.jsonl"), sent(readFileSync(NESTED, "utf8")));
     assert.doesNotMatch(execFileSync("git", ["-C", remote, "fsck", "--no-dangling"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), /error|missing/);
   });
 });
@@ -730,6 +744,125 @@ test("a link among the events is never followed: what it points at is not sent",
     assert.equal(await run(["events", "push", "--dir", other, "--branch", "grooph-events/linked"], io), 1);
     assert.match(text(io.stderr), /\.grooph\/events is a link, not a folder: nothing is sent from it/);
     assert.equal(git(remote, "branch", "--list", "grooph-events/linked"), "");
+  });
+});
+
+test("as a hook, only files written while its session has been running are sent: what an earlier session left in the sandbox stays", async () => {
+  await withRemote(async ({ remote, lane, root }) => {
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--push"], capture()), 0);
+    git(lane, "checkout", "--quiet", "--detach");
+    const events = join(lane, ".grooph", "events");
+    mkdirSync(events, { recursive: true });
+    const line = (session: string, event: string, t: string): string => `{"v":1,"t":"${t}","harness":"claude-code","event":"${event}","session":"${session}","cwd":"/home/user/project"}\n`;
+    // Left by a session of October 1 in a sandbox this environment kept, and a lead's note from then.
+    writeFileSync(join(events, "1afa0000-old.jsonl"), line("1afa0000-old", "session-start", "2026-10-01T20:00:00.000Z") + line("1afa0000-old", "session-end", "2026-10-01T20:00:00.060Z"));
+    writeFileSync(join(events, "said-mcp-old.jsonl"), '{"v":1,"t":"2026-10-01T20:00:00.030Z","harness":"claude-code","event":"note","session":"mcp-old","text":"old"}\n');
+    // This session, and what its lead said through the MCP server under an id the harness did not give.
+    writeFileSync(join(events, "b0b00000-new.jsonl"), line("b0b00000-new", "session-start", "2026-10-03T00:48:38.000Z") + line("b0b00000-new", "turn-end", "2026-10-03T00:48:58.000Z"));
+    writeFileSync(join(events, "said-mcp-new.jsonl"), '{"v":1,"t":"2026-10-03T00:48:50.000Z","harness":"claude-code","event":"note","session":"mcp-new","text":"new"}\n');
+    const hook = (input: string) =>
+      spawnSync(process.execPath, [join(lane, ".grooph", "hooks", "grooph-events-push.mjs"), "--hook"], { cwd: lane, input, encoding: "utf8", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" } });
+    let ran = hook(JSON.stringify({ hook_event_name: "Stop", session_id: "b0b00000-new", cwd: lane }));
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events-detached"), ".grooph/events/b0b00000-new.jsonl\n.grooph/events/said-mcp-new.jsonl");
+    const pushed = lastPush(lane)!.last!;
+    assert.equal(pushed.ok, true, pushed.message);
+    assert.match(pushed.message, /^Sent 2 event files to origin grooph-events-detached \([0-9a-f]{7}\): no branch is checked out here, so they went to the branch every such checkout shares, leaving out 2 older files here that are not this session's and not on the branch\. /);
+
+    // Told nothing it can use (no session, or one with no file here), it sends them all, as by hand.
+    ran = hook(JSON.stringify({ hook_event_name: "Stop", session_id: "not-here" }));
+    assert.equal(ran.status, 0);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events-detached").split("\n").length, 4);
+    // By hand, --since does the same, and says so.
+    const io = capture();
+    assert.equal(await run(["events", "push", "--dir", lane, "--branch", "grooph-events/by-hand", "--since", "2026-10-03T00:48:38Z"], io), 0, text(io.stderr));
+    assert.match(text(io.stdout), /leaving out 2 older files here that are not this session's and not on the branch\./);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events/by-hand"), ".grooph/events/b0b00000-new.jsonl\n.grooph/events/said-mcp-new.jsonl");
+    const bad = capture();
+    assert.equal(await run(["events", "push", "--dir", lane, "--since", "yesterday-ish"], bad), 1);
+    assert.match(text(bad.stderr), /--since needs a value that is a time/);
+
+    // A session that has ended in this clone still has its last lines sent by the next session's push: the branch
+    // holds its file, so what it gained since goes too. Here, its end and a subagent's late stop.
+    git(remote, "branch", "-D", "grooph-events-detached");
+    for (const f of readdirSync(events)) rmSync(join(events, f), { recursive: true, force: true });
+    writeFileSync(join(events, "a0000000-first.jsonl"), line("a0000000-first", "session-start", "2026-10-03T01:00:00.000Z") + line("a0000000-first", "turn-end", "2026-10-03T01:00:20.000Z"));
+    assert.equal(hook(JSON.stringify({ session_id: "a0000000-first" })).status, 0);
+    appendFileSync(join(events, "a0000000-first.jsonl"), line("a0000000-first", "session-end", "2026-10-03T01:00:30.000Z"));
+    writeFileSync(join(events, "b0000000-second.jsonl"), line("b0000000-second", "session-start", "2026-10-03T01:05:00.000Z") + line("b0000000-second", "turn-end", "2026-10-03T01:05:20.000Z"));
+    assert.equal(hook(JSON.stringify({ session_id: "b0000000-second" })).status, 0);
+    assert.match(git(remote, "show", "grooph-events-detached:.grooph/events/a0000000-first.jsonl"), /"event":"session-end"/);
+    assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events-detached"), ".grooph/events/a0000000-first.jsonl\n.grooph/events/b0000000-second.jsonl");
+
+    // A clock that stepped back: the session's last line is older than its first. Its own file goes all the same.
+    writeFileSync(join(events, "c0000000-clock.jsonl"), line("c0000000-clock", "session-start", "2026-10-03T13:00:05.000Z") + line("c0000000-clock", "turn-end", "2026-10-03T13:00:01.000Z"));
+    assert.equal(hook(JSON.stringify({ session_id: "c0000000-clock" })).status, 0);
+    assert.match(git(remote, "ls-tree", "-r", "--name-only", "grooph-events-detached"), /c0000000-clock\.jsonl/);
+
+    // The hook at a turn's end runs the project's own copy of the script: an older copy is said, by hand and in status.
+    writeFileSync(join(lane, ".grooph", "hooks", "grooph-events-push.mjs"), `${readFileSync(pushSource(), "utf8")}\n// an older version\n`);
+    const warned = capture();
+    assert.equal(await run(["events", "push", "--dir", lane, "--no-push"], warned), 0);
+    assert.match(text(warned.stderr), /\.grooph\/hooks\/grooph-events-push\.mjs here is not this grooph's version: the hook at a turn's end sends with that one\. Run grooph hooks install again/);
+    const status = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], status), 0);
+    assert.match(text(status.stdout), /grooph-events-push\.mjs is not this grooph's version/);
+    void root;
+  });
+});
+
+test("what leaves the machine carries a folder's name, not its path, and no transcript's path; only whole lines go; an older copy on the branch still joins", async () => {
+  await withRemote(async ({ remote, lane, root }) => {
+    const events = join(lane, ".grooph", "events");
+    mkdirSync(events, { recursive: true });
+    const file = join(events, "s1.jsonl");
+    const start = '{"v":1,"t":"2026-10-03T00:00:00.000Z","harness":"claude-code","event":"session-start","session":"s1","cwd":"/Users/someone/work/project"}\n';
+    const stop = '{"v":1,"t":"2026-10-03T00:00:05.000Z","harness":"claude-code","event":"subagent-stop","session":"s1","agent":"a1","type":"Explore","transcript":"/Users/someone/.claude/projects/-Users-someone-work-project/s1/subagents/agent-a1.jsonl"}\n';
+    // An older version sent the paths as they were: the branch already holds this copy.
+    const seed = join(root, "seed");
+    git(root, "clone", "--quiet", remote, seed);
+    git(seed, "checkout", "--quiet", "--orphan", "grooph-events/main");
+    git(seed, "rm", "-r", "--quiet", "--cached", ".");
+    for (const name of [".gitignore", "README.md"]) rmSync(join(seed, name));
+    mkdirSync(join(seed, ".grooph", "events"), { recursive: true });
+    writeFileSync(join(seed, ".grooph", "events", "s1.jsonl"), start);
+    git(seed, "add", "-A");
+    git(seed, "commit", "--quiet", "-m", "old");
+    git(seed, "push", "--quiet", "origin", "grooph-events/main");
+
+    // Here, the same session went on; its last line is still being written.
+    writeFileSync(file, `${start}${stop}{"v":1,"t":"2026-10-03T00:00:06.000Z","harn`);
+    assert.equal(await run(["events", "push", "--dir", lane], capture()), 0);
+    const onBranch = git(remote, "show", "grooph-events/main:.grooph/events/s1.jsonl");
+    assert.equal(onBranch, sent(`${start}${stop}`), "two lines, the folder by its name, no transcript, nothing half-written, and no line twice");
+    assert.doesNotMatch(onBranch, /someone|\.claude/);
+    assert.equal(readFileSync(file, "utf8").startsWith(`${start}${stop}`), true, "the file here is as the hook wrote it");
+    // Read elsewhere, the session is what it was: the folder's name, the subagent done once.
+    git(lane, "fetch", "--quiet", "origin");
+    const view = readLive([parseSource("git:origin/grooph-events/main")], NOW, lane);
+    assert.deepEqual([view.sessions[0]!.cwd, view.sessions[0]!.agents.length, view.sessions[0]!.agents[0]!.stops, view.sessions[0]!.agents[0]!.transcript], ["project", 1, 1, undefined]);
+    // Read here and from the branch together, each event is one: the copy sent is the same event as the line here.
+    const both = readLive([{ path: lane }, parseSource("git:origin/grooph-events/main")], NOW, lane);
+    assert.deepEqual([both.sessions.length, both.sessions[0]!.agents.length, both.sessions[0]!.agents[0]!.stops], [1, 1, 1]);
+    // The line is finished: it goes with the next push.
+    appendFileSync(file, 'ess":"claude-code","event":"turn-end","session":"s1","cwd":"/Users/someone/work/project"}\n');
+    assert.equal(await run(["events", "push", "--dir", lane], capture()), 0);
+    assert.equal(git(remote, "show", "grooph-events/main:.grooph/events/s1.jsonl").split("\n").length, 3);
+
+    // An older version's push and this one's both added the same event: the branch holds it twice, once with its
+    // path. The next push leaves it once. A line torn by a full disk is not an event, and is not sent.
+    git(seed, "fetch", "--quiet", "origin");
+    git(seed, "reset", "--quiet", "--hard", "origin/grooph-events/main");
+    appendFileSync(join(seed, ".grooph", "events", "s1.jsonl"), stop);
+    git(seed, "commit", "--quiet", "-am", "an older version's push");
+    git(seed, "push", "--quiet", "origin", "grooph-events/main");
+    assert.equal(git(remote, "show", "grooph-events/main:.grooph/events/s1.jsonl").split("\n").length, 4);
+    appendFileSync(file, '{"v":1,"t":"2026-10-03T00:00:07.000Z","harness":"claude-co\n{"v":1,"t":"2026-10-03T00:00:08.000Z","harness":"claude-code","event":"turn-start","session":"s1","cwd":"/Users/someone/work/project"}\n');
+    assert.equal(await run(["events", "push", "--dir", lane], capture()), 0);
+    const healed = git(remote, "show", "grooph-events/main:.grooph/events/s1.jsonl").split("\n");
+    assert.equal(healed.length, 4, healed.join("\n"));
+    assert.equal(healed.filter((l) => l.includes("subagent-stop")).length, 1);
+    assert.doesNotMatch(healed.join("\n"), /someone|claude-co"|harness":"claude-co$/);
   });
 });
 
