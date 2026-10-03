@@ -35,7 +35,7 @@ echo "$out"
 [[ "$(readlink "$HOME/.claude/skills/grooph-design")" == "$REPO/plugins/grooph/skills/grooph-design" ]] || fail "skill link"
 [[ -f "$HOME/.claude/skills/grooph-design/SKILL.md" ]] || fail "the skill does not resolve through the link"
 grep -q "grooph is on PATH" <<<"$out" || fail "PATH check"
-[[ "$("$BIN/grooph" --version)" == "0.2.4" ]] || fail "the linked CLI does not run"
+[[ "$("$BIN/grooph" --version)" == "0.2.5" ]] || fail "the linked CLI does not run"
 "$BIN/grooph" template list >/dev/null || fail "the linked CLI cannot find its bundled templates"
 [[ "$(cd "$HOME" && find . -mindepth 1 | sort | tr '\n' ' ')" == "./.claude ./.claude/skills ./.claude/skills/grooph-design ./.local ./.local/bin ./.local/bin/grooph " ]] ||
   fail "install touched more than the two links and their folders: $(cd "$HOME" && find . -mindepth 1)"
