@@ -1,6 +1,6 @@
 # 0019 · What leaves a machine
 
-**Date:** 2026-10-03 · **Status:** proposed (waits for the owner's word on the merge) · **Deciders:** owner, driver, from the Operator's second trial of the turn-end push
+**Date:** 2026-10-03 · **Status:** accepted (the owner approved the merge, 2026-10-03, and said yes to the lanes publishing their events on the other project's public repository) · **Deciders:** owner, driver, from the Operator's second trial of the turn-end push
 
 ## Context
 
