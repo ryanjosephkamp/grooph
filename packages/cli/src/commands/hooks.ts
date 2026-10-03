@@ -66,7 +66,7 @@ const PUSH_REL = join(".grooph", "hooks", PUSH);
 /** The script that sends events to a branch of their own, as this CLI ships it: packages/cli/hooks/grooph-events-push.mjs. */
 export const pushSource = (): string => fileURLToPath(new URL(`../../../hooks/${PUSH}`, import.meta.url));
 
-export const EVENTS_HELP = `grooph events push [--branch <name>] [--remote <name>] [--no-push] [--dir <project>]
+export const EVENTS_HELP = `grooph events push [--branch <name>] [--remote <name>] [--since <time> [--session <id>]] [--no-push] [--dir <project>]
 
 Send this project's session events to a branch of their own, so another machine can
 read them and no pull request ever carries them.
@@ -77,6 +77,11 @@ read them and no pull request ever carries them.
                     prefix, for example --branch claude/grooph-events-lane-a
   --remote <name>   default: origin
   --no-push         make the commit and print its id; send nothing
+  --since <time>    leave out event files whose last line is older than this, unless the
+                    branch already holds them. The hook at a turn's end gives its own
+                    session's first line, so files an earlier session left in the folder
+                    do not go to a branch that never had them
+  --session <id>    with --since: this session's own files go whatever their times say
   --dir <project>   default: the current directory
 
 It makes one commit whose tree is .grooph/events/ and nothing else, on top of what that
@@ -84,6 +89,10 @@ branch already holds, and pushes it. It never touches the working tree, the inde
 or the branch checked out. Event files already on the branch that this clone does not
 have are kept, and a file both have is never made shorter, so many sessions may share
 one. When another session sends first, this one looks again and goes on top of it.
+
+What is sent is what the hook wrote, less two paths: a folder goes as its name, and the
+path of a subagent's transcript is left out. Only whole lines that are events go. The files
+here keep all.
 
 It writes only to a branch that holds events and nothing else: a branch with any other
 file on it, and the branch checked out here, are refused.
@@ -106,8 +115,15 @@ export async function eventsCommand(io: Output, sub: string | undefined, args: s
     io.err(sub === undefined ? "grooph: events needs push (grooph events --help)" : `grooph: unknown events command "${sub}"; it is push`);
     return 1;
   }
+  const project = resolve(dir ?? ".");
+  // The hook at a turn's end runs the project's own copy. Two versions writing one branch can leave an event on it
+  // twice, so a copy that is not this one is said, with the way to replace it.
+  const copy = join(project, PUSH_REL);
+  if (existsSync(copy) && readFileSync(copy, "utf8") !== readFileSync(pushSource(), "utf8")) {
+    io.err(`grooph: ${PUSH_REL} here is not this grooph's version: the hook at a turn's end sends with that one. Run grooph hooks install again (with the same options) and commit it.`);
+  }
   const mod = (await import(pathToFileURL(pushSource()).href)) as PushModule;
-  return mod.main(args, resolve(dir ?? "."), (line) => io.out(line), (line) => io.err(line));
+  return mod.main(args, project, (line) => io.out(line), (line) => io.err(line));
 }
 
 /** The hook as this CLI ships it: packages/cli/hooks/grooph-event.mjs. */
@@ -387,6 +403,9 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
         anyPush ||= pushing;
         if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${pushing ? ", one of which sends the events at the end of each turn" : ""}` : `no entries in ${shownPath(path)}`}`);
       }
+    }
+    if (existsSync(join(dir, PUSH_REL)) && readFileSync(join(dir, PUSH_REL), "utf8") !== readFileSync(pushSource(), "utf8")) {
+      io.out(`${PUSH_REL} is not this grooph's version: run grooph hooks install again (with the same options) and commit it`);
     }
     const files = eventFiles(dir);
     io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
