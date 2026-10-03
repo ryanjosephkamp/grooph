@@ -37,7 +37,7 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  */
 export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
 
-export const VERSION = "0.2.3";
+export const VERSION = "0.2.4";
 
 const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
 
