@@ -1,6 +1,6 @@
 # 0020 · A turn that is open is sent as open
 
-**Date:** 2026-10-03 · **Status:** proposed (waits for the owner's word on the merge) · **Deciders:** owner, driver, from the Operator's first day with the hooks on its lanes
+**Date:** 2026-10-03 · **Status:** accepted (the owner approved the merge, 2026-10-03) · **Deciders:** owner, driver, from the Operator's first day with the hooks on its lanes
 
 ## Context
 
