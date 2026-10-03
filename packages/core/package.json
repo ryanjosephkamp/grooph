@@ -1,6 +1,6 @@
 {
   "name": "@grooph/core",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "type": "module",
   "description": "grooph core: graph document types, schema, validator, canonical form and compilers.",

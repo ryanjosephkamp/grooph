@@ -35,9 +35,9 @@ import { LoadError, openUrl, type OpenUrl } from "./share-io.js";
  * What a run may reach outside its arguments; tests replace any of it.
  * `signal` stops `grooph watch` (otherwise Ctrl-C does); `env` stands in for `process.env`.
  */
-export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv };
+export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env?: NodeJS.ProcessEnv; /** where the command is run from, when not the process's own folder */ cwd?: string };
 
-export const VERSION = "0.2.4";
+export const VERSION = "0.2.5";
 
 const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
 
@@ -381,6 +381,8 @@ export async function run(
           local: values["local"] === true,
           push: values["push"] === true,
           ...(values["push-branch"] !== undefined ? { pushBranch: values["push-branch"] } : {}),
+          ...(env.env !== undefined ? { env: env.env } : {}),
+          ...(env.cwd !== undefined ? { cwd: env.cwd } : {}),
         });
       }
 

@@ -1,6 +1,6 @@
-# Handback to the Operator: grooph 0.2.4
+# Handback to the Operator: grooph 0.2.5
 
-For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), on 2026-10-02 after your third (section 14) and your fourth (section 15), and on 2026-10-03 after your fifth (section 16). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
+For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), on 2026-10-02 after your third (section 14) and your fourth (section 15), and on 2026-10-03 after your fifth (section 16) and your sixth (section 17). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
 You asked for a way to show the whole operation. You now have three things: a **document** that describes it (the operation map), **pictures** of it you can send, and a **record of what is running** that a hook writes and you can lay over the map.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.2.4** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 16 |
+| Version | **0.2.5** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 17 |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`**, tagged `v0.2.4` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.3, the merge has not happened yet, and branch `slice/0050-send-only-this-session` holds it. |
+| Where the code is | **`main`**, tagged `v0.2.5` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.4, the merge has not happened yet, and branch `slice/0052-a-turn-that-is-open` holds it. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.2.4 2>/dev/null || git checkout slice/0050-send-only-this-session   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.2.5 2>/dev/null || git checkout slice/0052-a-turn-that-is-open   # the tag; or the branch, if the merge has not happened yet
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.2.4
+node packages/cli/bin/grooph.js --version    # 0.2.5
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -143,7 +143,8 @@ grooph hooks install --harness claude-code,codex --tools    # both, and each too
 
 It writes three things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, about a hundred lines, readable), `.grooph/hooks/grooph-events-push.mjs` (the script a lane runs to send its events, below), and the harness's settings (`.claude/settings.json`, or `.codex/hooks.json`), touching nothing else in them. Add `.grooph/events/` to the repository's `.gitignore`. `grooph hooks status` shows what is installed; `grooph hooks remove` takes it out.
 
-- **Claude Code**: commit all three. Claude Code's documentation says a repository's `.claude/settings.json` hooks run in a cloud session **that has one repository**. Sessions started after that record themselves.
+- **Claude Code**: commit all three. Claude Code's documentation says a repository's `.claude/settings.json` hooks run in a cloud session **that has one repository**. Sessions started after that record themselves. A session already running when the hooks arrive (it merges the branch that has them) normally takes them up at once, and now and then does not (section 17).
+- If the project has a format or lint check, leave `.grooph/hooks/` out of it, as you did: the two scripts are grooph's, and `grooph hooks status` says when a copy is not the shipped one.
 - **Codex**: commit the hook file too (`.codex/hooks.json`). The Codex app runs each chat in its own copy of the repository, which holds only what git tracks; an uncommitted hook file is not there, and that is why Ryan's first try recorded nothing. Then two things are Ryan's: the folder must be one Codex trusts, and each hook is reviewed once in `/hooks` (again if it changes) ([Codex hooks](https://learn.chatgpt.com/docs/hooks)). Without either, the hook is skipped and Codex says nothing.
 - Both need `node` on the path where the session runs.
 
@@ -168,8 +169,8 @@ If a harness lets a session push only under a prefix, give the whole branch name
 
 **A push is a snapshot.** What a lane does after it never leaves the sandbox, and a session cannot send what it writes as it stops. You saw it: the lane read "working" for good. Two things answer that, and you chose neither, so here is what each does:
 
-- **The reader is honest about a stale record** (always on). A session that has not ended and has said nothing for half an hour reads `last seen 3 h ago, working then`, and a subagent with no stop on record is `not seen to finish`. So a lane that pushed mid-turn stops looking busy half an hour later. One thing to know: with the default install, a lane that works for more than half an hour in one turn without starting a subagent also writes nothing, and reads `last seen …, working then`. For lanes, install with `--tools`: every finished tool call is then a line.
-- **Sending at the end of every turn** (off unless you ask): `grooph hooks install --push`. A second hook on the turn's end runs the push in the background. It prints nothing, never asks for a password, never fails a turn, gives way to a push already under way, goes again on top when another lane's push got there first (for as long as its 45 seconds allow), and writes only to an events-only branch. It does not run the repository's own `pre-push` hook. How it went is on record in the sandbox, so a push that fails can be found (below). A remote that does not answer costs a turn's end about thirteen seconds. Then a lane's last turn does arrive, and it reads `waiting`; its session end still does not (the session is gone by then), so after half an hour it reads `last seen`. The price: one small commit on the events branch per turn, made with the lane's right to push. With `--push-branch <name>` it names one branch for every session that reads those settings.
+- **The reader is honest about a stale record** (always on). A session that has not ended and has said nothing for half an hour reads `last seen 3 h ago, working then`, and a subagent with no stop on record is `not seen to finish`. So a lane that pushed mid-turn stops looking busy half an hour later. One thing to know: with the default install, a lane that works for more than half an hour in one turn without starting a subagent also writes nothing, and reads `last seen …, working then`. For lanes, install with `--tools`: every finished tool call is then a line. That is what the lane's own machine holds; what a reader elsewhere sees is what was sent, next.
+- **Sending as the session goes** (off unless you ask): `grooph hooks install --push`. A second hook runs the push in the background at three moments. At the **start of every turn**, so you see `working` as soon as a turn opens. At the **end of every turn**. And **during a turn, at most every ten minutes**, on a finished tool call, so a lane in a long turn is still heard from (with `--tools`; without it, only when a subagent is started). It prints nothing, never asks for a password, never fails a turn, waits its turn behind a push already under way (in passing it gives way), goes again on top when another lane's push got there first (for as long as its 45 seconds allow), and writes only to an events-only branch. It does not run the repository's own `pre-push` hook. How it went is on record in the sandbox, so a push that fails can be found (below). A remote that does not answer costs a turn's end about thirteen seconds. Then a lane's last turn does arrive, and it reads `waiting`; its session end still does not (the session is gone by then), so after half an hour it reads `last seen`. The price: small commits on the events branch, made with the lane's right to push (one at each turn's start and end, and up to six an hour during a long turn), and one more short process after each finished tool call, which looks at one file's time and exits. With `--push-branch <name>` it names one branch for every session that reads those settings.
 
 Not rate-limited, as you suggested it might be: a push with nothing new makes no commit, and a rate limit would drop exactly the last turn, which is the one that matters.
 
@@ -287,6 +288,8 @@ They record and report. None starts or changes anything. Whether using them make
 - **Codex does not say which subagent started which**, so its subagents are a flat list. Claude Code does, and nesting is shown.
 - **Clocks.** Events from different machines are ordered by each machine's clock.
 - **The tie between a source and a map session is the name you give on the command line.** It is not in the map file. Give a wrong name and the wrong card lights.
+- **A session records once its harness has taken up the hooks.** A session started on a branch that has them always does. One that merges them in mid-session normally does at once; one of your lanes did not, and why is not known (section 17).
+- **A stop line with no type is not a subagent.** It is Claude Code's own helper, once after each turn. The reader leaves it out. If a session itself runs as a named agent, that helper's stops carry the agent's name, and grooph would show one as a subagent: documented by Claude Code, not seen here.
 - **What an agent said is not recorded**, by design. The view says that something ran, when and for how long.
 - **The picture is automatic.** No hand-placed layout for a map. Each handoff has a track of its own in the margin. The cards keep a little over half of a lane's width whatever the count: the tracks close up instead, down to about twenty handoffs through one hub. Past that the margin widens again and the cards narrow.
 - **A map lives in files.** The app opens one from a link or a file and does not keep it; there is no editor for a map but a text editor and you.
@@ -327,7 +330,7 @@ He pastes it to the grooph session, which corrects the sample and replies in `do
 
 ## 11. If something is wrong
 
-`grooph validate` names the rule. `grooph hooks status` says whether the hook is installed and how the last push went. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.
+`grooph validate` names the rule. `grooph hooks status` says whether the hook is installed, whether the session it is run in has recorded anything, and how the last push went. In a sandbox with no grooph, `node .grooph/hooks/grooph-events-push.mjs --status` says the same. An empty `grooph sessions` after a session ran means the hook did not run: check that the session has one repository (Claude Code cloud), that the hook is trusted (Codex), and that `node` is on the path. Everything is in [`docs/subagents.md`](subagents.md) and [`docs/operation-map.md`](operation-map.md), and the tests in `packages/*/test` show each command doing what this page says.
 
 ## 12. What you found wrong or missing in 0.1.0, and what 0.2.0 does about it
 
@@ -452,4 +455,54 @@ It never holds a prompt, a tool's input or output, a file name, a command, or a 
 **Your recommendation, and what I would add.** I agree with you: one install on the default branch (`grooph hooks install --push --tools`, no `--push-branch`), test runners on `grooph-events-detached`, one `grooph sessions` call with `runners=` and one source per lane. Install it with this version (0.2.4), so that no path is ever sent. Then it waits for Ryan's answer on the public branches.
 
 **Ryan's answer, 2026-10-03: yes.** The lanes may publish their events on the repository, as listed above.
+
+## 17. Your sixth reply, on 0.2.4
+
+**Settled, by you, on the lanes** (2026-10-03, hooks on the default branch with `--push --tools`): [reported]
+
+| Was open | Now |
+|---|---|
+| Was anything sent that should not have been? | No. 163 lines on five branches, every one read: only ids, the event, the time, the tool's name, and the folder's name; no path, no transcript, no command, no file name, no text |
+| Does any push fail? | None seen. The one record you could read says `ok`, names the branch's own tip, and has no `started` |
+| Who the commits are by, and how many files | `grooph <grooph@localhost>`, one events file per session |
+| Lanes and runners on their own branches | Four lane branches and `grooph-events-detached`, read in one `grooph sessions` call |
+
+**The three things you asked me to weigh:**
+
+| You noticed | What it is, and what 0.2.5 does |
+|---|---|
+| **Subagents.** In the lanes a subagent leaves only a subagent-stop line: no start, no `Agent` line, no tool lines. `grooph sessions` reads "no subagents yet" for sessions that did use one | **Those lines are not subagents, and "no subagents yet" is right.** Each is Claude Code's own helper, run once after a turn ends (the one behind prompt suggestions is an example). Claude Code's documentation says `SubagentStop` fires for these too, with an empty type; your lines have an `agent` and no type. Evidence below. Background start is not the cause: a subagent started in the background leaves a start, an `Agent` line and a typed stop, like one in the foreground. And with `--tools`, a lane that had started one would show a tool named `Agent`; your list of tools has none |
+| **Long turns look idle.** A lane mid-turn read "last seen 32 min 12 s ago, waiting then": nothing says a turn is open | **You are right, and what I told you was wrong for a reader elsewhere.** I wrote that with `--tools` a session at work is heard from all the time. That is true on the lane's own machine; only a turn's end was ever sent. **Fixed:** the events are now also sent at a turn's start, so it reads `working`, and during a turn at most every ten minutes. A lane at work is then never more than about ten minutes behind |
+| **Which sessions send.** One lane merged the hooks in mid-session and never recorded, where three others did at once | **Not explained.** Claude Code's documentation says edits to the hooks in a settings file "are normally picked up automatically by the file watcher". Normally is what you saw: three of four. I do not know why the fourth did not. **What 0.2.5 adds** is a way to see it from inside: `node .grooph/hooks/grooph-events-push.mjs --status`, which needs no grooph (below). A session started after the hooks are on its branch records from its first line |
+
+**The evidence for the first row.** This session, on Ryan's Mac, has grooph's hook installed and starts its subagents in the background:
+
+| | Count | Start line | `Agent` tool line | Stop line | Transcript on disk |
+|---|---|---|---|---|---|
+| Subagents the session started, all in the background | 7 | 7 | 7 | 7, each with its type | 7 |
+| Stops with no type | 20 | 0 | 0 | 20 | 0 |
+
+The session had 19 turn ends. Nineteen of the twenty untyped stops came 1.4 to 4.5 seconds after one, one each. You can check yours the same way: in a lane's file, count the `turn-end` lines and the `subagent-stop` lines with no `type`, and look at how soon each stop follows a turn's end. The record is in [`experiments/hooks/2026-10-03/`](../experiments/hooks/2026-10-03/).
+
+**To get 0.2.5 onto the lanes:** on the default branch, with 0.2.5, `grooph hooks install --push --tools` again, and commit `.claude/settings.json` and `.grooph/hooks/`. The settings gain two entries (a turn's start, and a finished tool call) and the script changes. Until a lane merges that, it goes on as now: a turn's end only. `grooph hooks status` on a 0.2.4 install says so.
+
+**The status check, for a lane that seems not to record.** Ask it to run this and post what it prints:
+
+```bash
+node .grooph/hooks/grooph-events-push.mjs --status
+```
+
+```
+grooph's hooks in /home/user/project
+  .claude/settings.json: 7 entries record, 3 send
+the event hook (.grooph/hooks/grooph-event.mjs) runs here: a test line was written to a scratch folder
+4 session files in .grooph/events/
+this session (0b5c…): NOTHING recorded. The harness has not run the hooks in this session.
+  A session takes up its hooks when it starts. Hooks that arrive later (a merge that brings the settings) are taken up by most sessions and not by all: a session started after they arrived records.
+no push on record
+```
+
+It reads, runs the event hook once into a scratch folder outside the project, and sends nothing. Settings present, hook runs, and nothing recorded means the harness has not taken the hooks up in that session; starting the session again is the cure I know of.
+
+**Not known here:** why your one lane did not take the hooks up; whether a cloud session lets the in-passing push run alongside tool calls without getting in a lane's way (it is one short background process per tool call; your next lanes are the test).
 

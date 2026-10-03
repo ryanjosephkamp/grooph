@@ -1,0 +1,226 @@
+{
+  "what": "One Claude Code session's own event file, read for what its subagents left. The session is the grooph operator-round session on the owner's Mac (the Claude desktop app, Claude Code 2.1.286); grooph's event hook was installed without --tools, so the Agent tool is the only tool recorded.",
+  "session": "3e9d2b43-91b3-40a4-9859-23f9fc76c901",
+  "readAt": "2026-10-03T18:59:31+00:00",
+  "lines": 99,
+  "turnEnds": 19,
+  "subagentsTheSessionStarted": {
+    "count": 7,
+    "withStartLine": 7,
+    "withAgentToolLine": 7,
+    "withTypedStopLine": 7,
+    "withTranscriptOnDisk": 7,
+    "each": {
+      "a328b34f8e9dc4662": {
+        "type": "general-purpose",
+        "start": "2026-10-01T04:19:03.986Z",
+        "agentToolLine": "2026-10-01T04:19:03.999Z",
+        "stop": "2026-10-01T04:23:12.008Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      },
+      "adc66301eab7388ea": {
+        "type": "general-purpose",
+        "start": "2026-10-01T17:43:06.336Z",
+        "agentToolLine": "2026-10-01T17:43:06.346Z",
+        "stop": "2026-10-01T17:49:59.577Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      },
+      "a95aef7dccf4577c5": {
+        "type": "general-purpose",
+        "start": "2026-10-01T23:10:41.124Z",
+        "agentToolLine": "2026-10-01T23:10:41.141Z",
+        "stop": "2026-10-01T23:18:45.735Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      },
+      "aa35ec244a975b03e": {
+        "type": "general-purpose",
+        "start": "2026-10-02T22:06:08.666Z",
+        "agentToolLine": "2026-10-02T22:06:08.697Z",
+        "stop": "2026-10-02T22:33:40.728Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      },
+      "a5f889c2d088eff6a": {
+        "type": "general-purpose",
+        "start": "2026-10-02T22:43:50.341Z",
+        "agentToolLine": "2026-10-02T22:43:50.368Z",
+        "stop": "2026-10-02T22:59:39.816Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      },
+      "aa4ba4824b5beca17": {
+        "type": "general-purpose",
+        "start": "2026-10-03T04:04:54.456Z",
+        "agentToolLine": "2026-10-03T04:04:54.476Z",
+        "stop": "2026-10-03T04:14:54.334Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      },
+      "a976a6556e8dcefc7": {
+        "type": "claude-code-guide",
+        "start": "2026-10-03T18:54:32.752Z",
+        "agentToolLine": "2026-10-03T18:54:32.755Z",
+        "stop": "2026-10-03T18:57:13.436Z",
+        "transcriptOnDisk": true,
+        "started": "background"
+      }
+    },
+    "startedInTheBackground": 7,
+    "howStartedNotOnRecord": 0
+  },
+  "stopsWithNoType": {
+    "count": 20,
+    "afterATurnEnd": 19,
+    "secondsAfter": {
+      "least": 1.4,
+      "most among those after a turn end": 4.5
+    },
+    "withStartLine": 0,
+    "withTranscriptOnDisk": 0,
+    "each": [
+      {
+        "agent": "a7cce591cc7180f7f",
+        "t": "2026-10-01T04:33:34.488Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.8,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a138bd8887ea555db",
+        "t": "2026-10-01T14:39:11.585Z",
+        "follows": "turn-end",
+        "secondsAfter": 3.1,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a2192450b49a6e2dd",
+        "t": "2026-10-01T16:03:09.756Z",
+        "follows": "turn-end",
+        "secondsAfter": 2.8,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a78fe1e665b756ff0",
+        "t": "2026-10-01T16:49:53.158Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.6,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "ab575ed61f91d359e",
+        "t": "2026-10-01T17:12:50.332Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.4,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "ada704bf6d6751d70",
+        "t": "2026-10-01T17:16:19.347Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.5,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a35bef0c6960093c0",
+        "t": "2026-10-01T18:01:43.666Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.9,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a9c0665819893d9b3",
+        "t": "2026-10-01T21:33:01.255Z",
+        "follows": "turn-end",
+        "secondsAfter": 4.5,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "ab3924b8ce0bf4a44",
+        "t": "2026-10-01T23:29:23.948Z",
+        "follows": "turn-end",
+        "secondsAfter": 3.5,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a472ba244c7bc72a1",
+        "t": "2026-10-02T16:44:02.037Z",
+        "follows": "turn-end",
+        "secondsAfter": 4.1,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "ad0f16375a0a028dd",
+        "t": "2026-10-02T20:06:13.977Z",
+        "follows": "turn-end",
+        "secondsAfter": 3.9,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a87f21778e02865c3",
+        "t": "2026-10-02T20:15:24.973Z",
+        "follows": "turn-end",
+        "secondsAfter": 4.0,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "ae088133f75f79ab7",
+        "t": "2026-10-02T21:44:52.499Z",
+        "follows": "turn-start",
+        "secondsAfter": 198.9,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a1c3df64d8fbeba5d",
+        "t": "2026-10-02T22:07:44.785Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.7,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "aa9d6b448b282e288",
+        "t": "2026-10-02T22:45:27.528Z",
+        "follows": "turn-end",
+        "secondsAfter": 2.1,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a54c127c51a176656",
+        "t": "2026-10-02T23:08:39.979Z",
+        "follows": "turn-end",
+        "secondsAfter": 3.1,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a4f40f3fabd10a6af",
+        "t": "2026-10-02T23:58:09.551Z",
+        "follows": "turn-end",
+        "secondsAfter": 1.7,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a18b72340f8726c7b",
+        "t": "2026-10-03T04:06:39.548Z",
+        "follows": "turn-end",
+        "secondsAfter": 3.4,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "ab567a4b3ab6084b8",
+        "t": "2026-10-03T04:22:28.263Z",
+        "follows": "turn-end",
+        "secondsAfter": 3.2,
+        "transcriptOnDisk": false
+      },
+      {
+        "agent": "a1fd6f8171a2eeac1",
+        "t": "2026-10-03T05:14:01.846Z",
+        "follows": "turn-end",
+        "secondsAfter": 2.9,
+        "transcriptOnDisk": false
+      }
+    ]
+  }
+}
