@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { durationText, isQuiet, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
@@ -25,9 +25,10 @@ under <project>/.grooph/events/. grooph watch and grooph sessions read those fil
 
   --dir <project>   the project (default: the current folder)
   --harness <list>  claude-code (the default), codex, or both separated by a comma
-  --push            also send the events to their own branch at the end of every turn, in the
-                    background (grooph events push). Off unless asked for: it uses the session's
-                    right to push. The branch is grooph-events/<the branch checked out>, or
+  --push            also send the events to their own branch, in the background (grooph events
+                    push): at the start and the end of every turn, and during a long turn at
+                    most every ten minutes. Off unless asked for: it uses the session's right
+                    to push. The branch is grooph-events/<the branch checked out>, or
                     grooph-events-detached while none is. --push-branch <name> names one branch
                     for every session that reads these settings; many sessions may share it.
   --tools           also record every finished tool call (its name only), so a subagent
@@ -133,11 +134,14 @@ type Harness = "claude-code" | "codex";
 type Entry = { matcher?: string; hooks: { type: "command"; command: string; async?: boolean; timeout: number }[] };
 type Settings = { hooks?: Record<string, unknown[]> } & Record<string, unknown>;
 
-/** The push script as a hook: the same locations, the `--hook` flag, and the branch when one was named. */
-const pushCommand = (harness: Harness, branch: string | undefined): string => {
+/** How long a turn may run before its events are sent in passing: well inside the half hour after which a silent session reads "last seen". */
+export const PUSH_EVERY_SECONDS = 600;
+
+/** The push script as a hook: the same locations, the `--hook` flag, the branch when one was named, and `--every` for the one run in passing. */
+const pushCommand = (harness: Harness, branch: string | undefined, every?: number): string => {
   const rel = PUSH_REL.split("\\").join("/");
   const at = harness === "claude-code" ? `"$CLAUDE_PROJECT_DIR/${rel}"` : `"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/${rel}"`;
-  return `node ${at} --hook${branch ? ` --branch ${branch}` : ""}`;
+  return `node ${at} --hook${every ? ` --every ${every}` : ""}${branch ? ` --branch ${branch}` : ""}`;
 };
 
 const COMMAND: Record<Harness, string> = {
@@ -155,9 +159,11 @@ const COMMAND: Record<Harness, string> = {
  * session exits can be lost (observed in Claude Code 2.1.280: with `Stop` in
  * the background the last turn's end and the session's end were not recorded).
  *
- * With `push` (asked for with --push; off otherwise), a second hook at the end of each turn sends the events to
- * their own branch, in the background: a session cannot send what it writes as it stops, so without this a lane's
- * last turn never leaves its sandbox. It is a separate script from the event hook, which stays one appended line.
+ * With `push` (asked for with --push; off otherwise), a second hook sends the events to their own branch, in the
+ * background: at the end of each turn (a session cannot send what it writes as it stops, so without this a lane's
+ * last turn never leaves its sandbox), at the start of each turn (so a reader elsewhere sees that a turn is open),
+ * and, in passing on a finished tool call, when the last push was ten minutes ago or more (so a turn that runs
+ * long is still heard from). It is a separate script from the event hook, which stays one appended line.
  */
 export function hookEntries(harness: Harness, tools: boolean, push?: { branch?: string }): Record<string, Entry[]> {
   const run = (async: boolean, timeout: number): Entry["hooks"] => [{ type: "command", command: COMMAND[harness], ...(async ? { async: true } : {}), timeout }];
@@ -169,10 +175,16 @@ export function hookEntries(harness: Harness, tools: boolean, push?: { branch?: 
     SubagentStart: [{ hooks: run(true, 10) }],
     SubagentStop: [{ hooks: run(true, 10) }],
   };
-  if (push) entries["Stop"]!.push({ hooks: [{ type: "command", command: pushCommand(harness, push.branch), async: true, timeout: 60 }] });
+  const send = (every?: number): Entry["hooks"] => [{ type: "command", command: pushCommand(harness, push?.branch, every), async: true, timeout: 60 }];
+  if (push) {
+    entries["Stop"]!.push({ hooks: send() });
+    entries["UserPromptSubmit"]!.push({ hooks: send() });
+  }
   // The spawn tool's result is the one place Claude Code says which agent started which.
   if (tools) entries["PostToolUse"] = [{ hooks: run(true, 10) }];
   else if (harness === "claude-code") entries["PostToolUse"] = [{ matcher: "Agent", hooks: run(true, 10) }];
+  // In passing, on the tool calls that are recorded anyway: with --tools that is every one.
+  if (push && entries["PostToolUse"]) entries["PostToolUse"].push({ ...(entries["PostToolUse"][0]!.matcher ? { matcher: entries["PostToolUse"][0]!.matcher } : {}), hooks: send(PUSH_EVERY_SECONDS) });
   return entries;
 }
 
@@ -211,9 +223,9 @@ function withOurs(settings: Settings, harness: Harness, tools: boolean, push?: {
 }
 
 const countOurs = (settings: Settings): number => Object.values(settings.hooks ?? {}).reduce((n, list) => n + (Array.isArray(list) ? list.filter(isOurs).length : 0), 0);
-const hasPush = (settings: Settings): boolean => Object.values(settings.hooks ?? {}).some((list) => Array.isArray(list) && list.some(isPush));
+const countPush = (settings: Settings): number => Object.values(settings.hooks ?? {}).reduce((n, list) => n + (Array.isArray(list) ? list.filter(isPush).length : 0), 0);
 
-export type HooksFlags = { dir?: string; harness?: string; tools?: boolean; local?: boolean; push?: boolean; pushBranch?: string; now?: () => Date };
+export type HooksFlags = { dir?: string; harness?: string; tools?: boolean; local?: boolean; push?: boolean; pushBranch?: string; now?: () => Date; env?: Record<string, string | undefined>; cwd?: string };
 
 function harnesses(io: Output, flag: string | undefined): Harness[] | undefined {
   const asked = (flag ?? "claude-code").split(",").map((s) => s.trim()).filter((s) => s !== "");
@@ -228,7 +240,7 @@ function harnesses(io: Output, flag: string | undefined): Harness[] | undefined 
 const clock = (iso: string): string => `${iso.slice(0, 16).replace("T", " ")} UTC`;
 const ago = (iso: string, now: string): string => (secondsBetween(iso, now) < 5 ? "just now" : `${durationText(secondsBetween(iso, now))} ago`);
 
-/** A hook has sixty seconds: a push that began longer ago than that and has not said how it ended was stopped. */
+/** A push ends itself within a minute (its own limit is forty-five seconds): one that began longer ago and has not said how it ended was stopped. */
 const PUSH_LIMIT_SECONDS = 60;
 
 /** Whether the record says the events here have not been seen elsewhere: the last push failed, or one began and never ended. */
@@ -243,14 +255,14 @@ export function pushLines(r: PushRecord, now: string): string[] {
     const cut = secondsBetween(r.started, now) > PUSH_LIMIT_SECONDS;
     lines.push(
       cut
-        ? `a push began ${ago(r.started, now)} (${clock(r.started)}), at a turn's end, and NEVER FINISHED: it was stopped before it could say why (the sandbox was put to sleep, or the process was killed)`
-        : `a push began ${ago(r.started, now)} (${clock(r.started)}), at a turn's end, and is under way`,
+        ? `a push began ${ago(r.started, now)} (${clock(r.started)}), by the hook, and NEVER FINISHED: it was stopped before it could say why (the sandbox was put to sleep, or the process was killed)`
+        : `a push began ${ago(r.started, now)} (${clock(r.started)}), by the hook, and is under way`,
     );
     if (cut && r.last?.ok !== false) lines.push(`  ${arrived} ${kept}`);
   }
   const last = r.last;
   if (!last) return lines;
-  const who = last.by === "hook" ? "at a turn's end" : "by hand";
+  const who = last.by === "hook" ? "by the hook" : "by hand";
   const before = r.started !== undefined ? "the one before: " : "last push: ";
   // What the push said of itself, up to its first full stop: where it sent how much, or that there was nothing new.
   if (last.ok) lines.push(`${before}${ago(last.at, now)} (${clock(last.at)}), ${who}: ${last.message.split(/\. (?=[A-Z])/)[0]!.replace(/\.$/, "") || "it went through"}${last.tries ? ` (on try ${last.tries}${last.crowded ? ": other sessions were sending to the same branch" : ""})` : ""}`);
@@ -336,7 +348,10 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
       io.out(`With --push, that is done at the end of every turn, in the background, to ${flags.pushBranch ?? "grooph-events/<the branch checked out> (grooph-events-detached while none is)"}: a session`);
       io.out("cannot send what it writes as it stops, so this is how its last turn is seen elsewhere. It prints nothing, never asks for a");
       io.out("password and never fails a turn. A run that exits the moment its turn ends (claude -p) may be gone before it finishes.");
-      io.out("A push that fails says nothing aloud: grooph hooks status says how the last one went.");
+      io.out("It is also done at the start of every turn, so a reader elsewhere sees that a turn is open, and during a turn at most every");
+      io.out(`ten minutes${flags.tools ? "" : " (without --tools: in Claude Code only when a subagent is started, in Codex not at all)"}, so a turn that runs long is still heard from.`);
+      io.out("A push that fails says nothing aloud: grooph hooks status says how the last one went. In a sandbox with no grooph:");
+      io.out(`  node ${PUSH_REL} --status`);
     } else {
       io.out("A session cannot send what it writes as it stops. To send at the end of every turn instead, install with --push.");
     }
@@ -394,14 +409,24 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
           io.out(`${harness}: ${shownPath(path)} could not be read`);
           continue;
         }
-        let pushing = false;
+        let pushing = 0;
         try {
-          pushing = n > 0 && hasPush(readSettings(path));
+          pushing = n > 0 ? countPush(readSettings(path)) : 0;
         } catch {
           // counted above
         }
-        anyPush ||= pushing;
-        if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${pushing ? ", one of which sends the events at the end of each turn" : ""}` : `no entries in ${shownPath(path)}`}`);
+        anyPush ||= pushing > 0;
+        // One sending entry is an install by 0.2.4 or earlier: the end of a turn only. Two are a turn's start and
+        // end, with no recorded tool call to send in passing on (Codex without --tools).
+        const sends =
+          pushing > 2
+            ? `, ${pushing} of which send the events: at each turn's start and end, and during a long turn`
+            : pushing === 2
+              ? ", 2 of which send the events: at each turn's start and end"
+              : pushing === 1
+                ? ", one of which sends the events at the end of each turn (an older install: run grooph hooks install again with --push and the same options to send at a turn's start and during a long turn too)"
+                : "";
+        if (n > 0 || !local) io.out(`${harness}: ${n > 0 ? `${plural(n, "hook entry", "hook entries")} in ${shownPath(path)}${sends}` : `no entries in ${shownPath(path)}`}`);
       }
     }
     if (existsSync(join(dir, PUSH_REL)) && readFileSync(join(dir, PUSH_REL), "utf8") !== readFileSync(pushSource(), "utf8")) {
@@ -409,9 +434,33 @@ export function hooksCommand(io: Output, sub: string | undefined, flags: HooksFl
     }
     const files = eventFiles(dir);
     io.out(`${plural(files.length, "session file")} in ${EVENTS_DIR}/`);
+    // Run from inside a session, the harness says which one: whether that session itself has recorded anything.
+    // Only when that session is working in this project: asked about another project (--dir), "nothing recorded"
+    // would be about the wrong session.
+    const env = flags.env ?? process.env;
+    const session = env["CLAUDE_CODE_SESSION_ID"] || env["CODEX_SESSION_ID"];
+    const real = (path: string): string => {
+      try {
+        return realpathSync(path);
+      } catch {
+        return resolve(path);
+      }
+    };
+    const from = real(flags.cwd ?? process.cwd());
+    const here = from === real(dir) || from.startsWith(real(dir) + sep);
+    if (session !== undefined && session !== "" && here && existsSync(hookFile)) {
+      const name = /^[A-Za-z0-9._-]{1,128}$/.test(session) ? session : Buffer.from(session).toString("hex").slice(0, 64);
+      const own = files.find((file) => file.endsWith(`${sep}${name}.jsonl`));
+      const lines = own ? readFileSync(own, "utf8").split("\n").filter((line) => line.trim() !== "").length : 0;
+      io.out(
+        lines > 0
+          ? `this session (${session}): ${plural(lines, "line")} recorded`
+          : `this session (${session}): NOTHING recorded: the harness has not run the hooks in it. A session takes up its hooks when it starts; hooks that arrive later are taken up by most sessions and not by all.`,
+      );
+    }
     const pushed = lastPush(dir);
     if (pushed) for (const line of pushLines(pushed, (flags.now ?? (() => new Date()))().toISOString())) io.out(line);
-    else if (anyPush) io.out("no push recorded yet: the first turn to end after this version was installed leaves one");
+    else if (anyPush) io.out("no push recorded yet: the first turn to start after this version was installed leaves one");
     return 0;
   }
 

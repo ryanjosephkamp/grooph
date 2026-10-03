@@ -234,7 +234,23 @@ test("with --push a second hook sends the events when a turn ends: silent, never
     assert.equal(stop[0]!.hooks[0]!.async, undefined, "the event hook's own line at a turn's end is still waited for");
     io = capture();
     assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
-    assert.match(text(io.stdout), /claude-code: 8 hook entries in \.claude\/settings\.json, one of which sends the events at the end of each turn/);
+    assert.match(text(io.stdout), /claude-code: 10 hook entries in \.claude\/settings\.json, 3 of which send the events: at each turn's start and end, and during a long turn/);
+    // The same push at a turn's start, so a reader elsewhere sees that a turn is open; and in passing, when a
+    // subagent is started (the one tool call recorded without --tools), if the last push was ten minutes ago or more.
+    assert.deepEqual(settings().hooks["UserPromptSubmit"]![1]!.hooks, stop[1]!.hooks);
+    assert.deepEqual(settings().hooks["PostToolUse"]![1], { matcher: "Agent", hooks: [{ type: "command", command: 'node "$CLAUDE_PROJECT_DIR/.grooph/hooks/grooph-events-push.mjs" --hook --every 600', async: true, timeout: 60 }] });
+    // An install by an older grooph has the one entry, at a turn's end, and status says how to get the rest.
+    const older = settings();
+    older.hooks["UserPromptSubmit"]!.pop();
+    older.hooks["PostToolUse"]!.pop();
+    writeFileSync(join(lane, ".claude", "settings.json"), JSON.stringify(older));
+    io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
+    assert.match(text(io.stdout), /claude-code: 8 hook entries in \.claude\/settings\.json, one of which sends the events at the end of each turn \(an older install: run grooph hooks install again with --push and the same options/);
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--push"], capture()), 0);
+    io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
+    assert.match(text(io.stdout), /claude-code: 10 hook entries in \.claude\/settings\.json, 3 of which send the events/);
     // A branch name is a branch name: nothing a shell would read as more.
     io = capture();
     assert.equal(await run(["hooks", "install", "--dir", lane, "--push-branch", "x; rm -rf ~"], io), 1);
@@ -250,10 +266,19 @@ test("with --push a second hook sends the events when a turn ends: silent, never
     assert.equal(await run(["hooks", "install", "--dir", lane, "--harness", "codex", "--push-branch", "claude/grooph-events-lane"], io), 0);
     const codex = JSON.parse(readFileSync(join(lane, ".codex", "hooks.json"), "utf8")) as ReturnType<typeof settings>;
     assert.equal(codex.hooks["Stop"]![1]!.hooks[0]!.command, 'node "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.grooph/hooks/grooph-events-push.mjs" --hook --branch claude/grooph-events-lane');
+    assert.equal(codex.hooks["UserPromptSubmit"]![1]!.hooks[0]!.command, codex.hooks["Stop"]![1]!.hooks[0]!.command);
+    assert.equal(codex.hooks["PostToolUse"], undefined, "Codex records tool calls only with --tools, so there is none to send in passing on");
+    io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
+    assert.match(text(io.stdout), /^codex: 8 hook entries in \.codex\/hooks\.json, 2 of which send the events: at each turn's start and end$/m);
+    // With --tools Codex records every tool call, and sends in passing on them.
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--harness", "codex", "--tools", "--push-branch", "claude/grooph-events-lane"], capture()), 0);
+    const withTools = JSON.parse(readFileSync(join(lane, ".codex", "hooks.json"), "utf8")) as ReturnType<typeof settings>;
+    assert.equal(withTools.hooks["PostToolUse"]![1]!.hooks[0]!.command, 'node "$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.grooph/hooks/grooph-events-push.mjs" --hook --every 600 --branch claude/grooph-events-lane');
 
     // As the harness runs it: no output, exit 0, and the events are on their branch.
     const script = join(lane, ".grooph", "hooks", "grooph-events-push.mjs");
-    const fire = (args: string[] = [], cwd = lane) => spawnSync(process.execPath, [script, "--hook", ...args], { cwd, input: '{"hook_event_name":"Stop"}', encoding: "utf8", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" } });
+    const fire = (args: string[] = [], cwd = lane) => spawnSync(process.execPath, [script, "--hook", ...args], { cwd, input: '{"hook_event_name":"Stop"}', encoding: "utf8", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0", GROOPH_PUSH_PATIENCE_MS: "300" } });
     let ran = fire(); // nothing recorded yet
     assert.deepEqual([ran.status, ran.stdout, ran.stderr], [0, "", ""]);
     addEvents(lane, "5aac1305.jsonl", NESTED);
@@ -264,7 +289,8 @@ test("with --push a second hook sends the events when a turn ends: silent, never
     assert.equal(existsSync(join(lane, ".grooph", "events", ".pushing")), false, "the lock is released");
     assert.equal(untouched(lane), before);
 
-    // Another push under way: this one gives way, silently. A lock left by a push that died is taken over.
+    // Another push under way: this one waits for it (here, for a third of a second in place of twenty), and when
+    // it is still under way gives up, silently. A lock left by a push that died is taken over.
     mkdirSync(join(lane, ".grooph", "events", ".pushing"));
     appendFileSync(join(lane, ".grooph", "events", "5aac1305.jsonl"), '{"v":1,"t":"2026-10-01T02:00:00.000Z","harness":"claude-code","event":"turn-end","session":"5aac1305-f22d-4cad-a6e7-810700aeb49e"}\n');
     const first = git(remote, "rev-parse", "grooph-events/main");
@@ -405,7 +431,7 @@ test("a session with no branch checked out still sends at its turn's end, and a 
     assert.equal(git(remote, "ls-tree", "-r", "--name-only", "grooph-events-detached"), ".grooph/events/5aac1305.jsonl");
     let io = capture();
     assert.equal(await run(["hooks", "status", "--dir", cloud], io), 0);
-    assert.match(text(io.stdout), /last push: (just now|\d+ s ago) \(\d{4}-\d\d-\d\d \d\d:\d\d UTC\), at a turn's end: Sent 1 event file to origin grooph-events-detached \([0-9a-f]{7}\): no branch is checked out here, so they went to the branch every such checkout shares$/m);
+    assert.match(text(io.stdout), /last push: (just now|\d+ s ago) \(\d{4}-\d\d-\d\d \d\d:\d\d UTC\), by the hook: Sent 1 event file to origin grooph-events-detached \([0-9a-f]{7}\): no branch is checked out here, so they went to the branch every such checkout shares$/m);
 
     // The session starts its branch of work and goes on: from then its turns send to that branch's own events branch.
     git(cloud, "checkout", "--quiet", "-b", "claude/lane-a");
@@ -481,12 +507,12 @@ test("a push that fails at a turn's end says nothing and leaves word: hooks stat
     assert.equal(typeof failed.failedSince, "string");
     io = capture();
     assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
-    assert.match(text(io.stdout), /^last push FAILED (just now|\d+ s ago) \(\d{4}-\d\d-\d\d \d\d:\d\d UTC\), at a turn's end, to feature: origin feature is not an events branch/m);
+    assert.match(text(io.stdout), /^last push FAILED (just now|\d+ s ago) \(\d{4}-\d\d-\d\d \d\d:\d\d UTC\), by the hook, to feature: origin feature is not an events branch/m);
     assert.match(text(io.stdout), /^  2 in a row since \d{4}-\d\d-\d\d \d\d:\d\d UTC\. The last that arrived: \d{4}-\d\d-\d\d \d\d:\d\d UTC, to grooph-events\/main\. The events are still in \.grooph\/events\/ and go with the next push that works\.$/m);
     // Where the sessions are listed from the project itself, the same word: what is listed has not been seen elsewhere.
     io = capture();
     assert.equal(await run(["sessions", lane], io), 0);
-    assert.match(text(io.stdout), /^last push FAILED .* at a turn's end, to feature: origin feature is not an events branch/m);
+    assert.match(text(io.stdout), /^last push FAILED .* by the hook, to feature: origin feature is not an events branch/m);
     // Not among the events: a reader of the folder sees the one session, and the data form is as it was.
     assert.equal(readLive([{ path: lane }], NOW, root).sessions.length, 1);
     io = capture();
@@ -520,12 +546,12 @@ test("a push that fails at a turn's end says nothing and leaves word: hooks stat
     writeFileSync(recordFile, JSON.stringify({ ...(JSON.parse(was) as object), started: new Date(Date.now() - 20_000).toISOString() }));
     io = capture();
     assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
-    assert.match(text(io.stdout), /^a push began 2\d s ago \(.* UTC\), at a turn's end, and is under way$/m);
+    assert.match(text(io.stdout), /^a push began 2\d s ago \(.* UTC\), by the hook, and is under way$/m);
     assert.match(text(io.stdout), /^the one before FAILED /m);
     writeFileSync(recordFile, JSON.stringify({ v: 1, started: new Date(Date.now() - 10 * 60_000).toISOString() }));
     io = capture();
     assert.equal(await run(["hooks", "status", "--dir", lane], io), 0);
-    assert.match(text(io.stdout), /^a push began 10 min( \d s)? ago \(.* UTC\), at a turn's end, and NEVER FINISHED: it was stopped before it could say why \(the sandbox was put to sleep, or the process was killed\)\n  None has arrived from here\. The events are still in \.grooph\/events\/ and go with the next push that works\.$/m);
+    assert.match(text(io.stdout), /^a push began 10 min( \d s)? ago \(.* UTC\), by the hook, and NEVER FINISHED: it was stopped before it could say why \(the sandbox was put to sleep, or the process was killed\)\n  None has arrived from here\. The events are still in \.grooph\/events\/ and go with the next push that works\.$/m);
     io = capture();
     assert.equal(await run(["sessions", lane], io), 0);
     assert.match(text(io.stdout), /^a push began 10 min( \d s)? ago .* NEVER FINISHED/m);
@@ -863,6 +889,158 @@ test("what leaves the machine carries a folder's name, not its path, and no tran
     assert.equal(healed.length, 4, healed.join("\n"));
     assert.equal(healed.filter((l) => l.includes("subagent-stop")).length, 1);
     assert.doesNotMatch(healed.join("\n"), /someone|claude-co"|harness":"claude-co$/);
+  });
+});
+
+test("a long turn is heard from: the push also runs at a turn's start and, in passing, at most every ten minutes; a turn's end waits for a push under way", async () => {
+  await withRemote(async ({ remote, lane }) => {
+    let io = capture();
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--push", "--tools"], io), 0);
+    assert.match(text(io.stdout), /It is also done at the start of every turn, so a reader elsewhere sees that a turn is open, and during a turn at most every\nten minutes, so a turn that runs long is still heard from\./);
+    const hooks = (JSON.parse(readFileSync(join(lane, ".claude", "settings.json"), "utf8")) as { hooks: Record<string, { matcher?: string; hooks: { command: string }[] }[]> }).hooks;
+    assert.deepEqual(hooks["PostToolUse"]!.map((e) => [e.matcher, e.hooks[0]!.command.replace(/^.*\.mjs"? /, "")]), [[undefined, "claude-code"], [undefined, "--hook --every 600"]]);
+
+    const events = join(lane, ".grooph", "events");
+    mkdirSync(events, { recursive: true });
+    const file = join(events, "s1.jsonl");
+    const line = (event: string, s: number, tool?: string): string => `{"v":1,"t":"2026-10-03T17:0${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}.000Z","harness":"claude-code","event":"${event}","session":"s1"${tool ? `,"tool":"${tool}"` : ""}}\n`;
+    const onBranch = (): string[] => git(remote, "show", "grooph-events/main:.grooph/events/s1.jsonl").split("\n");
+    const input = JSON.stringify({ session_id: "s1" });
+    const hook = (args: string[] = []) => spawnSync(process.execPath, [join(lane, ".grooph", "hooks", "grooph-events-push.mjs"), "--hook", ...args], { cwd: lane, input, encoding: "utf8", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" } });
+
+    // A turn starts: its start is sent, and a reader elsewhere sees a session at work.
+    writeFileSync(file, line("session-start", 0) + line("turn-start", 1));
+    assert.deepEqual([hook().status, onBranch().length], [0, 2]);
+    git(lane, "fetch", "--quiet", "origin");
+    assert.equal(readLive([parseSource("git:origin/grooph-events/main")], NOW, lane).sessions[0]!.state, "working");
+
+    // Tool calls follow. In passing, nothing is sent while the last push is fresh: not a fetch, not a commit.
+    appendFileSync(file, line("tool", 5, "Bash") + line("tool", 9, "Read"));
+    const record = join(events, ".last-push.json");
+    const before = readFileSync(record, "utf8");
+    let ran = hook(["--every", "600"]);
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr, onBranch().length, readFileSync(record, "utf8")], [0, "", "", 2, before]);
+    // Ten minutes on, the next finished tool call sends what the turn has done so far.
+    const longAgo = new Date(Date.now() - 11 * 60_000);
+    utimesSync(record, longAgo, longAgo);
+    ran = hook(["--every", "600"]);
+    assert.deepEqual([ran.status, ran.stdout, ran.stderr, onBranch().length], [0, "", "", 4]);
+    assert.equal(lastPush(lane)!.last!.ok, true);
+    // And the one after that is quiet again.
+    appendFileSync(file, line("tool", 12, "Write"));
+    assert.deepEqual([hook(["--every", "600"]).status, onBranch().length], [0, 4]);
+    // Not a number of seconds, nothing is done; said twice, the first counts; no word of either reaches the record.
+    for (const odd of [["--every"], ["--every", "0"], ["--every", "abc"], ["--every", "-5"], ["--every", "600", "--every", "1"]]) {
+      utimesSync(record, longAgo, longAgo);
+      const was = readFileSync(record, "utf8");
+      const quiet = hook(odd);
+      const sent = odd.length === 4;
+      assert.deepEqual([quiet.status, quiet.stdout, quiet.stderr, onBranch().length, readFileSync(record, "utf8") === was], [0, "", "", sent ? 5 : 4, !sent], odd.join(" "));
+    }
+    // A record dated in the future (a clock that stepped back) does not silence it.
+    appendFileSync(file, line("tool", 14, "Bash"));
+    const ahead = new Date(Date.now() + 3 * 3600_000);
+    utimesSync(record, ahead, ahead);
+    assert.deepEqual([hook(["--every", "600"]).status, onBranch().length], [0, 6]);
+    // A push that fails holds the next one back just the same: a remote that is down is tried every ten minutes,
+    // not after every tool call.
+    appendFileSync(file, line("tool", 16, "Read"));
+    utimesSync(record, longAgo, longAgo);
+    assert.equal(hook(["--every", "600", "--remote", "nowhere"]).status, 0);
+    assert.equal(lastPush(lane)!.last!.ok, false);
+    const failed = readFileSync(record, "utf8");
+    assert.deepEqual([hook(["--every", "600", "--remote", "nowhere"]).status, readFileSync(record, "utf8") === failed], [0, true]);
+    assert.equal(onBranch().length, 6);
+
+    // In passing, a push gives way to one under way. At a turn's end it waits for it, and then sends: the turn's
+    // last lines do not wait for the next turn.
+    appendFileSync(file, line("turn-end", 20));
+    mkdirSync(join(events, ".pushing"));
+    utimesSync(record, longAgo, longAgo);
+    assert.deepEqual([hook(["--every", "600"]).status, onBranch().length], [0, 6]);
+    const began = Date.now();
+    const waiting = spawn(process.execPath, [join(lane, ".grooph", "hooks", "grooph-events-push.mjs"), "--hook"], { cwd: lane, env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" }, stdio: ["pipe", "pipe", "pipe"] });
+    waiting.stdin.end(input);
+    let said = "";
+    waiting.stdout.on("data", (c) => (said += String(c)));
+    waiting.stderr.on("data", (c) => (said += String(c)));
+    setTimeout(() => rmSync(join(events, ".pushing"), { recursive: true, force: true }), 1500);
+    const code = await new Promise<number | null>((done) => waiting.on("close", done));
+    assert.deepEqual([code, said], [0, ""]);
+    assert.ok(Date.now() - began >= 1400, "it sent before the push under way had finished");
+    assert.equal(onBranch().length, 8);
+    assert.match(onBranch()[7]!, /"event":"turn-end"/);
+    assert.equal(existsSync(join(events, ".pushing")), false);
+    // With no events folder at all there is nothing to do, and it is over at once.
+    rmSync(events, { recursive: true, force: true });
+    const t0 = Date.now();
+    assert.equal(spawnSync(process.execPath, [join(lane, ".grooph", "hooks", "grooph-events-push.mjs"), "--hook", "--every", "600"], { cwd: lane, input, encoding: "utf8" }).status, 0);
+    assert.ok(Date.now() - t0 < 1400, "it waited as if there were something to send");
+  });
+});
+
+test("--status says what is here without grooph: the settings, whether the event hook runs, what this session recorded, the last push", async () => {
+  await withRemote(async ({ remote, lane, root }) => {
+    const script = (project: string) => join(project, ".grooph", "hooks", "grooph-events-push.mjs");
+    const status = (project: string, env: Record<string, string> = {}) => {
+      const { CLAUDE_CODE_SESSION_ID: _own, CODEX_SESSION_ID: _other, ...rest } = process.env;
+      return spawnSync(process.execPath, [script(project), "--status"], { cwd: project, encoding: "utf8", env: { ...rest, ...env } });
+    };
+    assert.equal(await run(["hooks", "install", "--dir", lane, "--push", "--tools"], capture()), 0);
+    addEvents(lane, "5aac1305-f22d-4cad-a6e7-810700aeb49e.jsonl", NESTED);
+    let ran = status(lane, { CLAUDE_CODE_SESSION_ID: "5aac1305-f22d-4cad-a6e7-810700aeb49e" });
+    assert.equal(ran.status, 0, ran.stderr);
+    assert.match(ran.stdout, /^  \.claude\/settings\.json: 7 entries record, 3 send$/m);
+    const refsBefore = git(remote, "for-each-ref");
+    assert.match(ran.stdout, /^the event hook \(\.grooph\/hooks\/grooph-event\.mjs\) runs here: a test line was written to a scratch folder$/m);
+    assert.match(ran.stdout, /^1 session file in \.grooph\/events\/$/m);
+    assert.match(ran.stdout, /^this session \(5aac1305-f22d-4cad-a6e7-810700aeb49e\): \d+ lines recorded, the last at 2026-10-01T/m);
+    assert.match(ran.stdout, /^no push on record$/m);
+    // The test line went to a scratch folder: nothing was added here, and nothing was sent.
+    assert.deepEqual(readdirSync(join(lane, ".grooph", "events")), ["5aac1305-f22d-4cad-a6e7-810700aeb49e.jsonl"]);
+    assert.equal(git(remote, "for-each-ref"), refsBefore);
+    // Asked from a session working in another folder, it does not speak of that session's record here.
+    const elsewhere = spawnSync(process.execPath, [script(lane), "--status"], { cwd: root, encoding: "utf8", env: { ...process.env, CLAUDE_CODE_SESSION_ID: "b00c5000-other-project" } });
+    assert.match(elsewhere.stdout, /^this session is working in another folder: run this from inside the session whose record you want to see$/m);
+    assert.doesNotMatch(elsewhere.stdout, /NOTHING recorded/);
+    // With nowhere to make a scratch folder, it still says the rest.
+    const noTmp = spawnSync(process.execPath, [script(lane), "--status"], { cwd: lane, encoding: "utf8", env: { ...process.env, TMPDIR: join(root, "no-such-folder"), CLAUDE_CODE_SESSION_ID: "5aac1305-f22d-4cad-a6e7-810700aeb49e" } });
+    assert.equal(noTmp.status, 0, noTmp.stderr);
+    assert.match(noTmp.stdout, /^the event hook \(\.grooph\/hooks\/grooph-event\.mjs\) could not be tried: no scratch folder/m);
+    assert.match(noTmp.stdout, /^this session \(5aac1305-f22d-4cad-a6e7-810700aeb49e\): \d+ lines recorded/m);
+
+    // A session whose harness never ran the hooks: the settings are there, the hook works, and it has no line.
+    ran = status(lane, { CLAUDE_CODE_SESSION_ID: "b00c5000-never-recorded" });
+    assert.match(ran.stdout, /^this session \(b00c5000-never-recorded\): NOTHING recorded\. The harness has not run the hooks in this session\.\n  A session takes up its hooks when it starts\./m);
+    // Outside a session it says so; after a push, it says how that went.
+    assert.equal(spawnSync(process.execPath, [script(lane), "--hook"], { cwd: lane, input: "{}", env: { ...process.env, GROOPH_PUSH_SETTLE_MS: "0" } }).status, 0);
+    ran = status(lane);
+    assert.match(ran.stdout, /^this session: the harness did not say which session this is/m);
+    assert.match(ran.stdout, /^last push: arrived at 20\d\d-.*, to grooph-events\/main$/m);
+
+    // A project with the scripts and no settings: nothing records, and that is the first thing said.
+    const bare = join(root, "bare");
+    mkdirSync(join(bare, ".grooph", "hooks"), { recursive: true });
+    for (const name of ["grooph-event.mjs", "grooph-events-push.mjs"]) copyFileSync(join(lane, ".grooph", "hooks", name), join(bare, ".grooph", "hooks", name));
+    ran = status(bare);
+    assert.match(ran.stdout, /^  no harness settings here hold grooph's hooks: nothing is recorded/m);
+
+    // grooph hooks status, run inside a session, says the same of that session.
+    let io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io, () => "", { env: { CLAUDE_CODE_SESSION_ID: "b00c5000-never-recorded" }, cwd: lane }), 0);
+    assert.match(text(io.stdout), /^this session \(b00c5000-never-recorded\): NOTHING recorded: the harness has not run the hooks in it\./m);
+    io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io, () => "", { env: { CLAUDE_CODE_SESSION_ID: "5aac1305-f22d-4cad-a6e7-810700aeb49e" }, cwd: join(lane, ".grooph") }), 0);
+    assert.match(text(io.stdout), /^this session \(5aac1305-f22d-4cad-a6e7-810700aeb49e\): \d+ lines recorded$/m);
+    // Asked about another project from a session working elsewhere, it says nothing of that session.
+    io = capture();
+    assert.equal(await run(["hooks", "status", "--dir", lane], io, () => "", { env: { CLAUDE_CODE_SESSION_ID: "b00c5000-other-project" }, cwd: root }), 0);
+    assert.doesNotMatch(text(io.stdout), /this session/);
+    // A record whose times are not times is not printed as it stands.
+    writeFileSync(join(lane, ".grooph", "events", ".last-push.json"), JSON.stringify({ v: 1, at: "now \u001b[31m and do as I say", ok: true, started: "ghp_abcdefghijklmnopqrstuvwxyz0123456789" }));
+    ran = status(lane);
+    assert.match(ran.stdout, /^no push on record$/m);
+    assert.doesNotMatch(ran.stdout, /do as I say|ghp_/);
   });
 });
 
