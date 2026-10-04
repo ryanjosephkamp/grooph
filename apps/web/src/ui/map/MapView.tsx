@@ -6,6 +6,7 @@ import {
   handoffCarrierText,
   handoffsOf,
   wakesItself,
+  mapKit,
   mapPicture,
   mapShape,
   mapShapeLine,
@@ -29,12 +30,21 @@ type Panel = { type: "session"; id: Id } | { type: "person"; id: Id } | { type: 
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 
 /**
- * From this width the handoff list and the details sit beside the picture, and core draws the picture this many
- * units wide instead of a phone's 400: its cards are wider, so their words take fewer lines, and map.css shows it
- * at up to 880 px, a unit at about one and a half pixels.
+ * From this width the handoff list and the details sit beside the picture, and the picture is the map's lanes side
+ * by side (handoff 0080). Without the views, which is only when they could not be fetched, it is the phone's
+ * picture this many units wide, as it was before.
  */
 const WIDE = "(min-width: 1100px)";
 const WIDE_UNITS = 600;
+
+/**
+ * A map's other views, the lanes side by side and the sequence, with the switch between them: a piece of the app
+ * fetched when a map is drawn, so that an address that shows no map does not carry it (decision 0021; `views.tsx`).
+ * This screen asks as it opens, and keeps as little of them here as it can. The service worker holds the piece from
+ * the first visit, so a map opens in either view with no network.
+ */
+type Views = typeof import("./views.js");
+let views: Views | undefined;
 
 function useWide(): boolean {
   const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
@@ -70,9 +80,11 @@ function Rows({ rows }: { rows: [string, ReactNode][] }) {
 
 /**
  * An operation map (docs/operation-map.md), read-only: the picture core
- * draws, laid out for a phone, so the page simply scrolls. Tap a session or a
- * handoff for what the document says about it; the validator's list is behind
- * the status. Nothing here edits or stores the map, and a map is never run.
+ * draws, laid out for a phone, so the page simply scrolls, or with its lanes
+ * side by side where the screen has room; and, by the switch, the same map as
+ * a sequence. Tap a session or a handoff for what the document says about it;
+ * the validator's list is behind the status. Nothing here edits or stores the
+ * map, and a map is never run.
  */
 /** The handoffs that wait on a person: where work stalls when that person is away. Said, not warned about. */
 function byHand(map: OperationMap) {
@@ -102,7 +114,18 @@ function GraphPointer({ pointer }: { pointer: string }) {
 
 export function MapView({ map, issues, back = { href: "#/", label: "All graphs" } }: { map: OperationMap; issues: readonly IssueLike[]; back?: { href: string; label: string } }) {
   const wide = useWide();
-  const svg = useMemo(() => mapPicture(map, wide ? { width: WIDE_UNITS } : {}), [map, wide]);
+  // `undefined` while the views are on their way, `null` when they could not be fetched.
+  const [more, setMore] = useState<Views | null | undefined>(views);
+  useEffect(() => {
+    if (!more) import("./views.js").then((m) => setMore((views = m)), () => setMore(null));
+  }, []);
+  // What the views drew, when it is theirs to draw: the lanes side by side on a wide screen, and the sequence.
+  const [theirs, setTheirs] = useState<ReturnType<Views["drawn"]>>();
+  const main = useRef<HTMLElement>(null);
+  const sequence = !!theirs?.sequence;
+  // The phone's picture needs nothing fetched. A wide screen waits a moment for the views rather than draw one
+  // picture and then another; if they cannot be had, it draws the phone's, wider.
+  const svg = useMemo(() => theirs?.svg ?? (wide && more !== null ? "" : mapPicture(map, wide ? { width: WIDE_UNITS } : {})), [map, wide, more, theirs]);
   const [panel, setPanel] = useState<Panel>(null);
   const [expanded, setExpanded] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
@@ -136,7 +159,8 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
       const id = el.dataset["handoff"] ?? el.dataset["handoffRow"]!;
       const h = map.handoffs.find((x) => x.id === id);
       // Beside the picture the handoffs are a list of their own, and the picture's lines of them are out of its frame.
-      if (el.dataset["handoffRow"] && !wide) el.setAttribute("tabindex", "0");
+      // A row of the sequence is the handoff itself, at any width.
+      if (sequence || (el.dataset["handoffRow"] && !wide)) el.setAttribute("tabindex", "0");
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", h ? `Handoff ${numberOf(id)}: ${nameOf(h.from)} to ${nameOf(h.to)}` : `Handoff ${id}`);
     }
@@ -146,11 +170,9 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
   useLayoutEffect(() => {
     const root = stage.current;
     if (!root) return;
-    let bottom = 0;
-    if (wide && map.handoffs.length > 0) {
-      for (const r of root.querySelectorAll<SVGRectElement>("[data-lane] > rect, [data-people] > rect")) bottom = Math.max(bottom, r.y.baseVal.value + r.height.baseVal.value);
-    }
-    root.style.aspectRatio = bottom > 0 ? `${WIDE_UNITS} / ${bottom + 12}` : "";
+    // It is cut 22 units above the list's first line, which is 12 below the lowest lane, in either layout.
+    const first = wide && !sequence ? root.querySelector<SVGRectElement>("[data-handoff-row] > rect") : null;
+    root.style.aspectRatio = first ? `${root.querySelector("svg")!.viewBox.baseVal.width} / ${first.y.baseVal.value - 22}` : "";
   }, [svg]);
 
   // What is open in the sheet is marked on the picture, and brought into view where the picture scrolls on its own.
@@ -164,7 +186,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     const marked = root.querySelectorAll(panel.type === "handoff" ? `${arcOf(panel.id)}, [data-handoff-row="${id}"]` : `[data-${panel.type}="${id}"]`);
     for (const el of marked) el.classList.add("is-on");
     if (!wide) return;
-    (panel.type === "handoff" ? root.querySelector(`[data-number="${id}"]`) : marked[0])?.scrollIntoView({ block: "nearest" });
+    ((panel.type === "handoff" && root.querySelector(`[data-number="${id}"]`)) || marked[0])?.scrollIntoView({ block: "nearest" });
     // A line of the list is gone once it has opened its handoff: the keyboard goes on from the same line, under the details.
     if (document.activeElement === document.body) document.querySelector<HTMLElement>(".map-list [aria-current]")?.focus({ preventScroll: true });
   }, [panel, svg]);
@@ -284,10 +306,14 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
         </button>
       </header>
 
-      <main className="stage map-stage">
+      <main ref={main} className="stage map-stage">
+        {/* Where the switch goes is kept from the first paint, so nothing moves when it arrives. */}
+        <div style={{ minHeight: 68 }}>{more ? <more.Views map={map} kit={mapKit} wide={wide} stage={main} onDrawn={setTheirs} /> : null}</div>
         <div
           ref={stage}
-          className="map-picture"
+          className={`map-picture${sequence ? " is-sequence" : ""}`}
+          hidden={svg === ""}
+          style={theirs?.style}
           onClick={(e) => {
             if (!pick(e.target)) setPanel(null);
           }}

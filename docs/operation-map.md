@@ -142,7 +142,9 @@ A handoff carried by a `person`, or started by one, is a true statement about an
 
 `mapPicture(map, { theme })` in core draws a map as one SVG, laid out for a phone: the people it names in a band at the top, lanes stacked top to bottom, each session a card in its lane, each handoff an arc in the margin with a number, and a numbered list of the handoffs below (who to whom, by what carrier, carrying what). Line style says the carrier kind (a notification is a line of dots: nobody carries it). A session that wakes itself has a dotted ring and its schedule on its card. A handoff's number sits in a ring on its arc: the arc's own line stops at the ring, and any other line that runs behind it is drawn over it, so a number is seen to belong to one line even where the tracks are close. It is a projection: it never round-trips, and edits happen in the document. The words come first: the cards keep a little over half of a lane's width however many handoffs there are (the tracks in the margin close up instead), and a name, a model or a role that does not fit its line goes onto the next.
 
-The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto`) and what the app shows for a map opened from a link or a file. `light` and `dark` write the colors into the file; `auto` carries both and follows the viewer's color scheme. In the app a session or a handoff opens what the document says about it, and the map's issues are behind the status, as a graph's are.
+The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto`) and what the app shows for a map opened from a link or a file, on a screen narrower than 1100 px. `light` and `dark` write the colors into the file; `auto` carries both and follows the viewer's color scheme. In the app a session or a handoff opens what the document says about it, and the map's issues are behind the status, as a graph's are.
+
+It is one column, 400 units wide, and every arc shares one margin. That is the right shape for a phone and the wrong one for a wide screen, and on a map with many handoffs the arcs cross often: 118 times on the nineteen-handoff map of §4d. Two more views draw the same document for those cases: the lanes side by side (§4c) and a sequence (§4d). A view never changes the document, and none of the three round-trips.
 
 ## 4a. Where a map goes
 
@@ -151,12 +153,12 @@ The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto
 | `grooph validate <map>` | the rules of §3, then what a person carries by hand; a `graph` pointer that is a path is looked up beside the map |
 | `grooph canonicalize <map> [--write]` | canonical form (§5) |
 | `grooph shape <map> [--json]` | lanes, sessions, handoffs, how many a person carries |
-| `grooph image <map> [--out <file.svg \| file.png>] [--theme …]` | the picture, as SVG or PNG |
+| `grooph image <map> [--out <file.svg \| file.png>] [--theme …]` | the picture, as SVG or PNG; `--layout wide` for its lanes side by side (§4c), `--view sequence` for the sequence (§4d) |
 | `grooph outline <map>` · `grooph page <map> --out <file.html>` | the map to read top to bottom; the one offline file ([`exports.md`](exports.md)) |
 | `grooph share <map>` | a link that opens the map in the app; a map with rule errors still shares, and the view names them |
 | `grooph export <map> …` | refused, by name: a map is never compiled |
 
-In the app, Import on the first screen takes a `.grooph-map.json` and opens the same view as the link. A map is looked at, not stored.
+In the app, Import on the first screen takes a `.grooph-map.json` and opens the same view as the link. A map is looked at, not stored. A switch on the map, Picture and Sequence, changes the view at any width; from 1100 px the picture is drawn with its lanes side by side. Those two views are a piece of the app fetched when a map is first drawn, so an address that shows no map does not carry them; the page names the piece, so a map opens in either view with no network once the app has been opened with one ([`exports.md`](exports.md), "The app itself, offline").
 
 ## 4b. A live map
 
@@ -174,6 +176,53 @@ grooph watch --map ops.grooph-map.json --events operator=. --events workers=git:
 A source is an events file, a folder, a project, or `git:<ref>`. Several sources under one name are summed, which is how a family of twelve reads `3 of 12 working`. A session with no source of its name is drawn as the map alone draws it. `image` and `page` are snapshots, stamped with the time they were read; `watch` serves a page that asks again every two seconds.
 
 The map document is not changed by any of this, and still holds no state: `mapLive(sessions, map)` in core computes the marks, and `mapPicture(map, { live, at })` draws them. A map remains something that is drawn and validated, never run; what is laid over it is observation (amendment A-012).
+
+## 4c. Lanes side by side
+
+`mapWide(map)` draws the same map for a screen with room: the people in a band across the top, each lane a column in the document's order, each session a card in its lane's column, and the handoffs listed below in as many columns as fit. The cards, the numbers in their rings and the lines of the list are the phone's picture's own. `grooph image <map> --layout wide` writes it, and the app draws it from 1100 px.
+
+No arc runs over a card. Between two lanes, and outside the first and the last, is a gutter of upright tracks; above the lanes is a deck of level ones. An arc leaves its card by the edge that faces where it is going:
+
+- within a lane, out of one edge, along a track in the gutter beside it, and back into the same edge;
+- between neighboring lanes, across the gutter between them;
+- between lanes further apart, up its gutter, along the deck over the lanes between, and down the other gutter;
+- to or from a person, straight down from the person's card into a gutter, or by the deck when that card is not above the gutter.
+
+What keeps the crossings few: a lane's arcs from above (a person's, and the deck's) go down the side of the lane that fewer other lanes are reached from, and the arcs within the lane take the other side; tracks nest, short arcs inside long; and the ends on a card's edge are in the order of their tracks, those that go up first, so two arcs that end on one card never cross there. The ends on a card's two edges are set a little apart, so that an arc leaving one card and an arc reaching the card level with it are two lines and not one. On a person's card each arc has a place of its own: straight above its track when the card is over it, else at the card's nearer end. No session is assumed to be the hub. On the map of §4d the arcs cross 3 times, where the phone's picture has 118. It is not the fewest possible: the lanes stay in the order the document lists them, and a map whose handoffs run between every pair of sessions is still a tangle.
+
+It is as wide as its lanes need: 168 units to a card, and a track for each arc in a gutter, which comes to about 900 units for three lanes and twenty handoffs. Given a `width`, that is the room there is: the cards give way first, to 150 units and no further, then the tracks close up. Past that the picture is wider than the room, and whole. The cards are narrower than a phone's, so their words take more lines; a card's least is wide enough that none is cut short on any map in this repository.
+
+| Good at | Loses |
+|---|---|
+| The shape of the operation across a wide screen: each lane a column, with the same cards and every word they have on a phone | The phone: three lanes are 900 units wide, more than twice a phone's width |
+| Which lanes work with which: a handoff that leaves a lane crosses a gutter, and one that stays does not | The order of the handoffs: a number says which line of the list an arc is, and nothing else does |
+| Following one arc: it crosses few others, and never a card | Height, when one lane is full: a lane's cards are one column, so a lane of six sessions is still taller than most screens (the lanes of the map of §4d end at 1,199 units, where the phone's end at 1,677), and every lane's box is as deep as the fullest |
+| A person's part: everything that waits on them drops from one card | Width, as lanes are added: each is a column, and five or more will not fit most screens |
+
+The map of the first push (§4d), side by side. It opens at its full size.
+
+<a href="../fixtures/maps/pictures/grooph-builds-grooph-2026-10-04.wide.light.svg"><img src="../fixtures/maps/pictures/grooph-builds-grooph-2026-10-04.wide.light.svg" alt="The map of the first push with its lanes side by side: one person across the top, three lanes as columns, nineteen numbered arcs in the gutters between them" width="760"></a>
+
+## 4d. A sequence
+
+`mapSequence(map)` draws the handoffs one at a time: a column for each person and each session, a line down from each, and every handoff a numbered arrow from its sender's line to its receiver's, on a row of its own. The arrow is colored and dashed by its carrier as an arc is in the picture, and beside it are the carrier in words and what is handed. Columns keep the picture's grouping: the people first, then each lane's sessions inside that lane's box, so an arrow that leaves a box is a handoff that leaves a lane. A session's handoff to itself leaves its line and comes back to it. `grooph image <map> --view sequence` writes it, and the app's switch shows it at any width.
+
+**The rows are in the order the map lists its handoffs. That is an order, not a clock.** A map records no times, and nothing says the third handoff happens after the second or only once. The picture says so under its title, because a sequence looks like a timeline.
+
+It is as wide as its columns: each is as wide as the longest word in any name needs, between 62 and 104 units, so no name is cut short. Ten columns and the words come to about 1,100 units. A `width` changes only how much room the words have. On a phone it scrolls sideways inside its own frame, a unit to a pixel.
+
+| Good at | Loses |
+|---|---|
+| Reading a long map: one handoff a row, nothing crossing anything | The cards: a column's head is a name, with no role, harness, model, lifetime or repository |
+| Who hands to whom, at a glance down one line: every arrow that starts at a person waits on that person | A lane's machine and account (its name is kept), and a lane with no session |
+| The carrier and what is handed, in words, beside each arrow | The live marks of §4b: there is no card to mark |
+| A phone, if scrolled sideways | Honesty by shape alone: it reads as time passing, which the map does not record |
+
+The map of the first push, `handoffs/briefs/plan-2026-10-04/build.grooph-map.json` (nine sessions in three lanes, one person, nineteen handoffs), as its sequence, and under it as the phone's picture. The picture is 2,705 units tall and its arcs cross 118 times; the sequence is 1,033 units tall and nothing in it crosses. Each opens at its full size.
+
+<a href="../fixtures/maps/pictures/grooph-builds-grooph-2026-10-04.sequence.light.svg"><img src="../fixtures/maps/pictures/grooph-builds-grooph-2026-10-04.sequence.light.svg" alt="The map of the first push as a sequence: ten columns, and nineteen numbered arrows, one to a row, with what carries each and what is handed" width="760"></a>
+
+<a href="../handoffs/briefs/plan-2026-10-04/build-map.svg"><img src="../handoffs/briefs/plan-2026-10-04/build-map.svg" alt="The same map as the phone's picture: one tall column, with nineteen arcs sharing one margin" width="200"></a>
 
 ## 5. Canonical form
 
@@ -193,4 +242,4 @@ The first draft, [`owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps
 
 ## 7. Deferred
 
-Named so nobody designs them twice: a saved `layout` for a map (the picture is automatic in v0); a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).
+Named so nobody designs them twice: a saved `layout` for a map (every view is automatic in v0, and which view is drawn is the reader's choice, not a field of the document); a view in three dimensions; a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).

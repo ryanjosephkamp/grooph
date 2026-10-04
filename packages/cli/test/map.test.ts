@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { decodeSharePayload, mapPicture, parseMapText, sharePayloadFrom } from "@grooph/core";
+import { decodeSharePayload, mapPicture, mapSequence, mapWide, parseMapText, sharePayloadFrom } from "@grooph/core";
 
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -143,6 +143,63 @@ test("image prints the picture core draws, byte for byte, or writes it; themes a
   io = capture();
   assert.equal(await grooph(["image", "--help"], io), 0);
   assert.match(text(io.stdout), /^grooph image <graph \| operation map>/);
+});
+
+test("image writes a map's other views, its lanes side by side and a sequence, as core draws them; the default is what it was", async () => {
+  const map = parseMapText(readFileSync(sample, "utf8")).map!;
+  let io = capture();
+  assert.equal(await grooph(["image", sample, "--theme", "light", "--layout", "wide"], io), 0, text(io.stderr));
+  assert.equal(`${text(io.stdout)}\n`, mapWide(map, { theme: "light" }));
+  io = capture();
+  assert.equal(await grooph(["image", sample, "--view", "sequence"], io), 0, text(io.stderr));
+  assert.equal(`${text(io.stdout)}\n`, mapSequence(map, { theme: "auto" }));
+  // Named or not, the default is the phone's picture, byte for byte the committed one.
+  io = capture();
+  assert.equal(await grooph(["image", sample, "--theme", "light", "--layout", "phone", "--view", "picture"], io), 0, text(io.stderr));
+  assert.equal(`${text(io.stdout)}\n`, readFileSync(join(maps, "pictures", "ryans-operation-2026-09-30.light.svg"), "utf8"));
+
+  await withScratch(async (dir) => {
+    // To a file: the committed pictures of both views are what the command writes.
+    const person = join(maps, "valid", "a-person-and-two-sessions.grooph-map.json");
+    for (const [view, flags] of [["wide", ["--layout", "wide"]], ["sequence", ["--view", "sequence"]]] as const) {
+      const out = join(dir, `${view}.svg`);
+      io = capture();
+      assert.equal(await grooph(["image", person, ...flags, "--theme", "dark", "--out", out], io), 0, text(io.stderr));
+      assert.equal(readFileSync(out, "utf8"), readFileSync(join(maps, "pictures", `a-person-and-two-sessions.${view}.dark.svg`), "utf8"));
+    }
+    // A PNG of either is three pixels to the unit of a picture that is wider than a phone's.
+    const pngWidth = (file: string): number => readFileSync(file).readUInt32BE(16);
+    const unitsOf = (svg: string): number => Number(/viewBox="0 0 ([\d.]+) /.exec(svg)![1]);
+    io = capture();
+    assert.equal(await grooph(["image", sample, "--layout", "wide", "--out", join(dir, "wide.png")], io), 0, text(io.stderr));
+    assert.equal(pngWidth(join(dir, "wide.png")), Math.round(unitsOf(mapWide(map)) * 3));
+    assert.ok(pngWidth(join(dir, "wide.png")) > 1200);
+    io = capture();
+    assert.equal(await grooph(["image", sample, "--view", "sequence", "--theme", "dark", "--scale", "1", "--out", join(dir, "sequence.png")], io), 0, text(io.stderr));
+    assert.equal(pngWidth(join(dir, "sequence.png")), Math.round(unitsOf(mapSequence(map))));
+  });
+
+  // What it refuses, and why.
+  for (const [argv, said] of [
+    [["image", sample, "--layout", "tall"], /--layout is phone or wide, got "tall"/],
+    [["image", sample, "--view", "timeline"], /--view is picture or sequence, got "timeline"/],
+    [["image", sample, "--view", "sequence", "--layout", "wide"], /the sequence has one layout/],
+    [["image", sample, "--view", "sequence", "--events", `operator=${repoRoot}`], /the sequence has no cards/],
+    [["image", reviewLoop, "--layout", "wide"], /--layout wide is a view of an operation map; this file is a graph, which has one picture/],
+    [["image", reviewLoop, "--view", "sequence"], /--view sequence is a view of an operation map; this file is a graph/],
+  ] as const) {
+    io = capture();
+    assert.equal(await grooph([...argv], io), 1, argv.join(" "));
+    assert.match(text(io.stderr), said);
+    assert.deepEqual(io.stdout, [], argv.join(" "));
+  }
+  // A graph asked for its one picture by the defaults' names is drawn.
+  io = capture();
+  assert.equal(await grooph(["image", reviewLoop, "--layout", "phone", "--view", "picture"], io), 0, text(io.stderr));
+
+  io = capture();
+  assert.equal(await grooph(["image", "--help"], io), 0);
+  for (const said of [/^grooph image <graph \| operation map> .*\[--layout wide\] \[--view sequence\]/, /--layout wide +its lanes side by side/, /--view sequence +a column for each person and session/, /An order, not a clock/]) assert.match(text(io.stdout), said);
 });
 
 test("share makes a link that opens to the same map, rule errors and all, and --out writes the canonical file", async () => {

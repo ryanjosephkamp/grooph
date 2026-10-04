@@ -206,7 +206,11 @@ export async function run(
       }
 
       case "image": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, events: { type: "string", multiple: true } } });
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, layout: { type: "string" }, view: { type: "string" }, events: { type: "string", multiple: true } },
+        });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "image needs a file: grooph image <graph | operation map> [--out <file.svg | file.png>]");
         const scale = values["scale"] === undefined ? undefined : Number(values["scale"]);
@@ -215,6 +219,8 @@ export async function run(
           ...(values["out"] !== undefined ? { out: values["out"] } : {}),
           ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}),
           ...(scale !== undefined ? { scale } : {}),
+          ...(values["layout"] !== undefined ? { layout: values["layout"] } : {}),
+          ...(values["view"] !== undefined ? { view: values["view"] } : {}),
           ...(values["events"] ? { events: values["events"].map(parseSource) } : {}),
         });
       }

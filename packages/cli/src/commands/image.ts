@@ -6,6 +6,8 @@ import {
   mapLive,
   mapOutline,
   mapPicture,
+  mapSequence,
+  mapWide,
   offlinePage,
   outline,
   outlineMarkdown,
@@ -21,7 +23,7 @@ import { readLive, sourceExists, type EventSource } from "../events-io.js";
 import { readText, writeBytes, writeText } from "../io.js";
 import type { Output } from "../print.js";
 
-export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--events <id>=<source>]...
+export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -35,11 +37,24 @@ An operation map (*.grooph-map.json, docs/operation-map.md) is drawn as its lane
 bottom, each session a card in its lane, each handoff a numbered arc in the margin, and
 the handoffs listed below with what carries each.
 
+An operation map has two more views, for a screen with room or a map with many handoffs
+(docs/operation-map.md §4c and §4d). Both are wider than a phone:
+
+  --layout wide          its lanes side by side: the people in a band across the top, each lane
+                         a column, each handoff an arc in the gutters between the lanes, and
+                         the list below in columns. As wide as its lanes need, about 900 units
+                         for three lanes. --layout phone is the picture above, and the default.
+  --view sequence        a column for each person and session, and a row for each handoff in the
+                         order the map lists them: a numbered arrow from sender to receiver, with
+                         what carries it and what is handed. An order, not a clock: a map records
+                         no times. --view picture is the default.
+
   --theme light | dark   colors written into the file: it looks the same anywhere
   --theme auto           (SVG only, the SVG default) both palettes; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
-  --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide); --scale changes
-                         that. A PNG is one theme: light unless --theme dark.
+  --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide for the phone's
+                         picture); --scale changes that. A PNG is one theme: light unless
+                         --theme dark.
 
   --events <id>=<src>    for an operation map: draw what the event hook has seen on the
                          session with that id (working, waiting or ended; subagents running
@@ -97,7 +112,7 @@ function load(io: Output, file: string): Loaded | undefined {
   return undefined;
 }
 
-type ImageFlags = { out?: string; theme?: string; scale?: number; events?: EventSource[] };
+type ImageFlags = { out?: string; theme?: string; scale?: number; events?: EventSource[]; layout?: string; view?: string };
 
 /**
  * What the hooks saw of a map's sessions, read now from the sources given.
@@ -127,7 +142,25 @@ function liveFor(io: Output, loaded: Loaded, events: EventSource[] | undefined):
 
 const THEMES = ["light", "dark", "auto"] as const;
 
-/** `grooph image <file> [--out <svg | png>] [--theme <theme>] [--scale <n>]`. Exit 1 when the file cannot be drawn. */
+/**
+ * Which view of a map was asked for, or undefined with the reason printed. A graph has one picture; the
+ * sequence has one layout, and no cards for the event hook's marks.
+ */
+function viewFor(io: Output, loaded: Loaded, flags: ImageFlags): { wide: boolean; sequence: boolean } | undefined {
+  const refuse = (message: string): undefined => void io.err(`grooph: ${message}`);
+  const layout = flags.layout ?? "phone";
+  const view = flags.view ?? "picture";
+  if (layout !== "phone" && layout !== "wide") return refuse(`--layout is phone or wide, got "${layout}"`);
+  if (view !== "picture" && view !== "sequence") return refuse(`--view is picture or sequence, got "${view}"`);
+  if (loaded.kind !== "map" && (layout === "wide" || view === "sequence")) {
+    return refuse(`--${view === "sequence" ? "view sequence" : "layout wide"} is a view of an operation map; this file is a graph, which has one picture`);
+  }
+  if (view === "sequence" && layout === "wide") return refuse("the sequence has one layout; --layout wide is for the picture. Leave one of them out");
+  if (view === "sequence" && flags.events?.length) return refuse("--events marks the sessions' cards on the picture; the sequence has no cards. Leave out --view sequence, or --events");
+  return { wide: layout === "wide", sequence: view === "sequence" };
+}
+
+/** `grooph image <file> [--out <svg | png>] [--theme <theme>] [--scale <n>] [--layout wide] [--view sequence]`. Exit 1 when the file cannot be drawn. */
 export async function imageCommand(io: Output, file: string, flags: ImageFlags = {}): Promise<number> {
   const ext = flags.out === undefined ? ".svg" : extname(flags.out).toLowerCase();
   if (ext !== ".svg" && ext !== ".png") {
@@ -145,9 +178,16 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
   }
   const loaded = load(io, file);
   if (!loaded) return 1;
+  const view = viewFor(io, loaded, flags);
+  if (!view) return 1;
   const now = liveFor(io, loaded, flags.events);
   if (now === "refused") return 1;
-  const svg = loaded.kind === "map" ? mapPicture(loaded.doc, { theme: theme as PictureTheme, ...(now ? now : {}) }) : picture(loaded.doc, { theme: theme as PictureTheme });
+  const svg =
+    loaded.kind !== "map"
+      ? picture(loaded.doc, { theme: theme as PictureTheme })
+      : view.sequence
+        ? mapSequence(loaded.doc, { theme: theme as PictureTheme })
+        : (view.wide ? mapWide : mapPicture)(loaded.doc, { theme: theme as PictureTheme, ...(now ? now : {}) });
 
   if (flags.out === undefined) {
     io.out(svg.replace(/\n$/, ""));
@@ -163,7 +203,7 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
     png = await renderPng(svg, flags.scale ?? 3);
   } catch (err) {
     io.err(`grooph: could not make a PNG: ${(err as Error).message}`);
-    io.err(`The SVG is the same drawing: grooph image ${file} --theme ${theme} --out ${flags.out.replace(/\.png$/i, ".svg")}`);
+    io.err(`The SVG is the same drawing: grooph image ${file} --theme ${theme}${view.wide ? " --layout wide" : ""}${view.sequence ? " --view sequence" : ""} --out ${flags.out.replace(/\.png$/i, ".svg")}`);
     return 1;
   }
   writeBytes(flags.out, png);
