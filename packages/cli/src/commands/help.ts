@@ -42,13 +42,14 @@ Watch
 
 Share
   share        a link that opens a graph, set, run or map in the app
+  embed        one line of HTML that shows a graph on any page
 
 First time? docs/quickstart.md.   grooph --version prints the version.`;
 
 /** Commands the overview lists, for the "did you mean" and the unknown-command check. */
 export const COMMANDS = [
   "new", "template", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
-  "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share",
+  "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share", "embed",
 ] as const;
 
 /** Edit distance with transposition counted as one edit. */

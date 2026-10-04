@@ -1,10 +1,9 @@
 import { sharePayloadFrom } from "@grooph/core";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 
 import type { TemplateSource } from "./doc/templates.js";
 import "./store/persist.js";
 import { EditorScreen } from "./ui/Editor.js";
-import { EmbedApp } from "./ui/embed/EmbedApp.js";
 import { Landing } from "./ui/landing/Landing.js";
 import { Library } from "./ui/Library.js";
 import { LiveSessions } from "./ui/live/LiveSessions.js";
@@ -13,6 +12,9 @@ import { LiveRun, StoredRun } from "./ui/run/RunScreens.js";
 import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
 import { TemplateView } from "./ui/templates/TemplateView.js";
 import { UseTemplate } from "./ui/templates/UseTemplate.js";
+
+/** The embed, fetched only when a route asks for it (slice 0056 keeps it out of the app's own load). */
+const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ default: m.EmbedApp })));
 
 type Route =
   | { name: "library" }
@@ -85,7 +87,15 @@ export function App() {
   if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
   if (route.name === "about") return <Landing />;
   if (route.name === "templates") return <TemplatesScreen />;
-  if (route.name === "embed") return <EmbedApp />;
+  // Reached from inside the app (a page opened on `#/embed` is drawn by main.tsx without the app at all): the embed
+  // is fetched then, so the app itself never carries it.
+  if (route.name === "embed") {
+    return (
+      <Suspense fallback={null}>
+        <EmbedApp />
+      </Suspense>
+    );
+  }
   if (route.name === "template") {
     const key = `${route.source}/${route.id}`;
     return route.use ? <UseTemplate key={key} source={route.source} id={route.id} /> : <TemplateView key={key} source={route.source} id={route.id} />;

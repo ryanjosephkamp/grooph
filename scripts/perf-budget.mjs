@@ -6,7 +6,8 @@
  *   node scripts/perf-budget.mjs --check    the same, and exit 1 when a number is over its budget
  *
  * It reads the built app (apps/web/dist: run `pnpm -r build` first) and times the built CLI. Sizes are gzip, in units of 1,024 bytes,
- * which is what GitHub Pages sends. The first load is index.html and every script and stylesheet it names. Budgets are in
+ * which is what GitHub Pages sends. The app's first load is index.html, its scripts and its styles; an embed's is what
+ * an `#/embed` address loads, which is much less (the build lists both in dist/routes.json). Budgets are in
  * scripts/perf-budget.json; raising one is a decision, made in a pull request that says why.
  */
 import { execFileSync } from "node:child_process";
@@ -27,11 +28,19 @@ if (!existsSync(join(dist, "index.html"))) {
 }
 /** The scripts and stylesheets a page names, as files in dist. */
 const named = (page) => [...readFileSync(join(dist, page), "utf8").matchAll(/(?:src|href)="[^"]*?(assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]);
-const first = named("index.html");
-const js = first.filter((f) => f.endsWith(".js")).reduce((n, f) => n + kb(join(dist, f)), 0);
-const css = first.filter((f) => f.endsWith(".css")).reduce((n, f) => n + kb(join(dist, f)), 0);
+const sum = (files) => files.reduce((n, f) => n + kb(join(dist, f)), 0);
 const html = kb(join(dist, "index.html"));
-const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !first.includes(`assets/${f}`));
+// What each address loads. Since slice 0056 the entry chooses by the address, and the build writes the two sets
+// to routes.json; before that, index.html named everything.
+const routes = existsSync(join(dist, "routes.json")) ? JSON.parse(readFileSync(join(dist, "routes.json"), "utf8")) : undefined;
+const first = named("index.html");
+const appJs = routes ? [...routes.entry, ...routes.app.js] : first.filter((f) => f.endsWith(".js"));
+const appCss = routes ? routes.app.css : first.filter((f) => f.endsWith(".css"));
+const js = sum(appJs);
+const css = sum(appCss);
+const embed = routes ? sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html : undefined;
+const counted = new Set([...appJs, ...appCss, ...(routes ? [...routes.embed.js, ...routes.embed.css] : [])]);
+const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
 const bin = join(root, "packages", "cli", "bin", "grooph.js");
@@ -44,9 +53,10 @@ for (let i = 0; i < 5; i += 1) {
 const cli = times.sort((a, b) => a - b)[2];
 
 const rows = [
-  ["the app's first load (HTML, scripts and styles it names), gzip KB", one(js + css + html), budget.firstLoadKB],
+  ["the app's first load (HTML, scripts and styles), gzip KB", one(js + css + html), budget.firstLoadKB],
   ["  of which scripts", one(js), budget.entryJsKB],
   ["  of which styles", one(css), budget.cssKB],
+  ...(embed !== undefined ? [["an embed's first load, gzip KB", one(embed), budget.embedLoadKB]] : []),
   ["the CLI's cold start, ms (middle of five)", Math.round(cli), budget.cliColdMs],
 ];
 let over = 0;
