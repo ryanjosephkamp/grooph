@@ -76,11 +76,11 @@ review-loop/MAPPING.md         the builder's and the critic's rows, and the same
 
 - **Three places still name `fable`, none of them mine to change here.**
   - `.claude/agents/slice-0007-sandwich--critic.md` (`model: fable`) and `.grooph/slice-0007-sandwich/MAPPING.md`: a package placed in this repository for slice 0007. Its critic is an agent a session here can dispatch, and it would run on Fable. One line, or a fresh export of that graph, fixes it.
-  - `scripts/lib/compare-run.mjs`: the evidence lane's, forbidden here.
+  - `scripts/lib/compare-run.mjs`: the blind judge's model, `JUDGE_MODEL = "claude-fable-5-1"`. The evidence lane's file, forbidden here.
 - **The app's Export panel says nothing of tiers.** It shows no map, so there was nothing to change, and it prints no note: a person who exports `contradiction-seeker` from the app is not told its critic and builder are now one model. The package's `MAPPING.md` does carry the map.
 - **The note is about tiers, not pairs.** It is printed for five templates whose `strong` and `fast` agents do not judge one another. A note that looked at the pairs would be quieter and exact; that is a change to the compiler's output, not this slice.
 - **Proving records and write-ups are history** and still say what each run used (`claude-fable-5-1` among them). None states the default as a fact about today, so none was changed.
-- **The second study's own map** is whatever `scripts/lib/compare-run.mjs` names; this slice makes the default equal to what the brief says that is, and did not read the evidence lane's file to confirm.
+- **"The same as the study" is taken from the brief.** No script on `main` names a tier map for the second study: `scripts/lib/compare-run.mjs` names only the judge's model. The three names here are the ones the brief gives.
 
 ## Prompt to paste into the driver session
 
