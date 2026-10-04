@@ -25,7 +25,8 @@ Setext
     r.headings.map((h) => h.id),
     ["the-title", "1-shape", "e_schema-and-more", "1-shape-1", "setext"],
   );
-  assert.match(r.html, /<h2 id="1-shape">1\. Shape<a class="anchor" href="#1-shape" aria-label="Link to this section">#<\/a><\/h2>/);
+  assert.match(r.html, /<h2 id="1-shape">1\. Shape<a class="anchor" href="#1-shape" aria-label="Link to 1\. Shape">#<\/a><\/h2>/);
+  assert.match(r.html, /<h2 id="e_schema-and-more"><code>E_SCHEMA<\/code> and more<a class="anchor" href="#e_schema-and-more" aria-label="Link to E_SCHEMA and more">#<\/a><\/h2>/);
   assert.match(r.html, /<h1 id="the-title">The title<\/h1>/);
 });
 
@@ -58,6 +59,9 @@ test("every address goes through link() and image(), in Markdown and in raw HTML
   assert.match(raw, /srcset="I\(d\.svg\) 1x, I\(d2\.svg\) 2x"/);
   assert.match(raw, /<img src="I\(l\.svg\)" alt="x">/);
   assert.match(raw, /<a href="L\(z\.md\)">z<\/a> <img src="I\(i\.png\)">/);
+  // An iframe or a script points where it says; it is not one of the document's files.
+  const frame = '<iframe src="../../#/embed?x=1" title="A graph"></iframe>\n<script src="resize.js"></script>\n<link href="x.css">';
+  assert.equal(html(frame, options), frame);
 });
 
 test("raw HTML blocks pass through as written: picture, iframe, details with Markdown after a blank line, comments", () => {
@@ -150,6 +154,18 @@ test("the first paragraph is kept as a summary, and reference definitions are no
   const r = renderMarkdown("# T\n\n[r]: https://e.com/\n\nFirst **paragraph** here.\n\nSecond.");
   assert.equal(r.summary, "First paragraph here.");
   assert.doesNotMatch(r.html, /e\.com/);
+});
+
+test("the summary skips a byline for the first paragraph that reads as one", () => {
+  const r = renderMarkdown("# T\n\n*Draft, October 2026*\n\nThis is the first real paragraph of the post, long enough to be the description.\n\nLater.");
+  assert.equal(r.summary, "This is the first real paragraph of the post, long enough to be the description.");
+});
+
+test("a table with two long columns is marked wide, so a phone scrolls it; one with a single long column wraps to fit", () => {
+  const wide = html("| Operation | Does |\n|---|---|\n| `insertFragment(doc, template, { values })` | Accepts fragments and whole-graph templates. |");
+  assert.match(wide, /<table class="wide">/);
+  const narrow = html("| Code | Rule |\n|---|---|\n| `E_SCHEMA` | Document fails the JSON Schema, and the message names the path. |");
+  assert.match(narrow, /<table>/);
 });
 
 test("Markdown the renderer could not use is reported with its line", () => {

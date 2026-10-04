@@ -412,6 +412,9 @@ a {
   font-size: 14.5px;
   line-height: 1.5;
 }
+.doc table.wide {
+  min-width: 40em;
+}
 .doc th,
 .doc td {
   min-width: 7.5em;
@@ -446,15 +449,14 @@ a {
   background: var(--surface);
 }
 .toc summary {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
+  padding: 9px 0;
   cursor: pointer;
   font-weight: 600;
 }
-.toc ol {
+.toc ul {
   margin: 0 0 10px;
-  padding-left: 1.3em;
+  padding: 0;
+  list-style: none;
   font-size: 15px;
 }
 .toc li {

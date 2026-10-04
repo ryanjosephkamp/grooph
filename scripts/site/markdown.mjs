@@ -474,27 +474,36 @@ function trimUrl(url) {
   }
 }
 
-/** Rewrites the relative addresses in raw HTML through the same two functions the Markdown uses. */
+const MEDIA = new Set(["img", "source", "video", "audio", "track"]);
+
+/**
+ * Rewrites the relative addresses in raw HTML through the same two functions the Markdown uses: a link is a link, and a
+ * picture or other media is one of the document's own files. An iframe or a script points where it says, and stays as written.
+ */
 function rewriteHtml(html, ctx) {
-  return html.replace(/<[A-Za-z][^<>]*>/g, (tag) =>
-    tag.replace(/(\s)(src|href|poster|srcset)(\s*=\s*)("([^"]*)"|'([^']*)')/gi, (whole, space, name, eq, quoted) => {
+  return html.replace(/<([A-Za-z][A-Za-z0-9-]*)[^<>]*>/g, (tag, tagName) => {
+    const element = tagName.toLowerCase();
+    return tag.replace(/(\s)(src|href|poster|srcset)(\s*=\s*)("([^"]*)"|'([^']*)')/gi, (whole, space, name, eq, quoted) => {
       const value = quoted.slice(1, -1);
       const quote = quoted[0];
       const attr = name.toLowerCase();
-      let next;
-      if (attr === "href") next = ctx.link(decodeEntities(value));
-      else if (attr === "srcset") {
-        next = value
-          .split(",")
-          .map((part) => {
-            const [url, ...rest] = part.trim().split(/\s+/);
-            return [ctx.image(decodeEntities(url)), ...rest].join(" ");
-          })
-          .join(", ");
-      } else next = ctx.image(decodeEntities(value));
-      return `${space}${name}${eq}${quote}${escapeAttr(next)}${quote}`;
-    }),
-  );
+      let next = value;
+      if (attr === "href") {
+        if (element === "a" || element === "area") next = ctx.link(decodeEntities(value));
+      } else if (attr === "srcset") {
+        if (MEDIA.has(element)) {
+          next = value
+            .split(",")
+            .map((part) => {
+              const [url, ...rest] = part.trim().split(/\s+/);
+              return [ctx.image(decodeEntities(url)), ...rest].join(" ");
+            })
+            .join(", ");
+        }
+      } else if (MEDIA.has(element)) next = ctx.image(decodeEntities(value));
+      return next === value ? whole : `${space}${name}${eq}${quote}${escapeAttr(next)}${quote}`;
+    });
+  });
 }
 
 /** Inline content to HTML. */
@@ -517,7 +526,9 @@ function serialize(nodes, ctx) {
       }
       out += escapeText(node.s);
     } else if (node.t === "d") {
-      if (node.n > 0 && (node.open || node.close) && ctx) ctx.diagnose(`"${node.ch.repeat(node.n)}" was left over: an emphasis mark that never closed`);
+      // A pair that never closed. A lone star at the end of a word ("cost*") or between punctuation is text, not a lost mark.
+      const lost = node.n >= 2 ? node.open || node.close : node.open && !node.close;
+      if (node.n > 0 && lost && ctx) ctx.diagnose(`"${node.ch.repeat(node.n)}" was left over: an emphasis mark that never closed`);
       out += escapeText(node.ch.repeat(node.n));
     } else if (node.t === "b") {
       if (node.image && ctx) ctx.diagnose('"![" was left over: an image that did not parse');
@@ -819,7 +830,7 @@ function renderBlock(block, ctx, tight) {
       const html = renderInline(block.text, ctx);
       const id = headingId(stripTags(html), ctx.ids);
       ctx.headings.push({ level: block.level, id, text: stripTags(html), html });
-      const anchor = block.level > 1 ? `<a class="anchor" href="#${id}" aria-label="Link to this section">#</a>` : "";
+      const anchor = block.level > 1 ? `<a class="anchor" href="#${id}" aria-label="Link to ${escapeAttr(stripTags(html))}">#</a>` : "";
       return `<h${block.level} id="${id}">${html}${anchor}</h${block.level}>`;
     }
     case "p": {
@@ -827,7 +838,12 @@ function renderBlock(block, ctx, tight) {
       // A paragraph made of pipe rows is a table that did not parse.
       if (block.lines.length >= 2 && block.lines.every((l) => /^\|.*\|$/.test(l))) ctx.diagnose("pipe rows outside a table (a table needs a header row, then a row of dashes)");
       const html = renderInline(source, ctx);
-      if (ctx.summary === null && /\S/.test(stripTags(html)) && !/^<(?:img|picture)/.test(html)) ctx.summary = stripTags(html).replace(/\s+/g, " ").trim();
+      // The summary is the first paragraph that reads as one; a byline or a date line is kept only if nothing longer follows.
+      const plainText = stripTags(html).replace(/\s+/g, " ").trim();
+      if (plainText !== "" && !/^<(?:img|picture)/.test(html)) {
+        if (ctx.summary === null && plainText.length >= 60) ctx.summary = plainText;
+        ctx.firstText ??= plainText;
+      }
       return tight ? html : `<p>${html}</p>`;
     }
     case "code": {
@@ -866,7 +882,10 @@ function renderBlock(block, ctx, tight) {
           return `<tr>${cells.join("")}</tr>`;
         })
         .join("\n");
-      return `<div class="table-wrap" tabindex="0"><table>\n<thead><tr>${head}</tr></thead>\n<tbody>\n${body}\n</tbody>\n</table></div>`;
+      // Two or more columns that hold sentences or long code are given room to be read, and scroll on a phone; a table with one
+      // long column and short labels beside it wraps to fit.
+      const roomy = block.head.filter((_, k) => Math.max(...[block.head[k], ...block.rows.map((r) => r.cells[k] ?? "")].map((t) => t.replace(/[`*_]/g, "").length)) > 30).length >= 2;
+      return `<div class="table-wrap" tabindex="0"><table${roomy ? ' class="wide"' : ""}>\n<thead><tr>${head}</tr></thead>\n<tbody>\n${body}\n</tbody>\n</table></div>`;
     }
     default:
       return "";
@@ -905,6 +924,7 @@ export function renderMarkdown(source, options = {}) {
     ids: new Map(),
     headings: [],
     summary: null,
+    firstText: undefined,
     line: 1,
     diagnose(message) {
       diagnostics.push({ line: this.line, message });
@@ -917,5 +937,5 @@ export function renderMarkdown(source, options = {}) {
   const blocks = parseBlocks(lines, ctx);
   const html = renderBlocks(blocks, ctx, false);
   const h1 = ctx.headings.find((h) => h.level === 1);
-  return { html, title: h1?.text ?? null, headings: ctx.headings, summary: ctx.summary, diagnostics };
+  return { html, title: h1?.text ?? null, headings: ctx.headings, summary: ctx.summary ?? ctx.firstText ?? null, diagnostics };
 }

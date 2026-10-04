@@ -317,7 +317,7 @@ test.describe("screenshots", () => {
           for (const view of views) {
             await page.goto(view.path + (view.at ?? ""));
             await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-            if (view.at) await page.evaluate((id) => document.querySelector(id)?.scrollIntoView({ block: "start" }), view.at);
+            if (view.at) await page.evaluate((id) => document.getElementById(id.slice(1))?.scrollIntoView({ block: "start" }), view.at);
             await page.waitForTimeout(150);
             await page.screenshot({ path: join(dir, `${view.name}-${size}-${scheme}.png`) });
           }

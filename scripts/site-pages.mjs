@@ -14,6 +14,8 @@
  *
  * Links between documents that are both pages become links between the pages. Any other relative link becomes a link to the
  * file on GitHub, and a relative image is copied beside the page that shows it.
+ *
+ * GROOPH_SITE_ROOT points the script at another folder of documents, for its own tests (scripts/site/site-pages.test.mjs).
  */
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -201,7 +203,7 @@ function build(out) {
     if (rendered.title === null) body = `<h1>${escapeHtml(page.title)}</h1>\n${body}`;
     const h2 = rendered.headings.filter((h) => h.level === 2);
     if (h2.length >= 4) {
-      const toc = `<details class="toc"><summary>On this page</summary><ol>${h2.map((h) => `<li><a href="#${h.id}">${escapeHtml(h.text)}</a></li>`).join("")}</ol></details>`;
+      const toc = `<details class="toc"><summary>On this page</summary><ul>${h2.map((h) => `<li><a href="#${h.id}">${escapeHtml(h.text)}</a></li>`).join("")}</ul></details>`;
       body = /<\/h1>\n<p>[\s\S]*?<\/p>/.test(body) ? body.replace(/(<\/h1>\n<p>[\s\S]*?<\/p>)/, `$1\n${toc}`) : body.replace("</h1>", `</h1>\n${toc}`);
     }
     const current = page.slug === "field-guide" ? "field-guide" : page.slug.startsWith("blog/") ? "blog" : "docs";
