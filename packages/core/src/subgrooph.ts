@@ -11,11 +11,13 @@ import { indexGraph } from "./graph-index.js";
 import { edgeIdFor } from "./ops/edit.js";
 import { allIds, uniqueId } from "./ops/ids.js";
 import { ID_PATTERN, ONE_LINE_PATTERN } from "./schema/dsl.js";
-import { decisionName, decisionsShared, reachedWithout, shut, waysOf, type Closed } from "./reach.js";
-import { edgeIsolation, entryNodeIds, isCriticFamily } from "./semantics.js";
+import { brakesLost, type Loss } from "./brakes.js";
+import { decisionName, decisionsShared, reachedWithout, type Closed } from "./reach.js";
+import { entryNodeIds } from "./semantics.js";
 import { didYouMean } from "./suggest.js";
 import { TemplateError, extractTemplate, insertFragment, slotKeys, type SlotValues, type TemplateMeta } from "./template.js";
 import type { Edge, Graph, Group, GroupFrom, Id, Loop, Node, Policy, Stop } from "./types.js";
+import { validate } from "./validate.js";
 
 // ─── what a group holds ───────────────────────────────────────────────────
 
@@ -81,7 +83,7 @@ export type GroupSummary = {
 
 export const parseGroupFrom = (from: GroupFrom | string): { template: Id; version: number } => {
   const at = from.lastIndexOf("@");
-  return { template: from.slice(0, at), version: Number(from.slice(at + 1)) };
+  return at < 0 ? { template: from, version: Number.NaN } : { template: from.slice(0, at), version: Number(from.slice(at + 1)) };
 };
 
 /** Every group of a graph, subgroophs and plain ones, with what each holds and how it is connected. */
@@ -232,8 +234,9 @@ export function placeSubgrooph(doc: Graph, template: Graph, options: PlaceOption
   const next: Graph = { ...placed.doc, nodes, edges, loops, groups: [...dropStops(placed.doc.groups ?? []), group] };
   const opens: PlaceResult["opens"] = [];
   for (const closed of decisionsShared(doc, next)) {
-    const { opened } = nodesOpened(doc, next, closed);
-    for (const node of hostNodes) if (opened.has(node) && !opens.some((open) => open.node === node && open.past === decisionName("every"))) opens.push({ node, past: decisionName(closed) });
+    const opened = nodesOpened(doc, next, closed);
+    // Each node once, for the widest decision it is now reached around: a person before one gate, a gate before one answer.
+    for (const node of hostNodes) if (opened.has(node) && !opens.some((open) => open.node === node)) opens.push({ node, past: decisionName(closed) });
   }
   return { doc: next, group, ids: placed.ids, dropped, connected, opens };
 }
@@ -249,7 +252,7 @@ export type Change = {
   field?: string;
   /** one line a person reads */
   summary: string;
-  /** set when the change removes or loosens a brake (amendment A-008's list): why */
+  /** set when the change removes or loosens a brake (amendment A-008's list): why, each reason once */
   loosens?: string;
   /** set when the change is held back because another is: the name of the change it waits for */
   waits?: string;
@@ -291,117 +294,12 @@ const mentions = (value: unknown, ids: ReadonlySet<Id>): boolean =>
     ? ids.has(value) || ids.has(value.replace(/^(node|loop|edge):/, ""))
     : typeof value === "object" && value !== null && Object.values(value).some((inner) => mentions(inner, ids));
 
-type Sized<K extends Stop["kind"]> = Extract<Stop, { kind: K }>;
-/** The stops that end a run or ask a person, whatever the work looks like: the ones amendment A-008 lists. */
-const isBrakeStop = (stop: Stop): boolean => stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human";
-const stopName = (stop: Stop): string => (stop.kind === "max-iterations" ? "the round cap" : stop.kind === "budget" ? `the budget of ${stop.measure}` : "the stop where a person is asked");
-
-/**
- * Why a loop's stops, as they would become, are a looser brake than as they are; undefined when they are not.
- * `asksOrHalts` says whether a node is a human gate or a stop that halts: a brake that leads there still stops.
- */
-function looserStops(now: readonly Stop[], next: readonly Stop[], asksOrHalts: (id: Id) => boolean): string | undefined {
-  for (const stop of now) {
-    if (stop.kind === "max-iterations") {
-      const caps = next.filter((s): s is Sized<"max-iterations"> => s.kind === "max-iterations").map((s) => s.n);
-      if (caps.length === 0) return `removes the round cap (${stop.n})`;
-      if (Math.min(...caps) > stop.n) return `raises the round cap from ${stop.n} to ${Math.min(...caps)}`;
-    }
-    if (stop.kind === "budget") {
-      const limits = next.filter((s): s is Sized<"budget"> => s.kind === "budget" && s.measure === stop.measure).map((s) => s.limit);
-      if (limits.length === 0) return `removes the budget of ${stop.limit} ${stop.measure}`;
-      if (Math.min(...limits) > stop.limit) return `raises the budget from ${stop.limit} to ${Math.min(...limits)} ${stop.measure}`;
-    }
-    if (stop.kind === "human") {
-      const asked = next.filter((s): s is Sized<"human"> => s.kind === "human").map((s) => s.every ?? 1);
-      if (asked.length === 0) return "removes the stop where a person is asked";
-      if (Math.min(...asked) > (stop.every ?? 1)) return `a person would be asked every ${Math.min(...asked)} rounds, not every ${stop.every ?? 1}`;
-    }
-  }
-  // A brake with no `then` halts the run and reports to the person. One that leads on somewhere does neither.
-  for (const stop of next) {
-    if (stop.then === undefined || !isBrakeStop(stop) || asksOrHalts(stop.then)) continue;
-    const alike = now.filter((s) => s.kind === stop.kind && (s.kind !== "budget" || s.measure === (stop as Sized<"budget">).measure));
-    if (alike.some((s) => s.then === stop.then)) continue;
-    return `${stopName(stop)} would lead on to "${stop.then}" where it ${alike.some((s) => s.then !== undefined) ? "led elsewhere" : "halted the run"}`;
-  }
-  return undefined;
-}
-
-type Blame = { /** the change that opened the way; undefined when no one change can be named */ name?: string; why: string };
-
 /** The nodes of `before` that a run reaches only by a decision there, and without it in `after`. */
-function nodesOpened(before: Graph, after: Graph, closed: Closed): { opened: Set<Id>; reached: Set<Id> } {
+function nodesOpened(before: Graph, after: Graph, closed: Closed): Set<Id> {
   const was = reachedWithout(before, closed);
   const reached = reachedWithout(after, closed);
   const known = new Set(before.nodes.map((node) => node.id));
-  return { opened: new Set(after.nodes.filter((node) => known.has(node.id) && !was.has(node.id) && reached.has(node.id)).map((node) => node.id)), reached };
-}
-
-/**
- * The changes that let a run reach, around a person, a node it reached only through that person (`reach.ts`), or
- * that bring in an irreversible step no person stands before. `before` and `after` are whole graphs; a name is a
- * change's name.
- */
-function waysOpened(before: Graph, after: Graph): Blame[] {
-  const blames: Blame[] = [];
-  const known = new Set(before.nodes.map((node) => node.id));
-  const free = reachedWithout(after, "every");
-  for (const node of after.nodes) {
-    if (!known.has(node.id) && node.kind === "agent" && (node.irreversible ?? []).length > 0 && free.has(node.id)) {
-      blames.push({ name: `node:${node.id}`, why: "adds an irreversible step that a run reaches without a person" });
-    }
-  }
-  const edgeWas = new Map(before.edges.map((edge) => [edge.id, edge]));
-  const edgeNow = new Map(after.edges.map((edge) => [edge.id, edge]));
-  const loopWas = new Map(before.loops.map((loop) => [loop.id, loop]));
-  const loopNow = new Map(after.loops.map((loop) => [loop.id, loop]));
-  const starts = new Set(entryNodeIds(indexGraph(after)));
-  const backWas = new Set(before.loops.flatMap((loop) => loop.back));
-  const ways = waysOf(after);
-  for (const closed of decisionsShared(before, after)) {
-    const { opened, reached } = nodesOpened(before, after, closed);
-    if (opened.size === 0) continue;
-    const found = blames.length;
-    const past = `that does not pass ${decisionName(closed)}`;
-    // Every node newly reached is reached from one that was not held back: by a way that is new, or that no longer
-    // passes the person. Those ways are the changes to name; what lies beyond them follows.
-    for (const way of ways) {
-      if (shut(way, closed) || !reached.has(way.from) || !opened.has(way.to) || opened.has(way.from)) continue;
-      if (way.edge !== undefined) {
-        const old = edgeWas.get(way.edge);
-        const now = edgeNow.get(way.edge)!;
-        if (!old) blames.push({ name: `edge:${way.edge}`, why: `adds a way into "${way.to}" ${past}` });
-        else {
-          const fields = (["from", "to", "approval"] as const).filter((field) => !same(old[field], now[field]));
-          // The same edge, unchanged: the gate it left is a gate no longer.
-          const names = fields.length > 0 ? fields.map((field) => `edge:${way.edge}.${field}`) : [`node:${way.from}.kind`];
-          for (const name of names) blames.push({ name, why: `opens a way into "${way.to}" ${past}` });
-        }
-      } else {
-        const old = loopWas.get(way.loop!);
-        const now = loopNow.get(way.loop!)!;
-        const why = `a stop of the loop would lead on to "${way.to}", a way ${past}`;
-        if (!old) blames.push({ name: `loop:${way.loop}`, why });
-        else for (const field of (["stops", "members"] as const).filter((f) => !same(old[f], now[f]))) blames.push({ name: `loop:${way.loop}.${field}`, why });
-      }
-    }
-    // A node newly reached because nothing leads to it any more: a run starts there.
-    for (const id of opened) {
-      if (!starts.has(id)) continue;
-      const why = `nothing would lead to "${id}", so a run would start there, where every way to it passed ${decisionName(closed)}`;
-      for (const edge of before.edges) {
-        if (edge.to !== id || backWas.has(edge.id)) continue;
-        const now = edgeNow.get(edge.id);
-        if (now && now.to !== id) blames.push({ name: `edge:${edge.id}.to`, why });
-        else if (now) for (const loop of after.loops) if (loop.back.includes(edge.id)) blames.push({ name: loopWas.has(loop.id) ? `loop:${loop.id}.back` : `loop:${loop.id}`, why });
-        // Gone: with the node it came from, or by a change of its own.
-        else blames.push({ name: after.nodes.some((node) => node.id === edge.from) ? `edge:${edge.id}` : `node:${edge.from}`, why });
-      }
-    }
-    if (blames.length === found) blames.push({ why: `a run would reach ${quote([...opened])} by a way ${past}` });
-  }
-  return blames;
+  return new Set(after.nodes.filter((node) => known.has(node.id) && !was.has(node.id) && reached.has(node.id)).map((node) => node.id));
 }
 
 /** The template's lead node, if it has one: a subgrooph has no lead of its own (decision 0025, rule 4). */
@@ -423,24 +321,15 @@ function refuseLead(template: Graph): void {
  * theirs.
  *
  * A change that removes or loosens a brake of amendment A-008's list is named and **not applied** unless its name
- * is in `allow`. Everything else applies, tightening included. What counts, exactly:
+ * is in `allow`. Everything else applies, tightening included. What a brake is, and what losing one means, is in
+ * `brakes.ts`: it compares the graph as it stands with the graph as it would be written, whole, so a brake cannot
+ * be shed by doing in two changes, or under a new id, what one change under the old id would be held for. A change
+ * is held for every loss it may be the cause of, and where no one change can be named, every change is.
  *
- * - **A person on the way.** Removing a human gate, or making it another kind of node, or taking away an answer it
- *   offers; removing an approval, or the edge that carries one; changing what an answer at a gate leads to (`when`);
- *   and any change after which a run reaches, without a person, a node of the graph it reached only through one.
- *   That last is worked out on the whole graph, before and after (`reach.ts`), so it holds however the way around
- *   is made: a new edge, an edge moved, a stop that leads on, a node renamed out from behind its gate.
- * - **An irreversible marker.** Removing one, or the node that carries it, or bringing in a marked node that no
- *   person stands before.
- * - **A loop's stops.** A round cap or a budget raised or removed; the stop where a person is asked removed, or
- *   asked less often; any of the three made to lead on to a node that is not a human gate or a halting stop.
- * - **A bar's acceptance** changed, or the bar or its loop removed.
- * - **Critic isolation.** A critic removed, or given another role; an edge into a critic that would share its
- *   builder's context, or hand it less evidence; an edge moved off a critic; the critic-isolation,
- *   no-self-grading or no-live-graph-rewrite policy removed or changed.
- *
- * That is the list, and it is not everything that could make a graph worse: a brief, a gate's prompt, a model tier,
- * a critic's permissions, a bar's answer key and a policy of another kind are shown and applied.
+ * That list is not everything that could make a graph worse: a brief, a gate's prompt, a model tier, a critic's
+ * permissions, a bar's answer key or what it inspects, a loop's other stops and a policy of another kind are shown
+ * and applied. And nothing here remembers: a step dropped by one version and brought back, in front of its gate,
+ * by the next is two refreshes that each lose nothing.
  *
  * **The shape moves as a whole.** Nodes, edges and a loop's members hang together: a gate kept while the edges
  * around it are replaced is a gate nobody reaches. So while any change to the shape is held back, every change to
@@ -456,13 +345,14 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
   if (was.template !== template.id) throw new TemplateError(`group "${groupId}" came from "${was.template}", and this template is "${template.id}"`);
   refuseLead(template);
 
-  const slotNotes: string[] = [];
+  const said: string[] = [];
+  if (template.version < was.version) said.push(`this is version ${template.version} of "${template.id}", older than the version ${was.version} the subgrooph was placed from: the changes below lead back to it`);
   const prefix = `${groupId}-`;
   const keys = slotKeys(template);
   const values: SlotValues = {};
   for (const [key, value] of Object.entries(group.with ?? {})) {
     if (keys.includes(key)) values[key] = value;
-    else slotNotes.push(`the template no longer has the slot "${key}"; its value is kept in the group and used nowhere`);
+    else said.push(`the template no longer has the slot "${key}"; its value is kept in the group and used nowhere`);
   }
   const fresh = insertFragment(emptyHost(), template, { values, prefix: groupId }).doc;
 
@@ -502,7 +392,7 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
       const match = stands.get(edge.id);
       if (match) return [{ ...edge, id: match.id, to: match.to }];
       if (onward === undefined) {
-        slotNotes.push(`the template now ends after "${edge.from}", and nothing leads on from the subgrooph in this graph: connect it`);
+        said.push(`the template now ends after "${edge.from}", and nothing leads on from the subgrooph in this graph: connect it`);
         return [];
       }
       // The way out this graph already has from that node is the same edge, changed; otherwise it is a new one.
@@ -532,22 +422,21 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
     loops: doc.loops.filter((loop) => mine(loop.id)),
     policies: (doc.policies ?? []).filter((policy) => mine(policy.id)),
   };
+  // A graph-wide policy the graph has under an id of its own came in once, when the template was placed; the
+  // template's copy is not added beside it. Where the subgrooph holds its own copy, that copy is compared.
+  const held0 = new Set(current.policies.map((policy) => policy.id));
+  const freshPolicies = (fresh.policies ?? []).filter(
+    (policy) => held0.has(policy.id) || policy.scope !== "graph" || !(doc.policies ?? []).some((p) => p.scope === "graph" && same(p.kind, policy.kind) && same(p.params, policy.params) && !mine(p.id)),
+  );
 
   let changes: Change[] = [];
   /** what each change takes away and what it brings: a field's two values, or the whole object */
   const detail = new Map<string, { before?: unknown; after?: unknown }>();
-  const nodeNow = new Map(doc.nodes.map((node) => [node.id, node]));
-  /** every node as it would stand with every change applied */
-  const nodeNext = new Map<Id, Node>([...nodeNow, ...freshNodes.map((node) => [node.id, node] as const)]);
-  const gated = (edge: Edge): boolean => edge.approval === true || nodeNow.get(edge.from)?.kind === "human-gate";
-  const critic = (id: Id, nodes: ReadonlyMap<Id, Node>): boolean => nodes.has(id) && isCriticFamily(nodes.get(id)!);
-
-  const compare = <T extends { id: Id }>(object: Change["object"], now: readonly T[], next: readonly T[], loosens: (change: Change, before: T | undefined, after: T | undefined) => string | undefined): void => {
+  const compare = <T extends { id: Id }>(object: Change["object"], now: readonly T[], next: readonly T[]): void => {
     const nextById = new Map(next.map((o) => [o.id, o]));
     const nowById = new Map(now.map((o) => [o.id, o]));
     const push = (change: Change, before: T | undefined, after: T | undefined): void => {
-      const why = loosens(change, before, after);
-      changes.push(why === undefined ? change : { ...change, loosens: why });
+      changes.push(change);
       detail.set(change.name, change.field === undefined ? { before, after } : { before: (before as Record<string, unknown>)[change.field], after: (after as Record<string, unknown>)[change.field] });
     };
     for (const before of now) {
@@ -573,71 +462,10 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
       push({ name: `${object}:${after.id}`, kind: "add", object, id: after.id, summary: `adds ${object} "${after.id}"` }, undefined, after);
     }
   };
-
-  const ownEdgeIds = new Set(current.edges.map((edge) => edge.id));
-  compare<Node>("node", current.nodes, freshNodes, (change, before, after) => {
-    if (change.kind === "remove") {
-      if (before!.kind === "human-gate") return "removes a human gate";
-      if (before!.kind === "agent" && (before!.irreversible ?? []).length > 0) return `removes a node marked irreversible (${before!.irreversible!.join(", ")}): what takes its place carries no such mark unless it is given one`;
-      if (isCriticFamily(before!)) return "removes a critic";
-      // An edge of the graph's own that brought a person's decision to this node goes with it.
-      const through = doc.edges.filter((edge) => edge.to === before!.id && !ownEdgeIds.has(edge.id) && gated(edge));
-      if (through.length > 0) return `removes the node that ${quote(through.map((edge) => edge.id))} led to, and with it a way in that passed a person`;
-      return undefined;
-    }
-    if (change.kind !== "change") return undefined;
-    if (change.field === "kind" && before!.kind === "human-gate") return "a human gate becomes another kind of node";
-    if (change.field === "options" && before!.kind === "human-gate") {
-      const kept = new Set((after as { options?: string[] }).options ?? []);
-      const lost = (before!.options ?? []).filter((option) => !kept.has(option));
-      if (lost.length > 0) return `the gate would no longer offer ${quote(lost)}`;
-    }
-    if (change.field === "irreversible") {
-      const kept = new Set((after as { irreversible?: string[] }).irreversible ?? []);
-      const lost = ((before as { irreversible?: string[] }).irreversible ?? []).filter((marker) => !kept.has(marker));
-      if (lost.length > 0) return `removes the irreversible marker ${quote(lost)}`;
-    }
-    if (change.field === "role" && isCriticFamily(before!) && !isCriticFamily(after!)) return "a critic is given another role";
-    return undefined;
-  });
-  compare<Edge>("edge", current.edges, freshEdges, (change, before, after) => {
-    if (change.kind === "remove") return before!.approval === true ? "removes an edge that needs a person's approval" : undefined;
-    if (change.field === "approval" && before!.approval === true) return "removes a person's approval from the edge";
-    if (change.field === "when" && gated(before!)) return "changes what a person's answer leads to";
-    if (change.field === "from" && critic(before!.from, nodeNow)) return `moves the edge off the critic "${before!.from}", whose verdict would no longer decide it`;
-    if (!critic(after!.to, nodeNext)) return undefined;
-    if ((change.kind === "add" || change.field === "to" || change.field === "isolation") && edgeIsolation(after!) === "shared" && (before === undefined || change.field === "to" || edgeIsolation(before) === "fresh")) {
-      return "the critic would share its builder's context";
-    }
-    if (change.field === "evidence") {
-      const kept = new Set(after!.evidence ?? []);
-      const lost = (before!.evidence ?? []).filter((piece) => !kept.has(piece));
-      if (lost.length > 0) return `the critic would no longer be handed ${quote(lost)}`;
-    }
-    return undefined;
-  });
-  const asksOrHalts = (id: Id): boolean => {
-    const node = nodeNext.get(id);
-    return node?.kind === "human-gate" || (node?.kind === "stop" && node.outcome === "halt");
-  };
-  compare<Loop>("loop", current.loops, freshLoops, (change, before, after) => {
-    if (change.kind === "remove") return before!.stops.some(isBrakeStop) || before!.bar ? "removes a loop with its stops and its bar" : undefined;
-    if (change.kind === "add") return undefined;
-    if (change.field === "stops") return looserStops(before!.stops, after!.stops, asksOrHalts);
-    if (change.field === "bar") {
-      if (before!.bar && !after!.bar) return "removes the loop's bar";
-      if (before!.bar && after!.bar && before!.bar.acceptance !== after!.bar.acceptance) return "changes the bar's acceptance";
-    }
-    return undefined;
-  });
-  const freshPolicies = (fresh.policies ?? []).filter((policy) => policy.scope !== "graph" || !(doc.policies ?? []).some((p) => p.scope === "graph" && same(p.kind, policy.kind) && same(p.params, policy.params) && !mine(p.id)));
-  compare<Policy>("policy", current.policies, freshPolicies, (change, before) => {
-    if (change.kind === "add") return undefined;
-    if (before?.kind === "critic-isolation") return "removes critic isolation";
-    if (before?.kind === "no-self-grading") return "lets a node grade its own work";
-    if (before?.kind === "no-live-graph-rewrite") return "lets a run rewrite the graph where it could only propose";
-    return undefined;
-  });
+  compare<Node>("node", current.nodes, freshNodes);
+  compare<Edge>("edge", current.edges, freshEdges);
+  compare<Loop>("loop", current.loops, freshLoops);
+  compare<Policy>("policy", current.policies, freshPolicies);
 
   // What comes in takes an id of its own: one the graph already uses elsewhere is a person's, and is not overwritten.
   const taken = allIds(doc);
@@ -661,27 +489,32 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
   /** What is not applied, given the changes refused: those, and every change that cannot stand without one of them. */
   const holdFor = (refused: ReadonlySet<string>): Change[] => {
     const no = changes.filter((change) => refused.has(change.name));
-    // The shape waits for a refused change to it, and for a refused change that keeps naming something the shape removes.
-    const blocker = no.find(shape) ?? no.find((change) => mentions(detail.get(change.name)?.before, going));
-    const kindHeld = new Set(changes.filter((change) => change.object === "node" && change.field === "kind" && (refused.has(change.name) || blocker !== undefined)).map((change) => change.id));
+    // A node kept as the kind it is keeps the fields of that kind: a field of it refused holds its kind, and its
+    // kind held holds every field of it.
+    const fieldRefused = new Map(no.filter((change) => change.object === "node" && change.kind === "change").map((change) => [change.id, change.name]));
+    const kindOf = (id: Id): Change | undefined => changes.find((change) => change.object === "node" && change.id === id && change.field === "kind");
+    // The shape waits for a refused change to it, for a kind that a refused field holds, and for a refused change
+    // that keeps naming something the shape removes.
+    const blocker = no.find(shape) ?? [...fieldRefused].map(([id, name]) => (kindOf(id) ? name : undefined)).find((name) => name !== undefined) ?? no.find((change) => mentions(detail.get(change.name)?.before, going))?.name;
+    const blockedBy = typeof blocker === "string" ? blocker : blocker?.name;
     return changes.flatMap((change) => {
       if (refused.has(change.name)) return [change];
-      if (blocker !== undefined && (shape(change) || mentions(detail.get(change.name)?.after, coming))) return [{ ...change, waits: blocker.name }];
-      // A node kept as the kind it is keeps the fields of that kind.
-      if (change.object === "node" && change.kind === "change" && kindHeld.has(change.id)) return [{ ...change, waits: `node:${change.id}.kind` }];
+      if (blockedBy !== undefined && (shape(change) || mentions(detail.get(change.name)?.after, coming))) return [{ ...change, waits: blockedBy }];
+      if (change.object === "node" && change.kind === "change" && kindOf(change.id) && (blockedBy !== undefined || fieldRefused.has(change.id))) return [{ ...change, waits: fieldRefused.get(change.id) ?? `node:${change.id}.kind` }];
       return [];
     });
   };
 
+  const now = `${template.id}@${template.version}` as GroupFrom;
   /** The graph with every change applied but the ones named. */
   const build = (heldNames: ReadonlySet<string>): { doc: Graph; notes: string[] } => {
     /** One kind of object as it will stand: the template's, except where a change is held back. */
-    const settle = <T extends { id: Id }>(object: Change["object"], now: readonly T[], next: readonly T[]): { keep: Map<Id, T>; gone: Set<Id>; added: T[] } => {
-      const nowById = new Map(now.map((o) => [o.id, o]));
+    const settle = <T extends { id: Id }>(object: Change["object"], was: readonly T[], next: readonly T[]): { keep: Map<Id, T>; gone: Set<Id>; added: T[] } => {
+      const wasById = new Map(was.map((o) => [o.id, o]));
       const keep = new Map<Id, T>();
       const added: T[] = [];
       for (const after of next) {
-        const before = nowById.get(after.id);
+        const before = wasById.get(after.id);
         if (!before) {
           if (!heldNames.has(`${object}:${after.id}`)) added.push(after);
           continue;
@@ -695,29 +528,30 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
         }
         keep.set(after.id, settled as T);
       }
-      const gone = new Set(now.filter((before) => !next.some((after) => after.id === before.id) && !heldNames.has(`${object}:${before.id}`)).map((o) => o.id));
+      const gone = new Set(was.filter((before) => !next.some((after) => after.id === before.id) && !heldNames.has(`${object}:${before.id}`)).map((o) => o.id));
       return { keep, gone, added };
     };
     const apply = <T extends { id: Id }>(list: readonly T[], settled: { keep: Map<Id, T>; gone: Set<Id>; added: T[] }): T[] => [...list.filter((o) => !settled.gone.has(o.id)).map((o) => settled.keep.get(o.id) ?? o), ...settled.added];
 
     const notes: string[] = [];
     const nodes = settle("node", current.nodes, freshNodes);
+    const edges = settle("edge", current.edges, freshEdges);
+    const loops = settle("loop", current.loops, freshLoops);
     const nextNodes = apply(doc.nodes, nodes);
-    const alive = new Set(nextNodes.map((node) => node.id));
-    // An edge of the graph's own that led to or from a node that is gone goes with it, and is said.
-    const nextEdges = apply(doc.edges, settle("edge", current.edges, freshEdges)).filter((edge) => {
-      if (alive.has(edge.from) && alive.has(edge.to)) return true;
-      notes.push(`edge "${edge.id}" (${edge.from} → ${edge.to}) is removed with the node it ${alive.has(edge.from) ? "led to" : "came from"}: reconnect what it joined`);
+    // An edge of the graph's own that led to or from a node that is gone goes with it, and is said. One that pointed
+    // at nothing before this refresh is not this refresh's to remove.
+    const nextEdges = apply(doc.edges, edges).filter((edge) => {
+      if (!nodes.gone.has(edge.from) && !nodes.gone.has(edge.to)) return true;
+      notes.push(`edge "${edge.id}" (${edge.from} → ${edge.to}) is removed with the node it ${nodes.gone.has(edge.to) ? "led to" : "came from"}: reconnect what it joined`);
       return false;
     });
-    const joined = new Set(nextEdges.map((edge) => edge.id));
+    const cut = new Set(doc.edges.filter((edge) => !nextEdges.some((kept) => kept.id === edge.id)).map((edge) => edge.id));
     // So does its place in a loop of the graph's own.
-    const nextLoops = apply(doc.loops, settle("loop", current.loops, freshLoops)).map((loop) => {
-      const members = loop.members.filter((member) => alive.has(member));
-      const back = loop.back.filter((edge) => joined.has(edge));
-      if (members.length === loop.members.length && back.length === loop.back.length) return loop;
-      notes.push(`loop "${loop.id}" no longer holds ${quote([...loop.members.filter((member) => !alive.has(member)), ...loop.back.filter((edge) => !joined.has(edge))])}, removed from the subgrooph: check that the loop still closes`);
-      return { ...loop, members, back };
+    const nextLoops = apply(doc.loops, loops).map((loop) => {
+      const lost = [...loop.members.filter((member) => nodes.gone.has(member)), ...loop.back.filter((edge) => cut.has(edge))];
+      if (lost.length === 0) return loop;
+      notes.push(`loop "${loop.id}" no longer holds ${quote(lost)}, removed from the subgrooph: check that the loop still closes`);
+      return { ...loop, members: loop.members.filter((member) => !nodes.gone.has(member)), back: loop.back.filter((edge) => !cut.has(edge)) };
     });
     const nextPolicies = apply(doc.policies ?? [], settle("policy", current.policies, freshPolicies));
     const groups = (doc.groups ?? []).map((g) => {
@@ -725,41 +559,74 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
       if (g.id !== groupId) return members.length === g.members.length ? g : { ...g, members };
       return { ...g, members: [...members, ...nodes.added.map((node) => node.id)], from: now };
     });
-    return { doc: { ...doc, nodes: nextNodes, edges: nextEdges, loops: nextLoops, ...(nextPolicies.length > 0 || doc.policies !== undefined ? { policies: nextPolicies } : {}), groups }, notes };
+    // Anything else of the graph's own that still names what is gone is said, and left for a person to point elsewhere.
+    const dead = new Set([...nodes.gone, ...loops.gone, ...cut]);
+    if (dead.size > 0) {
+      for (const [kind, list] of [["node", nextNodes], ["loop", nextLoops], ["policy", nextPolicies]] as const) {
+        for (const object of list) {
+          const { id: _id, ...rest } = object as { id: Id } & Record<string, unknown>;
+          const named = [...dead].filter((id) => mentions(rest, new Set([id])));
+          if (named.length > 0) notes.push(`${kind} "${object.id}" still names ${quote(named)}, which the newer version no longer has: point it at what took its place`);
+        }
+      }
+    }
+    // A node the newer version starts at, that nothing in this graph leads to.
+    const built: Graph = { ...doc, nodes: nextNodes, edges: nextEdges, loops: nextLoops, ...(nextPolicies.length > 0 || doc.policies !== undefined ? { policies: nextPolicies } : {}), groups };
+    if (doc.layout && nodes.gone.size > 0) built.layout = Object.fromEntries(Object.entries(doc.layout).filter(([id]) => !nodes.gone.has(id)));
+    if (contents.entries.length > 0) {
+      const starts = new Set(entryNodeIds(indexGraph(built)));
+      for (const node of nodes.added) if (starts.has(node.id)) notes.push(`the newer version starts at "${node.id}" too, and nothing in this graph leads to it: a run would begin there. Lead into it from where the subgrooph is entered`);
+    }
+    return { doc: built, notes };
   };
-  const now = `${template.id}@${template.version}` as GroupFrom;
 
-  /** Mark the changes that open a way around a person. One that cannot be laid at a single change is laid at all that are applied. */
-  const blame = (blames: readonly Blame[], applied: (change: Change) => boolean): void => {
-    for (const { name, why } of blames) {
-      const named = name !== undefined && changes.some((change) => change.name === name);
-      changes = changes.map((change) => (change.loosens === undefined && (named ? change.name === name : applied(change)) ? { ...change, loosens: why } : change));
+  /**
+   * Lay each loss at the changes that may have caused it, among those applied. Where none of them is one, any change
+   * applied may be the cause, and each is marked. A change carries every reason it is marked for.
+   */
+  const mark = (losses: readonly Loss[], applied: (change: Change) => boolean): void => {
+    for (const loss of losses) {
+      const named = new Set(loss.at.filter((name) => changes.some((change) => change.name === name && applied(change))));
+      changes = changes.map((change) => {
+        if (!(named.size > 0 ? named.has(change.name) : applied(change)) || (change.loosens ?? "").split("; ").includes(loss.why)) return change;
+        return { ...change, loosens: change.loosens === undefined ? loss.why : `${change.loosens}; ${loss.why}` };
+      });
     }
   };
-  // First with everything applied, so that all of it is named at once; then again on what is left once the refused
-  // changes are held back, until what would be written opens nothing that was not asked for.
-  blame(waysOpened(doc, build(new Set()).doc), () => true);
+  const refusedNow = (): string[] => changes.filter((change) => change.loosens !== undefined && !allow.has(change.name)).map((change) => change.name);
+  // First with everything applied, so that all of it is named at once. Then on what would be written once the
+  // refused changes are held back, again and again until it loses no brake that was not asked for by name: what is
+  // held is judged on the graph as it will stand, not on the graph the whole newer version would make.
+  mark(brakesLost(doc, build(new Set()).doc), () => true);
   let held: Change[] = [];
   let built = build(new Set());
   for (let round = 0; round <= changes.length + 1; round += 1) {
-    held = holdFor(new Set(changes.filter((change) => change.loosens !== undefined && !allow.has(change.name)).map((change) => change.name)));
+    const refused = refusedNow();
+    held = holdFor(new Set(refused));
     const heldNames = new Set(held.map((change) => change.name));
     built = build(heldNames);
-    const marked = changes.filter((change) => change.loosens !== undefined).length;
-    blame(waysOpened(doc, built.doc), (change) => !heldNames.has(change.name));
-    if (changes.filter((change) => change.loosens !== undefined).length === marked) break;
+    mark(brakesLost(doc, built.doc), (change) => !heldNames.has(change.name));
+    if (refusedNow().length === refused.length) break;
   }
-  // What is written opens no way that was not asked for by name. If it still would, nothing is applied.
-  const left = waysOpened(doc, built.doc).filter((b) => b.name === undefined || !allow.has(b.name));
-  if (left.length > 0 && left.some((b) => b.name === undefined || !held.some((change) => change.name === b.name))) {
-    held = changes.map((change) => (change.loosens !== undefined && !allow.has(change.name) ? change : { ...change, waits: "every change" }));
-    built = build(new Set(held.map((change) => change.name)));
-    built.notes.push(`applying any of this would let a run past a person (${left[0]!.why}), so all of it is held back`);
+
+  // Half an update can be a graph that does not hold together: a role changed while the edge that went with it is
+  // held. Where what is left would fail a rule the graph passes now, nothing is applied until the held changes are
+  // asked for: a graph is not left worse than it was found, by loosening or by breaking.
+  const errors = (graph: Graph): Set<string> => new Set(validate(graph).filter((issue) => issue.severity === "error").map((issue) => `${issue.code} ${issue.message}`));
+  const first = held.find((change) => change.waits === undefined);
+  if (first) {
+    const had = errors(doc);
+    const broken = [...new Set(validate(built.doc).filter((issue) => issue.severity === "error" && !had.has(`${issue.code} ${issue.message}`)).map((issue) => issue.code))];
+    if (broken.length > 0) {
+      held = changes.map((change) => held.find((h) => h.name === change.name) ?? { ...change, waits: first.name });
+      built = build(new Set(held.map((change) => change.name)));
+      built.notes.push(`with those held back, the rest would leave the graph with ${broken.join(", ")}, which it does not have now: nothing is applied until they are asked for`);
+    }
   }
 
   changes.sort((a, b) => Number(b.loosens !== undefined) - Number(a.loosens !== undefined));
   held = changes.flatMap((change) => held.filter((h) => h.name === change.name).map((h) => (h.waits !== undefined ? { ...change, waits: h.waits } : change)));
-  return { doc: built.doc, changes, held, from: { was: group.from, now }, notes: [...slotNotes, ...built.notes] };
+  return { doc: built.doc, changes, held, from: { was: group.from, now }, notes: [...said, ...built.notes] };
 }
 
 // ─── saving a group as a template ─────────────────────────────────────────

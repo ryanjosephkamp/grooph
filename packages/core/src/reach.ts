@@ -1,15 +1,15 @@
 /**
- * What a run can reach without a person's decision. A human gate and an edge that needs approval are where a person
- * decides (amendment A-008's first two brakes); everything a run reaches only by passing one is held behind it.
- * Comparing that set before and after a change says whether the change opened a way around a person, however many
- * steps the way takes: `refreshSubgrooph` and `placeSubgrooph` hold or report a change by it.
+ * What a run can reach without a decision. A human gate and an edge that needs approval are where a person decides
+ * (amendment A-008's first two brakes), and a critic is where a verdict does; everything a run reaches only by
+ * passing one is held behind it. Comparing that set before and after a change says whether the change opened a way
+ * around the decision, however many steps the way takes: `brakes.ts` holds a refresh to it.
  *
  * Pure, and it reads the document only.
  */
 
 import { indexGraph } from "./graph-index.js";
-import { entryNodeIds } from "./semantics.js";
-import type { Graph, Id } from "./types.js";
+import { entryNodeIds, isCriticFamily } from "./semantics.js";
+import type { Edge, Graph, Id } from "./types.js";
 
 /** One way a run can go from a node to another: along an edge, or by a loop's stop that names where it leads. */
 export type Way = {
@@ -17,31 +17,50 @@ export type Way = {
   to: Id;
   /** a person decides before the run goes this way: the edge needs approval or leaves a human gate, or the stop is the one where a person is asked */
   person: boolean;
-  /** the edge, when the way is one */
+  /** the edge, when the way is one, and the condition it is taken on */
   edge?: Id;
+  when?: string;
   /** the loop whose stop leads on (`then`), when the way is that */
   loop?: Id;
+  /**
+   * the way is a brake firing: a round cap, a budget or the stop where a person is asked, leading to a human gate or
+   * to a stop that halts. It hands the run to a person or ends it, so it is no way around a critic.
+   */
+  escalates?: true;
 };
+
+/** An edge's condition as one word: `always`, `pass`, `fail`, or the verdict it names. */
+export const whenOf = (edge: Edge): string => (typeof edge.when === "object" ? edge.when.verdict : (edge.when ?? "always"));
 
 /** Every way of the graph: each edge, and each stop with a `then`, from every member of its loop. */
 export function waysOf(doc: Graph): Way[] {
   const kind = new Map(doc.nodes.map((node) => [node.id, node.kind]));
-  const ways: Way[] = doc.edges.map((edge) => ({ from: edge.from, to: edge.to, person: edge.approval === true || kind.get(edge.from) === "human-gate", edge: edge.id }));
+  const halts = new Set(doc.nodes.filter((node) => node.kind === "human-gate" || (node.kind === "stop" && node.outcome === "halt")).map((node) => node.id));
+  const ways: Way[] = doc.edges.map((edge) => ({ from: edge.from, to: edge.to, person: edge.approval === true || kind.get(edge.from) === "human-gate", edge: edge.id, when: whenOf(edge) }));
   for (const loop of doc.loops) {
     for (const stop of loop.stops) {
       if (stop.then === undefined) continue;
-      for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id });
+      const escalates = (stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human") && halts.has(stop.then);
+      for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(escalates ? { escalates } : {}) });
     }
   }
   return ways;
 }
 
-/** Where a person decides: every such place in the graph, one human gate, or one edge that needs approval. */
-export type Closed = "every" | { gate: Id } | { approval: Id };
+/**
+ * A decision taken as never given: every person's at once; one human gate's, or one answer at it; one approval; one
+ * critic's verdict, or one verdict of it.
+ */
+export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string };
 
-/** Whether a way is shut when a person's decision is taken as never given. An edge out of a gate is the gate's decision. */
-export const shut = (way: Way, closed: Closed): boolean =>
-  closed === "every" ? way.person : "gate" in closed ? way.edge !== undefined && way.from === closed.gate : way.edge === closed.approval;
+/** Whether a way is shut by that. An edge out of a gate is the gate's decision, and an edge out of a critic the critic's. */
+export function shut(way: Way, closed: Closed): boolean {
+  if (closed === "every") return way.person;
+  if ("approval" in closed) return way.edge === closed.approval;
+  if ("critic" in closed && way.escalates) return true;
+  const node = "gate" in closed ? closed.gate : closed.critic;
+  return way.edge !== undefined && way.from === node && (closed.when === undefined || way.when === closed.when);
+}
 
 /**
  * The nodes a run reaches without that decision: from the nodes it starts at (graph-ir §2), along every way that is
@@ -68,19 +87,32 @@ export function reachedWithout(doc: Graph, closed: Closed): Set<Id> {
 }
 
 /**
- * Each decision two versions of a graph share: every person at once, then each human gate and each approval that
- * is in both. A node may sit behind two gates in a row, and a way around the second is a way around a person though
- * the first still stands; so each is asked on its own.
+ * Each decision two versions of a graph share: every person at once, then each human gate, each approval and each
+ * critic that is in both, and each answer that gate or critic gave in the first. A node may sit behind two gates in
+ * a row, and a way around the second is a way around a person though the first still stands; and a gate whose
+ * "reject" comes to lead where its "approve" led decides nothing. So each is asked on its own.
  */
 export function decisionsShared(before: Graph, after: Graph): Closed[] {
-  const gates = new Set(after.nodes.filter((node) => node.kind === "human-gate").map((node) => node.id));
+  const now = new Map(after.nodes.map((node) => [node.id, node]));
   const approvals = new Set(after.edges.filter((edge) => edge.approval === true).map((edge) => edge.id));
-  return [
-    "every",
-    ...before.nodes.filter((node) => node.kind === "human-gate" && gates.has(node.id)).map((node) => ({ gate: node.id })),
-    ...before.edges.filter((edge) => edge.approval === true && approvals.has(edge.id)).map((edge) => ({ approval: edge.id })),
-  ];
+  const answers = (id: Id): string[] => [...new Set(before.edges.filter((edge) => edge.from === id).map(whenOf))];
+  // People first, the widest question first: a loss is said once, in the widest terms that are true of it.
+  const closed: Closed[] = ["every"];
+  for (const node of before.nodes) {
+    if (node.kind === "human-gate" && now.get(node.id)?.kind === "human-gate") closed.push({ gate: node.id }, ...answers(node.id).map((when) => ({ gate: node.id, when })));
+  }
+  for (const edge of before.edges) if (edge.approval === true && approvals.has(edge.id)) closed.push({ approval: edge.id });
+  for (const node of before.nodes) {
+    const kept = now.get(node.id);
+    if (isCriticFamily(node) && kept && isCriticFamily(kept)) closed.push({ critic: node.id }, ...answers(node.id).map((when) => ({ critic: node.id, when })));
+  }
+  return closed;
 }
 
 /** What a way no longer passes, in words: for the line a person reads. */
-export const decisionName = (closed: Closed): string => (closed === "every" ? "a person" : "gate" in closed ? `the human gate "${closed.gate}"` : `the approval on "${closed.approval}"`);
+export function decisionName(closed: Closed): string {
+  if (closed === "every") return "a person";
+  if ("approval" in closed) return `the approval on "${closed.approval}"`;
+  if ("gate" in closed) return closed.when === undefined ? `the human gate "${closed.gate}"` : `"${closed.when}" at the human gate "${closed.gate}"`;
+  return closed.when === undefined ? `the critic "${closed.critic}"` : `"${closed.when}" from the critic "${closed.critic}"`;
+}

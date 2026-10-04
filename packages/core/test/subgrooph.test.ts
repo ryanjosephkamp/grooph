@@ -163,6 +163,7 @@ test("placing says which nodes of the graph it leads to around a person", () => 
     { node: "release", past: 'the human gate "go"' },
     { node: "done", past: 'the human gate "go"' },
   ]);
+  // Each node is said once, for the widest decision it is now reached around.
   // Where no person stood before the node, nothing is opened.
   assert.deepEqual(placeSubgrooph(host(), grind, { as: "grind", values: slots, after: "plan", then: "release" }).opens, []);
 });
@@ -322,7 +323,7 @@ test("every brake on amendment A-008's list is held back when a newer version wo
         t.loops[0]!.stops = [{ kind: "bar-passed" }, { kind: "max-iterations", n: 4 }];
       },
       held: "loop:review-review.stops",
-      why: /removes the budget of 10 dispatches/,
+      why: /removes the budget \(10 dispatches\)/,
     },
     {
       what: "a round cap removed",
@@ -481,9 +482,10 @@ const stopsOf = (t: Graph, loop = 0): Loop["stops"] => t.loops[loop]!.stops;
 
 test("a stop made to lead on is a brake loosened: a cap that no longer halts, a pass that skips the gate", () => {
   const cases: [string, (t: Graph) => void, RegExp][] = [
-    ["the round cap leads on", (t) => void (stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "done" }), /the round cap would lead on to "release" where it halted the run/],
-    ["the budget leads on", (t) => void (stopsOf(t)[2] = { kind: "budget", measure: "dispatches", limit: 10, then: "done" }), /the budget of dispatches would lead on to "release" where it halted the run/],
-    ["the cap restarts the loop, with a looser one behind it", (t) => void (t.loops[0]!.stops = [{ kind: "bar-passed" }, { kind: "max-iterations", n: 4, then: "builder" }, { kind: "max-iterations", n: 400 }, { kind: "budget", measure: "dispatches", limit: 10 }]), /the round cap would lead on to "review-builder"/],
+    // A stop that leads on halts nothing: the cap is no cap. And where it leads is a way past the gate.
+    ["the round cap leads on", (t) => void (stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "done" }), /^loop:review-review\.stops: the round cap \(4\) would no longer halt the run; a stop of the loop would lead on to "release", a way that does not pass a person/],
+    ["the budget leads on", (t) => void (stopsOf(t)[2] = { kind: "budget", measure: "dispatches", limit: 10, then: "done" }), /the budget \(10 dispatches\) would no longer halt the run/],
+    ["the cap restarts the loop, with a looser one behind it", (t) => void (t.loops[0]!.stops = [{ kind: "bar-passed" }, { kind: "max-iterations", n: 4, then: "builder" }, { kind: "max-iterations", n: 400 }, { kind: "budget", measure: "dispatches", limit: 10 }]), /the round cap that halts the run would rise from 4 to 400/],
     ["the bar, once passed, skips the gate", (t) => void (stopsOf(t)[0] = { kind: "bar-passed", then: "done" }), /a stop of the loop would lead on to "release", a way that does not pass a person/],
   ];
   for (const [what, change, why] of cases) {
@@ -520,11 +522,12 @@ test("an edge moved is checked like an edge added: out from behind its gate, aro
   // The review gate with its own stop: the critic's pass is sent to the stop, past the gate.
   const kept = placeSubgrooph(host(), reviewGate(), { as: "review", values, after: "plan" }).doc;
   const past = refreshSubgrooph(kept, "review", newer((t) => void (t.edges.find((edge) => edge.id === "e-critic-pass")!.to = "done")));
-  assert.deepEqual(refused(past), ['edge:review-e-critic-pass.to: opens a way into "review-done" that does not pass a person']);
+  assert.deepEqual(names(past.held.filter((change) => change.waits === undefined)), ["edge:review-e-critic-pass.to"]);
+  assert.match(refused(past)[0]!, /opens a way into "review-done" that does not pass a person/);
 
   // Approve and reject both lead on.
   const either = refreshSubgrooph(placed(), "review", newer((t) => void (t.edges.find((edge) => edge.id === "e-merge-gate-done")!.when = "always")));
-  assert.deepEqual(refused(either), ["edge:e-review-merge-gate-release.when: changes what a person's answer leads to"]);
+  assert.deepEqual(refused(either), [`edge:e-review-merge-gate-release.when: changes what a person's answer leads to; opens a way into "release" that does not pass "pass" at the human gate "review-merge-gate"`]);
 });
 
 test("a node replaced under another id does not shed its brake", () => {
@@ -568,7 +571,7 @@ test("a way around a gate is found however long it is, and a loop's back edge do
     Object.assign(t, structuredClone(smoke));
     t.edges.push({ id: "e-critic-done", from: "critic", to: "done", when: { verdict: "trivial" } });
   }, 3));
-  assert.deepEqual(refused(third), ['edge:e-review-critic-release: adds a way into "release" that does not pass a person']);
+  assert.deepEqual(refused(third), ['edge:e-review-critic-release: adds a way into "release" that does not pass a person; adds a way into "release" that does not pass "pass" from the critic "review-critic"']);
 });
 
 test("behind two gates in a row, a way around the second is held though the first still stands", () => {
@@ -577,7 +580,9 @@ test("behind two gates in a row, a way around the second is held though the firs
   const gauntlet = pattern("gauntlet-decomposed");
   const before = placeSubgrooph(host(), gauntlet, { as: "g", values: examples(gauntlet), after: "plan", then: "release" }).doc;
   const skip = newer((t) => void t.loops.forEach((loop) => (loop.stops = loop.stops.map((stop) => (stop.kind === "bar-passed" && stop.then ? { ...stop, then: "done" } : stop)))), 99, gauntlet);
-  assert.deepEqual(refused(refreshSubgrooph(before, "g", skip)), ['loop:g-pieces.stops: a stop of the loop would lead on to "release", a way that does not pass the human gate "g-release-gate"']);
+  assert.deepEqual(refused(refreshSubgrooph(before, "g", skip)), [
+    'loop:g-pieces.stops: a stop of the loop would lead on to "release", a way that does not pass the human gate "g-release-gate"; a stop of the loop would lead on to "release", a way that does not pass the critic "g-final-critic"',
+  ]);
 });
 
 test("a gate of the graph's own, before the box, is not lost with the node it led to", () => {
@@ -593,7 +598,7 @@ test("a gate of the graph's own, before the box, is not lost with the node it le
   });
   const result = refreshSubgrooph(before, "review", renamed);
   assert.deepEqual(refused(result), [
-    'node:review-builder: removes the node that "e-go-review-builder" led to, and with it a way in that passed a person',
+    'node:review-builder: removes "review-builder", which a run reached only by passing a person, while "review-implementer" would come in with no such need: it may be the same step under another name',
     'edge:e-review-implementer-review-critic: adds a way into "review-critic" that does not pass a person',
   ]);
   assert.equal(canonicalize({ ...result.doc, groups: before.groups! }), canonicalize(before), "nothing but the group's version moved");
@@ -612,7 +617,11 @@ test("critic isolation: a critic given another role, removed, or cut out of the 
   }));
   assert.deepEqual(refused(gone), ["node:review-critic: removes a critic"]);
   const cut = refreshSubgrooph(placed(), "review", newer((t) => void Object.assign(t.edges.find((edge) => edge.id === "e-critic-pass")!, { from: "builder", when: "always" })));
-  assert.deepEqual(refused(cut), ['edge:review-e-critic-pass.from: moves the edge off the critic "review-critic", whose verdict would no longer decide it']);
+  // Both halves are held: with only the edge's start kept, its `always` would still take the verdict out of it.
+  assert.deepEqual(refused(cut), [
+    'edge:review-e-critic-pass.from: opens a way into "review-merge-gate" that does not pass the critic "review-critic"',
+    `edge:review-e-critic-pass.when: changes what the critic's verdict leads to; opens a way into "review-merge-gate" that does not pass the critic "review-critic"`,
+  ]);
   const grading = refreshSubgrooph(placed(), "review", newer((t) => void (t.policies = t.policies!.filter((policy) => policy.kind !== "no-self-grading"))));
   assert.deepEqual(refused(grading), ["policy:review-p-no-self-grading: lets a node grade its own work"]);
 });
@@ -734,6 +743,266 @@ test("a loop of the graph's own lets go of a node the subgrooph no longer has, a
   assert.deepEqual(loopOf(result.doc, "redo").members, ["release", "recheck"]);
   assert.deepEqual(loopOf(result.doc, "redo").back, []);
   assert.deepEqual(result.notes.filter((note) => note.startsWith("loop")), ['loop "redo" no longer holds "review-builder", "e-recheck-review-builder", removed from the subgrooph: check that the loop still closes']);
+});
+
+// ─── a second reader's cases ──────────────────────────────────────────────
+//
+// The first rewrite judged each change by itself. These got past it by doing in two changes, or under another id,
+// or in what is written while something else is held, what one change under the old id would have been held for.
+// A brake is now compared on the graph as it would be written, whole (`brakes.ts`).
+
+const unchanged = (before: Graph, after: Graph): void => assert.equal(canonicalize({ ...after, groups: before.groups! }), canonicalize(before), "nothing but the group's version moved");
+const refusedNames = (result: { held: { name: string; waits?: string }[] }): string[] => result.held.filter((change) => change.waits === undefined).map((change) => change.name);
+
+test("what an answer at a gate leads to is not changed by an edge added, or by one moved", () => {
+  // The gate gains a second way out, on the other answer, to where approval led.
+  const added = refreshSubgrooph(placed(), "review", newer((t) => void t.edges.push({ id: "e-also", from: "merge-gate", to: "done", when: "fail" })));
+  assert.deepEqual(refused(added), ['edge:e-review-merge-gate-release-2: adds a way into "release" that does not pass "pass" at the human gate "review-merge-gate"']);
+  // With its own stop kept: the reject edge is sent to the stop.
+  const kept = placeSubgrooph(host(), reviewGate(), { as: "review", values, after: "plan" }).doc;
+  const moved = refreshSubgrooph(kept, "review", newer((t) => void (t.edges.find((edge) => edge.id === "e-merge-gate-reject")!.to = "done")));
+  assert.deepEqual(refusedNames(moved), ["edge:review-e-merge-gate-reject.to"]);
+  assert.match(refused(moved)[0]!, /opens a way into "review-done" that does not pass "pass" at the human gate "review-merge-gate"/);
+  unchanged(kept, moved.doc);
+});
+
+test("a cycle is not moved out from under its cap, its budget and its bar by a second loop", () => {
+  const weak = { name: "Looks fine", inspects: [{ kind: "artifact" as const, ref: "REVIEW.md" }], acceptance: "The critic has no strong objection." };
+  // The old loop keeps its stops, over the gate's round only; a new one with a cap of 50 takes the builder and the critic.
+  const inner = refreshSubgrooph(placed(), "review", newer((t) => {
+    t.loops[0]!.back = ["e-merge-gate-reject"];
+    t.loops.push({ id: "inner", name: "Inner", members: ["builder", "critic"], back: ["e-critic-fail"], mode: "judgment", bar: weak, stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 50 }] });
+  }));
+  assert.deepEqual(refusedNames(inner).sort(), ["loop:review-inner", "loop:review-review.back"]);
+  assert.equal(refused(inner)[0]!.split(": ")[1], "raises the round cap from 4 to 50; removes the budget (10 dispatches); changes the bar's acceptance");
+  unchanged(placed(), inner.doc);
+  // Both back edges handed to a new loop; the old one kept by name on two checks that were not there.
+  const hollow = refreshSubgrooph(placed(), "review", newer((t) => {
+    t.nodes.push({ id: "lint", kind: "check", name: "Lint", check: { kind: "command", run: "pnpm lint" } } as Node, { id: "fmt", kind: "check", name: "Format", check: { kind: "command", run: "pnpm fmt" } } as Node);
+    t.edges.push({ id: "e-builder-lint", from: "builder", to: "lint" }, { id: "e-lint-fmt", from: "lint", to: "fmt" }, { id: "e-fmt-lint", from: "fmt", to: "lint", when: "fail" });
+    Object.assign(t.loops[0]!, { members: ["lint", "fmt"], back: ["e-fmt-lint"] });
+    t.loops.push({ id: "work", name: "Work", members: ["builder", "critic", "merge-gate"], back: ["e-critic-fail", "e-merge-gate-reject"], mode: "judgment", bar: weak, stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 500 }, { kind: "budget", measure: "dispatches", limit: 5000 }] });
+  }));
+  assert.ok(refusedNames(hollow).includes("loop:review-work") && refusedNames(hollow).includes("loop:review-review.back"));
+  assert.match(refused(hollow).join("\n"), /raises the round cap from 4 to 500; raises the budget from 10 to 5000 dispatches; changes the bar's acceptance/);
+  assert.match(refused(hollow).join("\n"), /the loop "review-review" would keep its stops and bound none of the nodes it did/);
+  unchanged(placed(), hollow.doc);
+});
+
+test("a cap that led to a stop that halts: the stop does not become something else", () => {
+  const led = newer((t) => {
+    t.nodes.push({ id: "halted", kind: "stop", name: "Halted", outcome: "halt" });
+    stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "halted" };
+    stopsOf(t)[2] = { kind: "budget", measure: "dispatches", limit: 10, then: "halted" };
+  }, 2);
+  const second = refreshSubgrooph(placed(), "review", led);
+  assert.deepEqual(second.held, [], "a cap that leads to a halting stop still halts");
+  const retry = refreshSubgrooph(second.doc, "review", newer((t) => {
+    t.nodes[t.nodes.findIndex((node) => node.id === "halted")] = { ...agent("halted", "builder", "RETRY.md"), name: "Try again" };
+    t.edges.push({ id: "e-halted-builder", from: "halted", to: "builder" });
+  }, 3, led));
+  // What it was, and what made it halt: both are what the cap leaned on.
+  assert.deepEqual(refusedNames(retry), ["node:review-halted.kind", "node:review-halted.outcome"]);
+  assert.match(refused(retry)[0]!, /the round cap \(4\) would no longer halt the run; the budget \(10 dispatches\) would no longer halt the run/);
+  unchanged(second.doc, retry.doc);
+  const success = refreshSubgrooph(second.doc, "review", newer((t) => void ((t.nodes.find((node) => node.id === "halted") as { outcome: string }).outcome = "success"), 3, led));
+  assert.deepEqual(refusedNames(success), ["node:review-halted.outcome"]);
+});
+
+test("a brake that leads on is a brake: it is not raised, dropped or led elsewhere unasked", () => {
+  // The built-in retrospective: its round cap and its budget both lead on to the retrospective step.
+  const retro = pattern("retrospective-rewrite");
+  const before = placeSubgrooph(host(), retro, { as: "s", values: examples(retro), after: "plan", then: "release" }).doc;
+  const stops = (t: Graph): Loop["stops"] => t.loops.find((loop) => loop.id === "grind")!.stops;
+  const cases: [string, (t: Graph) => void, RegExp][] = [
+    ["its budget dropped", (t) => void stops(t).splice(1, 1), /removes the budget \(30 minutes\)/],
+    ["its cap raised", (t) => void ((stops(t)[0] as { n: number }).n = 50), /raises the round cap from 5 to 50/],
+    ["its cap led back into the loop", (t) => void ((stops(t)[0] as { then: string }).then = "builder"), /the round cap would lead on to "s-builder", not to "s-retro"/],
+  ];
+  for (const [what, change, why] of cases) {
+    const result = refreshSubgrooph(before, "s", newer(change, 99, retro));
+    assert.deepEqual(refusedNames(result), ["loop:s-grind.stops"], what);
+    assert.match(refused(result)[0]!, why, what);
+    unchanged(before, result.doc);
+  }
+
+  // The built-in merge queue: a node of its loop renamed, so that the edge that starts a round has a new id, and the
+  // cap dropped in the same version. The loop is still the loop.
+  const queue = pattern("merge-queue");
+  const queued = placeSubgrooph(host(), queue, { as: "q", values: examples(queue), after: "plan", then: "release" }).doc;
+  const renamed = refreshSubgrooph(queued, "q", newer((t) => {
+    const to = (id: string): string => (id === "integrate" ? "integrator" : id);
+    for (const node of t.nodes) node.id = to(node.id);
+    for (const edge of t.edges) Object.assign(edge, { from: to(edge.from), to: to(edge.to) });
+    for (const loop of t.loops) Object.assign(loop, { members: loop.members.map(to), stops: loop.stops.filter((stop) => stop.kind !== "max-iterations") });
+  }, 99, queue));
+  assert.match(refused(renamed).join("\n"), /loop:q-queue\.stops: removes the round cap \(4\)/);
+  // The renaming applies; the cap stays.
+  assert.equal(renamed.doc.nodes.some((node) => node.id === "q-integrator"), true);
+  assert.deepEqual(loopOf(renamed.doc, "q-queue").stops, loopOf(queued, "q-queue").stops);
+  assert.deepEqual(errorsOf(written(renamed.doc)), []);
+});
+
+test("a step behind a person does not come back under another name in front of them", () => {
+  // The review gate with a step after the gate that carries no mark. It returns as another node, reached from the critic.
+  const tagged = newer((t) => {
+    t.nodes.push({ ...agent("tag", "builder", "TAG.md"), brief: "Tag the merged commit and push the tag." } as Node);
+    t.edges.find((edge) => edge.id === "e-merge-gate-done")!.to = "tag";
+    t.edges.push({ id: "e-tag-done", from: "tag", to: "done" });
+  }, 1);
+  const before = placeSubgrooph(host(), tagged, { as: "review", values, after: "plan", then: "release" }).doc;
+  const renamed = refreshSubgrooph(before, "review", newer((t) => {
+    t.nodes.find((node) => node.id === "tag")!.id = "tagger";
+    t.edges = t.edges.filter((edge) => edge.id !== "e-tag-done");
+    t.edges.find((edge) => edge.id === "e-merge-gate-done")!.to = "done";
+    t.edges.push({ id: "e-critic-tagger", from: "critic", to: "tagger", when: "pass" });
+  }, 2, tagged));
+  assert.match(refused(renamed).join("\n"), /node:review-tag: removes "review-tag", which a run reached only by passing a person, while "review-tagger" would come in with no such need: it may be the same step under another name/);
+  unchanged(before, renamed.doc);
+
+  // A built-in with no gate of its own, behind a gate of the graph's that is one step upstream. Every node renamed.
+  const grind = pattern("grind-loop");
+  const gated: Graph = { ...host(), nodes: [...host().nodes, { id: "go", kind: "human-gate", name: "Go", prompt: "Start the work?" }, agent("prep", "planner", "PREP.md")], edges: [...host().edges, { id: "e-plan-go", from: "plan", to: "go" }, { id: "e-go-prep", from: "go", to: "prep", when: "pass" }] };
+  const inGraph = placeSubgrooph(gated, grind, { as: "g", values: examples(grind), after: "prep" }).doc;
+  const all = refreshSubgrooph(inGraph, "g", newer((t) => {
+    const map = Object.fromEntries(t.nodes.map((node) => [node.id, `${node.id}2`]));
+    for (const node of t.nodes) node.id = map[node.id]!;
+    for (const edge of t.edges) Object.assign(edge, { from: map[edge.from], to: map[edge.to], id: `${edge.id}-2` });
+    for (const loop of t.loops) Object.assign(loop, { members: loop.members.map((m) => map[m]), back: loop.back.map((b) => `${b}-2`), stops: loop.stops.map((stop) => (stop.then ? { ...stop, then: map[stop.then] } : stop)) });
+  }, 99, grind));
+  assert.ok(refusedNames(all).length > 0);
+  assert.match(refused(all).join("\n"), /which a run reached only by passing a person, while .* would come in with no such need/);
+  unchanged(inGraph, all.doc);
+});
+
+test("what a critic is handed, and what its verdict decides, are held however the edges are named", () => {
+  // The edge into the critic comes back under another id with one piece of evidence.
+  const less = refreshSubgrooph(placed(), "review", newer((t) => void Object.assign(t.edges.find((edge) => edge.id === "e-builder-critic")!, { id: "to-critic", evidence: ["CHANGES.md"] })));
+  assert.match(refused(less).join("\n"), /the critic would no longer be handed "diff of the change"/);
+  unchanged(placed(), less.doc);
+  // The critic's pass is removed and the builder leads to the gate itself.
+  const around = refreshSubgrooph(placed(), "review", newer((t) => {
+    t.edges = t.edges.filter((edge) => edge.id !== "e-critic-pass");
+    t.edges.push({ id: "e-builder-merge-gate", from: "builder", to: "merge-gate" });
+  }));
+  assert.deepEqual(refused(around), ['edge:e-review-builder-review-merge-gate: adds a way into "review-merge-gate" that does not pass the critic "review-critic"']);
+  unchanged(placed(), around.doc);
+  // Its verdict made to lead on whatever it is.
+  const always = refreshSubgrooph(placed(), "review", newer((t) => {
+    t.edges.find((edge) => edge.id === "e-critic-pass")!.when = "always";
+    t.edges = t.edges.filter((edge) => edge.id !== "e-critic-fail");
+    t.loops[0]!.back = ["e-merge-gate-reject"];
+  }));
+  assert.ok(refusedNames(always).includes("edge:review-e-critic-pass.when"));
+  // A round cap that hands the run to the person at the gate is no way around the critic.
+  const asks = refreshSubgrooph(placed(), "review", newer((t) => void (stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "merge-gate" })));
+  assert.deepEqual(asks.held, []);
+});
+
+test("allowing one change does not let another through: each way that opens is named", () => {
+  // Two steps behind the gate. The newer version lets the critic reach the first, and the first lead to the second.
+  const two = newer((t) => {
+    (t.nodes.find((node) => node.id === "merge-gate") as { options: string[] }).options = ["approve", "reject with feedback", "hotfix"];
+    t.nodes.push(agent("tag", "builder", "TAG.md"), agent("hotfix", "builder", "HOTFIX.md"));
+    t.edges.find((edge) => edge.id === "e-merge-gate-done")!.to = "tag";
+    t.edges.push({ id: "e-tag-done", from: "tag", to: "done" }, { id: "e-merge-gate-hotfix", from: "merge-gate", to: "hotfix", when: { verdict: "hotfix" } }, { id: "e-hotfix-done", from: "hotfix", to: "done" });
+  }, 1);
+  const before = placeSubgrooph(host(), two, { as: "review", values, after: "plan", then: "release" }).doc;
+  const next = newer((t) => void t.edges.push({ id: "e-critic-tag", from: "critic", to: "tag", when: { verdict: "trivial" } }, { id: "e-tag-hotfix", from: "tag", to: "hotfix", when: "fail" }), 2, two);
+  assert.deepEqual(refusedNames(refreshSubgrooph(before, "review", next)).sort(), ["edge:e-review-critic-review-tag", "edge:e-review-tag-review-hotfix"]);
+  const one = refreshSubgrooph(before, "review", next, { allow: ["edge:e-review-critic-review-tag"] });
+  assert.deepEqual(refusedNames(one), ["edge:e-review-tag-review-hotfix"]);
+  unchanged(before, one.doc);
+  assert.deepEqual(refreshSubgrooph(before, "review", next, { allow: ["edge:e-review-critic-review-tag", "edge:e-review-tag-review-hotfix"] }).held, []);
+});
+
+test("what is held is judged on the graph that is written, not on the one the whole newer version would make", () => {
+  const cases: [string, (t: Graph) => void][] = [
+    // The critic's role is held, so it is still a critic: the evidence it is handed is held too.
+    ["a critic kept, handed less", (t) => (void ((t.nodes.find((node) => node.id === "critic") as { role: unknown }).role = { custom: "reviewer" }), void (t.edges.find((edge) => edge.id === "e-builder-critic")!.evidence = ["CHANGES.md"]))],
+    // The critic becomes a check under its own id: its kind goes with its role.
+    ["a critic made a check", (t) => void (t.nodes[t.nodes.findIndex((node) => node.id === "critic")] = { id: "critic", kind: "check", name: "Tests", check: { kind: "command", run: "pnpm test" } } as Node)],
+    // The edge off the critic is held at its start; its `always` is held with it.
+    ["an edge off the critic", (t) => void Object.assign(t.edges.find((edge) => edge.id === "e-critic-pass")!, { from: "builder", when: "always" })],
+  ];
+  for (const [what, change] of cases) {
+    const result = refreshSubgrooph(placed(), "review", newer(change));
+    assert.ok(refusedNames(result).length > 0, what);
+    unchanged(placed(), result.doc);
+    assert.deepEqual(errorsOf(written(result.doc)), [], what);
+  }
+  // A cap is led on to a node that would be a gate, were its kind not held with the rest of the shape.
+  const triage = newer((t) => (t.nodes.push(agent("triage", "builder", "TRIAGE.md")), void t.edges.push({ id: "e-triage-builder", from: "triage", to: "builder" })), 2);
+  const before = refreshSubgrooph(placed(), "review", triage, { allow: [] }).doc;
+  const result = refreshSubgrooph(before, "review", newer((t) => {
+    t.nodes[t.nodes.findIndex((node) => node.id === "triage")] = { id: "triage", kind: "human-gate", name: "Triage", prompt: "Go on?" };
+    stopsOf(t)[1] = { kind: "max-iterations", n: 4, then: "triage" };
+    t.edges.push({ id: "e-critic-done", from: "critic", to: "done", when: { verdict: "trivial" } });
+  }, 3, triage));
+  assert.deepEqual(loopOf(result.doc, "review-review").stops, loopOf(before, "review-review").stops, "the cap still halts: the node it would lead to is still an agent");
+});
+
+test("an honest update is not held: a new stop that leads on, a check put in, a gate that gains an answer, a lower cap", () => {
+  const cases: [string, (t: Graph) => void][] = [
+    ["a new stop where a person is asked, that leads back", (t) => void stopsOf(t).push({ kind: "human", every: 2, then: "builder" })],
+    ["a second, lower cap that leads back, the first still halting", (t) => void stopsOf(t).push({ kind: "max-iterations", n: 2, then: "builder" })],
+    ["a check between the builder and the critic", (t) => {
+      t.nodes.push({ id: "lint", kind: "check", name: "Lint", check: { kind: "command", run: "pnpm lint" } } as Node);
+      Object.assign(t.edges.find((edge) => edge.id === "e-builder-critic")!, { to: "lint" });
+      t.edges.push({ id: "e-lint-critic", from: "lint", to: "critic", when: "pass", evidence: t.edges.find((edge) => edge.id === "e-builder-critic")!.evidence! });
+      t.loops[0]!.members.push("lint");
+    }],
+    ["a gate that gains an answer", (t) => {
+      (t.nodes.find((node) => node.id === "merge-gate") as { options: string[] }).options.push("defer");
+      t.edges.push({ id: "e-gate-defer", from: "merge-gate", to: "builder", when: { verdict: "defer" } });
+      t.loops[0]!.back.push("e-gate-defer");
+    }],
+    ["a cap and a budget lowered, a brief reworded", (t) => {
+      stopsOf(t)[1] = { kind: "max-iterations", n: 3 };
+      stopsOf(t)[2] = { kind: "budget", measure: "dispatches", limit: 8 };
+      (t.nodes[0] as { brief: string }).brief += " Keep it small.";
+    }],
+  ];
+  for (const [what, change] of cases) assert.deepEqual(refused(refreshSubgrooph(placed(), "review", newer(change))), [], what);
+  // The graph has the template's graph-wide policy under an id of its own as well: the same version changes nothing.
+  const twice: Graph = { ...placed(), policies: [...placed().policies!, { id: "p-own-isolation", kind: "critic-isolation", scope: "graph" }] };
+  assert.deepEqual(refreshSubgrooph(twice, "review", reviewGate()).changes, []);
+});
+
+test("what a refresh leaves for a person to do, it says: a name left pointing at nothing, a new start, an older version", () => {
+  // The graph's own loop leads on to the template's builder, its bar is keyed from it, and a policy is scoped to it.
+  const before = placed();
+  before.nodes.push({ id: "recheck", kind: "check", name: "Recheck", check: { kind: "command", run: "pnpm test" } } as Node);
+  before.edges.push({ id: "e-release-recheck", from: "release", to: "recheck" }, { id: "e-recheck-release", from: "recheck", to: "release", when: "fail" });
+  before.loops.push({ id: "redo", name: "Redo", members: ["release", "recheck"], back: ["e-recheck-release"], bar: { name: "Bar", inspects: [{ kind: "answer-key", ref: "CHANGES.md" }], acceptance: "ok", answerKeyFrom: "review-builder" }, stops: [{ kind: "max-iterations", n: 2 }, { kind: "evidence-invalid", rounds: 1, then: "review-builder" }] } as Loop);
+  before.policies!.push({ id: "p-own", kind: "owner-per-artifact", scope: "node:review-builder" });
+  before.layout = { "review-builder": { x: 1, y: 2 }, plan: { x: 0, y: 0 } };
+  const renamed = newer((t) => {
+    t.nodes.find((node) => node.id === "builder")!.id = "implementer";
+    for (const edge of t.edges) Object.assign(edge, { from: edge.from === "builder" ? "implementer" : edge.from, to: edge.to === "builder" ? "implementer" : edge.to });
+    t.edges.find((edge) => edge.id === "e-builder-critic")!.id = "e-implementer-critic";
+    t.loops[0]!.members = ["implementer", "critic", "merge-gate"];
+  });
+  const result = refreshSubgrooph(before, "review", renamed);
+  assert.deepEqual(result.held, []);
+  assert.deepEqual(result.notes, [
+    'edge "e-plan-review-builder" (plan → review-builder) is removed with the node it led to: reconnect what it joined',
+    'loop "redo" still names "review-builder", which the newer version no longer has: point it at what took its place',
+    'policy "p-own" still names "review-builder", which the newer version no longer has: point it at what took its place',
+    'the newer version starts at "review-implementer" too, and nothing in this graph leads to it: a run would begin there. Lead into it from where the subgrooph is entered',
+  ]);
+  assert.deepEqual(result.doc.layout, { plan: { x: 0, y: 0 } });
+
+  // An edge that pointed at nothing before the refresh is not the refresh's to remove, and it says nothing of it.
+  const dangling = placed();
+  dangling.edges.push({ id: "e-x", from: "plan", to: "nowhere" });
+  const same = refreshSubgrooph(dangling, "review", reviewGate());
+  assert.deepEqual(same.notes, []);
+  assert.equal(same.doc.edges.some((edge) => edge.id === "e-x"), true);
+
+  // The version found is older than the one the subgrooph was placed from.
+  const third = { ...placed(), groups: [{ ...placed().groups![0]!, from: "review-gate@3" as const }] };
+  assert.deepEqual(refreshSubgrooph(third, "review", reviewGate()).notes, ['this is version 1 of "review-gate", older than the version 3 the subgrooph was placed from: the changes below lead back to it']);
 });
 
 // ─── saving a group as a template ─────────────────────────────────────────
