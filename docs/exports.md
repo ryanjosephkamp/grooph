@@ -4,7 +4,7 @@ Three projections of a document, for reading and sending rather than editing. Ea
 
 | | What it is | From the CLI | In the app |
 |---|---|---|---|
-| **Picture** | The whole document with its words on it, as SVG or PNG, light or dark, laid out for a phone | `grooph image <file> [--out x.svg \| x.png] [--theme light \| dark \| auto]` | Export → Keep a copy → Picture (PNG), Picture (SVG) |
+| **Picture** | The whole document with its words on it, as SVG or PNG, light or dark, laid out for a phone. An operation map has two more views: its lanes side by side, and a sequence | `grooph image <file> [--out x.svg \| x.png] [--theme light \| dark \| auto]`; for a map also `--layout wide` or `--view sequence` | Export → Keep a copy → Picture (PNG), Picture (SVG); a map's other views are on its screen |
 | **Outline** | The whole document to read top to bottom: every brief in full, each edge as a sentence, each loop with its bar and stops | `grooph outline <file> [--out x.md]` | the list button in the top bar |
 | **Offline page** | One HTML file holding the picture, the outline, the validator's list and the document itself, with no network needed | `grooph page <file> --out x.html` | Export → Keep a copy → Offline page (.html) |
 
@@ -20,11 +20,19 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 - nodes of one rank in a tinted band, marked "side by side";
 - below the cards, each loop: its kind and members, its bar, and its stops in order with what each does.
 
-An operation map's picture is described in [`operation-map.md`](operation-map.md) §4.
+An operation map's picture is described in [`operation-map.md`](operation-map.md) §4. A map has two more views, drawn by core from the same document and written by the same command:
+
+| View | What it is | Good at | Loses |
+|---|---|---|---|
+| The picture (`grooph image <map>`) | Lanes top to bottom, 400 units wide, every arc in one margin | A phone; the cards in full; the live marks | A wide screen, where it is one narrow column; a long map, whose arcs cross often |
+| Lanes side by side (`--layout wide`, §4c) | Each lane a column, the people across the top, arcs in the gutters between lanes | The whole operation on one wide screen, with few crossings and no line over a card | A phone: about 900 units for three lanes. The order of the handoffs |
+| The sequence (`--view sequence`, §4d) | A column for each person and session, a row for each handoff in the map's order | Reading the handoffs one at a time, with what carries each and what is handed | The cards, the lanes' machines and accounts, the live marks; and it looks like a timeline, though the order is not a clock |
+
+In the app a map's screen has a switch, Picture and Sequence, at every width, and from 1100 px the picture is drawn with its lanes side by side. Keep a copy still saves the phone's picture; the other two come from `grooph image`.
 
 Themes: `light` and `dark` write the colors into the file, so it looks the same anywhere. `auto` (SVG only, and the SVG default) carries both palettes and follows the viewer's color scheme. A PNG is one theme: light unless told dark, three pixels to the unit (1,200 px wide; `--scale` changes that).
 
-The SVG is deterministic: the same document and theme give the same bytes, and golden copies of two graphs and the sample map are under `fixtures/pictures/` and `fixtures/maps/pictures/`. The PNG is drawn with the machine's own fonts (by the browser in the app; by `@resvg/resvg-js`, an optional dependency, in the CLI), so it can differ by a pixel between machines. Text width is estimated without a browser, a little wide on purpose, so a long name is cut with an ellipsis rather than overflowing. Text is measured without a browser, for the widest font a picture is likely to be drawn with (about as wide as DejaVu Sans, which is what a Linux machine with nothing else uses): on a Mac or a phone a line ends a little short of its box, and on Linux it does not run past it, which it did in 0.1.0.
+The SVG is deterministic: the same document and theme give the same bytes, and golden copies of two graphs and the sample map are under `fixtures/pictures/` and `fixtures/maps/pictures/`, with both other views of two maps beside them (`<id>.wide.<theme>.svg`, `<id>.sequence.<theme>.svg`). The PNG is drawn with the machine's own fonts (by the browser in the app; by `@resvg/resvg-js`, an optional dependency, in the CLI), so it can differ by a pixel between machines. Text width is estimated without a browser, a little wide on purpose, so a long name is cut with an ellipsis rather than overflowing. Text is measured without a browser, for the widest font a picture is likely to be drawn with (about as wide as DejaVu Sans, which is what a Linux machine with nothing else uses): on a Mac or a phone a line ends a little short of its box, and on Linux it does not run past it, which it did in 0.1.0.
 
 The glyph (`grooph glyph`) is still the wordless shape for a list row, and the canvas is still where a graph is edited. The picture is the one to keep.
 
