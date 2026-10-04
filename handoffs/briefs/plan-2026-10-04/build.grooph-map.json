@@ -1,0 +1,321 @@
+{
+  "groophMap": 0,
+  "id": "grooph-builds-grooph-2026-10-04",
+  "name": "grooph builds grooph: the push to Monday",
+  "version": 1,
+  "asOf": "2026-10-04",
+  "lanes": [
+    {
+      "id": "mac",
+      "name": "Ryan's Mac, this account",
+      "machine": "the Mac",
+      "place": "local",
+      "account": "the account signed in on the Mac"
+    },
+    {
+      "id": "codex",
+      "name": "Codex on the Mac",
+      "machine": "the Mac",
+      "place": "local",
+      "account": "ChatGPT subscription"
+    },
+    {
+      "id": "cloud",
+      "name": "Cloud, the other account",
+      "machine": "cloud",
+      "place": "cloud",
+      "account": "Ryan's other Claude account"
+    }
+  ],
+  "people": [
+    {
+      "id": "ryan",
+      "name": "Ryan",
+      "role": "Owner. Says yes or no at each gate, from his phone. Pastes the lane briefs. Says save point."
+    }
+  ],
+  "sessions": [
+    {
+      "id": "driver",
+      "name": "Driver",
+      "lane": "mac",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Writes each lane's brief, reviews each handback, merges on Ryan's word, keeps the plan and progress current, publishes the gate pages",
+      "lifetime": "long-lived",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "front-door",
+      "name": "Lane 1: front door",
+      "lane": "mac",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Landing page, README, desktop layout",
+      "lifetime": "per-task",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "embed",
+      "name": "Lane 2: embed and replay",
+      "lane": "mac",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "A graph anyone can embed in a page, and a recorded run that plays",
+      "lifetime": "per-task",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "toolkit",
+      "name": "Lane 3: no-friction toolkit",
+      "lane": "mac",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "First run, CLI help and errors, quickstart, rule reference",
+      "lifetime": "per-task",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "evidence",
+      "name": "Lane 4: evidence",
+      "lane": "mac",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Study two: runs the paired comparison, unattended",
+      "lifetime": "per-task",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "later",
+      "name": "Lanes 6 and 7: community, writing",
+      "lane": "mac",
+      "harness": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "role": "Submissions by pull request; the blog draft and the technical report. Start when a slot frees",
+      "lifetime": "per-task",
+      "count": 2,
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "codex-target",
+      "name": "Lane 5: Codex target",
+      "lane": "codex",
+      "harness": "codex",
+      "model": "gpt-6.1-sol",
+      "role": "The Codex compile target and one proving run; an outside read of each Claude lane's change",
+      "lifetime": "per-task",
+      "repo": "ryanjosephkamp/grooph"
+    },
+    {
+      "id": "dot",
+      "name": "The Dot",
+      "lane": "cloud",
+      "harness": "claude-code",
+      "role": "Research it does itself: prior art, comparable tools, design references, the npm name. Never hands work to Codex",
+      "lifetime": "per-task"
+    },
+    {
+      "id": "operator",
+      "name": "Operator",
+      "lane": "cloud",
+      "harness": "claude-code",
+      "model": "claude-opus-5-5",
+      "role": "Runs the other project's lanes, which publish their events. Asked only for what the events do not show",
+      "lifetime": "long-lived"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-plan",
+      "from": "driver",
+      "to": "ryan",
+      "carrier": {
+        "kind": "review-page",
+        "where": "gate pages"
+      },
+      "what": "the plan, then each gate: what was done, what needs only a yes"
+    },
+    {
+      "id": "h-yes",
+      "from": "ryan",
+      "to": "driver",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "approved, or save point"
+    },
+    {
+      "id": "h-brief",
+      "from": "ryan",
+      "to": "front-door",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the paste line that starts a lane, in a new Terminal tab"
+    },
+    {
+      "id": "h-brief-2",
+      "from": "ryan",
+      "to": "embed",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the paste line"
+    },
+    {
+      "id": "h-brief-3",
+      "from": "ryan",
+      "to": "toolkit",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the paste line"
+    },
+    {
+      "id": "h-brief-4",
+      "from": "ryan",
+      "to": "evidence",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the paste line, once he says go to study two"
+    },
+    {
+      "id": "h-brief-5",
+      "from": "ryan",
+      "to": "codex-target",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the prompt, in the Codex app"
+    },
+    {
+      "id": "h-handoff",
+      "from": "driver",
+      "to": "front-door",
+      "carrier": {
+        "kind": "branch",
+        "repo": "ryanjosephkamp/grooph",
+        "ref": "main"
+      },
+      "what": "HANDOFF.md for each lane, on main"
+    },
+    {
+      "id": "h-pr-1",
+      "from": "front-door",
+      "to": "driver",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "ryanjosephkamp/grooph"
+      },
+      "what": "the lane's work with its HANDBACK.md"
+    },
+    {
+      "id": "h-pr-2",
+      "from": "embed",
+      "to": "driver",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "ryanjosephkamp/grooph"
+      },
+      "what": "the lane's work with its HANDBACK.md"
+    },
+    {
+      "id": "h-pr-3",
+      "from": "toolkit",
+      "to": "driver",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "ryanjosephkamp/grooph"
+      },
+      "what": "the lane's work with its HANDBACK.md"
+    },
+    {
+      "id": "h-pr-4",
+      "from": "evidence",
+      "to": "driver",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "ryanjosephkamp/grooph"
+      },
+      "what": "the study's records and write-ups"
+    },
+    {
+      "id": "h-pr-5",
+      "from": "codex-target",
+      "to": "driver",
+      "carrier": {
+        "kind": "branch",
+        "repo": "ryanjosephkamp/grooph"
+      },
+      "what": "the Codex target on a branch, with its HANDBACK.md"
+    },
+    {
+      "id": "h-later",
+      "from": "driver",
+      "to": "later",
+      "carrier": {
+        "kind": "branch",
+        "repo": "ryanjosephkamp/grooph",
+        "ref": "main"
+      },
+      "what": "their briefs, when a slot frees"
+    },
+    {
+      "id": "h-later-back",
+      "from": "later",
+      "to": "driver",
+      "carrier": {
+        "kind": "pull-request",
+        "repo": "ryanjosephkamp/grooph"
+      },
+      "what": "their work"
+    },
+    {
+      "id": "h-dot",
+      "from": "ryan",
+      "to": "dot",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "the research questions"
+    },
+    {
+      "id": "h-dot-back",
+      "from": "dot",
+      "to": "driver",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "what it found, as a file Ryan attaches"
+    },
+    {
+      "id": "h-events",
+      "from": "operator",
+      "to": "driver",
+      "carrier": {
+        "kind": "branch",
+        "repo": "the other project's public repository",
+        "ref": "grooph-events/*"
+      },
+      "what": "the other project's lanes' events, read with grooph sessions"
+    },
+    {
+      "id": "h-ask",
+      "from": "driver",
+      "to": "operator",
+      "carrier": {
+        "kind": "person",
+        "who": "Ryan"
+      },
+      "what": "only what the events do not show"
+    }
+  ]
+}
