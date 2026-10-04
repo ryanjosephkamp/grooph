@@ -47,9 +47,7 @@ export function Landing({ device }: { device?: ReactNode }) {
       <header className="land-bar">
         <h1 className="wordmark">grooph</h1>
         <nav className="land-nav" aria-label="grooph">
-          <a href={`${SOURCE}#readme`} rel="noopener">
-            Docs
-          </a>
+          <a href={`${import.meta.env.BASE_URL}docs/`}>Docs</a>
           <a href={SOURCE} rel="noopener">
             GitHub
           </a>

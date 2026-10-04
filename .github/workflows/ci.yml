@@ -62,6 +62,14 @@ jobs:
       - name: the rule reference is current
         run: node scripts/rule-reference.mjs --check
 
+      # The documents render as site pages (handoff 0060): the renderer's own tests, then every page into a temporary
+      # folder, failing on a broken link between pages, Markdown left unrendered, a page over 40 KB, or a color
+      # variable that drifted from the app's.
+      - name: the site's pages render, link and weigh what they should
+        run: |
+          node --test scripts/site/markdown.test.mjs scripts/site/site-pages.test.mjs
+          node scripts/site-pages.mjs --check
+
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works
         run: scripts/first-run.sh

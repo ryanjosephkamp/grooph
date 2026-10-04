@@ -72,6 +72,11 @@ test("an empty device opens on the front page, in the order the handoff gives", 
   for (const tile of await tiles.all()) await expect(tile.locator(".glyph svg")).toBeVisible();
 
   await expect(page.locator(".land-foot").getByRole("link", { name: "Source" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph");
+  // Handoff 0060: "Docs" opens the documents as pages on the site, not files on GitHub; "GitHub" still goes to the repository.
+  const docs = page.locator(".land-nav").getByRole("link", { name: "Docs" });
+  await expect(docs).toHaveAttribute("href", "/grooph/docs/");
+  expect(await docs.evaluate((a: HTMLAnchorElement) => a.href)).toBe(new URL("docs/", page.url()).href);
+  await expect(page.locator(".land-nav").getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph");
 
   expect(await blockOrder(page)).toEqual(["headline", "graph", "claims", "start", "templates", "honest", "footer"]);
 
