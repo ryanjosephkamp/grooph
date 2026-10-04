@@ -261,7 +261,12 @@ export async function held(page: Page): Promise<{ paths: string[]; bytes: number
   }, CACHE);
 }
 
-/** Wait for the worker to be in control and to hold every file the release's page names. */
+/**
+ * Wait for the visit to be over: the worker in control and holding every file the release's page names, and the
+ * page itself with nothing still arriving. The page fetches the canvas screens for itself once its first screen is
+ * up, beside the worker's own fetch of the same file; a test that takes the network away the moment the worker has
+ * its copy cuts the page's off half-way, which is another event than "no network after a visit".
+ */
 export async function settled(page: Page, release: Release): Promise<void> {
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   await expect
@@ -270,6 +275,8 @@ export async function settled(page: Page, release: Release): Promise<void> {
       return release.named.filter((path) => !paths.includes(path));
     }, { message: `the worker holds every file the ${release.name} page names`, timeout: 20_000 })
     .toEqual([]);
+  // The page's own fetch of the canvas screens has come in. (Playwright's "network idle" never comes with a worker in control.)
+  await page.waitForFunction(() => performance.getEntriesByType("resource").some((entry) => /\/assets\/screens-[^/]*\.js$/.test(entry.name)));
 }
 
 /** Which release the page in the tab is, by its own stamp, by the stamps of the scripts it ran, and by the files it asked for. */
