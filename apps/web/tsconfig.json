@@ -10,7 +10,9 @@
     "declarationMap": false,
     "types": ["vite/client", "node"],
     // Decision 0005: the web app consumes core from source; Vite resolves the same path.
-    "paths": { "@grooph/core": ["../../packages/core/src/index.ts"] }
+    // The app starts from core without the compiler, and fetches the compiler, at an address of its own, when a
+    // person exports (slice 0070).
+    "paths": { "@grooph/core": ["../../packages/core/src/base.ts"], "@grooph/core/compile": ["../../packages/core/src/compile/index.ts"] }
   },
   "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts"]
 }

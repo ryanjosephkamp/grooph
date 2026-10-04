@@ -3,6 +3,7 @@ import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ADDABLE_KINDS, KIND_LABEL, type NodeKind } from "../doc/catalog.js";
+import { loadCompiler } from "../doc/exportPackage.js";
 import { computeIssues, countBySeverity, emptyHighlight, type Highlight } from "../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
 import { DocStore, useDoc, useHistory } from "../doc/store.js";
@@ -35,6 +36,11 @@ export function EditorScreen({ graphKey, fresh }: { graphKey: string; fresh: boo
       live = false;
     };
   }, [graphKey]);
+  // The compiler, asked for once the editor is up, so the Export panel seldom waits for it (slice 0070).
+  useEffect(() => {
+    const soon = window.setTimeout(() => void loadCompiler().catch(() => undefined), 1200);
+    return () => window.clearTimeout(soon);
+  }, []);
 
   if (record === undefined) return <div className="loading">Opening…</div>;
   if (record === null) {

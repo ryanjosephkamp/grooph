@@ -7,7 +7,9 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
-const coreSource = fileURLToPath(new URL("../../packages/core/src/index.ts", import.meta.url));
+// Core without the compiler (packages/core/src/base.ts says why); the compiler is the next line.
+const coreSource = fileURLToPath(new URL("../../packages/core/src/base.ts", import.meta.url));
+const compileSource = fileURLToPath(new URL("../../packages/core/src/compile/index.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -23,11 +25,15 @@ const coreSource = fileURLToPath(new URL("../../packages/core/src/index.ts", imp
  * one of those screens, so such an address loads what it did before, at once. Every stylesheet of the app is
  * still asked for at every app address: they are small, and their order is then the same on every screen.
  *
+ * Since slice 0070 the compiler is fetched when a person first exports. No address is told to fetch it, but the
+ * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
+ * and keeps them, so an export still works with no network.
+ *
  * `dist/routes.json` lists the sets; `scripts/perf-budget.mjs` weighs them.
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -59,7 +65,12 @@ function routes(): Plugin {
         const app = chunks.find((c) => c.facadeModuleId?.endsWith("/src/App.tsx"));
         const embed = chunks.find((c) => c.facadeModuleId?.endsWith("/ui/embed/EmbedApp.tsx"));
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
-        if (!entry || !app || !embed || !screens) return html;
+        const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
+        // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
+        if (!entry || !app || !embed || !screens || !compiler) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler }).filter(([, c]) => !c).map(([name]) => name);
+          throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
+        }
         const inEntry = closure(entry);
         const inApp = closure(app);
         const cssOf = (files: Set<string>): string[] => [...files].flatMap((f) => [...(byFile.get(f)?.viteMetadata?.importedCss ?? [])]);
@@ -76,13 +87,14 @@ function routes(): Plugin {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
+          later: [...closure(compiler)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
         // again, one after another.
-        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}</script>`;
+        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
         return html.replace("</title>", `</title>\n    ${hint}`);
       },
     },
@@ -99,7 +111,11 @@ export default defineConfig({
   resolve: {
     // Decision 0005: core is consumed from source, so the browser runs the same
     // modules the CLI compiles — no second build of the compiler.
-    alias: { "@grooph/core": coreSource },
+    // The compiler first: it is a part of core with an address of its own (slice 0070), fetched when a person exports.
+    alias: [
+      { find: "@grooph/core/compile", replacement: compileSource },
+      { find: "@grooph/core", replacement: coreSource },
+    ],
   },
   // Three chunks since slice 0056: a small entry, the app, and what the app and an embed share. The limit is set
   // just above the largest, so the build warns when it grows, not every time. scripts/perf-budget.mjs weighs

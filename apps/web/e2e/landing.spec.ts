@@ -338,4 +338,6 @@ test("the front page loads without the canvas screens and fetches them once it i
   await arrived();
   const template = await asked();
   expect(template.screens).toBeLessThan(template.entry);
+  // Slice 0070: neither address fetches the compiler. The editor does, once it is up, and the Export panel if it is first.
+  expect(await page.evaluate(() => performance.getEntriesByType("resource").filter((e) => /\/assets\/compile-/.test(e.name)).length)).toBe(0);
 });

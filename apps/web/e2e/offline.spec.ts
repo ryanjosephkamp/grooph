@@ -104,3 +104,20 @@ test("a page that names files the worker does not hold has them fetched, though 
   await expect(page.locator("#root")).toBeEmpty();
   await expect.poll(held).toBe(2);
 });
+
+test("the exporter is kept too: after a visit that saw only the front page, a graph exports with no network", async ({ page, context }) => {
+  // Slice 0070: the compiler is fetched when a person exports. No address asks for it, but the page names it,
+  // and the worker keeps what a page names.
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  expect(await page.evaluate(() => performance.getEntriesByType("resource").some((e) => /\/assets\/compile-/.test(e.name)))).toBe(false);
+
+  await context.setOffline(true);
+  await page.reload();
+  await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
+  await expect(node(page, "builder")).toBeVisible();
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const [zip] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download package (.zip)" }).tap()]);
+  expect(zip.suggestedFilename()).toBe("review-loop-claude-code.zip");
+});
