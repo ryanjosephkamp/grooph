@@ -7,7 +7,7 @@
 import { indexGraph, type GraphIndex } from "../../graph-index.js";
 import { effectiveAdaptation, isCriticFamily, isWriterFamily, roleName } from "../../semantics.js";
 import { getProfile, type TargetProfile } from "../../targets/index.js";
-import type { Adaptation, AgentNode, Capability, Edge, Graph, Id, Node } from "../../types.js";
+import type { Adaptation, AgentNode, Capability, Edge, Graph, Id, Node, Tier } from "../../types.js";
 
 export type ResolvedAgent = {
   node: AgentNode;
@@ -49,15 +49,20 @@ export type PackageContext = {
   };
   /** the level this run follows: the document's, the default, or a stricter policy (graph-ir §2) */
   adaptation: Adaptation;
+  /** the tiers whose model the one exporting named, in place of the target's own (CompileOptions.models) */
+  tiersNamed: Tier[];
   agents: ResolvedAgent[];
   agentByNode: Map<Id, ResolvedAgent>;
   /** the `lead`-role node, when the document has one */
   leadNode?: AgentNode;
 };
 
-export function buildContext(doc: Graph): PackageContext {
+export function buildContext(doc: Graph, options: { models?: Partial<Record<Tier, string>> } = {}): PackageContext {
   const index = indexGraph(doc);
-  const profile = getProfile(doc.target?.harness ?? "claude-code");
+  const stock = getProfile(doc.target?.harness ?? "claude-code");
+  // The one exporting may say which model a tier means (CompileOptions). The rest of the profile is the target's.
+  const named = Object.entries(options.models ?? {}).filter(([, model]) => typeof model === "string" && model !== "") as [Tier, string][];
+  const profile = named.length > 0 ? { ...stock, models: { ...stock.models, ...Object.fromEntries(named) } } : stock;
   const graphId = doc.id;
   const root = `.grooph/${graphId}`;
 
@@ -88,6 +93,7 @@ export function buildContext(doc: Graph): PackageContext {
       workingCopy: `${root}/runs/<run-id>/graph.grooph.json`,
     },
     adaptation: effectiveAdaptation(doc),
+    tiersNamed: named.map(([tier]) => tier),
     agents,
     agentByNode: new Map(agents.map((agent) => [agent.node.id, agent])),
     ...(leadNode ? { leadNode } : {}),

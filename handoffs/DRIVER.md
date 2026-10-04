@@ -40,7 +40,7 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 ## Where things stand
 
-`docs/PROGRESS.md` is the state. In one paragraph, as of the date above: 0.3.0 is merged, tagged and live. Public text is American English, with a check in CI. The driver may merge small, safe pull requests (decision 0023). The second push is set up as lanes: the audit lane (0075), the Codex target in Codex (0076), the site in the owner's style (0077), agents and chat (0078), and comparison study two (0019), each waiting for the owner to start it. The review desk holds his decisions on those and on what comes after: nested and linked graphs, other views and themes, a desktop app, the game experiment in both harnesses.
+The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. In one paragraph, as of the date above: 0.3.0 is merged, tagged and live. Public text is American English, with a check in CI. The driver may merge small, safe pull requests (decision 0023). The second push is set up as lanes: the audit lane (0075), the Codex target in Codex (0076), the site in the owner's style (0077), agents and chat (0078), and comparison study two (0019), each waiting for the owner to start it. Pull request #43 (a tier map, so none of his runs uses Fable) waits for his word, and comparison study two waits for it. The review desk holds his decisions on those and on what comes after: nested and linked graphs, other views and themes, a desktop app, the game experiment in both harnesses.
 
 ## Handing the seat over
 

@@ -230,7 +230,7 @@ Tiers are the harness-neutral vocabulary; profiles map them to current names.
 | `strong` | The default builder and critic class. |
 | `fast` | Cheap and quick; for grind steps, fan-out and deterministic-adjacent work. |
 
-`pin` overrides the tier for one harness with a literal model name. Effort is `low` · `medium` · `high` · `max`; a profile may map these onto a finer scale.
+`pin` overrides the tier for one harness with a literal model name. The one exporting may also say which model a tier means, for that export and without touching the document (`grooph export --models`, or `GROOPH_MODELS` for a whole machine): a project that does not use the model a profile gives a tier names its own. Effort is `low` · `medium` · `high` · `max`; a profile may map these onto a finer scale.
 
 ## 5. Package contract
 

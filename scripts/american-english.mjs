@@ -11,7 +11,7 @@
  * scripts that generate public pages, the fixtures and the issue templates. Whole files are read, comments and names
  * included, so a British word cannot reach a message by way of a variable.
  *
- * What is not: the internal record. Handoffs and handbacks, decisions, the plan and the progress page, the review
+ * What is not: the internal record. Handoffs and handbacks, decisions, the plan, the progress page and its history, the review
  * of October 2026, and everything under experiments/ (evidence is never edited by hand, decision 0009). The spec is
  * frozen and changes only by amendment. New internal writing is American too, but nothing checks the old.
  *
@@ -51,6 +51,7 @@ const PUBLIC = [
 const INTERNAL = [
   "docs/decisions/",
   "docs/PROGRESS.md",
+  "docs/HISTORY.md",
   "docs/PLAN.md",
   "docs/review-2026-10.md",
   "docs/review-2026-10/",
