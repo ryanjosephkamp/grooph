@@ -125,9 +125,17 @@ async function visitorOf(older: Release, page: Page): Promise<Site> {
   return site;
 }
 
-/** The hashed files a release's page names, and those of them the cache holds. */
+/**
+ * The hashed files a release's page names, and those of them the cache holds.
+ *
+ * `stillKept`: the releases the worker still keeps, for asking what is left of an older one. A file whose name
+ * carries a version of its own and not the build's hash (a font, the footer's icons: handoff 0077) has the same
+ * name in every release. The kept releases name it too, so it is theirs and is rightly held: it is not something
+ * left behind by the older release.
+ */
 const hashedOf = (release: Release): string[] => release.named.filter((path) => path.includes("/assets/")).sort();
-const heldOf = async (page: Page, release: Release): Promise<string[]> => (await held(page)).paths.filter((path) => release.assets.includes(path));
+const heldOf = async (page: Page, release: Release, stillKept: Release[] = []): Promise<string[]> =>
+  (await held(page)).paths.filter((path) => release.assets.includes(path) && !stillKept.some((kept) => kept.named.includes(path)));
 
 /**
  * The worker the visitor already has, which is the one that answers the first visit after a deploy. Every visitor
@@ -380,7 +388,7 @@ test.describe("what the worker's cache holds", () => {
 
       expect(await heldOf(page, third), "the newest release: every hashed file its page names").toEqual(hashedOf(third));
       expect(await heldOf(page, second), "the release before it: kept whole, for a page of it that may still be about").toEqual(hashedOf(second));
-      expect(await heldOf(page, first), "a release two back, which no page that can still be open names").toEqual([]);
+      expect(await heldOf(page, first, [second, third]), "a release two back, which no page that can still be open names").toEqual([]);
     } finally {
       await site.stop();
     }
@@ -421,7 +429,7 @@ test.describe("what the worker's cache holds", () => {
       await page.goto(site.url);
       await settled(page, third);
       await expectWhole(page, third);
-      await expect.poll(() => heldOf(page, first), { message: "the first release's files, once no window can be on it" }).toEqual([]);
+      await expect.poll(() => heldOf(page, first, [second, third]), { message: "the first release's files, once no window can be on it" }).toEqual([]);
       expect(await heldOf(page, second), "the release before the newest stays").toEqual(hashedOf(second));
     } finally {
       await site.stop();
@@ -548,7 +556,7 @@ test.describe("what the worker's cache holds", () => {
 
       // The next release is the first visit this worker answers. It keeps that page and the one before it.
       await visit(after);
-      await expect.poll(async () => (await Promise.all(kept.map((release) => heldOf(page, release)))).flat(), { message: "the three versions 0.3.0's worker had kept" }).toEqual([]);
+      await expect.poll(async () => (await Promise.all(kept.map((release) => heldOf(page, release, [arriving, after])))).flat(), { message: "the three versions 0.3.0's worker had kept" }).toEqual([]);
       expect(await heldOf(page, arriving)).toEqual(hashedOf(arriving));
       expect(await heldOf(page, after)).toEqual(hashedOf(after));
     } finally {

@@ -45,8 +45,22 @@
   --radius: 10px;
   --shadow: 0 1px 2px oklch(0.2 0.01 165 / 0.07), 0 4px 14px oklch(0.2 0.01 165 / 0.07);
   --shadow-up: 0 -6px 24px oklch(0.2 0.01 165 / 0.1);
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
+  --font: "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
+
+  /* The site's night surfaces (handoff 0077, after Link Meteor): the header, the hero and the footer, the same in
+     light and in dark. --bright is the accent as it reads on them; --accent stays the accent on paper. Written as
+     plain sRGB: the build writes an oklch() value twice, and these are sent to every screen. */
+  --night: #061a14;
+  --night-2: #0d261f;
+  --night-line: #2d423b;
+  --night-ink: #edf4f0;
+  --night-muted: #acbcb4;
+  --bright: #64eab7;
+  --mark: #64eab780;
+  --shadow-card: 0 1px 2px #061a140f, 0 18px 40px -16px #061a1447;
+  --shadow-night: 0 24px 60px -20px #000100cc;
+  --gutter: clamp(16px, 4vw, 40px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -86,7 +100,78 @@
 
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
     --shadow-up: 0 -6px 24px rgb(0 0 0 / 0.4);
+    --mark: #64eab74d;
+    --shadow-card: 0 1px 2px #0000004d, 0 18px 40px -16px #000000b3;
   }
+}
+
+/* A second look, chosen in the header's theme menu and kept in this browser: Link Meteor's night, cool paper and lime
+   (its oklch values, as sRGB). The pictures keep their own colors in both. */
+:root[data-theme="meteor"] {
+  --bg: #f2f4f9;
+  --surface: #fdfeff;
+  --surface-2: #e9ecf3;
+  --ink: #161d2b;
+  --ink-2: #3b4253;
+  --ink-3: #5d6371;
+  --line: #dbdee5;
+  --line-strong: #b9bec7;
+  --dots: #c3c7d1;
+  --accent: #2e6813;
+  --accent-soft: #dfefc4;
+  --focus: #357518;
+  --edge: #6c727e;
+  --night: #0e1526;
+  --night-2: #172034;
+  --night-line: #343d50;
+  --night-ink: #eff2f7;
+  --night-muted: #b1b7c5;
+  --bright: #c3f344;
+  --mark: #c3f3448c;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="meteor"] {
+    --bg: #0c0f17;
+    --surface: #141924;
+    --surface-2: #1c222d;
+    --ink: #eef0f5;
+    --ink-2: #c0c4cc;
+    --ink-3: #989fab;
+    --line: #2b303c;
+    --line-strong: #464d5b;
+    --dots: #2b303c;
+    --accent: #bfeb56;
+    --accent-ink: #0e1526;
+    --accent-soft: #243014;
+    --focus: #c3f344;
+    --edge: #8c929f;
+    --mark: #c3f34452;
+  }
+}
+
+/* The fonts are files of the site (handoff 0077): Atkinson Hyperlegible Next and Mono, SIL Open Font License, cut to
+   the weights and characters the pages use (scripts/site/subset-fonts.py). Text shows at once in the system font and
+   changes when the file arrives. */
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/assets/fonts/atkinson-hyperlegible-next.v1.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("/assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Mono";
+  src: url("/assets/fonts/atkinson-hyperlegible-mono.v1.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 *,
@@ -403,73 +488,163 @@ a {
   }
 }
 
-/* ─── front page (handoff 0055) ───────────────────────────────────────── */
+/* ─── front page (handoff 0055; in the owner's style, handoff 0077) ───── */
 
+/* Bands the width of the window, each with a column inside (.site-wrap, ui/landing/chrome.css): a night hero, paper
+   sections, a night footer. The type, the scale and the spacing are Link Meteor's; the words and the pictures are
+   grooph's. */
 .land {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: calc(8px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
-.land-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  min-height: 56px;
+.land h1,
+.land h2,
+.land h3 {
+  text-wrap: balance;
 }
-.land-bar .wordmark {
-  font-size: 24px;
+.land p,
+.land li {
+  text-wrap: pretty;
 }
-.land-nav {
-  display: flex;
-  gap: 2px;
-  margin-right: -10px;
+.land .btn {
+  min-height: 48px;
+  padding: 0 20px;
+  border-width: 1.5px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
 }
-.land-nav a {
+.land .btn-small {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+.land mark {
+  padding: 0 0.08em;
+  background: linear-gradient(transparent 58%, var(--mark) 58%, var(--mark) 92%, transparent 92%);
+  color: inherit;
+}
+
+.land-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(36px, 6vw, 80px) 0 clamp(48px, 7vw, 96px);
+  background: var(--night);
+  color: var(--night-ink);
+}
+.land-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40% -10% auto auto;
+  width: 70vw;
+  height: 70vw;
+  max-width: 900px;
+  max-height: 900px;
+  background: radial-gradient(closest-side, color-mix(in oklch, var(--bright) 12%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.land-hero .site-wrap {
+  position: relative;
+  display: grid;
+  gap: clamp(28px, 4vw, 44px);
+}
+.land-hero .muted {
+  color: var(--night-muted);
+}
+.land-hero a,
+.land-hero .link-button {
+  color: var(--night-ink);
+}
+.land-hero :focus-visible {
+  outline-color: var(--bright);
+}
+/* The night is dark in both schemes, so a button on it answers a pointer by getting brighter (the rule at the foot of this file). */
+.land-hero .btn {
+  --hover: 1.08;
+  border-color: var(--night-line);
+  background: oklch(1 0 0 / 0.02);
+  color: var(--night-ink);
+}
+.land-hero .btn-primary {
+  border-color: transparent;
+  background: var(--bright);
+  color: var(--night);
+}
+.land-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0 10px;
-  border-radius: var(--radius);
-  color: var(--ink-2);
-  font-size: 14.5px;
-  font-weight: 560;
-  text-decoration: none;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 6px 12px 6px 10px;
+  border: 1px solid var(--night-line);
+  border-radius: 999px;
+  color: var(--night-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
 }
-.land-hero {
-  display: grid;
-  gap: 24px;
-  margin: 16px 0 40px;
+.land-chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bright);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--bright) 18%, transparent);
 }
 .land-headline {
   margin: 0;
-  font-size: clamp(36px, 9vw, 60px);
-  font-weight: 760;
-  line-height: 1.04;
+  font-size: clamp(2.5rem, 1.5rem + 4.2vw, 4.25rem);
+  font-weight: 800;
+  line-height: 0.98;
   letter-spacing: -0.035em;
-  text-wrap: balance;
+}
+.land-headline span {
+  display: block;
+  color: var(--bright);
 }
 .land-lede {
   max-width: 34em;
-  margin: 14px 0 22px;
-  font-size: 17px;
-  line-height: 1.5;
-  color: var(--ink-2);
-  text-wrap: pretty;
+  margin: 0;
+  color: var(--night-muted);
+  font-size: clamp(1.08rem, 1rem + 0.35vw, 1.28rem);
+  line-height: 1.55;
 }
 .land-cta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 28px;
+}
+.land-promise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--night-muted);
+  font-size: 0.95rem;
+}
+.land-promise li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.land-promise svg {
+  width: 16px;
+  height: 16px;
+  color: var(--bright);
 }
 .land-figure {
+  min-width: 0;
   margin: 0;
 }
 .land-picture {
   overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  border-radius: 16px;
+  box-shadow: var(--shadow-night);
 }
 .land-picture svg {
   display: block;
@@ -477,65 +652,82 @@ a {
   height: auto;
 }
 .land-figure figcaption {
-  margin-top: 8px;
-  font-size: 13px;
+  margin-top: 12px;
+  font-size: 0.9rem;
+}
+
+.land-section {
+  padding: clamp(56px, 8vw, 112px) 0;
+}
+.land-section + .land-section {
+  border-top: 1px solid var(--line);
+}
+.land-alt {
+  background: var(--surface-2);
+}
+.land-h2 {
+  max-width: 760px;
+  margin: 0 0 clamp(28px, 4vw, 48px);
+  font-size: clamp(1.9rem, 1.35rem + 2vw, 3rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+.land h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 .land-claims {
   display: grid;
-  gap: 18px;
-  margin: 0 0 44px;
+  gap: clamp(24px, 4vw, 48px);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 .land-claims li {
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 2px solid var(--accent);
-  font-size: 15px;
-  line-height: 1.5;
   color: var(--ink-2);
 }
 .land-claims strong {
   display: block;
-  margin-bottom: 4px;
-  font-size: 17px;
+  margin-bottom: 6px;
   color: var(--ink);
-}
-.land-h2 {
-  margin: 0 0 14px;
-  font-size: 22px;
-  font-weight: 720;
-  letter-spacing: -0.02em;
-}
-.land-start {
-  margin-bottom: 44px;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
 }
 .land-ways {
   display: grid;
-  gap: 12px;
+  gap: 16px;
+}
+.land-way,
+.land-more-list li,
+.land-poster {
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 .land-way {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  padding: clamp(20px, 3vw, 32px);
 }
-.land-way h3 {
-  margin: 0;
-  font-size: 17px;
-}
-.land-way p {
+.land-way p,
+.land-more-list p,
+.land-poster p {
   margin: 0;
   color: var(--ink-2);
 }
 .land-way-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   margin-top: auto;
 }
 .copy-line {
@@ -559,8 +751,16 @@ a {
 .copy-line-said {
   font-size: 13px;
 }
+.land-way .copy-line-text {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--night);
+  color: var(--night-ink);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
 .land-device {
-  margin-top: 16px;
+  margin-top: 24px;
 }
 .land-empty {
   padding: 4px 0 12px;
@@ -569,13 +769,10 @@ a {
 .land-device .library-actions {
   margin-bottom: 12px;
 }
-.land-strip {
-  margin-bottom: 44px;
-}
 .land-strip-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -587,11 +784,11 @@ a {
   height: 100%;
   padding: 10px 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--surface);
   color: var(--ink);
-  font-size: 14.5px;
-  font-weight: 620;
+  font-size: 0.95rem;
+  font-weight: 650;
   line-height: 1.25;
   text-decoration: none;
 }
@@ -601,25 +798,53 @@ a {
   border-radius: 8px;
   background: var(--bg);
 }
-.land-honest p {
-  max-width: 68ch;
+.land-poster h3 {
+  margin-bottom: 8px;
+}
+/* The poster of all twenty shapes, as a picture that opens it. */
+.land-poster {
+  display: grid;
+  gap: 20px;
+  align-items: center;
+  margin-top: clamp(28px, 4vw, 48px);
+  padding: clamp(16px, 3vw, 28px);
+}
+.land-poster > a {
+  display: block;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.land-poster img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  object-position: top;
+}
+.land-more-list {
+  display: grid;
+  gap: 16px;
   margin: 0;
-  padding-left: 14px;
-  border-left: 3px solid var(--line-strong);
+  padding: 0;
+  list-style: none;
+}
+.land-more-list li {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: clamp(20px, 3vw, 28px);
+}
+.land-honest p {
+  max-width: 62ch;
+  margin: 0;
   color: var(--ink-2);
+  font-size: 1.25rem;
+  line-height: 1.5;
 }
-.land-foot {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 8px 16px;
-  margin-top: 44px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
-  font-size: 13px;
-}
+.land .btn,
 .land-tile,
-.land-nav a,
 .template-row {
   transition:
     border-color 160ms ease-out,
@@ -627,9 +852,13 @@ a {
     transform 160ms ease-out;
 }
 @media (hover: hover) {
-  .land-nav a:hover {
-    background: var(--surface-2);
-    color: var(--ink);
+  .land-hero .btn:hover {
+    border-color: var(--night-muted);
+    background: oklch(1 0 0 / 0.07);
+  }
+  .land-hero .btn-primary:hover {
+    border-color: transparent;
+    background: var(--bright);
   }
   .land-tile:hover,
   .template-row:hover {
@@ -643,47 +872,48 @@ a {
   }
 }
 @media (min-width: 760px) {
-  .land-claims {
+  .land-claims,
+  .land-more-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 28px;
   }
   .land-ways {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 16px;
   }
-  .land-way {
-    padding: 20px;
+  .land-poster {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(24px, 4vw, 48px);
   }
   .land-device .library-actions .btn {
     flex: 0 0 auto;
   }
 }
-@media (min-width: 900px) {
-  .land {
-    padding-left: 32px;
-    padding-right: 32px;
-  }
-  .land-hero {
+@media (min-width: 980px) {
+  .land-hero .site-wrap {
     grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
-    align-items: center;
-    gap: 64px;
-    margin: 24px 0 64px;
+    grid-template-areas:
+      "title figure"
+      "copy figure";
+    grid-template-rows: auto 1fr;
+    column-gap: clamp(40px, 6vw, 88px);
+    align-items: start;
   }
-  .land-lede {
-    font-size: 18px;
+  .land-hero-title {
+    grid-area: title;
+    padding-top: 24px;
   }
-  .land-claims,
-  .land-start,
-  .land-strip {
-    margin-bottom: 64px;
+  .land-hero-text {
+    grid-area: copy;
+  }
+  .land-figure {
+    grid-area: figure;
   }
   .land-strip-list {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .land .btn,
   .land-tile,
-  .land-nav a,
   .template-row {
     transition: none;
   }

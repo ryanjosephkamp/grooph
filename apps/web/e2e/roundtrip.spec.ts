@@ -53,5 +53,7 @@ test("the app is served under the Pages base path", async ({ page }) => {
   expect(response?.status()).toBe(200);
   const script = await page.locator('script[type="module"]').first().getAttribute("src");
   expect(script).toMatch(/^\/grooph\/assets\//);
-  await expect(page.getByRole("heading", { name: "grooph" })).toBeVisible();
+  // The front page: its heading is its headline, and the name is the mark's link (handoff 0077).
+  await expect(page.getByRole("heading", { name: "Loop graphs for coding agents." })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "grooph", exact: true })).toBeVisible();
 });
