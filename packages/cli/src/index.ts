@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
-import { KNOWN_TARGETS, TemplateError, type CompileTarget } from "@grooph/core";
+import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, readTheme, type CompileTarget } from "@grooph/core";
 
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
@@ -233,11 +233,16 @@ export async function run(
       }
 
       case "page": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, events: { type: "string", multiple: true } } });
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, events: { type: "string", multiple: true } } });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "page needs a file: grooph page <graph | operation map> --out <file.html>");
         if (values["out"] === undefined) return usageError(io, "page needs --out <file.html>, the one file to write");
-        return pageCommand(io, file, { out: values["out"], version: VERSION, ...(values["events"] ? { events: values["events"].map(parseSource) } : {}) });
+        return pageCommand(io, file, {
+          out: values["out"],
+          version: VERSION,
+          ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}),
+          ...(values["events"] ? { events: values["events"].map(parseSource) } : {}),
+        });
       }
 
       case "embed": {
@@ -248,11 +253,14 @@ export async function run(
         });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "embed needs a file: grooph embed <graph | map | run> (grooph embed --help)");
-        if (values["theme"] !== undefined && values["theme"] !== "light" && values["theme"] !== "dark") {
-          return usageError(io, `--theme is light or dark; got "${values["theme"]}"`);
+        // What the frame's address says: a theme's name unless it is Paper, the default, and light or dark when asked.
+        const asked = values["theme"] === undefined ? undefined : readTheme(values["theme"]);
+        if (values["theme"] !== undefined && (!asked || asked.form === "auto")) {
+          return usageError(io, `--theme is one of ${PICTURE_THEMES.join(", ")}; or light or dark; or both, as chalk-dark. Got "${values["theme"]}"`);
         }
+        const theme = asked ? [asked.name === "paper" ? "" : asked.name, asked.form ?? ""].filter(Boolean).join("-") : "";
         return embedCommand(io, file, {
-          ...(values["theme"] !== undefined ? { theme: values["theme"] as "light" | "dark" } : {}),
+          ...(theme ? { theme } : {}),
           ...(values["height"] !== undefined ? { height: Number(values["height"]) } : {}),
           ...(values["base"] !== undefined ? { base: values["base"] } : {}),
           frame: values["frame"] === true,

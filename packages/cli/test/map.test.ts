@@ -139,7 +139,7 @@ test("image prints the picture core draws, byte for byte, or writes it; themes a
 
   io = capture();
   assert.equal(await grooph(["image", sample, "--theme", "sepia"], io), 1);
-  assert.match(text(io.stderr), /--theme is light, dark or auto/);
+  assert.match(text(io.stderr), /--theme is one of paper, blueprint, ink, phosphor, transit, chalk; or light, dark or auto; or both, as chalk-dark\. Got "sepia"/);
   io = capture();
   assert.equal(await grooph(["image", "--help"], io), 0);
   assert.match(text(io.stdout), /^grooph image <graph \| operation map>/);

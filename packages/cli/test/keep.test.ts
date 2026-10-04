@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { canonicalize, offlinePage, outline, outlineMarkdown, parseGraphText, picture } from "@grooph/core";
+import { PICTURE_THEMES, canonicalize, mapPicture, mapSequence, mapWide, offlinePage, outline, outlineMarkdown, parseGraphText, parseMapText, picture, pictureLook } from "@grooph/core";
 
 import { VERSION, run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -88,10 +88,83 @@ test("image writes a PNG three pixels to the unit, light unless told dark, and -
 
     io = capture();
     assert.equal(await grooph(["image", reviewLoop, "--theme", "auto", "--out", join(dir, "x.png")], io), 1);
-    assert.match(text(io.stderr), /a PNG is one theme/);
+    assert.match(text(io.stderr), /a PNG is light or dark, not both/);
     io = capture();
     assert.equal(await grooph(["image", reviewLoop, "--out", join(dir, "x.png"), "--scale", "0"], io), 1);
   });
+});
+
+test("image, page and embed take --theme: six names, with light or dark after one; no --theme is the picture as it was", async () => {
+  const map = parseMapText(readFileSync(sampleMap, "utf8")).map!;
+  assert.deepEqual([...PICTURE_THEMES], ["paper", "blueprint", "ink", "phosphor", "transit", "chalk"]);
+  for (const name of PICTURE_THEMES) {
+    const look = pictureLook(name);
+    const drawn = look ? { look } : {};
+    // A name alone follows the viewer, as no --theme does; a name and light or dark writes the colors in.
+    let io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", name], io), 0, text(io.stderr));
+    assert.equal(`${text(io.stdout)}\n`, picture(doc, { theme: "auto", ...drawn }), name);
+    io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", `${name}-dark`], io), 0, text(io.stderr));
+    assert.equal(`${text(io.stdout)}\n`, picture(doc, { theme: "dark", ...drawn }), `${name}-dark`);
+    // A map, and its other two views.
+    io = capture();
+    assert.equal(await grooph(["image", sampleMap, "--theme", `${name}-light`], io), 0, text(io.stderr));
+    assert.equal(`${text(io.stdout)}\n`, mapPicture(map, { theme: "light", ...drawn }), `${name}-light, a map`);
+    io = capture();
+    assert.equal(await grooph(["image", sampleMap, "--theme", name, "--layout", "wide"], io), 0, text(io.stderr));
+    assert.equal(`${text(io.stdout)}\n`, mapWide(map, { theme: "auto", ...drawn }), `${name}, lanes side by side`);
+    io = capture();
+    assert.equal(await grooph(["image", sampleMap, "--theme", name, "--view", "sequence"], io), 0, text(io.stderr));
+    assert.equal(`${text(io.stdout)}\n`, mapSequence(map, { theme: "auto", ...drawn }), `${name}, the sequence`);
+  }
+  // Paper by name is no theme at all: the same bytes as before there were any.
+  let io = capture();
+  assert.equal(await grooph(["image", reviewLoop, "--theme", "paper"], io), 0);
+  const paper = text(io.stdout);
+  io = capture();
+  assert.equal(await grooph(["image", reviewLoop], io), 0);
+  assert.equal(text(io.stdout), paper);
+  assert.ok(!paper.includes("data-look"));
+
+  await withScratch(async (dir) => {
+    // A PNG in a theme is light unless told dark, and the size it always was.
+    const height = Number(/viewBox="0 0 400 ([\d.]+)"/.exec(picture(doc, { theme: "light" }))![1]);
+    const light = join(dir, "bp.png");
+    let io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", "blueprint", "--out", light], io), 0, text(io.stderr));
+    assert.deepEqual(pngSize(readFileSync(light)), { width: 1200, height: Math.round(height * 3) });
+    const dark = join(dir, "bp-dark.png");
+    io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", "blueprint-dark", "--out", dark], io), 0, text(io.stderr));
+    assert.notDeepEqual(readFileSync(dark), readFileSync(light));
+    io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", "blueprint-auto", "--out", join(dir, "x.png")], io), 1);
+    assert.match(text(io.stderr), /a PNG is light or dark, not both/);
+
+    // The offline page: its picture in the theme, everything else the page it was.
+    const page = join(dir, "rl.html");
+    io = capture();
+    assert.equal(await grooph(["page", reviewLoop, "--out", page, "--theme", "ink"], io), 0, text(io.stderr));
+    assert.equal(readFileSync(page, "utf8"), offlinePage(doc, { version: VERSION, look: pictureLook("ink")! }));
+    io = capture();
+    assert.equal(await grooph(["page", reviewLoop, "--out", page], io), 0);
+    assert.equal(readFileSync(page, "utf8"), offlinePage(doc, { version: VERSION }));
+    io = capture();
+    assert.equal(await grooph(["page", reviewLoop, "--out", page, "--theme", "ink-dark"], io), 1);
+    assert.match(text(io.stderr), /a page follows the device's light or dark and has its own button for it/);
+    io = capture();
+    assert.equal(await grooph(["page", reviewLoop, "--out", page, "--theme", "sepia"], io), 1);
+    assert.match(text(io.stderr), /--theme is one of paper, blueprint/);
+  });
+
+  // A name that is none of the six is refused by name, and nothing is drawn.
+  for (const wrong of ["sepia", "Blueprint", "chalk-", "dark-chalk", "chalk-night", "constructor"]) {
+    io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", wrong], io), 1, wrong);
+    assert.match(text(io.stderr), /--theme is one of paper, blueprint, ink, phosphor, transit, chalk; or light, dark or auto; or both, as chalk-dark\./);
+    assert.equal(text(io.stdout), "");
+  }
 });
 
 test("outline prints the Markdown core writes, for a graph and for a map, or writes it", async () => {

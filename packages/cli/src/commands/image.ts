@@ -14,8 +14,12 @@ import {
   parseGraphText,
   parseMapText,
   picture,
+  pictureLook,
+  readTheme,
+  PICTURE_THEMES,
   type Graph,
   type OperationMap,
+  type PictureLook,
   type PictureTheme,
 } from "@grooph/core";
 
@@ -23,7 +27,7 @@ import { readLive, sourceExists, type EventSource } from "../events-io.js";
 import { readText, writeBytes, writeText } from "../io.js";
 import type { Output } from "../print.js";
 
-export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
+export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme <name>] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -49,12 +53,19 @@ An operation map has two more views, for a screen with room or a map with many h
                          what carries it and what is handed. An order, not a clock: a map records
                          no times. --view picture is the default.
 
-  --theme light | dark   colors written into the file: it looks the same anywhere
-  --theme auto           (SVG only, the SVG default) both palettes; follows the viewer
+  --theme <name>         one of six looks for the same picture: ${PICTURE_THEMES.join(", ")}
+                         (docs/themes.md). Without it, paper: the picture as it has always been.
+                         A theme changes colors, line weights, lettering and the ground, never
+                         the words or where anything is.
+  --theme light | dark   light or dark only, the colors written into the file: it looks the
+                         same anywhere. With a name: --theme chalk-dark
+  --theme auto           (SVG only, the SVG default) light and dark both; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
   --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide for the phone's
-                         picture); --scale changes that. A PNG is one theme: light unless
-                         --theme dark.
+                         picture); --scale changes that. A PNG is light unless told dark.
+                         Its renderer knows a theme's colors, line weights, lettering, ground
+                         and Chalk's wobble, and not the rules for corners, capitals and
+                         Transit's route color: for those, the SVG, or Keep a copy in the app.
 
   --events <id>=<src>    for an operation map: draw what the event hook has seen on the
                          session with that id (working, waiting or ended; subagents running
@@ -71,7 +82,7 @@ The whole document to read from top to bottom, as Markdown: a graph's every node
 its full brief, each edge as a sentence, each loop with its bar and stops; a map's lanes,
 sessions and handoffs. One way only: edit the document, never the outline.`;
 
-export const PAGE_HELP = `grooph page <graph | operation map> --out <file.html> [--events <id>=<source>]...
+export const PAGE_HELP = `grooph page <graph | operation map> --out <file.html> [--theme <name>] [--events <id>=<source>]...
 
 One HTML file that holds the document and a viewer for it: the picture, the outline, the
 validator's list and the document itself. It asks the network for nothing (its content
@@ -82,6 +93,10 @@ document writes the .grooph.json (or .grooph-map.json) back out for the app to i
 For an operation map, --events <session id>=<source> (as often as wanted) marks each
 session with what the event hook has seen of it, as grooph image does: a snapshot, taken
 when the page is made.
+
+--theme <name> draws the page's picture in one of six looks (${PICTURE_THEMES.join(", ")};
+docs/themes.md). The page follows the device's light or dark and has its own button for
+it, so neither is named here. Without --theme the picture is paper, as always.
 
 A document with rule errors still makes a page, with the errors listed. One that does
 not match its schema cannot be drawn.`;
@@ -140,7 +155,16 @@ function liveFor(io: Output, loaded: Loaded, events: EventSource[] | undefined):
   return { live: mapLive(view.sessions, loaded.doc, view.at), at: view.at };
 }
 
-const THEMES = ["light", "dark", "auto"] as const;
+/** What `--theme` asked for: light, dark or both, and the look when it is not Paper. Undefined, with the reason printed, when it names neither. */
+function themeFor(io: Output, value: string | undefined, fallback: PictureTheme): { form: PictureTheme; look?: PictureLook; said: string } | undefined {
+  const read = value === undefined ? { name: "paper" as const } : readTheme(value);
+  if (!read) {
+    io.err(`grooph: --theme is one of ${PICTURE_THEMES.join(", ")}; or light, dark or auto; or both, as chalk-dark. Got "${value}"`);
+    return undefined;
+  }
+  const look = pictureLook(read.name);
+  return { form: read.form ?? fallback, ...(look ? { look } : {}), said: value ?? fallback };
+}
 
 /**
  * Which view of a map was asked for, or undefined with the reason printed. A graph has one picture; the
@@ -167,15 +191,14 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
     io.err(`grooph: --out ${flags.out}: image writes an SVG or a PNG; name it <something>.svg or <something>.png`);
     return 1;
   }
-  const theme = flags.theme ?? (ext === ".png" ? "light" : "auto");
-  if (!(THEMES as readonly string[]).includes(theme)) {
-    io.err(`grooph: --theme is light, dark or auto, got "${theme}"`);
-    return 1;
-  }
+  const asked = themeFor(io, flags.theme, ext === ".png" ? "light" : "auto");
+  if (!asked) return 1;
+  const theme = asked.form;
   if (ext === ".png" && theme === "auto") {
-    io.err("grooph: a PNG is one theme; use --theme light or --theme dark (auto is for SVG, which can follow the viewer)");
+    io.err("grooph: a PNG is light or dark, not both: use --theme light or --theme dark, or after a name, as chalk-dark (auto is for SVG, which can follow the viewer)");
     return 1;
   }
+  const drawn = { theme, ...(asked.look ? { look: asked.look } : {}) };
   const loaded = load(io, file);
   if (!loaded) return 1;
   const view = viewFor(io, loaded, flags);
@@ -184,10 +207,10 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
   if (now === "refused") return 1;
   const svg =
     loaded.kind !== "map"
-      ? picture(loaded.doc, { theme: theme as PictureTheme })
+      ? picture(loaded.doc, drawn)
       : view.sequence
-        ? mapSequence(loaded.doc, { theme: theme as PictureTheme })
-        : (view.wide ? mapWide : mapPicture)(loaded.doc, { theme: theme as PictureTheme, ...(now ? now : {}) });
+        ? mapSequence(loaded.doc, drawn)
+        : (view.wide ? mapWide : mapPicture)(loaded.doc, { ...drawn, ...(now ? now : {}) });
 
   if (flags.out === undefined) {
     io.out(svg.replace(/\n$/, ""));
@@ -200,10 +223,10 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
   }
   let png: Uint8Array;
   try {
-    png = await renderPng(svg, flags.scale ?? 3);
+    png = await renderPng(svg, flags.scale ?? 3, asked.look !== undefined);
   } catch (err) {
     io.err(`grooph: could not make a PNG: ${(err as Error).message}`);
-    io.err(`The SVG is the same drawing: grooph image ${file} --theme ${theme}${view.wide ? " --layout wide" : ""}${view.sequence ? " --view sequence" : ""} --out ${flags.out.replace(/\.png$/i, ".svg")}`);
+    io.err(`The SVG is the same drawing: grooph image ${file} --theme ${asked.said}${view.wide ? " --layout wide" : ""}${view.sequence ? " --view sequence" : ""} --out ${flags.out.replace(/\.png$/i, ".svg")}`);
     return 1;
   }
   writeBytes(flags.out, png);
@@ -216,7 +239,7 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
  * platform): when it is not installed the SVG is still there, and the error
  * says so. Text is drawn with the machine's own fonts.
  */
-async function renderPng(svg: string, scale: number): Promise<Uint8Array> {
+async function renderPng(svg: string, scale: number, themed = false): Promise<Uint8Array> {
   type ResvgModule = { Resvg: new (svg: string, options: unknown) => { render(): { asPng(): Uint8Array } } };
   let mod: ResvgModule;
   try {
@@ -226,7 +249,15 @@ async function renderPng(svg: string, scale: number): Promise<Uint8Array> {
     throw new Error("the PNG renderer (@resvg/resvg-js, an optional dependency) is not installed here; run pnpm install in the grooph clone");
   }
   const sans = process.platform === "darwin" ? "Helvetica Neue" : process.platform === "win32" ? "Segoe UI" : "DejaVu Sans";
-  const resvg = new mod.Resvg(svg, { fitTo: { mode: "zoom", value: scale }, font: { loadSystemFonts: true, defaultFontFamily: sans, sansSerifFamily: sans } });
+  // A theme may ask for a serif or a fixed-width face by its kind. Paper never does, and is drawn as it was.
+  const kinds = !themed
+    ? {}
+    : process.platform === "darwin"
+      ? { serifFamily: "Georgia", monospaceFamily: "Menlo" }
+      : process.platform === "win32"
+        ? { serifFamily: "Georgia", monospaceFamily: "Consolas" }
+        : { serifFamily: "DejaVu Serif", monospaceFamily: "DejaVu Sans Mono" };
+  const resvg = new mod.Resvg(svg, { fitTo: { mode: "zoom", value: scale }, font: { loadSystemFonts: true, defaultFontFamily: sans, sansSerifFamily: sans, ...kinds } });
   return resvg.render().asPng();
 }
 
@@ -244,17 +275,23 @@ export function outlineCommand(io: Output, file: string, flags: { out?: string }
   return 0;
 }
 
-/** `grooph page <file> --out <file.html>`. */
-export function pageCommand(io: Output, file: string, flags: { out: string; version: string; link?: string; events?: EventSource[] }): number {
+/** `grooph page <file> --out <file.html> [--theme <name>]`. */
+export function pageCommand(io: Output, file: string, flags: { out: string; version: string; link?: string; events?: EventSource[]; theme?: string }): number {
   if (!/\.html?$/i.test(flags.out)) {
     io.err(`grooph: --out ${flags.out}: page writes an HTML file; name it <something>.html`);
+    return 1;
+  }
+  const asked = themeFor(io, flags.theme, "auto");
+  if (!asked) return 1;
+  if (asked.form !== "auto") {
+    io.err(`grooph: --theme ${flags.theme}: a page follows the device's light or dark and has its own button for it, so it takes a theme's name alone (${PICTURE_THEMES.join(", ")})`);
     return 1;
   }
   const loaded = load(io, file);
   if (!loaded) return 1;
   const now = liveFor(io, loaded, flags.events);
   if (now === "refused") return 1;
-  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}) });
+  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}), ...(asked.look ? { look: asked.look } : {}) });
   writeText(flags.out, html);
   io.out(`wrote ${flags.out} (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB, one file, no network needed)`);
   return 0;
