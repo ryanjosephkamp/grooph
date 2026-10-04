@@ -112,9 +112,8 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
     const was = brakesOf(before, [loop]);
     // The loop under its own id, stop for stop: whatever became of the edges that started its rounds.
     if (kept) {
-      const at = [`loop:${loop.id}.stops`, `loop:${loop.id}.bar`, ...targets];
-      for (const why of looser(was, brakesOf(after, [kept]))) losses.push({ why, at });
-      if (loop.bar && kept.bar?.acceptance !== loop.bar.acceptance) losses.push({ why: kept.bar ? "changes the bar's acceptance" : "removes the loop's bar", at });
+      for (const why of looser(was, brakesOf(after, [kept]))) losses.push({ why, at: [`loop:${loop.id}.stops`, ...targets] });
+      if (loop.bar && kept.bar?.acceptance !== loop.bar.acceptance) losses.push({ why: kept.bar ? "changes the bar's acceptance" : "removes the loop's bar", at: [`loop:${loop.id}.bar`] });
     }
     // And the rounds themselves, by the edge that starts each: whichever loops count them afterwards.
     for (const id of loop.back) {
@@ -124,7 +123,10 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
       const round = edgeNow.has(id) ? [edgeNow.get(id)!] : after.edges.filter((other) => other.from === edge.from && other.to === edge.to);
       for (const next of round) {
         const counting = after.loops.filter((other) => other.back.includes(next.id));
-        const at = [`loop:${loop.id}.stops`, `loop:${loop.id}.back`, `loop:${loop.id}.bar`, `loop:${loop.id}`, ...counting.flatMap((other) => [`loop:${other.id}`, `loop:${other.id}.stops`, `loop:${other.id}.bar`, `loop:${other.id}.back`]), ...targets];
+        // Still this loop's alone: what became of its stops is said above.
+        if (counting.length === 1 && counting[0]!.id === loop.id) continue;
+        // Moved: out of this loop, into the ones that list it now.
+        const at = [`loop:${loop.id}.back`, `loop:${loop.id}`, ...counting.filter((other) => other.id !== loop.id).flatMap((other) => [`loop:${other.id}`, `loop:${other.id}.back`, `loop:${other.id}.stops`, `loop:${other.id}.bar`])];
         if (counting.length === 0) {
           losses.push({ why: `the rounds that "${next.id}" starts would no longer be counted by any loop`, at });
           continue;
@@ -171,8 +173,9 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
       const into = (doc: Graph): Edge[] => doc.edges.filter((edge) => edge.to === node.id);
       const handed = new Set(into(after).flatMap((edge) => edge.evidence ?? []));
       const lost = [...new Set(into(before).flatMap((edge) => edge.evidence ?? []))].filter((piece) => !handed.has(piece));
-      const ends = (edge: Edge): string[] => [`edge:${edge.id}.evidence`, `edge:${edge.id}.to`, `edge:${edge.id}`, `node:${edge.from}`];
-      if (kept && lost.length > 0) losses.push({ why: `the critic would no longer be handed ${quote(lost)}`, at: [...into(before).flatMap(ends), ...into(after).flatMap(ends)] });
+      // Laid at the edges that carried what is lost: each as it changed, or went.
+      const carried = into(before).filter((edge) => (edge.evidence ?? []).some((piece) => lost.includes(piece)));
+      if (kept && lost.length > 0) losses.push({ why: `the critic would no longer be handed ${quote(lost)}`, at: carried.flatMap((edge) => [`edge:${edge.id}.evidence`, `edge:${edge.id}.to`, `edge:${edge.id}`, `node:${edge.from}`]) });
       for (const edge of into(after)) {
         const old = before.edges.find((other) => other.id === edge.id);
         if (edgeIsolation(edge) === "shared" && !(old && old.to === node.id && edgeIsolation(old) === "shared")) {
