@@ -38,7 +38,9 @@ A graph earns its place when the work needs a loop that turns (build, check, fix
    - `share <file>` prints a link. Give it whole, on a line of its own. It opens the graph in the grooph app on any device, where they can read it, save it, edit it and export the package. The graph travels after the `#`, which a browser sends to no server.
    - `image <file> --out <id>.svg` draws it. Show the person the picture.
    - Give them the `.grooph.json` file itself. In the app, **Import** takes the file and **Paste a document** takes its text; that is the way in when a link is too long for a messenger.
-8. **Stop.** Do not export a package unless they ask, and never suggest that something is running. Starting a run is their decision, in their own harness.
+8. **Stop there.** The link, the picture and the file are the whole delivery. Export a package (`export <file> --target claude-code --into <folder>`) only when they ask for one; starting a run is their decision, in their own harness.
+
+Done when the person holds the link, the picture and the file, knows in a sentence what bounds the graph, and nothing has been started.
 
 To offer a choice, make two or three graphs that differ in shape (a lean one, a rigorous one), write a proposal set, and `share` the set: the link opens them side by side. `share --help` prints the set's format.
 

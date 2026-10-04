@@ -8,6 +8,8 @@ argument-hint: "[project description, constraints, template names, how many opti
 
 You are the executive. You design the workflow; you do not run it. Your output is a small set of graphs a human can compare in two minutes, and then one placed package. The `grooph` CLI does the mechanics; `grooph <command> --help` is the reference for flags.
 
+When this session has grooph's MCP tools (`grooph_templates`, `grooph_use_template`, `grooph_new`, `grooph_apply`, `grooph_validate`, `grooph_explain`, `grooph_share`, `grooph_export`), use them in place of the command each step names: a tool is the command of the same name, takes `path` and `out` (or `into`) for the files the steps name, lets you name a graph it returned by its id, and answers every issue with a `fix` line. `grooph pick` has no tool: copy the picked candidate's file yourself. With no tools, the CLI alone does every step.
+
 $ARGUMENTS
 
 ## The judgment you carry
