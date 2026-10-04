@@ -164,7 +164,7 @@ export function Menu({ name, sets, dot, style, toggleStyle }: { name: string; se
 
   let n = 0;
   return (
-    <div className="site-theme" ref={root} style={style}>
+    <div className="site-theme" ref={root} style={open && style ? { ...style, zIndex: OVER } : style}>
       <button
         className="site-theme-toggle"
         type="button"
@@ -224,6 +224,8 @@ export function Menu({ name, sets, dot, style, toggleStyle }: { name: string; se
     </div>
   );
 }
+/** Open on the canvas, the list is over the sheet that may cover the canvas's lower half on a phone (--z-chrome is 40). */
+const OVER = 50;
 // The two sets' own layout, written here: the site's stylesheet is at its budget, and these are two rules.
 const SET: CSSProperties = { display: "grid", gap: 2, margin: 0, padding: 0, listStyle: "none" };
 const SET_NAME: CSSProperties = { margin: "6px 10px 2px", fontSize: "0.78rem", letterSpacing: "0.04em", textTransform: "uppercase", opacity: 0.72, color: "var(--night-ink)" };
