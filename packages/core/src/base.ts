@@ -30,6 +30,7 @@ export { runBundleSchema, runJsonSchema, RUN_SCHEMA_ID } from "./schema/run.js";
 export * from "./map.js";
 export { mapSchema, mapJsonSchema, MAP_SCHEMA_ID } from "./schema/map.js";
 export { mapPicture, handoffNumbers, CARRIER_STYLE } from "./picture/map-picture.js";
+export { mapSequence } from "./picture/map-sequence.js";
 export { picture } from "./picture/graph-picture.js";
 export { PICTURE_WIDTH, type MapPictureOptions, type PictureOptions, type PictureTheme } from "./picture/svg.js";
 export * from "./outline.js";
