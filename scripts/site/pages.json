@@ -14,6 +14,11 @@
           "source": "docs/quickstart.md",
           "slug": "quickstart",
           "summary": "Install grooph, then ask your agent for a graph or build one by hand."
+        },
+        {
+          "source": "docs/claims.md",
+          "slug": "claims",
+          "summary": "Every claim grooph makes about itself, where it is made, the evidence for it, and where its audit by a second harness stands."
         }
       ]
     },

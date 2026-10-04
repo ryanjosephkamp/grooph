@@ -15,4 +15,4 @@ The working copies are outside the repository, in `/Users/noir/Documents/grooph-
 
 | Audit | Subject | Commit | Rounds | Ended |
 |---|---|---|---|---|
-| (none yet) | | | | |
+| [`0001-claims-as-of-0-3-0`](0001-claims-as-of-0-3-0/README.md) | Every claim grooph publishes as of 0.3.0: the README, the front page, the site's pages, the technical report and the blog draft (52 claims) | `dbc7a28` | 1, open | not yet |
