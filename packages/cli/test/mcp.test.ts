@@ -1,6 +1,7 @@
 /**
- * grooph's MCP server (slice 0028): the protocol handshake, the four tools,
- * and the server as a real process on standard input and output.
+ * grooph's MCP server (slice 0028): the protocol handshake, the tools a session's lead
+ * calls, and the server as a real process on standard input and output. The authoring
+ * tools (slice 0078) are in mcp-author.test.ts.
  */
 
 import assert from "node:assert/strict";
@@ -36,41 +37,52 @@ const withProject = async (fn: (ctx: McpContext) => Promise<void> | void): Promi
 };
 
 type Reply = { jsonrpc: string; id: unknown; result?: Record<string, unknown>; error?: { code: number; message: string } };
-const call = (ctx: McpContext, name: string, args: unknown, id = 1): Reply => handle({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } }, ctx) as Reply;
+const call = async (ctx: McpContext, name: string, args: unknown, id = 1): Promise<Reply> => (await handle({ jsonrpc: "2.0", id, method: "tools/call", params: { name, arguments: args } }, ctx)) as Reply;
+const ask = async (ctx: McpContext, message: unknown): Promise<Reply> => (await handle(message, ctx)) as Reply;
 const textOf = (reply: Reply): string => ((reply.result!["content"] as { text: string }[])[0]!.text);
 
 test("the handshake: the protocol version the client asked for, tools as the only capability, and no answer to a notification", async () => {
-  await withProject((ctx) => {
-    const init = handle({ jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } } }, ctx) as Reply;
+  await withProject(async (ctx) => {
+    const init = await ask(ctx, { jsonrpc: "2.0", id: 0, method: "initialize", params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "0" } } });
     assert.equal(init.result!["protocolVersion"], "2025-03-26");
     assert.deepEqual(init.result!["capabilities"], { tools: {} });
     assert.deepEqual(init.result!["serverInfo"], { name: "grooph", version: "9.9.9" });
-    assert.match(String(init.result!["instructions"]), /none of them starts, stops or changes anything/);
-    assert.equal((handle({ jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "1999-01-01" } }, ctx) as Reply).result!["protocolVersion"], MCP_PROTOCOL);
-    assert.equal(handle({ jsonrpc: "2.0", method: "notifications/initialized" }, ctx), undefined);
-    assert.deepEqual((handle({ jsonrpc: "2.0", id: 2, method: "ping" }, ctx) as Reply).result, {});
+    assert.match(String(init.result!["instructions"]), /grooph never runs agents and calls no model/);
+    assert.match(String(init.result!["instructions"]), /None of these tools starts or stops an agent\./);
+    assert.match(String(init.result!["instructions"]), /only inside the project folder/);
+    assert.equal((await ask(ctx, { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "1999-01-01" } })).result!["protocolVersion"], MCP_PROTOCOL);
+    assert.equal(await handle({ jsonrpc: "2.0", method: "notifications/initialized" }, ctx), undefined);
+    assert.deepEqual((await ask(ctx, { jsonrpc: "2.0", id: 2, method: "ping" })).result, {});
 
-    const tools = (handle({ jsonrpc: "2.0", id: 3, method: "tools/list" }, ctx) as Reply).result!["tools"] as { name: string; description: string; inputSchema: { type: string } }[];
-    assert.deepEqual(tools.map((t) => t.name), ["grooph_plan", "grooph_note", "grooph_running", "grooph_validate"]);
+    const tools = (await ask(ctx, { jsonrpc: "2.0", id: 3, method: "tools/list" })).result!["tools"] as { name: string; title: string; description: string; inputSchema: { type: string }; annotations: { readOnlyHint: boolean; title: string } }[];
+    assert.deepEqual(tools.map((t) => t.name), [
+      "grooph_plan", "grooph_note", "grooph_running", "grooph_validate",
+      "grooph_templates", "grooph_use_template", "grooph_new", "grooph_apply", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export",
+    ]);
     assert.deepEqual(toolNames(), tools.map((t) => t.name));
-    for (const t of tools) assert.ok(t.description.length > 60 && t.inputSchema.type === "object", t.name);
+    for (const t of tools) {
+      assert.ok(t.description.length > 60 && t.inputSchema.type === "object", t.name);
+      assert.ok(t.title.length > 0 && t.annotations.title === t.title && typeof t.annotations.readOnlyHint === "boolean", t.name);
+    }
+    // The tools that can never write say so; a client may run them without asking each time.
+    assert.deepEqual(tools.filter((t) => t.annotations.readOnlyHint).map((t) => t.name), ["grooph_running", "grooph_validate", "grooph_templates", "grooph_explain", "grooph_shape", "grooph_share"]);
 
-    assert.equal((handle({ jsonrpc: "2.0", id: 4, method: "resources/read" }, ctx) as Reply).error!.code, -32601);
-    assert.equal((call(ctx, "grooph_launch", {}) as Reply).error!.code, -32602);
-    assert.equal((handle("nonsense", ctx) as Reply).error!.code, -32600);
+    assert.equal((await ask(ctx, { jsonrpc: "2.0", id: 4, method: "resources/read" })).error!.code, -32601);
+    assert.equal((await call(ctx, "grooph_launch", {})).error!.code, -32602);
+    assert.equal((await ask(ctx, "nonsense")).error!.code, -32600);
   });
 });
 
 test("plan and note append to the session's own said- file, never to a hook's, and running reads both back", async () => {
-  await withProject((ctx) => {
+  await withProject(async (ctx) => {
     // Nothing yet.
-    assert.match(textOf(call(ctx, "grooph_running", {})), /Nothing recorded in this project yet.*grooph hooks install/);
+    assert.match(textOf(await call(ctx, "grooph_running", {})), /Nothing recorded in this project yet.*grooph hooks install/);
 
-    const planned = call(ctx, "grooph_plan", { title: "Round one", agents: [{ type: "review-loop--builder", purpose: "implement the task" }, { type: "Explore", count: 2 }, { purpose: "no type" }] });
+    const planned = await call(ctx, "grooph_plan", { title: "Round one", agents: [{ type: "review-loop--builder", purpose: "implement the task" }, { type: "Explore", count: 2 }, { purpose: "no type" }] });
     assert.equal(planned.result!["isError"], undefined);
     assert.match(textOf(planned), /Plan recorded: 3 subagents \(1 × review-loop--builder, 2 × Explore\)/);
-    assert.equal(textOf(call(ctx, "grooph_note", { text: "  Waiting on the review before round two.  " })), "Noted.");
-    assert.equal(textOf(call(ctx, "grooph_note", { text: "y".repeat(900) })), "Noted (cut to 600 characters).");
+    assert.equal(textOf(await call(ctx, "grooph_note", { text: "  Waiting on the review before round two.  " })), "Noted.");
+    assert.equal(textOf(await call(ctx, "grooph_note", { text: "y".repeat(900) })), "Noted (cut to 600 characters).");
 
     const dir = join(ctx.project, ".grooph", "events");
     assert.deepEqual(readdirSync(dir), ["said-sess-1.jsonl"]);
@@ -80,14 +92,14 @@ test("plan and note append to the session's own said- file, never to a hook's, a
 
     // The hook's file for the same session arrives beside it; running shows the plan against it.
     writeFileSync(join(dir, "hook.jsonl"), moved(readFileSync(join(repoRoot, "fixtures", "events", "claude-code-running.jsonl"), "utf8"), Date.UTC(2026, 9, 1, 5, 0, 0)));
-    const running = call(ctx, "grooph_running", {});
+    const running = await call(ctx, "grooph_running", {});
     const view = running.result!["structuredContent"] as LiveView;
     assert.equal(view.groophLive, 0);
     assert.match(textOf(running), /● review-loop--critic/);
 
     // Bad arguments are an error result the model can read, not a protocol error.
     for (const [name, args, said] of [["grooph_plan", { agents: [] }, /needs "agents"/], ["grooph_plan", {}, /needs "agents"/], ["grooph_note", { text: "   " }, /needs "text"/]] as const) {
-      const reply = call(ctx, name, args);
+      const reply = await call(ctx, name, args);
       assert.equal(reply.result!["isError"], true);
       assert.match(textOf(reply), said);
     }
@@ -97,17 +109,17 @@ test("plan and note append to the session's own said- file, never to a hook's, a
 });
 
 test("validate checks a graph or a map by path, relative to the project or absolute", async () => {
-  await withProject((ctx) => {
+  await withProject(async (ctx) => {
     cpSync(join(repoRoot, "fixtures", "valid", "review-loop.grooph.json"), join(ctx.project, "review-loop.grooph.json"));
-    const graph = call(ctx, "grooph_validate", { path: "review-loop.grooph.json" });
+    const graph = await call(ctx, "grooph_validate", { path: "review-loop.grooph.json" });
     assert.match(textOf(graph), /^graph review-loop\n0 errors, 1 warning\nwarning {2}W_HOMOGENEOUS_CRITICS/);
     assert.equal((graph.result!["structuredContent"] as { ok: boolean }).ok, true);
 
-    const map = call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json") });
+    const map = await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json") });
     assert.match(textOf(map), /^operation map two-sessions: 1 lane · 2 sessions · 2 handoffs\n1 error, 0 warnings\nerror {2}E_HANDOFF_NO_CARRIER/);
     assert.equal((map.result!["structuredContent"] as { ok: boolean }).ok, false);
-    assert.match(textOf(call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nno issues\nby hand {2}h-brief-grooph {2}operator → grooph: moves only when Ryan carries it\nby hand/);
-    assert.equal(call(ctx, "grooph_validate", { path: "nope.json" }).result!["isError"], true);
+    assert.match(textOf(await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nno issues\nby hand {2}h-brief-grooph {2}operator → grooph: moves only when Ryan carries it\nby hand/);
+    assert.equal((await call(ctx, "grooph_validate", { path: "nope.json" })).result!["isError"], true);
   });
 });
 

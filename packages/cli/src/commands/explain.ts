@@ -87,6 +87,20 @@ export function explain(doc: Graph): Explained {
   };
 }
 
+/** What `grooph explain` prints, line by line; the MCP server returns the same lines. */
+export function explainLines(e: Explained): string[] {
+  const lines = [`${e.id}`];
+  if (e.loops.length === 0) lines.push("\nLoops: none.");
+  for (const loop of e.loops) {
+    lines.push(`\nLoop "${loop.name}": ${loop.maxRounds === null ? "no round cap" : `at most ${plural(loop.maxRounds, "round")}`}.`);
+    for (const stop of loop.stops) lines.push(`  stops ${stop.says}`);
+  }
+  lines.push(e.gates.length === 0 ? "\nHuman gates: none." : "\nHuman gates:");
+  for (const gate of e.gates) lines.push(`  ${gate.name}: ${gate.guards}`);
+  lines.push(`\nWorst case: ${e.worstCase}.`);
+  return lines;
+}
+
 /** `grooph explain <file> [--json]`: plain words for what bounds a graph. */
 export function explainCommand(io: Output, file: string, flags: { json?: boolean } = {}): number {
   const parsed = parseGraphText(readText(file));
@@ -101,15 +115,7 @@ export function explainCommand(io: Output, file: string, flags: { json?: boolean
     return 0;
   }
 
-  io.out(`${e.id}`);
-  if (e.loops.length === 0) io.out("\nLoops: none.");
-  for (const loop of e.loops) {
-    io.out(`\nLoop "${loop.name}": ${loop.maxRounds === null ? "no round cap" : `at most ${plural(loop.maxRounds, "round")}`}.`);
-    for (const stop of loop.stops) io.out(`  stops ${stop.says}`);
-  }
-  io.out(e.gates.length === 0 ? "\nHuman gates: none." : "\nHuman gates:");
-  for (const gate of e.gates) io.out(`  ${gate.name}: ${gate.guards}`);
-  io.out(`\nWorst case: ${e.worstCase}.`);
+  for (const line of explainLines(e)) io.out(line);
   printNext(io, `grooph validate --for-export ${file}`);
   return 0;
 }

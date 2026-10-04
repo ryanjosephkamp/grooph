@@ -14,7 +14,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   canonicalize,
@@ -28,6 +27,7 @@ import {
 } from "@grooph/core";
 
 import { writeText } from "./io.js";
+import { patternsDir } from "./paths.js";
 
 /** The published pattern library (docs/templates.md §3). */
 export const PUBLISHED_REGISTRY = "https://ryanjosephkamp.github.io/grooph/patterns/index.json";
@@ -51,7 +51,7 @@ export function defaultRegistryEnv(): RegistryEnv {
   return {
     cwd: process.cwd(),
     userDir: join(process.env["GROOPH_HOME"] ?? join(homedir(), ".grooph"), "templates"),
-    builtinDir: fileURLToPath(new URL("../patterns/", import.meta.url)),
+    builtinDir: patternsDir(),
     defaultRegistry: process.env["GROOPH_REGISTRY"] ?? PUBLISHED_REGISTRY,
     fetch: globalThis.fetch,
   };

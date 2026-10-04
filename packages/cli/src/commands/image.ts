@@ -176,7 +176,7 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
  * platform): when it is not installed the SVG is still there, and the error
  * says so. Text is drawn with the machine's own fonts.
  */
-async function renderPng(svg: string, scale: number): Promise<Uint8Array> {
+export async function renderPng(svg: string, scale: number): Promise<Uint8Array> {
   type ResvgModule = { Resvg: new (svg: string, options: unknown) => { render(): { asPng(): Uint8Array } } };
   let mod: ResvgModule;
   try {

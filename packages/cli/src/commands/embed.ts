@@ -86,6 +86,19 @@ export function resizeScript(base: string = SHARE_BASE): string {
   );
 }
 
+/** The two lines `grooph embed` prints for a document already checked for sharing: the frame, and the script that sizes it. */
+export function embedHtml(envelope: ShareEnvelope, flags: EmbedFlags = {}): { frame: string; script: string; src: string } {
+  const src = embedSrc(encodeSharePayload(envelope, deflateRaw), flags);
+  const height = flags.height ?? Math.ceil(pictureHeight(envelope) + BAR_HEIGHT + (envelope.kind === "run" ? REPLAY_HEIGHT : 0));
+  return {
+    frame:
+      `<iframe src="${attr(src)}" title="${attr(`${nameOf(envelope)}, a grooph picture`)}" width="100%" height="${height}" ` +
+      `style="border:0;width:100%;max-width:100%;display:block" loading="lazy" referrerpolicy="no-referrer" data-grooph-embed></iframe>`,
+    script: resizeScript(flags.base ?? SHARE_BASE),
+    src,
+  };
+}
+
 /**
  * `grooph embed <file> [--theme light|dark] [--height <px>] [--frame] [--play] [--base <url>]`
  * (docs/exports.md, "Embedding"). Prints two lines, the frame and the script; exit 1 when
@@ -127,13 +140,9 @@ export function embedCommand(io: Output, file: string, flags: EmbedFlags = {}): 
     return 1;
   }
 
-  const src = embedSrc(encodeSharePayload(envelope, deflateRaw), flags);
-  const height = flags.height ?? Math.ceil(pictureHeight(envelope) + BAR_HEIGHT + (envelope.kind === "run" ? REPLAY_HEIGHT : 0));
-  io.out(
-    `<iframe src="${attr(src)}" title="${attr(`${nameOf(envelope)}, a grooph picture`)}" width="100%" height="${height}" ` +
-      `style="border:0;width:100%;max-width:100%;display:block" loading="lazy" referrerpolicy="no-referrer" data-grooph-embed></iframe>`,
-  );
-  io.out(resizeScript(flags.base ?? SHARE_BASE));
+  const { frame, script, src } = embedHtml(envelope, flags);
+  io.out(frame);
+  io.out(script);
   if (src.length > SHARE_LINK_WARN) {
     io.err(`warning: the frame's address is ${src.length.toLocaleString("en")} characters; it works in a page, but is too long to send as a link`);
   }

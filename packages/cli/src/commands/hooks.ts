@@ -1,12 +1,13 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 
 import { durationText, isQuiet, planLine, secondsBetween, sessionLine, type LiveAgent, type LiveSession } from "@grooph/core";
 
 import { EVENTS_DIR, eventFiles, lastPush, parseSource, readLive, sourceExists, type EventSource, type PushRecord } from "../events-io.js";
 import { writeText } from "../io.js";
+import { shippedHook } from "../paths.js";
 import { plural, type Output } from "../print.js";
 
 export const HOOKS_HELP = `grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--local]
@@ -65,7 +66,7 @@ const PUSH = "grooph-events-push.mjs";
 const PUSH_REL = join(".grooph", "hooks", PUSH);
 
 /** The script that sends events to a branch of their own, as this CLI ships it: packages/cli/hooks/grooph-events-push.mjs. */
-export const pushSource = (): string => fileURLToPath(new URL(`../../../hooks/${PUSH}`, import.meta.url));
+export const pushSource = (): string => shippedHook(PUSH);
 
 export const EVENTS_HELP = `grooph events push [--branch <name>] [--remote <name>] [--since <time> [--session <id>]] [--no-push] [--dir <project>]
 
@@ -128,7 +129,7 @@ export async function eventsCommand(io: Output, sub: string | undefined, args: s
 }
 
 /** The hook as this CLI ships it: packages/cli/hooks/grooph-event.mjs. */
-export const hookSource = (): string => fileURLToPath(new URL("../../../hooks/grooph-event.mjs", import.meta.url));
+export const hookSource = (): string => shippedHook(MARK);
 
 type Harness = "claude-code" | "codex";
 type Entry = { matcher?: string; hooks: { type: "command"; command: string; async?: boolean; timeout: number }[] };
