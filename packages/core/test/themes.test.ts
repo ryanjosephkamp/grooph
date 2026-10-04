@@ -251,6 +251,17 @@ test("a theme with one form is the same picture in light and in dark", () => {
   for (const name of ["blueprint", "ink", "transit", "chalk"]) assert.notEqual(pictureLook(name)!.light, pictureLook(name)!.dark, name);
 });
 
+test("the six pictures docs/themes.md shows are what the code draws", () => {
+  const doc = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
+  const page = read(join(repoRoot, "docs", "themes.md"));
+  for (const name of PICTURE_THEMES) {
+    const path = `handoffs/0086-themes/pictures/review-loop.${name}.svg`;
+    const look = pictureLook(name);
+    assert.equal(read(join(repoRoot, path)), picture(doc, look ? { look } : {}), `${path} is stale: grooph image fixtures/valid/review-loop.grooph.json --theme ${name} --out ${path}`);
+    assert.ok(page.includes(`<img src="../${path}"`), `docs/themes.md does not show ${name}`);
+  }
+});
+
 test("the offline page draws its picture in the theme it is given, and is today's page without one", () => {
   const doc = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
   const plain = offlinePage(doc, { version: "0.0.0" });

@@ -240,7 +240,7 @@ then would undo someone's change. Re-export the new version to place it for the 
 A picture of a graph or map, SVG or PNG.
 
 ```text
-grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
+grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme <name>] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -266,12 +266,19 @@ An operation map has two more views, for a screen with room or a map with many h
                          what carries it and what is handed. An order, not a clock: a map records
                          no times. --view picture is the default.
 
-  --theme light | dark   colors written into the file: it looks the same anywhere
-  --theme auto           (SVG only, the SVG default) both palettes; follows the viewer
+  --theme <name>         one of six looks for the same picture: paper, blueprint, ink, phosphor, transit, chalk
+                         (docs/themes.md). Without it, paper: the picture as it has always been.
+                         A theme changes colors, line weights, lettering and the ground, never
+                         the words or where anything is.
+  --theme light | dark   light or dark only, the colors written into the file: it looks the
+                         same anywhere. With a name: --theme chalk-dark
+  --theme auto           (SVG only, the SVG default) light and dark both; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
   --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide for the phone's
-                         picture); --scale changes that. A PNG is one theme: light unless
-                         --theme dark.
+                         picture); --scale changes that. A PNG is light unless told dark.
+                         Its renderer knows a theme's colors, line weights, lettering, ground
+                         and Chalk's wobble, and not the rules for corners, capitals and
+                         Transit's route color: for those, the SVG, or Keep a copy in the app.
 
   --events <id>=<src>    for an operation map: draw what the event hook has seen on the
                          session with that id (working, waiting or ended; subagents running
@@ -300,7 +307,7 @@ sessions and handoffs. One way only: edit the document, never the outline.
 One offline HTML file with a viewer.
 
 ```text
-grooph page <graph | operation map> --out <file.html> [--events <id>=<source>]...
+grooph page <graph | operation map> --out <file.html> [--theme <name>] [--events <id>=<source>]...
 
 One HTML file that holds the document and a viewer for it: the picture, the outline, the
 validator's list and the document itself. It asks the network for nothing (its content
@@ -311,6 +318,10 @@ document writes the .grooph.json (or .grooph-map.json) back out for the app to i
 For an operation map, --events <session id>=<source> (as often as wanted) marks each
 session with what the event hook has seen of it, as grooph image does: a snapshot, taken
 when the page is made.
+
+--theme <name> draws the page's picture in one of six looks (paper, blueprint, ink, phosphor, transit, chalk;
+docs/themes.md). The page follows the device's light or dark and has its own button for
+it, so neither is named here. Without --theme the picture is paper, as always.
 
 A document with rule errors still makes a page, with the errors listed. One that does
 not match its schema cannot be drawn.
@@ -618,7 +629,7 @@ A proposal set, <set-id>.grooph-proposals.json (docs/executive.md §1):
 One line of HTML that shows a graph on any page.
 
 ```text
-grooph embed <file> [--theme light|dark] [--height <px>] [--frame] [--play] [--base <url>]
+grooph embed <file> [--theme <name>] [--height <px>] [--frame] [--play] [--base <url>]
 
 <file> is a graph, a run folder or *.grooph-run.json bundle, an operation map, or a proposal set.
 
@@ -630,7 +641,10 @@ run (a run folder or a *.grooph-run.json bundle) plays: play, step and a scrubbe
 The document travels in the frame's address after the #, as in grooph share, so the host
 page's server never sees it. Nothing about the reader is sent anywhere.
 
-  --theme <t>    light or dark; without it the picture follows the reader's color scheme
+  --theme <t>    one of six looks for the picture: paper, blueprint, ink, phosphor, transit, chalk
+                 (docs/themes.md); without it, paper. Or light or dark, which hold the picture
+                 to that form; without one it follows the reader's color scheme. Both as
+                 chalk-dark. The theme is in the frame's address, and fetched only then.
   --height <px>  the frame's height when the page has no script to size it
                  (default: the picture's own height at a phone's width)
   --frame        draw the embed's own background and border, not the page's background
