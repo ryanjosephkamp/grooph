@@ -62,7 +62,7 @@ grooph validate --for-export flaky.grooph.json
 grooph share flaky.grooph.json
 ```
 
-To offer a choice, build two or three graphs that differ in shape (a lean one, a rigorous one), put them in a proposal set, and share the set: the link opens them side by side. [The executive path](executive.md) has the set's format.
+To offer a choice, build two or three graphs that differ in shape (a lean one, a rigorous one), put them in a proposal set, and share the set: the link opens them side by side. The `grooph_share` tool's description gives the set's shape, and a candidate's `graph` may be the id of a graph a tool returned. [The executive path](executive.md) describes the set in full.
 
 ## The tools
 
