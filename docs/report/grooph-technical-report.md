@@ -151,7 +151,7 @@ git clone https://github.com/ryanjosephkamp/grooph.git && cd grooph
 pnpm install && pnpm -r build && pnpm -r test          # the core, CLI and app tests
 scripts/first-run.sh                                    # the quickstart, end to end
 node scripts/rule-reference.mjs --check                 # the rule reference matches the fixtures
-scripts/prove-pattern.sh --check grind-loop/run        # re-assert a proving record from its evidence
+scripts/prove-pattern.sh grind-loop --check experiments/patterns/grind-loop/run    # re-assert a proving record from its evidence
 node scripts/lib/compare-summary.mjs --index            # the comparison's tables, from the records
 ```
 
