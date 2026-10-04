@@ -39,7 +39,9 @@ test.describe("on a desktop", () => {
       const scale = svg.getBoundingClientRect().width / (svg as SVGSVGElement).viewBox.baseVal.width;
       return Math.min(...[...svg.querySelectorAll("text")].map((t) => Number(t.getAttribute("font-size")) * scale));
     });
-    expect(smallest).toBeGreaterThanOrEqual(11.5); // a two-digit number in its ring; the smallest words are 13 px
+    // Handoff 0080: the lanes are side by side, so three of them share the width one had. A unit is a pixel or a
+    // little more, as on a phone: a two-digit number in its ring is 9 px, and the smallest words are 10 px.
+    expect(smallest).toBeGreaterThanOrEqual(9);
     // The picture is core's, whole and unchanged; its frame ends where its lanes do, so the handoffs are not listed twice.
     for (const s of map.sessions) await expect(page.locator(`[data-session="${s.id}"]`)).toHaveCount(1);
     await expect(page.locator("[data-handoff-row]").first()).toBeHidden();

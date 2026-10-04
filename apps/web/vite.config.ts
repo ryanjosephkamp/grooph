@@ -10,6 +10,9 @@ import { defineConfig } from "vitest/config";
 // Core without the compiler (packages/core/src/base.ts says why); the compiler is the next line.
 const coreSource = fileURLToPath(new URL("../../packages/core/src/base.ts", import.meta.url));
 const compileSource = fileURLToPath(new URL("../../packages/core/src/compile/index.ts", import.meta.url));
+// An operation map's other views (slice 0080) are a third door into core. The map screen's piece (src/ui/map/views.tsx)
+// goes through it, is fetched when a map is drawn, and is named in the page as the compiler is.
+const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/map-views.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -66,9 +69,10 @@ function routes(): Plugin {
         const embed = chunks.find((c) => c.facadeModuleId?.endsWith("/ui/embed/EmbedApp.tsx"));
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
         const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
+        const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -87,7 +91,7 @@ function routes(): Plugin {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
-          later: [...closure(compiler)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          later: [...new Set([...closure(compiler), ...closure(mapViews)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
@@ -114,6 +118,7 @@ export default defineConfig({
     // The compiler first: it is a part of core with an address of its own (slice 0070), fetched when a person exports.
     alias: [
       { find: "@grooph/core/compile", replacement: compileSource },
+      { find: "@grooph/core/map-views", replacement: mapViewsSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

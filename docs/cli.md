@@ -240,7 +240,7 @@ then would undo someone's change. Re-export the new version to place it for the 
 A picture of a graph or map, SVG or PNG.
 
 ```text
-grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--events <id>=<source>]...
+grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -254,11 +254,24 @@ An operation map (*.grooph-map.json, docs/operation-map.md) is drawn as its lane
 bottom, each session a card in its lane, each handoff a numbered arc in the margin, and
 the handoffs listed below with what carries each.
 
+An operation map has two more views, for a screen with room or a map with many handoffs
+(docs/operation-map.md §4c and §4d). Both are wider than a phone:
+
+  --layout wide          its lanes side by side: the people in a band across the top, each lane
+                         a column, each handoff an arc in the gutters between the lanes, and
+                         the list below in columns. As wide as its lanes need, about 900 units
+                         for three lanes. --layout phone is the picture above, and the default.
+  --view sequence        a column for each person and session, and a row for each handoff in the
+                         order the map lists them: a numbered arrow from sender to receiver, with
+                         what carries it and what is handed. An order, not a clock: a map records
+                         no times. --view picture is the default.
+
   --theme light | dark   colors written into the file: it looks the same anywhere
   --theme auto           (SVG only, the SVG default) both palettes; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
-  --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide); --scale changes
-                         that. A PNG is one theme: light unless --theme dark.
+  --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide for the phone's
+                         picture); --scale changes that. A PNG is one theme: light unless
+                         --theme dark.
 
   --events <id>=<src>    for an operation map: draw what the event hook has seen on the
                          session with that id (working, waiting or ended; subagents running
