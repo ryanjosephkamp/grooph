@@ -4,17 +4,30 @@
 //
 // "stated" holds what the task and checklist items 1 to 3 say. "shares nothing" and
 // "unsafe keys" hold checklist items 4 and 5, which the task text does not state.
-// The three groups after them settle what both leave open, each one way:
-//   undefined        a key whose value is undefined counts as not given, in either layer
+// The four groups after them settle what both leave open, each one way:
+//   undefined        a key whose value in `over` is undefined counts as not given
 //   null prototype   an object with no prototype is a plain object, and comes back ordinary
-//   not plain data   a value that is not plain data (a function, a Map, a Set, an instance
-//                    of a class) is refused with a TypeError, wherever it sits
+//   dates            a Date is data: it is copied, as a new Date at the same time
+//   not plain data   any other value that is not plain data (a function, a Map, a Set, an
+//                    instance of a class) is refused with a TypeError, wherever it sits
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
 import { pathToFileURL } from "node:url";
 
-const { layer } = await import(pathToFileURL(join(process.cwd(), "src", "layer.mjs")).href);
+// A module that is missing, or that does not export layer, fails every case, each on its own.
+let layer;
+let loadError;
+try {
+  ({ layer } = await import(pathToFileURL(join(process.cwd(), "src", "layer.mjs")).href));
+} catch (error) {
+  loadError = error;
+}
+const call = (...args) => {
+  if (loadError) throw new assert.AssertionError({ message: `src/layer.mjs could not be loaded: ${loadError.message}` });
+  assert.equal(typeof layer, "function", "src/layer.mjs does not export layer");
+  return layer(...args);
+};
 
 const bare = (fields) => Object.assign(Object.create(null), fields);
 const ordinary = (value) => Object.getPrototypeOf(value) === Object.prototype;
@@ -24,6 +37,20 @@ class Point {
     this.y = y;
   }
 }
+
+/**
+ * A value's content with prototypes set aside: every object with no prototype or with Object.prototype rebuilt as
+ * an ordinary object, arrays walked, everything else as it is. Whether objects in a result are ordinary is checklist
+ * item 5 and is counted in "unsafe keys" and "null prototype"; no other group fails on it.
+ */
+const content = (value) => {
+  if (Array.isArray(value)) return value.map(content);
+  if (value === null || typeof value !== "object") return value;
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== null && proto !== Object.prototype) return value;
+  return Object.fromEntries(Object.keys(value).map((key) => [key, content(value[key])]));
+};
+const same = (actual, expected) => assert.deepEqual(content(actual), expected);
 
 // ── stated ───────────────────────────────────────────────────────────────
 const stated = [
@@ -43,7 +70,7 @@ const stated = [
 ];
 for (const [name, base, over, expected] of stated) {
   test(`stated: ${name}`, () => {
-    assert.deepEqual(layer(base, over), expected);
+    same(call(base, over), expected);
   });
 }
 
@@ -58,81 +85,66 @@ const refused = [
 ];
 for (const [name, base, over] of refused) {
   test(`stated: ${name} throws a TypeError`, () => {
-    assert.throws(() => layer(base, over), TypeError);
+    assert.throws(() => call(base, over), TypeError);
   });
 }
 test("stated: an argument left out throws a TypeError", () => {
-  assert.throws(() => layer({ a: 1 }), TypeError);
-  assert.throws(() => layer(), TypeError);
+  assert.throws(() => call({ a: 1 }), TypeError);
+  assert.throws(() => call(), TypeError);
 });
 
 // ── shares nothing (checklist item 4) ────────────────────────────────────
 test("shares nothing: the result is a new object", () => {
   const base = { a: 1 };
   const over = { b: 2 };
-  const result = layer(base, over);
+  const result = call(base, over);
   assert.notEqual(result, base);
   assert.notEqual(result, over);
 });
 test("shares nothing: an object only base has is copied", () => {
   const base = { keep: { deep: { x: 1 } } };
-  const result = layer(base, {});
-  assert.deepEqual(result, { keep: { deep: { x: 1 } } });
+  const result = call(base, {});
+  same(result, { keep: { deep: { x: 1 } } });
   assert.notEqual(result.keep, base.keep);
   assert.notEqual(result.keep.deep, base.keep.deep);
 });
 test("shares nothing: an object only over has is copied", () => {
   const over = { add: { deep: { x: 1 } } };
-  const result = layer({}, over);
-  assert.deepEqual(result, { add: { deep: { x: 1 } } });
+  const result = call({}, over);
+  same(result, { add: { deep: { x: 1 } } });
   assert.notEqual(result.add, over.add);
   assert.notEqual(result.add.deep, over.add.deep);
 });
 test("shares nothing: an array from over is copied", () => {
   const over = { list: [1, 2, 3] };
-  const result = layer({ list: [0] }, over);
-  assert.deepEqual(result.list, [1, 2, 3]);
+  const result = call({ list: [0] }, over);
+  same(result.list, [1, 2, 3]);
   assert.notEqual(result.list, over.list);
 });
 test("shares nothing: an array only base has is copied", () => {
   const base = { list: [1, 2, 3] };
-  const result = layer(base, {});
-  assert.deepEqual(result.list, [1, 2, 3]);
+  const result = call(base, {});
+  same(result.list, [1, 2, 3]);
   assert.notEqual(result.list, base.list);
 });
 test("shares nothing: objects inside an array are copied", () => {
   const over = { rules: [{ match: "*.md", lint: { on: true } }] };
-  const result = layer({}, over);
-  assert.deepEqual(result, { rules: [{ match: "*.md", lint: { on: true } }] });
+  const result = call({}, over);
+  same(result, { rules: [{ match: "*.md", lint: { on: true } }] });
   assert.notEqual(result.rules[0], over.rules[0]);
   assert.notEqual(result.rules[0].lint, over.rules[0].lint);
 });
 test("shares nothing: arrays inside an array are copied", () => {
   const base = { grid: [[1, 2], [3, 4]] };
-  const result = layer(base, {});
-  assert.deepEqual(result.grid, [[1, 2], [3, 4]]);
+  const result = call(base, {});
+  same(result.grid, [[1, 2], [3, 4]]);
   assert.notEqual(result.grid[0], base.grid[0]);
-});
-test("shares nothing: a Date from over is copied, and is still that date", () => {
-  const since = new Date("2026-09-01T00:00:00Z");
-  const result = layer({}, { since });
-  assert.ok(result.since instanceof Date);
-  assert.equal(result.since.getTime(), since.getTime());
-  assert.notEqual(result.since, since);
-});
-test("shares nothing: a Date only base has is copied, and so is one inside an array", () => {
-  const since = new Date("2026-09-01T00:00:00Z");
-  const result = layer({ since, days: [since] }, {});
-  assert.ok(result.since instanceof Date && result.days[0] instanceof Date);
-  assert.equal(result.days[0].getTime(), since.getTime());
-  assert.notEqual(result.since, since);
-  assert.notEqual(result.days[0], since);
 });
 test("shares nothing: changing the result changes neither layer", () => {
   const base = { a: { b: [1, { c: 2 }] }, keep: { x: 1 } };
   const over = { a: { d: { e: 3 } }, list: [{ f: 4 }] };
   const before = JSON.stringify([base, over]);
-  const result = layer(base, over);
+  const result = call(base, over);
   result.a.b.push(9);
   result.a.b[1].c = 9;
   result.a.d.e = 9;
@@ -149,101 +161,122 @@ test("shares nothing: the layers are left as they were, and may be frozen", () =
   const base = freeze({ a: { b: 1 }, list: [1, { c: 2 }] });
   const over = freeze({ a: { d: 2 }, list: [3] });
   const before = JSON.stringify([base, over]);
-  assert.deepEqual(layer(base, over), { a: { b: 1, d: 2 }, list: [3] });
+  same(call(base, over), { a: { b: 1, d: 2 }, list: [3] });
   assert.equal(JSON.stringify([base, over]), before);
 });
 
 // ── unsafe keys (checklist item 5) ───────────────────────────────────────
-const clean = () => assert.equal({}.polluted, undefined, "Object.prototype was changed");
-test("unsafe keys: __proto__ in over is not copied and changes no prototype", () => {
-  const result = layer({ a: 1 }, JSON.parse('{"__proto__": {"polluted": true}, "b": 2}'));
-  assert.deepEqual(result, { a: 1, b: 2 });
+// Each case stands alone: whatever one of them does to Object.prototype is undone before the next.
+const unsafe = (name, body) =>
+  test(`unsafe keys: ${name}`, () => {
+    try {
+      body();
+      assert.ok(!Object.hasOwn(Object.prototype, "polluted"), "Object.prototype was changed");
+    } finally {
+      delete Object.prototype.polluted;
+    }
+  });
+unsafe("__proto__ in over is not copied and changes no prototype", () => {
+  const result = call({ a: 1 }, JSON.parse('{"__proto__": {"polluted": true}, "b": 2}'));
   assert.ok(!Object.hasOwn(result, "__proto__"));
   assert.ok(ordinary(result));
   assert.equal(result.polluted, undefined);
-  clean();
+  same(result, { a: 1, b: 2 });
 });
-test("unsafe keys: __proto__ in base is not copied", () => {
-  const result = layer(JSON.parse('{"__proto__": {"polluted": true}, "a": 1}'), { b: 2 });
-  assert.deepEqual(result, { a: 1, b: 2 });
+unsafe("__proto__ in base is not copied", () => {
+  const result = call(JSON.parse('{"__proto__": {"polluted": true}, "a": 1}'), { b: 2 });
   assert.ok(!Object.hasOwn(result, "__proto__"));
   assert.ok(ordinary(result));
-  clean();
+  same(result, { a: 1, b: 2 });
 });
-test("unsafe keys: __proto__ deeper in over is not copied", () => {
-  const result = layer({ a: { x: 1 } }, JSON.parse('{"a": {"__proto__": {"polluted": true}, "y": 2}}'));
-  assert.deepEqual(result, { a: { x: 1, y: 2 } });
+unsafe("__proto__ deeper in over is not copied", () => {
+  const result = call({ a: { x: 1 } }, JSON.parse('{"a": {"__proto__": {"polluted": true}, "y": 2}}'));
   assert.ok(!Object.hasOwn(result.a, "__proto__"));
   assert.ok(ordinary(result.a));
   assert.equal(result.a.polluted, undefined);
-  clean();
+  same(result, { a: { x: 1, y: 2 } });
 });
-test("unsafe keys: constructor is not copied, from either layer", () => {
-  const result = layer({ constructor: { prototype: { polluted: true } }, a: 1 }, { constructor: { prototype: { polluted: true } }, b: 2 });
+unsafe("constructor is not copied, from either layer", () => {
+  const result = call({ constructor: { prototype: { polluted: true } }, a: 1 }, { constructor: { prototype: { polluted: true } }, b: 2 });
   assert.ok(!Object.hasOwn(result, "constructor"));
-  assert.deepEqual(result, { a: 1, b: 2 });
-  clean();
+  same(result, { a: 1, b: 2 });
 });
-test("unsafe keys: prototype is not copied, at any depth", () => {
-  const result = layer({ a: { prototype: 1, keep: 1 } }, { prototype: { x: 1 }, a: { more: 2 } });
-  assert.deepEqual(result, { a: { keep: 1, more: 2 } });
+unsafe("prototype is not copied, at any depth", () => {
+  const result = call({ a: { prototype: 1, keep: 1 } }, { prototype: { x: 1 }, a: { more: 2 } });
+  same(result, { a: { keep: 1, more: 2 } });
 });
-test("unsafe keys: they are not copied inside an array either", () => {
+unsafe("they are not copied inside an array either", () => {
   const over = { rules: [JSON.parse('{"__proto__": {"polluted": true}, "constructor": 1, "match": "*.md"}')] };
-  const result = layer({}, over);
-  assert.deepEqual(result, { rules: [{ match: "*.md" }] });
+  const result = call({}, over);
   assert.ok(!Object.hasOwn(result.rules[0], "__proto__"));
   assert.ok(ordinary(result.rules[0]));
-  clean();
+  same(result, { rules: [{ match: "*.md" }] });
 });
 
-// ── undefined: a key whose value is undefined counts as not given ────────
+// ── undefined: a key whose value in `over` is undefined counts as not given ──
 test("undefined: undefined in over leaves base's value", () => {
-  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });
+  same(call({ verbose: true }, { verbose: undefined }), { verbose: true });
 });
 test("undefined: undefined in over leaves base's object, copied", () => {
   const base = { output: { color: "auto" } };
-  const result = layer(base, { output: undefined });
-  assert.deepEqual(result, { output: { color: "auto" } });
+  const result = call(base, { output: undefined });
+  same(result, { output: { color: "auto" } });
   assert.notEqual(result.output, base.output);
 });
 test("undefined: undefined deeper in over leaves base's value there", () => {
-  assert.deepEqual(layer({ output: { color: "auto", width: 80 } }, { output: { color: undefined, width: 100 } }), { output: { color: "auto", width: 100 } });
+  same(call({ output: { color: "auto", width: 80 } }, { output: { color: undefined, width: 100 } }), { output: { color: "auto", width: 100 } });
 });
 test("undefined: a key only over has, with undefined, does not appear", () => {
-  const result = layer({ a: 1 }, { pager: undefined });
+  const result = call({ a: 1 }, { pager: undefined });
   assert.deepEqual(Object.keys(result), ["a"]);
   assert.ok(!("pager" in result));
-});
-test("undefined: a key of base with undefined does not appear", () => {
-  const result = layer({ a: 1, pager: undefined, nested: { gone: undefined, here: 1 } }, {});
-  assert.deepEqual(Object.keys(result), ["a", "nested"]);
-  assert.deepEqual(Object.keys(result.nested), ["here"]);
 });
 
 // ── null prototype: an object with no prototype is a plain object ────────
 test("null prototype: a base with no prototype is accepted", () => {
-  const result = layer(bare({ a: 1 }), { b: 2 });
-  assert.deepEqual(result, { a: 1, b: 2 });
+  same(call(bare({ a: 1 }), { b: 2 }), { a: 1, b: 2 });
 });
 test("null prototype: an over with no prototype is accepted", () => {
-  const result = layer({ a: 1 }, bare({ b: 2 }));
-  assert.deepEqual(result, { a: 1, b: 2 });
+  same(call({ a: 1 }, bare({ b: 2 })), { a: 1, b: 2 });
 });
 test("null prototype: the result is an ordinary object", () => {
-  assert.ok(ordinary(layer(bare({ a: 1 }), bare({ b: 2 }))));
+  assert.ok(ordinary(call(bare({ a: 1 }), bare({ b: 2 }))));
 });
 test("null prototype: such objects are layered under a key like any plain object", () => {
-  const result = layer({ output: bare({ color: "auto", width: 80 }) }, { output: bare({ width: 100 }) });
-  assert.deepEqual(result, { output: { color: "auto", width: 100 } });
+  const result = call({ output: bare({ color: "auto", width: 80 }) }, { output: bare({ width: 100 }) });
+  same(result, { output: { color: "auto", width: 100 } });
   assert.ok(ordinary(result.output));
 });
 test("null prototype: one that only a layer has, or that sits in an array, comes back ordinary and copied", () => {
   const inner = bare({ match: "*.md" });
-  const result = layer({ only: bare({ x: 1 }) }, { rules: [inner] });
-  assert.deepEqual(result, { only: { x: 1 }, rules: [{ match: "*.md" }] });
+  const result = call({ only: bare({ x: 1 }) }, { rules: [inner] });
+  same(result, { only: { x: 1 }, rules: [{ match: "*.md" }] });
   assert.ok(ordinary(result.only) && ordinary(result.rules[0]));
   assert.notEqual(result.rules[0], inner);
+});
+
+// ── dates: a Date is data, and is copied ─────────────────────────────────
+const since = () => new Date("2026-09-01T00:00:00Z");
+test("dates: a Date from over is copied, and is still that date", () => {
+  const date = since();
+  const result = call({}, { since: date });
+  assert.ok(result.since instanceof Date);
+  assert.equal(result.since.getTime(), date.getTime());
+  assert.notEqual(result.since, date);
+});
+test("dates: a Date only base has is copied", () => {
+  const date = since();
+  const result = call({ since: date }, { other: 1 });
+  assert.ok(result.since instanceof Date);
+  assert.equal(result.since.getTime(), date.getTime());
+  assert.notEqual(result.since, date);
+});
+test("dates: a Date inside an array is copied", () => {
+  const date = since();
+  const result = call({}, { days: [date] });
+  assert.ok(result.days[0] instanceof Date);
+  assert.equal(result.days[0].getTime(), date.getTime());
+  assert.notEqual(result.days[0], date);
 });
 
 // ── not plain data: refused with a TypeError, wherever it sits ───────────
@@ -258,6 +291,6 @@ const notPlain = [
 ];
 for (const [name, base, over] of notPlain) {
   test(`not plain data: ${name} throws a TypeError`, () => {
-    assert.throws(() => layer(base, over), TypeError);
+    assert.throws(() => call(base, over), TypeError);
   });
 }

@@ -5,7 +5,7 @@ fixed-width font. It should read at a glance and look like the rest of our
 billing mail: quiet, exact, no decoration.
 
 - A heading that says whose statement it is and for which month.
-- One line per service, in columns that line up, with the amounts in dollars
+- A line for each charge, in columns that line up, with the amounts in dollars
   and cents.
 - Credits and the total due set apart from the charges, so the reader finds
   the total at once.

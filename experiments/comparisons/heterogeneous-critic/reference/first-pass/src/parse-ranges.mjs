@@ -1,29 +1,33 @@
-// A careful first pass written from the task text and the checklist alone, without the held-out suite:
-// where the text is silent it takes the cautious reading (refuse what was not asked for, hand back a
-// tidy ascending list). Kept to show that the suite separates such a pass from one that knows the
-// open points; it is one author's reading, not a model's, and is never copied into a run.
+// A plain first pass written from the task text and the checklist alone, without the held-out suite: the
+// shortest honest reading. It splits on commas, trims each part, reads a part as one page or as
+// first-last, pushes pages as it reads them, and refuses whatever the text did not ask for. Where that
+// reading happens to take the suite's side (pages in the order typed, repeats kept, leading zeros read
+// as numbers) it passes; where it does not (a backward range, spaces around the hyphen, a range with
+// one end, an empty box) it fails. Kept to show what the suite does to such a pass. It is one author's
+// reading, not a model's, and is never copied into a run.
 
 export function parseRanges(text, pageCount) {
   if (typeof text !== "string") throw new TypeError("parseRanges: text must be a string");
   if (!Number.isInteger(pageCount) || pageCount < 1) throw new TypeError("parseRanges: pageCount must be a positive integer");
-  const pages = new Set();
   const page = (digits) => {
-    if (!/^[1-9]\d*$/.test(digits)) throw new RangeError(`parseRanges: "${digits}" is not a page number`);
+    if (!/^\d+$/.test(digits)) throw new RangeError(`parseRanges: "${digits}" is not a page number`);
     const n = Number(digits);
-    if (n > pageCount) throw new RangeError(`parseRanges: page ${n} is past the last page (${pageCount})`);
+    if (n < 1 || n > pageCount) throw new RangeError(`parseRanges: page ${n} is not in a document of ${pageCount} pages`);
     return n;
   };
+  const pages = [];
   for (const raw of text.split(",")) {
     const part = raw.trim();
-    const range = /^(\S+)-(\S+)$/.exec(part);
-    if (!range) {
-      pages.add(page(part));
+    const ends = part.split("-");
+    if (ends.length === 1) {
+      pages.push(page(part));
       continue;
     }
-    const first = page(range[1]);
-    const last = page(range[2]);
+    if (ends.length !== 2) throw new RangeError(`parseRanges: "${part}" is not a page or a range`);
+    const first = page(ends[0]);
+    const last = page(ends[1]);
     if (first > last) throw new RangeError(`parseRanges: the range "${part}" runs backward`);
-    for (let n = first; n <= last; n += 1) pages.add(n);
+    for (let n = first; n <= last; n += 1) pages.push(n);
   }
-  return [...pages].sort((a, b) => a - b);
+  return pages;
 }
