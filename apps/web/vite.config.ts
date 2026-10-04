@@ -28,6 +28,10 @@ const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/ma
  * one of those screens, so such an address loads what it did before, at once. Every stylesheet of the app is
  * still asked for at every app address: they are small, and their order is then the same on every screen.
  *
+ * Since slice 0078 what opens a document a person hands over, from a file or from a paste, is fetched when they
+ * pick the file or open the paste box (src/ui/Import.tsx), and is named in the same list as the compiler, for the
+ * same reason.
+ *
  * Since slice 0070 the compiler is fetched when a person first exports. No address is told to fetch it, but the
  * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
  * and keeps them, so an export still works with no network.
@@ -70,9 +74,10 @@ function routes(): Plugin {
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
         const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
+        const importer = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/Import.tsx"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !importer) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, importer }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -91,7 +96,7 @@ function routes(): Plugin {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
-          later: [...new Set([...closure(compiler), ...closure(mapViews)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(importer)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
