@@ -1,0 +1,204 @@
+{
+  "template": "gauntlet-decomposed",
+  "template_version": "gauntlet-decomposed@2",
+  "slots": {
+    "values": {
+      "task": "Make the summary card rendered by `npm run render` from src/card.mjs match the reference card the deck already uses, piece by piece: BRIEF.md says what the card should be, data/summary.json is the data, src/header.mjs and src/trend.mjs are the two parts src/card.mjs frames, and `npm run capture` produces what the critics judge. The reference itself is held outside this project for the planner and the critics; the owner and the integrator work from PIECES.md and do not read it.",
+      "reference": "the deck's reference card at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-kv6CCD.harness/held-out/reference.svg, described element by element in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-kv6CCD.harness/held-out/REFERENCE-CAPTURE.md, with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-kv6CCD.harness/held-out/REFERENCE.md (the planner cuts from it and the critics judge against it; the owner and the integrator do not read it)",
+      "capture-command": "npm run capture"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-kv6CCD.harness/held-out",
+    "files": [
+      {
+        "path": "REFERENCE-CAPTURE.md",
+        "sha256": "c1d1eff3cc87705eedfd369ec27adf92be9f68f0495480408410a6587bf4d5ca"
+      },
+      {
+        "path": "REFERENCE.md",
+        "sha256": "c8bfc3a719e3c089afbcd719b78716e1eacd5cae963db4fe321a9cf7cfc56840"
+      },
+      {
+        "path": "reference.svg",
+        "sha256": "b6aa2ef7a3d454fe4871eddbada1020bbd62d0c7774217ff23a022ce328e2440"
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "summary-card",
+  "run_id": "20261004-224501",
+  "run_ids": [
+    "20261004-224501"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "lead": {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "tier_map": "frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+  "aliases": {
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+  },
+  "agent_models": {
+    "summary-card--critic": "claude-opus-5-5",
+    "summary-card--final-critic": "claude-opus-5-5",
+    "summary-card--integrator": "claude-sonnet-5-5",
+    "summary-card--owner": "claude-sonnet-5-5",
+    "summary-card--planner": "claude-opus-5-5"
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 3.368060999999999,
+      "output_tokens": 65904
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.27572,
+      "output_tokens": 13742
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "summary-card--critic": [
+      "claude-opus-5-5"
+    ],
+    "summary-card--owner": [
+      "claude-sonnet-5-5"
+    ],
+    "summary-card--planner": [
+      "claude-opus-5-5"
+    ]
+  },
+  "models_never_used": [],
+  "cost_usd": 3.643781,
+  "harness_turns": 50,
+  "lead_turns": null,
+  "duration_s": 526,
+  "rounds": {
+    "loop_passes": 4,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "human"
+  ],
+  "ending": [
+    "stop node done",
+    "stop human"
+  ],
+  "subagents": {
+    "summary-card--critic": 2,
+    "summary-card--owner": 2,
+    "summary-card--planner": 1
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cd /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-kv6CCD\ncat > src/format.mjs <<'EOF'\n/**\n * Compact, speakable value and change formatting. Shared by the header and,\n * later, the trend.\n */\n\n/** Scale a number to millions or thousands with a suffix; below 1000 keep it whole. */\nfunction scaled(n, digitsM, digitsK) {\n  const abs = Math.abs(n);\n  if (abs >= 1e6) return `${(n / 1e6).toFixed(digitsM)}M`;\n  if (abs >= 1e3) return `${(n / 1e3).toFixed(digitsK)}k`;\n  return String(Math.round(n));\n}\n\n/** A value in its compact spoken form, derived from its unit: $1.42M, 38.2k, $37.24. */\nexport function formatValue(value, unit) {\n  switch (unit) {\n    case \"usd\":\n      return `$${scaled(value, 2, 1)}`;\n    case \"cents\": {\n      const dollars = value / 100;\n      return dollars >= 1000 ? `$${scaled(dollars, 2, 1)}` : `$${dollars.toFixed(2)}`;\n    }\n    case \"count\":\n      return scaled(value, 2, 1);\n    default:\n      return scaled(value, 2, 1);\n  }\n}\n\n/** The absolute change as a percentage to one decimal place: 0.124 -> \"12.4%\". */\nexport function formatPercent(delta) {\n  return `${(Math.round(Math.abs(delta) * 1000) / 10).toFixed(1)}%`;\n}\n\n/** Escape text for use inside SVG. */\nexport function escapeXml(s) {\n  return String(s).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\");\n}\nEOF\ncat > src/header.mjs <<'EOF'\n/**\n * The card's header: the title, the period, and one tile per headline stat.\n * Returns SVG fragments positioned inside the card.\n */\nimport { MARGIN, INNER_WIDTH } from \"./layout.mjs\";\nimport { formatValue, formatPercent, escapeXml } from \"./format.mjs\";\n\nconst INK = \"#111827\";\nconst MUTED = \"#6b7280\";\nconst TILE_FILL = \"#f3f4f6\";\nconst UP = \"#15803d\";\nconst DOWN = \"#b91c1c\";\n\nconst TITLE_BASELINE = 54;\nconst PERIOD_BASELINE = 74;\n\nconst TILE_TOP = 90;\nconst TILE_HEIGHT = 80;\nconst TILE_GAP = 12;\nconst TILE_RADIUS = 8;\nconst TILE_PAD = 14;\nconst LABEL_BASELINE = 24; // offsets from the tile top, the same in every tile\nconst VALUE_BASELINE = 54;\nconst CHANGE_BASELINE = 70;\n\nexport function renderHeader(data) {\n  const n = data.stats.length;\n  const tileWidth = (INNER_WIDTH - TILE_GAP * (n - 1)) / n;\n  const out = [\n    `<text x=\"${MARGIN}\" y=\"${TITLE_BASELINE}\" font-size=\"20\" font-weight=\"600\" fill=\"${INK}\">${escapeXml(data.title)}</text>`,\n    `<text x=\"${MARGIN}\" y=\"${PERIOD_BASELINE}\" font-size=\"12\" fill=\"${MUTED}\">${escapeXml(data.period)}</text>`,\n  ];\n  data.stats.forEach((stat, i) => {\n    const x = MARGIN + i * (tileWidth + TILE_GAP);\n    const tx = x + TILE_PAD;\n    const up = stat.delta >= 0;\n    const colour = up ? UP : DOWN;\n    out.push(\n      `<rect x=\"${x}\" y=\"${TILE_TOP}\" width=\"${tileWidth}\" height=\"${TILE_HEIGHT}\" rx=\"${TILE_RADIUS}\" ry=\"${TILE_RADIUS}\" fill=\"${TILE_FILL}\"/>`,\n      `<text x=\"${tx}\" y=\"${TILE_TOP + LABEL_BASELINE}\" font-size=\"10\" font-weight=\"600\" letter-spacing=\"0.6\" fill=\"${MUTED}\">${escapeXml(stat.label.toUpperCase())}</text>`,\n      `<text x=\"${tx}\" y=\"${TILE_TOP + VALUE_BASELINE}\" font-size=\"28\" font-weight=\"700\" fill=\"${INK}\">${escapeXml(formatValue(stat.value, stat.unit))}</text>`,\n      `<text x=\"${tx}\" y=\"${TILE_TOP + CHANGE_BASELINE}\" font-size=\"11\" font-weight=\"600\" fill=\"${colour}\">${up ? \"▲\" : \"▼\"} ${formatPercent(stat.delta)} <tspan font-weight=\"400\" fill=\"${MUTED}\">vs previous period</tspan></text>`,\n    );\n  });\n  return out.join(\"\");\n}\nEOF\npython3 - <<'EOF'\np='tests/card.test.mjs'\ns=open(p).read()\ns=s.replace('''  for (const stat of data.stats) assert.ok(svg.includes(stat.label), `${stat.label} is shown`);\n''','''  const lower = svg.toLowerCase();\n  for (const stat of data.stats) assert.ok(lower.includes(stat.label.toLowerCase()), `${stat.label} is shown`);\n''')\ns+='''\ntest(\"every stat's compact value and signed change appears\", () => {\n  const svg = renderCard(data);\n  for (const v of [\"$1.42M\", \"38.2k\", \"$37.24\"]) assert.ok(svg.includes(v), `${v} is shown`);\n  for (const p of [\"12.4%\", \"3.1%\", \"15.8%\"]) assert.ok(svg.includes(p), `${p} is shown`);\n  assert.ok(svg.includes(\"▲\") && svg.includes(\"▼\"), \"rise and fall marks\");\n});\n'''\nopen(p,'w').write(s)\nEOF\nnpm test 2>&1 | tail -12; npm run capture 2>&1 | tail -5; grep -n \"header\" -A12 captures/CAPTURE.md | head -40"
+    },
+    {
+      "tool": "Bash",
+      "command": "sed -i 's| <tspan font-weight=\"400\" fill=\"${MUTED}\">vs previous period</tspan></text>| vs previous period</text>|' src/header.mjs && grep -n \"previous\" src/header.mjs; npm test 2>&1 | grep -E \"^ℹ (pass|fail)\"; npm run capture >/dev/null; grep -n \"▲\\|▼\" captures/CAPTURE.md"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 32,
+      "session_id": "ac211974-8004-4f96-8979-c32050511c04",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.051328,
+      "reported_cost_usd": 1.0513281999999997,
+      "max_budget_usd": 9,
+      "harness_turns": 18,
+      "duration_s": 171,
+      "wall_s": 171,
+      "notes_after": 4,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json"
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 33,
+      "session_id": "ac211974-8004-4f96-8979-c32050511c04",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 2.592453,
+      "reported_cost_usd": 2.5924528000000002,
+      "max_budget_usd": 9,
+      "harness_turns": 32,
+      "duration_s": 355,
+      "wall_s": 356,
+      "notes_after": 22,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high",
+        "--resume",
+        "ac211974-8004-4f96-8979-c32050511c04"
+      ],
+      "output": "claude-output-2.json"
+    }
+  ],
+  "base_commit": "381df7e5db099716b8fb74bd55c3077772418dea",
+  "source_sha256_before": "f80291ae7f380b77dc76aa2de17afdd8e55b2c6dd1f874dac052e3b3d69b1a2a",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "A GAPS.md",
+    "A PIECES.md",
+    "A captures/CAPTURE.md",
+    "A captures/card.svg",
+    "A out/card.svg",
+    "M src/card.mjs",
+    "A src/format.mjs",
+    "M src/header.mjs",
+    "A src/layout.mjs",
+    "M tests/card.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-kv6CCD",
+  "home_redactions": 0,
+  "amendments": [
+    "critic brief tightened: GAPS.md must describe gaps relative to the capture and never copy reference values, coordinates, colors or text"
+  ],
+  "proposals": [],
+  "working_copy": [
+    "node critic changed: brief"
+  ]
+}
