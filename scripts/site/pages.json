@@ -105,6 +105,27 @@
       ]
     },
     {
+      "id": "project",
+      "title": "Project",
+      "entries": [
+        {
+          "source": "docs/releases.md",
+          "slug": "releases",
+          "summary": "Each version, its date and what changed for a person using it."
+        },
+        {
+          "source": "CONTRIBUTING.md",
+          "slug": "contributing",
+          "summary": "How to send a loop graph, a fix or a rule, and the house rules a pull request is held to."
+        },
+        {
+          "source": "docs/privacy.md",
+          "slug": "privacy",
+          "summary": "No account, no server, no cookies, no analytics: where a graph lives and what leaves your device."
+        }
+      ]
+    },
+    {
       "id": "writing",
       "title": "Writing",
       "entries": [
