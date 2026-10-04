@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { TemplateSource } from "./doc/templates.js";
 import "./store/persist.js";
 import { EditorScreen } from "./ui/Editor.js";
+import { Landing } from "./ui/landing/Landing.js";
 import { Library } from "./ui/Library.js";
 import { LiveSessions } from "./ui/live/LiveSessions.js";
 import { OpenScreen } from "./ui/open/OpenScreen.js";
@@ -14,6 +15,7 @@ import { UseTemplate } from "./ui/templates/UseTemplate.js";
 
 type Route =
   | { name: "library" }
+  | { name: "about" }
   | { name: "graph"; key: string; fresh: boolean }
   | { name: "open"; payload: string; candidate?: string }
   | { name: "live-run" }
@@ -49,6 +51,7 @@ function parse(hash: string): Route {
   if (hash === "#/live") return { name: "live" };
   const run = /^#\/run\/([^?]+)$/.exec(hash);
   if (run) return { name: "run", key: decodeKey(run[1]!) };
+  if (hash === "#/about") return { name: "about" };
   if (hash === "#/templates") return { name: "templates" };
   const template = /^#\/templates\/(built-in|yours)\/([^/?]+)(\/use)?$/.exec(hash);
   if (template) return { name: "template", source: template[1] as TemplateSource, id: decodeKey(template[2]!), use: template[3] !== undefined };
@@ -77,6 +80,7 @@ export function App() {
   if (route.name === "live-run") return <LiveRun />;
   if (route.name === "live") return <LiveSessions />;
   if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
+  if (route.name === "about") return <Landing />;
   if (route.name === "templates") return <TemplatesScreen />;
   if (route.name === "template") {
     const key = `${route.source}/${route.id}`;
