@@ -61,6 +61,7 @@ The other half (stage 8, slice 0030). The app at https://ryanjosephkamp.github.i
 - Only grooph's own files are cached. `grooph watch`'s live endpoints are never cached, and nothing is sent anywhere.
 - A share link opened for the first time with no network still opens: the document rides in the link, and the app that reads it is on the device.
 - The app is six pieces, and an address loads the ones it shows: a small entry, the app (front page, library, template list), the screens that draw on the canvas, the compiler (fetched when a person exports), the embed, and an operation map's other views (fetched when a map is drawn, since slice 0080). Decision 0021, which set this out, counts five and names two doors into core; the map's views are the sixth piece and the third door. The page names every piece, so the service worker holds them all from the first visit.
+- What each kind of address may weigh is in `scripts/perf-budget.json`, and `scripts/perf-budget.mjs --check` compares to the byte. An address that draws on the canvas may load 280 KB compressed: the owner raised that line from 276 on 2026-10-04, because the site's new look (pull request #58, at his request) used 5.2 of the 6 KB of room there was. 280 is the hard line, and what is new still goes behind a door of its own.
 
 Tested in Chromium with the network switched off (`apps/web/e2e/offline.spec.ts`). Not tried: installing on a real phone, and Safari.
 

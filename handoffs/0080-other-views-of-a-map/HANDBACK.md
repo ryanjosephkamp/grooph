@@ -80,6 +80,15 @@ Gzip KB from `node scripts/perf-budget.mjs`. "Before the door" is this branch at
 
 The last two rows are from a copy of the script with its viewport changed from 400 to 1440 px, in the scratchpad; the script itself is untouched.
 
+**After the site's new look merged (#58), and the owner's decision.** `main` then weighed 177.71, 275.34 and 125.65 KB on those three lines, and this branch 178.14, 276.04 and 126.07: the same 0.4, 0.7 and 0.4 over it. A template's address was therefore 42 bytes over its 276 KB line, and the check still printed "ok 276 of 276", because it rounded each figure to one place before comparing. I reported that and raised nothing. The owner decided, on 2026-10-04: the line for an address that draws on the canvas is 280 KB, and the check compares to the byte. In a commit of its own:
+
+- `scripts/perf-budget.json`: `canvasLoadKB` 276 to 280, and no other line;
+- `scripts/perf-budget.mjs`: every figure is compared unrounded and printed to two places;
+- `scripts/perf-budget.test.mjs` (new): a made-up build three bytes over its line fails and three bytes under passes. It fails against `main`'s script. Neither `pnpm -r test` nor any existing step ran it, so `ci.yml`'s budget step runs it first: one line there, which the driver did not name and can drop;
+- `docs/exports.md`, "The app itself, offline": the line, the date and the reason. 280 is the hard line, and what is new still goes behind a door.
+
+The lines now, `node scripts/perf-budget.mjs --check`: 178.14 of 180, of which scripts 156.75 of 162 and styles 19.91 of 20; fonts 40.69 of 42; a first visit in all 220.16 of 224; a template's address 276.04 of 280; an embed 126.07 of 132.
+
 **What opens the door.** The app's map screen only. The embed does not offer the views in this slice and never opens it; the live view, Keep a copy and the offline page draw the phone's picture and do not open it either.
 
 ## The independent read
