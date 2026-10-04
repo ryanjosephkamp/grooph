@@ -48,14 +48,19 @@ Early, version 0.2.5. Twenty templates have each been proven in a recorded run, 
 
 ## Docs
 
+The same documents as pages: [ryanjosephkamp.github.io/grooph/docs/](https://ryanjosephkamp.github.io/grooph/docs/).
+
+- **Quickstart**: [`docs/quickstart.md`](docs/quickstart.md). **Every rule, by its code**, with a document that fires it: [`docs/rules.md`](docs/rules.md).
+- **The field guide**: all twenty loop shapes, each with its picture, when to use it and what its recorded run showed, and [a one-page poster](docs/field-guide/poster.svg): [`docs/field-guide.md`](docs/field-guide.md).
 - **The graph document**, its schema and every validation rule with its code: [`docs/graph-ir.md`](docs/graph-ir.md).
 - **Templates and the pattern library**, twenty named loop shapes (grind loop, review gate, spec then loop, metric sandwich, …): [`docs/templates.md`](docs/templates.md), [`patterns/`](patterns/).
 - **The Claude Code target**, what a package holds and how a session runs it: [`docs/targets/`](docs/targets/).
 - **Proposals and share links**, which the `/grooph-design` skill uses: [`docs/executive.md`](docs/executive.md).
 - **Runs**, including run folders, notes back onto the graph, and the monitor: [`docs/runs.md`](docs/runs.md).
-- **Things to keep**: the picture, the outline and the one-file offline page. See [`docs/exports.md`](docs/exports.md).
+- **Things to keep**: the picture, the outline and the one-file offline page. **Embedding**: one line of HTML that shows a live graph, or a recorded run that plays, on any page (`grooph embed`). See [`docs/exports.md`](docs/exports.md).
 - **Operation maps**, for work that spans sessions, harnesses and accounts. They are drawn and checked, never run: [`docs/operation-map.md`](docs/operation-map.md).
 - **The live view of subagents**, from a hook that records ids, names and times, never content, and cannot steer: [`docs/subagents.md`](docs/subagents.md).
+- **Community**: loop graphs sent in by pull request, checked and drawn by CI: [`community/`](community/README.md), [`docs/community.md`](docs/community.md).
 - **The product contract**: [`spec/capability-spec.md`](spec/capability-spec.md) with [`spec/AMENDMENTS.md`](spec/AMENDMENTS.md).
 
 Agents entering this repository start at [`AGENTS.md`](AGENTS.md). MIT licensed.
