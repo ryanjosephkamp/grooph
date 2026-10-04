@@ -28,7 +28,7 @@ An operation map's picture is described in [`operation-map.md`](operation-map.md
 | Lanes side by side (`--layout wide`, §4c) | Each lane a column, the people across the top, arcs in the gutters between lanes | The shape of the operation across a wide screen, with few crossings and no line over a card | A phone: about 900 units for three lanes. The order of the handoffs. It is still tall when one lane is full |
 | The sequence (`--view sequence`, §4d) | A column for each person and session, a row for each handoff in the map's order | Reading the handoffs one at a time, with what carries each and what is handed | The cards, the lanes' machines and accounts, the live marks; and it looks like a timeline, though the order is not a clock |
 
-In the app a map's screen has a switch, Picture and Sequence, at every width, and from 1100 px the picture is drawn with its lanes side by side. Keep a copy still saves the phone's picture; the other two come from `grooph image`.
+In the app a map's screen has a switch, Picture and Sequence, at every width, and from 1100 px the picture is drawn with its lanes side by side. Keep a copy still saves the phone's picture; the other two come from `grooph image`. In core the two are `mapWide(map)` and `mapSequence(map)`, behind a door of their own (`packages/core/src/picture/map-views.ts`): the web app fetches them when it first draws a map, and no other address carries them.
 
 Themes: `light` and `dark` write the colors into the file, so it looks the same anywhere. `auto` (SVG only, and the SVG default) carries both palettes and follows the viewer's color scheme. A PNG is one theme: light unless told dark, three pixels to the unit (1,200 px wide; `--scale` changes that).
 

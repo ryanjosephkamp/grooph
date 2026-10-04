@@ -158,7 +158,7 @@ It is one column, 400 units wide, and every arc shares one margin. That is the r
 | `grooph share <map>` | a link that opens the map in the app; a map with rule errors still shares, and the view names them |
 | `grooph export <map> …` | refused, by name: a map is never compiled |
 
-In the app, Import on the first screen takes a `.grooph-map.json` and opens the same view as the link. A map is looked at, not stored. A switch on the map, Picture and Sequence, changes the view at any width; from 1100 px the picture is drawn with its lanes side by side.
+In the app, Import on the first screen takes a `.grooph-map.json` and opens the same view as the link. A map is looked at, not stored. A switch on the map, Picture and Sequence, changes the view at any width; from 1100 px the picture is drawn with its lanes side by side. Those two views are a piece of the app fetched when a map is first drawn, so an address that shows no map does not carry them; the page names the piece, so a map opens in either view with no network once the app has been opened with one ([`exports.md`](exports.md), "The app itself, offline").
 
 ## 4b. A live map
 
@@ -179,7 +179,7 @@ The map document is not changed by any of this, and still holds no state: `mapLi
 
 ## 4c. Lanes side by side
 
-`mapPicture(map, { layout: "wide" })` draws the same map for a screen with room: the people in a band across the top, each lane a column in the document's order, each session a card in its lane's column, and the handoffs listed below in as many columns as fit. The cards, the numbers in their rings and the lines of the list are the phone's picture's own. `grooph image <map> --layout wide` writes it, and the app draws it from 1100 px.
+`mapWide(map)` draws the same map for a screen with room: the people in a band across the top, each lane a column in the document's order, each session a card in its lane's column, and the handoffs listed below in as many columns as fit. The cards, the numbers in their rings and the lines of the list are the phone's picture's own. `grooph image <map> --layout wide` writes it, and the app draws it from 1100 px.
 
 No arc runs over a card. Between two lanes, and outside the first and the last, is a gutter of upright tracks; above the lanes is a deck of level ones. An arc leaves its card by the edge that faces where it is going:
 
@@ -188,7 +188,7 @@ No arc runs over a card. Between two lanes, and outside the first and the last, 
 - between lanes further apart, up its gutter, along the deck over the lanes between, and down the other gutter;
 - to or from a person, straight down from the person's card into a gutter, or by the deck when that card is not above the gutter.
 
-What keeps the crossings few: a lane's arcs from above (a person's, and the deck's) go down the side of the lane that fewer other lanes are reached from, and the arcs within the lane take the other side; tracks nest, short arcs inside long; and the ends on a card's edge are in the order of their tracks, those that go up first, so two arcs that end on one card never cross there. No session is assumed to be the hub. On the map of §4d the arcs cross 3 times, where the phone's picture has 118. It is not the fewest possible: the lanes stay in the order the document lists them, and a map whose handoffs run between every pair of sessions is still a tangle.
+What keeps the crossings few: a lane's arcs from above (a person's, and the deck's) go down the side of the lane that fewer other lanes are reached from, and the arcs within the lane take the other side; tracks nest, short arcs inside long; and the ends on a card's edge are in the order of their tracks, those that go up first, so two arcs that end on one card never cross there. The ends on a card's two edges are set a little apart, so that an arc leaving one card and an arc reaching the card level with it are two lines and not one. On a person's card each arc has a place of its own: straight above its track when the card is over it, else at the card's nearer end. No session is assumed to be the hub. On the map of §4d the arcs cross 3 times, where the phone's picture has 118. It is not the fewest possible: the lanes stay in the order the document lists them, and a map whose handoffs run between every pair of sessions is still a tangle.
 
 It is as wide as its lanes need: 168 units to a card, and a track for each arc in a gutter, which comes to about 900 units for three lanes and twenty handoffs. Given a `width`, that is the room there is: the cards give way first, to 150 units and no further, then the tracks close up. Past that the picture is wider than the room, and whole. The cards are narrower than a phone's, so their words take more lines; a card's least is wide enough that none is cut short on any map in this repository.
 
@@ -242,4 +242,4 @@ The first draft, [`owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps
 
 ## 7. Deferred
 
-Named so nobody designs them twice: a saved `layout` for a map (every view is automatic in v0; `layout: "wide"` is an option of the drawing, not a field of the document); a view in three dimensions; a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).
+Named so nobody designs them twice: a saved `layout` for a map (every view is automatic in v0, and which view is drawn is the reader's choice, not a field of the document); a view in three dimensions; a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).
