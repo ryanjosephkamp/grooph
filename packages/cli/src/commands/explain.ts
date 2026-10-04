@@ -24,10 +24,14 @@ export type Explained = {
  */
 export function explain(doc: Graph): Explained {
   const names = new Map(doc.nodes.map((n) => [n.id, n.name ?? n.id]));
-  const label = (id: string | undefined): string => (id === undefined ? "the run ends" : `goes to ${names.get(id) ?? id}`);
+  // What a stop does when it fires, as graph-ir section 1 defines it (core's `stopAction` says the same in the
+  // package): with `then`, the run goes on at that node; a passed bar leaves the loop by its pass edges; every
+  // other stop halts the run and reports to a person. None of them "ends the run" in silence.
+  const after = (stop: Stop): string =>
+    stop.then !== undefined ? `the run goes on at ${names.get(stop.then) ?? stop.then}` : stop.kind === "bar-passed" ? "the loop is left by its pass edges" : "the run halts and reports to a person";
 
   const says = (stop: Stop): string => {
-    const then = label("then" in stop ? stop.then : undefined);
+    const then = after(stop);
     switch (stop.kind) {
       case "max-iterations":
         return `after ${plural(stop.n, "round")}, ${then}`;

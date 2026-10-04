@@ -4,7 +4,7 @@
  */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -150,3 +150,30 @@ test("explain names each loop's rounds, its stops, the gates and the worst case;
   assert.equal(await run(["explain", "../../patterns/human-gated-irreversible.grooph.json"], gated), 0);
   assert.match(gated.stdout.join("\n"), /Human gates:\n {2}Irreversible step approval: .*cannot be undone/);
 });
+
+test("explain says what each stop does when it fires: a passed bar leaves the loop, any other stop halts and reports, and `then` goes on at a node", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-explain-"));
+  try {
+    const file = join(dir, "r.grooph.json");
+    let io = capture();
+    assert.equal(await run(["template", "use", "review-gate", "--name", "Ship it", "--set", "task=fix the login bug", "--out", file], io), 0);
+    io = capture();
+    assert.equal(await run(["explain", file], io), 0);
+    const said = io.stdout.join("\n");
+    assert.match(said, /stops when the acceptance bar is met, the loop is left by its pass edges/);
+    assert.match(said, /stops after 4 rounds, the run halts and reports to a person/);
+    assert.match(said, /stops at 10 dispatches, the run halts and reports to a person/);
+    assert.doesNotMatch(said, /the run ends/);
+    // A stop that names where to go on.
+    const doc = JSON.parse(readFileSync(file, "utf8")) as { loops: { stops: { kind: string; then?: string }[] }[]; nodes: { id: string; name?: string }[] };
+    const gate = doc.nodes.find((n) => n.id.includes("approval") || (n.name ?? "").includes("approval"))!;
+    doc.loops[0]!.stops[1]!.then = gate.id;
+    writeFileSync(file, JSON.stringify(doc));
+    io = capture();
+    assert.equal(await run(["explain", file], io), 0);
+    assert.match(io.stdout.join("\n"), new RegExp(`stops after 4 rounds, the run goes on at ${gate.name ?? gate.id}`));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
