@@ -10,6 +10,10 @@
  *                                       so a new deploy is picked up on the next visit
  *   /assets/ (hashed by the build)      the cached copy first: a name never changes its content
  *   /api/ (grooph watch's endpoints)    never touched: they are live
+ *   /docs/ (the documents, static pages beside the app, handoff 0060)
+ *                                       never touched: not the app, and a page of them must not become the app's cached index
+ *   a navigation to any other file or folder beside the app (patterns/, experiments/, ...)
+ *                                       never touched: only the app's own address, "./", is the app
  *   other origins, anything not a GET   never touched
  *
  * It stores nothing but grooph's own files, and sends nothing anywhere.
@@ -49,6 +53,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || !url.href.startsWith(self.registration.scope)) return;
   if (url.pathname.includes("/api/")) return;
+  // The documents are pages of their own. Answering their navigations with the app's index would show the app, and
+  // storing them under "./" would make the app open as a document the next time it is opened with no network.
+  const scopePath = new URL(self.registration.scope).pathname;
+  if (url.pathname.startsWith(`${scopePath}docs/`)) return;
+  if (request.mode === "navigate" && url.pathname !== scopePath && url.pathname !== `${scopePath}index.html`) return;
 
   const hashed = url.pathname.includes("/assets/");
   event.respondWith(

@@ -55,6 +55,14 @@ jobs:
           cp -R experiments/comparisons apps/web/dist/experiments/comparisons
           test -f apps/web/dist/experiments/comparisons/ledger.json
 
+      # The repository's documents as pages beside the app, at /grooph/docs/ (scripts/site-pages.mjs, handoff 0060). The app's
+      # service worker leaves /docs/ alone, so a visitor with the app installed still reads a page.
+      - name: publish the documents as pages beside the app
+        run: |
+          node scripts/site-pages.mjs --out apps/web/dist
+          test -f apps/web/dist/docs/index.html
+          test -f apps/web/dist/docs/quickstart/index.html
+
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
