@@ -28,3 +28,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0022 | [Public-facing text is American English](0022-american-english.md) |
 | 0023 | [Who merges what](0023-who-merges-what.md) |
 | 0024 | [Lanes, the review desk, and the audit loop with Codex](0024-lanes-the-desk-and-the-audit-loop.md) |
+| 0025 | [Subgroophs: a group that remembers where it came from](0025-subgroophs.md) (proposed) |
