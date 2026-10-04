@@ -10,6 +10,14 @@
  *
  *   node scripts/perf-loadtime.mjs main=../grooph-main/apps/web/dist change=apps/web/dist
  *
+ * The front page is what it opens. To time another address, say which and what to wait for:
+ *
+ *   node scripts/perf-loadtime.mjs --at '#/templates/built-in/review-gate' --until '.react-flow__node' main=… change=…
+ *
+ * GitHub Pages speaks HTTP/2, where every file of a round travels on one connection. So does this, when `openssl`
+ * is there to make it a certificate for the run; without it the server speaks HTTP/1.1, where a browser opens at
+ * most six connections and a seventh file waits its turn, which reads as a slower page than Pages would serve.
+ *
  * It needs the browser Playwright installs for the app's own tests.
  */
 import { createRequire } from "node:module";
@@ -17,15 +25,29 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 const web = resolve(dirname(fileURLToPath(import.meta.url)), "..", "apps", "web");
 const { chromium } = createRequire(resolve(web, "package.json"))("@playwright/test");
+import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { createSecureServer } from "node:http2";
+import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { gzipSync } from "node:zlib";
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".webmanifest": "application/manifest+json" };
+/** A certificate for this run only, so the server can speak HTTP/2 as Pages does. */
+const tls = (() => {
+  try {
+    const dir = mkdtempSync(join(tmpdir(), "grooph-perf-"));
+    execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-keyout", join(dir, "key.pem"), "-out", join(dir, "cert.pem")], { stdio: "ignore" });
+    return { key: readFileSync(join(dir, "key.pem")), cert: readFileSync(join(dir, "cert.pem")) };
+  } catch {
+    return undefined;
+  }
+})();
+const scheme = tls ? "https" : "http";
 const serve = (dist, port) =>
   new Promise((done) => {
     const cache = new Map();
-    const server = createServer((req, res) => {
+    const server = (tls ? (handler) => createSecureServer(tls, handler) : createServer)((req, res) => {
       let path = decodeURIComponent(new URL(req.url, "http://x").pathname).replace(/^\/grooph\//, "/");
       if (path === "/" || path === "") path = "/index.html";
       const file = join(dist, path);
@@ -37,7 +59,11 @@ const serve = (dist, port) =>
     });
     server.listen(port, "127.0.0.1", () => done(server));
   });
-const builds = process.argv.slice(2).map((a) => [a.slice(0, a.indexOf("=")), resolve(a.slice(a.indexOf("=") + 1))]);
+const args = process.argv.slice(2);
+const option = (flag, fallback) => (args.includes(flag) ? args.splice(args.indexOf(flag), 2)[1] : fallback);
+const at = option("--at", "");
+const until = option("--until", "h1");
+const builds = args.map((a) => [a.slice(0, a.indexOf("=")), resolve(a.slice(a.indexOf("=") + 1))]);
 if (builds.length === 0 || builds.some(([name, dist]) => !name || !existsSync(join(dist, "index.html")))) {
   console.error("perf-loadtime: give one or more <name>=<path to a built apps/web/dist>");
   process.exit(1);
@@ -51,14 +77,14 @@ for (const [name, dist] of builds) {
   for (const [link, conditions] of Object.entries(links)) {
     const times = [];
     for (let i = 0; i < 7; i += 1) {
-      const context = await browser.newContext({ viewport: { width: 400, height: 800 }, serviceWorkers: "block" });
+      const context = await browser.newContext({ viewport: { width: 400, height: 800 }, serviceWorkers: "block", ignoreHTTPSErrors: true });
       const page = await context.newPage();
       const cdp = await context.newCDPSession(page);
       await cdp.send("Network.enable");
       await cdp.send("Network.emulateNetworkConditions", { offline: false, ...conditions });
       const began = Date.now();
-      await page.goto(`http://127.0.0.1:${port}/grooph/`, { waitUntil: "commit" });
-      await page.waitForSelector("h1", { state: "visible", timeout: 60000 });
+      await page.goto(`${scheme}://127.0.0.1:${port}/grooph/${at}`, { waitUntil: "commit" });
+      await page.waitForSelector(until, { state: "visible", timeout: 60000 });
       times.push(Date.now() - began);
       await context.close();
     }
@@ -69,4 +95,4 @@ for (const [name, dist] of builds) {
   port += 1;
 }
 await browser.close();
-console.log(JSON.stringify(out, null, 2));
+console.log(JSON.stringify({ protocol: tls ? "HTTP/2" : "HTTP/1.1", address: `/grooph/${at}`, until, ...out }, null, 2));

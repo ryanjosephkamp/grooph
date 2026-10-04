@@ -314,3 +314,28 @@ test("the front page plays a recorded run when asked, in the picture's place, an
   await expect(page.getByRole("heading", { name: "More than a drawing" })).toBeVisible();
 });
 
+test("the front page loads without the canvas screens and fetches them once it is up; a template's address asks for them at once", async ({ page }) => {
+  // Slice 0069: index.html names what an address needs before the entry script runs.
+  // When the screens were asked for, against when the entry script and the app's own module had arrived.
+  const asked = () =>
+    page.evaluate(() => {
+      const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
+      const one = (pattern: RegExp) => entries.find((e) => pattern.test(e.name))!;
+      return { screens: one(/\/assets\/screens-/).startTime, entry: one(/\/assets\/index-/).responseEnd, app: one(/\/assets\/App-[^/]*\.js/).responseEnd };
+    });
+  const arrived = () => page.waitForFunction(() => performance.getEntriesByType("resource").some((e) => /\/assets\/screens-/.test(e.name)));
+
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  // Fetched after the app itself is here, so the next screen opens at once and the first one did not wait.
+  await arrived();
+  const front = await asked();
+  expect(front.screens).toBeGreaterThan(front.app);
+
+  await page.goto("./#/templates/built-in/review-gate");
+  await page.reload();
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await arrived();
+  const template = await asked();
+  expect(template.screens).toBeLessThan(template.entry);
+});

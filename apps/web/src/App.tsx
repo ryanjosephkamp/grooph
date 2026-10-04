@@ -3,18 +3,42 @@ import { Suspense, lazy, useEffect, useState } from "react";
 
 import type { TemplateSource } from "./doc/templates.js";
 import "./store/persist.js";
-import { EditorScreen } from "./ui/Editor.js";
 import { Landing } from "./ui/landing/Landing.js";
 import { Library } from "./ui/Library.js";
-import { LiveSessions } from "./ui/live/LiveSessions.js";
-import { OpenScreen } from "./ui/open/OpenScreen.js";
-import { LiveRun, StoredRun } from "./ui/run/RunScreens.js";
 import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
-import { TemplateView } from "./ui/templates/TemplateView.js";
-import { UseTemplate } from "./ui/templates/UseTemplate.js";
 
 /** The embed, fetched only when a route asks for it (slice 0056 keeps it out of the app's own load). */
 const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ default: m.EmbedApp })));
+
+/**
+ * The screens that draw on the canvas (slice 0069): one module, fetched when an address first shows one. The front
+ * page, the library and the template list above are all the app loads to begin with.
+ *
+ * Held here and not behind `lazy`: a screen that arrives a moment after React has shown an empty fallback is held
+ * back by React for some hundreds of milliseconds, so that fallbacks do not flicker. main.tsx fetches the module
+ * before the first render when the address opens on one of these screens, and nothing empty is ever shown.
+ */
+type Screens = typeof import("./ui/screens.js");
+let screens: Screens | undefined;
+let asked: Promise<Screens> | undefined;
+
+/** Fetch the canvas screens, once. A fetch that failed is tried again the next time one is asked for. */
+export function loadScreens(): Promise<Screens> {
+  asked ??= import("./ui/screens.js").then(
+    (m) => (screens = m),
+    (err: unknown) => {
+      asked = undefined;
+      throw err;
+    },
+  );
+  return asked;
+}
+
+/** Whether an address opens on a screen that draws on the canvas. */
+export function needsScreens(hash: string): boolean {
+  return !LIGHT.has(parse(hash).name);
+}
+const LIGHT = new Set<Route["name"]>(["library", "about", "templates", "embed"]);
 
 type Route =
   | { name: "library" }
@@ -79,14 +103,33 @@ export function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+  // Once the first screen is up, fetch the canvas screens: the next one opens at once, and the service worker
+  // holds them for a visit with no network. Asked again whenever an address needs them and they are not here.
+  const [fetched, setFetched] = useState<"yes" | "no" | "failed">(screens ? "yes" : "no");
+  const wanted = !LIGHT.has(route.name);
+  useEffect(() => {
+    if (fetched === "yes" || (fetched === "failed" && !wanted)) return;
+    let gone = false;
+    loadScreens().then(
+      () => !gone && setFetched("yes"),
+      () => !gone && setFetched("failed"),
+    );
+    return () => {
+      gone = true;
+    };
+  }, [fetched, wanted, route]);
 
-  if (route.name === "graph") return <EditorScreen key={route.key} graphKey={route.key} fresh={route.fresh} />;
-  if (route.name === "open") return <OpenScreen payload={route.payload} candidate={route.candidate} />;
-  if (route.name === "live-run") return <LiveRun />;
-  if (route.name === "live") return <LiveSessions />;
-  if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
   if (route.name === "about") return <Landing />;
   if (route.name === "templates") return <TemplatesScreen />;
+  if (route.name === "library") {
+    return (
+      <Library
+        open={(key, fresh) => {
+          location.hash = `#/g/${encodeURIComponent(key)}${fresh ? "?new" : ""}`;
+        }}
+      />
+    );
+  }
   // Reached from inside the app (a page opened on `#/embed` is drawn by main.tsx without the app at all): the embed
   // is fetched then, so the app itself never carries it.
   if (route.name === "embed") {
@@ -96,15 +139,26 @@ export function App() {
       </Suspense>
     );
   }
-  if (route.name === "template") {
-    const key = `${route.source}/${route.id}`;
-    return route.use ? <UseTemplate key={key} source={route.source} id={route.id} /> : <TemplateView key={key} source={route.source} id={route.id} />;
+  if (!screens) {
+    if (fetched !== "failed") return null;
+    return (
+      <div className="notfound">
+        <p>This screen could not be fetched. It needs a connection the first time.</p>
+        <button type="button" className="btn btn-primary" onClick={() => setFetched("no")}>
+          Try again
+        </button>
+        <a className="btn" href="#/">
+          Back to the library
+        </a>
+      </div>
+    );
   }
-  return (
-    <Library
-      open={(key, fresh) => {
-        location.hash = `#/g/${encodeURIComponent(key)}${fresh ? "?new" : ""}`;
-      }}
-    />
-  );
+  const { EditorScreen, LiveRun, LiveSessions, OpenScreen, StoredRun, TemplateView, UseTemplate } = screens;
+  if (route.name === "graph") return <EditorScreen key={route.key} graphKey={route.key} fresh={route.fresh} />;
+  if (route.name === "open") return <OpenScreen payload={route.payload} candidate={route.candidate} />;
+  if (route.name === "live-run") return <LiveRun />;
+  if (route.name === "live") return <LiveSessions />;
+  if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
+  const key = `${route.source}/${route.id}`;
+  return route.use ? <UseTemplate key={key} source={route.source} id={route.id} /> : <TemplateView key={key} source={route.source} id={route.id} />;
 }

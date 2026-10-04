@@ -12,7 +12,13 @@ if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
 } else {
   // The stylesheets in order (React Flow's base, then the app's, which overrides it), the app beside them.
   const css = import("@xyflow/react/dist/base.css").then(() => import("./styles.css"));
-  const app = Promise.all([css, import("./App.js")]).then(([, { App }]) => render(<App />));
+  // An address that opens on a screen that draws on the canvas waits for those screens too (slice 0069); index.html
+  // has already asked for them beside the app, so this costs no round of its own. Any other address does not wait.
+  const app = Promise.all([css, import("./App.js")]).then(async ([, loaded]) => {
+    if (loaded.needsScreens(location.hash)) await loaded.loadScreens().catch(() => undefined);
+    render(<loaded.App />);
+    return loaded;
+  });
 
   // Stage 8: once opened with a network, the app opens without one (public/sw.js). Only in a built app:
   // the dev server's modules are not files to cache.
@@ -25,8 +31,16 @@ if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
     const warm = () => {
       for (const entry of performance.getEntriesByType("resource")) if (entry.name.includes("/assets/")) void fetch(entry.name).catch(() => undefined);
     };
+    // And once more when the canvas screens have arrived, which on the front page is after the first screen is up.
     if (!navigator.serviceWorker.controller) {
-      navigator.serviceWorker.addEventListener("controllerchange", () => void app.then(warm), { once: true });
+      const all = () =>
+        app
+          .then((loaded) => {
+            warm();
+            return loaded.loadScreens();
+          })
+          .then(warm, () => undefined);
+      navigator.serviceWorker.addEventListener("controllerchange", () => void all(), { once: true });
     }
   }
 }

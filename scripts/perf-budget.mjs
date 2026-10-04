@@ -6,8 +6,9 @@
  *   node scripts/perf-budget.mjs --check    the same, and exit 1 when a number is over its budget
  *
  * It reads the built app (apps/web/dist: run `pnpm -r build` first) and times the built CLI. Sizes are gzip, in units of 1,024 bytes,
- * which is what GitHub Pages sends. The app's first load is index.html, its scripts and its styles; an embed's is what
- * an `#/embed` address loads, which is much less (the build lists both in dist/routes.json). Budgets are in
+ * which is what GitHub Pages sends. The app's first load is index.html, its scripts and its styles, at the front page;
+ * an address that draws on the canvas (a graph, a template, a link, a run) loads the canvas screens as well; an embed's
+ * is what an `#/embed` address loads, which is much less (the build lists the sets in dist/routes.json). Budgets are in
  * scripts/perf-budget.json; raising one is a decision, made in a pull request that says why.
  */
 import { execFileSync } from "node:child_process";
@@ -39,7 +40,10 @@ const appCss = routes ? routes.app.css : first.filter((f) => f.endsWith(".css"))
 const js = sum(appJs);
 const css = sum(appCss);
 const embed = routes ? sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html : undefined;
-const counted = new Set([...appJs, ...appCss, ...(routes ? [...routes.embed.js, ...routes.embed.css] : [])]);
+// Since slice 0069 the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
+const canvasFiles = routes?.canvas ? [...routes.canvas.js, ...routes.canvas.css] : [];
+const canvas = routes?.canvas ? js + css + html + sum(canvasFiles) : undefined;
+const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...(routes ? [...routes.embed.js, ...routes.embed.css] : [])]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
@@ -56,6 +60,7 @@ const rows = [
   ["the app's first load (HTML, scripts and styles), gzip KB", one(js + css + html), budget.firstLoadKB],
   ["  of which scripts", one(js), budget.entryJsKB],
   ["  of which styles", one(css), budget.cssKB],
+  ...(canvas !== undefined ? [["the first load of an address that draws on the canvas, gzip KB", one(canvas), budget.canvasLoadKB]] : []),
   ...(embed !== undefined ? [["an embed's first load, gzip KB", one(embed), budget.embedLoadKB]] : []),
   ["the CLI's cold start, ms (middle of five)", Math.round(cli), budget.cliColdMs],
 ];
