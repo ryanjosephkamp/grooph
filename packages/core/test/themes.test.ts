@@ -109,18 +109,19 @@ export const contrast = (a: string, b: string): number => {
 
 /**
  * Every pair of a color words are drawn in and the ground they are drawn on, read from the drawing code: a graph's
- * and a map's pictures, a map's other two views, and the marks an embed adds while a run plays.
+ * and a map's pictures, a map's other two views, the marks an embed adds while a run plays, and the canvas in the
+ * web app, which takes a theme's colors as its own (a loop's label on a card's ground, a halted node's badge).
  */
 // prettier-ignore
 const WORDS_ON: [Color, Color[]][] = [
   // the page: titles, captions, goals, the loops, the handoffs' list, a label's pill (its words are the edge's color)
   ["bg", ["ink", "ink-2", "ink-3", "gate", "warning", "loop-0", "loop-1", "loop-2", "loop-3", "accent", "check", "merge", "error"]],
   // a card: a node's kind, its name and lines; a session's harness, role, schedule, graph and what the hooks saw
-  ["surface", ["ink", "ink-2", "ink-3", "accent", "gate", "check", "merge", "stop", "loop-0", "warning"]],
+  ["surface", ["ink", "ink-2", "ink-3", "accent", "gate", "check", "merge", "stop", "loop-0", "loop-1", "loop-2", "loop-3", "warning"]],
   // a rank's band, a lane, the people's band
   ["surface-2", ["ink", "ink-2", "ink-3"]],
   // a person's card
-  ["gate-soft", ["ink", "ink-2", "gate"]],
+  ["gate-soft", ["ink", "ink-2", "gate", "warning"]],
   // a family's count, and a node's state while a run plays
   ["accent-soft", ["accent"]],
   ["ok-soft", ["ok"]],
