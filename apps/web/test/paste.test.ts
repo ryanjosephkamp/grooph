@@ -32,6 +32,33 @@ describe("reading what was pasted", () => {
     expect(read).toEqual({ kind: "document", text: tricky });
   });
 
+  it("takes the graph, not the first JSON in the reply: slot values, an example of operations and a tool's own wrapper come before it", () => {
+    const ops = '[{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder"}},{"op":"connect","from":"builder","to":"done"}]';
+    for (const reply of [
+      `I filled it with these values:\n\`\`\`json\n{ "task": "make the checkout test pass", "test-command": "pnpm test checkout" }\n\`\`\`\nand here is the graph:\n\`\`\`json\n${doc}\`\`\``,
+      `next: grooph_apply with ops, for example ${ops}\n${doc}`,
+      `The values were {"task": "t"} and the graph is ${doc}`,
+      `{ oops, a stray brace. The graph: ${doc}`,
+      `${"The template asks for {{task}} and {{test-command}}. ".repeat(6)}Filled:\n${doc}`,
+    ]) {
+      const read = readPasted(reply);
+      expect(read.kind, reply.slice(0, 40)).toBe("document");
+      if (read.kind === "document") same(read.text);
+    }
+    // A tool's reply copied whole: the lines, then the graph under "graph".
+    const wrapped = readPasted(JSON.stringify({ text: "applied 1 operation", ok: true, graph: JSON.parse(doc) as unknown, issues: [] }));
+    expect(wrapped.kind).toBe("document");
+    if (wrapped.kind === "document") same(wrapped.text);
+  });
+
+  it("opens a link when the only JSON beside it is not a document", () => {
+    expect(readPasted("Here {} is the link: https://ryanjosephkamp.github.io/grooph/#/open?d=AbC_1")).toEqual({ kind: "link", payload: "AbC_1" });
+  });
+
+  it("hands on a whole object that is not a grooph document, so the person is told what it lacks", () => {
+    expect(readPasted('It is {"id": "x", "nodes": []} I think')).toEqual({ kind: "document", text: '{"id": "x", "nodes": []}' });
+  });
+
   it("recognizes a grooph link, alone or in a sentence, as a link to open", () => {
     expect(readPasted("https://ryanjosephkamp.github.io/grooph/#/open?d=AbC-_123")).toEqual({ kind: "link", payload: "AbC-_123" });
     expect(readPasted("Open this on your phone: http://localhost:4362/grooph/#/open?d=xyz_9 (it is the lean one)")).toEqual({ kind: "link", payload: "xyz_9" });

@@ -5,7 +5,7 @@
  * Exit codes: 0 fine · 1 the document is wrong, or the invocation is · 2 a crash.
  */
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { parse, resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -379,11 +379,21 @@ export async function run(
         const chat = values["chat"] === true;
         if (chat && values["dir"] !== undefined) return usageError(io, "--chat writes no file, so it takes no --dir; leave one of them out");
         const e = env.env ?? process.env;
-        const project = resolve(values["dir"] ?? e["CLAUDE_PROJECT_DIR"] ?? process.cwd());
+        // An empty --dir or an empty CLAUDE_PROJECT_DIR names no folder, and counts as none.
+        const named = [values["dir"], e["CLAUDE_PROJECT_DIR"]].find((dir) => dir !== undefined && dir.trim() !== "");
+        const project = resolve(named ?? process.cwd());
         // A chat app starts a server wherever it likes, often in the file system's root or the home folder. A folder
-        // nobody chose is not a project: there the tools still return every document, and write no file.
-        const chosen = values["dir"] !== undefined || e["CLAUDE_PROJECT_DIR"] !== undefined;
-        const writes = !chat && (chosen || (project !== parse(project).root && project !== resolve(homedir())));
+        // nobody chose is not a project: there the tools still return every document, and write no file. Folders are
+        // compared by real location, so a home reached through a link is still home.
+        const real = (dir: string): string => {
+          try {
+            return realpathSync.native(dir);
+          } catch {
+            return resolve(dir);
+          }
+        };
+        const nowhere = real(project) === parse(real(project)).root || real(project) === real(homedir());
+        const writes = !chat && (named !== undefined || !nowhere);
         // The harness does not always tell an MCP server which session it serves; then the id is this server's own.
         const session = e["CLAUDE_CODE_SESSION_ID"] ?? e["CODEX_SESSION_ID"] ?? `mcp-${Date.now().toString(36)}-${process.pid}`;
         const harness = values["harness"] ?? (e["CLAUDECODE"] ? "claude-code" : e["CODEX_HOME"] || e["CODEX_SESSION_ID"] ? "codex" : "unknown");

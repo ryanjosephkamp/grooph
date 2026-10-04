@@ -290,27 +290,32 @@ export function serve(ctx: McpContext, input: NodeJS.ReadableStream = process.st
     const end = (): void => {
       if (ended) return;
       ended = true;
+      // A last message with no newline after it is still a message.
+      take(buffer.trim());
+      buffer = "";
       void queue.then(() => done());
+    };
+    const take = (line: string): void => {
+      if (line === "") return;
+      queue = queue.then(async () => {
+        let message: unknown;
+        try {
+          message = JSON.parse(line);
+        } catch {
+          output.write(`${JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } })}\n`);
+          return;
+        }
+        const reply = await handle(message, ctx);
+        if (reply !== undefined) output.write(`${JSON.stringify(reply)}\n`);
+      });
     };
     input.setEncoding("utf8");
     input.on("data", (chunk: string) => {
       buffer += chunk;
       let at: number;
       while ((at = buffer.indexOf("\n")) >= 0) {
-        const line = buffer.slice(0, at).trim();
+        take(buffer.slice(0, at).trim());
         buffer = buffer.slice(at + 1);
-        if (line === "") continue;
-        queue = queue.then(async () => {
-          let message: unknown;
-          try {
-            message = JSON.parse(line);
-          } catch {
-            output.write(`${JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } })}\n`);
-            return;
-          }
-          const reply = await handle(message, ctx);
-          if (reply !== undefined) output.write(`${JSON.stringify(reply)}\n`);
-        });
       }
     });
     input.on("end", end);

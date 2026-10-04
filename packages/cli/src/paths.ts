@@ -19,7 +19,7 @@ const base = (): string => fileURLToPath(new URL("../", import.meta.url));
 /** The built-in pattern library, bundled beside the code at build time (docs/templates.md §3). */
 export const patternsDir = (): string => join(base(), "patterns");
 
-/** A script under hooks/, as this CLI ships it. */
+/** A script under hooks/, as this CLI ships it: beside dist/ in the clone and in the npm package. The chat skill carries none. */
 export const shippedHook = (name: string): string => resolve(base(), "..", "hooks", name);
 
 /**
@@ -28,8 +28,9 @@ export const shippedHook = (name: string): string => resolve(base(), "..", "hook
  * `<clone>/packages/cli/dist`: three folders up from an installed package is somebody else's project.
  */
 export function appDir(): string | undefined {
+  // The packaged copy carries a mark the packaging script writes, so a folder that merely sits where it would is not served.
   const packaged = join(base(), "app");
-  if (existsSync(join(packaged, "index.html"))) return packaged;
+  if (existsSync(join(packaged, "index.html")) && existsSync(join(packaged, "grooph-app.json"))) return packaged;
   const clone = resolve(base(), "..", "..", "..");
   if (resolve(clone, "packages", "cli", "dist") !== resolve(base())) return undefined;
   const built = join(clone, "apps", "web", "dist");

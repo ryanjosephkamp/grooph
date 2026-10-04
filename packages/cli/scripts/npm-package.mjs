@@ -18,7 +18,7 @@
  */
 
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 import { bundleCli, pkg, repo } from "./bundle.mjs";
 
@@ -40,8 +40,13 @@ mkdirSync(out, { recursive: true });
 await bundleCli(join(out, "dist", "bundle", "grooph.js"));
 cpSync(join(pkg, "dist", "patterns"), join(out, "dist", "patterns"), { recursive: true });
 cpSync(join(pkg, "hooks"), join(out, "hooks"), { recursive: true });
-// The app as the site serves it, less the source maps: three megabytes nobody watching a run reads.
-cpSync(app, join(out, "dist", "app"), { recursive: true, filter: (source) => !source.endsWith(".map") });
+// The app as `vite build` leaves it, less the source maps (three megabytes nobody watching a run reads) and less what
+// the site adds beside it after a build: the rendered documents, the published templates, the gallery. A local run of
+// the browser tests leaves those in apps/web/dist, and none of them is the app.
+const SITE_ONLY = new Set(["docs", "patterns", "community"]);
+cpSync(app, join(out, "dist", "app"), { recursive: true, filter: (source) => !source.endsWith(".map") && !SITE_ONLY.has(relative(app, source).split(sep)[0]) });
+// A mark that this folder is grooph's app, put there by this script: `grooph watch` serves the packaged copy only when it finds it.
+writeFileSync(join(out, "dist", "app", "grooph-app.json"), `${JSON.stringify({ app: "grooph", version: manifest.version })}\n`);
 cpSync(join(pkg, "README.md"), join(out, "README.md"));
 cpSync(join(repo, "LICENSE"), join(out, "LICENSE"));
 

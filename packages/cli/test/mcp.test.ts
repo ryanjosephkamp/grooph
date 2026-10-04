@@ -158,14 +158,14 @@ test("as a process: one JSON-RPC message per line in, one per line out, nothing 
 
 test("started where nobody chose (the file system's root) the server answers and writes nothing; --chat lists the authoring tools and takes no --dir", async () => {
   const bin = join(repoRoot, "packages", "cli", "bin", "grooph.js");
-  const session = async (args: string[], cwd: string, messages: unknown[]): Promise<{ code: number | null; replies: Reply[]; err: string }> => {
+  const session = async (args: string[], cwd: string, messages: unknown[], more: NodeJS.ProcessEnv = {}, newline = true): Promise<{ code: number | null; replies: Reply[]; err: string }> => {
     // No CLAUDE_PROJECT_DIR in the environment: a chat app gives a server none.
-    const child = spawn(process.execPath, [bin, "mcp", ...args], { cwd, env: { PATH: process.env["PATH"] ?? "", HOME: process.env["HOME"] ?? "" }, stdio: ["pipe", "pipe", "pipe"] });
+    const child = spawn(process.execPath, [bin, "mcp", ...args], { cwd, env: { PATH: process.env["PATH"] ?? "", HOME: process.env["HOME"] ?? "", ...more }, stdio: ["pipe", "pipe", "pipe"] });
     let out = "";
     let err = "";
     child.stdout.on("data", (d: Buffer) => (out += d.toString()));
     child.stderr.on("data", (d: Buffer) => (err += d.toString()));
-    for (const m of messages) child.stdin.write(`${JSON.stringify(m)}\n`);
+    child.stdin.write(messages.map((m) => JSON.stringify(m)).join("\n") + (newline ? "\n" : ""));
     child.stdin.end();
     const code = await new Promise<number | null>((done) => child.on("close", done));
     return { code, err, replies: out.trim() === "" ? [] : out.trim().split("\n").map((l) => JSON.parse(l) as Reply) };
@@ -187,6 +187,13 @@ test("started where nobody chose (the file system's root) the server answers and
   assert.deepEqual((chat.replies[0]!.result!["tools"] as { name: string }[]).map((t) => t.name).slice(0, 2), ["grooph_validate", "grooph_templates"]);
   assert.equal((chat.replies[0]!.result!["tools"] as unknown[]).length, 10);
   assert.match(textOf(chat.replies[1]!), /so it writes no file/);
+
+  // An empty CLAUDE_PROJECT_DIR names no folder; it does not make the root a project.
+  const empty = await session([], "/", [written], { CLAUDE_PROJECT_DIR: "" });
+  assert.match(textOf(empty.replies[0]!), /so it writes no file/);
+  // A last message with no newline after it is still answered.
+  const unended = await session(["--chat"], "/", [list, made], {}, false);
+  assert.deepEqual(unended.replies.map((r) => r.id), [3, 1]);
 
   const both = await session(["--chat", "--dir", "."], repoRoot, []);
   assert.equal(both.code, 1);

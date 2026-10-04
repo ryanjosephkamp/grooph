@@ -23,7 +23,7 @@
  * `next:` line: what to call, with what, to get past it.
  */
 
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
@@ -173,12 +173,24 @@ const DOC_ARG = (what: string): Json => ({ type: ["object", "string"], descripti
 const REMEMBERED = 64;
 const ID = /^[a-z][a-z0-9-]*$/;
 
-/** Keep a graph a tool returned or was handed, under its id, so a later call can name it and need not carry it. */
-export function remember(ctx: McpContext, doc: Graph): void {
+/**
+ * Keep a graph a tool returned or was handed, under its id, so a later call can name it and need not carry it.
+ * `made` says the graph is new under this id (a template used, an empty graph, a rename): if the id already named a
+ * different graph, that one is replaced, and the line returned says so, so the replacement is never silent.
+ */
+export function remember(ctx: McpContext, doc: Graph, made = false): string | undefined {
   const graphs = (ctx.graphs ??= new Map<string, Graph>());
+  const before = graphs.get(doc.id);
   graphs.delete(doc.id);
   graphs.set(doc.id, doc);
   if (graphs.size > REMEMBERED) graphs.delete(graphs.keys().next().value!);
+  if (!made || before === undefined || canonicalize(before) === canonicalize(doc)) return undefined;
+  // Nothing is lost when what was there was only a start: an empty graph, or the same template with a slot still to fill
+  // (the usual second call, with the value the person has now given).
+  const onlyAStart = before.nodes.length === 0 || (before.lineage?.from === doc.lineage?.from && findSlots(before).length > 0);
+  return onlyAStart
+    ? undefined
+    : `note: the id "${doc.id}" named another graph in this conversation until now; it names this one from here on. To keep both, give this one another name (grooph_apply, setGraphName).`;
 }
 const PATH_ARG = { type: "string", description: "Or a graph file to read (*.grooph.json), absolute or relative to the project folder." };
 const OUT_ARG = { type: "string", description: "Also write the graph to this file, inside the project folder. Leave it out in a chat: the document comes back either way." };
@@ -259,37 +271,79 @@ export function within(ctx: McpContext, given: string): string {
   }
   let root: string;
   try {
-    root = realpathSync(ctx.project);
+    root = realpathSync.native(ctx.project);
   } catch {
     throw new Refusal(`The project folder ${ctx.project} does not exist, so there is nowhere to write.`, `leave "out" off: the result comes back in this reply`);
   }
   const full = resolve(root, given);
   const outside = (): Refusal => new Refusal(`${given} is outside the project folder (${root}); grooph writes only inside it.`, `give a path inside ${root}, relative to it`);
-  // A link at the path itself, even one that points at nothing yet, would be written through.
+  // A link at the path itself is never written: through it the write would land wherever it points, in the project or not.
   let link = false;
   try {
     link = lstatSync(full).isSymbolicLink();
   } catch {
     link = false;
   }
+  if (link) {
+    let target: string | undefined;
+    try {
+      target = realpathSync.native(full);
+    } catch {
+      target = undefined;
+    }
+    const rel = target === undefined ? ".." : relative(root, target);
+    if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw outside();
+    throw new Refusal(`${given} is a link to another file, and grooph writes files, not through links.`, `give the path of a file of its own, inside ${root}`);
+  }
+  // The nearest folder that exists, by its real location, must be the project or inside it. A path with no existing
+  // ancestor at all (a drive that is not there) is outside.
   let probe = full;
-  if (link && !existsSync(full)) throw outside();
-  while (!existsSync(probe)) probe = dirname(probe);
-  const real = realpathSync(probe);
-  if (real !== root && !real.startsWith(root + sep)) throw outside();
+  while (!existsSync(probe)) {
+    const parent = dirname(probe);
+    if (parent === probe) throw outside();
+    probe = parent;
+  }
+  // `relative`, not a prefix test: the project may be the root itself, where "root + separator" is a prefix of nothing.
+  const rel = relative(root, realpathSync.native(probe));
+  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw outside();
   return full;
 }
 
 const shownIn = (ctx: McpContext, full: string): string => {
   let root = ctx.project;
   try {
-    root = realpathSync(ctx.project);
+    root = realpathSync.native(ctx.project);
   } catch {
     /* shown as given */
   }
   const rel = relative(root, full);
-  return rel === "" ? "." : rel.startsWith("..") ? full : rel;
+  return rel === "" ? "." : rel === ".." || rel.startsWith(`..${sep}`) ? full : rel;
 };
+
+/** Whether two paths name one file, by real location: through a linked folder, or in another case on a file system that ignores it. */
+const sameFile = (a: string, b: string): boolean => {
+  try {
+    return realpathSync.native(a) === realpathSync.native(b);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Put `contents` at `full` by writing beside it and renaming over it. The name then holds a new file: another name
+ * for the old one (a hard link, in the project or out of it) keeps what it had, and nothing is ever half written.
+ */
+function put(full: string, contents: string | Uint8Array): void {
+  mkdirSync(dirname(full), { recursive: true });
+  const beside = `${full}.${process.pid}.grooph-tmp`;
+  writeFileSync(beside, contents, { flag: "wx" });
+  try {
+    renameSync(beside, full);
+  } catch (err) {
+    rmSync(beside, { force: true });
+    throw err;
+  }
+}
 
 /** Write `contents` at `given` inside the project. An existing file is replaced only when `replace` says the tool may. */
 function save(ctx: McpContext, given: string, contents: string | Uint8Array, replace: (full: string) => boolean): string {
@@ -297,8 +351,7 @@ function save(ctx: McpContext, given: string, contents: string | Uint8Array, rep
   if (existsSync(full) && !replace(full)) {
     throw new Refusal(`${shownIn(ctx, full)} already exists, and this tool does not replace a file it did not read.`, `give "out" another name`);
   }
-  mkdirSync(dirname(full), { recursive: true });
-  writeFileSync(full, contents);
+  put(full, contents);
   return shownIn(ctx, full);
 }
 
@@ -486,7 +539,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         throw new Refusal([`The graph made from "${id}" does not match the schema, so nothing was returned:`, ...issueLines(checked.schema)], "a slot value probably broke a field; pass plain text values and call again", { issues: checked.schema });
       }
       const doc = checked.doc;
-      remember(ctx, doc);
+      const replaced = remember(ctx, doc, true);
       const issues = validate(doc);
       const unfilled = findSlots(doc).map((use) => use.key);
       const out = str(args["out"]);
@@ -495,6 +548,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         `graph "${doc.id}" from ${found.doc.id}@${found.doc.version} (${found.source}): ${shapeLine(estimateShape(doc))}`,
         ...slotQuestions(doc, found.doc),
         ...issuesBlock(issues),
+        ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
         `next: ${unfilled.length > 0 ? `get the values for ${unfilled.join(", ")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false, doc.id)}`,
       ];
@@ -523,11 +577,12 @@ export const AUTHOR_TOOLS: Tool[] = [
       const goal = str(args["goal"]);
       const target = str(args["target"]);
       const doc = newGraph({ name, ...(goal !== undefined ? { goal } : {}), ...(target !== undefined ? { target } : {}) });
-      remember(ctx, doc);
+      const replaced = remember(ctx, doc, true);
       const out = str(args["out"]);
       const wrote = out === undefined ? undefined : save(ctx, out, canonicalize(doc), () => false);
       const lines = [
         `graph "${doc.id}": empty`,
+        ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
         `next: grooph_apply with "graph": "${doc.id}" and "ops", for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"…","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]`,
       ];
@@ -574,15 +629,16 @@ export const AUTHOR_TOOLS: Tool[] = [
         );
       }
       const doc = checked.doc;
-      remember(ctx, doc);
+      const replaced = remember(ctx, doc, doc.id !== read.doc.id);
       const forExport = args["forExport"] === true;
       const issues = validate(doc, { forExport });
       const out = str(args["out"]);
-      const wrote = out === undefined ? undefined : save(ctx, out, canonicalize(doc), (full) => read.file !== undefined && resolve(read.file) === full);
+      const wrote = out === undefined ? undefined : save(ctx, out, canonicalize(doc), (full) => read.file !== undefined && sameFile(read.file, full));
       const made = result.ids.filter((id): id is string => id !== null);
       const lines = [
         `applied ${plural(ops.length, "operation")} to "${doc.id}"${made.length > 0 ? `; ids: ${made.join(", ")}` : ""}`,
         ...issuesBlock(issues),
+        ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
         `next: ${nextAfter(issues, forExport, doc.id)}`,
       ];
@@ -790,12 +846,9 @@ export const AUTHOR_TOOLS: Tool[] = [
       let folder: string | undefined;
       if (into !== undefined) {
         const root = within(ctx, into);
-        for (const path of paths) within(ctx, join(into, path));
-        for (const path of paths) {
-          const full = join(root, path);
-          mkdirSync(dirname(full), { recursive: true });
-          writeFileSync(full, compiled.files[path]!);
-        }
+        // Every file's place is checked before the first is written, so a package is placed whole or not at all.
+        const places = paths.map((path) => within(ctx, join(into, path)));
+        for (const [i, path] of paths.entries()) put(places[i]!, compiled.files[path]!);
         folder = shownIn(ctx, root);
       }
       const lines = [

@@ -9,7 +9,8 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 KEEP=""
-[[ "${1:-}" == "--keep" ]] && KEEP="${2:?--keep needs a folder}"
+# --keep is resolved now, from where the script was called: every later step runs somewhere else.
+if [[ "${1:-}" == "--keep" ]]; then mkdir -p "${2:?--keep needs a folder}" && KEEP="$(cd "$2" && pwd -P)"; fi
 SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/grooph-kit-check.XXXXXX")"
 trap 'rm -rf "$SCRATCH"' EXIT
 fail() { echo "FAIL: $*" >&2; exit 1; }
@@ -39,8 +40,9 @@ G explain flaky.grooph.json | grep >/dev/null "at most 5 rounds" || fail "explai
 G share flaky.grooph.json | grep >/dev/null '^https://ryanjosephkamp.github.io/grooph/#/open?d=' || fail "share printed no link"
 G image flaky.grooph.json --out flaky.svg
 head -c 5 flaky.svg | grep >/dev/null "<svg" || fail "image wrote no SVG"
-# Every command the skill's instructions name is one the script has.
-for command in $(grep -Eo '^\s*node scripts/grooph\.mjs [a-z-]+|`(template (list|show|use)|apply|validate|explain|share|image|export) ' "$SKILL/SKILL.md" | grep -Eo '(template|apply|validate|explain|share|image|export|help)' | sort -u); do
+# Every command the skill's instructions rely on is named in them and is one the script has.
+for command in template apply validate explain share image export; do
+  grep >/dev/null -E "(^|[ \`])$command " "$SKILL/SKILL.md" || fail "the skill's instructions no longer name the command $command"
   G help "$command" >/dev/null || fail "the skill names the command $command, which the script does not have"
 done
 

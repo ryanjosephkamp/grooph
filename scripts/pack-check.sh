@@ -9,7 +9,8 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 KEEP=""
-[[ "${1:-}" == "--keep" ]] && KEEP="${2:?--keep needs a folder}"
+# --keep is resolved now, from where the script was called: every later step runs somewhere else.
+if [[ "${1:-}" == "--keep" ]]; then mkdir -p "${2:?--keep needs a folder}" && KEEP="$(cd "$2" && pwd -P)"; fi
 SCRATCH="$(mktemp -d "${TMPDIR:-/tmp}/grooph-pack-check.XXXXXX")"
 WATCH_PID=""
 cleanup() { [[ -n "$WATCH_PID" ]] && kill "$WATCH_PID" 2>/dev/null || true; rm -rf "$SCRATCH"; }
@@ -36,6 +37,8 @@ SIZE_KB=$(( $(wc -c < "$TARBALL") / 1024 ))
 FILES=$(tar -tzf "$TARBALL" | wc -l | tr -d ' ')
 tar -tzf "$TARBALL" | grep >/dev/null '\.map$' && fail "the tarball carries source maps"
 tar -tzf "$TARBALL" | grep -E >/dev/null '^package/(dist/src|dist/test|src|test|node_modules)/' && fail "the tarball carries files that are not the package's"
+tar -tzf "$TARBALL" | grep -E >/dev/null '^package/dist/app/(docs|patterns|community)/' && fail "the tarball carries the site's pages inside the app"
+tar -tzf "$TARBALL" | grep >/dev/null '^package/dist/app/grooph-app.json$' || fail "the packaged app has no mark, so watch would not serve it"
 (( SIZE_KB < 1024 )) || fail "the tarball is ${SIZE_KB} KB; it was about 640 KB when this check was written, so something large got in"
 
 # A machine with no clone: a fresh folder, a home of its own, and the tarball.

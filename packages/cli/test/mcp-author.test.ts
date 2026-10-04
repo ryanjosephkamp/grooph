@@ -5,7 +5,7 @@
  */
 
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,6 +16,7 @@ import { IMPLEMENTED_CODES, OP_NAMES, canonicalize, decodeSharePayload, parseGra
 
 import { FIXES, fixLines } from "../src/fixes.js";
 import { handle, type McpContext } from "../src/mcp.js";
+import { within } from "../src/mcp-author.js";
 import { defaultRegistryEnv } from "../src/registry.js";
 
 const repoRoot = (() => {
@@ -551,5 +552,67 @@ test("a proposal set is shared from JSON, its candidates named by the ids of gra
     // The tool's description carries the shape, since a session with only tools has nowhere else to read it.
     const tools = ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx)) as { result: { tools: { name: string; description: string }[] } }).result.tools;
     assert.match(tools.find((t) => t.name === "grooph_share")!.description, /A proposal set is \{ "groophProposals": 0, "id": "<kebab-case>", "title"/);
+  });
+});
+
+test("what an independent read found: links, hard links, a project reached through a link, and the root as the project", async () => {
+  await withProject(async (ctx, root) => {
+    const ops = [{ op: "setGraphField", key: "goal", value: "Try it." }];
+    // The project named through a link (as /tmp is on macOS): a tool may still rewrite the very file it read.
+    symlinkSync(ctx.project, join(root, "by-a-link"));
+    const linked: McpContext = { ...ctx, project: join(root, "by-a-link") };
+    await call(linked, "grooph_new", { name: "Linked", out: "linked.grooph.json" });
+    const rewritten = await call(linked, "grooph_apply", { path: "linked.grooph.json", out: "linked.grooph.json", ops });
+    assert.equal(rewritten.isError, undefined, textOf(rewritten));
+    assert.equal(parseGraphText(readFileSync(join(ctx.project, "linked.grooph.json"), "utf8")).doc!.goal, "Try it.");
+    // By an absolute path through the link, too.
+    assert.equal((await call(ctx, "grooph_apply", { path: join(root, "by-a-link", "linked.grooph.json"), out: "linked.grooph.json", ops: [{ op: "setTarget", harness: "claude-code" }] })).isError, undefined);
+
+    // A link inside the project to another file inside it: the picture rule looks at what is there, and a link is not written through.
+    writeFileSync(join(ctx.project, "notes.txt"), "mine");
+    symlinkSync(join(ctx.project, "notes.txt"), join(ctx.project, "pic.svg"));
+    refused(await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "pic.svg" }), /^pic\.svg is a link to another file, and grooph writes files, not through links\./);
+    assert.equal(readFileSync(join(ctx.project, "notes.txt"), "utf8"), "mine");
+
+    // A package file that is a link: the export is refused before anything is written, so nothing of it lands.
+    const graph = fixture("valid", "fix-until-green.grooph.json");
+    mkdirSync(join(ctx.project, "pk", ".claude", "agents"), { recursive: true });
+    writeFileSync(join(ctx.project, "README.md"), "mine too");
+    const plain = (await call(ctx, "grooph_export", { graph })).structuredContent!["files"] as Record<string, string>;
+    const agentFile = Object.keys(plain).find((path) => path.startsWith(".claude/agents/"))!;
+    symlinkSync(join(ctx.project, "README.md"), join(ctx.project, "pk", agentFile));
+    refused(await call(ctx, "grooph_export", { graph, into: "pk" }), /is a link to another file/);
+    assert.equal(readFileSync(join(ctx.project, "README.md"), "utf8"), "mine too");
+    assert.equal(existsSync(join(ctx.project, "pk", ".grooph")), false, "no other file of the package was placed");
+
+    // A second name for a file outside the project (a hard link): the picture takes the name, and the file outside keeps what it had.
+    writeFileSync(join(root, "outside.svg"), "<svg>outside</svg>");
+    linkSync(join(root, "outside.svg"), join(ctx.project, "hard.svg"));
+    assert.equal((await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg" })).isError, undefined);
+    assert.equal(readFileSync(join(root, "outside.svg"), "utf8"), "<svg>outside</svg>");
+    assert.match(readFileSync(join(ctx.project, "hard.svg"), "utf8"), /^<svg xmlns/);
+    // No half-written file is left beside anything.
+    assert.deepEqual(readdirSync(ctx.project).filter((name) => name.includes("grooph-tmp")), []);
+
+    // The root as the project: a path under it is inside it (a prefix test would say otherwise).
+    const inRoot = join(root, "project", "deep", "x.grooph.json");
+    assert.equal(within({ ...ctx, project: "/" }, inRoot), realpathSync(join(root, "project")) + "/deep/x.grooph.json");
+  });
+});
+
+test("an id that named another graph is not taken over in silence", async () => {
+  await withProject(async (ctx) => {
+    const first = await call(ctx, "grooph_use_template", { id: "grind-loop", name: "Fix it", values: { task: "one", "test-command": "c" } });
+    assert.doesNotMatch(textOf(first), /\nnote: /);
+    // The same graph, changed: no note. It is the same graph.
+    assert.doesNotMatch(textOf(await call(ctx, "grooph_apply", { graph: "fix-it", ops: [{ op: "setTarget", harness: "claude-code" }] })), /\nnote: /);
+    // Another graph made under the same id, and another renamed onto it: each says so.
+    const again = await call(ctx, "grooph_use_template", { id: "ralph-loop", name: "Fix it" });
+    assert.match(textOf(again), /\nnote: the id "fix-it" named another graph in this conversation until now; it names this one from here on\./);
+    await call(ctx, "grooph_new", { name: "Other" });
+    const renamed = await call(ctx, "grooph_apply", { graph: "other", ops: [{ op: "setGraphName", name: "Fix it" }] });
+    assert.equal(graphOf(renamed).id, "fix-it");
+    assert.match(textOf(renamed), /\nnote: the id "fix-it" named another graph/);
+    assert.match(renamed.structuredContent!["text"] as string, /\nnote: /);
   });
 });
