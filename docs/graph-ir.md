@@ -45,8 +45,8 @@ type NodeBase = { id: Id; name: string; description?: string; coupled?: boolean 
 type AgentNode = NodeBase & {
   kind: "agent";
   role: Role | { custom: string };
-  skills?: string[];               // names of harness skills this node may use; the target maps them (Claude Code: the agent file's `skills:` frontmatter, preloaded at dispatch). Harness-neutral names; unknown names are the harness's to refuse.
-  model?: { tier: "frontier" | "strong" | "fast"; pin?: Record<HarnessId, string> };
+  skills?: string[];               // names of harness skills this node may use; the target maps them (Claude Code: the agent file's `skills:` frontmatter, preloaded at dispatch). Harness-neutral names; unknown names are the harness's to refuse. A name is one token of letters, digits and `. _ - : / [ ]` (`E_SCHEMA` otherwise), because a target writes it into a file's header as given.
+  model?: { tier: "frontier" | "strong" | "fast"; pin?: Record<HarnessId, string> };   // a pin is a model's name, held to the same one token as a skill's name, for the same reason
   effort?: "low" | "medium" | "high" | "max";
   brief: string;                   // what this node may and may not do; the core of its prompt
   inputs?: string[];               // artifacts or facts it expects; free text or artifact ids
@@ -59,6 +59,7 @@ type AgentNode = NodeBase & {
 
 type Role = "lead" | "planner" | "builder" | "critic" | "tester" | "researcher" | "red-team" | "judge" | "synthesizer";
 type Capability = "read-files" | "edit-files" | "write-outputs" | "run-commands" | "run-tests" | "web" | "spawn-agents" | string;
+// A capability of your own is one line of text: no line break or other control character (`E_SCHEMA` otherwise).
 // write-outputs: may create or overwrite only the files it names in `outputs`. The capability a critic
 // needs to leave REVIEW.md behind while still being denied `edit-files` on everyone else's artifacts.
 

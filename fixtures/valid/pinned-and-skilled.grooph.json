@@ -1,7 +1,7 @@
 {
   "grooph": 0,
-  "id": "skilled-fixer",
-  "name": "Skilled fixer",
+  "id": "pinned-and-skilled",
+  "name": "Pinned and skilled",
   "version": 1,
   "goal": "Make the failing test suite pass without changing what the tests assert.",
   "target": {
@@ -11,7 +11,7 @@
     "time": "about 20 minutes"
   },
   "adaptation": "fixed",
-  "description": "fix-until-green with harness skills named on the fixer: `skills` is passed to the target's subagent frontmatter; grooph holds each name to one token and does not check that a skill of that name exists (graph-ir §1, slice 0014).",
+  "description": "fix-until-green with a model pinned by name, skills named with a plugin prefix and a folder scope, and a capability of its own in several words: the widest names graph-ir §1 lets through.",
   "nodes": [
     {
       "id": "fixer",
@@ -19,7 +19,11 @@
       "name": "Fixer",
       "role": "builder",
       "model": {
-        "tier": "strong"
+        "tier": "strong",
+        "pin": {
+          "claude-code": "sonnet[1m]",
+          "codex": "provider/model-name_v2.1:latest"
+        }
       },
       "effort": "medium",
       "brief": "Make the failing tests in tests/ pass by changing src/. Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
@@ -33,14 +37,16 @@
       "allow": [
         "read-files",
         "edit-files",
-        "run-tests"
+        "run-tests",
+        "deploy to staging"
       ],
       "owns": [
         "src"
       ],
       "skills": [
         "test-triage",
-        "commit-style"
+        "house:commit-style",
+        "apps/web:deploy"
       ]
     },
     {
