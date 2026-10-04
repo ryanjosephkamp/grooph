@@ -319,3 +319,71 @@ test.describe("from 1100 px", () => {
     expect(await picture.evaluate((svg) => [...svg.querySelectorAll("text")].filter((t) => t.textContent!.endsWith("…")).length)).toBe(0);
   });
 });
+
+/* ─── the views are a piece of their own (decision 0021): fetched when a map is drawn, and held for a visit with no network ─── */
+
+test("an address that shows no map does not fetch the map's views; a map does, once, and both views are there with the switch", async ({ page }) => {
+  const views: string[] = [];
+  page.on("request", (r) => (/\/assets\/views-[^/]*\.js$/.test(new URL(r.url()).pathname) ? views.push(r.url()) : undefined));
+  // The front page, the template list and a template on the canvas: none of them draws a map.
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.goto("./#/templates");
+  await page.locator(".template-row").first().tap();
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(views).toEqual([]);
+
+  // A map: the phone's picture is drawn at once, by what the address already had; the views arrive beside it.
+  await page.goto(linkFor(mapOf(SAMPLE)));
+  await expect(page.locator('.map-picture svg[data-picture="map"]')).toBeVisible();
+  await expect(page.getByRole("radio", { name: "Sequence" })).toBeVisible();
+  expect(views).toHaveLength(1);
+  // Nothing moved when the switch arrived: its place was kept from the first paint.
+  const top = (await page.locator(".map-picture").boundingBox())!.y;
+  await page.getByRole("radio", { name: "Sequence" }).tap();
+  await expect(page.locator('.map-picture svg[data-picture="sequence"]')).toBeVisible();
+  expect((await page.locator(".map-picture").boundingBox())!.y).toBe(top);
+  expect(views).toHaveLength(1);
+});
+
+test("with the views not to be had, a map still opens: the phone's picture, wider on a wide screen, and no switch", async ({ page }) => {
+  await page.route("**/assets/views-*.js", (route) => route.abort());
+  await page.goto(linkFor(mapOf(SAMPLE)));
+  const picture = page.locator('.map-picture svg[data-picture="map"]');
+  await expect(picture).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await page.locator('[data-session="operator"]').tap();
+  await expect(sheet(page).getByRole("heading", { name: "Session" })).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).tap();
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(async () => (await picture.boundingBox())?.width ?? 0).toBeGreaterThan(640);
+  expect(await lanesAcross(page)).toBe(1);
+  await expect(page.getByRole("complementary", { name: "Handoffs" })).toBeVisible();
+});
+
+test.describe("with the service worker running", () => {
+  test.use({ serviceWorkers: "allow" });
+
+  test("a first visit that saw only the front page opens a map in both views with no network", async ({ page, context }) => {
+    // The page names the views' file in a list the browser does nothing with; the worker reads it as it installs.
+    await page.goto("./");
+    await expect(page.locator(".land-headline")).toBeVisible();
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/views-[^/]*\.js$/.test(r.url)).length)).toBe(1);
+
+    await context.setOffline(true);
+    const failed: string[] = [];
+    page.on("requestfailed", (r) => failed.push(r.url()));
+    await page.goto(linkFor(LONG()));
+    await expect(page.locator('.map-picture svg[data-picture="map"]')).toBeVisible();
+    await page.getByRole("radio", { name: "Sequence" }).tap();
+    await expect(page.locator('.map-picture svg[data-picture="sequence"] [data-handoff]')).toHaveCount(19);
+    // And on a wide screen the lanes are side by side, with no network still.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.getByRole("radio", { name: "Picture" }).click();
+    await expect.poll(() => lanesAcross(page)).toBe(3);
+    expect(failed).toEqual([]);
+  });
+});
