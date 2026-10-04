@@ -215,7 +215,7 @@ export function RunView({
                   {summary.state === "halted" ? "Halted" : "Ended"} at {end.name}
                 </strong>
                 <br />
-                {end.stop ? `Last loop stop: ${end.stop}` : "No loop stop fired."}
+                {end.stop ? `Last loop stop: ${end.stop}` : doc.loops.length > 0 ? "No loop stop fired." : "The graph has no loops."}
               </span>
             </button>
           ) : null}

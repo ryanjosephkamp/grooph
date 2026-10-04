@@ -50,8 +50,8 @@ function useWide(): boolean {
 /** A handoff on the picture: its line, and the ring and the number that sit on it in layers of their own. */
 const arcOf = (id: Id): string => ["handoff", "plate", "number"].map((part) => `[data-${part}="${CSS.escape(id)}"]`).join(",");
 
-/** A carrier's colour in the picture, as the app's own token of the same colour. */
-const tone = (colour: string): string => `var(--${{ gate: "kind-human-gate", check: "kind-check", merge: "kind-merge" }[colour] ?? colour})`;
+/** A carrier's color in the picture, as the app's own token of the same color. */
+const tone = (color: string): string => `var(--${{ gate: "kind-human-gate", check: "kind-check", merge: "kind-merge" }[color] ?? color})`;
 
 function Rows({ rows }: { rows: [string, ReactNode][] }) {
   return (
@@ -311,7 +311,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
   );
 }
 
-/** One handoff as a line of a list: its number in a ring of its carrier's colour and its carrier's line, as on the picture. */
+/** One handoff as a line of a list: its number in a ring of its carrier's color and its carrier's line, as on the picture. */
 function HandoffLine({ map, handoff, onOpen, onPoint, current }: { map: OperationMap; handoff: Handoff; onOpen: (id: Id) => void; onPoint?: (id: Id) => void; current?: boolean }) {
   const nameOf = (id: Id): string => endName(map, id);
   const n = map.handoffs.findIndex((h) => h.id === handoff.id) + 1;

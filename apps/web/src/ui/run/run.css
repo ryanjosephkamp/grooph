@@ -44,7 +44,7 @@
   }
 }
 
-/* The loop the running node is in glows: its members ringed in its colour, its way back flowing, its name lit. */
+/* The loop the running node is in glows: its members ringed in its color, its way back flowing, its name lit. */
 .is-glowing .gnode.in-loop {
   outline: 0;
   box-shadow:

@@ -200,7 +200,7 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
       <header className="live-session-head">
         <div className="live-session-title">
           <span className={`live-harness live-harness-${session.harness === "codex" ? "codex" : "claude"}`}>{HARNESS[session.harness] ?? session.harness}</span>
-          {/* Each state has its colour, its mark (drawn by live.css before the words) and its words. */}
+          {/* Each state has its color, its mark (drawn by live.css before the words) and its words. */}
           <span className={`status live-state live-state-${quiet ? "quiet" : session.state}`}>
             {/* A record is as fresh as its last line. Past half an hour of silence it is not called working. */}
             {quiet ? `Last seen ${durationText(seen)} ago` : STATE[session.state]}

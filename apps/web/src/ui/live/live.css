@@ -10,8 +10,8 @@
   align-items: center;
 }
 
-/* A state is a colour, a mark and words: a filled dot that pulses while working, an amber ring while waiting,
-   a grey ring when gone quiet, a still grey dot when ended. The same marks core draws on a map's sessions. */
+/* A state is a color, a mark and words: a filled dot that pulses while working, an amber ring while waiting,
+   a gray ring when gone quiet, a still gray dot when ended. The same marks core draws on a map's sessions. */
 .live-view .live-state::before,
 .live-sum span::before {
   content: "";

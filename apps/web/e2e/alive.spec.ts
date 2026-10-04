@@ -69,7 +69,7 @@ test.describe("on a desktop", () => {
 
   /* ─── the live view ──────────────────────────────────────────────────────── */
 
-  test("sessions sit in a grid, and each state has its colour, its mark and its words", async ({ page }) => {
+  test("sessions sit in a grid, and each state has its color, its mark and its words", async ({ page }) => {
     await stubSessions(page, sessionsView());
     await page.goto("./#/live");
     const cards = page.locator(".live-session");
@@ -90,7 +90,7 @@ test.describe("on a desktop", () => {
     expect(waiting).toMatchObject({ content: '""', fill: CLEAR, border: "solid", animation: "none" });
     expect(quiet).toMatchObject({ content: '""', fill: CLEAR, border: "solid", animation: "none" });
     expect(ended).toMatchObject({ content: '""', fill: ended.color, animation: "none" });
-    // The colour: working, waiting and over are three colours; gone quiet and ended share the grey of what is not at work.
+    // The color: working, waiting and over are three colors; gone quiet and ended share the gray of what is not at work.
     expect(new Set([working.color, waiting.color, ended.color]).size).toBe(3);
     expect(quiet.color).toBe(ended.color);
     // The card says it as well: the one at work stands out, the one in doubt is dashed.
@@ -99,7 +99,7 @@ test.describe("on a desktop", () => {
     // And the page counts them, working first.
     await expect(page.getByLabel("Sessions by state").locator("span")).toHaveText(["1 working", "1 waiting", "1 gone quiet", "2 ended"]);
 
-    // With motion reduced nothing pulses; the colours and the words are the same.
+    // With motion reduced nothing pulses; the colors and the words are the same.
     await page.emulateMedia({ reducedMotion: "reduce" });
     expect((await before(chip("working"))).animation).toBe("none");
     expect((await before(chip("working"))).color).toBe(working.color);
@@ -183,7 +183,7 @@ test("a live run wears a live badge and the loop its running node is in glows; w
   expect((await before(badge)).animation).toBe("run-beat");
   expect((await badge.boundingBox())!.x).toBeLessThan((await page.locator(".title-sub .mono").boundingBox())!.x);
 
-  // The loop the critic runs in: its name says so, its members are ringed in its colour, its way back flows.
+  // The loop the critic runs in: its name says so, its members are ringed in its color, its way back flows.
   const stage = page.locator(".run-stage");
   const pill = page.locator('.loop-pill[data-loop-id="review-cycle"]');
   await expect(stage).toHaveClass(/is-glowing/);
