@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 
+import { LOOKS, chooseLook, useLookId, type LookId } from "../../doc/look.js";
 import "./chrome.css";
 
 /**
@@ -107,13 +108,32 @@ export function SiteHeader() {
   );
 }
 
-/** The theme switch, a menu button: arrows move, Enter or Space chooses, Escape closes. The choice is kept in this browser. */
-function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) => void }) {
+/** One set of choices in a menu: its name, which is chosen, and what choosing does. */
+type Choices = { name: string; chosen: string; of: readonly { id: string; label: string; dot: string }[]; choose: (id: string) => void };
+
+/** The pictures' six themes (handoff 0086; docs/themes.md), as a menu's choices. Choosing one fetches it; Paper needs nothing. */
+export function usePictureChoices(): Choices {
+  const chosen = useLookId();
+  return { name: "Pictures", chosen, of: LOOKS.map(([id, label, dot]) => ({ id, label, dot })), choose: (id) => chooseLook(id as LookId) };
+}
+
+/**
+ * The theme switch, a menu button: arrows move, Enter or Space chooses, Escape closes. Each choice is kept in this
+ * browser. The header's holds two sets, the site's look and the pictures' theme; on the canvas it is the pictures'
+ * alone (`canvas/LookMenu.tsx`).
+ */
+export function Menu({ name, sets, dot, style, toggleStyle }: { name: string; sets: Choices[]; dot?: string; style?: CSSProperties; toggleStyle?: CSSProperties }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
   const items = useRef<(HTMLButtonElement | null)[]>([]);
-  const at = THEMES.findIndex((t) => t.id === theme);
+  const list = useId();
+  const count = sets.reduce((n, set) => n + set.of.length, 0);
+  // Opened, the keyboard is on what the first set has chosen.
+  const at = Math.max(
+    0,
+    sets[0]!.of.findIndex((c) => c.id === sets[0]!.chosen),
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -130,7 +150,88 @@ function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) 
     setOpen(false);
     toggle.current?.focus();
   };
-  const choose = (id: ThemeId) => {
+  const onListKey = (e: KeyboardEvent) => {
+    const here = items.current.indexOf(document.activeElement as HTMLButtonElement);
+    const to = e.key === "ArrowDown" ? (here + 1) % count : e.key === "ArrowUp" ? (here - 1 + count) % count : e.key === "Home" ? 0 : e.key === "End" ? count - 1 : -1;
+    if (to >= 0) {
+      e.preventDefault();
+      items.current[to]?.focus();
+    } else if (e.key === "Escape") {
+      e.stopPropagation();
+      close();
+    } else if (e.key === "Tab") setOpen(false);
+  };
+
+  let n = 0;
+  return (
+    <div className="site-theme" ref={root} style={style}>
+      <button
+        className="site-theme-toggle"
+        type="button"
+        ref={toggle}
+        style={toggleStyle}
+        aria-label={name}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={list}
+        onClick={() => setOpen(!open)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
+        <span className="site-theme-dot" style={dot ? { ["--dot" as string]: dot } : undefined} aria-hidden="true" />
+        <span className="site-theme-label">Theme</span>
+      </button>
+      {/* Drawn only while it is open: the rule that hides a `hidden` list is the header's, and the canvas has no header. */}
+      <ul className="site-theme-list" id={list} role="menu" aria-label="Theme" hidden={!open} style={open ? undefined : { display: "none" }} onKeyDown={onListKey}>
+        {sets.map((set) => (
+          <li role="none" key={set.name}>
+            {sets.length > 1 ? (
+              <p style={SET_NAME} aria-hidden="true">
+                {set.name}
+              </p>
+            ) : null}
+            <ul role="group" aria-label={set.name} style={SET}>
+              {set.of.map((c) => {
+                const i = n++;
+                return (
+                  <li role="none" key={c.id}>
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={c.id === set.chosen}
+                      tabIndex={-1}
+                      ref={(el) => void (items.current[i] = el)}
+                      onClick={() => {
+                        set.choose(c.id);
+                        close();
+                      }}
+                    >
+                      <span className="site-theme-dot" style={{ ["--dot" as string]: c.dot }} aria-hidden="true" />
+                      {c.label}
+                      <Check />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+// The two sets' own layout, written here: the site's stylesheet is at its budget, and these are two rules.
+const SET: CSSProperties = { display: "grid", gap: 2, margin: 0, padding: 0, listStyle: "none" };
+const SET_NAME: CSSProperties = { margin: "6px 10px 2px", fontSize: "0.78rem", letterSpacing: "0.04em", textTransform: "uppercase", opacity: 0.72, color: "var(--night-ink)" };
+
+/** The header's switch: the site's look, as it was, and under it the pictures' theme. */
+function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) => void }) {
+  const pictures = usePictureChoices();
+  const choose = (id: string) => {
     if (id === THEMES[0].id) delete document.documentElement.dataset.theme;
     else document.documentElement.dataset.theme = id;
     try {
@@ -144,55 +245,9 @@ function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) 
       url.searchParams.delete("theme");
       history.replaceState(history.state, "", url);
     }
-    onTheme(id);
-    close();
+    onTheme(id as ThemeId);
   };
-  const onListKey = (e: KeyboardEvent) => {
-    const here = items.current.indexOf(document.activeElement as HTMLButtonElement);
-    const to = e.key === "ArrowDown" ? (here + 1) % THEMES.length : e.key === "ArrowUp" ? (here - 1 + THEMES.length) % THEMES.length : e.key === "Home" ? 0 : e.key === "End" ? THEMES.length - 1 : -1;
-    if (to >= 0) {
-      e.preventDefault();
-      items.current[to]?.focus();
-    } else if (e.key === "Escape") {
-      e.stopPropagation();
-      close();
-    } else if (e.key === "Tab") setOpen(false);
-  };
-
-  return (
-    <div className="site-theme" ref={root}>
-      <button
-        className="site-theme-toggle"
-        type="button"
-        ref={toggle}
-        aria-label={`Theme: ${THEMES[at]!.label}`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls="site-theme-list"
-        onClick={() => setOpen(!open)}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-            e.preventDefault();
-            setOpen(true);
-          }
-        }}
-      >
-        <span className="site-theme-dot" aria-hidden="true" />
-        <span className="site-theme-label">Theme</span>
-      </button>
-      <ul className="site-theme-list" id="site-theme-list" role="menu" aria-label="Theme" hidden={!open} onKeyDown={onListKey}>
-        {THEMES.map((t, i) => (
-          <li role="none" key={t.id}>
-            <button type="button" role="menuitemradio" aria-checked={t.id === theme} tabIndex={-1} ref={(el) => void (items.current[i] = el)} onClick={() => choose(t.id)}>
-              <span className="site-theme-dot" style={{ ["--dot" as string]: t.dot }} aria-hidden="true" />
-              {t.label}
-              <Check />
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+  return <Menu name={`Theme: ${THEMES.find((t) => t.id === theme)!.label}`} sets={[{ name: "Site", chosen: theme, of: THEMES, choose }, pictures]} />;
 }
 
 /** The footer's icons, one file of the site (public/assets/site-icons.v1.svg) that every page shares, fetched once the page is up. */

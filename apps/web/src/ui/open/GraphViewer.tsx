@@ -2,6 +2,8 @@ import { validate, type Graph, type Id, type Issue } from "@grooph/core";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
+import { useLook } from "../../doc/look.js";
+import { LookMenu } from "../canvas/LookMenu.js";
 import { countBySeverity } from "../../doc/issues.js";
 import { isDesktop } from "../canvas/fit.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
@@ -39,6 +41,8 @@ export function GraphViewer({
   const issues = useMemo(() => given ?? validate(doc, { forExport: true }), [doc, given]);
   const { errors, warnings } = countBySeverity(issues);
   const [panel, setPanel] = useState<Panel>(about ? { type: "about" } : null);
+  // The theme chosen for pictures (docs/themes.md): the canvas takes its values too, once they are here.
+  const look = useLook();
   const [expanded, setExpanded] = useState(false);
   // On a desktop the outline is a rail of its own on the other side of the canvas, open beside a node's details.
   const [rail, setRail] = useState(false);
@@ -121,8 +125,9 @@ export function GraphViewer({
         </Sheet>
       ) : null}
 
-      <main className="stage">
+      <main className="stage" data-look={look?.name}>
         <ViewCanvas doc={doc} variant="full" issues={issues} selected={panel?.type === "node" ? panel.id : undefined} onNodeTap={(id) => toggle({ type: "node", id })} />
+        <LookMenu />
 
         {doc.loops.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">

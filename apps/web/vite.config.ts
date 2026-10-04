@@ -13,6 +13,9 @@ const compileSource = fileURLToPath(new URL("../../packages/core/src/compile/ind
 // An operation map's other views (slice 0080) are a third door into core. The map screen's piece (src/ui/map/views.tsx)
 // goes through it, is fetched when a map is drawn, and is named in the page as the compiler is.
 const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/map-views.ts", import.meta.url));
+// The picture's themes (slice 0086) are a fourth: the five that are not Paper. The app's piece for them
+// (src/ui/theme/themes.ts) is fetched when one is chosen or named in an address, and named in the page too.
+const themesSource = fileURLToPath(new URL("../../packages/core/src/picture/themes.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -70,9 +73,10 @@ function routes(): Plugin {
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
         const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
+        const themes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/theme/themes.ts"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !themes) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, themes }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -91,7 +95,7 @@ function routes(): Plugin {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
-          later: [...new Set([...closure(compiler), ...closure(mapViews)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(themes)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
@@ -119,6 +123,7 @@ export default defineConfig({
     alias: [
       { find: "@grooph/core/compile", replacement: compileSource },
       { find: "@grooph/core/map-views", replacement: mapViewsSource },
+      { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

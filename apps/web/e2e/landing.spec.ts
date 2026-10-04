@@ -298,7 +298,8 @@ test("the header folds its links under Menu on a phone, and the theme switch cha
   const green = await accent();
   const theme = header.getByRole("button", { name: "Theme: Grooph" });
   await theme.tap();
-  const choices = header.getByRole("menuitemradio");
+  // The site's looks are the menu's first set; the pictures' themes are its second (e2e/themes.spec.ts).
+  const choices = header.getByRole("group", { name: "Site" }).getByRole("menuitemradio");
   await expect(choices).toHaveCount(2);
   await expect(header.getByRole("menuitemradio", { name: "Grooph" })).toHaveAttribute("aria-checked", "true");
   await header.getByRole("menuitemradio", { name: "Meteor" }).tap();

@@ -2,6 +2,7 @@ import { durationText, isQuiet, mapLive, mapPicture, parseMap, planLine, seconds
 import { useEffect, useMemo, useState } from "react";
 
 import { copyText } from "../../doc/exportPackage.js";
+import { useLook } from "../../doc/look.js";
 import { POLL_MS } from "../run/RunScreens.js";
 import "./live.css";
 
@@ -237,7 +238,8 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
 
 /** The operation map the sessions belong on, with what the hooks saw drawn on each of its sessions. */
 function LiveMap({ map, view }: { map: OperationMap; view: LiveView }) {
-  const svg = useMemo(() => mapPicture(map, { live: mapLive(view.sessions, map, view.at), at: view.at }), [map, view]);
+  const look = useLook();
+  const svg = useMemo(() => mapPicture(map, { live: mapLive(view.sessions, map, view.at), at: view.at, ...(look ? { look } : {}) }), [map, view, look]);
   return (
     <section className="live-map" aria-label={`Operation map: ${map.name}`}>
       <div className="map-picture" dangerouslySetInnerHTML={{ __html: svg }} />

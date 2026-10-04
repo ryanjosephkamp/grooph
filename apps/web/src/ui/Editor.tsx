@@ -6,9 +6,11 @@ import { ADDABLE_KINDS, KIND_LABEL, type NodeKind } from "../doc/catalog.js";
 import { loadCompiler } from "../doc/exportPackage.js";
 import { computeIssues, countBySeverity, emptyHighlight, type Highlight } from "../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
+import { useLook } from "../doc/look.js";
 import { DocStore, useDoc, useHistory } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
+import { LookMenu } from "./canvas/LookMenu.js";
 import { FIT, glide, isDesktop } from "./canvas/fit.js";
 import { EditorContext, type Editor, type Mode, type Panel } from "./editorContext.js";
 import { ExportPanel } from "./ExportPanel.js";
@@ -108,6 +110,8 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const [exportedAs, setExportedAs] = useState<Id | undefined>(record.exported?.id);
   const flow = useReactFlow();
   const stageRef = useRef<HTMLDivElement>(null);
+  // The theme chosen for pictures (docs/themes.md): the canvas takes its values too, once they are here.
+  const look = useLook();
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [selection, setSelection] = useState<Id[]>([]);
   const viewMoved = useRef(false);
@@ -401,8 +405,9 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
           </Sheet>
         ) : null}
 
-        <main className="stage" ref={stageRef}>
+        <main className="stage" ref={stageRef} data-look={look?.name}>
           <Canvas issues={issues} onNodeTap={onNodeTap} />
+          <LookMenu />
 
           {doc.loops.length > 0 ? (
             <nav className="loop-legend" aria-label="Loops">

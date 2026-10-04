@@ -1,6 +1,7 @@
 import { mapPicture, picture, replaySteps, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { useLook } from "../../doc/look.js";
 import { openPayload } from "../../doc/share.js";
 import { Brief, type Picked, type RunHere } from "./Brief.js";
 import { decorateGraph, decorateMap } from "./decorate.js";
@@ -55,6 +56,8 @@ function postHeight(height: number): void {
 
 export function Embed({ link }: { link: EmbedLink }) {
   const shown = useMemo(() => shownFrom(link), [link]);
+  // In a theme (docs/themes.md) the frame's bars and ground are the theme's too: `ui/theme/themes.ts` holds the rules.
+  const look = useLook();
   const root = useRef<HTMLDivElement>(null);
   const [frameWidth, setFrameWidth] = useState(() => document.documentElement.clientWidth || 400);
 
@@ -71,6 +74,7 @@ export function Embed({ link }: { link: EmbedLink }) {
     ref: root,
     className: "gx",
     ...(link.theme ? { "data-theme": link.theme } : {}),
+    ...(look ? { "data-look": look.name } : {}),
     ...(link.frame ? { "data-frame": "" } : {}),
   };
 
@@ -94,7 +98,12 @@ export function Embed({ link }: { link: EmbedLink }) {
 function Shown({ shown, link, frameWidth, root }: { shown: Exclude<Shown, { kind: "problem" }>; link: EmbedLink; frameWidth: number; root: React.RefObject<HTMLDivElement | null> }) {
   const units = unitsFor(frameWidth);
   const baseScale = scaleFor(frameWidth, units);
-  const svg = useMemo(() => (shown.kind === "map" ? mapPicture(shown.doc, { width: units }) : picture(shown.doc, { width: units })), [shown, units]);
+  // The theme the frame's address names (docs/themes.md), once its values are here; without one, Paper.
+  const look = useLook();
+  const svg = useMemo(() => {
+    const options = { width: units, ...(look ? { look } : {}) };
+    return shown.kind === "map" ? mapPicture(shown.doc, options) : picture(shown.doc, options);
+  }, [shown, units, look]);
   const size = useMemo(() => viewBox(svg), [svg]);
   const name = shown.doc.name || shown.doc.id;
 

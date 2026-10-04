@@ -1,7 +1,9 @@
 import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBundle, type RunNote, type RunSummary } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
+import { useLook } from "../../doc/look.js";
 import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
+import { LookMenu } from "../canvas/LookMenu.js";
 import { deleteRun, saveRun } from "../../store/runs.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { RunChanges } from "./RunChanges.js";
@@ -108,6 +110,8 @@ export function RunView({
   const [kept, setKept] = useState<{ key: string; replaced: boolean } | null>(null);
   const [removing, setRemoving] = useState<"ask" | "done" | null>(null);
   const [tall, setTall] = useState(false);
+  // The theme chosen for pictures (docs/themes.md): the canvas takes its values too, once they are here.
+  const look = useLook();
 
   const live = origin.kind === "live";
   // The view is following a run as it happens: watch is answering and the run has not ended.
@@ -181,7 +185,8 @@ export function RunView({
         </span>
       </header>
 
-      <main className={`stage run-stage${atWork ? " is-glowing" : ""}`}>
+      <main className={`stage run-stage${atWork ? " is-glowing" : ""}`} data-look={look?.name}>
+        <LookMenu />
         {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
         {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
