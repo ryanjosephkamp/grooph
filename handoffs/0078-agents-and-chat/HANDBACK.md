@@ -1,6 +1,6 @@
 # Handback 0078 · grooph for agents: authoring over MCP, a package on npm, and a way in from a chat
 
-**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `ece37ad` (the work, after the driver's fix pass; the handback commit follows it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `69ee41b` (the work, after the driver's two fix passes; the handback commit follows it) · **Date:** 2026-10-04
 
 ## Status
 
@@ -17,7 +17,8 @@
 - `src/paths.ts` (new): where the CLI's own files are, in a clone, an npm install and a single bundled file. `registry.ts`, `commands/hooks.ts`, `commands/watch.ts` use it.
 - `src/main.ts` (new), `bin/grooph.js`: one entry; a closed pipe (`grooph template list | head`) ends quietly.
 - `src/index.ts`: the `mcp` command's `--chat` flag, the no-folder guard, its help page. `commands/explain.ts`, `embed.ts`, `image.ts`: small exports the tools reuse; CLI output unchanged.
-- Tests: `test/mcp-author.test.ts` (new, 22 tests), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 146.
+- Tests: `test/mcp-author.test.ts` (new, 26 tests), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 150.
+- `src/share-io.ts`: a proposal set's candidate files, for the server, only as graphs beside the set; a file that is not JSON is no longer quoted in the error (the CLI's too).
 - `docs/cli.md` regenerated for the `mcp` command's new help page, as the driver asked once `main` began checking it.
 
 **The package** (`packages/cli`, `scripts/`)
@@ -37,15 +38,15 @@
 
 ## Verified, and how
 
-Run from a clean build at `ece37ad`, after the fix pass and with `main` merged in (the tier map, the generated CLI reference, the version, picture and outside-address checks, the second browser job):
+Run from a clean build at `69ee41b`, after both fix passes. `main` was last merged in at `1d8d328`; it is not merged again until pull request 63 is in, on the driver's instruction.
 
 ```text
-pnpm -r build && pnpm -r test          core 345 pass · cli 146 pass · web 68 pass
-scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 630 KB, 70 files; installed and run in a fresh folder)
-scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 227 KB, grooph.mcpb 226 KB; …run with nothing installed beside them)
+pnpm -r build && pnpm -r test          core 345 pass · cli 150 pass · web 68 pass
+scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 632 KB, 70 files; installed and run in a fresh folder)
+scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 229 KB, grooph.mcpb 228 KB; …run with nothing installed beside them)
 scripts/first-run.sh                   first run: ok
 GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      170 passed, 107 skipped, none failed
-node scripts/perf-budget.mjs --check   all six inside budget; the CLI's cold start 158 of 400 ms; the app's first load 173.5 of 180 KB
+node scripts/perf-budget.mjs --check   all six inside budget
 node scripts/american-english.mjs --check      nothing British in 547 public-facing files
 node scripts/site-pages.mjs --check    23 pages and an index, links and anchors resolve
 version · cli-reference · check-pictures · check-outside-addresses (--check)      all current; nothing is loaded from another host
@@ -53,7 +54,7 @@ patterns-index · field-guide · rule-reference · community-index (--check), ch
 export of review-loop and fix-until-green                    the same as the golden packages
 ```
 
-`(cd packages/cli && npm pack --dry-run)` from the handoff is answered under Deviations. CI on the branch was green on every job at the last push before the fix pass (`24466fa`: build on Node 22 and 24, web-e2e, web-browsers).
+`(cd packages/cli && npm pack --dry-run)` from the handoff is answered under Deviations. CI was green on every job at `ee4566a`, the head before the second pass (build on Node 22 and 24, web-e2e, web-browsers).
 
 Per criterion:
 
@@ -109,11 +110,11 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **645,478 bytes packed (630 KB), 1,993,109 unpacked, 70 files.**
+`grooph-0.3.0.tgz`: **647,596 bytes packed (632 KB), 1,999,519 unpacked, 70 files.**
 
 | In it | Files | Size |
 |---|---|---|
-| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 561 KB |
+| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 567 KB |
 | `dist/patterns/`, the templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
 | `dist/app/`, the built app `watch` serves, without source maps or the site's pages | 23 | 1,136 KB |
@@ -147,7 +148,7 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **A graph is saved only as `<name>.grooph.json`, and nothing is written under `.git`.** (C.)
 - **In a chat a tool takes no file argument**: `path` is refused before the disk is touched, and the library is the one grooph ships. (E.)
 - **Only `--dir` can choose the root or a home folder as the project**; a harness's variable pointing there does not. (F.)
-- **`grooph_export` takes `models`**, the tier map that landed on `main` as pull request 43 while this slice was open, and with none of its own it takes `GROOPH_MODELS` from the server's environment through the CLI's own parser (B). It holds a model's name to the CLI's own pattern (a name goes into a file's frontmatter) and prints the CLI's own line saying what all three tiers then mean.
+- **`grooph_export` takes `models`**, the tier map that landed on `main` as pull request 43 while this slice was open, laid over `GROOPH_MODELS` from the server's environment (read through the CLI's own parser), and says in every reply what all three tiers mean. It holds a model's name to the CLI's own pattern (a name goes into a file's frontmatter) and prints the CLI's own line saying what all three tiers then mean.
 - **A file is put by writing beside it and renaming over it, and never through a link.** From the independent review: a hard link to a file elsewhere keeps what it had, and a link inside the project is not followed.
 - **`grooph_share` carries the proposal set's shape in its description** and takes a candidate's graph by id. From run F, where the design skill's first set had no marker and was answered as a broken graph.
 
@@ -176,7 +177,7 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 
 The driver read #60 and sent seven points. A is a pull request of its own; B to G are on this branch.
 
-- **A · a compiler fault on `main`, not in this diff.** [ryanjosephkamp/grooph#63](https://github.com/ryanjosephkamp/grooph/pull/63), branch `slice/0078-frontmatter-values`, head `bb891e2`, not merged. A model pin or a skill name with a line break passed `grooph validate` and the export wrote frontmatter keys of the document's choosing into an agent file (reproduced on `main`: `permissionMode: bypassPermissions`). The schema now holds a pin and a skill name to one token and a capability to one line (`E_SCHEMA`), and the frontmatter writer quotes anything that is not such a token. `tools:` and `disallowedTools:` were not reachable. A failing fixture, a passing one, a compiler test that fails against `main`'s writer; no golden package changes.
+- **A · a compiler fault on `main`, not in this diff.** [ryanjosephkamp/grooph#63](https://github.com/ryanjosephkamp/grooph/pull/63), branch `slice/0078-frontmatter-values`, head `79908f8`, not merged. Until it is, the fault is still reachable on this branch through `grooph_export` with `into`, as on `main` through `grooph export`. A model pin or a skill name with a line break passed `grooph validate` and the export wrote frontmatter keys of the document's choosing into an agent file (reproduced on `main`: `permissionMode: bypassPermissions`). The schema now holds a pin and a skill name to one token and a capability to one line (`E_SCHEMA`), and the frontmatter writer quotes anything that is not such a token. `tools:` and `disallowedTools:` were not reachable. A failing fixture, a passing one, a compiler test that fails against `main`'s writer; no golden package changes.
 - **B · `grooph_export` ignored `GROOPH_MODELS`.** It now takes it from the server's environment when the call names no map, through `parseModels`. Tried through the built server with `GROOPH_MODELS=frontier=opus,strong=sonnet,fast=haiku`: the agent files say `sonnet`, and none says `fable`. One test.
 - **C · `out` took any name.** A graph is saved only as `<name>.grooph.json`, and nothing is written under `.git`, by real location and in any case of the name. The six names the reviewer wrote (`.claude/settings.local.json`, `.mcp.json`, `.vscode/tasks.json`, `packages/x/package.json`, `AGENTS.md`, `.git/index.lock`) are each refused, with a test.
 - **D · a picture replaced any `.svg` or `.png`, and an export replaced a hand-edited file.** Both now replace only what is grooph's own (above, under Decisions), or refuse and say to pass `replace: true`. The project's `logo.svg` and a hand-edited agent file are each kept, with tests. The sentence in `docs/agents.md` is rewritten to what is true.
@@ -186,8 +187,20 @@ The driver read #60 and sent seven points. A is a pull request of its own; B to 
 
 Each of B to F was also tried through the built server as a process, not only through the tests.
 
+## The second pass
+
+The driver's second reviewer found all seven holding and six more things. Each is fixed with a test, and each guard was then undone in turn in the built files to see a test fail for it (eleven guards, eleven caught).
+
+1. **`grooph_share` read any file a proposal set named**, and quoted the start of one that was not JSON. For the server, a candidate's file is now read only when it is a graph by name (`*.grooph.json`) and sits, by real location, in the set's own folder; a set handed over as JSON opens no file; and the not-JSON error names the file and quotes nothing (for the CLI too). Tried through the server: a set naming `secret.env` is refused and nothing of the file comes back.
+2. **Fable came back without a word.** (a) The call's `models` is now laid over `GROOPH_MODELS` tier by tier, so naming one tier leaves the others as the machine has them. (b) Every reply says what all three tiers mean, map or no map, and an export that would change the model of an agent file already in place stops and asks for `replace: true`, naming each change (`model opus → fable`). The target's own tier map is untouched: that is the owner's open decision.
+3. **"As grooph last wrote them" could be steered** by rewriting the graph a package keeps. `out` at `.grooph/<id>/graph.grooph.json` is refused for every tool, with `replace` or without, and says to save elsewhere and export. `.grooph/graphs/`, `.grooph/proposals/` and a run's own working copy are still places to save.
+4. **`destructiveHint`** is true on every tool that takes `replace`.
+5. **The picture's mark** counts only on the file's own first element.
+6. **A note is not appended to a file with another name somewhere** (a hard link). **A path argument with a control character is refused** before any tool runs. Beyond what was asked: every line of a reply is now held to one line, so a graph's name, a template id, a tier or a slot key cannot start a `next:` line of its own. The kickoff of an export is the exception: it is a prompt of many lines and holds the goal as written.
+7. **Left as it is, as told:** an export is placed whole or not at all short of a file the system itself will not let be replaced. There, files placed before it stay placed, and the refusal names them.
+
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head ece37ad, after the fix pass). Status: done. The compiler fix it found is pull request 63 (head bb891e2). Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head 69ee41b, after both fix passes). Status: done; main is to be merged in once pull request 63 (head 79908f8) is merged. Please reconcile with the grooph-reconcile skill.
 ```
