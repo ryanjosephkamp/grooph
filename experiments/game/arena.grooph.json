@@ -1,0 +1,446 @@
+{
+  "grooph": 0,
+  "id": "arena",
+  "name": "Arena: one game, six hours",
+  "version": 1,
+  "goal": "Build the browser game SPEC.md describes, one milestone at a time, with a playable build at the end of every milestone. Done when every milestone in MILESTONES.md is ticked by the critic that played it, or the clock has run out, and the last playable build is committed and FINAL.md says what a player can do in it.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "budget": "At most 110 dispatches in the run.",
+    "time": "Six hours on the wall clock. No milestone is started after hour five and no round after 5 hours 15 minutes; what is left is for the wrap-up and the final play.",
+    "other": "Nobody is asked anything between the start gate and the end gate. No asset is downloaded (SPEC.md section 2). Nothing is pushed: commits stay in this clone."
+  },
+  "adaptation": "adaptive",
+  "description": "Six hours of building with a person only at the two ends. A planner turns the spec's seven milestones into a checklist and a short account of how the code is cut. Then one milestone a round: a builder builds it on top of what is there, a check builds the game and re-runs what earlier milestones left behind, and a fresh critic plays the build in a headless browser through the game's test surface and takes pictures. On a pass the critic writes what it just did as a check and ticks the box, so the next milestone cannot quietly undo it. Every stop leads to the wrap-up, never to a halt: when the list is done or the clock says so, the repository is brought to its last playable state, a second fresh critic plays the whole of it, and a person reads what it found.",
+  "nodes": [
+    {
+      "id": "lead",
+      "kind": "agent",
+      "name": "Lead",
+      "role": "lead",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "You run six hours of building with nobody to ask. Between the start gate and the end gate you ask no one anything: a question in the middle would wait for hours. Keep the clock: read it when the start gate is answered, write that time at the top of PROGRESS.md, read it again before every dispatch, and tell a builder how many minutes are left. When a stop names wrap-up, go there at once: a milestone left unfinished is a result, a broken build at the end is not. You build nothing and judge nothing yourself.",
+      "outputs": [
+        "PROGRESS.md and the run's notes, kept as the run goes"
+      ]
+    },
+    {
+      "id": "start-gate",
+      "kind": "human-gate",
+      "name": "Start the clock",
+      "prompt": "This run builds the game in SPEC.md for six hours and asks you nothing until the end. The clock starts with your answer. Start?",
+      "options": [
+        "start",
+        "not now"
+      ]
+    },
+    {
+      "id": "planner",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Turn SPEC.md into the two files six hours of fresh builders will work from. MILESTONES.md: the seven milestones of section 4 in order, each with an unticked box, what a player can do at its end in the spec's own words, and a line for how many rounds it has failed. ARCHITECTURE.md: how the code is cut so that a later milestone adds to an earlier one without rewriting it (the world, the player, the camera, weapons, enemies, the screen, sound, the test surface), with the names each part is reached by. Plan only; build nothing, and add nothing the spec does not ask for.",
+      "inputs": [
+        "SPEC.md"
+      ],
+      "outputs": [
+        "MILESTONES.md: the milestones in order, each with a box, what a player can do, and its failed rounds",
+        "ARCHITECTURE.md: the parts of the code and how a later milestone adds to them"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Build the first unticked milestone of MILESTONES.md and nothing past it, on top of what is there, so that everything a player could do before can still be done. From the second round on a milestone, close the gaps PLAYTEST.md ranks, largest first. When MILESTONES.md says the milestone has failed three rounds, build the smallest version of it a player can use and say in CUTS.md what you left out, in the order SPEC.md section 6 gives. The files under playable/ are the critic's record of what worked: run them, never edit them. Download nothing (SPEC.md section 2). Commit when the game builds and playable/ passes.",
+      "inputs": [
+        "SPEC.md",
+        "MILESTONES.md",
+        "ARCHITECTURE.md",
+        "the project",
+        "PLAYTEST.md (from the second round on a milestone)",
+        "the build check's output (after a failed check)"
+      ],
+      "outputs": [
+        "the milestone, built and committed",
+        "CHANGES.md: what changed this round and which gaps were closed",
+        "CUTS.md: what was left out, when something was"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "build-check",
+      "kind": "check",
+      "name": "Builds, and still plays",
+      "check": {
+        "kind": "command",
+        "run": "npm run build && { [ ! -f playable/all.mjs ] || node playable/all.mjs; }",
+        "pass": "exit code 0: the game builds, and every check the critic has left under playable/ for the milestones already ticked still passes (there are none before the first tick)"
+      }
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Play the build as a player would, in a headless browser, through the test surface of SPEC.md section 7: do each thing the current milestone's row says a player can do, and take pictures. You have not seen how it was built and you do not read the builder's account: judge what the game does. Pass only when a player can do everything in the row; otherwise rank what is missing, at most five gaps, each with how you saw it, and raise the milestone's count of failed rounds. On a pass, leave what you just did as a script under playable/ and add it to playable/all.mjs, which serves dist/ and runs every milestone's script in order (write it the first time), then tick the box. Report invalid-evidence when the build will not start. You do not fix the game.",
+      "inputs": [
+        "dist/ as the build check left it",
+        "SPEC.md",
+        "MILESTONES.md",
+        "playable/"
+      ],
+      "outputs": [
+        "PLAYTEST.md: what you did as a player, what worked, the gaps ranked, a verdict line",
+        "screenshots/ of this round",
+        "playable/: this milestone's script and all.mjs, on a pass",
+        "MILESTONES.md: the box ticked on a pass, the failed rounds raised on a fail",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ],
+      "owns": [
+        "playable/"
+      ]
+    },
+    {
+      "id": "next-milestone",
+      "kind": "check",
+      "name": "A milestone left?",
+      "check": {
+        "kind": "command",
+        "run": "grep -q '^- \\[ \\]' MILESTONES.md",
+        "pass": "exit code 0: an unticked milestone remains in MILESTONES.md"
+      }
+    },
+    {
+      "id": "wrap-up",
+      "kind": "agent",
+      "name": "Wrap-up",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "The list is done or the clock says stop. Leave the repository at its last playable state: when the tree does not pass the build check, return it to the last commit that did. Then write what a stranger needs: README.md (how to run it, the keys, what is in the game, what was cut), ASSETS.md as SPEC.md section 2 asks, and a fresh dist/. Add no feature and fix no gap. Commit, and tag the commit final.",
+      "inputs": [
+        "the project",
+        "SPEC.md",
+        "MILESTONES.md",
+        "CUTS.md"
+      ],
+      "outputs": [
+        "the repository at its last playable state, committed and tagged final",
+        "README.md",
+        "ASSETS.md",
+        "WRAP.md: what state the tree was in and what you did to it"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands"
+      ]
+    },
+    {
+      "id": "final-play",
+      "kind": "agent",
+      "name": "Final play",
+      "role": "critic",
+      "model": {
+        "tier": "frontier"
+      },
+      "effort": "high",
+      "brief": "Play the final build from dist/ as a stranger would, milestone by milestone and in both views, in a headless browser through the test surface, and take pictures. For each row of SPEC.md section 4 say what a player can do and what they cannot, with what you saw. Say whether the repository holds anything SPEC.md section 2 forbids. You judge; you change nothing. The person at the end gate decides with your report either way.",
+      "inputs": [
+        "dist/ as the wrap-up left it",
+        "SPEC.md",
+        "README.md",
+        "ASSETS.md"
+      ],
+      "outputs": [
+        "FINAL.md: row by row what a player can do and cannot, what is forbidden and present, the pictures named",
+        "screenshots/final/",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "end-gate",
+      "kind": "human-gate",
+      "name": "Read the result",
+      "prompt": "The clock has stopped and FINAL.md says what a player can do in the build. Close the run?",
+      "options": [
+        "close"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-start",
+      "from": "start-gate",
+      "to": "planner",
+      "when": "pass"
+    },
+    {
+      "id": "e-planner-builder",
+      "from": "planner",
+      "to": "builder",
+      "evidence": [
+        "MILESTONES.md",
+        "ARCHITECTURE.md"
+      ]
+    },
+    {
+      "id": "e-builder-check",
+      "from": "builder",
+      "to": "build-check"
+    },
+    {
+      "id": "e-check-fail",
+      "from": "build-check",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "the build check's output"
+      ]
+    },
+    {
+      "id": "e-check-pass",
+      "from": "build-check",
+      "to": "critic",
+      "when": "pass",
+      "evidence": [
+        "dist/ as the build check left it",
+        "SPEC.md",
+        "MILESTONES.md",
+        "playable/"
+      ]
+    },
+    {
+      "id": "e-critic-fail",
+      "from": "critic",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "PLAYTEST.md",
+        "screenshots/ of this round"
+      ]
+    },
+    {
+      "id": "e-critic-pass",
+      "from": "critic",
+      "to": "next-milestone",
+      "when": "pass"
+    },
+    {
+      "id": "e-next-pass",
+      "from": "next-milestone",
+      "to": "builder",
+      "when": "pass",
+      "evidence": [
+        "MILESTONES.md"
+      ]
+    },
+    {
+      "id": "e-next-fail",
+      "from": "next-milestone",
+      "to": "wrap-up",
+      "when": "fail"
+    },
+    {
+      "id": "e-wrap-final",
+      "from": "wrap-up",
+      "to": "final-play",
+      "evidence": [
+        "dist/ as the wrap-up left it",
+        "SPEC.md",
+        "README.md",
+        "ASSETS.md"
+      ]
+    },
+    {
+      "id": "e-final-gate",
+      "from": "final-play",
+      "to": "end-gate",
+      "evidence": [
+        "FINAL.md"
+      ]
+    },
+    {
+      "id": "e-gate-done",
+      "from": "end-gate",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "milestone",
+      "name": "One milestone",
+      "members": [
+        "builder",
+        "build-check",
+        "critic"
+      ],
+      "back": [
+        "e-check-fail",
+        "e-critic-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "A player can do what the milestone says",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "SPEC.md",
+            "note": "the current milestone's row in section 4"
+          },
+          {
+            "kind": "artifact",
+            "ref": "dist/",
+            "note": "played in a headless browser through the test surface"
+          },
+          {
+            "kind": "artifact",
+            "ref": "screenshots/ of this round"
+          },
+          {
+            "kind": "checklist",
+            "ref": "playable/",
+            "note": "what every earlier milestone left behind"
+          }
+        ],
+        "acceptance": "The critic, playing the build, can do everything the milestone's row says a player can do, and every check under playable/ passes.",
+        "aspiration": "It is a pleasure to play."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 315,
+          "then": "wrap-up"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3,
+          "then": "next-milestone"
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 12,
+          "then": "next-milestone"
+        }
+      ]
+    },
+    {
+      "id": "milestones",
+      "name": "Milestones",
+      "members": [
+        "builder",
+        "build-check",
+        "critic",
+        "next-milestone"
+      ],
+      "back": [
+        "e-next-pass"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Every milestone played",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "MILESTONES.md",
+            "note": "one box per milestone, ticked by the critic that played it"
+          }
+        ],
+        "acceptance": "Every box in MILESTONES.md is ticked by the critic, with a pass verdict on record."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed",
+          "then": "wrap-up"
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 300,
+          "then": "wrap-up"
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 110,
+          "then": "wrap-up"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 12,
+          "then": "wrap-up"
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}
