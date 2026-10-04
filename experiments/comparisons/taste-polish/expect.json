@@ -1,0 +1,33 @@
+{
+  "about": "What the runner, the scorer and the summary read for this project (protocol version 2, §7). The proving keys (agents, reports, heldOut, ending) drive the check on arm A's run record; the rest is the pre-registration and the scorer's paths. The template has no test-command slot, so `test_command` names the project's own. `held_out_scorer_only` names the file of held-out/ that is the scorer's alone: the template names its critic a reference, not a suite, so the suite leaves the folder before a run and nobody in any arm can read it. `tier_map` is the model each tier means in every package and prompt of this project: null until it is named, and no paid run starts on null.",
+  "protocol": 2,
+  "template": "taste-polish",
+  "replicates": 2,
+  "models": { "lead": "claude-opus-5-5", "lead_effort": "high", "judge": "claude-opus-5-5" },
+  "tier_map": null,
+  "test_command": "npm test",
+  "held_out_scorer_only": ["statement-properties.test.mjs"],
+  "bet": "taste-polish's mechanism is one owner who revises a rendered artifact and a critic in a fresh context who compares readable captures against a named reference and returns the gaps that matter most, bounded by rounds, a dispatch budget and a human check-in. The reference statement has seven properties the style brief does not state (the order of the lines, how a credit is written, what happens to a service with no usage, a share column, a line that adds up the charges, the month by name, the quantity beside its unit), so an owner working from the brief alone is expected to miss most of them; the bet is that the critic's side-by-side names them, `e-critic-fail` is taken, and the statement ends closer to the reference than one polished with no reviewer (arm D). Against the same design said in prose (arms B and C) the bet is narrower: that the package closes at least as many of the seven, at a cost the difference justifies.",
+  "measure": "held-out passes out of 24, by group (style: what the brief states; and the seven properties only the reference shows); whether a loop turned and how many gaps the critic named each round, from each run's record; who read the reference (transcript digest); cost and wall time; the blind judgment of the rendered statement.",
+  "loses_if": "the graph loses when arm B matches or beats arm A on held-out passes in both replicates at lower cost. It earns its cost only if A's held-out range lies above B's, or A reaches B's passes at lower cost in both replicates. The design itself (A, B and C alike) loses to no design when D's held-out range is not below theirs.",
+  "round0_pass_probability": 0.01,
+  "round0_why": "Of the suite's 24 cases, 17 check properties of the reference statement that the style brief does not state: charges and credits largest first; a line that adds up the charges; credits in parentheses, in line with the amounts above; thousands with a comma and the currency named once; services with no usage left out of the table and named in a sentence at the foot; a share column; the month by name with the account at the right of the customer's line; the quantity with a comma beside its unit. An owner passes at round 0 only by making all of those choices without the reference, and several are choices no brief suggests (the share column, the sentence at the foot). The estimate is 0.01. The first pass kept in reference/first-pass meets the brief and passes 12 of 24.",
+  "held_out_cases": 24,
+  "first_pass": {
+    "about": "reference/first-pass laid over task/: one author's reading of STYLE.md, written without the reference. scripts/lib/compare-projects.test.mjs holds these numbers to the files, and holds reference/solution to held-out/reference.txt byte for byte.",
+    "held_out_passes": 12,
+    "fails_in": ["structure", "order", "money", "no usage", "share", "heading", "usage"]
+  },
+  "acceptance": ["README.md", "STYLE.md"],
+  "scope": {
+    "allowed": ["src/", "tests/", "captures/", "GAPS.md", "CHANGES.md"]
+  },
+  "judge": {
+    "files": ["src/", "tests/"],
+    "artifact": { "command": "npm run render", "path": "out/statement.txt" }
+  },
+  "agents": ["owner", "critic"],
+  "reports": { "critic": ["GAPS.md"] },
+  "heldOut": { "readers": ["critic"], "notReaders": ["owner"] },
+  "ending": ["stop human", "stop diminishing-returns", "stop bar-passed", "stop max-iterations", "stop budget", "stop node done"]
+}

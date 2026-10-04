@@ -1,0 +1,30 @@
+{
+  "about": "What the runner, the scorer and the summary read for this project (protocol version 2, §7). Study one's `review-gate` project is beside this one and is a different task under a different protocol; the two are not one table. The proving keys (agents, reports, heldOut, ending) drive the check on arm A's run record; the rest is the pre-registration and the scorer's paths. `tier_map` is the model each tier means in every package and prompt of this project: null until it is named, and no paid run starts on null.",
+  "protocol": 2,
+  "template": "review-gate",
+  "replicates": 2,
+  "models": { "lead": "claude-opus-5-5", "lead_effort": "high", "judge": "claude-opus-5-5" },
+  "tier_map": null,
+  "bet": "review-gate's mechanism is a critic in a fresh context that judges the change against a written checklist, item by item, and runs a held-out suite the builder never sees. This checklist holds two items the task text does not state (the result shares nothing with either layer; three unsafe keys are never copied), and the suite covers both and settles three points that the task and the checklist leave open. The bet is that a first pass misses at least one of the five, the critic's failures send the builder back (`e-critic-fail`), and the run ends with more held-out passes than a session with no reviewer (arm D). Against the same design said in prose (arms B and C) the bet is narrower: that the package reaches the suite's passes at least as surely, at a cost the difference justifies.",
+  "measure": "held-out passes out of 55, by group (stated; the two checklist-only items; the three open points); whether a loop turned and what the held-out score was before and after the turn, from each run's record; who read the held-out suite (transcript digest); cost and wall time; the blind judgment.",
+  "loses_if": "the graph loses when arm B matches or beats arm A on held-out passes in both replicates at lower cost. It earns its cost only if A's held-out range lies above B's, or A reaches B's passes at lower cost in both replicates. The design itself (A, B and C alike) loses to no design when D's held-out range is not below theirs.",
+  "round0_pass_probability": 0.05,
+  "round0_why": "Of the suite's 55 cases, 17 depend on three points neither the task nor the checklist settles, each settled one way: a key whose value is undefined counts as not given, in either layer; an object with no prototype is a plain object and comes back ordinary; a value that is not plain data (a function, a Map, a Set, an instance of a class) is refused with a TypeError. A builder passes at round 0 only by taking the suite's side on all three without seeing it, and by meeting the two checklist-only items to the letter (17 more cases: copies at any depth and inside arrays, Dates included; the unsafe keys skipped inside arrays too). The estimate is 0.05, from rough odds of 0.5, 0.5 and 0.2 on the open points and 0.9 on the checklist items. The first pass kept in reference/first-pass meets every checklist item and passes 38 of 55.",
+  "held_out_cases": 55,
+  "first_pass": {
+    "about": "reference/first-pass laid over task/: one author's reading of the task and the checklist, written without the suite; it meets the checklist as written. scripts/lib/compare-projects.test.mjs holds these numbers to the files.",
+    "held_out_passes": 38,
+    "fails_in": ["undefined", "null prototype", "not plain data"]
+  },
+  "acceptance": ["README.md", "docs/REVIEW-CHECKLIST.md", "CHANGELOG.md"],
+  "scope": {
+    "allowed": ["src/", "tests/", "CHANGELOG.md", "REVIEW.md", "CHANGES.md"]
+  },
+  "judge": {
+    "files": ["src/", "tests/", "CHANGELOG.md"]
+  },
+  "agents": ["builder", "critic"],
+  "reports": { "critic": ["REVIEW.md"] },
+  "heldOut": { "readers": ["critic"], "notReaders": ["builder"] },
+  "ending": ["halt at merge-gate"]
+}

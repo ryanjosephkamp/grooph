@@ -1,0 +1,30 @@
+{
+  "about": "What the runner, the scorer and the summary read for this project (protocol version 2, §7). The proving keys (agents, reports, heldOut, ending) drive the check on arm A's run record; the rest is the pre-registration and the scorer's paths. `tier_map` is the model each tier means in every package and prompt of this project: null until it is named, and no paid run starts on null.",
+  "protocol": 2,
+  "template": "heterogeneous-critic",
+  "replicates": 2,
+  "models": { "lead": "claude-opus-5-5", "lead_effort": "high", "judge": "claude-opus-5-5" },
+  "tier_map": null,
+  "bet": "heterogeneous-critic's mechanism is a critic on another tier, in a fresh context, that runs a held-out suite the builder never sees and returns each failing case in REVIEW.md. The task leaves six points open and the suite settles each one way, so a first pass is expected to fail it; the bet is that the critic's failures send the builder back (`e-critic-fail`), the next round closes them, and the run ends with more held-out passes than a session with no reviewer (arm D). Against the same design said in prose (arms B and C) the bet is narrower: that the package reaches the suite's passes at least as surely, at a cost the difference justifies.",
+  "measure": "held-out passes out of 68, by group (stated, careful, and the six open points); whether a loop turned and what the held-out score was before and after the turn, from each run's record; who read the held-out suite (transcript digest); cost and wall time; the blind judgment.",
+  "loses_if": "the graph loses when arm B matches or beats arm A on held-out passes in both replicates at lower cost. It earns its cost only if A's held-out range lies above B's, or A reaches B's passes at lower cost in both replicates. The design itself (A, B and C alike) loses to no design when D's held-out range is not below theirs.",
+  "round0_pass_probability": 0.03,
+  "round0_why": "Of the suite's 68 cases, 30 are in six groups, one for each point the task and the checklist leave open, each settled one way: pages come back in the order typed with repeats kept; a range typed last-first runs backward; spaces around the hyphen are ignored; a range may leave out its first or last page; an empty box means every page; a number may carry leading zeros. A builder passes at round 0 only by taking the suite's side on all six without seeing it. Taken one at a time each reading is defensible, and so is its opposite; the estimate is 0.03, from rough odds of 0.4, 0.3, 0.6, 0.3, 0.2 and 0.6 that are not independent (a builder who pictures a real print dialog gets several at once). The cautious first pass kept in reference/first-pass passes 45 of 68: it fails 23 of the 30 open cases and nothing else.",
+  "held_out_cases": 68,
+  "first_pass": {
+    "about": "reference/first-pass laid over task/: one author's cautious reading of the task and the checklist, written without the suite. scripts/lib/compare-projects.test.mjs holds these numbers to the files.",
+    "held_out_passes": 45,
+    "fails_in": ["order", "backward", "spaces", "open end", "empty", "zeros"]
+  },
+  "acceptance": ["README.md", "docs/REVIEW-CHECKLIST.md"],
+  "scope": {
+    "allowed": ["src/", "tests/", "README.md", "REVIEW.md", "CHANGES.md"]
+  },
+  "judge": {
+    "files": ["src/", "tests/", "README.md"]
+  },
+  "agents": ["builder", "critic"],
+  "reports": { "critic": ["REVIEW.md"] },
+  "heldOut": { "readers": ["critic"], "notReaders": ["builder"] },
+  "ending": ["halt at merge-gate"]
+}
