@@ -35,12 +35,13 @@ function scratch(t) {
   put("apps/web/dist/assets/screens-a.js", randomBytes(5000));
   put("apps/web/dist/assets/EmbedApp-a.js", randomBytes(900));
   put("apps/web/dist/assets/compile-a.js", randomBytes(300));
+  put("apps/web/dist/assets/space-a.js", randomBytes(200));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-next.v1.woff2", randomBytes(400));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", randomBytes(300));
   put("apps/web/dist/assets/site-icons.v1.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
   put(
     "apps/web/dist/routes.json",
-    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js"] }),
+    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js"], space: ["assets/space-a.js"] }),
   );
   const gz = (path) => gzipSync(files[`apps/web/dist/${path}`]).length;
   /** What an address that draws on the canvas weighs in this build, in bytes, as the script weighs it. */
@@ -50,7 +51,7 @@ function scratch(t) {
   for (let more = 0; !(((weigh() / 1024) * 10) % 1 > 0.1 && ((weigh() / 1024) * 10) % 1 < 0.4); more += 10) put("apps/web/dist/assets/screens-a.js", randomBytes(5000 + more));
   const canvas = weigh();
   const run = (canvasLimitBytes) => {
-    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, embedLoadKB: 1000, cliColdMs: 60000 };
+    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, cliColdMs: 60000 };
     writeFileSync(join(dir, "scripts", "perf-budget.json"), JSON.stringify({ ...roomy, canvasLoadKB: canvasLimitBytes / 1024 }));
     return spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" });
   };
