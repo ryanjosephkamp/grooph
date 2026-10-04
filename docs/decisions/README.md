@@ -30,3 +30,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0024 | [Lanes, the review desk, and the audit loop with Codex](0024-lanes-the-desk-and-the-audit-loop.md) |
 | 0025 | [Subgroophs: a group that remembers where it came from](0025-subgroophs.md) |
 | 0026 | [What the service worker keeps across a release](0026-what-the-worker-keeps.md) |
+| 0027 | [An address that draws on the canvas may load 280 KB, and the budget is compared to the byte](0027-the-canvas-budget.md) |
