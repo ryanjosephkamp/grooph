@@ -56,7 +56,7 @@ npx grooph validate --for-export flaky.grooph.json
 npx grooph share flaky.grooph.json | grep >/dev/null '^https://ryanjosephkamp.github.io/grooph/#/open?d=' || fail "share printed no link"
 npx grooph image flaky.grooph.json --out flaky.svg
 npx grooph image flaky.grooph.json --out flaky.png
-[[ "$(head -c 4 flaky.png | xxd -p)" == "89504e47" ]] || fail "image wrote no PNG (the optional renderer did not install or did not load)"
+[[ "$(head -c 4 flaky.png | od -An -tx1 | tr -d ' \n')" == "89504e47" ]] || fail "image wrote no PNG (the optional renderer did not install or did not load)"
 npx grooph export flaky.grooph.json --target claude-code --into . >/dev/null
 [[ -f .grooph/fix-the-flaky-test/LEAD.md ]] || fail "export wrote no package"
 

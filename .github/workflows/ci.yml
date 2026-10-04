@@ -88,6 +88,24 @@ jobs:
       - name: the quickstart's first run works
         run: scripts/first-run.sh
 
+      # What goes to npm as `grooph` (handoff 0078): assembled from the build, packed, installed from the tarball into a
+      # fresh folder that is not a clone, and run there. Publishing it is the owner's; this only proves it would work.
+      - name: the npm package installs from its tarball and runs
+        run: scripts/pack-check.sh --keep "$RUNNER_TEMP/grooph-kit"
+
+      # The skill for claude.ai and the extension for Claude's desktop app (docs/chat.md), built and then used as the
+      # app would use them: unzipped into an empty folder, with nothing installed beside them.
+      - name: the chat kit builds and runs with nothing beside it
+        run: scripts/kit-check.sh --keep "$RUNNER_TEMP/grooph-kit"
+
+      # The three files as this commit builds them, for anyone who wants to try them without a clone.
+      - uses: actions/upload-artifact@v7
+        if: ${{ matrix.node == '22' }}
+        with:
+          name: grooph-kit
+          path: ${{ runner.temp }}/grooph-kit
+          retention-days: 30
+
       # Public-facing text is American English (decision 0022): the README, the site's documents, the app, the CLI,
       # the templates and what the compiler writes. The internal record and the evidence are not read.
       - name: public-facing text is American English

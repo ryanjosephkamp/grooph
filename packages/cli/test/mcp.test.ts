@@ -155,3 +155,40 @@ test("as a process: one JSON-RPC message per line in, one per line out, nothing 
     rmSync(project, { recursive: true, force: true });
   }
 });
+
+test("started where nobody chose (the file system's root) the server answers and writes nothing; --chat lists the authoring tools and takes no --dir", async () => {
+  const bin = join(repoRoot, "packages", "cli", "bin", "grooph.js");
+  const session = async (args: string[], cwd: string, messages: unknown[]): Promise<{ code: number | null; replies: Reply[]; err: string }> => {
+    // No CLAUDE_PROJECT_DIR in the environment: a chat app gives a server none.
+    const child = spawn(process.execPath, [bin, "mcp", ...args], { cwd, env: { PATH: process.env["PATH"] ?? "", HOME: process.env["HOME"] ?? "" }, stdio: ["pipe", "pipe", "pipe"] });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (d: Buffer) => (out += d.toString()));
+    child.stderr.on("data", (d: Buffer) => (err += d.toString()));
+    for (const m of messages) child.stdin.write(`${JSON.stringify(m)}\n`);
+    child.stdin.end();
+    const code = await new Promise<number | null>((done) => child.on("close", done));
+    return { code, err, replies: out.trim() === "" ? [] : out.trim().split("\n").map((l) => JSON.parse(l) as Reply) };
+  };
+  const made = { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "grooph_new", arguments: { name: "From the root" } } };
+  const written = { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "grooph_new", arguments: { name: "From the root", out: "grooph-test-never-written.grooph.json" } } };
+  const list = { jsonrpc: "2.0", id: 3, method: "tools/list" };
+
+  const root = await session([], "/", [made, written, list]);
+  assert.equal(root.code, 0);
+  assert.equal(root.err, "");
+  assert.equal(((root.replies[0]!.result!["structuredContent"] as { graph: { id: string } }).graph).id, "from-the-root");
+  assert.equal(root.replies[1]!.result!["isError"], true);
+  assert.match(textOf(root.replies[1]!), /^grooph was not given a project folder \(it started in \/\), so it writes no file\./);
+  assert.equal(existsSync("/grooph-test-never-written.grooph.json"), false);
+  assert.equal((root.replies[2]!.result!["tools"] as unknown[]).length, 13);
+
+  const chat = await session(["--chat"], "/", [list, written]);
+  assert.deepEqual((chat.replies[0]!.result!["tools"] as { name: string }[]).map((t) => t.name).slice(0, 2), ["grooph_validate", "grooph_templates"]);
+  assert.equal((chat.replies[0]!.result!["tools"] as unknown[]).length, 10);
+  assert.match(textOf(chat.replies[1]!), /so it writes no file/);
+
+  const both = await session(["--chat", "--dir", "."], repoRoot, []);
+  assert.equal(both.code, 1);
+  assert.match(both.err, /--chat writes no file, so it takes no --dir/);
+});
