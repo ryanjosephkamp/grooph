@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { PICTURE_THEMES, canonicalize, mapPicture, mapSequence, mapWide, offlinePage, outline, outlineMarkdown, parseGraphText, parseMapText, picture, pictureLook } from "@grooph/core";
+import { PICTURE_THEMES, canonicalize, mapPicture, mapSequence, mapWide, offlinePage, outline, outlineMarkdown, parseGraphText, parseMapText, picture, themed, themedPage } from "@grooph/core";
 
 import { VERSION, run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -98,25 +98,26 @@ test("image, page and embed take --theme: six names, with light or dark after on
   const map = parseMapText(readFileSync(sampleMap, "utf8")).map!;
   assert.deepEqual([...PICTURE_THEMES], ["paper", "blueprint", "ink", "phosphor", "transit", "chalk"]);
   for (const name of PICTURE_THEMES) {
-    const look = pictureLook(name);
-    const drawn = look ? { look } : {};
+    // What the command must print: Paper as core draws it in that form, and any other theme added to the picture
+    // core draws to follow the viewer.
+    const want = (draw: (theme: "auto" | "light" | "dark") => string, form: "auto" | "light" | "dark"): string => (name === "paper" ? draw(form) : themed(draw("auto"), name, form));
     // A name alone follows the viewer, as no --theme does; a name and light or dark writes the colors in.
     let io = capture();
     assert.equal(await grooph(["image", reviewLoop, "--theme", name], io), 0, text(io.stderr));
-    assert.equal(`${text(io.stdout)}\n`, picture(doc, { theme: "auto", ...drawn }), name);
+    assert.equal(`${text(io.stdout)}\n`, want((theme) => picture(doc, { theme }), "auto"), name);
     io = capture();
     assert.equal(await grooph(["image", reviewLoop, "--theme", `${name}-dark`], io), 0, text(io.stderr));
-    assert.equal(`${text(io.stdout)}\n`, picture(doc, { theme: "dark", ...drawn }), `${name}-dark`);
+    assert.equal(`${text(io.stdout)}\n`, want((theme) => picture(doc, { theme }), "dark"), `${name}-dark`);
     // A map, and its other two views.
     io = capture();
     assert.equal(await grooph(["image", sampleMap, "--theme", `${name}-light`], io), 0, text(io.stderr));
-    assert.equal(`${text(io.stdout)}\n`, mapPicture(map, { theme: "light", ...drawn }), `${name}-light, a map`);
+    assert.equal(`${text(io.stdout)}\n`, want((theme) => mapPicture(map, { theme }), "light"), `${name}-light, a map`);
     io = capture();
     assert.equal(await grooph(["image", sampleMap, "--theme", name, "--layout", "wide"], io), 0, text(io.stderr));
-    assert.equal(`${text(io.stdout)}\n`, mapWide(map, { theme: "auto", ...drawn }), `${name}, lanes side by side`);
+    assert.equal(`${text(io.stdout)}\n`, want((theme) => mapWide(map, { theme }), "auto"), `${name}, lanes side by side`);
     io = capture();
     assert.equal(await grooph(["image", sampleMap, "--theme", name, "--view", "sequence"], io), 0, text(io.stderr));
-    assert.equal(`${text(io.stdout)}\n`, mapSequence(map, { theme: "auto", ...drawn }), `${name}, the sequence`);
+    assert.equal(`${text(io.stdout)}\n`, want((theme) => mapSequence(map, { theme }), "auto"), `${name}, the sequence`);
   }
   // Paper by name is no theme at all: the same bytes as before there were any.
   let io = capture();
@@ -145,7 +146,7 @@ test("image, page and embed take --theme: six names, with light or dark after on
     // The PNG's renderer knows `transform` and not `transform-box`: given Transit's rule for its arrowheads bare, it
     // moves each one across the picture. The rule is behind a condition it does not read, so with the rule or
     // without it the PNG is the same pixels; and bare, it is not, which is what the condition is for.
-    const transit = picture(doc, { theme: "light", look: pictureLook("transit")! });
+    const transit = themed(picture(doc), "transit", "light");
     const guarded = /@supports \(transform-box:fill-box\)\{([^{}]*\{[^{}]*\})\}/.exec(transit)!;
     const renderer = "@resvg/resvg-js";
     const { Resvg } = (await import(renderer)) as { Resvg: new (svg: string, options: unknown) => { render(): { asPng(): Uint8Array } } };
@@ -160,7 +161,8 @@ test("image, page and embed take --theme: six names, with light or dark after on
     const page = join(dir, "rl.html");
     io = capture();
     assert.equal(await grooph(["page", reviewLoop, "--out", page, "--theme", "ink"], io), 0, text(io.stderr));
-    assert.equal(readFileSync(page, "utf8"), offlinePage(doc, { version: VERSION, look: pictureLook("ink")! }));
+    assert.equal(readFileSync(page, "utf8"), themedPage(offlinePage(doc, { version: VERSION }), "ink"));
+    assert.ok(readFileSync(page, "utf8").includes('data-look="ink"'));
     io = capture();
     assert.equal(await grooph(["page", reviewLoop, "--out", page], io), 0);
     assert.equal(readFileSync(page, "utf8"), offlinePage(doc, { version: VERSION }));

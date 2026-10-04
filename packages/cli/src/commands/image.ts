@@ -14,12 +14,12 @@ import {
   parseGraphText,
   parseMapText,
   picture,
-  pictureLook,
   readTheme,
+  themed,
+  themedPage,
   PICTURE_THEMES,
   type Graph,
   type OperationMap,
-  type PictureLook,
   type PictureTheme,
 } from "@grooph/core";
 
@@ -156,15 +156,14 @@ function liveFor(io: Output, loaded: Loaded, events: EventSource[] | undefined):
   return { live: mapLive(view.sessions, loaded.doc, view.at), at: view.at };
 }
 
-/** What `--theme` asked for: light, dark or both, and the look when it is not Paper. Undefined, with the reason printed, when it names neither. */
-function themeFor(io: Output, value: string | undefined, fallback: PictureTheme): { form: PictureTheme; look?: PictureLook; said: string } | undefined {
+/** What `--theme` asked for: light, dark or both, and the theme's name when it is not Paper. Undefined, with the reason printed, when it names neither. */
+function themeFor(io: Output, value: string | undefined, fallback: PictureTheme): { form: PictureTheme; name?: string; said: string } | undefined {
   const read = value === undefined ? { name: "paper" as const } : readTheme(value);
   if (!read) {
     io.err(`grooph: --theme is one of ${PICTURE_THEMES.join(", ")}; or light, dark or auto; or both, as chalk-dark. Got "${value}"`);
     return undefined;
   }
-  const look = pictureLook(read.name);
-  return { form: read.form ?? fallback, ...(look ? { look } : {}), said: value ?? fallback };
+  return { form: read.form ?? fallback, ...(read.name === "paper" ? {} : { name: read.name }), said: value ?? fallback };
 }
 
 /**
@@ -199,19 +198,21 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
     io.err("grooph: a PNG is light or dark, not both: use --theme light or --theme dark, or after a name, as chalk-dark (auto is for SVG, which can follow the viewer)");
     return 1;
   }
-  const drawn = { theme, ...(asked.look ? { look: asked.look } : {}) };
+  // A theme is added to the picture core draws to follow the viewer; without one the picture is drawn as it always was.
+  const drawn = { theme: asked.name ? ("auto" as const) : theme };
   const loaded = load(io, file);
   if (!loaded) return 1;
   const view = viewFor(io, loaded, flags);
   if (!view) return 1;
   const now = liveFor(io, loaded, flags.events);
   if (now === "refused") return 1;
-  const svg =
+  const paper =
     loaded.kind !== "map"
       ? picture(loaded.doc, drawn)
       : view.sequence
         ? mapSequence(loaded.doc, drawn)
         : (view.wide ? mapWide : mapPicture)(loaded.doc, { ...drawn, ...(now ? now : {}) });
+  const svg = asked.name ? themed(paper, asked.name, theme) : paper;
 
   if (flags.out === undefined) {
     io.out(svg.replace(/\n$/, ""));
@@ -224,7 +225,7 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
   }
   let png: Uint8Array;
   try {
-    png = await renderPng(svg, flags.scale ?? 3, asked.look !== undefined);
+    png = await renderPng(svg, flags.scale ?? 3, asked.name !== undefined);
   } catch (err) {
     io.err(`grooph: could not make a PNG: ${(err as Error).message}`);
     io.err(`The SVG is the same drawing: grooph image ${file} --theme ${asked.said}${view.wide ? " --layout wide" : ""}${view.sequence ? " --view sequence" : ""} --out ${flags.out.replace(/\.png$/i, ".svg")}`);
@@ -292,7 +293,7 @@ export function pageCommand(io: Output, file: string, flags: { out: string; vers
   if (!loaded) return 1;
   const now = liveFor(io, loaded, flags.events);
   if (now === "refused") return 1;
-  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}), ...(asked.look ? { look: asked.look } : {}) });
+  const html = themedPage(offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}) }), asked.name);
   writeText(flags.out, html);
   io.out(`wrote ${flags.out} (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB, one file, no network needed)`);
   return 0;
