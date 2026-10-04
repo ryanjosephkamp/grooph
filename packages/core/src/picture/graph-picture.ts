@@ -82,7 +82,7 @@ type Card = { node: Node; name: string[]; sub: string[]; extra: string; height: 
 export function picture(doc: Graph, options: PictureOptions = {}): string {
   const theme = options.theme ?? "auto";
   const W = options.width ?? PICTURE_WIDTH;
-  const ink = inkFor(theme);
+  const ink = inkFor(theme, options.look);
   const index = indexGraph(doc);
   const nodes = new Map<Id, Node>(doc.nodes.map((n) => [n.id, n]));
 

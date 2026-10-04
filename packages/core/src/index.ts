@@ -10,6 +10,9 @@ import type { OperationMap } from "./types.js";
 export * from "./base.js";
 export { compile, tryCompile, CompileError } from "./compile/index.js";
 export { mapSequenceWith, mapWideWith };
+// The picture's themes, a fourth door (`picture/themes.ts`): here they are simply there.
+export { PICTURE_THEMES, THEME_VALUES, isPictureTheme, pictureLook, readTheme, type PictureThemeName, type ThemeValues } from "./picture/themes.js";
+export type { PictureLook } from "./picture/svg.js";
 
 /** An operation map with its lanes side by side (docs/operation-map.md §4c). `width`, when given, is the room there is. */
 export const mapWide = (map: OperationMap, options: MapPictureOptions = {}): string => mapWideWith(mapKit, map, options);

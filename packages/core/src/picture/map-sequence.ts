@@ -25,7 +25,7 @@ const NOTE = "Read down: the order the map lists its handoffs in. An order, not 
 export function mapSequenceWith(kit: MapKit, map: OperationMap, options: PictureOptions = {}): string {
   const { M, PICTURE_WIDTH, carriedBy, drawn, fmt, frame, heading, inkFor, numberBadge, rect, stroke, styleOf, text, textWidth, wrap } = open(kit);
   const theme = options.theme ?? "auto";
-  const ink = inkFor(theme);
+  const ink = inkFor(theme, options.look);
   const { sessions, people, handoffs, numberOf } = drawn(map);
   // The columns, in groups: the people, then each lane that has a session.
   const groups = [
