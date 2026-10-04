@@ -128,9 +128,11 @@ function resolvers(page, bySource, problems) {
       problems.warn(`${page.source}: link ${href} points at ${at.target}, which is not in the repository`);
       return `${github("blob", at.target)}${at.frag}`;
     }
+    // A picture a page links to (the poster) is a file of the site, beside the page, as a picture it shows is.
+    if (!statSync(full).isDirectory() && IMAGE_COPY.test(at.target)) return `${image(href.split("#")[0])}${at.frag}`;
     return `${github(statSync(full).isDirectory() ? "tree" : "blob", at.target)}${at.frag}`;
   };
-  const image = (src) => {
+  function image(src) {
     const at = pathOf(src);
     if (at === null) return src;
     const from = join(root, at.target);
@@ -143,7 +145,7 @@ function resolvers(page, bySource, problems) {
     for (let n = 2; assets.has(name) && assets.get(name) !== from; n += 1) name = `${basename(at.target, extname(at.target))}-${n}${extname(at.target)}`;
     assets.set(name, from);
     return encodeURIComponent(name);
-  };
+  }
   return { link, image, assets };
 }
 
@@ -256,6 +258,21 @@ function build(out) {
 
 // ─── checking ────────────────────────────────────────────────────────────────
 
+/** The app's front page links into the documents by address. Each address must be a file the pages made. */
+function checkAppLinks(out, problems) {
+  const landing = join(root, "apps", "web", "src", "ui", "landing");
+  if (!existsSync(landing)) return;
+  for (const name of readdirSync(landing).filter((f) => f.endsWith(".tsx"))) {
+    const text = readFileSync(join(landing, name), "utf8");
+    for (const m of text.matchAll(/\$\{DOCS\}([^`"'\s}]*)/g)) {
+      const address = m[1].split("#")[0];
+      let target = join(out, "docs", address);
+      if (existsSync(target) && statSync(target).isDirectory()) target = join(target, "index.html");
+      if (!existsSync(target)) problems.error(`apps/web/src/ui/landing/${name}: the front page links to docs/${address}, which the site does not have`);
+    }
+  }
+}
+
 /** Every page's addresses, followed: a link between pages must land on a file, and a #fragment on a heading. */
 function checkLinks(out, problems) {
   const docs = join(out, "docs");
@@ -330,6 +347,7 @@ if (flag("--check")) {
   try {
     const { problems, pages, indexKB } = build(temp);
     checkLinks(temp, problems);
+    checkAppLinks(temp, problems);
     checkTokens(problems);
     for (const w of problems.warnings) process.stderr.write(`site-pages: warning: ${w}\n`);
     if (problems.errors.length > 0) {

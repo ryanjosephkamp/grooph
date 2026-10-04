@@ -179,3 +179,24 @@ test("--out refuses to write into the repository's own docs folder", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a picture a page links to is a file of the site, and the front page's links into the documents must exist", () => {
+  // The field guide links to its poster; the app's front page links to the same address. Both are the site's own file.
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==", "base64");
+  const front = (address) => `export const x = <a href={\`\${DOCS}${address}\`}>there</a>;\n`;
+  const files = { "docs/quickstart.md": "# Quickstart\n\nStart. [The poster](pictures/poster.png).\n", "docs/pictures/poster.png": PNG };
+  const good = tree({ ...files, "apps/web/src/ui/landing/Landing.tsx": front("quickstart/poster.png") + front("quickstart/") });
+  const out = mkdtempSync(join(tmpdir(), "grooph-site-out-"));
+  try {
+    assert.equal(run(good, "--check").status, 0, run(good, "--check").stderr);
+    assert.equal(run(good, "--out", out).status, 0);
+    assert.ok(existsSync(join(out, "docs", "quickstart", "poster.png")), "the linked picture is copied beside its page");
+    assert.match(readFileSync(join(out, "docs", "quickstart", "index.html"), "utf8"), /href="poster\.png"/);
+  } finally {
+    rmSync(good, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+  const bad = check({ ...files, "apps/web/src/ui/landing/Landing.tsx": front("field-guide/poster.svg") });
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /the front page links to docs\/field-guide\/poster\.svg, which the site does not have/);
+});
