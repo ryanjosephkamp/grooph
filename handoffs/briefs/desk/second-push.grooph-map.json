@@ -1,0 +1,37 @@
+{
+  "groophMap": 0,
+  "id": "grooph-second-push-2026-10-04",
+  "name": "The second push: lanes, a desk, and an audit by a second harness",
+  "version": 1,
+  "asOf": "2026-10-04",
+  "lanes": [
+    { "id": "mac", "name": "Ryan's Mac, Claude Code", "machine": "the Mac", "place": "local", "account": "the account signed in on the Mac" },
+    { "id": "codex", "name": "Ryan's Mac, Codex", "machine": "the Mac", "place": "local", "account": "ChatGPT subscription" }
+  ],
+  "people": [
+    { "id": "ryan", "name": "Ryan", "role": "Owner. Starts each lane, answers on the review desk, carries the prompts between the two harnesses, merges what is big." }
+  ],
+  "sessions": [
+    { "id": "driver", "name": "Driver", "lane": "mac", "harness": "claude-code", "model": "claude-opus-5-5", "role": "Writes each lane's brief, reads its work, merges what is small and safe, keeps the review desk", "lifetime": "long-lived", "repo": "ryanjosephkamp/grooph" },
+    { "id": "audit", "name": "Audit lane", "lane": "mac", "harness": "claude-code", "model": "claude-opus-5-5", "role": "Checks every claim against its evidence, writes the handoff for Codex, reconciles what comes back", "lifetime": "per-task", "repo": "ryanjosephkamp/grooph" },
+    { "id": "builders", "name": "Building lanes", "lane": "mac", "harness": "claude-code", "model": "claude-opus-5-5", "count": 3, "role": "Site, agents and chat, evidence: one slice each, on a branch and in a worktree of its own", "lifetime": "per-task", "repo": "ryanjosephkamp/grooph" },
+    { "id": "codex-target", "name": "Codex target lane", "lane": "codex", "harness": "codex", "model": "gpt-6.1-sol", "role": "Builds the Codex compile target and runs one template in Codex", "lifetime": "per-task", "repo": "ryanjosephkamp/grooph" },
+    { "id": "auditor", "name": "Auditor", "lane": "codex", "harness": "codex", "model": "gpt-6.1-sol", "role": "Reads the claims and a snapshot of the repository as a skeptic. Writes a handback. Changes nothing", "lifetime": "per-task" }
+  ],
+  "handoffs": [
+    { "id": "h-desk", "from": "driver", "to": "ryan", "carrier": { "kind": "review-page", "where": "the review desk" }, "what": "what waits on him, each with a recommendation; what was merged without asking" },
+    { "id": "h-answers", "from": "ryan", "to": "driver", "carrier": { "kind": "review-page", "where": "the review desk" }, "what": "his answers and notes, read from the desk" },
+    { "id": "h-start", "from": "ryan", "to": "builders", "carrier": { "kind": "person", "who": "Ryan" }, "what": "a new session in the app and the starter line: his yes to the slice" },
+    { "id": "h-assign", "from": "driver", "to": "builders", "carrier": { "kind": "session-message" }, "what": "answers to a lane's questions; the next slice" },
+    { "id": "h-pr", "from": "builders", "to": "driver", "carrier": { "kind": "pull-request", "repo": "ryanjosephkamp/grooph" }, "what": "the slice with its handback" },
+    { "id": "h-start-audit", "from": "ryan", "to": "audit", "carrier": { "kind": "person", "who": "Ryan" }, "what": "a new session and the starter line" },
+    { "id": "h-to-codex", "from": "audit", "to": "auditor", "carrier": { "kind": "person", "who": "Ryan" }, "what": "the prompt; the handoff and a snapshot of the repository wait in the exchange folder" },
+    { "id": "h-from-codex", "from": "auditor", "to": "audit", "carrier": { "kind": "person", "who": "Ryan" }, "what": "the return prompt; the handback is in the exchange folder" },
+    { "id": "h-reconcile", "from": "audit", "to": "ryan", "carrier": { "kind": "review-page", "where": "a reconciliation page, and the desk" }, "what": "each finding: agree, partly or disagree, the correction proposed, how close the two are" },
+    { "id": "h-decide", "from": "ryan", "to": "audit", "carrier": { "kind": "session-message" }, "what": "which corrections to make; another round or not" },
+    { "id": "h-corrections", "from": "audit", "to": "driver", "carrier": { "kind": "pull-request", "repo": "ryanjosephkamp/grooph" }, "what": "the corrections he accepted, and each round's record" },
+    { "id": "h-experiment", "from": "audit", "to": "driver", "carrier": { "kind": "branch", "repo": "ryanjosephkamp/grooph" }, "what": "a new experiment's design, when both sides agree the evidence is not enough. Designed here, run later" },
+    { "id": "h-start-codex", "from": "ryan", "to": "codex-target", "carrier": { "kind": "person", "who": "Ryan" }, "what": "the starter line, in a Codex session" },
+    { "id": "h-codex-pr", "from": "codex-target", "to": "driver", "carrier": { "kind": "pull-request", "repo": "ryanjosephkamp/grooph" }, "what": "the Codex target with its handback" }
+  ]
+}

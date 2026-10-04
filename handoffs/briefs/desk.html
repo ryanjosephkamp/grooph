@@ -1,0 +1,614 @@
+<title>grooph Review Desk</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working desk, not a report. A sticky strip of sections; the queue of decisions first, each a card with
+   its answer buttons and a note; then lanes, the log, and the standing reference. One column, 820px. House style of handoffs/briefs. */
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#6b7483;--line:#d9ded8;--accent:#2f6f8f;--accent-ink:#ffffff;--accent-soft:#dbe9f0;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--wait-bg:#fbf3dc;--wait-ink:#6b4e00;--note-bg:#f1f3ef;--paper:#ffffff;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8f97a3;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8f97a3;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:820px;margin:0 auto;padding-block:20px 64px;padding-inline:16px}
+h1,h2,h3,h4{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.8rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:600;margin-top:48px;padding-top:14px;border-top:2px solid var(--line);scroll-margin-top:64px}
+h3{font-size:1.05rem;font-weight:600;margin-top:26px}
+h4{font-size:.95rem;font-weight:600;margin-top:16px}
+p{margin:10px 0;max-width:70ch}
+ul,ol{padding-left:20px;margin:8px 0}li{margin:5px 0;max-width:70ch}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.86em;background:var(--note-bg);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+.small{font-size:.88rem;color:var(--ink2)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:-16px;padding:8px 16px;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabs a{flex:none;font-family:var(--head);font-weight:600;font-size:.82rem;text-decoration:none;color:var(--ink2);background:var(--note-bg);border-radius:999px;padding:5px 12px}
+.tabs a:focus-visible,.btn:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:16px 0 4px}
+.chip{border-radius:6px;padding:9px 12px;font-size:.88rem;line-height:1.35;min-width:0;background:var(--note-bg);color:var(--ink2)}
+.chip b{display:block;font-family:var(--head);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.chip.ok{background:var(--ok-bg);color:var(--ok-ink)}.chip.wait{background:var(--wait-bg);color:var(--wait-ink)}.chip.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.notice{background:var(--wait-bg);color:var(--wait-ink);border-radius:6px;padding:10px 12px;font-size:.92rem;margin:12px 0}
+.group-title{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:22px 0 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:10px 0;min-width:0}
+.card h3{margin-top:0}
+.card.answered{border-color:var(--ok-ink)}
+.rec{color:var(--ink2);font-size:.93rem}
+.rec b{color:var(--accent);font-family:var(--head);font-weight:600;font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;margin-right:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 8px}
+.btn{font-family:var(--head);font-weight:600;font-size:.9rem;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:8px 12px;cursor:pointer;text-align:left;max-width:100%}
+.btn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:disabled{opacity:.55;cursor:default}
+label.lbl{display:block;font-family:var(--head);font-size:.8rem;font-weight:600;color:var(--ink2);margin-top:8px}
+textarea{display:block;width:100%;box-sizing:border-box;min-height:60px;margin-top:4px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:.95rem;resize:vertical}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:8px}
+.saved{font-size:.86rem;color:var(--ok-ink)}
+.saved.err{color:var(--warn-ink)}
+.driver-note{background:var(--note-bg);border-radius:6px;padding:8px 10px;font-size:.9rem;margin-top:10px}
+.driver-note b{font-family:var(--head);font-size:.76rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink3);display:block}
+.pill{display:inline-block;font-family:var(--head);font-size:.74rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:2px 9px;background:var(--note-bg);color:var(--ink2);vertical-align:middle}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}.pill.wait{background:var(--wait-bg);color:var(--wait-ink)}.pill.warn{background:var(--warn-bg);color:var(--warn-ink)}
+.prompt{position:relative;margin:10px 0}
+.prompt pre{padding-top:42px;border:1px solid var(--line)}
+.copy{position:absolute;top:8px;right:8px;font-family:var(--head);font-weight:600;font-size:.82rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:6px 13px;cursor:pointer}
+details{margin:12px 0}
+summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accent)}
+.pic{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;overflow-x:auto}
+.pic svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.lane-facts{font-size:.9rem;color:var(--ink2);margin:4px 0 0}
+.empty{color:var(--ink3);font-size:.95rem;margin:10px 0}
+.idea{border-left:3px solid var(--line);padding-left:14px;margin:22px 0}
+.idea h3{margin-top:0}
+.react{margin-top:10px}
+</style>
+
+<div class="wrap">
+<div class="eyebrow">grooph · review desk</div>
+<h1>Review desk</h1>
+<p class="meta" id="meta-line">What waits on you, what the lanes are doing, and what was merged in your name. Answer here; then tell the driver session "read the desk".</p>
+
+<div class="strip" id="strip">
+<div class="chip"><b>Version</b><span id="m-version">0.3.0, live</span></div>
+<div class="chip wait"><b>Waiting on you</b><span id="m-waiting">Loading…</span></div>
+<div class="chip"><b>Lanes</b><span id="m-lanes">Loading…</span></div>
+<div class="chip"><b>Updated</b><span id="m-updated">2026-10-04</span></div>
+</div>
+
+<nav class="tabs" aria-label="Sections">
+<a href="#waiting">Waiting on you</a><a href="#lanes">Lanes</a><a href="#merged">Merged</a><a href="#night">What I did</a><a href="#can">What it does</a><a href="#claims">Claims</a><a href="#docs">Docs</a><a href="#ideas">Ideas</a><a href="#how">How we work</a>
+</nav>
+
+<div class="notice" id="db-off" hidden>This copy cannot reach the desk's data, so the queue, the lanes and your answers do not show. That happens when you are signed out or the page is opened outside Claude. Everything below still reads; answer in the chat instead.</div>
+
+<h2 id="waiting">Waiting on you</h2>
+<p class="small">Tap an answer and it is saved. Add a note if the buttons do not fit what you mean. Nothing here starts work by itself: the driver reads your answers when you say "read the desk".</p>
+<div id="queue"><p class="empty" id="queue-empty">Loading what waits on you…</p></div>
+<details id="settled-box" hidden><summary>Settled</summary><div id="settled"></div></details>
+
+<h3>Tell me anything</h3>
+<p class="small">An idea, a correction, a "stop doing that". It goes to the driver with the time you sent it.</p>
+<label class="lbl" for="note-text">Your note</label>
+<textarea id="note-text" placeholder="Type or dictate…"></textarea>
+<div class="row"><button class="btn primary" id="note-send" type="button">Send note</button><span class="saved" id="note-said" role="status"></span></div>
+<div id="notes"></div>
+
+<h2 id="lanes">Lanes</h2>
+<p>A lane is a session you start in the Claude app. I cannot start one. Once it exists I run it: I send it its work, read what it does, answer its questions, review its pull request, and merge it or bring it to you.</p>
+<ol>
+<li>In the app's Code tab, start a new session in the <code>grooph</code> folder. Let the app give it a worktree of its own. Set the model and effort the lane's card names.</li>
+<li>Paste the lane's starter line.</li>
+<li>Tell me "read the desk", or just "lane up". I find it in the session list and take it from there.</li>
+</ol>
+<p class="small">Starting a lane is your yes to its slice. At most four at once beside me.</p>
+<div id="lane-list"><p class="empty">Loading the lanes…</p></div>
+
+<h2 id="merged">Merged without asking</h2>
+<p class="small">Decision 0023 lets me merge what is small and safe. Everything I merge that way is listed here with why it qualified, so you can tell me when I drew the line in the wrong place.</p>
+<div id="merge-list"><p class="empty">Loading…</p></div>
+
+<h2 id="night">What I did, last night and today</h2>
+<h3>Last night: the push you asked for</h3>
+<p>Sixteen slices, now released as 0.3.0. Three were lanes you started (front page, embeds, toolkit). I built eight myself and five went to subagents: three on Sonnet 5.5, two on Opus 5.5. Two more subagents were independent readers.</p>
+<ul>
+<li><b>Site:</b> a front page that plays a recorded run; the documents as pages; a field guide to the twenty shapes with a poster; a community page that takes loop graphs by pull request; a blog draft with two live embeds; a technical report.</li>
+<li><b>App:</b> a desktop layout for the editor, the viewer and the template list; the map, live and run screens reworked.</li>
+<li><b>Toolkit:</b> <code>grooph embed</code>, <code>grooph explain</code>, did-you-mean, a quickstart CI runs, a rule reference made from the fixtures.</li>
+<li><b>Speed:</b> a budget CI enforces. The front page went from 267.9 KB to 172.4 KB and paints about 0.45 s sooner on a slow phone link. Editor addresses are level with before.</li>
+</ul>
+<h3>Today</h3>
+<ul>
+<li><b>Released 0.3.0</b> on your word: merged, tagged, deployed, and checked on the live site in a browser.</li>
+<li><b>American English.</b> A checker now runs in CI over everything public. About 300 words in 85 files were corrected. One template had the British word in a node's id, so it is version 2.</li>
+<li><b>Governance.</b> Three decisions: American English (0022), who merges what (0023), lanes, this desk and the audit loop with Codex (0024). <code>AGENTS.md</code> names the roles as they are now.</li>
+<li><b>The poster.</b> You asked where it is. The front page's link to it was dead on the live site. Fixed, with a check so it cannot break again. It is at <a href="https://ryanjosephkamp.github.io/grooph/docs/field-guide/poster.svg">docs/field-guide/poster.svg</a> once the fix deploys, and in the repository at <code>docs/field-guide/poster.svg</code>.</li>
+<li><b>Briefs for five lanes</b>, ready for you to start.</li>
+</ul>
+<h3>What went wrong, all of it</h3>
+<ul>
+<li>I told you all three lanes were green when one was not. I had not read that job. "Green" now means every job, read line by line.</li>
+<li>My first timing script read up to half a second late. Two conclusions drawn from it were withdrawn.</li>
+<li>Two slices broke each other at the order of the stylesheets. A test caught it. The build fixes the order now.</li>
+<li>A code split that changed nothing passed every check. Both checks now fail when they have nothing to measure.</li>
+<li>One commit swept in the subagents' working copies. The next commit took them out. No history was rewritten.</li>
+<li>One subagent force-pushed its own minutes-old branch. Nothing was lost. The protocol forbids it now.</li>
+<li><b>New today:</b> grooph gives its top model tier to Fable by default, and the judge in study one was Fable. You said never Fable. No experiment runs until a project can say which model a tier means. There is a card for it above.</li>
+<li><b>New today:</b> the README says the twenty templates are "proven". Two of the twenty records fail their own check and are published red. The word is too strong. It goes to the audit.</li>
+</ul>
+<h3>Audits and skeptic loops</h3>
+<p><b>No audit by Codex has been made of any claim.</b> Codex has done one thing in this project: a live check of the event hook in its own harness (slice 0032). What has been audited, and by whom:</p>
+<ul>
+<li><b>Code</b> has been read by fresh subagents before it shipped, ten times in this session alone. They caught a destructive bug in the events push, five defects in the run screen, and five in the front-page split. Those are Claude reading Claude.</li>
+<li><b>Claims</b> have been held to decision 0013's wording by me alone. Nobody else has attacked them.</li>
+</ul>
+<p>That is what the audit lane is for. Its brief is ready.</p>
+
+<h2 id="can">What grooph can do today</h2>
+<p>Version 0.3.0. Live at <a href="https://ryanjosephkamp.github.io/grooph/">ryanjosephkamp.github.io/grooph</a>.</p>
+<ul>
+<li><b>A graph document.</b> One small JSON file: agents, checks, human gates, stops, edges, and loops with their stops. A person or a model can read and rewrite it in one pass.</li>
+<li><b>A validator.</b> 35 rules, 24 for graphs and 11 for maps, each with a code, a document that fires it and one that does not. Every loop must be able to end; a critic must see something the builder did not; an irreversible step needs a person before it.</li>
+<li><b>A compiler</b> for one harness, Claude Code: a lead brief, a subagent per agent node, a skill that starts the run, and the notes a run writes.</li>
+<li><b>Twenty templates</b>, each with one recorded run. Three seed graphs for research work in the community folder.</li>
+<li><b>A CLI:</b> <code>new</code>, <code>template</code>, <code>apply</code>, <code>pick</code>, <code>validate</code>, <code>explain</code>, <code>shape</code>, <code>export</code>, <code>adopt</code>, <code>image</code>, <code>outline</code>, <code>page</code>, <code>glyph</code>, <code>mermaid</code>, <code>watch</code>, <code>runs</code>, <code>hooks</code>, <code>sessions</code>, <code>events</code>, <code>mcp</code>, <code>share</code>, <code>embed</code>.</li>
+<li><b>An app</b> that installs and works offline: a front page, your library, an editor for phone and desktop, the templates, a viewer for links, a compare view for proposals, a run view with replay, live sessions, and the operation map.</li>
+<li><b>Things to keep and share:</b> pictures as SVG and PNG, an outline, one offline HTML file, a share link, an embed for any page.</li>
+<li><b>Operation maps:</b> sessions, people and the handoffs between them, drawn and checked. Never compiled.</li>
+<li><b>Observation:</b> a hook that records when sessions and subagents start and stop, in Claude Code and in Codex, and a live view of it. It never steers.</li>
+<li><b>An MCP server</b> with four tools for a running session: plan, note, running, validate.</li>
+</ul>
+<h3>What it cannot do yet</h3>
+<ul>
+<li>Compile for Codex, or any second harness.</li>
+<li>Let an agent author a graph through tools alone, or from a chat.</li>
+<li>Install from npm.</li>
+<li>Nest one graph in another, or link two graphs.</li>
+<li>Edit a map in the app, save a map in the library, or bind a map's session to its events in the map itself.</li>
+<li>Show a graph any way but the one layout.</li>
+</ul>
+
+<h2 id="claims">Claims and evidence</h2>
+<p>Every figure below comes from a file or a command in the repository. The ceiling for any claim of value is decision 0013: grooph is shown to bound and record autonomous work and to hold a design as a runtime contract; it is not shown to raise quality over the same instructions given as a prompt, on small tasks.</p>
+<div class="scroll"><table>
+<thead><tr><th>Claim, as published</th><th>Evidence</th><th>My own reading</th><th>Audited by Codex</th></tr></thead>
+<tbody>
+<tr><td>"Every loop can end." The validator refuses a loop without a stop, a critic that shares the builder's context, an irreversible step without a gate.</td><td>35 rules, each with a fixture that fires it and one that passes; tests in CI.</td><td>Carried. It is a property of the checker, shown by tests.</td><td>No</td></tr>
+<tr><td>"The graph is the contract." The package drives the session as drawn.</td><td>Twenty proving runs in Claude Code. 18 pass their check; 2 are red (<code>gauntlet-decomposed</code>, <code>ralph-loop</code>). <code>node scripts/lib/prove-summary.mjs</code>.</td><td>Carried for 18 of 20, in one harness version, one run each. "Each proven" in the README is too strong.</td><td>No</td></tr>
+<tr><td>"Every run leaves a record" that a monitor reads and a run id resumes.</td><td>The run folders under <code>experiments/patterns/</code>; two templates were resumed by run id.</td><td>Carried.</td><td>No</td></tr>
+<tr><td>grooph bounds autonomous work.</td><td>Study one: one prompt-only run reached the $9.00 ceiling ($9.02) where both graph runs of that project stopped by the graph's own edge.</td><td>Thin. It rests on one run out of 27.</td><td>No</td></tr>
+<tr><td>Not shown to raise quality over the same instructions as a prompt, on small tasks.</td><td>Study one: 27 runs, four projects, three arms, $60.62. Every arm reached the same held-out score in every project. The judge never ranked a graph run first.</td><td>Carried, and it is a negative result. No loop turned, so it says nothing about a loop that does.</td><td>No</td></tr>
+<tr><td>The front page loads 172 KB and paints about 0.45 s sooner than before.</td><td><code>scripts/perf-budget.mjs</code>, <code>scripts/perf-loadtime.mjs</code>; decision 0021. On the live site: 1.65 s on slow 4G.</td><td>Carried on one Mac, in Chromium, on emulated links. The before-and-after was local.</td><td>No</td></tr>
+</tbody></table></div>
+<p><b>Spend so far</b>, as the harness reported it: $57.51 on proving runs over 31 invocations, $60.62 on study one over 40. No proving or comparison run since 2026-09-22. The short sessions that checked the event hook, September 30 to October 3, are recorded with their own ledgers under <code>experiments/hooks/</code>.</p>
+<p><b>What is not measured at all:</b> whether a loop that turns earns its cost; structure against no structure; anything in Codex; anything on a task bigger than a few files.</p>
+
+<h2 id="docs">The documents, page by page</h2>
+<div class="scroll"><table>
+<thead><tr><th>Page</th><th>What it is for</th></tr></thead>
+<tbody>
+<tr><td>Docs (the index)</td><td>The way in. Groups the pages: start, reference, field guide, writing.</td></tr>
+<tr><td>Quickstart</td><td>From nothing to an exported package in a few minutes: install, ask your agent or build by hand, check, export, run. CI runs it end to end.</td></tr>
+<tr><td>Rule reference</td><td>Every validation rule by its code, with a document that fires it. Where an error message sends you.</td></tr>
+<tr><td>The graph document</td><td>The format itself: every field, what it means, the operations that change it. The page an agent or a contributor needs.</td></tr>
+<tr><td>Templates and the pattern library</td><td>What a template is, how slots are filled, where templates live, the CLI's template commands.</td></tr>
+<tr><td>The operation map</td><td>The second kind of document: sessions, people, lanes, handoffs and what carries each, and its eleven rules.</td></tr>
+<tr><td>Things to keep</td><td>The picture, the outline, the offline page, and embedding a live graph on any page.</td></tr>
+<tr><td>Subagents and hooks</td><td>How subagents and hooks work in Claude Code and in Codex, each fact marked documented, seen or unknown; the event hook and the live view.</td></tr>
+<tr><td>Runs</td><td>What a run leaves behind, how its notes come back onto the graph, adopting a run's changes, the monitor.</td></tr>
+<tr><td>Field guide</td><td>All twenty shapes: the picture, when to reach for it, what its recorded run showed, the line that starts it. And the poster.</td></tr>
+<tr><td>Community loops</td><td>Graphs other people sent in, and how to send one.</td></tr>
+<tr><td>Blog</td><td>Your post, in draft. Two live embeds.</td></tr>
+<tr><td>Technical report</td><td>The long form: the problem, the document, the validator, the evidence and its limits. A draft.</td></tr>
+</tbody></table></div>
+<h3>Pages I recommend adding</h3>
+<ul>
+<li><b>For agents.</b> The shortest path for a model: name a template, fill it, check it, share it. Plus <code>llms.txt</code>. In the agents lane.</li>
+<li><b>From a chat.</b> What works in Claude's app, on claude.ai and in ChatGPT, tested. In the agents lane.</li>
+<li><b>What is shown.</b> Every claim, its evidence, and whether a second harness has audited it. In the audit lane.</li>
+<li><b>The CLI, command by command.</b> Generated from the help text, so it cannot drift.</li>
+<li><b>Targets.</b> The Claude Code target is in the repository and not on the site. The Codex one joins it.</li>
+<li><b>Comparisons.</b> The protocol and each study's result. In the repository, not on the site.</li>
+<li><b>Glossary</b> and <b>FAQ</b> (is it a runtime? how is it different from LangGraph?). The glossary exists in the repository.</li>
+<li><b>Privacy.</b> One short page saying what the site and the app do not do. Your other site has one.</li>
+<li><b>Releases.</b> What changed in each version.</li>
+<li><b>Contributing.</b> How to send a template or a fix, and the house rules.</li>
+</ul>
+
+<h2 id="ideas">Ideas and recommendations</h2>
+<p class="small">My view on each thing you raised. React under any of them; the bigger choices are also cards at the top.</p>
+
+<div class="idea"><h3>Subgroophs: a grooph inside a grooph</h3>
+<p>Yes, and it fits what is there. Today a fragment template can be copied into a graph, and "a graph pointing at another graph" is on the deferred list. A subgrooph is that pointer.</p>
+<ul>
+<li><b>In the document:</b> a node whose kind is a graph, naming another document by id and version, with its exits mapped to edges: pass, fail, halt.</li>
+<li><b>At compile time it is inlined.</b> The child's agents become subagents of the same lead, with their ids prefixed. This keeps the rule that a graph is one session, and it is forced: a subagent in Claude Code cannot start subagents of its own.</li>
+<li><b>The validator checks the whole.</b> A child's loop must still end inside the parent. A child can tighten the parent's brakes and never loosen them. No graph may contain itself.</li>
+<li><b>In the picture:</b> the node shows the child's glyph. Tap to step in; a trail leads back out. A long graph becomes a short one with rooms.</li>
+<li><b>For agents:</b> two operations, insert a graph as a node and expand it in place. <code>grooph flatten</code> prints what will actually run.</li>
+</ul>
+<p>It changes the product contract, so it needs an amendment. I would draft it first and build it second.</p>
+<div class="react" data-item="idea-subgrooph" data-title="Subgroophs"></div></div>
+
+<div class="idea"><h3>Intergroophs: linking groophs across sessions and projects</h3>
+<p>The operation map already draws sessions and the handoffs between them. An intergrooph is a handoff that names a graph at each end.</p>
+<ul>
+<li><b>A port on each graph:</b> what leaves one (a stop, an artifact) and what the other takes in (its goal, a slot).</li>
+<li><b>A carrier,</b> as every handoff has: a branch, a pull request, a message, a schedule, a person.</li>
+<li><b>Rules:</b> a cycle across graphs needs a stop or a person, as a loop inside one does. The map already counts what moves only when a person moves it.</li>
+<li><b>In the app:</b> a session's card on the map opens its graph, and the link shows as an arc between two graphs' doors.</li>
+</ul>
+<p>The deferred list has the pieces: a binding from a map session to its events, maps in the library, editing a map in the app. I would do those with it.</p>
+<div class="react" data-item="idea-intergrooph" data-title="Intergroophs"></div></div>
+
+<div class="idea"><h3>What else, in the same family</h3>
+<ul>
+<li><b>For-each.</b> One sub-graph run once per item in a list (per file, per ticket), with a join. The most useful missing piece after nesting.</li>
+<li><b>Twins.</b> One graph compiled for two harnesses and run side by side, with the two records laid over each other. The game experiment is the first twin.</li>
+<li><b>Lenses.</b> The same picture with one thing lit: who may write what, what costs most, which steps cannot be undone, which nodes have a record behind them.</li>
+<li><b>Pulses.</b> A small graph attached to another and started by a schedule or an event: a patrol, a watchdog.</li>
+<li><b>Imports.</b> A subgrooph pinned by name and version from a registry, as a package is.</li>
+<li><b>Time.</b> A run laid out round by round, a ladder, so a loop that turned four times reads as four rungs.</li>
+</ul>
+<p>My order: subgroophs, then for-each, then intergroophs on the map, then lenses.</p>
+<div class="react" data-item="idea-family" data-title="Other constructs"></div></div>
+
+<div class="idea"><h3>Other views, 3D, and the long map</h3>
+<p>The tall map is hard to read because one column is the wrong shape for a wide screen and nineteen arcs share one margin. There are cheaper fixes than 3D, and 3D is still worth having.</p>
+<ul>
+<li><b>Lanes side by side</b> on a wide screen. Small change, big gain.</li>
+<li><b>A sequence view:</b> each session a column, each handoff a numbered arrow in order. It answers "what happens after what".</li>
+<li><b>A matrix:</b> who hands to whom, at a glance, in one screen.</li>
+<li><b>A ring:</b> sessions around a circle, handoffs as chords.</li>
+<li><b>3D:</b> lanes as planes in depth, nesting as depth, time as a slider. Good for seeing structure and for showing someone. Worse for reading words. It must stay a view, never the document, and load only when asked, so the speed budget is untouched.</li>
+</ul>
+<p>Sketches of all of these on your real map are in the design studio, linked from its card above when it is published.</p>
+<div class="react" data-item="idea-views" data-title="Views and 3D"></div></div>
+
+<div class="idea"><h3>Themes</h3>
+<p>Keep the plain look as the default. The picture's colors are already variables, so a theme is a set of values and a few style rules. The document does not change and an agent never sees the difference. The studio shows five against today's. Pick the ones you like and a lane builds a theme switch for the app, the embed and <code>grooph image</code>.</p>
+<div class="react" data-item="idea-themes" data-title="Themes"></div></div>
+
+<div class="idea"><h3>Agents first</h3>
+<p>The agents lane gives a model ten tools so it can make, change, check, draw and share a graph with no shell. Beyond that brief I would add:</p>
+<ul>
+<li><b>Suggest.</b> Given a few facts about the work (can a test decide done, is anything irreversible, how much does a mistake cost), name the two or three templates that fit, and say when no graph is the right answer. Rules, not a model.</li>
+<li><b>One round trip.</b> A single tool that takes a sentence-level plan as operations and returns the graph, its issues, its picture and its link together.</li>
+<li><b>A live graph an agent can update.</b> The run already writes notes a monitor reads. A resource the model can read back closes the loop.</li>
+<li><b>The Codex target,</b> so the same graph works in both.</li>
+</ul>
+<div class="react" data-item="idea-agents" data-title="Agents first"></div></div>
+
+<div class="idea"><h3>From a chat: can Claude or ChatGPT make a grooph today?</h3>
+<p><b>Partly, and you can test it now.</b> A chat model can write a graph document if it has the format in front of it. What it cannot do alone is check the document or build the link.</p>
+<ul>
+<li><b>Test it now, no setup.</b> In a Claude chat with file creation on, paste the prompt below. Download the file it makes. On the grooph site, choose Import and pick the file. If it has errors, the app names them by code.</li>
+<li><b>Claude's desktop app</b> can run grooph's MCP server locally. With the authoring tools from the agents lane, a chat there could build, check and link a graph. That is the best near-term path.</li>
+<li><b>claude.ai in a browser</b> needs a skill with a small script the chat's code tool runs. In the agents lane.</li>
+<li><b>ChatGPT</b> needs a connector, which needs a server on the internet. grooph has none by decision. I would design that and bring it to you before building anything.</li>
+</ul>
+<div class="prompt"><button class="copy" data-target="p-chat" type="button">Copy</button><pre id="p-chat">Read https://ryanjosephkamp.github.io/grooph/docs/graph-ir/ and https://ryanjosephkamp.github.io/grooph/docs/field-guide/ . Then write me a grooph graph document, as a downloadable file named plan.grooph.json, for this work:
+
+(describe the work: who builds, who checks, where I decide, when it stops)
+
+Follow the format exactly. Every loop needs at least one stop. Any step that cannot be undone needs a human gate before it. Tell me which template from the field guide it is closest to, and whether you think this work needs a graph at all.</pre></div>
+<div class="react" data-item="idea-chat" data-title="From a chat"></div></div>
+
+<div class="idea"><h3>A desktop app for the Mac</h3>
+<p>Worth doing, and smaller than it sounds. The app already installs from the browser and works offline, and <code>grooph watch</code> already serves live runs from the files an agent writes. A desktop app is those two with a window of their own:</p>
+<ul>
+<li>Double-click a <code>.grooph.json</code> file to open it.</li>
+<li>It watches your project folders, so a graph an agent changes updates on screen, and a running session shows live.</li>
+<li>A menu bar item that says what is running.</li>
+</ul>
+<p>I would build it with Tauri: a small native shell around the web app that is already there, a few megabytes, no second codebase. Shipping it outside the App Store needs your Apple developer account for signing. I would do it after the agents lane and the Codex target.</p>
+<div class="react" data-item="idea-desktop" data-title="Desktop app"></div></div>
+
+<div class="idea"><h3>The site, and your footer</h3>
+<p>I read your Link Meteor site. The site lane's brief takes its design language: the typeface, the scale, the header and menu, the badge over a two-line headline, the section rhythm, and the footer exactly, with your five links and the sponsor button. Fonts are served from the site, so it still makes no third-party request. The README gets a moving grooph at the top and your credit at the bottom, in the same form. You will see the front page in two accents before it is finished.</p>
+<p>The landing page says Claude Code only. It will say Codex too the day the Codex target runs a template, and not before.</p>
+<div class="react" data-item="idea-site" data-title="Site and footer"></div></div>
+
+<div class="idea"><h3>Stack and governance: what I changed and what I would change</h3>
+<p><b>Changed today:</b> the roles (they still named models you have ruled out), the merge rule, lanes and the desk, the audit loop, American English with a check.</p>
+<p><b>I would also:</b></p>
+<ul>
+<li><b>Test in Safari and Firefox.</b> Every report says "Chromium only". The test tool can run the other two. A small set of smoke tests in CI retires that line.</li>
+<li><b>Keep the version in one place.</b> It is written in eight files today.</li>
+<li><b>Split the progress page.</b> Its history is longer than its present. Move the log to its own file.</li>
+<li><b>Cap pictures in the repository.</b> Last night added about twelve megabytes of screenshots. JPEGs under 150 KB, and before-and-after sets live on a page, not in git.</li>
+<li><b>Keep the stack.</b> TypeScript, React, Vite and a static site are not what limits us. The site's small generator stays unless the redesign needs more.</li>
+</ul>
+<p><b>What I would not loosen:</b> the frozen spec with amendments, evidence never edited by hand, no model calls inside grooph, and the budget.</p>
+<div class="react" data-item="idea-stack" data-title="Stack and governance"></div></div>
+
+<div class="idea"><h3>The game experiment</h3>
+<p>One spec, one graph, built twice: once in Claude Code and once in Codex, each in its own new repository, each with the same time limit. I want it as much as you do, and I want it to be a fair test.</p>
+<ul>
+<li><b>It needs two things first:</b> the Codex target, and the tier map so no run uses Fable.</li>
+<li><b>The graph:</b> a new template made for it. A planner cuts the game into pieces; builders own one piece each; a playtest critic drives the game in a real browser and files what is broken; a polish loop ends on a bar you can see; you approve at one gate.</li>
+<li><b>The bar:</b> one finished slice of a game, not a whole one. A browser game built in one sitting can be striking. It will not be a studio title, and the spec should not ask for one or both runs fail the same way and teach nothing.</li>
+<li><b>Scoring:</b> a checklist both must pass (it loads, it holds its frame rate, nothing in the console, the core loop completes), then you play both blind and rank them.</li>
+<li><b>Stack:</b> three.js, with models made in code or with Blender run from a script. Both runs may upgrade their tools.</li>
+</ul>
+<p>The cards above ask for the genre, the time limit and the repositories.</p>
+<div class="react" data-item="idea-game" data-title="Game experiment"></div></div>
+
+<div class="idea"><h3>A new project, or a new driver here?</h3>
+<p><b>A new driver session, in this same folder.</b> Not a new project.</p>
+<ul>
+<li>This session has filled its context more than once. Each time, detail is lost. It is past six tenths full again.</li>
+<li>A new project would start without the memory files, the skills, the hooks and the history, which all live with this folder.</li>
+<li>The driver's state is now written down: <code>handoffs/DRIVER.md</code>, the progress page, and this desk, which any session on your account can read and write.</li>
+</ul>
+<p>When the lanes are up, open a new session in the grooph folder and say: "You are the driver. Read handoffs/DRIVER.md." I will bring that file up to date first.</p>
+<div class="react" data-item="idea-driver" data-title="New driver session"></div></div>
+
+<h2 id="how">How we work now</h2>
+<h3>Who merges what</h3>
+<p>I merge documents, tests, fixes that come with a test, and slices you have already said yes to, once every CI job is green and someone other than the author has read the change. The contract, claims and evidence, spending, dependencies, what the compiler writes, releases, and anything you would notice on the site wait for you here. Decision 0023 has the full list.</p>
+<h3>The audit loop</h3>
+<p>Before a claim is published, Codex reads it as a skeptic. One Claude lane writes the handoff and reconciles what comes back. You carry one prompt each way. Codex changes nothing. A new experiment is designed inside the loop and run outside it. The loop ends when neither side holds a finding that blocks a claim, or when you call it.</p>
+<p>Here is that arrangement drawn by grooph, as an operation map. It checks clean: 14 handoffs, 7 of them waiting on you.</p>
+<div class="pic"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="map" viewBox="0 0 400 1776" width="400" height="1776" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>The second push: lanes, a desk, and an audit by a second harness</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="1776" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">The second push: lanes, a desk, and</text><text x="12" y="56" font-size="17" font-weight="700" style="fill:var(--gp-ink)">an audit by a second harness</text><text x="12" y="73" font-size="11" style="fill:var(--gp-ink-3)">as of 2026-10-04 · 2 lanes · 5 sessions (7 counting families) · 1</text><text x="12" y="86" font-size="11" style="fill:var(--gp-ink-3)">person · 14 handoffs, 7 waiting on a person</text><g data-people=""><rect x="12" y="98" width="376" height="145.5" rx="12" stroke-width="1" stroke-dasharray="5 4" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="118" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Person</text></g><g data-lane="mac"><rect x="12" y="253.5" width="376" height="430" rx="12" stroke-width="1" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="273.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Ryan's Mac, Claude</text><rect x="196.8" y="262.7" width="36.2" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="214.9" y="273" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">local</text><text x="22" y="288.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Code</text><text x="22" y="302" font-size="10.5" style="fill:var(--gp-ink-3)">the Mac · the account signed in on the</text><text x="22" y="315.5" font-size="10.5" style="fill:var(--gp-ink-3)">Mac</text></g><g data-lane="codex"><rect x="12" y="693.5" width="376" height="266" rx="12" stroke-width="1" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="713.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Ryan's Mac, Codex</text><rect x="196.8" y="702.7" width="36.2" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="214.9" y="713" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">local</text><text x="22" y="727" font-size="10.5" style="fill:var(--gp-ink-3)">the Mac · ChatGPT subscription</text></g><g data-person="ryan"><rect data-card="" x="20" y="127.5" width="213" height="108" rx="14" stroke-width="1.4" style="fill:var(--gp-gate-soft);stroke:var(--gp-gate)"/><text x="30" y="148.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Ryan</text><text x="30" y="164" font-size="11" style="fill:var(--gp-ink-2)">Owner. Starts each lane, answers</text><text x="30" y="177.5" font-size="11" style="fill:var(--gp-ink-2)">on the review desk, carries the</text><text x="30" y="191" font-size="11" style="fill:var(--gp-ink-2)">prompts between the two</text><text x="30" y="204.5" font-size="11" style="fill:var(--gp-ink-2)">harnesses, merges what is big.</text></g><g data-session="driver"><rect data-card="" x="20" y="325" width="213" height="108" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="346" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Driver</text><text x="30" y="360" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code · claude-opus-5-5</text><text x="30" y="375.5" font-size="11" style="fill:var(--gp-ink-2)">Writes each lane's brief, reads its</text><text x="30" y="389" font-size="11" style="fill:var(--gp-ink-2)">work, merges what is small and</text><text x="30" y="402.5" font-size="11" style="fill:var(--gp-ink-2)">safe, keeps the review desk</text><text x="30" y="416.5" font-size="10" style="fill:var(--gp-ink-3)">long-lived · ryanjosephkamp/grooph</text></g><g data-session="audit"><rect data-card="" x="20" y="441" width="213" height="117" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="462" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Audit lane</text><text x="30" y="476" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code · claude-opus-5-5</text><text x="30" y="491.5" font-size="11" style="fill:var(--gp-ink-2)">Checks every claim against its</text><text x="30" y="505" font-size="11" style="fill:var(--gp-ink-2)">evidence, writes the handoff for</text><text x="30" y="518.5" font-size="11" style="fill:var(--gp-ink-2)">Codex, reconciles what comes</text><text x="30" y="532" font-size="11" style="fill:var(--gp-ink-2)">back</text><text x="30" y="546" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="builders"><rect x="26" y="572" width="207" height="101.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line)"/><rect x="23" y="569" width="210" height="102.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line)"/><rect data-card="" x="20" y="566" width="213" height="103.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="587" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Building lanes</text><rect x="193.9" y="575.2" width="28.6" height="16.3" rx="8.1" style="fill:var(--gp-accent-soft)"/><text x="208.2" y="586.5" font-size="10.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-accent)">×3</text><text x="30" y="601" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code · claude-opus-5-5</text><text x="30" y="616.5" font-size="11" style="fill:var(--gp-ink-2)">Site, agents and chat, evidence:</text><text x="30" y="630" font-size="11" style="fill:var(--gp-ink-2)">one slice each, on a branch and</text><text x="30" y="643.5" font-size="11" style="fill:var(--gp-ink-2)">in a worktree of its own</text><text x="30" y="657.5" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="codex-target"><rect data-card="" x="20" y="736.5" width="213" height="90" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="757.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Codex target lane</text><text x="30" y="771.5" font-size="10.5" font-weight="700" style="fill:var(--gp-check)">Codex · gpt-6.1-sol</text><text x="30" y="787" font-size="11" style="fill:var(--gp-ink-2)">Builds the Codex compile target</text><text x="30" y="800.5" font-size="11" style="fill:var(--gp-ink-2)">and runs one template in Codex</text><text x="30" y="814.5" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="auditor"><rect data-card="" x="20" y="834.5" width="213" height="117" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="855.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Auditor</text><text x="30" y="869.5" font-size="10.5" font-weight="700" style="fill:var(--gp-check)">Codex · gpt-6.1-sol</text><text x="30" y="885" font-size="11" style="fill:var(--gp-ink-2)">Reads the claims and a snapshot</text><text x="30" y="898.5" font-size="11" style="fill:var(--gp-ink-2)">of the repository as a skeptic.</text><text x="30" y="912" font-size="11" style="fill:var(--gp-ink-2)">Writes a handback. Changes</text><text x="30" y="925.5" font-size="11" style="fill:var(--gp-ink-2)">nothing</text><text x="30" y="939.5" font-size="10" style="fill:var(--gp-ink-3)">per task</text></g><g data-plate="h-desk"><circle cx="249" cy="241.3" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/></g><g data-plate="h-answers"><circle cx="262" cy="262.3" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/></g><g data-plate="h-start"><circle cx="353" cy="419.1" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-assign"><circle cx="275" cy="522.4" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/></g><g data-plate="h-pr"><circle cx="288" cy="543.4" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-start-audit"><circle cx="301" cy="327.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-to-codex"><circle cx="249" cy="706" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-from-codex"><circle cx="262" cy="727" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-reconcile"><circle cx="314" cy="348.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/></g><g data-plate="h-decide"><rect x="318.5" y="362.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/></g><g data-plate="h-corrections"><rect x="240.5" y="422.1" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-experiment"><rect x="253.5" y="443.1" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/></g><g data-plate="h-start-codex"><rect x="357.5" y="497.1" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-codex-pr"><rect x="331.5" y="589.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-handoff="h-desk"><path d="M233,340 H243 Q249,340 249,334 V248.5 M249,234.1 V148.5 Q249,142.5 243,142.5 H238.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><circle cx="233" cy="340" r="2.2" style="fill:var(--gp-loop-3)"/><path d="M233.5,142.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-3)"/></g><g data-handoff="h-answers"><path d="M233,155.5 H256 Q262,155.5 262,161.5 V255.1 M262,269.5 V347 Q262,353 256,353 H238.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><circle cx="233" cy="155.5" r="2.2" style="fill:var(--gp-loop-3)"/><path d="M233.5,353 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-3)"/></g><g data-handoff="h-start"><path d="M233,207.5 H347 Q353,207.5 353,213.5 V411.9 M353,426.3 V624.8 Q353,630.8 347,630.8 H238.5" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="233" cy="207.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M233.5,630.8 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-assign"><path d="M233,392 H269 Q275,392 275,398 V515.2 M275,529.6 V598.8 Q275,604.8 269,604.8 H238.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><circle cx="233" cy="392" r="2.2" style="fill:var(--gp-ink-2)"/><path d="M233.5,604.8 l6.5,-3.6 v7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-handoff="h-pr"><path d="M233,617.8 H282 Q288,617.8 288,611.8 V550.6 M288,536.2 V411 Q288,405 282,405 H238.5" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="233" cy="617.8" r="2.2" style="fill:var(--gp-check)"/><path d="M233.5,405 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-start-audit"><path d="M233,168.5 H295 Q301,168.5 301,174.5 V320.3 M301,334.7 V480.5 Q301,486.5 295,486.5 H238.5" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="233" cy="168.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M233.5,486.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-to-codex"><path d="M233,525.5 H243 Q249,525.5 249,531.5 V698.8 M249,713.2 V880.5 Q249,886.5 243,886.5 H238.5" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="233" cy="525.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M233.5,886.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-from-codex"><path d="M233,899.5 H256 Q262,899.5 262,893.5 V734.2 M262,719.8 V544.5 Q262,538.5 256,538.5 H238.5" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="233" cy="899.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M233.5,538.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-reconcile"><path d="M233,499.5 H308 Q314,499.5 314,493.5 V355.7 M314,341.3 V187.5 Q314,181.5 308,181.5 H238.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><circle cx="233" cy="499.5" r="2.2" style="fill:var(--gp-loop-3)"/><path d="M233.5,181.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-3)"/></g><g data-handoff="h-decide"><path d="M233,194.5 H321 Q327,194.5 327,200.5 V362.3 M327,376.7 V506.5 Q327,512.5 321,512.5 H238.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><circle cx="233" cy="194.5" r="2.2" style="fill:var(--gp-ink-2)"/><path d="M233.5,512.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-handoff="h-corrections"><path d="M233,460.5 H243 Q249,460.5 249,454.5 V436.5 M249,422.1 V372 Q249,366 243,366 H238.5" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="233" cy="460.5" r="2.2" style="fill:var(--gp-check)"/><path d="M233.5,366 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-experiment"><path d="M233,473.5 H256 Q262,473.5 262,467.5 V457.5 M262,443.1 V385 Q262,379 256,379 H238.5" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><circle cx="233" cy="473.5" r="2.2" style="fill:var(--gp-accent)"/><path d="M233.5,379 l6.5,-3.6 v7.2 z" style="fill:var(--gp-accent)"/></g><g data-handoff="h-start-codex"><path d="M233,220.5 H360 Q366,220.5 366,226.5 V497.1 M366,511.5 V782 Q366,788 360,788 H238.5" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="233" cy="220.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M233.5,788 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-codex-pr"><path d="M233,775 H334 Q340,775 340,769 V603.7 M340,589.3 V424 Q340,418 334,418 H238.5" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="233" cy="775" r="2.2" style="fill:var(--gp-check)"/><path d="M233.5,418 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-number="h-desk"><text x="249" y="244.6" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">1</text></g><g data-number="h-answers"><text x="262" y="265.6" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">2</text></g><g data-number="h-start"><text x="353" y="422.4" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">3</text></g><g data-number="h-assign"><text x="275" y="525.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">4</text></g><g data-number="h-pr"><text x="288" y="546.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">5</text></g><g data-number="h-start-audit"><text x="301" y="330.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">6</text></g><g data-number="h-to-codex"><text x="249" y="709.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">7</text></g><g data-number="h-from-codex"><text x="262" y="730.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">8</text></g><g data-number="h-reconcile"><text x="314" y="351.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">9</text></g><g data-number="h-decide"><text x="327" y="372.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">10</text></g><g data-number="h-corrections"><text x="249" y="432.6" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">11</text></g><g data-number="h-experiment"><text x="262" y="453.6" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">12</text></g><g data-number="h-start-codex"><text x="366" y="507.6" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">13</text></g><g data-number="h-codex-pr"><text x="340" y="599.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">14</text></g><text x="12" y="986.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Handoffs</text><g data-handoff-row="h-desk"><rect data-row="" x="8" y="993.5" width="384" height="61" rx="8" style="fill:transparent"/><circle cx="20" cy="1003.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/><text x="20" y="1006.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">1</text><text x="36" y="1007.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Driver → Ryan</text><path d="M36,1018 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><text x="60" y="1021.5" font-size="11" font-weight="700" style="fill:var(--gp-loop-3)">review page: the review desk</text><text x="36" y="1035" font-size="11" style="fill:var(--gp-ink-2)">what waits on him, each with a recommendation; what was</text><text x="36" y="1048.5" font-size="11" style="fill:var(--gp-ink-2)">merged without asking</text></g><g data-handoff-row="h-answers"><rect data-row="" x="8" y="1057.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1067.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/><text x="20" y="1070.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">2</text><text x="36" y="1071.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Driver</text><path d="M36,1082 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><text x="60" y="1085.5" font-size="11" font-weight="700" style="fill:var(--gp-loop-3)">review page: the review desk</text><text x="36" y="1099" font-size="11" style="fill:var(--gp-ink-2)">his answers and notes, read from the desk</text></g><g data-handoff-row="h-start"><rect data-row="" x="8" y="1108" width="384" height="61" rx="8" style="fill:transparent"/><circle cx="20" cy="1118" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1121.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">3</text><text x="36" y="1122" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Building lanes</text><path d="M36,1132.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1136" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1149.5" font-size="11" style="fill:var(--gp-ink-2)">a new session in the app and the starter line: his yes to the</text><text x="36" y="1163" font-size="11" style="fill:var(--gp-ink-2)">slice</text></g><g data-handoff-row="h-assign"><rect data-row="" x="8" y="1172" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1182" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="20" y="1185.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">4</text><text x="36" y="1186" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Driver → Building lanes</text><path d="M36,1196.5 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><text x="60" y="1200" font-size="11" font-weight="700" style="fill:var(--gp-ink-2)">session message</text><text x="36" y="1213.5" font-size="11" style="fill:var(--gp-ink-2)">answers to a lane's questions; the next slice</text></g><g data-handoff-row="h-pr"><rect data-row="" x="8" y="1222.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1232.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="1235.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">5</text><text x="36" y="1236.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Building lanes → Driver</text><path d="M36,1247 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="1250.5" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="1264" font-size="11" style="fill:var(--gp-ink-2)">the slice with its handback</text></g><g data-handoff-row="h-start-audit"><rect data-row="" x="8" y="1273" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1283" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1286.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">6</text><text x="36" y="1287" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Audit lane</text><path d="M36,1297.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1301" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1314.5" font-size="11" style="fill:var(--gp-ink-2)">a new session and the starter line</text></g><g data-handoff-row="h-to-codex"><rect data-row="" x="8" y="1323.5" width="384" height="61" rx="8" style="fill:transparent"/><circle cx="20" cy="1333.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1336.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">7</text><text x="36" y="1337.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Audit lane → Auditor</text><path d="M36,1348 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1351.5" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1365" font-size="11" style="fill:var(--gp-ink-2)">the prompt; the handoff and a snapshot of the repository</text><text x="36" y="1378.5" font-size="11" style="fill:var(--gp-ink-2)">wait in the exchange folder</text></g><g data-handoff-row="h-from-codex"><rect data-row="" x="8" y="1387.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1397.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1400.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">8</text><text x="36" y="1401.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Auditor → Audit lane</text><path d="M36,1412 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1415.5" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1429" font-size="11" style="fill:var(--gp-ink-2)">the return prompt; the handback is in the exchange folder</text></g><g data-handoff-row="h-reconcile"><rect data-row="" x="8" y="1438" width="384" height="61" rx="8" style="fill:transparent"/><circle cx="20" cy="1448" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/><text x="20" y="1451.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">9</text><text x="36" y="1452" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Audit lane → Ryan</text><path d="M36,1462.5 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><text x="60" y="1466" font-size="11" font-weight="700" style="fill:var(--gp-loop-3)">review page: a reconciliation page, and the desk</text><text x="36" y="1479.5" font-size="11" style="fill:var(--gp-ink-2)">each finding: agree, partly or disagree, the correction</text><text x="36" y="1493" font-size="11" style="fill:var(--gp-ink-2)">proposed, how close the two are</text></g><g data-handoff-row="h-decide"><rect data-row="" x="8" y="1502" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="1504.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="20" y="1515.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">10</text><text x="36" y="1516" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Audit lane</text><path d="M36,1526.5 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><text x="60" y="1530" font-size="11" font-weight="700" style="fill:var(--gp-ink-2)">session message</text><text x="36" y="1543.5" font-size="11" style="fill:var(--gp-ink-2)">which corrections to make; another round or not</text></g><g data-handoff-row="h-corrections"><rect data-row="" x="8" y="1552.5" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="1555.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="1565.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">11</text><text x="36" y="1566.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Audit lane → Driver</text><path d="M36,1577 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="1580.5" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="1594" font-size="11" style="fill:var(--gp-ink-2)">the corrections he accepted, and each round's record</text></g><g data-handoff-row="h-experiment"><rect data-row="" x="8" y="1603" width="384" height="61" rx="8" style="fill:transparent"/><rect x="11.5" y="1605.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/><text x="20" y="1616.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">12</text><text x="36" y="1617" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Audit lane → Driver</text><path d="M36,1627.5 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><text x="60" y="1631" font-size="11" font-weight="700" style="fill:var(--gp-accent)">branch on ryanjosephkamp/grooph</text><text x="36" y="1644.5" font-size="11" style="fill:var(--gp-ink-2)">a new experiment's design, when both sides agree the</text><text x="36" y="1658" font-size="11" style="fill:var(--gp-ink-2)">evidence is not enough. Designed here, run later</text></g><g data-handoff-row="h-start-codex"><rect data-row="" x="8" y="1667" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="1669.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1680.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">13</text><text x="36" y="1681" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Codex target lane</text><path d="M36,1691.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1695" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1708.5" font-size="11" style="fill:var(--gp-ink-2)">the starter line, in a Codex session</text></g><g data-handoff-row="h-codex-pr"><rect data-row="" x="8" y="1717.5" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="1720.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="1730.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">14</text><text x="36" y="1731.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Codex target lane → Driver</text><path d="M36,1742 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="1745.5" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="1759" font-size="11" style="fill:var(--gp-ink-2)">the Codex target with its handback</text></g></svg></div>
+<p class="small">The working folder is <code>~/Documents/grooph-exchange/</code>. Each round is copied into the repository under <code>experiments/audits/</code>.</p>
+<h3>Where it is written</h3>
+<ul>
+<li><code>docs/decisions/0022</code> American English · <code>0023</code> who merges what · <code>0024</code> lanes, the desk, the audit loop</li>
+<li><code>handoffs/README.md</code>: the lane protocol and the audit loop, step by step</li>
+<li><code>handoffs/DRIVER.md</code>: the driver's seat</li>
+</ul>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  function el(tag, attrs) {
+    var n = document.createElement(tag);
+    if (attrs) for (var k in attrs) {
+      if (k === "text") n.textContent = attrs[k];
+      else if (k === "class") n.className = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    }
+    for (var i = 2; i < arguments.length; i++) if (arguments[i] != null) n.appendChild(typeof arguments[i] === "string" ? document.createTextNode(arguments[i]) : arguments[i]);
+    return n;
+  }
+  // Text from the store is shown as text: paragraphs at blank lines, `code` between backticks. Never as markup.
+  function rich(text) {
+    var frag = document.createDocumentFragment();
+    String(text || "").split(/\n\s*\n/).forEach(function (para) {
+      var p = el("p");
+      para.split("`").forEach(function (part, i) { p.appendChild(i % 2 ? el("code", { text: part }) : document.createTextNode(part)); });
+      frag.appendChild(p);
+    });
+    return frag;
+  }
+  function when(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  }
+
+  // Copy buttons.
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest(".copy");
+    if (!btn) return;
+    var pre = document.getElementById(btn.getAttribute("data-target"));
+    if (!pre) return;
+    var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1600); };
+    var fallback = function () {
+      try {
+        var range = document.createRange(); range.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        if (document.execCommand("copy")) { sel.removeAllRanges(); done(); } else { btn.textContent = "Selected: copy it"; }
+      } catch (err) { btn.textContent = "Select and copy"; }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(pre.textContent).then(done, fallback); else fallback();
+  });
+
+  var db = null;
+  var answers = {};      // id → {choice, note, at}
+  var widgets = {};      // id → {root, buttons, note, said, options, title, busy, dirtyNote}
+  var queue = [];
+  var lanes = [];
+  var uid = 0;
+
+  // One answer widget: buttons that save on tap, a note that saves with its button.
+  function widget(id, title, options) {
+    var w = widgets[id];
+    if (w) return w;
+    var n = ++uid;
+    w = { id: id, title: title, options: options, busy: false, dirtyNote: false };
+    w.root = el("div", { class: "answer" });
+    w.opts = el("div", { class: "opts", role: "group", "aria-label": "Your answer" });
+    w.buttons = options.map(function (label) {
+      var b = el("button", { class: "btn", type: "button", "aria-pressed": "false", text: label });
+      b.addEventListener("click", function () { save(w, label, w.note.value); });
+      w.opts.appendChild(b);
+      return b;
+    });
+    w.note = el("textarea", { id: "note-" + n, placeholder: "A note, if the buttons do not say it" });
+    w.note.addEventListener("input", function () { w.dirtyNote = true; });
+    w.saveNote = el("button", { class: "btn", type: "button", text: "Save note" });
+    w.saveNote.addEventListener("click", function () { save(w, (answers[id] || {}).choice || "", w.note.value); });
+    w.said = el("span", { class: "saved", role: "status" });
+    w.root.appendChild(w.opts);
+    w.root.appendChild(el("label", { class: "lbl", for: "note-" + n, text: "Note (optional)" }));
+    w.root.appendChild(w.note);
+    w.root.appendChild(el("div", { class: "row" }, w.saveNote, w.said));
+    widgets[id] = w;
+    paint(w);
+    return w;
+  }
+  function paint(w) {
+    var a = answers[w.id];
+    w.buttons.forEach(function (b) { b.setAttribute("aria-pressed", a && a.choice === b.textContent ? "true" : "false"); b.disabled = w.busy || !db; });
+    w.saveNote.disabled = w.busy || !db;
+    w.note.disabled = !db;
+    if (a && !w.dirtyNote && document.activeElement !== w.note) w.note.value = a.note || "";
+    if (!w.busy && !w.said.classList.contains("err")) w.said.textContent = a ? "Saved " + when(a.at) + (a.choice ? " · " + a.choice : "") : "";
+    var card = w.root.closest ? w.root.closest(".card") : null;
+    if (card) card.classList.toggle("answered", !!(a && (a.choice || a.note)));
+  }
+  function save(w, choice, note) {
+    if (!db || w.busy) return;
+    w.busy = true; w.said.classList.remove("err"); w.said.textContent = "Saving…"; paint(w);
+    var body = { choice: choice, note: note || "", at: new Date().toISOString(), title: w.title };
+    db.doc("answers/" + w.id).set(body).then(function () {
+      w.busy = false; w.dirtyNote = false; answers[w.id] = body; paint(w);
+    }, function (err) {
+      w.busy = false; w.said.classList.add("err");
+      w.said.textContent = err && err.code === "invalid_argument" ? "This view cannot save. Tell me in the chat instead." : "Not saved. Try again in a moment.";
+      paint(w);
+    });
+  }
+
+  // Static idea blocks get the same widget.
+  function ideas() {
+    Array.prototype.forEach.call(document.querySelectorAll(".react[data-item]"), function (box) {
+      var id = box.getAttribute("data-item");
+      if (!widgets[id]) box.appendChild(widget(id, box.getAttribute("data-title"), ["Pursue", "Later", "No", "Let's talk"]).root);
+    });
+  }
+
+  var cards = {};
+  function count() {
+    var open = queue.filter(function (q) { return q.status !== "settled"; });
+    var waiting = open.filter(function (q) { var a = answers[q.id]; return !(a && (a.choice || a.note)); }).length;
+    $("#m-waiting").textContent = db ? (open.length === 0 ? "Nothing" : waiting + " of " + open.length + " unanswered") : "Not available here";
+  }
+  function renderQueue() {
+    var open = queue.filter(function (q) { return q.status !== "settled"; });
+    var settled = queue.filter(function (q) { return q.status === "settled"; });
+    var box = $("#queue"), done = $("#settled");
+    // The cards are moved, not rebuilt, so a note half typed survives; the caret is put back where it was.
+    var active = document.activeElement, start = null, end = null;
+    try { start = active.selectionStart; end = active.selectionEnd; } catch (e) {}
+    box.textContent = ""; done.textContent = "";
+    if (open.length === 0) box.appendChild(el("p", { class: "empty", text: db ? "Nothing is waiting on you." : "The queue does not show in this copy." }));
+    var lastArea = null;
+    open.concat(settled).forEach(function (q) {
+      var into = q.status === "settled" ? done : box;
+      if (q.status !== "settled" && q.area !== lastArea) { into.appendChild(el("div", { class: "group-title", text: q.area || "Other" })); lastArea = q.area; }
+      var card = cards[q.id];
+      if (!card || card._stamp !== q._stamp) {
+        delete widgets[q.id];
+        card = el("article", { class: "card" });
+        card._stamp = q._stamp;
+        card.appendChild(el("h3", { text: q.title || q.id }));
+        card.appendChild(rich(q.body));
+        if (q.recommend) card.appendChild(el("p", { class: "rec" }, el("b", { text: "Recommended" }), q.recommend));
+        (q.links || []).forEach(function (l) { card.appendChild(el("p", { class: "small" }, el("a", { href: l.url, text: l.label }))); });
+        if (q.prompt) {
+          var pid = "qp-" + q.id;
+          card.appendChild(el("div", { class: "prompt" }, el("button", { class: "copy", type: "button", "data-target": pid, text: "Copy" }), el("pre", { id: pid, text: q.prompt })));
+        }
+        var w = widget(q.id, q.title, q.options && q.options.length ? q.options : ["Yes", "No", "Later"]);
+        card.appendChild(w.root);
+        if (q.driverNote) card.appendChild(el("div", { class: "driver-note" }, el("b", { text: "From the driver" }), q.driverNote));
+        cards[q.id] = card;
+      }
+      into.appendChild(card);
+      paint(widgets[q.id]);
+    });
+    $("#settled-box").hidden = settled.length === 0;
+    if (active && active !== document.body && document.contains(active) && document.activeElement !== active) {
+      active.focus();
+      try { if (start != null) active.setSelectionRange(start, end); } catch (e) {}
+    }
+    count();
+  }
+
+  function renderLanes() {
+    var box = $("#lane-list"); box.textContent = "";
+    if (lanes.length === 0) { box.appendChild(el("p", { class: "empty", text: db ? "No lanes yet." : "The lanes do not show in this copy." })); }
+    lanes.forEach(function (l) {
+      var kind = /running|working|review/.test(l.state || "") ? "ok" : /blocked|red|stuck/.test(l.state || "") ? "warn" : "wait";
+      var card = el("article", { class: "card" });
+      card.appendChild(el("h3", null, l.name || l.id, " ", el("span", { class: "pill " + kind, text: l.state || "not started" })));
+      card.appendChild(el("p", { class: "lane-facts", text: [l.who, l.slice, l.where].filter(Boolean).join(" · ") }));
+      if (l.what) card.appendChild(rich(l.what));
+      if (l.doing) card.appendChild(el("p", null, el("b", { text: "Now: " }), l.doing));
+      if (l.needs) card.appendChild(el("p", null, el("b", { text: "Needs: " }), l.needs));
+      if (l.pr) card.appendChild(el("p", { class: "small" }, el("a", { href: l.pr, text: "Its pull request" })));
+      if (l.starter) {
+        var pid = "ls-" + l.id;
+        card.appendChild(el("div", { class: "prompt" }, el("button", { class: "copy", type: "button", "data-target": pid, text: "Copy" }), el("pre", { id: pid, text: l.starter })));
+      }
+      if (l.updated) card.appendChild(el("p", { class: "small", text: "Updated " + when(l.updated) }));
+      box.appendChild(card);
+    });
+    var up = lanes.filter(function (l) { return l.state && l.state !== "not started" && !/ready/.test(l.state); }).length;
+    $("#m-lanes").textContent = db ? up + " at work, " + (lanes.length - up) + " ready to start" : "Not available here";
+  }
+
+  function renderMerges(list) {
+    var box = $("#merge-list"); box.textContent = "";
+    if (list.length === 0) { box.appendChild(el("p", { class: "empty", text: db ? "Nothing yet." : "The log does not show in this copy." })); return; }
+    var ul = el("ul");
+    list.forEach(function (m) {
+      ul.appendChild(el("li", null, m.url ? el("a", { href: m.url, text: m.pr || "pull request" }) : (m.pr || ""), " ", el("b", { text: m.title || "" }), m.why ? " " + m.why : "", m.at ? " (" + when(m.at) + ")" : ""));
+    });
+    box.appendChild(ul);
+  }
+
+  function renderNotes(list) {
+    var box = $("#notes"); box.textContent = "";
+    list.slice(0, 12).forEach(function (n) {
+      var card = el("div", { class: "driver-note" }, el("b", { text: "You, " + when(n.at) }), n.text || "");
+      if (n.reply) card.appendChild(el("p", null, el("b", { text: "The driver" }), n.reply));
+      box.appendChild(card);
+    });
+  }
+
+  function off() {
+    $("#db-off").hidden = false;
+    renderQueue(); renderLanes(); renderMerges([]);
+    $("#note-send").disabled = true; $("#note-text").disabled = true;
+    Object.keys(widgets).forEach(function (id) { paint(widgets[id]); });
+  }
+
+  function by(field) { return function (a, b) { return (a[field] || 0) - (b[field] || 0) || String(a.id).localeCompare(String(b.id)); }; }
+  function rows(snap) { return snap.docs.map(function (d) { var o = Object.assign({ id: d.id }, d.data()); o._stamp = JSON.stringify(o); return o; }); }
+  function dead(e) { if (e && (e.code === "revoked" || e.code === "not_granted")) off(); }
+
+  ideas();
+  var c = window.claude;
+  var ready = c && c.use ? c.use("db") : Promise.resolve(null);
+  ready.then(function (ns) {
+    db = ns || null;
+    if (!db) { off(); return; }
+    Object.keys(widgets).forEach(function (id) { paint(widgets[id]); });
+    db.collection("answers").onSnapshot(function (s) {
+      answers = {}; s.docs.forEach(function (d) { answers[d.id] = d.data(); });
+      Object.keys(widgets).forEach(function (id) { paint(widgets[id]); });
+      count();
+    }, dead);
+    db.collection("queue").onSnapshot(function (s) { queue = rows(s).sort(by("order")); renderQueue(); }, dead);
+    db.collection("lanes").onSnapshot(function (s) { lanes = rows(s).sort(by("order")); renderLanes(); }, dead);
+    db.collection("merges").onSnapshot(function (s) { renderMerges(rows(s).sort(function (a, b) { return String(b.at || "").localeCompare(String(a.at || "")); })); }, dead);
+    db.collection("notes").onSnapshot(function (s) { renderNotes(rows(s).sort(function (a, b) { return String(b.at || "").localeCompare(String(a.at || "")); })); }, dead);
+    db.doc("meta/desk").onSnapshot(function (d) {
+      if (!d.exists) return;
+      var m = d.data();
+      if (m.version) $("#m-version").textContent = m.version;
+      if (m.updated) $("#m-updated").textContent = when(m.updated);
+      if (m.line) $("#meta-line").textContent = m.line;
+    }, dead);
+    $("#note-send").addEventListener("click", function () {
+      var box = $("#note-text"), said = $("#note-said"), text = box.value.trim();
+      if (!text) return;
+      this.disabled = true; said.classList.remove("err"); said.textContent = "Sending…";
+      var btn = this;
+      db.collection("notes").add({ text: text, at: new Date().toISOString() }).then(function () {
+        box.value = ""; said.textContent = "Sent."; btn.disabled = false;
+      }, function () { said.classList.add("err"); said.textContent = "Not sent. Try again, or say it in the chat."; btn.disabled = false; });
+    });
+  }, off);
+})();
+</script>
