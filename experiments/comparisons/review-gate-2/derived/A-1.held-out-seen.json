@@ -12,7 +12,8 @@
       "command": "node --test <held-out>/layer-cases.test.mjs",
       "tests": 55,
       "pass": 44,
-      "fail": 11
+      "fail": 11,
+      "read_from": "node's summary"
     },
     {
       "who": "critic",
@@ -20,7 +21,8 @@
       "command": "node --test <held-out>/layer-cases.test.mjs",
       "tests": 55,
       "pass": 55,
-      "fail": 0
+      "fail": 0,
+      "read_from": "node's summary"
     }
   ]
 }

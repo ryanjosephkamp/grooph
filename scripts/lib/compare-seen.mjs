@@ -25,6 +25,25 @@ const CLAUDE_DIR = process.env.CLAUDE_CONFIG_DIR ?? join(process.env.HOME ?? "",
 
 const textOf = (content) => (Array.isArray(content) ? content.map((c) => c.text ?? "").join("\n") : String(content ?? ""));
 
+/**
+ * The counts one run of the suite printed. The harness keeps about ten thousand characters of a command's output, and
+ * a run with failures prints more, so node's closing summary is often cut off. In order of trust: the summary, when
+ * it is there; the dot reporter's grid, which comes first and is whole; otherwise the lines that were kept, counted,
+ * and marked as a lower bound. A run that named some cases only (`--test-name-pattern`) is marked as part of the suite.
+ */
+export function countsOf(output, command = "") {
+  const part = /--test-name-pattern|--test-only/.test(command) ? { part_of_suite: true } : {};
+  const summary = parseTestSummary(output);
+  if (summary.tests !== null) return { tests: summary.tests, pass: summary.pass, fail: (summary.fail ?? 0) + (summary.cancelled ?? 0), read_from: "node's summary", ...part };
+  const grid = output.split("\n").filter((line) => /^[.X]+$/.test(line)).join("");
+  if (grid.length > 0) return { tests: grid.length, pass: (grid.match(/\./g) ?? []).length, fail: (grid.match(/X/g) ?? []).length, read_from: "the dot reporter's grid", ...part };
+  const pass = (output.match(/^(?:✔ |ok \d+ - )/gm) ?? []).length;
+  const fail = (output.match(/^(?:✖ |not ok \d+ - )/gm) ?? []).length;
+  if (pass + fail === 0) return { tests: null, pass: null, fail: null, read_from: "nothing the output kept", ...part };
+  // The spec reporter lists failures twice (once in order, once under "failing tests"), so its ✖ lines are halved when both lists were kept.
+  return { tests: null, pass, fail: null, fail_lines_kept: fail, read_from: "the lines the harness kept; the output was cut, so these are lower bounds", cut: true, ...part };
+}
+
 /** Every run of the held-out suite in one transcript: the command, when, and the counts its output printed. */
 export function suiteRuns(file) {
   const records = [];
@@ -45,8 +64,7 @@ export function suiteRuns(file) {
     for (const block of Array.isArray(record.message?.content) ? record.message.content : []) {
       const command = block.type === "tool_use" && block.name === "Bash" ? block.input?.command : null;
       if (typeof command !== "string" || !/held-out\//.test(command) || !/--test\b/.test(command)) continue;
-      const counts = parseTestSummary(results.get(block.id) ?? "");
-      runs.push({ at: record.timestamp ?? null, command: command.replace(/\/\S*?\.harness\/held-out\//g, "<held-out>/"), tests: counts.tests, pass: counts.pass, fail: counts.fail === null ? null : (counts.fail ?? 0) + (counts.cancelled ?? 0) });
+      runs.push({ at: record.timestamp ?? null, command: command.replace(/\/\S*?\.harness\/held-out\//g, "<held-out>/"), ...countsOf(results.get(block.id) ?? "", command) });
     }
   }
   return runs;
@@ -85,7 +103,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const runs = readdirSync(dir).filter((n) => /^[ABCD]-\d+$/.test(n) && existsSync(join(dir, n, "result.json"))).sort();
   for (const name of runs) {
     const seen = seenByRun(join(dir, name));
-    console.log(`${name}: ${seen.transcripts_found === 0 ? "no transcript found" : seen.suite_runs.length === 0 ? "nobody ran the suite" : seen.suite_runs.map((s) => `${s.who.replace(/ \(.*$/, "")} ${s.pass ?? "?"}/${s.tests ?? "?"}`).join(" → ")}`);
+    const cell = (s) => `${s.who.replace(/ \(.*$/, "")} ${s.cut ? `≥${s.pass} pass (cut)` : `${s.pass ?? "?"}/${s.tests ?? "?"}`}${s.part_of_suite ? " (some cases)" : ""}`;
+    console.log(`${name}: ${seen.transcripts_found === 0 ? "no transcript found" : seen.suite_runs.length === 0 ? "nobody ran the suite" : seen.suite_runs.map(cell).join(" → ")}`);
     if (rest.includes("--write")) {
       mkdirSync(join(dir, "derived"), { recursive: true });
       writeFileSync(join(dir, "derived", `${name}.held-out-seen.json`), `${JSON.stringify(seen, null, 2)}\n`, "utf8");

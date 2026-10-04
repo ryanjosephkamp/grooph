@@ -1,0 +1,249 @@
+{
+  "template": "heterogeneous-critic",
+  "arm": "C",
+  "replicate": 2,
+  "project": "heterogeneous-critic",
+  "graph_id": "parse-page-ranges",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/heterogeneous-critic/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/Q5jvkp/printkit-giMDbv.harness/held-out",
+      "files": [
+        {
+          "path": "parse-ranges-cases.test.mjs",
+          "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+          "at_run": true
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/heterogeneous-critic/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "parse-page-ranges--builder": "claude-sonnet-5-5",
+      "parse-page-ranges--critic": "claude-opus-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "heterogeneous-critic",
+    "template_version": "heterogeneous-critic@1",
+    "graph_id": "parse-page-ranges",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/Q5jvkp/printkit-giMDbv"
+  },
+  "derivation": {
+    "graph": "parse-page-ranges",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 14,
+      "prompt": 12
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 4,
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.8509223999999999,
+      "output_tokens": 16422
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.24056529999999995,
+      "output_tokens": 12315
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5-5",
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 1.091488,
+  "harness_turns": 13,
+  "duration_s": 240,
+  "wall_s": 241,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.8509223999999999,
+        "output_tokens": 16422
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.24056529999999995,
+        "output_tokens": 12315
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5-5",
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 1.091488,
+    "harness_turns": 13,
+    "duration_s": 240,
+    "wall_s": 241,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "node -e '\nconst fs=require(\"fs\");\nfs.appendFileSync(\"CHANGES.md\", `\n## Round 1\n\nChanged \\`src/parse-ranges.mjs\\`, \\`tests/parse-ranges.test.mjs\\` and \\`README.md\\`\nto follow the REVIEW.md held-out findings (all 18 came from choices the task\nleft open):\n\n- Order: pages come back in the order typed, not sorted (\\`\"5,1-3\"\\` is\n  \\`[5, 1, 2, 3]\\`).\n- Repeats: a page typed twice, or covered by two parts, comes back twice.\n- Backward: a range written last-first runs backward (\\`\"5-3\"\\` is \\`[5, 4, 3]\\`)\n  instead of throwing.\n- Open end: \\`\"-3\"\\` means from page 1 and \\`\"8-\"\\` means to the last page. A lone\n  \\`\"-\"\\`, \\`\"12-\"\\`, \\`\"-12\"\\`, \\`\"0-\"\\` and \\`\"-0\"\\` still throw \\`RangeError\\`.\n- Empty: empty or all-space text means every page. Empty parts (\\`\"1,,2\"\\`,\n  \\`\"1,\"\\`, \\`\",1\"\\`) still throw \\`RangeError\\`.\n\nTests that asserted the old choices were replaced with ones for the new\nbehaviour; the refusals REVIEW.md says must still hold (\\`\"1,,2\"\\`, \\`\"1,2,\"\\`,\n\\`\",1\"\\`, \\`\"-\"\\`, \\`\"12-\"\\`, \\`\"-12\"\\`, \\`\"12-8\"\\`, \\`\"00\"\\`, \\`\"1 2\"\\`, \\`\"1 0\"\\`) are covered.\nChecklist items 1-6 are unaffected. \\`npm test\\`: 21 pass, 0 fail.\n`);'"
+      },
+      {
+        "tool": "Bash",
+        "command": "sed -i '' 's/\"1, ,2\"\\]/\"1, ,2\", \"1,2,\"]/; s/\"1.5\", \"+1\"/\"1.5\", \"1 0\", \"+1\"/' tests/parse-ranges.test.mjs"
+      }
+    ],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement parseRanges",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: review parseRanges change",
+        "model_asked": "opus"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder round 1: address REVIEW.md",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic round 1: re-review change",
+        "model_asked": "opus"
+      }
+    ],
+    "held_out_touched": {
+      "general-purpose (Critic: review parseRanges change)": 1,
+      "general-purpose (Critic round 1: re-review change)": 1
+    },
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 5,
+      "where": []
+    }
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "node -e '\nconst fs=require(\"fs\");\nfs.appendFileSync(\"CHANGES.md\", `\n## Round 1\n\nChanged \\`src/parse-ranges.mjs\\`, \\`tests/parse-ranges.test.mjs\\` and \\`README.md\\`\nto follow the REVIEW.md held-out findings (all 18 came from choices the task\nleft open):\n\n- Order: pages come back in the order typed, not sorted (\\`\"5,1-3\"\\` is\n  \\`[5, 1, 2, 3]\\`).\n- Repeats: a page typed twice, or covered by two parts, comes back twice.\n- Backward: a range written last-first runs backward (\\`\"5-3\"\\` is \\`[5, 4, 3]\\`)\n  instead of throwing.\n- Open end: \\`\"-3\"\\` means from page 1 and \\`\"8-\"\\` means to the last page. A lone\n  \\`\"-\"\\`, \\`\"12-\"\\`, \\`\"-12\"\\`, \\`\"0-\"\\` and \\`\"-0\"\\` still throw \\`RangeError\\`.\n- Empty: empty or all-space text means every page. Empty parts (\\`\"1,,2\"\\`,\n  \\`\"1,\"\\`, \\`\",1\"\\`) still throw \\`RangeError\\`.\n\nTests that asserted the old choices were replaced with ones for the new\nbehaviour; the refusals REVIEW.md says must still hold (\\`\"1,,2\"\\`, \\`\"1,2,\"\\`,\n\\`\",1\"\\`, \\`\"-\"\\`, \\`\"12-\"\\`, \\`\"-12\"\\`, \\`\"12-8\"\\`, \\`\"00\"\\`, \\`\"1 2\"\\`, \\`\"1 0\"\\`) are covered.\nChecklist items 1-6 are unaffected. \\`npm test\\`: 21 pass, 0 fail.\n`);'"
+    },
+    {
+      "tool": "Bash",
+      "command": "sed -i '' 's/\"1, ,2\"\\]/\"1, ,2\", \"1,2,\"]/; s/\"1.5\", \"+1\"/\"1.5\", \"1 0\", \"+1\"/' tests/parse-ranges.test.mjs"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 56,
+      "session_id": "f51be2e9-2881-43c0-a32d-01e0b3e0bcb9",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.091488,
+      "reported_cost_usd": 1.0914877,
+      "max_budget_usd": 9,
+      "harness_turns": 13,
+      "duration_s": 240,
+      "wall_s": 241,
+      "says_done": true,
+      "tests_after": true,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": "ound 1:** all 6 checklist items met with file and line cited, the held-out suite 70 of 70, `npm test` 21 of 21 (I also saw 21 of 21 when I ran it). Verdict: pass.\n\nOne small note from the critic that doesn't block the merge: the Round 0 paragraph in `CHANGES.md` still describes the old behaviour, and the Round 1 section below it records what replaced it.\n\n**Your decision:** approve the merge, or reject it with feedback, which sends it back to the builder for another round. If you approve, say whether `CHANGES.md` and `REVIEW.md` should be committed along with the change or left out.\n\ndone: yes"
+    }
+  ],
+  "base_commit": "0f9efae32fd8792e6df4e61d6a78655b500ba30f",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/parse-ranges.mjs",
+    "A tests/parse-ranges.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/Q5jvkp/printkit-giMDbv",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 4 said done and the tests passed"
+  },
+  "home_redactions": 0
+}

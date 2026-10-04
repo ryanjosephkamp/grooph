@@ -1,0 +1,180 @@
+{
+  "template": "heterogeneous-critic",
+  "arm": "D",
+  "replicate": 2,
+  "project": "heterogeneous-critic",
+  "graph_id": "parse-page-ranges",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/heterogeneous-critic/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": null,
+      "files": [
+        {
+          "path": "parse-ranges-cases.test.mjs",
+          "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+          "at_run": false
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "nobody",
+      "beside_scratch_during_run": false,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/heterogeneous-critic/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "parse-page-ranges--builder": "claude-sonnet-5-5",
+      "parse-page-ranges--critic": "claude-opus-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 24,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "heterogeneous-critic",
+    "template_version": "heterogeneous-critic@1",
+    "graph_id": "parse-page-ranges",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/eaSxmX/printkit-hZresC"
+  },
+  "derivation": {
+    "arm": "D",
+    "from": "the task folder alone: the task text, the acceptance files and the test command",
+    "acceptance": [
+      "README.md",
+      "docs/REVIEW-CHECKLIST.md"
+    ],
+    "design_words": [],
+    "held_out_named": [],
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.2619576,
+      "output_tokens": 5933
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 0.261958,
+  "harness_turns": 13,
+  "duration_s": 51,
+  "wall_s": 52,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.2619576,
+        "output_tokens": 5933
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 0.261958,
+    "harness_turns": 13,
+    "duration_s": 51,
+    "wall_s": 52,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "npm test 2>&1 | tail -12; echo exit=$?; git status --short"
+      }
+    ],
+    "subagents_dispatched": 0,
+    "dispatches": [],
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 1,
+      "where": []
+    }
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "npm test 2>&1 | tail -12; echo exit=$?; git status --short"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 57,
+      "session_id": "8d19433f-8f3a-470d-969a-1ad8eb553ec9",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.261958,
+      "reported_cost_usd": 0.2619576,
+      "max_budget_usd": 9,
+      "harness_turns": 13,
+      "duration_s": 51,
+      "wall_s": 52,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "s through the checklist item by item and gives the file and line that meets each one, as the checklist asks.\n\nNothing outside `src/`, `tests/`, `README.md` and `REVIEW.md` changed.\n\n**Decisions the task left open** (these are in the README and `REVIEW.md`):\n- Spaces around pages and dashes are allowed, so `\" 1 - 3 , 5 \"` works.\n- The result lists each page once, in ascending order: `\"5,1-3,2\"` gives `[1, 2, 3, 5]`.\n- An empty text, an empty part (`\"1,,3\"`) and a backwards range (`\"3-1\"`) all throw a `RangeError`.\n- Only plain digits count as a page, so `+2`, `1e1`, `0x2` and `1.5` are refused."
+    }
+  ],
+  "base_commit": "c653d6c966653c3c0f927b6509337b470cf44a16",
+  "project_files_changed": [
+    "M README.md",
+    "A REVIEW.md",
+    "A src/parse-ranges.mjs",
+    "A tests/parse-ranges.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/eaSxmX/printkit-hZresC",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}
