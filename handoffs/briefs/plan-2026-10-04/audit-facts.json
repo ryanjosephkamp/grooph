@@ -1,0 +1,214 @@
+{
+  "phone-home": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 809,
+    "load": 811,
+    "requests": 3,
+    "transferKB": 272,
+    "controls": 3,
+    "controlsWithoutName": 0,
+    "headings": [
+      "H1:grooph"
+    ],
+    "scrollWidth": 400,
+    "innerWidth": 400,
+    "text": "grooph Loop graphs for coding agents. Draw, validate, export. New graph Templates Import .grooph.json No graphs on this device yet. Start a new one, or import a .grooph.json graph, a .grooph-proposals.json set, a .grooph-run.json run or a .grooph-map.json oper",
+    "wallMs": 2057,
+    "errors": []
+  },
+  "phone-templates": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 45,
+    "load": 46,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 22,
+    "controlsWithoutName": 0,
+    "headings": [
+      "H1:Templates",
+      "H2:Built-in"
+    ],
+    "scrollWidth": 400,
+    "innerWidth": 400,
+    "text": "Templates Start a graph from one, or insert one into a graph you have open. Filters 20 templates Sort Name Cost, low first Speed, fast first Rigor, high first BUILT-IN Contradiction seeker Use when A claim can be broken by one concrete counterexample (a proper",
+    "wallMs": 1269,
+    "errors": []
+  },
+  "phone-template": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 40,
+    "load": 40,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 16,
+    "controlsWithoutName": 0,
+    "headings": [
+      "H2:Grind loop",
+      "H3:2 slots"
+    ],
+    "scrollWidth": 400,
+    "innerWidth": 400,
+    "text": "Grind loop built-in template · read-only Valid fail pass Agent Builder builder · fast · medium Check Tests tests · {{test-command}} Stop Done success Show all React Flow Grind Grind loop grind-loop@1 Save glyph Copy Mermaid A fast builder works against the tes",
+    "wallMs": 1263,
+    "errors": []
+  },
+  "phone-graph": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 41,
+    "load": 42,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 10,
+    "controlsWithoutName": 0,
+    "headings": [],
+    "scrollWidth": 400,
+    "innerWidth": 400,
+    "text": "Fix the flaky test from a link · read-only Valid fail pass Agent Builder builder · fast · medium Check Tests tests · pnpm test checkout Stop Done success React Flow Grind Read-only. Nothing is stored until you save it. Save to this device",
+    "wallMs": 1255,
+    "errors": []
+  },
+  "phone-map": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 42,
+    "load": 43,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 47,
+    "controlsWithoutName": 0,
+    "headings": [],
+    "scrollWidth": 400,
+    "innerWidth": 400,
+    "text": "Ryan's operation, October 1, 2026 operation map · read-only · as of 2026-10-01 Valid Ryan's operation, October 1, 2026 as of 2026-10-01 · 3 lanes · 8 sessions (21 counting families) · 18 handoffs, 3 carried by a person Cloud, account B cloud Claude Code cloud ",
+    "wallMs": 1268,
+    "errors": []
+  },
+  "phone-live": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 41,
+    "load": 42,
+    "requests": 4,
+    "transferKB": 5,
+    "controls": 1,
+    "controlsWithoutName": 0,
+    "headings": [],
+    "scrollWidth": 400,
+    "innerWidth": 400,
+    "text": "Sessions what the event hook has seen · live Quiet There is no grooph watch here that serves sessions. Open the address grooph watch prints on your computer. Still asking every two seconds. This shows that something ran, when and for how long. What an agent sa",
+    "wallMs": 1254,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ]
+  },
+  "desktop-home": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 358,
+    "load": 359,
+    "requests": 3,
+    "transferKB": 272,
+    "controls": 3,
+    "controlsWithoutName": 0,
+    "headings": [
+      "H1:grooph"
+    ],
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "text": "grooph Loop graphs for coding agents. Draw, validate, export. New graph Templates Import .grooph.json No graphs on this device yet. Start a new one, or import a .grooph.json graph, a .grooph-proposals.json set, a .grooph-run.json run or a .grooph-map.json oper",
+    "wallMs": 1589,
+    "errors": []
+  },
+  "desktop-templates": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 37,
+    "load": 38,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 22,
+    "controlsWithoutName": 0,
+    "headings": [
+      "H1:Templates",
+      "H2:Built-in"
+    ],
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "text": "Templates Start a graph from one, or insert one into a graph you have open. Filters 20 templates Sort Name Cost, low first Speed, fast first Rigor, high first BUILT-IN Contradiction seeker Use when A claim can be broken by one concrete counterexample (a proper",
+    "wallMs": 1278,
+    "errors": []
+  },
+  "desktop-template": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 39,
+    "load": 40,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 15,
+    "controlsWithoutName": 0,
+    "headings": [
+      "H2:Grind loop",
+      "H3:2 slots"
+    ],
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "text": "Grind loop built-in template · read-only Valid fail pass Agent Builder builder · fast · medium Check Tests tests · {{test-command}} Stop Done success React Flow Grind Read-only. Use it to make a graph of your own. Use Grind loop grind-loop@1 Save glyph Copy Me",
+    "wallMs": 1269,
+    "errors": []
+  },
+  "desktop-graph": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 39,
+    "load": 40,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 10,
+    "controlsWithoutName": 0,
+    "headings": [],
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "text": "Fix the flaky test from a link · read-only Valid fail pass Agent Builder builder · fast · medium Check Tests tests · pnpm test checkout Stop Done success React Flow Grind Read-only. Nothing is stored until you save it. Save to this device",
+    "wallMs": 1262,
+    "errors": []
+  },
+  "desktop-map": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 37,
+    "load": 38,
+    "requests": 3,
+    "transferKB": 0,
+    "controls": 47,
+    "controlsWithoutName": 0,
+    "headings": [],
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "text": "Ryan's operation, October 1, 2026 operation map · read-only · as of 2026-10-01 Valid Ryan's operation, October 1, 2026 as of 2026-10-01 · 3 lanes · 8 sessions (21 counting families) · 18 handoffs, 3 carried by a person Cloud, account B cloud Claude Code cloud ",
+    "wallMs": 1271,
+    "errors": []
+  },
+  "desktop-live": {
+    "title": "grooph",
+    "lang": "en",
+    "domContentLoaded": 40,
+    "load": 40,
+    "requests": 4,
+    "transferKB": 5,
+    "controls": 1,
+    "controlsWithoutName": 0,
+    "headings": [],
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "text": "Sessions what the event hook has seen · live Quiet There is no grooph watch here that serves sessions. Open the address grooph watch prints on your computer. Still asking every two seconds. This shows that something ran, when and for how long. What an agent sa",
+    "wallMs": 1258,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ]
+  }
+}
