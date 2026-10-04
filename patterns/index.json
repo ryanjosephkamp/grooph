@@ -106,7 +106,7 @@
     },
     {
       "id": "gauntlet-decomposed",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Gauntlet, decomposed",
       "summary": "A planner cuts the work into pieces and a human approves the cut; one piece at a time an owner polishes while a fresh frontier critic compares captures blind against the reference; an integrator and a final blind comparison close it.",

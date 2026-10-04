@@ -56,6 +56,12 @@ const CREDITED_IN_0014 = new Set(["taste-polish", "ownership-not-swarm", "spec-t
 const RESPELLED_IN_0073 = new Set(["patrol-pulse"]);
 /** Slice 0019 renamed patrol-pulse's findings file to PULSE.md (the harness had refused a subagent's write of a file named like a report), which is version 3. */
 const VERSION_THREE = new Set(["patrol-pulse"]);
+/**
+ * The reconcile of slice 0017 changed gauntlet-decomposed's planner brief (the reference cut is named, never copied) and
+ * meant that to be version 2, but wrote the number inside the `template` block, where nothing reads it; the document
+ * stayed at 1. Slice 0019 put it where it belongs, so the changed brief and the one before it are told apart by version.
+ */
+const REBRIEFED_IN_0017 = new Set(["gauntlet-decomposed"]);
 
 const files = readdirSync(patternsDir).filter((name) => name.endsWith(".grooph.json")).sort();
 
@@ -102,7 +108,8 @@ for (const file of files) {
     assert.equal(doc.id, id, "named after its id");
     assert.equal(block.kind, TABLE[id]!.kind);
     assert.equal(`${block.profile.cost} ${block.profile.speed} ${block.profile.rigor}`, TABLE[id]!.profile);
-    assert.equal(doc.version, VERSION_THREE.has(id) ? 3 : CREDITED_IN_0014.has(id) || RESPELLED_IN_0073.has(id) ? 2 : 1, "version 1; 2 where slice 0014 added a credit or slice 0073 respelled an id; 3 where slice 0019 renamed an output after that");
+    assert.equal(doc.version, VERSION_THREE.has(id) ? 3 : CREDITED_IN_0014.has(id) || RESPELLED_IN_0073.has(id) || REBRIEFED_IN_0017.has(id) ? 2 : 1, "version 1; 2 where slice 0014 added a credit, slice 0017's reconcile changed a brief or slice 0073 respelled an id; 3 where slice 0019 renamed an output after that");
+    assert.ok(!("version" in (doc.template as object)), "a template's version is its document's: none is written inside the template block");
     assert.equal(doc.layout, undefined, "layout-free: the app places nodes");
 
     // Credits (docs/templates.md §1 and §5, decision 0010): the three patterns that owe one carry it, and every credit is complete with a web link.
