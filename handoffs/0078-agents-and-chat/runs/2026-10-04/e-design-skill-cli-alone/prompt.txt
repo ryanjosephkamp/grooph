@@ -1,0 +1,1 @@
+/grooph:grooph-design Add a slugify(text) function to src/strings.js with tests; `npm test` runs them and is how success is checked. One option is enough, I do not need a comparison. The harness is Claude Code.

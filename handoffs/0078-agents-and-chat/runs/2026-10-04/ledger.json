@@ -1,12 +1,12 @@
 {
   "date": "2026-10-04",
   "slice": "0078-agents-and-chat",
-  "totalCostUSD": 0.5428,
+  "totalCostUSD": 1.0287,
   "note": "costUSD is total_cost_usd as Claude Code printed it at the end of each session: the list price of the tokens used; on a subscription it is usage, not a charge.",
   "runs": [
     {
       "run": "a-tools-only",
-      "what": "grooph's ten authoring tools and nothing else, served by the server inside grooph.mcpb; before the three fixes",
+      "what": "Run from an empty folder (<scratch>/chat-a), 2026-10-04. The server is the one inside grooph.mcpb, unpacked to <scratch>/ext, started exactly as the bundle's manifest starts it (node server/grooph.mjs mcp --chat). No built-in tool, no skill, no user settings: the session has grooph's ten authoring tools and nothing else, which is what a chat has.",
       "harness": "claude-code 2.1.289, headless (claude -p)",
       "session": "be412943-91a6-4b84-a9b6-9f143c9c15e8",
       "turns": 8,
@@ -42,7 +42,7 @@
     },
     {
       "run": "b-tools-only-after",
-      "what": "the same prompt, model and flags after the fixes: lines carried in the data, graphs named by id, operation arguments in the apply tool's description",
+      "what": "Run A again, same prompt, same model, same flags, after three changes run A asked for: the reply's lines travel in the data too, a call may name a graph by its id, and grooph_apply's description lists every operation's arguments. Run from an empty folder (<scratch>/chat-b), 2026-10-04; the server is the one inside the rebuilt grooph.mcpb.",
       "harness": "claude-code 2.1.289, headless (claude -p)",
       "session": "eb746d71-937c-4f6a-91c7-4ac1bacce420",
       "turns": 7,
@@ -78,7 +78,7 @@
     },
     {
       "run": "c-skill-and-a-shell",
-      "what": "the unzipped grooph-chat skill and a shell that may run node, ls and cat; no MCP server, grooph not on PATH: a stand-in for claude.ai's code tool",
+      "what": "A stand-in for claude.ai's code tool, 2026-10-04: an empty folder (<scratch>/chat-c) holding only the unzipped skill (grooph-chat.zip, as built) under .claude/skills/, a shell that may run node, ls and cat and nothing else, no MCP server, and a PATH without the folder the grooph command is installed in. Same prompt and model as runs A and B.",
       "harness": "claude-code 2.1.289, headless (claude -p)",
       "session": "e88e041c-2046-48db-bafa-19d64020757d",
       "turns": 9,
@@ -113,7 +113,7 @@
     },
     {
       "run": "d-no-tools-page-only",
-      "what": "no tool of any kind; the request and docs/agents.md in the prompt; the reply's document then checked with grooph validate --for-export",
+      "what": "The fallback every chat has, 2026-10-04: no tool of any kind, no MCP server, no skill. The prompt is the request and the text of docs/agents.md as it stood at this commit. The reply's document is then taken out the way the app's \"Paste a document\" takes it out, and checked with the CLI. Run from an empty folder (<scratch>/chat-d).",
       "harness": "claude-code 2.1.289, headless (claude -p)",
       "session": "4bc2d30a-60f5-4d5f-b190-880a64718afd",
       "turns": 1,
@@ -146,6 +146,77 @@
         "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-d/4bc2d30a-60f5-4d5f-b190-880a64718afd.jsonl",
         "bytes": 95691,
         "sha256": "578d67fd56fba03a01082ef9dcf8083a1dc8998fd97020132199085ffb97b207"
+      }
+    },
+    {
+      "run": "e-design-skill-cli-alone",
+      "what": "The design skill with the CLI alone, 2026-10-04. It was meant to have the plugin's MCP server too, but the command passed --strict-mcp-config, which keeps a plugin's server from loading (\"MCP servers: none\" in the transcript). So this run is the other half of the criterion: the skill still does every step with the grooph command and no tools. A small project in a temporary folder (<scratch>/chat-e: git init, a package.json, one source file); the plugin loaded from this branch; the grooph command on PATH pointing at this branch's build. Model claude-sonnet-5-5.",
+      "harness": "claude-code 2.1.289, headless (claude -p)",
+      "session": "ceb3a83f-147b-454f-b84b-60a6ce66b06f",
+      "turns": 12,
+      "durationMs": 55176,
+      "costUSD": 0.2552018,
+      "usage": [
+        {
+          "model": "claude-sonnet-5-5",
+          "inputTokens": 18,
+          "outputTokens": 4114,
+          "cacheReadInputTokens": 273509,
+          "cacheCreationInputTokens": 39831,
+          "costUSD": 0.2552018
+        }
+      ],
+      "files": [
+        "command.txt",
+        "prompt.txt",
+        "result.json",
+        "transcript.md"
+      ],
+      "stream": {
+        "path": "local/stream.jsonl (not committed)",
+        "bytes": 81774,
+        "sha256": "a39d61ddec99b4f3bc90e85ab57c7015e651f156776a414b39f424a25c0d5d2d"
+      },
+      "transcript": {
+        "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-e/ceb3a83f-147b-454f-b84b-60a6ce66b06f.jsonl",
+        "bytes": 250379,
+        "sha256": "406f1e6b334c8366f06e9450757770a70c7002db182feb19a1f9ca690a534ce2"
+      }
+    },
+    {
+      "run": "f-design-skill-with-tools",
+      "what": "The design skill with grooph's tools, 2026-10-04: the same project, prompt and model as run E, with grooph's MCP server attached the way \"claude mcp add grooph -- grooph mcp\" attaches it (mcp.json), started in the project. The session may use the server's tools, the grooph command, and read and write files in the project.",
+      "harness": "claude-code 2.1.289, headless (claude -p)",
+      "session": "fe325c6d-a5a4-41a7-90a1-2e181ba6f71a",
+      "turns": 12,
+      "durationMs": 51197,
+      "costUSD": 0.23068420000000003,
+      "usage": [
+        {
+          "model": "claude-sonnet-5-5",
+          "inputTokens": 18,
+          "outputTokens": 4257,
+          "cacheReadInputTokens": 324891,
+          "cacheCreationInputTokens": 30775,
+          "costUSD": 0.23068420000000003
+        }
+      ],
+      "files": [
+        "command.txt",
+        "mcp.json",
+        "prompt.txt",
+        "result.json",
+        "transcript.md"
+      ],
+      "stream": {
+        "path": "local/stream.jsonl (not committed)",
+        "bytes": 134417,
+        "sha256": "c6067f0c52939ca2f7a4851ffc086eea3e08c445fb5daefe6a12f4f19b0247e5"
+      },
+      "transcript": {
+        "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-f/fe325c6d-a5a4-41a7-90a1-2e181ba6f71a.jsonl",
+        "bytes": 316346,
+        "sha256": "cd6cc9d53fad2e594036c5fac0f8a0bf98c52cf482fce67fde19f81bcda0c11c"
       }
     }
   ]
