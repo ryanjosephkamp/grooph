@@ -5,11 +5,11 @@
  *   node scripts/site-pages.mjs --out <dir>    write <dir>/docs/index.html and <dir>/docs/<slug>/index.html
  *   node scripts/site-pages.mjs --check        render to a temporary folder and fail (exit 1) on a broken link between
  *                                              pages, on Markdown left unrendered, on a page over the size limit, on a
- *                                              color variable that drifted from the app's
+ *                                              color variable that drifted from the app's, in any of its themes
  *
  * The documents are named in scripts/site/pages.json. One that is listed and missing is skipped with a line on standard
  * error; `docs/blog/*.md` and `docs/report/*.md` are taken as they appear. The Markdown renderer is scripts/site/markdown.mjs,
- * the look is scripts/site/style.css (the front page's), the page around a document is scripts/site/layout.mjs. No dependency,
+ * the look is scripts/site/style.css with the front page's own header and footer, the page around a document is scripts/site/layout.mjs. No dependency,
  * no network, and nothing about the app's own bundle: the pages are plain files beside it.
  *
  * Links between documents that are both pages become links between the pages. Any other relative link becomes a link to the
@@ -33,6 +33,8 @@ const config = JSON.parse(readFileSync(join(here, "site", "pages.json"), "utf8")
 const SITE = config.site;
 /** A page's HTML, gzipped and without its images, stays under this. */
 const PAGE_LIMIT_KB = 40;
+/** A document's first paragraph stands under its title, in the band, when it is no longer than this. */
+const LEDE_LIMIT = 320;
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -185,11 +187,34 @@ function build(out) {
   const navFor = (slug, current) => {
     const docs = docsOf(slug);
     return [
+      { label: "Templates", href: `${rootOf(slug)}#/templates`, current: false },
       { label: "Docs", href: docs, current: current === "docs" },
       ...(has("field-guide") ? [{ label: "Field guide", href: `${docs}field-guide/`, current: current === "field-guide" }] : []),
       ...(has("blog") ? [{ label: "Blog", href: `${docs}#blog`, current: current === "blog" }] : []),
-      { label: "GitHub", href: SITE.repo, current: false },
+      { label: "Source", href: SITE.repo, current: false },
     ];
+  };
+  /** The footer's two columns, as on the front page; a page the site does not have is left out. */
+  const footFor = (slug) => {
+    const docs = docsOf(slug);
+    return {
+      use: [
+        { label: "Templates", href: `${rootOf(slug)}#/templates` },
+        ...(has("quickstart") ? [{ label: "Quickstart", href: `${docs}quickstart/` }] : []),
+        ...(has("field-guide") ? [{ label: "Field guide", href: `${docs}field-guide/` }] : []),
+        { label: "Docs", href: docs },
+      ],
+      help: [
+        { label: "Report a bug or suggest a feature", href: `${SITE.repo}/issues` },
+        ...(has("community") ? [{ label: "Community loops", href: `${docs}community/` }] : []),
+        { label: "Source on GitHub", href: SITE.repo },
+      ],
+    };
+  };
+  /** The small label above a page's title: the section it belongs to. */
+  const chipFor = (page) => {
+    const group = groups.find((g) => g.id === page.group);
+    return group?.sections.find((s) => s.id !== undefined && s.id === page.section)?.label ?? group?.title;
   };
 
   const written = [];
@@ -201,13 +226,18 @@ function build(out) {
     page.title = rendered.title ?? page.slug;
     page.summary = page.summary ?? clip(rendered.summary ?? "", 170);
 
+    // The title goes in the night band at the top of the page, with the document's first paragraph when it opens with
+    // a short one; the rest is the column. A document whose title is not its first line keeps it where it is.
     let body = rendered.html;
-    if (rendered.title === null) body = `<h1>${escapeHtml(page.title)}</h1>\n${body}`;
+    let hero = `<h1>${escapeHtml(page.title)}</h1>`;
+    const opening = /^(<h1[^>]*>[\s\S]*?<\/h1>)\n?(<p>[\s\S]*?<\/p>)?\n?/.exec(body);
+    if (opening) {
+      const lede = opening[2] !== undefined && plain(opening[2]).length <= LEDE_LIMIT ? opening[2] : "";
+      hero = `${opening[1]}${lede ? `\n${lede}` : ""}`;
+      body = body.slice(opening[1].length + (lede ? opening[0].length - opening[1].length : 0)).replace(/^\n/, "");
+    } else if (rendered.title !== null) hero = "";
     const h2 = rendered.headings.filter((h) => h.level === 2);
-    if (h2.length >= 4) {
-      const toc = `<details class="toc"><summary>On this page</summary><ul>${h2.map((h) => `<li><a href="#${h.id}">${escapeHtml(h.text)}</a></li>`).join("")}</ul></details>`;
-      body = /<\/h1>\n<p>[\s\S]*?<\/p>/.test(body) ? body.replace(/(<\/h1>\n<p>[\s\S]*?<\/p>)/, `$1\n${toc}`) : body.replace("</h1>", `</h1>\n${toc}`);
-    }
+    const toc = h2.length >= 4 ? `<details class="toc"><summary>On this page</summary><ul>${h2.map((h) => `<li><a href="#${h.id}">${escapeHtml(h.text)}</a></li>`).join("")}</ul></details>` : "";
     const current = page.slug === "field-guide" ? "field-guide" : page.slug.startsWith("blog/") ? "blog" : "docs";
     const html = shell({
       title: page.title,
@@ -216,6 +246,10 @@ function build(out) {
       root: rootOf(page.slug),
       imageUrl: `${SITE.url}og.png`,
       nav: navFor(page.slug, current),
+      foot: footFor(page.slug),
+      chip: chipFor(page),
+      hero,
+      toc,
       body,
       repo: SITE.repo,
       source: github("blob", page.source),
@@ -247,7 +281,10 @@ function build(out) {
     root: rootOf(""),
     imageUrl: `${SITE.url}og.png`,
     nav: navFor("", "docs"),
-    body: `<h1 id="docs">Docs</h1>\n<p>${escapeHtml(config.intro)}</p>\n${sections}`,
+    foot: footFor(""),
+    hero: `<h1 id="docs">Docs</h1>\n<p>${escapeHtml(config.intro)}</p>`,
+    body: sections,
+    wide: true,
     repo: SITE.repo,
   });
   const indexKB = gzipKB(index);
@@ -318,22 +355,31 @@ function checkLinks(out, problems) {
 
 /** The variables the pages copy from the app's :root must be the app's. */
 function checkTokens(problems) {
+  // Each block of variables by what it is for: "light" and "dark" are :root's, "meteor, light" and "meteor, dark" a theme's.
   const blocks = (css) => {
     const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
     const decls = (text) => new Map([...text.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim().replace(/\s+/g, " ")]));
-    return {
-      light: decls(/:root\s*\{([^}]*)\}/.exec(bare)?.[1] ?? ""),
-      dark: decls(/@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^}]*)\}/.exec(bare)?.[1] ?? ""),
-    };
+    const found = new Map();
+    const take = (text, pattern, scheme) =>
+      text.replace(pattern, (_, theme, body) => {
+        const key = theme ? `${theme}, ${scheme}` : scheme;
+        if (!found.has(key)) found.set(key, decls(body));
+        return "";
+      });
+    // The dark blocks first, and out of the way: what is left of a `:root { … }` is then a light one.
+    const light = take(bare, /@media\s*\(prefers-color-scheme:\s*dark\)\s*\{\s*:root(?:\[data-theme="([\w-]+)"\])?\s*\{([^}]*)\}/g, "dark");
+    take(light, /:root(?:\[data-theme="([\w-]+)"\])?\s*\{([^}]*)\}/g, "light");
+    return found;
   };
   const app = blocks(readFileSync(join(root, "apps", "web", "src", "styles.css"), "utf8"));
   const site = blocks(readFileSync(join(here, "site", "style.css"), "utf8"));
-  if (site.light.size === 0 || site.dark.size === 0) problems.error("scripts/site/style.css: no :root variables found, light or dark");
-  for (const scheme of ["light", "dark"]) {
-    for (const [name, v] of site[scheme]) {
-      const theirs = app[scheme].get(name);
-      if (theirs === undefined) problems.error(`scripts/site/style.css: ${name} (${scheme}) is not in apps/web/src/styles.css`);
-      else if (theirs !== v) problems.error(`scripts/site/style.css: ${name} (${scheme}) is "${v}" here and "${theirs}" in apps/web/src/styles.css`);
+  if (!site.get("light")?.size || !site.get("dark")?.size) problems.error("scripts/site/style.css: no :root variables found, light or dark");
+  for (const key of app.keys()) if (!site.has(key)) problems.error(`scripts/site/style.css: the app's variables for ${key} are not here, so a page would not take that look`);
+  for (const [key, vars] of site) {
+    for (const [name, v] of vars) {
+      const theirs = app.get(key)?.get(name);
+      if (theirs === undefined) problems.error(`scripts/site/style.css: ${name} (${key}) is not in apps/web/src/styles.css`);
+      else if (theirs !== v) problems.error(`scripts/site/style.css: ${name} (${key}) is "${v}" here and "${theirs}" in apps/web/src/styles.css`);
     }
   }
 }

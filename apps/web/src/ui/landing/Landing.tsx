@@ -160,8 +160,8 @@ export function Landing({ device }: { device?: ReactNode }) {
               ))}
             </ul>
             <div className="land-poster">
-              <a href={POSTER}>
-                <img src={POSTER} width="1200" height="800" loading="lazy" decoding="async" alt="The poster of the twenty loop shapes, each drawn with its name and when to reach for it" />
+              <a href={POSTER} aria-label="Open the poster of the twenty loop shapes">
+                <img src={POSTER} width="1200" height="800" loading="lazy" decoding="async" alt="The poster: twenty loop shapes, each drawn with its name and when to reach for it" />
               </a>
               <div>
                 <h3>Twenty shapes on one page</h3>

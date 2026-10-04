@@ -9,8 +9,7 @@
   width: min(100% - 2 * var(--gutter), 1180px);
   margin-inline: auto;
 }
-.site-header [hidden],
-.site-footer [hidden] {
+.site-header [hidden] {
   display: none !important;
 }
 .site-header :focus-visible,
@@ -57,7 +56,7 @@
 }
 /* The mark: three nodes and their edges, in the theme's accent on a tile of the night. */
 .site-logo rect {
-  fill: var(--night-3);
+  fill: var(--night-line);
 }
 .site-logo circle {
   fill: var(--bright);

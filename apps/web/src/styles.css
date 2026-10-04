@@ -49,18 +49,17 @@
   --mono: "Atkinson Hyperlegible Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace;
 
   /* The site's night surfaces (handoff 0077, after Link Meteor): the header, the hero and the footer, the same in
-     light and in dark. --bright is the accent as it reads on them; --accent stays the accent on paper. */
-  --night: oklch(0.2 0.03 172);
-  --night-2: oklch(0.245 0.034 172);
-  --night-3: oklch(0.29 0.034 172);
-  --night-line: oklch(0.36 0.03 172);
-  --night-ink: oklch(0.96 0.008 165);
-  --night-muted: oklch(0.78 0.02 165);
-  --bright: oklch(0.85 0.14 165);
-  --bright-hover: oklch(0.89 0.13 165);
-  --mark: oklch(0.85 0.14 165 / 0.5);
-  --shadow-card: 0 1px 2px oklch(0.2 0.03 172 / 0.06), 0 18px 40px -16px oklch(0.2 0.03 172 / 0.28);
-  --shadow-night: 0 24px 60px -20px oklch(0.05 0.02 172 / 0.8);
+     light and in dark. --bright is the accent as it reads on them; --accent stays the accent on paper. Written as
+     plain sRGB: the build writes an oklch() value twice, and these are sent to every screen. */
+  --night: #061a14;
+  --night-2: #0d261f;
+  --night-line: #2d423b;
+  --night-ink: #edf4f0;
+  --night-muted: #acbcb4;
+  --bright: #64eab7;
+  --mark: #64eab780;
+  --shadow-card: 0 1px 2px #061a140f, 0 18px 40px -16px #061a1447;
+  --shadow-night: 0 24px 60px -20px #000100cc;
   --gutter: clamp(16px, 4vw, 40px);
 }
 
@@ -101,57 +100,52 @@
 
     --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 14px rgb(0 0 0 / 0.25);
     --shadow-up: 0 -6px 24px rgb(0 0 0 / 0.4);
-    --mark: oklch(0.85 0.14 165 / 0.3);
-    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 18px 40px -16px oklch(0 0 0 / 0.7);
+    --mark: #64eab74d;
+    --shadow-card: 0 1px 2px #0000004d, 0 18px 40px -16px #000000b3;
   }
 }
 
-/* A second look, chosen in the header's theme menu and kept in this browser: Link Meteor's night, cool paper and lime.
-   The pictures keep their own colors in both. */
+/* A second look, chosen in the header's theme menu and kept in this browser: Link Meteor's night, cool paper and lime
+   (its oklch values, as sRGB). The pictures keep their own colors in both. */
 :root[data-theme="meteor"] {
-  --bg: oklch(0.968 0.006 265);
-  --surface: oklch(0.996 0.002 265);
-  --surface-2: oklch(0.944 0.009 265);
-  --ink: oklch(0.23 0.03 265);
-  --ink-2: oklch(0.38 0.03 265);
-  --ink-3: oklch(0.5 0.024 265);
-  --line: oklch(0.9 0.01 265);
-  --line-strong: oklch(0.8 0.014 265);
-  --dots: oklch(0.83 0.014 265);
-  --accent: oklch(0.46 0.13 138);
-  --accent-soft: oklch(0.93 0.06 124);
-  --focus: oklch(0.5 0.14 138);
-  --edge: oklch(0.55 0.02 265);
-  --night: oklch(0.2 0.035 266);
-  --night-2: oklch(0.245 0.04 266);
-  --night-3: oklch(0.29 0.04 266);
-  --night-line: oklch(0.36 0.035 266);
-  --night-ink: oklch(0.96 0.008 265);
-  --night-muted: oklch(0.78 0.02 265);
-  --bright: oklch(0.9 0.2 124);
-  --bright-hover: oklch(0.93 0.19 124);
-  --mark: oklch(0.9 0.2 124 / 0.55);
-  --shadow-card: 0 1px 2px oklch(0.2 0.03 265 / 0.06), 0 18px 40px -16px oklch(0.2 0.03 265 / 0.28);
-  --shadow-night: 0 24px 60px -20px oklch(0.05 0.02 265 / 0.8);
+  --bg: #f2f4f9;
+  --surface: #fdfeff;
+  --surface-2: #e9ecf3;
+  --ink: #161d2b;
+  --ink-2: #3b4253;
+  --ink-3: #5d6371;
+  --line: #dbdee5;
+  --line-strong: #b9bec7;
+  --dots: #c3c7d1;
+  --accent: #2e6813;
+  --accent-soft: #dfefc4;
+  --focus: #357518;
+  --edge: #6c727e;
+  --night: #0e1526;
+  --night-2: #172034;
+  --night-line: #343d50;
+  --night-ink: #eff2f7;
+  --night-muted: #b1b7c5;
+  --bright: #c3f344;
+  --mark: #c3f3448c;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="meteor"] {
-    --bg: oklch(0.17 0.016 265);
-    --surface: oklch(0.215 0.022 265);
-    --surface-2: oklch(0.25 0.024 265);
-    --ink: oklch(0.955 0.007 265);
-    --ink-2: oklch(0.82 0.012 265);
-    --ink-3: oklch(0.7 0.02 265);
-    --line: oklch(0.31 0.022 265);
-    --line-strong: oklch(0.42 0.025 265);
-    --dots: oklch(0.31 0.022 265);
-    --accent: oklch(0.88 0.18 124);
-    --accent-ink: oklch(0.2 0.035 266);
-    --accent-soft: oklch(0.29 0.05 128);
-    --focus: oklch(0.9 0.2 124);
-    --edge: oklch(0.66 0.02 265);
-    --mark: oklch(0.9 0.2 124 / 0.32);
-    --shadow-card: 0 1px 2px oklch(0 0 0 / 0.3), 0 18px 40px -16px oklch(0 0 0 / 0.7);
+    --bg: #0c0f17;
+    --surface: #141924;
+    --surface-2: #1c222d;
+    --ink: #eef0f5;
+    --ink-2: #c0c4cc;
+    --ink-3: #989fab;
+    --line: #2b303c;
+    --line-strong: #464d5b;
+    --dots: #2b303c;
+    --accent: #bfeb56;
+    --accent-ink: #0e1526;
+    --accent-soft: #243014;
+    --focus: #c3f344;
+    --edge: #8c929f;
+    --mark: #c3f34452;
   }
 }
 
@@ -862,7 +856,8 @@ a {
   }
   .land-hero .btn-primary:hover {
     border-color: transparent;
-    background: var(--bright-hover);
+    background: var(--bright);
+    filter: brightness(1.08);
   }
   .land-tile:hover,
   .template-row:hover {

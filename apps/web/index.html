@@ -26,18 +26,7 @@
     <title>grooph: loop graphs for coding agents</title>
     <!-- The look chosen in the header's theme menu, before the first paint: ?theme= wins and is kept, then the kept choice. An embed has its own colors. -->
     <script>
-      (() => {
-        if (/^#\/embed(\?|$)/.test(location.hash)) return;
-        const ids = ["grooph", "meteor"];
-        let id = new URLSearchParams(location.search).get("theme");
-        try {
-          if (ids.includes(id)) localStorage.setItem("groophTheme", id);
-          else id = localStorage.getItem("groophTheme");
-        } catch {
-          /* not kept */
-        }
-        if (ids.indexOf(id) > 0) document.documentElement.dataset.theme = id;
-      })();
+      (() => { if (/^#\/embed(\?|$)/.test(location.hash)) return; const ids = ["grooph", "meteor"]; let id = new URLSearchParams(location.search).get("theme"); try { if (ids.includes(id)) localStorage.setItem("groophTheme", id); else id = localStorage.getItem("groophTheme"); } catch {} if (ids.indexOf(id) > 0) document.documentElement.dataset.theme = id; })();
     </script>
   </head>
   <body>
