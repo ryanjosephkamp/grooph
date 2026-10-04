@@ -4,7 +4,7 @@
 
 ## Status
 
-`done`. All seven items are up as eight pull requests. Six are merged; two wait for the owner (#52) and for the owner and the audit lane (#54).
+`done`. All seven items are up as eight pull requests. Six are merged. #52 was corrected after the driver's read (one bullet of the privacy page was not true as written; see below) and waits for the driver's merge. #54, the FAQ, waits for the owner and the audit lane.
 
 ## The seven items, the pull requests and their state
 
@@ -16,10 +16,28 @@
 | 4. Safari and Firefox | [#53](https://github.com/ryanjosephkamp/grooph/pull/53) | `slice/0081-browsers` | merged, `cad617b` |
 | 5. The CLI, command by command | [#50](https://github.com/ryanjosephkamp/grooph/pull/50) | `slice/0081-cli-reference` | merged, `980a00d` |
 | 6. Pages that exist and are not on the site | [#51](https://github.com/ryanjosephkamp/grooph/pull/51) | `slice/0081-site-pages` | merged, `e11f276` |
-| 7. New short pages: privacy, releases, contributing | [#52](https://github.com/ryanjosephkamp/grooph/pull/52) | `slice/0081-short-pages`, head `7bb180e` | open, every CI job green, **waits for the owner** |
-| 7. New short pages: the FAQ | [#54](https://github.com/ryanjosephkamp/grooph/pull/54) | `slice/0081-faq`, head `cce220c`, stacked on #52 | open, every CI job green, **waits for the owner and the audit lane** |
+| 7. New short pages: privacy, releases, contributing | [#52](https://github.com/ryanjosephkamp/grooph/pull/52) | `slice/0081-short-pages`, head `9b24d11` | open, corrected, every CI job green on the corrected head; the driver merges it |
+| 7. New short pages: the FAQ | [#54](https://github.com/ryanjosephkamp/grooph/pull/54) | `slice/0081-faq`, head `0529703` (the FAQ's own commit is `cce220c`; the head is a merge of the corrected #52), stacked on #52 | open, every CI job green, **waits for the owner and the audit lane**; the driver has recommended holding it until the audit converges |
 
 Order sent: 2, 1, 3, 5, 6, 7, 4, 7 (FAQ). Item 2 went before item 1 because #45 was still open and edited `docs/PROGRESS.md`, as the driver said.
+
+## Corrected after the driver's read: the privacy page
+
+The brief said to check each sentence of the privacy page against the code before writing it. One bullet was checked against a summary sentence in `docs/subagents.md` and not against the hook, and it was wrong. The driver caught it on reading #52, and the audit lane found the same independently (its claim C30). Commit `9b24d11` on `slice/0081-short-pages` corrects it, from `packages/cli/hooks/grooph-event.mjs`, `packages/cli/hooks/grooph-events-push.mjs` and `packages/cli/src/mcp.ts` read in full.
+
+| The page said | What the code does | The page now says |
+|---|---|---|
+| The hook's line holds "ids, names and times" | It also writes `cwd`, the working folder's path, on a main-session event (line 77) and `transcript`, the path of a subagent's transcript, on its stop (line 80) | ids, names, the time, and on the machine two paths, named |
+| It never writes "a tool's input or result" | It keeps one fact from a tool's result: `spawned`, the id of the subagent the tool started (line 73) | never a prompt, a tool's input or anything an agent said; of a tool's result, that one id |
+| Nothing about text in the events folder | `grooph mcp` writes `said-<session>.jsonl` beside the hook's files when a session calls `grooph_plan` or `grooph_note`: a plan's title, each planned subagent's purpose, a note, each cut to 600 characters, with the project's path | a bullet of its own, "What a session chooses to say" |
+| The lines "go to a branch of your own repository" | The push takes every `*.jsonl` in the folder, so plans and notes go too; a folder is sent as its name and a transcript's path is dropped (`shortened()`); commits are made as `grooph` | all of that, and that on a public repository the branch is public |
+| The tool "uses the network in one case" | `grooph events push` is a second: it runs `git fetch` and `git push` | two cases, both when you ask |
+
+**The second row of what the push sends is the one the driver had not named**: free text. `docs/HANDBACK-operator.md` section 16 already lists it ("only if a lead uses grooph's own MCP server").
+
+**The same loose phrase stands where this lane may not edit**: `README.md` line 62, `docs/GLOSSARY.md` line 35, `docs/subagents.md` line 150, `docs/HANDBACK-operator.md` line 151, the header comments of both hook files, and the `grooph hooks` help text, from which `docs/cli.md` line 437 is generated. None was written by this lane. They are for the audit's corrections pull request; when the help text changes, `node scripts/cli-reference.mjs` brings `docs/cli.md` with it.
+
+The FAQ does not repeat the phrase, and its "Where do my graphs live?" answer is untouched by the correction. `slice/0081-faq` was brought up to date with the corrected #52 by a merge.
 
 ## What changed
 
@@ -146,6 +164,7 @@ The cache is per branch until one exists on `main`. #53's merge run on `main` ma
 - **`docs/releases.md` needs a section at each release.** `scripts/version.mjs` prints a `next:` line after writing a version; it could name the releases page once #52 is in.
 - **The FAQ says "The Codex target is planned"**, the README's sentence. The Codex lane (0076) changes both when its target lands.
 - **The FAQ's LangGraph answer** is the one place a page describes someone else's product. It says what kind of thing it is and makes no comparison of worth. For the audit lane.
+- **Three of the FAQ's answers repeat words the audit lane's first reading does not carry**, as the driver told the owner: "shown to bound and record autonomous work", "twenty templates, each proven in a recorded run", and "Every loop can end" said without its condition. They are the README's and the front page's words, taken as the brief's ceiling. This lane does not change them: the audit's corrections pull request carries the settled wording, for the FAQ with the rest.
 - **The 92 pictures in the baseline are still in git**, 34.8 MB with the rest. The rule stops the growth; it removes nothing. Moving the before-and-after sets to a published page and deleting them is a removal a person might miss, so it is the owner's.
 - **`plugins/grooph/.claude-plugin/plugin.json` says version `0.1.0`**: the plugin's own, left alone, not one of the eight.
 - **No TODO is left in the tree.**
@@ -153,5 +172,5 @@ The cache is per branch until one exists on `main`. #53's merge run on `main` ma
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0081 is at handoffs/0081-house-and-pages/HANDBACK.md on branch slice/0081-house-and-pages (one commit on main at cad617b; its pull request names it). Status: done. Seven items in eight pull requests: #47, #48, #49, #50, #51 and #53 are merged; #52 (privacy, releases, contributing) is green and waits for the owner; #54 (the FAQ, stacked on #52) is green and waits for the owner and the audit lane. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0081 is at handoffs/0081-house-and-pages/HANDBACK.md on branch slice/0081-house-and-pages (one commit on main at cad617b; its pull request names it). Status: done. Seven items in eight pull requests: #47, #48, #49, #50, #51 and #53 are merged; #52 (privacy, releases, contributing) is corrected as you asked (head 9b24d11) and green; #54 (the FAQ, stacked on #52, head 0529703) is green and waits for the owner and the audit lane. Please reconcile with the grooph-reconcile skill.
 ```
