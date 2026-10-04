@@ -298,6 +298,28 @@ test.describe("from 1100 px", () => {
     await expect(views.getByRole("radio", { name: "Sequence" })).toBeVisible();
   });
 
+  test("a picture drawn again for a new room gives the keyboard back to the part that had it", async ({ page }) => {
+    // Five lanes and no handoffs: there is no list beside the picture, so opening a session narrows the stage, the
+    // lanes no longer fit at their full width, and the picture is drawn again.
+    const base = mapOf("valid/two-sessions.grooph-map.json");
+    const lanes = [0, 1, 2, 3, 4].map((k) => ({ ...base.lanes[0]!, id: `lane-${k}`, name: `Lane ${k}` }));
+    const sessions = lanes.map((lane, k) => ({ ...base.sessions[0]!, id: `session-${k}`, name: `Session ${k}`, lane: lane.id }));
+    await page.goto(linkFor({ ...base, lanes, sessions, handoffs: [] }));
+    const picture = page.locator('.map-picture svg[data-picture="map"]');
+    const units = () => picture.evaluate((svg) => (svg as SVGSVGElement).viewBox.baseVal.width);
+    const first = page.locator('[data-session="session-0"]');
+    await expect(first).toBeVisible();
+    const before = await units();
+    await first.focus();
+    await page.keyboard.press("Enter");
+    await expect(sheet(page).getByRole("heading", { name: "Session" })).toBeVisible();
+    await expect.poll(units).toBeLessThan(before);
+    await expect(first).toBeFocused();
+    // And Enter again, on the same part, closes what it opened.
+    await page.keyboard.press("Enter");
+    await expect(sheet(page)).toHaveCount(0);
+  });
+
   test("a small map side by side is a small picture, and a map in a narrow room keeps every card whole", async ({ page }) => {
     await page.goto(linkFor(mapOf("valid/a-person-and-two-sessions.grooph-map.json")));
     const picture = page.locator('.map-picture svg[data-picture="map"]');

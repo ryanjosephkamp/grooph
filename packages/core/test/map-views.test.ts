@@ -365,7 +365,7 @@ test("three hundred maps made from seeds draw whole, side by side and as a seque
     }
   }
   // Two arcs along one line is the one fault left, where two people hand to each other again and again and their
-  // cards have no more places: 3 of these 1,200 pictures on the day this was written. It may not grow unseen.
+  // cards have no more places: 4 of these 1,200 pictures on the day this was written. It may not grow unseen.
   assert.ok(along <= 6, `${along} of 1,200 pictures have two arcs along one line`);
 });
 
