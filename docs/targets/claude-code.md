@@ -60,7 +60,7 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 1. **You are the lead.** One paragraph: run the graph, do not do the workers' jobs, never grade your own work when a critic exists.
 2. **Goal and constraints.** Verbatim from the document.
 3. **Run setup.** Read the run id from the clock, create `runs/<id>/`, copy the source document in as the working copy, write the initial `PROGRESS.md`.
-4. **Nodes.** One line each: id, agent name to dispatch, role, what it returns.
+4. **Nodes.** One line each: id, agent name to dispatch, role, what it returns. A graph that has a subgrooph (a template placed as a unit, amendment A-018) gets a short table after them, **Units**: each one's name, id, template and version, its nodes, where it is entered and what it leads on to. It tells the lead nothing new about running them, only to name the unit when it says where the run is. The values a group was filled with are not printed, and a graph with no subgrooph has no such table.
 5. **Edges.** How results route: `pass`/`fail`/verdict → next node; isolation and evidence for each.
 6. **Loops.** Per loop: members, what counts as a round, the bar (with the refs the critic inspects), the stops in order with the action for each (`bar-passed` → follow pass edges; others → halt and report unless `then` is set).
 7. **Human gates.** The list, in graph order, and the rule: ask, end the turn, wait.
