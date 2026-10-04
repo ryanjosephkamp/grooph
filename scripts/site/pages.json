@@ -14,6 +14,16 @@
           "source": "docs/quickstart.md",
           "slug": "quickstart",
           "summary": "Install grooph, then ask your agent for a graph or build one by hand."
+        },
+        {
+          "source": "docs/agents.md",
+          "slug": "agents",
+          "summary": "For an agent: the shortest path to a graph, every operation by example, what to do about each rule, and when no graph is the right answer."
+        },
+        {
+          "source": "docs/chat.md",
+          "slug": "chat",
+          "summary": "grooph from a chat: what works in Claude's desktop app, in claude.ai and in ChatGPT, and what was tried."
         }
       ]
     },
