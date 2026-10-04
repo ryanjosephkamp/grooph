@@ -5,7 +5,7 @@ import { extname, join, normalize, sep } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
 import { buildShareEnvelope, encodeSharePayload, parseMapText } from "@grooph/core";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
 import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, status } from "./support.js";
@@ -55,6 +55,15 @@ test.afterEach(() => {
   expect(outsideRequests, "requests to another host").toEqual([]);
 });
 
+/**
+ * The front page has drawn itself: the page is grooph's and its top heading is up. Which words that heading holds
+ * is the landing spec's to say, and changes with the design; an engine either draws it or does not.
+ */
+async function frontPageIsUp(page: Page): Promise<void> {
+  await expect(page).toHaveTitle(/grooph/);
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+}
+
 test("the watch on outside requests is awake: a page that asks another host is seen to", async ({ page }) => {
   // Answered here, so nothing leaves this machine: the request is still made, and that is what is watched.
   await page.route("https://outside.example/**", (route) => route.fulfill({ body: "" }));
@@ -64,10 +73,10 @@ test("the watch on outside requests is awake: a page that asks another host is s
   outsideRequests = [];
 });
 
-test("the front page opens: the name, a drawn loop graph, the way in, nothing scrolling sideways", async ({ page }) => {
+test("the front page opens: its heading, a drawn loop graph, the way in, nothing scrolling sideways", async ({ page }) => {
   const response = await page.goto("./");
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+  await frontPageIsUp(page);
 
   // Core's picture, drawn in the page: four nodes with their words measured by this engine's own text layout.
   const picture = page.locator("svg.grooph-picture").first();
@@ -204,7 +213,7 @@ test.describe("with the service worker running", () => {
     const app = await serveBuiltApp();
     try {
       await page.goto(app.url);
-      await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+      await frontPageIsUp(page);
       await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
       // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
       await expect
@@ -218,7 +227,7 @@ test.describe("with the service worker running", () => {
 
     // The address typed again with no network, then an address the first visit never asked for.
     await page.goto(app.url);
-    await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+    await frontPageIsUp(page);
     await page.goto(`${app.url}#/templates/built-in/review-gate`);
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
