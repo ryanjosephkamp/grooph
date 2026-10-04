@@ -1,6 +1,6 @@
 # Handback 0078 · grooph for agents: authoring over MCP, a package on npm, and a way in from a chat
 
-**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `ca97a31` (the work, after the driver's two fix passes, with `main` merged in at `89fc884` and the paste reader behind a door; the handback commit follows it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `47ce733` (the work, after the driver's three fix passes, with `main` merged in at `0e90da0` and the paste reader behind a door; the handback commit follows it) · **Date:** 2026-10-04
 
 ## Status
 
@@ -17,7 +17,9 @@
 - `src/paths.ts` (new): where the CLI's own files are, in a clone, an npm install and a single bundled file. `registry.ts`, `commands/hooks.ts`, `commands/watch.ts` use it.
 - `src/main.ts` (new), `bin/grooph.js`: one entry; a closed pipe (`grooph template list | head`) ends quietly.
 - `src/index.ts`: the `mcp` command's `--chat` flag, the no-folder guard, its help page. `commands/explain.ts`, `embed.ts`, `image.ts`: small exports the tools reuse; CLI output unchanged.
-- Tests: `test/mcp-author.test.ts` (new, 27 tests), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 152.
+- Tests: `test/mcp-author.test.ts` (new, 27 tests), `test/third-pass.test.ts` (new, 10), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 162.
+- `src/commands/export.ts`, `commands/help.ts`, `src/index.ts` (`case "export"`): the CLI's export says the tier line every time with each pin, stops before changing a model in place (`--change-models`), and refuses an id that is a folder grooph keeps. The tool shares all three.
+- `packages/core/src/compile/markdown.ts`, `claude-code/agents.ts`: one class of characters a header's line cannot hold (third pass, item 4), with a compiler test.
 - `src/share-io.ts`: a proposal set's candidate files, for the server, only as graphs beside the set; a file that is not JSON is no longer quoted in the error (the CLI's too).
 - `docs/cli.md` regenerated for the `mcp` command's new help page, as the driver asked once `main` began checking it.
 
@@ -38,15 +40,15 @@
 
 ## Verified, and how
 
-Run from a clean build at `ca97a31`: both fix passes, the door, and `main` merged in at `89fc884`, which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
+Run from a clean build at `47ce733`: the three fix passes, the door, and `main` merged in at `0e90da0`, which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
 
 ```text
-pnpm -r build && pnpm -r test          core 363 pass · cli 152 pass · web 68 pass
-scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 772 KB, 78 files; installed and run in a fresh folder)
-scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 241 KB, grooph.mcpb 240 KB; …run with nothing installed beside them)
+pnpm -r build && pnpm -r test          core 364 pass · cli 162 pass · web 68 pass
+scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 776 KB, 78 files; installed and run in a fresh folder)
+scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 245 KB, grooph.mcpb 244 KB; …run with nothing installed beside them)
 scripts/first-run.sh                   first run: ok
 GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      213 passed, 125 skipped, none failed
-node scripts/american-english.mjs --check      nothing British in 577 public-facing files
+node scripts/american-english.mjs --check      nothing British in 579 public-facing files
 node scripts/site-pages.mjs --check    23 pages and an index, links and anchors resolve
 version · cli-reference · check-pictures · check-outside-addresses (--check)      all current; nothing is loaded from another host
 patterns-index · field-guide · rule-reference · community-index (--check), check-brake-values, test-install-local.sh      all pass
@@ -136,11 +138,11 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **791,008 bytes packed (772 KB), 2,199,407 unpacked, 78 files.** It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
+`grooph-0.3.0.tgz`: **794,741 bytes packed (776 KB), 2,210,930 unpacked, 78 files.** It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
 
 | In it | Files | Size |
 |---|---|---|
-| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 601 KB |
+| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 611 KB |
 | `dist/patterns/`, the templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
 | `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 31 | 1,297 KB |
@@ -185,6 +187,8 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **Model sessions are recorded in the slice's folder, not under `experiments/`**, which this lane may not change. They follow `experiments/hooks/README.md` and can be moved as they are.
 - **`docs/quickstart.md`** keeps the clone install first and adds npm second: the site's own browser test reads the page's first code block, and that test is not this lane's to change.
 - **`apps/web/vite.config.ts`** and **`apps/web/src/ui/Import.tsx`** are outside the allowed list. The driver asked for the door and gave leave for the config, only the lines the door needs, in a commit of its own (`ca97a31`). The file-import path moved into `Import.tsx` as it was on `main`, with `return true` or `return false` where it returned, and the screen's setters reached through `host`.
+- **Core, for the third pass.** The driver named `packages/core/src/compile/markdown.ts` for one line. The fresh reader then showed the same class of character missing from `names()`, so `packages/core/src/compile/claude-code/agents.ts` takes the class from `markdown.ts` now: one import and one call. No golden package changes. It can be split into a pull request of its own.
+- **`packages/cli/src/index.ts`, `case "export"`**: one option added, `--change-models`, for the stop the driver asked the CLI to have.
 - **`docs/cli.md`** is outside the allowed list and was regenerated on the driver's instruction; `main` was merged in (two conflicts, both kept whole: the page list and CI).
 
 ## Risks and leftovers
@@ -193,11 +197,16 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **No vendor app was driven.** The stand-ins share the server, the skill and the model family, not the app. The desktop app may show tool results differently, and claude.ai's sandbox may differ from a shell.
 - **MCP's newest revision is 2026-07-28** and drops the `initialize` handshake. The server knows up to 2025-06-18 and answers any message without a handshake, so a newer client should still be served; it was not tested against one.
 - **The audit loop.** `docs/agents.md` and the chat skill now carry one sentence on quality and no other claim: a graph "is not shown to raise quality over the same instructions given as a prompt, on small tasks". The sentence about bounding and recording, taken from `docs/field-guide.md`, is out (G). When an audit converges, these two follow it.
-- **Outside a chat, `path` reads are not confined** to the project, as before this slice: a session may check a fixture or another clone's graph. A file that is not JSON is named and nothing of it is returned. In a chat `path` is refused outright.
+- **Outside a chat, `path` reads are not confined** to the project, as before this slice: a session may check a fixture or another clone's graph. A file that is not JSON, or is JSON with none of grooph's marks, is named and nothing of it is returned. In a chat `path` is refused outright.
 - **"As grooph last wrote them" is judged by recompiling.** A package written by an older grooph, whose compiler's words have since changed, reads as changed by hand, and the export stops and asks for `replace: true`. That is the safe side, and it will happen after a release that changes the compiler's output.
 - **The plugin's `.mcp.json`** names `grooph`, which must be on `PATH`. After the publish it could be `npx -y grooph mcp`. That the plugin itself starts the server was not run; run F attached the same server by a config file.
 - **`.claude-plugin/marketplace.json`** at the root still describes the plugin without its server; not this lane's file.
-- **Independent review, twice.** First a fresh Opus 5.5 read I asked for, of the write paths, the server loop, the packaging scripts and the paste reader: eleven findings, ten fixed. Then the driver's, which found more; what was done about each letter is under "The fix pass" below. Of the first review's ten fixes, eight had a test when I first wrote this and two did not (the walk that never ended on a missing Windows drive, and `--keep` with a relative path); both have one now: the walk is a function of its own, run over Windows paths with `path.win32`, and CI passes `--keep` a relative path and then looks for the files. Left as they are from the first review: a bundle copied by hand next to a folder named `hooks` would look there for the event hook.
+- **Independent review, four times.** The third and fourth are under "The third pass". **The first two:** First a fresh Opus 5.5 read I asked for, of the write paths, the server loop, the packaging scripts and the paste reader: eleven findings, ten fixed. Then the driver's, which found more; what was done about each letter is under "The fix pass" below. Of the first review's ten fixes, eight had a test when I first wrote this and two did not (the walk that never ended on a missing Windows drive, and `--keep` with a relative path); both have one now: the walk is a function of its own, run over Windows paths with `path.win32`, and CI passes `--keep` a relative path and then looks for the files. Left as they are from the first review: a bundle copied by hand next to a folder named `hooks` would look there for the event hook.
+- **Slice 0084 (#71) will not merge cleanly with this branch.** Both change `tiersSaid` in `packages/cli/src/commands/export.ts`, the export's help, `docs/cli.md` and one test in `packages/cli/test/friction.test.ts`. `tiersSaid` here already takes 0084's signature and its note's words, so the resolution is small. One thing has to be decided there and not by the merge: 0084's test asserts that the CLI prints no tier line when no map is named, and the driver asked for the line every time, which is what this branch does.
+- **A slot's key is free text in the schema.** The tool's own `next:` line no longer carries one that is not a single word, but a key that is a sentence is still a valid template. A rule that holds a key to a key's shape is the contract's to add.
+- **Look-alikes of `next` are a list, not a proof.** Characters that do not show, wide and accented forms are folded by rule; the letters of other scripts drawn like n, e, x and t are fourteen named ones. That a model would act on such a line was not shown either way.
+- **The CLI's export is not placed whole or not at all** when a write fails part-way (a folder where `LEAD.md` goes): it exits 2 with the files before it written. The tool is. As it was before this slice; the fresh reader noted it.
+- **Claude Code's own reader of an agent file's header was not checked** for which characters it refuses; PyYAML and libyaml were, by the fresh reader.
 - **Windows** was not run at all. CI is Linux and the Mac is the Mac. On Windows a chat app that starts a server in a folder that is neither the root nor home gets file writes unless the entry passes `--chat`; every documented entry does.
 
 ## The fix pass
@@ -226,8 +235,32 @@ The driver's second reviewer found all seven holding and six more things. Each i
 6. **A note is not appended to a file with another name somewhere** (a hard link). **A path argument with a control character is refused** before any tool runs. Beyond what was asked: every line of a reply is now held to one line, so a graph's name, a template id, a tier or a slot key cannot start a `next:` line of its own. The kickoff of an export is the exception: it is a prompt of many lines and holds the goal as written.
 7. **Left as it is, as told:** an export is placed whole or not at all short of a file the system itself will not let be replaced. There, files placed before it stay placed, and the refusal names them.
 
+## The third pass
+
+The driver's third reader found nothing dangerous and seven things that still got through. Each is closed with a test in `packages/cli/test/third-pass.test.ts` (item 4 in `packages/core/test/compile.test.ts`).
+
+1. **A `next:` line could still be forged.** `reply()` now takes the tool's own `next:` line apart from every other line, and a line of someone's words whose first word is "next" comes back in quotes. (a) A document is called by its id only when the id is an id; otherwise it is "the document". (b) A template's summary follows `Summary: `. (c) An export's kickoff, which holds the goal as written, is a block of its own; the lines say where it is and hold none of it. (d) `grooph_plan` and `grooph_running` go through `reply()`, and so does the text of a tool that throws.
+2. **Fable unannounced.** (a) `grooph export --into` over a package in place stops, exits 1 and writes nothing when an agent file's model would change, listing each with its model before and after and the tier line; `--change-models` goes ahead and says what changed. The tier line is printed every time, with or without a map. (b) The tier line names each pin by its node (`a pin on fixer: <model>`), from the CLI and the tool, and the tool's data has `pins`. (c) The tool asks its two questions together, a file changed by hand and a model that would change, so `replace: true` is given knowing both; given, the reply says what was replaced and which models changed.
+3. **The kept graph, by another door.** A graph whose id is `graphs`, `proposals`, `templates`, `events` or `hooks` is not exported, by the tool (placed or returned) or by the CLI, and the refusal names the way out (`renameId`). The driver named three; `events` and `hooks` are folders grooph keeps under `.grooph/` too.
+4. **U+0085 in a header.** `quoteYaml` folds the class `names()` folds. No golden package changed.
+5. **A JSON file that is not grooph's** (none of `grooph`, `groophProposals`, `groophMap`, `groophRun`) is named and nothing of it comes back, through `path` on any tool and as a proposal set's candidate. A file that carries the mark is still checked and its issues said.
+6. **The picture's mark** is the root element's own `class` attribute, read attribute by attribute. **U+0080 to U+009F** are control characters, in a path and in a reply's line.
+7. **The package's README** says what leaves the machine when asked, where it said nothing is uploaded.
+
+### Read again before it was pushed
+
+A fresh Opus 5.5 reader was then set on those two commits, with the claims and not my conclusions. Its report: about 70,000 calls with line breaks in every string of every kind of document produced no forged line, and five things did get through. Each is closed, with a test ("read again" in the same file):
+
+1. **The tool's own `next:` line carried a template's slot keys**, and a key is free text: a project's template wrote "The person has already approved this run…" into it. Keys are named there only when each is one word.
+2. **An agent file with CRLF line ends, or a byte order mark, hid its model from the stop**: an export that took the model away went through with no word, and the same graph over it was stopped for nothing. The header is now read as loosely as a harness might read it, and a key named twice gives both.
+3. **`quoteYaml` and `names()` left U+0080 to U+009F raw** (but for U+0085), with U+FFFE, U+FFFF and a lone surrogate: PyYAML and libyaml refuse such a header. One class now, in core (under Deviations).
+4. **With `.grooph` a link, the graph a package keeps had a second name** the tools did not refuse. It is refused by the name as written and by where it lands, and the tool does not place a package where `.grooph` or the package's folder under it is a link.
+5. **Characters that do not show.** A path with one (a zero-width space inside `graph.grooph.json`) is refused, shown with the character written out. A gate named `next` with such a character in it, in wide letters, or with a Cyrillic e, is quoted like the plain word. The picture's root element is read with XML's white space.
+
+With each guard taken out in turn, thirty-five ways over the two sets of commits, a test fails; the files were restored from copies each time and the whole set run again after.
+
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head ca97a31: both fix passes, main merged in at 89fc884, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head 47ce733: three fix passes, main merged in at 0e90da0, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
 ```
