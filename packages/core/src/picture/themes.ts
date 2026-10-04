@@ -268,9 +268,15 @@ export function pictureLook(name: string | undefined): PictureLook | undefined {
       const auto = theme === "auto";
       const palette = theme === "dark" ? t.dark : t.light;
       const c: Paint = auto ? (k) => `var(--gp-${k})` : (k) => palette[k] ?? "";
+      // Inline in a page, a Paper picture's own rules for dark reach every picture there. A theme's must outrank them
+      // wherever they apply, so a theme with one form says its colors a second time, for a picture that is not held
+      // to light: that is the selector Paper's dark has, and one attribute more.
+      const dark = `${scope}:not([data-theme="light"])`;
       const colors = !auto
         ? ""
-        : `${scope}{${vars(t.light)}}` + (t.dark === t.light ? "" : `@media (prefers-color-scheme:dark){${scope}:not([data-theme="light"]){${vars(t.dark)}}}${scope}[data-theme="dark"]{${vars(t.dark)}}`);
+        : t.dark === t.light
+          ? `${scope},${dark}{${vars(t.light)}}`
+          : `${scope}{${vars(t.light)}}@media (prefers-color-scheme:dark){${dark}{${vars(t.dark)}}}${scope}[data-theme="dark"]{${vars(t.dark)}}`;
       const face = t.face ? `${scope}{font-family:${t.face}}` : "";
       return `<style>${colors}${face}${t.rules(c).replaceAll("&", scope)}</style>` + (t.defs ? `<defs>${t.defs(c, id(theme))}</defs>` : "");
     },

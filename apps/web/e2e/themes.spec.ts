@@ -276,6 +276,33 @@ test("in every theme, with the site's own faces, no line of words runs past its 
   }
 });
 
+test("pictures of different themes inline in one page each keep their own colors, in light and in dark, held to one or following the device", async ({ page }) => {
+  // A picture's style is in the picture, and inline in a page a style reaches the whole page: a Paper picture's rule
+  // for dark must not recolor a themed one beside it, whichever comes first, and no theme's rule may reach Paper.
+  const doc = reviewLoop();
+  const names = ["phosphor", "paper", "blueprint", "paper", "ink"];
+  const rgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+  const PAPER = { light: "#f1f4f3", dark: "#111514" };
+  const ground = (name: string, form: "light" | "dark") => rgb(name === "paper" ? PAPER[form] : pictureLook(name)![form].bg);
+  for (const held of [undefined, "light", "dark"] as const) {
+    const svgs = names.map((name) => {
+      const look = pictureLook(name);
+      const svg = picture(doc, look ? { look } : {});
+      return held ? svg.replace('class="grooph-picture"', `class="grooph-picture" data-theme="${held}"`) : svg;
+    });
+    await page.setContent(`<!doctype html><meta charset="utf-8"><body>${svgs.join("")}</body>`);
+    for (const device of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme: device });
+      const form = held ?? device;
+      const grounds = await page.locator("svg.grooph-picture").evaluateAll((all) => all.map((svg) => getComputedStyle(svg.querySelector("rect")!).fill));
+      expect(grounds, `held to ${held ?? "nothing"}, on a ${device} device`).toEqual(names.map((name) => ground(name, form)));
+      // And a card's outline is each theme's own weight: Paper's is untouched by its neighbors' rules.
+      const outlines = await page.locator("svg.grooph-picture").evaluateAll((all) => all.map((svg) => getComputedStyle(svg.querySelector("rect[data-card]")!).strokeWidth));
+      expect(outlines).toEqual(["1px", "1px", "1.2px", "1px", "0.8px"]);
+    }
+  }
+});
+
 test("with the themes not to be had, the choice is kept and every picture stays Paper", async ({ page }) => {
   await page.route("**/assets/themes-*.js", (route) => route.abort());
   await page.goto("./#/about");
