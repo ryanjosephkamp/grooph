@@ -47,7 +47,6 @@ export function Landing({ device }: { device?: ReactNode }) {
       <header className="land-bar">
         <h1 className="wordmark">grooph</h1>
         <nav className="land-nav" aria-label="grooph">
-          <a href="#/templates">Templates</a>
           <a href={`${SOURCE}#readme`} rel="noopener">
             Docs
           </a>
@@ -69,7 +68,7 @@ export function Landing({ device }: { device?: ReactNode }) {
               Open the template
             </a>
             <a className="btn btn-large" href="#/templates">
-              All templates
+              See all twenty
             </a>
           </div>
         </div>

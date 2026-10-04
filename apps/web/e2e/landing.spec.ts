@@ -102,7 +102,7 @@ test("a template opens in one tap from the front page, and a tile opens its own"
   await page.goto("./");
   await page.getByRole("link", { name: "Open the template" }).tap();
   await expect(page).toHaveURL(/#\/templates\/built-in\/review-gate$/);
-  await expect(page.getByRole("link", { name: "Use", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Use this template" })).toBeVisible();
   await page.goBack();
   await page.getByRole("list", { name: "Templates" }).getByRole("link", { name: "Grind loop" }).tap();
   await expect(page).toHaveURL(/#\/templates\/built-in\/grind-loop$/);
