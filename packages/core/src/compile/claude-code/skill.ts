@@ -4,13 +4,16 @@
  */
 
 import { code, doc, lines, quoteYaml } from "../markdown.js";
+import { names } from "./agents.js";
 import type { PackageContext } from "./context.js";
 
 export function skillFile(ctx: PackageContext): string {
   return doc(
     lines(
       "---",
-      `name: ${ctx.graphId}`,
+      // The same guard as every name in an agent file's header: an id is kebab-case for any document that was read,
+      // and stays on its line, quoted, for one that was not.
+      `name: ${names([ctx.graphId])}`,
       `description: ${quoteYaml(
         `Start or resume a grooph run of the ${ctx.graphId} graph (${ctx.doc.name}). Invoked by the human, never on its own.`,
       )}`,

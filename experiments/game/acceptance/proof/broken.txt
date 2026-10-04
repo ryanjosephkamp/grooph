@@ -1,0 +1,47 @@
+# The checks against stand-ins/broken.html, every behavior off: every one must fail.
+# node experiments/game/acceptance/prove.mjs, 2026-10-04
+
+FAIL  opens    The page opens: no error, no file of its own missing, nothing asked of another host
+      the page asked another host: https://outside.example/telemetry; the page raised 1 error(s): uncaught: stand-in: an uncaught error, on purpose
+FAIL  drawn    Something is drawn: the picture is not one flat color
+      the picture is one flat color: 1 color(s), the commonest covering 100% of it
+FAIL  surface  The test surface is there and whole: window.__game, as SPEC.md §7 describes it
+      camera.position is not a vector
+FAIL  start    A round starts: from the menu to playing
+      Enter did not start a round: the phase is still "menu"
+FAIL  walk     W walks forward and S walks back
+      Enter did not start a round: the phase is still "menu"
+FAIL  strafe   D steps right and A steps left
+      Enter did not start a round: the phase is still "menu"
+FAIL  look     The mouse turns the view: right turns right, up looks up
+      Enter did not start a round: the phase is still "menu"
+FAIL  turn     In test mode the arrow keys turn the view, so a script can aim
+      Enter did not start a round: the phase is still "menu"
+FAIL  jump     Space jumps, and the player comes down again
+      Enter did not start a round: the phase is still "menu"
+FAIL  world    The arena holds the player: a sprint in one direction ends at its edge, not outside it or under it
+      Enter did not start a round: the phase is still "menu"
+FAIL  view     V switches between first and third person, and the camera moves with it
+      Enter did not start a round: the phase is still "menu"
+FAIL  fire     A click fires, and a shot uses ammunition
+      Enter did not start a round: the phase is still "menu"
+FAIL  hit      A shot that lands lowers a target's health, and one aimed away does not
+      Enter did not start a round: the phase is still "menu"
+FAIL  defeat   An enemy can be defeated, and the score says so
+      Enter did not start a round: the phase is still "menu"
+FAIL  reload   R reloads from the reserve
+      Enter did not start a round: the phase is still "menu"
+FAIL  threat   An enemy reaches a player who stands still, and hurts
+      Enter did not start a round: the phase is still "menu"
+FAIL  lose     A round can be lost
+      Enter did not start a round: the phase is still "menu"
+FAIL  again    After a round ends, Enter starts another
+      Enter did not start a round: the phase is still "menu"
+FAIL  win      A round can be won
+      Enter did not start a round: the phase is still "menu"
+FAIL  seed     The same seed starts the same round; another seed starts another
+      Enter did not start a round: the phase is still "menu"
+FAIL  frames   The picture keeps up: 30 frames a second or more on a still scene
+      Enter did not start a round: the phase is still "menu"
+
+0 of 21 checks pass; failing: opens, drawn, surface, start, walk, strafe, look, turn, jump, world, view, fire, hit, defeat, reload, threat, lose, again, win, seed, frames

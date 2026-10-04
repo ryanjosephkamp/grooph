@@ -207,7 +207,8 @@ test("a damaged or foreign link says what is wrong and leads back to the library
     await expect(page.getByText("Nothing from it was stored on this device.")).toBeVisible();
   }
   await page.getByRole("link", { name: "Back to your graphs" }).tap();
-  await expect(page.getByRole("heading", { name: "grooph" })).toBeVisible();
+  // An empty device's library is the front page, whose heading is its headline (handoff 0077).
+  await expect(page.getByRole("heading", { name: "Loop graphs for coding agents." })).toBeVisible();
 });
 
 test("the self-contained file from grooph share --out imports into the same comparison", async ({ page }) => {
