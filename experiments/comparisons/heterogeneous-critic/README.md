@@ -57,7 +57,7 @@ Claude Code 2.1.289 · lead `claude-opus-5-5`, effort `high`, in every arm · bu
 | **D-1** | 52/70 | pass | clean | clean (the session ended by itself) | $0.26 | 1m02s | 11 | 0 | 0 | 5/5, rank 1 |
 | **D-2** | 52/70 | pass | clean | clean (the session ended by itself) | $0.26 | 0m52s | 13 | 1 | 0 | 4/5, rank 2 |
 
-A: held-out 70/70, cost $1.29–$1.60 (n = 2) · B: held-out 70/70, cost $1.03–$1.05 (n = 2) · C: held-out 70/70, cost $1.03–$1.09 (n = 2) · D: held-out 52/70, cost $0.26–$0.26 (n = 2)
+A: held-out 70/70, cost $1.29–$1.60 (n = 2) · B: held-out 70/70, cost $1.03–$1.05 (n = 2) · C: held-out 70/70, cost $1.03–$1.09 (n = 2) · D: held-out 52/70, cost $0.26 (n = 2)
 
 **Models.** The harness reported `claude-opus-5-5` and `claude-sonnet-5-5` and nothing else, in every run and for the judge. The template's point held in all six runs with a reviewer: an Opus 5.5 critic over a Sonnet 5.5 builder. In A each agent ran on the model its agent file names. In B and C each lead dispatched generic sub-agents and asked for `sonnet` for the builder and `opus` for the critic, as the prose's briefs name them; none asked for another model.
 
