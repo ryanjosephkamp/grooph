@@ -158,6 +158,28 @@
     margin: 0;
     overflow-y: auto;
   }
+  /* Beside a map each source is one of its sessions, so each is a column of its own, as the map's lanes are. */
+  .has-map .live-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 0 16px;
+    align-items: start;
+  }
+  .has-map .live-list > * {
+    margin-inline: 0;
+  }
+  .has-map .live-list > :not(.live-group) {
+    grid-column: 1 / -1;
+  }
+  .has-map .live-group {
+    display: block;
+  }
+  .has-map .live-source {
+    margin: 4px 2px 8px;
+  }
+  .has-map .live-session {
+    margin-bottom: 12px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

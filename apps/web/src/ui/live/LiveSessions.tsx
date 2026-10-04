@@ -259,17 +259,18 @@ export function LiveSessions() {
   const now = useMemo(() => (live.view ? new Date(Date.parse(live.view.at) + (Date.now() - live.fetchedAt)).toISOString() : new Date().toISOString()), [live, tick]);
 
   const sessions = live.view?.sessions ?? [];
-  // Working first, then waiting, then ended; inside each, the most recently seen first.
-  const order = { working: 0, waiting: 1, ended: 2 } as const;
-  const sorted = [...sessions].sort((a, b) => order[a.state] - order[b.state] || (a.lastAt < b.lastAt ? 1 : -1));
+  // The header counts by the same clock as the cards: a session goes quiet in both at once.
+  const stateOf = (s: LiveSession) => (isQuiet(s, now) ? "quiet" : s.state);
+  // Working first, then waiting, then gone quiet, then ended; inside each, the most recently seen first.
+  const order = { working: 0, waiting: 1, quiet: 2, ended: 3 } as const;
+  const sorted = [...sessions].sort((a, b) => order[stateOf(a)] - order[stateOf(b)] || (a.lastAt < b.lastAt ? 1 : -1));
   const groups = new Map<string, LiveSession[]>();
   for (const s of sorted) groups.set(s.source ?? "", [...(groups.get(s.source ?? "") ?? []), s]);
-  // The header counts by the same clock as the cards: a session goes quiet in both at once.
-  const working = sessions.filter((s) => s.state === "working" && !isQuiet(s, now)).length;
-  const runningAgents = sessions.reduce((n, s) => n + (isQuiet(s, now) ? 0 : s.agents.filter((a) => a.state === "running").length), 0);
   // How many sessions are in each state: the page at a glance, and the key to the marks on the cards.
   const counts = { working: 0, waiting: 0, quiet: 0, ended: 0 };
-  for (const s of sessions) counts[isQuiet(s, now) ? "quiet" : s.state] += 1;
+  for (const s of sessions) counts[stateOf(s)] += 1;
+  const working = counts.working;
+  const runningAgents = sessions.reduce((n, s) => n + (stateOf(s) === "quiet" ? 0 : s.agents.filter((a) => a.state === "running").length), 0);
 
   return (
     <div className="live-view">

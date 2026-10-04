@@ -68,17 +68,18 @@
     color: var(--ink-3);
     text-wrap: pretty;
   }
-  .map-side .map-list {
-    flex: 1;
-    min-height: 0;
-    padding: 8px 10px 28px;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
   /* Every handoff, as a list beside the picture and not a stack of cards: the line is the row. */
   .map-list {
     gap: 0;
     margin: 0 -10px;
+  }
+  .map-side .map-list {
+    flex: 1;
+    min-height: 0;
+    margin: 0;
+    padding: 8px 10px 28px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
   .map-list .map-handoff-line {
     padding: 9px 10px;

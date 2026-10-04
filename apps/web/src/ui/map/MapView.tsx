@@ -28,9 +28,13 @@ type Panel = { type: "session"; id: Id } | { type: "person"; id: Id } | { type: 
 
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 
-/** From this width the handoff list and the details sit beside the picture, and core draws the picture this many units wide. */
+/**
+ * From this width the handoff list and the details sit beside the picture, and core draws the picture this many
+ * units wide instead of a phone's 400: its cards are wider, so their words take fewer lines, and map.css shows it
+ * at up to 880 px, a unit at about one and a half pixels.
+ */
 const WIDE = "(min-width: 1100px)";
-const WIDE_UNITS = 640;
+const WIDE_UNITS = 600;
 
 function useWide(): boolean {
   const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
