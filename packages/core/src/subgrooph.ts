@@ -161,7 +161,8 @@ export function placeSubgrooph(doc: Graph, template: Graph, options: PlaceOption
   const taken = allIds(doc);
   if (taken.has(as)) throw new TemplateError(`"${as}" is taken in "${doc.id}": give the subgrooph another id`);
   // Every id under the prefix is the subgrooph's: that is how a refresh knows what is the template's.
-  const under = [...taken].find((id) => id.startsWith(`${as}-`));
+  // (The graph's own id is no object of it: a graph "review-loop" may hold a subgrooph "review".)
+  const under = [...taken].find((id) => id !== doc.id && id.startsWith(`${as}-`));
   if (under !== undefined) throw new TemplateError(`"${doc.id}" already has "${under}", and every id that begins with "${as}-" would be the subgrooph's own: give the subgrooph another id`);
   const over = (doc.groups ?? []).find((g) => g.from !== undefined && as.startsWith(`${g.id}-`));
   if (over) throw new TemplateError(`"${as}" begins with "${over.id}-", and every such id is the subgrooph "${over.id}"'s own: give this one another id`);

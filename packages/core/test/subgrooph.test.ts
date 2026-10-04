@@ -135,6 +135,8 @@ test("placing refuses an id the graph uses, a prefix the graph uses, and a node 
   const capped = { ...host(), policies: [{ id: "review-cap", kind: "concurrency-cap" as const, scope: "graph" as const, params: { max: 2 } }] };
   assert.throws(() => placeSubgrooph(capped, reviewGate(), { as: "review", values }), /already has "review-cap"/);
   assert.throws(() => placeSubgrooph(placed(), reviewGate(), { as: "review-two", values }), /"review-two" begins with "review-", and every such id is the subgrooph "review"'s own/);
+  // The graph's own id is not an object inside it: a graph named for what it does may hold a box named the same way.
+  assert.equal(placeSubgrooph({ ...host(), id: "review-loop" }, reviewGate(), { as: "review", values }).group.id, "review");
   assert.throws(() => placeSubgrooph(host(), reviewGate(), { as: "review", values, then: "relese" }), /--then names "relese".*did you mean "release"/);
   assert.throws(() => placeSubgrooph(host(), reviewGate(), { as: "review", values, after: "nobody" }), /--after names "nobody"/);
   assert.throws(() => placeSubgrooph(host(), reviewGate(), { as: "review", values: { tsak: "x" } }), /no slot "tsak"/);
