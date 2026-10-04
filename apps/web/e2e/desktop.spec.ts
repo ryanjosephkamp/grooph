@@ -223,12 +223,15 @@ test("the keyboard: Tab goes through the bar in order, reaches a node, and Enter
   await page.getByRole("button", { name: "Outline" }).click();
   await status(page).click();
   expect(await unnamedControls(page)).toEqual([]);
+  // The viewer and a template's page have nodes of the same ids: wait for what only each of them has before acting on one.
   await page.goto(linkFor(reviewLoop()));
+  await expect(page.getByRole("region", { name: "Save" })).toBeVisible();
   await node(page, "critic").focus();
   await page.keyboard.press("Enter");
   await expect(panel(page).getByRole("heading", { name: "Agent" })).toBeVisible();
   expect(await unnamedControls(page)).toEqual([]);
   await page.goto("./#/templates/built-in/review-gate");
+  await expect(page.getByRole("region", { name: "Use" })).toBeVisible();
   await expect(node(page, "done")).toBeVisible();
   expect(await unnamedControls(page)).toEqual([]);
 });
