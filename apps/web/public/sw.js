@@ -99,6 +99,9 @@ async function tidy(cache, visit) {
   const now = await cache.match("./", { ignoreVary: true });
   const before = await cache.match(BEFORE);
   if (!now || !before) return;
+  // Wait for the page this visit made to be there: in the same tab, the page it replaces is gone by then. A visit
+  // that was given up, or a tab closed at once, never gets there, and whoever is left is looked at as they are.
+  for (let waited = 0; waited < 10 && !(await self.clients.get(visit)); waited += 1) await new Promise((done) => setTimeout(done, 200));
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
   if (windows.some((client) => client.id !== visit)) return;
   const wanted = [...named(await now.text()), ...named(await before.text())].map((u) => u.href);
