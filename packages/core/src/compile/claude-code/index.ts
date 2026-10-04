@@ -1,4 +1,5 @@
 import { canonicalize } from "../../canonicalize.js";
+import type { CompileOptions } from "../index.js";
 import type { Issue } from "../../issues.js";
 import type { Graph } from "../../types.js";
 import { agentFile } from "./agents.js";
@@ -15,8 +16,8 @@ export type ClaudeCodePackage = { files: Record<string, string>; kickoff: string
  * `validate(doc, { forExport: true })`. Layout per `docs/targets/claude-code.md`
  * § "Package layout (files mode)". `runs/` is created at run time, not here.
  */
-export function compileClaudeCode(doc: Graph, warnings: Issue[]): ClaudeCodePackage {
-  const ctx = buildContext(doc);
+export function compileClaudeCode(doc: Graph, warnings: Issue[], options: CompileOptions = {}): ClaudeCodePackage {
+  const ctx = buildContext(doc, options);
   const kickoffText = kickoff(ctx);
 
   const files: Record<string, string> = {

@@ -13,7 +13,7 @@ import { KNOWN_TARGETS, TemplateError, type CompileTarget } from "@grooph/core";
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
-import { exportCommand } from "./commands/export.js";
+import { exportCommand, parseModels } from "./commands/export.js";
 import { explainCommand } from "./commands/explain.js";
 import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, EXPORT_HELP, NEW_HELP, VALIDATE_HELP, nearestCommand, overview } from "./commands/help.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
@@ -160,12 +160,18 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { target: { type: "string" }, into: { type: "string" } },
+          options: { target: { type: "string" }, into: { type: "string" }, models: { type: "string" } },
         });
         const file = positionals[0];
         if (file === undefined) {
           return usageError(io, "export needs a file: grooph export <file> --target <harness> --into <dir>");
         }
+        // Which model a tier means, for this export: the flag, or else GROOPH_MODELS, so a machine can say it once.
+        const fromEnv = (env.env ?? process.env)["GROOPH_MODELS"];
+        const modelsText = values["models"] ?? (fromEnv !== undefined && fromEnv.trim() !== "" ? fromEnv : undefined);
+        const modelsFrom = values["models"] !== undefined ? "--models" : "GROOPH_MODELS";
+        const tierMap = modelsText === undefined ? undefined : parseModels(modelsText);
+        if (tierMap && "error" in tierMap) return usageError(io, `${modelsFrom}: ${tierMap.error}`);
         const target = values["target"];
         if (target === undefined) return usageError(io, `export needs --target (${KNOWN_TARGETS.join(", ")})`);
         if (!KNOWN_TARGETS.includes(target)) {
@@ -173,7 +179,7 @@ export async function run(
         }
         const into = values["into"];
         if (into === undefined) return usageError(io, "export needs --into <dir>, the project to write the package into");
-        return exportCommand(io, file, { target: target as CompileTarget, into });
+        return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}) });
       }
 
       case "shape": {

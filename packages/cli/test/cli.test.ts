@@ -12,6 +12,9 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import { run } from "../src/index.js";
+
+// A developer's own tier map must not reach the golden packages these tests compare against.
+delete process.env["GROOPH_MODELS"];
 import type { Output } from "../src/print.js";
 
 const repoRoot = (() => {
