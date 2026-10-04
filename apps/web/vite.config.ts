@@ -32,6 +32,9 @@ const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/ma
  * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
  * and keeps them, so an export still works with no network.
  *
+ * Since slice 0085 the box a subgrooph is drawn as on the canvas is a piece of its own too (`src/ui/canvas/units.tsx`),
+ * fetched when a document has one. It is named in the same list, so it is held for a visit with no network.
+ *
  * `dist/routes.json` lists the sets; `scripts/perf-budget.mjs` weighs them.
  */
 function routes(): Plugin {
@@ -70,9 +73,10 @@ function routes(): Plugin {
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
         const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
+        const units = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/units.tsx"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !units) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, units }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -91,7 +95,7 @@ function routes(): Plugin {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
-          later: [...new Set([...closure(compiler), ...closure(mapViews)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(units)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
