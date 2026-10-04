@@ -1,5 +1,7 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo, Socket } from "node:net";
+import { extname, join, normalize, sep } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
 import { buildShareEnvelope, encodeSharePayload, parseMapText } from "@grooph/core";
@@ -108,25 +110,86 @@ test("an operation map opens from a link as its picture, every session and hando
   await expect(page.locator("aside.sheet").getByRole("heading", { name: "Session" })).toBeVisible();
 });
 
+const TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+};
+
+/**
+ * The built app on a server of this test's own, at an address the system picks, so the test can take the network
+ * away for real by closing it. Nothing it serves may be kept by the browser's own cache (`no-store`): whatever
+ * answers once it is gone is the service worker.
+ */
+async function serveBuiltApp(): Promise<{ url: string; stop: () => Promise<void> }> {
+  const dist = join(repoRoot, "apps/web/dist");
+  const sockets = new Set<Socket>();
+  const server = createServer((request, response) => {
+    const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+    let file = normalize(join(dist, path.replace(/^\/grooph\//, "")));
+    if (path.endsWith("/")) file = join(file, "index.html");
+    if (!path.startsWith("/grooph/") || !(file + sep).startsWith(dist + sep) || !existsSync(file) || !statSync(file).isFile()) {
+      response.writeHead(404).end();
+      return;
+    }
+    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream", "cache-control": "no-store" });
+    response.end(readFileSync(file));
+  });
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  const stop = (): Promise<void> =>
+    new Promise((resolve) => {
+      for (const socket of sockets) socket.destroy();
+      server.close(() => resolve());
+    });
+  return { url: `http://127.0.0.1:${port}/grooph/`, stop };
+}
+
 test.describe("with the service worker running", () => {
   // Every other spec blocks service workers so it tests the files as built; the offline visit needs the worker.
   test.use({ serviceWorkers: "allow" });
 
-  test("the offline visit: after one visit with a network, the app and a template open with none", async ({ page, context }) => {
-    await page.goto("./");
-    await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
-    await expect
-      .poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/screens-[^/]*\.js$/.test(r.url)).length))
-      .toBe(1);
-
-    await context.setOffline(true);
+  /*
+   * No network here means no server. Playwright's own offline switch cannot test this outside Chromium, for reasons
+   * that are each engine's (seen in CI on 2026-10-04, Playwright 1.63):
+   *
+   *   WebKit   with `context.setOffline(true)` a navigation fails inside the engine ("WebKit encountered an
+   *            internal error") before the worker is asked: the same error with the worker in control and with
+   *            it blocked. A route that aborts every request also takes the navigation before the worker does.
+   *   Firefox  `setOffline(true)` does not stop a navigation to localhost: a page with the worker blocked still
+   *            loaded, with status 200. A test that passes there says nothing about the worker.
+   *
+   * Closing the server is the same in all three: the worker's own fetch fails, as it does on a phone in a tunnel.
+   * `e2e/offline.spec.ts` keeps the longer account, in Chromium, with the switch.
+   */
+  test("the offline visit: after one visit with a network, the app and a template open with none", async ({ page }) => {
+    const app = await serveBuiltApp();
+    try {
+      await page.goto(app.url);
+      await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+      // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
+      await expect
+        .poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/screens-[^/]*\.js$/.test(r.url)).length))
+        .toBe(1);
+    } finally {
+      await app.stop();
+    }
+    // Gone: a request that does not pass through the worker is refused.
+    await expect(page.request.get(app.url)).rejects.toThrow();
 
     // The address typed again with no network, then an address the first visit never asked for.
-    await page.goto("./");
+    await page.goto(app.url);
     await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
-    await page.goto("./#/templates/built-in/review-gate");
+    await page.goto(`${app.url}#/templates/built-in/review-gate`);
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
     await expect(page.locator(".react-flow__edge")).toHaveCount(5);
