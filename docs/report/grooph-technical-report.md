@@ -1,6 +1,6 @@
 # grooph: a notation, a checker and a compiler for multi-agent loops
 
-*Technical report, draft of October 4, 2026, for Ryan to edit. Version 0.2.5. Every claim cites a file in the repository.*
+*Technical report, draft of October 4, 2026, for Ryan to edit. Version 0.3.0. Every claim cites a file in the repository.*
 
 ## Summary
 

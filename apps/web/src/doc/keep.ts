@@ -8,7 +8,7 @@ import { isMapLike, mapPicture, offlinePage, picture, type Graph, type Operation
 export type KeepTheme = "light" | "dark";
 
 /** What `VERSION` in the CLI says: the grooph that made the file. */
-export const APP_VERSION = "0.2.5";
+export const APP_VERSION = "0.3.0";
 
 const isMap = (doc: Graph | OperationMap): doc is OperationMap => isMapLike(doc);
 

@@ -1,6 +1,6 @@
 # 0021 · An address loads what it shows, under a budget CI enforces
 
-**Date:** 2026-10-04 · **Status:** proposed (built on `integration/2026-10-04`; waits for the owner's word) · **Deciders:** owner ("without hurting grooph's performance"), driver
+**Date:** 2026-10-04 · **Status:** accepted (the owner approved the merge, 2026-10-04; in 0.3.0) · **Deciders:** owner ("without hurting grooph's performance"), driver
 
 ## Context
 

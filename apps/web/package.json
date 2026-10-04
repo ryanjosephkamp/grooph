@@ -1,6 +1,6 @@
 {
   "name": "@grooph/web",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "grooph web app: the phone-first canvas over the graph document.",
