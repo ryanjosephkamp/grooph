@@ -225,10 +225,14 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       // Study one (protocol version 1) is finished: its records are read and re-scored on screen, never written again.
       if ((expect.protocol ?? 1) === 1) {
         console.error("this run belongs to study one, which is finished: the re-score is printed above and score.json is left as it is");
-        process.exit(1);
+        process.exitCode = 1;
+      } else {
+        // What only the run could know stays with the new score: which suite files it was scored by, and what the run did to the reviewer's copy.
+        for (const key of ["suite", "scored_from", "reviewers_copy_changed"]) if (kept?.held_out?.[key] !== undefined) score.held_out[key] = kept.held_out[key];
+        score.rescored = { at: score.scored_at, first_scored_at: kept?.scored_at ?? null };
+        writeFileSync(join(runDir, "score.json"), `${JSON.stringify(score, null, 2)}\n`, "utf8");
+        console.error(`wrote ${join(runDir, "score.json")}`);
       }
-      writeFileSync(join(runDir, "score.json"), `${JSON.stringify(score, null, 2)}\n`, "utf8");
-      console.error(`wrote ${join(runDir, "score.json")}`);
     }
   } finally {
     rmSync(tree, { recursive: true, force: true });

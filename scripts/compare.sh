@@ -35,10 +35,18 @@
 # What a session can learn of where it is. Each scratch is named after the task's
 # own package, sits alone in a folder of its own under the runner's work root
 # ($TMPDIR/wk), and has one commit, "initial commit", by a neutral user; in B, C
-# and D that commit never held the package, and only A has the tool on PATH. A
-# run's folder is removed once its evidence is in the repository. A run that
-# breaks after a model call keeps its folder, and no other run starts until it
-# has been looked at and cleared (--clear-work).
+# and D that commit never held the package. No skill is listed to any session
+# (--disable-slash-commands: this machine has the tool's own design skill
+# installed for every project), no folder on the PATH of B, C, D or the judge
+# holds the tool's command, and a session's TMPDIR is a folder of the run's own.
+# After a run, the record says what each session reached for outside its project
+# and how often the tool's name stands in its transcripts.
+#
+# One run at a time. A run's folder is removed once its evidence is in the
+# repository. A run that breaks after a model call saves what it can into the
+# project as <arm>-<n>-failed-<k>/ and keeps its folder; no other run starts
+# until that has been looked at and cleared (--clear-work, which never clears
+# under a runner that is still alive).
 #
 # Models. Study two (protocol version 2) runs its lead and its judge on
 # claude-opus-5-5, and every package is exported with the tier map the project
@@ -72,7 +80,7 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "${1:-}" in
-  -h|--help) sed -n '2,71p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,79p' "$0"; exit 0 ;;
   --test) exec node --test "$REPO_ROOT/scripts/lib/compare-prompt.test.mjs" "$REPO_ROOT/scripts/lib/compare-score.test.mjs" "$REPO_ROOT/scripts/lib/compare-run.test.mjs" "$REPO_ROOT/scripts/lib/compare-projects.test.mjs" ;;
 esac
 exec node "$REPO_ROOT/scripts/lib/compare-run.mjs" "$@"

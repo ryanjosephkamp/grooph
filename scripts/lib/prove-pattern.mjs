@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { checkRun, printCheck } from "./prove-check.mjs";
@@ -253,7 +253,8 @@ export function buildScratch(template, experiment, prefix = `grooph-prove-${temp
   // Who made the scratch's one commit and what it says. A session is shown its repository's user and last commits, so
   // a caller that must not tell a session what it is part of (a comparison, protocol version 2) names neutral ones.
   const author = { name: commit.name ?? "grooph prove", email: commit.email ?? "prove@grooph.local", message: commit.message ?? `task and the grooph package for ${template}` };
-  const scratch = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix));
+  // A caller may name the whole place (an absolute prefix); otherwise the scratch goes under the temp directory.
+  const scratch = mkdtempSync(isAbsolute(prefix) ? prefix : join(process.env.TMPDIR || tmpdir(), prefix));
   const harnessDir = `${scratch}.harness`;
   mkdirSync(harnessDir);
   cpSync(join(experiment.dir, "task"), scratch, { recursive: true });

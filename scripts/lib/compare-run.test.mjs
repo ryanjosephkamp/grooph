@@ -10,7 +10,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { amendEntry, gate, loadLedger, neverLines, openRunEntry, passedMarks, projectStop, reload, runLabel, saveLedger, setCap, settleEntry, totals, tripwireNotice } from "./compare-ledger.mjs";
-import { ARMS, NEVER, PROTOCOLS, drawLetters, judgePrompt, judgedDiff, leftovers, neverUsed, nextRun, parseTierMap, reachedOutside, resolveTierMap, runDirs, shuffle, tierMapText, workRoot } from "./compare-run.mjs";
+import { ARMS, NEVER, PROTOCOLS, drawLetters, judgePrompt, judgedDiff, leftovers, liveRun, neverUsed, nextRun, parseTierMap, pathWithoutTool, reachedOutside, resolveTierMap, runDirs, shuffle, tierMapText, toolNamed, toolOnPath, workRoot } from "./compare-run.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
@@ -316,7 +316,7 @@ test("what a session reached for outside its project is listed, the scratch and 
       { tool: "Bash", command: `node --test ${scratch}/tests/a.test.mjs` },
       { tool: "Bash", command: "ls .." },
       { tool: "Bash", command: "find /tmp/wk -name '*.test.mjs'" },
-      { tool: "Read", file: "/Users/someone/project/held-out/cases.test.mjs" },
+      { tool: "Read", file: "/tmp/someone/project/held-out/cases.test.mjs" },
       { tool: "Bash", command: "node --test tests/a.test.mjs > /dev/null" },
       { tool: "Agent", prompt: "read /etc/passwd and ../.." },
     ] },
@@ -324,9 +324,53 @@ test("what a session reached for outside its project is listed, the scratch and 
   ];
   const out = reachedOutside(digest, scratch, held);
   assert.deepEqual(Object.keys(out), ["lead"], "the critic read only the copy it was named");
-  assert.deepEqual(out.lead, ["Bash: ls ..", "Bash: /tmp/wk", "Read: /Users/someone/project/held-out/cases.test.mjs"]);
+  assert.deepEqual(out.lead, ["Bash: climbs with ..: ls ..", "Bash: /tmp/wk", "Read: /tmp/someone/project/held-out/cases.test.mjs"]);
   // In arm D nothing lies outside, so a reach for the reviewer's copy of another run would show.
   assert.deepEqual(Object.keys(reachedOutside(digest, scratch, null)).sort(), ["general-purpose (Critic)", "lead"]);
+
+  // Every usual way out is seen, however it is spelled.
+  const ways = ["cd ..; ls", "cd ..&&ls", "ls ..|head", "(cd ..)", "ls ./..", "ls src/../..", "ls $PWD/..", "ls $TMPDIR", 'ls "$TMPDIR/wk"', "ls ~", "ls ~/.claude/projects", "cat $HOME/notes", "cat ${HOME}/notes", "cd / && ls", "find / -name x", "node -e \"console.log(require('fs').readdirSync('..'))\"", "node -e \"console.log(require('os').tmpdir())\"", "node -e \"console.log(os.homedir())\"", "node -e 'console.log(process.env.HOME)'"];
+  for (const command of ways) assert.equal(Object.keys(reachedOutside([{ who: "lead", tool_uses: [{ tool: "Bash", command }] }], scratch, null)).length, 1, `not seen: ${command}`);
+  assert.equal(Object.keys(reachedOutside([{ who: "lead", tool_uses: [{ tool: "Glob", pattern: "../**/*.test.mjs" }] }], scratch, null)).length, 1, "a Glob pattern that climbs");
+  // What stays inside is not listed: a spread, a relative path, a web address, a regular expression, a version range.
+  const inside = ["npm test", "node --test tests/a.test.mjs", "git diff --stat", "node -e 'const a = [...b]; console.log(a)'", "grep -n 'a.*b' src/x.mjs", "node -e 'fetch(\"https://example.com/a/b\")'", "node -e 'console.log(/x/.test(\"x\"))'", "ls src/", "cat ./README.md", "echo 1..3"];
+  for (const command of inside) assert.deepEqual(reachedOutside([{ who: "lead", tool_uses: [{ tool: "Bash", command }] }], scratch, null), {}, `listed: ${command}`);
+  // Nothing is cut silently.
+  const many = Array.from({ length: 70 }, (_, i) => ({ tool: "Read", file: `/tmp/someone/file-${i}.txt` }));
+  const cut = reachedOutside([{ who: "lead", tool_uses: many }], scratch, null).lead;
+  assert.equal(cut.length, 61);
+  assert.equal(cut[60], "… and 10 more: read the transcript");
+});
+
+test("the tool's command is kept off the PATH a session is given, and that is looked for, not assumed", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-path-"));
+  try {
+    mkdirSync(join(dir, "with"));
+    mkdirSync(join(dir, "without"));
+    writeFileSync(join(dir, "with", "grooph"), "#!/bin/sh\n");
+    const path = [join(dir, "with"), join(dir, "without"), "/usr/bin"].join(":");
+    assert.equal(toolOnPath(path), true);
+    assert.equal(pathWithoutTool(path), [join(dir, "without"), "/usr/bin"].join(":"));
+    assert.equal(toolOnPath(pathWithoutTool(path)), false);
+    assert.equal(toolOnPath(pathWithoutTool()), false, "whatever this machine's PATH holds");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the tool's name in a run's transcripts is counted, the lead's and every sub-agent's", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-told-"));
+  try {
+    const project = join(dir, "projects", "-tmp-wk-a-printkit-x");
+    mkdirSync(join(project, "s1", "subagents"), { recursive: true });
+    writeFileSync(join(project, "s1.jsonl"), '{"type":"user","message":"- grooph-design: Design the multi-agent workflow as grooph loop graphs"}\n');
+    writeFileSync(join(project, "s1", "subagents", "a.jsonl"), '{"type":"assistant","message":"nothing here"}\n');
+    writeFileSync(join(project, "s2.jsonl"), '{"type":"user","message":"a task"}\n');
+    assert.deepEqual(toolNamed(["s1", "s1", null], dir), { mentions: 2, transcripts: 2, where: [{ who: "lead", mentions: 2 }] });
+    assert.deepEqual(toolNamed(["s2"], dir), { mentions: 0, transcripts: 1, where: [] });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test("the work root is the runner's alone: leftovers are seen, --clear-work removes them and nothing else", () => {
@@ -337,6 +381,9 @@ test("the work root is the runner's alone: leftovers are seen, --clear-work remo
     process.env.TMPDIR = tmp;
     const wk = workRoot();
     assert.equal(wk, join(tmp, "wk"));
+    process.env.TMPDIR = "";
+    assert.ok(workRoot().startsWith("/"), "an empty TMPDIR is no temp directory: the root is never a folder of wherever the command ran");
+    process.env.TMPDIR = tmp;
     assert.ok(!/grooph|compar/i.test("wk"), "the name says nothing of the tool or the study");
     assert.deepEqual(leftovers(), []);
     // A folder named wk that the runner did not make is left alone.
@@ -350,10 +397,33 @@ test("the work root is the runner's alone: leftovers are seen, --clear-work remo
     mkdirSync(join(wk, "a1b2c3", "printkit-x.harness", "held-out"), { recursive: true });
     assert.equal(leftovers().length, 2);
     assert.match(run("--status").stdout, /holds 2 folder\(s\) from a run that did not finish/);
+    // A run that is alive is never cleared from under itself: the mark names its runner, and that process answers.
+    writeFileSync(join(wk, ".keep"), JSON.stringify({ pid: process.ppid }));
+    assert.equal(liveRun(), process.ppid);
+    out = run("--clear-work");
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /a run is in progress[\s\S]*nothing was removed/);
+    assert.equal(leftovers().length, 2);
+    assert.match(run("--status").stdout, /a run is in progress/);
+    // A runner that is gone is a leftover: its mark names a process that no longer answers.
+    const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(wk, ".keep"), JSON.stringify({ pid: Number(gone) }));
+    assert.equal(liveRun(), null);
     out = run("--clear-work");
     assert.equal(out.status, 0, out.stderr);
     assert.deepEqual(readdirSync(wk), [".keep"]);
     assert.deepEqual(leftovers(), []);
+    // A link to another folder is never built in or cleared through, marked or not.
+    const elsewhere = join(tmp, "elsewhere");
+    mkdirSync(join(elsewhere, "precious"), { recursive: true });
+    writeFileSync(join(elsewhere, ".keep"), "");
+    rmSync(wk, { recursive: true });
+    spawnSync("ln", ["-s", elsewhere, wk]);
+    out = run("--clear-work");
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /is a link to another folder/);
+    assert.ok(existsSync(join(elsewhere, "precious")));
+    rmSync(wk);
   } finally {
     if (before === undefined) delete process.env.TMPDIR;
     else process.env.TMPDIR = before;

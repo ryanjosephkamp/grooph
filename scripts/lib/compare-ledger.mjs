@@ -31,6 +31,8 @@
  *   node scripts/lib/compare-ledger.mjs record --kind probe --project - --arm - --cost 0.03 --note "…"
  *   node scripts/lib/compare-ledger.mjs cap --to <usd|none> --by "<who and why>" [--notify-every <usd>] [--project-stop <usd>]
  *   node scripts/lib/compare-ledger.mjs lift-project-stop --project <id> --to <usd> --by "<who and why>"
+ *   node scripts/lib/compare-ledger.mjs settle --n <n> --cost <usd|ceiling> --note "<what happened, and where the cost was read>"
+ *   node scripts/lib/compare-ledger.mjs ack-never --n <n> --by "<who and what was decided>"
  */
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -252,6 +254,21 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     settleEntry(entry, { status: "ok", cost_usd: cost, reported_cost_usd: cost });
     saveLedger(ledger);
     console.log(describe(ledger));
+  } else if (command === "settle") {
+    // A line left `running` by a runner that was killed: its real cost from the harness's kept output, or its ceiling when that is gone.
+    const opt = (name) => {
+      const at = rest.indexOf(`--${name}`);
+      return at >= 0 ? rest[at + 1] : undefined;
+    };
+    const line = ledger.invocations.find((e) => e.n === Number(opt("n")));
+    const cost = opt("cost") === "ceiling" ? null : Number(opt("cost"));
+    if (!line || line.status !== "running" || !opt("note") || (cost !== null && !(cost >= 0))) {
+      console.error('usage: compare-ledger.mjs settle --n <an invocation still marked running> --cost <usd as the harness reported it | ceiling> --note "<what happened, and where the cost was read>"');
+      process.exit(64);
+    }
+    settleEntry(line, { status: "failed", cost_usd: cost, reported_cost_usd: cost, note: [line.note, `settled by hand: ${opt("note")}`].filter(Boolean).join("; ") });
+    saveLedger(ledger);
+    console.log(describe(ledger).split("\n")[0]);
   } else if (command === "ack-never") {
     const opt = (name) => {
       const at = rest.indexOf(`--${name}`);
