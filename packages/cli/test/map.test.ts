@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { decodeSharePayload, mapPicture, mapSequence, parseMapText, sharePayloadFrom } from "@grooph/core";
+import { decodeSharePayload, mapPicture, mapSequence, mapWide, parseMapText, sharePayloadFrom } from "@grooph/core";
 
 import { run } from "../src/index.js";
 import type { Output } from "../src/print.js";
@@ -149,7 +149,7 @@ test("image writes a map's other views, its lanes side by side and a sequence, a
   const map = parseMapText(readFileSync(sample, "utf8")).map!;
   let io = capture();
   assert.equal(await grooph(["image", sample, "--theme", "light", "--layout", "wide"], io), 0, text(io.stderr));
-  assert.equal(`${text(io.stdout)}\n`, mapPicture(map, { theme: "light", layout: "wide" }));
+  assert.equal(`${text(io.stdout)}\n`, mapWide(map, { theme: "light" }));
   io = capture();
   assert.equal(await grooph(["image", sample, "--view", "sequence"], io), 0, text(io.stderr));
   assert.equal(`${text(io.stdout)}\n`, mapSequence(map, { theme: "auto" }));
@@ -172,7 +172,7 @@ test("image writes a map's other views, its lanes side by side and a sequence, a
     const unitsOf = (svg: string): number => Number(/viewBox="0 0 ([\d.]+) /.exec(svg)![1]);
     io = capture();
     assert.equal(await grooph(["image", sample, "--layout", "wide", "--out", join(dir, "wide.png")], io), 0, text(io.stderr));
-    assert.equal(pngWidth(join(dir, "wide.png")), Math.round(unitsOf(mapPicture(map, { layout: "wide" })) * 3));
+    assert.equal(pngWidth(join(dir, "wide.png")), Math.round(unitsOf(mapWide(map)) * 3));
     assert.ok(pngWidth(join(dir, "wide.png")) > 1200);
     io = capture();
     assert.equal(await grooph(["image", sample, "--view", "sequence", "--theme", "dark", "--scale", "1", "--out", join(dir, "sequence.png")], io), 0, text(io.stderr));

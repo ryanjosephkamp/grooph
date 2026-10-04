@@ -7,6 +7,7 @@ import {
   mapOutline,
   mapPicture,
   mapSequence,
+  mapWide,
   offlinePage,
   outline,
   outlineMarkdown,
@@ -186,7 +187,7 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
       ? picture(loaded.doc, { theme: theme as PictureTheme })
       : view.sequence
         ? mapSequence(loaded.doc, { theme: theme as PictureTheme })
-        : mapPicture(loaded.doc, { theme: theme as PictureTheme, ...(view.wide ? { layout: "wide" as const } : {}), ...(now ? now : {}) });
+        : (view.wide ? mapWide : mapPicture)(loaded.doc, { theme: theme as PictureTheme, ...(now ? now : {}) });
 
   if (flags.out === undefined) {
     io.out(svg.replace(/\n$/, ""));
