@@ -54,6 +54,10 @@ jobs:
       - name: the pattern index is current
         run: node scripts/patterns-index.mjs --check
 
+      # docs/field-guide.md, its glyphs and the poster are generated from the patterns and their proving records.
+      - name: the field guide is current
+        run: node scripts/field-guide.mjs --check
+
       # docs/rules.md is generated from the rule tables and the fixtures.
       - name: the rule reference is current
         run: node scripts/rule-reference.mjs --check
