@@ -23,7 +23,7 @@ Nothing under `patterns/`, `packages/`, `apps/` was touched, no dependency was a
 
 ## Verified, and how
 
-1. **README under a screen.** Read it back: 25 lines, covers the folder, one document per file, the fields a document must carry (name, goal or summary, credit and links), `grooph validate` and `grooph image`.
+1. **README under a screen.** Read it back: 23 lines, covers the folder, one document per file, the fields a document must carry (name, goal or summary, credit and links), `grooph validate` and `grooph image`.
 2. **The script.**
    - `node scripts/community-index.mjs` wrote `community/index.json` (path, author, kind, name, summary, shape, credits, proof, warnings, glyph, picture, link, raw URL), six pictures and `docs/community.md`; a second run changed nothing.
    - Each link was opened with core's own `decodeSharePayload`: all three open as a graph with no issues.
