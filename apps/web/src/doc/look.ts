@@ -13,6 +13,8 @@
 import type { PictureLook } from "@grooph/core/themes";
 import { useEffect, useSyncExternalStore } from "react";
 
+import { piece as fetched } from "../piece.js";
+
 /** The six, in the order they are offered: its name in an address, its name to a person, and its swatch in a menu. */
 export const LOOKS = [
   ["paper", "Paper", "#1f5f4a"],
@@ -92,15 +94,15 @@ export function withoutLook(hash: string): string {
 function fetchPiece(): void {
   if (asked) return;
   asked = true;
-  import("../ui/theme/themes.js").then(
+  // A fetch that fails is tried again there and then, in a way every engine honors (`piece.ts`).
+  fetched("themes", () => import("../ui/theme/themes.js")).then(
     (m) => {
       piece = m;
       missing = false;
       tell();
     },
-    // Not to be had: no network, and a first visit the worker had not finished. The pictures stay Paper and whoever
-    // waits on the theme is told. A browser may remember a file that failed for as long as the page lives
-    // (decision 0026), so a later choice asks again and may get the same answer: loading the page again is what helps.
+    // Not to be had: no network, and a first visit the worker had not finished. The pictures stay Paper, whoever
+    // waits on the theme is told, and the next choice asks afresh.
     () => {
       asked = false;
       missing = true;
@@ -121,7 +123,7 @@ export function chooseLook(id: LookId): void {
   // touched: a ?theme= before it is the site's look.
   const hash = withoutLook(location.hash);
   if (hash !== location.hash) history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
-  // Asked for again with each choice, in case this browser will fetch again what it once could not.
+  // Choosing again is how a person asks again for a theme that could not be fetched: the connection may be back.
   if (id !== "paper" && !piece) fetchPiece();
   tell();
 }

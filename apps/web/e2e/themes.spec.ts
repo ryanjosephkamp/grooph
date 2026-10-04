@@ -526,7 +526,7 @@ test("pictures of different themes inline in one page each keep their own colors
   }
 });
 
-test("with the themes not to be had, Keep a copy does not wait: it says so and makes its files in Paper; loaded again with a network, they are in the theme", async ({ page }) => {
+test("with the themes not to be had, Keep a copy does not wait: it says so and makes its files in Paper; chosen again with a network, they are in the theme", async ({ page }) => {
   let refuse = true;
   const asked: string[] = [];
   await page.route("**/assets/themes-*.js", (route) => {
@@ -547,20 +547,21 @@ test("with the themes not to be had, Keep a copy does not wait: it says so and m
   expect(file.suggestedFilename()).toBe("review-loop.light.svg");
   expect(await downloadText(file)).toBe(readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8"));
 
-  // Paper chosen, there is nothing to say; the theme chosen again, it is said again.
+  // Paper chosen, there is nothing to say; the theme chosen again with no network still, it is said again.
   await keepCopy.getByLabel("Picture theme").selectOption("paper");
   await expect(keepCopy.getByRole("status")).toHaveCount(0);
   await keepCopy.getByLabel("Picture theme").selectOption("ink");
+  await expect(keepCopy.getByRole("status")).toContainText("This theme could not be fetched");
   await expect(svg).toBeEnabled();
 
-  // The network is back. A browser may remember a file that failed for as long as the page lives, so the page is
-  // loaded again: the choice was kept, the theme arrives, and the files are in it.
+  // The network is back. A browser remembers a script that failed for as long as the page lives, and the app asks
+  // again in a way it honors (`piece.ts`): the theme is chosen again, it arrives, and the files are in it.
   refuse = false;
   const before = asked.length;
-  await page.reload();
+  await keepCopy.getByLabel("Picture theme").selectOption("paper");
+  await keepCopy.getByLabel("Picture theme").selectOption("ink");
   await expect(page.locator("main.stage")).toHaveAttribute("data-look", "ink");
   expect(asked.length).toBeGreaterThan(before);
-  await page.getByRole("button", { name: "Export", exact: true }).tap();
   await expect(keepCopy.getByRole("status")).toHaveCount(0);
   const [again] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
   expect(again.suggestedFilename()).toBe("review-loop.ink-light.svg");

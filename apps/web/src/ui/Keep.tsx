@@ -63,7 +63,7 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
       ) : null}
       {missing ? (
         <p className="field-hint" role="status">
-          This theme could not be fetched (it needs a connection the first time), so these are in Paper for now. Load the page again to try once more.
+          This theme could not be fetched (it needs a connection the first time), so these are in Paper for now. Choose it again to try once more.
         </p>
       ) : null}
       <p className="field-hint">The picture is laid out for a phone. The offline page holds the picture, every brief and the document itself in one file, and opens with no network.</p>
