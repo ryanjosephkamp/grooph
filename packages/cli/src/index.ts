@@ -14,6 +14,8 @@ import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
 import { exportCommand } from "./commands/export.js";
+import { explainCommand } from "./commands/explain.js";
+import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, EXPORT_HELP, NEW_HELP, VALIDATE_HELP, nearestCommand, overview } from "./commands/help.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
 import { eventsCommand, hooksCommand, sessionsCommand, EVENTS_HELP, HOOKS_HELP, SESSIONS_HELP } from "./commands/hooks.js";
 import { imageCommand, outlineCommand, pageCommand, IMAGE_HELP, OUTLINE_HELP, PAGE_HELP } from "./commands/image.js";
@@ -39,79 +41,6 @@ export type CliEnv = RegistryEnv & { openUrl: OpenUrl; signal?: AbortSignal; env
 
 export const VERSION = "0.2.5";
 
-const USAGE = `grooph ${VERSION} — build, check and compile graph documents into prompt packages; draw operation maps.
-
-Usage
-  grooph new --name <name> [--goal <goal>] [--target <harness>] [--out <file>] [--force]
-  grooph apply <file> --ops <ops.json | -> [--write] [--for-export] [--json]
-  grooph validate <file> [--for-export] [--json]
-  grooph canonicalize <file> [--write]
-  grooph export <file> --target <harness> --into <dir>
-  grooph shape <file> [--json]
-  grooph glyph <file> [--out <svg>] [--scale <n>]
-  grooph mermaid <file> [--out <file>]
-  grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--events <id>=<source>]...
-  grooph outline <graph | operation map> [--out <file.md>]
-  grooph page <graph | operation map> --out <file.html> [--events <id>=<source>]...
-  grooph share <graph | proposal set | run dir | run bundle | operation map> [--base <url>] [--open] [--out <file>]
-  grooph pick <proposal set> <candidate id | label> --out <graph file> [--force]
-  grooph template list | show | use | insert | save | add …   (grooph template help)
-  grooph runs list [<dir>] | show <run dir> [--json] | bundle <run dir> --out <file>
-  grooph adopt <run dir> [--into <graph file>] [--write]
-  grooph watch [<run dir> | <graph dir>] [--sessions] [--events <source>]... [--map <operation map>] [--port 4174] [--host 127.0.0.1] [--open]
-  grooph hooks install | status | remove [--dir <project>] [--harness claude-code,codex] [--tools] [--push] [--local]
-  grooph sessions [<source>...] [--json]
-  grooph events push [--branch <name>] [--remote <name>] [--since <time> [--session <id>]] [--no-push] [--dir <project>]
-  grooph mcp [--dir <project>] [--harness <name>]
-  grooph <command> --help
-  grooph --version
-
-Commands
-  new            Write a minimal canonical document: the id is the name's slug, no nodes yet.
-                 Prints it, or writes --out (refusing to overwrite without --force).
-  apply          Apply a JSON list of document operations ({"op": "addNode", ...}; the list is
-                 in packages/core/README.md) read from a file, or from stdin with --ops -.
-                 All or nothing: an op that cannot apply is named and nothing is written.
-                 Prints the resulting issues; --write saves the result in canonical form
-                 (never a result that fails the schema). Exits 1 while errors remain.
-  validate       Check a document against the schema and the rules in docs/graph-ir.md §3.
-                 Any graph document works, a run's working copy included. Exits 1 when
-                 there are errors. --for-export also applies the export-only rules
-                 (E_NO_TARGET, E_NO_GOAL); --json prints the issue list as JSON.
-                 A proposal set is not a graph: grooph share checks one. An operation map
-                 (*.grooph-map.json) is checked against its own rules, docs/operation-map.md §3.
-  canonicalize   Print the document in canonical form (graph-ir §7), or rewrite it with --write.
-  export         Validate for export, then write the harness package into <dir> and print the
-                 kickoff prompt. Refuses, with the reasons, when the document has errors.
-  shape          Counts and brakes at a glance: agents, gates, loops, worst-case rounds, budgets.
-  glyph          The graph's shape as a small wordless SVG: the picture the app and the write-ups show.
-  mermaid        A one-way Mermaid flowchart of the graph (it never round-trips; edit the document).
-  image          The picture of a graph or an operation map with its words on it, laid out for a
-                 phone, as SVG or PNG, light or dark.
-  outline        The whole document to read top to bottom, as Markdown: every brief, edge and stop.
-  page           One HTML file holding the document and a viewer: opens with no network.
-  share          A link that opens a graph, a proposal set of candidate graphs to compare, a
-                 run or an operation map, in the app on any device. The document rides in the link; nothing is uploaded.
-  pick           Write the chosen candidate of a proposal set out as a graph, ready to export.
-  template       Reusable graphs and fragments by name: the built-in pattern library, your own
-                 in .grooph/templates/ and ~/.grooph/templates/, and published registries.
-  runs           What runs left in .grooph/<graph-id>/runs/: list them, show one (states, what it
-                 changed and why, proposals, timeline), or bundle one into a single file.
-  adopt          Take a run's working copy as the graph's next version (--write to save it).
-  watch          Serve the app and the run, read live from disk, to a browser on this machine
-                 (or, with --host, the local network). Read-only. --sessions shows every
-                 session the event hook has seen, with its subagents as they start and stop.
-  hooks          Install the event hook into a project: one line per session or subagent
-                 start and stop, appended to .grooph/events/. It records; it cannot steer.
-  sessions       What the hook has seen, as text or JSON: sessions, subagents, what is running.
-  mcp            An MCP server on standard input and output, for a session to call: declare a
-                 plan, leave a note, ask what is running, validate a document.
-
-Targets
-  ${KNOWN_TARGETS.join(", ")}
-
-grooph never runs a graph. The harness session is the runtime.`;
-
 export async function run(
   argv: string[],
   io: Output = stdio,
@@ -120,8 +49,15 @@ export async function run(
 ): Promise<number> {
   const [command, ...rest] = argv;
 
+  // `grooph help <command>` is `grooph <command> --help`.
+  if (command === "help" && rest[0] !== undefined) {
+    const page = COMMAND_HELP[rest[0]];
+    if (page === undefined) return unknownCommand(io, rest[0]);
+    io.out(page);
+    return 0;
+  }
   if (command === undefined || command === "help" || command === "--help" || command === "-h") {
-    io.out(USAGE);
+    io.out(overview(VERSION));
     return command === undefined ? 1 : 0;
   }
   if (command === "--version" || command === "-v" || command === "version") {
@@ -130,9 +66,19 @@ export async function run(
   }
 
   if (command !== "template" && (rest.includes("--help") || rest.includes("-h"))) {
-    io.out(COMMAND_HELP[command] ?? USAGE);
+    if (COMMAND_HELP[command] === undefined) return unknownCommand(io, command);
+    io.out(COMMAND_HELP[command]);
     return 0;
   }
+
+  /** A wrong invocation: the message, the command's usage line, and where the full page is. */
+  const usageError = (out: Output, message: string): number => {
+    out.err(`grooph: ${message}`);
+    const first = (COMMAND_HELP[command] ?? "").split("\n")[0];
+    out.err(first ? `Usage: ${first}` : `Usage: grooph <command> (grooph --help lists them)`);
+    if (COMMAND_HELP[command] !== undefined) out.err(`More: grooph help ${command}`);
+    return 1;
+  };
 
   try {
     switch (command) {
@@ -419,8 +365,15 @@ export async function run(
         return 1;
       }
 
+      case "explain": {
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "explain needs a file: grooph explain <graph file>");
+        return explainCommand(io, file, { json: values["json"] === true });
+      }
+
       default:
-        return usageError(io, `unknown command "${command}"`);
+        return unknownCommand(io, command);
     }
   } catch (err) {
     if (err instanceof RegistryError || err instanceof TemplateError) {
@@ -434,7 +387,7 @@ export async function run(
     }
     const error = err as NodeJS.ErrnoException;
     if (error.code === "ENOENT") {
-      io.err(`no such file: ${error.path ?? "(unknown)"}`);
+      io.err(`grooph: no such file: ${error.path ?? "(unknown)"}`);
       return 1;
     }
     if (error.name === "TypeError" && /Unknown option|Option/.test(error.message)) {
@@ -473,6 +426,13 @@ No model is called and nothing leaves the machine. docs/subagents.md §7.`;
 
 /** `grooph <command> --help`: the command's own page where it has one, else the overview. */
 const COMMAND_HELP: Record<string, string> = {
+  new: NEW_HELP,
+  apply: APPLY_HELP,
+  validate: VALIDATE_HELP,
+  canonicalize: CANONICALIZE_HELP,
+  export: EXPORT_HELP,
+  explain: EXPLAIN_HELP,
+  template: TEMPLATE_USAGE,
   share: SHARE_HELP,
   runs: RUNS_HELP,
   adopt: ADOPT_HELP,
@@ -492,9 +452,9 @@ const COMMAND_HELP: Record<string, string> = {
 
 void toolNames;
 
-function usageError(io: Output, message: string): number {
-  io.err(`grooph: ${message}`);
-  io.err("");
-  io.err(USAGE);
+function unknownCommand(io: Output, typed: string): number {
+  const near = nearestCommand(typed);
+  io.err(`grooph: unknown command "${typed}".${near === undefined ? "" : ` Did you mean "${near}"?`}`);
+  io.err("grooph --help lists the commands.");
   return 1;
 }

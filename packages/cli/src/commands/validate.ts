@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraphText, parseMapText, validate, validateMap } from "@grooph/core";
 
 import { readText } from "../io.js";
-import { printIssues, type Output } from "../print.js";
+import { printIssues, printNext, type Output } from "../print.js";
 
 export type ValidateFlags = { forExport?: boolean; json?: boolean };
 
@@ -28,7 +28,7 @@ export function validateCommand(io: Output, file: string, flags: ValidateFlags =
       `Run \`grooph share ${file}\` to check the set and every candidate in it and get the link to compare them, ` +
       `or \`grooph pick ${file} <candidate> --out <graph file>\` to write one candidate out and validate it on its own.`;
     if (flags.json === true) io.out(JSON.stringify({ file, ok: false, kind: "proposal-set", message, issues: [] }, null, 2));
-    else io.err(message);
+    else io.err(`grooph: ${message}`);
     return 1;
   }
 
@@ -62,6 +62,9 @@ export function validateCommand(io: Output, file: string, flags: ValidateFlags =
     io.out(JSON.stringify({ file, ok: !hasErrors(issues), issues }, null, 2));
   } else {
     printIssues(io, issues, file);
+    if (hasErrors(issues)) printNext(io, `fix what is listed (docs/rules.md explains each code), then grooph validate ${flags.forExport === true ? "--for-export " : ""}${file}`);
+    else if (flags.forExport === true) printNext(io, `grooph export ${file} --target <harness> --into .`);
+    else printNext(io, `grooph validate --for-export ${file}`);
   }
   return hasErrors(issues) ? 1 : 0;
 }

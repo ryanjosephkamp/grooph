@@ -49,7 +49,7 @@ export function pickCommand(io: Output, file: string, query: string, flags: Pick
   const graph = candidate.graph as Graph;
   const issues = validate(graph, { forExport: true });
   if (hasErrors(issues)) {
-    io.err(`cannot pick "${candidate.label}" (${candidate.id}): its graph has errors; fix them, re-validate, and pick again`);
+    io.err(`grooph: cannot pick "${candidate.label}" (${candidate.id}): its graph has errors; fix them, re-validate, and pick again`);
     printIssues(io, issues, candidate.id);
     return 1;
   }
