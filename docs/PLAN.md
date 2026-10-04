@@ -123,6 +123,8 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0077 | 24 | The site in the owner's style: Link Meteor's design language, his footer, self-hosted fonts, a README with a moving grooph and his credit | Opus 5.5 lane | handoff drafted; starts when the owner starts the lane |
 | 0078 | 24 | grooph for agents: authoring tools on the MCP server, a package ready for npm, a tested way in from a chat | Opus 5.5 lane | handoff drafted; starts when the owner starts the lane |
 | 0079 | 24 | A tier map of your own: `grooph export --models frontier=…` and an environment default, so a project decides which model each tier means. The owner's runs never use Fable, which the Claude Code target gives the `frontier` tier by default | Opus 5.5 (driver) | built 2026-10-04 (pull request #43; waits for the owner: it changes what the compiler can write) |
+| 0080 | 24 | Other views of a map: lanes side by side on a wide screen, and a sequence, both drawn by core from the same document; the 3D view is the slice after | Opus 5.5 lane | handoff drafted 2026-10-04 (the owner chose the order on the desk) |
+| 0081 | 24 | The house in order and the missing pages, as seven small pull requests: the progress page's history in its own file, a size rule for pictures, the version checked in one place, Safari and Firefox smoke tests, a CLI reference, the reference documents on the site, privacy, releases, contributing and FAQ pages | Opus 5.5 lane | handoff drafted 2026-10-04 (the owner said "do them all") |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)
