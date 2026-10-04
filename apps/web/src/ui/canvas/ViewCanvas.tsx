@@ -1,15 +1,15 @@
 import type { Graph, Id, Issue, RunSummary } from "@grooph/core";
 import { Background, BackgroundVariant, ReactFlow, useReactFlow, type EdgeTypes, type NodeTypes } from "@xyflow/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, labelSpots, type Box } from "./bends.js";
-import { RUN_PAD, VIEWER_PAD, fitOptions } from "./fit.js";
+import { RUN_PAD, VIEWER_PAD, fitOptions, glide } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
-import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
+import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
 
 const nodeTypes: NodeTypes = { graph: GraphNode };
 const edgeTypes: EdgeTypes = { graph: GraphEdge };
@@ -41,6 +41,8 @@ export function ViewCanvas(props: {
   // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
   const pad = props.run ? RUN_PAD : VIEWER_PAD;
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
+  /** Whether the person has panned or zoomed: until then the view is the app's, and follows the room a panel leaves. */
+  const moved = useRef(false);
   const positions = useMemo(() => resolvePositions(doc).positions, [doc]);
   const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
 
@@ -48,7 +50,7 @@ export function ViewCanvas(props: {
     () =>
       doc.nodes.map((node) => {
         const loops = doc.loops.map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members })).filter((l) => l.members.includes(node.id));
-        const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
+        const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ariaLabel: nodeLabel(node), ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
         const run = props.run?.nodes[node.id];
         const loopIndex = props.highlight?.loop !== undefined ? doc.loops.findIndex((l) => l.id === props.highlight!.loop) : -1;
         return {
@@ -113,6 +115,12 @@ export function ViewCanvas(props: {
         if (Object.keys(sizes).length > 0) setMeasured((m) => ({ ...m, ...sizes }));
       }}
       onNodeClick={(_, node) => props.onNodeTap?.(node.id)}
+      onKeyDown={onNodeKey(props.onNodeTap)}
+      edgesFocusable={false}
+      onMove={(event) => {
+        // A move, not its start: a click on a node that cannot be dragged starts a pan and moves nothing.
+        if (event) moved.current = true;
+      }}
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
@@ -128,7 +136,7 @@ export function ViewCanvas(props: {
       attributionPosition="top-right"
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
-      <OpeningView pad={pad} control />
+      <OpeningView pad={pad} control refit={moved} />
       {props.highlight ? <FocusOn ids={props.highlight.nodes} /> : null}
     </ReactFlow>
   );
@@ -141,7 +149,7 @@ function FocusOn({ ids }: { ids: Id[] }) {
   useEffect(() => {
     if (key === "") return;
     const zoom = flow.getZoom();
-    void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: 250 });
+    void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: glide() });
   }, [key, flow]);
   return null;
 }

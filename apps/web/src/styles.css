@@ -244,6 +244,10 @@ a {
 .icon-btn:active {
   background: var(--surface-2);
 }
+.icon-btn[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
 .icon-btn svg,
 .tool svg {
   width: 22px;
@@ -961,6 +965,14 @@ a {
   border-radius: 16px 16px 0 0;
   box-shadow: var(--shadow-up);
   z-index: var(--z-chrome);
+  /* Opening is a short rise on a phone, a short slide in from its side on a desktop. */
+  animation: sheet-in 0.18s ease-out;
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: var(--sheet-from, translateY(14px));
+  }
 }
 .sheet-expanded .sheet {
   max-height: 86dvh;
@@ -974,10 +986,6 @@ a {
 }
 .mode-active .sheet-toggle {
   visibility: hidden;
-}
-.sheet-expanded .toolbar,
-.sheet-expanded .loop-legend {
-  display: none;
 }
 .sheet-head {
   display: flex;
@@ -1639,9 +1647,13 @@ a {
   border-radius: 10px;
   background: var(--surface);
   box-shadow: var(--shadow);
+  /* A ring that is chosen fades in and settles onto the node. */
+  outline-color: transparent;
+  outline-offset: 7px;
   transition:
     opacity 0.15s,
-    outline-color 0.15s;
+    outline-color 0.16s,
+    outline-offset 0.16s ease-out;
 }
 .gnode-stop {
   border-radius: 22px;
@@ -1722,8 +1734,12 @@ a {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gnode.is-source {
+  .gnode.is-source,
+  .sheet {
     animation: none;
+  }
+  .gnode {
+    transition: none;
   }
 }
 .ghandle {
@@ -1732,6 +1748,14 @@ a {
 }
 .react-flow__node {
   cursor: pointer;
+}
+/* The keyboard's ring follows the node's own shape, a step outside the ring that says it is selected. */
+.react-flow__node:focus-visible {
+  outline: 0;
+}
+.react-flow__node:focus-visible .gnode {
+  outline: 2px solid var(--focus);
+  outline-offset: 5px;
 }
 .react-flow__node.dragging {
   cursor: grabbing;
@@ -1780,9 +1804,10 @@ a {
   opacity: 0.4;
 }
 
-/* Labels are the touch handles for edges, so they sit above the nodes (which stay at z 0). */
-.react-flow__edgelabel-renderer {
+/* Labels are the touch handles for edges, so they sit above the nodes (which stay at z 0); only the labels take a touch. */
+.react-flow__viewport-portal {
   z-index: 1;
+  pointer-events: none;
 }
 .gedge-label {
   position: absolute;
@@ -2936,6 +2961,11 @@ a {
  * covers no part of the canvas and what is selected stays in sight above.
  */
 @media (max-width: 899px) {
+  /* A sheet at full height covers the canvas, so what floats on the canvas goes; a panel beside the canvas covers nothing. */
+  .sheet-expanded .toolbar,
+  .sheet-expanded .loop-legend {
+    display: none;
+  }
   .has-sheet .stage {
     display: flex;
     flex-direction: column;
@@ -3998,4 +4028,249 @@ div.field-diff.ins {
 .live-map .map-picture {
   max-width: none;
   padding: 0;
+}
+
+/* ─── on a desktop (handoff 0061) ─────────────────────────────────────── */
+
+/* The node or loop whose details are open, in the outline beside it. */
+.outline-section.is-current {
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  background: var(--bg);
+  box-shadow: inset 3px 0 var(--accent);
+}
+
+/* A pointer that can hover gets an answer before it presses. */
+@media (hover: hover) {
+  :is(.btn, .chip, .add-kind, .loop-pill, button.issue, .view-fit, .insert-row):hover:not(:disabled) {
+    filter: brightness(var(--hover, 0.96));
+  }
+  :is(.icon-btn, .tool, button.title-btn, .file, .seg):hover:not(:disabled, .seg-on, [aria-pressed="true"]) {
+    background: var(--surface-2);
+  }
+  .gnode:hover:not(.run-state) {
+    border-color: var(--ink-3);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hover: 1.2;
+  }
+}
+
+/* The outline's rail and a panel are one sheet at a time below a desktop's width. */
+@media (max-width: 1099px) {
+  .sheet-rail:has(~ .sheet) {
+    display: none;
+  }
+}
+/* A form reads in a column, not across the page. */
+@media (min-width: 900px) {
+  .use-template {
+    max-width: 720px;
+  }
+}
+
+/*
+ * From 1100 px: the top bar is the front page's bar (one line, 56 px, its
+ * links named), the outline is a rail on the left of the canvas, a node's
+ * details a panel on its right, and what floats on the canvas is an island.
+ */
+@media (min-width: 1100px) {
+  .topbar {
+    gap: 8px;
+    min-height: 56px;
+    padding: 0 16px 0 8px;
+  }
+  /* Back, a rule, then the rest: the pseudo-element is a flex item, placed after the link by its order. */
+  .topbar::before {
+    content: "";
+    order: 1;
+    width: 1px;
+    height: 20px;
+    margin: 0 4px;
+    background: var(--line-strong);
+  }
+  .topbar > * {
+    order: 2;
+  }
+  .topbar > a.icon-btn {
+    order: 0;
+    gap: 2px;
+    padding-left: 4px;
+  }
+  .topbar .icon-btn {
+    width: auto;
+    gap: 7px;
+    padding: 0 10px;
+    font-size: 14.5px;
+    font-weight: 560;
+    text-decoration: none;
+  }
+  /* An icon alone is a phone's economy: here the control says its name. */
+  .topbar .icon-btn::after {
+    content: attr(aria-label);
+  }
+  .topbar .icon-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* The name and what is under it, on one line and one baseline. */
+  .title-btn {
+    display: block;
+    flex: 0 1 auto;
+    min-height: 36px;
+    padding: 0 10px;
+    line-height: 36px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .title-name {
+    font-size: 15px;
+  }
+  .title-sub {
+    margin-left: 10px;
+  }
+  .title-btn + * {
+    margin-left: auto;
+  }
+
+  .editor {
+    --rail: clamp(280px, 22vw, 340px);
+    --side: clamp(340px, 27vw, 400px);
+    grid-template-columns: minmax(0, 1fr) var(--side);
+  }
+  .editor.has-rail {
+    grid-template-columns: var(--rail) minmax(0, 1fr);
+  }
+  .editor.has-rail.has-side {
+    grid-template-columns: var(--rail) minmax(0, 1fr) var(--side);
+  }
+  .has-rail > .stage,
+  .has-rail > .editor-notice {
+    grid-column: 2;
+  }
+  .has-rail > .sheet {
+    grid-column: 3;
+  }
+  .has-rail > .sheet-rail {
+    --sheet-from: translateX(-14px);
+    grid-column: 1;
+    border-left: 0;
+    border-right: 1px solid var(--line);
+  }
+  .sheet {
+    --sheet-from: translateX(14px);
+  }
+  .sheet-head {
+    min-height: 56px;
+    padding-right: 8px;
+  }
+  .sheet-title {
+    padding-top: 0;
+  }
+  /* Beside the canvas a panel covers nothing, so it stays whole while the canvas is the input; the banner takes the legend's place. */
+  .mode-active .sheet-body {
+    display: block;
+  }
+  .mode-active .loop-legend {
+    visibility: hidden;
+  }
+  .add-menu {
+    grid-template-columns: 1fr;
+  }
+  .outline-head h3 {
+    font-size: 16px;
+  }
+  .outline-item dd {
+    font-size: 14px;
+  }
+
+  .editor-notice {
+    margin: 0;
+    padding: 5px 8px 5px 16px;
+    border-width: 0 0 1px;
+    border-radius: 0;
+  }
+  .toolbar {
+    border-radius: 12px;
+  }
+  /* The viewer's bar and the mode's banner: islands, as wide as their words. The bar stays clear of Show all in the corner. */
+  .viewer-bar,
+  .mode-banner {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: calc(100% - 300px);
+    gap: 8px 16px;
+    padding: 6px 6px 6px 16px;
+    border-radius: 12px;
+  }
+  .viewer .view-fit {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+/* A mouse needs less to aim at than a thumb: controls come down from 44 px, type from 16. */
+@media (min-width: 1100px) and (pointer: fine) {
+  .editor .btn {
+    min-height: 36px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+  .editor .btn-small {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+  .inspector-actions .btn-quiet {
+    padding: 0 8px;
+  }
+  .editor .input {
+    min-height: 36px;
+    padding: 7px 10px;
+    font-size: 14px;
+  }
+  .editor .input.mono {
+    font-size: 13px;
+  }
+  .editor .chip,
+  .editor .seg {
+    min-height: 30px;
+    font-size: 13px;
+  }
+  .editor .toggle {
+    min-height: 36px;
+  }
+  .topbar .icon-btn {
+    height: 36px;
+  }
+  .sheet .icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .status,
+  .loop-pill {
+    min-height: 28px;
+    font-size: 12.5px;
+  }
+  .view-fit {
+    min-height: 36px;
+  }
+  .tool {
+    flex-direction: row;
+    gap: 6px;
+    min-width: 0;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+  .tool svg {
+    width: 18px;
+    height: 18px;
+  }
 }

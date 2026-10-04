@@ -17,7 +17,7 @@ import { edgeBends, labelSpots, type Box } from "./bends.js";
 import { EDITOR_PAD, FIT } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
-import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
+import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
 
 const nodeTypes: NodeTypes = { graph: GraphNode };
 const edgeTypes: EdgeTypes = { graph: GraphEdge };
@@ -62,6 +62,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
           id: node.id,
           type: "graph" as const,
           position: drag[node.id] ?? positions[node.id] ?? { x: 0, y: 0 },
+          ariaLabel: nodeLabel(node),
           ...(measured[node.id] ? { measured: measured[node.id] } : {}),
           data: {
             node,
@@ -158,9 +159,11 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       edgeTypes={edgeTypes}
       onNodesChange={onNodesChange}
       onNodeClick={(_, node) => onNodeTap(node.id)}
+      onKeyDown={onNodeKey(onNodeTap)}
       onEdgeClick={(_, edge) => editor.onEdgeTap(edge.id)}
-      onMoveStart={(event) => {
+      onMove={(event) => {
         // A move with an event behind it is a hand on the canvas; a fit or a pan the app makes has none.
+        // (A move, not its start: a click on the empty canvas starts one and moves nothing.)
         if (event) editor.viewMoved.current = true;
       }}
       onPaneClick={() => {
@@ -170,6 +173,8 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
         if (editor.panel && ["node", "edge", "loop", "add"].includes(editor.panel.type)) editor.openPanel(null);
       }}
       nodesConnectable={false}
+      // An edge's label is its control; the line itself is not one more stop for Tab.
+      edgesFocusable={false}
       elementsSelectable={false}
       deleteKeyCode={null}
       selectionKeyCode={null}
