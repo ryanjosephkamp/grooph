@@ -7,6 +7,7 @@ import {
   handoffsOf,
   wakesItself,
   mapPicture,
+  mapSequence,
   mapShape,
   mapShapeLine,
   type Handoff,
@@ -16,7 +17,7 @@ import {
   type Person,
   type Session,
 } from "@grooph/core";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 
 import { download } from "../../doc/exportPackage.js";
 import { Keep } from "../Keep.js";
@@ -29,12 +30,19 @@ type Panel = { type: "session"; id: Id } | { type: "person"; id: Id } | { type: 
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 
 /**
- * From this width the handoff list and the details sit beside the picture, and core draws the picture this many
- * units wide instead of a phone's 400: its cards are wider, so their words take fewer lines, and map.css shows it
- * at up to 880 px, a unit at about one and a half pixels.
+ * From this width the handoff list and the details sit beside the picture, and core draws the map's lanes side by
+ * side (handoff 0080) in the room the stage has, a unit to a pixel: cards as wide as that room allows. With room to
+ * spare the picture is shown larger, up to this many pixels to the unit.
  */
 const WIDE = "(min-width: 1100px)";
-const WIDE_UNITS = 600;
+const LARGEST = 1.3;
+
+/** The two views of a map (docs/operation-map.md §4 to §4d). Which layout the picture has is the screen's business, not the reader's. */
+type View = "picture" | "sequence";
+const VIEWS: { value: View; label: string }[] = [
+  { value: "picture", label: "Picture" },
+  { value: "sequence", label: "Sequence" },
+];
 
 function useWide(): boolean {
   const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
@@ -47,7 +55,29 @@ function useWide(): boolean {
   return wide;
 }
 
-/** A handoff on the picture: its line, and the ring and the number that sit on it in layers of their own. */
+/**
+ * The room the stage has for a picture, in pixels: its width less its padding, in steps of twenty so that dragging
+ * the window's edge does not draw the picture again at every pixel. Undefined until it has been measured.
+ */
+function useRoom(stage: RefObject<HTMLElement | null>): number | undefined {
+  const [room, setRoom] = useState<number>();
+  useLayoutEffect(() => {
+    const el = stage.current;
+    if (!el) return;
+    const measure = () => {
+      const style = getComputedStyle(el);
+      setRoom(Math.max(0, Math.floor((el.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)) / 20) * 20));
+    };
+    measure();
+    if (typeof ResizeObserver !== "function") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return room;
+}
+
+/** A handoff on the picture: its line, and the ring and the number that sit on it in layers of their own. In the sequence it is one row. */
 const arcOf = (id: Id): string => ["handoff", "plate", "number"].map((part) => `[data-${part}="${CSS.escape(id)}"]`).join(",");
 
 /** A carrier's color in the picture, as the app's own token of the same color. */
@@ -70,9 +100,11 @@ function Rows({ rows }: { rows: [string, ReactNode][] }) {
 
 /**
  * An operation map (docs/operation-map.md), read-only: the picture core
- * draws, laid out for a phone, so the page simply scrolls. Tap a session or a
- * handoff for what the document says about it; the validator's list is behind
- * the status. Nothing here edits or stores the map, and a map is never run.
+ * draws, laid out for a phone, so the page simply scrolls, or with its lanes
+ * side by side where the screen has room; and, by the switch, the same map as
+ * a sequence. Tap a session or a handoff for what the document says about it;
+ * the validator's list is behind the status. Nothing here edits or stores the
+ * map, and a map is never run.
  */
 /** The handoffs that wait on a person: where work stalls when that person is away. Said, not warned about. */
 function byHand(map: OperationMap) {
@@ -102,7 +134,15 @@ function GraphPointer({ pointer }: { pointer: string }) {
 
 export function MapView({ map, issues, back = { href: "#/", label: "All graphs" } }: { map: OperationMap; issues: readonly IssueLike[]; back?: { href: string; label: string } }) {
   const wide = useWide();
-  const svg = useMemo(() => mapPicture(map, wide ? { width: WIDE_UNITS } : {}), [map, wide]);
+  const [view, setView] = useState<View>("picture");
+  const main = useRef<HTMLElement>(null);
+  const room = useRoom(main);
+  const svg = useMemo(
+    () => (view === "sequence" ? mapSequence(map, wide && room ? { width: room } : {}) : mapPicture(map, wide ? { layout: "wide", ...(room ? { width: room } : {}) } : {})),
+    [map, wide, view, room],
+  );
+  // The picture's own size, in its units: the frame is cut to it, and a sequence wider than the screen scrolls inside its frame.
+  const units = useMemo(() => /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg)!.slice(1).map(Number) as [number, number], [svg]);
   const [panel, setPanel] = useState<Panel>(null);
   const [expanded, setExpanded] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
@@ -136,7 +176,8 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
       const id = el.dataset["handoff"] ?? el.dataset["handoffRow"]!;
       const h = map.handoffs.find((x) => x.id === id);
       // Beside the picture the handoffs are a list of their own, and the picture's lines of them are out of its frame.
-      if (el.dataset["handoffRow"] && !wide) el.setAttribute("tabindex", "0");
+      // A row of the sequence is the handoff itself, at any width.
+      if (view === "sequence" || (el.dataset["handoffRow"] && !wide)) el.setAttribute("tabindex", "0");
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", h ? `Handoff ${numberOf(id)}: ${nameOf(h.from)} to ${nameOf(h.to)}` : `Handoff ${id}`);
     }
@@ -147,10 +188,10 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     const root = stage.current;
     if (!root) return;
     let bottom = 0;
-    if (wide && map.handoffs.length > 0) {
+    if (wide && view === "picture" && map.handoffs.length > 0) {
       for (const r of root.querySelectorAll<SVGRectElement>("[data-lane] > rect, [data-people] > rect")) bottom = Math.max(bottom, r.y.baseVal.value + r.height.baseVal.value);
     }
-    root.style.aspectRatio = bottom > 0 ? `${WIDE_UNITS} / ${bottom + 12}` : "";
+    root.style.aspectRatio = bottom > 0 ? `${units[0]} / ${bottom + 12}` : "";
   }, [svg]);
 
   // What is open in the sheet is marked on the picture, and brought into view where the picture scrolls on its own.
@@ -164,7 +205,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     const marked = root.querySelectorAll(panel.type === "handoff" ? `${arcOf(panel.id)}, [data-handoff-row="${id}"]` : `[data-${panel.type}="${id}"]`);
     for (const el of marked) el.classList.add("is-on");
     if (!wide) return;
-    (panel.type === "handoff" ? root.querySelector(`[data-number="${id}"]`) : marked[0])?.scrollIntoView({ block: "nearest" });
+    ((panel.type === "handoff" ? root.querySelector(`[data-number="${id}"]`) : null) ?? marked[0])?.scrollIntoView({ block: "nearest" });
     // A line of the list is gone once it has opened its handoff: the keyboard goes on from the same line, under the details.
     if (document.activeElement === document.body) document.querySelector<HTMLElement>(".map-list [aria-current]")?.focus({ preventScroll: true });
   }, [panel, svg]);
@@ -284,10 +325,18 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
         </button>
       </header>
 
-      <main className="stage map-stage">
+      <main ref={main} className="stage map-stage">
+        <div className="segmented map-views" role="radiogroup" aria-label="View of the map">
+          {VIEWS.map((v) => (
+            <button key={v.value} type="button" role="radio" aria-checked={view === v.value} className={view === v.value ? "seg seg-on" : "seg"} onClick={() => setView(v.value)}>
+              {v.label}
+            </button>
+          ))}
+        </div>
         <div
           ref={stage}
-          className="map-picture"
+          className={`map-picture${view === "sequence" ? " is-sequence" : ""}`}
+          style={view === "sequence" ? ({ "--map-units": `${units[0]}px` } as CSSProperties) : wide ? { maxWidth: `${Math.round(units[0] * LARGEST)}px` } : undefined}
           onClick={(e) => {
             if (!pick(e.target)) setPanel(null);
           }}
