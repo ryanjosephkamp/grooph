@@ -16,7 +16,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { parseTestSummary } from "./compare-score.mjs";
+import { failedCount, parseTestSummary } from "./compare-score.mjs";
 import { sessionTranscripts } from "./prove-evidence.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -34,7 +34,7 @@ const textOf = (content) => (Array.isArray(content) ? content.map((c) => c.text 
 export function countsOf(output, command = "") {
   const part = /--test-name-pattern|--test-only/.test(command) ? { part_of_suite: true } : {};
   const summary = parseTestSummary(output);
-  if (summary.tests !== null) return { tests: summary.tests, pass: summary.pass, fail: (summary.fail ?? 0) + (summary.cancelled ?? 0), read_from: "node's summary", ...part };
+  if (summary.tests !== null) return { tests: summary.tests, pass: summary.pass, fail: failedCount(summary), read_from: "node's summary", ...part };
   const grid = output.split("\n").filter((line) => /^[.X]+$/.test(line)).join("");
   if (grid.length > 0) return { tests: grid.length, pass: (grid.match(/\./g) ?? []).length, fail: (grid.match(/X/g) ?? []).length, read_from: "the dot reporter's grid", ...part };
   const pass = (output.match(/^(?:✔ |ok \d+ - )/gm) ?? []).length;

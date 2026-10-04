@@ -46,6 +46,9 @@ export function parseTestSummary(output) {
   return counts;
 }
 
+/** How many cases did not pass, from the summary's counts: the failed and those node stopped before they finished. */
+export const failedCount = (counts) => (counts.fail ?? 0) + (counts.cancelled ?? 0);
+
 /** The failing cases' names, from tap (`not ok N - name`) or spec (`✖ name`) output. */
 export function failedCases(output) {
   const names = [];
