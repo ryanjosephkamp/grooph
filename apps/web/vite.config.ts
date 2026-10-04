@@ -64,11 +64,14 @@ function routes(): Plugin {
         const inApp = closure(app);
         const cssOf = (files: Set<string>): string[] => [...files].flatMap((f) => [...(byFile.get(f)?.viteMetadata?.importedCss ?? [])]);
         const embedCss = cssOf(closure(embed));
-        // The app's styles are imported by code in main.tsx: every stylesheet that is not the embed's own.
+        // The app's styles: every stylesheet that is not the embed's own. Their order decides which of two equal rules
+        // wins, so it is fixed here and not left to the order the bundle lists them in: React Flow's base, then the
+        // app's shared sheet (styles.css), then the sheets screens keep beside their components, which build on it.
+        const rank = (file: string): number => (file.startsWith("assets/base-") ? 0 : file.startsWith("assets/styles-") ? 1 : 2);
         const appCss = Object.values(ctx.bundle)
           .filter((a) => a.type === "asset" && a.fileName.endsWith(".css") && !embedCss.includes(a.fileName))
           .map((a) => a.fileName)
-          .sort((x, y) => Number(y.startsWith("assets/base-")) - Number(x.startsWith("assets/base-")));
+          .sort((x, y) => rank(x) - rank(y) || x.localeCompare(y));
         found = {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
@@ -77,8 +80,8 @@ function routes(): Plugin {
         };
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
-        // The styles go in as stylesheets, in the order main.tsx imports them (React Flow's base, then the app's,
-        // which overrides it). Vite's own loader finds them there and does not fetch them again, one after another.
+        // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
+        // again, one after another.
         const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}</script>`;
         return html.replace("</title>", `</title>\n    ${hint}`);
       },

@@ -321,9 +321,9 @@ test("the front page loads without the canvas screens and fetches them once it i
     page.evaluate(() => {
       const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
       const one = (pattern: RegExp) => entries.find((e) => pattern.test(e.name))!;
-      return { screens: one(/\/assets\/screens-/).startTime, entry: one(/\/assets\/index-/).responseEnd, app: one(/\/assets\/App-[^/]*\.js/).responseEnd };
+      return { screens: one(/\/assets\/screens-[^/]*\.js/).startTime, entry: one(/\/assets\/index-/).responseEnd, app: one(/\/assets\/App-[^/]*\.js/).responseEnd };
     });
-  const arrived = () => page.waitForFunction(() => performance.getEntriesByType("resource").some((e) => /\/assets\/screens-/.test(e.name)));
+  const arrived = () => page.waitForFunction(() => performance.getEntriesByType("resource").some((e) => /\/assets\/screens-[^/]*\.js/.test(e.name)));
 
   await page.goto("./");
   await expect(page.locator(".land-headline")).toBeVisible();

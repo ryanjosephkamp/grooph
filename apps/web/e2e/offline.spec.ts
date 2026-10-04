@@ -70,7 +70,7 @@ test("a first visit that saw only the front page still opens a template with no 
   await page.goto("./");
   await expect(page.locator(".land-headline")).toBeVisible();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-  await page.waitForFunction(async () => (await (await caches.open("grooph-app-v1")).keys()).some((r) => /\/screens-/.test(r.url)));
+  await page.waitForFunction(async () => (await (await caches.open("grooph-app-v1")).keys()).some((r) => /\/screens-[^/]*\.js/.test(r.url)));
 
   await context.setOffline(true);
   const failed: string[] = [];
