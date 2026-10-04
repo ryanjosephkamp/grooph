@@ -654,3 +654,24 @@ test("names the rule lets through are written as given: a pin with brackets, ski
   assert.match(fixer, /Capabilities with no tool in this harness[^\n]*allow deploy to staging/);
   assert.doesNotMatch(fixer.slice(0, fixer.indexOf("\n---", 4)), /deploy to staging/);
 });
+
+test("free text in a header stays on its line: U+0085 and the other control characters in a brief or a graph's name become a space", () => {
+  // The same class `names()` folds. `\s` alone leaves U+0085 (a line break to a YAML reader) and U+007F raw inside the quotes.
+  const doc = load("fix-until-green");
+  const unread = {
+    ...doc,
+    name: "Fix\u0085until\u007fgreen",
+    nodes: doc.nodes.map((node) => (node.kind === "agent" ? { ...node, brief: `Make the "tests"\u0085pass\u0000again\u007fnow\u2028today. And the rest.` } : node)),
+  } as Graph;
+  const files = compile(unread, "claude-code").files;
+  const withHeader = Object.entries(files).filter(([, text]) => text.startsWith("---\n"));
+  assert.ok(withHeader.length >= 2);
+  for (const [path, text] of withHeader) {
+    const header = text.slice(0, text.indexOf("\n---", 4));
+    assert.doesNotMatch(header, /[\u0000-\u0009\u000b-\u001f\u007f\u0085\u2028\u2029]/, path);
+  }
+  const agent = withHeader.find(([path]) => path.includes("/agents/"))![1];
+  assert.match(agent, /\ndescription: ".* for graph fix-until-green\. Make the \\"tests\\" pass again now today\."\n/);
+  const skill = withHeader.find(([path]) => path.endsWith("/SKILL.md"))![1];
+  assert.match(skill, /\ndescription: [^\n]*Fix until green/);
+});

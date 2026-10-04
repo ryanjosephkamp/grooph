@@ -31,7 +31,12 @@ export function firstSentence(text: string): string {
   return sentence;
 }
 
+/**
+ * A header value of free text (a description), on one line. Every run of whitespace and control characters becomes
+ * one space: the same class `names()` folds in agents.ts. `\s` alone leaves U+0085, which YAML reads as a line
+ * break, and the other controls, which have no place in a header.
+ */
 export const quoteYaml = (text: string): string => {
-  const single = text.replace(/\s+/g, " ").trim();
+  const single = text.replace(/[\s\u0000-\u001f\u007f\u0085\u2028\u2029]+/g, " ").trim();
   return /^[A-Za-z0-9][A-Za-z0-9 ,.'·/()-]*$/.test(single) ? single : JSON.stringify(single);
 };
