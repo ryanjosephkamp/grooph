@@ -1,12 +1,14 @@
 import { formatIssue } from "@grooph/core";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   attemptExport,
+  compilerHere,
   copyText,
   download,
   graphFileName,
   graphFileText,
+  loadCompiler,
   packageFileName,
   zipPackage,
 } from "../doc/exportPackage.js";
@@ -22,7 +24,20 @@ import { Keep } from "./Keep.js";
 export function ExportPanel() {
   const editor = useEditor();
   const doc = useDoc(editor.store);
-  const attempt = useMemo(() => attemptExport(doc), [doc]);
+  // The compiler arrives once (the editor asks for it soon after it opens); after that this is as it always was.
+  const [compiler, setCompiler] = useState<"here" | "coming" | "failed">(compilerHere() ? "here" : "coming");
+  useEffect(() => {
+    if (compiler !== "coming") return;
+    let gone = false;
+    loadCompiler().then(
+      () => !gone && setCompiler("here"),
+      () => !gone && setCompiler("failed"),
+    );
+    return () => {
+      gone = true;
+    };
+  }, [compiler]);
+  const attempt = useMemo(() => attemptExport(doc), [doc, compiler]);
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
   const [open, setOpen] = useState<string | null>(null);
 
@@ -35,6 +50,29 @@ export function ExportPanel() {
       Download graph (.grooph.json)
     </button>
   );
+
+  if (!attempt) {
+    return (
+      <div className="inspector">
+        {compiler === "failed" ? (
+          <div className="refusal" role="alert">
+            <p>
+              <strong>The exporter could not be fetched.</strong> It needs a connection the first time.
+            </p>
+            <button type="button" className="btn" onClick={() => location.reload()}>
+              Load the page again
+            </button>
+          </div>
+        ) : (
+          <p className="field-hint" role="status">
+            Preparing the package…
+          </p>
+        )}
+        <div className="export-actions">{downloadGraph}</div>
+        <Keep doc={doc} />
+      </div>
+    );
+  }
 
   if (!attempt.ok) {
     const errors = attempt.issues.filter((i) => i.severity === "error");

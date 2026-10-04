@@ -1,15 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { strFromU8, unzipSync } from "fflate";
 
-import { attemptExport, graphFileText, zipPackage } from "../src/doc/exportPackage.js";
+import { attemptExport, compilerHere, graphFileText, loadCompiler, zipPackage } from "../src/doc/exportPackage.js";
 import { computeIssues, highlightFor } from "../src/doc/issues.js";
 import { readGraphFile } from "../src/store/library.js";
 import { fixtureText, goldenDir, readTree, reviewLoop } from "./helpers.js";
 
+describe("export before the compiler has arrived", () => {
+  it("refuses with the validator's errors all the same, and says nothing yet for a graph that validates", () => {
+    expect(compilerHere()).toBe(false);
+    const { goal: _goal, ...doc } = reviewLoop();
+    const refused = attemptExport(doc);
+    expect(refused?.ok).toBe(false);
+    if (refused && !refused.ok) expect(refused.issues.map((i) => i.code)).toEqual(["E_NO_GOAL", "W_HOMOGENEOUS_CRITICS"]);
+    expect(attemptExport(reviewLoop())).toBeUndefined();
+  });
+});
+
 describe("export", () => {
+  beforeAll(async () => {
+    await loadCompiler();
+  });
+
   it("emits the golden package byte for byte, through the zip", () => {
     const attempt = attemptExport(reviewLoop());
+    if (!attempt) throw new Error("the compiler is not here");
     if (!attempt.ok) throw new Error(attempt.issues.map((i) => i.code).join(", "));
     const unzipped = Object.fromEntries(Object.entries(unzipSync(zipPackage(attempt.result.files))).map(([p, b]) => [p, strFromU8(b)]));
     expect(unzipped).toEqual(readTree(goldenDir));
@@ -22,6 +38,7 @@ describe("export", () => {
   it("refuses with the validator's errors, as the CLI does", () => {
     const { goal: _goal, ...doc } = reviewLoop();
     const attempt = attemptExport(doc);
+    if (!attempt) throw new Error("the compiler is not here");
     expect(attempt.ok).toBe(false);
     if (attempt.ok) return;
     expect(attempt.reason).toBe("rules");
@@ -31,8 +48,8 @@ describe("export", () => {
   it("refuses a document that does not match the schema yet", () => {
     const doc = reviewLoop();
     const attempt = attemptExport({ ...doc, nodes: [...doc.nodes, { id: "x", kind: "agent", name: "X", role: "builder", brief: "", outputs: [] }] });
-    expect(attempt.ok).toBe(false);
-    if (!attempt.ok) expect(attempt.reason).toBe("schema");
+    expect(attempt?.ok).toBe(false);
+    if (attempt && !attempt.ok) expect(attempt.reason).toBe("schema");
   });
 });
 

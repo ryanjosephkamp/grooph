@@ -1,8 +1,8 @@
 {
-  "firstLoadKB": 195,
-  "entryJsKB": 178,
+  "firstLoadKB": 180,
+  "entryJsKB": 162,
   "cssKB": 20,
-  "canvasLoadKB": 288,
-  "embedLoadKB": 150,
+  "canvasLoadKB": 276,
+  "embedLoadKB": 132,
   "cliColdMs": 400
 }

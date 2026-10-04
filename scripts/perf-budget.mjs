@@ -27,23 +27,24 @@ if (!existsSync(join(dist, "index.html"))) {
   console.error("perf-budget: apps/web/dist/index.html is not there. Run pnpm -r build first.");
   process.exit(1);
 }
-/** The scripts and stylesheets a page names, as files in dist. */
-const named = (page) => [...readFileSync(join(dist, page), "utf8").matchAll(/(?:src|href)="[^"]*?(assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]);
 const sum = (files) => files.reduce((n, f) => n + kb(join(dist, f)), 0);
 const html = kb(join(dist, "index.html"));
-// What each address loads. Since slice 0056 the entry chooses by the address, and the build writes the two sets
-// to routes.json; before that, index.html named everything.
-const routes = existsSync(join(dist, "routes.json")) ? JSON.parse(readFileSync(join(dist, "routes.json"), "utf8")) : undefined;
-const first = named("index.html");
-const appJs = routes ? [...routes.entry, ...routes.app.js] : first.filter((f) => f.endsWith(".js"));
-const appCss = routes ? routes.app.css : first.filter((f) => f.endsWith(".css"));
+// What each address loads. Since slice 0056 the entry chooses by the address, and the build writes the sets to
+// routes.json. A build without that file cannot be weighed: index.html names only the entry script.
+if (!existsSync(join(dist, "routes.json"))) {
+  console.error("perf-budget: apps/web/dist/routes.json is not there, so there is nothing to say what each address loads. The build should have written it (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const routes = JSON.parse(readFileSync(join(dist, "routes.json"), "utf8"));
+const appJs = [...routes.entry, ...routes.app.js];
+const appCss = routes.app.css;
 const js = sum(appJs);
 const css = sum(appCss);
-const embed = routes ? sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html : undefined;
+const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html;
 // Since slice 0069 the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
-const canvasFiles = routes?.canvas ? [...routes.canvas.js, ...routes.canvas.css] : [];
-const canvas = routes?.canvas ? js + css + html + sum(canvasFiles) : undefined;
-const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...(routes ? [...routes.embed.js, ...routes.embed.css] : [])]);
+const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
+const canvas = js + css + html + sum(canvasFiles);
+const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
@@ -60,8 +61,8 @@ const rows = [
   ["the app's first load (HTML, scripts and styles), gzip KB", one(js + css + html), budget.firstLoadKB],
   ["  of which scripts", one(js), budget.entryJsKB],
   ["  of which styles", one(css), budget.cssKB],
-  ...(canvas !== undefined ? [["the first load of an address that draws on the canvas, gzip KB", one(canvas), budget.canvasLoadKB]] : []),
-  ...(embed !== undefined ? [["an embed's first load, gzip KB", one(embed), budget.embedLoadKB]] : []),
+  ["the first load of an address that draws on the canvas, gzip KB", one(canvas), budget.canvasLoadKB],
+  ["an embed's first load, gzip KB", one(embed), budget.embedLoadKB],
   ["the CLI's cold start, ms (middle of five)", Math.round(cli), budget.cliColdMs],
 ];
 let over = 0;
