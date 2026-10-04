@@ -14,15 +14,15 @@ How this package's files correspond to the graph document, so a human can hand-a
 | progress | `.grooph/orders-api-patrol/runs/<run-id>/PROGRESS.md` | written at run time, after every node |
 | run notes | `.grooph/orders-api-patrol/runs/<run-id>/notes.jsonl` | written at run time, one JSON object per line (graph-ir §6) |
 | working copy | `.grooph/orders-api-patrol/runs/<run-id>/graph.grooph.json` | copied from the source at run setup; the lead amends it, with a note per amendment, when the work shows the graph is wrong |
-| node `investigator` | `.claude/agents/orders-api-patrol--investigator.md` | subagent `orders-api-patrol--investigator` · critic · model claude-sonnet-5-5 · effort high |
-| node `ticket-writer` | `.claude/agents/orders-api-patrol--ticket-writer.md` | subagent `orders-api-patrol--ticket-writer` · builder · model claude-sonnet-5-5 · effort medium |
+| node `investigator` | `.claude/agents/orders-api-patrol--investigator.md` | subagent `orders-api-patrol--investigator` · critic · model opus · effort high |
+| node `ticket-writer` | `.claude/agents/orders-api-patrol--ticket-writer.md` | subagent `orders-api-patrol--ticket-writer` · builder · model sonnet · effort medium |
 
 ## Pieces with no file of their own
 
 These live inside `LEAD.md`, because the lead performs them itself:
 
 - `scan` (check) — the lead runs the check and judges the stated condition
-- `prioritize` (human-gate) — the lead asks the human and waits
+- `prioritise` (human-gate) — the lead asks the human and waits
 - `clean` (stop) — the lead ends the run here
 - `done` (stop) — the lead ends the run here
 
@@ -34,7 +34,7 @@ Edges, loops and policies have no file: they are the routing, round and stop rul
 
 ```yaml
 # .claude/agents/orders-api-patrol--investigator.md
-model: claude-sonnet-5-5      # this export: frontier → claude-opus-5-5, strong → claude-sonnet-5-5, fast → claude-sonnet-5-5
+model: opus      # profile: frontier → fable, strong → opus, fast → sonnet
 effort: high      # low | medium | high | max
 ```
 

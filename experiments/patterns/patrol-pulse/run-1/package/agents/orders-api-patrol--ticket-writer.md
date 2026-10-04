@@ -1,7 +1,7 @@
 ---
 name: orders-api-patrol--ticket-writer
-description: builder for graph orders-api-patrol. Append one ticket to TICKETS.md for each finding in PULSE.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest.
-model: claude-sonnet-5-5
+description: builder for graph orders-api-patrol. Append one ticket to TICKETS.md for each finding in FINDINGS.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest.
+model: sonnet
 effort: medium
 tools: Read, Edit, Write, Glob, Grep
 ---
@@ -12,11 +12,11 @@ Node `ticket-writer` in the grooph graph `orders-api-patrol` (Orders API patrol)
 
 ## Brief
 
-Append one ticket to TICKETS.md for each finding in PULSE.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest. Never duplicate a ticket, never edit an existing one, and never touch code or anything outside TICKETS.md. Report what you filed and what you left because it was already on file in FILED.md.
+Append one ticket to TICKETS.md for each finding in FINDINGS.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest. Never duplicate a ticket, never edit an existing one, and never touch code or anything outside TICKETS.md. Report what you filed and what you left because it was already on file in FILED.md.
 
 ## Inputs
 
-- PULSE.md
+- FINDINGS.md
 - TICKETS.md
 
 ## Outputs
@@ -34,7 +34,7 @@ You are the only node in this run that writes `TICKETS.md`. Nothing else touches
 
 You may inspect what the lead hands you — the evidence below — plus your declared inputs (Inputs above), which for you includes the project you are changing, and nothing else:
 
-- PULSE.md
+- FINDINGS.md
 - TICKETS.md
 
 If any of it is missing or unreadable, say so in your report rather than guessing.

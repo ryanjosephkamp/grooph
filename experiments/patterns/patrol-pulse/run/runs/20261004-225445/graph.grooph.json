@@ -20,7 +20,18 @@
       "check": {
         "kind": "command",
         "run": "grep -n -E ' (ERROR|WARN) ' logs/app.log",
-        "pass": "exit code 0 and at least one candidate signal printed; nothing printed is a fail and ends the pulse clean"
+        "pass": "exit code 0 and at least one candidate signal printed; exit code 1 with nothing printed is a fail and ends the pulse clean; exit code 2 (the log is missing or unreadable) is invalid-evidence and never ends the pulse clean"
+      }
+    },
+    {
+      "id": "log-present",
+      "kind": "check",
+      "name": "Log present",
+      "description": "Precondition for scan: a missing or empty log means nothing was observed, which must not end the pulse clean.",
+      "check": {
+        "kind": "command",
+        "run": "test -s logs/app.log",
+        "pass": "exit code 0: logs/app.log exists and is not empty; anything else is a fail and halts the pulse at no-log"
       }
     },
     {
@@ -100,6 +111,12 @@
       "kind": "stop",
       "name": "Done",
       "outcome": "success"
+    },
+    {
+      "id": "no-log",
+      "kind": "stop",
+      "name": "No log",
+      "outcome": "halt"
     }
   ],
   "edges": [
@@ -109,6 +126,19 @@
       "to": "clean",
       "when": "fail",
       "label": "nothing to look at"
+    },
+    {
+      "id": "e-log-present-scan",
+      "from": "log-present",
+      "to": "scan",
+      "when": "pass"
+    },
+    {
+      "id": "e-log-present-no-log",
+      "from": "log-present",
+      "to": "no-log",
+      "when": "fail",
+      "label": "log missing or empty: nothing was read, so the pulse is not clean"
     },
     {
       "id": "e-scan-investigator",

@@ -14,11 +14,11 @@ You do not do the workers' jobs. Every agent node below runs as its own subagent
 
 **Goal.**
 
-Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise. One pulse is one run: it ends clean, or with new tickets in TICKETS.md for a human to prioritize. Nothing else changes.
+Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise. One pulse is one run: it ends clean, or with new tickets in TICKETS.md for a human to prioritise. Nothing else changes.
 
 **What this graph does.**
 
-A pulse, not a loop. The scan check runs the command that lists candidate signals; nothing to look at ends the pulse clean. Otherwise a read-only investigator judges each signal against the project and the tickets already filed and writes its findings; a clean verdict ends the pulse, a finding goes to a writer that owns only the ticket store, files one ticket per new finding and never files what is already filed. A human gate ends the pulse with the new tickets waiting to be prioritized. The package recurs through the harness's scheduler (the target doc says how); every pulse is its own run, so the run list is the pulse log.
+A pulse, not a loop. The scan check runs the command that lists candidate signals; nothing to look at ends the pulse clean. Otherwise a read-only investigator judges each signal against the project and the tickets already filed and writes its findings; a clean verdict ends the pulse, a finding goes to a writer that owns only the ticket store, files one ticket per new finding and never files what is already filed. A human gate ends the pulse with the new tickets waiting to be prioritised. The package recurs through the harness's scheduler (the target doc says how); every pulse is its own run, so the run list is the pulse log.
 
 ## 3. Run setup
 
@@ -41,9 +41,9 @@ Entry nodes (start here): `scan`.
 | node | name | how you run it | role | what it returns |
 |---|---|---|---|---|
 | `scan` | Scan | you run `grep -n -E ' (ERROR\|WARN) ' logs/app.log` | check | pass when: exit code 0 and at least one candidate signal printed; nothing printed is a fail and ends the pulse clean |
-| `investigator` | Investigator | `Agent` · `orders-api-patrol--investigator` | critic | PULSE.md: genuine faults with evidence, dismissed signals, and a verdict line; verdict: clean \| finding |
+| `investigator` | Investigator | `Agent` · `orders-api-patrol--investigator` | critic | FINDINGS.md: genuine faults with evidence, dismissed signals, and a verdict line; verdict: clean \| finding |
 | `ticket-writer` | Ticket writer | `Agent` · `orders-api-patrol--ticket-writer` | builder | TICKETS.md with one new ticket per new finding; FILED.md: tickets filed and findings already covered |
-| `prioritize` | Prioritize | you ask the human | human-gate | prioritized \| later |
+| `prioritise` | Prioritise | you ask the human | human-gate | prioritised \| later |
 | `clean` | Clean | you end the run | stop | run ends with outcome success |
 | `done` | Done | you end the run | stop | run ends with outcome success |
 
@@ -56,9 +56,9 @@ Dispatch an agent node with the `Agent` tool and the `subagent_type` named above
 | `e-scan-clean` | `scan` → `clean` | fail | fresh | evidence: none listed · label: nothing to look at |
 | `e-scan-investigator` | `scan` → `investigator` | pass | fresh | evidence: the scan output; TICKETS.md, read-only; the repository, read-only |
 | `e-investigator-clean` | `investigator` → `clean` | verdict clean | fresh | evidence: none listed |
-| `e-investigator-ticket-writer` | `investigator` → `ticket-writer` | verdict finding | fresh | evidence: PULSE.md; TICKETS.md |
-| `e-ticket-writer-prioritize` | `ticket-writer` → `prioritize` | always | fresh | evidence: none listed |
-| `e-prioritize-done` | `prioritize` → `done` | always | fresh | evidence: none listed |
+| `e-investigator-ticket-writer` | `investigator` → `ticket-writer` | verdict finding | fresh | evidence: FINDINGS.md; TICKETS.md |
+| `e-ticket-writer-prioritise` | `ticket-writer` → `prioritise` | always | fresh | evidence: none listed |
+| `e-prioritise-done` | `prioritise` → `done` | always | fresh | evidence: none listed |
 
 - When a node finishes, take every outgoing edge whose condition matches its result. Several matching edges run in parallel, capped by any `concurrency` on the edge.
 - `fresh` isolation: the worker starts with no context except its brief, its declared inputs and the evidence listed above. `shared`: continue the same worker if the build lets you, otherwise do that step yourself rather than faking a continuation.
@@ -71,7 +71,7 @@ This graph has no loops. Follow the edges once and stop.
 
 ## 7. Human gates
 
-- `prioritize` — This pulse filed new tickets in TICKETS.md (FILED.md says which) and changed nothing else. Prioritize them when you can; the next pulse is a new run. (options: prioritized | later)
+- `prioritise` — This pulse filed new tickets in TICKETS.md (FILED.md says which) and changed nothing else. Prioritise them when you can; the next pulse is a new run. (options: prioritised | later)
 
 One rule, in every kind of session. On reaching a gate: first append a note at the gate (`at` = `node:<gate-id>`, or `edge:<edge-id>` for an approval edge) with `"outcome":"halt"` and a `text` naming it, and write `PROGRESS.md`; then ask, with `AskUserQuestion` when it is available, otherwise in plain text; then end your turn. Do not simulate an answer, do not batch two gates into one question, and do not proceed on silence.
 
@@ -198,4 +198,4 @@ Whichever way it ends, do all three:
 2. Write the last `PROGRESS.md`: which nodes ran, how many rounds, every amendment to the working copy, and why the run ended.
 3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, whether the working copy was amended (so they can adopt or discard it), and what is left over.
 
-The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, `.grooph/orders-api-patrol/runs/<run-id>/`.
+The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, `.grooph/orders-api-patrol/runs/<run-id>/`.

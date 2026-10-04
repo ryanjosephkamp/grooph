@@ -495,8 +495,53 @@
       "run_id": "20260922-151855",
       "retry": null,
       "note": "scripted answer \"approve\" at decomposition-gate"
+    },
+    {
+      "n": 32,
+      "template": "gauntlet-decomposed",
+      "kind": "kickoff",
+      "started": "2026-10-04T22:44:56.030Z",
+      "ended": "2026-10-04T22:47:47.330Z",
+      "status": "ok",
+      "cost_usd": 1.051328,
+      "reported_cost_usd": 1.0513281999999997,
+      "max_budget_usd": 9,
+      "session_id": "ac211974-8004-4f96-8979-c32050511c04",
+      "run_id": "20261004-224501",
+      "retry": "0020 re-proof of version 2 (slice 0019)",
+      "note": "retry: 0020 re-proof of version 2 (slice 0019)"
+    },
+    {
+      "n": 33,
+      "template": "gauntlet-decomposed",
+      "kind": "resume",
+      "started": "2026-10-04T22:47:47.333Z",
+      "ended": "2026-10-04T22:53:43.451Z",
+      "status": "ok",
+      "cost_usd": 2.592453,
+      "reported_cost_usd": 2.5924528000000002,
+      "max_budget_usd": 9,
+      "session_id": "ac211974-8004-4f96-8979-c32050511c04",
+      "run_id": "20261004-224501",
+      "retry": null,
+      "note": "scripted answer \"approve\" at decomposition-gate"
+    },
+    {
+      "n": 34,
+      "template": "patrol-pulse",
+      "kind": "kickoff",
+      "started": "2026-10-04T22:54:40.095Z",
+      "ended": "2026-10-04T22:56:41.571Z",
+      "status": "ok",
+      "cost_usd": 0.791488,
+      "reported_cost_usd": 0.7914883999999999,
+      "max_budget_usd": 9,
+      "session_id": "049c8b65-7b74-4e07-ad0a-2577aa471645",
+      "run_id": "20261004-225445",
+      "retry": "0020 re-proof of version 3, the output renamed to PULSE.md (slice 0019)",
+      "note": "retry: 0020 re-proof of version 3, the output renamed to PULSE.md (slice 0019)"
     }
   ],
-  "spent_usd": 57.512739,
-  "remaining_usd": 17.487261
+  "spent_usd": 61.948008,
+  "remaining_usd": 13.051992
 }
