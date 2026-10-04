@@ -440,6 +440,65 @@ test.describe("what the worker's cache holds", () => {
     }
   });
 
+  test("a file the page does not name, the embed's own, is still there after the next visit, and with no network", async ({ page, context }) => {
+    // The front page's recorded run is drawn by the embed, in a frame. Its two files are fetched when someone watches
+    // it, and the page does not name them: nothing says they are old, so the tidying must leave them.
+    const [older, newer] = twoReleases();
+    const embed = newer.assets.filter((path) => /\/assets\/EmbedApp-/.test(path)).sort();
+    expect(embed, "the embed's script and its style sheet").toHaveLength(2);
+    expect(newer.named.filter((path) => embed.includes(path)), "the page names neither").toEqual([]);
+    const site = await visitorOf(older, page);
+    const ask = (tab: Page): Promise<number[]> => tab.evaluate((paths) => Promise.all(paths.map(async (path) => (await fetch(path)).status)), embed);
+    let next: Page;
+    try {
+      site.deploy(newer);
+      await page.goto(site.url);
+      await settled(page, newer);
+      expect(await ask(page), "watched once, with a network").toEqual([200, 200]);
+      await page.close();
+
+      // An ordinary visit in a tab of its own: the only window there is, with a page before the one kept. That is
+      // everything tidying waits for. (A reload in one tab seldom tidies: the page being left is a window still.)
+      next = await context.newPage();
+      await next.goto(site.url);
+      await settled(next, newer);
+      await next.waitForTimeout(600);
+      expect((await held(next)).paths.filter((path) => embed.includes(path))).toEqual(embed);
+      expect(await heldOf(next, older), "the page before is kept whole, as ever").toEqual(hashedOf(older));
+    } finally {
+      await site.stop();
+    }
+    expect(await ask(next), "watched again, with no network").toEqual([200, 200]);
+  });
+
+  test("a script that asks for the page's own address does not replace either page the worker keeps", CHROMIUM, async ({ page }) => {
+    const [older, newer] = twoReleases();
+    const site = await visitorOf(older, page);
+    const kept = (): Promise<{ now: string | undefined; before: string | undefined }> =>
+      page.evaluate(async () => {
+        const cache = await caches.open("grooph-app-v1");
+        const stamp = async (key: string): Promise<string | undefined> => /data-release="([^"]*)"/.exec((await (await cache.match(key))?.text()) ?? "")?.[1];
+        return { now: await stamp("./"), before: await stamp("./?the-page-before") };
+      });
+    try {
+      site.deploy(newer);
+      await page.goto(site.url);
+      await settled(page, newer);
+      await expect.poll(kept).toEqual({ now: "newer", before: "older" });
+
+      // The site answers any query with the page it has now. Neither answer may be kept as a page.
+      const third = makeRelease("third");
+      site.deploy(third);
+      await page.evaluate(async () => {
+        await fetch("./");
+        await fetch("./?the-page-before");
+      });
+      expect(await kept()).toEqual({ now: "newer", before: "older" });
+    } finally {
+      await site.stop();
+    }
+  });
+
   test("a visitor who came with three versions kept by 0.3.0's worker: nothing goes on the day this worker arrives, and all but two the release after", CHROMIUM, async ({ page }, testInfo) => {
     const kept = ["first", "second", "third"].map((name) => makeRelease(name, { worker: "0.3.0" }));
     const arriving = makeRelease("fourth");
@@ -552,10 +611,15 @@ for (const first of [
   });
 }
 
-test("the page names every file the app can ask for under assets/, so the worker's install leaves none to a race", CHROMIUM, () => {
+test("the page names every file the app can ask for under assets/, and every file it names is there", CHROMIUM, () => {
   // The worker fetches what the page names when it installs. A file the app loads from code and the page does not
   // name is kept only if the page happens to have finished fetching it when the worker takes control: the race the
-  // site lane met with its fonts. The embed's own files are the exception: an embed address starts no worker.
+  // site lane met with its fonts.
+  //
+  // The embed's own two files are the known exception, and it is a gap, not a design: the app does ask for them, in
+  // the frame that plays the front page's recorded run, and the page does not name them. So they are kept only once
+  // someone has watched the run with a network, and a tab left open across a deploy cannot fetch them at all. The
+  // lists the page carries are written in `vite.config.ts`, which is another lane's to change (handback 0083).
   const routes = JSON.parse(readFileSync(join(builtApp, "routes.json"), "utf8")) as { entry: string[]; app: { js: string[]; css: string[] }; canvas: { js: string[]; css: string[] }; later: string[]; embed: { js: string[]; css: string[] } };
   const ofTheApp = new Set([...routes.entry, ...routes.app.js, ...routes.app.css, ...routes.canvas.js, ...routes.canvas.css, ...routes.later]);
   const embedOnly = [...routes.embed.js, ...routes.embed.css].filter((file) => !ofTheApp.has(file)).map((file) => `/grooph/${file}`);
@@ -567,4 +631,7 @@ test("the page names every file the app can ask for under assets/, so the worker
   const named = namedBy(readFileSync(join(builtApp, "index.html"), "utf8"));
   expect(files.length, "files under the built app's assets/").toBeGreaterThan(5);
   expect(files.filter((file) => !named.includes(file) && !embedOnly.includes(file)).sort()).toEqual([]);
+  // And the other way: a page that names a hashed file the build does not have is never whole to the worker, which
+  // then keeps the page before it for good, and stops tidying.
+  expect(named.filter((path) => path.includes("/assets/") && !files.includes(path)), "named by the page and not in the build").toEqual([]);
 });

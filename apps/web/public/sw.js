@@ -22,11 +22,13 @@
  *                                       never touched: only the app's own address, "./", is the app
  *   other origins, anything not a GET   never touched
  *
- * Old files go when no page that can still be open names them (handoff 0083). The worker keeps the page it holds
- * and the page it held before that one, and the hashed files either names. When a visit brings a page and the page
- * that visit made is the only window there is, every other hashed file is dropped. A tab left open on an older
- * version is another window, and while there is one nothing is dropped. A page that is no window (one a browser
- * keeps for the Back button) is at most one page old, since the visit that made it the worker's page was a window.
+ * Old files go when no window can still be on a page that names them (handoff 0083). The worker keeps the page it
+ * holds and the page it held before that one. When a visit brings a page, and the page that visit made is the only
+ * window there is, it drops the older builds of the files those two pages name: `App-<another hash>.js`. A tab left
+ * open on an older version is another window, and while there is one nothing is dropped. A file the pages do not
+ * name at all (the embed's own, fetched when someone watches the demo) is not known to be old, and stays.
+ * What this does not cover: a page that is no window, which a browser keeps for the Back button or shows again from
+ * its own stale copy. It is safe while it is one of the two pages kept, and not when two releases have gone by.
  *
  * It stores nothing but grooph's own files, and sends nothing anywhere.
  */
@@ -76,25 +78,46 @@ async function keep(cache, page, visit) {
   const before = held ? await held.text() : undefined;
   if (before !== undefined && before !== html) await cache.put(BEFORE, new Response(before, { headers: { "content-type": "text/html; charset=utf-8" } }));
   await cache.put("./", page);
-  if (whole && visit !== undefined) await tidy(cache, html, visit);
+  if (whole && visit !== undefined) await tidy(cache, visit);
+}
+
+/** A hashed file's name without its hash: `…/assets/App-ClXlJ-zx.js` is `App.js`. Any other name has none. */
+function unhashed(href) {
+  const name = /\/assets\/([^/]+)-[A-Za-z0-9_-]{8}(\.(?:js|css))$/.exec(new URL(href).pathname);
+  return name ? `${name[1]}${name[2]}` : undefined;
 }
 
 /**
- * Drop the hashed files that neither the page held now nor the page held before it names. Not until a page has
- * been replaced under this worker (before that, nothing says which files are old), and not while there is any
- * window but the page this visit made: another tab, the page this tab is still leaving, or the tab that was open
- * all along when the visiting one has been closed already. Any of them may be on an older page still. Where a
- * browser does not say which page a visit made, every window is one of those, and nothing is dropped.
+ * Drop the older builds of the files that the page held now and the page held before it name. Not until a page has
+ * been replaced under this worker, and not while there is any window but the page this visit made: another tab,
+ * the page this tab is still leaving, or the tab that was open all along when the visiting one has been closed
+ * already. Any of them may be on an older page still. Where a browser does not say which page a visit made,
+ * nothing is dropped.
  */
-async function tidy(cache, html, visit) {
+async function tidy(cache, visit) {
+  if (!visit) return;
+  const now = await cache.match("./", { ignoreVary: true });
   const before = await cache.match(BEFORE);
-  if (!before) return;
+  if (!now || !before) return;
   const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-  if (windows.some((client) => !visit || client.id !== visit)) return;
-  const wanted = new Set([...named(html), ...named(await before.text())].map((u) => u.href));
+  if (windows.some((client) => client.id !== visit)) return;
+  const wanted = [...named(await now.text()), ...named(await before.text())].map((u) => u.href);
+  const kept = new Set(wanted);
+  const names = new Set(wanted.map(unhashed).filter(Boolean));
   for (const request of await cache.keys()) {
-    if (new URL(request.url).pathname.includes("/assets/") && !wanted.has(request.url)) await cache.delete(request);
+    const name = unhashed(request.url);
+    if (name && names.has(name) && !kept.has(request.url)) await cache.delete(request);
   }
+}
+
+/**
+ * One page is kept at a time. Two visits a moment apart with a deploy between them would otherwise each fetch its
+ * own files and tidy the other's away.
+ */
+let keeping = Promise.resolve();
+function inTurn(work) {
+  keeping = keeping.then(work, work);
+  return keeping;
 }
 
 self.addEventListener("install", (event) => {
@@ -103,7 +126,7 @@ self.addEventListener("install", (event) => {
       const cache = await caches.open(CACHE);
       const page = await fetch("./", { cache: "no-store" });
       // No tidying here: a worker installs while tabs are open, and none of them is on its way to this page.
-      if (page.ok) await keep(cache, page, undefined);
+      if (page.ok) await inTurn(() => keep(cache, page, undefined));
       await self.skipWaiting();
     })(),
   );
@@ -147,10 +170,21 @@ self.addEventListener("fetch", (event) => {
         if (fresh.ok) {
           // A new deploy's page names new files. They are fetched now, whether or not the visit lasts long enough to
           // ask, and the page is kept once they are all here.
-          if (request.mode === "navigate") event.waitUntil(keep(cache, fresh.clone(), event.resultingClientId || "").catch(() => undefined));
-          else await cache.put(key, fresh.clone());
+          if (request.mode === "navigate") {
+            const page = fresh.clone();
+            const visit = event.resultingClientId || "";
+            event.waitUntil(inTurn(() => keep(cache, page, visit)).catch(() => undefined));
+          } else if (url.pathname !== scopePath) {
+            // The page's own address is kept by a visit, above, and by nothing else: a script that asks for it
+            // must not put a page in the kept one's place, or over the one before it.
+            await cache.put(key, fresh.clone());
+          }
           return fresh;
         }
+        // A hashed file the host cannot give (a deploy still arriving, a file that is gone) is a fetch that failed,
+        // not an answer to keep. WebKit remembers an error answered to a script for the tab's later loads and does
+        // not ask again, though the file has since arrived and is held here (seen in CI, 2026-10-04).
+        if (hashed) return Response.error();
         // The host answered that it cannot (it is down, a deploy is half-way): the copy held, if there is one.
         // Anything else is an answer: a redirect to where the site has moved, a "not found" for a file that is gone.
         return fresh.status >= 500 ? ((await cached()) ?? fresh) : fresh;
