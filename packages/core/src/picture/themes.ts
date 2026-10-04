@@ -2,17 +2,17 @@
  * The picture's themes (docs/themes.md): Paper, which is the picture as it has always been drawn and needs nothing
  * from this file, and five more. A theme is a set of values, not a second renderer: its colors in light and in
  * dark, the face its words are drawn in, and a few rules for line weight, corners and lettering. The picture's
- * markup and geometry are the same in all six; `pictureLook(name)` turns a theme's values into what a picture's
- * frame carries (`PictureLook`, svg.ts).
+ * markup and geometry are the same in all six, and cannot be otherwise: `themed(svg, name)` adds a theme to a
+ * picture core has already drawn, as text. Nothing in the drawing code knows there are themes.
  *
  * This file is a door of core (decision 0021), as the compiler and a map's other views are: nothing `base.ts`
  * reaches leads here and nothing here is imported but types, so the web app fetches it only when a theme other
- * than Paper is chosen, and fetching it moves nothing else. In Node there is no door: `index.ts` exports it.
+ * than Paper is wanted, and fetching it moves nothing else. In Node there is no door: `index.ts` exports it.
  *
  * The rules are written for the hooks the pictures already carry (`data-card`, `data-edge`, a label's size), so a
  * theme adds no attribute to any element. A test holds every rule to a hook that exists.
  */
-import type { Color, PictureLook, PictureTheme } from "./svg.js";
+import type { Color, PictureTheme } from "./svg.js";
 
 /** The six, in the order they are offered. The first is today's picture and has no values here. */
 export const PICTURE_THEMES = ["paper", "blueprint", "ink", "phosphor", "transit", "chalk"] as const;
@@ -261,38 +261,67 @@ export function readTheme(value: string): { name: PictureThemeName; form?: Pictu
 }
 
 /**
- * What a picture is handed to be drawn in a theme: `picture(doc, { look: pictureLook("blueprint") })`.
- * Undefined for Paper, and for a name that is none of the six: the picture is then today's.
+ * What a theme adds to a picture, for a form: its style (in a picture that follows the viewer, its colors as
+ * variables for light and for dark; then its face and its rules), what the style refers to (a pattern, a filter),
+ * and its ground, drawn over the background. Undefined for Paper and for a name that is none of the six.
+ *
+ * A page that holds pictures inline can use the parts itself: mark each picture's root with `data-look`, carry
+ * `css` once, and set `defs` and `ground` into each picture after its background (the web app does). `themed`
+ * does the same to a picture as text.
  */
-export function pictureLook(name: string | undefined): PictureLook | undefined {
+export function themeParts(name: string | undefined, form: PictureTheme = "auto"): { name: string; css: string; defs: string; ground: string; colors: Palette } | undefined {
   if (name === undefined || name === "paper" || !isPictureTheme(name)) return undefined;
   const t = (THEME_VALUES as Record<string, ThemeValues>)[name]!;
   const scope = `.grooph-picture[data-look="${t.name}"]`;
   const vars = (p: Palette): string => (Object.keys(p) as (keyof Palette)[]).map((k) => `--gp-${k}:${p[k]}`).join(";");
   // An id that says the form: of two pictures of one theme in one page, one light and one dark, each finds its own ground.
-  const id = (theme: PictureTheme): string => `gp-${t.name}${theme === "auto" ? "" : `-${theme}`}`;
+  const id = `gp-${t.name}${form === "auto" ? "" : `-${form}`}`;
+  const auto = form === "auto";
+  const palette = form === "dark" ? t.dark : t.light;
+  const c: Paint = auto ? (k) => `var(--gp-${k})` : (k) => palette[k] ?? "";
+  // Inline in a page, a Paper picture's own rules for dark reach every picture there. A theme's must outrank them
+  // wherever they apply, so a theme with one form says its colors a second time, for a picture that is not held
+  // to light: that is the selector Paper's dark has, and one attribute more.
+  const dark = `${scope}:not([data-theme="light"])`;
+  const colors = !auto
+    ? ""
+    : t.dark === t.light
+      ? `${scope},${dark}{${vars(t.light)}}`
+      : `${scope}{${vars(t.light)}}@media (prefers-color-scheme:dark){${dark}{${vars(t.dark)}}}${scope}[data-theme="dark"]{${vars(t.dark)}}`;
+  const face = t.face ? `${scope}{font-family:${t.face}}` : "";
   return {
     name: t.name,
-    light: t.light,
-    dark: t.dark,
-    head(theme) {
-      const auto = theme === "auto";
-      const palette = theme === "dark" ? t.dark : t.light;
-      const c: Paint = auto ? (k) => `var(--gp-${k})` : (k) => palette[k] ?? "";
-      // Inline in a page, a Paper picture's own rules for dark reach every picture there. A theme's must outrank them
-      // wherever they apply, so a theme with one form says its colors a second time, for a picture that is not held
-      // to light: that is the selector Paper's dark has, and one attribute more.
-      const dark = `${scope}:not([data-theme="light"])`;
-      const colors = !auto
-        ? ""
-        : t.dark === t.light
-          ? `${scope},${dark}{${vars(t.light)}}`
-          : `${scope}{${vars(t.light)}}@media (prefers-color-scheme:dark){${dark}{${vars(t.dark)}}}${scope}[data-theme="dark"]{${vars(t.dark)}}`;
-      const face = t.face ? `${scope}{font-family:${t.face}}` : "";
-      return `<style>${colors}${face}${t.rules(c).replaceAll("&", scope)}</style>` + (t.defs ? `<defs>${t.defs(c, id(theme))}</defs>` : "");
-    },
-    ...(t.ground ? { ground: (theme: PictureTheme) => `<rect width="100%" height="100%" fill="url(#${id(theme)})"/>` } : {}),
+    css: `${colors}${face}${t.rules(c).replaceAll("&", scope)}`,
+    defs: t.defs ? t.defs(c, id) : "",
+    ground: t.ground ? `<rect width="100%" height="100%" fill="url(#${id})"/>` : "",
+    colors: palette,
   };
 }
 
-export type { PictureLook };
+/**
+ * A picture in a theme. `svg` is the picture as core draws it to follow the viewer (`picture(doc)`, `mapPicture(map)`,
+ * a map's other views): the theme is added to that text, and nothing in it is drawn again. So a theme cannot
+ * change the picture's markup, its geometry or its words, and Paper, which is the text it is given, is byte for
+ * byte what it always was.
+ *
+ * Three things are added: `data-look` on the root, the theme's style in the palette's place (with what it refers
+ * to), and its ground after the background. `light` and `dark` then write each color in where the picture had a
+ * variable, so the file looks the same anywhere and can be turned into a PNG. A name that is none of the five
+ * gives the picture back as it came.
+ */
+export function themed(svg: string, name: string | undefined, form: PictureTheme = "auto"): string {
+  const parts = themeParts(name, form);
+  if (!parts) return svg;
+  // The frame as core writes it: the root, a title, the palette, the background. A document's words are escaped,
+  // so none of them can stand where these are looked for.
+  const frame = /^(<svg [^>]* data-picture="[a-z]+")([^>]*>)(<title>[^<]*<\/title>)<style>[^<]*<\/style>(<rect [^>]*\/>)/;
+  if (!frame.test(svg)) throw new Error("themed() takes a picture as core draws it to follow the viewer: picture(doc), with no theme of its own");
+  const out = svg.replace(frame, (_, root: string, rest: string, title: string, background: string) => `${root} data-look="${parts.name}"${rest}${title}<style>${parts.css}</style>${parts.defs ? `<defs>${parts.defs}</defs>` : ""}${background}${parts.ground}`);
+  if (form === "auto") return out;
+  // Only in a `style` attribute, which is where a picture's colors are; a word a document holds is never one.
+  return out.replace(/ style="[^"]*"/g, (attribute) => attribute.replace(/var\(--gp-([a-z0-9-]+)\)/g, (_, color: Color) => parts.colors[color]));
+}
+
+/** An offline page (`offlinePage`) with its picture in a theme. The page follows the device and has its own button for light and dark, so no form is named. */
+export const themedPage = (html: string, name: string | undefined): string =>
+  themeParts(name) ? html.replace(/<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" class="grooph-picture"[^]*?<\/svg>/, (svg) => themed(`${svg}\n`, name).trimEnd()) : html;

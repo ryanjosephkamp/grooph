@@ -17,7 +17,7 @@ import { canonicalizeMap, isMapLike, validateMap } from "./map.js";
 import { mapOutline, outline, type OutlineSection } from "./outline.js";
 import { picture } from "./picture/graph-picture.js";
 import { mapPicture } from "./picture/map-picture.js";
-import { esc, type PictureLook } from "./picture/svg.js";
+import { esc } from "./picture/svg.js";
 import type { Graph, OperationMap } from "./types.js";
 import { validate } from "./validate.js";
 
@@ -30,8 +30,6 @@ export type OfflinePageOptions = {
   live?: Record<string, MapSessionLive>;
   /** When that live state was read, ISO 8601. */
   at?: string;
-  /** The theme the picture is drawn in (docs/themes.md); without one it is Paper, as before. */
-  look?: PictureLook;
 };
 
 const CSS = `
@@ -103,8 +101,7 @@ function sectionHtml(section: OutlineSection, first: boolean): string {
 export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptions = {}): string {
   const map = isMapLike(doc) ? (doc as OperationMap) : undefined;
   const graph = map ? undefined : (doc as Graph);
-  const look = options.look ? { look: options.look } : {};
-  const svg = (map ? mapPicture(map, options.live ? { live: options.live, ...(options.at ? { at: options.at } : {}), ...look } : look) : picture(graph!, look)).trimEnd();
+  const svg = (map ? mapPicture(map, options.live ? { live: options.live, ...(options.at ? { at: options.at } : {}) } : {}) : picture(graph!)).trimEnd();
   const sections = map ? mapOutline(map) : outline(graph!);
   if (map && options.live) {
     // A snapshot: what each session was doing when the page was made, first in its section.

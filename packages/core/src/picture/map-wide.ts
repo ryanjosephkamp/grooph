@@ -66,7 +66,7 @@ function tidy(pts: P[]): P[] {
 export function mapWideWith(kit: MapKit, map: OperationMap, options: MapPictureOptions = {}): string {
   const { BADGE_R, M, PAD, SLOT, TRACK, TRACK_MIN, assignTracks, badgeHalf, drawn, fmt, frame, handoffRow, heading, inkFor, laneHead, numberRing, numberText, personCard, placeNumber, rect, sessionCard, stroke, styleOf, text } = open(kit);
   const theme = options.theme ?? "auto";
-  const ink = inkFor(theme, options.look);
+  const ink = inkFor(theme);
   const lanes = map.lanes;
   const n = lanes.length;
   const { sessions, people, handoffs, numberOf } = drawn(map);

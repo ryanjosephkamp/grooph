@@ -20,23 +20,6 @@ export type PictureOptions = {
   theme?: PictureTheme;
   /** Width in units; the height follows from the content. Default 400. */
   width?: number;
-  /** A theme other than Paper, today's (docs/themes.md). Without one the picture is byte for byte what it was. */
-  look?: PictureLook;
-};
-
-/**
- * A theme as a picture is handed it: its colors in each form, and what it puts in the frame. The picture's markup
- * and geometry do not change with it. `themes.ts` makes one from a theme's values; nothing on this side of that
- * door knows the six by name, so an address that shows only Paper carries none of them.
- */
-export type PictureLook = {
-  name: string;
-  light: Record<Color, string>;
-  dark: Record<Color, string>;
-  /** in place of the palette: the theme's colors as variables (`auto`), its rules, and what its ground is drawn from */
-  head(theme: PictureTheme): string;
-  /** drawn over the background, under everything else */
-  ground?(theme: PictureTheme): string;
 };
 
 /** What a map's picture may also be given: what the hooks saw of its sessions, and when that was read. */
@@ -108,13 +91,13 @@ export type Color = keyof typeof LIGHT;
 export const FONT = `system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 export const MONO = `ui-monospace, 'SF Mono', Menlo, Consolas, 'Roboto Mono', monospace`;
 
-/** A color as it is written into a `style` attribute for the chosen theme. It carries the look, for the frame. */
-export type Ink = ((name: Color) => string) & { look?: PictureLook };
+/** A color as it is written into a `style` attribute for the chosen theme. */
+export type Ink = (name: Color) => string;
 
-export function inkFor(theme: PictureTheme, look?: PictureLook): Ink {
-  const ink: Ink = theme === "light" ? (name) => (look?.light ?? LIGHT)[name] : theme === "dark" ? (name) => (look?.dark ?? DARK)[name] : (name) => `var(--gp-${name})`;
-  if (look) ink.look = look;
-  return ink;
+export function inkFor(theme: PictureTheme): Ink {
+  if (theme === "light") return (name) => LIGHT[name];
+  if (theme === "dark") return (name) => DARK[name];
+  return (name) => `var(--gp-${name})`;
 }
 
 /** The `<style>` an `auto` picture carries: both palettes as variables, the dark one under the viewer's preference. */
@@ -248,13 +231,11 @@ export function pill(x: number, y: number, content: string, o: { size: number; f
 
 /** The frame every picture has: the root element, the palette, a title for screen readers and the background. */
 export function frame(width: number, height: number, title: string, theme: PictureTheme, ink: Ink, body: string, kind: string): string {
-  const look = ink.look;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="${kind}"${look ? ` data-look="${look.name}"` : ""} viewBox="0 0 ${fmt(width)} ${fmt(height)}" width="${fmt(width)}" height="${fmt(height)}" role="img" font-family="${FONT}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="${kind}" viewBox="0 0 ${fmt(width)} ${fmt(height)}" width="${fmt(width)}" height="${fmt(height)}" role="img" font-family="${FONT}">` +
     `<title>${esc(title)}</title>` +
-    (look ? look.head(theme) : paletteStyle(theme)) +
+    paletteStyle(theme) +
     rect(0, 0, width, height, { fill: ink("bg") }) +
-    (look?.ground?.(theme) ?? "") +
     body +
     `</svg>\n`
   );

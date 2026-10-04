@@ -20,14 +20,20 @@ import { offlinePage } from "../src/offline.js";
 import { parseGraphText } from "../src/parse.js";
 import { picture } from "../src/picture/graph-picture.js";
 import { mapPicture } from "../src/picture/map-picture.js";
-import { inkFor, textWidth, wrap, type Color, type PictureLook, type PictureOptions, type PictureTheme } from "../src/picture/svg.js";
-import { PICTURE_THEMES, THEME_VALUES, isPictureTheme, pictureLook, readTheme } from "../src/picture/themes.js";
+import { inkFor, textWidth, wrap, type Color, type PictureOptions, type PictureTheme } from "../src/picture/svg.js";
+import { PICTURE_THEMES, THEME_VALUES, isPictureTheme, readTheme, themeParts, themed, themedPage } from "../src/picture/themes.js";
 import type { Graph, OperationMap } from "../src/types.js";
 import { fixturesDir, read, repoRoot, validFixtures } from "./helpers.js";
 
 const FORMS: PictureTheme[] = ["auto", "light", "dark"];
 const FIVE = PICTURE_THEMES.filter((name) => name !== "paper");
-const looks = (): PictureLook[] => FIVE.map((name) => pictureLook(name)!);
+/** A theme's style and what it refers to, as a picture carries them: what the tests of the rules read. */
+const head = (name: string, form: PictureTheme): string => {
+  const parts = themeParts(name, form)!;
+  return `<style>${parts.css}</style>${parts.defs ? `<defs>${parts.defs}</defs>` : ""}`;
+};
+/** A theme's colors in a form, by name; Paper's are the picture's own. */
+const colorsOf = (name: string, form: "light" | "dark"): ((color: Color) => string) => (name === "paper" ? inkFor(form) : (color) => themeParts(name, form)!.colors[color]);
 
 const patternsDir = join(repoRoot, "patterns");
 const mapsDir = join(fixturesDir, "maps", "valid");
@@ -55,7 +61,7 @@ const everyPicture = (): [string, (options: PictureOptions) => string][] => [
   ]),
 ];
 
-/** What a theme puts in the frame, taken back out: the look's name, its style and defs, and its ground. */
+/** What a theme puts in the frame, taken back out: its name, its style and what the style refers to, and its ground. */
 const bare = (svg: string): string =>
   svg
     .replace(/ data-look="[a-z]+"/, "")
@@ -64,8 +70,14 @@ const bare = (svg: string): string =>
 
 test("Paper by name, and a name that is none of the six, is no theme at all; a picture with none carries nothing of one", () => {
   assert.deepEqual([...PICTURE_THEMES], ["paper", "blueprint", "ink", "phosphor", "transit", "chalk"]);
-  // No look is handed to the picture, so it takes the branch it always took.
-  for (const name of [undefined, "paper", "sepia", "constructor", "__proto__", "toString", "", "Blueprint", "chalk ", "chalk-dark"]) assert.equal(pictureLook(name), undefined, `pictureLook(${JSON.stringify(name)})`);
+  // Such a name has no parts, and `themed` gives the picture back as it came: the very text it was handed.
+  const plainest = picture(parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!);
+  for (const name of [undefined, "paper", "sepia", "constructor", "__proto__", "toString", "", "Blueprint", "chalk ", "chalk-dark"]) {
+    assert.equal(themeParts(name), undefined, `themeParts(${JSON.stringify(name)})`);
+    for (const form of FORMS) assert.equal(themed(plainest, name, form), plainest, `themed(…, ${JSON.stringify(name)}, ${form})`);
+  }
+  // A picture that already has its colors written in is not one a theme can be added to, and that is said.
+  assert.throws(() => themed(picture(parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!, { theme: "light" }), "chalk"), /as core draws it to follow the viewer/);
   assert.ok(isPictureTheme("paper") && isPictureTheme("chalk") && !isPictureTheme("constructor"));
   // What `--theme` and an address say: a name, light, dark or auto, or a name and one of them.
   assert.deepEqual(readTheme("chalk"), { name: "chalk" });
@@ -85,22 +97,25 @@ test("Paper by name, and a name that is none of the six, is no theme at all; a p
 
 test("a theme is a set of values: in all six the markup, the geometry and the words are the same", () => {
   let drawn = 0;
-  for (const [name, draw] of everyPicture()) {
+  for (const [what, draw] of everyPicture()) {
     const paper = bare(draw({ theme: "auto" }));
     const words = (svg: string): string[] => [...svg.matchAll(/<(?:text|title)[^>]*>([^<]*)</g)].map((m) => m[1]!);
-    for (const look of looks()) {
-      const themed = draw({ theme: "auto", look });
-      assert.match(themed, new RegExp(`^<svg [^>]*data-look="${look.name}"`), name);
+    for (const name of FIVE) {
+      const follows = themed(draw({ theme: "auto" }), name);
+      assert.match(follows, new RegExp(`^<svg [^>]*data-look="${name}"`), what);
       // The picture that follows the viewer: take out what the theme put in the frame, and it is Paper's.
-      assert.equal(bare(themed), paper, `${name} in ${look.name}: the picture itself differs from Paper's`);
-      assert.deepEqual(words(themed), words(draw({ theme: "auto" })), `${name} in ${look.name}: the words differ`);
-      assert.equal(themed, draw({ theme: "auto", look }), `${name} in ${look.name}: not the same bytes twice`);
-      // A picture in one form is that same picture with each color written in.
+      assert.equal(bare(follows), paper, `${what} in ${name}: the picture itself differs from Paper's`);
+      assert.deepEqual(words(follows), words(draw({ theme: "auto" })), `${what} in ${name}: the words differ`);
+      assert.equal(follows, themed(draw({ theme: "auto" }), name), `${what} in ${name}: not the same bytes twice`);
+      // A picture in light or dark only is that same picture with each color written in, and nothing left to look up.
       for (const form of ["light", "dark"] as const) {
-        const fixed = draw({ theme: form, look });
-        const written = bare(themed).replace(/var\(--gp-([a-z0-9-]+)\)/g, (_, color: Color) => look[form][color]);
-        assert.equal(bare(fixed), written, `${name} in ${look.name}, ${form}`);
-        assert.ok(!fixed.includes("var(--") && !fixed.includes("prefers-color-scheme"), `${name} in ${look.name}, ${form}: a picture in one form carries its colors`);
+        const fixed = themed(draw({ theme: "auto" }), name, form);
+        const written = bare(follows).replace(/var\(--gp-([a-z0-9-]+)\)/g, (_, color: Color) => themeParts(name, form)!.colors[color]);
+        assert.equal(bare(fixed), written, `${what} in ${name}, ${form}`);
+        assert.ok(!fixed.includes("var(--") && !fixed.includes("prefers-color-scheme"), `${what} in ${name}, ${form}: a picture in one form carries its colors`);
+        // And it is drawn from the same picture Paper's light and dark are: only the colors and the frame differ.
+        const strip = (svg: string): string => svg.replace(/ style="[^"]*"/g, "");
+        assert.equal(strip(bare(fixed)), strip(draw({ theme: form })), `${what} in ${name}, ${form}: not Paper's ${form} picture with other colors`);
         drawn++;
       }
     }
@@ -154,7 +169,7 @@ export function contrastFigures(): { theme: string; form: "light" | "dark"; leas
   const out = [];
   for (const name of PICTURE_THEMES) {
     for (const form of ["light", "dark"] as const) {
-      const color = inkFor(form, pictureLook(name));
+      const color = colorsOf(name, form);
       let worst = { least: Infinity, words: "ink" as Color, on: "bg" as Color };
       for (const [on, list] of pairsFor(name)) for (const words of list) if (contrast(color(words), color(on)) < worst.least) worst = { least: contrast(color(words), color(on)), words, on };
       out.push({ theme: name, form, ...worst });
@@ -167,7 +182,7 @@ test("the five themes' words are at 4.5 to 1 or better on their ground, in light
   const short: string[] = [];
   for (const name of FIVE) {
     for (const form of ["light", "dark"] as const) {
-      const color = inkFor(form, pictureLook(name));
+      const color = colorsOf(name, form);
       for (const [on, list] of pairsFor(name)) {
         for (const words of list) {
           const ratio = contrast(color(words), color(on));
@@ -207,11 +222,10 @@ export function paperShort(): { form: "light" | "dark"; words: Color; on: Color;
 }
 
 test("with one ink, weight and words say what color said: a gate, a stop, a loop's edge and a person are told apart in Ink", () => {
-  const ink = pictureLook("ink")!;
   for (const form of ["light", "dark"] as const) {
-    assert.equal(new Set(["accent", "gate", "check", "merge", "stop", "error", "ok", "loop-0", "loop-3"].map((c) => ink[form][c as Color])).size, 1, "Ink is one ink");
+    assert.equal(new Set(["accent", "gate", "check", "merge", "stop", "error", "ok", "loop-0", "loop-3"].map((c) => colorsOf("ink", form)(c as Color))).size, 1, "Ink is one ink");
   }
-  const svg = picture(parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!, { theme: "light", look: ink });
+  const svg = themed(picture(parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!), "ink", "light");
   // The picture says each kind in words, a gate's card has the heavier outline, a stop's the rounder corners, a
   // loop's back edge is dashed and labeled: none of it is the theme's, so none of it is lost with the colors.
   for (const kind of ["Agent", "Human gate", "Stop"]) assert.ok(svg.includes(`>${kind}</text>`), kind);
@@ -220,20 +234,20 @@ test("with one ink, weight and words say what color said: a gate, a stop, a loop
   assert.match(svg, /<path [^>]*stroke-dasharray="5 3"/);
   assert.ok(svg.includes(">fail</text>"));
   // And the theme makes the two that color carried alone heavier still.
-  const head = ink.head("light");
-  assert.match(head, /rect\[data-card\]\[stroke-width="1\.8"\]\{stroke-width:3\}/);
-  assert.match(head, /rect\[data-card\]\[stroke-width="1\.4"\]\{stroke-width:2\.4\}/);
-  assert.match(head, /\[data-edge\] path\[stroke-width="2"\]\{stroke-width:2\.4\}/);
+  const rules = head("ink", "light");
+  assert.match(rules, /rect\[data-card\]\[stroke-width="1\.8"\]\{stroke-width:3\}/);
+  assert.match(rules, /rect\[data-card\]\[stroke-width="1\.4"\]\{stroke-width:2\.4\}/);
+  assert.match(rules, /\[data-edge\] path\[stroke-width="2"\]\{stroke-width:2\.4\}/);
 });
 
 // ─── the rules and the frame ──────────────────────────────────────────────
 
 test("every rule of every theme selects something the pictures carry, and is written for this picture only", () => {
   const all = everyPicture().map(([, draw]) => draw({ theme: "light" })).join("");
-  for (const look of looks()) {
+  for (const name of FIVE) {
     for (const form of FORMS) {
-      const head = look.head(form);
-      const css = /<style>(.*?)<\/style>/.exec(head)![1]!;
+      const frame = head(name, form);
+      const css = /<style>(.*?)<\/style>/.exec(frame)![1]!;
       // Every selector starts at the picture in this theme: inline in a page, a rule reaches nothing else.
       // A rule may sit inside a condition (dark, or a property the renderer must know): it is read as the rule it holds.
       const selectors = css
@@ -242,27 +256,26 @@ test("every rule of every theme selects something the pictures carry, and is wri
         .map((rule) => rule.split("{")[0]!)
         .filter(Boolean)
         .flatMap((list) => list.split(/,(?![^\[]*\])/));
-      assert.ok(selectors.length >= 3, `${look.name}: ${selectors.length} selectors`);
-      for (const selector of selectors) assert.ok(selector.startsWith(`.grooph-picture[data-look="${look.name}"]`), `${look.name}, ${form}: "${selector}" is not kept to this theme's pictures`);
+      assert.ok(selectors.length >= 3, `${name}: ${selectors.length} selectors`);
+      for (const selector of selectors) assert.ok(selector.startsWith(`.grooph-picture[data-look="${name}"]`), `${name}, ${form}: "${selector}" is not kept to this theme's pictures`);
       // And every hook it names is one the drawing code writes.
       for (const [, attribute, value] of css.matchAll(/\[([a-z-]+)(?:="([^"]*)")?\]/g)) {
         if (attribute === "data-look" || attribute === "data-theme" || attribute === "style") continue;
         const written = value === undefined ? ` ${attribute}=` : ` ${attribute}="${value}"`;
-        assert.ok(all.includes(written), `${look.name}: a rule selects [${attribute}${value === undefined ? "" : `="${value}"`}], which no picture carries`);
+        assert.ok(all.includes(written), `${name}: a rule selects [${attribute}${value === undefined ? "" : `="${value}"`}], which no picture carries`);
       }
-      assert.ok(!/[<&]/.test(css), `${look.name}: the style has a character that would end it`);
-      assert.ok(!/url\(\s*["']?(?!#)/.test(head) && !/https?:|@import|@font-face/.test(head), `${look.name}: a theme asks for something outside the picture`);
+      assert.ok(!/[<&]/.test(css), `${name}: the style has a character that would end it`);
+      assert.ok(!/url\(\s*["']?(?!#)/.test(frame) && !/https?:|@import|@font-face/.test(frame), `${name}: a theme asks for something outside the picture`);
     }
   }
 });
 
 test("a theme's recoloring finds the color it replaces, in each form", () => {
   // Transit draws the plain edges in its route's color. Their own color is written on them, so the rule names it.
-  const transit = pictureLook("transit")!;
   const doc = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
   for (const form of FORMS) {
-    const svg = picture(doc, { theme: form, look: transit });
-    const plain = form === "auto" ? "var(--gp-ink-2)" : transit[form]["ink-2"];
+    const svg = themed(picture(doc), "transit", form);
+    const plain = form === "auto" ? "var(--gp-ink-2)" : themeParts("transit", form)!.colors["ink-2"];
     assert.ok(svg.includes(`[data-edge] [style="stroke:${plain}"]`), `${form}: the rule`);
     assert.match(svg, new RegExp(`<g data-edge="[^"]+"><path [^>]*style="stroke:${plain.replace(/[()]/g, "\\$&")}"/>`), `${form}: an edge it applies to`);
   }
@@ -313,7 +326,7 @@ test("in a fixed-width face no full line of the repository's prose leaves its bo
   };
 
   // Phosphor: every line. The size each is drawn at, and how much closer its letters are, read from the theme's own rules.
-  const phosphor = pictureLook("phosphor")!.head("light");
+  const phosphor = head("phosphor", "light");
   const tracking = Number(/data-look="phosphor"\] text\{letter-spacing:(-?[\d.]+)em\}/.exec(phosphor)![1]);
   assert.ok(tracking < 0 && tracking >= -0.06, `letters ${tracking} em closer: closer than that and a fixed-width face's letters touch`);
   const sizeOf = (size0: number, weight: "bold" | "regular"): number => {
@@ -333,7 +346,7 @@ test("in a fixed-width face no full line of the repository's prose leaves its bo
   assert.ok(past(10.5, "regular", [356, 315, 170], 9, sizeOf(10.5, "regular") + 0.5, tracking).past > 0, "a card's small line would fit half a unit larger: the size can go up");
 
   // Blueprint: its fixed-width lines are a card's small line and a lane's, at one size.
-  const blueprint = pictureLook("blueprint")!.head("light");
+  const blueprint = head("blueprint", "light");
   const small = /\[data-node\]>text\[font-size="10\.5"\],[^{]*\{font-family:[^;]*;font-size:([\d.]+)px;letter-spacing:(-?[\d.]+)em\}/.exec(blueprint)!;
   assert.equal(past(10.5, "regular", [356, 315, 170], 9, Number(small[1]), Number(small[2])).past, 0, "Blueprint, a card's small line");
   // Its title is in capitals, which are wider than what was measured in any face: held against the widest face core measures for.
@@ -348,32 +361,29 @@ test("a rule a PNG's renderer would get wrong is kept from it: Transit's arrowhe
   // scales each arrowhead about the picture's corner and moves it across the picture. A condition it does not read
   // keeps the rule from it, and a browser, which knows both, applies it.
   for (const form of FORMS) {
-    const head = pictureLook("transit")!.head(form);
-    const guarded = /@supports \(transform-box:fill-box\)\{[^{}]*\{[^{}]*\}\}/.exec(head);
+    const frame = head("transit", form);
+    const guarded = /@supports \(transform-box:fill-box\)\{[^{}]*\{[^{}]*\}\}/.exec(frame);
     assert.ok(guarded, `${form}: no guarded rule`);
     assert.ok(guarded[0].includes("transform:scale("));
-    assert.ok(!/[;{]transform(?:-box|-origin)?:/.test(head.replace(guarded[0], "")), `${form}: a transform outside the condition`);
+    assert.ok(!/[;{]transform(?:-box|-origin)?:/.test(frame.replace(guarded[0], "")), `${form}: a transform outside the condition`);
   }
-  for (const name of ["blueprint", "ink", "phosphor", "chalk"]) assert.ok(!/[;{]transform(?:-box|-origin)?:/.test(pictureLook(name)!.head("light")), name);
+  for (const name of ["blueprint", "ink", "phosphor", "chalk"]) assert.ok(!/[;{]transform(?:-box|-origin)?:/.test(head(name, "light")), name);
 });
 
 test("a rule for a card's own lines does not reach a mark a page adds inside the card", () => {
   // An embed writes a node's state into its card while a run plays, as a small line of words in a group of its own.
   // A node's kind and its lines are children of the node; the rules for them say so, and pass the mark by.
-  for (const look of looks()) {
-    const head = look.head("light");
-    assert.ok(!/\[data-node\] text\[font-size="(?:9\.5|10\.5)"\]/.test(head), `${look.name}: a rule for any text of that size inside a node`);
-  }
-  assert.match(pictureLook("blueprint")!.head("light"), /\[data-node\]>text\[font-size="9\.5"\]\{[^}]*text-transform:uppercase/);
+  for (const name of FIVE) assert.ok(!/\[data-node\] text\[font-size="(?:9\.5|10\.5)"\]/.test(head(name, "light")), `${name}: a rule for any text of that size inside a node`);
+  assert.match(head("blueprint", "light"), /\[data-node\]>text\[font-size="9\.5"\]\{[^}]*text-transform:uppercase/);
   // And a family's count keeps its pill where the cards' corners change: only the card and the two edges behind it are named.
-  assert.match(pictureLook("ink")!.head("light"), /\[data-session\]>rect\[data-card\],[^{]*\[data-session\]>rect\[rx="9"\]\{rx:2px/);
+  assert.match(head("ink", "light"), /\[data-session\]>rect\[data-card\],[^{]*\[data-session\]>rect\[rx="9"\]\{rx:2px/);
 });
 
 test("a ground and its pattern share an id that says the form, so two forms in one page each keep their own", () => {
   const doc = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
   for (const name of ["blueprint", "phosphor"]) {
     const ids = FORMS.map((form) => {
-      const svg = picture(doc, { theme: form, look: pictureLook(name)! });
+      const svg = themed(picture(doc), name, form);
       const id = /<pattern id="([^"]+)"/.exec(svg)![1]!;
       assert.ok(svg.includes(`<rect width="100%" height="100%" fill="url(#${id})"/>`), `${name}, ${form}: the ground does not name its pattern`);
       // The ground is the second thing drawn: over the background, under every card and line.
@@ -382,17 +392,16 @@ test("a ground and its pattern share an id that says the form, so two forms in o
     });
     assert.equal(new Set(ids).size, 3, `${name}: ${ids.join(", ")}`);
   }
-  for (const name of ["ink", "transit", "chalk"]) assert.ok(!picture(doc, { look: pictureLook(name)! }).includes("<pattern"), name);
+  for (const name of ["ink", "transit", "chalk"]) assert.ok(!themed(picture(doc), name).includes("<pattern"), name);
 });
 
 test("a theme with one form is the same picture in light and in dark", () => {
-  const phosphor = pictureLook("phosphor")!;
-  assert.equal(phosphor.light, phosphor.dark);
+  assert.equal(THEME_VALUES.phosphor.light, THEME_VALUES.phosphor.dark);
   const doc = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
-  const auto = picture(doc, { look: phosphor });
+  const auto = themed(picture(doc), "phosphor");
   assert.ok(!auto.includes("prefers-color-scheme"), "a picture with one form does not ask which the viewer prefers");
-  assert.equal(picture(doc, { theme: "light", look: phosphor }).replaceAll("gp-phosphor-light", "x"), picture(doc, { theme: "dark", look: phosphor }).replaceAll("gp-phosphor-dark", "x"));
-  for (const name of ["blueprint", "ink", "transit", "chalk"]) assert.notEqual(pictureLook(name)!.light, pictureLook(name)!.dark, name);
+  assert.equal(themed(picture(doc), "phosphor", "light").replaceAll("gp-phosphor-light", "x"), themed(picture(doc), "phosphor", "dark").replaceAll("gp-phosphor-dark", "x"));
+  for (const name of ["blueprint", "ink", "transit", "chalk"] as const) assert.notEqual(THEME_VALUES[name].light, THEME_VALUES[name].dark, name);
 });
 
 test("the six pictures docs/themes.md shows are what the code draws", () => {
@@ -400,20 +409,25 @@ test("the six pictures docs/themes.md shows are what the code draws", () => {
   const page = read(join(repoRoot, "docs", "themes.md"));
   for (const name of PICTURE_THEMES) {
     const path = `handoffs/0086-themes/pictures/review-loop.${name}.svg`;
-    const look = pictureLook(name);
-    assert.equal(read(join(repoRoot, path)), picture(doc, look ? { look } : {}), `${path} is stale: grooph image fixtures/valid/review-loop.grooph.json --theme ${name} --out ${path}`);
+    assert.equal(read(join(repoRoot, path)), themed(picture(doc), name), `${path} is stale: grooph image fixtures/valid/review-loop.grooph.json --theme ${name} --out ${path}`);
     assert.ok(page.includes(`<img src="../${path}"`), `docs/themes.md does not show ${name}`);
   }
 });
 
-test("the offline page draws its picture in the theme it is given, and is today's page without one", () => {
+test("an offline page takes a theme as a picture does: its picture in the theme, and every other byte the page it was", () => {
   const doc = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
   const plain = offlinePage(doc, { version: "0.0.0" });
-  assert.ok(!plain.includes("data-look"));
-  const themed = offlinePage(doc, { version: "0.0.0", look: pictureLook("chalk")! });
-  assert.ok(themed.includes('data-look="chalk"') && themed.includes('<filter id="gp-chalk">'));
-  // Everything but the picture is the page as it was.
-  assert.equal(themed.replace(/<svg .*?<\/svg>/s, ""), plain.replace(/<svg .*?<\/svg>/s, ""));
+  assert.equal(themedPage(plain, "paper"), plain);
+  assert.equal(themedPage(plain, "sepia"), plain);
+  const chalk = themedPage(plain, "chalk");
+  assert.ok(chalk.includes('data-look="chalk"') && chalk.includes('<filter id="gp-chalk">'));
+  // Its picture is the one `themed` makes, and everything else is untouched.
+  const svg = /<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" class="grooph-picture".*?<\/svg>/s;
+  assert.equal(svg.exec(chalk)![0], themed(picture(doc), "chalk").trimEnd());
+  assert.equal(chalk.replace(svg, ""), plain.replace(svg, ""));
+  // A map's page too.
+  const map = maps()[0]![1];
+  assert.equal(svg.exec(themedPage(offlinePage(map, { version: "0.0.0" }), "ink"))![0], themed(mapPicture(map), "ink").trimEnd());
 });
 
 test("the themes are behind a door of their own: core's first door does not lead to them, and they import nothing", () => {
@@ -432,8 +446,8 @@ test("the themes are behind a door of their own: core's first door does not lead
   assert.ok(!reached.has(join(src, "picture", "themes.ts")), "base.ts leads to picture/themes.ts");
   // Nothing shared with the rest of core, so fetching the themes moves no other file (map-kit.ts says what happens otherwise).
   assert.deepEqual(runtimeImports(join(src, "picture", "themes.ts")), []);
-  // Nothing on base's side names a theme: the frame is handed a look and knows none of the six. (Ink shares its
-  // name with a color, so it is not looked for.)
+  // Nothing on base's side names a theme, and none of it was changed for them: a theme is added to a picture after
+  // it is drawn. (Ink shares its name with a color, so it is not looked for.)
   for (const file of reached) for (const name of FIVE) assert.ok(name === "ink" || !new RegExp(`["'\`]${name}["'\`]`).test(read(file)), `${file.slice(src.length + 1)} names the theme ${name}`);
   assert.equal(Object.keys(THEME_VALUES).join(), FIVE.join());
 });
