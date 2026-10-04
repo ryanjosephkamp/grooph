@@ -14,7 +14,7 @@ How this package's files correspond to the graph document, so a human can hand-a
 | progress | `.grooph/fix-until-green/runs/<run-id>/PROGRESS.md` | written at run time, after every node |
 | run notes | `.grooph/fix-until-green/runs/<run-id>/notes.jsonl` | written at run time, one JSON object per line (graph-ir §6) |
 | working copy | `.grooph/fix-until-green/runs/<run-id>/graph.grooph.json` | copied from the source at run setup; left unchanged (fixed) |
-| node `fixer` | `.claude/agents/fix-until-green--fixer.md` | subagent `fix-until-green--fixer` · builder · model opus · effort medium |
+| node `fixer` | `.claude/agents/fix-until-green--fixer.md` | subagent `fix-until-green--fixer` · builder · model sonnet · effort medium |
 
 ## Pieces with no file of their own
 
@@ -31,7 +31,7 @@ Edges, loops and policies have no file: they are the routing, round and stop rul
 
 ```yaml
 # .claude/agents/fix-until-green--fixer.md
-model: opus      # profile: frontier → fable, strong → opus, fast → sonnet
+model: sonnet      # profile: frontier → opus, strong → sonnet, fast → sonnet
 effort: medium      # low | medium | high | max
 ```
 

@@ -11,19 +11,22 @@ const TIERS = ["frontier", "strong", "fast"] as const;
 const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
 
 /**
- * What the tiers mean in this package, all three, and which the one exporting named; then, when two tiers a graph's
- * agents use have become one model, a line saying so. The validator's check that a critic differs from the builder
- * it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers made the same from outside the document.
+ * What the tiers mean in this package, all three, and which the one exporting named, when they named any; then,
+ * when two tiers a graph's agents use are one model, a line saying so. The validator's check that a critic differs
+ * from the builder it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers that are the same model.
+ * That happens when the one exporting names them so, and since handoff 0084 with nothing named: the target's own map
+ * gives `strong` and `fast` one model.
  */
-function tiersSaid(doc: Graph, target: CompileTarget, models: NonNullable<CompileOptions["models"]>, from: string): string[] {
+function tiersSaid(doc: Graph, target: CompileTarget, models: CompileOptions["models"], from: string): string[] {
   const stock = getProfile(target).models;
-  const means = (tier: (typeof TIERS)[number]): string => models[tier] ?? stock[tier];
-  const lines = [`tiers in this package: ${TIERS.map((tier) => `${tier} → ${means(tier)}${tier in models ? "" : " (the target's own)"}`).join(", ")}. Named by ${from}. A pin on a node still wins.`];
+  const named = models ?? {};
+  const means = (tier: (typeof TIERS)[number]): string => named[tier] ?? stock[tier];
+  const lines = models ? [`tiers in this package: ${TIERS.map((tier) => `${tier} → ${means(tier)}${tier in named ? "" : " (the target's own)"}`).join(", ")}. Named by ${from}. A pin on a node still wins.`] : [];
   const used = new Set((doc.nodes ?? []).flatMap((node) => (node.kind === "agent" && node.model && !node.model.pin?.[target] ? [node.model.tier] : [])));
   const same = TIERS.flatMap((a, i) => TIERS.slice(i + 1).filter((b) => used.has(a) && used.has(b) && means(a) === means(b)).map((b) => `${a} and ${b} are both ${means(a)}`));
   if (same.length > 0) {
     lines.push(
-      `note: ${same.join("; ")} in this package, and this graph has agents on each. A critic and the builder it checks may now share a model; the validator's check for that reads tiers and does not see it.`,
+      `note: ${same.join("; ")} in this package${models ? "" : ", by the target's own map"}, and this graph has agents on each. A critic and the builder it checks may ${models ? "now " : ""}share a model; the validator's check for that reads tiers and does not see it.${models ? "" : " To keep them apart, name the tiers: --models, or GROOPH_MODELS."}`,
     );
   }
   return lines;
@@ -103,7 +106,7 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
 
   io.out(`wrote ${plural(paths.length, "file")} into ${flags.into}`);
   for (const path of paths) io.out(`  ${path}`);
-  if (flags.models) for (const line of tiersSaid(parsed.doc, flags.target, flags.models, flags.modelsFrom ?? "--models")) io.out(line);
+  for (const line of tiersSaid(parsed.doc, flags.target, flags.models, flags.modelsFrom ?? "--models")) io.out(line);
 
   if (compiled.warnings.length > 0) {
     io.out("");
