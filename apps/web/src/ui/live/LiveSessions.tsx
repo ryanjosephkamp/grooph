@@ -1,7 +1,9 @@
 import { durationText, isQuiet, mapLive, mapPicture, parseMap, planLine, secondsBetween, type LiveAgent, type LivePlan, type LiveSession, type LiveView, type OperationMap } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
+import { copyText } from "../../doc/exportPackage.js";
 import { POLL_MS } from "../run/RunScreens.js";
+import "./live.css";
 
 /**
  * The sessions endpoint `grooph watch` serves beside the app. Like the run's,
@@ -24,7 +26,23 @@ export function parseLiveView(text: string): LiveView | undefined {
   }
 }
 
-type Live = { view?: LiveView; error?: string; fetchedAt: number };
+type Live = { view?: LiveView; error?: string; fetchedAt: number; /** nothing here to ask, so nothing is asked */ off?: boolean };
+
+const NO_WATCH = "There is no grooph watch here that serves sessions.";
+
+/**
+ * Whether a `grooph watch` can be behind this page. Watch serves plain http, so an https page has one only through
+ * a proxy, and a proxy passes on the header watch sends with every answer. The page's own address is asked, which
+ * every server has: a site with no watch (the public one) is never asked for an endpoint it can only answer with a 404.
+ */
+async function watchBehind(): Promise<boolean> {
+  if (location.protocol !== "https:") return true;
+  try {
+    return (await fetch(document.baseURI, { method: "HEAD", cache: "no-store" })).headers.get("referrer-policy") === "no-referrer";
+  } catch {
+    return false;
+  }
+}
 
 /** Ask the watch server for the sessions, every two seconds, for as long as the screen is up. */
 export function useLiveSessions(enabled = true): Live {
@@ -38,19 +56,49 @@ export function useLiveSessions(enabled = true): Live {
         const res = await fetch(sessionsEndpoint(), { cache: "no-store" });
         const view = (res.headers.get("content-type") ?? "").includes("application/json") && res.ok ? parseLiveView(await res.text()) : undefined;
         if (view) setLive({ view, fetchedAt: Date.now() });
-        else setLive((l) => ({ ...l, error: "There is no grooph watch here that serves sessions. Open the address grooph watch prints on your computer." }));
+        else setLive((l) => ({ ...l, error: NO_WATCH }));
       } catch {
         setLive((l) => ({ ...l, error: "grooph watch is not answering. Is it still running?" }));
       }
       if (!stopped) timer = setTimeout(() => void poll(), POLL_MS);
     };
-    void poll();
+    void watchBehind().then((there) => {
+      if (stopped) return;
+      if (there) void poll();
+      else setLive((l) => ({ ...l, error: NO_WATCH, off: true }));
+    });
     return () => {
       stopped = true;
       clearTimeout(timer);
     };
   }, [enabled]);
   return live;
+}
+
+const COMMAND = "grooph watch --sessions";
+
+/** Nothing serves sessions here: what this screen is, and the command that fills it. */
+function NoWatch({ live }: { live: Live }) {
+  const [said, setSaid] = useState("");
+  return (
+    <div className="live-none">
+      <h2>Your sessions, as they work</h2>
+      <p>This screen shows each session the event hook has recorded on your computer, and its subagents as they start and stop.</p>
+      <p role="status">{live.error} Run this in your project and open the address it prints:</p>
+      <div className="copy-line">
+        <code className="copy-line-text">{COMMAND}</code>
+        <button type="button" className="btn btn-small" aria-label="Copy the command" onClick={async () => setSaid((await copyText(COMMAND)) ? "Copied." : "Could not copy. Select the line and copy it.")}>
+          Copy
+        </button>
+        <span className="copy-line-said muted" role="status">
+          {said}
+        </span>
+      </div>
+      <p className="muted">
+        <span className="mono">grooph hooks install</span> starts the recording. {live.off ? "" : "Still asking every two seconds."}
+      </p>
+    </div>
+  );
 }
 
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
@@ -152,8 +200,8 @@ function SessionCard({ session, now }: { session: LiveSession; now: string }) {
       <header className="live-session-head">
         <div className="live-session-title">
           <span className={`live-harness live-harness-${session.harness === "codex" ? "codex" : "claude"}`}>{HARNESS[session.harness] ?? session.harness}</span>
+          {/* Each state has its colour, its mark (drawn by live.css before the words) and its words. */}
           <span className={`status live-state live-state-${quiet ? "quiet" : session.state}`}>
-            {session.state === "working" && !quiet ? <span className="live-dot is-on" aria-hidden="true" /> : null}
             {/* A record is as fresh as its last line. Past half an hour of silence it is not called working. */}
             {quiet ? `Last seen ${durationText(seen)} ago` : STATE[session.state]}
           </span>
@@ -219,6 +267,9 @@ export function LiveSessions() {
   // The header counts by the same clock as the cards: a session goes quiet in both at once.
   const working = sessions.filter((s) => s.state === "working" && !isQuiet(s, now)).length;
   const runningAgents = sessions.reduce((n, s) => n + (isQuiet(s, now) ? 0 : s.agents.filter((a) => a.state === "running").length), 0);
+  // How many sessions are in each state: the page at a glance, and the key to the marks on the cards.
+  const counts = { working: 0, waiting: 0, quiet: 0, ended: 0 };
+  for (const s of sessions) counts[isQuiet(s, now) ? "quiet" : s.state] += 1;
 
   return (
     <div className="live-view">
@@ -233,40 +284,55 @@ export function LiveSessions() {
           <span className="title-sub">what the event hook has seen · live</span>
         </div>
         <span className={`status ${working > 0 ? "run-status-running" : "run-status-ended"}`} role="status" aria-label={`${working} working, ${runningAgents} subagents running`}>
-          {working > 0 ? `${runningAgents} running` : "Quiet"}
+          {working > 0 ? `${runningAgents} running` : live.view ? "Quiet" : "Not connected"}
         </span>
       </header>
 
       <main className="live-main">
-        {live.error ? (
+        {live.error && live.view ? (
           <p className="run-origin is-problem" role="status">
-            {live.error} {live.view ? "Showing what it last sent; still asking." : "Still asking every two seconds."}
+            {live.error} Showing what it last sent; still asking.
           </p>
         ) : null}
-        {!live.view && !live.error ? <p className="muted live-empty">Asking the server this page came from for its sessions.</p> : null}
-        {live.view?.map ? <LiveMap map={live.view.map} view={live.view} /> : null}
-        {live.view && sessions.length === 0 ? (
-          <div className="live-empty">
-            <p>No sessions recorded yet.</p>
-            <p className="muted">
-              A hook writes one line when a session or a subagent starts or stops. Install it in the project with <span className="mono">grooph hooks install</span>, start a session, and it appears here.
-            </p>
-          </div>
-        ) : null}
-        {[...groups.entries()].map(([source, list]) => (
-          <div key={source} className="live-group">
-            {source !== "" ? <h2 className="live-source">{source}</h2> : null}
-            {list.map((s) => (
-              <SessionCard key={`${s.harness}/${s.id}`} session={s} now={now} />
+        {live.view ? null : live.error ? <NoWatch live={live} /> : <p className="muted live-empty">Asking the server this page came from for its sessions.</p>}
+        <div className={`live-body${live.view?.map ? " has-map" : ""}`}>
+          {live.view?.map ? <LiveMap map={live.view.map} view={live.view} /> : null}
+          <div className="live-list">
+            {sessions.length > 1 ? (
+              <p className="live-sum" aria-label="Sessions by state">
+                {(Object.keys(counts) as (keyof typeof counts)[]).map((state) =>
+                  counts[state] > 0 ? (
+                    <span key={state} className={`live-state-${state}`}>
+                      {counts[state]} {state === "quiet" ? "gone quiet" : state}
+                    </span>
+                  ) : null,
+                )}
+              </p>
+            ) : null}
+            {live.view && sessions.length === 0 ? (
+              <div className="live-empty">
+                <p>No sessions recorded yet.</p>
+                <p className="muted">
+                  A hook writes one line when a session or a subagent starts or stops. Install it in the project with <span className="mono">grooph hooks install</span>, start a session, and it appears here.
+                </p>
+              </div>
+            ) : null}
+            {[...groups.entries()].map(([source, list]) => (
+              <div key={source} className="live-group">
+                {source !== "" ? <h2 className="live-source">{source}</h2> : null}
+                {list.map((s) => (
+                  <SessionCard key={`${s.harness}/${s.id}`} session={s} now={now} />
+                ))}
+              </div>
             ))}
+            {live.view?.issues && live.view.issues.length > 0 ? (
+              <p className="field-hint">
+                {live.view.issues.length} line{live.view.issues.length === 1 ? "" : "s"} of the events could not be read (the first: {live.view.issues[0]!.source}, line {live.view.issues[0]!.line}).
+              </p>
+            ) : null}
+            {live.view ? <p className="field-hint live-foot">This shows that something ran, when and for how long. What an agent said is not recorded, except a plan or a note its lead chose to leave.</p> : null}
           </div>
-        ))}
-        {live.view?.issues && live.view.issues.length > 0 ? (
-          <p className="field-hint">
-            {live.view.issues.length} line{live.view.issues.length === 1 ? "" : "s"} of the events could not be read (the first: {live.view.issues[0]!.source}, line {live.view.issues[0]!.line}).
-          </p>
-        ) : null}
-        <p className="field-hint live-foot">This shows that something ran, when and for how long. What an agent said is not recorded, except a plan or a note its lead chose to leave.</p>
+        </div>
       </main>
     </div>
   );

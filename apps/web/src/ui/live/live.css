@@ -1,0 +1,164 @@
+/* Live sessions (handoff 0062). The phone's rules are in styles.css; these add each state's mark, the words for a
+   page nothing serves, and from 900 px a grid in place of one column. */
+
+.live-view .topbar .status {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* A state is a colour, a mark and words: a filled dot that pulses while working, an amber ring while waiting,
+   a grey ring when gone quiet, a still grey dot when ended. The same marks core draws on a map's sessions. */
+.live-view .live-state::before,
+.live-sum span::before {
+  content: "";
+  display: block;
+  position: static;
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border: 2px solid;
+  border-radius: 50%;
+}
+.live-view .live-state-working::before,
+.live-view .live-state-ended::before {
+  background: currentColor;
+}
+.live-view .live-state-working::before {
+  animation: live-sign 1.6s ease-out infinite;
+}
+@keyframes live-sign {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+/* The card says it too: one at work stands out, one that is over steps back, one not heard from is in doubt. */
+.live-session.live-working {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.live-session:is(.live-ended, .live-quiet) {
+  background: transparent;
+}
+.live-session:is(.live-ended, .live-quiet) .live-harness {
+  color: var(--ink-2);
+}
+.live-session.live-quiet {
+  border-style: dashed;
+  border-color: var(--line-strong);
+}
+/* A subagent with no stop on record in a session gone quiet: not done, not known to be running. */
+.live-agent[data-agent-state="running"]:not(.is-running) .live-mark {
+  border: 2px dashed var(--ink-3);
+  background: none;
+}
+
+.live-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 640px;
+  margin: 0 auto 12px;
+}
+.live-sum span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 11px 0 9px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+/* Nothing serves sessions here. */
+.live-none {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 28px 8px;
+}
+.live-none h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.live-none p {
+  margin: 0 0 12px;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.live-none .copy-line {
+  margin: 0 0 14px;
+}
+.live-none .copy-line-text {
+  flex: 1 1 200px;
+}
+.live-none .muted {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+@media (min-width: 900px) {
+  .live-main {
+    padding: 20px 28px calc(40px + env(safe-area-inset-bottom));
+  }
+  .live-body,
+  .live-main > .run-origin {
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .live-main > .run-origin {
+    margin-bottom: 12px;
+  }
+  .live-group,
+  .live-sum,
+  .live-foot,
+  .live-list > .live-empty {
+    max-width: none;
+  }
+  .live-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+    align-items: start;
+    margin-bottom: 16px;
+  }
+  .live-source {
+    grid-column: 1 / -1;
+    margin: 8px 2px -6px;
+  }
+  .live-session {
+    margin: 0;
+  }
+  .live-none {
+    padding-top: 56px;
+  }
+}
+
+/* With a map, the operation stays in view beside its sessions. */
+@media (min-width: 1100px) {
+  .live-body.has-map {
+    display: grid;
+    grid-template-columns: minmax(380px, 440px) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .has-map .live-map {
+    position: sticky;
+    top: 0;
+    max-height: calc(100dvh - 120px);
+    margin: 0;
+    overflow-y: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-view .live-state-working::before {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, currentColor 30%, transparent);
+  }
+}
