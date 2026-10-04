@@ -410,6 +410,14 @@ test("the work root is the runner's alone: leftovers are seen, --clear-work remo
     writeFileSync(join(wk, ".keep"), JSON.stringify({ pid: Number(gone) }));
     assert.equal(liveRun(), null);
     out = run("--clear-work");
+    // The command also asks the study's own ledger, which this test does not replace: while a real run is in flight its
+    // line is marked running and nothing is cleared, which is the refusal working. The rest is checked when no run is.
+    if (loadLedger().invocations.some((entry) => entry.status === "running")) {
+      assert.equal(out.status, 1);
+      assert.match(out.stderr, /is marked running[\s\S]*nothing was removed/);
+      assert.equal(leftovers().length, 2);
+      return;
+    }
     assert.equal(out.status, 0, out.stderr);
     assert.deepEqual(readdirSync(wk), [".keep"]);
     assert.deepEqual(leftovers(), []);
