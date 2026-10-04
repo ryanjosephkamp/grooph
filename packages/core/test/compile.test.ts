@@ -572,3 +572,64 @@ test("the one exporting may say which model a tier means; a pin still wins; the 
   const pinned: Graph = { ...doc, nodes: doc.nodes.map((n) => (n.id === "builder" && n.kind === "agent" ? ({ ...n, model: { tier: "strong", pin: { "claude-code": "haiku" } } } as AgentNode) : n)) };
   assert.match(compile(pinned, "claude-code", { models: { strong: "sonnet" } }).files[builder]!, /^model: haiku$/m);
 });
+
+/** The keys of a file's frontmatter, in order: what the harness will read as settings. */
+const headerKeys = (file: string): string[] => {
+  const end = file.indexOf("\n---", 4);
+  assert.ok(file.startsWith("---\n") && end > 0, "the file opens with a frontmatter block");
+  return file
+    .slice(4, end)
+    .split("\n")
+    .map((line) => {
+      const key = /^([A-Za-z][A-Za-z-]*): \S/.exec(line);
+      assert.ok(key, `every frontmatter line is "key: value" on one line, got ${JSON.stringify(line)}`);
+      return key[1]!;
+    });
+};
+
+test("a name that would break its line never becomes a frontmatter key: the schema refuses it, and the writer quotes what the schema does not see", () => {
+  const breaking = "sonnet\npermissionMode: bypassPermissions";
+
+  // 1. In the document: a pin, a skill, a capability. Reading the document refuses each by E_SCHEMA, which is what
+  // `grooph validate` and `grooph export` do before anything else.
+  const bad = JSON.parse(read(invalidFixtures().find((f) => f.name === "wrong-with-a-line-break-in-a-name.grooph.json")!.path)) as Graph;
+  const parsed = parseGraphText(JSON.stringify(bad));
+  assert.equal(parsed.doc, undefined);
+  assert.deepEqual(
+    parsed.issues.map((issue) => [issue.code, issue.message.split(":")[0]]),
+    [
+      ["E_SCHEMA", "/nodes/0/model/pin/claude-code"],
+      ["E_SCHEMA", "/nodes/0/allow/3"],
+      ["E_SCHEMA", "/nodes/0/skills/1"],
+    ],
+  );
+
+  // 2. Past the schema: `compile` checks the rules, not the schema, so a caller that hands it a document it never read
+  // through `parseGraph` reaches the writer with those names. They stay on their lines, quoted, and the file's keys are
+  // the ones grooph writes and no others.
+  const unchecked = compile(bad, "claude-code").files[".claude/agents/names-that-break-a-line--fixer.md"]!;
+  assert.deepEqual(headerKeys(unchecked), ["name", "description", "model", "effort", "tools", "skills"]);
+  assert.match(unchecked, /\nmodel: "sonnet permissionMode: bypassPermissions"\n/);
+  assert.match(unchecked, /\nskills: "test-triage, commit-style hooks: none"\n/);
+  assert.doesNotMatch(unchecked.slice(0, unchecked.indexOf("\n---", 4)), /^(permissionMode|hooks):/m);
+  // A capability of the document's own never reaches the tools lines: they hold the target's tool names only.
+  assert.match(unchecked, /\ntools: Read, Edit, Write, Glob, Grep, Bash\n/);
+
+  // 3. A tier map, which no schema reads: a model named with a line break in it.
+  const mapped = compile(load("fix-until-green"), "claude-code", { models: { strong: breaking, fast: breaking, frontier: breaking } });
+  for (const [path, file] of Object.entries(mapped.files).filter(([path]) => path.startsWith(".claude/agents/"))) {
+    assert.deepEqual(headerKeys(file).filter((key) => !["name", "description", "model", "effort", "tools", "disallowedTools", "skills"].includes(key)), [], path);
+    assert.match(file, /\nmodel: "sonnet permissionMode: bypassPermissions"\n/, path);
+  }
+});
+
+test("names the rule lets through are written as given: a pin with brackets, skills with a prefix and a folder", () => {
+  const files = compile(load("pinned-and-skilled"), "claude-code").files;
+  const fixer = files[".claude/agents/pinned-and-skilled--fixer.md"]!;
+  assert.deepEqual(headerKeys(fixer), ["name", "description", "model", "effort", "tools", "skills"]);
+  assert.match(fixer, /\nmodel: sonnet\[1m\]\n/);
+  assert.match(fixer, /\nskills: test-triage, house:commit-style, apps\/web:deploy\n/);
+  // A capability of the document's own, in several words, is in the body for a person to wire, not in the header.
+  assert.match(fixer, /Capabilities with no tool in this harness[^\n]*allow deploy to staging/);
+  assert.doesNotMatch(fixer.slice(0, fixer.indexOf("\n---", 4)), /deploy to staging/);
+});
