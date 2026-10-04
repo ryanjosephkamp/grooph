@@ -3,5 +3,5 @@
   "entryJsKB": 266,
   "cssKB": 20,
   "embedLoadKB": 150,
-  "cliColdMs": 250
+  "cliColdMs": 400
 }
