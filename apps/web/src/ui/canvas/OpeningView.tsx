@@ -57,6 +57,9 @@ export function OpeningView({ pad, control, refit }: { pad: Pad; control?: boole
     const { fits, ...view } = openingViewport(flow.getNodesBounds(nodes), { width, height }, pad);
     if (fits) void flow.fitView({ ...fitOptions(pad), duration: 150 });
     else void flow.setViewport(view, { duration: 150 });
+    // The way back from Show all is the view for the room there is now.
+    setOpening((was) => (was === null || fits ? was : view));
+    setAll(false);
   }, [width, height, refit, flow, pad]);
 
   if (!control || opening === null) return null;
@@ -68,6 +71,8 @@ export function OpeningView({ pad, control, refit }: { pad: Pad; control?: boole
       onClick={() => {
         if (all) void flow.setViewport(opening, { duration: 250 });
         else void flow.fitView({ ...fitOptions(pad), duration: 250 });
+        // Either way the view is the app's again, so it follows the room a panel leaves.
+        if (refit) refit.current = false;
         setAll(!all);
       }}
     >

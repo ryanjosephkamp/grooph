@@ -1,18 +1,30 @@
 import { outline, type Graph, type Id } from "@grooph/core";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 /**
  * The outline (core's `outline`): the whole graph to read from top to bottom,
  * every node with its full brief, every edge as a sentence, every loop with
  * its bar and stops. For reviewing on a phone what an agent built without
  * opening each node. Read-only; in the editor a section opens its inspector.
+ *
+ * `current` is the node or loop whose details are open beside the outline
+ * (on a desktop the two sit either side of the canvas): its section is marked
+ * and brought into view.
  */
-export function Outline({ doc, onOpen }: { doc: Graph; onOpen?: (id: Id, kind: string) => void }) {
+export function Outline({ doc, onOpen, current }: { doc: Graph; onOpen?: (id: Id, kind: string) => void; current?: Id }) {
   const sections = useMemo(() => outline(doc), [doc]);
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    root.current?.querySelector(".is-current")?.scrollIntoView({ block: "nearest" });
+  }, [current]);
   return (
-    <div className="outline">
+    <div className="outline" ref={root}>
       {sections.map((section, i) => (
-        <section key={`${section.kind}-${section.id}`} className="outline-section" data-outline-id={section.id}>
+        <section
+          key={`${section.kind}-${section.id}`}
+          className={i > 0 && section.id === current ? "outline-section is-current" : "outline-section"}
+          data-outline-id={section.id}
+        >
           <p className="outline-kind">{section.kind}</p>
           <div className="outline-head">
             <h3>{section.title}</h3>

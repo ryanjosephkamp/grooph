@@ -8,7 +8,7 @@ import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
 import { DocStore, useDoc, useHistory } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
-import { FIT } from "./canvas/fit.js";
+import { FIT, isDesktop } from "./canvas/fit.js";
 import { EditorContext, type Editor, type Mode, type Panel } from "./editorContext.js";
 import { ExportPanel } from "./ExportPanel.js";
 import { EdgeInspector } from "./inspector/EdgeInspector.js";
@@ -109,6 +109,8 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const hideToast = useCallback(() => setToast(null), []);
 
   const [panel, setPanel] = useState<Panel>(fresh ? { type: "graph" } : null);
+  // On a desktop the outline is a rail of its own on the other side of the canvas, open beside whatever the panel shows.
+  const [rail, setRail] = useState(false);
   const [mode, setMode] = useState<Mode>({ type: "idle" });
   const [highlight, setHighlight] = useState<Highlight>(emptyHighlight);
   const [expanded, setExpanded] = useState(false);
@@ -130,7 +132,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
       // Two frames: one for the document to render, one for the nodes to be measured.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          void flow.fitView({ ...FIT, nodes: ids.map((id) => ({ id })), duration: 250 });
+          void flow.fitView({ ...FIT, maxZoom: 1, nodes: ids.map((id) => ({ id })), duration: 250 });
         }),
       );
     },
@@ -324,7 +326,15 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const renamedAfterExport = exportedAs !== undefined && doc.id !== exportedAs && followsName(doc.id, doc.name);
 
   const openFromOutline = (id: Id, kind: string) => openPanel(kind === "Loop" ? { type: "loop", id } : { type: "node", id });
-  const sheet = sheetFor(panel, doc, issues, fresh, justAdded, openFromOutline, renamedAfterExport ? (
+  const outlineOn = rail || panel?.type === "outline";
+  const toggleOutline = () => {
+    if (outlineOn) {
+      setRail(false);
+      if (panel?.type === "outline") openPanel(null);
+    } else if (isDesktop()) setRail(true);
+    else openPanel({ type: "outline" });
+  };
+  const sheet = sheetFor(panel, doc, issues, fresh, justAdded, renamedAfterExport ? (
     <RenameWarning exportedAs={exportedAs!} nextId={doc.id} onKeep={() => store.update((d) => keepGraphId(d, exportedAs!))} />
   ) : null);
   const statusClass = errors > 0 ? "status-error" : warnings > 0 ? "status-warning" : "status-ok";
@@ -332,7 +342,11 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
 
   return (
     <EditorContext.Provider value={editor}>
-      <div className={`editor${panel ? " has-sheet" : ""}${expanded && !modeActive ? " sheet-expanded" : ""}${modeActive ? " mode-active" : ""}`}>
+      <div
+        className={`editor${panel || rail ? " has-sheet" : ""}${expanded && !modeActive ? " sheet-expanded" : ""}${modeActive ? " mode-active" : ""}${
+          outlineOn ? " has-rail" : ""
+        }${sheet ? " has-side" : ""}`}
+      >
         <header className="topbar">
           <a className="icon-btn" href="#/" aria-label="All graphs">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -349,7 +363,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               {doc.target?.harness ?? "no target"} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
             </span>
           </button>
-          <OutlineButton on={panel?.type === "outline"} onClick={() => openPanel(panel?.type === "outline" ? null : { type: "outline" })} />
+          <OutlineButton on={outlineOn} onClick={toggleOutline} />
           <button
             type="button"
             className={`status ${statusClass}`}
@@ -364,6 +378,22 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
         </header>
 
         <PersistNotice className="editor-notice" />
+
+        {outlineOn ? (
+          <Sheet
+            rail
+            title="Outline"
+            subtitle="the whole graph, to read"
+            expanded={expanded}
+            onToggle={() => setExpanded((e) => !e)}
+            onClose={() => {
+              if (panel?.type === "outline") setMode({ type: "idle" });
+              toggleOutline();
+            }}
+          >
+            <Outline doc={doc} onOpen={openFromOutline} current={panel && "id" in panel ? panel.id : undefined} />
+          </Sheet>
+        ) : null}
 
         <main className="stage" ref={stageRef}>
           <Canvas issues={issues} onNodeTap={onNodeTap} />
@@ -482,10 +512,10 @@ function sheetFor(
   issues: ReturnType<typeof computeIssues>,
   fresh: boolean,
   justAdded: Id | null,
-  openFromOutline: (id: Id, kind: string) => void,
   renameWarning: ReactNode,
 ) {
-  if (!panel) return null;
+  // The outline has a sheet of its own (a rail, on a desktop), drawn above.
+  if (!panel || panel.type === "outline") return null;
   switch (panel.type) {
     case "node": {
       const node = doc.nodes.find((n) => n.id === panel.id);
@@ -503,8 +533,6 @@ function sheetFor(
       return { title: "Validation", subtitle: "as export sees it", body: <IssuesPanel issues={issues} /> };
     case "export":
       return { title: "Export", subtitle: doc.target?.harness ?? "no target", body: <ExportPanel /> };
-    case "outline":
-      return { title: "Outline", subtitle: "the whole graph, to read", body: <Outline doc={doc} onOpen={openFromOutline} /> };
     case "add":
       return { title: "Add a node", subtitle: undefined, body: null };
     case "insert":

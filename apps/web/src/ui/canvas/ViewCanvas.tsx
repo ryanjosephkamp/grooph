@@ -1,6 +1,6 @@
 import type { Graph, Id, Issue, RunSummary } from "@grooph/core";
 import { Background, BackgroundVariant, ReactFlow, useReactFlow, type EdgeTypes, type NodeTypes } from "@xyflow/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
@@ -41,6 +41,8 @@ export function ViewCanvas(props: {
   // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
   const pad = props.run ? RUN_PAD : VIEWER_PAD;
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
+  /** Whether the person has panned or zoomed: until then the view is the app's, and follows the room a panel leaves. */
+  const moved = useRef(false);
   const positions = useMemo(() => resolvePositions(doc).positions, [doc]);
   const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
 
@@ -113,6 +115,10 @@ export function ViewCanvas(props: {
         if (Object.keys(sizes).length > 0) setMeasured((m) => ({ ...m, ...sizes }));
       }}
       onNodeClick={(_, node) => props.onNodeTap?.(node.id)}
+      onMove={(event) => {
+        // A move, not its start: a click on a node that cannot be dragged starts a pan and moves nothing.
+        if (event) moved.current = true;
+      }}
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
@@ -128,7 +134,7 @@ export function ViewCanvas(props: {
       attributionPosition="top-right"
     >
       <Background variant={BackgroundVariant.Dots} gap={24} size={1.2} />
-      <OpeningView pad={pad} control />
+      <OpeningView pad={pad} control refit={moved} />
       {props.highlight ? <FocusOn ids={props.highlight.nodes} /> : null}
     </ReactFlow>
   );

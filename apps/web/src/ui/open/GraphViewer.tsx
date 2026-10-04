@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactNode } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
 import { countBySeverity } from "../../doc/issues.js";
+import { isDesktop } from "../canvas/fit.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { Sheet } from "../Sheet.js";
 import { Keep } from "../Keep.js";
@@ -39,6 +40,8 @@ export function GraphViewer({
   const { errors, warnings } = countBySeverity(issues);
   const [panel, setPanel] = useState<Panel>(about ? { type: "about" } : null);
   const [expanded, setExpanded] = useState(false);
+  // On a desktop the outline is a rail of its own on the other side of the canvas, open beside a node's details.
+  const [rail, setRail] = useState(false);
   const { saved, busy, save } = useSaveFromLink();
   const done = saved["graph"];
 
@@ -46,8 +49,24 @@ export function GraphViewer({
   const statusText = errors > 0 ? `${errors} error${errors === 1 ? "" : "s"}` : warnings > 0 ? `${warnings} warning${warnings === 1 ? "" : "s"}` : "Valid";
   const toggle = (next: Exclude<Panel, null>) => setPanel((p) => (p && p.type === next.type && ("id" in p ? p.id === (next as { id: Id }).id : true) ? null : next));
 
+  const outlineOn = rail || panel?.type === "outline";
+  const toggleOutline = () => {
+    if (outlineOn) {
+      setRail(false);
+      if (panel?.type === "outline") {
+        setExpanded(false);
+        setPanel(null);
+      }
+    } else if (isDesktop()) setRail(true);
+    else {
+      setExpanded(true);
+      setPanel({ type: "outline" });
+    }
+  };
+
   const sheet = (() => {
-    if (!panel) return null;
+    // The outline has a sheet of its own (a rail, on a desktop), drawn before the canvas.
+    if (!panel || panel.type === "outline") return null;
     if (panel.type === "node") {
       const node = doc.nodes.find((n) => n.id === panel.id);
       return node ? { title: KIND_LABEL[node.kind], subtitle: node.id, body: <NodeDetails node={node} /> } : null;
@@ -57,7 +76,6 @@ export function GraphViewer({
       return loop ? { title: "Loop", subtitle: loop.id, body: <LoopDetails doc={doc} loop={loop} /> } : null;
     }
     if (panel.type === "about") return about ?? null;
-    if (panel.type === "outline") return { title: "Outline", subtitle: "the whole graph, to read", body: <Outline doc={doc} /> };
     if (panel.type === "graph") {
       return {
         title: "Graph",
@@ -76,7 +94,11 @@ export function GraphViewer({
   })();
 
   return (
-    <div className={`editor viewer${sheet ? " has-sheet" : ""}${expanded && sheet ? " sheet-expanded" : ""}`}>
+    <div
+      className={`editor viewer${sheet || outlineOn ? " has-sheet" : ""}${expanded && (sheet || panel?.type === "outline") ? " sheet-expanded" : ""}${outlineOn ? " has-rail" : ""}${
+        sheet ? " has-side" : ""
+      }`}
+    >
       <header className="topbar">
         <a className="icon-btn" href={back.href} aria-label={back.label}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -87,17 +109,17 @@ export function GraphViewer({
           <span className="title-name">{doc.name || doc.id}</span>
           <span className="title-sub">{context ?? "from a link"} · read-only</span>
         </button>
-        <OutlineButton
-          on={panel?.type === "outline"}
-          onClick={() => {
-            setExpanded(panel?.type !== "outline");
-            toggle({ type: "outline" });
-          }}
-        />
+        <OutlineButton on={outlineOn} onClick={toggleOutline} />
         <button type="button" className={`status ${statusClass}`} aria-label={`Validation: ${statusText}`} onClick={() => toggle({ type: "issues" })}>
           {statusText}
         </button>
       </header>
+
+      {outlineOn ? (
+        <Sheet rail title="Outline" subtitle="the whole graph, to read" expanded={expanded} onToggle={() => setExpanded((e) => !e)} onClose={toggleOutline}>
+          <Outline doc={doc} current={panel && "id" in panel ? panel.id : undefined} />
+        </Sheet>
+      ) : null}
 
       <main className="stage">
         <ViewCanvas doc={doc} variant="full" issues={issues} selected={panel?.type === "node" ? panel.id : undefined} onNodeTap={(id) => toggle({ type: "node", id })} />

@@ -159,8 +159,9 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
       onNodesChange={onNodesChange}
       onNodeClick={(_, node) => onNodeTap(node.id)}
       onEdgeClick={(_, edge) => editor.onEdgeTap(edge.id)}
-      onMoveStart={(event) => {
+      onMove={(event) => {
         // A move with an event behind it is a hand on the canvas; a fit or a pan the app makes has none.
+        // (A move, not its start: a click on the empty canvas starts one and moves nothing.)
         if (event) editor.viewMoved.current = true;
       }}
       onPaneClick={() => {
