@@ -10,7 +10,7 @@
  * should catch. good.html sets none; broken.html sets every one. The names are in BREAKS below.
  */
 (function () {
-  const BREAKS = ["error", "outside", "blank", "surface", "start", "move", "strafe", "look", "turn", "jump", "fall", "view", "ammo", "damage", "defeat", "reload", "chase", "lose", "restart", "win", "slow", "seed"];
+  const BREAKS = ["error", "outside", "blank", "surface", "start", "move", "strafe", "look", "turn", "jump", "fall", "wall", "view", "ammo", "aimless", "damage", "defeat", "reload", "chase", "ambient", "lose", "restart", "win", "slow", "seed"];
   const params = new URLSearchParams(location.search);
   const named = window.STAND_IN_BREAK === "all" ? BREAKS : (window.STAND_IN_BREAK || params.get("break") || "").split(",").filter(Boolean);
   const broken = (name) => named.includes(name);
@@ -84,8 +84,10 @@
       const d = { x: enemy.x - from.x, y: enemy.y - from.y, z: enemy.z - from.z };
       const far = Math.hypot(d.x, d.y, d.z);
       const along = (d.x * f.x + d.y * f.y + d.z * f.z) / far;
-      // A body half a meter across: hit when the line of fire passes within it.
-      if (along > 0 && Math.acos(Math.min(1, along)) < Math.atan(0.5 / far) && (hit === null || far < hit.far)) hit = { enemy, far };
+      // A body 0.6 m across: hit when the line of fire passes within it.
+      // "aimless": every click lands on someone, wherever it points.
+      const inLine = along > 0 && Math.acos(Math.min(1, along)) < Math.atan(0.3 / far);
+      if ((inLine || broken("aimless")) && (hit === null || far < hit.far)) hit = { enemy, far };
     }
     if (hit === null || broken("damage")) return;
     hit.enemy.health = Math.max(0, hit.enemy.health - 34);
@@ -134,12 +136,14 @@
     if (!broken("move")) {
       const ahead = (keys.has("KeyW") ? 1 : 0) - (keys.has("KeyS") ? 1 : 0);
       const side = ((keys.has("KeyD") ? 1 : 0) - (keys.has("KeyA") ? 1 : 0)) * (broken("strafe") ? -1 : 1);
-      const speed = 5;
+      const speed = keys.has("ShiftLeft") || keys.has("ShiftRight") ? 9 : 5;
       state.x += (Math.sin(state.yaw) * ahead + Math.cos(state.yaw) * side) * speed * dt;
       state.z += (-Math.cos(state.yaw) * ahead + Math.sin(state.yaw) * side) * speed * dt;
-      // The arena's wall: a square 60 m from the middle.
-      state.x = Math.max(-60, Math.min(60, state.x));
-      state.z = Math.max(-60, Math.min(60, state.z));
+      // The arena's wall: a square 60 m from the middle. "wall": there is none.
+      if (!broken("wall")) {
+        state.x = Math.max(-60, Math.min(60, state.x));
+        state.z = Math.max(-60, Math.min(60, state.z));
+      }
     }
     state.vy -= 12 * dt;
     state.y += state.vy * dt;
@@ -164,6 +168,8 @@
         state.health = Math.max(0, state.health - 10);
       }
     }
+    // "ambient": the player is hurt by nothing at all, a little every second.
+    if (broken("ambient") && Math.floor(state.time) > Math.floor(state.time - dt)) state.health = Math.max(0, state.health - 5);
     if (state.health === 0 && !broken("lose")) state.phase = "lost";
     else if (state.enemies.every((enemy) => !enemy.alive) && !broken("win")) state.phase = "won";
   }

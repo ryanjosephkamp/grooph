@@ -2,7 +2,7 @@
 
 What keeps the game experiment fair, what is written down, and what its result will and will not mean. **Written on 2026-10-04, before any run. Nothing in this folder has been run: no session was started, no repository was made.**
 
-The experiment: one browser game ([`SPEC.md`](SPEC.md)) built from one loop graph ([`arena.grooph.json`](arena.grooph.json)), once in Claude Code and once in Codex, each in its own public repository, six hours each. The owner asked to see what a loop graph does on something big and fun. This page is so that he can say yes knowing what he will get.
+The experiment: one browser game ([`SPEC.md`](SPEC.md)) built from one loop graph ([`arena.grooph.json`](arena.grooph.json)), once in Claude Code and once in Codex, each in its own public repository, up to six hours each. The owner asked to see what a loop graph does on something big and fun. This page is so that he can say yes knowing what he will get.
 
 ## 1. The two runs
 
@@ -18,15 +18,18 @@ Each run is one session in one harness: a lead and its subagents, as the graph d
 
 **What is on the machine.** Node, npm, git and Playwright's Chromium, installed before either clock starts. Blender is installed for both runs or for neither; which is the owner's answer (section 9) and is in the record.
 
-**The starting contents of each repository.** A `LICENSE` (MIT), `SPEC.md`, the package, a `.gitignore` for `node_modules`, and a README of three lines saying what the repository is. No `package.json`, no code, no picture. The first commit of each holds exactly this.
+**The starting contents of each repository.** A `LICENSE` (MIT), `SPEC.md`, the package, the event hook's own files as `grooph hooks install` writes them, a `.gitignore` for `node_modules`, and a README of three lines saying what the repository is. No `package.json`, no code, no picture. The first commit of each holds this and nothing else.
+
+**A clean profile.** A harness loads more than the repository: the account's own instructions, skills, plugins, connected servers and memory, and in a desktop app tools that can read other sessions, the ones that wrote these checks among them. So each run is started from a profile made for it, with none of those: no global instructions, no skills or plugins beyond the package's own, no connected servers, no memory, no session tools. The `grooph` command is not on that profile's path, since on this machine it is a link into the clone that holds the checks; the lead brief already says to check its brakes by hand when the command is not there. What each harness reports as loaded when the session starts is in the record.
 
 **What a session may do without asking.** Read and write inside its own repository; run commands there (`npm`, `node`, `git` except `push`, the browser); reach the npm registry. Nothing else on the network, nothing outside its folder. Each harness says this in its own terms, and the terms used are in the record. Where the two cannot be given the same, the difference is written down before the run.
 
 **The clock.** Six hours on the wall, from the note that records the owner's answer at the start gate.
 
-- The graph's own brakes: no milestone is started after hour five, no round after 5 hours 15 minutes, and what is left is for the wrap-up and the final play. Every stop leads to the wrap-up; none halts the run.
+- The graph's own brakes: no milestone is started after hour five, no round after 5 hours 15 minutes, a builder is given at most 25 minutes at a time, and what is left is for the wrap-up and the final play. No stop halts the run: each leads on, to the next milestone or to the wrap-up.
+- Six hours is the most, not the measure: a run whose seven milestones are all ticked before the clock runs out ends then. How long each took is part of what happened.
 - A wall behind them: at 6 hours 15 minutes a session still working is ended by the owner.
-- **The result of a run is a commit, not a working tree**: the commit tagged `final` when the wrap-up finished, and otherwise the last commit at which the game builds and the critic's own checks (`playable/all.mjs`) pass, found by the scorer afterwards. Work that was under way when the clock stopped does not count for or against.
+- **The result of a run is a commit, not a working tree**: the commit tagged `final` when the wrap-up finished, and otherwise the last commit at which the game builds and the critic's own scripts (`playable/all.mjs`) pass, found by the scorer after the run. Work that was under way when the clock stopped does not count for or against.
 
 **The owner's answers, fixed now.** At the start gate: "start", within a minute of the question. At the end gate: "close". Nothing else is said to a session: no hint, no correction, no "go on". If a session stops and asks in the middle, it is given one line, the same in both runs, "Go on as the lead brief says. Nobody is here until the end.", and the stop is written down as an interruption with its time.
 
@@ -45,6 +48,7 @@ Each run is one session in one harness: a lead and its subagents, as the graph d
 - The folder is in grooph's repository and nowhere else. It is never copied into a game repository.
 - Nothing a session is given names it: not `SPEC.md`, not the graph, not the package. The spec describes the test surface the checks rest on; it does not say what will be checked.
 - Each game repository is cloned in a folder of its own, outside grooph's clone, and the session is started there. Its permissions do not reach outside that folder.
+- Each session starts from a clean profile (section 2), so that no tool of the account can reach another session or this folder.
 - After each run the harness's transcript is searched for the acceptance folder's path and its file names. A hit is written down, and that run's check results are then reported as "seen by the builder", whatever they are.
 
 An instruction alone is not the wall: in the pattern library's own records a builder told not to read a held-out file read it once (`experiments/patterns/ralph-loop/`), and a planner copied a held-out reference into the builder's instructions (`experiments/patterns/gauntlet-decomposed/`). Here no node of the graph is given the checks, so no node can pass them on.
@@ -52,6 +56,8 @@ An instruction alone is not the wall: in the pattern library's own records a bui
 **How they are run.** On each run's result commit, in a clean checkout: `npm ci`, `npm run build`, the files of `dist/` served on this machine, then `node experiments/game/acceptance/check.mjs <address> --headed`, three times. A check passes when it passes all three; one that passes some is reported as unsteady, with all three results.
 
 **They can pass and they can fail.** Before any game existed the checks were run against two stand-in pages: one that satisfies the test surface, and one that does not. All 21 pass against the first and all 21 fail against the second. Then each behavior was turned off alone, and the check that looks for it failed for its own reason. The outputs are in [`acceptance/proof/`](acceptance/proof/).
+
+**A check that turns out to be wrong.** The checks have met stand-ins and no game. If one fails a build for a reason that is the check's and not the game's, it is corrected in a commit that says why, **both** builds are scored again with the corrected checks, and both sets of results are reported. A check is never corrected for one build alone, and never before both runs have ended.
 
 **The owner's ten minutes.** The lines of `LIST.md` only a person can judge. So that he does not know which build he is playing, a coin decides which is served as "A" and which as "B"; he plays both, writes what he found, and only then reads which was which. The key is in the record.
 
@@ -77,6 +83,7 @@ The two game repositories are public and hold the game, the package and the run 
 Tiers are named in the graph; models are named at export and in the record, never in the graph or the spec.
 
 - **Claude Code.** `grooph export --models` says which model each tier means. The lead, the planner and both critics are `frontier`; the builder and the wrap-up are `strong`. Never Fable. Which models these are is the owner's answer (section 9).
+- The graph is adaptive, as grooph's graphs are by default: a lead may amend its working copy, a tier among other things, and may never loosen a brake. Every amendment is in the run folder and is listed in the write-up.
 - **Codex.** GPT-6.1 Sol leads and judges (`frontier`); GPT-6 Luna builds (`strong`). Never Astra.
 
 The two runs do not use the same models and cannot. That is one reason the result compares nothing (section 6).
@@ -93,11 +100,11 @@ That last part is the kind of thing grooph is already shown to do on small tasks
 
 **It is not evidence that a loop graph beats a prompt.** No session here is given a prompt in place of the graph. To be that evidence it would need the arms of [`docs/comparisons.md`](../../docs/comparisons.md) on this task in one harness: the package, the same design as prose, that prose in a loop, and the task alone, at least twice each. That is eight six-hour runs or more.
 
-**It says nothing about** a larger game, a different kind of game, or whether six hours is the right size. And the checks play the test round of the spec's section 7: three chasers, one wave. What the full rounds are like is the owner's ten minutes and nothing else.
+**It says nothing about** a larger game, a different kind of game, or whether six hours is the right size. Nothing of this size has been run from a grooph package: the longest run in the write-ups under `experiments/` took about sixteen minutes. And the checks play the test round of the spec's section 7: three chasers, one wave. What the full rounds are like is the owner's ten minutes and nothing else.
 
 **What would count against the graph**, named now: a question asked in the middle; a session still building at the wall; a result commit that does not build or does not start; a builder that read the held-out checks; an asset in the repository that no script in it made. Any of these is reported in the first lines of the write-up.
 
-**The sentence the result is reported with.** "Run once in each harness, from one spec and one graph, in six hours each: the Claude Code run reached milestone *n* and passes *x* of 21 held-out checks; the Codex run reached milestone *m* and passes *y*. This is what happened once, not a comparison of the two, and not evidence about graphs against prompts." A sentence about what grooph does to quality, cost, speed or safety goes through the audit first (decision 0024).
+**The sentence the result is reported with.** "Run once in each harness, from one spec and one graph, with up to six hours each: in the Claude Code run its own critic ticked *n* of 7 milestones and the build passes *x* of 21 held-out checks; in the Codex run, *m* of 7 and *y* of 21. This is what happened once, not a comparison of the two, and not evidence about graphs against prompts." The milestones are each run's own critic's count; the 21 checks are the same for both. A sentence about what grooph does to quality, cost, speed or safety goes through the audit first (decision 0024).
 
 ## 7. What must exist before it can run
 
@@ -105,7 +112,7 @@ That last part is the kind of thing grooph is already shown to do on small tasks
 2. **Two public repositories**, made by the owner, each holding the starting contents of section 2 and nothing else.
 3. **The owner's yes**, with his answers to section 9.
 4. **The machine made ready**: Playwright's Chromium installed, the event hook installed in each repository, each repository cloned outside grooph's clone, the record folders and the ledger made.
-5. **A rehearsal, if he allows it** (section 9): the first twenty minutes of the graph in a scratch folder in each harness, to see that the package starts, that the critic can drive a browser, and that nothing asks for permission. A session that stops at minute three to ask whether it may run `npm install` spends six hours waiting.
+5. **A rehearsal, if he allows it** (section 9): the first twenty minutes of the graph in a scratch folder in each harness, from the clean profile, to see that the package starts, that the critic can drive a browser, and that nothing asks for permission. A session that stops at minute three to ask whether it may run `npm install` spends six hours waiting. What the rehearsal built is then met by the checks, with a window, for the first time on a real three.js page; nothing they print is shown to any session.
 
 ## 8. The day
 
@@ -129,3 +136,4 @@ That last part is the kind of thing grooph is already shown to do on small tasks
 | 5 | **The extension rule of section 2**: decided once for both, after both are scored. | Yes. |
 | 6 | **The repositories' names**, and whether the run folder (notes and progress) is public with the game. | The run folder public: it is the record, and it holds nothing private. |
 | 7 | **The dates.** | After slice 0076 has merged and one template has run in Codex. |
+| 8 | **A run that ticks all seven milestones early ends early.** The other way is a last loop that polishes what the final play ranks, until hour five. | As written: it ends. Six hours is a ceiling, both runs are treated alike, and the extension is there if what came out is thin. |

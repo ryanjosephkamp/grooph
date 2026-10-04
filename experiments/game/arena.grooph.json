@@ -9,11 +9,11 @@
   },
   "constraints": {
     "budget": "At most 110 dispatches in the run.",
-    "time": "Six hours on the wall clock. No milestone is started after hour five and no round after 5 hours 15 minutes; what is left is for the wrap-up and the final play.",
+    "time": "Up to six hours on the wall clock. No milestone is started after hour five and no round after 5 hours 15 minutes; what is left is for the wrap-up and the final play. A run whose list is done early ends early.",
     "other": "Nobody is asked anything between the start gate and the end gate. No asset is downloaded (SPEC.md section 2). Nothing is pushed: commits stay in this clone."
   },
   "adaptation": "adaptive",
-  "description": "Six hours of building with a person only at the two ends. A planner turns the spec's seven milestones into a checklist and a short account of how the code is cut. Then one milestone a round: a builder builds it on top of what is there, a check builds the game and re-runs what earlier milestones left behind, and a fresh critic plays the build in a headless browser through the game's test surface and takes pictures. On a pass the critic writes what it just did as a check and ticks the box, so the next milestone cannot quietly undo it. Every stop leads to the wrap-up, never to a halt: when the list is done or the clock says so, the repository is brought to its last playable state, a second fresh critic plays the whole of it, and a person reads what it found.",
+  "description": "Up to six hours of building with a person only at the two ends. A planner turns the spec's seven milestones into a checklist and a short account of how the code is cut. Then one milestone a round: a builder builds it on top of what is there, a check builds the game, a second check re-runs what earlier milestones left behind, and a fresh critic plays the build in a headless browser through the game's test surface and takes pictures. On a pass the critic writes what it just did as a script and ticks the box, so the next milestone cannot quietly undo it. No stop halts the run: each leads on, to the next milestone or to the wrap-up. When the list is done or the clock says so, the repository is brought to its last playable state, a second fresh critic plays the whole of it, and a person reads what it found.",
   "nodes": [
     {
       "id": "lead",
@@ -24,7 +24,7 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "You run six hours of building with nobody to ask. Between the start gate and the end gate you ask no one anything: a question in the middle would wait for hours. Keep the clock: read it when the start gate is answered, write that time at the top of PROGRESS.md, read it again before every dispatch, and tell a builder how many minutes are left. When a stop names wrap-up, go there at once: a milestone left unfinished is a result, a broken build at the end is not. You build nothing and judge nothing yourself.",
+      "brief": "You run up to six hours of building with nobody to ask. Between the start gate and the end gate you ask no one anything: a question in the middle would wait for hours. Keep the clock: read it when the start gate is answered, write that time at the top of PROGRESS.md, and read it again before every dispatch. Give every worker the time by which it must hand back, a builder at most 25 minutes on and never past 5 hours 20 minutes, and say that time in its task. No stop halts this run: each leads on, to the next milestone or to the wrap-up, and when one names wrap-up you go there at once. A milestone left unfinished is a result; a broken build at the end is not. You build nothing and judge nothing yourself.",
       "outputs": [
         "PROGRESS.md and the run's notes, kept as the run goes"
       ]
@@ -33,7 +33,7 @@
       "id": "start-gate",
       "kind": "human-gate",
       "name": "Start the clock",
-      "prompt": "This run builds the game in SPEC.md for six hours and asks you nothing until the end. The clock starts with your answer. Start?",
+      "prompt": "This run builds the game in SPEC.md for up to six hours and asks you nothing until the end. The clock starts with your answer. Start?",
       "options": [
         "start",
         "not now"
@@ -48,12 +48,12 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Turn SPEC.md into the two files six hours of fresh builders will work from. MILESTONES.md: the seven milestones of section 4 in order, each with an unticked box, what a player can do at its end in the spec's own words, and a line for how many rounds it has failed. ARCHITECTURE.md: how the code is cut so that a later milestone adds to an earlier one without rewriting it (the world, the player, the camera, weapons, enemies, the screen, sound, the test surface), with the names each part is reached by. Plan only; build nothing, and add nothing the spec does not ask for.",
+      "brief": "Turn SPEC.md into the two files six hours of fresh builders will work from. MILESTONES.md: the seven milestones of section 4 in order, each a line of the form `- [ ] M0 · A page` (the critic turns `[ ]` into `[x]`; the run reads these lines to know what is left, so keep the form exactly), and under each line what a player can do at its end in the spec's own words and `failed rounds: 0`. ARCHITECTURE.md: how the code is cut so that a later milestone adds to an earlier one without rewriting it (the world, the player, the camera, weapons, enemies, the screen, sound, the test surface), with the names each part is reached by. Plan only; build nothing, and add nothing the spec does not ask for.",
       "inputs": [
         "SPEC.md"
       ],
       "outputs": [
-        "MILESTONES.md: the milestones in order, each with a box, what a player can do, and its failed rounds",
+        "MILESTONES.md: one line per milestone, `- [ ] M<n> · <name>`, each with what a player can do and its failed rounds",
         "ARCHITECTURE.md: the parts of the code and how a later milestone adds to them"
       ],
       "allow": [
@@ -70,7 +70,7 @@
         "tier": "strong"
       },
       "effort": "high",
-      "brief": "Build the first unticked milestone of MILESTONES.md and nothing past it, on top of what is there, so that everything a player could do before can still be done. From the second round on a milestone, close the gaps PLAYTEST.md ranks, largest first. When MILESTONES.md says the milestone has failed three rounds, build the smallest version of it a player can use and say in CUTS.md what you left out, in the order SPEC.md section 6 gives. The files under playable/ are the critic's record of what worked: run them, never edit them. Download nothing (SPEC.md section 2). Commit when the game builds and playable/ passes.",
+      "brief": "Build the first unticked milestone of MILESTONES.md and nothing past it, on top of what is there, so that everything a player could do before can still be done. From the second round on a milestone, close the gaps PLAYTEST.md ranks, largest first. When MILESTONES.md says the milestone has failed three rounds, build the smallest version of it a player can use and say in CUTS.md what you left out, in the order SPEC.md section 6 gives; nothing of M0 to M3 or of section 7 may be left out. The files under playable/ are the critic's record of what worked: run them, never edit them, and when one of them is wrong about the game say so in CHANGES.md, with why. Download nothing (SPEC.md section 2). Hand back by the time the lead gives you, with the game building, whether or not the milestone is finished; commit what builds.",
       "inputs": [
         "SPEC.md",
         "MILESTONES.md",
@@ -81,7 +81,7 @@
       ],
       "outputs": [
         "the milestone, built and committed",
-        "CHANGES.md: what changed this round and which gaps were closed",
+        "CHANGES.md: what changed this round, which gaps were closed, and any script under playable/ you believe is wrong",
         "CUTS.md: what was left out, when something was"
       ],
       "allow": [
@@ -94,11 +94,21 @@
     {
       "id": "build-check",
       "kind": "check",
-      "name": "Builds, and still plays",
+      "name": "Builds",
       "check": {
         "kind": "command",
-        "run": "npm run build && { [ ! -f playable/all.mjs ] || node playable/all.mjs; }",
-        "pass": "exit code 0: the game builds, and every check the critic has left under playable/ for the milestones already ticked still passes (there are none before the first tick)"
+        "run": "npm run build",
+        "pass": "exit code 0: the game builds into dist/"
+      }
+    },
+    {
+      "id": "still-plays",
+      "kind": "check",
+      "name": "Still plays",
+      "check": {
+        "kind": "command",
+        "run": "[ ! -f playable/all.mjs ] || node playable/all.mjs",
+        "pass": "exit code 0: every script the critic has left under playable/ for the milestones already ticked still passes (there are none before the first tick)"
       }
     },
     {
@@ -110,18 +120,21 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Play the build as a player would, in a headless browser, through the test surface of SPEC.md section 7: do each thing the current milestone's row says a player can do, and take pictures. You have not seen how it was built and you do not read the builder's account: judge what the game does. Pass only when a player can do everything in the row; otherwise rank what is missing, at most five gaps, each with how you saw it, and raise the milestone's count of failed rounds. On a pass, leave what you just did as a script under playable/ and add it to playable/all.mjs, which serves dist/ and runs every milestone's script in order (write it the first time), then tick the box. Report invalid-evidence when the build will not start. You do not fix the game.",
+      "brief": "Play the build as a player would, in a headless browser, through the test surface of SPEC.md section 7: do each thing the current milestone's row says a player can do, and take pictures. You have not seen how it was built: judge what the game does. When the still-plays check failed, first find which is wrong, the game or one of your earlier scripts: a game that lost something it had fails this round with that as its first gap; a script that is wrong about a game that still plays is yours to mend. Pass when a player can do everything in the row. A milestone that has failed three rounds passes with less: everything in the row except what CUTS.md says was left out, and nothing of M0 to M3 or of section 7 may be left out. Otherwise rank what is missing, at most five gaps, each with how you saw it, and raise the milestone's failed rounds. On a pass, leave what you just did as a script under playable/ and add it to playable/all.mjs, which serves dist/ and runs every milestone's script in order (write it the first time); tick the box; commit what you wrote and tag the commit with the milestone. When the build will not start, report invalid-evidence and say in PLAYTEST.md what you could not open. You do not fix the game.",
       "inputs": [
         "dist/ as the build check left it",
+        "the output of the still-plays check",
         "SPEC.md",
         "MILESTONES.md",
+        "CUTS.md (when there is one)",
+        "CHANGES.md: only what it says of a script under playable/",
         "playable/"
       ],
       "outputs": [
         "PLAYTEST.md: what you did as a player, what worked, the gaps ranked, a verdict line",
         "screenshots/ of this round",
-        "playable/: this milestone's script and all.mjs, on a pass",
-        "MILESTONES.md: the box ticked on a pass, the failed rounds raised on a fail",
+        "playable/: this milestone's script and all.mjs, on a pass, committed and tagged",
+        "MILESTONES.md: `[x]` on a pass, the failed rounds raised on a fail",
         "verdict: pass | fail | invalid-evidence"
       ],
       "allow": [
@@ -155,7 +168,7 @@
         "tier": "strong"
       },
       "effort": "medium",
-      "brief": "The list is done or the clock says stop. Leave the repository at its last playable state: when the tree does not pass the build check, return it to the last commit that did. Then write what a stranger needs: README.md (how to run it, the keys, what is in the game, what was cut), ASSETS.md as SPEC.md section 2 asks, and a fresh dist/. Add no feature and fix no gap. Commit, and tag the commit final.",
+      "brief": "The list is done or the clock says stop. Leave the repository at its last playable state: when the tree does not build, or playable/all.mjs does not pass, return it to the last commit where both did. Then write what a stranger needs: README.md (how to run it, the keys, what is in the game, what was cut), ASSETS.md as SPEC.md section 2 asks, and a fresh dist/. Add no feature and fix no gap. Commit, and tag the commit final.",
       "inputs": [
         "the project",
         "SPEC.md",
@@ -247,18 +260,26 @@
       "to": "builder",
       "when": "fail",
       "evidence": [
-        "the build check's output"
+        "the build's output"
       ]
     },
     {
       "id": "e-check-pass",
       "from": "build-check",
+      "to": "still-plays",
+      "when": "pass"
+    },
+    {
+      "id": "e-still-critic",
+      "from": "still-plays",
       "to": "critic",
-      "when": "pass",
       "evidence": [
         "dist/ as the build check left it",
+        "the output of the still-plays check",
         "SPEC.md",
         "MILESTONES.md",
+        "CUTS.md (when there is one)",
+        "CHANGES.md: only what it says of a script under playable/",
         "playable/"
       ]
     },
@@ -326,6 +347,7 @@
       "members": [
         "builder",
         "build-check",
+        "still-plays",
         "critic"
       ],
       "back": [
@@ -356,7 +378,7 @@
             "note": "what every earlier milestone left behind"
           }
         ],
-        "acceptance": "The critic, playing the build, can do everything the milestone's row says a player can do, and every check under playable/ passes.",
+        "acceptance": "The critic, playing the build, can do everything the milestone's row says a player can do (less what CUTS.md records once the milestone has failed three rounds), and every script under playable/ passes.",
         "aspiration": "It is a pleasure to play."
       },
       "stops": [
@@ -377,7 +399,7 @@
         {
           "kind": "budget",
           "measure": "dispatches",
-          "limit": 12,
+          "limit": 16,
           "then": "next-milestone"
         }
       ]
@@ -388,6 +410,7 @@
       "members": [
         "builder",
         "build-check",
+        "still-plays",
         "critic",
         "next-milestone"
       ],

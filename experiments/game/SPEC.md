@@ -1,6 +1,6 @@
 # Arena: the game
 
-One browser game, built in six hours from this page. It is written for whoever builds it. Read all of it before the first line of code: section 4 says what to build first, section 6 what to drop when time is short, and section 7 describes a small surface the game must keep for automated play.
+One browser game, built in up to six hours from this page. It is written for whoever builds it. Read all of it before the first line of code: section 4 says what to build first, section 6 what to drop when time is short, and section 7 describes a small surface the game must keep for automated play.
 
 ## 1. The game in a paragraph
 
@@ -9,7 +9,7 @@ A shooter in a small open arena that you can play in first person or in third, s
 ## 2. What is fixed
 
 - **It runs in a browser, with three.js.** No backend, no account, no server code. The built game is static files.
-- **It starts with `npm install && npm run dev`**, and `npm run build` writes the static files into `dist/`. The files in `dist/` play when served from any folder of any static host.
+- **It starts with `npm install && npm run dev`**, and `npm run build` writes the static files into `dist/`. The files in `dist/` play when served from any folder of any static host. `package-lock.json` is committed, so that `npm ci` installs exactly what the game was built with.
 - **The only thing the game loads at run time is its own files.** It asks no other host for anything: no script, font, model, picture or sound from a network address.
 - **No asset is downloaded from anywhere.** Every model, texture, sound and font the game uses is made by code in this repository: three.js geometry, textures drawn on a canvas or in a shader, sound generated with the Web Audio API. If Blender is on the machine, a Blender script may make a model: the script is committed, its output is committed, and `ASSETS.md` says which script made which file. Nothing is fetched from a model site, a texture site, a sound library, a font service or another repository, and nothing is copied in from elsewhere on the machine. This is a rule, not a preference: the repository is public and its license must be clean.
 - **Packages come from npm and are few.** `three` is the one run-time dependency. A bundler with a dev server (Vite is the plain choice) and `playwright`, with which the game is played by a script from its first milestone, are development dependencies, and so is whatever else you test with. A second run-time package needs a line in the README saying why, and a permissive license. Code that ships inside the `three` package (its controls and helpers) may be used; a model, texture or font that ships inside any package may not.
@@ -23,21 +23,21 @@ Sizes are in meters and three.js's own world: y is up.
 
 **The arena.** One place, about 120 m across, closed on every side by wall or cliff so that a player can neither leave nor fall out. Open ground in the middle. Things to stand behind: rocks, broken walls, pillars. At least one raised place you can walk up to, so that height matters. A sky, a sun, distance that fades.
 
-**The player.** Walks with W, A, S and D, sprints with Shift, jumps with Space, looks with the mouse. A click on the game takes the pointer; Escape gives it back and pauses. The player has 100 health, stands on the ground, and is stopped by walls, cover and the arena's edge.
+**The player.** Walks with W, A, S and D at 4 to 6 m a second, sprints with Shift, jumps with Space (half a meter to two meters up, and down again within a couple of seconds), looks with the mouse: moved right the view turns right, moved up it looks up. A click on the game takes the pointer; Escape gives it back and pauses, and Escape or a click goes on. The player has 100 health, stands on the ground, and is stopped by walls, cover and the arena's edge.
 
-**Two views.** First person, and third person over the shoulder with the player's body in view. V switches between them at any moment of play. In third person the camera does not pass through walls. In both, a shot goes where the crosshair points.
+**Two views.** First person, with the camera at the player's eyes, and third person over the shoulder, with the camera 2 to 8 m behind the player and their body in view. A round starts in first person; V switches between the two at any moment of play. In third person the camera does not pass through walls. In both, a shot goes where the crosshair points.
 
-**The rifle.** The starting weapon. A click fires one shot that lands at once where the crosshair points (no travel time). A magazine of 12 to 30 rounds, a reserve, R to reload in a second or two. Holding the button may keep firing.
+**The rifle.** The starting weapon. A click fires one shot that lands at once where the crosshair points (no travel time). A magazine of 12 to 30 rounds, a reserve of at least two magazines more, R to reload in a second or two. Holding the button may keep firing.
 
-**Enemies.** They are visibly not the player and visibly alive: they move, they react when hit, they fall when defeated.
+**Enemies.** They are visibly not the player and visibly alive: they move, they react when hit, they fall when defeated. A body is at least 0.6 m across at its middle, so that a shot aimed there lands.
 
 - *Chasers* run at the player and strike up close.
 - *Shooters*, later, keep their distance and fire slow shots a player can see coming and step away from.
 - *A heavy one*, later still, closes the last wave.
 
-**A round.** The menu, then play, then won or lost. A round is a number of waves; each wave is a set of enemies; the next wave comes when the last enemy of this one falls. Clear the last wave and the round is won. Reach zero health and it is lost. Either way the screen says so with the score, and Enter or a click starts another round.
+**A round.** The menu, then play, then won or lost. The player starts every round in the same place, in the open, with nothing within 10 m of them. A round is a number of waves; each wave is a set of enemies; the next wave comes when the last enemy of this one falls. Clear the last wave and the round is won. Reach zero health and it is lost. Either way the screen says so with the score, and Enter or a click starts another round, at full health and with no score.
 
-**What the screen shows.** Health, ammunition in the magazine and in reserve, the wave, the score, a crosshair. When a shot lands, something says so.
+**What the screen shows.** Health, ammunition in the magazine and in reserve, the wave, the score, a crosshair. When a shot lands, something says so. Every enemy defeated adds to the score at the moment it falls.
 
 **Sound.** A shot, a hit, an enemy falling, the player hurt, steps, a round won and lost. All of it generated in code. M mutes it.
 
@@ -87,7 +87,7 @@ A smaller game that works is better than a larger one that does not: a milestone
 
 The game is played by scripts as well as by people, at the end of every milestone and after the six hours. For that it keeps one small, read-only surface and two flags. They are part of the game, they ship in the build, and they do not change how it plays for a person.
 
-**`window.__game`** is an object that says where the game is. Reading it gives the state at that moment. Writing to it changes nothing.
+**`window.__game`** says where the game is. It is plain data, all of which `JSON.stringify(window.__game)` gives, and each read gives the state at that moment. Writing to it changes nothing in the game.
 
 ```ts
 window.__game: {
@@ -117,14 +117,22 @@ window.__game: {
 }
 ```
 
+What the fields hold when:
+
+- **On the menu**, before any round: `phase` is `"menu"`; `seed` and `test` say what the address asked for; the player is at the place a round starts, at full health with a full magazine and reserve; `view` is `"first"`; `enemies` is empty; `score`, `wave` and `time` are 0.
+- **From the moment `phase` is `"playing"`**, `enemies` lists the whole wave in play, each at its place, and `wave` is 1 or more. A wave's enemies are listed when it starts, not as they walk in.
+- `time` counts only while the round is being played: it stands still while paused and after the round is won or lost.
+- `frames` goes up by one for every picture the game draws, in every phase.
+
 **`?seed=<whole number>`** in the address fixes everything the game draws by chance, so that the same seed starts the same round: the same enemies in the same places.
 
-**`?test=1`** turns on test mode, which changes four things and nothing else:
+**`?test=1`** turns on test mode, which changes five things and nothing else:
 
 1. **Keys and the mouse work without the pointer being taken.** A browser driven by a script cannot always take it.
-2. **Enter starts a round from the menu** and starts another after a round is won or lost, with no click.
-3. **The arrow keys turn the view**: left and right at 60 degrees a second, up and down at 30. Without the flag they do nothing.
-4. **A round is the test round**: one wave of three chasers and nothing else. The seed places them 20 to 30 m from the player, within 45 degrees of where the player faces, with open ground between. They come at about 3 m a second. Each falls to three hits of the rifle or fewer. A chaser in contact takes between five seconds and thirty to bring a player from full health to zero. The player starts in first person, facing them, with a full magazine.
+2. **Enter alone starts a round from the menu**, and starts another after a round is won or lost, as soon as that screen is up: no click is needed.
+3. **Only Escape pauses.** The game does not pause because its window is not in front.
+4. **The arrow keys turn the view**: left and right turn it left and right at 60 degrees a second, up and down look up and down at 30. Without the flag they do nothing.
+5. **A round is the test round**: one wave of three chasers and nothing else. The seed places them 20 to 30 m from the player, within 45 degrees to either side of where the player faces, with open ground between. They come at about 3 m a second. Each falls to three hits of the rifle or fewer. A chaser strikes only from within 3 m, and one in contact takes between five seconds and thirty to bring a player from full health to zero. The player starts in first person, facing them, with a full magazine.
 
 The page opens on the menu in either mode. Nothing in the surface may let a script do what a player could not: it reads, and the two flags make the game repeatable and reachable.
 

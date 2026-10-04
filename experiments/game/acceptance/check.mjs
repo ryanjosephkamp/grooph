@@ -68,6 +68,10 @@ function visit(seed = SEED) {
 }
 
 const browser = await chromium.launch({ headless: !flag("--headed") });
+/** Every request any check's page made to another host, for the `opens` check to answer for at the end. */
+const everOutside = [];
+/** A browser with a window asks for an icon by itself; a game without one is still a game. */
+const icon = (url) => new URL(url).pathname === "/favicon.ico";
 
 /** A fresh page on the game, with what it did wrong while loading and running kept in `trouble`. */
 async function open(seed = SEED) {
@@ -77,19 +81,20 @@ async function open(seed = SEED) {
   const trouble = { errors: [], failed: [], outside: [] };
   page.on("pageerror", (error) => trouble.errors.push(`uncaught: ${error.message}`));
   page.on("console", (message) => {
-    if (message.type() === "error") trouble.errors.push(`console: ${message.text()}`);
+    if (message.type() === "error" && !icon(message.location().url || "http://x/")) trouble.errors.push(`console: ${message.text()}`);
   });
   page.on("requestfailed", (request) => {
-    if (new URL(request.url()).origin === origin) trouble.failed.push(request.url());
+    if (new URL(request.url()).origin === origin && !icon(request.url())) trouble.failed.push(request.url());
   });
   page.on("response", (response) => {
-    if (response.status() >= 400 && new URL(response.url()).origin === origin) trouble.failed.push(`${response.status()} ${response.url()}`);
+    if (response.status() >= 400 && new URL(response.url()).origin === origin && !icon(response.url())) trouble.failed.push(`${response.status()} ${response.url()}`);
   });
   // A request to another host is written down and refused: nothing leaves this machine.
   await context.route(
     (url) => /^https?:$/.test(url.protocol) && url.origin !== origin,
     (route) => {
       trouble.outside.push(route.request().url());
+      everOutside.push(route.request().url());
       return route.abort();
     },
   );
@@ -120,6 +125,17 @@ async function start(page) {
   const playing = await until(page, (s) => s.phase === "playing", 10_000);
   if (playing === null) fail(`Enter did not start a round: the phase is still "${(await snap(page))?.phase}"`);
   return playing;
+}
+
+/** Presses Enter until a round is being played, as a player who is not sure the screen is ready would. */
+async function startAgain(page, ms) {
+  const end = Date.now() + ms;
+  for (;;) {
+    await page.keyboard.press("Enter");
+    const s = await until(page, (now) => now.phase === "playing", 500);
+    if (s !== null) return s;
+    if (Date.now() > end) return null;
+  }
 }
 
 /** Holds keys for a while, as a player holds them. */
@@ -162,9 +178,10 @@ async function play(page, done, ms) {
         continue;
       }
       if (s.player.ammo === 0) {
+        // One press, then wait for the magazine: a second press might start the reload over.
         await release();
         await page.keyboard.press("KeyR");
-        await sleep(400);
+        await until(page, (now) => now.player.ammo > 0 || now.phase !== "playing", 5000);
         continue;
       }
       const alive = s.enemies.filter((enemy) => enemy.alive);
@@ -180,7 +197,8 @@ async function play(page, done, ms) {
       const f = unit(s.player.forward);
       const across = Math.atan2(dot(flat(d), rightOf(f)), dot(flat(d), unit(flat(f))));
       const up = Math.asin(Math.max(-1, Math.min(1, d.y))) - Math.asin(Math.max(-1, Math.min(1, f.y)));
-      const good = Math.max(0.012, Math.atan(0.3 / far));
+      // A body is 0.6 m across or more (SPEC.md section 3): aim within 0.2 m of its middle, so there is room to spare.
+      const good = Math.max(0.008, Math.atan(0.2 / far));
       await set("KeyS", far < 8);
       if (Math.abs(across) < good && Math.abs(up) < good) {
         await set("ArrowLeft", false);
@@ -258,6 +276,9 @@ const CHECKS = [
     does: "The page opens: no error, no file of its own missing, nothing asked of another host",
     async run({ page, trouble }) {
       await sleep(1500);
+      // The menu, and then a few seconds of a round: a game may fetch when play starts.
+      await page.keyboard.press("Enter");
+      await sleep(3000);
       // The browser reports a refused request as a console error of its own; it is named as what it is, below.
       const errors = trouble.errors.filter((e) => !(trouble.outside.length > 0 && e.startsWith("console: Failed to load resource")));
       const wrong = [];
@@ -313,17 +334,20 @@ const CHECKS = [
       if (!vector(s.camera?.position)) wrong.push("camera.position is not a vector");
       if (!Array.isArray(s.enemies)) wrong.push("enemies is not a list");
       for (const key of ["score", "wave", "waves", "time", "frames"]) if (typeof s[key] !== "number") wrong.push(`${key} is not a number`);
+      if (s.enemies.length !== 0 || s.score !== 0 || s.wave !== 0 || s.time !== 0) wrong.push(`on the menu there are ${s.enemies.length} enemies, score ${s.score}, wave ${s.wave}, time ${s.time}`);
+      if (s.player.health !== s.player.maxHealth || !(s.player.ammo > 0)) wrong.push(`on the menu the player has health ${s.player.health} of ${s.player.maxHealth} and ammunition ${s.player.ammo}`);
       if (wrong.length > 0) fail(wrong.join("; "));
-      // Nothing written to it changes the game.
-      const kept = await page.evaluate(() => {
+      // Nothing written to it changes the game. A few pictures later the game says what it said before.
+      await page.evaluate(() => {
         try {
           window.__game.player.health = 1;
           window.__game.phase = "won";
         } catch {}
-        return { health: window.__game.player.health, phase: window.__game.phase };
       });
-      if (kept.phase !== "menu" || kept.health !== s.player.health) fail("writing to window.__game changed the game: the surface is not read-only");
-      // A started round holds enemies of the right shape.
+      await sleep(300);
+      const kept = await snap(page);
+      if (kept.phase !== "menu" || kept.player.health !== s.player.health) fail("writing to window.__game changed the game: the surface is not read-only");
+      // A started round holds its wave, each enemy of the right shape, from the moment it is being played.
       const playing = await start(page);
       const bad = playing.enemies.filter((e) => typeof e.id !== "string" || typeof e.kind !== "string" || !vector(e.position) || typeof e.health !== "number" || typeof e.alive !== "boolean");
       if (playing.enemies.length === 0 || bad.length > 0) fail(`a started round has ${playing.enemies.length} enemies, ${bad.length} of them not {id, kind, position, health, alive}`);
@@ -424,24 +448,33 @@ const CHECKS = [
   },
   {
     id: "world",
-    does: "The world holds the player: walking on for twelve seconds does not leave it or fall through it",
+    does: "The arena holds the player: a sprint in one direction ends at its edge, not outside it or under it",
     async run({ page }) {
       const a = await start(page);
+      // Turn away from the enemies, so that what stops the player is the arena and not a fight.
+      await hold(page, ["ArrowRight"], 3000);
+      await page.keyboard.down("ShiftLeft");
       await page.keyboard.down("KeyW");
       let lowest = a.player.position.y;
-      const end = Date.now() + 12_000;
+      let farthest = 0;
       let s = a;
+      const end = Date.now() + 45_000;
       while (Date.now() < end) {
         await sleep(250);
         s = await snap(page);
         lowest = Math.min(lowest, s.player.position.y);
+        farthest = Math.max(farthest, len(flat(sub(s.player.position, a.player.position))));
       }
       await page.keyboard.up("KeyW");
+      await page.keyboard.up("ShiftLeft");
       const p = s.player.position;
       if (![p.x, p.y, p.z].every(Number.isFinite)) fail("the player's position is no longer a number");
-      if (lowest < a.player.position.y - 3) fail(`the player fell ${round(a.player.position.y - lowest, 1)} m below where the round started`);
-      if (Math.abs(p.x) > 500 || Math.abs(p.z) > 500) fail(`the player walked out of the arena, to ${where(p)}`);
-      return `after twelve seconds of walking the player is at ${where(p)}, never more than ${round(Math.max(0, a.player.position.y - lowest), 1)} m below the start`;
+      if (lowest < a.player.position.y - 20) fail(`the player fell ${round(a.player.position.y - lowest, 1)} m below where the round started`);
+      // The arena is about 120 m across, corner to corner about 170: nobody inside it gets 200 m from where they began,
+      // and 45 seconds of sprinting at 6 m a second or more would take a player past that if nothing stopped them.
+      if (farthest > 200) fail(`the player ran ${round(farthest, 1)} m from the start and was not stopped: the arena has no edge there`);
+      if (farthest < 5) fail(`45 seconds of sprinting moved the player ${round(farthest, 1)} m`);
+      return `a 45-second sprint ended ${round(farthest, 1)} m from the start, at ${where(p)}, never more than ${round(Math.max(0, a.player.position.y - lowest), 1)} m below it`;
     },
   },
   {
@@ -451,22 +484,24 @@ const CHECKS = [
       const a = await start(page);
       if (a.view !== "first") fail(`a round starts in ${a.view} person, not first`);
       const head = len(sub(a.camera.position, a.player.position));
-      if (head > 2.5) fail(`in first person the camera is ${round(head)} m from the player`);
+      if (head > 2.5) fail(`in first person the camera is ${round(head)} m from the player's feet`);
       await page.keyboard.press("KeyV");
       const b = await until(page, (s) => s.view === "third", 2000);
       if (b === null) fail("V did not switch the view to third person");
-      await sleep(600);
-      const c = await snap(page);
-      const away = sub(c.camera.position, c.player.position);
-      if (len(away) < head + 1 || len(away) > 15) fail(`in third person the camera is ${round(len(away))} m from the player; in first it was ${round(head)} m`);
-      if (dot(flat(away), flat(unit(c.player.forward))) > 0) fail("in third person the camera is in front of the player, not behind");
+      // Third person: the camera has left the eyes, by a meter and a half or more, to somewhere behind the player.
+      // The eyes are where the first-person camera stood above the feet. A camera may glide there, so it is given time.
+      const eyes = (s) => ({ x: s.player.position.x + (a.camera.position.x - a.player.position.x), y: s.player.position.y + (a.camera.position.y - a.player.position.y), z: s.player.position.z + (a.camera.position.z - a.player.position.z) });
+      const out = (s) => sub(s.camera.position, eyes(s));
+      const c = await until(page, (s) => len(out(s)) >= 1.5 && dot(flat(out(s)), flat(unit(s.player.forward))) < 0, 2500);
+      if (c === null) {
+        const now = await snap(page);
+        fail(`in third person the camera is ${round(len(out(now)))} m from where the eyes are${dot(flat(out(now)), flat(unit(now.player.forward))) >= 0 ? ", and not behind the player" : ""}`);
+      }
+      if (len(out(c)) > 12) fail(`in third person the camera is ${round(len(out(c)))} m from the eyes`);
       await page.keyboard.press("KeyV");
-      const d = await until(page, (s) => s.view === "first", 2000);
-      if (d === null) fail("V did not switch the view back to first person");
-      await sleep(600);
-      const e = await snap(page);
-      if (len(sub(e.camera.position, e.player.position)) > 2.5) fail("back in first person the camera did not come back to the player");
-      return `first person: camera ${round(head)} m from the player; third: ${round(len(away))} m, behind; and back`;
+      const d = await until(page, (s) => s.view === "first" && len(out(s)) < 0.5, 2500);
+      if (d === null) fail("V did not bring the view and the camera back to first person");
+      return `first person: camera ${round(head)} m above the feet; third: ${round(len(out(c)))} m from the eyes, behind; and back`;
     },
   },
   {
@@ -483,14 +518,23 @@ const CHECKS = [
   },
   {
     id: "hit",
-    does: "A shot that lands lowers a target's health",
+    does: "A shot that lands lowers a target's health, and one aimed away does not",
     async run({ page }) {
       const a = await start(page);
       const total = (s) => s.enemies.reduce((n, e) => n + e.health, 0);
+      // Away first: the test round's enemies are within 45 degrees of ahead, so two seconds of turning leaves none in line.
+      await hold(page, ["ArrowRight"], 2000);
+      for (let i = 0; i < 2; i += 1) {
+        await page.mouse.down();
+        await page.mouse.up();
+        await sleep(250);
+      }
+      const away = await snap(page);
+      if (total(away) < total(a)) fail("a shot fired away from every enemy lowered an enemy's health: clicks land wherever they point");
       const b = await play(page, (s) => total(s) < total(a), wait(45_000));
       if (b === null || total(b) >= total(a)) fail(`aimed shots for ${wait(45_000) / 1000} s lowered no enemy's health (the round is ${b?.phase}; ammunition ${b?.player.ammo})`);
       const target = b.enemies.find((e) => e.health < a.enemies.find((was) => was.id === e.id)?.health);
-      return `${target?.id ?? "an enemy"}: health ${a.enemies.find((was) => was.id === target?.id)?.health} to ${target?.health}`;
+      return `aimed away: nothing; aimed: ${target?.id ?? "an enemy"} from health ${a.enemies.find((was) => was.id === target?.id)?.health} to ${target?.health}`;
     },
   },
   {
@@ -500,8 +544,9 @@ const CHECKS = [
       const a = await start(page);
       const b = await play(page, (s) => s.enemies.some((e) => !e.alive), wait(90_000));
       if (b === null || !b.enemies.some((e) => !e.alive)) fail(`no enemy was defeated in ${wait(90_000) / 1000} s of aimed shots (the round is ${b?.phase})`);
-      if (b.score <= a.score) fail(`an enemy was defeated and the score stayed at ${b.score}`);
-      return `${b.enemies.filter((e) => !e.alive).length} defeated; score ${a.score} to ${b.score}`;
+      const c = await until(page, (s) => s.score > a.score, 2000);
+      if (c === null) fail(`an enemy was defeated and the score stayed at ${b.score}`);
+      return `${b.enemies.filter((e) => !e.alive).length} defeated; score ${a.score} to ${c.score}`;
     },
   },
   {
@@ -530,7 +575,9 @@ const CHECKS = [
       const a = await start(page);
       const b = await until(page, (s) => s.player.health < a.player.health, wait(60_000));
       if (b === null) fail(`a player who stood still for ${wait(60_000) / 1000} s was not hurt`);
-      const near = Math.min(...b.enemies.filter((e) => e.alive).map((e) => len(sub(e.position, b.player.position))));
+      const near = Math.min(...b.enemies.filter((e) => e.alive).map((e) => len(flat(sub(e.position, b.player.position)))));
+      // A chaser strikes from within 3 m (SPEC.md section 7); a little more is allowed for the step it took since.
+      if (!(near <= 5)) fail(`the player was hurt with the nearest enemy ${round(near, 1)} m away: something other than a chaser's strike did it`);
       return `health ${a.player.health} to ${b.player.health} after ${round(b.time, 1)} s; the nearest enemy ${round(near, 1)} m away`;
     },
   },
@@ -555,10 +602,8 @@ const CHECKS = [
       await start(page);
       const lost = await until(page, (s) => s.phase === "lost", wait(120_000));
       if (lost === null) fail("the round did not end, so there is no second one to start");
-      await sleep(300);
-      await page.keyboard.press("Enter");
-      const b = await until(page, (s) => s.phase === "playing", 10_000);
-      if (b === null) fail("Enter after a lost round did not start another");
+      const b = await startAgain(page, 10_000);
+      if (b === null) fail("Enter after a lost round did not start another within ten seconds");
       if (b.player.health !== b.player.maxHealth || b.score !== 0 || b.enemies.filter((e) => e.alive).length === 0) fail(`the second round starts with health ${b.player.health} of ${b.player.maxHealth}, score ${b.score} and ${b.enemies.filter((e) => e.alive).length} enemies alive`);
       return `a second round: health ${b.player.health}, score 0, ${b.enemies.length} enemies`;
     },
@@ -651,6 +696,14 @@ for (const check of CHECKS) {
   console.log(`${result.passed ? "pass" : "FAIL"}  ${check.id.padEnd(8)} ${check.does}\n      ${result.saw}`);
 }
 await browser.close();
+
+// A page that asked another host during any check did so as the game: `opens` answers for all of them.
+const opens = results.find((r) => r.id === "opens");
+if (opens?.passed && everOutside.length > 0) {
+  opens.passed = false;
+  opens.saw = `during a later check the page asked another host: ${everOutside[0]}`;
+  console.log(`FAIL  opens    (changed after the other checks ran)\n      ${opens.saw}`);
+}
 
 const failed = results.filter((r) => !r.passed);
 console.log(`\n${results.length - failed.length} of ${results.length} checks pass${failed.length > 0 ? `; failing: ${failed.map((r) => r.id).join(", ")}` : ""}`);
