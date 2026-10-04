@@ -177,3 +177,29 @@ test("explain says what each stop does when it fires: a passed bar leaves the lo
   }
 });
 
+test("embed is a command like the others: listed in the overview, with its own help, and it prints the frame", async () => {
+  let io = capture();
+  assert.equal(await run(["--help"], io), 0);
+  assert.match(io.stdout.join("\n"), /^  embed {8}one line of HTML that shows a graph on any page$/m);
+  assert.ok(io.stdout.join("\n").split("\n").length <= 45);
+  io = capture();
+  assert.equal(await run(["embed", "--help"], io), 0);
+  assert.match(io.stdout.join("\n"), /^grooph embed <file>/);
+  const dir = mkdtempSync(join(tmpdir(), "grooph-embed-"));
+  try {
+    const file = join(dir, "g.grooph.json");
+    assert.equal(await run(["template", "use", "grind-loop", "--set", "task=fix it", "--set", "test-command=pnpm test", "--out", file], capture()), 0);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "dark", "--height", "480"], io), 0, io.stderr.join("\n"));
+    assert.match(io.stdout[0]!, /^<iframe [^>]*src="https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/embed\?[^"]*theme=dark[^"]*"[^>]*height="480"/);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "purple"], io), 1);
+    assert.match(io.stderr.join("\n"), /--theme is light or dark/);
+    io = capture();
+    assert.equal(await run(["embd", file], io), 1);
+    assert.match(io.stderr.join("\n"), /Did you mean "embed"\?/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+

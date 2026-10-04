@@ -23,6 +23,7 @@ import { newCommand } from "./commands/new.js";
 import { pickCommand, PICK_HELP } from "./commands/pick.js";
 import { runsBundleCommand, runsListCommand, runsShowCommand, RUNS_HELP } from "./commands/runs.js";
 import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
+import { embedCommand, EMBED_HELP } from "./commands/embed.js";
 import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
 import { validateCommand } from "./commands/validate.js";
@@ -225,6 +226,26 @@ export async function run(
         if (file === undefined) return usageError(io, "page needs a file: grooph page <graph | operation map> --out <file.html>");
         if (values["out"] === undefined) return usageError(io, "page needs --out <file.html>, the one file to write");
         return pageCommand(io, file, { out: values["out"], version: VERSION, ...(values["events"] ? { events: values["events"].map(parseSource) } : {}) });
+      }
+
+      case "embed": {
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { theme: { type: "string" }, height: { type: "string" }, frame: { type: "boolean" }, play: { type: "boolean" }, base: { type: "string" } },
+        });
+        const file = positionals[0];
+        if (file === undefined) return usageError(io, "embed needs a file: grooph embed <graph | map | run> (grooph embed --help)");
+        if (values["theme"] !== undefined && values["theme"] !== "light" && values["theme"] !== "dark") {
+          return usageError(io, `--theme is light or dark; got "${values["theme"]}"`);
+        }
+        return embedCommand(io, file, {
+          ...(values["theme"] !== undefined ? { theme: values["theme"] as "light" | "dark" } : {}),
+          ...(values["height"] !== undefined ? { height: Number(values["height"]) } : {}),
+          ...(values["base"] !== undefined ? { base: values["base"] } : {}),
+          frame: values["frame"] === true,
+          play: values["play"] === true,
+        });
       }
 
       case "share": {
@@ -434,6 +455,7 @@ const COMMAND_HELP: Record<string, string> = {
   explain: EXPLAIN_HELP,
   template: TEMPLATE_USAGE,
   share: SHARE_HELP,
+  embed: EMBED_HELP,
   runs: RUNS_HELP,
   adopt: ADOPT_HELP,
   watch: WATCH_HELP,
