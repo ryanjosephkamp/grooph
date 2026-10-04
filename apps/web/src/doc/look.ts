@@ -1,123 +1,54 @@
 /**
- * The picture's theme in the app (handoff 0086; docs/themes.md): which of the six a person chose, kept in this
- * browser as the site's look is, and the chosen theme's values once they are here.
+ * The pictures' themes (handoff 0086; docs/themes.md), as much of them as the app carries before one is wanted: a
+ * look at what was kept and at the address, and an ear for a press on anything that offers them.
  *
- * Paper, the picture as it has always been, needs nothing: this file is all an address carries for it. The other
- * five are a piece of the app of their own (`ui/theme/themes.ts`), fetched when one is first chosen or when an
- * address names one, and held by the service worker from the first visit. Until the piece arrives, and if it
- * cannot be fetched, every picture is Paper.
+ * Paper is the picture as it has always been, and needs none of this. The other five, the list of them, the choice
+ * and every way a screen takes a theme are one piece of the app (`ui/theme/themes.ts`), fetched when a theme other
+ * than Paper was kept in this browser or is named in the address, or when a person presses a control marked
+ * `data-pictures` (the entry in the header's theme menu, the dot on the canvas, the button in Keep a copy). Until
+ * then no code of the themes runs, and every picture is Paper.
  *
- * The choice is separate from the site's look (the header's Grooph and Meteor) and from light and dark: a theme has
- * its own colors for each, and follows the device as Paper does.
+ * This file is not in the app's first load either: it comes with the screens that draw on the canvas
+ * (`ui/screens.ts`), which an address that needs them loads at once and every other address fetches as soon as its
+ * first screen is up. The first load holds one thing of the themes, the entry in the header's menu.
  */
-import type { PictureLook } from "@grooph/core/themes";
-import { useEffect, useSyncExternalStore } from "react";
+import { piece } from "../piece.js";
 
-import { piece as fetched } from "../piece.js";
-
-const IDS = ["paper", "blueprint", "ink", "phosphor", "transit", "chalk"] as const;
-export type LookId = (typeof IDS)[number];
-/** Each one's swatch in a menu, in the same order. */
-const DOTS = ["#1f5f4a", "#24467e", "#1c1c1c", "#5dff8a", "#0057b8", "#a94e08"];
-/** The six, in the order they are offered: its name in an address, its name to a person (the same word), and its swatch. */
-export const LOOKS: readonly (readonly [LookId, string, string])[] = IDS.map((id, i) => [id, id[0]!.toUpperCase() + id.slice(1), DOTS[i]!]);
-
-/** Where the choice is kept. */
-const KEY = "groophPicture";
-
-const known = (value: string | null | undefined): LookId | undefined => IDS.find((id) => id === value);
-
-type Piece = typeof import("../ui/theme/themes.js");
-let piece: Piece | undefined;
-let asked = false;
-/** The piece was asked for and could not be had: no network, and nothing kept. */
-let missing = false;
-let chosen: LookId = (() => {
-  try {
-    return known(localStorage.getItem(KEY)) ?? "paper";
-  } catch {
-    return "paper";
-  }
-})();
-
-const watchers = new Set<() => void>();
-const tell = (): void => watchers.forEach((watcher) => watcher());
-const watch = (watcher: () => void): (() => void) => {
-  watchers.add(watcher);
-  window.addEventListener("hashchange", watcher);
-  return () => {
-    watchers.delete(watcher);
-    window.removeEventListener("hashchange", watcher);
-  };
-};
+/** The piece, asked for as every piece is: tried again if it fails, held by the service worker from the first visit. */
+export const themes = (): Promise<typeof import("../ui/theme/themes.js")> => piece("themes", () => import("../ui/theme/themes.js"));
 
 /**
- * The theme an address names: the first `theme=` on a share link or an embed, a name alone or with `-light`,
- * `-dark` or `-auto` after it, as `--theme` takes it. A name that is none of the six is Paper. Undefined when the
- * address names no theme: `theme=dark` alone is an embed's light or dark, as it always was.
+ * Whether this address is to be drawn in a theme other than Paper: one is named in a share link's address (a theme's
+ * name begins with one of five letters; `light` and `dark` do not), or one was kept here. Which theme, and what a
+ * name means, is the piece's to say. An embed asks for itself (`ui/embed/EmbedApp.tsx`).
  */
-export function lookNamed(hash: string): LookId | undefined {
-  const value = /^#\/(?:open|embed)\?(?:[^&]*&)*?theme=([^&]*)/.exec(hash)?.[1]?.replace(/-?(?:light|dark|auto)$/, "");
-  return value ? (known(value) ?? "paper") : undefined;
+export function wanted(): boolean {
+  if (/^#\/open\?.*theme=[bcipt]/.test(location.hash)) return true;
+  try {
+    return (localStorage.getItem("groophPicture") ?? "paper") !== "paper";
+  } catch {
+    return false;
+  }
 }
 
-/** The theme in effect here: the one the address names; else the one chosen, except in an embed, which is somebody else's page. */
-export const lookNow = (hash: string = location.hash): LookId => lookNamed(hash) ?? (hash.startsWith("#/embed") ? "paper" : chosen);
-
-/** An address without the theme it names: every `theme=` goes, and the rest stays as it was. */
-export const withoutLook = (hash: string): string => (lookNamed(hash) === undefined ? hash : hash.replace(/([?&])theme=[^&]*&?/g, "$1").replace(/[?&]$/, ""));
-
-function fetchPiece(): void {
-  if (asked) return;
-  asked = true;
-  // A fetch that fails is tried again there and then, in a way every engine honors (`piece.ts`).
-  fetched("themes", () => import("../ui/theme/themes.js")).then(
-    (m) => {
-      piece = m;
-      missing = false;
-      tell();
-    },
-    // Not to be had: no network, and a first visit the worker had not finished. The pictures stay Paper, whoever
-    // waits on the theme is told, and the next choice asks afresh.
-    () => {
-      asked = false;
-      missing = true;
-      tell();
-    },
+/** Open the themes' list at a control that offers them. If they cannot be had, the control says what it needs. */
+function offer(at: Element): void {
+  at.removeAttribute("data-pressed");
+  themes().then(
+    (fetched) => fetched.open(at),
+    () => at.setAttribute("title", "Needs a connection the first time"),
   );
 }
 
-/** Choose a theme for the pictures, and keep the choice in this browser. */
-export function chooseLook(id: LookId): void {
-  chosen = id;
-  try {
-    localStorage.setItem(KEY, id);
-  } catch {
-    /* shown, not kept */
-  }
-  // A theme named in the address would bring the old one back on the next load. Only the part after the # is
-  // touched: a ?theme= before it is the site's look.
-  const hash = withoutLook(location.hash);
-  if (hash !== location.hash) history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
-  // Choosing again is how a person asks again for a theme that could not be fetched: the connection may be back.
-  if (id !== "paper" && !piece) fetchPiece();
-  tell();
-}
-
-/** The theme in effect, for a menu to mark. */
-export const useLookId = (): LookId => useSyncExternalStore(watch, lookNow);
-
-/** Whether the theme in effect could not be fetched, so that what waits on it can stop waiting and say so. */
-export const useLookMissing = (): boolean => useSyncExternalStore(watch, () => missing && !piece && lookNow() !== "paper");
-
-/**
- * What to hand a picture so it is drawn in the theme in effect: `picture(doc, { ...(look ? { look } : {}) })`.
- * Undefined for Paper, and for another theme until its values are here.
- */
-export function useLook(): PictureLook | undefined {
-  const id = useSyncExternalStore(watch, () => `${lookNow()} ${piece ? 1 : 0}`).split(" ")[0] as LookId;
-  useEffect(() => {
-    if (id !== "paper") fetchPiece();
-  }, [id]);
-  return id === "paper" ? undefined : piece?.look(id);
-}
+const begin = (): void => {
+  if (wanted()) themes().catch(() => undefined);
+};
+begin();
+addEventListener("hashchange", begin);
+addEventListener("click", (e) => {
+  const at = (e.target as Element | null)?.closest?.("[data-pictures]");
+  if (at) offer(at);
+});
+// The header's entry may have been pressed before this file arrived: it says so, and is answered now.
+const early = document.querySelector("[data-pressed]");
+if (early) offer(early);

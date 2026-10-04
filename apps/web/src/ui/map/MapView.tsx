@@ -20,7 +20,6 @@ import {
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { download } from "../../doc/exportPackage.js";
-import { useLook } from "../../doc/look.js";
 import { piece } from "../../piece.js";
 import { Keep } from "../Keep.js";
 import { IssueList } from "../open/Details.js";
@@ -127,9 +126,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
   const sequence = !!theirs?.sequence;
   // The phone's picture needs nothing fetched. A wide screen waits a moment for the views rather than draw one
   // picture and then another; if they cannot be had, it draws the phone's, wider.
-  // In the theme chosen for pictures (docs/themes.md): Paper needs nothing; another is drawn once its values are here.
-  const look = useLook();
-  const svg = useMemo(() => theirs?.svg ?? (wide && more !== null ? "" : mapPicture(map, { ...(wide ? { width: WIDE_UNITS } : {}), ...(look ? { look } : {}) })), [map, wide, more, theirs, look]);
+  const svg = useMemo(() => theirs?.svg ?? (wide && more !== null ? "" : mapPicture(map, wide ? { width: WIDE_UNITS } : {})), [map, wide, more, theirs]);
   const [panel, setPanel] = useState<Panel>(null);
   const [expanded, setExpanded] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
@@ -312,11 +309,10 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
 
       <main ref={main} className="stage map-stage">
         {/* Where the switch goes is kept from the first paint, so nothing moves when it arrives. */}
-        <div style={{ minHeight: 68 }}>{more ? <more.Views map={map} kit={mapKit} wide={wide} stage={main} onDrawn={setTheirs} {...(look ? { look } : {})} /> : null}</div>
+        <div style={{ minHeight: 68 }}>{more ? <more.Views map={map} kit={mapKit} wide={wide} stage={main} onDrawn={setTheirs} /> : null}</div>
         <div
           ref={stage}
           className={`map-picture${sequence ? " is-sequence" : ""}`}
-          data-look={look?.name}
           hidden={svg === ""}
           style={theirs?.style}
           onClick={(e) => {

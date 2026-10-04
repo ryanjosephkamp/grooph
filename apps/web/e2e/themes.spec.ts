@@ -4,16 +4,17 @@ import { deflateRawSync } from "node:zlib";
 
 import { buildRunBundle, buildShareEnvelope, encodeSharePayload, mapKit, mapPicture, offlinePage, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
 import { mapSequenceWith, mapWideWith } from "@grooph/core/map-views";
-import { PICTURE_THEMES, pictureLook } from "@grooph/core/themes";
+import { PICTURE_THEMES, THEME_VALUES, themed, themedPage } from "@grooph/core/themes";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet } from "./support.js";
 
 /**
  * The picture's themes in the app (handoff 0086; docs/themes.md): six looks for the same picture. Paper is the
- * default and costs an address nothing; the other five are a piece fetched when one is chosen or named in an
- * address. The choice is offered in the header's theme menu and on the canvas, is kept in this browser, and is
- * separate from the site's look and from light and dark.
+ * default and costs an address nothing: the other five, the list of them and every way a screen takes a theme
+ * are one piece, fetched when a theme was kept or is named in an address, or when a control that offers the themes
+ * is pressed. The choice is offered in the header's theme menu, on the canvas and in Keep a copy, is kept in this
+ * browser, and is separate from the site's look and from light and dark.
  */
 const FIVE = PICTURE_THEMES.filter((name) => name !== "paper");
 const mapAt = (name: string): OperationMap => parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid", `${name}.grooph-map.json`), "utf8")).map!;
@@ -63,60 +64,115 @@ const pastItsBox = (svg: Locator): Promise<{ over: number; words: string }> =>
     return worst;
   });
 
-test("no theme is fetched until one is chosen; the header's menu offers the six, draws the page's picture in the one chosen, and keeps the choice", async ({ page }) => {
+
+/** The list of six the piece opens at a control: a menu named for what it chooses. */
+const list = (scope: Page | Locator): Locator => scope.getByRole("menu", { name: "Picture theme" });
+const colorsOf = (name: (typeof FIVE)[number]) => THEME_VALUES[name];
+/** Whether anything in the page is in a theme. */
+const dressed = (page: Page): Promise<number> => page.locator("[data-look]").count();
+
+test("an address in Paper runs nothing of the themes; the header's menu has one entry for them, which fetches the six, draws the page's picture in the one chosen, and keeps the choice", async ({ page }) => {
   const asked = fetches(page);
   await page.goto("./");
   const hero = page.locator(".land-picture svg");
   await expect(hero).toBeVisible();
-  await expect(hero).not.toHaveAttribute("data-look", /.+/);
   const words = await hero.locator("text").allTextContents();
-  // A template on the canvas: Paper too, and nothing asked for.
+  const paper = await hero.evaluate((svg) => svg.outerHTML);
+  // A template on the canvas: Paper too, and nothing asked for. The canvas offers the themes as a dot, and that is all.
   await page.goto("./#/templates");
   await page.locator(".template-row").first().tap();
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
-  await expect(page.locator("main.stage")).not.toHaveAttribute("data-look", /.+/);
+  await expect(page.locator("main.stage").getByRole("button", { name: "Picture theme" })).toBeVisible();
   await page.waitForTimeout(300);
   expect(asked).toEqual([]);
+  expect(await dressed(page)).toBe(0);
+  expect(await page.locator("style").evaluateAll((sheets) => sheets.filter((s) => (s.textContent ?? "").includes("data-look")).length)).toBe(0);
 
   await page.goto("./#/about");
   const header = page.locator("header.site-header");
   await header.getByRole("button", { name: "Theme: Grooph" }).tap();
-  // Two sets in the one menu: the site's look, as it was, and the pictures' theme.
-  await expect(header.getByRole("group", { name: "Site" }).getByRole("menuitemradio")).toHaveCount(2);
-  const pictures = header.getByRole("group", { name: "Pictures" });
-  await expect(pictures.getByRole("menuitemradio")).toHaveText(["Paper", "Blueprint", "Ink", "Phosphor", "Transit", "Chalk"]);
-  await expect(pictures.getByRole("menuitemradio", { name: "Paper" })).toHaveAttribute("aria-checked", "true");
-  await pictures.getByRole("menuitemradio", { name: "Blueprint" }).tap();
+  // The site's looks, as they were, and one entry more.
+  await expect(header.getByRole("menuitemradio")).toHaveCount(2);
+  const entry = header.getByRole("menuitem", { name: "Picture theme" });
+  await expect(entry).toBeVisible();
+  // The arrows reach it from the site's looks.
+  await page.keyboard.press("End");
+  await expect(entry).toBeFocused();
+  await page.keyboard.press("Enter");
+  // The piece is fetched, once, and its list of six takes the menu's place, on the one in effect.
+  const six = list(header);
+  await expect(six.getByRole("menuitemradio")).toHaveText(["Paper", "Blueprint", "Ink", "Phosphor", "Transit", "Chalk"]);
+  await expect(header.getByRole("menu", { name: "Theme", exact: true })).toBeHidden();
+  await expect(six.getByRole("menuitemradio", { name: "Paper" })).toBeFocused();
+  await expect(six.getByRole("menuitemradio", { name: "Paper" })).toHaveAttribute("aria-checked", "true");
+  expect(asked).toHaveLength(1);
+  // Still Paper: fetching the themes changed nothing that was drawn.
+  expect(await hero.evaluate((svg) => svg.outerHTML)).toBe(paper);
+  await six.getByRole("menuitemradio", { name: "Blueprint" }).tap();
   await expect(hero).toHaveAttribute("data-look", "blueprint");
-  await expect(header.getByRole("menu")).toBeHidden();
+  await expect(six).toHaveCount(0);
+  await expect(header.getByRole("button", { name: "Theme: Grooph" })).toBeFocused();
   expect(asked).toHaveLength(1);
   // The same words, in the same order: a theme changes how the picture looks, never what it says.
   expect(await hero.locator("text").allTextContents()).toEqual(words);
-  // The site's look is another choice, and was not touched.
+  // The ground is Blueprint's, drawn in the picture, and the site's look is another choice, untouched.
+  expect(await hero.locator("rect").first().evaluate((r) => getComputedStyle(r).fill)).toBe(rgb(colorsOf("blueprint").light.bg));
+  await expect(hero.locator("pattern")).toHaveCount(1);
   await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
 
-  // Kept in this browser: the next visit asks for the piece itself and draws the picture in the theme.
+  // Kept in this browser: the next visit fetches the piece itself and draws the picture in the theme.
   await page.reload();
   await expect(hero).toHaveAttribute("data-look", "blueprint");
   await header.getByRole("button", { name: "Theme: Grooph" }).tap();
-  await expect(pictures.getByRole("menuitemradio", { name: "Blueprint" })).toHaveAttribute("aria-checked", "true");
-  // The keyboard reaches the pictures' set from the site's: the arrows run through both.
+  // The entry says which theme is in effect, and the list opens on it. The arrows run through the six and around.
+  await expect(entry).toHaveAttribute("data-now", "Blueprint");
+  await entry.tap();
+  await expect(six.getByRole("menuitemradio", { name: "Blueprint" })).toBeFocused();
   await page.keyboard.press("End");
-  await expect(pictures.getByRole("menuitemradio", { name: "Chalk" })).toBeFocused();
+  await expect(six.getByRole("menuitemradio", { name: "Chalk" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
-  await expect(header.getByRole("menuitemradio", { name: "Grooph" })).toBeFocused();
+  await expect(six.getByRole("menuitemradio", { name: "Paper" })).toBeFocused();
+  // Escape closes it and gives the keyboard back to the header's button; nothing was chosen.
+  await page.keyboard.press("Escape");
+  await expect(six).toHaveCount(0);
+  await expect(header.getByRole("button", { name: "Theme: Grooph" })).toBeFocused();
+  await expect(hero).toHaveAttribute("data-look", "blueprint");
   // The site's look and the pictures' theme work together: Meteor, and the picture is still Blueprint.
+  await page.keyboard.press("Enter");
   await header.getByRole("menuitemradio", { name: "Meteor" }).tap();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
   await expect(hero).toHaveAttribute("data-look", "blueprint");
-  // Back to Paper: the picture carries nothing of a theme again.
+  // Back to Paper: the picture is the very markup it was before there was a theme.
   await header.getByRole("button", { name: "Theme: Meteor" }).tap();
-  await pictures.getByRole("menuitemradio", { name: "Paper" }).tap();
+  await entry.tap();
+  await six.getByRole("menuitemradio", { name: "Paper" }).tap();
   await expect(hero).not.toHaveAttribute("data-look", /.+/);
+  expect(await hero.evaluate((svg) => svg.outerHTML)).toBe(paper);
   expect(await page.evaluate(() => localStorage.getItem("groophPicture"))).toBe("paper");
 });
 
-test("on the canvas the switch sits in the stage's corner; the canvas takes the theme's values, and Paper is the canvas as it was", async ({ page }) => {
+test("the header's entry pressed before the rest of the app has arrived is answered when it does", async ({ page }) => {
+  // What listens for the press comes with the canvas's screens, a moment after the front page. Held back here.
+  let arrive: () => void = () => undefined;
+  const held = new Promise<void>((done) => (arrive = done));
+  await page.route("**/assets/screens-*.js", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("./#/about");
+  const header = page.locator("header.site-header");
+  await header.getByRole("button", { name: "Theme: Grooph" }).tap();
+  await header.getByRole("menuitem", { name: "Picture theme" }).tap();
+  await page.waitForTimeout(300);
+  await expect(list(header)).toHaveCount(0);
+  arrive();
+  await expect(list(header).getByRole("menuitemradio")).toHaveCount(6);
+  await list(header).getByRole("menuitemradio", { name: "Chalk" }).tap();
+  await expect(page.locator(".land-picture svg")).toHaveAttribute("data-look", "chalk");
+});
+
+test("on the canvas the themes are a dot in the stage's corner; the canvas takes the theme's values, and Paper is the canvas as it was", async ({ page }) => {
+  const asked = fetches(page);
   await page.goto(linkFor(reviewLoop()));
   const stage = page.locator("main.stage");
   const card = node(page, "builder").locator(".gnode");
@@ -130,7 +186,7 @@ test("on the canvas the switch sits in the stage's corner; the canvas takes the 
   const paper = await look(card);
   expect(paper).toMatchObject({ radius: "10px", caps: "none" });
 
-  const toggle = stage.getByRole("button", { name: "Picture theme: Paper" });
+  const toggle = stage.getByRole("button", { name: /^Picture theme/ });
   await expect(toggle).toBeVisible();
   // It is a target a thumb can hit, inside the stage, in the corner the loops' legend keeps clear.
   const [box, room, legend] = [(await toggle.boundingBox())!, (await stage.boundingBox())!, (await page.locator(".loop-legend").boundingBox())!];
@@ -138,14 +194,15 @@ test("on the canvas the switch sits in the stage's corner; the canvas takes the 
   expect(box.height).toBeGreaterThanOrEqual(44);
   expect(box.x + box.width).toBeLessThanOrEqual(room.x + room.width);
   expect(box.x).toBeGreaterThanOrEqual(legend.x + legend.width);
-  // Closed, its list is not there to be seen or tapped.
-  await expect(stage.getByRole("menu")).toBeHidden();
+  expect(asked).toEqual([]);
 
   await toggle.tap();
-  await expect(stage.getByRole("menuitemradio")).toHaveText(["Paper", "Blueprint", "Ink", "Phosphor", "Transit", "Chalk"]);
-  await stage.getByRole("menuitemradio", { name: "Ink" }).tap();
+  await expect(list(stage).getByRole("menuitemradio")).toHaveText(["Paper", "Blueprint", "Ink", "Phosphor", "Transit", "Chalk"]);
+  expect(asked).toHaveLength(1);
+  await list(stage).getByRole("menuitemradio", { name: "Ink" }).tap();
   await expect(stage).toHaveAttribute("data-look", "ink");
-  await expect(stage.getByRole("menu")).toBeHidden();
+  await expect(list(stage)).toHaveCount(0);
+  // The dot says the theme in its name, and has the keyboard again.
   await expect(stage.getByRole("button", { name: "Picture theme: Ink" })).toBeFocused();
   // Ink's values on the canvas: its corners, its serif face, capitals for a node's kind, one ink on white.
   const ink = await look(card);
@@ -156,25 +213,32 @@ test("on the canvas the switch sits in the stage's corner; the canvas takes the 
   // The screen around the canvas keeps the site's look: only the canvas and the loops' legend take the theme.
   expect(await page.locator("header.topbar").evaluate((n) => getComputedStyle(n).fontFamily)).not.toContain("Georgia");
 
-  // The keyboard: the arrows open it on what is chosen and move, Enter chooses, Escape closes and gives focus back.
-  await page.keyboard.press("ArrowDown");
-  await expect(stage.getByRole("menuitemradio", { name: "Ink" })).toBeFocused();
+  // The keyboard: Enter opens the list on what is chosen, the arrows move, Enter chooses, Escape closes and gives focus back.
+  await page.keyboard.press("Enter");
+  await expect(list(stage).getByRole("menuitemradio", { name: "Ink" })).toBeFocused();
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(stage).toHaveAttribute("data-look", "transit");
   expect(await look(card)).toMatchObject({ radius: "22px", caps: "uppercase", edge: "4.5px" });
-  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("Enter");
+  await expect(list(stage)).toHaveCount(1);
   await page.keyboard.press("Escape");
-  await expect(stage.getByRole("menu")).toBeHidden();
+  await expect(list(stage)).toHaveCount(0);
   await expect(stage.getByRole("button", { name: "Picture theme: Transit" })).toBeFocused();
+  // A press anywhere else closes it too.
+  await page.keyboard.press("Enter");
+  await expect(list(stage)).toHaveCount(1);
+  await page.locator("header.topbar .title-name").tap();
+  await expect(list(stage)).toHaveCount(0);
+  await page.getByRole("button", { name: "Close panel" }).tap();
 
   // Paper again: the stage says nothing of a theme, and the canvas is drawn exactly as before.
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("Home");
-  await page.keyboard.press("Enter");
+  await stage.getByRole("button", { name: "Picture theme: Transit" }).tap();
+  await list(stage).getByRole("menuitemradio", { name: "Paper" }).tap();
   await expect(stage).not.toHaveAttribute("data-look", /.+/);
   expect(await look(card)).toEqual(paper);
+  expect(asked).toHaveLength(1);
 });
 
 test("a share link may name a theme in its address: it is shown and not kept, a choice made there is, and an unknown name is today's picture", async ({ page }) => {
@@ -186,7 +250,7 @@ test("a share link may name a theme in its address: it is shown and not kept, a 
   expect(await page.evaluate(() => localStorage.getItem("groophPicture"))).toBeNull();
   // Choosing another takes the name out of the address, so the choice is not undone by the next load.
   await stage.getByRole("button", { name: "Picture theme: Transit" }).tap();
-  await stage.getByRole("menuitemradio", { name: "Chalk" }).tap();
+  await list(stage).getByRole("menuitemradio", { name: "Chalk" }).tap();
   await expect(stage).toHaveAttribute("data-look", "chalk");
   expect(page.url()).not.toContain("theme=");
   expect(page.url()).toContain("#/open?d=");
@@ -195,15 +259,20 @@ test("a share link may name a theme in its address: it is shown and not kept, a 
   await expect(stage).toHaveAttribute("data-look", "chalk");
   expect(asked.length).toBeGreaterThan(0);
 
-  // A name that is none of the six is Paper: not an error, and not this browser's own choice either.
-  asked.length = 0;
+  // A name that is none of the six is Paper: not an error, and not this browser's own choice either, which is Chalk.
   await page.goto(`${linkFor(reviewLoop())}&theme=sepia`);
   await page.reload();
   await expect(node(page, "builder")).toBeVisible();
-  await expect(stage).not.toHaveAttribute("data-look", /.+/);
   await expect(stage.getByRole("button", { name: "Picture theme: Paper" })).toBeVisible();
+  await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  // With nothing kept, such an address fetches nothing of the themes at all.
+  await page.evaluate(() => localStorage.removeItem("groophPicture"));
+  asked.length = 0;
+  await page.reload();
+  await expect(node(page, "builder")).toBeVisible();
   await page.waitForTimeout(300);
   expect(asked).toEqual([]);
+  expect(await dressed(page)).toBe(0);
 });
 
 test("an embed draws the theme its address names, with the theme's ground and bars; without one it is Paper, whatever this browser chose", async ({ page }) => {
@@ -217,9 +286,11 @@ test("an embed draws the theme its address names, with the theme's ground and ba
   const frame = page.locator(".gx");
   await expect(frame).toHaveAttribute("data-look", "chalk");
   // A theme's words are colored for its own ground, so the frame brings that ground: Chalk's board, in dark.
-  const chalk = pictureLook("chalk")!;
+  const chalk = colorsOf("chalk");
   expect(await frame.evaluate((n) => getComputedStyle(n).backgroundColor)).toBe(rgb(chalk.dark.bg));
   expect(await page.getByRole("link", { name: /Open in grooph/ }).evaluate((n) => getComputedStyle(n).color)).toBe(rgb(chalk.dark.ink));
+  // Chalk's wobble is in the picture, where its lines can find it.
+  await expect(svg.locator("filter#gp-chalk")).toHaveCount(1);
   // A node still opens its brief, by the same name as in Paper.
   await page.getByRole("button", { name: "Agent Builder" }).click();
   await expect(page.getByRole("heading", { name: "Builder" })).toBeVisible();
@@ -235,9 +306,9 @@ test("an embed draws the theme its address names, with the theme's ground and ba
   await page.goto(`./#/embed?d=${d}`);
   await page.reload();
   await expect(svg).toBeVisible();
+  await page.waitForTimeout(300);
   await expect(svg).not.toHaveAttribute("data-look", /.+/);
   await expect(frame).not.toHaveAttribute("data-look", /.+/);
-  await page.waitForTimeout(300);
   expect(asked).toEqual([]);
 });
 
@@ -252,6 +323,8 @@ test("while a run plays in Ink, which has one color, each state of a node is sti
   const seen = new Map<string, { words: string; dimmed: boolean; outline: string }>();
   for (let step = 0; step <= steps; step++) {
     await slider.fill(String(step));
+    // Each step draws the picture's marks again; it is in Ink at every one.
+    await expect(svg).toHaveAttribute("data-look", "ink");
     const nodes = await page.locator("g[data-node][data-state]").evaluateAll((all) =>
       all.map((g) => ({
         state: (g as SVGGElement).dataset["state"]!,
@@ -277,27 +350,28 @@ test("while a run plays in Ink, which has one color, each state of a node is sti
   expect(new Set([...seen.values()].map((n) => n.outline))).toEqual(new Set(["rgb(0, 0, 0)"]));
 });
 
-test("Keep a copy keeps the picture and the offline page in the theme, as core draws them, and offers the choice", async ({ page }) => {
+test("Keep a copy offers the themes, and keeps the picture and the offline page in the one in effect, as core makes them", async ({ page }) => {
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   const keepCopy = sheet(page).getByRole("group", { name: "Keep a copy" });
-  const theme = keepCopy.getByLabel("Picture theme");
-  await expect(theme).toHaveValue("paper");
-  await theme.selectOption("phosphor");
+  await keepCopy.getByRole("button", { name: /^Picture theme/ }).tap();
+  await list(keepCopy).getByRole("menuitemradio", { name: "Phosphor" }).tap();
   await expect(page.locator("main.stage")).toHaveAttribute("data-look", "phosphor");
-  const look = pictureLook("phosphor")!;
+  // The button says the theme after its name.
+  await expect(keepCopy.locator("[data-pictures]")).toHaveAttribute("data-now", "Phosphor");
 
   let [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Picture (SVG)" }).tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.phosphor-light.svg");
-  expect(await downloadText(file)).toBe(picture(reviewLoop(), { theme: "light", look }));
+  expect(await downloadText(file)).toBe(themed(picture(reviewLoop()), "phosphor", "light"));
   [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Offline page (.html)" }).tap()]);
-  expect(await downloadText(file)).toBe(offlinePage(reviewLoop(), { version: "0.3.0", look }));
+  expect(await downloadText(file)).toBe(themedPage(offlinePage(reviewLoop(), { version: "0.3.0" }), "phosphor"));
   // The browser draws the PNG from that SVG, with every rule of the theme.
   [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Picture (PNG)" }).tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.phosphor-light.png");
 
   // Paper again, and the files are the ones kept before there were themes.
-  await theme.selectOption("paper");
+  await keepCopy.getByRole("button", { name: /^Picture theme/ }).tap();
+  await list(keepCopy).getByRole("menuitemradio", { name: "Paper" }).tap();
   [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Picture (SVG)" }).tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.light.svg");
   expect(await downloadText(file)).toBe(readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8"));
@@ -323,14 +397,13 @@ test("in every theme, with the site's own faces, no line of words runs past its 
     await page.evaluate(() => document.fonts.ready);
     expect(await pastItsBox(hero), `${name}, the front page's picture`).toEqual({ over: 0, words: "" });
 
-    // More pictures, drawn by core and set into the same page, where the site's faces are: the full lines, and the
-    // long map as the phone's picture, with its lanes side by side, and as a sequence.
-    const look = pictureLook(name)!;
+    // More pictures, drawn by core in Paper and set into the same page, where the site's faces are: the piece
+    // dresses them as it does anything a screen draws. The full lines, and the long map in its three views.
     const more: [string, string][] = [
-      ["a graph with full lines", picture(full, { look })],
-      ["the long map, the phone's picture", mapPicture(long, { look })],
-      ["the long map, lanes side by side", mapWideWith(mapKit, long, { look })],
-      ["the long map, as a sequence", mapSequenceWith(mapKit, long, { look })],
+      ["a graph with full lines", picture(full)],
+      ["the long map, the phone's picture", mapPicture(long)],
+      ["the long map, lanes side by side", mapWideWith(mapKit, long, {})],
+      ["the long map, as a sequence", mapSequenceWith(mapKit, long, {})],
     ];
     await page.evaluate((svgs) => {
       const holder = document.createElement("div");
@@ -338,17 +411,23 @@ test("in every theme, with the site's own faces, no line of words runs past its 
       holder.innerHTML = svgs.join("");
       document.body.append(holder);
     }, more.map(([, svg]) => svg));
-    await page.evaluate(() => document.fonts.ready);
-    for (const [k, [what]] of more.entries()) expect(await pastItsBox(page.locator("#more-pictures > svg").nth(k)), `${name}, ${what}`).toEqual({ over: 0, words: "" });
+    for (const [k, [what]] of more.entries()) {
+      const drawn = page.locator("#more-pictures > svg").nth(k);
+      await expect(drawn, `${name}, ${what}: drawn after the piece, and dressed as it arrived`).toHaveAttribute("data-look", name);
+      await page.evaluate(() => document.fonts.ready);
+      expect(await pastItsBox(drawn), `${name}, ${what}`).toEqual({ over: 0, words: "" });
+    }
 
     await page.goto(`./#/open?d=${payload(map())}`);
     const shown = page.locator('.map-picture svg[data-picture="map"]');
     await expect(shown).toHaveAttribute("data-look", name);
     await page.evaluate(() => document.fonts.ready);
     expect(await pastItsBox(shown), `${name}, a map`).toEqual({ over: 0, words: "" });
-    // Every session and handoff is there, under the name it has in Paper.
+    // Every session and handoff is there, under the name it has in Paper, and the map's other view is dressed too.
     await expect(page.locator(".map-picture [data-session]")).toHaveCount(map().sessions.length);
     await expect(page.locator(".map-picture").getByRole("button", { name: "Session Operator", exact: true })).toBeVisible();
+    await page.getByRole("radio", { name: "Sequence" }).tap();
+    await expect(page.locator('.map-picture svg[data-picture="sequence"]')).toHaveAttribute("data-look", name);
     await context.close();
   }
 });
@@ -358,23 +437,22 @@ test("every rule of every theme finds something to style in a real picture, in a
   // that the code no longer writes would leave its rule selecting nothing, and the theme would quietly lose a part.
   const long = mapAt("owner-operation-2026-10-01-with-ryan");
   for (const name of FIVE) {
-    const look = pictureLook(name)!;
     const svgs = [
-      picture(reviewLoop(), { look }),
-      picture(graphAt("fixtures/valid/glyph-vocabulary.grooph.json"), { look }),
-      picture(graphAt("patterns/specialist-critic-bank.grooph.json"), { look }),
+      picture(reviewLoop()),
+      picture(graphAt("fixtures/valid/glyph-vocabulary.grooph.json")),
+      picture(graphAt("patterns/specialist-critic-bank.grooph.json")),
       // the one template with an edge on a verdict that is no loop's: the dotted edge
-      picture(graphAt("patterns/patrol-pulse.grooph.json"), { look }),
-      mapPicture(long, { look }),
-      mapWideWith(mapKit, long, { look }),
-      mapSequenceWith(mapKit, long, { look }),
-    ];
+      picture(graphAt("patterns/patrol-pulse.grooph.json")),
+      mapPicture(long),
+      mapWideWith(mapKit, long, {}),
+      mapSequenceWith(mapKit, long, {}),
+    ].map((svg) => themed(svg, name));
     await page.setContent(`<!doctype html><meta charset="utf-8"><body>${svgs.join("")}</body>`);
     const read = await page.evaluate(() => {
       const idle: string[] = [];
       let rules = 0;
-      const walk = (list: CSSRuleList): void => {
-        for (const rule of list) {
+      const walk = (all: CSSRuleList): void => {
+        for (const rule of all) {
           if (rule instanceof CSSStyleRule) {
             // A selector that holds a picture to light or dark is for a page that does so; none here does.
             for (const selector of rule.selectorText.split(/,(?![^(]*\))/).map((x) => x.trim())) {
@@ -401,7 +479,7 @@ test("the app's own marks are seen on a theme: Phosphor on a light device, Trans
   await keep(page, "phosphor");
   const small = mapAt("a-person-and-two-sessions");
   await page.goto(`./#/open?d=${payload(small)}`);
-  const phosphor = pictureLook("phosphor")!.light;
+  const phosphor = colorsOf("phosphor").light;
   await expect(page.locator(".map-picture")).toHaveAttribute("data-look", "phosphor");
   await page.locator('[data-handoff-row="h-done"]').tap();
   const row = page.locator('[data-handoff-row="h-done"] > rect[data-row]');
@@ -421,7 +499,7 @@ test("the app's own marks are seen on a theme: Phosphor on a light device, Trans
 
   // Transit outlines its cards in the color its accent is. The keyboard's place in an embed is an outline's color
   // and weight, so there it is Transit's green, and heavier than a card.
-  const transit = pictureLook("transit")!.light;
+  const transit = colorsOf("transit").light;
   expect(transit.accent).toBe(transit["line-strong"]);
   await page.goto(`./#/embed?d=${payload(reviewLoop())}&theme=transit-light`);
   const builder = page.getByRole("button", { name: "Agent Builder" });
@@ -439,8 +517,8 @@ test("the app's own marks are seen on a theme: Phosphor on a light device, Trans
   // amber and a selected node's ring is green, as in Paper, and neither is Ink's black.
   await page.goto(linkFor(reviewLoop()));
   const stage = page.locator("main.stage");
-  await stage.getByRole("button", { name: /^Picture theme:/ }).tap();
-  await stage.getByRole("menuitemradio", { name: "Ink" }).tap();
+  await stage.getByRole("button", { name: /^Picture theme/ }).tap();
+  await list(stage).getByRole("menuitemradio", { name: "Ink" }).tap();
   await expect(stage).toHaveAttribute("data-look", "ink");
   const marks = async () => ({
     dot: await page.locator(".issue-dot-warning").first().evaluate((n) => getComputedStyle(n).backgroundColor),
@@ -456,7 +534,7 @@ test("the app's own marks are seen on a theme: Phosphor on a light device, Trans
   expect(ink.ring).not.toBe("rgb(0, 0, 0)");
   // They are Paper's own.
   await stage.getByRole("button", { name: "Picture theme: Ink" }).tap();
-  await stage.getByRole("menuitemradio", { name: "Paper" }).tap();
+  await list(stage).getByRole("menuitemradio", { name: "Paper" }).tap();
   await expect(stage).not.toHaveAttribute("data-look", /.+/);
   await expect(node(page, "builder").locator(".gnode")).toHaveClass(/is-selected/);
   await page.waitForTimeout(250);
@@ -465,27 +543,28 @@ test("the app's own marks are seen on a theme: Phosphor on a light device, Trans
   expect({ dot: ink.dot, ring: ink.ring }).toEqual({ dot: paper.dot, ring: paper.ring });
 });
 
-test("on a run's view the menu has the corner to itself, on a phone and on a wide screen; the front page's run and an embed's link keep the theme", async ({ page }) => {
-  // A run's legend ran to the stage's edge, under the menu. Its pills are long: a name, a round, a stop.
+test("on a run's view the dot has the corner to itself, on a phone and on a wide screen; the front page's run and an embed's link keep the theme", async ({ page }) => {
+  // A run's legend ran to the stage's edge. Its pills are long: a name, a round, a stop.
   for (const width of [400, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(linkFor(runBundle("slice-0007-sandwich")));
     const stage = page.locator("main.stage");
-    const toggle = stage.getByRole("button", { name: "Picture theme: Paper" });
+    const toggle = stage.getByRole("button", { name: /^Picture theme/ });
     await expect(toggle).toBeVisible();
     const [menu, legend] = [(await toggle.boundingBox())!, (await stage.locator(".loop-legend").boundingBox())!];
-    expect(legend.x + legend.width, `at ${width} px the legend ends before the menu begins`).toBeLessThanOrEqual(menu.x);
-    // At every width the menu is its dot alone, so the room the legend leaves is enough.
+    expect(legend.x + legend.width, `at ${width} px the legend ends before the dot begins`).toBeLessThanOrEqual(menu.x);
+    // At every width it is a dot alone, so the room the legend leaves is enough.
     expect(menu.width).toBeLessThanOrEqual(48);
     await toggle.click();
-    await stage.getByRole("menuitemradio", { name: "Blueprint" }).click();
+    await list(stage).getByRole("menuitemradio", { name: "Blueprint" }).click();
     await expect(stage).toHaveAttribute("data-look", "blueprint");
     await stage.getByRole("button", { name: "Picture theme: Blueprint" }).click();
-    await stage.getByRole("menuitemradio", { name: "Paper" }).click();
+    await list(stage).getByRole("menuitemradio", { name: "Paper" }).click();
     await expect(stage).not.toHaveAttribute("data-look", /.+/);
   }
 
-  // The front page's recorded run takes the picture's place. It is an embed in a frame, and is told the theme.
+  // The front page's recorded run takes the picture's place. It is an embed in a frame, which takes its theme from
+  // its address: the piece names the theme in effect there.
   await page.setViewportSize({ width: 400, height: 800 });
   await page.evaluate(() => localStorage.setItem("groophPicture", "blueprint"));
   await page.goto("./#/about");
@@ -506,11 +585,10 @@ test("pictures of different themes inline in one page each keep their own colors
   const doc = reviewLoop();
   const names = ["phosphor", "paper", "blueprint", "paper", "ink"];
   const PAPER = { light: "#f1f4f3", dark: "#111514" };
-  const ground = (name: string, form: "light" | "dark") => rgb(name === "paper" ? PAPER[form] : pictureLook(name)![form].bg);
+  const ground = (name: string, form: "light" | "dark") => rgb(name === "paper" ? PAPER[form] : THEME_VALUES[name as (typeof FIVE)[number]][form].bg);
   for (const held of [undefined, "light", "dark"] as const) {
     const svgs = names.map((name) => {
-      const look = pictureLook(name);
-      const svg = picture(doc, look ? { look } : {});
+      const svg = themed(picture(doc), name);
       return held ? svg.replace('class="grooph-picture"', `class="grooph-picture" data-theme="${held}"`) : svg;
     });
     await page.setContent(`<!doctype html><meta charset="utf-8"><body>${svgs.join("")}</body>`);
@@ -526,63 +604,39 @@ test("pictures of different themes inline in one page each keep their own colors
   }
 });
 
-test("with the themes not to be had, Keep a copy does not wait: it says so and makes its files in Paper; chosen again with a network, they are in the theme", async ({ page }) => {
+test("with the themes not to be had, a control says what it needs and every picture stays Paper; Keep a copy says so and makes Paper's files, and the theme's once it can be had", async ({ page }) => {
   let refuse = true;
-  const asked: string[] = [];
-  await page.route("**/assets/themes-*.js", (route) => {
-    asked.push(route.request().url());
-    return refuse ? route.abort() : route.continue();
-  });
+  await page.route("**/assets/themes-*.js", (route) => (refuse ? route.abort() : route.continue()));
   await keep(page, "ink");
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+  const stage = page.locator("main.stage");
+  // A theme was kept and cannot be fetched: the canvas opens, in Paper, and the dot says why it shows no list.
+  await expect(node(page, "builder")).toBeVisible();
+  await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  const dot = stage.getByRole("button", { name: "Picture theme" });
+  await dot.tap();
+  await expect(dot).toHaveAttribute("title", "Needs a connection the first time");
+  await expect(list(stage)).toHaveCount(0);
+
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   const keepCopy = sheet(page).getByRole("group", { name: "Keep a copy" });
-  await expect(keepCopy.getByLabel("Picture theme")).toHaveValue("ink");
-  // The buttons are not left waiting for a file that is not coming.
-  await expect(keepCopy.getByRole("status")).toContainText("This theme could not be fetched");
+  // The files are not held back for a theme that is not coming: they are Paper's, and that is said.
   const svg = keepCopy.getByRole("button", { name: "Picture (SVG)" });
-  await expect(svg).toBeEnabled();
-  await expect(keepCopy.getByRole("button", { name: "Offline page (.html)" })).toBeEnabled();
   const [file] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.light.svg");
   expect(await downloadText(file)).toBe(readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8"));
-
-  // Paper chosen, there is nothing to say; the theme chosen again with no network still, it is said again.
-  await keepCopy.getByLabel("Picture theme").selectOption("paper");
-  await expect(keepCopy.getByRole("status")).toHaveCount(0);
-  await keepCopy.getByLabel("Picture theme").selectOption("ink");
-  await expect(keepCopy.getByRole("status")).toContainText("This theme could not be fetched");
-  await expect(svg).toBeEnabled();
+  await expect(keepCopy.getByRole("alert")).toContainText("This theme could not be fetched");
 
   // The network is back. A browser remembers a script that failed for as long as the page lives, and the app asks
-  // again in a way it honors (`piece.ts`): the theme is chosen again, it arrives, and the files are in it.
+  // again in a way it honors (`piece.ts`): a press on the control fetches the themes, and the kept one is in effect.
   refuse = false;
-  const before = asked.length;
-  await keepCopy.getByLabel("Picture theme").selectOption("paper");
-  await keepCopy.getByLabel("Picture theme").selectOption("ink");
-  await expect(page.locator("main.stage")).toHaveAttribute("data-look", "ink");
-  expect(asked.length).toBeGreaterThan(before);
-  await expect(keepCopy.getByRole("status")).toHaveCount(0);
+  await keepCopy.getByRole("button", { name: /^Picture theme/ }).tap();
+  await expect(list(keepCopy).getByRole("menuitemradio", { name: "Ink" })).toHaveAttribute("aria-checked", "true");
+  await expect(stage).toHaveAttribute("data-look", "ink");
+  await page.keyboard.press("Escape");
   const [again] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
   expect(again.suggestedFilename()).toBe("review-loop.ink-light.svg");
-});
-
-test("with the themes not to be had, the choice is kept and every picture stays Paper", async ({ page }) => {
-  await page.route("**/assets/themes-*.js", (route) => route.abort());
-  await page.goto("./#/about");
-  const header = page.locator("header.site-header");
-  const hero = page.locator(".land-picture svg");
-  await header.getByRole("button", { name: "Theme: Grooph" }).tap();
-  await header.getByRole("menuitemradio", { name: "Ink" }).tap();
-  await page.waitForTimeout(400);
-  await expect(hero).toBeVisible();
-  await expect(hero).not.toHaveAttribute("data-look", /.+/);
-  await header.getByRole("button", { name: "Theme: Grooph" }).tap();
-  await expect(header.getByRole("menuitemradio", { name: "Ink" })).toHaveAttribute("aria-checked", "true");
-  // The canvas too: it opens, in Paper.
-  await page.goto(linkFor(reviewLoop()));
-  await expect(node(page, "builder")).toBeVisible();
-  await expect(page.locator("main.stage")).not.toHaveAttribute("data-look", /.+/);
+  await expect(keepCopy.getByRole("alert")).toHaveCount(0);
 });
 
 test.describe("with the service worker running", () => {
@@ -595,6 +649,7 @@ test.describe("with the service worker running", () => {
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     // The page names the themes' file in a list the browser does nothing with; the worker reads it and keeps the file.
     await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/themes-[^/]*\.js$/.test(r.url)).length)).toBe(1);
+    await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/screens-[^/]*\.js$/.test(r.url)).length)).toBe(1);
     expect(asked).toEqual([]);
 
     await context.setOffline(true);
@@ -602,7 +657,8 @@ test.describe("with the service worker running", () => {
     page.on("requestfailed", (r) => failed.push(r.url()));
     const header = page.locator("header.site-header");
     await header.getByRole("button", { name: "Theme: Grooph" }).tap();
-    await header.getByRole("menuitemradio", { name: "Transit" }).tap();
+    await header.getByRole("menuitem", { name: "Picture theme" }).tap();
+    await list(header).getByRole("menuitemradio", { name: "Transit" }).tap();
     await expect(page.locator(".land-picture svg")).toHaveAttribute("data-look", "transit");
     // And a graph opened from a link, still with no network, is on a canvas in the theme.
     await page.goto(linkFor(reviewLoop()));

@@ -1,26 +1,29 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { PICTURE_THEMES, THEME_VALUES } from "@grooph/core/themes";
+import { PICTURE_THEMES, THEME_VALUES, themed, themedPage } from "@grooph/core/themes";
+import { offlinePage, picture } from "@grooph/core";
 import { describe, expect, it } from "vitest";
 
-import { LOOKS, lookNamed, lookNow, withoutLook } from "../src/doc/look.js";
 import { openInAppHref, parseEmbedHash } from "../src/ui/embed/link.js";
-import { look, styles } from "../src/ui/theme/themes.js";
-import { repoRoot } from "./helpers.js";
+import { labelOf, look, lookNamed, lookNow, styles, withoutLook } from "../src/ui/theme/themes.js";
+import { repoRoot, reviewLoop } from "./helpers.js";
 
 const src = (path: string): string => readFileSync(join(repoRoot, "apps/web/src", path), "utf8");
+const FIVE = PICTURE_THEMES.filter((id) => id !== "paper");
 
-describe("the picture's theme in the app (handoff 0086)", () => {
-  it("offers core's six, by the same names and in the same order", () => {
-    expect(LOOKS.map(([id]) => id)).toEqual([...PICTURE_THEMES]);
-    for (const [id, label] of LOOKS) expect(label).toBe(id === "paper" ? "Paper" : THEME_VALUES[id as keyof typeof THEME_VALUES].label);
-    // Paper needs nothing fetched and has no values; each of the other five has, the same object each time.
-    expect(look("paper")).toBeUndefined();
-    for (const [id] of LOOKS.slice(1)) {
-      expect(look(id)?.name).toBe(id);
-      expect(look(id)).toBe(look(id));
-    }
+describe("the pictures' themes in the app (handoff 0086)", () => {
+  it("offers core's six, by name; Paper has no values, and Keep a copy's files in a theme are core's", () => {
+    expect(PICTURE_THEMES.map(labelOf)).toEqual(["Paper", "Blueprint", "Ink", "Phosphor", "Transit", "Chalk"]);
+    // With no page there is no address and nothing kept: Paper, in which the files are made as they always were.
+    expect(lookNow("#/")).toBe("paper");
+    expect(lookNow("#/open?d=abc&theme=chalk")).toBe("chalk");
+    // What Keep a copy is handed in a theme is `themed` and `themedPage`, and nothing of its own.
+    const doc = reviewLoop();
+    const html = offlinePage(doc, { version: "0.0.0" });
+    expect(themed(picture(doc), "chalk", "dark")).toContain('data-look="chalk"');
+    expect(themedPage(html, "chalk")).not.toBe(html);
+    expect(look).toBeTypeOf("function");
   });
 
   it("reads a theme from a share link's or an embed's address; a name that is none of the six is Paper", () => {
@@ -48,6 +51,15 @@ describe("the picture's theme in the app (handoff 0086)", () => {
     expect(parseEmbedHash("#/embed?theme=ink-dark&d=abc&theme=chalk-light")).toMatchObject({ theme: "dark", look: "ink" });
   });
 
+  it("an embed's light or dark is read after a theme's name too", () => {
+    expect(parseEmbedHash("#/embed?d=abc&theme=dark").theme).toBe("dark");
+    expect(parseEmbedHash("#/embed?d=abc&theme=chalk-dark").theme).toBe("dark");
+    expect(parseEmbedHash("#/embed?d=abc&theme=blueprint-light").theme).toBe("light");
+    expect(parseEmbedHash("#/embed?d=abc&theme=blueprint").theme).toBeUndefined();
+    expect(parseEmbedHash("#/embed?d=abc&theme=darker").theme).toBeUndefined();
+    expect(parseEmbedHash("#/embed?d=abc").theme).toBeUndefined();
+  });
+
   it("takes a named theme out of an address and leaves the rest as it was", () => {
     expect(withoutLook("#/open?d=abc&theme=transit")).toBe("#/open?d=abc");
     expect(withoutLook("#/open?theme=transit&d=abc&c=lean")).toBe("#/open?d=abc&c=lean");
@@ -67,20 +79,12 @@ describe("the picture's theme in the app (handoff 0086)", () => {
     expect(parseEmbedHash("#/embed?d=abc&theme=x%22onload").look).toBeUndefined();
   });
 
-  it("an embed's light or dark is read after a theme's name too", () => {
-    expect(parseEmbedHash("#/embed?d=abc&theme=dark").theme).toBe("dark");
-    expect(parseEmbedHash("#/embed?d=abc&theme=chalk-dark").theme).toBe("dark");
-    expect(parseEmbedHash("#/embed?d=abc&theme=blueprint-light").theme).toBe("light");
-    expect(parseEmbedHash("#/embed?d=abc&theme=blueprint").theme).toBeUndefined();
-    expect(parseEmbedHash("#/embed?d=abc&theme=darker").theme).toBeUndefined();
-    expect(parseEmbedHash("#/embed?d=abc").theme).toBeUndefined();
-  });
-
   it("writes a theme for the canvas, for the app's marks on a map and for an embed as variables those really read", () => {
     const css = styles();
     // Every variable set for the canvas is one the app's stylesheet declares; a misspelt one would change nothing.
+    // (The pictures' own, --gp-*, are core's, and core's tests hold them.)
     const declared = new Set([...src("styles.css").matchAll(/^\s*--([a-z0-9-]+):/gm)].map((m) => m[1]!));
-    const canvas = new Set([...css.matchAll(/(?:\{|;)--(?!gx-)([a-z0-9-]+):/g)].map((m) => m[1]!));
+    const canvas = new Set([...css.matchAll(/(?:\{|;)--(?!gx-|gp-)([a-z0-9-]+):/g)].map((m) => m[1]!));
     expect(canvas.size).toBeGreaterThanOrEqual(28);
     for (const name of canvas) expect(declared.has(name), `--${name} is not a variable of the app`).toBe(true);
     const embedDeclared = new Set([...src("embed.css").matchAll(/^\s*--(gx-[a-z0-9-]+):/gm)].map((m) => m[1]!));
@@ -91,12 +95,12 @@ describe("the picture's theme in the app (handoff 0086)", () => {
 
     // The rules, one by one: a condition's rules are read as the rules they are.
     const rules = css
-      .replace(/@media \(prefers-color-scheme:dark\)\{((?:[^{}]*\{[^{}]*\})+)\}/g, "$1")
+      .replace(/@(?:media|supports) \([^)]*\)\{((?:[^{}]*\{[^{}]*\})+)\}/g, "$1")
       .split("}")
       .filter(Boolean)
       .map((rule) => ({ selectors: rule.split("{")[0]!.split(/,(?![^(]*\))/), body: rule.split("{")[1]! }));
-    for (const [id] of LOOKS.slice(1)) {
-      const t = THEME_VALUES[id as keyof typeof THEME_VALUES];
+    for (const id of FIVE) {
+      const t = THEME_VALUES[id];
       // The canvas, the loops' legend over it and an empty canvas's words take the colors; nothing else on the screen does.
       expect(css).toContain(`.stage[data-look="${id}"] .react-flow,.stage[data-look="${id}"] .loop-legend,.stage[data-look="${id}"] .empty-canvas{--bg:${t.light.bg};`);
       expect(css).toContain(`.gx[data-look="${id}"]{--gx-bg:${t.light.bg};`);
@@ -104,6 +108,9 @@ describe("the picture's theme in the app (handoff 0086)", () => {
       expect(css.includes(`@media (prefers-color-scheme:dark){.stage[data-look="${id}"]`)).toBe(t.dark !== t.light);
       expect(css).toContain(`:where(.stage[data-look="${id}"]) .gnode{border-radius:${t.canvas.radius}px;border-width:${t.canvas.border}px}`);
     }
+    // Every rule is kept to something this piece has marked, or to a control that offers the themes: an address in
+    // Paper, where nothing is marked, is touched by none of them.
+    for (const selector of rules.flatMap((rule) => rule.selectors)) expect(/data-look="|^\[data-pictures\]/.test(selector), `${selector} reaches the page whether or not it is in a theme`).toBe(true);
     // What a theme says of a plain node, edge or label sits inside :where(), so a node's own state always outranks
     // it. What it says of a state is outside, and names the state: it has to outrank the app's rule for it.
     const onCanvas = rules.flatMap((rule) => rule.selectors).filter((selector) => /\.g(?:node|edge)/.test(selector));
@@ -113,13 +120,13 @@ describe("the picture's theme in the app (handoff 0086)", () => {
       expect(selector.startsWith(":where(.stage[data-look="), `${selector} ${state ? "is a state's rule inside :where(), and would lose to the app's" : "is outside :where(), and would outrank a node's state"}`).toBe(!state);
     }
     // Nothing is asked of any other address, and nothing here could end the style element early.
-    expect(css).not.toMatch(/url\(|@import|@font-face|https?:|</);
+    expect(css).not.toMatch(/url\((?!#)|@import|@font-face|https?:|</);
   });
 
   it("gives the app's own marks a color and a weight that are seen on each theme", () => {
     const css = styles();
-    for (const [id] of LOOKS.slice(1)) {
-      const t = THEME_VALUES[id as keyof typeof THEME_VALUES];
+    for (const id of FIVE) {
+      const t = THEME_VALUES[id];
       const one = t.light.ok === t.light["line-strong"];
       expect(one, id).toBe(id === "ink");
       const canvas = new RegExp(`\\.stage\\[data-look="${id}"\\] \\.react-flow[^{]*\\{([^}]*)\\}`).exec(css)![1]!;
@@ -150,16 +157,25 @@ describe("the picture's theme in the app (handoff 0086)", () => {
     }
   });
 
-  it("is kept out of the first load: only the piece reaches core's themes, and the app asks for the piece from one place", () => {
-    const files = ["doc/look.ts", "doc/keep.ts", "ui/landing/Chrome.tsx", "ui/landing/Landing.tsx", "ui/canvas/LookMenu.tsx", "ui/embed/Embed.tsx", "ui/map/MapView.tsx", "ui/map/views.tsx", "ui/live/LiveSessions.tsx", "ui/Keep.tsx"];
-    for (const file of files) {
+  it("is kept out of the first load: one entry in the header's menu is all of the themes that is there", () => {
+    // What every address of the app loads first: the entry, the app, the front page and its header. None of them
+    // reaches the themes, or the file that looks for a kept choice: that one comes with the canvas's screens.
+    for (const file of ["main.tsx", "App.tsx", "piece.ts", "ui/landing/Landing.tsx", "ui/landing/Chrome.tsx", "ui/landing/RunDemo.tsx", "ui/Library.tsx", "ui/templates/TemplatesScreen.tsx"]) {
       const text = src(file);
-      // A type costs nothing; a value would pull the five themes into whatever loads this file.
-      for (const line of text.match(/^import [^;]*"@grooph\/core\/themes";$/gm) ?? []) expect(line.startsWith("import type "), `${file}: ${line}`).toBe(true);
-      expect(text.includes("ui/theme/themes.js") && !/import\("[^"]*ui\/theme\/themes\.js"\)/.test(text), `${file} imports the piece outright`).toBe(false);
+      expect(/from "[^"]*(?:doc\/look|theme\/themes|core\/themes)[^"]*"|import\("[^"]*theme\/themes/.test(text), `${file} reaches the themes`).toBe(false);
     }
-    expect(src("doc/look.ts").match(/(?<!typeof )import\("\.\.\/ui\/theme\/themes\.js"\)/g)).toHaveLength(1);
-    expect(src("ui/theme/themes.ts")).toMatch(/^import \{ THEME_VALUES, pictureLook, type PictureLook, type ThemeValues \} from "@grooph\/core\/themes";$/m);
+    // The header holds the entry, marked for whoever is listening, and no list of themes.
+    const header = src("ui/landing/Chrome.tsx");
+    expect(header).toContain('data-pictures=""');
+    for (const id of FIVE) expect(header.toLowerCase().includes(id === "ink" ? '"ink"' : id), `the header names ${id}`).toBe(false);
+    // Two places ask for the piece, each through `piece()`: the file that looks for a kept choice, and an embed.
+    expect(src("doc/look.ts").match(/piece\("themes", \(\) => import\("\.\.\/ui\/theme\/themes\.js"\)\)/g)).toHaveLength(1);
+    expect(src("ui/embed/EmbedApp.tsx").match(/piece\("themes", \(\) => import\("\.\.\/theme\/themes\.js"\)\)/g)).toHaveLength(1);
+    expect(src("ui/screens.ts")).toContain('import "../doc/look.js";');
+    // And the piece imports nothing but core's themes, so fetching it moves no other file.
     expect(src("ui/theme/themes.ts").match(/^import /gm)).toHaveLength(1);
+    expect(src("ui/theme/themes.ts")).toMatch(/^import \{[^}]*\} from "@grooph\/core\/themes";$/m);
+    // No screen is wired to a theme: the piece dresses what they draw.
+    for (const file of ["ui/embed/Embed.tsx", "ui/map/MapView.tsx", "ui/map/views.tsx", "ui/live/LiveSessions.tsx", "ui/landing/Landing.tsx"]) expect(src(file), file).not.toMatch(/data-look|doc\/look|theme\/themes/);
   });
 });

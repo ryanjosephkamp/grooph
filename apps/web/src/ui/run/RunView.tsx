@@ -1,7 +1,6 @@
 import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBundle, type RunNote, type RunSummary } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
-import { useLook } from "../../doc/look.js";
 import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
 import { LookMenu } from "../canvas/LookMenu.js";
 import { deleteRun, saveRun } from "../../store/runs.js";
@@ -87,9 +86,6 @@ function loopAtWork(summary: RunSummary, doc: Graph): Loop | undefined {
  * (apply to a copy). Nothing is applied to any graph without a tap, and a
  * run from a link or a watch is stored only when the person saves it.
  */
-/** Where a run's legend ends, from the stage's right edge: clear of the theme menu in the corner (44 px, 10 from the edge, and a gap). */
-const LEGEND_RIGHT = 64;
-
 export function RunView({
   bundle,
   origin,
@@ -113,8 +109,6 @@ export function RunView({
   const [kept, setKept] = useState<{ key: string; replaced: boolean } | null>(null);
   const [removing, setRemoving] = useState<"ask" | "done" | null>(null);
   const [tall, setTall] = useState(false);
-  // The theme chosen for pictures (docs/themes.md): the canvas takes its values too, once they are here.
-  const look = useLook();
 
   const live = origin.kind === "live";
   // The view is following a run as it happens: watch is answering and the run has not ended.
@@ -188,14 +182,14 @@ export function RunView({
         </span>
       </header>
 
-      <main className={`stage run-stage${atWork ? " is-glowing" : ""}`} data-look={look?.name}>
-        <LookMenu />
+      <main className={`stage run-stage${atWork ? " is-glowing" : ""}`}>
         {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
         {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
+        <LookMenu />
         {loopsIndexed.length > 0 ? (
-          // A run's legend runs to the stage's right edge (styles.css); it stops short of the theme menu's corner here.
-          <nav className="loop-legend" aria-label="Loops" style={{ right: LEGEND_RIGHT }}>
+          // A run's legend runs to the stage's right edge (styles.css); here it stops short of the theme dot in the corner.
+          <nav className="loop-legend" aria-label="Loops" style={{ right: 64 }}>
             {loopsIndexed.map(({ loop, i, run }) => {
               const on = highlight?.loop === loop.id;
               const stop = run?.lastStop?.fired ? STOP_WORDS[run.lastStop.fired] : undefined;

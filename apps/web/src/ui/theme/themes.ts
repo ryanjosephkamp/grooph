@@ -1,27 +1,81 @@
 /**
- * The five themes that are not Paper (handoff 0086; docs/themes.md), as a piece of the app fetched when one is
- * chosen or named in an address (decision 0021): `doc/look.ts` asks for it, and the page names it so the service
- * worker holds it for a visit with no network (`vite.config.ts`).
+ * The pictures' themes in the app (handoff 0086; docs/themes.md), all of them: the five that are not Paper, the
+ * list of six a person chooses from, the choice and where it is kept, and every way a screen takes a theme. It is
+ * one piece of the app, fetched when a theme other than Paper was kept or is named in an address, or when a person
+ * presses a control that offers the themes (decision 0021; `doc/look.ts` asks for it, and the page names it so the
+ * service worker holds it for a visit with no network, `vite.config.ts`).
  *
- * So that fetching it moves nothing else, this file imports only core's themes, which import nothing. Its styles
- * ride in the script, for the same reason a map's views' do: a stylesheet of its own would be asked for at every
- * address.
+ * Nothing else in the app knows there are themes. The screens draw Paper, as they always did, and this piece
+ * dresses what they drew: it marks each picture, canvas, map frame and embed in the page with `data-look`, sets a
+ * theme's ground into each picture, and carries one stylesheet whose rules are all kept to what is so marked. It
+ * watches the page for what is drawn later. So an address in Paper runs none of this, and a screen needs no code
+ * to be themed.
  *
- * A picture is handed a theme and carries it (`pictureLook`). The canvas is not a picture: it is drawn by the app's
- * own styles from the app's own variables, which have the pictures' names. So here the same values are written as
- * those variables, for the canvas of a screen that says which theme it is in (`.stage[data-look]`), for the marks
- * the map screen draws on a picture (`.map-picture[data-look]`), and for the bars and the ground of an embed
- * (`.gx[data-look]`).
+ * So that fetching it moves nothing else, this file imports only core's themes, which import nothing, and builds
+ * its list with the page's own elements. Its styles ride in the script: a stylesheet of its own would be asked for
+ * at every address.
  */
-import { THEME_VALUES, pictureLook, type PictureLook, type ThemeValues } from "@grooph/core/themes";
+import { PICTURE_THEMES, THEME_VALUES, themeParts, themed, themedPage, type PictureThemeName, type ThemeValues } from "@grooph/core/themes";
 
-const made = new Map<string, PictureLook | undefined>();
+export type LookId = PictureThemeName;
 
-/** A theme as a picture is handed it, the same object every time, so a picture is drawn again only when the theme changes. */
-export function look(id: string): PictureLook | undefined {
-  if (!made.has(id)) made.set(id, pictureLook(id));
-  return made.get(id);
+/** Where the choice is kept. `doc/look.ts` reads the same place, to know whether to fetch this piece at all. */
+const KEY = "groophPicture";
+/** Each theme's swatch in the list. */
+const SWATCH: Record<LookId, string> = { paper: "#1f5f4a", blueprint: "#24467e", ink: "#1c1c1c", phosphor: "#5dff8a", transit: "#0057b8", chalk: "#a94e08" };
+export const labelOf = (id: LookId): string => (id === "paper" ? "Paper" : THEME_VALUES[id].label);
+const known = (value: string | null | undefined): LookId | undefined => PICTURE_THEMES.find((id) => id === value);
+const page = typeof document !== "undefined";
+
+let chosen: LookId = (() => {
+  try {
+    return known(localStorage.getItem(KEY)) ?? "paper";
+  } catch {
+    return "paper";
+  }
+})();
+
+/**
+ * The theme an address names: the first `theme=` on a share link or an embed, a name alone or with `-light`,
+ * `-dark` or `-auto` after it, as `--theme` takes it. A name that is none of the six is Paper. Undefined when the
+ * address names no theme: `theme=dark` alone is an embed's light or dark, as it always was.
+ */
+export function lookNamed(hash: string): LookId | undefined {
+  const value = /^#\/(?:open|embed)\?(?:[^&]*&)*?theme=([^&]*)/.exec(hash)?.[1]?.replace(/-?(?:light|dark|auto)$/, "");
+  return value ? (known(value) ?? "paper") : undefined;
 }
+
+/** The theme in effect here: the one the address names; else the one chosen, except in an embed, which is somebody else's page. */
+export const lookNow = (hash: string = location.hash): LookId => lookNamed(hash) ?? (hash.startsWith("#/embed") ? "paper" : chosen);
+
+/** An address without the theme it names: every `theme=` goes, and the rest stays as it was. */
+export const withoutLook = (hash: string): string => (lookNamed(hash) === undefined ? hash : hash.replace(/([?&])theme=[^&]*&?/g, "$1").replace(/[?&]$/, ""));
+
+/** Choose a theme for the pictures, keep the choice in this browser, and dress the page in it. */
+export function choose(id: LookId): void {
+  chosen = id;
+  try {
+    localStorage.setItem(KEY, id);
+  } catch {
+    /* shown, not kept */
+  }
+  // A theme named in the address would bring the old one back on the next load. Only the part after the # is
+  // touched: a ?theme= before it is the site's look.
+  const hash = withoutLook(location.hash);
+  if (hash !== location.hash) history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
+  apply();
+}
+
+/**
+ * The theme in effect, for Keep a copy: a picture core drew to follow the viewer, or an offline page, comes back in
+ * the theme. Undefined in Paper, where the files are made as they always were.
+ */
+export function look(): { id: LookId; picture(svg: string, form: "light" | "dark"): string; page(html: string): string } | undefined {
+  const id = lookNow();
+  return id === "paper" ? undefined : { id, picture: (svg, form) => themed(svg, id, form), page: (html) => themedPage(html, id) };
+}
+
+// ─── the rules ────────────────────────────────────────────────────────────
 
 type Palette = ThemeValues["light"];
 
@@ -133,15 +187,128 @@ function embedRules(t: ThemeValues): string {
   );
 }
 
-/** The five themes' rules for the canvas, for the app's marks on a map's picture and for an embed, as one stylesheet. */
+/**
+ * The stylesheet: for each of the five, the rules a picture in it carries (core's, for a picture that follows the
+ * viewer), then the canvas's, the map frame's and an embed's. And one rule for a control that offers the themes
+ * in words: it says the one in effect after its own name.
+ */
 export const styles = (): string =>
   Object.values(THEME_VALUES)
-    .map((t) => canvasRules(t) + mapRules(t) + embedRules(t))
-    .join("");
+    .map((t) => themeParts(t.name)!.css + canvasRules(t) + mapRules(t) + embedRules(t))
+    .join("") + `[data-pictures][data-now]::after{content:": " attr(data-now)}`;
 
-// In a page, the rules are there from the moment the piece is. (A test reads `styles()` with no page at all.)
-if (typeof document !== "undefined") {
+// ─── dressing the page ────────────────────────────────────────────────────
+
+/** On what this piece set into a picture, so it can be taken out again. */
+const SET = "data-of-look";
+
+/** A picture the app drew, in Paper as it always is, put into a theme or back out of one. */
+function dress(svg: SVGSVGElement, id: LookId | undefined): void {
+  if (svg.dataset["look"] === id) return;
+  svg.querySelector(`:scope > [${SET}]`)?.remove();
+  if (!id) return void delete svg.dataset["look"];
+  svg.dataset["look"] = id;
+  // What the theme's rules refer to, and its ground, go in after the picture's own background, in the picture: so
+  // they are colored by the picture's own variables, whichever of light and dark it is held to.
+  const parts = themeParts(id)!;
+  const more = `${parts.defs ? `<defs>${parts.defs}</defs>` : ""}${parts.ground}`;
+  if (more) svg.querySelector(":scope > rect")?.insertAdjacentHTML("afterend", `<g ${SET}="">${more}</g>`);
+}
+
+/**
+ * Dress everything in the page in the theme in effect, or undress it for Paper: each picture, each canvas's stage,
+ * each map's frame and each embed, the controls that offer the themes, and the front page's recorded run, which is
+ * an embed in a frame and takes its theme from its address. It changes only what is not already so, so it can be
+ * called as often as the page changes.
+ */
+export function apply(): void {
+  const now = lookNow();
+  const id = now === "paper" ? undefined : now;
+  for (const svg of document.querySelectorAll<SVGSVGElement>("svg.grooph-picture")) dress(svg, id);
+  for (const el of document.querySelectorAll<HTMLElement>("main.stage,.map-picture,.gx")) {
+    if (el.dataset["look"] !== id) id ? (el.dataset["look"] = id) : delete el.dataset["look"];
+  }
+  for (const el of document.querySelectorAll<HTMLElement>("[data-pictures]")) {
+    el.style.setProperty("--dot", SWATCH[now]);
+    // A control with words says the theme after them; one that is a dot alone says it in its name.
+    const said = el.hasAttribute("aria-label") ? "aria-label" : "data-now";
+    const words = said === "aria-label" ? `Picture theme: ${labelOf(now)}` : labelOf(now);
+    if (el.getAttribute(said) !== words) el.setAttribute(said, words);
+  }
+  for (const frame of document.querySelectorAll<HTMLIFrameElement>("iframe.land-run-frame")) {
+    const src = frame.getAttribute("src") ?? "";
+    const named = src.replace(/&theme=[^&]*/, "") + (id ? `&theme=${id}` : "");
+    if (named !== src) frame.setAttribute("src", named);
+  }
+}
+
+// ─── the list ─────────────────────────────────────────────────────────────
+
+const CHECK = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+let shut: (() => void) | undefined;
+
+/**
+ * Open the list of six at a control that offers the themes: a menu as the header's is, drawn by the header's own
+ * rules (`.site-theme-list`), set beside the control. The arrows move, Enter or Space chooses, Escape closes and
+ * gives the keyboard back; a press anywhere else closes it.
+ */
+export function open(at: Element): void {
+  shut?.();
+  const host = (at.closest(".site-theme") ?? at.parentElement) as HTMLElement;
+  // The header's entry is inside the site's own menu, which has closed: the keyboard goes back to that menu's button.
+  const back = host.querySelector<HTMLElement>(".site-theme-toggle") ?? (at as HTMLElement);
+  const now = lookNow();
+  const list = document.createElement("ul");
+  list.className = "site-theme-list";
+  list.setAttribute("role", "menu");
+  list.setAttribute("aria-label", "Picture theme");
+  list.innerHTML = PICTURE_THEMES.map(
+    (id) => `<li role="none"><button type="button" role="menuitemradio" aria-checked="${id === now}" tabindex="-1" data-id="${id}"><span class="site-theme-dot" style="--dot:${SWATCH[id]}" aria-hidden="true"></span>${labelOf(id)}${CHECK}</button></li>`,
+  ).join("");
+  host.append(list);
+  // Over a sheet that may cover the lower half of a canvas on a phone (--z-chrome is 40), while it is open.
+  const over = host.style.position === "absolute";
+  if (over) host.style.zIndex = "50";
+  const items = [...list.querySelectorAll("button")];
+  const away = (e: Event): void => {
+    if (!list.contains(e.target as Node)) close(false);
+  };
+  const close = (keyboard: boolean): void => {
+    list.remove();
+    document.removeEventListener("pointerdown", away);
+    if (over) host.style.zIndex = "var(--z-overlay)";
+    shut = undefined;
+    if (keyboard) back.focus();
+  };
+  shut = () => close(false);
+  list.addEventListener("click", (e) => {
+    const item = (e.target as Element).closest("button");
+    if (!item) return;
+    choose(item.dataset["id"] as LookId);
+    close(true);
+  });
+  list.addEventListener("keydown", (e) => {
+    const here = items.indexOf(document.activeElement as HTMLButtonElement);
+    const to = e.key === "ArrowDown" ? (here + 1) % items.length : e.key === "ArrowUp" ? (here - 1 + items.length) % items.length : e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : -1;
+    if (to >= 0) {
+      e.preventDefault();
+      items[to]!.focus();
+    } else if (e.key === "Escape") {
+      e.stopPropagation();
+      close(true);
+    } else if (e.key === "Tab") close(false);
+  });
+  document.addEventListener("pointerdown", away);
+  items[PICTURE_THEMES.indexOf(now)]!.focus();
+}
+
+// In a page, the rules are there from the moment the piece is, the page is dressed, and whatever is drawn later is
+// dressed as it arrives. (A test reads this file with no page at all.)
+if (page) {
   const sheet = document.createElement("style");
   sheet.textContent = styles();
   document.head.append(sheet);
+  apply();
+  new MutationObserver(apply).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener("hashchange", apply);
 }

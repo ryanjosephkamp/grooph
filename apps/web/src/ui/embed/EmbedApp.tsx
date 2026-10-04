@@ -2,8 +2,18 @@ import "../../embed.css";
 
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
+import { piece } from "../../piece.js";
 import { Embed } from "./Embed.js";
 import { isEmbedHash, parseEmbedHash } from "./link.js";
+
+// An embed's address may name one of the pictures' themes (docs/themes.md; a theme's name begins with one of five
+// letters, and `light` and `dark` do not). Then the themes' piece is fetched, and it dresses the embed; with no
+// theme named an embed fetches nothing more, whatever the reader's own browser has kept.
+const named = (): void => {
+  if (/^#\/embed\?.*theme=[bcipt]/.test(location.hash)) piece("themes", () => import("../theme/themes.js")).catch(() => undefined);
+};
+named();
+addEventListener("hashchange", named);
 
 /**
  * The embed as a page of its own. `main.tsx` loads this module, and not the

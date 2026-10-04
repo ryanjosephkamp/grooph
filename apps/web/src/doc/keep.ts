@@ -4,7 +4,6 @@
  * all three; this file only turns an SVG into pixels and names the files.
  */
 import { isMapLike, mapPicture, offlinePage, picture, type Graph, type OperationMap } from "@grooph/core";
-import type { PictureLook } from "@grooph/core/themes";
 
 export type KeepTheme = "light" | "dark";
 
@@ -13,15 +12,13 @@ export const APP_VERSION = "0.3.0";
 
 const isMap = (doc: Graph | OperationMap): doc is OperationMap => isMapLike(doc);
 
-/** `look` is the picture's theme when it is not Paper (docs/themes.md); without one each of these is what it always was. */
-export const pictureSvg = (doc: Graph | OperationMap, theme: KeepTheme, look?: PictureLook): string => {
-  const options = { theme, ...(look ? { look } : {}) };
-  return isMap(doc) ? mapPicture(doc, options) : picture(doc, options);
-};
+/** `auto` is the picture that follows the viewer: what a theme is added to (`ui/theme/themes.ts`). */
+export const pictureSvg = (doc: Graph | OperationMap, theme: KeepTheme | "auto"): string => (isMap(doc) ? mapPicture(doc, { theme }) : picture(doc, { theme }));
 
-export const pictureName = (doc: Graph | OperationMap, theme: KeepTheme, ext: "svg" | "png", look?: PictureLook): string => `${doc.id || "graph"}.${look ? `${look.name}-` : ""}${theme}.${ext}`;
+/** `look` is the theme's name when the picture is not in Paper: `review-loop.chalk-dark.svg`. */
+export const pictureName = (doc: Graph | OperationMap, theme: KeepTheme, ext: "svg" | "png", look = ""): string => `${doc.id || "graph"}.${look && `${look}-`}${theme}.${ext}`;
 
-export const pageHtml = (doc: Graph | OperationMap, look?: PictureLook): string => offlinePage(doc, { version: APP_VERSION, ...(look ? { look } : {}) });
+export const pageHtml = (doc: Graph | OperationMap): string => offlinePage(doc, { version: APP_VERSION });
 
 export const pageName = (doc: Graph | OperationMap): string => `${doc.id || "graph"}.html`;
 

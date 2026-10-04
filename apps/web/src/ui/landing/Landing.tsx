@@ -1,9 +1,7 @@
 import { instantiate, picture, type Graph } from "@grooph/core";
-import type { PictureLook } from "@grooph/core/themes";
 import { useState, type ReactNode } from "react";
 
 import { copyText } from "../../doc/exportPackage.js";
-import { useLook } from "../../doc/look.js";
 import { builtInTemplate } from "../../doc/templates.js";
 import { Glyph, hasLongGlyph } from "../Glyph.js";
 import { templateHref } from "../templates/TemplatesScreen.js";
@@ -24,17 +22,15 @@ const ASK = "/grooph-design a builder and a critic that loop until the checkout 
  * template's own examples, drawn by core's picture in the `auto` theme so it
  * follows the page's color scheme. Drawn once; the picture is deterministic.
  */
-const heroSvg = new Map<string, string>();
-function hero(look?: PictureLook): string {
-  // Once for each theme it is shown in (docs/themes.md): the picture's theme is a person's choice, in the header's menu.
-  const name = look?.name ?? "";
-  if (!heroSvg.has(name)) {
+let heroSvg: string | undefined;
+function hero(): string {
+  if (heroSvg === undefined) {
     const template = builtInTemplate(HERO)!;
     const values = Object.fromEntries((template.template?.slots ?? []).map((slot) => [slot.key, slot.example ?? ""]).filter(([, v]) => v !== ""));
     values.task = "Add a slugify(text) function to src/strings.ts.";
-    heroSvg.set(name, picture(instantiate(template, { name: "Add slugify, reviewed", values }), { theme: "auto", ...(look ? { look } : {}) }));
+    heroSvg = picture(instantiate(template, { name: "Add slugify, reviewed", values }), { theme: "auto" });
   }
-  return heroSvg.get(name)!;
+  return heroSvg;
 }
 
 const strip = (): Graph[] => STRIP.map((id) => builtInTemplate(id)).filter((doc): doc is Graph => doc !== undefined);
@@ -58,7 +54,6 @@ export function Landing({ device }: { device?: ReactNode }) {
   // The poster is a file of the documents, which the app's service worker does not keep: with no network it cannot be
   // fetched, and the card then stands without its picture rather than with a broken one.
   const [poster, setPoster] = useState(true);
-  const look = useLook();
   return (
     <div className="land">
       <SiteHeader />
@@ -96,7 +91,7 @@ export function Landing({ device }: { device?: ReactNode }) {
             </div>
             <figure className="land-figure">
               <RunDemo>
-                <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: hero(look) }} />
+                <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: hero() }} />
                 <figcaption className="muted">
                   The <a href={templateHref("built-in", HERO)}>review gate</a> template, drawn by grooph.
                 </figcaption>

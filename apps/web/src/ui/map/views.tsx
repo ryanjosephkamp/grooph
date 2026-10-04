@@ -10,7 +10,6 @@
  * of its own would be asked for at every address.
  */
 import type { MapKit, OperationMap } from "@grooph/core";
-import type { PictureLook } from "@grooph/core/themes";
 import { mapSequenceWith, mapWideWith } from "@grooph/core/map-views";
 import { useEffect, useLayoutEffect, useMemo, useState, type CSSProperties, type RefObject } from "react";
 
@@ -38,7 +37,7 @@ export const drawn = (svg: string, sequence: boolean): { svg: string; sequence: 
  * The room is the stage's width less its padding, in steps of twenty pixels, so that dragging the window's edge
  * does not draw the picture again at every pixel.
  */
-export function Views({ map, kit, wide, stage, onDrawn, look }: { map: OperationMap; kit: MapKit; wide: boolean; stage: RefObject<HTMLElement | null>; onDrawn: (theirs?: ReturnType<typeof drawn>) => void; look?: PictureLook }) {
+export function Views({ map, kit, wide, stage, onDrawn }: { map: OperationMap; kit: MapKit; wide: boolean; stage: RefObject<HTMLElement | null>; onDrawn: (theirs?: ReturnType<typeof drawn>) => void }) {
   const [sequence, setSequence] = useState(false);
   const [room, setRoom] = useState<number>();
   note(stage.current);
@@ -56,7 +55,7 @@ export function Views({ map, kit, wide, stage, onDrawn, look }: { map: Operation
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
-  const svg = useMemo(() => (sequence ? mapSequenceWith : mapWideWith)(kit, map, { ...(wide && room ? { width: room } : {}), ...(look ? { look } : {}) }), [map, wide, sequence, room, look]);
+  const svg = useMemo(() => (sequence ? mapSequenceWith : mapWideWith)(kit, map, wide && room ? { width: room } : {}), [map, wide, sequence, room]);
   // Told before the screen paints, so the picture and the switch change together.
   useLayoutEffect(() => onDrawn(wide || sequence ? drawn(svg, sequence) : undefined), [svg, wide, sequence]);
   // Picture or Sequence: a pair of radios, as the app's other switches are. Which layout the picture has is the screen's business.
