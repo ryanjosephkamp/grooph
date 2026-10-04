@@ -1,6 +1,6 @@
 # Handback 0078 · grooph for agents: authoring over MCP, a package on npm, and a way in from a chat
 
-**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `7985b34` (the work; the handback commit follows it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `ece37ad` (the work, after the driver's fix pass; the handback commit follows it) · **Date:** 2026-10-04
 
 ## Status
 
@@ -17,7 +17,7 @@
 - `src/paths.ts` (new): where the CLI's own files are, in a clone, an npm install and a single bundled file. `registry.ts`, `commands/hooks.ts`, `commands/watch.ts` use it.
 - `src/main.ts` (new), `bin/grooph.js`: one entry; a closed pipe (`grooph template list | head`) ends quietly.
 - `src/index.ts`: the `mcp` command's `--chat` flag, the no-folder guard, its help page. `commands/explain.ts`, `embed.ts`, `image.ts`: small exports the tools reuse; CLI output unchanged.
-- Tests: `test/mcp-author.test.ts` (new, 17 tests), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 141.
+- Tests: `test/mcp-author.test.ts` (new, 22 tests), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 146.
 - `docs/cli.md` regenerated for the `mcp` command's new help page, as the driver asked once `main` began checking it.
 
 **The package** (`packages/cli`, `scripts/`)
@@ -37,23 +37,23 @@
 
 ## Verified, and how
 
-Run from a clean build at `7985b34`, after merging `main` (the tier map, the generated CLI reference, the version and picture checks, the second browser job):
+Run from a clean build at `ece37ad`, after the fix pass and with `main` merged in (the tier map, the generated CLI reference, the version, picture and outside-address checks, the second browser job):
 
 ```text
-pnpm -r build && pnpm -r test          core 345 pass · cli 141 pass · web 68 pass
-scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 626 KB, 70 files; installed and run in a fresh folder)
-scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 223 KB, grooph.mcpb 223 KB; …run with nothing installed beside them)
+pnpm -r build && pnpm -r test          core 345 pass · cli 146 pass · web 68 pass
+scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 630 KB, 70 files; installed and run in a fresh folder)
+scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 227 KB, grooph.mcpb 226 KB; …run with nothing installed beside them)
 scripts/first-run.sh                   first run: ok
-GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      169 passed, 107 skipped, none failed
-node scripts/perf-budget.mjs --check   all six inside budget; the CLI's cold start 104 of 400 ms; the app's first load 173.5 of 180 KB
-node scripts/american-english.mjs --check      nothing British in 539 public-facing files
-node scripts/site-pages.mjs --check    20 pages and an index, links and anchors resolve
-node scripts/version.mjs --check · cli-reference.mjs --check · check-pictures.mjs --check      all current
+GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      170 passed, 107 skipped, none failed
+node scripts/perf-budget.mjs --check   all six inside budget; the CLI's cold start 158 of 400 ms; the app's first load 173.5 of 180 KB
+node scripts/american-english.mjs --check      nothing British in 547 public-facing files
+node scripts/site-pages.mjs --check    23 pages and an index, links and anchors resolve
+version · cli-reference · check-pictures · check-outside-addresses (--check)      all current; nothing is loaded from another host
 patterns-index · field-guide · rule-reference · community-index (--check), check-brake-values, test-install-local.sh      all pass
 export of review-loop and fix-until-green                    the same as the golden packages
 ```
 
-`(cd packages/cli && npm pack --dry-run)` from the handoff is answered under Deviations. CI on the branch: every job green at `136d252` and `0bfbed4` (build on Node 22 and 24, web-e2e); the run for `7985b34` adds main's `web-browsers` job and had started when this was written.
+`(cd packages/cli && npm pack --dry-run)` from the handoff is answered under Deviations. CI on the branch was green on every job at the last push before the fix pass (`24466fa`: build on Node 22 and 24, web-e2e, web-browsers).
 
 Per criterion:
 
@@ -109,18 +109,18 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **641,841 bytes packed (627 KB), 1,981,102 unpacked, 70 files.**
+`grooph-0.3.0.tgz`: **645,478 bytes packed (630 KB), 1,993,109 unpacked, 70 files.**
 
 | In it | Files | Size |
 |---|---|---|
-| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 549 KB |
+| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 561 KB |
 | `dist/patterns/`, the templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
 | `dist/app/`, the built app `watch` serves, without source maps or the site's pages | 23 | 1,136 KB |
 | `hooks/`, the event hook and the push script | 2 | 56 KB |
 | `README.md`, `LICENSE`, `package.json` | 3 | 5 KB |
 
-No dependencies. One optional dependency, `@resvg/resvg-js`, for PNG; without it the SVG still works and the error says so.
+No dependencies, and one optional one: `@resvg/resvg-js`, for PNG, which has no install script (it brings the one prebuilt binary for the platform). Without it the SVG still works and the error says so. rolldown, the bundler, is a development dependency and is not in the tarball.
 
 ## The three commands that publish
 
@@ -143,8 +143,11 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **A tool's lines are also in its structured data** (`text`), because Claude Code shows the model the data. From run A.
 - **Templates for the tools are local only** (project, user, built-in): no tool reaches the network.
 - **A server started in a folder nobody chose writes nothing**: the file system's root or a home folder, with no `--dir` and no `CLAUDE_PROJECT_DIR`. A desktop app may start a server in `/`.
-- **Writing tools never replace a file they did not read**, except a picture over a picture and a package over its own files.
-- **`grooph_export` takes `models`**, the tier map that landed on `main` as pull request 43 while this slice was open. It holds a model's name to the CLI's own pattern (a name goes into a file's frontmatter) and prints the CLI's own line saying what all three tiers then mean.
+- **A file already there is replaced only when it is grooph's own**: the graph the call read, an SVG that carries the picture's mark, or a package's files as grooph last wrote them. The last is asked of the package itself: it keeps the graph it was compiled from and states its tiers in `MAPPING.md`, so an existing file is grooph's when it is what that graph compiles to. Anything else stops the call, and `replace: true` forces it. (The driver's review, D.)
+- **A graph is saved only as `<name>.grooph.json`, and nothing is written under `.git`.** (C.)
+- **In a chat a tool takes no file argument**: `path` is refused before the disk is touched, and the library is the one grooph ships. (E.)
+- **Only `--dir` can choose the root or a home folder as the project**; a harness's variable pointing there does not. (F.)
+- **`grooph_export` takes `models`**, the tier map that landed on `main` as pull request 43 while this slice was open, and with none of its own it takes `GROOPH_MODELS` from the server's environment through the CLI's own parser (B). It holds a model's name to the CLI's own pattern (a name goes into a file's frontmatter) and prints the CLI's own line saying what all three tiers then mean.
 - **A file is put by writing beside it and renaming over it, and never through a link.** From the independent review: a hard link to a file elsewhere keeps what it had, and a link inside the project is not followed.
 - **`grooph_share` carries the proposal set's shape in its description** and takes a candidate's graph by id. From run F, where the design skill's first set had no marker and was answered as a broken graph.
 
@@ -161,15 +164,30 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **Publish order**, at the top.
 - **No vendor app was driven.** The stand-ins share the server, the skill and the model family, not the app. The desktop app may show tool results differently, and claude.ai's sandbox may differ from a shell.
 - **MCP's newest revision is 2026-07-28** and drops the `initialize` handshake. The server knows up to 2025-06-18 and answers any message without a handshake, so a newer client should still be served; it was not tested against one.
-- **The audit loop.** `docs/agents.md` and the chat skill repeat, in the published words of `docs/field-guide.md`, that the evidence does not show better quality on one-pass tasks. If the audit changes that sentence, these two follow.
-- **`path` reads are not confined** to the project, as before this slice. Harmless locally; on a hosted endpoint it would have to go (see the decision file).
+- **The audit loop.** `docs/agents.md` and the chat skill now carry one sentence on quality and no other claim: a graph "is not shown to raise quality over the same instructions given as a prompt, on small tasks". The sentence about bounding and recording, taken from `docs/field-guide.md`, is out (G). When an audit converges, these two follow it.
+- **Outside a chat, `path` reads are not confined** to the project, as before this slice: a session may check a fixture or another clone's graph. A file that is not JSON is named and nothing of it is returned. In a chat `path` is refused outright.
+- **"As grooph last wrote them" is judged by recompiling.** A package written by an older grooph, whose compiler's words have since changed, reads as changed by hand, and the export stops and asks for `replace: true`. That is the safe side, and it will happen after a release that changes the compiler's output.
 - **The plugin's `.mcp.json`** names `grooph`, which must be on `PATH`. After the publish it could be `npx -y grooph mcp`. That the plugin itself starts the server was not run; run F attached the same server by a config file.
 - **`.claude-plugin/marketplace.json`** at the root still describes the plugin without its server; not this lane's file.
-- **Independent review.** A fresh Opus 5.5 read of the write paths, the server loop, the packaging scripts and the paste reader, given the code and not my conclusions, reported eleven findings; it could not break the "never outside the project" rule itself. Fixed, each with a test: writes through a link or a hard link; the in-place rewrite when the project is named through a link; the inside test when the project is the root; a walk that never ended on a missing Windows drive (fixed by reading, not run on Windows); an empty `CLAUDE_PROJECT_DIR` counting as a choice; a last message with no newline dropped; a remembered graph replaced in silence; the paste reader taking the first JSON instead of the graph; the site's pages able to ride into the tarball; `--keep` with a relative path. Left as they are: on Windows a chat app that starts a server in a folder that is neither the root nor home gets file writes unless the entry passes `--chat` (every documented entry does); a bundle copied by hand next to a folder named `hooks` would look there for the event hook.
-- **Windows** was not run at all. CI is Linux and the Mac is the Mac.
+- **Independent review, twice.** First a fresh Opus 5.5 read I asked for, of the write paths, the server loop, the packaging scripts and the paste reader: eleven findings, ten fixed. Then the driver's, which found more; what was done about each letter is under "The fix pass" below. Of the first review's ten fixes, eight had a test when I first wrote this and two did not (the walk that never ended on a missing Windows drive, and `--keep` with a relative path); both have one now: the walk is a function of its own, run over Windows paths with `path.win32`, and CI passes `--keep` a relative path and then looks for the files. Left as they are from the first review: a bundle copied by hand next to a folder named `hooks` would look there for the event hook.
+- **Windows** was not run at all. CI is Linux and the Mac is the Mac. On Windows a chat app that starts a server in a folder that is neither the root nor home gets file writes unless the entry passes `--chat`; every documented entry does.
+
+## The fix pass
+
+The driver read #60 and sent seven points. A is a pull request of its own; B to G are on this branch.
+
+- **A · a compiler fault on `main`, not in this diff.** [ryanjosephkamp/grooph#63](https://github.com/ryanjosephkamp/grooph/pull/63), branch `slice/0078-frontmatter-values`, head `bb891e2`, not merged. A model pin or a skill name with a line break passed `grooph validate` and the export wrote frontmatter keys of the document's choosing into an agent file (reproduced on `main`: `permissionMode: bypassPermissions`). The schema now holds a pin and a skill name to one token and a capability to one line (`E_SCHEMA`), and the frontmatter writer quotes anything that is not such a token. `tools:` and `disallowedTools:` were not reachable. A failing fixture, a passing one, a compiler test that fails against `main`'s writer; no golden package changes.
+- **B · `grooph_export` ignored `GROOPH_MODELS`.** It now takes it from the server's environment when the call names no map, through `parseModels`. Tried through the built server with `GROOPH_MODELS=frontier=opus,strong=sonnet,fast=haiku`: the agent files say `sonnet`, and none says `fable`. One test.
+- **C · `out` took any name.** A graph is saved only as `<name>.grooph.json`, and nothing is written under `.git`, by real location and in any case of the name. The six names the reviewer wrote (`.claude/settings.local.json`, `.mcp.json`, `.vscode/tasks.json`, `packages/x/package.json`, `AGENTS.md`, `.git/index.lock`) are each refused, with a test.
+- **D · a picture replaced any `.svg` or `.png`, and an export replaced a hand-edited file.** Both now replace only what is grooph's own (above, under Decisions), or refuse and say to pass `replace: true`. The project's `logo.svg` and a hand-edited agent file are each kept, with tests. The sentence in `docs/agents.md` is rewritten to what is true.
+- **E · `--chat` read any file through `path`.** In a chat `path`, `out`, `into` and `replace` are not offered and are refused when passed, before the disk is touched: a file that is there and one that is not answer the same. The library in a chat is the one grooph ships. The sentence in `docs/chat.md` is rewritten.
+- **F · smaller.** An export is placed whole or not at all, and a failure on the way (a folder in the way, a file where a folder goes, a link to nothing) is a refusal with a `next:` line. `CLAUDE_PROJECT_DIR` pointing at home no longer counts as a choice. `grooph_plan` and `grooph_note` refuse a linked `.grooph` or `.grooph/events`. The two fixes that had no test have one. "No dependencies" now says "and one optional one, with no install script". The extension's manifest asks for Node 22.
+- **G · a claim.** The sentence is out of `docs/agents.md` and the chat skill; `llms.txt` carried none.
+
+Each of B to F was also tried through the built server as a process, not only through the tests.
 
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head 7985b34). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head ece37ad, after the fix pass). Status: done. The compiler fix it found is pull request 63 (head bb891e2). Please reconcile with the grooph-reconcile skill.
 ```
