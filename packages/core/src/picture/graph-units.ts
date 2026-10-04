@@ -51,29 +51,52 @@ const GLYPH_INK: Record<string, Color> = {
 const n1 = (n: number): string => (Math.round(n * 10) / 10).toString();
 const count = (n: number, one: string): string[] => (n === 0 ? [] : [`${n} ${one}${n === 1 ? "" : "s"}`]);
 
-/** A graph's picture with its subgroophs as boxes; the plain picture when it has none. */
-export function pictureWithUnits(kit: UnitsKit, doc: Graph, options: UnitsOptions = {}): string {
-  const [picture, layerNodes, glyph, rect, text, truncate] = kit;
-  const { open: asked, ...plain } = options;
-  const units = (doc.groups ?? []).filter((group) => group.from !== undefined);
-  if (units.length === 0) return picture(doc, plain);
+/** A subgrooph as it is drawn: closed, as one node of the folded graph under the group's id; open, as a frame around its nodes. */
+export type Box = {
+  group: Group;
+  open: boolean;
+  /** how many subgroophs hold it */
+  depth: number;
+  /** every node inside, at any depth, in document order */
+  nodes: Id[];
+  /** what is drawn inside it when it is open: its nodes, and the box of each subgrooph directly within */
+  cards: Id[];
+  /** the loops wholly inside it */
+  loops: Id[];
+};
 
+export type Folded = {
+  /** the graph as it is drawn: each closed subgrooph one node, the edges that cross its boundary led to that node, what is wholly inside left out */
+  doc: Graph;
+  /** the subgroophs that are drawn, outermost first. One inside a closed one is not drawn, and is not here. */
+  boxes: Box[];
+  /** the card a node is drawn on: its own, or the outermost closed subgrooph that holds it */
+  stands: (id: Id) => Id;
+  /** the subgroophs that hold a node, outermost first */
+  chain: (id: Id) => Group[];
+};
+
+/**
+ * A graph with its closed subgroophs folded, each into one node: what the picture draws, and the canvas. `open`
+ * names the ones to leave open, or is "all". The document's `layout` and `groups` are left out of the folded graph:
+ * where things go is for the view that draws it.
+ */
+export function foldUnits(doc: Graph, open: readonly Id[] | "all" = []): Folded {
+  const units = (doc.groups ?? []).filter((group) => group.from !== undefined);
   const inside = new Map<Id, Set<Id>>();
   const depth = new Map<Id, number>(units.map((unit) => [unit.id, 0]));
+  const loopsIn = new Map<Id, Id[]>();
   for (const unit of units) {
     const contents = contentsOf(doc, unit.id)!;
     inside.set(unit.id, new Set(contents.nodes));
+    loopsIn.set(unit.id, contents.loops);
     for (const inner of contents.groups) if (depth.has(inner)) depth.set(inner, depth.get(inner)! + 1);
   }
-  /** the subgroophs that hold a node, outermost first */
   const chain = (id: Id): Group[] => units.filter((unit) => inside.get(unit.id)!.has(id)).sort((a, b) => depth.get(a.id)! - depth.get(b.id)!);
-  const isOpen = (unit: Group): boolean => asked === "all" || (asked ?? []).includes(unit.id);
-  /** the card a node is drawn on: its own, or the outermost closed subgrooph that holds it */
+  const isOpen = (unit: Group): boolean => open === "all" || open.includes(unit.id);
   const stands = (id: Id): Id => chain(id).find((unit) => !isOpen(unit))?.id ?? id;
   const byId = new Map(units.map((unit) => [unit.id, unit]));
 
-  // The graph as it is drawn: each closed subgrooph one node, the edges that cross its boundary led to that node,
-  // and what is wholly inside it left out.
   const seen = new Set<Id>();
   const nodes: Node[] = [];
   for (const node of doc.nodes) {
@@ -93,7 +116,48 @@ export function pictureWithUnits(kit: UnitsKit, doc: Graph, options: UnitsOption
     return members.length === 1 && byId.has(members[0]!) ? [] : [{ ...loop, members, back: loop.back.filter((id) => kept.has(id)) }];
   });
   const { groups: _groups, layout: _layout, ...rest } = doc;
-  const folded: Graph = { ...rest, nodes, edges, loops };
+
+  // Drawn: a closed one that stands for its nodes, and an open one every subgrooph around which is open too.
+  const boxes = units
+    .filter((unit) => inside.get(unit.id)!.size > 0 && (seen.has(unit.id) || (isOpen(unit) && [...inside.get(unit.id)!].some((id) => chain(id).every((around) => depth.get(around.id)! > depth.get(unit.id)! || isOpen(around))))))
+    .sort((a, b) => depth.get(a.id)! - depth.get(b.id)!)
+    .map((group) => ({
+      group,
+      open: !seen.has(group.id),
+      depth: depth.get(group.id)!,
+      nodes: doc.nodes.filter((node) => inside.get(group.id)!.has(node.id)).map((node) => node.id),
+      cards: [...new Set([...inside.get(group.id)!].map(stands))],
+      loops: loopsIn.get(group.id)!,
+    }));
+  return { doc: { ...rest, nodes, edges, loops }, boxes, stands, chain };
+}
+
+/** What a box holds, as a graph of its own: its nodes, and the edges and loops wholly inside it. The glyph of this is the box's. */
+export function unitGraph(doc: Graph, box: Box): Graph {
+  const held = new Set(box.nodes);
+  const { groups: _groups, layout: _layout, ...rest } = doc;
+  return { ...rest, name: box.group.name, nodes: doc.nodes.filter((node) => held.has(node.id)), edges: doc.edges.filter((edge) => held.has(edge.from) && held.has(edge.to)), loops: doc.loops.filter((loop) => box.loops.includes(loop.id)) };
+}
+
+/** What a closed box says of itself, in the picture and on the canvas: where it came from, and what is inside. */
+export function unitLine(doc: Graph, box: Box): { line: string; irreversible: string[] } {
+  const held = new Set(box.nodes);
+  const nodes = doc.nodes.filter((node) => held.has(node.id));
+  return {
+    line: [box.group.from!, ...count(nodes.length, "node"), ...count(nodes.filter((node) => node.kind === "human-gate").length, "human gate"), ...count(box.loops.length, "loop")].join(" · "),
+    irreversible: nodes.flatMap((node) => (node.kind === "agent" ? (node.irreversible ?? []) : [])),
+  };
+}
+
+/** A graph's picture with its subgroophs as boxes; the plain picture when it has none. */
+export function pictureWithUnits(kit: UnitsKit, doc: Graph, options: UnitsOptions = {}): string {
+  const [picture, layerNodes, glyph, rect, text, truncate] = kit;
+  const { open: asked, ...plain } = options;
+  if (!(doc.groups ?? []).some((group) => group.from !== undefined)) return picture(doc, plain);
+  const { doc: folded, boxes, stands, chain } = foldUnits(doc, asked);
+  const inside = new Map(boxes.map((box) => [box.group.id, new Set(box.nodes)]));
+  const depth = new Map(boxes.map((box) => [box.group.id, box.depth]));
+  const isOpen = (unit: Group): boolean => boxes.some((box) => box.group === unit && box.open);
 
   // The column. Ranked with every subgrooph closed, so that each has one place; then each open one is replaced, in
   // that place, by its own nodes in their own order.
@@ -110,8 +174,8 @@ export function pictureWithUnits(kit: UnitsKit, doc: Graph, options: UnitsOption
   const opened: Group[] = [];
   const expand = (unit: Group, level: number): void => {
     const row = rows.findIndex((ids) => ids.includes(unit.id));
-    if (row < 0 || !isOpen(unit)) return;
-    const within = inside.get(unit.id)!;
+    const within = inside.get(unit.id);
+    if (row < 0 || !within || !isOpen(unit)) return;
     const held = all.filter((id) => within.has(id));
     const others = rows[row]!.filter((id) => id !== unit.id);
     rows.splice(row, 1, ...(others.length > 0 ? [others] : []), ...ranked(held, (id) => within.has(id), level + 1));
@@ -136,13 +200,10 @@ export function pictureWithUnits(kit: UnitsKit, doc: Graph, options: UnitsOption
   // A closed subgrooph's card: what it came from, what it holds, the brakes among that, and the glyph of it.
   const marks = new Map<Id, { svg: string; width: number; height: number }>();
   const faces = new Map<Id, Face>();
-  for (const unit of units) {
-    if (!seen.has(unit.id)) continue;
-    const contents = contentsOf(doc, unit.id)!;
-    const held = doc.nodes.filter((node) => inside.get(unit.id)!.has(node.id));
-    const drawn = /^<svg[^>]*viewBox="([^"]+)" width="([\d.]+)" height="([\d.]+)"[^>]*>\s*<title>[^<]*<\/title>/.exec(
-      glyph({ ...rest, nodes: held, edges: doc.edges.filter((edge) => contents.edges.includes(edge.id)), loops: doc.loops.filter((loop) => contents.loops.includes(loop.id)) }),
-    );
+  for (const box of boxes) {
+    if (box.open) continue;
+    const unit = box.group;
+    const drawn = /^<svg[^>]*viewBox="([^"]+)" width="([\d.]+)" height="([\d.]+)"[^>]*>\s*<title>[^<]*<\/title>/.exec(glyph(unitGraph(doc, box)));
     const scale = drawn ? Math.min(1, GLYPH / Number(drawn[3]), 200 / Number(drawn[2])) : 0;
     // The glyph's own frame, kept as a drawing inside this one: its box, and what its root said about lines.
     if (drawn) {
@@ -152,15 +213,12 @@ export function pictureWithUnits(kit: UnitsKit, doc: Graph, options: UnitsOption
         height: Number(drawn[3]) * scale,
       });
     }
-    const irreversible = held.flatMap((node) => (node.kind === "agent" ? (node.irreversible ?? []) : []));
+    const said = unitLine(doc, box);
     faces.set(unit.id, {
       label: "Subgrooph",
       color: "ink-2",
-      sub: [
-        [unit.from!, ...count(held.length, "node"), ...count(held.filter((node) => node.kind === "human-gate").length, "human gate"), ...count(contents.loops.length, "loop")].join(" · "),
-        ...(unit.description ? [unit.description] : []),
-      ],
-      extra: irreversible.length > 0 ? `irreversible inside: ${irreversible.join(", ")}` : "",
+      sub: [said.line, ...(unit.description ? [unit.description] : [])],
+      extra: said.irreversible.length > 0 ? `irreversible inside: ${said.irreversible.join(", ")}` : "",
       room: drawn ? Number(drawn[3]) * scale + 6 : 0,
     });
   }

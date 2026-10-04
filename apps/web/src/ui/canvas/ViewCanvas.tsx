@@ -6,12 +6,13 @@ import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, labelSpots, type Box } from "./bends.js";
+import { UnitNode, useBoxes, type UnitFlowNode } from "./boxes.js";
 import { RUN_PAD, VIEWER_PAD, fitOptions, glide } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
 
-const nodeTypes: NodeTypes = { graph: GraphNode };
+const nodeTypes: NodeTypes = { graph: GraphNode, unit: UnitNode };
 const edgeTypes: EdgeTypes = { graph: GraphEdge };
 
 type Size = { width: number; height: number };
@@ -46,14 +47,20 @@ export function ViewCanvas(props: {
   const positions = useMemo(() => resolvePositions(doc).positions, [doc]);
   const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
 
+  // A subgrooph is one box (handoff 0085): `shown` is the document with each closed box as one node. A run's
+  // canvas shows every node's state, so its boxes are open; a node a note is about opens the boxes around it.
+  const boxes = useBoxes(doc, positions, measured, { ...(props.run ? { all: true } : {}), reveal: [...(props.selected ? [props.selected] : []), ...(props.highlight?.nodes ?? [])], severity });
+  const shown = boxes.shown;
+
   const nodes = useMemo(
     () =>
-      doc.nodes.map((node) => {
+      shown.nodes.flatMap((node): GraphFlowNode[] => {
+        if (boxes.rect(node.id)) return [];
         const loops = doc.loops.map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members })).filter((l) => l.members.includes(node.id));
         const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ariaLabel: nodeLabel(node), ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
         const run = props.run?.nodes[node.id];
         const loopIndex = props.highlight?.loop !== undefined ? doc.loops.findIndex((l) => l.id === props.highlight!.loop) : -1;
-        return {
+        return [{
           ...base,
           type: "graph" as const,
           data: {
@@ -66,21 +73,22 @@ export function ViewCanvas(props: {
             ...(loopIndex >= 0 && doc.loops[loopIndex]!.members.includes(node.id) ? { loopColor: loopIndex } : {}),
             ...(run ? { run: { state: run.state, label: stateLabel(run.state, run.lastOutcome), runs: run.runs } } : {}),
           },
-        } satisfies GraphFlowNode;
+        } satisfies GraphFlowNode];
       }),
-    [doc, positions, measured, severity, props.selected, props.run, props.highlight],
+    [doc, shown, boxes, positions, measured, severity, props.selected, props.run, props.highlight],
   );
+  const drawn = useMemo((): (GraphFlowNode | UnitFlowNode)[] => [...boxes.nodes, ...nodes], [boxes, nodes]);
 
   const edges: GraphFlowEdge[] = useMemo(() => {
-    const known = new Set(doc.nodes.map((n) => n.id));
-    const boxes: Record<Id, Box> = {};
-    for (const n of doc.nodes) {
+    const known = new Set(shown.nodes.map((n) => n.id));
+    const room: Record<Id, Box> = {};
+    for (const n of shown.nodes) {
       const p = positions[n.id] ?? { x: 0, y: 0 };
-      boxes[n.id] = { x: p.x, y: p.y, w: measured[n.id]?.width ?? NODE_WIDTH, h: measured[n.id]?.height ?? NODE_HEIGHT };
+      room[n.id] = boxes.rect(n.id) ?? { x: p.x, y: p.y, w: measured[n.id]?.width ?? NODE_WIDTH, h: measured[n.id]?.height ?? NODE_HEIGHT };
     }
-    const bends = edgeBends(doc, boxes);
-    const spots = labelSpots(doc, boxes, bends);
-    return doc.edges
+    const bends = edgeBends(shown, room);
+    const spots = labelSpots(shown, room, bends);
+    return shown.edges
       .filter((e) => known.has(e.from) && known.has(e.to))
       .map((edge) => {
         const loopIndex = doc.loops.findIndex((l) => l.back.includes(edge.id));
@@ -101,11 +109,14 @@ export function ViewCanvas(props: {
           },
         };
       });
-  }, [doc, positions, measured, severity, props.highlight]);
+  }, [doc, shown, boxes, positions, measured, severity, props.highlight]);
 
+  /** A tap on a closed box opens it; on a node, it is the node's. */
+  const tap = (id: Id): void => (boxes.nodesOf(id) ? boxes.toggle(id) : boxes.rect(id) ? undefined : props.onNodeTap?.(id));
+  if (!boxes.ready) return null;
   return (
-    <ReactFlow<GraphFlowNode, GraphFlowEdge>
-      nodes={nodes}
+    <ReactFlow<GraphFlowNode | UnitFlowNode, GraphFlowEdge>
+      nodes={drawn}
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
@@ -114,8 +125,8 @@ export function ViewCanvas(props: {
         for (const change of changes) if (change.type === "dimensions" && change.dimensions) sizes[change.id] = change.dimensions;
         if (Object.keys(sizes).length > 0) setMeasured((m) => ({ ...m, ...sizes }));
       }}
-      onNodeClick={(_, node) => props.onNodeTap?.(node.id)}
-      onKeyDown={onNodeKey(props.onNodeTap)}
+      onNodeClick={(_, node) => tap(node.id)}
+      onKeyDown={onNodeKey(tap)}
       edgesFocusable={false}
       onMove={(event) => {
         // A move, not its start: a click on a node that cannot be dragged starts a pan and moves nothing.
