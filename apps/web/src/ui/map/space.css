@@ -1,0 +1,202 @@
+/* A map in three dimensions (handoff 0087). These rules ride in space.ts and are added to the page when the view
+   is first chosen: no address that does not show it carries them. */
+
+.map-picture:has(> .space) {
+  max-width: 1180px !important;
+  aspect-ratio: auto !important;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  box-shadow: none;
+}
+.space {
+  display: grid;
+  gap: 10px;
+  font: 13px/1.4 var(--font);
+  color: var(--ink);
+}
+.space button {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+}
+.space button:is(:hover, :focus-visible) {
+  background: var(--surface-2);
+}
+.space button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.space-bar,
+.space-steps {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.space-bar span {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  text-wrap: pretty;
+}
+
+/* The scene. It takes the finger: a drag turns it, so the page scrolls from outside it. */
+.space-scene {
+  position: relative;
+  height: clamp(340px, calc(100vh - 300px), 820px);
+  overflow: hidden;
+  overflow: clip;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--gp-bg);
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.space-scene:active {
+  cursor: grabbing;
+}
+.space-scene:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.space-world,
+.space-world > div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.space-world {
+  transform-style: preserve-3d;
+}
+.space-sheet {
+  box-sizing: border-box;
+  border: 1.2px solid var(--gp-line-strong);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gp-surface-2) 72%, transparent);
+}
+.space-sheet.is-people {
+  border-style: dashed;
+}
+.space-label {
+  box-sizing: border-box;
+  padding: 0 4px;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: var(--gp-ink-3);
+  pointer-events: none;
+}
+.space-label b {
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--gp-ink);
+}
+.space-label i {
+  padding: 1px 7px;
+  border: 1px solid var(--gp-line-strong);
+  border-radius: 9px;
+  font-style: normal;
+  color: var(--gp-ink-2);
+}
+.space-label span {
+  display: block;
+}
+.space svg {
+  overflow: visible;
+  font-family: var(--font);
+}
+/* Of an arc's plane only the line takes the pointer: the plane itself lies across the cards behind it. */
+.space-arc {
+  pointer-events: none;
+}
+.space-arc [data-handoff] {
+  pointer-events: stroke;
+}
+.space-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+}
+.space-n {
+  width: 22px;
+}
+.space-arc,
+.space-n {
+  transition: opacity 160ms ease-out;
+}
+
+/* The slider's handoff: it is lit, those before it step back, those after it further. */
+.space .is-past {
+  opacity: 0.5;
+}
+.space .is-ahead {
+  opacity: 0.16;
+}
+.space-arc:is(.is-lit, :has(.is-on, :focus-visible)) path:nth-of-type(2) {
+  stroke-width: 3.8;
+}
+.space-n.is-lit svg {
+  scale: 1.45;
+}
+.space :is([data-session], [data-person]).is-end > rect[data-card] {
+  stroke: var(--gp-accent) !important;
+  stroke-width: 2.4;
+  fill: var(--gp-accent-soft) !important;
+}
+/* Now: no handoff is lit, and the sessions that are working are. */
+.space.is-now [data-live="working"] > rect[data-card] {
+  stroke: var(--gp-accent) !important;
+  stroke-width: 2.4;
+}
+.space.is-now [data-live="ended"] {
+  opacity: 0.55;
+}
+
+/* The slider and what it says. */
+.space-time {
+  display: grid;
+  gap: 6px;
+}
+.space-steps input {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  accent-color: var(--accent);
+}
+.space output {
+  min-height: 2.8em;
+  font-size: 14px;
+  text-wrap: pretty;
+}
+.space-note,
+.space-flat {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.space-flat {
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+/* A browser that cannot stand one thing behind another is shown no scene, only where the flat views are. */
+.space.is-flat > :not(.space-flat, style) {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .space-arc,
+  .space-n {
+    transition: none;
+  }
+}
