@@ -63,11 +63,13 @@ The names are `paper`, `blueprint`, `ink`, `phosphor`, `transit` and `chalk`. No
 
 **In the app.** The theme menu in the front page's header has a second set, Pictures. Every screen that draws on the canvas has the same menu in its top right corner, and Keep a copy has it as "Picture theme". The choice is kept in this browser, and it is separate from the site's look (Grooph or Meteor) and from light and dark: any theme works with either look, and follows the device as Paper does. It applies to every picture the app draws, to the pictures and the offline page Keep a copy makes, and to the canvas, whose nodes and edges take the theme's colors, corners, line weights and lettering.
 
+The marks the app itself adds stay seen in every theme: a picked card, the keyboard's place, a selected edge, a run's states. They are in the theme's green, and a step heavier than the theme's own lines. Ink has one color, so there those marks keep the site's own colors: Ink is for the picture, and the app's marks are not part of it.
+
 **In an address.** A share link or an embed may name a theme: `…#/open?d=<payload>&theme=blueprint`, `…#/embed?d=<payload>&theme=chalk-dark`. A theme named in an address is shown and not kept. A name that is none of the six is Paper. An embed with no theme is Paper whatever the reader's own browser has chosen: it is somebody else's page.
 
 ## What a theme costs
 
-Nothing until it is chosen. Paper needs no file of its own. The other five are one file of about 4 KB, which the app asks for when one of them is first chosen or named in an address. The page names that file, so the service worker holds it from the first visit, and a theme can be chosen later with no network.
+Nothing until it is chosen. Paper needs no file of its own. The other five are one file of about 4.5 KB, which the app asks for when one of them is first chosen or named in an address. The page names that file, so the service worker holds it from the first visit, and a theme can be chosen later with no network.
 
 ## The faces
 
@@ -82,7 +84,7 @@ No theme fetches a font. Each asks first for a face the site serves, then for on
 | Transit | Atkinson Hyperlegible Next | the device's own |
 | Chalk | Chalkboard SE (Apple) or Comic Sans MS (Windows); a device with neither uses Atkinson Hyperlegible Next | the same, ending in the device's own |
 
-The picture is laid out before any face is known, for the widest face it is likely to meet (`exports.md`). A fixed-width face sets a line of narrow letters wider than that, so Blueprint's labels and all of Phosphor's lines are drawn a size down, and Phosphor's letters sit a little closer. Measured in a browser with the site's fixed-width face, the widest there is in the list: no line of any picture in the repository leaves its card in any theme.
+The picture is laid out before any face is known, for the widest face it is likely to meet (`exports.md`). A fixed-width face sets a line of narrow letters wider than that, so Blueprint's labels and all of Phosphor's lines are drawn smaller, with their letters a little closer. The sizes were chosen by measuring: at them, none of over twenty thousand full lines of the repository's own prose, wrapped as the pictures wrap them, leaves its box in the site's fixed-width face, which is the widest in the list. A line made mostly of narrow letters still can: the picture is laid out before its face is known.
 
 ## Light and dark, and contrast
 
@@ -90,14 +92,16 @@ Every theme has a light and a dark form, except Phosphor, which has one. Words a
 
 | | Light | Dark |
 |---|---|---|
-| Blueprint | 5.12 | 4.79 |
+| Blueprint | 5.02 | 4.70 |
 | Ink | 9.62 | 9.07 |
 | Phosphor | 6.00 | 6.00 |
-| Transit | 4.59 | 6.10 |
-| Chalk | 4.57 | 5.56 |
-| Paper | 4.14 | 5.29 |
+| Transit | 4.59 | 5.96 |
+| Chalk | 4.63 | 5.56 |
+| Paper | 3.90 | 4.37 |
 
-Paper is today's picture and was not changed. Three of its pairs in light are a little under 4.5: the label of an edge a person must approve and the carrier of a handoff a person carries (4.22), a loop's second color (4.43), and a halted node's mark while a run plays in an embed (4.14).
+The pairs include the grounds the app puts under a picture's words: a node's state in an embed, and a picked line of a map's list.
+
+Paper is today's picture and was not changed. A few of its pairs are a little under 4.5. In light: the label of an edge a person must approve and the carrier of a handoff a person carries (4.22), a loop's second color (4.43), a halted node's mark while a run plays in an embed (4.14), and two carriers' names in a picked line of a map's list (3.90 and 4.09). In dark: two carriers' names in a picked line (4.37 and 4.38).
 
 ## Limits
 
@@ -106,3 +110,5 @@ Paper is today's picture and was not changed. Three of its pairs in light are a 
 - **On a map, Transit keeps the handoffs' own line weights.** There, line style says what carries a handoff, and the lines run close together.
 - **On the canvas** the nodes and edges take a theme's colors, corners, line weights and lettering. The canvas keeps its own dotted ground, and nothing on it wobbles.
 - **An embed in a theme draws the theme's ground** behind the picture and its bars. An embed in Paper lets the page around it show through, as before.
+- **If the themes' file cannot be fetched** (no network, on a visit before the service worker has it), every picture stays Paper, and Keep a copy says so. Loading the page again with a network brings the theme.
+- **Two pictures of one theme set inline in one page**, each following the viewer and held by that page to different forms, share one ground: the second is drawn with the first one's grid or scan lines. The app never does this, and a picture written in light or in dark only has a ground of its own.
