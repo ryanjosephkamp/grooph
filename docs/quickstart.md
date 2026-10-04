@@ -4,22 +4,29 @@ grooph turns a small graph document (agents, checks, loops, gates) into a prompt
 
 ## Ask your agent
 
-Install once (Node 22 or later):
+Install once from a clone (Node 22 or later, pnpm):
+
+```bash
+git clone https://github.com/ryanjosephkamp/grooph.git && cd grooph
+pnpm install && pnpm -r build && scripts/install-local.sh
+```
+
+That puts `grooph` on your PATH and the `/grooph-design` skill in Claude Code. Or, with no clone, from npm:
 
 ```bash
 npm install --global grooph
 claude mcp add grooph -- grooph mcp
 ```
 
-The first line puts `grooph` on your PATH; the second gives a Claude Code session grooph's tools. In a session on your project, say what you want done:
+The first line gives the command, the second gives a Claude Code session grooph's tools; the skill then comes as a plugin (`/plugin marketplace add ryanjosephkamp/grooph`, then `/plugin install grooph@grooph`).
+
+In a session on your project, say what you want done:
 
 ```text
-Use grooph: fix the flaky checkout test, ten green runs in a row
+/grooph-design fix the flaky checkout test, ten green runs in a row
 ```
 
-The agent picks a template, fills it, checks it, and gives you a link that opens the graph on a phone. You review; you do not write JSON. [grooph for agents](agents.md) is the page it works from.
-
-For the fuller procedure (one to three candidates to compare, and the package placed on your pick), add the `grooph-design` skill: in Claude Code, `/plugin marketplace add ryanjosephkamp/grooph` and then `/plugin install grooph@grooph`. From a clone, `pnpm install && pnpm -r build && scripts/install-local.sh` links the command and the skill in one step, and the skill is then `/grooph-design`.
+The agent proposes one to three validated graphs, shares a link that opens on a phone for you to compare them, and on your pick places the package in the project. You review; you do not write JSON. With the tools and no skill, plain words do it: "Use grooph: fix the flaky checkout test". [grooph for agents](agents.md) is the page the agent works from.
 
 No coding session? [From a chat](chat.md) covers Claude's desktop app, claude.ai and ChatGPT.
 
