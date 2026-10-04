@@ -265,23 +265,41 @@ for (const visitor of VISITORS) {
       await expectWhole(page, opened);
     });
 
-    test("once the rest of the new version arrives, the next visit takes it, and it opens with no network", async ({ page }) => {
-      const [older, newer] = twoReleases(visitor);
-      const site = await visitorOf(older, page);
-      try {
-        site.deploy(newer);
-        site.failing(/\/assets\/screens-[^/]*\.js$/);
+    for (const late of [
+      { file: /\/assets\/compile-[^/]*\.js$/, what: "the compiler, which no page asks for until someone exports", where: {} },
+      { file: /\/assets\/screens-[^/]*\.js$/, what: "the canvas screens, which the page itself asked for and was refused", where: {} },
+    ]) {
+      test(`once the rest of the new version arrives, the next visit takes it, and it opens with no network: ${late.what}`, late.where, async ({ page, browserName }) => {
+        // WebKit remembers a script whose load failed, for the tab's later loads: after the canvas screens were
+        // refused once, the pages that follow in that tab never ask for them again, though the site has them and the
+        // worker holds them, and the canvas says "This screen could not be fetched". Seen in CI on 2026-10-04
+        // (Playwright 1.63's WebKit), with the request log: answered with a 503 or with a failed fetch, it is the
+        // same, and asking for the file with fetch() and then importing it works. The worker cannot undo that from
+        // where it sits. What this test is about, the worker taking the version once it is whole, is held in WebKit
+        // by the run above, where the late file is one the page did not ask for.
+        test.fixme(browserName === "webkit" && late.file.source.includes("screens"), "WebKit does not ask again for a script whose load failed once in the tab");
+        const [older, newer] = twoReleases(visitor);
+        const site = await visitorOf(older, page);
+        try {
+          site.deploy(newer);
+          site.failing(late.file);
+          await page.goto(site.url);
+          await frontPageIsUp(page);
+          // The worker has asked for every file of the new version and been refused the one.
+          await expect.poll(() => site.asked.filter((asked) => asked.status === 503 && late.file.test(asked.path)).length).toBeGreaterThan(0);
+          site.failing(undefined);
+          await page.goto(site.url);
+          await settled(page, newer);
+        } finally {
+          await site.stop();
+        }
+        await openTemplate(page, site);
+        await expectWhole(page, newer);
         await page.goto(site.url);
-        await frontPageIsUp(page);
-        site.failing(undefined);
-        await page.goto(site.url);
-        await settled(page, newer);
-      } finally {
-        await site.stop();
-      }
-      await openTemplate(page, site);
-      await expectWhole(page, newer);
-    });
+        await importAndExport(page);
+        await expectWhole(page, newer);
+      });
+    }
   });
 }
 

@@ -184,10 +184,6 @@ self.addEventListener("fetch", (event) => {
           }
           return fresh;
         }
-        // A hashed file the host cannot give (a deploy still arriving, a file that is gone) is a fetch that failed,
-        // not an answer to keep. WebKit remembers an error answered to a script for the tab's later loads and does
-        // not ask again, though the file has since arrived and is held here (seen in CI, 2026-10-04).
-        if (hashed) return Response.error();
         // The host answered that it cannot (it is down, a deploy is half-way): the copy held, if there is one.
         // Anything else is an answer: a redirect to where the site has moved, a "not found" for a file that is gone.
         return fresh.status >= 500 ? ((await cached()) ?? fresh) : fresh;
