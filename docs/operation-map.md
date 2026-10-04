@@ -194,9 +194,9 @@ It is as wide as its lanes need: 168 units to a card, and a track for each arc i
 
 | Good at | Loses |
 |---|---|
-| The whole operation on one wide screen, with the same cards and every word they have on a phone | The phone: three lanes are 900 units wide, more than twice a phone's width |
+| The shape of the operation across a wide screen: each lane a column, with the same cards and every word they have on a phone | The phone: three lanes are 900 units wide, more than twice a phone's width |
 | Which lanes work with which: a handoff that leaves a lane crosses a gutter, and one that stays does not | The order of the handoffs: a number says which line of the list an arc is, and nothing else does |
-| Following one arc: it crosses few others, and never a card | Room, when lanes are uneven: every lane's box is as deep as the fullest lane's |
+| Following one arc: it crosses few others, and never a card | Height, when one lane is full: a lane's cards are one column, so a lane of six sessions is still taller than most screens (the lanes of the map of §4d end at 1,199 units, where the phone's end at 1,677), and every lane's box is as deep as the fullest |
 | A person's part: everything that waits on them drops from one card | Width, as lanes are added: each is a column, and five or more will not fit most screens |
 
 The map of the first push (§4d), side by side. It opens at its full size.

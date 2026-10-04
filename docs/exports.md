@@ -25,7 +25,7 @@ An operation map's picture is described in [`operation-map.md`](operation-map.md
 | View | What it is | Good at | Loses |
 |---|---|---|---|
 | The picture (`grooph image <map>`) | Lanes top to bottom, 400 units wide, every arc in one margin | A phone; the cards in full; the live marks | A wide screen, where it is one narrow column; a long map, whose arcs cross often |
-| Lanes side by side (`--layout wide`, §4c) | Each lane a column, the people across the top, arcs in the gutters between lanes | The whole operation on one wide screen, with few crossings and no line over a card | A phone: about 900 units for three lanes. The order of the handoffs |
+| Lanes side by side (`--layout wide`, §4c) | Each lane a column, the people across the top, arcs in the gutters between lanes | The shape of the operation across a wide screen, with few crossings and no line over a card | A phone: about 900 units for three lanes. The order of the handoffs. It is still tall when one lane is full |
 | The sequence (`--view sequence`, §4d) | A column for each person and session, a row for each handoff in the map's order | Reading the handoffs one at a time, with what carries each and what is handed | The cards, the lanes' machines and accounts, the live marks; and it looks like a timeline, though the order is not a clock |
 
 In the app a map's screen has a switch, Picture and Sequence, at every width, and from 1100 px the picture is drawn with its lanes side by side. Keep a copy still saves the phone's picture; the other two come from `grooph image`.
