@@ -26,3 +26,5 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0020 | [A turn that is open is sent as open](0020-a-turn-that-is-open.md) |
 | 0021 | [An address loads what it shows, under a budget CI enforces](0021-what-an-address-loads.md) |
 | 0022 | [Public-facing text is American English](0022-american-english.md) |
+| 0023 | [Who merges what](0023-who-merges-what.md) |
+| 0024 | [Lanes, the review desk, and the audit loop with Codex](0024-lanes-the-desk-and-the-audit-loop.md) |

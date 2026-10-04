@@ -1,6 +1,6 @@
 # Handoff NNNN · <slice title>
 
-**Stage:** <n> · **Implementer:** <Opus 5 | Astra> · **Branch:** `slice/NNNN-<slug>` · **Drafted:** <date> · **Confirmed by owner:** <date or pending>
+**Stage:** <n> · **Lane:** <Opus 5.5 | Sonnet 5.5 | Codex, GPT-6.1 Sol> · **Effort:** <high | extra high> · **Browser tests on port:** <43xx> · **Branch:** `slice/NNNN-<slug>` · **Drafted:** <date> · **Confirmed by owner:** <date or pending>
 
 ## Objective
 
@@ -29,7 +29,7 @@
 
 ## Spec constraints that apply here
 
-<Bullets quoting or citing the spec / amendments / graph-ir rules this slice must honour.>
+<Bullets quoting or citing the spec / amendments / graph-ir rules this slice must honor.>
 
 ## Design already decided
 

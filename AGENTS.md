@@ -20,10 +20,13 @@ grooph is an authoring and compilation surface for multi-agent loop graphs. Huma
 
 ## Roles
 
-- **Driver** (a Fable 5.1 session): plans, designs the graph document, writes handoffs, reviews handbacks, merges to `main`, keeps `docs/` current.
-- **Implementer** (Opus 5, or Astra in Codex for Codex-specific slices): works one slice from `handoffs/NNNN-<slug>/HANDOFF.md` and ends by writing `HANDBACK.md` there.
+- **Driver** (an Opus 5.5 session): plans, designs the graph document, writes handoffs, runs the lanes and the review desk, reviews handbacks, merges what decision 0023 allows, keeps `docs/` current. [`handoffs/DRIVER.md`](handoffs/DRIVER.md) is its own state, for the session that takes the seat next.
+- **Lane** (an Opus 5.5 session the owner starts in the app, or Sonnet 5.5 for a checklist; in Codex, GPT-6.1 Sol with GPT-6 Luna as its workers): works one slice from `handoffs/NNNN-<slug>/HANDOFF.md` in its own worktree and ends with `HANDBACK.md` and a pull request.
+- **Auditor** (Codex, GPT-6.1 Sol): reads a claim and its evidence and writes a handback. It changes nothing (`handoffs/README.md`, "The audit loop with Codex").
 
-If your prompt names a slice folder, you are an implementer: read that `HANDOFF.md` before anything else, stay inside its allowed changes, and finish with the `grooph-handback` skill. In Codex there is no such skill: write `HANDBACK.md` from `handoffs/TEMPLATE-HANDBACK.md`, commit, and push your branch (`handoffs/README.md`, "Codex as an implementer"). If you are the driver, `handoffs/README.md` holds the protocol.
+Never Fable. Never Astra. Local sessions, not cloud.
+
+If your prompt names a slice folder, you are a lane: read that `HANDOFF.md` before anything else, stay inside its allowed changes, and finish with the `grooph-handback` skill. In Codex there is no such skill: write `HANDBACK.md` from `handoffs/TEMPLATE-HANDBACK.md`, commit, and push your branch (`handoffs/README.md`, "Codex as an implementer"). If you are the driver, `handoffs/README.md` holds the protocol.
 
 ## Conventions
 
@@ -39,7 +42,9 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
 - **State lives in `docs/PROGRESS.md`, reasons in `docs/decisions/`.** README stays a product description.
 - **A run is recorded before its result is used.** Any model session started by command gets a folder under `experiments/`, the harness's output saved as it runs, and a ledger row with its session id and reported cost (decision 0015; `experiments/hooks/README.md`).
-- **Merges to `main` wait for the owner's word** until he says otherwise (decision 0015).
+- **The driver merges what is small and safe; the rest waits for the owner** (decision 0023). Documents, tests, fixes with a test, and slices he has said yes to merge once CI is green and someone other than the author has read them. The contract, claims and evidence, spending, dependencies, packages, releases, and anything a person would notice on the site wait for his word on the review desk. A lane never merges.
+- **Claims are audited before they are published.** A sentence about what grooph does to the quality, cost, speed or safety of work goes through the audit loop with Codex first (decision 0024); the record is under `experiments/audits/`.
+- **The review desk is where the work is steered.** One live page holds what waits on the owner, the lanes, and what was merged without asking (`handoffs/briefs/desk.html`; its address is in `handoffs/briefs/README.md`).
 - **Publish only from a file the repo keeps.** A published page (a gate brief, a share-link wrapper) belongs to the Claude account that published it and cannot be handed to another. Write its source into `handoffs/briefs/` first, publish from there, then record the URL beside it in that folder's table. Never publish from a session scratchpad: that directory is expected to vanish.
 - **American English.** Everything the public reads is American English: "color", "prioritize", "center", "labeled" (decision 0022). `node scripts/american-english.mjs --check` runs in CI over the public-facing files. Internal writing is American from here on; the older record is left as it was written.
 - **Tooling:** TypeScript monorepo, `pnpm` workspaces. Package-level choices belong to the implementer and are recorded in the handback.
@@ -57,7 +62,7 @@ patterns/    built-in pattern library, one graph document each
 community/   loop graphs sent in by pull request; a generated index, pictures and gallery (docs/community.md)
 scripts/     generators with --check (patterns index, rule reference, field guide, community index, site pages), the proving and comparison runners, the performance budget
 fixtures/    graphs per error code, golden packages; operation maps per map rule, with the sample
-experiments/ paired harness runs (later)
+experiments/ proving runs, paired comparisons, hook records, and audits/ (each claim's audit by a second harness, round by round)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin
 .claude/skills/  project skills: grooph-handoff, grooph-handback, grooph-reconcile, grooph-status
 ```
