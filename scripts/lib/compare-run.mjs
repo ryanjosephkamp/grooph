@@ -1324,6 +1324,7 @@ async function main() {
       console.log(decision.ok ? `the ledger would allow the kickoff, capped at $${decision.maxBudget.toFixed(2)}` : `the ledger would refuse: ${decision.reason}`);
       const common = `--permission-mode acceptEdits --output-format json --settings '<${built.settings.permissions.allow.length} allow rules>' --max-budget-usd ${decision.ok ? decision.maxBudget.toFixed(2) : "–"} --strict-mcp-config --model ${proj.leadModel} --effort ${LEAD_EFFORT}`;
       if (proj.tierMap) console.log(built.exportOutput.split("\n").filter((line) => /^tiers in this package|^note:/.test(line)).join("\n"));
+      console.log(`agents, by the model each agent file of the package names: ${Object.entries(built.agentModels).map(([agent, model]) => `${agent.split("--").pop()} ${model}`).join(", ")}${arm === "A" ? "" : " (this arm is given the same models in its prompt's briefs, and no agent file)"}`);
       console.log(`aliases during the run: ${Object.entries(ALIAS_ENV).map(([key, model]) => `${key.replace("ANTHROPIC_DEFAULT_", "").replace("_MODEL", "").toLowerCase()} → ${model}`).join(", ")}`);
       console.log(`the tool's command on the session's PATH: ${sessionEnv({ arm, binDir, tmp: built.tmp }).tool_on_path ? "yes" : "no"}; skills listed to the session: none (--disable-slash-commands); the session's TMPDIR: ${built.tmp}`);
       if (arm === "A") console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" ${common}`);
