@@ -37,7 +37,9 @@ test.afterEach(() => {
 test("the front page opens: the name, a drawn loop graph, the way in, nothing scrolling sideways", async ({ page }) => {
   const response = await page.goto("./");
   expect(response?.status()).toBe(200);
-  await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+  // Since handoff 0077 the page's heading is its headline, and the name is the mark's link in the header.
+  await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("link", { name: "grooph", exact: true })).toBeVisible();
 
   // Core's picture, drawn in the page: four nodes with their words measured by this engine's own text layout.
   const picture = page.locator("svg.grooph-picture").first();
@@ -174,7 +176,7 @@ test.describe("with the service worker running", () => {
     const app = await serveBuiltApp();
     try {
       await page.goto(app.url);
-      await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
       await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
       // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
       await expect
@@ -188,7 +190,7 @@ test.describe("with the service worker running", () => {
 
     // The address typed again with no network, then an address the first visit never asked for.
     await page.goto(app.url);
-    await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
     await page.goto(`${app.url}#/templates/built-in/review-gate`);
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
