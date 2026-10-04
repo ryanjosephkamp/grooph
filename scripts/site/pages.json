@@ -14,6 +14,11 @@
           "source": "docs/quickstart.md",
           "slug": "quickstart",
           "summary": "Install grooph, then ask your agent for a graph or build one by hand."
+        },
+        {
+          "source": "docs/GLOSSARY.md",
+          "slug": "glossary",
+          "summary": "The words grooph uses, each in a line: graph document, loop, bar, stop, package, lead and the rest."
         }
       ]
     },
@@ -55,6 +60,26 @@
           "source": "docs/runs.md",
           "slug": "runs",
           "summary": "Run folders, notes back, adopting a run's working copy, and the monitor."
+        },
+        {
+          "source": "docs/targets/claude-code.md",
+          "slug": "targets/claude-code",
+          "summary": "The Claude Code target: the files of a package, and what each part of a graph becomes in the harness."
+        },
+        {
+          "source": "docs/executive.md",
+          "slug": "executive",
+          "summary": "Proposal sets, share links and the compare view: how a session proposes graphs and a pick becomes a package."
+        },
+        {
+          "source": "docs/comparisons.md",
+          "slug": "comparisons",
+          "summary": "The paired-comparison protocol: the same task run as a graph, as a prompt, as a prompt in a loop and bare, under equal conditions."
+        },
+        {
+          "source": "docs/ARCHITECTURE.md",
+          "slug": "architecture",
+          "summary": "One pure core and the shells around it: the web app, the CLI and the MCP server."
         }
       ]
     },
