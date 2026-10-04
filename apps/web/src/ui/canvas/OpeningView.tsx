@@ -57,9 +57,10 @@ export function OpeningView({ pad, control, refit }: { pad: Pad; control?: boole
     const { fits, ...view } = openingViewport(flow.getNodesBounds(nodes), { width, height }, pad);
     if (fits) void flow.fitView({ ...fitOptions(pad), duration: glide() });
     else void flow.setViewport(view, { duration: glide() });
-    // The way back from Show all is the view for the room there is now.
-    setOpening((was) => (was === null || fits ? was : view));
-    setAll(false);
+    // The control says what is on screen now: a graph that no longer fits whole has its way to Show all,
+    // and the way back from it is the view for the room there is.
+    if (!fits) setOpening(view);
+    setAll(fits);
   }, [width, height, refit, flow, pad]);
 
   if (!control || opening === null) return null;

@@ -226,7 +226,9 @@ test("the keyboard: Tab goes through the bar in order, reaches a node, and Enter
   // The viewer and a template's page have nodes of the same ids: wait for what only each of them has before acting on one.
   await page.goto(linkFor(reviewLoop()));
   await expect(page.getByRole("region", { name: "Save" })).toBeVisible();
+  await expect(node(page, "critic")).toBeVisible(); // measured and shown: a node still hidden takes no focus
   await node(page, "critic").focus();
+  await expect(node(page, "critic")).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(panel(page).getByRole("heading", { name: "Agent" })).toBeVisible();
   expect(await unnamedControls(page)).toEqual([]);
@@ -251,6 +253,31 @@ test("motion is short, and none when the device asks for less", async ({ page })
   const still = await motion();
   expect(still.panel).toBe("none 0s");
   expect(still.ring).toBe("0s");
+});
+
+test.describe("on the narrowest desktop", () => {
+  test.use({ viewport: { width: 1100, height: 720 } });
+
+  test("a graph that no longer fits between two panels stays readable, with the whole of it one click away", async ({ page }) => {
+    await page.goto(linkFor(reviewLoop()));
+    await expect(node(page, "done")).toBeVisible();
+    await page.waitForTimeout(400);
+    await expect(page.getByRole("button", { name: "Show all" })).toHaveCount(0); // it fits, so there is nothing to offer
+    await page.getByRole("button", { name: "Outline" }).click();
+    await node(page, "critic").click();
+    await expect(panel(page)).toBeVisible();
+    await page.waitForTimeout(400);
+    // 1,000 px of graph in under 500: half size from its start, not a third of a size whole.
+    expect(await zoom(page)).toBeCloseTo(0.5, 2);
+    await page.getByRole("button", { name: "Show all" }).click();
+    await page.waitForTimeout(400);
+    const stage = await box(page.locator(".stage"));
+    for (const id of ["builder", "done"]) {
+      const b = await box(node(page, id));
+      expect(b.x, id).toBeGreaterThanOrEqual(stage.x);
+      expect(b.x + b.width, id).toBeLessThanOrEqual(stage.x + stage.width);
+    }
+  });
 });
 
 test.describe("between a phone and a desktop", () => {
