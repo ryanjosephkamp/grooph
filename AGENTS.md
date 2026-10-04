@@ -60,7 +60,7 @@ packages/    core (schema, validate, compile, pictures, events) · cli (commands
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
 community/   loop graphs sent in by pull request; a generated index, pictures and gallery (docs/community.md)
-scripts/     generators with --check (patterns index, rule reference, field guide, community index, site pages), the proving and comparison runners, the performance budget
+scripts/     generators with --check (patterns index, rule reference, field guide, community index, site pages), the proving and comparison runners, the performance budget; driver/ holds the driver's merge and watch scripts
 fixtures/    graphs per error code, golden packages; operation maps per map rule, with the sample
 experiments/ proving runs, paired comparisons, hook records, and audits/ (each claim's audit by a second harness, round by round)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin

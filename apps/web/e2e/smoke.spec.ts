@@ -5,7 +5,7 @@ import { extname, join, normalize, sep } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
 import { buildShareEnvelope, encodeSharePayload, parseMapText } from "@grooph/core";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
 import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, status } from "./support.js";
@@ -20,26 +20,63 @@ import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, 
  * checks what an engine could get wrong on its own: the page starts, the canvas measures and draws, a file goes in
  * and a package comes out byte for byte, a link decodes, and the service worker answers with no network.
  *
+ * Every visit also fails on an uncaught error in the page, and on a request to any host but the one that served
+ * the app: that is docs/privacy.md's promise, watched where a script would break it.
+ *
  * A test that cannot pass in one engine for a reason that is the engine's says which and why where it stands, and
  * stays in the file.
  */
 
 // An uncaught error in the page fails the visit that raised it: syntax or an API one engine lacks shows here first.
 let pageErrors: string[] = [];
-test.beforeEach(({ page }) => {
+// What docs/privacy.md promises, seen where it happens: on these visits the app asks no host but the one that served
+// it. scripts/check-outside-addresses.mjs reads the built files for the same promise and cannot see what a script
+// asks for at run time; this can.
+let outsideRequests: string[] = [];
+const THIS_MACHINE = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const outside = (address: string): boolean => {
+  const url = new URL(address);
+  return /^(https?|wss?):$/.test(url.protocol) && !THIS_MACHINE.has(url.hostname);
+};
+test.beforeEach(({ page, context }) => {
   pageErrors = [];
+  outsideRequests = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  // The context hears every page's requests, and in Chromium the service worker's own.
+  context.on("request", (request) => {
+    if (outside(request.url())) outsideRequests.push(request.url());
+  });
+  page.on("websocket", (socket) => {
+    if (outside(socket.url())) outsideRequests.push(socket.url());
+  });
 });
 test.afterEach(() => {
   expect(pageErrors, "uncaught errors in the page").toEqual([]);
+  expect(outsideRequests, "requests to another host").toEqual([]);
 });
 
-test("the front page opens: the name, a drawn loop graph, the way in, nothing scrolling sideways", async ({ page }) => {
+/**
+ * The front page has drawn itself: the page is grooph's and its top heading is up. Which words that heading holds
+ * is the landing spec's to say, and changes with the design; an engine either draws it or does not.
+ */
+async function frontPageIsUp(page: Page): Promise<void> {
+  await expect(page).toHaveTitle(/grooph/);
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+}
+
+test("the watch on outside requests is awake: a page that asks another host is seen to", async ({ page }) => {
+  // Answered here, so nothing leaves this machine: the request is still made, and that is what is watched.
+  await page.route("https://outside.example/**", (route) => route.fulfill({ body: "" }));
+  await page.goto("./");
+  await page.evaluate(() => fetch("https://outside.example/beacon", { mode: "no-cors" }).catch(() => undefined));
+  expect(outsideRequests).toEqual(["https://outside.example/beacon"]);
+  outsideRequests = [];
+});
+
+test("the front page opens: its heading, a drawn loop graph, the way in, nothing scrolling sideways", async ({ page }) => {
   const response = await page.goto("./");
   expect(response?.status()).toBe(200);
-  // Since handoff 0077 the page's heading is its headline, and the name is the mark's link in the header.
-  await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
-  await expect(page.getByRole("banner").getByRole("link", { name: "grooph", exact: true })).toBeVisible();
+  await frontPageIsUp(page);
 
   // Core's picture, drawn in the page: four nodes with their words measured by this engine's own text layout.
   const picture = page.locator("svg.grooph-picture").first();
@@ -176,7 +213,7 @@ test.describe("with the service worker running", () => {
     const app = await serveBuiltApp();
     try {
       await page.goto(app.url);
-      await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
+      await frontPageIsUp(page);
       await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
       // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
       await expect
@@ -190,7 +227,7 @@ test.describe("with the service worker running", () => {
 
     // The address typed again with no network, then an address the first visit never asked for.
     await page.goto(app.url);
-    await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
+    await frontPageIsUp(page);
     await page.goto(`${app.url}#/templates/built-in/review-gate`);
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
