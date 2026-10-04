@@ -26,6 +26,7 @@ import {
   importGraph,
   listGraphs,
   readGraphFile,
+  readPasted,
   renameGraph,
 } from "../store/library.js";
 import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
@@ -87,6 +88,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [templateOffer, setTemplateOffer] = useState<{ name: string; doc: Graph; exists?: Graph; refusal: TemplateRefusal | null } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [pasting, setPasting] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setRecords(await listGraphs());
@@ -95,9 +97,51 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   }, []);
   useEffect(() => void refresh(), [refresh]);
 
+  // A paste anywhere on this screen that is not into a field: a document or a link is opened, anything else is left alone.
+  const pastedRef = useRef<(text: string) => Promise<boolean>>(async () => false);
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent): void => {
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable]")) return;
+      const text = event.clipboardData?.getData("text/plain") ?? "";
+      if (readPasted(text).kind === "nothing") return;
+      event.preventDefault();
+      void pastedRef.current(text);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
+
   const onFile = async (file: File | undefined) => {
     if (!file) return;
-    const text = await file.text();
+    await importText(await file.text(), file);
+  };
+
+  /** What a chat hands over: a graph's JSON (alone, in a code fence, or inside a sentence) or a grooph link. */
+  const onPasted = async (pasted: string): Promise<boolean> => {
+    const read = readPasted(pasted);
+    if (read.kind === "link") {
+      setPasting(null);
+      location.hash = `#/open?d=${read.payload}`;
+      return true;
+    }
+    if (read.kind === "nothing") {
+      setImportProblem({
+        name: "what you pasted",
+        issues: [{ code: "E_SCHEMA", severity: "error", message: "no JSON document and no grooph link was found in the text", at: [] }],
+        what: "Paste the whole document, from its first { to its last }, or a link that ends in #/open?d=…",
+      });
+      return false;
+    }
+    // Refused: the text stays in the box, so the person can mend it or paste again.
+    const opened = await importText(read.text, { name: "what you pasted" });
+    if (opened) setPasting(null);
+    return opened;
+  };
+
+  pastedRef.current = onPasted;
+
+  /** Open a document from its text. False when it was refused: the reason is then on screen. */
+  const importText = async (text: string, file: { name: string }): Promise<boolean> => {
     const json = jsonOf(text);
     if (isRunBundleLike(json)) {
       // A run (grooph runs bundle, or share --out on a run folder) is kept beside the graphs and opens in the run view.
@@ -108,21 +152,21 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
           issues: parsed.issues.map((message) => ({ code: "E_SCHEMA", severity: "error" as const, message, at: [] })),
           what: "It is a run bundle grooph cannot read. Make it again with grooph runs bundle <run dir> --out <file>.",
         });
-        return;
+        return false;
       }
       const { record } = await saveRun(parsed.bundle);
       location.hash = runHref(record.key);
-      return;
+      return true;
     }
     if (isMapLike(json)) {
       // An operation map (docs/operation-map.md) opens as its picture, like its link; a map is looked at, not stored.
       const parsed = parseMap(json);
       if (!parsed.map) {
         setImportProblem({ name: file.name, issues: parsed.issues, what: "It is an operation map grooph cannot read." });
-        return;
+        return false;
       }
       location.hash = openRouteFor(parsed.map);
-      return;
+      return true;
     }
     if (isProposalSetLike(json)) {
       // A proposal set (grooph share --out) opens in the compare view, like its link; nothing is stored yet.
@@ -130,26 +174,28 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       try {
         if (!parsed.set) throw new ShareError("not a proposal set", parsed.issues);
         location.hash = openRouteFor(parsed.set);
+        return true;
       } catch (err) {
         if (!(err instanceof ShareError)) throw err;
         setImportProblem({ name: file.name, issues: err.issues, what: "It is a proposal set grooph cannot show. Make a self-contained copy with grooph share --out, which carries every graph." });
+        return false;
       }
-      return;
     }
     const result = readGraphFile(text);
     if (!result.doc) {
       setImportProblem({ name: file.name, issues: result.issues });
-      return;
+      return false;
     }
     setImportProblem(null);
     if (result.doc.template) {
       // A template file (from Download template, or a registry): offer it to "Yours" rather than opening it as a graph,
       // unless it carries errors, which grooph template add refuses too.
       setTemplateOffer({ name: file.name, doc: result.doc, refusal: templateRefusal(result.doc) });
-      return;
+      return true;
     }
     const record = await importGraph(result.doc);
     open(record.key);
+    return true;
   };
 
   const addTemplate = async (doc: Graph, replace: boolean) => {
@@ -190,7 +236,50 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
             }}
           />
         </label>
+        <button type="button" className="btn btn-large" aria-expanded={pasting !== null} onClick={() => setPasting((open) => (open === null ? "" : null))}>
+          Paste a document
+        </button>
       </div>
+
+      {pasting !== null ? (
+        <form
+          className="offer"
+          style={{ flexDirection: "column", alignItems: "stretch" }}
+          ref={inView}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void onPasted(pasting);
+          }}
+        >
+          <label className="field-label" htmlFor="paste-document" style={{ marginBottom: 0 }}>
+            A graph's JSON, as a chat or an agent gave it to you, or a grooph link
+          </label>
+          <textarea
+            id="paste-document"
+            className="input textarea mono"
+            rows={6}
+            autoFocus
+            spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
+            placeholder={'{ "grooph": 0, "id": "…", "nodes": [ … ] }'}
+            value={pasting}
+            onChange={(e) => setPasting(e.target.value)}
+          />
+          {/* A div, not a paragraph: a paragraph in an offer box is given room to grow, which in a column is height. */}
+          <div className="field-hint" style={{ margin: 0 }}>
+            The code fence and the sentences around it can stay. Nothing leaves this device; the document is checked here, with the same rules as a file.
+          </div>
+          <div className="offer-actions">
+            <button type="submit" className="btn btn-primary" disabled={pasting.trim() === ""}>
+              Open it
+            </button>
+            <button type="button" className="btn btn-quiet" onClick={() => setPasting(null)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       {!persistent ? (
         <p className="notice" role="status">
@@ -271,7 +360,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
               <p>No graphs on this device yet.</p>
               <p className="muted">
                 Start one here, or import a <span className="mono">.grooph.json</span> graph, a <span className="mono">.grooph-proposals.json</span> set, a{" "}
-                <span className="mono">.grooph-run.json</span> run or a <span className="mono">.grooph-map.json</span> operation map.
+                <span className="mono">.grooph-run.json</span> run or a <span className="mono">.grooph-map.json</span> operation map. A document a chat gave you can be pasted.
               </p>
             </div>
             {controls}
@@ -300,7 +389,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
           <p>No graphs on this device yet.</p>
           <p className="muted">
             Start a new one, or import a <span className="mono">.grooph.json</span> graph, a <span className="mono">.grooph-proposals.json</span> set, a{" "}
-            <span className="mono">.grooph-run.json</span> run or a <span className="mono">.grooph-map.json</span> operation map.
+            <span className="mono">.grooph-run.json</span> run or a <span className="mono">.grooph-map.json</span> operation map. A document a chat gave you can be pasted.
           </p>
         </div>
       ) : (
