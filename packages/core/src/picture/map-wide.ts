@@ -147,9 +147,10 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   const fixed = 2 * M + n * 2 * PAD + T.reduce((sum, _, g) => sum + still(g), 0);
   let track = TRACK;
   let card = CARD;
-  if (options.width !== undefined && n > 0) {
-    const cardAt = (t: number): number => (options.width! - fixed - steps * t) / n;
-    if (cardAt(TRACK) < CARD_LOW && steps) track = clamp((options.width - fixed - n * CARD_LOW) / steps, TRACK_MIN, TRACK);
+  const room = options.width;
+  if (room !== undefined && Number.isFinite(room) && n > 0) {
+    const cardAt = (t: number): number => (room - fixed - steps * t) / n;
+    if (cardAt(TRACK) < CARD_LOW && steps) track = clamp((room - fixed - n * CARD_LOW) / steps, TRACK_MIN, TRACK);
     card = clamp(cardAt(track), CARD_LOW, CARD);
   }
   const gx: number[] = [];

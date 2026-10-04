@@ -44,8 +44,10 @@
   .editor.map-view.is-wide:is(.has-side, .has-sheet) {
     grid-template-columns: minmax(0, 1fr) clamp(380px, 31vw, 460px);
   }
+  /* The picture is drawn for the room the stage has, so the room must not change when a scrollbar comes or goes. */
   .is-wide .map-stage {
     padding: 20px 28px 48px;
+    scrollbar-gutter: stable;
   }
   .is-wide .map-views {
     margin-top: 0;

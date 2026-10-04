@@ -37,15 +37,15 @@ export function mapSequence(map: OperationMap, options: PictureOptions = {}): st
   const longest = Math.max(0, ...columns.flatMap((c) => c.name.split(/\s+/).map((word) => textWidth(word, 10, "bold"))));
   const column = Math.min(COLUMN, Math.max(COLUMN_LEAST, longest + 14));
   const wordsX = M + n * column + 14;
-  const wordsW = options.width === undefined ? WORDS : Math.min(WORDS_MOST, Math.max(WORDS_LEAST, options.width - M - wordsX));
+  const wordsW = Number.isFinite(options.width) ? Math.min(WORDS_MOST, Math.max(WORDS_LEAST, options.width! - M - wordsX)) : WORDS;
   const W = wordsX + wordsW + M;
   const center = new Map<Id, number>(columns.map((c, k) => [c.id, M + (k + 0.5) * column]));
 
   // The title and what is under it keep to a phone's width, so they are read without scrolling sideways.
   const body: string[] = [];
-  const words = Math.min(W, PICTURE_WIDTH);
-  let y = heading(map, words, options, ink, body) - 12;
-  for (const line of wrap(NOTE, words - 2 * M, 11, 3)) {
+  const headingW = Math.min(W, PICTURE_WIDTH);
+  let y = heading(map, headingW, options, ink, body) - 12;
+  for (const line of wrap(NOTE, headingW - 2 * M, 11, 3)) {
     y += 14;
     body.push(text(M, y, line, { size: 11, fill: ink("ink-2") }));
   }
@@ -93,17 +93,16 @@ export function mapSequence(map: OperationMap, options: PictureOptions = {}): st
     const x1 = center.get(h.from)!;
     const x2 = center.get(h.to)!;
     const dir = Math.sign(x2 - x1);
-    const n = String(numberOf.get(h.id)!);
     // A session's handoff to itself leaves its line and comes back to it.
-    const line = dir === 0 ? `M${fmt(x1)},${fmt(cy - 6)} h20 v12 H${fmt(x1 + 5.5)}` : `M${fmt(x1)},${fmt(cy)} H${fmt(x2 - dir * 5.5)}`;
+    const d = dir === 0 ? `M${fmt(x1)},${fmt(cy - 6)} h20 v12 H${fmt(x1 + 5.5)}` : `M${fmt(x1)},${fmt(cy)} H${fmt(x2 - dir * 5.5)}`;
     const [hx, hy, point] = dir === 0 ? [x1 + 0.5, cy + 6, -1] : [x2 - dir * 0.5, cy, dir];
     let ty = cy - ((carried.length + what.length) * 13) / 2 - 3;
     rows.push(
-      `<g data-handoff="${h.id}">${rect(M - 4, y + 1.5, W - 2 * M + 8, height - 3, { fill: "transparent", rx: 8, mark: "row" })}<path d="${line}" ${stroke(style, color)}/>` +
+      `<g data-handoff="${h.id}">${rect(M - 4, y + 1.5, W - 2 * M + 8, height - 3, { fill: "transparent", rx: 8, mark: "row" })}<path d="${d}" ${stroke(style, color)}/>` +
         `<circle cx="${fmt(x1)}" cy="${fmt(dir === 0 ? cy - 6 : cy)}" r="2.2" style="fill:${color}"/><path d="M${fmt(hx)},${fmt(hy)} l${fmt(-6.5 * point)},-3.6 v7.2 z" style="fill:${color}"/>` +
-        numberBadge(dir === 0 ? x1 + 20 : x1 + dir * Math.min(19, Math.abs(x2 - x1) * 0.42), cy, n, color, ink) +
-        carried.map((words) => text(wordsX, (ty += 13), words, { size: 10.5, fill: color, weight: "bold" })).join("") +
-        what.map((words) => text(wordsX, (ty += 13), words, { size: 10.5, fill: ink("ink-2") })).join("") +
+        numberBadge(dir === 0 ? x1 + 20 : x1 + dir * Math.min(19, Math.abs(x2 - x1) * 0.42), cy, String(numberOf.get(h.id)!), color, ink) +
+        carried.map((line) => text(wordsX, (ty += 13), line, { size: 10.5, fill: color, weight: "bold" })).join("") +
+        what.map((line) => text(wordsX, (ty += 13), line, { size: 10.5, fill: ink("ink-2") })).join("") +
         `</g>`,
     );
     y += height;
