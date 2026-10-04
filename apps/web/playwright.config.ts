@@ -8,15 +8,17 @@ import { defineConfig } from "@playwright/test";
  * `GROOPH_E2E_PORT` moves the preview server off 4173, so two worktrees can
  * run their suites at once without one reusing the other's server.
  *
- * `GROOPH_BROWSERS=1` runs the smoke set (`e2e/smoke.spec.ts`) and nothing
- * else, in three engines: Chromium, WebKit, which is Safari's, and Firefox.
- * Without it every spec runs in Chromium alone, the smoke set among them, so
- * a clone needs the other two browsers only when it asks for them
+ * `GROOPH_BROWSERS=1` runs the smoke set (`e2e/smoke.spec.ts`) and the
+ * service worker across a release (`e2e/release.spec.ts`, less its tests
+ * tagged `@chromium`), and nothing else, in three engines: Chromium, WebKit,
+ * which is Safari's, and Firefox. Without it every spec runs in Chromium
+ * alone, those two among them, so a clone needs the other two browsers only
+ * when it asks for them
  * (`pnpm --filter @grooph/web exec playwright install webkit firefox`).
  */
 const port = Number(process.env["GROOPH_E2E_PORT"] ?? 4173);
 const everyBrowser = process.env["GROOPH_BROWSERS"] === "1";
-const smoke = "smoke.spec.ts";
+const everyEngine = { testMatch: ["smoke.spec.ts", "release.spec.ts"], grepInvert: /@chromium/ };
 
 export default defineConfig({
   testDir: "e2e",
@@ -37,10 +39,10 @@ export default defineConfig({
   },
   projects: everyBrowser
     ? [
-        { name: "chromium", testMatch: smoke, use: { browserName: "chromium" } },
-        { name: "safari", testMatch: smoke, use: { browserName: "webkit" } },
+        { name: "chromium", ...everyEngine, use: { browserName: "chromium" } },
+        { name: "safari", ...everyEngine, use: { browserName: "webkit" } },
         // Playwright has no phone mode for Firefox (`isMobile` is refused): the same narrow window with touch.
-        { name: "firefox", testMatch: smoke, use: { browserName: "firefox", isMobile: false } },
+        { name: "firefox", ...everyEngine, use: { browserName: "firefox", isMobile: false } },
       ]
     : [{ name: "phone", use: { browserName: "chromium" } }],
   webServer: {

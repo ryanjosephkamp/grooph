@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stand-in: the test surface, broken</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #061a14; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <!-- The same page with every behavior a check looks for turned off: every held-out check should fail against it, each for its own reason. -->
+    <canvas width="1280" height="720"></canvas>
+    <script>
+      window.STAND_IN_BREAK = "all";
+    </script>
+    <script src="stand-in.js"></script>
+  </body>
+</html>
