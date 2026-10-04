@@ -18,10 +18,16 @@ const coreSource = fileURLToPath(new URL("../../packages/core/src/index.ts", imp
  * first heading than when it was all one file. So the page says, before the entry loads, which files the app
  * needs, and the browser fetches them beside it. An embed address is told nothing, and stays light.
  *
- * `dist/routes.json` lists both sets; `scripts/perf-budget.mjs` weighs them.
+ * Since slice 0069 the screens that draw on the canvas are a module of their own (`src/ui/screens.ts`), which the
+ * front page, the library and the template list do not load. The page asks for it too when the address opens on
+ * one of those screens, so such an address loads what it did before, at once. Every stylesheet of the app is
+ * still asked for at every app address: they are small, and their order is then the same on every screen.
+ *
+ * `dist/routes.json` lists the sets; `scripts/perf-budget.mjs` weighs them.
  */
 function routes(): Plugin {
-  let found: { app: { js: string[]; css: string[] }; embed: { js: string[]; css: string[] }; entry: string[] } | undefined;
+  type Files = { js: string[]; css: string[] };
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -52,8 +58,10 @@ function routes(): Plugin {
         const entry = chunks.find((c) => c.isEntry);
         const app = chunks.find((c) => c.facadeModuleId?.endsWith("/src/App.tsx"));
         const embed = chunks.find((c) => c.facadeModuleId?.endsWith("/ui/embed/EmbedApp.tsx"));
-        if (!entry || !app || !embed) return html;
+        const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
+        if (!entry || !app || !embed || !screens) return html;
         const inEntry = closure(entry);
+        const inApp = closure(app);
         const cssOf = (files: Set<string>): string[] => [...files].flatMap((f) => [...(byFile.get(f)?.viteMetadata?.importedCss ?? [])]);
         const embedCss = cssOf(closure(embed));
         // The app's styles are imported by code in main.tsx: every stylesheet that is not the embed's own.
@@ -63,14 +71,15 @@ function routes(): Plugin {
           .sort((x, y) => Number(y.startsWith("assets/base-")) - Number(x.startsWith("assets/base-")));
         found = {
           entry: [...inEntry],
-          app: { js: [...closure(app)].filter((f) => !inEntry.has(f)), css: appCss },
+          app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
+          canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in the order main.tsx imports them (React Flow's base, then the app's,
         // which overrides it). Vite's own loader finds them there and does not fetch them again, one after another.
-        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}</script>`;
+        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}</script>`;
         return html.replace("</title>", `</title>\n    ${hint}`);
       },
     },

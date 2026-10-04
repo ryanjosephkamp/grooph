@@ -64,3 +64,19 @@ test("once opened with a network, it opens with none: the library, the templates
   const [response] = await Promise.all([page.waitForResponse((r) => r.url().endsWith("/grooph/") && r.request().isNavigationRequest()), page.goto("./")]);
   expect(response.status()).toBe(200);
 });
+
+test("a first visit that saw only the front page still opens a template with no network", async ({ page, context }) => {
+  // Slice 0069: the front page loads without the screens that draw on the canvas, fetches them once it is up, and the worker keeps them.
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  await page.waitForFunction(async () => (await (await caches.open("grooph-app-v1")).keys()).some((r) => /\/screens-/.test(r.url)));
+
+  await context.setOffline(true);
+  const failed: string[] = [];
+  page.on("requestfailed", (r) => failed.push(r.url()));
+  await page.goto("./#/templates/built-in/review-gate");
+  await page.reload();
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  expect(failed).toEqual([]);
+});
