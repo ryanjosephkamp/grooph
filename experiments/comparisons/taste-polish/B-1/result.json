@@ -1,0 +1,251 @@
+{
+  "template": "taste-polish",
+  "arm": "B",
+  "replicate": 1,
+  "project": "taste-polish",
+  "graph_id": "polish-usage-statement",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/taste-polish/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/0yBObj/usage-statement-h0WRql.harness/held-out",
+      "files": [
+        {
+          "path": "REFERENCE.md",
+          "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+          "at_run": true
+        },
+        {
+          "path": "reference.txt",
+          "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+          "at_run": true
+        },
+        {
+          "path": "statement-properties.test.mjs",
+          "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+          "at_run": false
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [
+        "statement-properties.test.mjs"
+      ],
+      "scored_from": "experiments/comparisons/taste-polish/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "polish-usage-statement--critic": "claude-opus-5-5",
+      "polish-usage-statement--owner": "claude-sonnet-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "taste-polish",
+    "template_version": "taste-polish@2",
+    "graph_id": "polish-usage-statement",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/0yBObj/usage-statement-h0WRql"
+  },
+  "derivation": {
+    "graph": "polish-usage-statement",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "owner",
+      "critic"
+    ],
+    "loops": [
+      "polish"
+    ],
+    "gates": [],
+    "held_out_mentions": {
+      "package": 20,
+      "prompt": 16
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.623447,
+      "output_tokens": 14805
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.267281,
+      "output_tokens": 13482
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5-5",
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 0.890728,
+  "harness_turns": 11,
+  "duration_s": 240,
+  "wall_s": 241,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.623447,
+        "output_tokens": 14805
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.267281,
+        "output_tokens": 13482
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5-5",
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 0.890728,
+    "harness_turns": 11,
+    "duration_s": 240,
+    "wall_s": 241,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "cat > /tmp/new.py <<'EOF'\nimport re\np='/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/0yBObj/usage-statement-h0WRql/src/statement.mjs'\ns=open(p).read()\ni=s.index('/** Cents as dollars')\nj=s.index('/** \"2026-09\"')\ns=s[:i]+'''/**\n * Cents as a plain amount: 164250 -> \"1,642.50 \", -16425 -> \"(164.25)\".\n * Positive amounts end in a space so decimal points line up with the\n * closing parenthesis of negative ones.\n */\nfunction amountText(cents) {\n  const abs = Math.abs(cents);\n  const text = `${grouped(Math.floor(abs / 100))}.${String(abs % 100).padStart(2, \"0\")}`;\n  return cents < 0 ? `(${text})` : `${text} `;\n}\n\n/** Share of a whole as a percentage with one decimal, in integer math (half up). */\nfunction percent(part, whole) {\n  if (whole <= 0) return \"\";\n  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));\n  return `${Math.floor(tenths / 10)}.${tenths % 10}%`;\n}\n\nconst NUMBER_WORDS = [\"No\", \"One\", \"Two\", \"Three\", \"Four\", \"Five\", \"Six\", \"Seven\", \"Eight\", \"Nine\", \"Ten\"];\n\n/** Greedy word wrap to the given width. */\nfunction wrap(text, width) {\n  const lines = [];\n  let line = \"\";\n  for (const word of text.split(\" \")) {\n    if (line && line.length + 1 + word.length > width) {\n      lines.push(line);\n      line = word;\n    } else {\n      line = line ? `${line} ${word}` : word;\n    }\n  }\n  if (line) lines.push(line);\n  return lines;\n}\n\n'''+s[j:]\nk=s.index('export function renderStatement')\ns=s[:k]+'''export function renderStatement(data) {\n  const GAP = 2;\n  const gap = \" \".repeat(GAP);\n\n  const isIdle = (l) => l.quantity === 0 && l.amount_cents === 0;\n  const byAmountThen = (key) => (a, b) =>\n    b.amount_cents - a.amount_cents || (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0);\n\n  const used = data.lines.filter((l) => !isIdle(l)).sort(byAmountThen(\"service\"));\n  const idle = data.lines.filter(isIdle).map((l) => l.service).sort();\n\n  const chargesCents = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);\n  const creditsCents = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);\n  const totalCents = chargesCents + creditsCents;\n\n  const charges = used.map((l) => ({\n    service: l.service,\n    usage: `${grouped(l.quantity)} ${l.unit}`,\n    share: percent(l.amount_cents, chargesCents),\n    amount: amountText(l.amount_cents),\n  }));\n  // Largest credit first: most negative amount first.\n  const credits = [...data.credits]\n    .sort((a, b) => a.amount_cents - b.amount_cents || (a.reason < b.reason ? -1 : a.reason > b.reason ? 1 : 0))\n    .map((c) => ({ reason: c.reason, amount: amountText(c.amount_cents) }));\n\n  const subtotal = amountText(chargesCents);\n  const creditsTotal = amountText(creditsCents);\n  const total = amountText(totalCents);\n  const heading = `Amount (${data.currency})`;\n  const wAmount = Math.max(\n    heading.length,\n    ...charges.map((c) => c.amount.length),\n    ...credits.map((c) => c.amount.length),\n    subtotal.length,\n    creditsTotal.length,\n    total.length,\n  );\n  // Positive amounts carry a trailing pad; credits fill the full column.\n  const amountCell = (a) => (a.endsWith(\" \") ? `${right(a.trimEnd(), wAmount - 1)} ` : right(a, wAmount));\n\n  const wService = Math.max(\"Service\".length, ...charges.map((c) => c.service.length));\n  const wUsage = Math.max(\"Usage\".length, ...charges.map((c) => c.usage.length));\n  const wShare = Math.max(\"Share\".length, \"100.0%\".length, ...charges.map((c) => c.share.length));\n  const labelWidth = Math.max(\n    wService + GAP + wUsage + GAP + wShare,\n    ...credits.map((c) => c.reason.length),\n    \"Total credits\".length,\n  );\n  const width = labelWidth + GAP + wAmount;\n  const wUsageFit = labelWidth - wService - GAP - wShare - GAP;\n\n  const rule = (ch) => ch.repeat(width);\n  const row = (a, b, c, d) =>\n    [left(a, wService), left(b, wUsageFit), right(c, wShare), amountCell(d)].join(gap);\n  const summary = (label, amount) => `${left(label, labelWidth)}${gap}${amountCell(amount)}`;\n\n  const out = [];\n  const account = `Account ${data.account}`;\n  out.push(`${left(data.customer, width - account.length)}${account}`);\n  out.push(`Usage statement for ${monthName(data.period)}`);\n  out.push(\"\");\n  out.push(\n    [left(\"Service\", wService), left(\"Usage\", wUsageFit), right(\"Share\", wShare), right(heading, wAmount)].join(gap),\n  );\n  out.push(rule(\"-\"));\n  for (const c of charges) out.push(row(c.service, c.usage, c.share, c.amount));\n  out.push(rule(\"-\"));\n  out.push(\n    `${left(\"Charges\", labelWidth - wShare - GAP)}${gap}${right(\"100.0%\", wShare)}${gap}${amountCell(subtotal)}`,\n  );\n  out.push(\"\");\n  out.push(\"Credits\");\n  for (const c of credits) out.push(summary(c.reason, c.amount));\n  out.push(rule(\"-\"));\n  out.push(summary(\"Total credits\", creditsTotal));\n  out.push(\"\");\n  out.push(rule(\"=\"));\n  out.push(summary(\"TOTAL DUE\", total));\n  out.push(rule(\"=\"));\n  if (idle.length > 0) {\n    const count = NUMBER_WORDS[idle.length] ?? String(idle.length);\n    const noun = idle.length === 1 ? \"service\" : \"services\";\n    const verb = idle.length === 1 ? \"was\" : \"were\";\n    out.push(\"\");\n    out.push(...wrap(`${count} ${noun} with no usage ${verb} left out: ${idle.join(\", \")}.`, width));\n  }\n\n  return `${out.map((line) => line.replace(/\\\\s+$/, \"\")).join(\"\\\\n\")}\\\\n`;\n}\n'''\nopen(p,'w').write(s)\nEOF\npython3 /tmp/new.py; cat package.json | head -20"
+      }
+    ],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Owner round 0: polish statement",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic round 1: judge captures",
+        "model_asked": "opus"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Owner round 1: close gaps",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic round 2: judge captures",
+        "model_asked": "opus"
+      }
+    ],
+    "held_out_touched": {
+      "general-purpose (Critic round 1: judge captures)": 2,
+      "general-purpose (Critic round 2: judge captures)": 2
+    },
+    "reached_outside_project": {
+      "general-purpose (Owner round 1: close gaps)": [
+        "Bash: /tmp/new.py"
+      ]
+    },
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 5,
+      "where": []
+    }
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cat > /tmp/new.py <<'EOF'\nimport re\np='/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/0yBObj/usage-statement-h0WRql/src/statement.mjs'\ns=open(p).read()\ni=s.index('/** Cents as dollars')\nj=s.index('/** \"2026-09\"')\ns=s[:i]+'''/**\n * Cents as a plain amount: 164250 -> \"1,642.50 \", -16425 -> \"(164.25)\".\n * Positive amounts end in a space so decimal points line up with the\n * closing parenthesis of negative ones.\n */\nfunction amountText(cents) {\n  const abs = Math.abs(cents);\n  const text = `${grouped(Math.floor(abs / 100))}.${String(abs % 100).padStart(2, \"0\")}`;\n  return cents < 0 ? `(${text})` : `${text} `;\n}\n\n/** Share of a whole as a percentage with one decimal, in integer math (half up). */\nfunction percent(part, whole) {\n  if (whole <= 0) return \"\";\n  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));\n  return `${Math.floor(tenths / 10)}.${tenths % 10}%`;\n}\n\nconst NUMBER_WORDS = [\"No\", \"One\", \"Two\", \"Three\", \"Four\", \"Five\", \"Six\", \"Seven\", \"Eight\", \"Nine\", \"Ten\"];\n\n/** Greedy word wrap to the given width. */\nfunction wrap(text, width) {\n  const lines = [];\n  let line = \"\";\n  for (const word of text.split(\" \")) {\n    if (line && line.length + 1 + word.length > width) {\n      lines.push(line);\n      line = word;\n    } else {\n      line = line ? `${line} ${word}` : word;\n    }\n  }\n  if (line) lines.push(line);\n  return lines;\n}\n\n'''+s[j:]\nk=s.index('export function renderStatement')\ns=s[:k]+'''export function renderStatement(data) {\n  const GAP = 2;\n  const gap = \" \".repeat(GAP);\n\n  const isIdle = (l) => l.quantity === 0 && l.amount_cents === 0;\n  const byAmountThen = (key) => (a, b) =>\n    b.amount_cents - a.amount_cents || (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0);\n\n  const used = data.lines.filter((l) => !isIdle(l)).sort(byAmountThen(\"service\"));\n  const idle = data.lines.filter(isIdle).map((l) => l.service).sort();\n\n  const chargesCents = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);\n  const creditsCents = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);\n  const totalCents = chargesCents + creditsCents;\n\n  const charges = used.map((l) => ({\n    service: l.service,\n    usage: `${grouped(l.quantity)} ${l.unit}`,\n    share: percent(l.amount_cents, chargesCents),\n    amount: amountText(l.amount_cents),\n  }));\n  // Largest credit first: most negative amount first.\n  const credits = [...data.credits]\n    .sort((a, b) => a.amount_cents - b.amount_cents || (a.reason < b.reason ? -1 : a.reason > b.reason ? 1 : 0))\n    .map((c) => ({ reason: c.reason, amount: amountText(c.amount_cents) }));\n\n  const subtotal = amountText(chargesCents);\n  const creditsTotal = amountText(creditsCents);\n  const total = amountText(totalCents);\n  const heading = `Amount (${data.currency})`;\n  const wAmount = Math.max(\n    heading.length,\n    ...charges.map((c) => c.amount.length),\n    ...credits.map((c) => c.amount.length),\n    subtotal.length,\n    creditsTotal.length,\n    total.length,\n  );\n  // Positive amounts carry a trailing pad; credits fill the full column.\n  const amountCell = (a) => (a.endsWith(\" \") ? `${right(a.trimEnd(), wAmount - 1)} ` : right(a, wAmount));\n\n  const wService = Math.max(\"Service\".length, ...charges.map((c) => c.service.length));\n  const wUsage = Math.max(\"Usage\".length, ...charges.map((c) => c.usage.length));\n  const wShare = Math.max(\"Share\".length, \"100.0%\".length, ...charges.map((c) => c.share.length));\n  const labelWidth = Math.max(\n    wService + GAP + wUsage + GAP + wShare,\n    ...credits.map((c) => c.reason.length),\n    \"Total credits\".length,\n  );\n  const width = labelWidth + GAP + wAmount;\n  const wUsageFit = labelWidth - wService - GAP - wShare - GAP;\n\n  const rule = (ch) => ch.repeat(width);\n  const row = (a, b, c, d) =>\n    [left(a, wService), left(b, wUsageFit), right(c, wShare), amountCell(d)].join(gap);\n  const summary = (label, amount) => `${left(label, labelWidth)}${gap}${amountCell(amount)}`;\n\n  const out = [];\n  const account = `Account ${data.account}`;\n  out.push(`${left(data.customer, width - account.length)}${account}`);\n  out.push(`Usage statement for ${monthName(data.period)}`);\n  out.push(\"\");\n  out.push(\n    [left(\"Service\", wService), left(\"Usage\", wUsageFit), right(\"Share\", wShare), right(heading, wAmount)].join(gap),\n  );\n  out.push(rule(\"-\"));\n  for (const c of charges) out.push(row(c.service, c.usage, c.share, c.amount));\n  out.push(rule(\"-\"));\n  out.push(\n    `${left(\"Charges\", labelWidth - wShare - GAP)}${gap}${right(\"100.0%\", wShare)}${gap}${amountCell(subtotal)}`,\n  );\n  out.push(\"\");\n  out.push(\"Credits\");\n  for (const c of credits) out.push(summary(c.reason, c.amount));\n  out.push(rule(\"-\"));\n  out.push(summary(\"Total credits\", creditsTotal));\n  out.push(\"\");\n  out.push(rule(\"=\"));\n  out.push(summary(\"TOTAL DUE\", total));\n  out.push(rule(\"=\"));\n  if (idle.length > 0) {\n    const count = NUMBER_WORDS[idle.length] ?? String(idle.length);\n    const noun = idle.length === 1 ? \"service\" : \"services\";\n    const verb = idle.length === 1 ? \"was\" : \"were\";\n    out.push(\"\");\n    out.push(...wrap(`${count} ${noun} with no usage ${verb} left out: ${idle.join(\", \")}.`, width));\n  }\n\n  return `${out.map((line) => line.replace(/\\\\s+$/, \"\")).join(\"\\\\n\")}\\\\n`;\n}\n'''\nopen(p,'w').write(s)\nEOF\npython3 /tmp/new.py; cat package.json | head -20"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 60,
+      "session_id": "49b6cdb3-75a7-4a36-beba-d4085fa23223",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.890728,
+      "reported_cost_usd": 0.890728,
+      "max_budget_usd": 9,
+      "harness_turns": 11,
+      "duration_s": 240,
+      "wall_s": 241,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": " left open:**\n1. Our statement has an extra \"Total credits\" line and rule before the total, which the billing team's version doesn't. Removing it is optional.\n2. The service-name column is a fixed 20 characters wide. That fits this month, but \"Machine learning inference\" (26 characters, left out this month because it had no usage) would throw the columns out of line in any month it has usage. This one is worth fixing before a future month hits it.\n\nThe final statement is in `captures/statement.txt`. The critic's report is in `GAPS.md`, and the owner's notes on what changed are in `CHANGES.md`."
+    }
+  ],
+  "base_commit": "8667b4ff7c1f090dee6f1318bd8ff8b3283ddde4",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "A GAPS.md",
+    "A captures/CAPTURE.md",
+    "A captures/statement.txt",
+    "M src/statement.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/0yBObj/usage-statement-h0WRql",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

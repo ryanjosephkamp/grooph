@@ -1,0 +1,46 @@
+[
+  {
+    "session": "d34cea2e-2482-4784-8422-afad1f50485b",
+    "who": "lead",
+    "transcript": "d34cea2e-2482-4784-8422-afad1f50485b.jsonl",
+    "description": null,
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-04T22:26:01.153Z",
+    "ended": "2026-10-04T22:26:56.719Z",
+    "assistant_messages": 11,
+    "tool_uses": [
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:26:03.145Z",
+        "command": "git ls-files && cat README.md STYLE.md package.json && cat src/*.mjs && ls -R | head -50"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:26:05.304Z",
+        "command": "cat data/usage.json scripts/*.mjs tests/*.mjs .gitignore"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:26:38.365Z",
+        "file": "src/statement.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:26:39.660Z",
+        "command": "npm run capture -s && cat captures/CAPTURE.md && npm test 2>&1 | tail -8"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-04T22:26:44.332Z",
+        "file": "src/statement.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:26:47.768Z",
+        "command": "npm run capture -s && sed -n '3,9p;19,50p' captures/CAPTURE.md && npm test 2>&1 | grep -E '^ℹ (pass|fail)' && node -e '\nimport(\"./src/statement.mjs\").then(({renderStatement})=>{const d={customer:\"A very long customer name that goes on and on and on Incorporated\",account:\"X-1\",period:\"2026-13\",currency:\"USD\",lines:[{service:\"Supercalifragilisticexpialidocious-service-name-extra\",quantity:1234567.5,unit:\"u\",amount_cents:-5}],credits:[]};const t=renderStatement(d);console.log(t);console.log(Math.max(...t.split(\"\\n\").map(l=>l.length)), /[ \\t]$/m.test(t))})'"
+      }
+    ]
+  }
+]

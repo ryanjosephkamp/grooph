@@ -119,7 +119,8 @@ export function ranges(rows) {
     byArm[r.arm].cost.push(r.cost);
     if (r.held_out?.ran) byArm[r.arm].held.push(r.held_out.passed);
   }
-  const span = (list, fmt = (x) => x) => (list.length === 0 ? "–" : list.length === 1 || Math.min(...list) === Math.max(...list) ? fmt(Math.min(...list)) : `${fmt(Math.min(...list))}–${fmt(Math.max(...list))}`);
+  // A range whose two ends print the same ($0.2563 and $0.2620) is printed once.
+  const span = (list, fmt = (x) => x) => (list.length === 0 ? "–" : fmt(Math.min(...list)) === fmt(Math.max(...list)) ? fmt(Math.min(...list)) : `${fmt(Math.min(...list))}–${fmt(Math.max(...list))}`);
   return Object.fromEntries(Object.entries(byArm).map(([arm, v]) => [arm, { n: v.n, held_out: span(v.held), cost: span(v.cost, (x) => usd(x)), held_list: v.held, cost_list: v.cost }]));
 }
 

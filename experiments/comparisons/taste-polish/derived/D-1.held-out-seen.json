@@ -1,0 +1,9 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "taste-polish/D-1",
+  "sessions": [
+    "d34cea2e-2482-4784-8422-afad1f50485b"
+  ],
+  "transcripts_found": 1,
+  "suite_runs": []
+}
