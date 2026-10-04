@@ -47,7 +47,23 @@ test.afterEach(async ({ page }, testInfo) => {
     .evaluate(async () => {
       const cache = await caches.open("grooph-app-v1");
       const stamp = async (key: string): Promise<string> => /data-release="([^"]*)"/.exec((await (await cache.match(key))?.text()) ?? "")?.[1] ?? "(none)";
-      return { page: await stamp("./"), before: await stamp("./?the-page-before"), controlled: navigator.serviceWorker.controller !== null, address: location.href };
+      // What the page shows, and whether each script it has asked for can be had again now, by asking and by importing.
+      const again: Record<string, string> = {};
+      for (const entry of performance.getEntriesByType("resource")) {
+        if (!/\/assets\/[^/]*\.js$/.test(entry.name)) continue;
+        const name = entry.name.split("/").pop()!;
+        const asked = await fetch(entry.name).then(async (r) => `${r.status}, ${(await r.text()).length} characters`, (error: Error) => `fetch failed: ${error.message}`);
+        const imported = await import(/* @vite-ignore */ entry.name).then(() => "imports", (error: Error) => `import failed: ${error.message}`);
+        again[name] = `${asked}; ${imported}`;
+      }
+      return {
+        page: await stamp("./"),
+        before: await stamp("./?the-page-before"),
+        controlled: navigator.serviceWorker.controller !== null,
+        address: location.href,
+        shows: document.body.innerText.replace(/\s+/g, " ").slice(0, 300),
+        again,
+      };
     })
     .catch((error: Error) => `(could not be read: ${error.message})`);
   console.log(`DIAGNOSIS ${testInfo.project.name} | ${testInfo.title}\n  the tab: ${JSON.stringify(tab)}\n  the worker keeps: ${JSON.stringify(kept)}\n  its cache: ${JSON.stringify(cache)}\n  complaints: ${JSON.stringify(complaints)}`);
