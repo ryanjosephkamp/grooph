@@ -1,6 +1,8 @@
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { piece } from "./piece.js";
+
 const root = createRoot(document.getElementById("root")!);
 const render = (node: ReactNode) => root.render(<StrictMode>{node}</StrictMode>);
 
@@ -8,7 +10,7 @@ const render = (node: ReactNode) => root.render(<StrictMode>{node}</StrictMode>)
 // fetches a fraction of what the app weighs. Everything else loads the app as before.
 if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
   document.documentElement.classList.add("gx-page-only");
-  void import("./ui/embed/EmbedApp.js").then(({ EmbedApp }) => render(<EmbedApp />));
+  void piece("EmbedApp", () => import("./ui/embed/EmbedApp.js")).then(({ EmbedApp }) => render(<EmbedApp />));
 } else {
   // The stylesheets in order (React Flow's base, then the app's, which overrides it), the app beside them.
   const css = import("@xyflow/react/dist/base.css").then(() => import("./styles.css"));

@@ -21,6 +21,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 
 import { download } from "../../doc/exportPackage.js";
 import { useLook } from "../../doc/look.js";
+import { piece } from "../../piece.js";
 import { Keep } from "../Keep.js";
 import { IssueList } from "../open/Details.js";
 import { Sheet } from "../Sheet.js";
@@ -118,7 +119,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
   // `undefined` while the views are on their way, `null` when they could not be fetched.
   const [more, setMore] = useState<Views | null | undefined>(views);
   useEffect(() => {
-    if (!more) import("./views.js").then((m) => setMore((views = m)), () => setMore(null));
+    if (!more) piece("views", () => import("./views.js")).then((m) => setMore((views = m)), () => setMore(null));
   }, []);
   // What the views drew, when it is theirs to draw: the lanes side by side on a wide screen, and the sequence.
   const [theirs, setTheirs] = useState<ReturnType<Views["drawn"]>>();

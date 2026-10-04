@@ -95,7 +95,11 @@ function routes(): Plugin {
           entry: [...inEntry],
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
-          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(themes)])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // What no address loads first and the page still names, so that the worker fetches it as it installs: the
+          // compiler, the map's views, the pictures' themes, and the embed's own script and styles. The front page plays
+          // its recorded run in a frame at `#/embed`, and a visit that never watched it should still have it with no
+          // network (handoff 0083).
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(themes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
