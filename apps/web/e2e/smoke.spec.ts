@@ -20,18 +20,48 @@ import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, 
  * checks what an engine could get wrong on its own: the page starts, the canvas measures and draws, a file goes in
  * and a package comes out byte for byte, a link decodes, and the service worker answers with no network.
  *
+ * Every visit also fails on an uncaught error in the page, and on a request to any host but the one that served
+ * the app: that is docs/privacy.md's promise, watched where a script would break it.
+ *
  * A test that cannot pass in one engine for a reason that is the engine's says which and why where it stands, and
  * stays in the file.
  */
 
 // An uncaught error in the page fails the visit that raised it: syntax or an API one engine lacks shows here first.
 let pageErrors: string[] = [];
-test.beforeEach(({ page }) => {
+// What docs/privacy.md promises, seen where it happens: on these visits the app asks no host but the one that served
+// it. scripts/check-outside-addresses.mjs reads the built files for the same promise and cannot see what a script
+// asks for at run time; this can.
+let outsideRequests: string[] = [];
+const THIS_MACHINE = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const outside = (address: string): boolean => {
+  const url = new URL(address);
+  return /^(https?|wss?):$/.test(url.protocol) && !THIS_MACHINE.has(url.hostname);
+};
+test.beforeEach(({ page, context }) => {
   pageErrors = [];
+  outsideRequests = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  // The context hears every page's requests, and in Chromium the service worker's own.
+  context.on("request", (request) => {
+    if (outside(request.url())) outsideRequests.push(request.url());
+  });
+  page.on("websocket", (socket) => {
+    if (outside(socket.url())) outsideRequests.push(socket.url());
+  });
 });
 test.afterEach(() => {
   expect(pageErrors, "uncaught errors in the page").toEqual([]);
+  expect(outsideRequests, "requests to another host").toEqual([]);
+});
+
+test("the watch on outside requests is awake: a page that asks another host is seen to", async ({ page }) => {
+  // Answered here, so nothing leaves this machine: the request is still made, and that is what is watched.
+  await page.route("https://outside.example/**", (route) => route.fulfill({ body: "" }));
+  await page.goto("./");
+  await page.evaluate(() => fetch("https://outside.example/beacon", { mode: "no-cors" }).catch(() => undefined));
+  expect(outsideRequests).toEqual(["https://outside.example/beacon"]);
+  outsideRequests = [];
 });
 
 test("the front page opens: the name, a drawn loop graph, the way in, nothing scrolling sideways", async ({ page }) => {
