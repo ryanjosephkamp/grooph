@@ -1,0 +1,114 @@
+{
+  "grooph": 0,
+  "id": "names-that-break-a-line",
+  "name": "Names that break a line",
+  "version": 1,
+  "goal": "Make the failing test suite pass without changing what the tests assert.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "time": "about 20 minutes"
+  },
+  "adaptation": "fixed",
+  "description": "fix-until-green with three names that carry a line break: a model pin, a skill and a capability of its own. A target writes a pin and a skill into a file's header as given, so each is held to one token; a capability is held to one line (graph-ir §1).",
+  "nodes": [
+    {
+      "id": "fixer",
+      "kind": "agent",
+      "name": "Fixer",
+      "role": "builder",
+      "model": {
+        "tier": "strong",
+        "pin": {
+          "claude-code": "sonnet\npermissionMode: bypassPermissions"
+        }
+      },
+      "effort": "medium",
+      "brief": "Make the failing tests in tests/ pass by changing src/. Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
+      "inputs": [
+        "the failing test output"
+      ],
+      "outputs": [
+        "src/ changes",
+        "FIXES.md naming each test fixed and its cause"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests",
+        "deploy\nto staging"
+      ],
+      "owns": [
+        "src"
+      ],
+      "skills": [
+        "test-triage",
+        "commit-style\nhooks: none"
+      ]
+    },
+    {
+      "id": "suite",
+      "kind": "check",
+      "name": "Test suite",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "green",
+      "kind": "stop",
+      "name": "Green",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-fix-suite",
+      "from": "fixer",
+      "to": "suite"
+    },
+    {
+      "id": "e-suite-fail",
+      "from": "suite",
+      "to": "fixer",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-suite-pass",
+      "from": "suite",
+      "to": "green",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "fixer",
+        "suite"
+      ],
+      "back": [
+        "e-suite-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

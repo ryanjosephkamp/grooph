@@ -24,6 +24,8 @@ import type {
 } from "../types.js";
 import {
   ID_PATTERN,
+  NAME_PATTERN,
+  ONE_LINE_PATTERN,
   anyOf,
   any,
   arr,
@@ -52,7 +54,12 @@ const harness = openEnum<HarnessId>(["claude-code", "codex"], "harness id");
 const capability = openEnum<Capability>(
   ["read-files", "edit-files", "write-outputs", "run-commands", "run-tests", "web", "spawn-agents"],
   "capability",
+  // A custom capability is written into a node's brief for a person to wire by hand: one line of it.
+  { pattern: ONE_LINE_PATTERN },
 );
+// A model pin and a skill name go into a target's file header as given (Claude Code: the agent file's frontmatter).
+const modelName = str({ pattern: NAME_PATTERN, patternName: "model name" });
+const skillName = str({ pattern: NAME_PATTERN, patternName: "skill name" });
 const tier = enumOf<Tier>("frontier", "strong", "fast");
 const effort = enumOf<Effort>("low", "medium", "high", "max");
 const role = enumOf<Role>(
@@ -81,7 +88,7 @@ const agentNode = obj(
   {
     ...nodeHead("agent"),
     role: anyOf([role, obj({ custom: str() })], { describe: "role name or { custom }" }),
-    model: opt(obj({ tier, pin: opt(rec(str(), { keyName: "harness id" })) })),
+    model: opt(obj({ tier, pin: opt(rec(modelName, { keyName: "harness id" })) })),
     effort: opt(effort),
     brief: str(),
     inputs: opt(arr(str())),
@@ -90,7 +97,7 @@ const agentNode = obj(
     deny: opt(arr(capability)),
     owns: opt(arr(str())),
     irreversible: opt(arr(str())),
-    skills: opt(arr(str())),
+    skills: opt(arr(skillName)),
   },
   { name: "AgentNode" },
 );

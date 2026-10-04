@@ -192,14 +192,30 @@ export function enumOf<const V extends string>(...values: V[]): Sch<V> {
 }
 
 /** An open string union: named values documented, any string accepted (graph-ir §1). */
-export function openEnum<T extends string>(known: readonly string[], label: string): Sch<T> {
+/**
+ * A name one line long: no control character, so no line break. A custom capability is free text a person reads
+ * in a brief, and stays readable; it only may not run on to a second line.
+ */
+export const ONE_LINE_PATTERN = /^[^\u0000-\u001f\u007f\u0085\u2028\u2029]+$/;
+
+/**
+ * A name a target writes into a file's header as given: a model's name, a skill's. One token of letters, digits and
+ * `. _ - : / [ ]`, starting with a letter or digit, so it cannot end its line and start a key of its own.
+ */
+export const NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
+
+export function openEnum<T extends string>(known: readonly string[], label: string, options: { pattern?: RegExp } = {}): Sch<T> {
   return base<T>(label, {
     check(value, path, out) {
       if (typeof value !== "string" || value.length === 0) {
         out.push({ path, message: `expected ${label} (non-empty string), got ${typeName(value)}` });
+        return;
+      }
+      if (options.pattern && !options.pattern.test(value)) {
+        out.push({ path, message: `expected ${label} matching ${options.pattern.source}, got ${JSON.stringify(value)}` });
       }
     },
-    json: () => ({ type: "string", minLength: 1, examples: [...known] }),
+    json: () => ({ type: "string", minLength: 1, ...(options.pattern ? { pattern: options.pattern.source } : {}), examples: [...known] }),
   });
 }
 

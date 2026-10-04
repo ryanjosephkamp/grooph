@@ -63,7 +63,8 @@ test.describe("with the app installed (its service worker in control)", () => {
     await expect.poll(() => cachedAppPage(page)).toContain('id="root"');
     await expect(page.locator(".land-headline")).toBeVisible();
 
-    // The Docs link, from the front page, lands on the documents' index.
+    // The Docs link, from the front page's menu, lands on the documents' index.
+    await page.getByRole("button", { name: "Menu" }).click();
     await page.locator(".land-nav").getByRole("link", { name: "Docs" }).click();
     await expect(page).toHaveURL(/\/grooph\/docs\/$/);
     await expect(page.getByRole("heading", { name: "Docs", level: 1 })).toBeVisible();
@@ -73,7 +74,7 @@ test.describe("with the app installed (its service worker in control)", () => {
     for (const path of ["docs/quickstart/", "docs/rules/", "docs/rules/#e_schema"]) {
       await page.goto(path);
       await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
-      await expect(page.locator("main.doc")).toBeVisible();
+      await expect(page.locator("main .doc")).toBeVisible();
       await expect(page.locator("#root")).toHaveCount(0);
       expect(await page.evaluate(() => navigator.serviceWorker.controller !== null), path).toBe(true);
     }
@@ -126,7 +127,7 @@ test("every page reads in the front page's colors, light and dark", async ({ pag
       canvas.width = canvas.height = 1;
       const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
       const out: Record<string, number[]> = {};
-      for (const name of ["--bg", "--surface", "--surface-2", "--ink", "--ink-2", "--ink-3", "--line", "--line-strong", "--accent", "--accent-soft", "--focus", "--error", "--warning"]) {
+      for (const name of ["--bg", "--surface", "--surface-2", "--ink", "--ink-2", "--ink-3", "--line", "--line-strong", "--accent", "--accent-soft", "--focus", "--error", "--warning", "--night", "--night-ink", "--night-muted", "--bright"]) {
         probe.style.color = `var(${name})`;
         ctx.clearRect(0, 0, 1, 1);
         ctx.fillStyle = getComputedStyle(probe).color;
@@ -155,11 +156,13 @@ test("every page reads in the front page's colors, light and dark", async ({ pag
   expect(backgrounds["dark"]).not.toEqual(backgrounds["light"]);
 });
 
-test("the bar: a wordmark to the app, and links that go somewhere", async ({ page, request, baseURL }) => {
+test("the bar: the mark to the app, and links that go somewhere", async ({ page, request, baseURL }) => {
   await page.goto("docs/quickstart/");
-  const wordmark = page.locator(".bar .wordmark");
+  const wordmark = page.locator(".site-header .site-logo");
   expect(await wordmark.evaluate((a: HTMLAnchorElement) => new URL(a.href).pathname)).toBe("/grooph/");
   const nav = page.getByRole("navigation", { name: "grooph" });
+  // At phone width the links are under Menu.
+  await page.getByRole("button", { name: "Menu" }).click();
   await expect(nav.getByRole("link", { name: "Docs" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph");
   // The field guide and the blog have a place on the bar once they have pages, and not before.
@@ -271,11 +274,15 @@ test.describe("with scripts off", () => {
     await expect(page.locator(".code").first()).toContainText("git clone https://github.com/ryanjosephkamp/grooph.git");
     await expect(page.locator(".code-bar")).toHaveCount(0);
     await expect(page.getByRole("button")).toHaveCount(0);
+    // No Menu button to fold them under, so the header's links stand in the bar, wrapped, and the footer is whole.
+    const nav = page.getByRole("navigation", { name: "grooph" });
+    for (const name of ["Templates", "Docs", "Source"]) await expect(nav.getByRole("link", { name })).toBeVisible();
+    await expect(page.locator("footer.site-footer").getByRole("link", { name: "Sponsor on GitHub" })).toBeVisible();
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
   });
 });
 
-test("each page is light: at most 40 KB gzipped without its images, and no framework or web font", async () => {
+test("each page is light: at most 40 KB gzipped without its images, no framework, and no font from anywhere but the site", async () => {
   const sizes: string[] = [];
   for (const rendered of renderedPages()) {
     const html = readFileSync(join(dist, docPath(rendered), "index.html"));
@@ -284,23 +291,91 @@ test("each page is light: at most 40 KB gzipped without its images, and no frame
     expect(kb, rendered).toBeLessThanOrEqual(40);
     const text = html.toString("utf8");
     expect(text, rendered).not.toMatch(/<link[^>]+rel="stylesheet"/);
-    expect(text, rendered).not.toMatch(/@font-face|fonts\.googleapis/);
+    // Handoff 0077: the fonts are files of the site, named relative to the page, and text shows before they arrive.
+    const fonts = [...text.matchAll(/@font-face\{[^}]*\}/g)].map((m) => m[0]);
+    expect(fonts.length, rendered).toBe(3);
+    for (const face of fonts) expect(face, rendered).toMatch(/src:url\("(?:\.\.\/)+assets\/fonts\/[\w.-]+\.woff2"\) format\("woff2"\);.*font-display:swap/);
+    expect(text, rendered).not.toMatch(/fonts\.googleapis|fonts\.gstatic|url\("?(?:https?:)?\/\//);
   }
   test.info().annotations.push({ type: "gzip sizes", description: sizes.join(", ") });
+});
+
+/** Handoff 0077: a document page is the front page's sibling: the same header, theme switch and footer. */
+test("a document page carries the owner's footer and the theme switch, and keeps the look chosen on the front page", async ({ page, baseURL }) => {
+  const asked: string[] = [];
+  page.on("request", (r) => asked.push(r.url()));
+  await page.goto("docs/quickstart/");
+  const foot = page.locator("footer.site-footer");
+  await expect(foot.locator(".site-made")).toHaveText("Made by Ryan Kamp");
+  const social = foot.getByRole("list", { name: "Ryan Kamp online" }).getByRole("link");
+  expect(await social.evaluateAll((links) => links.map((a) => a.getAttribute("href")))).toEqual([
+    "https://ryanjosephkamp.github.io/",
+    "https://github.com/ryanjosephkamp/",
+    "https://www.linkedin.com/in/rjk1999",
+    "https://x.com/ryanjosephkamp",
+    "https://m.youtube.com/@RyanJosephKamp",
+  ]);
+  await expect(foot.getByRole("link", { name: "Ryan Kamp on YouTube" })).toBeVisible();
+  await expect(foot.getByRole("link", { name: "Sponsor on GitHub" })).toHaveAttribute("href", "https://github.com/sponsors/ryanjosephkamp");
+  await expect(foot.locator(".site-fine")).toContainText("This site uses no cookies, analytics or third-party requests.");
+  await expect(foot.locator(".site-fine")).toContainText("Rendered from docs/quickstart.md");
+  // The title stands in a night band; the font is the site's own file, and nothing is asked of another origin.
+  await expect(page.locator(".page-hero").getByRole("heading", { name: "Quickstart", level: 1 })).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toMatch(/^"?Atkinson Hyperlegible Next/);
+  expect(await page.evaluate(() => Array.from(document.fonts).some((f) => f.status === "loaded" && f.family.includes("Atkinson Hyperlegible Next")))).toBe(true);
+  const origin = new URL(baseURL!).origin;
+  expect(asked.filter((url) => !url.startsWith("data:") && new URL(url).origin !== origin)).toEqual([]);
+
+  // The theme switch, as on the front page, under the same key.
+  const header = page.locator("header.site-header");
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bright").trim());
+  const green = await accent();
+  await header.getByRole("button", { name: "Theme: Grooph" }).click();
+  await header.getByRole("menuitemradio", { name: "Meteor" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  await expect(header.getByRole("button", { name: "Theme: Meteor" })).toBeFocused();
+  expect(await accent()).not.toBe(green);
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  await expect(page.locator("header.site-header").getByRole("button", { name: "Theme: Meteor" })).toBeVisible();
+  await page.goto("docs/rules/");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  await page.locator("header.site-header").getByRole("button", { name: "Theme: Meteor" }).click();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
+  expect(await accent()).toBe(green);
 });
 
 test.describe("at desktop width", () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
 
-  test("the reading column is about 720 px, centered under the bar, and the page does not scroll sideways", async ({ page }) => {
+  test("the reading column is about 720 px, under the mark and the title, and the page does not scroll sideways", async ({ page }) => {
     await page.goto("docs/quickstart/");
-    const column = (await page.locator("main.doc > p").first().boundingBox())!;
+    const column = (await page.locator("main .doc > p").first().boundingBox())!;
     expect(column.width).toBeGreaterThan(680);
     expect(column.width).toBeLessThanOrEqual(720);
-    const bar = (await page.locator(".bar .wordmark").boundingBox())!;
-    expect(Math.abs(bar.x - column.x)).toBeLessThanOrEqual(2);
+    const mark = (await page.locator(".site-header .site-logo").boundingBox())!;
+    const title = (await page.locator(".page-hero h1").boundingBox())!;
+    expect(Math.abs(mark.x - title.x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(mark.x - column.x)).toBeLessThanOrEqual(2);
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    // The links are in the bar at this width, with no Menu button.
+    await expect(page.getByRole("navigation", { name: "grooph" }).getByRole("link", { name: "Docs" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Menu" })).toBeHidden();
     await page.goto("docs/");
+    expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
+    // A long document's contents list stands beside its column, open, and stays in view.
+    await page.goto("docs/graph-ir/");
+    const toc = page.locator("details.toc");
+    await expect(toc).toHaveAttribute("open", "");
+    const beside = (await toc.boundingBox())!;
+    const text = (await page.locator("main .doc").boundingBox())!;
+    expect(beside.x + beside.width).toBeLessThanOrEqual(text.x);
+    expect(Math.abs(beside.x - mark.x)).toBeLessThanOrEqual(2);
+    expect(await toc.evaluate((el) => getComputedStyle(el).position)).toBe("sticky");
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
   });
 });

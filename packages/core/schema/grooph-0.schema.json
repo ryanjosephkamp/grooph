@@ -210,7 +210,8 @@
             "pin": {
               "type": "object",
               "additionalProperties": {
-                "type": "string"
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/[\\]-]*$"
               }
             }
           },
@@ -247,6 +248,7 @@
           "items": {
             "type": "string",
             "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f\\u0085\\u2028\\u2029]+$",
             "examples": [
               "read-files",
               "edit-files",
@@ -263,6 +265,7 @@
           "items": {
             "type": "string",
             "minLength": 1,
+            "pattern": "^[^\\u0000-\\u001f\\u007f\\u0085\\u2028\\u2029]+$",
             "examples": [
               "read-files",
               "edit-files",
@@ -289,7 +292,8 @@
         "skills": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/[\\]-]*$"
           }
         }
       },
