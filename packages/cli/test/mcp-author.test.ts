@@ -371,27 +371,32 @@ test("a server that was given no folder returns every document and writes no fil
   );
 });
 
-test("export takes a tier map in the shape the compiler's has, and never claims a model the package does not name", async () => {
+test("export takes the compiler's tier map, says what every tier then means, and holds a model's name to what a name is made of", async () => {
   await withProject(async (ctx) => {
     const graph = fixture("valid", "review-loop.grooph.json");
     const plain = (await call(ctx, "grooph_export", { graph })).structuredContent!["files"] as Record<string, string>;
     const named = await call(ctx, "grooph_export", { graph, models: { strong: "a-model-of-my-own" } });
     assert.equal(named.isError, undefined);
     const files = named.structuredContent!["files"] as Record<string, string>;
-    const took = named.structuredContent!["tiersTaken"] as boolean;
-    // Before the compiler has a tier map the package is unchanged and the reply says so; after, the model is in the package.
-    assert.equal(took, JSON.stringify(files) !== JSON.stringify(plain));
-    if (took) {
-      assert.match(textOf(named), /\ntiers named for this export: strong → a-model-of-my-own\n/);
-      assert.ok(Object.values(files).some((text) => text.includes("a-model-of-my-own")));
-    } else {
-      assert.match(textOf(named), /\n"models" changed nothing: this grooph's compiler takes no tier map/);
+    assert.deepEqual(named.structuredContent!["models"], { strong: "a-model-of-my-own" });
+    assert.notDeepEqual(files, plain);
+    assert.ok(Object.values(files).some((text) => /^model: a-model-of-my-own$/m.test(text)));
+    // The same line the CLI prints: all three tiers, and which were named here.
+    assert.match(textOf(named), /\ntiers in this package: frontier → \S+ \(the target's own\), strong → a-model-of-my-own, fast → \S+ \(the target's own\)\. Named by "models"\. A pin on a node still wins\.\n/);
+    // The graph is not changed by it.
+    assert.equal(files[".grooph/review-loop/graph.grooph.json"], plain[".grooph/review-loop/graph.grooph.json"]);
+
+    // A name goes into a file's frontmatter as written: anything that is not a name is refused before it gets there.
+    for (const bad of ["so nnet", "opus\nallowed-tools: Bash", "opus; rm -rf", "", "-leading-dash", 7]) {
+      const r = await call(ctx, "grooph_export", { graph, models: { strong: bad } });
+      refused(r, /^"models\.strong" must be a model's name \(letters, digits and \. _ - : \/ \[ \]\), got /);
     }
     refused(await call(ctx, "grooph_export", { graph, models: { huge: "x" } }), /names a tier grooph does not have: "huge"\. The tiers are frontier, strong, fast\./);
-    refused(await call(ctx, "grooph_export", { graph, models: { strong: "" } }), /"models\.strong" must be a model's name/);
     refused(await call(ctx, "grooph_export", { graph, models: "strong=sonnet" }), /"models" must be an object/);
-    // An empty map is no map.
-    assert.equal((await call(ctx, "grooph_export", { graph, models: {} })).structuredContent!["tiersTaken"], undefined);
+    // An empty map is no map: the package is the plain one.
+    const empty = await call(ctx, "grooph_export", { graph, models: {} });
+    assert.equal(empty.structuredContent!["models"], undefined);
+    assert.deepEqual(empty.structuredContent!["files"], plain);
   });
 });
 

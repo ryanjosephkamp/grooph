@@ -7,15 +7,16 @@ import { printIssues, printNext, plural, type Output } from "../print.js";
 
 export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string };
 
-const TIERS = ["frontier", "strong", "fast"] as const;
-const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
+export const TIERS = ["frontier", "strong", "fast"] as const;
+/** What a model's name is made of. It goes into a file's frontmatter as written, so nothing else is let through; the MCP server holds a name to the same. */
+export const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
 
 /**
  * What the tiers mean in this package, all three, and which the one exporting named; then, when two tiers a graph's
  * agents use have become one model, a line saying so. The validator's check that a critic differs from the builder
  * it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers made the same from outside the document.
  */
-function tiersSaid(doc: Graph, target: CompileTarget, models: NonNullable<CompileOptions["models"]>, from: string): string[] {
+export function tiersSaid(doc: Graph, target: CompileTarget, models: NonNullable<CompileOptions["models"]>, from: string): string[] {
   const stock = getProfile(target).models;
   const means = (tier: (typeof TIERS)[number]): string => models[tier] ?? stock[tier];
   const lines = [`tiers in this package: ${TIERS.map((tier) => `${tier} → ${means(tier)}${tier in models ? "" : " (the target's own)"}`).join(", ")}. Named by ${from}. A pin on a node still wins.`];

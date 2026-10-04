@@ -515,19 +515,35 @@ Read them elsewhere, after a fetch:
 An MCP server for a session to call.
 
 ```text
-grooph mcp [--dir <project>] [--harness <name>]
+grooph mcp [--dir <project>] [--harness <name>] [--chat]
 
-Run grooph's MCP server on standard input and output, for a coding session to call. Four
-tools, all of which record or report and none of which starts or changes anything:
+Run grooph's MCP server on standard input and output, for an agent to call: in a coding
+session, or in a chat app that runs local servers. No model is called and nothing leaves
+the machine.
+
+To author a graph with tool calls alone (docs/agents.md). A document goes in and comes
+back as JSON, so no file has to exist; path reads a file and out writes one:
+
+  grooph_templates      the library with when to use each; one template in full by id
+  grooph_use_template   a graph from a template: id, name, slot values
+  grooph_new            an empty graph
+  grooph_apply          a graph and typed operations: the graph, or the failing one by index
+  grooph_validate       the issues by code, with what to do about each
+  grooph_explain        what bounds it: rounds, budgets, who must say go, the worst case
+  grooph_shape          counts and brakes on one line
+  grooph_share          a link the app opens on any device, and the embed line
+  grooph_picture        the picture as SVG text, and a PNG when asked
+  grooph_export         the prompt package's files, returned or written into the project
+
+For a session's lead, beside what the event hook sees (docs/subagents.md §7):
 
   grooph_plan      declare the subagents the session is about to start
   grooph_note      leave a short note for whoever is watching
   grooph_running   what the event hook has seen: sessions, subagents, what is running,
                    and each declared plan with how much of it has started
-  grooph_validate  check a graph or an operation map file
 
-A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl, beside the
-hook's files, and shown with the session in grooph watch --sessions and grooph sessions.
+A tool writes a file only when it is given a name for one, and only inside the project
+folder. A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp
@@ -535,11 +551,15 @@ Add it to a harness:
   Codex         in ~/.codex/config.toml:  [mcp_servers.grooph]
                                           command = "grooph"
                                           args = ["mcp", "--harness", "codex"]
+  Claude's desktop app, in a chat (docs/chat.md), in claude_desktop_config.json:
+                { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 
-  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in)
+  --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in).
+                    Started in the file system's root or a home folder with no --dir, the
+                    tools return every document and write no file.
   --harness <name>  claude-code or codex, when it cannot be told from the environment
-
-No model is called and nothing leaves the machine. docs/subagents.md §7.
+  --chat            for a chat app: only the authoring tools, and no file is ever written;
+                    every document, picture and package comes back in the reply
 ```
 
 ## `grooph share`

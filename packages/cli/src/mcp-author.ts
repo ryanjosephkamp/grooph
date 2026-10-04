@@ -61,7 +61,7 @@ import {
   tierLine,
   tryCompile,
   validate,
-  type CompileResult,
+  type CompileOptions,
   type CompileTarget,
   type Graph,
   type Issue,
@@ -72,6 +72,7 @@ import {
 } from "@grooph/core";
 
 import { embedHtml } from "./commands/embed.js";
+import { MODEL_NAME, TIERS, tiersSaid } from "./commands/export.js";
 import { explain, explainLines } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { profileText } from "./commands/template.js";
@@ -385,11 +386,6 @@ function inlineRemembered(set: Json, ctx: McpContext): Json {
 }
 
 // ─── the tools ────────────────────────────────────────────────────────────
-
-const TIERS = ["frontier", "strong", "fast"] as const;
-
-/** `compile` with the tier map of one export (pull request 43). A core without it ignores the third argument. */
-const compileWith = tryCompile as (doc: Graph, target: CompileTarget, options?: { models?: Partial<Record<(typeof TIERS)[number], string>> }) => { ok: true; result: CompileResult } | { ok: false; issues: Issue[] };
 
 export const AUTHOR_TOOLS: Tool[] = [
   {
@@ -767,27 +763,27 @@ export const AUTHOR_TOOLS: Tool[] = [
       }
       if (!KNOWN_TARGETS.includes(target)) throw new Refusal(`Unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}.`, `pass target: "${KNOWN_TARGETS[0]}"`);
 
-      let models: Partial<Record<(typeof TIERS)[number], string>> | undefined;
+      let models: NonNullable<CompileOptions["models"]> | undefined;
       if (args["models"] !== undefined) {
         if (!isObject(args["models"])) throw new Refusal('"models" must be an object: which model each tier means.', 'pass, for example, {"frontier": "opus", "strong": "sonnet", "fast": "haiku"}');
         models = {};
         for (const [tier, model] of Object.entries(args["models"])) {
           if (!(TIERS as readonly string[]).includes(tier)) throw new Refusal(`"models" names a tier grooph does not have: "${tier}". The tiers are ${TIERS.join(", ")}.`, "name only those tiers");
           const name = str(model);
-          if (name === undefined) throw new Refusal(`"models.${tier}" must be a model's name.`, `pass a name, or leave ${tier} out to keep the target's own`);
+          // A model's name goes into a file's frontmatter as written, so it is held to what a name is made of, as the CLI holds it.
+          if (name === undefined || !MODEL_NAME.test(name)) {
+            throw new Refusal(`"models.${tier}" must be a model's name (letters, digits and . _ - : / [ ]), got ${JSON.stringify(model)}.`, `pass a name such as "opus", or leave ${tier} out to keep the target's own`);
+          }
           models[tier as (typeof TIERS)[number]] = name;
         }
         if (Object.keys(models).length === 0) models = undefined;
       }
 
-      const plain = tryCompile(doc, target as CompileTarget);
-      if (!plain.ok) {
-        throw new Refusal([`${label} cannot be exported for ${target}:`, counted(plain.issues), ...issueLines(plain.issues)], nextAfter(plain.issues, true), { issues: plain.issues });
+      const attempt = tryCompile(doc, target as CompileTarget, models ? { models } : {});
+      if (!attempt.ok) {
+        throw new Refusal([`${label} cannot be exported for ${target}:`, counted(attempt.issues), ...issueLines(attempt.issues)], nextAfter(attempt.issues, true), { issues: attempt.issues });
       }
-      const named = models === undefined ? plain : compileWith(doc, target as CompileTarget, { models });
-      const compiled = named.ok ? named.result : plain.result;
-      // A core that has no tier map yet compiles the same package either way; say so, never claim a model the package does not name.
-      const tiersTaken = models !== undefined && JSON.stringify(compiled.files) !== JSON.stringify(plain.result.files);
+      const compiled = attempt.result;
 
       const paths = Object.keys(compiled.files);
       const into = str(args["into"]);
@@ -805,9 +801,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       const lines = [
         `package for ${target}: ${plural(paths.length, "file")}${folder !== undefined ? `, written into ${folder}` : ""}`,
         ...paths.map((path) => `  ${path}  (${compiled.files[path]!.length.toLocaleString("en")} characters)`),
-        ...(models !== undefined
-          ? [tiersTaken ? `tiers named for this export: ${Object.entries(models).map(([tier, model]) => `${tier} → ${model}`).join(", ")}` : `"models" changed nothing: this grooph's compiler takes no tier map, so every tier keeps the target's own model`]
-          : []),
+        ...(models !== undefined ? tiersSaid(doc, target as CompileTarget, models, '"models"') : []),
         ...(compiled.warnings.length > 0 ? [`${plural(compiled.warnings.length, "warning")}, carried into the lead's brief:`, ...issueLines(compiled.warnings)] : []),
         "kickoff (the prompt that starts the run):",
         compiled.kickoff.trimEnd(),
@@ -818,7 +812,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       return {
         text: lines.join("\n"),
         brief: lines.filter((line) => line !== "kickoff (the prompt that starts the run):" && line !== compiled.kickoff.trimEnd()).join("\n"),
-        data: { ok: true, target, files: folder !== undefined ? paths : compiled.files, kickoff: compiled.kickoff, warnings: compiled.warnings, ...(folder !== undefined ? { into: folder } : {}), ...(models !== undefined ? { tiersTaken } : {}) },
+        data: { ok: true, target, files: folder !== undefined ? paths : compiled.files, kickoff: compiled.kickoff, warnings: compiled.warnings, ...(folder !== undefined ? { into: folder } : {}), ...(models !== undefined ? { models } : {}) },
         ...(folder === undefined ? { more: [{ type: "text" as const, text: JSON.stringify(compiled.files, null, 2) }] } : {}),
       };
     }),
