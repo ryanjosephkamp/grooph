@@ -1,0 +1,202 @@
+{
+  "grooph": 0,
+  "id": "replication-check",
+  "name": "Replication check",
+  "version": 1,
+  "goal": "{{task}} Done when the reproduction's numbers agree with {{reported}} as `{{compare-command}}` judges, or a person has accepted the difference after reading ASSUMPTIONS.md.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Replication check",
+    "summary": "One agent reproduces a reported result from the description alone, a check compares its numbers with the reported ones, and a person decides what a disagreement means.",
+    "whenToUse": "A reported result matters enough to rerun from the method description, a command can compare the numbers, and the real question is whether the description is enough to get them.",
+    "notFor": "Results no command can compare, or a reproduction that is meant to start from the authors' code: the reproducer is told not to use it.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "Which result should be reproduced, and what should the reproduction leave behind? One or two sentences.",
+        "example": "Reproduce the held-out accuracy the paper reports for its baseline classifier, with runnable code in a folder of its own."
+      },
+      {
+        "key": "description",
+        "ask": "Which file holds the description the reproducer works from: the method as written, with none of the authors' code or results?",
+        "example": "replication/METHOD.md"
+      },
+      {
+        "key": "reported",
+        "ask": "Which file holds the reported numbers the check compares against, kept where the reproducer is told not to look?",
+        "example": "replication-private/REPORTED.json"
+      },
+      {
+        "key": "compare-command",
+        "ask": "Which command compares RESULT.json with the reported numbers and exits 0 only when they agree within the tolerance you set?",
+        "example": "node replication-private/compare.js RESULT.json replication-private/REPORTED.json"
+      }
+    ],
+    "tags": [
+      "research",
+      "replication",
+      "human-gate",
+      "not-proved"
+    ]
+  },
+  "description": "A reproducer in a fresh context rebuilds the method from the written description alone, may not use the web, and records every choice the description left open. A check runs the comparison command; matching numbers end the run. When they disagree, a person decides: accept the difference as the finding, or send the reproducer back with a note. The reproducer is told not to open the reported numbers, which is a limit in its brief and not a wall, so keep them where an honest agent will not stumble on them. Not proved: no proving run has been recorded for this template.",
+  "nodes": [
+    {
+      "id": "reproducer",
+      "kind": "agent",
+      "name": "Reproducer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Reimplement the method in {{description}} from that description alone, run it, and leave the numbers you get in RESULT.json. Record in ASSUMPTIONS.md every choice the description left open and why you made it; never open {{reported}} or look for the authors' code or results. On a later round, start from the person's note, which may say how far off you were, and look for what the description left open rather than tuning toward a number.",
+      "inputs": [
+        "the task",
+        "the description: {{description}}",
+        "the person's note (from round 1 on)"
+      ],
+      "outputs": [
+        "the reproduction code, runnable",
+        "RESULT.json: the numbers obtained",
+        "ASSUMPTIONS.md: every open choice and why it was made"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-commands",
+        "run-tests"
+      ],
+      "deny": [
+        "web"
+      ]
+    },
+    {
+      "id": "compare",
+      "kind": "check",
+      "name": "Compare numbers",
+      "check": {
+        "kind": "metric",
+        "run": "{{compare-command}}",
+        "pass": "exit code 0: every reported number is matched by RESULT.json within the command's tolerance"
+      }
+    },
+    {
+      "id": "disagreement",
+      "kind": "human-gate",
+      "name": "Disagreement",
+      "prompt": "The reproduction and the reported numbers disagree. ASSUMPTIONS.md lists every choice the reproducer made where the description was silent. Accept the difference as the finding, or send the reproducer back with a note?",
+      "options": [
+        "accept the difference",
+        "send back with a note"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-reproducer-compare",
+      "from": "reproducer",
+      "to": "compare"
+    },
+    {
+      "id": "e-compare-pass",
+      "from": "compare",
+      "to": "done",
+      "when": "pass"
+    },
+    {
+      "id": "e-compare-fail",
+      "from": "compare",
+      "to": "disagreement",
+      "when": "fail",
+      "evidence": [
+        "RESULT.json",
+        "ASSUMPTIONS.md",
+        "output of {{compare-command}}"
+      ]
+    },
+    {
+      "id": "e-disagreement-accept",
+      "from": "disagreement",
+      "to": "done",
+      "when": "pass"
+    },
+    {
+      "id": "e-disagreement-retry",
+      "from": "disagreement",
+      "to": "reproducer",
+      "when": "fail",
+      "evidence": [
+        "the person's note"
+      ]
+    }
+  ],
+  "loops": [
+    {
+      "id": "replicate",
+      "name": "Replicate",
+      "members": [
+        "reproducer",
+        "compare",
+        "disagreement"
+      ],
+      "back": [
+        "e-disagreement-retry"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Reported numbers reproduced",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "output of {{compare-command}}"
+          },
+          {
+            "kind": "artifact",
+            "ref": "RESULT.json"
+          },
+          {
+            "kind": "artifact",
+            "ref": "ASSUMPTIONS.md"
+          }
+        ],
+        "acceptance": "RESULT.json agrees with {{reported}} as `{{compare-command}}` judges, or a person has accepted the difference after reading ASSUMPTIONS.md."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 8
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

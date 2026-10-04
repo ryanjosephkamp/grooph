@@ -62,6 +62,15 @@ jobs:
       - name: the rule reference is current
         run: node scripts/rule-reference.mjs --check
 
+      # community/index.json, its pictures and docs/community.md are generated from the documents under community/,
+      # and every one of those documents must validate (handoff 0065). community.yml is what tells a sender what is
+      # wrong with theirs. This keeps the generated files honest on main and on the owner's own branches; a pull
+      # request from a fork is not asked to regenerate them (the owner does when merging, and a stale gallery
+      # then shows here, on the push to main).
+      - name: the community gallery is current
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: node scripts/community-index.mjs --check
+
       # The documents render as site pages (handoff 0060): the renderer's own tests, then every page into a temporary
       # folder, failing on a broken link between pages, Markdown left unrendered, a page over 40 KB, or a color
       # variable that drifted from the app's.

@@ -1,0 +1,60 @@
+{
+  "groophCommunity": 0,
+  "documents": [
+    {
+      "path": "community/grooph/hypothesis-ratchet.grooph.json",
+      "author": "grooph",
+      "kind": "template",
+      "templateKind": "graph",
+      "id": "hypothesis-ratchet",
+      "name": "Hypothesis ratchet",
+      "summary": "A proposer tries one change per round, a judge scores it on held-out cases the proposer never sees, and only a change that beats the last kept score is kept; the loop ends when gains stop.",
+      "shape": "2 agents · 1 loop · up to 5 rounds · 12 dispatches",
+      "proof": null,
+      "issues": [],
+      "glyph": "community/pictures/grooph/hypothesis-ratchet.glyph.svg",
+      "picture": "community/pictures/grooph/hypothesis-ratchet.svg",
+      "link": "https://ryanjosephkamp.github.io/grooph/#/open?d=lVfbbttGEP2VBV-SAqQSB-hD5ZcGSAAXAZLAcQsUhYGsyKG0MblL7C4tC6n_vWdmeZMsB82TKO7sXM-cGX7P7rP1RZ7dGVtl62zrdbfL8qxyZbb-jr_O4f_6dZ4ZPt4dOhd3FEwovI7ljmJBD7rtGsIdq1uCzNUkowYZ9XIQUve66Sn8AuF78sE4K7a3Tje4eK1NIIWrqtNBLpNytbyIpryDreiN3uLYu7aLytjhKbxKB6u2Us7KheB8NHarog53K_XOWVL7HaWzO8JlT6Fv-EfDw6D0sc3Xq99es6pSBxyKS951LpBXluC6CnqfK-eT0rr3EPHKu95WQYXoOhihjh3Q9hB3eFgh5qj9liLndae9pRAQdNnovqKidBVlj3nWGEuIhGU6HSN5ezbrUFYj9LNnv1-woopC6U0XJcfZ28n_HC6bcjeGQUN4O2qqwvUxRZyrVt_hhNNW7rTlnI_xIaIK4R8CFB2UiSrsXN9UrKFbqbfqW19BHLUxEQr2yKGzkR6Q6t6et8WpSieDLWcbaK5FQyidRzlR4DLi7YZ0TLKNDjGVUkRy8csTnqvhFlSnKNlOcsNGvKxRN9ZgxSuOif2uTCi1r6gavQB-ccQp2FDNTkx3Ui51IyYhZl1UcBBX9VYbu1I37B86RxHj4YfAE3QLLmY8_QhHKc44qkRS1dZJqVR0A9BN3MnhhsJkj22v1Ecn3t9TtYbX8sjKWctOB1xg65JDBJPyhPgioXnRGYxhC6ACt_98T4QwwiqbGATotXFmg8-zgHcNv9n0pqnkRQtdDUM9GvxfZ6iys1tGL9UwHhneZst0tEF261nbEpiIWhq-33yjMk6Egb7Hg47q4HpFDx2fQdQLx0zASkDH_3yENSP36u_Pn26u3n_54wszyn7UkgymBmDsLzQbUZ5a4AvKGRW35wlOB8pjCx_ef76B7jWjfBJK7bVHHSYs5gLBFMgQb218GNzFCUPPU_QHMNhMBer6058f37HzjQmIdakSIJCmcB1qTSDkV9yPaMdXlymR0joLJ8XUpFCjEXTTSPBgD863iQwMY7s-MjKyMf94Oap4KelIAV6gejwBJpVPD2_zDA4t9aXgcyn8Ik5mCqg6Ktg6Vey0WsdMxSYQhtuzAfRiVdSmAbABvcrE4c_tYz7AXEjtWYxfjYQ2ig1IH_-e4rxGtY9Q3sJo3y5wfo2G_MqtliqE_iyGKq2-hadT7-s49gaMcMwlZLhYM4lOvHBCnYtaX46KBGVDTSZUMMaZgJnz-GVvxyQHxjwzyYDxF2GlPoC5fpLVdVwnatt7E9l1uAabExDDwMH7JZUCFDx999zYDel7muUbwCW1ChmZ0Hs0eOK3RVQDoSpkF0mTdIzYzNnm0BHiP8umoSKRDTOFu0Afz7WV-ot8hfDSYnE8A5Ldliie3TwworRp5rAupdsETbk8Do1fm4ennTdC4GRtaahmmmKAL3v-hz163IYTZ51ltXxR19Rycw8umn2teO4lKy8mEkZ2pDwoONMf6x3KBu2HxWieWz9fliXtk5ztdcrmv5LB55tc8FWMwaFh0WCofQubgW9VZA986SwZ8E4wcwFP6ZkK3qWzAUp83Jclb3qPt0wt2-XspGKsTjEyxbDULaZqdAsioXsDz0oaa-0JYiY6pv-jDUr6IMhck7jP8eRc-kVslFwpJH2TP6N9cWbhHKNa-EyEl96NmufKnzHCpXrGyJDjwYAIcgZ5qVpkcN6Gh_RfTy9aajdAJvuycDjZgKKNLu-kwMt4bxNVD760ieM32jN1n1K9oE-aL_AGkJwaxwO4sNYl3_ZC5wlo3N7_n9MzTtdzCsf0ck40ANZFLYnPbn7u--bcOj4gSfLyIq3wvB_i1k9NJAzbfWB60qEzsJs-RNg_3ul4M90d5fL0K6qUWS3-r3hYcp8dZRmFEQTRUaoq0xprAq_KBRaj3lvpb9GZrd8wMHjqMHiSHdmteMtGjniy8NLMKEzIExwu1Lf6oQB1pHhYM4R-XZxvOGsJfzr0nsSj0AksWbyBe5j4F28eb7l2nWtMaY4W6gKfbfjcLUxwTcraRDVnTpC6jqbv9qnDusK6IlBTFziokItZydODEx23j4__AQ",
+      "raw": "https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/community/grooph/hypothesis-ratchet.grooph.json"
+    },
+    {
+      "path": "community/grooph/literature-sweep.grooph.json",
+      "author": "grooph",
+      "kind": "template",
+      "templateKind": "graph",
+      "id": "literature-sweep",
+      "name": "Literature sweep",
+      "summary": "Search, screen against criteria stated up front, extract and summarize; then a critic in its own context looks for a source that contradicts the summary, and one it finds sends the sweep round again.",
+      "shape": "5 agents · 1 loop · up to 3 rounds · 14 dispatches",
+      "credits": [
+        {
+          "name": "PRISMA 2020 statement",
+          "url": "https://www.prisma-statement.org/",
+          "note": "the stages (search, screen, extract) and criteria stated before searching follow the flow it reports for systematic reviews; this template is not a systematic review and makes none of its claims."
+        }
+      ],
+      "proof": null,
+      "issues": [],
+      "glyph": "community/pictures/grooph/literature-sweep.glyph.svg",
+      "picture": "community/pictures/grooph/literature-sweep.svg",
+      "link": "https://ryanjosephkamp.github.io/grooph/#/open?d=1VlNj9y4Ef0rhC6xAXVjjeTUvmQwMwsY2B0HHudjEcyBLbFb9EikQlLT7njnv-dVkZKonm6v4-SyJ4_UpWLx1atXRfpL8VRs3pTFozZ1sSn2TvZNURa1rYrNFzxai-fND2Wh6edWB-VkGJxa-YNS_Up9ll3fKnxhZKdg8dNkIdhCvEom4km2g_KvYfqknNfW8Lp7K1t8dmVg7cShUaHBv76XlapF72QVdKWE7npnn5QXrTX7FVbohFNBmQA3Qhsh66ENolXSGfguhfRCinCwq17ulVBPulYGbvzQddId1-LGGkWLGXH_159_vvrwy7qrheQYvNBB7JzthLeDq7BmaGQQnVIBfymvROVoj1piGYOv-FlXf_BiawdTI2yPOKpG7ACpF8aKyprgZK2xF7NPbsnXGA8FTpsbjKxrp7xX9Ub8RSm3cghdHchlGGoNE-sAiuqdNsHHKMlPKz1i1rugsKMjVgcEBx2ahEsvHQLUvaSPYswzekHhW8ng0R8CSXsUEq5cxBMhv6VN2F4bsu-1AihrpDFIt1eBaNIQ7t4jj1Urh1qtKlur4rkEX4xCBsimlwE-zRkSwRXt5Mwvf35DTmrlAXEfmDLFVYKX4tMeG6qwI13LoMaEvcUu8AWwgI2sKtUHBs6pT6rCn0oiOXIvtfEhpiHg63rKK0N0oAfKveoIHTILthd2B3p4uKqsq7GQEepzIJayf3rpwSt8EBfhxSl9Mef4VLU74eUxBsnp1_-mMBP3aJ1_oUw4NSm_5C0uQi8lSkCtxVWiXczzDqxpmGewJCcGlWIfQUl1tNgNuZ1xItzEDhHLmYxYZKapz9lJa_lhC5BAmAjUzGcEtLfAaSurRwCUcAdnSrimSgJDkjfogwhOydCBeVShCjpwFDYWPMcRKyqvDE1YP2lUxFrcWVCZZADVAULSn1RPbjCikbRV7DrmADHS9kKDz4OC-iBsYqwBLcHSf36JajYSqZjkD1w1YRaz-9nA2ZbeAOf5XQd3LXE7aDxvih0qiAirdlgdhVF0qtZDB8ut02qHFz9imaWubOFOUBkSwaR_ZAQ4QUw9aNv11d3Nu5urj7f3EKmNCDq0AAqVFW1JyajMyMmhOUbidXrfQLO45NbiWiaiG2jYAVr4ds4TIRx_AnEIH-jYJ7vl9NUWb4KoHYg_UYWAJW7RtwclH9fingqDxdSow1idXnTWh_ZISjM4M21atqBAfeQtIqnARpt-CJSVYsSgeCgLO4Tx9QkA04Z78Oa0-EfdY3zIj2xbeyAvtOxqp1sQoCy4ulfjGnhW2-LhuRx5kcTjMi9mg_8PL65tf4xFOmoQainTnPvrD7e3d7c3AKCM5R2JnhRmVjdOD1NgRoYRyZwz20C9WlWaSkUHlHjftycRoKQIJvSJkmlwBMDCHgwp15aKzHEWRmnzKQI4nBYE5h6rRX1di_eGEiOptThqlWWiYaz4RBCCuGbev7_7-OHq5t31x3fv76g_TypykMeXxBnj_j10zgWj6fl0q684QAZJvAHjX5-URMaHzSJriR2XaZHSxXuMnYxS9L2VMjW_i6Vym1l8S6344DDi_YaKjps56a_lWBVgz-0_gOiEJ7dkdCOMJ7pDiht7oMdHYw9evOowdNqa8-t5Vn1dTl_sOAf0E6GVJoVWd3gq0aktj3TWoHh8g3DBGO8BgV-LDzEW_o29zSzPB4HY89DsSM6PaFnwh1JDS6tJBLTZkYS_LJ0EffSfFxBmSEJEmzRkMsVpZliUTMYgGuVgdwKmP6HcAtBNRLIUEbqSZ12KPHYvQmem3Inj71blaVq6rMu5SWKbPxoa29PLb6Bbg96Zke3vFNTLYwJtdurZXK1LxvGYVopKh9FyzM9WNTQFRJEmFMX2KMzQbSnP95LIotxsXmvwCSrJ0BJvY8jscjrY6ESj6A9q3YyrZpNjTYMaKbkf-h57PceqOGwtRrA4SZ3wKy5HsBNrL51wQPp50PCKpj4EfNofLgwB5ZJy3yWTU9aiSsbUJYWPkM98j2M_Yw_b4wT8t_J1ZmqczC-y9HoxPjcDhvaMr9PHL6YIpJ3__ApZf8Jg9huTvUwk0fnZdzOeWdN5YdGgykxM4pm-A0sbHFkxZ9JhFXIW-UDoRGI3LLYWKoeJ1Nhh3_DpILKbJ34YwLxtc_LMqhmrYwEUiSKGmsVZ5OyckE2A03ki7XkBBaZgGq9ixyajnXY0DahDSZ0zvpc41OP8xfM0GAF-Q3PHGTfuetQ-Q5OpJoSpCazFL6TiA511YPRpqPeYu2kTaax2ivmzPGr9TTmKTeykbuNMLb96-NKxosepero_IGAyx2U8Zh2otjm43_X4NPP2jEjkje3kHHFClDQ5nZEuHzdBDPLMBYZyPNhwScW5gFIeL7TIwYaxFb9y9v7LNkfXHOZItph2QrKdJaWOCyVBId7OenITf4PDyvILP6Djel88w6sC7bIjr1qNs9cqO-Wk65dsLAt2eQ4aO82L81g-DE4uV_lcODqfnbHz3CT3vshf5nuyXy0GgeQ99xZjz41y_0u-LKKfPllNIjwGn3tj_5PFIvZvJma2bPS0Ys5MC07uTxNBmsBHSrZepOWE3ucWIX5eWiRRLC3AlkQgnPX7_M4k3diNE1d67BQ1Uy6znDVZVhYQppXhni6OmPULHB5i-8MCpJtdbJ9b6agdppXvLN2XckM_VUUWN9_TZR8HPrZhiNEO4VCv5W6ZpYugumT2AtivGedZJvji8Cs5R8Ut33id6b-CcCJpsXPnzjzNIzRdMLtzl5bjZfR4B82NB4PleD2djvy65n4ROw8db_6HO-o1TSIkRQuUkSWmmVrg1MnPq3i5i_wQBcGxP2a_b6k9BiaS9IMjsNBtexlIcQu6SMaZoti8-dPzA6Ha2xZ9JRe2fuSP9raViQXJ-ZlffGV7Nf1_x1Qo_crYFR3NVnsCAyeDycnLH058PDw__wc",
+      "raw": "https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/community/grooph/literature-sweep.grooph.json"
+    },
+    {
+      "path": "community/grooph/replication-check.grooph.json",
+      "author": "grooph",
+      "kind": "template",
+      "templateKind": "graph",
+      "id": "replication-check",
+      "name": "Replication check",
+      "summary": "One agent reproduces a reported result from the description alone, a check compares its numbers with the reported ones, and a person decides what a disagreement means.",
+      "shape": "1 agent · 1 check · 1 gate · 1 loop · up to 3 rounds · 8 dispatches",
+      "proof": null,
+      "issues": [],
+      "glyph": "community/pictures/grooph/replication-check.glyph.svg",
+      "picture": "community/pictures/grooph/replication-check.svg",
+      "link": "https://ryanjosephkamp.github.io/grooph/#/open?d=3VhNb9w2EP0rhC5JgNUmRi_F5tAGtYEWaOLAdpBDYSBcabRiLJECSe16Yfi_981IWknrdZJDeunBsCUO33y9eaT8kGyT1dkiuTM2T1bJxuumTBZJ7rJk9YBH5_C8erNIDC97aiqT6WicTbOSsruU7nXdVIQtVtcEk6vRRImJetnbqK2uWgqvYLslH2AgnjdOV90-7_I2IxVLUiVVeeraqHSWtV5ne3nb6Ia8QhDOx6AK55XB77UOVBlLKqt0CKYw5BdqZ2KpfGutXsNz5nJSxiqNTVUODFfIVrezS3XusHdXkhUfvo-DE3gRlG3rNYJVeuOJetRJERpvtjrS66uLj5dXNxfny68Beeugvlh2eco0c3WjPcFSXV1cf_r7ptvzXdQv6mubbygsFPLWCpXgbSV8oUbURMol_twUBXmyKKQuopRL58Zu1Lvr60_vP978dfnhelnnS3Qhar-hyH0utbcUAtqAGrY5pVyw5HGRcF31htim0RFw9hQLgFV4V59a-v2MYXIKmTdNlJ4n7w5FRnhdVzyFEl2yke4jVtetqfIg-dQUS5crxpfnnTeIw6oJpNIVWrhQtd4r66JqQ0eiHa0XStscgJnzwCPwbg9WOtPTbApSURGVawiMeNczF_zpguh6Zrjg-LMG5lt4i1nJhR0oQrbrAHYt1eeeT3s0JAh5FmPTcsoMXK_6zj3pW-e0wEgCX_odDuBj5dYaIQojNadNS3UzNzDAAd2lJtFJbgMGBgh86SPHtJQmK9leq8rUJnJXZLS8oUJKyBha7XRVLVRw6o6oYayaB8cjZDARPQgw2pCNCKuqZE-I8IEJdOK6XqoPeIkIt5SvYCB_chFRNOHymsj2_UKAPOKx5DwICoKRYNryZIGq_zwcNKlPODnImAQx06TRxLuK3wnF5EUNvIoZHqEcWAnRO7th2lKBADAgSWk2rIpSDsEzLGg1ZzrhqJlN8ev3Fzd_Xp5j1gby6niKtZy5iR1RK9LbjpkDqfauVRhSxp6oxVJdSYn49Xyuf5Dj4m1X7gW_1qyO8a2yvLlb_77IoTWVc3d9j0CBFkXw4UUnto6FJ7RVDEt1ySPO3cM719ocDIL0xHGmu7FgtQWNBzbyNAf8lG6nCs2SXUi0O_Ctr9bgfselfT5Xr7HGQYKlsbVMt-h2GuXTfZ2ZVsY2bWReJYwUdWBZOwJdnW5wbzhLQ72U9CRhdQb-v0puFwmOtKmX6WEjdVsczixgThq-mpHCraOGMLPfefdXffsl7Z4DQ6cx1TsMGDebI8Ekux3HwedDWpgKMwXG5yYeHhBK2svd8Bgx4oG352T3vBsam9w-LvpZ7M-2cRCH46EfxD-69SERLHQGGL5-A0bJm6zzhseffooCudFy0tE9KiJcfTOU7UgYWRBF5fFmvZ_5Ydk1djgbuEIvRGzJayh48nioyKD-dSdIfZZliy3pBtGNtTmfW4IYdcPac3PMEz0eBTMZP5w0y2NNqAy69lQZJkeFSEAn5cdzxKQJYISNwP2Z59VvyNKJD5mHk2chTATqeO-EczlUdKxsiK6Z1LRbw9ShS_witPCC9j_eMtc303OE0jHWdCTyeLEZj5DoJlw_BELDrlQYdtg6Ysm-Pl6-cOJJTE9AFNpUz0PMqdJD9Vtoi7sFlw41nVD2iVYkgxrxZfjnz9ntJKlpvGnX5zG3o2R-oEYzOA_B2H8bbda754v1RMKRA2iCU6aZXzck8xOfPPyqpk7ZRFgnbscOziIEPlObzU_mddtdT-CEL_99UmvtWTFH73MZOPjN5VQLDWWxS2C4HfloCp0xlJf7zH_JA-7bc36n9PyW3RFxuSsdi0RsZzjdh1r4X32p4SbKsjbrITggMoMmTypX6_vUAEp3qgqGJqtfJutrjisKTXVoPXUD08gZx-Zy-U9Wvz4K8xuHPM1UI5vUuhRf20W68RLrKLxPF0KGa8jhfwqAfPwX",
+      "raw": "https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/community/grooph/replication-check.grooph.json"
+    }
+  ]
+}

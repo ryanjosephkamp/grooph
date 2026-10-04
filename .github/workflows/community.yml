@@ -1,0 +1,98 @@
+name: Community
+
+# Checks and draws the loop graphs, templates and operation maps that people send in under community/
+# (handoff 0065). It runs on pull requests from anyone, forks included, so it is built to be safe to run
+# on text a stranger wrote:
+#
+#   - The trigger is pull_request, never pull_request_target: a fork's run gets no secrets and a read-only token.
+#   - permissions is contents: read and nothing else. No secret, no write token and no deploy appears here,
+#     and nothing is written back to the pull request: the job summary is the report.
+#   - A submission is DATA. scripts/community-index.mjs parses each document as JSON, checks it with grooph's
+#     validator and draws it. It never executes anything from a submission. That matters because a document is
+#     full of text meant to be acted on later: a check node's `run` is a shell command, a brief is an
+#     instruction to a model, a summary can say anything. Those are for a harness that a person starts, much
+#     later, on a copy they chose. Nothing in this job is that harness. Symbolic links are refused unread, so is
+#     any file over 256 KB, and text from a document is put on one line before it is printed.
+#   - This job runs the repository's own tooling (the script, core, the lockfile) from the pull request's merge
+#     commit, so a pull request that changes anything outside community/ would have its own code run here.
+#     The first step looks for that, with git only, and when it finds any the later steps do not run: the job
+#     says so in the summary, and the owner reads those files as part of the review.
+#   - Only core is built, and install scripts do not run (--ignore-scripts).
+#
+# What the job reports is whether each document this pull request changed is valid, with the validator's own
+# lines, and the pictures are attached as an artifact. Whether the generated gallery files are current is
+# ci.yml's check; this job only says so, and fails when a generated file the pull request touches is not what
+# the generator makes.
+
+on:
+  pull_request:
+    paths:
+      - "community/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: community-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # Two commits of history: the merge commit's first parent is the base, so HEAD^1..HEAD is this pull request.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      # Git only: nothing from the pull request runs yet. Any path outside community/ (docs/community.md, which a
+      # change under community/ regenerates, aside) means the tooling may differ from the repository's. A file name
+      # with a newline in it splits into names that do not start with community/, which errs on the safe side.
+      - name: look at what the pull request touches
+        id: scope
+        run: |
+          # Into a file first, so that a failing git fails the step instead of passing as "nothing outside".
+          git diff --no-ext-diff --no-textconv --name-only --no-renames -z HEAD^1 HEAD > "$RUNNER_TEMP/changed-paths"
+          if tr '\0' '\n' < "$RUNNER_TEMP/changed-paths" | grep -v -e '^community/' -e '^docs/community\.md$' | grep -q .; then
+            echo "outside=yes" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Community submission check"
+              echo
+              echo "This pull request changes files outside \`community/\`, so this check did not build or run anything from it. The owner reads those files in the review, and \`ci.yml\` checks the documents and the generated gallery files."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "outside=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@v6
+        if: steps.scope.outputs.outside == 'no'
+
+      - uses: actions/setup-node@v7
+        if: steps.scope.outputs.outside == 'no'
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+        if: steps.scope.outputs.outside == 'no'
+      - run: pnpm --filter @grooph/core build
+        if: steps.scope.outputs.outside == 'no'
+
+      # The step fails when a document does not pass; the report is already in the summary by then.
+      # The author's login goes in through the environment, never into the script text.
+      - name: check the documents this pull request changed
+        if: steps.scope.outputs.outside == 'no'
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node scripts/community-index.mjs --report --changed HEAD^1 --pictures "$RUNNER_TEMP/community-pictures" --author "$PR_AUTHOR" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && steps.scope.outputs.outside == 'no' }}
+        with:
+          name: community-pictures
+          path: ${{ runner.temp }}/community-pictures
+          if-no-files-found: ignore
+          retention-days: 14
