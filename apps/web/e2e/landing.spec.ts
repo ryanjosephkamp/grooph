@@ -344,6 +344,35 @@ test("the fonts are files of the site, and the front page asks no other origin f
   expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toMatch(/^"?Atkinson Hyperlegible Next/);
 });
 
+test.describe("with the app installed (its service worker in control)", () => {
+  test.use({ serviceWorkers: "allow" });
+
+  test("a first visit keeps the fonts and the footer's icons, so the front page looks the same with no network", async ({ page, context }) => {
+    await page.goto("./");
+    await expect(page.locator(".land-headline")).toBeVisible();
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.replace("/grooph/", "")));
+    const kept = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "assets/site-icons.v1.svg"];
+    await expect
+      .poll(async () => {
+        const files = await held();
+        return kept.filter((file) => !files.includes(file));
+      })
+      .toEqual([]);
+
+    await context.setOffline(true);
+    const failed: string[] = [];
+    page.on("requestfailed", (r) => failed.push(r.url()));
+    await page.goto("./");
+    await expect(page.locator(".land-headline")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => Array.from(document.fonts).filter((f) => f.status === "loaded").map((f) => f.family.replace(/"/g, "")).sort())).toEqual(["Atkinson Hyperlegible Mono", "Atkinson Hyperlegible Next"]);
+    // The poster is a file of the documents, which the app's worker leaves alone; nothing of the app's own failed.
+    expect(failed.filter((url) => !url.includes("/docs/"))).toEqual([]);
+    await context.setOffline(false);
+  });
+});
+
 test("the poster of the shapes is a picture that opens it", async ({ page }) => {
   await page.goto("./");
   const poster = page.locator(".land-poster");
@@ -400,22 +429,33 @@ test.describe("link-preview image", () => {
   test("preview image", async ({ page }) => {
     await page.goto("./");
     const svg = await page.locator(".land-picture").innerHTML();
+    // Since handoff 0077 the card is the front page's hero in small: the night, the mark, the two-line headline, the site's own font.
     await page.setContent(`<!doctype html><html><head><style>
+      @font-face { font-family: "Atkinson Hyperlegible Next"; src: url("/grooph/assets/fonts/atkinson-hyperlegible-next.v1.woff2") format("woff2"); font-weight: 400 800; }
       * { box-sizing: border-box; }
-      body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #f1f4f3; color: #1a201e;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-      .wrap { display: grid; grid-template-columns: 1fr 470px; gap: 56px; height: 100%; padding: 0 0 0 80px; }
+      body { position: relative; margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #061a14; color: #edf4f0;
+        font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      body::before { content: ""; position: absolute; right: -160px; top: -320px; width: 900px; height: 900px;
+        background: radial-gradient(closest-side, #64eab726, transparent 70%); }
+      .wrap { position: relative; display: grid; grid-template-columns: 1fr 450px; gap: 56px; height: 100%; padding: 0 0 0 80px; }
       .words { align-self: center; }
-      .mark { font-size: 40px; font-weight: 760; letter-spacing: -0.03em; color: #1f5f4a; margin: 0 0 28px; }
-      h1 { font-size: 68px; line-height: 1.03; letter-spacing: -0.035em; font-weight: 760; margin: 0 0 24px; }
-      p { font-size: 25px; line-height: 1.4; color: #454c49; margin: 0; max-width: 520px; }
-      .pic { margin-top: 56px; border: 1px solid #dce1df; border-radius: 18px 0 0 0; border-right: 0; overflow: hidden;
-        box-shadow: 0 4px 24px rgb(0 0 0 / 0.08); background: #f1f4f3; }
+      .mark { display: flex; align-items: center; gap: 14px; margin: 0 0 30px; font-size: 34px; font-weight: 750; letter-spacing: -0.01em; }
+      .mark svg { width: 52px; height: 52px; }
+      .mark rect { fill: #2d423b; }
+      .mark circle { fill: #64eab7; }
+      .mark path { fill: none; stroke: #64eab7; stroke-width: 1.6; }
+      h1 { margin: 0 0 26px; font-size: 62px; line-height: 0.98; letter-spacing: -0.035em; font-weight: 800; white-space: nowrap; }
+      h1 span { display: block; color: #64eab7; }
+      p { margin: 0; max-width: 540px; color: #acbcb4; font-size: 25px; line-height: 1.4; }
+      .pic { margin-top: 56px; border-radius: 18px 0 0 0; overflow: hidden; box-shadow: 0 24px 60px -20px #000c; background: #f1f4f3; }
       .pic svg { display: block; width: 100%; height: auto; }
-    </style></head><body><div class="wrap"><div class="words"><div class="mark">grooph</div>
-      <h1>Loop graphs for coding agents.</h1>
+    </style></head><body><div class="wrap"><div class="words">
+      <div class="mark"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8.5"/><path d="M13.5 12.5 19 21M18.5 12.5 13 21M14 11h4"/><circle cx="10" cy="11" r="4"/><circle cx="22" cy="11" r="4"/><circle cx="16" cy="23" r="4"/></svg>grooph</div>
+      <h1>Loop graphs <span>for coding agents.</span></h1>
       <p>Draw the loop, check that it can end, and compile it into a package Claude Code runs.</p>
     </div><div class="pic">${svg.replace('class="grooph-picture"', 'class="grooph-picture" data-theme="light"')}</div></div></body></html>`);
+    await page.evaluate(() => document.fonts.load('800 62px "Atkinson Hyperlegible Next"'));
+    await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: join(repoRoot, "apps/web/public/og.png") });
   });
 });
