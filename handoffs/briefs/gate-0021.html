@@ -1,0 +1,203 @@
+<title>grooph Gate 0021</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column, 760px; status strip, the ask and the prompt first, then before-and-after pictures in pairs, speed, the list of slices, what went wrong. House style of handoffs/briefs. */
+:root{--bg:#f7f8f6;--surface:#ffffff;--ink:#1c2430;--ink2:#4b5563;--ink3:#7b8494;--line:#d9ded8;--accent:#2f6f8f;--accent-ink:#ffffff;--accent-soft:#dbe9f0;--warn-bg:#fbeeea;--warn-ink:#8a2e1c;--ok-bg:#e6f2ea;--ok-ink:#1f5c34;--wait-bg:#fbf3dc;--wait-ink:#6b4e00;--note-bg:#f1f3ef;--paper:#ffffff;--mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;--sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;--head:"Instrument Sans","Source Sans 3",system-ui,sans-serif}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#151a20;--surface:#1d242c;--ink:#e8ebe6;--ink2:#b3bac4;--ink3:#8a929d;--line:#323b45;--accent:#7fb6d2;--accent-ink:#10202a;--accent-soft:#233543;--warn-bg:#3a221d;--warn-ink:#f0b3a3;--ok-bg:#1f3327;--ok-ink:#a8dcb8;--wait-bg:#3a3118;--wait-ink:#ecd28a;--note-bg:#232a32;--paper:#ffffff;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding-block:24px 56px;padding-inline:16px}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2;margin:0}
+h1{font-size:1.9rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:600;margin-top:44px;padding-top:14px;border-top:2px solid var(--line)}
+h3{font-size:1.05rem;font-weight:600;margin-top:26px}
+p{margin:10px 0;max-width:68ch}
+.eyebrow{font-family:var(--head);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px}
+.meta{color:var(--ink2);font-size:.95rem}
+code{font-family:var(--mono);font-size:.86em;background:var(--note-bg);padding:1px 5px;border-radius:3px;overflow-wrap:anywhere}
+pre{background:var(--note-bg);padding:12px;border-radius:6px;overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:12px 0}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.03em;color:var(--ink2)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+ul,ol{padding-left:20px}li{margin:6px 0;max-width:68ch}
+a{color:var(--accent)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:18px 0 6px}
+.chip{border-radius:6px;padding:9px 12px;font-size:.88rem;line-height:1.35;min-width:0}
+.chip b{display:block;font-family:var(--head);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;margin-bottom:2px}
+.chip.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.chip.wait{background:var(--wait-bg);color:var(--wait-ink)}
+.chip.plain{background:var(--note-bg);color:var(--ink2)}
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 16px 8px;margin:14px 0}
+.ask li{margin:10px 0}
+.rec{color:var(--ink2);font-size:.93rem;display:block;margin-top:2px}
+.rec b{color:var(--accent);font-family:var(--head);font-weight:600;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;margin-right:4px}
+.prompt{position:relative;margin:12px 0}
+.prompt pre{padding-top:44px;border:1px solid var(--line)}
+.copy{position:absolute;top:8px;right:8px;font-family:var(--head);font-weight:600;font-size:.82rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:5px;padding:7px 14px;cursor:pointer}
+.copy:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.steps{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 16px;margin:12px 0}
+details{margin:14px 0}
+summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accent)}
+.pic{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;text-align:center}
+.pic img{max-width:100%;width:400px;height:auto}
+.cap{font-size:.84rem;color:var(--ink3);margin-top:6px}
+.small{font-size:.88rem;color:var(--ink2)}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:12px 0 4px}
+.pair.phone{grid-template-columns:repeat(auto-fit,minmax(150px,220px))}
+figure{margin:0;min-width:0}
+figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:var(--paper)}
+figcaption{font-size:.84rem;color:var(--ink2);margin-top:5px}
+figcaption b{font-family:var(--head);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;border-radius:4px;padding:1px 6px;margin-right:5px}
+figcaption b.was{background:var(--note-bg);color:var(--ink2)}
+figcaption b.now{background:var(--ok-bg);color:var(--ok-ink)}
+.chip.warn{background:var(--warn-bg);color:var(--warn-ink)}
+td.good{color:var(--ok-ink);font-weight:600}
+</style>
+
+<div class="wrap">
+<div class="eyebrow">Gate 0021 · 2026-10-04 · what was built overnight</div>
+<h1>The site is built and the app is polished. It is one pull request, and nothing is merged.</h1>
+<p class="meta">From the grooph session on your Mac (Opus 5.5). You asked for the site built out and the app polished without hurting speed. The front page is faster than it was, and nothing is slower.</p>
+
+<div class="strip">
+<div class="chip wait"><b>Open</b>#36 holds everything: the three lanes and thirteen slices on top. CI is green on all four jobs.</div>
+<div class="chip ok"><b>Front page</b>Loads 172 KB, down from 268. Paints 0.45 s sooner on a slow phone link.</div>
+<div class="chip ok"><b>Editor</b>A graph's or a template's address weighs and paints what it did on main.</div>
+<div class="chip plain"><b>Untouched</b><code>main</code> is at 0.2.5. Nothing is deployed. No study, no Codex work.</div>
+</div>
+
+<h2>What I need from you</h2>
+<div class="ask"><ol>
+<li><b>Merge #36?</b> It contains #33, #34 and #35, so one merge lands all four.
+<span class="rec"><b>Recommended</b>Yes, after the pictures below. Merge only #36: #35 fails its own browser tests (see "What went wrong"), and #36 carries the fix.</span></li>
+<li><b>Call it 0.3.0?</b> A front page, embeds, a docs site and a new way of loading are more than a patch.
+<span class="rec"><b>Recommended</b>Yes. The prompt below does it after the merge.</span></li>
+<li><b>The blog draft and the technical report.</b> Both are drafts in your name, on the site once it deploys. The post's two live embeds only work after the merge.
+<span class="rec"><b>Recommended</b>Read them on the live site, then edit the post in your own words before you link to it anywhere.</span></li>
+<li><b>This session's effort setting.</b> Its own record says extra high, and its subagents inherit that. You asked for nothing above high.
+<span class="rec"><b>Recommended</b>Lower it to high in the app, or tell me to. I did not change a setting of yours while you slept.</span></li>
+<li><b>Still waiting on your word, unchanged:</b> comparison study two, the Codex compile target, publishing the CLI to npm, and reading the other project's events here.
+<span class="rec"><b>Recommended</b>Study two first, after Monday's reset. It is the evidence the front page says is missing.</span></li>
+</ol></div>
+
+<h2>The next prompt for me</h2>
+<p class="small">If you approve. Copy it as it is, or change it.</p>
+<div class="prompt"><button class="copy" data-target="p-approve" type="button">Copy</button><pre id="p-approve">Approved. Merge pull request #36 on ryanjosephkamp/grooph into main with a merge commit and wait for CI on main; if a test fails, stop and tell me. Check that #33, #34 and #35 then show as merged, and close any that do not with a note that #36 carried them.
+
+When main is green: open and merge one small pull request that sets the version to 0.3.0 and brings docs/PROGRESS.md up to date, tag main v0.3.0 and push the tag, and check that the GitHub Pages deploy succeeded. Then open the live site and check, with the browser: the front page and its recorded run, the docs pages, the field guide, the community page, and both embeds in the blog draft. Bring Codex's folder up to date.
+
+Touch only the grooph repository. Open pull requests for any further changes and wait for my word before merging them. Do not start the Codex compile target or study two yet. Finish with a gate page like this one.</pre></div>
+
+<h2>Before and after</h2>
+<p>Every "built" picture is from the branch as it stands, on this Mac. "On main" is what the live site shows today.</p>
+
+<h3>The front page</h3>
+<p>A stranger used to land on an empty library. Now the first screen says what grooph is, with a loop graph drawn by grooph beside it. With a graph on the device, the same address is still your library.</p>
+<div class="pair"><figure><img src="gate-0021/main-front-desktop.jpg" alt="The old first screen: a heading, three buttons and the words No graphs on this device yet." loading="lazy"><figcaption><b class="was">On main</b>An empty list.</figcaption></figure><figure><img src="gate-0021/now-front-desktop.jpg" alt="The new front page: the headline Loop graphs for coding agents beside a drawn review-gate graph." loading="lazy"><figcaption><b class="now">Built</b>What it is, a real graph, two ways in.</figcaption></figure></div>
+<div class="pair phone"><figure><img src="gate-0021/main-front-phone.jpg" alt="The old first screen at phone width." loading="lazy"><figcaption><b class="was">On main</b>On a phone.</figcaption></figure><figure><img src="gate-0021/now-front-phone.jpg" alt="The new front page at phone width." loading="lazy"><figcaption><b class="now">Built</b>On a phone.</figcaption></figure></div>
+<div class="pair"><figure><img src="gate-0021/front-run-desktop.jpg" alt="The front page with the graph replaced by a replay of a recorded run, a slider under it." loading="lazy"><figcaption><b class="now">New</b>Press "Watch a recorded run" and the picture plays a real proving run. Nothing of it loads before the press.</figcaption></figure></div>
+
+<h3>Templates</h3>
+<div class="pair"><figure><img src="gate-0021/main-templates-desktop.jpg" alt="The template list on main: a single column." loading="lazy"><figcaption><b class="was">On main</b>One narrow column on a wide screen.</figcaption></figure><figure><img src="gate-0021/now-templates-desktop.jpg" alt="The template list as built: three columns of cards with glyphs." loading="lazy"><figcaption><b class="now">Built</b>A grid that uses the width.</figcaption></figure></div>
+<div class="pair"><figure><img src="gate-0021/main-template-desktop.jpg" alt="A template on main at desktop width." loading="lazy"><figcaption><b class="was">On main</b>A phone layout stretched.</figcaption></figure><figure><img src="gate-0021/now-template-desktop.jpg" alt="A template as built: canvas on the left, details in a side panel." loading="lazy"><figcaption><b class="now">Built</b>One-line top bar, the graph large, details beside it.</figcaption></figure></div>
+
+<h3>The operation map</h3>
+<div class="pair"><figure><img src="gate-0021/main-map-desktop.jpg" alt="The operation map on main: a narrow picture in the middle of a wide screen." loading="lazy"><figcaption><b class="was">On main</b>A 527 px column with empty space each side.</figcaption></figure><figure><img src="gate-0021/now-map-desktop.jpg" alt="The operation map as built: a wide picture with the list of handoffs in a side column." loading="lazy"><figcaption><b class="now">Built</b>The picture large, every handoff listed beside it.</figcaption></figure></div>
+
+<h3>Sessions, live</h3>
+<div class="pair"><figure><img src="gate-0021/before-live-desktop-light.jpg" alt="The live sessions view before: one narrow column of cards." loading="lazy"><figcaption><b class="was">On main</b>One column; ended and gone-quiet looked alike.</figcaption></figure><figure><img src="gate-0021/after-live-desktop-light.jpg" alt="The live sessions view as built: cards in a grid with counts per state above." loading="lazy"><figcaption><b class="now">Built</b>A grid; each state has its own mark and color.</figcaption></figure></div>
+
+<h3>A run</h3>
+<div class="pair"><figure><img src="gate-0021/before-run-stored-desktop-light.jpg" alt="A finished run before: the graph and a timeline." loading="lazy"><figcaption><b class="was">On main</b>Where it ended had to be read off the timeline.</figcaption></figure><figure><img src="gate-0021/after-run-stored-desktop-light.jpg" alt="A finished run as built: a banner says where it ended and the node is flagged." loading="lazy"><figcaption><b class="now">Built</b>"Ended at Done", which stop fired, and a flag on the node.</figcaption></figure></div>
+<div class="pair"><figure><img src="gate-0021/after-run-live-desktop-dark.jpg" alt="A live run in dark theme with the running node ringed and the loop highlighted." loading="lazy"><figcaption><b class="now">New</b>A run in progress, dark: a LIVE badge, and the loop at work glows.</figcaption></figure></div>
+
+<h3>New: the documents as pages, the field guide, community, embeds</h3>
+<div class="pair"><figure><img src="gate-0021/now-docs-desktop.jpg" alt="The docs index page with cards for Quickstart and the reference documents." loading="lazy"><figcaption><b class="now">New</b>The repository&#39;s documents at /grooph/docs/, built from the Markdown at deploy time.</figcaption></figure></div>
+<div class="pair"><figure><img src="gate-0021/now-guide-desktop.jpg" alt="The field guide page." loading="lazy"><figcaption><b class="now">New</b>The field guide: all twenty loop shapes, with a one-page poster.</figcaption></figure></div>
+<div class="pair"><figure><img src="gate-0021/now-community-desktop.jpg" alt="The community page listing a submitted template with its glyph." loading="lazy"><figcaption><b class="now">New</b>Community loops: sent in by pull request, checked by CI, listed here. Three seed graphs for research work.</figcaption></figure></div>
+<div class="pair phone"><figure><img src="gate-0021/now-embed-phone.jpg" alt="An embedded graph at phone width with zoom controls and an Open in grooph button." loading="lazy"><figcaption><b class="now">New</b>An embed: one line of HTML from <code>grooph embed</code>.</figcaption></figure><figure><img src="gate-0021/now-rules-phone.jpg" alt="The rule reference page at phone width." loading="lazy"><figcaption><b class="now">New</b>Every rule by its code, on a phone.</figcaption></figure></div>
+
+<h2>Speed</h2>
+<p>Sizes are what GitHub Pages sends, gzipped. Times are the browser's own first paint of content, the middle of seven cold visits, on Chrome's throttled links.</p>
+<div class="scroll"><table>
+<thead><tr><th></th><th class="num">On main</th><th class="num">Built</th></tr></thead>
+<tbody>
+<tr><td>The front page's first load</td><td class="num">267.9 KB</td><td class="num good">172.4 KB</td></tr>
+<tr><td>Front page painted, slow 4G</td><td class="num">2,032 ms</td><td class="num good">1,584 ms</td></tr>
+<tr><td>Front page painted, fast 4G</td><td class="num">512 ms</td><td class="num good">436 ms</td></tr>
+<tr><td>A template's address, first load</td><td class="num">267.9 KB</td><td class="num">270.0 KB</td></tr>
+<tr><td>A template's address painted, slow 4G</td><td class="num">2,056 ms</td><td class="num">2,064 ms</td></tr>
+<tr><td>A template's address painted, fast 4G</td><td class="num">528 ms</td><td class="num">504 ms</td></tr>
+<tr><td>An embed's first load</td><td class="num">(none)</td><td class="num">125.1 KB</td></tr>
+<tr><td>The CLI's cold start</td><td class="num">92 ms</td><td class="num">90 ms</td></tr>
+</tbody></table></div>
+<p>How: an address now loads only what it shows. The front page no longer fetches the editor's canvas library. The compiler is fetched when someone exports. CI fails any change that goes over the budget, so this cannot drift without someone deciding it should. Decision 0021 has the details.</p>
+
+<h2>What is in #36</h2>
+<div class="scroll"><table>
+<thead><tr><th>Slice</th><th>What</th><th>Built by</th></tr></thead>
+<tbody>
+<tr><td>0055</td><td>The front page, link previews, the README</td><td>Opus lane (#34)</td></tr>
+<tr><td>0056</td><td>Embeds and the replay; <code>grooph embed</code></td><td>Opus lane (#35)</td></tr>
+<tr><td>0057</td><td>Did-you-mean, short help, <code>grooph explain</code>, quickstart, rule reference</td><td>Sonnet lane (#33)</td></tr>
+<tr><td>0058</td><td>The performance budget in CI</td><td>this session</td></tr>
+<tr><td>0059</td><td>The field guide and its poster</td><td>Sonnet subagent</td></tr>
+<tr><td>0060</td><td>The documents as pages</td><td>Sonnet subagent</td></tr>
+<tr><td>0061</td><td>The editor and viewer on a desktop</td><td>Opus subagent</td></tr>
+<tr><td>0062</td><td>The map, live and run screens</td><td>Opus subagent</td></tr>
+<tr><td>0064</td><td>The blog draft and the technical report</td><td>this session</td></tr>
+<tr><td>0065</td><td>Community submissions</td><td>Sonnet subagent</td></tr>
+<tr><td>0068</td><td>The front page plays a recorded run</td><td>this session</td></tr>
+<tr><td>0069</td><td>The front page loads without the canvas</td><td>this session, with an independent read</td></tr>
+<tr><td>0070</td><td>The compiler loads on export</td><td>this session</td></tr>
+<tr><td>0063, 0066, 0067</td><td>Three small fixes to the toolkit and the embed command</td><td>this session</td></tr>
+</tbody></table></div>
+<p class="small">Each slice has a branch and a handback under <code>handoffs/</code>. 85 commits, 344 files, before this page and its pictures.</p>
+
+<h2>What went wrong, and what I did</h2>
+<ul>
+<li><b>I told you all three lanes were green. #35 was not.</b> Its browser-test job fails on its own branch: one of its tests needs a build the job never ran. I had not checked that job. #36 adds the build step.</li>
+<li><b>My timing script read up to half a second late.</b> It asked the test driver to wait, and the driver looks again at widening intervals. Two things I concluded from it are withdrawn in handback 0069. Every time on this page is from the browser's own clock.</li>
+<li><b>Two slices met badly.</b> Splitting the bundle changed the order the stylesheets load in, and the live view's grid collapsed to one column. Its own test caught it when I merged them. The order is fixed in the build now.</li>
+<li><b>A split that changed nothing passed every check.</b> The build quietly skipped its work and the budget script weighed almost nothing. Both now stop with a message.</li>
+<li><b>One commit swept in the subagents' working copies.</b> The next commit took them out. No history was rewritten.</li>
+<li><b>One builder force-pushed its own branch</b>, minutes old, that nobody had fetched. Nothing was lost. The handoff protocol now forbids it in so many words.</li>
+<li><b>A fresh reader found five defects in my front-page change</b>, one of which could have left the offline app without its editor after a cut-short visit. All five are fixed. The serious one has a test that fails without the fix.</li>
+</ul>
+
+<h2>Checked, and not checked</h2>
+<ul>
+<li><b>Checked on this Mac:</b> core 344, CLI 118 and web 59 unit tests; 160 browser tests; every step CI runs. I looked at every picture above.</li>
+<li><b>Not checked:</b> anything on the live site, since nothing deploys until <code>main</code> moves. Safari and Firefox. A real phone on the new screens. GitHub Pages' own speed.</li>
+<li><b>Not explained:</b> in two timing runs, one visit in seven to a template's address painted about 240 ms late. <code>main</code> showed none.</li>
+<li><b>Yours to judge:</b> whether the blog draft sounds like you.</li>
+</ul>
+
+<h2>What it used</h2>
+<p>All local, on this Mac. No cloud session, no Fable, no Codex. Seven subagents overnight: three on Sonnet 5.5 (field guide, docs pages, community), two on Opus 5.5 (the desktop editor; the map, live and run screens), and two independent reads on Opus 5.5. Together they used about 2.9 million tokens as the app counts them. No model was run by command, so the proving and comparison ledgers are unchanged.</p>
+
+<h2>How to undo</h2>
+<p>Nothing is merged. Closing #36 leaves <code>main</code> at 0.2.5. The tag <code>checkpoint/2026-10-04-before-the-push</code> marks <code>main</code> as it was before any of this, and stays after a merge.</p>
+</div>
+
+<script>
+document.querySelectorAll('.copy').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    var pre = document.getElementById(btn.getAttribute('data-target'));
+    var text = pre.textContent;
+    function done() { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1600); }
+    function fallback() {
+      try {
+        var range = document.createRange(); range.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        if (document.execCommand('copy')) { sel.removeAllRanges(); done(); } else { btn.textContent = 'Selected: copy it'; }
+      } catch (e) { btn.textContent = 'Select and copy'; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else { fallback(); }
+  });
+});
+</script>

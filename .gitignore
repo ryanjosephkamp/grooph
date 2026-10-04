@@ -17,3 +17,6 @@ experiments/log/*/local/
 
 # what the event hook records on this machine (docs/subagents.md): sessions seen here, not shared
 .grooph/events/
+
+# working copies the driver session makes for its subagents
+.claude/worktrees/

@@ -1,0 +1,97 @@
+{
+  "site": {
+    "url": "https://ryanjosephkamp.github.io/grooph/",
+    "repo": "https://github.com/ryanjosephkamp/grooph",
+    "branch": "main"
+  },
+  "intro": "The documents that ship with grooph, rendered for reading. Each page is a file in the repository, linked at its foot.",
+  "groups": [
+    {
+      "id": "start",
+      "title": "Start",
+      "entries": [
+        {
+          "source": "docs/quickstart.md",
+          "slug": "quickstart",
+          "summary": "Install grooph, then ask your agent for a graph or build one by hand."
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "entries": [
+        {
+          "source": "docs/rules.md",
+          "slug": "rules",
+          "summary": "Every validation rule by its stable code, with a document that fires it and one that does not."
+        },
+        {
+          "source": "docs/graph-ir.md",
+          "slug": "graph-ir",
+          "summary": "The graph document: its schema, what it means, and the rules it must follow."
+        },
+        {
+          "source": "docs/templates.md",
+          "slug": "templates",
+          "summary": "Templates, registries and the pattern library, and how to use or save one."
+        },
+        {
+          "source": "docs/operation-map.md",
+          "slug": "operation-map",
+          "summary": "The second kind of document, for work that spans sessions, harnesses and accounts."
+        },
+        {
+          "source": "docs/exports.md",
+          "slug": "exports",
+          "summary": "The picture, the outline and the offline page: what grooph draws from a document."
+        },
+        {
+          "source": "docs/subagents.md",
+          "slug": "subagents",
+          "summary": "How subagents and hooks work in Claude Code and in Codex, what is documented and what was observed, and the live view built on them."
+        },
+        {
+          "source": "docs/runs.md",
+          "slug": "runs",
+          "summary": "Run folders, notes back, adopting a run's working copy, and the monitor."
+        }
+      ]
+    },
+    {
+      "id": "field-guide",
+      "title": "Field guide",
+      "entries": [
+        {
+          "source": "docs/field-guide.md",
+          "slug": "field-guide",
+          "summary": "Every template as a shape, with when to use it and what its recorded run showed."
+        },
+        {
+          "source": "docs/community.md",
+          "slug": "community",
+          "summary": "Loop graphs other people have sent in by pull request, each checked and drawn by CI."
+        }
+      ]
+    },
+    {
+      "id": "writing",
+      "title": "Writing",
+      "entries": [
+        {
+          "glob": "docs/blog/*.md",
+          "slugPrefix": "blog/",
+          "id": "blog",
+          "label": "Blog",
+          "order": "newest"
+        },
+        {
+          "glob": "docs/report/*.md",
+          "slugPrefix": "report/",
+          "id": "reports",
+          "label": "Reports"
+        }
+      ]
+    }
+  ]
+}

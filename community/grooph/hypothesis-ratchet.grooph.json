@@ -1,0 +1,202 @@
+{
+  "grooph": 0,
+  "id": "hypothesis-ratchet",
+  "name": "Hypothesis ratchet",
+  "version": 1,
+  "goal": "{{task}} Done when the kept result reaches {{target}} on cases the proposer never saw, or when further rounds stop keeping anything.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "template": {
+    "kind": "graph",
+    "title": "Hypothesis ratchet",
+    "summary": "A proposer tries one change per round, a judge scores it on held-out cases the proposer never sees, and only a change that beats the last kept score is kept; the loop ends when gains stop.",
+    "whenToUse": "Something can be improved against a score you can run (a prompt, a heuristic, a parameter set), held-out cases exist, and each change is small enough to keep or discard whole.",
+    "notFor": "Work with no score to compute or no held-out cases: a ratchet on a score the proposer can see only learns the score.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "task",
+        "ask": "What should be improved, and by what measure? One or two sentences.",
+        "example": "Raise the pass rate of the ticket-triage prompt in prompts/triage.md on the sorting task."
+      },
+      {
+        "key": "eval-command",
+        "ask": "Which command runs the current version on the held-out cases and prints only the aggregate score?",
+        "example": "node eval/run-heldout.js prompts/triage.md"
+      },
+      {
+        "key": "heldout",
+        "ask": "Which folder holds the held-out cases the proposer must never open?",
+        "example": "eval/heldout/"
+      },
+      {
+        "key": "target",
+        "ask": "What held-out score is good enough to stop at?",
+        "example": "a pass rate of 0.90"
+      }
+    ],
+    "tags": [
+      "research",
+      "ratchet",
+      "held-out",
+      "diminishing-returns",
+      "not-proved"
+    ]
+  },
+  "description": "A proposer, which never sees the held-out cases, makes one change per round and says why it should help. A judge in its own context runs the held-out cases, keeps the change only if its score strictly beats the last kept score, and records scores, never case contents, for the next round. A discarded change is undone before the next proposal and is not tried again. The loop ends when the kept result reaches the target, or when rounds stop keeping anything, and then the run goes on to Done with the best result kept. Not proved: no proving run has been recorded for this template.",
+  "nodes": [
+    {
+      "id": "proposer",
+      "kind": "agent",
+      "name": "Proposer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Propose one change to the subject of the task that you expect to raise its score, make it, and say in HYPOTHESIS.md what you changed and why you expect it to help. Start from the last kept version in KEPT.md: if the last round was discarded, undo that change first, and do not retry a hypothesis ROUND.md lists as discarded. Never open {{heldout}}; the scores in KEPT.md and ROUND.md are all you see of it.",
+      "inputs": [
+        "the task",
+        "KEPT.md (from round 1 on)",
+        "ROUND.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, one hypothesis only",
+        "HYPOTHESIS.md: what changed and why it should help"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "judge",
+      "kind": "agent",
+      "name": "Held-out judge",
+      "role": "judge",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Run `{{eval-command}}` on the change and compare its score with the last kept score in KEPT.md; on the first round the score to beat is the unchanged starting version's. Keep the change only if its score strictly beats that: then write it into KEPT.md as the new kept result, otherwise leave KEPT.md alone, and either way record the score and the outcome in ROUND.md, as scores only and never the contents of a held-out case. Verdict pass when the kept score meets {{target}}, fail otherwise; you judge, you do not fix.",
+      "inputs": [
+        "the change as the proposer left it",
+        "{{heldout}}",
+        "KEPT.md (from round 1 on)"
+      ],
+      "outputs": [
+        "KEPT.md: the last kept version, its score and what changed",
+        "ROUND.md: each round's score, whether it was kept, and every discarded hypothesis, scores only",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-commands"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-proposer-judge",
+      "from": "proposer",
+      "to": "judge",
+      "evidence": [
+        "the repository as the change leaves it, read-only",
+        "HYPOTHESIS.md",
+        "KEPT.md"
+      ]
+    },
+    {
+      "id": "e-judge-fail",
+      "from": "judge",
+      "to": "proposer",
+      "when": "fail",
+      "evidence": [
+        "KEPT.md",
+        "ROUND.md"
+      ]
+    },
+    {
+      "id": "e-judge-pass",
+      "from": "judge",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "ratchet",
+      "name": "Ratchet",
+      "members": [
+        "proposer",
+        "judge"
+      ],
+      "back": [
+        "e-judge-fail"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Held-out score",
+        "inspects": [
+          {
+            "kind": "artifact",
+            "ref": "output of {{eval-command}}"
+          },
+          {
+            "kind": "artifact",
+            "ref": "KEPT.md"
+          }
+        ],
+        "acceptance": "The kept result reaches {{target}} on the held-out cases, as the judge's own run of `{{eval-command}}` shows.",
+        "aspiration": "The highest held-out score further rounds could reach."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "diminishing-returns",
+          "rounds": 2,
+          "metric": "rounds that keep a new best",
+          "then": "done"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 12
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

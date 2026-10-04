@@ -1,27 +1,66 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/review-gate-dark.svg" />
+    <img src="docs/assets/review-gate-light.svg" width="400" alt="A grooph loop graph: a builder and a critic loop for at most four rounds, a person approves the merge, then the work stops." />
+  </picture>
+</p>
+
 # grooph 💮
 
-Design multi-agent loop graphs. Validate them. Compile them into a prompt package your coding harness can run.
+**Loop graphs for coding agents.** You, or an agent working with you, draw who builds, who checks, where a person decides and when the work stops.
+grooph checks that every loop can end and every critic can actually inspect something, then compiles the graph into a prompt package for Claude Code.
+Your harness runs the package. grooph never runs an agent, never calls a model, and keeps your graphs on your device.
 
-grooph is an **authoring and compilation surface**, not a runtime. You (or an agent working with you) design a graph of agents, gates, checks, loops, bars and stops. grooph checks that every loop can end and every critic can actually inspect something, then emits a package in the native units of the harness you chose. Claude Code is the target that exists today; Codex is planned second. The harness runs the work. Afterwards, notes about what happened attach back onto the graph as proposals, never as silent rewrites.
+**Open the app:** [ryanjosephkamp.github.io/grooph](https://ryanjosephkamp.github.io/grooph/). It works on a phone, needs no account, and opens offline once it has been opened online.
 
-## What it is
+## Quickstart
 
-- **One graph document.** Small enough for a model to read and rewrite in one pass. Diffable, validatable, versioned.
-- **Human views of it.** A draggable canvas with form-based panels for every node, edge and loop, built phone first; and an outline that reads the whole graph top to bottom, every brief in full.
-- **Things to keep.** The whole graph as a picture with its words on it (SVG or PNG, light or dark, laid out for a phone), and one offline HTML file that holds the graph and a viewer and needs no network. The app itself installs to a phone's home screen and opens with no network once it has been opened with one. [`docs/exports.md`](docs/exports.md)
-- **A validator** that refuses to export loops without stops, taste loops without bars, critics that share the builder's context, coupled artifacts with two owners, and irreversible actions without a human gate.
-- **A compiler** that emits lead brief, per-node briefs, loop policy, evidence rules, human-gate list and a progress-log contract in the target harness's own units.
-- **Operation maps.** A second, smaller document for work that spans sessions: which sessions exist (harness, account, machine, model, role), the people they work with, and what carries work between them (a branch, a pull request, a message, a notification, a person). Drawn and checked, never run. [`docs/operation-map.md`](docs/operation-map.md)
-- **A live view of subagents.** A hook that appends one line when a session or a subagent starts or stops, in Claude Code and in Codex, and a screen that shows what is running now. `grooph events push` sends that record to a git branch of its own, so another machine can read it and no pull request carries it. A session not heard from for half an hour is shown as last seen, not as working. It records ids, names and times, never what an agent said, and it cannot steer. [`docs/subagents.md`](docs/subagents.md)
-- **A pattern library** of named loop shapes (grind loop, review gate, spec-then-loop, metric sandwich, specialist critic bank, …). Gauntlet-style polish is one template among them, never the default.
-- **An agent surface.** A CLI and a skill (`/grooph-design`) so a Claude Code session can propose two or three candidate graphs for your goal, build them in grooph, and show you the comparison. A small MCP server (`grooph mcp`) lets a session declare the subagents it plans to start, leave a note, ask what is running, and validate a document. The Codex compile target is planned, not built yet.
+You need Node 22 or later, pnpm and git. This makes a graph from a template, checks it, draws it, and writes the package Claude Code runs:
+
+```bash
+git clone https://github.com/ryanjosephkamp/grooph.git && cd grooph
+pnpm install && pnpm -r build && scripts/install-local.sh
+grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass ten times in a row" --set test-command="pnpm test checkout" --out flaky.grooph.json
+grooph validate --for-export flaky.grooph.json
+grooph image flaky.grooph.json --out flaky.png
+grooph export flaky.grooph.json --target claude-code --into .
+```
+
+`scripts/install-local.sh` links `grooph` into `~/.local/bin` and the `grooph-design` skill into `~/.claude/skills/`. It prints what it will touch first, and `--uninstall` removes both links. `grooph export` prints the kickoff prompt to paste into a Claude Code session opened in that folder. Run it in your own project with `--into <your project>`.
+
+## Ask your agent
+
+With grooph installed, describe the work to Claude Code:
+
+```text
+/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging
+```
+
+The session proposes one to three validated graphs, from the templates or from scratch. It gives you a link that opens a side-by-side comparison on your phone, and it places the package you pick. It does not start the run until you say so. You can also install the skill as a plugin: [`plugins/grooph/README.md`](plugins/grooph/README.md).
 
 ## What it is not
 
-Not an automation canvas with connectors. Not a hosted studio that executes the graph. Not a replacement for your harness, your editor or git.
+It is not an automation canvas with connectors, and it is not a hosted studio that executes the graph. It does not replace your harness, your editor or git. Claude Code is the only compile target today. The Codex target is planned.
 
 ## Status
 
-Early. What is shown so far: a package holds a design as a runtime contract in Claude Code, bounds the work (gates, budgets, round caps) and leaves a record a monitor can read. What is not shown: better output than the same design given as plain prose, on small tasks ([decision 0013](docs/decisions/0013-value-as-of-study-one.md)). Read [`docs/PROGRESS.md`](docs/PROGRESS.md) for where things stand and [`docs/PLAN.md`](docs/PLAN.md) for the staged plan. The product contract is [`spec/capability-spec.md`](spec/capability-spec.md) plus [`spec/AMENDMENTS.md`](spec/AMENDMENTS.md).
+Early, version 0.2.5. Twenty templates have each been proven in a recorded run, and one paired comparison has been made. On that evidence, grooph is shown to bound and record autonomous work and to hold a design as a runtime contract. It is not shown to raise quality over the same instructions given as a prompt, on small tasks ([decision 0013](docs/decisions/0013-value-as-of-study-one.md)). [`docs/PROGRESS.md`](docs/PROGRESS.md) says where things stand, and [`docs/PLAN.md`](docs/PLAN.md) has the staged plan.
 
-Agents entering this repo start at [`AGENTS.md`](AGENTS.md).
+## Docs
+
+The same documents as pages: [ryanjosephkamp.github.io/grooph/docs/](https://ryanjosephkamp.github.io/grooph/docs/).
+
+- **Quickstart**: [`docs/quickstart.md`](docs/quickstart.md). **Every rule, by its code**, with a document that fires it: [`docs/rules.md`](docs/rules.md).
+- **The field guide**: all twenty loop shapes, each with its picture, when to use it and what its recorded run showed, and [a one-page poster](docs/field-guide/poster.svg): [`docs/field-guide.md`](docs/field-guide.md).
+- **The graph document**, its schema and every validation rule with its code: [`docs/graph-ir.md`](docs/graph-ir.md).
+- **Templates and the pattern library**, twenty named loop shapes (grind loop, review gate, spec then loop, metric sandwich, …): [`docs/templates.md`](docs/templates.md), [`patterns/`](patterns/).
+- **The Claude Code target**, what a package holds and how a session runs it: [`docs/targets/`](docs/targets/).
+- **Proposals and share links**, which the `/grooph-design` skill uses: [`docs/executive.md`](docs/executive.md).
+- **Runs**, including run folders, notes back onto the graph, and the monitor: [`docs/runs.md`](docs/runs.md).
+- **Things to keep**: the picture, the outline and the one-file offline page. **Embedding**: one line of HTML that shows a live graph, or a recorded run that plays, on any page (`grooph embed`). See [`docs/exports.md`](docs/exports.md).
+- **Operation maps**, for work that spans sessions, harnesses and accounts. They are drawn and checked, never run: [`docs/operation-map.md`](docs/operation-map.md).
+- **The live view of subagents**, from a hook that records ids, names and times, never content, and cannot steer: [`docs/subagents.md`](docs/subagents.md).
+- **Community**: loop graphs sent in by pull request, checked and drawn by CI: [`community/`](community/README.md), [`docs/community.md`](docs/community.md).
+- **The product contract**: [`spec/capability-spec.md`](spec/capability-spec.md) with [`spec/AMENDMENTS.md`](spec/AMENDMENTS.md).
+
+Agents entering this repository start at [`AGENTS.md`](AGENTS.md). MIT licensed.

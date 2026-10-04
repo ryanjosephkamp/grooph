@@ -12,7 +12,7 @@ import { templateAdd, templateInsert, templateList, templateSave, templateShow, 
 export const TEMPLATE_USAGE = `Usage
   grooph template list [--json] [--registry <url>]
   grooph template show <name> [--json] [--registry <url>]
-  grooph template use <name> --name <graph name> [--set key=value …] [--out <file>] [--force]
+  grooph template use <name> [--name <graph name>] [--set key=value …] [--out <file>] [--force]
   grooph template insert <name> --into <file> [--set key=value …] [--prefix <p>] [--write]
   grooph template save <file> --id <id> --title <t> --summary <s> --when <w>
                        [--fragment --nodes a,b,c] [--to project|user] [--force]
@@ -29,9 +29,10 @@ holding one), or else the published library (${"$"}GROOPH_REGISTRY overrides it)
            its pre-drawn glyph where the registry keeps one (grooph glyph draws any other).
   show     One template: summary, when to use and not, profile, slots with their questions,
            nodes, edges and loops.
-  use      A new graph from a whole-graph template: slots filled from --set, a new id and name,
-           version 1, lineage naming the template. Prints the document, or writes --out
-           (never over a file without --force). Questions for unfilled slots go to stderr.
+  use      A new graph from a whole-graph template: slots filled from --set, a new id and name
+           (--name, else the template's title), version 1, lineage naming the template. At a
+           terminal it writes <id>.grooph.json here; piped, it prints the document. --out writes
+           that file (never over a file without --force). Questions for unfilled slots go to stderr.
   insert   Add a template's nodes, edges, loops and policies to a graph, renaming ids that
            collide (or prefixing them all with --prefix) and printing where each id landed.
            Nothing is connected to the graph's nodes. Dry run unless --write.
@@ -39,7 +40,10 @@ holding one), or else the published library (${"$"}GROOPH_REGISTRY overrides it)
            and write it to the project (default) or user folder, refreshing its index.json.
            Replacing an existing template needs --force and bumps its version.
   add      Copy a template from a remote registry (by name) or a URL into the project
-           (default) or user folder, so it resolves locally from then on.`;
+           (default) or user folder, so it resolves locally from then on.
+
+Example
+  grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass" --out flaky.grooph.json`;
 
 type Outcome = number | { usage: string };
 
@@ -97,11 +101,11 @@ export async function templateCommand(io: Output, argv: string[], env: RegistryE
         },
       });
       const name = positionals[0];
-      if (name === undefined) return { usage: "template use needs a template name: grooph template use <name> --name <graph name>" };
+      if (name === undefined) return { usage: "template use needs a template name: grooph template use <name> (grooph template list shows them)" };
       const graphName = values.name;
-      if (graphName === undefined || graphName.trim() === "") return { usage: `template use needs --name, the new graph's name: grooph template use ${name} --name "<graph name>"` };
+      if (graphName !== undefined && graphName.trim() === "") return { usage: `--name needs the new graph's name: grooph template use ${name} --name "<graph name>"` };
       return templateUse(io, env, name, {
-        name: graphName,
+        ...(graphName !== undefined ? { name: graphName } : {}),
         sets: list(values.set),
         ...(values.out !== undefined ? { out: values.out } : {}),
         force: values.force === true,

@@ -53,6 +53,8 @@ handoffs/briefs/  sources of the gate briefs published as Artifacts, with their 
 packages/    core (schema, validate, compile, pictures, events) · cli (commands, the event hook, the MCP server)
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
+community/   loop graphs sent in by pull request; a generated index, pictures and gallery (docs/community.md)
+scripts/     generators with --check (patterns index, rule reference, field guide, community index, site pages), the proving and comparison runners, the performance budget
 fixtures/    graphs per error code, golden packages; operation maps per map rule, with the sample
 experiments/ paired harness runs (later)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin

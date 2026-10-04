@@ -1,5 +1,5 @@
 import type { Edge as DocEdge, Severity } from "@grooph/core";
-import { EdgeLabelRenderer, useInternalNode, type Edge, type EdgeProps, type InternalNode } from "@xyflow/react";
+import { ViewportPortal, useInternalNode, type Edge, type EdgeProps, type InternalNode } from "@xyflow/react";
 import { memo, useContext } from "react";
 
 import { EditorContext } from "../editorContext.js";
@@ -89,7 +89,8 @@ export const GraphEdge = memo(function GraphEdge({ id, source, target, data }: E
       <path d={g.path} className="gedge-hit" fill="none" strokeWidth={26} stroke="transparent" />
       <path d={g.path} className="gedge-line" fill="none" />
       <path d={arrow} className="gedge-arrow" />
-      <EdgeLabelRenderer>
+      {/* The portal that follows the nodes in the document, not the one before them: Tab goes through the nodes, then their edges. */}
+      <ViewportPortal>
         <button
           type="button"
           className={`gedge-label nodrag nopan${quiet ? " is-quiet" : ""}${data.selected ? " is-selected" : ""}${
@@ -107,7 +108,7 @@ export const GraphEdge = memo(function GraphEdge({ id, source, target, data }: E
           {quiet ? "" : text}
           {edge.approval ? <span className="gedge-approval">approval</span> : null}
         </button>
-      </EdgeLabelRenderer>
+      </ViewportPortal>
     </g>
   );
 });

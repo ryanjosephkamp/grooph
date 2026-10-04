@@ -1,30 +1,43 @@
 /**
  * Export: the package `compile()` emits, untouched, zipped at the paths the
  * target profile gives. Refusal carries the same issue list the CLI prints.
+ *
+ * The compiler is fetched when a person first exports (slice 0070). It is a seventh of core as the app carries
+ * it, and no screen needs it to open; the refusal is the validator's and needs none of it.
  */
-import {
-  KNOWN_TARGETS,
-  canonicalize,
-  parseGraph,
-  tryCompile,
-  type CompileResult,
-  type CompileTarget,
-  type Graph,
-  type Issue,
-} from "@grooph/core";
+import { KNOWN_TARGETS, canonicalize, parseGraph, validate, type CompileResult, type CompileTarget, type Graph, type Issue } from "@grooph/core";
 import { strToU8, zipSync, type Zippable } from "fflate";
 
 export type ExportAttempt =
   | { ok: true; target: CompileTarget; result: CompileResult }
   | { ok: false; target: string; reason: "schema" | "rules"; issues: Issue[] };
 
-/** `claude-code` is the only compile target today; any other harness fails `E_NO_TARGET` in the validator. */
-export function attemptExport(doc: Graph): ExportAttempt {
+type Compiler = typeof import("@grooph/core/compile");
+let compiler: Compiler | undefined;
+let asked: Promise<Compiler> | undefined;
+
+/** Fetch the compiler, once. The editor asks for it soon after it opens, so the Export panel seldom waits. */
+export function loadCompiler(): Promise<Compiler> {
+  return (asked ??= import("@grooph/core/compile").then((m) => (compiler = m)));
+}
+
+/** Whether the compiler is here, so `attemptExport` can answer for a graph that validates. */
+export const compilerHere = (): boolean => compiler !== undefined;
+
+/**
+ * `claude-code` is the only compile target today; any other harness fails `E_NO_TARGET` in the validator.
+ * `undefined` when the graph validates and the compiler has not arrived yet (`loadCompiler`).
+ */
+export function attemptExport(doc: Graph): ExportAttempt | undefined {
   const harness = doc.target?.harness;
   const target = (harness !== undefined && KNOWN_TARGETS.includes(harness) ? harness : "claude-code") as CompileTarget;
   const parsed = parseGraph(doc);
   if (!parsed.doc) return { ok: false, target: harness ?? "(none)", reason: "schema", issues: parsed.issues };
-  const attempt = tryCompile(parsed.doc, target);
+  // The same check the compiler opens with, so a refusal reads the same whether or not the compiler is here.
+  const issues = validate(parsed.doc, { forExport: true });
+  if (issues.some((issue) => issue.severity === "error")) return { ok: false, target: harness ?? "(none)", reason: "rules", issues };
+  if (!compiler) return undefined;
+  const attempt = compiler.tryCompile(parsed.doc, target);
   return attempt.ok
     ? { ok: true, target, result: attempt.result }
     : { ok: false, target: harness ?? "(none)", reason: "rules", issues: attempt.issues };

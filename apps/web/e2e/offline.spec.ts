@@ -64,3 +64,60 @@ test("once opened with a network, it opens with none: the library, the templates
   const [response] = await Promise.all([page.waitForResponse((r) => r.url().endsWith("/grooph/") && r.request().isNavigationRequest()), page.goto("./")]);
   expect(response.status()).toBe(200);
 });
+
+test("a first visit that saw only the front page still opens a template with no network", async ({ page, context }) => {
+  // Slice 0069: the front page loads without the screens that draw on the canvas. The worker keeps them all the same:
+  // it reads their names from the page when it installs, before it takes control, whether or not the page has asked.
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  const held = await page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.split("/").pop()!));
+  for (const file of [/^index-.*\.js$/, /^App-.*\.js$/, /^share-.*\.js$/, /^screens-.*\.js$/, /^styles-.*\.css$/, /^base-.*\.css$/]) {
+    expect(held.filter((name) => file.test(name)), String(file)).toHaveLength(1);
+  }
+
+  await context.setOffline(true);
+  const failed: string[] = [];
+  page.on("requestfailed", (r) => failed.push(r.url()));
+  await page.goto("./#/templates/built-in/review-gate");
+  await page.reload();
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  expect(failed).toEqual([]);
+});
+
+test("a page that names files the worker does not hold has them fetched, though the page never asks", async ({ page, context }) => {
+  // What a new deploy looks like to a returning visitor: the page arrives, and its files are not in the cache.
+  await page.goto("./");
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/(screens|App)-[^/]*\.js$/.test(r.url)).length);
+  await expect.poll(held).toBe(2);
+  await page.evaluate(async () => {
+    const cache = await caches.open("grooph-app-v1");
+    for (const r of await cache.keys()) if (/\/assets\/(screens|App)-[^/]*\.js$/.test(r.url)) await cache.delete(r);
+  });
+  expect(await held()).toBe(0);
+
+  // The next visit runs no script at all, as one that ends before the app has started: only the worker can fetch them.
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setScriptExecutionDisabled", { value: true });
+  await page.reload();
+  await expect(page.locator("#root")).toBeEmpty();
+  await expect.poll(held).toBe(2);
+});
+
+test("the exporter is kept too: after a visit that saw only the front page, a graph exports with no network", async ({ page, context }) => {
+  // Slice 0070: the compiler is fetched when a person exports. No address asks for it, but the page names it,
+  // and the worker keeps what a page names.
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  expect(await page.evaluate(() => performance.getEntriesByType("resource").some((e) => /\/assets\/compile-/.test(e.name)))).toBe(false);
+
+  await context.setOffline(true);
+  await page.reload();
+  await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
+  await expect(node(page, "builder")).toBeVisible();
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const [zip] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download package (.zip)" }).tap()]);
+  expect(zip.suggestedFilename()).toBe("review-loop-claude-code.zip");
+});

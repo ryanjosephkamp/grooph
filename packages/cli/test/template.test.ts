@@ -264,8 +264,8 @@ test("use refuses a fragment, a misspelt slot and a missing --name", async () =>
     assert.ok(!existsSync(join(box.dir, "x.json")), "nothing written");
 
     const noName = capture();
-    assert.equal(await grooph(box, ["template", "use", "grind-loop"], noName), 1);
-    assert.match(text(noName.stderr), /needs --name/);
+    assert.equal(await grooph(box, ["template", "use", "grind-loop", "--name", " "], noName), 1);
+    assert.match(text(noName.stderr), /--name needs/);
   } finally {
     box.cleanup();
   }
@@ -487,13 +487,13 @@ test("template help and unknown subcommands", async () => {
   try {
     const help = capture();
     assert.equal(await grooph(box, ["template", "help"], help), 0);
-    assert.match(text(help.stdout), /grooph template use <name> --name <graph name>/);
+    assert.match(text(help.stdout), /grooph template use <name> \[--name <graph name>\]/);
     // `grooph <command> --help`, as the overview promises, on every subcommand (0009 handback, D7).
     for (const sub of ["list", "show", "use", "insert", "save", "add"]) {
       for (const flag of ["--help", "-h"]) {
         const io = capture();
         assert.equal(await grooph(box, ["template", sub, flag], io), 0, `template ${sub} ${flag} exits 0`);
-        assert.match(text(io.stdout), /grooph template use <name> --name <graph name>/);
+        assert.match(text(io.stdout), /grooph template use <name> \[--name <graph name>\]/);
         assert.deepEqual(io.stderr, [], `template ${sub} ${flag} prints no error`);
       }
     }
@@ -502,7 +502,7 @@ test("template help and unknown subcommands", async () => {
     assert.match(text(unknown.stderr), /unknown template command "fetch"/);
     const top = capture();
     await run(["help"], top);
-    assert.match(text(top.stdout), /grooph template list \| show \| use \| insert \| save \| add/);
+    assert.match(text(top.stdout), /template +list, show and use ready-made graphs/);
   } finally {
     box.cleanup();
   }

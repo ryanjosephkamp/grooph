@@ -24,3 +24,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0018 | [A push is never dropped without a sign](0018-a-push-is-never-dropped-without-a-sign.md) |
 | 0019 | [What leaves a machine](0019-what-leaves-a-machine.md) |
 | 0020 | [A turn that is open is sent as open](0020-a-turn-that-is-open.md) |
+| 0021 | [An address loads what it shows, under a budget CI enforces](0021-what-an-address-loads.md) |

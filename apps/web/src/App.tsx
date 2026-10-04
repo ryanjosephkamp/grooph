@@ -1,25 +1,50 @@
 import { sharePayloadFrom } from "@grooph/core";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 
 import type { TemplateSource } from "./doc/templates.js";
 import "./store/persist.js";
-import { EditorScreen } from "./ui/Editor.js";
+import { Landing } from "./ui/landing/Landing.js";
 import { Library } from "./ui/Library.js";
-import { LiveSessions } from "./ui/live/LiveSessions.js";
-import { OpenScreen } from "./ui/open/OpenScreen.js";
-import { LiveRun, StoredRun } from "./ui/run/RunScreens.js";
 import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
-import { TemplateView } from "./ui/templates/TemplateView.js";
-import { UseTemplate } from "./ui/templates/UseTemplate.js";
+
+/** The embed, fetched only when a route asks for it (slice 0056 keeps it out of the app's own load). */
+const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ default: m.EmbedApp })));
+
+/**
+ * The screens that draw on the canvas (slice 0069): one module, fetched when an address first shows one. The front
+ * page, the library and the template list above are all the app loads to begin with.
+ *
+ * Held here and not behind `lazy`: main.tsx fetches the module before the first render when the address opens on
+ * one of these screens, so such an address never shows a fallback first, and React has none to hold content behind.
+ */
+type Screens = typeof import("./ui/screens.js");
+let screens: Screens | undefined;
+let asked: Promise<Screens> | undefined;
+
+/**
+ * Fetch the canvas screens, once. A browser may remember a module fetch that failed for as long as the page lives,
+ * so a failure is not tried again here: the screen that needed it offers to load the page again.
+ */
+export function loadScreens(): Promise<Screens> {
+  return (asked ??= import("./ui/screens.js").then((m) => (screens = m)));
+}
+
+/** Whether an address opens on a screen that draws on the canvas. */
+export function needsScreens(hash: string): boolean {
+  return !LIGHT.has(parse(hash).name);
+}
+const LIGHT = new Set<Route["name"]>(["library", "about", "templates", "embed"]);
 
 type Route =
   | { name: "library" }
+  | { name: "about" }
   | { name: "graph"; key: string; fresh: boolean }
   | { name: "open"; payload: string; candidate?: string }
   | { name: "live-run" }
   | { name: "live" }
   | { name: "run"; key: string }
   | { name: "templates" }
+  | { name: "embed" }
   | { name: "template"; source: TemplateSource; id: string; use: boolean };
 
 /**
@@ -49,7 +74,9 @@ function parse(hash: string): Route {
   if (hash === "#/live") return { name: "live" };
   const run = /^#\/run\/([^?]+)$/.exec(hash);
   if (run) return { name: "run", key: decodeKey(run[1]!) };
+  if (hash === "#/about") return { name: "about" };
   if (hash === "#/templates") return { name: "templates" };
+  if (hash === "#/embed" || hash.startsWith("#/embed?")) return { name: "embed" };
   const template = /^#\/templates\/(built-in|yours)\/([^/?]+)(\/use)?$/.exec(hash);
   if (template) return { name: "template", source: template[1] as TemplateSource, id: decodeKey(template[2]!), use: template[3] !== undefined };
   const graph = /^#\/g\/([^/?]+)(\?new)?$/.exec(hash);
@@ -71,22 +98,61 @@ export function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+  // Once the first screen is up, fetch the canvas screens, so the next one opens at once.
+  const [fetched, setFetched] = useState<"yes" | "no" | "failed">(screens ? "yes" : "no");
+  useEffect(() => {
+    if (fetched !== "no") return;
+    let gone = false;
+    loadScreens().then(
+      () => !gone && setFetched("yes"),
+      () => !gone && setFetched("failed"),
+    );
+    return () => {
+      gone = true;
+    };
+  }, [fetched]);
 
+  if (route.name === "about") return <Landing />;
+  if (route.name === "templates") return <TemplatesScreen />;
+  if (route.name === "library") {
+    return (
+      <Library
+        open={(key, fresh) => {
+          location.hash = `#/g/${encodeURIComponent(key)}${fresh ? "?new" : ""}`;
+        }}
+      />
+    );
+  }
+  // Reached from inside the app (a page opened on `#/embed` is drawn by main.tsx without the app at all): the embed
+  // is fetched then, so the app itself never carries it.
+  if (route.name === "embed") {
+    return (
+      <Suspense fallback={null}>
+        <EmbedApp />
+      </Suspense>
+    );
+  }
+  if (!screens) {
+    // Reached only from a lighter screen, in the moment before the module lands.
+    if (fetched !== "failed") return <div className="loading">Opening…</div>;
+    return (
+      <div className="notfound">
+        <p>This screen could not be fetched. It needs a connection the first time.</p>
+        <button type="button" className="btn btn-primary" onClick={() => location.reload()}>
+          Load the page again
+        </button>
+        <a className="btn" href="#/">
+          Back to the library
+        </a>
+      </div>
+    );
+  }
+  const { EditorScreen, LiveRun, LiveSessions, OpenScreen, StoredRun, TemplateView, UseTemplate } = screens;
   if (route.name === "graph") return <EditorScreen key={route.key} graphKey={route.key} fresh={route.fresh} />;
   if (route.name === "open") return <OpenScreen payload={route.payload} candidate={route.candidate} />;
   if (route.name === "live-run") return <LiveRun />;
   if (route.name === "live") return <LiveSessions />;
   if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
-  if (route.name === "templates") return <TemplatesScreen />;
-  if (route.name === "template") {
-    const key = `${route.source}/${route.id}`;
-    return route.use ? <UseTemplate key={key} source={route.source} id={route.id} /> : <TemplateView key={key} source={route.source} id={route.id} />;
-  }
-  return (
-    <Library
-      open={(key, fresh) => {
-        location.hash = `#/g/${encodeURIComponent(key)}${fresh ? "?new" : ""}`;
-      }}
-    />
-  );
+  const key = `${route.source}/${route.id}`;
+  return route.use ? <UseTemplate key={key} source={route.source} id={route.id} /> : <TemplateView key={key} source={route.source} id={route.id} />;
 }

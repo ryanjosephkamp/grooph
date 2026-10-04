@@ -32,6 +32,7 @@ import { templateRefusal, type TemplateRefusal } from "../doc/templates.js";
 import { listRuns, saveRun } from "../store/runs.js";
 import { saveUserTemplate } from "../store/templates.js";
 import { Glyph, hasLongGlyph } from "./Glyph.js";
+import { Landing } from "./landing/Landing.js";
 import { PersistNotice } from "./Notices.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
 
@@ -50,6 +51,9 @@ const jsonOf = (text: string): unknown => {
     return undefined;
   }
 };
+
+/** On the front page the controls sit below the fold: bring what an import said into view. */
+const inView = (el: HTMLElement | null): void => el?.scrollIntoView({ block: "nearest" });
 
 /** A run's line in the list: its id, state and when it started. */
 function RunRows({ runs }: { runs: RunRecord[] }) {
@@ -158,15 +162,8 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
     location.hash = templateHref("yours", saved.saved.id);
   };
 
-  return (
-    <div className="library">
-      <header className="library-head">
-        <div>
-          <h1 className="wordmark">grooph</h1>
-          <p className="muted">Loop graphs for coding agents. Draw, validate, export.</p>
-        </div>
-      </header>
-
+  const controls = (
+    <>
       <div className="library-actions">
         <button
           type="button"
@@ -204,7 +201,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       <PersistNotice />
 
       {templateOffer ? (
-        <div className="offer" role="alert">
+        <div className="offer" role="alert" ref={inView}>
           <p>
             <strong>{templateOffer.name} is a template:</strong> {templateOffer.doc.template!.title}
             {templateOffer.doc.template!.kind === "fragment" ? " (a fragment)" : ""}.{" "}
@@ -248,7 +245,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
       ) : null}
 
       {importProblem ? (
-        <div className="refusal" role="alert">
+        <div className="refusal" role="alert" ref={inView}>
           <p>
             <strong>Could not import {importProblem.name}.</strong> {importProblem.what ?? "It is not a graph document grooph can open."}
           </p>
@@ -258,8 +255,47 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
           </button>
         </div>
       ) : null}
+    </>
+  );
 
-      {records === null ? null : records.length === 0 ? (
+  // Not read yet: nothing, rather than one page and then the other.
+  if (records === null) return null;
+
+  // Nothing of the person's own here: the front page, with the library's controls in it (handoff 0055).
+  if (records.length === 0 && runs.length === 0) {
+    return (
+      <Landing
+        device={
+          <>
+            <div className="library-empty land-empty">
+              <p>No graphs on this device yet.</p>
+              <p className="muted">
+                Start one here, or import a <span className="mono">.grooph.json</span> graph, a <span className="mono">.grooph-proposals.json</span> set, a{" "}
+                <span className="mono">.grooph-run.json</span> run or a <span className="mono">.grooph-map.json</span> operation map.
+              </p>
+            </div>
+            {controls}
+          </>
+        }
+      />
+    );
+  }
+
+  return (
+    <div className="library">
+      <header className="library-head">
+        <div>
+          <h1 className="wordmark">grooph</h1>
+          <p className="muted">Loop graphs for coding agents. Draw, validate, export.</p>
+        </div>
+        <a className="library-about" href="#/about">
+          What is grooph?
+        </a>
+      </header>
+
+      {controls}
+
+      {records.length === 0 ? (
         <div className="library-empty">
           <p>No graphs on this device yet.</p>
           <p className="muted">
@@ -362,7 +398,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
         </ul>
       )}
 
-      {records !== null && runs.some((run) => !records.some((r) => r.doc.id === run.graphId)) ? (
+      {runs.some((run) => !records.some((r) => r.doc.id === run.graphId)) ? (
         <section className="orphan-runs" aria-label="Runs of graphs not on this device">
           <h2 className="list-title">Runs of graphs not on this device</h2>
           <RunRows runs={runs.filter((run) => !records.some((r) => r.doc.id === run.graphId))} />

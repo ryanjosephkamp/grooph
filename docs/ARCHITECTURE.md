@@ -27,6 +27,6 @@ One core, three shells. The core is pure: no DOM, no Node-only APIs, no network.
 
 ## Repo shape
 
-pnpm workspace. `packages/core` is the only package with no workspace dependencies. `apps/web` depends on core only. `packages/cli` depends on core, and serves `web`'s built bundle for `watch`. The MCP server is not a package of its own: it is `grooph mcp` in the CLI (`packages/cli/src/mcp.ts`), a few tools over the same core and the same files, with no dependency of its own (slice 0028). The diagram above still shows it as a third shell, which is what it is; it shares the CLI's install.
+pnpm workspace. `packages/core` is the only package with no workspace dependencies. `apps/web` depends on core only; it starts from core without the compiler (`packages/core/src/base.ts`) and fetches the compiler when a person exports (decision 0021). `packages/cli` depends on core, and serves `web`'s built bundle for `watch`. The MCP server is not a package of its own: it is `grooph mcp` in the CLI (`packages/cli/src/mcp.ts`), a few tools over the same core and the same files, with no dependency of its own (slice 0028). The diagram above still shows it as a third shell, which is what it is; it shares the CLI's install.
 
 Implementers choose everything inside a package (test runner, schema library, state management) and record it in their handback.

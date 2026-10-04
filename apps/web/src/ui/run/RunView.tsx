@@ -1,13 +1,14 @@
-import { overlayRun, type Id, type NodeLive, type RunBundle } from "@grooph/core";
+import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBundle, type RunNote, type RunSummary } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
-import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight } from "../../doc/run.js";
+import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
 import { deleteRun, saveRun } from "../../store/runs.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { RunChanges } from "./RunChanges.js";
 import { RunProposals } from "./RunProposals.js";
 import { RunTimeline } from "./RunTimeline.js";
 import { StateIcon } from "./StateIcon.js";
+import "./run.css";
 
 /** Where the run came from, which decides what the view may offer to keep. */
 export type RunOrigin =
@@ -30,6 +31,52 @@ const ago = (ms: number): string => {
   const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
   return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.floor(s / 60)} min ago`;
 };
+
+/**
+ * Where a run that is over stopped, and the loop stop that fired last before it did: what the timeline says in its
+ * last lines, read out so nobody has to.
+ *
+ * A run that ended reached a stop node: the one a note names, else the graph's only one, else the only one the last
+ * node noted leads to. A halted run halted where its last note with an outcome is: at that node, or in that loop
+ * when a stop halted it. Where the notes do not say, it names what they last spoke of ("after Critic"), and no
+ * node is flagged.
+ */
+function ending(summary: RunSummary, doc: Graph): { note: Id; where: string; node?: Id; stop?: string } | undefined {
+  if (summary.state === "running") return undefined;
+  const nodeOf = (n: RunNote) => (n.at.startsWith("node:") ? doc.nodes.find((x) => x.id === n.at.slice(5)) : undefined);
+  const back = [...summary.timeline].reverse();
+  const last = back.find((n) => n.at !== "graph" && n.outcome !== undefined) ?? back.find((n) => n.at !== "graph");
+  if (!last) return undefined;
+  const halted = summary.state === "halted";
+  const lastNode = nodeOf(last);
+  const stops = doc.nodes.filter((n) => n.kind === "stop");
+  const next = stops.filter((s) => doc.edges.some((e) => e.from === lastNode?.id && e.to === s.id));
+  const noted = halted ? undefined : back.find((n) => nodeOf(n)?.kind === "stop");
+  const at = halted ? (last.outcome === "halt" ? lastNode : undefined) : noted ? nodeOf(noted) : stops.length === 1 ? stops[0] : next.length === 1 ? next[0] : undefined;
+  const label = targetLabel(noteTarget(last), doc);
+  // A loop's label is "Loop <name>": mid-sentence it is "in loop <name>".
+  const where = at ? `at ${at.name || at.id}` : halted && last.outcome === "halt" && last.at.startsWith("loop:") ? `in l${label.slice(1)}` : `after ${label}`;
+  let stop: string | undefined;
+  for (const n of back) {
+    const loop = doc.loops.find((l) => summary.loops[l.id]?.lastStop?.note === n.id);
+    const run = loop && summary.loops[loop.id]!;
+    if (loop && run?.lastStop?.fired) {
+      const round = run.lastStop.round ?? run.round;
+      stop = `${STOP_WORDS[run.lastStop.fired]} · ${loop.name || loop.id}${round == null ? "" : `, round ${round}`}`;
+      break;
+    }
+  }
+  return { note: (noted ?? last).id, where, ...(at ? { node: at.id } : {}), ...(stop ? { stop } : {}) };
+}
+
+/** The loop a running node is in: the smallest that holds it, as rounds are counted (graph-ir §2). */
+function loopAtWork(summary: RunSummary, doc: Graph): Loop | undefined {
+  let best: Loop | undefined;
+  for (const loop of doc.loops) {
+    if (loop.members.some((id) => summary.nodes[id]?.state === "running") && (!best || loop.members.length < best.members.length)) best = loop;
+  }
+  return best;
+}
 
 /**
  * `#/run` (docs/runs.md §4): one run on its graph. The canvas shows each
@@ -63,9 +110,17 @@ export function RunView({
   const [tall, setTall] = useState(false);
 
   const live = origin.kind === "live";
+  // The view is following a run as it happens: watch is answering and the run has not ended.
+  const following = live && origin.polling && !origin.error;
   const notes = orderedNotes(summary, live);
   const note = selected ? bundle.notes.find((n) => n.id === selected) : undefined;
-  const highlight = useMemo(() => (note ? targetHighlight(noteTarget(note), doc) : undefined), [note, doc]);
+  // With no note picked, the canvas shows the loop the running node is in; it glows (run.css).
+  const atWork = useMemo(() => (note ? undefined : loopAtWork(onCanvas, doc)), [note, onCanvas, doc]);
+  const highlight = useMemo(
+    () => (note ? targetHighlight(noteTarget(note), doc) : atWork ? { nodes: [], edges: atWork.back, loop: atWork.id } : undefined),
+    [note, atWork, doc],
+  );
+  const end = useMemo(() => ending(summary, doc), [summary, doc]);
 
   const showNote = useCallback((id: Id) => {
     setTab("timeline");
@@ -111,8 +166,13 @@ export function RunView({
         </a>
         <div className="title-btn run-title">
           <span className="title-name">{doc.name || doc.id}</span>
-          <span className="title-sub">
-            Run <span className="mono">{bundle.run}</span> · {origin.kind === "link" ? "from a link" : origin.kind === "live" ? "live" : "on this device"}
+          {/* While the view follows a live run, "live" is a badge at the head of the line (run.css); the words are the same. */}
+          <span className={`title-sub${following ? " is-live" : ""}`}>
+            <span>
+              Run <span className="mono">{bundle.run}</span>
+            </span>
+            <span> · </span>
+            <span className="run-from">{origin.kind === "link" ? "from a link" : origin.kind === "live" ? "live" : "on this device"}</span>
           </span>
         </div>
         <span className={`status run-status ${stateClass}`} role="img" aria-label={`Run state: ${stateText}`} data-run-state={summary.state}>
@@ -121,7 +181,9 @@ export function RunView({
         </span>
       </header>
 
-      <main className="stage run-stage">
+      <main className={`stage run-stage${atWork ? " is-glowing" : ""}`}>
+        {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
+        {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
         {loopsIndexed.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">
@@ -143,6 +205,7 @@ export function RunView({
                   {loop.name || loop.id}
                   <span className="loop-round">{run?.round === null || run === undefined ? "not entered" : `round ${run.round}`}</span>
                   {stop ? <span className="loop-stop">· {stop}</span> : null}
+                  {loop === atWork ? <span className="loop-stop">· running</span> : null}
                 </button>
               );
             })}
@@ -158,6 +221,18 @@ export function RunView({
 
       <section className="run-panel" aria-label="Run details">
         <div className="run-facts">
+          {end ? (
+            <button type="button" className={`run-end run-end-${summary.state}`} onClick={() => showNote(end.note)}>
+              <StateIcon state={summary.state === "halted" ? "halted" : summary.outcome === "fail" ? "failed" : "passed"} />
+              <span>
+                <strong>
+                  {summary.state === "halted" ? "Halted" : "Ended"} {end.where}
+                </strong>
+                <br />
+                {end.stop ? `Last loop stop: ${end.stop}` : doc.loops.length > 0 ? "No loop stop on record." : "The graph has no loops."}
+              </span>
+            </button>
+          ) : null}
           <p className="run-line">{facts.join(" · ")}</p>
           {origin.kind === "live" ? (
             <p className={`run-origin${origin.error ? " is-problem" : ""}`} role="status">
