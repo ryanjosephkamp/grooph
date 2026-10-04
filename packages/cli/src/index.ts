@@ -369,17 +369,19 @@ export async function run(
       }
 
       case "mcp": {
-        const { values } = parseArgs({ args: rest, allowPositionals: false, options: { dir: { type: "string" }, harness: { type: "string" } } });
+        const { values } = parseArgs({ args: rest, allowPositionals: false, options: { dir: { type: "string" }, harness: { type: "string" }, chat: { type: "boolean" } } });
+        const chat = values["chat"] === true;
+        if (chat && values["dir"] !== undefined) return usageError(io, "--chat writes no file, so it takes no --dir; leave one of them out");
         const e = env.env ?? process.env;
         const project = resolve(values["dir"] ?? e["CLAUDE_PROJECT_DIR"] ?? process.cwd());
         // A chat app starts a server wherever it likes, often in the file system's root or the home folder. A folder
         // nobody chose is not a project: there the tools still return every document, and write no file.
         const chosen = values["dir"] !== undefined || e["CLAUDE_PROJECT_DIR"] !== undefined;
-        const writes = chosen || (project !== parse(project).root && project !== resolve(homedir()));
+        const writes = !chat && (chosen || (project !== parse(project).root && project !== resolve(homedir())));
         // The harness does not always tell an MCP server which session it serves; then the id is this server's own.
         const session = e["CLAUDE_CODE_SESSION_ID"] ?? e["CODEX_SESSION_ID"] ?? `mcp-${Date.now().toString(36)}-${process.pid}`;
         const harness = values["harness"] ?? (e["CLAUDECODE"] ? "claude-code" : e["CODEX_HOME"] || e["CODEX_SESSION_ID"] ? "codex" : "unknown");
-        await serveMcp({ project, writes, version: VERSION, harness, session, now: () => new Date() });
+        await serveMcp({ project, writes, ...(chat ? { chat } : {}), version: VERSION, harness: chat && values["harness"] === undefined ? "chat" : harness, session, now: () => new Date() });
         return 0;
       }
 
@@ -425,7 +427,7 @@ export async function run(
   }
 }
 
-const MCP_HELP = `grooph mcp [--dir <project>] [--harness <name>]
+const MCP_HELP = `grooph mcp [--dir <project>] [--harness <name>] [--chat]
 
 Run grooph's MCP server on standard input and output, for an agent to call: in a coding
 session, or in a chat app that runs local servers. No model is called and nothing leaves
@@ -461,12 +463,15 @@ Add it to a harness:
   Codex         in ~/.codex/config.toml:  [mcp_servers.grooph]
                                           command = "grooph"
                                           args = ["mcp", "--harness", "codex"]
-  Claude's desktop app, in a chat: docs/chat.md
+  Claude's desktop app, in a chat (docs/chat.md), in claude_desktop_config.json:
+                { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 
   --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in).
                     Started in the file system's root or a home folder with no --dir, the
                     tools return every document and write no file.
-  --harness <name>  claude-code or codex, when it cannot be told from the environment`;
+  --harness <name>  claude-code or codex, when it cannot be told from the environment
+  --chat            for a chat app: only the authoring tools, and no file is ever written;
+                    every document, picture and package comes back in the reply`;
 
 /** `grooph <command> --help`: the command's own page where it has one, else the overview. */
 const COMMAND_HELP: Record<string, string> = {

@@ -183,7 +183,7 @@ export async function renderPng(svg: string, scale: number): Promise<Uint8Array>
     const name = "@resvg/resvg-js";
     mod = (await import(name)) as ResvgModule;
   } catch {
-    throw new Error("the PNG renderer (@resvg/resvg-js, an optional dependency) is not installed here; run pnpm install in the grooph clone");
+    throw new Error("the PNG renderer (@resvg/resvg-js, an optional dependency) is not installed here; install it beside grooph (npm install @resvg/resvg-js), or run pnpm install in a grooph clone");
   }
   const sans = process.platform === "darwin" ? "Helvetica Neue" : process.platform === "win32" ? "Segoe UI" : "DejaVu Sans";
   const resvg = new mod.Resvg(svg, { fitTo: { mode: "zoom", value: scale }, font: { loadSystemFonts: true, defaultFontFamily: sans, sansSerifFamily: sans } });

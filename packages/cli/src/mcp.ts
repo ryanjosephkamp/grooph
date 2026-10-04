@@ -35,6 +35,8 @@ export type McpContext = {
   project: string;
   /** false when the server was given no folder of its own (it started in the file system's root or a home folder): then no tool writes a file */
   writes?: boolean;
+  /** in a chat app (`grooph mcp --chat`): only the authoring tools are offered; a chat has no subagents to plan and no hook to ask */
+  chat?: boolean;
   /** where templates are looked up; the default is the project's, the user's and the built-in library */
   registry?: RegistryEnv;
   version: string;
@@ -50,6 +52,9 @@ const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim
 
 /** One line appended to this server's own file in the events folder. The hook's files are never written here. */
 function say(ctx: McpContext, line: Pick<SessionEvent, "event"> & Partial<SessionEvent>): void {
+  if (ctx.writes === false) {
+    throw new Refusal(`grooph was not given a project folder (it started in ${ctx.project}), so there is nowhere to record this.`, "start the server with grooph mcp --dir <project>; the authoring tools work without one");
+  }
   const dir = join(ctx.project, EVENTS_DIR);
   mkdirSync(dir, { recursive: true });
   const name = /^[A-Za-z0-9._-]{1,128}$/.test(ctx.session) ? ctx.session : "session";
@@ -85,7 +90,7 @@ const TOOLS: Tool[] = [
       },
       required: ["agents"],
     },
-    run(args, ctx) {
+    run: refusing((args, ctx) => {
       const agents: PlannedAgent[] = (Array.isArray(args["agents"]) ? args["agents"] : []).flatMap((a): PlannedAgent[] => {
         if (typeof a !== "object" || a === null) return [];
         const type = str((a as Json)["type"]);
@@ -102,7 +107,7 @@ const TOOLS: Tool[] = [
         text: `Plan recorded: ${total} subagent${total === 1 ? "" : "s"} (${agents.map((a) => `${a.count ?? 1} × ${a.type}`).join(", ")}). Start them as you planned; grooph_running shows what has started.`,
         data: { agents },
       };
-    },
+    }),
   },
   {
     name: "grooph_note",
@@ -111,12 +116,12 @@ const TOOLS: Tool[] = [
     description:
       "Leave a short note for the person watching this session: what you decided, what is blocking, what you are about to do. One or two sentences; it is shown beside the session in grooph's live view. It records the note and returns; it changes nothing else.",
     inputSchema: { type: "object", properties: { text: { type: "string", description: `The note, at most ${SAID_MAX} characters.` } }, required: ["text"] },
-    run(args, ctx) {
+    run: refusing((args, ctx) => {
       const text = str(args["text"]);
       if (!text) return { text: 'grooph_note needs "text".', isError: true };
       say(ctx, { event: "note", text: text.slice(0, SAID_MAX) });
       return { text: text.length > SAID_MAX ? `Noted (cut to ${SAID_MAX} characters).` : "Noted." };
-    },
+    }),
   },
   {
     name: "grooph_running",
@@ -194,14 +199,25 @@ const TOOLS: Tool[] = [
   ...AUTHOR_TOOLS,
 ];
 
-export const toolNames = (): string[] => TOOLS.map((t) => t.name);
+/** The tools a session's lead uses beside the hook; a chat is offered none of them. */
+const LEAD_TOOLS = new Set(["grooph_plan", "grooph_note", "grooph_running"]);
+const toolsFor = (ctx: Pick<McpContext, "chat">): Tool[] => (ctx.chat === true ? TOOLS.filter((t) => !LEAD_TOOLS.has(t.name)) : TOOLS);
 
-const INSTRUCTIONS = [
+export const toolNames = (ctx: Pick<McpContext, "chat"> = {}): string[] => toolsFor(ctx).map((t) => t.name);
+
+const AUTHORING = [
   "grooph is an authoring and checking surface for multi-agent loop graphs: one small JSON document that says who does what, where the loops are and what stops them. grooph never runs agents and calls no model; you think, these tools compute.",
   "To make a graph for a person: grooph_templates (pick by when-to-use), grooph_use_template with the slot values (or grooph_new when nothing fits), grooph_apply to change it, grooph_validate until no error is left, then grooph_share for a link they open on any device and grooph_picture to show it here. Pass each document back as the \"graph\" argument exactly as a tool returned it; no file has to exist.",
   "Judgment the tools do not have: the smallest graph that works; every loop ends on a real stop plus a budget; a critic needs something inspectable to judge against; a person gates what cannot be undone. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, say that no graph is the right answer. Ask for a slot value you do not have; never invent a test command or a path. Keep a warning and tell the person; do not bend the graph to silence it.",
+];
+const INSTRUCTIONS = [
+  ...AUTHORING,
   "A refusal names the rule's code and ends with a next: line that says what to call. A tool writes a file only when you name one, and only inside the project folder.",
   "In a coding session: before starting subagents, call grooph_plan with the kinds you will start; grooph_note leaves a short line for whoever is watching; grooph_running reports what has started and finished. None of these tools starts or stops an agent.",
+].join(" ");
+const CHAT_INSTRUCTIONS = [
+  ...AUTHORING,
+  "A refusal names the rule's code and ends with a next: line that says what to call. Here no tool writes a file: every document, picture and package comes back in the reply. The person keeps a graph by opening the link and saving it in the app, or by pasting the document into the app.",
 ].join(" ");
 
 /**
@@ -227,16 +243,16 @@ export async function handle(message: unknown, ctx: McpContext): Promise<Json | 
         protocolVersion: asked && KNOWN_PROTOCOLS.includes(asked) ? asked : MCP_PROTOCOL,
         capabilities: { tools: {} },
         serverInfo: { name: "grooph", version: ctx.version },
-        instructions: INSTRUCTIONS,
+        instructions: ctx.chat === true ? CHAT_INSTRUCTIONS : INSTRUCTIONS,
       });
     }
     case "ping":
       return ok({});
     case "tools/list":
-      return ok({ tools: TOOLS.map(({ name, title, description, inputSchema, annotations }) => ({ name, title, description, inputSchema, annotations: { title, ...annotations } })) });
+      return ok({ tools: toolsFor(ctx).map(({ name, title, description, inputSchema, annotations }) => ({ name, title, description, inputSchema, annotations: { title, ...annotations } })) });
     case "tools/call": {
-      const tool = TOOLS.find((t) => t.name === params["name"]);
-      if (!tool) return { jsonrpc: "2.0", id, error: { code: -32602, message: `unknown tool ${JSON.stringify(params["name"])}; grooph has ${toolNames().join(", ")}` } };
+      const tool = toolsFor(ctx).find((t) => t.name === params["name"]);
+      if (!tool) return { jsonrpc: "2.0", id, error: { code: -32602, message: `unknown tool ${JSON.stringify(params["name"])}; grooph has ${toolNames(ctx).join(", ")}` } };
       const args = (typeof params["arguments"] === "object" && params["arguments"] !== null ? params["arguments"] : {}) as Json;
       try {
         const out = await tool.run(args, ctx);

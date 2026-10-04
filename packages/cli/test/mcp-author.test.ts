@@ -424,3 +424,31 @@ test("an operation map is checked, drawn and shared from JSON; a tool that throw
     assert.match(textOf(said), /\n1 error, 0 warnings\nerror {2}E_HANDOFF_NO_CARRIER .*\nnext: correct what is listed in the map document, then grooph_validate$/);
   });
 });
+
+test("in a chat (grooph mcp --chat) only the authoring tools are offered, and the instructions say no file is written", async () => {
+  await withProject(
+    async (ctx) => {
+      const ask = async (message: unknown): Promise<{ result?: Record<string, unknown>; error?: { code: number; message: string } }> => (await handle(message, ctx)) as never;
+      const tools = ((await ask({ jsonrpc: "2.0", id: 1, method: "tools/list" })).result!["tools"] as { name: string }[]).map((t) => t.name);
+      assert.deepEqual(tools, ["grooph_validate", "grooph_templates", "grooph_use_template", "grooph_new", "grooph_apply", "grooph_explain", "grooph_shape", "grooph_share", "grooph_picture", "grooph_export"]);
+      const init = await ask({ jsonrpc: "2.0", id: 2, method: "initialize", params: { protocolVersion: "2025-06-18" } });
+      assert.match(String(init.result!["instructions"]), /Here no tool writes a file/);
+      assert.doesNotMatch(String(init.result!["instructions"]), /grooph_plan/);
+      // A tool the chat is not offered is not there to call.
+      const plan = await ask({ jsonrpc: "2.0", id: 3, method: "tools/call", params: { name: "grooph_plan", arguments: { agents: [{ type: "x" }] } } });
+      assert.equal(plan.error!.code, -32602);
+      assert.doesNotMatch(plan.error!.message, /grooph_plan, /);
+      assert.equal(existsSync(join(ctx.project, ".grooph")), false);
+    },
+    { chat: true, writes: false },
+  );
+  // A coding session whose server was given no folder: a plan has nowhere to be recorded, and says so.
+  await withProject(
+    async (ctx) => {
+      refused(await call(ctx, "grooph_plan", { agents: [{ type: "Explore" }] }), /^grooph was not given a project folder .*so there is nowhere to record this\./);
+      refused(await call(ctx, "grooph_note", { text: "hello" }), /nowhere to record this/);
+      assert.equal(existsSync(join(ctx.project, ".grooph")), false);
+    },
+    { writes: false },
+  );
+});
