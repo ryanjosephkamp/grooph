@@ -36,6 +36,21 @@ template?: {
 | `templateIndexEntry(template)` | The index row (§3). |
 | `findSlots(doc)` | Every `{{key}}` with the ids of the objects holding it. |
 
+### A template placed as a unit: a subgrooph
+
+`insertFragment` copies a template's nodes into a graph, and afterwards nothing in the document says they came in together. A **subgrooph** (amendment A-018, decision 0025) keeps that: the nodes sit inside a group that names the template and the version they came from, with the slot values they were filled with.
+
+```json
+"groups": [
+  { "id": "review", "name": "Review gate", "description": "A builder, an isolated critic and a person who approves the merge.",
+    "from": "review-gate@1",
+    "with": { "task": "the checkout flow", "test-command": "pnpm test", "checklist": "docs/checklist.md" },
+    "members": ["review-builder", "review-critic", "review-merge-gate"] }
+]
+```
+
+It is by value, not by reference. The nodes are in `nodes` like any others, there is no second file to find, and the same document gives the same package. `from` and `with` are what a refresh needs: which template to look at again, and how it was filled. `fixtures/valid/subgrooph-in-a-graph.grooph.json` is the built-in review gate placed between a planner and a release step, with its own stop replaced by the edge to the release. The shape and its three rules are in [graph-ir.md](graph-ir.md) §1 and §3.
+
 ## 3. Registries and the index
 
 A registry is a folder of `*.grooph.json` templates with an `index.json`:

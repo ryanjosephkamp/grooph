@@ -59,6 +59,30 @@ error  E_LOOP_BACK_EDGE  loop "fix-cycle": back edge "e-check-fail" runs suite �
 
 **Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
 
+### `E_GROUP_CYCLE`
+
+A group holds itself, directly or through another group. Groups form a tree (amendment A-018), and no view can draw a box inside itself. One issue for each ring of groups.
+
+**Fails:** [`fixtures/invalid/E_GROUP_CYCLE/group-holds-itself.grooph.json`](../fixtures/invalid/E_GROUP_CYCLE/group-holds-itself.grooph.json) prints
+
+```text
+error  E_GROUP_CYCLE  group "fix" holds itself: fix → notes → fix; groups form a tree  [at: fix, notes]
+```
+
+**Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
+
+### `E_SECOND_LEAD`
+
+More than one agent node has the role `lead`. A graph is one session and the lead is that session (§2); the compiler would take the first and run the other as a subagent. Placing a template inside a graph is the first operation that could add one (A-018).
+
+**Fails:** [`fixtures/invalid/E_SECOND_LEAD/two-leads.grooph.json`](../fixtures/invalid/E_SECOND_LEAD/two-leads.grooph.json) prints
+
+```text
+error  E_SECOND_LEAD  the graph has 2 lead nodes ("lead", "placed-lead"); a graph is one session and has at most one lead  [at: lead, placed-lead]
+```
+
+**Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
+
 ### `E_CYCLE_NO_STOP`
 
 **Cycle with no stop.** Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids.
@@ -272,6 +296,18 @@ An agent node declares `outputs` but is allowed neither `edit-files` nor `write-
 
 ```text
 warning  W_OUTPUT_NOT_WRITABLE  agent "critic" must leave outputs behind but is allowed neither edit-files nor write-outputs, so it cannot write them itself; allow write-outputs  [at: critic]
+```
+
+**Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
+
+### `W_GROUP_OVERLAP`
+
+A node or a group is a member of two groups and neither holds the other (A-018). A view draws it in one box only, the first. A member listed again by a group that already holds it through an inner group is nesting said twice, and is not an overlap.
+
+**Fails:** [`fixtures/invalid/W_GROUP_OVERLAP/node-in-two-groups.grooph.json`](../fixtures/invalid/W_GROUP_OVERLAP/node-in-two-groups.grooph.json) prints
+
+```text
+warning  W_GROUP_OVERLAP  node "writer" is a member of groups "fix" and "notes", and neither holds the other; views draw it in "fix"  [at: writer, fix, notes]
 ```
 
 **Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
