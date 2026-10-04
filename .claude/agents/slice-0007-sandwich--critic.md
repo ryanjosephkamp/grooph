@@ -1,7 +1,7 @@
 ---
 name: slice-0007-sandwich--critic
 description: "critic for graph slice-0007-sandwich. Judge only what `pnpm -r build && pnpm -r test && pnpm --filter @grooph/web test:e2e` cannot see, the items in the checklist, for a change that already passes it."
-model: fable
+model: opus
 effort: high
 tools: Read, Write, Glob, Grep
 disallowedTools: Edit

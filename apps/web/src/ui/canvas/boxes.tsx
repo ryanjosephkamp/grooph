@@ -10,6 +10,7 @@ import { Handle, Position as Side, type Node, type NodeProps } from "@xyflow/rea
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import { NODE_HEIGHT, NODE_WIDTH } from "../../doc/layout.js";
+import { piece } from "../../piece.js";
 import type { Boxed, Face } from "./units.js";
 
 type Door = typeof import("./units.js");
@@ -17,13 +18,14 @@ type Door = typeof import("./units.js");
 let door: Door | null | undefined;
 
 /**
- * The piece that draws a subgrooph, fetched when it is wanted and not before. `undefined` while it is on its way
- * (and always, when it is not wanted); `null` when it could not be fetched, and the caller draws without it.
+ * The piece that draws a subgrooph, fetched when it is wanted and not before, and asked for again if the fetch
+ * fails (`piece.ts`). `undefined` while it is on its way (and always, when it is not wanted); `null` when it could
+ * not be had, and the caller draws without it.
  */
 export function useUnitsDoor(wanted: boolean): Door | null | undefined {
   const [got, setGot] = useState(door);
   useEffect(() => {
-    if (wanted && got === undefined) import("./units.js").then((m) => setGot((door = m)), () => setGot((door = null)));
+    if (wanted && got === undefined) piece("units", () => import("./units.js")).then((m) => setGot((door = m)), () => setGot((door = null)));
   }, [wanted, got]);
   return wanted ? got : undefined;
 }
