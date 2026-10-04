@@ -17,7 +17,7 @@ You are the driver. A handback is a claim; the review is where it becomes fact.
    - `proceed`: merge into `main` with a merge commit `merge: slice NNNN <title>`, delete nothing, push.
    - `fix pass`: draft `FIXPASS-<n>.md` with the `grooph-handoff` skill (same folder), commit, present the prompt, stop.
    - `split`: update the slice ledger with the new slices, draft the first, present, stop.
-6. **Update the living docs** in the same commit as the merge or the fix-pass draft: `docs/PLAN.md` ledger and stage status, `docs/PROGRESS.md` (Now, Done, Waiting on the owner, Known risks), `spec/AMENDMENTS.md` if the slice forced one.
+6. **Update the living docs** in the same commit as the merge or the fix-pass draft: `docs/PLAN.md` ledger and stage status, `docs/PROGRESS.md` (Now, Waiting on the owner, Known risks), a dated row at the top of `docs/HISTORY.md`, `spec/AMENDMENTS.md` if the slice forced one.
 7. **Report** to the owner in a few lines: verdict, what was verified and how, what changed in the plan, what waits on them.
 
 Done when `REVIEW.md` is committed, the verdict has been acted on, the living docs match the tree, and `main` is pushed.
