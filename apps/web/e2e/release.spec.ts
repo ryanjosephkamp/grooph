@@ -28,6 +28,31 @@ test.afterAll(() => removeReleases());
  */
 const CHROMIUM = { tag: "@chromium" };
 
+// When one of these fails in an engine nobody has on their desk, the log has to say what the tab was: which release
+// its page and scripts were, what the worker held, and what the page complained of.
+const complaints: string[] = [];
+test.beforeEach(({ context }) => {
+  complaints.length = 0;
+  context.on("weberror", (error) => complaints.push(`uncaught: ${error.error().message}`));
+  context.on("console", (message) => {
+    if (message.type() === "error") complaints.push(`console: ${message.text()}`);
+  });
+  context.on("requestfailed", (request) => complaints.push(`failed: ${request.failure()?.errorText ?? ""} ${request.url()}`));
+});
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  const tab = await seen(page).catch((error: Error) => `(could not be read: ${error.message})`);
+  const cache = await held(page).catch((error: Error) => `(could not be read: ${error.message})`);
+  const kept = await page
+    .evaluate(async () => {
+      const cache = await caches.open("grooph-app-v1");
+      const stamp = async (key: string): Promise<string> => /data-release="([^"]*)"/.exec((await (await cache.match(key))?.text()) ?? "")?.[1] ?? "(none)";
+      return { page: await stamp("./"), before: await stamp("./?the-page-before"), controlled: navigator.serviceWorker.controller !== null, address: location.href };
+    })
+    .catch((error: Error) => `(could not be read: ${error.message})`);
+  console.log(`DIAGNOSIS ${testInfo.project.name} | ${testInfo.title}\n  the tab: ${JSON.stringify(tab)}\n  the worker keeps: ${JSON.stringify(kept)}\n  its cache: ${JSON.stringify(cache)}\n  complaints: ${JSON.stringify(complaints)}`);
+});
+
 /** The documents are not the app's and the test's site does not serve them (`support-release.ts`). */
 const ofTheApp = (address: string): boolean => !new URL(address, "http://site").pathname.startsWith("/grooph/docs/");
 
