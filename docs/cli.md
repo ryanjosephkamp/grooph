@@ -123,17 +123,22 @@ nodes of the one document. Nothing is fetched or inlined when a package is compi
            id that starts with it (review-builder). --after <node> leads into it from a node of the
            graph. --then <node> leads on from it: the edges that reached the template's own
            success stop go to that node, and that stop is dropped; a stop that halts stays.
-           Refuses an --as whose ids the graph already uses. Dry run unless --write.
+           Every id that begins with --as and a dash is the subgrooph's own from then on, so an
+           --as the graph already uses that way is refused, and so is a template with a lead
+           node. If the graph kept a node behind a person and the subgrooph now leads to it
+           around that person, that is said. Dry run unless --write.
   list     Every group: the template and version it came from if it is a subgrooph, how many
            nodes it holds, and the edges that lead in and out. --json prints the same as data.
   update   What a newer version of its template would change in each subgrooph (or in the ones
            named), then the graph with those changes. A change that removes or loosens a brake
            (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
            acceptance, critic isolation) is listed first and NOT applied unless you ask for it by
-           its name with --allow. Tightening applies with the rest. The shape moves as a whole:
-           while a change to the nodes, edges or loop members is held back, the others wait for
-           it. A node you added inside the box under another id is yours, and stays. Dry run
-           unless --write.
+           its name with --allow. That includes a way around a person however it is made: what a
+           run could reach only by a gate or an approval, it may not reach without it afterwards.
+           Tightening applies with the rest. The shape moves as a whole: while a change to the
+           nodes, edges or loop members is held back, the others wait for it. A node you added
+           inside the box under another id is yours, and stays. Dry run unless --write.
+  Neither add nor update writes a graph it would leave with an error the file does not have now.
   extract  Save any group as a template, in the project (default) or user folder.
 
 A template is found as grooph template finds it: the project, then your home folder, then

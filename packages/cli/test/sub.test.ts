@@ -182,6 +182,36 @@ test("sub update: a newer version's changes apply, and the one that loosens a br
   assert.match((await box.grooph("sub", "update", box.file)).out, /is up to date/);
 });
 
+test("neither sub add nor sub update writes a graph it would leave with an error the file does not have", async (t) => {
+  const box = sandbox(t);
+  // The release step is made irreversible, behind a gate of the graph's own.
+  const host = box.read() as Doc & { nodes: Record<string, unknown>[]; edges: Record<string, unknown>[] };
+  Object.assign(host.nodes.find((node) => node.id === "release")!, { irreversible: ["publish the release"] });
+  host.nodes.push({ id: "go", kind: "human-gate", name: "Go", prompt: "Release it?" });
+  host.edges.push({ id: "e-plan-go", from: "plan", to: "go" }, { id: "e-go-release", from: "go", to: "release", when: "pass" });
+  writeFileSync(box.file, `${JSON.stringify(host, null, 2)}\n`);
+  const before = readFileSync(box.file, "utf8");
+
+  // A loop with no gate of its own, led on to that step: a way in that passes no person.
+  const grind = await box.grooph("sub", "add", "grind-loop", "--into", box.file, "--as", "grind", "--after", "plan", "--then", "release", "--set", "task=x", "--set", "test-command=pnpm test", "--write");
+  assert.equal(grind.code, 1);
+  assert.match(grind.err, /"release" was reached only by passing a person; the subgrooph now leads to it without/);
+  assert.match(grind.err, /plan\.grooph\.json is unchanged: this would leave it with E_IRREVERSIBLE_NO_GATE, which it does not have now/);
+  assert.equal(readFileSync(box.file, "utf8"), before);
+
+  // The review gate ends at a gate of its own: placed. A newer version that marks its builder irreversible, with
+  // no person before it, tightens nothing that can stand: not written.
+  const placed = await box.grooph("sub", "add", "review-gate", "--into", box.file, ...ADD, "--write");
+  assert.equal(placed.code, 0, placed.err);
+  assert.match(placed.err, /"release" was reached only by passing the human gate "go"; the subgrooph now leads to it without/);
+  const withGate = readFileSync(box.file, "utf8");
+  newerInProject(box, (template) => void Object.assign(template.nodes.find((node) => node.id === "builder")!, { irreversible: ["push to main"] }));
+  const update = await box.grooph("sub", "update", box.file, "--write");
+  assert.equal(update.code, 1);
+  assert.match(update.err, /is unchanged: this would leave it with E_IRREVERSIBLE_NO_GATE, which it does not have now/);
+  assert.equal(readFileSync(box.file, "utf8"), withGate);
+});
+
 test("sub update refuses a name that is no change, a group that is not there and one that is not a subgrooph", async (t) => {
   const box = sandbox(t);
   await box.grooph("sub", "add", "review-gate", "--into", box.file, ...ADD, "--write");
