@@ -22,6 +22,17 @@ export type GraphNodeData = {
 
 export type GraphFlowNode = Node<GraphNodeData, "graph">;
 
+/** What a node is called to someone who cannot see it: its kind and its name. */
+export const nodeLabel = (node: DocNode): string => `${KIND_LABEL[node.kind]}: ${node.name || node.id}`;
+
+/** Enter on the node the keyboard is on is a tap on it, so Tab reaches a node and opens it (handoff 0061). */
+export const onNodeKey =
+  (tap: ((id: string) => void) | undefined) =>
+  (e: { key: string; target: EventTarget }): void => {
+    const id = e.key === "Enter" && e.target instanceof HTMLElement && e.target.classList.contains("react-flow__node") ? e.target.dataset["id"] : undefined;
+    if (id !== undefined) tap?.(id);
+  };
+
 function subtitle(node: DocNode): string {
   switch (node.kind) {
     case "agent": {

@@ -1796,9 +1796,10 @@ a {
   opacity: 0.4;
 }
 
-/* Labels are the touch handles for edges, so they sit above the nodes (which stay at z 0). */
-.react-flow__edgelabel-renderer {
+/* Labels are the touch handles for edges, so they sit above the nodes (which stay at z 0); only the labels take a touch. */
+.react-flow__viewport-portal {
   z-index: 1;
+  pointer-events: none;
 }
 .gedge-label {
   position: absolute;

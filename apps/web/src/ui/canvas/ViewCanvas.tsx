@@ -9,7 +9,7 @@ import { edgeBends, labelSpots, type Box } from "./bends.js";
 import { RUN_PAD, VIEWER_PAD, fitOptions } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
-import { GraphNode, type GraphFlowNode } from "./GraphNode.js";
+import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
 
 const nodeTypes: NodeTypes = { graph: GraphNode };
 const edgeTypes: EdgeTypes = { graph: GraphEdge };
@@ -50,7 +50,7 @@ export function ViewCanvas(props: {
     () =>
       doc.nodes.map((node) => {
         const loops = doc.loops.map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members })).filter((l) => l.members.includes(node.id));
-        const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
+        const base = { id: node.id, position: positions[node.id] ?? { x: 0, y: 0 }, ariaLabel: nodeLabel(node), ...(measured[node.id] ? { measured: measured[node.id] } : {}) };
         const run = props.run?.nodes[node.id];
         const loopIndex = props.highlight?.loop !== undefined ? doc.loops.findIndex((l) => l.id === props.highlight!.loop) : -1;
         return {
@@ -115,6 +115,8 @@ export function ViewCanvas(props: {
         if (Object.keys(sizes).length > 0) setMeasured((m) => ({ ...m, ...sizes }));
       }}
       onNodeClick={(_, node) => props.onNodeTap?.(node.id)}
+      onKeyDown={onNodeKey(props.onNodeTap)}
+      edgesFocusable={false}
       onMove={(event) => {
         // A move, not its start: a click on a node that cannot be dragged starts a pan and moves nothing.
         if (event) moved.current = true;
