@@ -150,8 +150,6 @@ html.gx-page .gx {
   position: absolute;
   left: 0;
   top: 0;
-  transform-origin: 0 0;
-  will-change: transform;
 }
 
 .gx-canvas svg {

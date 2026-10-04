@@ -75,7 +75,7 @@ export function decorateGraph(root: SVGSVGElement, doc: Graph, replay?: { step: 
     pill(g, right, num(card, "y") + 18, `${word}${run.runs > 1 ? ` ×${run.runs}` : ""}`, run.state);
   }
 
-  const width = Number(root.getAttribute("width") ?? 400);
+  const width = root.viewBox.baseVal?.width || 400;
   for (const g of root.querySelectorAll<SVGGElement>("g[data-loop]")) {
     const id = g.dataset["loop"]!;
     const loop = doc.loops.find((l) => l.id === id);

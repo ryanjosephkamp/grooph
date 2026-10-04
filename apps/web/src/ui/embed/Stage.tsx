@@ -84,7 +84,13 @@ export function Stage({
       const el = canvas.current;
       const st = stage.current;
       if (!el || !st) return;
-      el.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.s})`;
+      // Scaled by the SVG's own size, not a CSS scale: Chromium draws an inline SVG's text unscaled under a CSS scale.
+      el.style.transform = `translate(${v.x}px, ${v.y}px)`;
+      const pic = el.querySelector("svg");
+      if (pic) {
+        pic.setAttribute("width", String(width * v.s));
+        pic.setAttribute("height", String(height * v.s));
+      }
       const { w, h } = size();
       // While the whole picture is in view, vertical swipes belong to the host page.
       st.dataset["overflow"] = width * v.s > w + 1 || height * v.s > h + 1 ? "1" : "0";
