@@ -31,15 +31,13 @@ if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
     const warm = () => {
       for (const entry of performance.getEntriesByType("resource")) if (entry.name.includes("/assets/")) void fetch(entry.name).catch(() => undefined);
     };
-    // And once more when the canvas screens have arrived, which on the front page is after the first screen is up.
+    // That waits for the canvas screens, which on the front page arrive after the first screen is up.
     if (!navigator.serviceWorker.controller) {
       const all = () =>
         app
-          .then((loaded) => {
-            warm();
-            return loaded.loadScreens();
-          })
-          .then(warm, () => undefined);
+          .then((loaded) => loaded.loadScreens())
+          .catch(() => undefined)
+          .then(warm);
       navigator.serviceWorker.addEventListener("controllerchange", () => void all(), { once: true });
     }
   }

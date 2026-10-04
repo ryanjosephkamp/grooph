@@ -6,7 +6,10 @@
  *
  * Bytes are not the whole of speed: a build can weigh the same and still show later, if it fetches in more rounds.
  * This serves each build as GitHub Pages does (gzip, a short cache life), opens it seven times with nothing cached
- * on a fast and on a slow mobile link, and prints the middle time for each. Compare a change against main:
+ * on a fast and on a slow mobile link, and prints the middle time for each. The times are the browser's own, from
+ * the start of the navigation: `inPage` is when the heading was first in the document, `painted` is the browser's
+ * first contentful paint. (Asking the test driver to wait for the heading reads up to half a second late: it looks
+ * again at widening intervals.) Compare a change against main:
  *
  *   node scripts/perf-loadtime.mjs main=../grooph-main/apps/web/dist change=apps/web/dist
  *
@@ -28,7 +31,7 @@ const { chromium } = createRequire(resolve(web, "package.json"))("@playwright/te
 import { execFileSync } from "node:child_process";
 import { createServer } from "node:http";
 import { createSecureServer } from "node:http2";
-import { existsSync, mkdtempSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { gzipSync } from "node:zlib";
@@ -38,7 +41,9 @@ const tls = (() => {
   try {
     const dir = mkdtempSync(join(tmpdir(), "grooph-perf-"));
     execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-subj", "/CN=127.0.0.1", "-keyout", join(dir, "key.pem"), "-out", join(dir, "cert.pem")], { stdio: "ignore" });
-    return { key: readFileSync(join(dir, "key.pem")), cert: readFileSync(join(dir, "cert.pem")) };
+    const pair = { key: readFileSync(join(dir, "key.pem")), cert: readFileSync(join(dir, "cert.pem")) };
+    rmSync(dir, { recursive: true, force: true });
+    return pair;
   } catch {
     return undefined;
   }
@@ -60,7 +65,15 @@ const serve = (dist, port) =>
     server.listen(port, "127.0.0.1", () => done(server));
   });
 const args = process.argv.slice(2);
-const option = (flag, fallback) => (args.includes(flag) ? args.splice(args.indexOf(flag), 2)[1] : fallback);
+const option = (flag, fallback) => {
+  if (!args.includes(flag)) return fallback;
+  const value = args.splice(args.indexOf(flag), 2)[1];
+  if (value === undefined) {
+    console.error(`perf-loadtime: ${flag} needs a value`);
+    process.exit(1);
+  }
+  return value;
+};
 const at = option("--at", "");
 const until = option("--until", "h1");
 const builds = args.map((a) => [a.slice(0, a.indexOf("=")), resolve(a.slice(a.indexOf("=") + 1))]);
@@ -82,14 +95,21 @@ for (const [name, dist] of builds) {
       const cdp = await context.newCDPSession(page);
       await cdp.send("Network.enable");
       await cdp.send("Network.emulateNetworkConditions", { offline: false, ...conditions });
-      const began = Date.now();
+      // The page notes for itself when the selector first matches; nothing here waits on the test driver's clock.
+      await page.addInitScript((selector) => {
+        const look = () => {
+          if (window.__shown === undefined && document.querySelector(selector)) window.__shown = performance.now();
+        };
+        new MutationObserver(look).observe(document, { childList: true, subtree: true });
+      }, until);
       await page.goto(`${scheme}://127.0.0.1:${port}/grooph/${at}`, { waitUntil: "commit" });
-      await page.waitForSelector(until, { state: "visible", timeout: 60000 });
-      times.push(Date.now() - began);
+      await page.waitForFunction(() => window.__shown !== undefined && performance.getEntriesByName("first-contentful-paint").length > 0, undefined, { timeout: 60000 });
+      times.push(await page.evaluate(() => ({ inPage: Math.round(window.__shown), painted: Math.round(performance.getEntriesByName("first-contentful-paint")[0].startTime) })));
       await context.close();
     }
-    times.sort((a, b) => a - b);
-    (out[link] ??= {})[name] = { median: times[3], least: times[0], most: times[6] };
+    const middle = (key) => times.map((t) => t[key]).sort((a, b) => a - b);
+    const [inPage, painted] = [middle("inPage"), middle("painted")];
+    (out[link] ??= {})[name] = { inPage: inPage[3], painted: painted[3], paintedLeast: painted[0], paintedMost: painted[6] };
   }
   server.close();
   port += 1;

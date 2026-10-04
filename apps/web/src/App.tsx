@@ -14,24 +14,19 @@ const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ defa
  * The screens that draw on the canvas (slice 0069): one module, fetched when an address first shows one. The front
  * page, the library and the template list above are all the app loads to begin with.
  *
- * Held here and not behind `lazy`: a screen that arrives a moment after React has shown an empty fallback is held
- * back by React for some hundreds of milliseconds, so that fallbacks do not flicker. main.tsx fetches the module
- * before the first render when the address opens on one of these screens, and nothing empty is ever shown.
+ * Held here and not behind `lazy`: main.tsx fetches the module before the first render when the address opens on
+ * one of these screens, so such an address never shows a fallback first, and React has none to hold content behind.
  */
 type Screens = typeof import("./ui/screens.js");
 let screens: Screens | undefined;
 let asked: Promise<Screens> | undefined;
 
-/** Fetch the canvas screens, once. A fetch that failed is tried again the next time one is asked for. */
+/**
+ * Fetch the canvas screens, once. A browser may remember a module fetch that failed for as long as the page lives,
+ * so a failure is not tried again here: the screen that needed it offers to load the page again.
+ */
 export function loadScreens(): Promise<Screens> {
-  asked ??= import("./ui/screens.js").then(
-    (m) => (screens = m),
-    (err: unknown) => {
-      asked = undefined;
-      throw err;
-    },
-  );
-  return asked;
+  return (asked ??= import("./ui/screens.js").then((m) => (screens = m)));
 }
 
 /** Whether an address opens on a screen that draws on the canvas. */
@@ -103,12 +98,10 @@ export function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  // Once the first screen is up, fetch the canvas screens: the next one opens at once, and the service worker
-  // holds them for a visit with no network. Asked again whenever an address needs them and they are not here.
+  // Once the first screen is up, fetch the canvas screens, so the next one opens at once.
   const [fetched, setFetched] = useState<"yes" | "no" | "failed">(screens ? "yes" : "no");
-  const wanted = !LIGHT.has(route.name);
   useEffect(() => {
-    if (fetched === "yes" || (fetched === "failed" && !wanted)) return;
+    if (fetched !== "no") return;
     let gone = false;
     loadScreens().then(
       () => !gone && setFetched("yes"),
@@ -117,7 +110,7 @@ export function App() {
     return () => {
       gone = true;
     };
-  }, [fetched, wanted, route]);
+  }, [fetched]);
 
   if (route.name === "about") return <Landing />;
   if (route.name === "templates") return <TemplatesScreen />;
@@ -140,12 +133,13 @@ export function App() {
     );
   }
   if (!screens) {
-    if (fetched !== "failed") return null;
+    // Reached only from a lighter screen, in the moment before the module lands.
+    if (fetched !== "failed") return <div className="loading">Opening…</div>;
     return (
       <div className="notfound">
         <p>This screen could not be fetched. It needs a connection the first time.</p>
-        <button type="button" className="btn btn-primary" onClick={() => setFetched("no")}>
-          Try again
+        <button type="button" className="btn btn-primary" onClick={() => location.reload()}>
+          Load the page again
         </button>
         <a className="btn" href="#/">
           Back to the library

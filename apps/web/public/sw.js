@@ -4,10 +4,14 @@
  *
  * The app is static files and keeps its documents in the browser, so being
  * offline needs only the files. On install this caches the page and the
- * scripts and styles it names. After that:
+ * scripts and styles it names, in its tags and in the lists its first script
+ * hands the browser (vite.config.ts): the app, and the screens it fetches
+ * only when an address needs them. After that:
  *
  *   the page and other unhashed files   network first, the cached copy when offline,
- *                                       so a new deploy is picked up on the next visit
+ *                                       so a new deploy is picked up on the next visit;
+ *                                       a page that names files not held yet has them fetched then,
+ *                                       so a visit cut short does not leave a page without its files
  *   /assets/ (hashed by the build)      the cached copy first: a name never changes its content
  *   /api/ (grooph watch's endpoints)    never touched: they are live
  *   /docs/ (the documents, static pages beside the app, handoff 0060)
@@ -20,6 +24,24 @@
  */
 const CACHE = "grooph-app-v1";
 
+/** The files of the app a page names: in a tag, or as a quoted path under assets/ in its first script. */
+function named(html) {
+  const found = [...html.matchAll(/(?:src|href)="([^"]+)"/g), ...html.matchAll(/"([^"]*\/assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]);
+  return [...new Set(found)]
+    .map((path) => new URL(path, self.registration.scope))
+    .filter((u) => u.origin === self.location.origin && u.href.startsWith(self.registration.scope));
+}
+
+/** Fetch and keep each named file that is not held yet. One that fails is left for the page to ask for. */
+async function hold(cache, html) {
+  await Promise.all(
+    named(html).map(async (u) => {
+      if (await cache.match(u.href, { ignoreVary: true })) return;
+      await cache.add(u.href).catch(() => undefined);
+    }),
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     (async () => {
@@ -28,10 +50,7 @@ self.addEventListener("install", (event) => {
       if (page.ok) {
         const html = await page.clone().text();
         await cache.put("./", page);
-        const named = [...html.matchAll(/(?:src|href)="([^"]+)"/g)]
-          .map((m) => new URL(m[1], self.registration.scope))
-          .filter((u) => u.origin === self.location.origin && u.href.startsWith(self.registration.scope));
-        await Promise.all(named.map((u) => cache.add(u.href).catch(() => undefined)));
+        await hold(cache, html);
       }
       await self.skipWaiting();
     })(),
@@ -73,7 +92,14 @@ self.addEventListener("fetch", (event) => {
       }
       try {
         const fresh = await fetch(request);
-        if (fresh.ok) await cache.put(key, fresh.clone());
+        if (fresh.ok) {
+          await cache.put(key, fresh.clone());
+          // A new deploy's page names new files. They are fetched now, whether or not the visit lasts long enough to ask.
+          if (request.mode === "navigate") {
+            const page = fresh.clone();
+            event.waitUntil(page.text().then((html) => hold(cache, html)).catch(() => undefined));
+          }
+        }
         return fresh;
       } catch (err) {
         const hit = await cached();
