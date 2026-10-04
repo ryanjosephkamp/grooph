@@ -1,0 +1,107 @@
+/* Operation maps (handoff 0062). The phone's rules are in styles.css; these add the carrier's mark on a
+   handoff's line and, from 1100 px, the picture drawn large with the handoffs and the details beside it. */
+
+.map-carrier {
+  width: 22px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  fill: none;
+  stroke-linecap: round;
+}
+
+@media (min-width: 1100px) {
+  .editor.map-view.is-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .editor.map-view.is-wide:is(.has-side, .has-sheet) {
+    grid-template-columns: minmax(0, 1fr) clamp(380px, 31vw, 460px);
+  }
+  .is-wide .map-stage {
+    padding: 20px 28px 48px;
+  }
+  /* The frame ends where the lanes do (MapView sets its shape); the picture's own list of handoffs is below the fold of it. */
+  .is-wide .map-picture {
+    max-width: 880px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+  .is-wide .map-picture [data-handoff-row] {
+    display: none;
+  }
+
+  /* One handoff picked out of the tangle: the others step back. */
+  .is-wide .map-picture :is([data-handoff], [data-plate], [data-number]) {
+    transition: opacity 140ms ease-out;
+  }
+  .is-wide .map-picture:has(.is-on[data-handoff], .is-hot) :is([data-handoff], [data-plate], [data-number]):not(.is-on, .is-hot) {
+    opacity: 0.28;
+  }
+  .map-picture [data-handoff].is-hot > path:first-of-type {
+    stroke-width: 3.4;
+  }
+
+  .map-side {
+    grid-column: 2;
+    grid-row: 2 / -1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+  }
+  .map-side-head {
+    padding: 14px 20px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .map-side-head h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 680;
+  }
+  .map-side-head p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--ink-3);
+    text-wrap: pretty;
+  }
+  .map-side .map-list {
+    flex: 1;
+    min-height: 0;
+    padding: 8px 10px 28px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Every handoff, as a list beside the picture and not a stack of cards: the line is the row. */
+  .map-list {
+    gap: 0;
+    margin: 0 -10px;
+  }
+  .map-list .map-handoff-line {
+    padding: 9px 10px;
+    border: 0;
+    background: transparent;
+    transition: background-color 120ms ease-out;
+  }
+  .map-list .map-handoff-line:is(:hover, :focus-visible) {
+    background: var(--surface-2);
+  }
+  .map-list .map-handoff-line[aria-current] {
+    background: var(--accent-soft);
+  }
+}
+
+@media (min-width: 1100px) and (prefers-reduced-motion: no-preference) {
+  .is-wide .map-stage {
+    scroll-behavior: smooth;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-wide .map-picture :is([data-handoff], [data-plate], [data-number]),
+  .map-list .map-handoff-line {
+    transition: none;
+  }
+}
