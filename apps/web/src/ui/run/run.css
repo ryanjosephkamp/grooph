@@ -1,0 +1,128 @@
+/* The run view, alive (handoff 0062; stage 18 of docs/PLAN.md). The view's own rules are in styles.css; these add
+   the live badge, the glow of the loop at work, and where a run that is over ended. */
+
+/* "live", as a badge at the head of the line under the title, for as long as the view follows the run. */
+.title-sub.is-live {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.title-sub.is-live > :first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.title-sub.is-live > :nth-child(2) {
+  display: none;
+}
+.is-live .run-from {
+  order: -1;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px 1px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.is-live .run-from::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: run-beat 1.6s ease-in-out infinite;
+}
+@keyframes run-beat {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* The loop the running node is in glows: its members ringed in its colour, its way back flowing, its name lit. */
+.is-glowing .gnode.in-loop {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px var(--loop),
+    0 0 20px 3px color-mix(in oklab, var(--loop) 42%, transparent);
+}
+.is-glowing .gedge.is-highlighted {
+  color: var(--loop);
+}
+.is-glowing .gedge.is-highlighted .gedge-line {
+  stroke-width: 2.4;
+  filter: drop-shadow(0 0 3px var(--loop));
+  animation: run-flow 0.9s linear infinite;
+}
+@keyframes run-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+.is-glowing .loop-pill.is-on {
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--loop) 26%, transparent),
+    var(--shadow);
+}
+.is-glowing .loop-pill.is-on .loop-dot {
+  animation: run-beat 1.6s ease-in-out infinite;
+}
+
+/* The node a run ended or halted at carries a flag; RunView names the node and the word. */
+.run-stage .gnode::before {
+  position: absolute;
+  top: -12px;
+  left: -8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* Where the run ended and the stop that fired, above the facts: no need to read the timeline for it. */
+.run-end {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin: 2px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+}
+.run-end strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+.run-end .state-icon {
+  margin-top: 3px;
+  color: var(--ok);
+}
+.run-end .state-halted {
+  color: var(--warning);
+}
+.run-end .state-failed {
+  color: var(--error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-live .run-from::before,
+  .is-glowing .gedge.is-highlighted .gedge-line,
+  .is-glowing .loop-pill.is-on .loop-dot {
+    animation: none;
+  }
+}

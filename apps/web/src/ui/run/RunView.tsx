@@ -1,4 +1,4 @@
-import { overlayRun, type Id, type NodeLive, type RunBundle } from "@grooph/core";
+import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBundle, type RunNote, type RunSummary } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
 import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight } from "../../doc/run.js";
@@ -8,6 +8,7 @@ import { RunChanges } from "./RunChanges.js";
 import { RunProposals } from "./RunProposals.js";
 import { RunTimeline } from "./RunTimeline.js";
 import { StateIcon } from "./StateIcon.js";
+import "./run.css";
 
 /** Where the run came from, which decides what the view may offer to keep. */
 export type RunOrigin =
@@ -30,6 +31,38 @@ const ago = (ms: number): string => {
   const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
   return s < 5 ? "just now" : s < 60 ? `${s} s ago` : `${Math.floor(s / 60)} min ago`;
 };
+
+/**
+ * Where a run that is over stopped, and the loop stop that fired last before it did: what the timeline says in its
+ * last lines, read out so nobody has to. The node is the stop node the run reached, or the node it halted at.
+ */
+function ending(summary: RunSummary, doc: Graph): { note: RunNote; name: string; stop?: string } | undefined {
+  if (summary.state === "running") return undefined;
+  const nodeOf = (n: RunNote) => (n.at.startsWith("node:") ? doc.nodes.find((x) => x.id === n.at.slice(5)) : undefined);
+  const back = [...summary.timeline].reverse();
+  const halted = summary.state === "halted";
+  const note = back.find((n) => (halted ? n.outcome === "halt" && nodeOf(n) : nodeOf(n)?.kind === "stop")) ?? back.find(nodeOf);
+  if (!note) return undefined;
+  let stop: string | undefined;
+  for (const n of back) {
+    const loop = doc.loops.find((l) => summary.loops[l.id]?.lastStop?.note === n.id);
+    const fired = loop && summary.loops[loop.id]!.lastStop!.fired;
+    if (fired) {
+      stop = `${STOP_WORDS[fired]} · ${loop.name || loop.id}, round ${summary.loops[loop.id]!.round ?? 0}`;
+      break;
+    }
+  }
+  return { note, name: nodeOf(note)!.name || note.at.slice(5), ...(stop ? { stop } : {}) };
+}
+
+/** The loop a running node is in: the smallest that holds it, as rounds are counted (graph-ir §2). */
+function loopAtWork(summary: RunSummary, doc: Graph): Loop | undefined {
+  let best: Loop | undefined;
+  for (const loop of doc.loops) {
+    if (loop.members.some((id) => summary.nodes[id]?.state === "running") && (!best || loop.members.length < best.members.length)) best = loop;
+  }
+  return best;
+}
 
 /**
  * `#/run` (docs/runs.md §4): one run on its graph. The canvas shows each
@@ -63,9 +96,17 @@ export function RunView({
   const [tall, setTall] = useState(false);
 
   const live = origin.kind === "live";
+  // The view is following a run as it happens: watch is answering and the run has not ended.
+  const following = live && origin.polling && !origin.error;
   const notes = orderedNotes(summary, live);
   const note = selected ? bundle.notes.find((n) => n.id === selected) : undefined;
-  const highlight = useMemo(() => (note ? targetHighlight(noteTarget(note), doc) : undefined), [note, doc]);
+  // With no note picked, the canvas shows the loop the running node is in; it glows (run.css).
+  const atWork = useMemo(() => (note ? undefined : loopAtWork(onCanvas, doc)), [note, onCanvas, doc]);
+  const highlight = useMemo(
+    () => (note ? targetHighlight(noteTarget(note), doc) : atWork ? { nodes: [], edges: atWork.back, loop: atWork.id } : undefined),
+    [note, atWork, doc],
+  );
+  const end = useMemo(() => ending(summary, doc), [summary, doc]);
 
   const showNote = useCallback((id: Id) => {
     setTab("timeline");
@@ -111,8 +152,13 @@ export function RunView({
         </a>
         <div className="title-btn run-title">
           <span className="title-name">{doc.name || doc.id}</span>
-          <span className="title-sub">
-            Run <span className="mono">{bundle.run}</span> · {origin.kind === "link" ? "from a link" : origin.kind === "live" ? "live" : "on this device"}
+          {/* While the view follows a live run, "live" is a badge at the head of the line (run.css); the words are the same. */}
+          <span className={`title-sub${following ? " is-live" : ""}`}>
+            <span>
+              Run <span className="mono">{bundle.run}</span>
+            </span>
+            <span> · </span>
+            <span className="run-from">{origin.kind === "link" ? "from a link" : origin.kind === "live" ? "live" : "on this device"}</span>
           </span>
         </div>
         <span className={`status run-status ${stateClass}`} role="img" aria-label={`Run state: ${stateText}`} data-run-state={summary.state}>
@@ -121,7 +167,9 @@ export function RunView({
         </span>
       </header>
 
-      <main className="stage run-stage">
+      <main className={`stage run-stage${atWork ? " is-glowing" : ""}`}>
+        {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
+        {end ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.note.at.slice(5))}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
         {loopsIndexed.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">
@@ -143,6 +191,7 @@ export function RunView({
                   {loop.name || loop.id}
                   <span className="loop-round">{run?.round === null || run === undefined ? "not entered" : `round ${run.round}`}</span>
                   {stop ? <span className="loop-stop">· {stop}</span> : null}
+                  {loop === atWork ? <span className="loop-stop">· running</span> : null}
                 </button>
               );
             })}
@@ -158,6 +207,18 @@ export function RunView({
 
       <section className="run-panel" aria-label="Run details">
         <div className="run-facts">
+          {end ? (
+            <button type="button" className={`run-end run-end-${summary.state}`} onClick={() => showNote(end.note.id)}>
+              <StateIcon state={summary.state === "halted" ? "halted" : summary.outcome === "fail" ? "failed" : "passed"} />
+              <span>
+                <strong>
+                  {summary.state === "halted" ? "Halted" : "Ended"} at {end.name}
+                </strong>
+                <br />
+                {end.stop ? `Last loop stop: ${end.stop}` : "No loop stop fired."}
+              </span>
+            </button>
+          ) : null}
           <p className="run-line">{facts.join(" · ")}</p>
           {origin.kind === "live" ? (
             <p className={`run-origin${origin.error ? " is-problem" : ""}`} role="status">
