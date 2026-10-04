@@ -200,15 +200,22 @@ Example
 Write the prompt package for a harness (claude-code)
 
 ```text
-grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...]
+grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: claude-code.
+It says what each tier means in the package every time, and names each pin.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
                                 on a machine; the flag wins over it. The graph does not change.
+  --change-models               go ahead when the export would change the model of an agent file
+                                already in <dir>. Without it such an export stops, lists each file
+                                with its model before and after, and writes nothing.
+
+A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
+.grooph/<id>/, and grooph keeps those folders for something else.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .

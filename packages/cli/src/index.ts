@@ -162,7 +162,7 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { target: { type: "string" }, into: { type: "string" }, models: { type: "string" } },
+          options: { target: { type: "string" }, into: { type: "string" }, models: { type: "string" }, "change-models": { type: "boolean" } },
         });
         const file = positionals[0];
         if (file === undefined) {
@@ -181,7 +181,7 @@ export async function run(
         }
         const into = values["into"];
         if (into === undefined) return usageError(io, "export needs --into <dir>, the project to write the package into");
-        return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}) });
+        return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}), changeModels: values["change-models"] === true });
       }
 
       case "shape": {

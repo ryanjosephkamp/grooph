@@ -72,7 +72,7 @@ import {
 } from "@grooph/core";
 
 import { embedHtml } from "./commands/embed.js";
-import { MODEL_NAME, TIERS, parseModels, tiersSaid } from "./commands/export.js";
+import { MODEL_NAME, TIERS, keptFolder, modelChanges, parseModels, tiersSaid } from "./commands/export.js";
 import { explain, explainLines } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { profileText } from "./commands/template.js";
@@ -110,7 +110,7 @@ const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n =
 const isObject = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
 
 /** What ends a line, or hides in one. */
-const CONTROL = /[\u0000-\u001f\u007f\u0085\u2028\u2029]+/g;
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]+/g;
 
 /**
  * One line of a reply stays one line. A reply's lines are what a model acts on (`next:` above all), and many carry
@@ -123,8 +123,24 @@ export function oneLine(text: string): string {
   return lead + text.slice(lead.length).replace(CONTROL, " ");
 }
 
-/** The lines of a reply, each held to one line. */
-export const reply = (lines: readonly string[]): string => lines.map(oneLine).join("\n");
+/** A line whose first word is "next", whatever stands before the word or after it. */
+const READS_AS_NEXT = /^[^\p{L}\p{N}]*next(?![\p{L}\p{N}])/iu;
+
+/**
+ * The lines of a reply, each held to one line, and then the tool's own `next:` line, when it has one. A model acts
+ * on a `next:` line, so only the tool may write one: every other line carries, somewhere, text from a document, a
+ * file or an argument (a gate's name, a template's summary, a note someone left), and one of those that would read
+ * as a `next:` line is put in quotes, where it reads as what it is: someone's words.
+ */
+export function reply(lines: readonly string[], next?: string): string {
+  const said = lines.map((line) => {
+    const one = oneLine(line);
+    const lead = /^\s*/.exec(one)![0];
+    const rest = one.slice(lead.length);
+    return READS_AS_NEXT.test(rest) ? `${lead}"${rest}"` : one;
+  });
+  return [...said, ...(next === undefined ? [] : [`next: ${oneLine(next)}`])].join("\n");
+}
 
 /** A path argument is refused outright when it holds a control character: a path has none, and its text is repeated in replies. */
 export function pathArg(given: string, name: string): string {
@@ -154,7 +170,7 @@ export class Refusal extends Error {
   }
 }
 
-export const refusalOut = (r: Refusal): ToolOut => ({ text: reply([...r.lines, `next: ${r.next}`]), isError: true, data: { ok: false, ...(r.data ?? {}), next: r.next } });
+export const refusalOut = (r: Refusal): ToolOut => ({ text: reply(r.lines, r.next), isError: true, data: { ok: false, ...(r.data ?? {}), next: r.next } });
 
 /** Run a tool body; a `Refusal` thrown anywhere inside it becomes the tool's error result. */
 export const refusing =
@@ -230,6 +246,15 @@ export const FILE_ARGS = ["path", "out", "into", "replace"] as const;
 /** The file a `path` argument names. Reading is not confined to the project: a session may check a fixture or another clone's graph. */
 const fileOf = (ctx: McpContext, given: string): string => (isAbsolute(given) ? given : resolve(ctx.project, given));
 
+/**
+ * What a document handed over as JSON is called in a reply: its id, when that is an id. An `id` of any other text is
+ * the caller's or a file's words, and a reply does not open a line with those.
+ */
+const labelOf = (json: unknown): string => (isObject(json) && typeof json["id"] === "string" && ID.test(json["id"]) ? json["id"] : "the document");
+
+/** Whether JSON says it is one of grooph's documents: a graph, a proposal set, an operation map or a run. */
+const marked = (json: unknown): boolean => (isObject(json) && "grooph" in json) || isProposalSetLike(json) || isMapLike(json) || isRunBundleLike(json);
+
 /** The JSON a tool was handed: the `graph` argument, or the file at `path`. Refuses both, neither, a missing file, and text that is not JSON. */
 export function readJson(args: Json, ctx: McpContext, tool: string): { json: unknown; file?: string; label: string } {
   const given = args["graph"];
@@ -240,7 +265,7 @@ export function readJson(args: Json, ctx: McpContext, tool: string): { json: unk
   }
   if (given !== undefined && path !== undefined) throw new Refusal(`${tool} takes "graph" (the document) or "path" (a file), not both.`, `call ${tool} again with one of them`);
   if (given !== undefined) {
-    if (isObject(given)) return { json: given, label: typeof given["id"] === "string" ? given["id"] : "the document" };
+    if (isObject(given)) return { json: given, label: labelOf(given) };
     if (typeof given === "string") {
       const text = given.trim();
       if (ID.test(text)) {
@@ -254,7 +279,7 @@ export function readJson(args: Json, ctx: McpContext, tool: string): { json: unk
       }
       try {
         const json: unknown = JSON.parse(text);
-        return { json, label: isObject(json) && typeof json["id"] === "string" ? json["id"] : "the document" };
+        return { json, label: labelOf(json) };
       } catch (err) {
         throw new Refusal(`"graph" is text that is neither a graph's id nor JSON: ${(err as Error).message}`, `pass the id of a graph a grooph tool returned, or the document as a JSON object, exactly as a tool returned it`);
       }
@@ -266,13 +291,23 @@ export function readJson(args: Json, ctx: McpContext, tool: string): { json: unk
   const file = fileOf(ctx, path);
   if (!existsSync(file)) throw new Refusal(`No such file: ${path}`, `pass a path that exists, relative to ${ctx.project}, or pass the document itself as "graph"`);
   const text = readFileSync(file, "utf8");
+  let json: unknown;
   try {
-    return { json: JSON.parse(text) as unknown, file, label: path };
+    json = JSON.parse(text) as unknown;
   } catch (err) {
     // The parser's own message quotes the text it choked on; a file that is not a document is not echoed back.
     void err;
-    throw new Refusal(`${path} is not JSON, so it is not a grooph document.`, `pass a .grooph.json file, or the document itself as "graph"`);
+    throw new Refusal(`The file ${JSON.stringify(path)} is not JSON, so it is not a grooph document.`, `pass a .grooph.json file, or the document itself as "graph"`);
   }
+  // Nor is a JSON file that is someone else's: a schema issue quotes the value it found ("got …"), and a file with none
+  // of grooph's marks is not grooph's to quote. It is named, and nothing of it is said.
+  if (!marked(json)) {
+    throw new Refusal(
+      `The file ${JSON.stringify(path)} is JSON, but not a grooph document: it carries none of grooph's marks ("grooph", "groophProposals", "groophMap", "groophRun"). Nothing of it was read back.`,
+      `pass a .grooph.json file, or the document itself as "graph"`,
+    );
+  }
+  return { json, file, label: `the file ${JSON.stringify(path)}` };
 }
 
 /** A graph document, checked against the schema. A map, a proposal set or a run is named for what it is and refused. */
@@ -490,16 +525,28 @@ function landing(ctx: McpContext, given: string): string {
   return probe === undefined ? relative(root, full) : relative(root, join(realpathSync.native(probe), relative(probe, full)));
 }
 
-/** Whether the file at `full` is a picture grooph drew: an SVG that carries the picture's own class. A PNG carries no mark. */
+/**
+ * Whether the file at `full` is a picture grooph drew: an SVG whose own first element has the class grooph gives a
+ * picture. The element's attributes are read one by one, so the mark is the attribute named `class` and no other:
+ * not `data-class`, not the word inside another attribute's value, a comment, or an <svg> inside another. A PNG
+ * carries no mark.
+ */
 function isGroophPicture(full: string): boolean {
   if (!/\.svg$/i.test(full)) return false;
+  let head: string;
   try {
-    // The mark counts only on the file's own first element: a picture grooph draws opens with it. The class named in a
-    // comment, or on an <svg> inside another, marks nothing.
-    return /^\uFEFF?\s*<svg\b[^>]*\bclass="grooph-picture"[^>]*>/.test(readFileSync(full, "utf8").slice(0, 4000));
+    head = readFileSync(full, "utf8").slice(0, 4000);
   } catch {
     return false;
   }
+  const open = /^\uFEFF?\s*<svg(?=\s)/.exec(head);
+  if (!open) return false;
+  const attribute = /\s+([^\s=<>"'/]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/y;
+  attribute.lastIndex = open[0].length;
+  for (let found = attribute.exec(head); found !== null; found = attribute.exec(head)) {
+    if (found[1] === "class") return (found[2] ?? found[3]) === "grooph-picture";
+  }
+  return false;
 }
 
 /** The graph as the reply carries it: canonical JSON as text for every client, and the same document as data. */
@@ -630,13 +677,6 @@ function notAsGroophWroteThem(
     .map((place) => place.path);
 }
 
-/** The `model:` value in a file's frontmatter, or undefined when the header names none (or the file has no header). */
-function headerModel(text: string): string | undefined {
-  if (!text.startsWith("---\n")) return undefined;
-  const end = text.indexOf("\n---", 4);
-  return /^model: (.+)$/m.exec(end < 0 ? "" : text.slice(4, end))?.[1]?.trim();
-}
-
 const safeJson = (text: string): unknown => {
   try {
     return JSON.parse(text) as unknown;
@@ -682,16 +722,16 @@ export const AUTHOR_TOOLS: Tool[] = [
           `  shape: ${r.shape}`,
           ...(r.slots.length > 0 ? [`  slots: ${r.slots.join(", ")}`] : []),
         ]);
-        lines.push(`${plural(rows.length, "template")}; the three words after each title are cost · speed · rigor.`);
-        lines.push('next: grooph_templates with id for one in full, or grooph_use_template with id, name and values. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, the right answer is no graph: say so.');
-        return { text: reply(lines), brief: reply(lines.slice(-2)), data: { templates: rows } };
+        const count = `${plural(rows.length, "template")}; the three words after each title are cost · speed · rigor.`;
+        const next = "grooph_templates with id for one in full, or grooph_use_template with id, name and values. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, the right answer is no graph: say so.";
+        return { text: reply([...lines, count], next), brief: reply([count], next), data: { templates: rows } };
       }
       const found = findTemplate(ctx, id);
       const block = found.doc.template!;
       const slots = block.slots ?? [];
       const lines = [
         `${found.doc.id} · ${block.title} (${block.kind}, version ${found.doc.version}, ${found.source})`,
-        block.summary,
+        `Summary: ${block.summary}`,
         `When to use: ${block.whenToUse}`,
         ...(block.notFor !== undefined ? [`Not for: ${block.notFor}`] : []),
         `Profile: cost ${block.profile.cost} · speed ${block.profile.speed} · rigor ${block.profile.rigor}`,
@@ -699,11 +739,12 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...(block.credits ?? []).map((c) => `Inspired by: ${c.name} <${c.url}>: ${c.note}`),
         ...(slots.length > 0 ? ["Slots:", ...slots.map((s) => `  ${s.key}: ${s.ask}  (e.g. ${s.example})`)] : ["Slots: none."]),
         ...found.doc.loops.map((loop) => `Loop ${loop.id}: ${loop.members.join(", ")}; stops: ${loop.stops.map(describeStop).join(", ")}`),
-        block.kind === "fragment"
-          ? "next: a fragment is not a whole graph. Add its nodes and edges to your graph with grooph_apply; the document below is what to copy from."
-          : `next: grooph_use_template with id "${found.doc.id}", a name, and values for ${slots.length > 0 ? slots.map((s) => s.key).join(", ") : "no slots"}`,
       ];
-      return { text: reply(lines), data: { source: found.source, template: docData(found.doc) }, more: [docBlock(found.doc)] };
+      const next =
+        block.kind === "fragment"
+          ? "a fragment is not a whole graph. Add its nodes and edges to your graph with grooph_apply; the document below is what to copy from."
+          : `grooph_use_template with id "${found.doc.id}", a name, and values for ${slots.length > 0 ? slots.map((s) => s.key).join(", ") : "no slots"}`;
+      return { text: reply(lines, next), data: { source: found.source, template: docData(found.doc) }, more: [docBlock(found.doc)] };
     }),
   },
   {
@@ -760,9 +801,9 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...issuesBlock(issues),
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
-        `next: ${unfilled.length > 0 ? `get the values for ${unfilled.join(", ")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false, doc.id)}`,
       ];
-      return { text: reply(lines), data: { ok: !hasErrors(issues), graph: docData(doc), unfilled, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
+      const next = unfilled.length > 0 ? `get the values for ${unfilled.join(", ")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false, doc.id);
+      return { text: reply(lines, next), data: { ok: !hasErrors(issues), graph: docData(doc), unfilled, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },
   {
@@ -795,9 +836,9 @@ export const AUTHOR_TOOLS: Tool[] = [
         `graph "${doc.id}": empty`,
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
-        `next: grooph_apply with "graph": "${doc.id}" and "ops", for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"…","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]`,
       ];
-      return { text: reply(lines), data: { ok: true, graph: docData(doc), ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
+      const next = `grooph_apply with "graph": "${doc.id}" and "ops", for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"…","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]`;
+      return { text: reply(lines, next), data: { ok: true, graph: docData(doc), ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },
   {
@@ -852,9 +893,8 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...issuesBlock(issues),
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
-        `next: ${nextAfter(issues, forExport, doc.id)}`,
       ];
-      return { text: reply(lines), data: { ok: !hasErrors(issues), graph: docData(doc), ids: result.ids, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
+      return { text: reply(lines, nextAfter(issues, forExport, doc.id)), data: { ok: !hasErrors(issues), graph: docData(doc), ids: result.ids, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },
   {
@@ -867,7 +907,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     run: refusing((args, ctx) => {
       const { doc } = readGraph(args, ctx, "grooph_explain");
       const explained = explain(doc);
-      return { text: reply([...explainLines(explained), "next: grooph_validate with forExport: true"]), data: explained };
+      return { text: reply(explainLines(explained), "grooph_validate with forExport: true"), data: explained };
     }),
   },
   {
@@ -937,9 +977,9 @@ export const AUTHOR_TOOLS: Tool[] = [
         "embed (two lines of HTML for any web page):",
         embed.frame,
         embed.script,
-        "next: give the person the link, whole and on its own line; say in a sentence what the graph does and what bounds it (grooph_explain). In the app they can save it, edit it and export the package.",
       ];
-      return { text: reply(lines), data: { ok: true, kind: envelope.kind, link, length: link.length, long, embed: `${embed.frame}\n${embed.script}`, warnings } };
+      const next = "give the person the link, whole and on its own line; say in a sentence what the graph does and what bounds it (grooph_explain). In the app they can save it, edit it and export the package.";
+      return { text: reply(lines, next), data: { ok: true, kind: envelope.kind, link, length: link.length, long, embed: `${embed.frame}\n${embed.script}`, warnings } };
     }),
   },
   {
@@ -999,15 +1039,15 @@ export const AUTHOR_TOOLS: Tool[] = [
         }
       }
       if (out !== undefined) lines.push(`wrote ${save(ctx, args, out, ext === ".png" ? png! : svg, isGroophPicture, "a picture grooph drew (an SVG carries a mark that says so; a PNG carries none)")}`);
-      lines.push("next: show the person the SVG as it is (it needs no network), and give them the link from grooph_share to open, save and edit the graph.");
-      return { text: reply(lines), data: { ok: true, id, svg, ...(png !== undefined ? { pngBytes: png.length } : {}) }, more };
+      const next = "show the person the SVG as it is (it needs no network), and give them the link from grooph_share to open, save and edit the graph.";
+      return { text: reply(lines, next), data: { ok: true, id, svg, ...(png !== undefined ? { pngBytes: png.length } : {}) }, more };
     }),
   },
   {
     name: "grooph_export",
     title: "Compile a graph into a prompt package",
     description:
-      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export that would change the model of an agent file already in place stops and asks for "replace". It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
+      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -1028,6 +1068,15 @@ export const AUTHOR_TOOLS: Tool[] = [
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     run: refusing((args, ctx) => {
       const { doc, label } = readGraph(args, ctx, "grooph_export");
+      // A package lives in .grooph/<id>/. An id that is a folder grooph uses for something else would put the graph a
+      // package keeps where any tool may save a graph, so such a graph is not placed, here or by the CLI.
+      const kept = keptFolder(doc.id);
+      if (kept !== undefined) {
+        throw new Refusal(
+          `A graph with the id "${doc.id}" is not exported: ${kept}.`,
+          `give the graph an id of its own with grooph_apply ({"op":"renameId","from":"${doc.id}","to":"<kebab-case>"}), then grooph_export with that id`,
+        );
+      }
       const target = str(args["target"]) ?? doc.target?.harness;
       if (target === undefined) {
         throw new Refusal([`error  E_NO_TARGET  graph "${doc.id}" names no target harness, and none was passed`, ...fixLines([{ code: "E_NO_TARGET" }])], `grooph_apply with {"op":"setTarget","harness":"${KNOWN_TARGETS[0]}"}, then grooph_export again`);
@@ -1060,12 +1109,14 @@ export const AUTHOR_TOOLS: Tool[] = [
       }
       const models = named || machine ? { ...(machine ?? {}), ...(named ?? {}) } : undefined;
       const modelsFrom = named && machine ? '"models", over GROOPH_MODELS' : named ? '"models"' : machine ? "GROOPH_MODELS" : undefined;
-      // What every tier means in this package is said every time, map or no map: the target's own model for a tier is a
-      // fact about the package a person may not expect.
-      const tiers =
-        modelsFrom !== undefined
-          ? tiersSaid(doc, target as CompileTarget, models!, modelsFrom)
-          : tiersSaid(doc, target as CompileTarget, {}, "").map((line, i) => (i === 0 ? line.replace(" Named by .", ' No tier map was given ("models", or GROOPH_MODELS where the server starts).') : line));
+      // What every tier means in this package is said every time, map or no map, and each pin by its node: the
+      // target's own model for a tier, and a model a pin names, are facts about the package a person may not expect.
+      const ways = '"models", or GROOPH_MODELS where the server starts';
+      const tiers = tiersSaid(doc, target as CompileTarget, models, modelsFrom ?? "", ways);
+      const pins = doc.nodes.flatMap((node) => {
+        const pin = node.kind === "agent" ? node.model?.pin?.[target] : undefined;
+        return pin === undefined ? [] : [{ node: node.id, model: pin }];
+      });
 
       const attempt = tryCompile(doc, target as CompileTarget, models ? { models } : {});
       if (!attempt.ok) {
@@ -1076,54 +1127,68 @@ export const AUTHOR_TOOLS: Tool[] = [
       const paths = Object.keys(compiled.files);
       const into = str(args["into"]);
       let folder: string | undefined;
+      let theirs: string[] = [];
+      let moved: string[] = [];
       if (into !== undefined) {
         const root = within(ctx, pathArg(into, "into"));
         // Every file's place is checked before the first is written, so a package is placed whole or not at all.
         const places = paths.map((path) => ({ path, full: within(ctx, join(into, path)), contents: compiled.files[path]! }));
-        if (args["replace"] !== true) {
-          const theirs = notAsGroophWroteThem(places, doc.id, target as CompileTarget, models);
-          if (theirs.length > 0) {
-            throw new Refusal(
-              [`${plural(theirs.length, "file")} of this package ${theirs.length === 1 ? "is" : "are"} already in ${shownIn(ctx, root)} and not as grooph last wrote ${theirs.length === 1 ? "it" : "them"}, so nothing was placed:`, ...theirs.map((path) => `  ${path}`)],
-              `look at ${theirs.length === 1 ? "it" : "them"}: a change made by hand is lost when the file is replaced. Then ${FORCE}`,
-              { changed: theirs },
-            );
-          }
-          // A file grooph wrote is replaced without asking, except in one thing: the model an agent runs on. A server
-          // started without the machine's tier map, or with another, would otherwise change it and say nothing.
-          const moved = places.flatMap((place) => {
-            if (!existsSync(place.full)) return [];
-            const was = headerModel(readFileSync(place.full, "utf8"));
-            const now = headerModel(place.contents);
-            return was === now ? [] : [`  ${place.path}: model ${was ?? "(the session's)"} → ${now ?? "(the session's)"}`];
-          });
-          if (moved.length > 0) {
-            throw new Refusal(
-              [`This export would change the model of ${plural(moved.length, "agent file")} already in ${shownIn(ctx, root)}, so nothing was placed:`, ...moved, ...tiers],
-              `if the person means the models to change, ${FORCE}; if not, name the tiers the package was placed with ("models", or GROOPH_MODELS where the server starts) and export again`,
-              { modelChanges: moved.map((line) => line.trim()) },
-            );
-          }
+        // Two questions, and "replace" answers both, so both are asked at once: one answered alone would waive the other
+        // unseen. A file that is not as grooph last wrote it is lost when it is replaced; and a file grooph wrote is
+        // replaced without asking except in the model an agent runs on, which a server started without the machine's
+        // tier map, or with another, would otherwise change and say nothing.
+        theirs = notAsGroophWroteThem(places, doc.id, target as CompileTarget, models);
+        moved = modelChanges(places);
+        if ((theirs.length > 0 || moved.length > 0) && args["replace"] !== true) {
+          const where = shownIn(ctx, root);
+          const byHand = theirs.length === 0 ? [] : [`${plural(theirs.length, "file")} of this package ${theirs.length === 1 ? "is" : "are"} already in ${where} and not as grooph last wrote ${theirs.length === 1 ? "it" : "them"}, so nothing was placed:`, ...theirs.map((path) => `  ${path}`)];
+          const byModel = moved.length === 0 ? [] : [`This export would change the model of ${plural(moved.length, "agent file")} already in ${where}, so nothing was placed:`, ...moved, ...tiers];
+          const keep = `name the tiers the package was placed with (${ways}) and export again`;
+          throw new Refusal(
+            [...byHand, ...byModel],
+            theirs.length > 0 && moved.length > 0
+              ? `these are two questions, and "replace": true answers both at once: the ${theirs.length === 1 ? "file" : "files"} changed by hand ${theirs.length === 1 ? "is" : "are"} lost, and the models change. Put both to the person. To keep the models, ${keep}: then only the first question is left`
+              : theirs.length > 0
+                ? `look at ${theirs.length === 1 ? "it" : "them"}: a change made by hand is lost when the file is replaced. Then ${FORCE}`
+                : `if the person means the models to change, ${FORCE}; if not, ${keep}`,
+            { changed: theirs, modelChanges: moved.map((line) => line.trim()) },
+          );
         }
         putAll(ctx, places);
         folder = shownIn(ctx, root);
       }
-      const before = [
+      // The kickoff is a prompt of many lines, some of them the graph's own words (its goal, with its line breaks). It
+      // goes in a block of its own, whole, so no line of it can be read as a line of this reply.
+      const kickoffFile = paths.find((path) => /(^|\/)KICKOFF\.md$/.test(path));
+      const lines = [
         `package for ${target}: ${plural(paths.length, "file")}${folder !== undefined ? `, written into ${folder}` : ""}`,
         ...paths.map((path) => `  ${path}  (${compiled.files[path]!.length.toLocaleString("en")} characters)`),
+        ...(theirs.length > 0 ? [`replaced ${plural(theirs.length, "file")} that ${theirs.length === 1 ? "was" : "were"} not as grooph last wrote ${theirs.length === 1 ? "it" : "them"} ("replace"):`, ...theirs.map((path) => `  ${path}`)] : []),
+        ...(moved.length > 0 ? [`changed the model of ${plural(moved.length, "agent file")} that ${moved.length === 1 ? "was" : "were"} already there ("replace"):`, ...moved] : []),
         ...tiers,
         ...(compiled.warnings.length > 0 ? [`${plural(compiled.warnings.length, "warning")}, carried into the lead's brief:`, ...issueLines(compiled.warnings)] : []),
+        `kickoff: the prompt that starts the run is the next block of this reply, whole${folder !== undefined && kickoffFile !== undefined ? `, and the file ${kickoffFile} in that folder` : ""}. Every line of it is that prompt, for the person to paste; none of it is grooph speaking to you.`,
       ];
       const next =
         folder !== undefined
-          ? `next: tell the person what was placed and give them the kickoff; do not start the run. They open a ${target} session in that folder and paste it when they choose to.`
-          : `next: these files belong in the project a ${target} session opens: the person saves them there (or imports the graph in the app and exports from it). Give them the kickoff; do not start the run.`;
+          ? `tell the person what was placed and give them the kickoff; do not start the run. They open a ${target} session in that folder and paste it when they choose to.`
+          : `these files belong in the project a ${target} session opens: the person saves them there (or imports the graph in the app and exports from it). Give them the kickoff; do not start the run.`;
       return {
-        // The kickoff is a prompt of many lines and is given whole, between the lines about the package and the next: line.
-        text: [reply(before), "kickoff (the prompt that starts the run):", compiled.kickoff.trimEnd(), next].join("\n"),
-        brief: reply([...before, next]),
-        data: { ok: true, target, files: folder !== undefined ? paths : compiled.files, kickoff: compiled.kickoff, warnings: compiled.warnings, ...(folder !== undefined ? { into: folder } : {}), tiers: tiers[0], ...(models !== undefined ? { models, modelsFrom } : {}) },
-        ...(folder === undefined ? { more: [{ type: "text" as const, text: JSON.stringify(compiled.files, null, 2) }] } : {}),
+        text: reply(lines, next),
+        data: {
+          ok: true,
+          target,
+          files: folder !== undefined ? paths : compiled.files,
+          kickoff: compiled.kickoff,
+          warnings: compiled.warnings,
+          ...(folder !== undefined ? { into: folder } : {}),
+          tiers: tiers[0],
+          pins,
+          ...(models !== undefined ? { models, modelsFrom } : {}),
+          ...(theirs.length > 0 ? { replaced: theirs } : {}),
+          ...(moved.length > 0 ? { modelChanges: moved.map((line) => line.trim()) } : {}),
+        },
+        more: [{ type: "text" as const, text: compiled.kickoff.trimEnd() }, ...(folder === undefined ? [{ type: "text" as const, text: JSON.stringify(compiled.files, null, 2) }] : [])],
       };
     }),
   },

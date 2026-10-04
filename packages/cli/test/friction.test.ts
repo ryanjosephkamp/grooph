@@ -218,19 +218,22 @@ test("export --models names the model of a tier for one export; GROOPH_MODELS sa
     assert.match(io.stdout.join("\n"), /tiers in this package: frontier → opus, strong → sonnet, fast → sonnet \(the target's own\)\. Named by --models\./);
     assert.doesNotMatch(io.stdout.join("\n"), /note: /, "the review loop's agents are on one tier, so no two tiers met");
 
+    // From here on each export changes the model of an agent file already in place, which stops unless the one
+    // exporting says so (export-stops.test.ts has the stop itself).
     io = capture();
-    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--change-models"], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
     assert.match(builder(dir), /^model: haiku$/m);
     assert.match(io.stdout.join("\n"), /Named by GROOPH_MODELS\./);
 
     io = capture();
-    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=sonnet"], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=sonnet", "--change-models"], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
     assert.match(builder(dir), /^model: sonnet$/m);
 
     io = capture();
-    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: {} }), 0);
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--change-models"], io, () => "", { env: {} }), 0);
     assert.match(builder(dir), /^model: opus$/m);
-    assert.doesNotMatch(io.stdout.join("\n"), /tiers in this package/);
+    // What the tiers mean is said with no map too: the target's own model for a tier is a fact about the package.
+    assert.match(io.stdout.join("\n"), /tiers in this package: .*\(the target's own\)\. No tier map was given \(--models, or GROOPH_MODELS\)\. A pin on a node still wins\./);
 
     // Two tiers the graph uses, made one model from outside the document: the export says what the validator cannot see.
     const mixed = join(import.meta.dirname, "..", "..", "..", "..", "fixtures", "valid", "glyph-vocabulary.grooph.json");
@@ -238,7 +241,7 @@ test("export --models names the model of a tier for one export; GROOPH_MODELS sa
     assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "frontier=opus"], io, () => "", { env: {} }), 0);
     assert.match(io.stdout.join("\n"), /note: frontier and strong are both opus in this package/);
     io = capture();
-    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "frontier=opus,strong=sonnet,fast=haiku"], io, () => "", { env: {} }), 0);
+    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "frontier=opus,strong=sonnet,fast=haiku", "--change-models"], io, () => "", { env: {} }), 0);
     assert.doesNotMatch(io.stdout.join("\n"), /note: /);
 
     for (const bad of ["best=opus", "strong", "strong=", "strong=a b", ",", "strong=sonnet;fast=haiku", "frontier=opus=x", "strong={x}", "strong=opus,strong=sonnet", "Strong=opus"]) {

@@ -56,6 +56,6 @@ The last one is for a chat in Claude's desktop app (`claude_desktop_config.json`
 
 ## What it does not do
 
-It starts no agent, spends nothing and uploads nothing. `grooph export` places files and prints a kickoff prompt; pasting that prompt into your harness is your decision. `grooph hooks install` adds an event hook that records which sessions and subagents ran, for `grooph watch` to show; the hook appends one line per event and changes nothing an agent does.
+It starts no agent and spends nothing, and it uploads nothing unless you ask: `grooph events push`, or the hook installed with `--push`, sends what the hook recorded to a branch of its own on the project's own remote, which is public when the repository is. `grooph export` places files and prints a kickoff prompt; pasting that prompt into your harness is your decision. `grooph hooks install` adds an event hook that records which sessions and subagents ran, for `grooph watch` to show; the hook appends one line per event and changes nothing an agent does.
 
 Source, issues and the templates' recorded runs: [github.com/ryanjosephkamp/grooph](https://github.com/ryanjosephkamp/grooph). MIT.

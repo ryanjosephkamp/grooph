@@ -105,7 +105,13 @@ export function loadProposals(file: string, cwd = process.cwd(), options: { besi
         `candidate "${candidate.id}" points at ${candidate.graph.file}, which is not in ${shown(dirname(resolve(cwd, file)), cwd)}/ or the working directory. Paths in { "file" } are relative to the proposal set's folder.`,
       );
     }
-    const graph = parseGraph(readJson(path));
+    const json = readJson(path);
+    // Read on someone else's word, a file that does not say it is a graph is named and not quoted: a schema issue
+    // repeats the value it found, and this file is not grooph's to repeat.
+    if (options.beside === true && !(typeof json === "object" && json !== null && !Array.isArray(json) && "grooph" in json)) {
+      throw new LoadError(`candidate "${candidate.id}": ${shown(path, cwd)} is JSON, but not a graph document: it does not carry the "grooph" mark. Nothing of it was read back.`);
+    }
+    const graph = parseGraph(json);
     if (!graph.doc) throw new LoadError(`candidate "${candidate.id}": ${shown(path, cwd)} is not a graph document`, lines(graph.issues));
     files[candidate.id] = path;
     return { ...candidate, graph: graph.doc };

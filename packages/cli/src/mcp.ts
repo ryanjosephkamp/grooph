@@ -24,7 +24,7 @@ import { SAID_MAX, byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShap
 
 import { sessionLines } from "./commands/hooks.js";
 import { EVENTS_DIR, readLive } from "./events-io.js";
-import { AUTHOR_TOOLS, FILE_ARGS, Refusal, issuesBlock, nextAfter, readJson, refusing, remember, reply, within, type Content, type Tool } from "./mcp-author.js";
+import { AUTHOR_TOOLS, FILE_ARGS, Refusal, issuesBlock, nextAfter, readJson, refusalOut, refusing, remember, reply, within, type Content, type Tool } from "./mcp-author.js";
 import type { RegistryEnv } from "./registry.js";
 
 export const MCP_PROTOCOL = "2025-06-18";
@@ -123,7 +123,8 @@ const TOOLS: Tool[] = [
       say(ctx, { event: "plan", agents, ...(title ? { text: title.slice(0, SAID_MAX) } : {}) });
       const total = agents.reduce((n, a) => n + (a.count ?? 1), 0);
       return {
-        text: `Plan recorded: ${total} subagent${total === 1 ? "" : "s"} (${agents.map((a) => `${a.count ?? 1} × ${a.type}`).join(", ")}). Start them as you planned; grooph_running shows what has started.`,
+        // A type is the caller's text: the line it is said in stays one line.
+        text: reply([`Plan recorded: ${total} subagent${total === 1 ? "" : "s"} (${agents.map((a) => `${a.count ?? 1} × ${a.type}`).join(", ")}). Start them as you planned; grooph_running shows what has started.`]),
         data: { agents },
       };
     }),
@@ -159,7 +160,9 @@ const TOOLS: Tool[] = [
         if (lines.length > 0) lines.push("");
         lines.push(...sessionLines(s, view.at));
       }
-      return { text: lines.join("\n"), data: view };
+      // What was recorded is other sessions' words (a subagent's type, a plan's title, a note): each stays the one line
+      // it was given, and none of them reads as this tool's own.
+      return { text: reply(lines), data: view };
     },
   },
   {
@@ -219,7 +222,7 @@ const TOOLS: Tool[] = [
       }
       const byHand = map ? byHandLines(mapShape(map)) : [];
       const next = map || isMapLike(json) ? (hasErrors(issues) ? "correct what is listed in the map document, then grooph_validate" : "grooph_picture draws the map; grooph_share makes its link") : nextAfter(issues, forExport, known);
-      return { text: reply([head, ...issuesBlock(issues), ...byHand, `next: ${next}`]), data: { ok: !hasErrors(issues), issues } };
+      return { text: reply([head, ...issuesBlock(issues), ...byHand], next), data: { ok: !hasErrors(issues), issues } };
     }),
   },
   ...AUTHOR_TOOLS,
@@ -245,8 +248,7 @@ function forChat(tool: Tool): Tool {
     run: (args, ctx) => {
       const file = FILE_ARGS.find((key) => args[key] !== undefined);
       if (file !== undefined) {
-        const refusal = new Refusal(`${tool.name} takes no "${file}" here: this server was started for a chat, where it reads and writes no file.`, file === "path" ? 'pass the document itself as "graph", or the id of a graph a grooph tool returned' : `leave "${file}" off: the result comes back in this reply`);
-        return { text: reply([...refusal.lines, `next: ${refusal.next}`]), isError: true, data: { ok: false, next: refusal.next } };
+        return refusalOut(new Refusal(`${tool.name} takes no "${file}" here: this server was started for a chat, where it reads and writes no file.`, file === "path" ? 'pass the document itself as "graph", or the id of a graph a grooph tool returned' : `leave "${file}" off: the result comes back in this reply`));
       }
       return tool.run(args, ctx);
     },
@@ -318,7 +320,7 @@ export async function handle(message: unknown, ctx: McpContext): Promise<Json | 
         const structured = out.data === undefined ? undefined : typeof out.data === "object" && out.data !== null && !Array.isArray(out.data) ? { text: out.brief ?? out.text, ...(out.data as Json) } : out.data;
         return ok({ content, ...(structured !== undefined ? { structuredContent: structured as Json } : {}), ...(out.isError ? { isError: true } : {}) });
       } catch (err) {
-        return ok({ content: [{ type: "text", text: `${tool.name} failed: ${(err as Error).message}` }], isError: true });
+        return ok({ content: [{ type: "text", text: reply([`${tool.name} failed: ${(err as Error).message}`]) }], isError: true });
       }
     }
     case "resources/list":
