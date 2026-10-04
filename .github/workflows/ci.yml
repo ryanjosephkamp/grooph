@@ -185,3 +185,48 @@ jobs:
           name: playwright-report
           path: apps/web/playwright-report
           retention-days: 7
+
+  # The smoke set in Safari's engine and in Firefox (handoff 0081): five visits a stranger makes, in the two
+  # browsers the rest of the suite never opens. Chromium runs the same five above, in web-e2e.
+  web-browsers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The two browsers are cached per Playwright version; their system libraries are installed either way.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @grooph/web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: webkit-firefox-${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter @grooph/web exec playwright install --with-deps webkit firefox
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter @grooph/web exec playwright install-deps webkit firefox
+
+      # The specs read core as built. The app is built by the test server, from source.
+      - run: pnpm --filter @grooph/core build
+
+      - run: pnpm --filter @grooph/web test:e2e --project=safari --project=firefox
+        env:
+          GROOPH_BROWSERS: "1"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-browsers
+          path: apps/web/playwright-report
+          retention-days: 7
