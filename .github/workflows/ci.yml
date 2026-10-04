@@ -83,6 +83,14 @@ jobs:
           node --test scripts/site/markdown.test.mjs scripts/site/site-pages.test.mjs
           node scripts/site-pages.mjs --check
 
+      # docs/privacy.md says the app and the site's pages load nothing from another host. This reads the built app and
+      # the rendered pages and fails on a script, a style sheet, a font, a picture or a frame from elsewhere. A link is
+      # not a load. What a script asks for at run time is seen by the smoke visits, in web-e2e and web-browsers.
+      - name: the app and the site's pages load nothing from another host
+        run: |
+          node --test scripts/check-outside-addresses.test.mjs
+          node scripts/check-outside-addresses.mjs --check
+
       # What the app and the CLI weigh (handoff 0058): the app's first load, an embed's, and the CLI's cold start,
       # against scripts/perf-budget.json. Raising a budget is a decision made in a pull request that says why.
       - name: the app and the CLI are inside their performance budget

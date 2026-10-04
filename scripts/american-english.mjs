@@ -28,6 +28,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 /** Paths git tracks that are public-facing. A path is checked when it starts with one of these… */
 const PUBLIC = [
   "README.md",
+  "CONTRIBUTING.md",
   "AGENTS.md",
   "CLAUDE.md",
   "LICENSE",
