@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readPasted } from "../src/store/library.js";
+import { readPasted } from "../src/ui/Import.js";
 import { fixtureText } from "./helpers.js";
 
 /** What a chat hands a person, and what the app makes of it (handoff 0078: wherever Import is offered, a document can be pasted). */
