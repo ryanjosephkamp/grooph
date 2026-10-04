@@ -31,6 +31,7 @@ handoffs/
 - Verification claims name the command and the observed result. "Tests pass" without the command is not a verification.
 - Decisions the implementer made inside the boundary are recorded in the handback, with reasons; the driver promotes durable ones to `docs/decisions/`.
 - A blocked slice ends early with an honest handback rather than a workaround outside the boundary.
+- **A pushed branch is never rewritten**: no rebase, amend or force-push once a commit is on the remote, even a branch a minute old that nobody else has fetched. To bring a slice up to date, merge. **Files are added by name**, never with `git add -A`: other sessions' working copies live under this clone (`.claude/worktrees/`).
 
 ## Codex as an implementer
 
