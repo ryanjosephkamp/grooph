@@ -1268,7 +1268,7 @@ a {
   background: var(--surface-2);
 }
 .card .input {
-  background-color: var(--surface); /* colour only: selects keep their arrow */
+  background-color: var(--surface); /* color only: selects keep their arrow */
 }
 .card-head {
   display: flex;
@@ -1412,7 +1412,7 @@ a {
   color: var(--ink-2);
 }
 /*
- * Kind is shown by shape as well as colour, so it survives colour blindness
+ * Kind is shown by shape as well as color, so it survives color blindness
  * and grayscale: agent ●, human gate ◆, check ■, merge ▲, stop ⯃.
  */
 .kind-mark {
@@ -2570,7 +2570,7 @@ a {
   width: 100%;
   height: 100%;
 }
-/* A thumbnail beside a row's text: fixed box, the drawing fitted and centred. */
+/* A thumbnail beside a row's text: fixed box, the drawing fitted and centered. */
 .template-glyph {
   flex: none;
   width: 92px;
@@ -3080,7 +3080,7 @@ a {
   color: var(--ink-2);
 }
 
-/* A state is a shape as well as a colour. */
+/* A state is a shape as well as a color. */
 .state-icon {
   width: 14px;
   height: 14px;
@@ -3096,7 +3096,7 @@ a {
   stroke: none;
 }
 
-/* Node states on the canvas: pending quiet, running pulsing, passed and failed in the semantic colours, halted amber. */
+/* Node states on the canvas: pending quiet, running pulsing, passed and failed in the semantic colors, halted amber. */
 .run-badge {
   display: inline-flex;
   align-items: center;

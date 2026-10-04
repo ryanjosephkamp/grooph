@@ -42,7 +42,7 @@
             "outputs": [
               "implementation in src/ and tests/",
               "test command output",
-              "CHANGES.md summarising what changed this round"
+              "CHANGES.md summarizing what changed this round"
             ],
             "allow": [
               "read-files",

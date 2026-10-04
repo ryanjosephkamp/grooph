@@ -88,6 +88,11 @@ jobs:
       - name: the quickstart's first run works
         run: scripts/first-run.sh
 
+      # Public-facing text is American English (decision 0022): the README, the site's documents, the app, the CLI,
+      # the templates and what the compiler writes. The internal record and the evidence are not read.
+      - name: public-facing text is American English
+        run: node scripts/american-english.mjs --check
+
       # A loop's stops are the only place its numbers live (handoff 0009, criterion 7).
       - name: no pattern restates a brake value
         run: node scripts/check-brake-values.mjs

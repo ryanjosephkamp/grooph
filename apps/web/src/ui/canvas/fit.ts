@@ -59,7 +59,7 @@ export type Viewport = { x: number; y: number; zoom: number };
  * Where a canvas opens. When the whole graph fits at a readable size, that is
  * the view (`fits`, and the caller keeps the ordinary fit). Otherwise the
  * graph opens at `READABLE_ZOOM` with its start in view: the left edge when it
- * is too wide, the top when it is too tall, centred on the axis that fits.
+ * is too wide, the top when it is too tall, centered on the axis that fits.
  * The rest is a drag away, and the whole of it one tap (Fit, or Show all).
  */
 export function openingViewport(bounds: Rect, stage: { width: number; height: number }, pad: Pad): Viewport & { fits: boolean } {

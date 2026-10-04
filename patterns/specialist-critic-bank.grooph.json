@@ -99,7 +99,7 @@
         "tier": "strong"
       },
       "effort": "medium",
-      "brief": "Review the change for security: input handling, secrets, authentication and authorisation, and dependencies only; other reviewers cover the rest. Rate each finding blocker, major or minor, with the file and line that shows it. You review; you do not fix. Report invalid-evidence rather than guessing when the diff cannot be read.",
+      "brief": "Review the change for security: input handling, secrets, authentication and authorization, and dependencies only; other reviewers cover the rest. Rate each finding blocker, major or minor, with the file and line that shows it. You review; you do not fix. Report invalid-evidence rather than guessing when the diff cannot be read.",
       "inputs": [
         "diff of the change",
         "the repository as the change leaves it, read-only"

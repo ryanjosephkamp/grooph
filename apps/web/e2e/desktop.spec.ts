@@ -33,10 +33,10 @@ async function unnamedControls(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const out: string[] = [];
     for (const el of Array.from(document.querySelectorAll<HTMLElement>("a[href], button, input, select, textarea, [role=button], [role=link], [tabindex='0']"))) {
-      const labelled = el.getAttribute("aria-labelledby");
+      const labeled = el.getAttribute("aria-labeledby");
       const named =
         (el.getAttribute("aria-label") ?? "").trim() !== "" ||
-        (labelled !== null && labelled.split(/\s+/).some((id) => (document.getElementById(id)?.textContent ?? "").trim() !== "")) ||
+        (labeled !== null && labeled.split(/\s+/).some((id) => (document.getElementById(id)?.textContent ?? "").trim() !== "")) ||
         (el.textContent ?? "").trim() !== "" ||
         ((el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) && Array.from(el.labels ?? []).some((l) => (l.textContent ?? "").trim() !== "")) ||
         (el.getAttribute("title") ?? "").trim() !== "";

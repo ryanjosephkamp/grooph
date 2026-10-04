@@ -16,13 +16,13 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 
 - a card per node: its kind, its name, and one line (an agent's role, tier and effort; a gate's answers; a check's command);
 - an arrow to the very next card, with its condition in a pill;
-- every other forward edge in the left margin, and every loop's back edge in the right, dashed in the loop's colour, each on its own track so no line crosses a word;
+- every other forward edge in the left margin, and every loop's back edge in the right, dashed in the loop's color, each on its own track so no line crosses a word;
 - nodes of one rank in a tinted band, marked "side by side";
 - below the cards, each loop: its kind and members, its bar, and its stops in order with what each does.
 
 An operation map's picture is described in [`operation-map.md`](operation-map.md) §4.
 
-Themes: `light` and `dark` write the colours into the file, so it looks the same anywhere. `auto` (SVG only, and the SVG default) carries both palettes and follows the viewer's colour scheme. A PNG is one theme: light unless told dark, three pixels to the unit (1,200 px wide; `--scale` changes that).
+Themes: `light` and `dark` write the colors into the file, so it looks the same anywhere. `auto` (SVG only, and the SVG default) carries both palettes and follows the viewer's color scheme. A PNG is one theme: light unless told dark, three pixels to the unit (1,200 px wide; `--scale` changes that).
 
 The SVG is deterministic: the same document and theme give the same bytes, and golden copies of two graphs and the sample map are under `fixtures/pictures/` and `fixtures/maps/pictures/`. The PNG is drawn with the machine's own fonts (by the browser in the app; by `@resvg/resvg-js`, an optional dependency, in the CLI), so it can differ by a pixel between machines. Text width is estimated without a browser, a little wide on purpose, so a long name is cut with an ellipsis rather than overflowing. Text is measured without a browser, for the widest font a picture is likely to be drawn with (about as wide as DejaVu Sans, which is what a Linux machine with nothing else uses): on a Mac or a phone a line ends a little short of its box, and on Linux it does not run past it, which it did in 0.1.0.
 
@@ -36,7 +36,7 @@ The glyph (`grooph glyph`) is still the wordless shape for a list row, and the c
 
 One file. Its content security policy is `default-src 'none'` with inline style and script only, so the page cannot ask the network for anything: that it opens with no connection is a property of the file. It holds:
 
-- the picture (it follows the device's colour scheme; a button switches it);
+- the picture (it follows the device's color scheme; a button switches it);
 - the validator's list, as `grooph validate --for-export` prints it (a map's own rules for a map);
 - the outline; tapping a card in the picture scrolls to its section;
 - the document, in canonical form. **Save document** writes it back out as `<id>.grooph.json` (or `.grooph-map.json`), byte for byte what went in, ready to import into the app.
@@ -65,11 +65,11 @@ grooph embed <file> [--theme light|dark] [--height <px>] [--frame] [--play] [--b
 
 It prints two lines. The first is an `<iframe>` whose address is `https://ryanjosephkamp.github.io/grooph/#/embed?d=<payload>`. The second is a one-line script that sizes every such frame on the page to the height the frame asks for. `<file>` is a graph, a run folder or `*.grooph-run.json` bundle, an operation map, or a proposal set (which shows its recommended candidate). The command is exported as `embedCommand` and `EMBED_HELP` from `packages/cli/src/commands/embed.ts`; it joins `grooph`'s command table when the driver wires it into `index.ts`.
 
-- **The payload is a share payload.** `#/embed?d=` carries the same bytes as `#/open?d=` (executive.md §2), so "Open in grooph" opens the same document in the full app. `run=` is accepted as another name for `d=`. Options follow the payload: `&theme=light|dark` (without it, the reader's colour scheme, which inside a frame is the host page's), `&frame=1` (the embed's own background and border; otherwise the host page's background shows through), `&play=1` (a run starts playing, unless the reader asks for reduced motion), `&c=<candidate>` (for a proposal set).
+- **The payload is a share payload.** `#/embed?d=` carries the same bytes as `#/open?d=` (executive.md §2), so "Open in grooph" opens the same document in the full app. `run=` is accepted as another name for `d=`. Options follow the payload: `&theme=light|dark` (without it, the reader's color scheme, which inside a frame is the host page's), `&frame=1` (the embed's own background and border; otherwise the host page's background shows through), `&play=1` (a run starts playing, unless the reader asks for reduced motion), `&c=<candidate>` (for a proposal set).
 - **What a reader can do.** Drag or one finger pans; a pinch, or ctrl/⌘ with the wheel, zooms; − + and Fit do the same from buttons. A tap, or Enter on a focused node, opens its brief (a loop's bar and stops; a map's session, person or handoff). Escape or Close shuts it. While the whole picture is in view, a vertical swipe and a plain wheel scroll the host page, not the picture. Every control has a name.
 - **What it draws.** Core's picture, the same SVG as `grooph image`, at the frame's width: 300 to 600 units, at up to 1.25 pixels per unit. It is not the canvas library. The embed's first load is 125 KB compressed (the entry with React, the embed's own chunk, core without the compiler, and its stylesheet), weighed by `scripts/perf-budget.mjs`, which fails above 132 KB, and by `apps/web/e2e/embed.spec.ts`. `main.tsx` loads only that chunk for `#/embed`, so the app's own screens are not fetched.
 - **Sizing.** The frame posts `{ grooph: "embed-height", height }` to its parent whenever the height it wants changes. The script accepts it only from the app's origin, only for `iframe[data-grooph-embed]`, and at most 4,000 px. Without the script the frame keeps the height `grooph embed` printed (the picture at a phone's width, plus its bars); a picture taller than its frame shrinks to fit, down to 55% of its width-fitted size, and can be dragged.
-- **Replay.** A run plays on its working copy: play, a step back or forward, and a scrubber. Each step is one of the lead's notes, from core's `replaySteps(notes, graph)`. Step 0 is the graph before the run; the summary at step k is `summarizeRun` over the first k notes. Nodes are dimmed until reached, then marked running, passed, failed or halted, in colour and in words. Each loop's chip shows its round, and the last step says which loop stop fired and where the run ended or halted. A run opens at its end unless `play=1`.
+- **Replay.** A run plays on its working copy: play, a step back or forward, and a scrubber. Each step is one of the lead's notes, from core's `replaySteps(notes, graph)`. Step 0 is the graph before the run; the summary at step k is `summarizeRun` over the first k notes. Nodes are dimmed until reached, then marked running, passed, failed or halted, in color and in words. Each loop's chip shows its round, and the last step says which loop stop fired and where the run ended or halted. A run opens at its end unless `play=1`.
 - **What it does not do.** It never edits or stores the document, and it registers no service worker. It fetches nothing but the app's own files and sends nothing about the reader. The frame `grooph embed` prints carries `referrerpolicy="no-referrer"`, so the host page's address is not sent either.
 
 A page with two embeds, one static and one replay, is `handoffs/0056-embed-and-replay/demo.html`.

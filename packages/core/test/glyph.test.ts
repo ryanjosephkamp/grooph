@@ -22,7 +22,7 @@ const valid = (name: string): Graph => load(join(fixturesDir, "valid", `${name}.
 const pattern = (id: string): Graph => load(join(repoRoot, "patterns", `${id}.grooph.json`));
 
 const count = (text: string, re: RegExp): number => (text.match(re) ?? []).length;
-const STYLE = (colour: string): RegExp => new RegExp(`style="[^"]*${colour.replace(/[()]/g, "\\$&")}`, "g");
+const STYLE = (color: string): RegExp => new RegExp(`style="[^"]*${color.replace(/[()]/g, "\\$&")}`, "g");
 
 // ─── glyph ────────────────────────────────────────────────────────────────
 
@@ -49,9 +49,9 @@ test("glyph: no words; the graph's name is in a <title> only, escaped", () => {
 test("glyph: a loop with a back edge (fix-until-green): hull, a dashed fail edge returning, square, hexagon, dot", () => {
   const svg = glyph(valid("fix-until-green"));
   assert.equal(count(svg, /stroke-dasharray="4 3"/g), 1, "one dashed hull for one loop");
-  assert.match(svg, /<rect [^>]*rx="10"[^>]*style="stroke:var\(--loop-0, #7a4cc2\)"/, "the hull takes the loop's colour");
+  assert.match(svg, /<rect [^>]*rx="10"[^>]*style="stroke:var\(--loop-0, #7a4cc2\)"/, "the hull takes the loop's color");
   assert.equal(count(svg, /stroke-dasharray="5 3"/g), 1, "the fail edge is dashed");
-  assert.match(svg, /<path d="M[^"]+ C[^"]+" stroke-width="1.6" stroke-dasharray="5 3" style="stroke:var\(--warning, #955500\)"/, "the back edge is a curve in the warning colour");
+  assert.match(svg, /<path d="M[^"]+ C[^"]+" stroke-width="1.6" stroke-dasharray="5 3" style="stroke:var\(--warning, #955500\)"/, "the back edge is a curve in the warning color");
   assert.equal(count(svg, /<rect [^>]*rx="2"/g), 1, "one writer square");
   assert.equal(count(svg, /<path d="M[^"]+" stroke-width="1.8" style="fill:var\(--surface, #ffffff\);stroke:var\(--kind-check, #2b5f9e\)"/g), 1, "one check hexagon");
   assert.equal(count(svg, /<circle [^>]*r="6" style="fill:var\(--ink, #2b302e\)"/g), 1, "one filled stop dot");
@@ -61,7 +61,7 @@ test("glyph: a loop with a back edge (fix-until-green): hull, a dashed fail edge
   assert.ok(xs[0]! < xs[1]! && xs[1]! < xs[2]!, `builder, check, stop read left to right: ${xs.join(", ")}`);
 });
 
-test("glyph: a gate (review-loop) is an octagon in the gate colour, drawn heavier", () => {
+test("glyph: a gate (review-loop) is an octagon in the gate color, drawn heavier", () => {
   const svg = glyph(valid("review-loop"));
   assert.equal(count(svg, /stroke-width="2.4" style="fill:var\(--surface, #ffffff\);stroke:var\(--kind-human-gate, #b25e09\)"/g), 1);
   assert.equal(count(svg, /<path d="M[^"]+ L[^"]+ L[^"]+ L[^"]+ Z" stroke-width="1.8" style="fill:var\(--accent-soft, #e3efe9\);stroke:var\(--kind-agent, #1f5f4a\)"/g), 1, "one critic diamond");
@@ -97,7 +97,7 @@ test("glyph: every edge style and every shape (glyph-vocabulary)", () => {
   const [outer, inner] = hulls as [number[], number[]];
   assert.ok(outer[0]! < inner[0]! && outer[1]! < inner[1]!, "outer starts before inner");
   assert.ok(outer[0]! + outer[2]! > inner[0]! + inner[2]! && outer[1]! + outer[3]! > inner[1]! + inner[3]!, "outer ends after inner");
-  assert.match(svg, /rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:var\(--loop-1, #0f7c8c\)"/, "the second loop takes the second colour");
+  assert.match(svg, /rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:var\(--loop-1, #0f7c8c\)"/, "the second loop takes the second color");
 });
 
 test("glyph: a document with a layout follows it; without one, the layered layout", () => {
@@ -154,7 +154,7 @@ test("mermaid: a flowchart LR with a header saying it is one way, a subgraph per
   assert.match(text, /n_critic\{"Critic"\}/, "a critic is a diamond");
   assert.match(text, /n_merge_gate\[\/"Merge approval"\\\]/, "a gate is the manual-operation trapezoid");
   assert.match(text, /n_done\(\(\("Done"\)\)\)/, "a stop is a double circle");
-  assert.match(text, /n_critic -\.->\|"fail"\| n_builder/, "a back edge is dotted and labelled");
+  assert.match(text, /n_critic -\.->\|"fail"\| n_builder/, "a back edge is dotted and labeled");
   assert.match(text, /n_merge_gate -->\|"pass"\| n_done/);
   assert.match(text, /n_builder --> n_critic/, "an always edge has no label");
   assert.equal(count(text, /:::stop$/gm), 3, "one note per stop");
@@ -163,7 +163,7 @@ test("mermaid: a flowchart LR with a header saying it is one way, a subgraph per
   assert.ok(text.endsWith("\n"));
 });
 
-test("mermaid: nested loops nest their subgraphs; approval and verdict edges are labelled; other kinds get their shapes", () => {
+test("mermaid: nested loops nest their subgraphs; approval and verdict edges are labeled; other kinds get their shapes", () => {
   const text = mermaid(valid("glyph-vocabulary"));
   assert.match(text, /  subgraph n_review\["Review · judgment loop"\]\n(.*\n)*    subgraph n_grind\["Grind · grind loop"\]\n(.*\n)*    end\n(.*\n)*  end\n/);
   assert.match(text, /n_gate -->\|"pass, approval"\| n_ship/);

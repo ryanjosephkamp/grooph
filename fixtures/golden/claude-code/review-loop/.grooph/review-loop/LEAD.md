@@ -45,7 +45,7 @@ Entry nodes (start here): `builder`.
 
 | node | name | how you run it | role | what it returns |
 |---|---|---|---|---|
-| `builder` | Builder | `Agent` · `review-loop--builder` | builder | implementation in src/ and tests/; test command output; CHANGES.md summarising what changed this round |
+| `builder` | Builder | `Agent` · `review-loop--builder` | builder | implementation in src/ and tests/; test command output; CHANGES.md summarizing what changed this round |
 | `critic` | Critic | `Agent` · `review-loop--critic` | critic | REVIEW.md with one line per checklist item and a verdict line; verdict: pass \| fail \| invalid-evidence |
 | `merge-gate` | Merge approval | you ask the human | human-gate | approve \| reject with feedback |
 | `done` | Done | you end the run | stop | run ends with outcome success |
@@ -228,4 +228,4 @@ Whichever way it ends, do all three:
 2. Write the last `PROGRESS.md`: which nodes ran, how many rounds, every amendment to the working copy, and why the run ended.
 3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, whether the working copy was amended (so they can adopt or discard it), and what is left over.
 
-The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, `.grooph/review-loop/runs/<run-id>/`.
+The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, `.grooph/review-loop/runs/<run-id>/`.

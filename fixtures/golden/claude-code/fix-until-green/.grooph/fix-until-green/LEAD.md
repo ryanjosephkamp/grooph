@@ -148,4 +148,4 @@ Whichever way it ends, do all three:
 2. Write the last `PROGRESS.md`: which nodes ran, how many rounds, and why the run ended.
 3. Tell the human, in your reply, the run id, the rounds, the stop that ended the run, and what is left over.
 
-The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, `.grooph/fix-until-green/runs/<run-id>/`.
+The final note and `PROGRESS.md` are the record. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, `.grooph/fix-until-green/runs/<run-id>/`.

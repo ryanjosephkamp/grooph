@@ -136,7 +136,7 @@ export function readLive(sources: EventSource[], now: () => Date = () => new Dat
   });
   // A session two sources hold belongs to the one that holds the most of it. Where they hold the same of it (what a
   // lead said through the MCP server under an id of its own is a line or two, copied whole to both), it goes with
-  // the sessions it travelled with: to the source that won the sessions those same sources share.
+  // the sessions it traveled with: to the source that won the sessions those same sources share.
   const key = (e: Read): string => `${e.harness}\u0000${e.session}`;
   const winner = new Map<string, number>();
   const level: [string, number[]][] = [];

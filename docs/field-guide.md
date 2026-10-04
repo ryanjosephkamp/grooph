@@ -60,7 +60,7 @@ Eighteen whole graphs, then two fragments: nodes that you insert into a graph yo
 - [Heterogeneous critic](#heterogeneous-critic): The review gate with the critic on a different model tier from the builder, so it does not share the builder's blind spots.
 - [Metric sandwich](#metric-sandwich): Cheap deterministic checks run first; an expensive critic judges only what they cannot see, and either failure returns to the builder.
 - [Ownership, not swarm](#ownership-not-swarm): Coupled subsystems get one owner each, in sequence; only the independent pieces fan out to fast workers; an integrator joins them and the tests close it.
-- [Patrol pulse](#patrol-pulse): A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritises; one pulse is one run.
+- [Patrol pulse](#patrol-pulse): A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.
 - [Ralph loop](#ralph-loop): A fresh builder takes the top unchecked item of a plan file each round, commits on green and appends what it learned to an agent file, until the plan is empty.
 - [Red-team loop](#red-team-loop): A separate attacker records reproducible failing traces; the builder sees only the traces, until no new one appears.
 - [Retrospective rewrite](#retrospective-rewrite): A grind loop that ends, pass or fail, with a researcher reading the run's notes and proposing graph changes for the human to adopt.
@@ -445,7 +445,7 @@ In a Claude Code session with the `grooph-design` skill:
 
 **Prior art.**
 
-- [u/croovies's "Lloyd" heartbeat orchestrator, as written up by explainx.ai (2026-08-14; a secondary source)](https://www.explainx.ai/blog/claude-code-loop-orchestrator-heartbeat-ticket-memory-august-2026): a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritise.
+- [u/croovies's "Lloyd" heartbeat orchestrator, as written up by explainx.ai (2026-08-14; a secondary source)](https://www.explainx.ai/blog/claude-code-loop-orchestrator-heartbeat-ticket-memory-august-2026): a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritize.
 - [Steve Yegge's Gas Town patrols](https://github.com/gastownhall/gastown): patrol agents that loop by design; here one pulse is one run.
 
 **Proving run.** One recorded run, `20260922-050527` on Claude Code 2.1.278.
@@ -477,7 +477,7 @@ In a Claude Code session with the `grooph-design` skill:
 
 <img src="field-guide/ralph-loop.svg" alt="The shape of Ralph loop: 1 agent · 2 checks · 1 loop · up to 5 rounds · 17 dispatches">
 
-**Use when.** The work is already a prioritised list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.
+**Use when.** The work is already a prioritized list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.
 
 **Not for.** One item that needs judgment rather than a test (use review-gate or taste-polish), or a plan whose items are too large or too coupled to finish one at a time.
 

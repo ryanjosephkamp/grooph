@@ -9,7 +9,7 @@ export type EmbedTheme = "light" | "dark";
 
 export type EmbedLink = {
   payload: string;
-  /** absent: follow the reader's colour scheme */
+  /** absent: follow the reader's color scheme */
   theme?: EmbedTheme;
   /** draw the embed's own background and border, instead of the host page's background */
   frame: boolean;

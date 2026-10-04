@@ -550,7 +550,7 @@ test("0014-5/6: LEAD.md §11 asks for the `ending` line before the final note an
   assert.match(eleven, /The `ending` line is how a monitor tells a run that finished from one that was cut off while finishing\./);
   assert.match(eleven, /2\. Write the last `PROGRESS\.md`/);
   assert.match(eleven, /3\. Tell the human, in your reply/);
-  assert.match(eleven, /The final note and `PROGRESS\.md` are the record\. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, `\.grooph\/review-loop\/runs\/<run-id>\/`\./);
+  assert.match(eleven, /The final note and `PROGRESS\.md` are the record\. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, `\.grooph\/review-loop\/runs\/<run-id>\/`\./);
   // §8's line shape says the same word means the same thing there.
   assert.match(lead, /outcome {3}pass \| fail \| halt \| invalid-evidence; started on a dispatch line, ending on the line before the final note \(§11\)/);
 });

@@ -53,7 +53,7 @@ const PROVABLE = [
  * absolute path. The run's settings then allow `Read` under that folder (reads
  * outside the working directory otherwise prompt, and a headless prompt is a
  * denial); nothing else outside the project is readable by rule. Whether the
- * builder honours "not yours to read" is what the transcript digest records.
+ * builder honors "not yours to read" is what the transcript digest records.
  */
 export const HELD_OUT_TOKEN = "<held-out>";
 const TEXT_FILE = /\.(md|json|mjs|js|txt|cjs|ts)$/i;

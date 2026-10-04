@@ -42,7 +42,7 @@ test("every graph in the repository draws: each node, edge and loop once, the sa
     for (const e of doc.edges) assert.equal(svg.split(`data-edge="${e.id}"`).length - 1, 1, `${name}: edge ${e.id}`);
     for (const l of doc.loops) assert.equal(svg.split(`data-loop="${l.id}"`).length - 1, 1, `${name}: loop ${l.id}`);
     assert.ok(!svg.includes("NaN") && !svg.includes("undefined"), `${name}: a number or a word is missing`);
-    assert.ok(!svg.includes("var(--"), `${name}: a light picture carries its colours`);
+    assert.ok(!svg.includes("var(--"), `${name}: a light picture carries its colors`);
   }
 });
 
@@ -61,7 +61,7 @@ test("the picture says what the graph holds: names, roles, conditions, the bar a
   for (const said of ["Review loop", "Builder", "Critic", "Merge approval", "Done", "builder · strong · high", "Human gate", ">pass<", ">fail<", "Build-review cycle", "judgment loop", "Bar: Review checklist.", "1. bar passed", "2. max iterations: 4", "3. budget: 40 turns"]) {
     assert.ok(svg.includes(said), `the picture does not say "${said}"`);
   }
-  // A back edge is drawn in its loop's colour, dashed, in the right margin; an auto picture follows the viewer.
+  // A back edge is drawn in its loop's color, dashed, in the right margin; an auto picture follows the viewer.
   assert.match(svg, /<g data-edge="e-review-fail"><path [^>]*stroke-dasharray="5 3" style="stroke:#7a4cc2"/);
   assert.match(picture(reviewLoop()), /prefers-color-scheme:dark/);
   // An empty graph, and one whose edge points nowhere, still draw.
@@ -155,7 +155,7 @@ test("a handoff's number is readable and belongs to one line: two digits get a w
     const plates = new Map(
       [...svg.matchAll(/<g data-plate="([^"]+)">(?:<circle cx="([\d.]+)" cy="([\d.]+)"|<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)")/g)].map((m) => [
         m[1]!,
-        // a circle is given by its centre; a pill by its corner and width, 14.4 tall
+        // a circle is given by its center; a pill by its corner and width, 14.4 tall
         { x: m[2] !== undefined ? Number(m[2]) : Number(m[4]) + Number(m[6]) / 2, y: m[3] !== undefined ? Number(m[3]) : Number(m[5]) + 7.2, half: m[6] !== undefined ? Number(m[6]) / 2 : 7.2, at: m.index! },
       ]),
     );
@@ -178,7 +178,7 @@ test("a handoff's number is readable and belongs to one line: two digits get a w
       const gap = new RegExp(` V([\\d.]+) M${String(line.x).replace(".", "\\.")},([\\d.]+) V`).exec(line.d);
       if (gap) {
         // The arc's own line stops at its ring and starts again beyond it, and the ring is laid down before any line:
-        // so a line that runs behind this ring, on a neighbouring track, is drawn over it and is not broken by it.
+        // so a line that runs behind this ring, on a neighboring track, is drawn over it and is not broken by it.
         assert.deepEqual([Number(gap[1]), Number(gap[2])].sort((a, b) => a - b).map((v) => Math.round(v * 10) / 10), [Math.round((plate.y - 7.2) * 10) / 10, Math.round((plate.y + 7.2) * 10) / 10], `${name}: ${n}'s line stops at its ring`);
         for (const other of lines.values()) assert.ok(plate.at < other.at, `${name}: ${n}'s ring is drawn over a line`);
       } else {

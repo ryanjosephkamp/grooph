@@ -11,7 +11,7 @@
     "kind": "graph",
     "title": "Ralph loop",
     "summary": "A fresh builder takes the top unchecked item of a plan file each round, commits on green and appends what it learned to an agent file, until the plan is empty.",
-    "whenToUse": "The work is already a prioritised list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.",
+    "whenToUse": "The work is already a prioritized list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.",
     "notFor": "One item that needs judgment rather than a test (use review-gate or taste-polish), or a plan whose items are too large or too coupled to finish one at a time.",
     "profile": {
       "cost": "low",

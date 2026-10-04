@@ -45,7 +45,7 @@
       }
     ]
   },
-  "description": "A frontier planner turns the task into ACCEPTANCE.md, a short list of observable behaviours. A human approves it; rejecting ends the run so the task can be restated. A builder then works and a critic in a fresh context judges the change line by line against the approved file, which is the loop's bar. The loop stops when every line holds, at its round cap, or at its dispatch budget.",
+  "description": "A frontier planner turns the task into ACCEPTANCE.md, a short list of observable behaviors. A human approves it; rejecting ends the run so the task can be restated. A builder then works and a critic in a fresh context judges the change line by line against the approved file, which is the loop's bar. The loop stops when every line holds, at its round cap, or at its dispatch budget.",
   "nodes": [
     {
       "id": "planner",
@@ -56,7 +56,7 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Turn the task into ACCEPTANCE.md: the observable behaviours that would make it done, each checkable by reading code or running `{{test-command}}`. Name what is out of scope. Keep it short enough to review in a minute, and write no code.",
+      "brief": "Turn the task into ACCEPTANCE.md: the observable behaviors that would make it done, each checkable by reading code or running `{{test-command}}`. Name what is out of scope. Keep it short enough to review in a minute, and write no code.",
       "inputs": [
         "the task"
       ],

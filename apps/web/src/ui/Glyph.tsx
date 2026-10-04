@@ -22,7 +22,7 @@ function draw(doc: Graph): { svg: string; long: boolean } {
 export const hasLongGlyph = (doc: Graph): boolean => draw(doc).long;
 
 /**
- * The glyph of a graph (slice 0015), inline so the theme's colours apply:
+ * The glyph of a graph (slice 0015), inline so the theme's colors apply:
  * core draws it, byte for byte what `grooph glyph` prints and what the
  * pattern write-ups show. Wordless; the graph's name is its `<title>`.
  * `decorative` hides it from assistive technology, for a row whose name is

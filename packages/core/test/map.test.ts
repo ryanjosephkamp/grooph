@@ -202,7 +202,7 @@ test("the picture of the sample is the committed one, in both themes, and says e
       svg,
       `fixtures/maps/pictures/${map.id}.${theme}.svg is stale: run \`pnpm --filter @grooph/core run golden:write\` and look at it`,
     );
-    assert.ok(!svg.includes("var(--"), "a light or dark picture carries its colours, not variables");
+    assert.ok(!svg.includes("var(--"), "a light or dark picture carries its colors, not variables");
   }
   const svg = mapPicture(map, { theme: "light" });
   for (const lane of map.lanes) assert.ok(svg.includes(`data-lane="${lane.id}"`), `lane ${lane.id} is not drawn`);
@@ -212,7 +212,7 @@ test("the picture of the sample is the committed one, in both themes, and says e
   assert.match(svg, /viewBox="0 0 400 /);
 });
 
-test("an auto picture follows the viewer's colour scheme; a broken map still draws what it can", () => {
+test("an auto picture follows the viewer's color scheme; a broken map still draws what it can", () => {
   const map = parseMapText(read(join(mapsDir, "valid/two-sessions.grooph-map.json"))).map!;
   const auto = mapPicture(map);
   assert.match(auto, /prefers-color-scheme:dark/);

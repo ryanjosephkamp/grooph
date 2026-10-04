@@ -18,7 +18,7 @@
 import { mapLiveLine } from "../events.js";
 import { CARRIER_LABEL, endName, handoffCarrierText, mapShape, mapShapeLine, wakesItself } from "../map.js";
 import type { CarrierKind, Handoff, Id, OperationMap } from "../types.js";
-import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Colour, type Ink, type MapPictureOptions } from "./svg.js";
+import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Color, type Ink, type MapPictureOptions } from "./svg.js";
 
 const M = 12; // page margin
 const PAD = 8; // inside a lane
@@ -32,18 +32,18 @@ const ROLE_LINES = 12; // a role is meant to be one line; twelve wrapped lines i
 const CARD_LEAST = 120; // and the width they never go below, however many tracks there are
 const SLOT = 13; // between two arc ends on one card
 
-/** How each carrier kind is drawn: the colour and dash of its arc and of its line in the list. */
-export const CARRIER_STYLE: Record<CarrierKind | "none", { colour: Colour; dash?: string; width: number }> = {
-  branch: { colour: "accent", width: 1.6 },
-  "pull-request": { colour: "check", width: 1.6 },
-  "session-message": { colour: "ink-2", dash: "5 3", width: 1.4 },
-  "scheduled-message": { colour: "merge", dash: "1.5 3", width: 1.8 },
-  "review-page": { colour: "loop-3", dash: "7 3 1.5 3", width: 1.4 },
-  person: { colour: "gate", width: 2.4 },
+/** How each carrier kind is drawn: the color and dash of its arc and of its line in the list. */
+export const CARRIER_STYLE: Record<CarrierKind | "none", { color: Color; dash?: string; width: number }> = {
+  branch: { color: "accent", width: 1.6 },
+  "pull-request": { color: "check", width: 1.6 },
+  "session-message": { color: "ink-2", dash: "5 3", width: 1.4 },
+  "scheduled-message": { color: "merge", dash: "1.5 3", width: 1.8 },
+  "review-page": { color: "loop-3", dash: "7 3 1.5 3", width: 1.4 },
+  person: { color: "gate", width: 2.4 },
   // Round dots: nobody carries it, it just arrives.
-  notification: { colour: "loop-1", dash: "0.1 4.5", width: 2.6 },
-  other: { colour: "ink-3", dash: "3 3", width: 1.4 },
-  none: { colour: "error", dash: "2 2", width: 1.4 },
+  notification: { color: "loop-1", dash: "0.1 4.5", width: 2.6 },
+  other: { color: "ink-3", dash: "3 3", width: 1.4 },
+  none: { color: "error", dash: "2 2", width: 1.4 },
 };
 
 const HARNESS_LABEL: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
@@ -56,23 +56,23 @@ const NUMBER_GAP = 6; // between the rings of two numbers whose tracks are close
 /**
  * Half the width of a handoff's number badge: a circle for one digit, a pill for more, so the digits never touch the
  * ring. The pill is as narrow as that allows: on a crowded map the tracks are closer together than a pill is wide,
- * and the less of a neighbour's track it covers the better.
+ * and the less of a neighbor's track it covers the better.
  */
 const badgeHalf = (n: string): number => (n.length > 1 ? (textWidth(n, 8.5, "bold") + 4.5) / 2 : BADGE_R);
 
-/** The ring a handoff's number sits in, centred on (x, y), filled with the page's ground. */
-function numberRing(x: number, y: number, n: string, colour: string, ink: Ink): string {
+/** The ring a handoff's number sits in, centered on (x, y), filled with the page's ground. */
+function numberRing(x: number, y: number, n: string, color: string, ink: Ink): string {
   const half = badgeHalf(n);
   return n.length > 1
-    ? rect(x - half, y - BADGE_R, half * 2, BADGE_R * 2, { fill: ink("bg"), stroke: colour, rx: BADGE_R, width: 1.3 })
-    : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${BADGE_R}" stroke-width="1.3" style="fill:${ink("bg")};stroke:${colour}"/>`;
+    ? rect(x - half, y - BADGE_R, half * 2, BADGE_R * 2, { fill: ink("bg"), stroke: color, rx: BADGE_R, width: 1.3 })
+    : `<circle cx="${fmt(x)}" cy="${fmt(y)}" r="${BADGE_R}" stroke-width="1.3" style="fill:${ink("bg")};stroke:${color}"/>`;
 }
 
 /** The number itself. */
 const numberText = (x: number, y: number, n: string, ink: Ink): string => text(x, y + 3.3, n, { size: n.length > 1 ? 8.5 : 9.5, fill: ink("ink"), weight: "bold", anchor: "middle" });
 
 /** A handoff's number in its ring, at the head of its line in the list. */
-const numberBadge = (x: number, y: number, n: string, colour: string, ink: Ink): string => numberRing(x, y, n, colour, ink) + numberText(x, y, n, ink);
+const numberBadge = (x: number, y: number, n: string, color: string, ink: Ink): string => numberRing(x, y, n, color, ink) + numberText(x, y, n, ink);
 
 /**
  * An operation map as one SVG with its words on it, laid out for a phone.
@@ -265,11 +265,11 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
         g.push(text(cardX + CARD_PAD, ty, truncate(`graph: ${session.graph}`, textW, 10, "mono"), { size: 10, fill: ink("loop-0"), weight: "mono" }));
       }
       if (now) {
-        // What the hooks saw: a filled dot while anything is working, a ring while it waits, a grey ring when it has gone
-        // quiet (not ended, and not heard from for half an hour), a grey dot when it has ended.
+        // What the hooks saw: a filled dot while anything is working, a ring while it waits, a gray ring when it has gone
+        // quiet (not ended, and not heard from for half an hour), a gray dot when it has ended.
         ty += 19;
         const quietOnly = now.working === 0 && now.waiting === 0 && (now.quiet ?? 0) > 0;
-        const tone: Colour = now.working > 0 ? "accent" : now.waiting > 0 ? "warning" : "ink-3";
+        const tone: Color = now.working > 0 ? "accent" : now.waiting > 0 ? "warning" : "ink-3";
         const dotX = cardX + CARD_PAD + 4.5;
         g.push(
           now.working > 0
@@ -305,18 +305,18 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   // Three layers, so that a number is seen to belong to one line. The rings go down first. Then every line: an arc's
   // own line stops at its ring and starts again beyond it, and every other line that passes behind the ring is drawn
   // over it, unbroken. Then the numbers, on top. A ring wider than the gap between two tracks (any two-digit number,
-  // on a crowded map) used to hide its neighbour's line, and a line that stops at a ring reads as that ring's.
+  // on a crowded map) used to hide its neighbor's line, and a line that stops at a ring reads as that ring's.
   const plates: string[] = [];
   const lines: string[] = [];
   const numbers: string[] = [];
   handoffs.forEach((h, i) => {
     const style = CARRIER_STYLE[h.carrier?.kind ?? "none"];
-    const colour = ink(style.colour);
+    const color = ink(style.color);
     const { y1, y2, x } = runs[i]!;
     const r = Math.min(6, Math.abs(y2 - y1) / 2);
     const dir = y2 >= y1 ? 1 : -1;
-    const head = `<path d="M${fmt(edgeX + 0.5)},${fmt(y2)} l6.5,-3.6 v7.2 z" style="fill:${colour}"/>`;
-    const tail = `<circle cx="${fmt(edgeX)}" cy="${fmt(y1)}" r="2.2" style="fill:${colour}"/>`;
+    const head = `<path d="M${fmt(edgeX + 0.5)},${fmt(y2)} l6.5,-3.6 v7.2 z" style="fill:${color}"/>`;
+    const tail = `<circle cx="${fmt(edgeX)}" cy="${fmt(y1)}" r="2.2" style="fill:${color}"/>`;
     const n = String(numberOf.get(h.id)!);
     const half = badgeHalf(n);
     // The number sits on the arc's upright. Two things it must not sit on: another arc's number, and the level run of
@@ -326,7 +326,7 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const hi = Math.max(y1, y2) - 9;
     const room = (at: number): number => {
       let least = Infinity;
-      // Two numbers on neighbouring tracks keep a clear gap between their rings, so they do not read as one cluster.
+      // Two numbers on neighboring tracks keep a clear gap between their rings, so they do not read as one cluster.
       for (const b of badges) if (Math.abs(b.x - x) <= b.half + half + 1) least = Math.min(least, Math.abs(b.y - at) - (2 * BADGE_R + NUMBER_GAP));
       runs.forEach((o, k) => {
         if (k === i || o.x < x - half - 1) return; // an arc on an inner track never reaches this one
@@ -358,8 +358,8 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const fits = (before - top) * dir >= 0 && (bottom - after) * dir >= 0;
     const upright = fits ? `V${fmt(before)} M${fmt(x)},${fmt(after)} V${fmt(bottom)}` : `V${fmt(bottom)}`;
     const d = `M${fmt(edgeX)},${fmt(y1)} H${fmt(x - r)} Q${fmt(x)},${fmt(y1)} ${fmt(x)},${fmt(top)} ${upright} Q${fmt(x)},${fmt(y2)} ${fmt(x - r)},${fmt(y2)} H${fmt(edgeX + 5.5)}`;
-    const line = `<path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>${tail}${head}`;
-    const plate = `<g data-plate="${h.id}">${numberRing(x, badgeY, n, colour, ink)}</g>`;
+    const line = `<path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${color}"/>${tail}${head}`;
+    const plate = `<g data-plate="${h.id}">${numberRing(x, badgeY, n, color, ink)}</g>`;
     // An arc too short to leave a gap (a session's handoff to itself) keeps its ring over its own line, as before.
     if (fits) plates.push(plate);
     lines.push(`<g data-handoff="${h.id}">${line}</g>${fits ? "" : plate}`);
@@ -377,12 +377,12 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
     const listW = W - M - listX;
     for (const h of map.handoffs) {
       const style = CARRIER_STYLE[h.carrier?.kind ?? "none"];
-      const colour = ink(style.colour);
+      const color = ink(style.color);
       const n = String(numberOf.get(h.id)!);
       const row: string[] = [];
       const top = y;
       y += 12;
-      row.push(numberBadge(M + 8, y - 4, n, colour, ink));
+      row.push(numberBadge(M + 8, y - 4, n, color, ink));
       const who = h.from === h.to ? `${nameOf(h.from)} → itself` : `${nameOf(h.from)} → ${nameOf(h.to)}`;
       wrap(who, listW, 12, 2, "bold").forEach((line, k) => {
         if (k > 0) y += 14;
@@ -391,11 +391,11 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
       y += 14;
       const carried = h.carrier ? handoffCarrierText(map, h) || `${CARRIER_LABEL[h.carrier.kind]} (not named)` : "no carrier named";
       row.push(
-        `<path d="M${fmt(listX)},${fmt(y - 3.5)} h18" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>`,
+        `<path d="M${fmt(listX)},${fmt(y - 3.5)} h18" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${color}"/>`,
       );
       wrap(carried, listW - 24, 11, 2, "bold").forEach((line, k) => {
         if (k > 0) y += 13.5;
-        row.push(text(listX + 24, y, line, { size: 11, fill: colour, weight: "bold" }));
+        row.push(text(listX + 24, y, line, { size: 11, fill: color, weight: "bold" }));
       });
       if (h.what) {
         for (const line of wrap(h.what, listW, 11, 4)) {

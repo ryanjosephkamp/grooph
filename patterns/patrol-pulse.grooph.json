@@ -2,15 +2,15 @@
   "grooph": 0,
   "id": "patrol-pulse",
   "name": "Patrol pulse",
-  "version": 1,
-  "goal": "{{task}} One pulse is one run: it ends clean, or with new tickets in {{ticket-store}} for a human to prioritise. Nothing else changes.",
+  "version": 2,
+  "goal": "{{task}} One pulse is one run: it ends clean, or with new tickets in {{ticket-store}} for a human to prioritize. Nothing else changes.",
   "target": {
     "harness": "claude-code"
   },
   "template": {
     "kind": "graph",
     "title": "Patrol pulse",
-    "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritises; one pulse is one run.",
+    "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.",
     "whenToUse": "Something should be looked at on a schedule (a log, a queue, a report) and the output of each look is a triaged record for a human, never a change: run the package under the harness's scheduler and each pulse is a run.",
     "notFor": "Anything that should change code in the same run (use a loop with a builder), or a watch with no durable store to file into: the memory is the project's ticket file or database, named by the slot, not grooph.",
     "profile": {
@@ -47,7 +47,7 @@
       {
         "name": "u/croovies's \"Lloyd\" heartbeat orchestrator, as written up by explainx.ai (2026-08-14; a secondary source)",
         "url": "https://www.explainx.ai/blog/claude-code-loop-orchestrator-heartbeat-ticket-memory-august-2026",
-        "note": "a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritise"
+        "note": "a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritize"
       },
       {
         "name": "Steve Yegge's Gas Town patrols",
@@ -56,7 +56,7 @@
       }
     ]
   },
-  "description": "A pulse, not a loop. The scan check runs the command that lists candidate signals; nothing to look at ends the pulse clean. Otherwise a read-only investigator judges each signal against the project and the tickets already filed and writes its findings; a clean verdict ends the pulse, a finding goes to a writer that owns only the ticket store, files one ticket per new finding and never files what is already filed. A human gate ends the pulse with the new tickets waiting to be prioritised. The package recurs through the harness's scheduler (the target doc says how); every pulse is its own run, so the run list is the pulse log.",
+  "description": "A pulse, not a loop. The scan check runs the command that lists candidate signals; nothing to look at ends the pulse clean. Otherwise a read-only investigator judges each signal against the project and the tickets already filed and writes its findings; a clean verdict ends the pulse, a finding goes to a writer that owns only the ticket store, files one ticket per new finding and never files what is already filed. A human gate ends the pulse with the new tickets waiting to be prioritized. The package recurs through the harness's scheduler (the target doc says how); every pulse is its own run, so the run list is the pulse log.",
   "nodes": [
     {
       "id": "scan",
@@ -125,12 +125,12 @@
       ]
     },
     {
-      "id": "prioritise",
+      "id": "prioritize",
       "kind": "human-gate",
-      "name": "Prioritise",
-      "prompt": "This pulse filed new tickets in {{ticket-store}} (FILED.md says which) and changed nothing else. Prioritise them when you can; the next pulse is a new run.",
+      "name": "Prioritize",
+      "prompt": "This pulse filed new tickets in {{ticket-store}} (FILED.md says which) and changed nothing else. Prioritize them when you can; the next pulse is a new run.",
       "options": [
-        "prioritised",
+        "prioritized",
         "later"
       ]
     },
@@ -187,13 +187,13 @@
       ]
     },
     {
-      "id": "e-ticket-writer-prioritise",
+      "id": "e-ticket-writer-prioritize",
       "from": "ticket-writer",
-      "to": "prioritise"
+      "to": "prioritize"
     },
     {
-      "id": "e-prioritise-done",
-      "from": "prioritise",
+      "id": "e-prioritize-done",
+      "from": "prioritize",
       "to": "done"
     }
   ],

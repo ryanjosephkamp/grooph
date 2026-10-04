@@ -11,7 +11,7 @@ and role families are shapes (writer square, critic diamond, check hexagon, huma
 gate octagon, merge circle, stop dot; an irreversible step carries a bar), edges are
 lines styled by their condition (pass solid, fail dashed, a verdict dotted, approval
 doubled), a loop is a dashed hull with its back edges drawn returning. Deterministic:
-the same document gives the same bytes. Colours are CSS variables with fallbacks, so
+the same document gives the same bytes. Colors are CSS variables with fallbacks, so
 the file reads on its own and inline in either theme.
 
 Prints the SVG, or writes it with --out. --scale multiplies the width and height

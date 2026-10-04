@@ -35,7 +35,7 @@ An operation map (*.grooph-map.json, docs/operation-map.md) is drawn as its lane
 bottom, each session a card in its lane, each handoff a numbered arc in the margin, and
 the handoffs listed below with what carries each.
 
-  --theme light | dark   colours written into the file: it looks the same anywhere
+  --theme light | dark   colors written into the file: it looks the same anywhere
   --theme auto           (SVG only, the SVG default) both palettes; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
   --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide); --scale changes

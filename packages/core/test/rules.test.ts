@@ -1,5 +1,5 @@
 /**
- * Rule behaviour the fixtures cannot show on their own: the cases inside a rule
+ * Rule behavior the fixtures cannot show on their own: the cases inside a rule
  * (graph-ir §3) and the defaults the rules depend on (§1, §2).
  */
 

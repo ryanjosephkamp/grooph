@@ -15,7 +15,7 @@ import { downloadText, fixturePath, importDocument, repoRoot, sheet } from "./su
  */
 
 const pattern = (id: string) => parseGraphText(readFileSync(join(repoRoot, "patterns", `${id}.grooph.json`), "utf8")).doc!;
-/** Core's SVG as the DOM serialises it back (innerHTML closes every element), for a byte comparison. */
+/** Core's SVG as the DOM serializes it back (innerHTML closes every element), for a byte comparison. */
 const asDom = (svg: string): string => svg.replace(/<(\w+)([^>]*?)\/>/g, "<$1$2></$1>");
 const rows = (page: import("@playwright/test").Page) => page.locator(".template-row");
 const ids = async (page: import("@playwright/test").Page): Promise<string[]> => rows(page).evaluateAll((els) => els.map((el) => el.getAttribute("data-template")!));
@@ -153,7 +153,7 @@ test("the glyph on the list, the template page and the graph list at phone width
   await expect(svg.locator("circle[r='6']")).toHaveCount(1);
   await expect(svg.locator("rect[rx='10']")).toHaveCount(1);
   await expect(svg.locator("path[stroke-dasharray='5 3']")).toHaveCount(2);
-  // In the theme: the hull's stroke resolves to the app's loop colour, not the fallback.
+  // In the theme: the hull's stroke resolves to the app's loop color, not the fallback.
   const stroke = await svg.locator("rect[rx='10']").evaluate((el) => getComputedStyle(el).stroke);
   expect(stroke).not.toBe("none");
   expect(stroke).toMatch(/^rgb\(/);

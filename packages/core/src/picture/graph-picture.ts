@@ -19,7 +19,7 @@ import { layerNodes } from "../layout.js";
 import { estimateShape, shapeLine } from "../proposals.js";
 import { describeStop, loopMode, stopAction } from "../semantics.js";
 import type { Edge, Graph, Id, Node } from "../types.js";
-import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Colour, type PictureOptions } from "./svg.js";
+import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Color, type PictureOptions } from "./svg.js";
 
 const M = 12;
 const CARD_PAD = 10;
@@ -29,12 +29,12 @@ const TRACK_LEAD = 16;
 const SLOT = 12;
 const BAND = 6; // a rank's band, around its cards
 
-const KIND: Record<Node["kind"], { label: string; colour: Colour }> = {
-  agent: { label: "Agent", colour: "accent" },
-  "human-gate": { label: "Human gate", colour: "gate" },
-  check: { label: "Check", colour: "check" },
-  merge: { label: "Merge", colour: "merge" },
-  stop: { label: "Stop", colour: "stop" },
+const KIND: Record<Node["kind"], { label: string; color: Color }> = {
+  agent: { label: "Agent", color: "accent" },
+  "human-gate": { label: "Human gate", color: "gate" },
+  check: { label: "Check", color: "check" },
+  merge: { label: "Merge", color: "merge" },
+  stop: { label: "Stop", color: "stop" },
 };
 
 /** The line under a node's name: what kind of thing it is, in the document's own words. */
@@ -62,13 +62,13 @@ function edgeLabel(edge: Edge): string {
   return [said, edge.approval ? "approval" : ""].filter((s) => s !== "").join(" · ");
 }
 
-function edgeStyle(edge: Edge, loop: number | undefined): { colour: Colour; dash?: string; width: number } {
-  if (loop !== undefined) return { colour: `loop-${loop % 4}` as Colour, dash: "5 3", width: 1.6 };
-  if (edge.approval) return { colour: "gate", width: 2 };
+function edgeStyle(edge: Edge, loop: number | undefined): { color: Color; dash?: string; width: number } {
+  if (loop !== undefined) return { color: `loop-${loop % 4}` as Color, dash: "5 3", width: 1.6 };
+  if (edge.approval) return { color: "gate", width: 2 };
   const when = edge.when ?? "always";
-  if (when === "fail") return { colour: "warning", dash: "5 3", width: 1.5 };
-  if (typeof when === "object") return { colour: "ink-3", dash: "1.5 3", width: 1.7 };
-  return { colour: "ink-2", width: 1.5 };
+  if (when === "fail") return { color: "warning", dash: "5 3", width: 1.5 };
+  if (typeof when === "object") return { color: "ink-3", dash: "1.5 3", width: 1.7 };
+  return { color: "ink-2", width: 1.5 };
 }
 
 type Card = { node: Node; name: string[]; sub: string[]; extra: string; height: number; y: number; left: Id[]; right: Id[] };
@@ -197,15 +197,15 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
     const y1 = from.y + from.height;
     const y2 = to.y;
     const style = edgeStyle(e, undefined);
-    const colour = ink(style.colour);
+    const color = ink(style.color);
     body.push(
-      `<g data-edge="${e.id}"><path d="M${fmt(x)},${fmt(y1)} V${fmt(y2 - 5.5)}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>` +
-        `<path d="M${fmt(x)},${fmt(y2 - 0.5)} l-3.6,-6.5 h7.2 z" style="fill:${colour}"/></g>`,
+      `<g data-edge="${e.id}"><path d="M${fmt(x)},${fmt(y1)} V${fmt(y2 - 5.5)}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${color}"/>` +
+        `<path d="M${fmt(x)},${fmt(y2 - 0.5)} l-3.6,-6.5 h7.2 z" style="fill:${color}"/></g>`,
     );
     const said = edgeLabel(e);
     if (said) {
       const w = textWidth(said, 9.5, "bold") + 10.5;
-      labels.push(pill(x - w / 2, (y1 + y2) / 2 + 3.2, said, { size: 9.5, fill: ink("bg"), ink: colour, stroke: colour }).svg);
+      labels.push(pill(x - w / 2, (y1 + y2) / 2 + 3.2, said, { size: 9.5, fill: ink("bg"), ink: color, stroke: color }).svg);
     }
   }
 
@@ -221,7 +221,7 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
     };
     set.list.forEach((e, i) => {
       const style = edgeStyle(e, backLoop.get(e.id));
-      const colour = ink(style.colour);
+      const color = ink(style.color);
       const y1 = slotY(e.from, e.id, "from");
       const y2 = slotY(e.to, e.id, "to");
       const x = edgeX + sign * (TRACK_LEAD + set.tracks[i]! * TRACK);
@@ -229,9 +229,9 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
       const dir = y2 >= y1 ? 1 : -1;
       const d = `M${fmt(edgeX)},${fmt(y1)} H${fmt(x - sign * r)} Q${fmt(x)},${fmt(y1)} ${fmt(x)},${fmt(y1 + dir * r)} V${fmt(y2 - dir * r)} Q${fmt(x)},${fmt(y2)} ${fmt(x - sign * r)},${fmt(y2)} H${fmt(edgeX + sign * 5.5)}`;
       body.push(
-        `<g data-edge="${e.id}"><path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${colour}"/>` +
-          `<circle cx="${fmt(edgeX)}" cy="${fmt(y1)}" r="2.2" style="fill:${colour}"/>` +
-          `<path d="M${fmt(edgeX + sign * 0.5)},${fmt(y2)} l${fmt(sign * 6.5)},-3.6 v7.2 z" style="fill:${colour}"/></g>`,
+        `<g data-edge="${e.id}"><path d="${d}" fill="none" stroke-width="${fmt(style.width)}" stroke-linecap="round"${style.dash ? ` stroke-dasharray="${style.dash}"` : ""} style="stroke:${color}"/>` +
+          `<circle cx="${fmt(edgeX)}" cy="${fmt(y1)}" r="2.2" style="fill:${color}"/>` +
+          `<path d="M${fmt(edgeX + sign * 0.5)},${fmt(y2)} l${fmt(sign * 6.5)},-3.6 v7.2 z" style="fill:${color}"/></g>`,
       );
       const said = edgeLabel(e);
       if (!said) return;
@@ -248,8 +248,8 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
       placed.push({ x, y: cy, w });
       labels.push(
         `<g transform="rotate(-90 ${fmt(x)} ${fmt(cy)})">` +
-          rect(x - w / 2, cy - 6.5, w, 13, { fill: ink("bg"), stroke: colour, rx: 6.5 }) +
-          text(x, cy + 3.2, said, { size: 9, fill: colour, weight: "bold", anchor: "middle" }) +
+          rect(x - w / 2, cy - 6.5, w, 13, { fill: ink("bg"), stroke: color, rx: 6.5 }) +
+          text(x, cy + 3.2, said, { size: 9, fill: color, weight: "bold", anchor: "middle" }) +
           `</g>`,
       );
     });
@@ -266,10 +266,10 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
     const gate = node.kind === "human-gate";
     g.push(rect(cardX, card.y, cardW, card.height, { fill: ink("surface"), stroke: ink(gate ? "gate" : "line-strong"), rx: node.kind === "stop" ? 16 : 9, width: gate ? 1.8 : 1, mark: "card" }));
     let ty = card.y + CARD_PAD + 8;
-    g.push(`<circle cx="${fmt(cardX + CARD_PAD + 3.5)}" cy="${fmt(ty - 3.4)}" r="3.5" style="fill:${ink(kind.colour)}"/>`);
-    g.push(text(cardX + CARD_PAD + 11, ty, kind.label, { size: 9.5, fill: ink(kind.colour), weight: "bold" }));
+    g.push(`<circle cx="${fmt(cardX + CARD_PAD + 3.5)}" cy="${fmt(ty - 3.4)}" r="3.5" style="fill:${ink(kind.color)}"/>`);
+    g.push(text(cardX + CARD_PAD + 11, ty, kind.label, { size: 9.5, fill: ink(kind.color), weight: "bold" }));
     loopsOf(id).forEach((loop, k) => {
-      g.push(`<circle cx="${fmt(cardX + cardW - CARD_PAD - 3.5 - k * 10)}" cy="${fmt(ty - 3.4)}" r="3.5" style="fill:${ink(`loop-${loop % 4}` as Colour)}"/>`);
+      g.push(`<circle cx="${fmt(cardX + cardW - CARD_PAD - 3.5 - k * 10)}" cy="${fmt(ty - 3.4)}" r="3.5" style="fill:${ink(`loop-${loop % 4}` as Color)}"/>`);
     });
     ty += 4;
     for (const line of card.name) {
@@ -298,12 +298,12 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
     const listW = W - M - listX;
     const nameOf = (id: Id): string => nodes.get(id)?.name || id;
     doc.loops.forEach((loop, i) => {
-      const colour = ink(`loop-${i % 4}` as Colour);
+      const color = ink(`loop-${i % 4}` as Color);
       const row: string[] = [];
       y += 12;
-      row.push(`<circle cx="${fmt(M + 5)}" cy="${fmt(y - 4)}" r="4.5" style="fill:${colour}"/>`);
+      row.push(`<circle cx="${fmt(M + 5)}" cy="${fmt(y - 4)}" r="4.5" style="fill:${color}"/>`);
       row.push(text(listX, y, truncate(loop.name || loop.id, listW, 12, "bold"), { size: 12, fill: ink("ink"), weight: "bold" }));
-      const para = (content: string, lines: number, fill: Colour = "ink-2"): void => {
+      const para = (content: string, lines: number, fill: Color = "ink-2"): void => {
         for (const line of wrap(content, listW, 11, lines)) {
           y += 13.5;
           row.push(text(listX, y, line, { size: 11, fill: ink(fill) }));

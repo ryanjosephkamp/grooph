@@ -9,7 +9,7 @@ Normative for slice 0008. A run leaves a folder behind; this page says how groop
   PROGRESS.md            human-readable
   notes.jsonl            one RunNote per line (graph-ir §6), append-only
   graph.grooph.json      the run's working copy (graph-ir §2)
-  …                      whatever the lead materialised: round-<n>/, evidence files, amend-*.ops.json
+  …                      whatever the lead materialized: round-<n>/, evidence files, amend-*.ops.json
 ```
 
 One addition to the package contract, so a monitor can show what is running and not only what finished: **the lead appends a note with `"outcome":"started"` when it dispatches a node** (`at: node:<id>`, `round` when inside a loop), and the usual note when the node completes. One short line per dispatch; no other cost. Lead-brief §8 says so; older runs simply have no started notes.
@@ -45,7 +45,7 @@ grooph sessions [<source>...] [--json]            what the hook has recorded, as
 
 `#/run` opens a bundle from a link, an imported file, or the `watch` endpoint (polled every two seconds while the run is not ended).
 
-- **Canvas with state.** Pending nodes quiet, running nodes pulse (a static ring under `prefers-reduced-motion`), passed and failed take the semantic colours already in the tokens, halted amber. Loops show their round. State is shown by icon and label as well as colour.
+- **Canvas with state.** Pending nodes quiet, running nodes pulse (a static ring under `prefers-reduced-motion`), passed and failed take the semantic colors already in the tokens, halted amber. Loops show their round. State is shown by icon and label as well as color.
 - **Timeline.** Notes in order, newest first while live; tapping one highlights its object. Amendments and proposals are marked.
 - **What the run changed.** The `diffGraphs` list between source and working copy, each line tied to the amendment note that explains it. **Adopt as version N+1** saves the adopted graph to the library (the source stays); **Discard** does nothing to the source and says so.
 - **Proposals** are listed with their patch; "Apply to a copy" applies an op-list patch to a new version for the human to inspect. Nothing is applied automatically (spec §11).

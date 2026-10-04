@@ -324,7 +324,7 @@ function HandoffLine({ map, handoff, onOpen, onPoint, current }: { map: Operatio
   return (
     <li>
       <button type="button" className="map-handoff-line" aria-current={current || undefined} onClick={() => onOpen(handoff.id)} onMouseEnter={over} onFocus={over}>
-        <span className="map-handoff-n" style={{ borderColor: tone(style.colour) }}>
+        <span className="map-handoff-n" style={{ borderColor: tone(style.color) }}>
           {n}
         </span>
         <span>
@@ -333,7 +333,7 @@ function HandoffLine({ map, handoff, onOpen, onPoint, current }: { map: Operatio
           </strong>
           <br />
           <svg className="map-carrier" viewBox="0 0 22 8" aria-hidden="true">
-            <path d="M2 4h18" strokeWidth={style.width} strokeDasharray={style.dash} style={{ stroke: tone(style.colour) }} />
+            <path d="M2 4h18" strokeWidth={style.width} strokeDasharray={style.dash} style={{ stroke: tone(style.color) }} />
           </svg>
           {handoffCarrierText(map, handoff) || "no carrier named"}
         </span>
