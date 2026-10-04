@@ -1,0 +1,73 @@
+{
+  "project": "review-gate-2",
+  "protocol": 2,
+  "study": 2,
+  "model": "claude-opus-5-5",
+  "models_reported": [
+    "claude-opus-5-5"
+  ],
+  "models_never_used": [],
+  "tool_on_path": false,
+  "skills_listed": "none (--disable-slash-commands)",
+  "tool_named_in_transcript": 0,
+  "ledger_n": 49,
+  "cost_usd": 0.5021702,
+  "harness_turns": 1,
+  "wall_s": 81,
+  "candidates": [
+    "H",
+    "J",
+    "W",
+    "M",
+    "P",
+    "Q",
+    "Y",
+    "X"
+  ],
+  "parsed": true,
+  "scores": {
+    "H": {
+      "score": 4,
+      "reasons": "The merge, deep copy and forbidden-key handling are correct, with thorough tests (the reachable-set check, evil as base, over and both). It adds an unrequested rule that undefined in over counts as not given. It also silently drops base keys whose value is undefined (`base[key] === undefined) continue`), which contradicts 'a key only one of them has is kept' and is untested."
+    },
+    "J": {
+      "score": 5,
+      "reasons": "layerInto/copy follow the task literally, copy everything, reject non-plain data and cycles, and allow shared non-cyclic references. Tests cover every checklist point, including arrays in the no-sharing and forbidden-key tests and Date mutation (`result.when.setTime(5)`). The CHANGELOG line omits that other values replace, which is the only reason it sits just below M."
+    },
+    "W": {
+      "score": 3,
+      "reasons": "Copying both sides and then merging in place (`merge(result, copy(over, true))`) is correct, with cycle detection and strong tests. It adds the unrequested undefined-as-not-given rule. Its CHANGELOG entry is a paragraph-length run-on listing internals, so checklist item 6 (match the style of existing entries) is not met."
+    },
+    "M": {
+      "score": 5,
+      "reasons": "merge/copy implement the task exactly as written, with no invented undefined rule, plus cycle detection that still allows shared references. Tests hit every checklist item, including nested arrays for no-sharing (`result.more[0].k.push(0)`) and forbidden keys (`list2: [[{ keep: 2 }]]`). The CHANGELOG line is one sentence in the existing style and covers both layering and replacement."
+    },
+    "P": {
+      "score": 4,
+      "reasons": "Copying base and then layering over is correct, validates non-plain data on both sides, and the frozen-input test is a good regression guard. It adds the unrequested rule that undefined in over counts as not given. Its CHANGELOG line is long and semicolon-chained, drifting from the terse existing style."
+    },
+    "Q": {
+      "score": 4,
+      "reasons": "assertPlainData plus layerObjects is correct, keeps base keys holding undefined, and the tests are thorough, including nested arrays in the no-sharing and forbidden-key checks. It adds the unrequested rule that undefined in over counts as not given (`if (value === undefined) continue;`). Cyclic input overflows the stack instead of throwing a TypeError."
+    },
+    "Y": {
+      "score": 4,
+      "reasons": "A simple copy-validating merge, correct on every checklist point, with tests for non-plain data inside nested arrays and for Date copies. It adds the unrequested undefined-as-not-given rule. Its CHANGELOG entry is two sentences, unlike the one-line entries below it."
+    },
+    "X": {
+      "score": 3,
+      "reasons": "The merge and the up-front plain-data check are correct, with thorough tests. copy drops every key holding undefined, base included. The test 'layer leaves out undefined values from base too' enshrines that, contradicting 'a key only one of them has is kept'."
+    }
+  },
+  "ranking": [
+    "M",
+    "J",
+    "Q",
+    "H",
+    "P",
+    "Y",
+    "W",
+    "X"
+  ],
+  "notes": "Every candidate also rejects non-plain values (functions, Map, Set, class instances) anywhere in the input; that is beyond the task but harmless for settings data. Six of the eight (all but J and M) invent a rule that an undefined in over counts as not given, which the task does not state and which conflicts with 'a value given in over replaces'. M and J are near-identical in design and test coverage and differ only in CHANGELOG wording."
+}

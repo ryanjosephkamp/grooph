@@ -1,0 +1,28 @@
+
+> settingskit@0.4.0 test
+> node --test tests/*.test.mjs
+
+✔ getPath reads a setting by its dotted path (0.716333ms)
+✔ getPath returns the fallback when a step is missing (0.071709ms)
+✔ getPath refuses a path that is not a non-empty string (0.177917ms)
+✔ layer lays over on top of base (1.158709ms)
+✔ layer layers plain objects at any depth (0.098917ms)
+✔ layer keeps keys only one side has (0.067334ms)
+✔ layer replaces with arrays, numbers, strings, booleans and null (0.102333ms)
+✔ layer replaces an array whole and never joins (0.074792ms)
+✔ layer refuses arguments that are not plain objects (0.96425ms)
+✔ layer changes neither argument (0.132ms)
+✔ layer result shares no object or array with base or over (0.194583ms)
+✔ layer never copies __proto__, constructor or prototype (0.179667ms)
+✔ layer treats undefined in over as not given (0.140834ms)
+✔ layer refuses values that are not plain data (0.33075ms)
+✔ layer copies a Date as a new Date (0.066958ms)
+✔ layer returns ordinary objects even from null-prototype inputs (0.061458ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 76.941625
