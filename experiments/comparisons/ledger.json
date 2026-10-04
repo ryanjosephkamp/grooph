@@ -1,5 +1,5 @@
 {
-  "cap_usd": 100,
+  "cap_usd": null,
   "refuse_below_usd": 6,
   "per_invocation_ceiling_usd": 9,
   "cap_history": [
@@ -8,6 +8,16 @@
       "to_usd": 100,
       "on": "2026-09-21",
       "by": "owner, for slice 0016 (the first paired-comparison study), approved on confirmation of the handoff"
+    },
+    {
+      "from_usd": 100,
+      "to_usd": null,
+      "on": "2026-10-04",
+      "by": "owner, 2026-10-04: the cap on comparison runs with Claude is lifted; the $9.00 ceiling per invocation stays; the driver is told when the ledger passes each $50, and a project that passes $60 stops and asks (handoffs/0019-comparison-study-two/HANDOFF.md, the block dated 2026-10-04, and the driver's message to the lane). Recorded by the lane of slice 0019 through compare-ledger.mjs, before any run of study two",
+      "tripwire": {
+        "notify_every_usd": 50,
+        "project_stop_usd": 60
+      }
     }
   ],
   "about": "Every model-calling invocation of the paired comparisons (docs/comparisons.md §8), with its cost as the harness reported it (total_cost_usd): an arm's kickoff, each iteration of arm C, any scripted resume, and the blind judge's call. Written by scripts/compare.sh; never edited by hand. An unsettled cost counts at its ceiling.",
@@ -814,5 +824,9 @@
     }
   ],
   "spent_usd": 60.624963,
-  "remaining_usd": 39.375037
+  "remaining_usd": null,
+  "tripwire": {
+    "notify_every_usd": 50,
+    "project_stop_usd": 60
+  }
 }
