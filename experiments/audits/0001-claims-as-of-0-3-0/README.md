@@ -12,7 +12,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 | File | What it is |
 |---|---|
 | [`inventory.md`](inventory.md) | Every claim, with an id, its exact words, where it stands, its evidence, and the lane's own reading before Codex saw anything |
-| [`tools/`](tools/) | Three small scripts written for this audit. They read the records and call no model. Each says at its top how to run it |
+| [`tools/`](tools/) | Four small scripts written for this audit. They read the records and call no model. Each says at its top how to run it. One reads the study's transcripts, which are kept only on the Mac that ran it |
 | [`round-01/HANDOFF.md`](round-01/HANDOFF.md) | What the lane asked Codex to read and attack |
 | `round-01/HANDBACK.md` | What Codex found (when it comes back) |
 | `round-01/RECONCILE.md` | Where the two stood, what was corrected, what stayed disputed (after the handback) |
@@ -26,6 +26,7 @@ Counted before Codex saw anything, and open to its attack. The inventory has the
 - **The largest finding.** "grooph is shown to bound … autonomous work" is published on the README, the front page, the blog draft, the field guide and the report, and is not carried as worded. In 33 recorded package runs the only stops that fired were a passed bar (18 times) and a human check-in (once); no round cap or budget has fired on record. The comparison's one runaway prompt run was cut off by the runner's dollar ceiling while inside the same caps the graph has. What is observed is that runs stopped where the graph said, at a passed bar or a human gate.
 - **Not carried as worded:** the README's "proven" (two of twenty records fail their own check); the report's "pre-registered before the run with the reason a first pass should fail" for all twenty (it holds for four); the blog's "Every line was read before I left it on"; the count of 9 handoffs in 19 presented as what happened (it is a count on a plan).
 - **Carried with other words:** the contract claim (18 of 20, stops "in order" by the lead's own note); the record claim (dispatch counts in 10 of 20); "every loop can end", "a critic that shares the builder's context" and "an irreversible step" (each depends on something the author writes); "back edges fired in six templates" (two were corrections on held-out evidence); "ids, names and times" (the local file also holds two paths).
+- **Added before Codex opened the round:** study one's prompt arms were not blind to the tool. All 18 sessions were shown the `grooph-design` skill by name and a commit that says "remove the package: this arm runs on the derived prompt alone"; none used the skill or the command. Found by the evidence lane, checked here in the transcripts. It limits what those arms can be called and changes no number.
 - **Carried:** the negative result of the comparison and every number in its table; that evidence is never edited; that grooph calls no model and sends no graph anywhere; the rule count; the sizes in the performance budget.
 
 ## Held for the reconciliation

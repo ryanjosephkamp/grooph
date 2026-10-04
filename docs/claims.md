@@ -47,12 +47,12 @@ Of the 52: 20 carried, 24 other words, 6 not carried, and 2 that could not be ch
 
 | # | Claim | Where | Evidence | The lane's reading | Audit |
 |---|---|---|---|---|---|
-| C12 | Four templates, three arms under equal conditions, 27 runs, $60.62 | README, front page, report, blog draft | [The comparison](../experiments/comparisons/README.md); [the protocol](comparisons.md) | **Other words.** The counts hold. The loop arm ran one iteration every time, so it was the prompt arm a second time | Round 1, open |
+| C12 | Four templates, three arms under equal conditions, 27 runs, $60.62 | README, front page, report, blog draft | [The comparison](../experiments/comparisons/README.md); [the protocol](comparisons.md) | **Other words.** The counts hold. The loop arm ran one iteration every time, so it was the prompt arm a second time. The prompt arms could see the tool's name and that a package had been removed; none used the tool | Round 1, open |
 | C13 | The table of the four projects | Report | The comparison's records | **Carried** | Round 1, open |
 | C14 | "The graph did not earn its cost in any of the four projects" | Report, blog draft | The comparison's four write-ups | **Carried** | Round 1, open |
 | C15 | "In all 27 runs the prompt-arm lead dispatched the roles as separate subagents." | Report | The comparison's records | **Other words.** There are 18 prompt-arm runs, and all 18 did | Round 1, open |
 | C16 | One prompt run went on to the $9.00 ceiling | Report, blog draft | [The red-team project](../experiments/comparisons/red-team-loop/README.md) | The numbers are **carried**. What they show is C1 | Round 1, open |
-| C17 | The study's stated limits | Report | [The comparison](../experiments/comparisons/README.md) | **Other words.** Two limits are missing: the loop arm ran once, and every arm was at the top of its test suite | Round 1, open |
+| C17 | The study's stated limits | Report | [The comparison](../experiments/comparisons/README.md) | **Other words.** Three limits are missing: the loop arm ran once, every arm was at the top of its test suite, and the prompt arms were not blind to the tool | Round 1, open |
 | C18 | Study two is designed and has not run | Report, blog draft | [The protocol](comparisons.md) | **Carried** | Round 1, open |
 
 ## The validator and the compiler

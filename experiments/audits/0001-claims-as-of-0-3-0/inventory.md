@@ -32,6 +32,7 @@ All on 2026-10-04, in the lane's worktree at `dbc7a28` and again in the snapshot
 | `node tools/comparison-facts.mjs` | "27 runs, $56.62 without judges. Ledger: 40 invocations, $60.62." · "Prompt-arm runs (B and C): 18; of those that dispatched at least one subagent: 18." · "Arm C runs: 9; of those with one lead session, that is one iteration of the loop: 9." |
 | `bash tools/validator-probes.sh <folder>` | P2 (a loop with no cap and no budget): 0 errors, and it exports. P3 (shared context, no policy): 0 errors. P4 (the same with the policy): `E_CRITIC_NOT_ISOLATED`. P5 (told to merge, unmarked, no gate): 0 errors. P6 (the same, marked): `E_IRREVERSIBLE_NO_GATE` |
 | `node packages/cli/bin/grooph.js validate handoffs/briefs/plan-2026-10-04/build.grooph-map.json` | "3 lanes · 9 sessions (10 counting families) · 1 person · 19 handoffs, 9 waiting on a person" |
+| `node tools/prompt-arm-context.mjs` (reads the study's transcripts on the Mac that ran it) | "Prompt arms (B and C): 18 runs. lead session shown the skill's name (grooph-design): 18 … shown the commit "remove the package: this arm runs on the derived prompt alone": 18 … runs in which any session ran the grooph command: 0; used the Skill tool: 0" |
 | `git log --diff-filter=M` over the evidence folders | one commit changed files in place (`9f30231`, a re-proof); each of the four replaced records is byte-identical to its `run-1/` |
 
 Not run: the browser tests, and `scripts/perf-loadtime.mjs` (it needs a browser).
@@ -61,12 +62,12 @@ Not run: the browser tests, and `scripts/perf-loadtime.mjs` (it needs a browser)
 
 | # | The claim, in its words | Where | Reading |
 |---|---|---|---|
-| C12 | "Four templates, one designed project each, three arms under equal conditions"; "Twenty-seven runs, 40 invocations with judges, $60.62." | report `:80`, `:88` · `README.md:47` · `Landing.tsx:183` · blog `:66` | **Other words.** The counts re-derive and the recorded conditions are equal. Unsaid: the loop arm ran one iteration in all 9 of its runs |
+| C12 | "Four templates, one designed project each, three arms under equal conditions"; "Twenty-seven runs, 40 invocations with judges, $60.62." | report `:80`, `:88` · `README.md:47` · `Landing.tsx:183` · blog `:66` | **Other words.** The counts re-derive and the recorded conditions are equal. Unsaid: the loop arm ran one iteration in all 9 of its runs; and the prompt arms were not blind to the tool (all 18 sessions were shown the skill's name and a commit saying a package had been removed; none used either) |
 | C13 | The table of the four projects | report `:90` to `:95` | **Carried.** Every cell re-derives |
 | C14 | "The graph did not earn its cost in any of the four projects, by each project's own pre-registered test. Every arm reached the same held-out score in every replicate. The judge never placed a graph run first." | report `:97` · blog `:68` | **Carried.** The losing conditions were committed before the runs |
 | C15 | "In all 27 runs the prompt-arm lead dispatched the roles as separate subagents." | report `:99` | **Other words.** 18 prompt-arm runs, and all 18 did |
 | C16 | "One prompt run went on to the $9.00 ceiling ($9.02, 24 minutes 51 seconds) while both graph runs of that project stopped by the graph's own edge." | report `:101` · blog `:70` | The numbers are **carried**. What they are evidence of is C1 |
-| C17 | "Two replicates per arm (three for one project); one harness version; one model family; tasks a strong builder finishes in one pass, so no loop turned. It measured the structure's overhead and its bounding, not its correction." | report `:103` | **Other words.** Add: the loop arm ran once; every arm was at the ceiling. "And its bounding" falls with C1 |
+| C17 | "Two replicates per arm (three for one project); one harness version; one model family; tasks a strong builder finishes in one pass, so no loop turned. It measured the structure's overhead and its bounding, not its correction." | report `:103` | **Other words.** Add: the loop arm ran once; every arm was at the ceiling; the prompt arms could see the tool's name. "And its bounding" falls with C1 |
 | C18 | "Study two, designed and not yet run" | report `:105` to `:107` · blog `:80` | **Carried** |
 
 ## Group D · The validator and the compiler
@@ -130,6 +131,6 @@ Not run: the browser tests, and `scripts/perf-loadtime.mjs` (it needs a browser)
 
 ## How the reading was made
 
-The lane read the published pages and the evidence itself for groups A to E and G, and wrote the three scripts in `tools/`. Two subagents, started with the model set to Opus, read in parallel: one swept the site's other pages for claims (group H), one checked the observation claims against the code and the records (group F). The lane checked the main points of both against the source before using them; where a row stands on a subagent's word alone, the handoff says so. No model session was started by command, and no experiment was run.
+The lane read the published pages and the evidence itself for groups A to E and G, and wrote the scripts in `tools/`. After the handoff was written and before Codex opened it, the evidence lane (slice 0019) reported that study one's prompt arms were not blind to the tool; the lane checked it in the kept transcripts and added it to the handoff's last section, dated. Two subagents, started with the model set to Opus, read in parallel: one swept the site's other pages for claims (group H), one checked the observation claims against the code and the records (group F). The lane checked the main points of both against the source before using them; where a row stands on a subagent's word alone, the handoff says so. No model session was started by command, and no experiment was run.
 
 One thing the lane did not expect: the largest finding lowers the sentence decision 0013 set as the ceiling. That decision says grooph "is shown to bound and record autonomous work". The records carry "record" and "stopped where the graph said". They do not yet carry "bound".

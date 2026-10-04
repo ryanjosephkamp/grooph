@@ -20,7 +20,7 @@ Nothing grooph publishes has been read by a second harness before. This is the f
 
 ## Commands that only read
 
-Run from the snapshot root. None calls a model. The first three are the project's own; the last three are ours, written for this audit, and sit beside this file in `tools/`.
+Run from the snapshot root. None calls a model. The first three are the project's own; the last four are ours, written for this audit, and sit beside this file in `tools/`.
 
 ```bash
 cd /Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0
@@ -35,6 +35,7 @@ T=/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/round-01/t
 node $T/stops-fired.mjs                            # every stop that fired and every halt, in all 33 run records
 node $T/comparison-facts.mjs                       # per run of the comparison: cost, time, subagents, turns
 bash $T/validator-probes.sh <a folder you may write in, for example round-01/notes/probes>   # what the validator refuses and what it lets through
+node $T/prompt-arm-context.mjs                     # what named grooph to study one's prompt arms; reads ~/.claude/projects, see the last section
 ```
 
 What they printed for us on 2026-10-04 is quoted under the claims they bear on.
@@ -543,3 +544,39 @@ This is the first round.
 ## What to hand back
 
 `round-01/HANDBACK.md` in this folder, from `TEMPLATE-AUDIT-HANDBACK.md` (a copy is beside this file). Number your findings F1, F2, … and name the claim each one bears on by its C-number. For a claim where we wrote "not carried" or "carried with other words", say whether you agree with our reading and with the words we would publish, and give your own words where you would publish something else. Say what you checked and found sound, and what you could not check. If you think an experiment is needed, the smallest one that would show a brake holding a run (C1) is the one we most want designed. Keep working notes in `round-01/notes/` if you want them kept. End your reply with the prompt the owner should carry back to the audit lane.
+
+---
+
+## Added on 2026-10-04, after this handoff was written and before Codex opened it
+
+One more thing we know, found by another lane of this project (the one redrawing study two) and checked by us in the transcripts. It is not a published claim. It is a limit on what study one's prompt arms can be called, so it bears on **C12**, **C15** and **C17**, and through them on the words "the same instructions given as a prompt" in **C4**.
+
+**Study one's prompt arms were not blind to the tool.** Every headless session of arms B and C was shown four things that named grooph or the experiment:
+
+1. **The scratch repository's last two commits**, which the harness puts in a session's context when it starts: "remove the package: this arm runs on the derived prompt alone" and "task and the grooph package for <template>". The runner writes both (`scripts/lib/compare-run.mjs:133`; `scripts/lib/prove-pattern.mjs`, the commit in `buildScratch`). So a prompt-arm session was told, in words, that it was an arm, that a package had been removed, and that its prompt was derived.
+2. **The git user's name**, "grooph prove", in the same context.
+3. **The `grooph-design` skill**, listed by name with its description among the session's skills. The runner starts `claude` with the owner's own home folder (`cleanEnv` in `scripts/lib/prove-pattern.mjs`), where the skill is installed.
+4. **The `grooph` command on PATH**: the runner puts a `grooph` shim first on PATH for every arm (`scripts/lib/compare-run.mjs:164`, `:743`).
+
+The transcripts are on the Mac that ran the study, under `~/.claude/projects/*grooph-compare-*`, and are not in the repository or the snapshot. `tools/prompt-arm-context.mjs` counts over them and prints no transcript text. It printed, on 2026-10-04:
+
+```text
+Prompt arms (B and C): 18 runs.
+  lead session shown the skill's name (grooph-design): 18
+  lead session shown the commit "remove the package: this arm runs on the derived prompt alone": 18
+  lead session shown the commit "task and the grooph package for …": 18
+  lead session shown "Git user: grooph prove": 18
+  runs whose subagents were shown the skill's name: 18; either commit: 18
+  runs in which any session ran the grooph command: 0; used the Skill tool: 0
+Graph arm (A): 9 runs.
+  lead session shown the skill's name (grooph-design): 9
+  lead session shown the commit "remove the package: this arm runs on the derived prompt alone": 0
+  lead session shown the commit "task and the grooph package for …": 9
+  lead session shown "Git user: grooph prove": 9
+  runs whose subagents were shown the skill's name: 0; either commit: 9
+  runs in which any session ran the grooph command: 0; used the Skill tool: 0
+```
+
+- **What we believe, and how sure we are:** Sure of the counts. No session used the skill or ran the command, and the study's numbers stand as recorded. What changes is the description: the prompt arms were not "a prompt" given to a session that knew nothing else. They were sessions told they were an arm of a comparison with a package removed, with the tool's skill listed and its command at hand. Whether that moved their behavior cannot be known from 18 runs with no arm that lacked it. It weakens "equal conditions" only in the sense that the arms differed in what they were told about themselves; it does not make arm A look better or worse in any way we can show.
+- **Words we would publish instead:** add to the study's limits (report line 103, and the blog where it describes the arms): "The prompt arms were not blind to the tool: each session could see, in its repository's history and its list of skills, that a grooph package had been removed and that it was an arm of a comparison. None used the tool."
+- **What we most want attacked:** Whether this is worse than a limit: whether a session told "this arm runs on the derived prompt alone" is still a fair stand-in for a person's prompt. And whether the graph arm's sessions were told anything that the prompt arms were not, beyond the package itself. You can check the runner's code in the snapshot; you may not be able to read the transcripts, and if so say that you could not.
