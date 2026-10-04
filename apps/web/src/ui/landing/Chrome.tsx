@@ -229,7 +229,7 @@ export function Menu({ name, sets, dot, style, toggleStyle }: { name: string; se
 const OVER = 50;
 // The two sets' own layout, written here: the site's stylesheet is at its budget, and these are two rules.
 const SET: CSSProperties = { display: "grid", gap: 2, margin: 0, padding: 0, listStyle: "none" };
-const SET_NAME: CSSProperties = { margin: "6px 10px 2px", fontSize: "0.78rem", letterSpacing: "0.04em", textTransform: "uppercase", opacity: 0.72, color: "var(--night-ink)" };
+const SET_NAME: CSSProperties = { margin: "6px 10px 2px", fontSize: "0.78rem", textTransform: "uppercase", opacity: 0.72 };
 
 /** The header's switch: the site's look, as it was, and under it the pictures' theme. */
 function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) => void }) {

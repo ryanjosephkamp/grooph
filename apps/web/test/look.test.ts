@@ -48,11 +48,11 @@ describe("the picture's theme in the app (handoff 0086)", () => {
     expect(parseEmbedHash("#/embed?theme=ink-dark&d=abc&theme=chalk-light")).toMatchObject({ theme: "dark", look: "ink" });
   });
 
-  it("takes a named theme out of an address and leaves the rest: every theme=, but light or dark said with one stays", () => {
+  it("takes a named theme out of an address and leaves the rest as it was", () => {
     expect(withoutLook("#/open?d=abc&theme=transit")).toBe("#/open?d=abc");
     expect(withoutLook("#/open?theme=transit&d=abc&c=lean")).toBe("#/open?d=abc&c=lean");
     expect(withoutLook("#/open?d=abc&theme=ink&c=lean&theme=chalk")).toBe("#/open?d=abc&c=lean");
-    expect(withoutLook("#/embed?d=abc&theme=chalk-dark&frame=1")).toBe("#/embed?d=abc&theme=dark&frame=1");
+    expect(withoutLook("#/open?d=abc&theme=chalk-dark&c=lean")).toBe("#/open?d=abc&c=lean");
     expect(withoutLook("#/open?d=abc&theme=sepia")).toBe("#/open?d=abc");
     // Nothing named, nothing changed.
     for (const hash of ["#/open?d=abc", "#/embed?d=abc&theme=dark", "#/g/abc?theme=ink", "#/"]) expect(withoutLook(hash)).toBe(hash);

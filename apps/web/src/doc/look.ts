@@ -15,21 +15,17 @@ import { useEffect, useSyncExternalStore } from "react";
 
 import { piece as fetched } from "../piece.js";
 
-/** The six, in the order they are offered: its name in an address, its name to a person, and its swatch in a menu. */
-export const LOOKS = [
-  ["paper", "Paper", "#1f5f4a"],
-  ["blueprint", "Blueprint", "#24467e"],
-  ["ink", "Ink", "#1c1c1c"],
-  ["phosphor", "Phosphor", "#5dff8a"],
-  ["transit", "Transit", "#0057b8"],
-  ["chalk", "Chalk", "#a94e08"],
-] as const;
-export type LookId = (typeof LOOKS)[number][0];
+const IDS = ["paper", "blueprint", "ink", "phosphor", "transit", "chalk"] as const;
+export type LookId = (typeof IDS)[number];
+/** Each one's swatch in a menu, in the same order. */
+const DOTS = ["#1f5f4a", "#24467e", "#1c1c1c", "#5dff8a", "#0057b8", "#a94e08"];
+/** The six, in the order they are offered: its name in an address, its name to a person (the same word), and its swatch. */
+export const LOOKS: readonly (readonly [LookId, string, string])[] = IDS.map((id, i) => [id, id[0]!.toUpperCase() + id.slice(1), DOTS[i]!]);
 
 /** Where the choice is kept. */
 const KEY = "groophPicture";
 
-const known = (value: string | null | undefined): LookId | undefined => LOOKS.find(([id]) => id === value)?.[0];
+const known = (value: string | null | undefined): LookId | undefined => IDS.find((id) => id === value);
 
 type Piece = typeof import("../ui/theme/themes.js");
 let piece: Piece | undefined;
@@ -55,41 +51,21 @@ const watch = (watcher: () => void): (() => void) => {
   };
 };
 
-/** What an address says after its first `theme=`, when it is a share link's or an embed's. */
-const themeIn = (hash: string): string | undefined =>
-  /^#\/(?:open|embed)\?/.test(hash)
-    ? hash
-        .slice(hash.indexOf("?") + 1)
-        .split("&")
-        .find((pair) => pair.startsWith("theme="))
-        ?.slice(6)
-    : undefined;
-
 /**
- * The theme an address names: `theme=` on a share link or an embed, a name alone or with `-light`, `-dark` or
- * `-auto` after it, as `--theme` takes it. A name that is none of the six is Paper. Undefined when the address
- * names no theme: `theme=dark` alone is an embed's light or dark, as it always was.
+ * The theme an address names: the first `theme=` on a share link or an embed, a name alone or with `-light`,
+ * `-dark` or `-auto` after it, as `--theme` takes it. A name that is none of the six is Paper. Undefined when the
+ * address names no theme: `theme=dark` alone is an embed's light or dark, as it always was.
  */
 export function lookNamed(hash: string): LookId | undefined {
-  const value = themeIn(hash);
-  if (value === undefined || /^(?:light|dark|auto)$/.test(value)) return undefined;
-  return known(value.replace(/-(?:light|dark|auto)$/, "")) ?? "paper";
+  const value = /^#\/(?:open|embed)\?(?:[^&]*&)*?theme=([^&]*)/.exec(hash)?.[1]?.replace(/-?(?:light|dark|auto)$/, "");
+  return value ? (known(value) ?? "paper") : undefined;
 }
 
 /** The theme in effect here: the one the address names; else the one chosen, except in an embed, which is somebody else's page. */
 export const lookNow = (hash: string = location.hash): LookId => lookNamed(hash) ?? (hash.startsWith("#/embed") ? "paper" : chosen);
 
-/** An address without the theme it names. Light or dark said with it stays: `theme=chalk-dark` becomes `theme=dark`. */
-export function withoutLook(hash: string): string {
-  if (lookNamed(hash) === undefined) return hash;
-  const [path, query = ""] = [hash.slice(0, hash.indexOf("?")), hash.slice(hash.indexOf("?") + 1)];
-  const pairs = query.split("&").flatMap((pair) => {
-    if (!pair.startsWith("theme=")) return [pair];
-    const form = /(?:^|-)(light|dark)$/.exec(pair.slice(6))?.[1];
-    return form ? [`theme=${form}`] : [];
-  });
-  return pairs.length ? `${path}?${pairs.join("&")}` : path;
-}
+/** An address without the theme it names: every `theme=` goes, and the rest stays as it was. */
+export const withoutLook = (hash: string): string => (lookNamed(hash) === undefined ? hash : hash.replace(/([?&])theme=[^&]*&?/g, "$1").replace(/[?&]$/, ""));
 
 function fetchPiece(): void {
   if (asked) return;
