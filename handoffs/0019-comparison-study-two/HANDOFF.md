@@ -1,5 +1,13 @@
 # Handoff 0019 · Comparison study two (protocol v2), with the 0020 re-proofs
 
+> **Updated 2026-10-04 by the driver, before the lane starts. Where this block and the text below disagree, this block wins.**
+>
+> - **Never Fable.** The Claude Code target maps the `frontier` tier to Fable, and study one's judge was Fable 5.1. This study uses neither. Every package and prompt is exported with the tier map **frontier → Opus 5.5, strong → Sonnet 5.5, fast → Haiku 4.5** (the export option from slice 0079, which must be on `main` before the first paid run; if it is not, stop and tell the driver). The lead of every arm is Opus 5.5 at high effort; the blind judge is Opus 5.5 with no tools. The pre-registration says so, and says that study one used other models, so the two studies are not compared run for run.
+> - **No cap, and a tripwire.** The owner lifted the cap on comparison runs with Claude on 2026-10-04. The $9.00 ceiling per invocation stays. Tell the driver when the comparisons ledger passes each $50, and stop and ask if a single project passes $60.
+> - **You are a lane** (`handoffs/README.md`, "Lanes"): your own worktree, not the main clone; no edits to `docs/PROGRESS.md` or `docs/PLAN.md` (point 5 of the prompt below no longer applies); browser tests, if you run any, on port 4364; a pull request you do not merge. Everything here touches evidence and spends, so the owner merges it.
+> - **`patrol-pulse` is at version 2** since slice 0073 (its gate is `prioritize`, its option `prioritized`); the rename of its output to `PULSE.md` makes version 3.
+> - **Its results go to the audit lane** before any claim is made from them (decision 0024). Write the write-ups with the required lines; do not change what the README, the site or the report say.
+
 **Stage:** 10a (and 14 for the re-proofs) · **Implementer:** Opus 5 · **Effort:** `high` (floor `high`) · **Branch:** `slice/0019-comparison-study-two` · **Drafted:** 2026-09-22 · **Confirmed by owner:** pending · **Spend:** comparisons ledger cap raised from $100.00 to **$150.00** on confirmation (about $75 expected for three projects, four arms, two replicates, plus judges; $39.38 left today); proving ledger unchanged at $75.00 for the two re-proofs of slice 0020 (about $8 of the $17.49 left)
 
 ## Objective
