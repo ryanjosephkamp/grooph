@@ -560,7 +560,9 @@ a {
 .land-hero :focus-visible {
   outline-color: var(--bright);
 }
+/* The night is dark in both schemes, so a button on it answers a pointer by getting brighter (the rule at the foot of this file). */
 .land-hero .btn {
+  --hover: 1.08;
   border-color: var(--night-line);
   background: oklch(1 0 0 / 0.02);
   color: var(--night-ink);
@@ -765,7 +767,7 @@ a {
   text-align: left;
 }
 .land-device .library-actions {
-  margin-bottom: 0;
+  margin-bottom: 12px;
 }
 .land-strip-list {
   display: grid;
@@ -857,7 +859,6 @@ a {
   .land-hero .btn-primary:hover {
     border-color: transparent;
     background: var(--bright);
-    filter: brightness(1.08);
   }
   .land-tile:hover,
   .template-row:hover {

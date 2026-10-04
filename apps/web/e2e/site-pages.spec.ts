@@ -274,6 +274,10 @@ test.describe("with scripts off", () => {
     await expect(page.locator(".code").first()).toContainText("git clone https://github.com/ryanjosephkamp/grooph.git");
     await expect(page.locator(".code-bar")).toHaveCount(0);
     await expect(page.getByRole("button")).toHaveCount(0);
+    // No Menu button to fold them under, so the header's links stand in the bar, wrapped, and the footer is whole.
+    const nav = page.getByRole("navigation", { name: "grooph" });
+    for (const name of ["Templates", "Docs", "Source"]) await expect(nav.getByRole("link", { name })).toBeVisible();
+    await expect(page.locator("footer.site-footer").getByRole("link", { name: "Sponsor on GitHub" })).toBeVisible();
     expect(await sidewaysScroll(page)).toBeLessThanOrEqual(0);
   });
 });

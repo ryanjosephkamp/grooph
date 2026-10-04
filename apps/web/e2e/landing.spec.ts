@@ -202,7 +202,7 @@ test("the page carries a title, a description and link-preview tags with a 1200 
 test.describe("at desktop width", () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
 
-  test("the front page uses the width: about 1,120 px, the graph beside the words", async ({ page }) => {
+  test("the front page uses the width: about 1,180 px, the graph beside the words", async ({ page }) => {
     await page.goto("./");
     // Bands the width of the window, each with a column of Link Meteor's width inside.
     const land = (await page.locator(".land-hero .site-wrap").boundingBox())!;
@@ -287,8 +287,11 @@ test("the header folds its links under Menu on a phone, and the theme switch cha
   await expect(menu).toHaveAttribute("aria-expanded", "true");
   await expect(docs).toBeVisible();
   await expect(header.getByRole("link", { name: "Templates" })).toHaveAttribute("href", "#/templates");
+  // Escape folds them away, and focus goes back to the button, not to nowhere.
+  await docs.focus();
   await page.keyboard.press("Escape");
   await expect(docs).toBeHidden();
+  await expect(menu).toBeFocused();
 
   // The theme switch: a menu button whose choice is the root's data-theme, kept in this browser.
   const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bright").trim());
@@ -303,6 +306,21 @@ test("the header folds its links under Menu on a phone, and the theme switch cha
   await expect(header.getByRole("button", { name: "Theme: Meteor" })).toBeFocused();
   await expect(header.getByRole("menu")).toBeHidden();
   expect(await accent()).not.toBe(green);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  // The app's own screens take the look too: one set of variables for the site and the app.
+  await page.goto("./#/templates");
+  await expect(page.locator(".template-row").first()).toBeVisible();
+  const meteor = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    return { accent: root.getPropertyValue("--accent").trim(), bg: root.getPropertyValue("--bg").trim() };
+  });
+  expect(meteor.accent).not.toBe("#1f5f4a");
+  // An embed is someone else's page: its address takes no theme, kept or not.
+  await page.goto("./#/embed");
+  await page.reload();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
+  await page.goto("./");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
   // The same choice on a document page is not this test's: e2e/site-pages.spec.ts renders them. Back to the page as it loads.
@@ -352,7 +370,9 @@ test.describe("with the app installed (its service worker in control)", () => {
     await expect(page.locator(".land-headline")).toBeVisible();
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.replace("/grooph/", "")));
-    const kept = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "assets/site-icons.v1.svg"];
+    // The page names them, so the worker holds them when it installs, whether or not the page had finished fetching them
+    // by then; the italic face too, which the front page never asks for and a document or a graph's notes may.
+    const kept = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "assets/site-icons.v1.svg"];
     await expect
       .poll(async () => {
         const files = await held();
@@ -367,21 +387,43 @@ test.describe("with the app installed (its service worker in control)", () => {
     await expect(page.locator(".land-headline")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => Array.from(document.fonts).filter((f) => f.status === "loaded").map((f) => f.family.replace(/"/g, "")).sort())).toEqual(["Atkinson Hyperlegible Mono", "Atkinson Hyperlegible Next"]);
-    // The poster is a file of the documents, which the app's worker leaves alone; nothing of the app's own failed.
+    // The poster is a file of the documents, which the app's worker leaves alone: its card stands without the picture,
+    // and no picture on the page is a broken one. Nothing of the app's own failed.
+    await page.locator(".land-poster").scrollIntoViewIfNeeded();
+    await expect(page.locator(".land-poster img")).toHaveCount(0);
+    expect(await page.evaluate(() => Array.from(document.images).filter((img) => img.complete && img.naturalWidth === 0).length)).toBe(0);
     expect(failed.filter((url) => !url.includes("/docs/"))).toEqual([]);
     await context.setOffline(false);
   });
 });
 
+/** The poster is a file of the documents, which this suite's build may or may not have rendered yet: each test says what the address answers. */
+const POSTER_ADDRESS = "**/docs/field-guide/poster.svg";
+
 test("the poster of the shapes is a picture that opens it", async ({ page }) => {
+  await page.route(POSTER_ADDRESS, (route) => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1778"><rect width="1200" height="1778" fill="#f1f4f3"/></svg>' }));
   await page.goto("./");
   const poster = page.locator(".land-poster");
   const picture = poster.getByRole("link", { name: "Open the poster of the twenty loop shapes" });
   await expect(picture).toHaveAttribute("href", "/grooph/docs/field-guide/poster.svg");
   await expect(picture.locator("img")).toHaveAttribute("src", "/grooph/docs/field-guide/poster.svg");
-  await expect(picture.locator("img")).toHaveAttribute("alt", /twenty loop shapes/);
   await expect(picture.locator("img")).toHaveAttribute("loading", "lazy");
+  await expect(picture.locator("img")).toHaveAttribute("alt", /twenty loop shapes/);
+  await poster.scrollIntoViewIfNeeded();
+  await expect.poll(() => picture.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await expect(poster.getByRole("link", { name: "a poster of the shapes" })).toHaveAttribute("href", "/grooph/docs/field-guide/poster.svg");
+});
+
+test("when the poster cannot be fetched, its card stands without a picture and keeps its links", async ({ page }) => {
+  // With no network the documents' files are not there: the app's worker keeps the app, not the pages beside it.
+  await page.route(POSTER_ADDRESS, (route) => route.abort());
+  await page.goto("./");
+  const poster = page.locator(".land-poster");
+  await poster.scrollIntoViewIfNeeded();
+  await expect(poster.locator("img")).toHaveCount(0);
+  await expect(poster.getByRole("heading", { name: "Twenty shapes on one page" })).toBeVisible();
+  await expect(poster.getByRole("link", { name: "the field guide" })).toBeVisible();
+  await expect(poster.getByRole("link", { name: "a poster of the shapes" })).toBeVisible();
 });
 
 /**

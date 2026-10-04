@@ -163,13 +163,18 @@ function resolvers(page, bySource, problems) {
   return { link, image, assets, wholes };
 }
 
-/** Each picture shown by its shorter view becomes a link to the whole picture, unless it already stands inside a link. */
+/**
+ * Each picture shown by its shorter view becomes a link to the whole picture, unless it already stands inside a link.
+ * An `<img>` inside a `<picture>` is wrapped with it, so its sources still apply.
+ */
 function linkWholes(html, wholes) {
   for (const [short, whole] of wholes) {
-    html = html.replace(new RegExp(`<img\\b[^>]*\\ssrc="${short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>`, "g"), (img, at) => {
+    const src = `\\ssrc="${short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`;
+    const shown = new RegExp(`<picture\\b[^>]*>(?:(?!</picture>)[\\s\\S])*?<img\\b[^>]*${src}[^>]*>[\\s\\S]*?</picture>|<img\\b[^>]*${src}[^>]*>`, "g");
+    html = html.replace(shown, (picture, at) => {
       const before = html.slice(0, at);
-      if (before.lastIndexOf("<a ") > before.lastIndexOf("</a>")) return img;
-      return `<a class="whole" href="${whole}">${img}<span>The whole picture</span></a>`;
+      if (before.lastIndexOf("<a ") > before.lastIndexOf("</a>") || before.lastIndexOf("<picture") > before.lastIndexOf("</picture>")) return picture;
+      return `<a class="whole" href="${whole}">${picture}<span>The whole picture</span></a>`;
     });
   }
   return html;
@@ -257,7 +262,9 @@ function build(out) {
     let hero = `<h1>${escapeHtml(page.title)}</h1>`;
     const opening = /^(<h1[^>]*>[\s\S]*?<\/h1>)\n?(<p>[\s\S]*?<\/p>)?\n?/.exec(body);
     if (opening) {
-      const lede = opening[2] !== undefined && plain(opening[2]).length <= LEDE_LIMIT ? opening[2] : "";
+      // Words only: a first paragraph that is a picture or a frame belongs to the column, where it is kept to its width.
+      const words = opening[2] !== undefined && !/<(?:img|picture|iframe|video|svg)\b/i.test(opening[2]) ? plain(opening[2]).trim().length : 0;
+      const lede = words > 0 && words <= LEDE_LIMIT ? opening[2] : "";
       hero = `${opening[1]}${lede ? `\n${lede}` : ""}`;
       body = body.slice(opening[1].length + (lede ? opening[0].length - opening[1].length : 0)).replace(/^\n/, "");
     } else if (rendered.title !== null) hero = "";
@@ -400,6 +407,13 @@ function checkTokens(problems) {
   const site = blocks(readFileSync(join(here, "site", "style.css"), "utf8"));
   if (!site.get("light")?.size || !site.get("dark")?.size) problems.error("scripts/site/style.css: no :root variables found, light or dark");
   for (const key of app.keys()) if (!site.has(key)) problems.error(`scripts/site/style.css: the app's variables for ${key} are not here, so a page would not take that look`);
+  // A block must be whole: every variable the pages carry that the app sets for dark, or for a theme, is set here for it
+  // too. One left out would keep its light or its unthemed value on a page while the app changed it.
+  const carried = site.get("light") ?? new Map();
+  for (const [key, theirs] of app) {
+    if (key === "light" || !site.has(key)) continue;
+    for (const name of theirs.keys()) if (carried.has(name) && !site.get(key).has(name)) problems.error(`scripts/site/style.css: ${name} is set for ${key} in apps/web/src/styles.css and not here`);
+  }
   for (const [key, vars] of site) {
     for (const [name, v] of vars) {
       const theirs = app.get(key)?.get(name);

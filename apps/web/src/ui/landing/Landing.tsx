@@ -36,7 +36,7 @@ function hero(): string {
 const strip = (): Graph[] => STRIP.map((id) => builtInTemplate(id)).filter((doc): doc is Graph => doc !== undefined);
 
 /** What the README says of the app, as the hero's short list. */
-const PROMISES = ["No account", "Works on a phone", "Opens offline", "Graphs stay on your device"];
+const PROMISES = ["No account", "Works on a phone", "Opens offline after a first visit", "Graphs stay on your device"];
 
 /** The poster of all twenty shapes, a file of the site beside the field guide (handoff 0060 copies it there). */
 const POSTER = `${DOCS}field-guide/poster.svg`;
@@ -51,6 +51,9 @@ const POSTER = `${DOCS}field-guide/poster.svg`;
  * header and hero, paper sections, his footer. The words are the ones it had.
  */
 export function Landing({ device }: { device?: ReactNode }) {
+  // The poster is a file of the documents, which the app's service worker does not keep: with no network it cannot be
+  // fetched, and the card then stands without its picture rather than with a broken one.
+  const [poster, setPoster] = useState(true);
   return (
     <div className="land">
       <SiteHeader />
@@ -98,19 +101,21 @@ export function Landing({ device }: { device?: ReactNode }) {
         </section>
 
         <section className="land-section">
-          <ul className="land-claims site-wrap" aria-label="What grooph does">
-            <li>
-              <strong>Every loop can end.</strong> The validator refuses a loop without a stop, a critic that shares the builder&rsquo;s context, and an
-              irreversible step without a human gate.
-            </li>
-            <li>
-              <strong>The graph is the contract.</strong> The package drives the session as drawn: named subagents, stops checked in order, and gates that
-              halt before anything irreversible.
-            </li>
-            <li>
-              <strong>Every run leaves a record.</strong> Notes, rounds, dispatch counts and why it stopped, in a folder a monitor reads and a run id resumes.
-            </li>
-          </ul>
+          <div className="site-wrap">
+            <ul className="land-claims" aria-label="What grooph does">
+              <li>
+                <strong>Every loop can end.</strong> The validator refuses a loop without a stop, a critic that shares the builder&rsquo;s context, and an
+                irreversible step without a human gate.
+              </li>
+              <li>
+                <strong>The graph is the contract.</strong> The package drives the session as drawn: named subagents, stops checked in order, and gates that
+                halt before anything irreversible.
+              </li>
+              <li>
+                <strong>Every run leaves a record.</strong> Notes, rounds, dispatch counts and why it stopped, in a folder a monitor reads and a run id resumes.
+              </li>
+            </ul>
+          </div>
         </section>
 
         <section className="land-section land-alt land-start" aria-labelledby="land-start-title">
@@ -160,9 +165,19 @@ export function Landing({ device }: { device?: ReactNode }) {
               ))}
             </ul>
             <div className="land-poster">
-              <a href={POSTER} aria-label="Open the poster of the twenty loop shapes">
-                <img src={POSTER} width="1200" height="800" loading="lazy" decoding="async" alt="The poster: twenty loop shapes, each drawn with its name and when to reach for it" />
-              </a>
+              {poster ? (
+                <a href={POSTER} aria-label="Open the poster of the twenty loop shapes">
+                  <img
+                    src={POSTER}
+                    width="1200"
+                    height="800"
+                    loading="lazy"
+                    decoding="async"
+                    alt="The poster: twenty loop shapes, each drawn with its name and when to reach for it"
+                    onError={() => setPoster(false)}
+                  />
+                </a>
+              ) : null}
               <div>
                 <h3>Twenty shapes on one page</h3>
                 <p className="land-guide-line">

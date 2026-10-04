@@ -173,6 +173,10 @@ a {
 .page-hero a {
   color: var(--night-ink);
 }
+.page-hero img {
+  max-width: 100%;
+  height: auto;
+}
 .page-hero code {
   padding: 0.1em 0.35em;
   border-radius: 5px;
@@ -650,9 +654,14 @@ a {
   }
   body,
   .page-hero,
+  .page-hero p,
+  .page-hero a,
   .doc .code {
     background: none;
     color: #000;
+  }
+  .page-hero {
+    padding: 0;
   }
   body {
     font-size: 12pt;

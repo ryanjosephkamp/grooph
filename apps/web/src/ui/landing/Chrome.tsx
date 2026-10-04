@@ -49,6 +49,13 @@ export function SiteHeader() {
   const [menu, setMenu] = useState(false);
   const [theme, setTheme] = useState<ThemeId>(shownTheme);
   const bar = useRef<HTMLElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  // Escape folds the links away again, and focus goes back to the button that showed them.
+  const fold = () => {
+    if (!menu) return;
+    setMenu(false);
+    toggle.current?.focus();
+  };
 
   // While the front page is up, the browser's own bar takes the header's color; the screens after it get theirs back.
   useEffect(() => {
@@ -60,13 +67,13 @@ export function SiteHeader() {
   }, [theme]);
 
   return (
-    <header className="site-header has-menu" ref={bar} onKeyDown={(e) => e.key === "Escape" && setMenu(false)}>
+    <header className="site-header has-menu" ref={bar} onKeyDown={(e) => e.key === "Escape" && fold()}>
       <div className="site-wrap">
         <a className="site-logo" href="#/">
           <Mark />
           <span>grooph</span>
         </a>
-        <button className="site-menu-toggle" type="button" aria-expanded={menu} aria-controls="site-nav" onClick={() => setMenu(!menu)}>
+        <button className="site-menu-toggle" type="button" ref={toggle} aria-expanded={menu} aria-controls="site-nav" onClick={() => setMenu(!menu)}>
           <svg viewBox="0 0 20 20" aria-hidden="true">
             <path d="M3.5 6h13M3.5 10h13M3.5 14h13" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
@@ -111,11 +118,12 @@ function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) 
   useEffect(() => {
     if (!open) return;
     items.current[at]?.focus();
-    const away = (e: MouseEvent) => {
+    // A press, not a click: a phone's browser sends no click for a tap on text.
+    const away = (e: PointerEvent) => {
       if (!root.current?.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("click", away);
-    return () => document.removeEventListener("click", away);
+    document.addEventListener("pointerdown", away);
+    return () => document.removeEventListener("pointerdown", away);
   }, [open, at]);
 
   const close = () => {

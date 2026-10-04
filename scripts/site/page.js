@@ -21,7 +21,9 @@
     fold(false);
   });
   header.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") fold(false);
+    if (event.key !== "Escape" || menu.getAttribute("aria-expanded") !== "true") return;
+    fold(false);
+    menu.focus();
   });
 
   /* The theme switch, a menu button: arrows move, Enter or Space chooses, Escape closes. The choice is kept in this browser,
@@ -94,7 +96,8 @@
       close(true);
     } else if (event.key === "Tab") close(false);
   });
-  document.addEventListener("click", function (event) {
+  /* A press, not a click: a phone's browser sends no click for a tap on text. */
+  document.addEventListener("pointerdown", function (event) {
     if (!event.target.closest(".site-theme")) close(false);
   });
 

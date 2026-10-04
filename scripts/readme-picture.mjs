@@ -50,7 +50,7 @@ if (args.includes("--check")) {
 }
 
 const proving = resolve(option("--run", join(root, "experiments", "patterns", "review-gate", "run")));
-const runId = existsSync(join(proving, "runs")) ? readdirSync(join(proving, "runs")).sort()[0] : undefined;
+const runId = existsSync(join(proving, "runs")) ? readdirSync(join(proving, "runs"), { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort()[0] : undefined;
 if (!runId || !existsSync(join(proving, "package", "graph.grooph.json"))) {
   console.error(`readme-picture: ${proving} is not a proving run: it has no package/graph.grooph.json or no runs/<id>/.`);
   process.exit(1);
@@ -82,6 +82,7 @@ const server = createServer((req, res) => {
 await new Promise((done) => server.listen(port, "127.0.0.1", done));
 
 const frames = mkdtempSync(join(tmpdir(), "grooph-readme-"));
+let browser;
 try {
   // The run as a project holds it: runs/<id>/ two levels below the graph it ran.
   const run = join(frames, "package", "runs", runId);
@@ -93,7 +94,7 @@ try {
   if (!address) throw new Error(`grooph embed printed no frame for ${run}`);
 
   const { chromium } = createRequire(join(root, "apps", "web", "package.json"))("@playwright/test");
-  const browser = await chromium.launch();
+  browser = await chromium.launch();
   // Two device pixels to a CSS pixel, so the picture is sharp on a phone; the README shows it WIDTH wide.
   const page = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: 2, colorScheme: "dark", reducedMotion: "reduce" });
   await page.goto(address);
@@ -120,8 +121,6 @@ try {
     await next.click();
     await shoot();
   }
-  await browser.close();
-
   // One palette for every frame, then the frames with it: sharper than a palette per frame, and smaller.
   const list = join(frames, "frames.txt");
   const names = Array.from({ length: count }, (_, i) => `step-${String(i).padStart(3, "0")}.png`);
@@ -133,6 +132,7 @@ try {
   console.log(`readme-picture: ${count} steps of ${proving.slice(root.length + 1)}/runs/${runId}; the GIF is ${kb(GIF)} KB (limit ${GIF_LIMIT_KB} KB), drawn ${WIDTH * 2} px wide to show at ${WIDTH}, the still ${kb(STILL)} KB.`);
   if (kb(GIF) > GIF_LIMIT_KB) process.exitCode = 1;
 } finally {
+  await browser?.close();
   rmSync(frames, { recursive: true, force: true });
   server.close();
 }

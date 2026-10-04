@@ -79,8 +79,8 @@ function header(p) {
 function footer(p) {
   const column = (title, links) => `<div><h2>${title}</h2><ul>${links.map((l) => `<li><a href="${escapeHtml(l.href)}"${/^https?:/.test(l.href) ? ' rel="noopener"' : ""}>${escapeHtml(l.label)}</a></li>`).join("")}</ul></div>`;
   const social = SOCIAL.map((s) => `<li><a href="${s.href}" aria-label="${s.name}" title="${s.title}">${icon(p.root, s.icon)}</a></li>`).join("");
-  const source = p.source ? ` Rendered from <a href="${escapeHtml(p.source)}" rel="noopener">${escapeHtml(p.sourceLabel ?? "the source")}</a>; edit it on GitHub.` : "";
-  return `<footer class="site-footer"><div class="site-wrap"><div><a class="site-logo" href="${p.root}">${MARK}<span>grooph</span></a><p>Loop graphs for coding agents. Graphs live in this browser on this device. Nothing is sent anywhere.</p></div>${column("Use it", p.foot.use)}${column("Help and contact", p.foot.help)}<div class="site-credit"><p class="site-made">Made by <a href="${SOCIAL[0].href}">Ryan Kamp</a></p><ul class="site-social" aria-label="Ryan Kamp online">${social}</ul><a class="site-sponsor" href="${SPONSOR}">${icon(p.root, "heart")}Sponsor on GitHub</a></div><p class="site-fine">Every feature is free; sponsorship is optional and never unlocks anything. MIT license, © 2026 Ryan Kamp. This site uses no cookies, analytics or third-party requests. Fonts: Atkinson Hyperlegible Next and Mono, SIL Open Font License. <a href="${escapeHtml(p.repo)}#license-and-author" rel="noopener">Credits</a>.${source}</p></div></footer>`;
+  const source = p.source ? `. Rendered from <a href="${escapeHtml(p.source)}" rel="noopener">${escapeHtml(p.sourceLabel ?? "the source")}</a>; edit it on GitHub.` : "";
+  return `<footer class="site-footer"><div class="site-wrap"><div><a class="site-logo" href="${p.root}">${MARK}<span>grooph</span></a><p>Loop graphs for coding agents. Graphs live in this browser on this device. Nothing is sent anywhere.</p></div>${column("Use it", p.foot.use)}${column("Help and contact", p.foot.help)}<div class="site-credit"><p class="site-made">Made by <a href="${SOCIAL[0].href}">Ryan Kamp</a></p><ul class="site-social" aria-label="Ryan Kamp online">${social}</ul><a class="site-sponsor" href="${SPONSOR}">${icon(p.root, "heart")}Sponsor on GitHub</a></div><p class="site-fine">Every feature is free; sponsorship is optional and never unlocks anything. MIT license, © 2026 Ryan Kamp. This site uses no cookies, analytics or third-party requests. Fonts: Atkinson Hyperlegible Next and Mono, SIL Open Font License. <a href="${escapeHtml(p.repo)}#license-and-author" rel="noopener">Credits</a>${source}</p></div></footer>`;
 }
 
 /**
@@ -92,7 +92,8 @@ function footer(p) {
  * @param {string} p.imageUrl         absolute address of the link-preview image
  * @param {{ label: string, href: string, current: boolean }[]} p.nav
  * @param {{ use: { label: string, href: string }[], help: { label: string, href: string }[] }} p.foot  the footer's two columns
- * @param {string} p.hero             the title band: the h1 and, when the document opens with a short one, its first paragraph
+ * @param {string} p.hero             the title band: the h1 and, when the document opens with a short one, its first paragraph;
+ *                                    empty when the document keeps its title in its own column, and then there is no band
  * @param {string} [p.chip]           the small label above the title: the section the page belongs to
  * @param {string} [p.toc]            the contents list, already HTML
  * @param {string} p.body             the column under the band, already HTML
@@ -131,10 +132,7 @@ export function shell(p) {
 <a class="skip" href="#main">Skip to the content</a>
 ${header(p)}
 <main id="main">
-<div class="page-hero"><div class="site-wrap">
-${p.chip ? `<p class="page-chip">${escapeHtml(p.chip)}</p>\n` : ""}${p.hero}
-</div></div>
-<div class="site-wrap page-body${p.toc ? " has-toc" : ""}">
+${p.hero ? `<div class="page-hero"><div class="site-wrap">\n${p.chip ? `<p class="page-chip">${escapeHtml(p.chip)}</p>\n` : ""}${p.hero}\n</div></div>\n` : ""}<div class="site-wrap page-body${p.toc ? " has-toc" : ""}">
 ${p.toc ? `${p.toc}\n` : ""}<div class="doc${p.wide ? " doc-wide" : ""}">
 ${p.body}
 </div>

@@ -6,6 +6,7 @@ import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { createHash } from "node:crypto";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -301,5 +302,80 @@ test("a long picture with a shorter view beside it is shown short and opens whol
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("a file the service worker keeps for good has a new name when its bytes change", () => {
+  // The app's worker answers anything under assets/ from its cache, for good. The fonts and the footer's icons are files
+  // of public/ there, not hashed by the build, so their names carry a version: a change to one without a new name would
+  // never reach a visitor who has the old one. When this fails, give the file its next version (.v2.) wherever it is named.
+  const kept = {
+    "assets/fonts/atkinson-hyperlegible-mono.v1.woff2": "9a08dab0dc7616da80263e7142b80deecde1fb978cbfe9eac0061863d6fe0db1",
+    "assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2": "7f634c7ecfbfb310996c48c27dda07e163fc01f28c1446ceecee8ae451cbf114",
+    "assets/fonts/atkinson-hyperlegible-next.v1.woff2": "7b76b28efa9c6747bd82b2afb1dbf9f977b23698b399e7080f9ca01678dd48d4",
+    "assets/site-icons.v1.svg": "9a903fc9c490dc3702b02a407ff930639227c4fd51c1244ec4b7a1e878452b27",
+  };
+  for (const [file, hash] of Object.entries(kept)) {
+    assert.equal(createHash("sha256").update(readFileSync(join(repo, "apps", "web", "public", file))).digest("hex"), hash, `${file} changed: it needs a new version in its name`);
+  }
+});
+
+test("a document that opens with a picture keeps it in the column, and one whose title is not its first line has no band", () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+  const root = tree({
+    "docs/quickstart.md": "# Quickstart\n\n![A wide picture](pictures/wide.svg)\n\nThen words.\n",
+    "docs/rules.md": "Generated. Do not edit.\n\n# Rule reference\n\nEvery rule.\n",
+    "docs/pictures/wide.svg": SVG,
+  });
+  const out = mkdtempSync(join(tmpdir(), "grooph-site-out-"));
+  try {
+    assert.equal(run(root, "--out", out).status, 0);
+    const picture = readFileSync(join(out, "docs", "quickstart", "index.html"), "utf8");
+    const band = picture.slice(picture.indexOf('<div class="page-hero">'), picture.indexOf('<div class="site-wrap page-body'));
+    assert.match(band, /<h1[^>]*>Quickstart<\/h1>/);
+    assert.doesNotMatch(band, /<img/);
+    assert.match(picture.slice(picture.indexOf('<div class="doc">')), /<img src="wide\.svg"/);
+    const late = readFileSync(join(out, "docs", "rules", "index.html"), "utf8");
+    assert.doesNotMatch(late, /class="page-hero"/);
+    assert.equal(late.match(/<h1/g).length, 1);
+    assert.match(late.slice(late.indexOf('<div class="doc">')), /<p>Generated\. Do not edit\.<\/p>\n<h1[^>]*>Rule reference<\/h1>/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("a <picture> shown by its shorter view is wrapped whole, so its sources still apply", () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+  const root = tree({
+    "docs/quickstart.md": '# Quickstart\n\nThe map:\n\n<picture>\n<source media="(prefers-color-scheme: dark)" srcset="pictures/map.dark.svg">\n<img src="pictures/map.light.svg" alt="The map">\n</picture>\n',
+    "docs/pictures/map.light.svg": SVG,
+    "docs/pictures/map.light.short.svg": SVG,
+    "docs/pictures/map.dark.svg": SVG,
+    "docs/pictures/map.dark.short.svg": SVG,
+  });
+  const out = mkdtempSync(join(tmpdir(), "grooph-site-out-"));
+  try {
+    assert.equal(run(root, "--out", out).status, 0);
+    const page = readFileSync(join(out, "docs", "quickstart", "index.html"), "utf8");
+    assert.match(page, /<a class="whole" href="map\.light\.svg"><picture>\s*<source media="\(prefers-color-scheme: dark\)" srcset="map\.dark\.short\.svg">\s*<img src="map\.light\.short\.svg" alt="The map">\s*<\/picture><span>The whole picture<\/span><\/a>/);
+    assert.equal(page.match(/class="whole"/g).length, 1);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test("--check fails when the app sets a variable for dark or for a theme that the pages carry and do not set there", () => {
+  const root = tree({ "docs/quickstart.md": QUICKSTART, "docs/rules.md": RULES });
+  try {
+    const css = join(root, "apps", "web", "src", "styles.css");
+    // --radius is carried by the pages and set once, for light. The app now changes it in the meteor theme.
+    writeFileSync(css, readFileSync(css, "utf8").replace(':root[data-theme="meteor"] {', ':root[data-theme="meteor"] {\n  --radius: 14px;'));
+    const r = run(root, "--check");
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /--radius is set for meteor, light in apps\/web\/src\/styles\.css and not here/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });

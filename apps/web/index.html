@@ -23,8 +23,13 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
+    <!-- Named for the service worker, which keeps what this page names. The media never matches: the browser fetches a font when text first uses it. -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin media="not all" href="/assets/fonts/atkinson-hyperlegible-next.v1.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin media="not all" href="/assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin media="not all" href="/assets/fonts/atkinson-hyperlegible-mono.v1.woff2" />
+    <link rel="preload" as="image" media="not all" href="/assets/site-icons.v1.svg" />
     <title>grooph: loop graphs for coding agents</title>
-    <!-- The look chosen in the header's theme menu, before the first paint: ?theme= wins and is kept, then the kept choice. An embed has its own colors. -->
+    <!-- The theme chosen in the header, before the first paint: ?theme= wins and is kept. An embed has its own colors. -->
     <script>
       (() => { if (/^#\/embed(\?|$)/.test(location.hash)) return; const ids = ["grooph", "meteor"]; let id = new URLSearchParams(location.search).get("theme"); try { if (ids.includes(id)) localStorage.setItem("groophTheme", id); else id = localStorage.getItem("groophTheme"); } catch {} if (ids.indexOf(id) > 0) document.documentElement.dataset.theme = id; })();
     </script>
