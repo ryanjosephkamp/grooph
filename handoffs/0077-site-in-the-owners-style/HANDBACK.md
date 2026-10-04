@@ -160,6 +160,7 @@ The icon and the manifest, which the browser fetches for itself, are as on `main
 - **`checkTokens` still reads the first block of each kind** in a stylesheet, as it did. A second `:root` block later in `styles.css` that redefined a variable would not be seen.
 - **Times are Chromium's on one Mac**, on an emulated link. GitHub Pages itself was not measured; the branch is not deployed.
 - **If the owner picks lime as the look it loads in**: swap the default and `meteor` blocks in `apps/web/src/styles.css` and `scripts/site/style.css`, swap the order in `THEMES` (`Chrome.tsx`, `layout.mjs`) and in `index.html`'s `ids`, redraw `og.png`. The node test "one list of themes in three places" fails until all three agree.
+- **For the house lane: the README's version sentence.** "Early, version 0.3.0." is untouched by this slice and stands at `README.md` line 49, the first sentence under `## Status`. The README's new opening moved it down from line 43. `scripts/version.mjs` does not know that line; it is a ninth place for it.
 - **Read from Link Meteor**: its live site and its public repository through `gh api` only. Nothing in its folder on this Mac was opened. The three font files and the two license files came from that repository. A scratch Python environment with fontTools, outside the repository, cut them.
 
 ## Prompt to paste into the driver session
