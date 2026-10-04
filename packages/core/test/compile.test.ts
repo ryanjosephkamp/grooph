@@ -13,7 +13,7 @@ import { OP_ARGS, OP_NAMES } from "../src/ops/apply.js";
 import { parseGraphText } from "../src/parse.js";
 import { instantiate } from "../src/template.js";
 import { validate } from "../src/validate.js";
-import type { Graph } from "../src/types.js";
+import type { AgentNode, Graph } from "../src/types.js";
 import { expectedIssues, fixturesDir, invalidFixtures, read, validFixtures } from "./helpers.js";
 
 const reviewLoopPath = validFixtures().find((f) => f.name.startsWith("review-loop"))!.path;
@@ -553,4 +553,22 @@ test("0014-5/6: LEAD.md §11 asks for the `ending` line before the final note an
   assert.match(eleven, /The final note and `PROGRESS\.md` are the record\. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, `\.grooph\/review-loop\/runs\/<run-id>\/`\./);
   // §8's line shape says the same word means the same thing there.
   assert.match(lead, /outcome {3}pass \| fail \| halt \| invalid-evidence; started on a dispatch line, ending on the line before the final note \(§11\)/);
+});
+
+test("the one exporting may say which model a tier means; a pin still wins; the default is untouched", () => {
+  const doc = reviewLoop();
+  const stock = compile(doc, "claude-code");
+  // Both agents are `strong`, which the target gives to opus.
+  const builder = ".claude/agents/review-loop--builder.md";
+  assert.match(stock.files[builder]!, /^model: opus$/m);
+  assert.deepEqual(compile(doc, "claude-code", {}).files, stock.files, "no option, no change: the golden package");
+
+  const named = compile(doc, "claude-code", { models: { strong: "sonnet", frontier: "opus" } });
+  assert.match(named.files[builder]!, /^model: sonnet$/m);
+  assert.match(named.files[".grooph/review-loop/MAPPING.md"]!, /# this export: frontier → opus, strong → sonnet, fast → sonnet/);
+  assert.match(stock.files[".grooph/review-loop/MAPPING.md"]!, /# profile: frontier → fable, strong → opus, fast → sonnet/);
+  assert.equal(named.files[".grooph/review-loop/graph.grooph.json"], stock.files[".grooph/review-loop/graph.grooph.json"], "the graph does not change");
+
+  const pinned: Graph = { ...doc, nodes: doc.nodes.map((n) => (n.id === "builder" && n.kind === "agent" ? ({ ...n, model: { tier: "strong", pin: { "claude-code": "haiku" } } } as AgentNode) : n)) };
+  assert.match(compile(pinned, "claude-code", { models: { strong: "sonnet" } }).files[builder]!, /^model: haiku$/m);
 });

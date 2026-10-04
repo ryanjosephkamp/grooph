@@ -8,7 +8,7 @@
 import { hasErrors, type Issue } from "../issues.js";
 import { KNOWN_TARGETS } from "../targets/index.js";
 import { validate } from "../validate.js";
-import type { Graph } from "../types.js";
+import type { Graph, Tier } from "../types.js";
 import { compileClaudeCode } from "./claude-code/index.js";
 
 export type CompileTarget = "claude-code";
@@ -19,6 +19,16 @@ export type CompileResult = {
   /** the single prompt that starts the run */
   kickoff: string;
   warnings: Issue[];
+};
+
+/**
+ * What the one exporting may say beside the document.
+ *
+ * `models` says which model a tier means, for this export only: a project that does not use the model the target
+ * gives a tier names its own. A pin on a node still wins, as it says so in the document. The document does not change.
+ */
+export type CompileOptions = {
+  models?: Partial<Record<Tier, string>>;
 };
 
 /** Thrown when the document does not validate for export. */
@@ -36,7 +46,7 @@ export class CompileError extends Error {
   }
 }
 
-export function compile(doc: Graph, target: CompileTarget): CompileResult {
+export function compile(doc: Graph, target: CompileTarget, options: CompileOptions = {}): CompileResult {
   const issues = validate(doc, { forExport: true });
   if (hasErrors(issues)) throw new CompileError(issues);
 
@@ -44,7 +54,7 @@ export function compile(doc: Graph, target: CompileTarget): CompileResult {
 
   switch (target) {
     case "claude-code": {
-      const pkg = compileClaudeCode(doc, warnings);
+      const pkg = compileClaudeCode(doc, warnings, options);
       return { files: pkg.files, kickoff: pkg.kickoff, warnings };
     }
     default: {
@@ -58,9 +68,10 @@ export function compile(doc: Graph, target: CompileTarget): CompileResult {
 export function tryCompile(
   doc: Graph,
   target: CompileTarget,
+  options: CompileOptions = {},
 ): { ok: true; result: CompileResult } | { ok: false; issues: Issue[] } {
   try {
-    return { ok: true, result: compile(doc, target) };
+    return { ok: true, result: compile(doc, target, options) };
   } catch (err) {
     if (err instanceof CompileError) return { ok: false, issues: err.issues };
     throw err;

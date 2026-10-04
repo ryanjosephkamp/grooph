@@ -10,6 +10,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { run } from "../src/index.js";
+
+// A developer's own tier map must not reach these tests.
+delete process.env["GROOPH_MODELS"];
 import type { Output } from "../src/print.js";
 
 type Capture = Output & { stdout: string[]; stderr: string[] };
@@ -203,3 +206,47 @@ test("embed is a command like the others: listed in the overview, with its own h
   }
 });
 
+test("export --models names the model of a tier for one export; GROOPH_MODELS says it for a machine; the flag wins", async () => {
+  const graph = join(import.meta.dirname, "..", "..", "..", "..", "fixtures", "valid", "review-loop.grooph.json");
+  const builder = (dir: string): string => readFileSync(join(dir, ".claude", "agents", "review-loop--builder.md"), "utf8");
+  const dir = mkdtempSync(join(tmpdir(), "grooph-models-"));
+  try {
+    let io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=sonnet,frontier=opus"], io, () => "", { env: {} }), 0);
+    assert.match(builder(dir), /^model: sonnet$/m);
+    // All three tiers are said, so a tier left on the target's own model is in plain sight.
+    assert.match(io.stdout.join("\n"), /tiers in this package: frontier → opus, strong → sonnet, fast → sonnet \(the target's own\)\. Named by --models\./);
+    assert.doesNotMatch(io.stdout.join("\n"), /note: /, "the review loop's agents are on one tier, so no two tiers met");
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.match(builder(dir), /^model: haiku$/m);
+    assert.match(io.stdout.join("\n"), /Named by GROOPH_MODELS\./);
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=sonnet"], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.match(builder(dir), /^model: sonnet$/m);
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: {} }), 0);
+    assert.match(builder(dir), /^model: opus$/m);
+    assert.doesNotMatch(io.stdout.join("\n"), /tiers in this package/);
+
+    // Two tiers the graph uses, made one model from outside the document: the export says what the validator cannot see.
+    const mixed = join(import.meta.dirname, "..", "..", "..", "..", "fixtures", "valid", "glyph-vocabulary.grooph.json");
+    io = capture();
+    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "frontier=opus"], io, () => "", { env: {} }), 0);
+    assert.match(io.stdout.join("\n"), /note: frontier and strong are both opus in this package/);
+    io = capture();
+    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "frontier=opus,strong=sonnet,fast=haiku"], io, () => "", { env: {} }), 0);
+    assert.doesNotMatch(io.stdout.join("\n"), /note: /);
+
+    for (const bad of ["best=opus", "strong", "strong=", "strong=a b", ",", "strong=sonnet;fast=haiku", "frontier=opus=x", "strong={x}", "strong=opus,strong=sonnet", "Strong=opus"]) {
+      io = capture();
+      assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", bad], io, () => "", { env: {} }), 1, bad);
+      assert.match(io.stderr.join("\n"), /--models: /);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
