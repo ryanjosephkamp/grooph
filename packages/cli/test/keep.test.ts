@@ -142,6 +142,20 @@ test("image, page and embed take --theme: six names, with light or dark after on
     assert.equal(await grooph(["image", reviewLoop, "--theme", "blueprint-auto", "--out", join(dir, "x.png")], io), 1);
     assert.match(text(io.stderr), /a PNG is light or dark, not both/);
 
+    // The PNG's renderer knows `transform` and not `transform-box`: given Transit's rule for its arrowheads bare, it
+    // moves each one across the picture. The rule is behind a condition it does not read, so with the rule or
+    // without it the PNG is the same pixels; and bare, it is not, which is what the condition is for.
+    const transit = picture(doc, { theme: "light", look: pictureLook("transit")! });
+    const guarded = /@supports \(transform-box:fill-box\)\{([^{}]*\{[^{}]*\})\}/.exec(transit)!;
+    const renderer = "@resvg/resvg-js";
+    const { Resvg } = (await import(renderer)) as { Resvg: new (svg: string, options: unknown) => { render(): { asPng(): Uint8Array } } };
+    const png = (svg: string): Buffer => Buffer.from(new Resvg(svg, { fitTo: { mode: "zoom", value: 1 } }).render().asPng());
+    assert.deepEqual(png(transit), png(transit.replace(guarded[0], "")), "the renderer acted on the rule behind the condition");
+    assert.notDeepEqual(png(transit), png(transit.replace(guarded[0], guarded[1]!)), "the renderer no longer gets the bare rule wrong: the condition can go");
+    io = capture();
+    assert.equal(await grooph(["image", reviewLoop, "--theme", "transit", "--out", join(dir, "transit.png")], io), 0, text(io.stderr));
+    assert.deepEqual(pngSize(readFileSync(join(dir, "transit.png"))), { width: 1200, height: Math.round(height * 3) });
+
     // The offline page: its picture in the theme, everything else the page it was.
     const page = join(dir, "rl.html");
     io = capture();

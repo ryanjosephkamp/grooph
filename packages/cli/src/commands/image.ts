@@ -62,10 +62,11 @@ An operation map has two more views, for a screen with room or a map with many h
   --theme auto           (SVG only, the SVG default) light and dark both; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
   --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide for the phone's
-                         picture); --scale changes that. A PNG is light unless told dark.
-                         Its renderer knows a theme's colors, line weights, lettering, ground
-                         and Chalk's wobble, and not the rules for corners, capitals and
-                         Transit's route color: for those, the SVG, or Keep a copy in the app.
+                         picture); --scale changes that. A PNG is light unless told dark
+                         (Phosphor has one form, and is dark either way). Its renderer knows
+                         a theme's colors, line weights, lettering, ground and Chalk's wobble,
+                         and not the rules for corners, capitals, and Transit's route color
+                         and larger arrowheads: for those, the SVG, or Keep a copy in the app.
 
   --events <id>=<src>    for an operation map: draw what the event hook has seen on the
                          session with that id (working, waiting or ended; subagents running
