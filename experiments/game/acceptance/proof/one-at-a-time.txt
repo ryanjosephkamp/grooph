@@ -1,0 +1,153 @@
+# The checks against stand-ins/good.html with one behavior off at a time (?break=<name>). The check that looks for that behavior must fail, for its own reason.
+# node experiments/game/acceptance/prove.mjs, 2026-10-04
+
+error
+  must fail: opens   caught
+    opens: the page raised 1 error(s): uncaught: stand-in: an uncaught error, on purpose
+  failed with it: none
+  still passed: 20 of 21
+
+outside
+  must fail: opens   caught
+    opens: the page asked another host: https://outside.example/telemetry
+  failed with it: none
+  still passed: 20 of 21
+
+blank
+  must fail: drawn   caught
+    drawn: the picture is one flat color: 1 color(s), the commonest covering 100% of it
+  failed with it: none
+  still passed: 20 of 21
+
+surface
+  must fail: surface   caught
+    surface: camera.position is not a vector
+  failed with it: view, hit, defeat, win
+  still passed: 16 of 21
+
+start
+  must fail: start   caught
+    start: Enter did not start a round: the phase is still "menu"
+  failed with it: surface, walk, strafe, look, turn, jump, world, view, fire, hit, defeat, reload, threat, lose, again, win, seed, frames
+  still passed: 2 of 21
+
+move
+  must fail: walk, strafe   caught
+    walk: holding W for a second moved the player 0 m
+    strafe: holding D for a second moved the player 0 m, not to the right of where the view points
+  failed with it: world
+  still passed: 18 of 21
+
+strafe
+  must fail: strafe   caught
+    strafe: holding D for a second moved the player 5.08 m, not to the right of where the view points
+  failed with it: none
+  still passed: 20 of 21
+
+look
+  must fail: look   caught
+    look: moving the mouse 200 px right turned the view 0 degrees to the right
+  failed with it: none
+  still passed: 20 of 21
+
+turn
+  must fail: turn   caught
+    turn: holding the right arrow for half a second turned the view 0 degrees right; 60 degrees a second is 30
+  failed with it: hit, defeat, win
+  still passed: 17 of 21
+
+jump
+  must fail: jump   caught
+    jump: Space did not lift the player 0.3 m within a second and a half
+  failed with it: none
+  still passed: 20 of 21
+
+fall
+  must fail: world   caught
+    world: the player fell 4773.9 m below where the round started
+  failed with it: jump, hit, defeat, win
+  still passed: 16 of 21
+
+wall
+  must fail: world   caught
+    world: the player ran 405.3 m from the start and was not stopped: the arena has no edge there
+  failed with it: none
+  still passed: 20 of 21
+
+view
+  must fail: view   caught
+    view: in third person the camera is 0 m from where the eyes are, and not behind the player
+  failed with it: none
+  still passed: 20 of 21
+
+ammo
+  must fail: fire   caught
+    fire: a click left the ammunition at 12
+  failed with it: reload
+  still passed: 19 of 21
+
+aimless
+  must fail: hit   caught
+    hit: a shot fired away from every enemy lowered an enemy's health: clicks land wherever they point
+  failed with it: none
+  still passed: 20 of 21
+
+damage
+  must fail: hit   caught
+    hit: aimed shots for 7.65 s lowered no enemy's health (the round is playing; ammunition 5)
+  failed with it: defeat, win
+  still passed: 18 of 21
+
+defeat
+  must fail: defeat   caught
+    defeat: no enemy was defeated in 15.3 s of aimed shots (the round is lost)
+  failed with it: win
+  still passed: 19 of 21
+
+reload
+  must fail: reload   caught
+    reload: R left the ammunition at 9
+  failed with it: none
+  still passed: 20 of 21
+
+chase
+  must fail: threat   caught
+    threat: a player who stood still for 10.2 s was not hurt
+  failed with it: lose, again
+  still passed: 18 of 21
+
+ambient
+  must fail: threat   caught
+    threat: the player was hurt with the nearest enemy 17.4 m away: something other than a chaser's strike did it
+  failed with it: none
+  still passed: 20 of 21
+
+lose
+  must fail: lose   caught
+    lose: a player who stood still for 20.4 s did not lose: the round is playing, health 0
+  failed with it: again
+  still passed: 19 of 21
+
+restart
+  must fail: again   caught
+    again: Enter after a lost round did not start another within ten seconds
+  failed with it: none
+  still passed: 20 of 21
+
+win
+  must fail: win   caught
+    win: 30.6 s of aimed shots did not win the test round: the round is playing, 0 enemies alive, health 100
+  failed with it: none
+  still passed: 20 of 21
+
+slow
+  must fail: frames   caught
+    frames: 8.5 pictures a second: the game drew 68 in 8 s; run with --headed for a real game, since a browser with no window draws 3D on the processor
+  failed with it: defeat
+  still passed: 19 of 21
+
+seed
+  must fail: seed   caught
+    seed: two visits with seed 7 started 13 m apart
+  failed with it: none
+  still passed: 20 of 21

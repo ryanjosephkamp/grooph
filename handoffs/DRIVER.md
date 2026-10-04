@@ -2,7 +2,7 @@
 
 For the session that drives grooph next. The driver's memory is this file, `docs/PROGRESS.md`, the review desk, and the memory folder the harness loads (`~/.claude/projects/-Users-noir-Documents-grooph/memory/`). A session that has grown long hands the seat over by bringing this file up to date and saying so to the owner; the owner opens a fresh session in this folder and tells it to read this file.
 
-**Last brought up to date:** 2026-10-04, about 2 p.m. Eastern, by the session titled "grooph opus operator".
+**Last brought up to date:** 2026-10-04, about 3:15 p.m. Eastern, by the session titled "grooph opus operator".
 
 ## Who you are
 
@@ -42,29 +42,44 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 ## Where things stand
 
-The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above, at about 2 p.m. Eastern:
+The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above, at about 3:15 p.m. Eastern:
 
-0.3.0 is merged, tagged and live. Public text is American English, with a check in CI. The tier map (#43) is merged. The owner answered the desk on 2026-10-04 and started six lanes; his answers are listed in `docs/PROGRESS.md`, "In flight".
+0.3.0 is merged, tagged and live. The owner answered the desk on 2026-10-04, started six lanes and went away for a few hours. Since then the driver has merged #47 to #53, #55, #56, #59, #61 and #62 under decision 0023, each read first, and every one is on the desk's list.
 
-| Lane (the session's title) | Slice | Where it is | What it waits on |
+**Open pull requests, all waiting for the owner, each with a card on the desk:**
+
+| Pull request | What | The card says |
+|---|---|---|
+| #63 | A fix for a fault in the live compiler: a model pin or a skill name with a line break added keys to an agent file's frontmatter | Merge it, then 0.3.1. First card on the desk. Read by the driver line by line |
+| #58 | The site in the owner's style | Merge, and which accent opens first; it costs 47 KB of fonts on a first visit |
+| #60 | The agents work: MCP authoring tools, an npm package, a chat kit | Not ready: a fix pass is under way after the driver's reviewer read it (letters B to G in the driver's message to the lane). **The name `grooph` must be published to npm before or with the merge** |
+| #57 | Amendment A-018, subgroophs, with decision 0025 | Approve; by value (a group that remembers its template), not by reference |
+| #54 | The FAQ | Hold until the audit converges: three answers repeat words its first reading does not carry |
+
+**The lanes, by session title:**
+
+| Lane | Slice | Where it is | What it waits on |
 |---|---|---|---|
-| grooph lane: audit | 0075 | Round one out on `slice/0075-audit-claims-as-of-0-3-0`: 52 claims, the handoff for Codex, a draft claims page. No pull request until the handback. | The owner, to carry its prompt to Codex (desk card "Carry the audit's first round to Codex") |
-| grooph lane: site | 0077 | Done: pull request #58, every job green. A visible change, so it is the owner's to merge | The owner's word and his accent (desk card `q00-site-accent`). The session is free: slice 0082 is briefed for it |
-| grooph lane: agents | 0078 | At work on `slice/0078-agents-and-chat` | Nothing |
+| grooph lane: audit | 0075 | Round one out on `slice/0075-audit-claims-as-of-0-3-0`: 52 claims, the handoff for Codex, a draft claims page. No pull request until the handback | The owner, to carry its prompt to Codex (desk card `q22-codex-audit`) |
+| grooph lane: site | 0077, then 0082 | #58 is up to date with main and green. Now on slice 0082: the game experiment on paper | For #58, the owner. If he picks lime or asks for a change, that comes before 0082 |
+| grooph lane: agents | 0078 | #63 sent (the compiler fix). Fix pass on #60 under way | Nothing. When it reports #60's new head, read what it did about each letter, then tell the owner it is ready |
 | grooph lane: evidence | 0019 | Building everything up to the first paid run | The owner's tiers for study two (desk card `q02c-study-tiers`); relay them. No paid run before that |
-| grooph lane: views | 0080 | Built and green locally, not pushed. Told to put the two views behind a door only a map opens, so the front page, a template and an embed weigh what they did | Nothing |
-| grooph lane: house | 0081 | Done and reviewed (`handoffs/0081-house-and-pages/REVIEW.md`): #47 to #53, #55, #56 merged. One extra asked for: a CI check that the app and the pages load nothing from another address | #54 (the FAQ) is the owner's, and waits for the audit |
+| grooph lane: views | 0080 | Built and green locally. Told to put the two views behind a door only a map opens, so the front page, a template and an embed weigh what they did | Nothing |
+| grooph lane: house | 0081, then 0083 | 0081 done and reviewed. Now on slice 0083: the service worker across a release, tests first | Nothing. #54 is the owner's |
 | Codex target | 0076 | Not started. `~/Documents/grooph-codex` is on the slice's branch | The owner, to open Codex there and paste the starter on the desk's lane row |
 
-What the audit lane's first reading says, before Codex, and why it matters to everything else: "shown to bound autonomous work" is not carried (no cap or budget has fired in any recorded run), "proven" for all twenty templates is not carried (two records fail their check), and the validator's three refusals are conditional. No page is corrected until the rounds converge, and no new page that repeats those words is merged: that is why the FAQ waits.
+What the audit lane's first reading says, before Codex, and why it matters to everything else: "shown to bound autonomous work" is not carried (no cap or budget has fired in any recorded run), "proven" for all twenty templates is not carried (two records fail their check), and the validator's three refusals are conditional. No page is corrected until the rounds converge, and no new page that repeats those words is merged: that is why the FAQ waits, and why one sentence comes out of the agents lane's new page.
 
 ## What the driver owes
 
-- **Amendment A-018, subgroophs**: drafted as pull request #57 with decision 0025, for the owner (desk card `q24-subgroophs`). By value: a group that remembers the template it came from, drawn as one box. When he accepts it, brief a lane to build it. For-each and intergroophs on the map come after, each its own amendment.
-- **The game experiment**: briefed as slice 0082 (`handoffs/0082-game-experiment-design/HANDOFF.md`), which designs it on paper and runs nothing: the spec, the graph, held-out checks, the protocol, a page for the owner. Assign it to a free lane. The runs need the Codex target first, and creating the two public repositories needs his word in the chat.
+- **When the owner says yes to #63**: merge it (his word in the chat as well as on the desk), then prepare 0.3.1 as a pull request for him: `node scripts/version.mjs 0.3.1`, a section in `docs/releases.md`, the tag after the merge. Then have the agents lane merge main into #60.
+- **When #60's fix pass is in**: read it against the reviewer's findings (the high ones: export through the tool ignored `GROOPH_MODELS` and named Fable; the save tool created files of any name; and the compiler fault that became #63), have a fresh subagent re-run the attacks on the new head, then tell the owner it is ready and remind him of the publish order.
+- **Amendment A-018, subgroophs**: pull request #57 (desk card `q24-subgroophs`). When he accepts it, brief a lane to build it. For-each and intergroophs on the map come after, each its own amendment.
+- **The game experiment**: slice 0082 designs it on paper and runs nothing (the site lane has it). The runs need the Codex target first, and creating the two public repositories needs his word in the chat.
 - **The default tiers** (desk card `q03b-default-tiers`): he chose to take Fable out of the default map; which models the tiers then mean is open. When he answers, a pull request that changes `packages/core/targets/claude-code.profile.json`, the goldens and the documents; it is his to merge (what the compiler writes).
 - **Themes** (desk card `q11-studio`): the design studio page shows six; a theme switch is a slice once he picks.
-- **After the lanes**: the 3D view (after 0080), the desktop app (after agents and the Codex target), a design and no build for a hosted endpoint for chat, npm (his to publish, name `grooph`).
+- **Small things waiting on a merge**: `README.md`'s "Early, version 0.3.0." as a ninth place for `scripts/version.mjs`, once #58 is in; `docs/releases.md` named in that script's `next:` line; the branch `slice/0081-browsers-probe` can be deleted on his word.
+- **After the lanes**: the 3D view (after 0080), the desktop app (after agents and the Codex target), a hosted endpoint for chat (designed in the agents lane's `DECISION-hosted-endpoint.md`, not built; his decision), npm (his to publish, name `grooph`).
 
 ## Handing the seat over
 

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stand-in: the test surface, working</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #061a14; }
+      canvas { display: block; width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <!-- A page with the game's test surface and no game: every held-out check should pass against it. `?break=<name>` turns one behavior off (stand-in.js). -->
+    <canvas width="1280" height="720"></canvas>
+    <script src="stand-in.js"></script>
+  </body>
+</html>
