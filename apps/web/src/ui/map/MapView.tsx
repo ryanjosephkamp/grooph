@@ -157,12 +157,16 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
   useEffect(() => {
     const root = stage.current;
     if (!root) return;
-    for (const el of root.querySelectorAll(".is-on")) el.classList.remove("is-on");
+    // The line that was under the pointer may be gone with its list, so its mark goes too.
+    for (const el of root.querySelectorAll(".is-on, .is-hot")) el.classList.remove("is-on", "is-hot");
     if (!panel || !("id" in panel)) return;
     const id = CSS.escape(panel.id);
     const marked = root.querySelectorAll(panel.type === "handoff" ? `${arcOf(panel.id)}, [data-handoff-row="${id}"]` : `[data-${panel.type}="${id}"]`);
     for (const el of marked) el.classList.add("is-on");
-    if (wide) (panel.type === "handoff" ? root.querySelector(`[data-number="${id}"]`) : marked[0])?.scrollIntoView({ block: "nearest" });
+    if (!wide) return;
+    (panel.type === "handoff" ? root.querySelector(`[data-number="${id}"]`) : marked[0])?.scrollIntoView({ block: "nearest" });
+    // A line of the list is gone once it has opened its handoff: the keyboard goes on from the same line, under the details.
+    if (document.activeElement === document.body) document.querySelector<HTMLElement>(".map-list [aria-current]")?.focus({ preventScroll: true });
   }, [panel, svg]);
 
   /** A handoff under the pointer in the list is picked out on the picture. */
@@ -194,7 +198,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
 
   /** Every handoff in the order of its number: beside the picture on a wide screen, and there under an open handoff's details too. */
   const list = (current?: Id) => (
-    <ul className="map-handoffs map-list" onMouseLeave={() => point(null)}>
+    <ul className="map-handoffs map-list" onMouseLeave={() => point(null)} onBlur={() => point(null)}>
       {map.handoffs.map((h) => (
         <HandoffLine key={h.id} map={map} handoff={h} current={h.id === current} onOpen={(id) => setPanel({ type: "handoff", id })} onPoint={point} />
       ))}

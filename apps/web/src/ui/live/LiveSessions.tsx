@@ -32,15 +32,18 @@ const NO_WATCH = "There is no grooph watch here that serves sessions.";
 
 /**
  * Whether a `grooph watch` can be behind this page. Watch serves plain http, so an https page has one only through
- * a proxy, and a proxy passes on the header watch sends with every answer. The page's own address is asked, which
- * every server has: a site with no watch (the public one) is never asked for an endpoint it can only answer with a 404.
+ * a proxy, and a proxy passes on the header watch sends with every answer (and may add a value of its own). The
+ * page's own address is asked, which every server has: a site with no watch (the public one) is never asked for an
+ * endpoint it can only answer with a 404. When the page's server does not answer at all there is no telling, and
+ * the sessions are asked for as they always were.
  */
 async function watchBehind(): Promise<boolean> {
   if (location.protocol !== "https:") return true;
   try {
-    return (await fetch(document.baseURI, { method: "HEAD", cache: "no-store" })).headers.get("referrer-policy") === "no-referrer";
+    const policy = (await fetch(document.baseURI, { method: "HEAD", cache: "no-store" })).headers.get("referrer-policy") ?? "";
+    return policy.split(",").some((value) => value.trim() === "no-referrer");
   } catch {
-    return false;
+    return true;
   }
 }
 

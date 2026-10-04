@@ -46,16 +46,31 @@ test.describe("on a desktop", () => {
     expect((await frame.locator("svg").boundingBox())!.height).toBeGreaterThan(box.height + 200);
     expect(await sideways(page)).toBe(0);
 
-    // A line of the list opens that handoff beside the picture and picks its arc out of the others.
+    // A line of the list under the pointer picks its arc out of the others; opened, the handoff is beside the picture.
     const picked = map.handoffs[16]!;
+    const arc = (i: number) => page.locator(`[data-handoff="${map.handoffs[i]!.id}"]`);
+    const opacity = (i: number) => arc(i).evaluate((el) => getComputedStyle(el).opacity);
+    await list.getByRole("listitem").nth(16).getByRole("button").hover();
+    await expect(arc(16)).toHaveClass(/is-hot/);
+    await expect.poll(() => opacity(0)).toBe("0.28");
     await list.getByRole("listitem").nth(16).getByRole("button").click();
     const sheet = page.locator("aside.sheet");
     await expect(sheet.getByRole("heading", { name: "Handoff 17" })).toBeVisible();
     await expect(page.locator(`[data-handoff="${picked.id}"]`)).toHaveClass(/is-on/);
-    await expect.poll(() => page.locator(`[data-handoff="${map.handoffs[0]!.id}"]`).evaluate((el) => getComputedStyle(el).opacity)).toBe("0.28");
+    await expect.poll(() => opacity(0)).toBe("0.28");
     expect((await sheet.boundingBox())!.x).toBeGreaterThanOrEqual(box.x + box.width);
-    // Every handoff is still at hand under the details, the open one marked.
+    // Every handoff is still at hand under the details, the open one marked, and the keyboard goes on from it.
     await expect(sheet.locator('.map-list [aria-current="true"]')).toHaveCount(1);
+    await expect(sheet.locator('.map-list [aria-current="true"]')).toBeFocused();
+    // Closing it leaves no arc picked out: the line that was under the pointer went with its list.
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await expect(list).toBeVisible();
+    await page.mouse.move(400, 400);
+    await expect(page.locator(".map-picture .is-hot, .map-picture .is-on")).toHaveCount(0);
+    await expect.poll(() => opacity(0)).toBe("1");
+
+    // From the details, another handoff is one click away.
+    await list.getByRole("listitem").nth(16).getByRole("button").click();
     await sheet.locator(".map-list").getByRole("listitem").first().getByRole("button").click();
     await expect(sheet.getByRole("heading", { name: "Handoff 1", exact: true })).toBeVisible();
 
@@ -64,7 +79,9 @@ test.describe("on a desktop", () => {
     await expect(sheet.getByRole("heading", { name: "Session" })).toBeVisible();
     await page.getByRole("button", { name: "Close panel" }).click();
     await expect(list).toBeVisible();
-    await expect.poll(() => page.locator(`[data-handoff="${map.handoffs[0]!.id}"]`).evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+    await page.mouse.move(400, 400);
+    await expect(page.locator(".map-picture .is-hot, .map-picture .is-on")).toHaveCount(0);
+    await expect.poll(() => opacity(5)).toBe("1");
   });
 
   /* ─── the live view ──────────────────────────────────────────────────────── */
@@ -244,4 +261,29 @@ test("a run that is over says where it ended and which stop fired, without the t
   expect(await flag(page, "merge-gate")).toBe('"halted here"');
   expect(await flag(page, "done")).toBe("none");
   await expect(page.locator(".title-sub.is-live")).toHaveCount(0);
+});
+
+test("where a run ended is read from what its notes say last, not from the last node they name", async ({ page }) => {
+  const end = page.locator(".run-end");
+  // Many leads write no note at the stop node: the final note is at the run. The graph's one stop node is where it ended.
+  await page.goto(linkFor(live(FINISH.filter((n) => n.at !== "node:done"))));
+  await expect(end).toContainText("Ended at Done");
+  expect(await flag(page, "done")).toBe('"ended here"');
+  expect(await flag(page, "merge-gate")).toBe("none");
+
+  // A run that halted at a gate, went on, and was then halted by its loop's stop: it halted in the loop, not at the gate it passed.
+  const gate = (extra: object[]): RunBundle => runBundle("run-gate", { notes: (lines) => [...lines, ...extra.map((n) => JSON.stringify({ run: "20260919-1200-gate", ...n }))] });
+  await page.goto(
+    linkFor(
+      gate([
+        { id: "n-0010", at: "node:merge-gate", ended: "2026-09-19T12:20:00Z", outcome: "fail", verdict: "reject", round: 0 },
+        { id: "n-0011", at: "node:builder", ended: "2026-09-19T12:30:00Z", outcome: "pass", round: 1 },
+        { id: "n-0012", at: "loop:review-cycle", ended: "2026-09-19T12:30:00Z", outcome: "halt", round: 1, stop: "max-iterations" },
+        { id: "n-0013", at: "graph", ended: "2026-09-19T12:30:01Z", outcome: "halt", text: "halted: the loop's limit is reached" },
+      ]),
+    ),
+  );
+  await expect(end).toContainText("Halted in loop Build-review cycle");
+  await expect(end).toContainText("Last loop stop: max iterations · Build-review cycle, round 1");
+  for (const id of ["builder", "critic", "merge-gate", "done"]) expect(await flag(page, id)).toBe("none");
 });

@@ -1,7 +1,7 @@
 import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBundle, type RunNote, type RunSummary } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
-import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight } from "../../doc/run.js";
+import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
 import { deleteRun, saveRun } from "../../store/runs.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { RunChanges } from "./RunChanges.js";
@@ -34,25 +34,39 @@ const ago = (ms: number): string => {
 
 /**
  * Where a run that is over stopped, and the loop stop that fired last before it did: what the timeline says in its
- * last lines, read out so nobody has to. The node is the stop node the run reached, or the node it halted at.
+ * last lines, read out so nobody has to.
+ *
+ * A run that ended reached a stop node: the one a note names, else the graph's only one, else the only one the last
+ * node noted leads to. A halted run halted where its last note with an outcome is: at that node, or in that loop
+ * when a stop halted it. Where the notes do not say, it names what they last spoke of ("after Critic"), and no
+ * node is flagged.
  */
-function ending(summary: RunSummary, doc: Graph): { note: RunNote; name: string; stop?: string } | undefined {
+function ending(summary: RunSummary, doc: Graph): { note: Id; where: string; node?: Id; stop?: string } | undefined {
   if (summary.state === "running") return undefined;
   const nodeOf = (n: RunNote) => (n.at.startsWith("node:") ? doc.nodes.find((x) => x.id === n.at.slice(5)) : undefined);
   const back = [...summary.timeline].reverse();
+  const last = back.find((n) => n.at !== "graph" && n.outcome !== undefined) ?? back.find((n) => n.at !== "graph");
+  if (!last) return undefined;
   const halted = summary.state === "halted";
-  const note = back.find((n) => (halted ? n.outcome === "halt" && nodeOf(n) : nodeOf(n)?.kind === "stop")) ?? back.find(nodeOf);
-  if (!note) return undefined;
+  const lastNode = nodeOf(last);
+  const stops = doc.nodes.filter((n) => n.kind === "stop");
+  const next = stops.filter((s) => doc.edges.some((e) => e.from === lastNode?.id && e.to === s.id));
+  const noted = halted ? undefined : back.find((n) => nodeOf(n)?.kind === "stop");
+  const at = halted ? (last.outcome === "halt" ? lastNode : undefined) : noted ? nodeOf(noted) : stops.length === 1 ? stops[0] : next.length === 1 ? next[0] : undefined;
+  const label = targetLabel(noteTarget(last), doc);
+  // A loop's label is "Loop <name>": mid-sentence it is "in loop <name>".
+  const where = at ? `at ${at.name || at.id}` : halted && last.outcome === "halt" && last.at.startsWith("loop:") ? `in l${label.slice(1)}` : `after ${label}`;
   let stop: string | undefined;
   for (const n of back) {
     const loop = doc.loops.find((l) => summary.loops[l.id]?.lastStop?.note === n.id);
-    const fired = loop && summary.loops[loop.id]!.lastStop!.fired;
-    if (fired) {
-      stop = `${STOP_WORDS[fired]} · ${loop.name || loop.id}, round ${summary.loops[loop.id]!.round ?? 0}`;
+    const run = loop && summary.loops[loop.id]!;
+    if (loop && run?.lastStop?.fired) {
+      const round = run.lastStop.round ?? run.round;
+      stop = `${STOP_WORDS[run.lastStop.fired]} · ${loop.name || loop.id}${round == null ? "" : `, round ${round}`}`;
       break;
     }
   }
-  return { note, name: nodeOf(note)!.name || note.at.slice(5), ...(stop ? { stop } : {}) };
+  return { note: (noted ?? last).id, where, ...(at ? { node: at.id } : {}), ...(stop ? { stop } : {}) };
 }
 
 /** The loop a running node is in: the smallest that holds it, as rounds are counted (graph-ir §2). */
@@ -169,7 +183,7 @@ export function RunView({
 
       <main className={`stage run-stage${atWork ? " is-glowing" : ""}`}>
         {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
-        {end ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.note.at.slice(5))}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
+        {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
         {loopsIndexed.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">
@@ -208,14 +222,14 @@ export function RunView({
       <section className="run-panel" aria-label="Run details">
         <div className="run-facts">
           {end ? (
-            <button type="button" className={`run-end run-end-${summary.state}`} onClick={() => showNote(end.note.id)}>
+            <button type="button" className={`run-end run-end-${summary.state}`} onClick={() => showNote(end.note)}>
               <StateIcon state={summary.state === "halted" ? "halted" : summary.outcome === "fail" ? "failed" : "passed"} />
               <span>
                 <strong>
-                  {summary.state === "halted" ? "Halted" : "Ended"} at {end.name}
+                  {summary.state === "halted" ? "Halted" : "Ended"} {end.where}
                 </strong>
                 <br />
-                {end.stop ? `Last loop stop: ${end.stop}` : doc.loops.length > 0 ? "No loop stop fired." : "The graph has no loops."}
+                {end.stop ? `Last loop stop: ${end.stop}` : doc.loops.length > 0 ? "No loop stop on record." : "The graph has no loops."}
               </span>
             </button>
           ) : null}

@@ -76,12 +76,13 @@ const TYPES: Record<string, string> = {
 
 /**
  * The built app at an https address of its own, as a static host serves it: the files in dist, and a 404 for
- * anything else, the sessions endpoint included. With `watch`, it is `grooph watch` behind a proxy instead: the
- * same files with the header watch sends on every answer, and the sessions. Returns the app's address.
+ * anything else, the sessions endpoint included. It sends a referrer policy of its own, as many hosts do. With
+ * `watch`, it is `grooph watch` behind a proxy instead: the same files with the header watch sends on every answer,
+ * to which the proxy has added its own value, and the sessions. Returns the app's address.
  */
 export async function httpsSite(page: Page, watch?: LiveView): Promise<string> {
   const dist = join(repoRoot, "apps/web/dist");
-  const headers: Record<string, string> = watch ? { "referrer-policy": "no-referrer", "x-content-type-options": "nosniff" } : {};
+  const headers: Record<string, string> = watch ? { "referrer-policy": "no-referrer, same-origin", "x-content-type-options": "nosniff" } : { "referrer-policy": "no-referrer-when-downgrade" };
   await page.route("https://grooph.test/**", (route) => {
     const path = decodeURIComponent(new URL(route.request().url()).pathname);
     const head = route.request().method() === "HEAD";
