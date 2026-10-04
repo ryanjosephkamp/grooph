@@ -13,18 +13,33 @@ export function agentFile(ctx: PackageContext, agent: ResolvedAgent): string {
   return doc(frontmatter(ctx, agent), ...body(ctx, agent));
 }
 
+/** One token of what a name in a header is made of (the schema's NAME_PATTERN): it cannot end its line. */
+const TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
+
+/**
+ * A header value made of names: a model, tools, skills. Written as given when every name is one token, which is
+ * every value a validated document or a target profile can supply. Anything else is written as one quoted string
+ * with each run of whitespace and control characters made a single space, so nothing in it can end the line and
+ * start a key of its own. The schema refuses such a name first (graph-ir §1, `E_SCHEMA`); this is for what does
+ * not pass through the schema: a tier map handed to `compile`, and a caller that compiles without validating.
+ */
+export function names(values: readonly string[]): string {
+  if (values.every((value) => TOKEN.test(value))) return values.join(", ");
+  return JSON.stringify(values.map((value) => value.replace(/[\s\u0000-\u001f\u007f\u0085\u2028\u2029]+/g, " ").trim()).join(", "));
+}
+
 function frontmatter(ctx: PackageContext, agent: ResolvedAgent): string {
   const description = `${agent.role} for graph ${ctx.graphId}. ${firstSentence(agent.node.brief)}`;
   return lines(
     "---",
-    `name: ${agent.agentName}`,
+    `name: ${names([agent.agentName])}`,
     `description: ${quoteYaml(description)}`,
-    ...(agent.model ? [`model: ${agent.model}`] : []),
-    ...(agent.effort ? [`effort: ${agent.effort}`] : []),
-    ...(agent.tools.length > 0 ? [`tools: ${agent.tools.join(", ")}`] : []),
-    ...(agent.disallowedTools.length > 0 ? [`disallowedTools: ${agent.disallowedTools.join(", ")}`] : []),
-    // graph-ir §1 `skills`: preloaded at dispatch; an unknown name is the harness's to refuse, so none is checked here.
-    ...((agent.node.skills ?? []).length > 0 ? [`skills: ${agent.node.skills!.join(", ")}`] : []),
+    ...(agent.model ? [`model: ${names([agent.model])}`] : []),
+    ...(agent.effort ? [`effort: ${names([agent.effort])}`] : []),
+    ...(agent.tools.length > 0 ? [`tools: ${names(agent.tools)}`] : []),
+    ...(agent.disallowedTools.length > 0 ? [`disallowedTools: ${names(agent.disallowedTools)}`] : []),
+    // graph-ir §1 `skills`: preloaded at dispatch; whether a skill of that name exists is the harness's to say.
+    ...((agent.node.skills ?? []).length > 0 ? [`skills: ${names(agent.node.skills!)}`] : []),
     "---",
   );
 }

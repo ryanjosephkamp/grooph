@@ -1,6 +1,6 @@
 # 0025 · Subgroophs: a group that remembers where it came from
 
-**Date:** 2026-10-04 · **Status:** proposed, for the owner (merging this pull request accepts it and amendment A-018) · **Deciders:** owner, driver
+**Date:** 2026-10-04 · **Status:** accepted (the owner's word in the chat, 2026-10-04: "I approve PR #57"), with amendment A-018 · **Deciders:** owner, driver
 
 ## Context
 

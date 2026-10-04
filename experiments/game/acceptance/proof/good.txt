@@ -1,0 +1,47 @@
+# The checks against stand-ins/good.html: every one must pass.
+# node experiments/game/acceptance/prove.mjs, 2026-10-04
+
+pass  opens    The page opens: no error, no file of its own missing, nothing asked of another host
+      no error, no failed request, no request to another host
+pass  drawn    Something is drawn: the picture is not one flat color
+      35 colors, the commonest covering 37.4%
+pass  surface  The test surface is there and whole: window.__game, as SPEC.md §7 describes it
+      every field as described; 3 enemies in the test round
+pass  start    A round starts: from the menu to playing
+      playing, health 100, ammunition 12, the clock running
+pass  walk     W walks forward and S walks back
+      W: 5 m forward in a second; S: 5 m back
+pass  strafe   D steps right and A steps left
+      D: 5 m right; A: 5 m left
+pass  look     The mouse turns the view: right turns right, up looks up
+      200 px right: 28.6 degrees right; 100 px up: forward.y 0 to 0.25
+pass  turn     In test mode the arrow keys turn the view, so a script can aim
+      right arrow, half a second: 31 degrees; up arrow: 15 degrees
+pass  jump     Space jumps, and the player comes down again
+      up at least 0.49 m, and down again
+pass  world    The arena holds the player: a sprint in one direction ends at its edge, not outside it or under it
+      a 45-second sprint ended 60 m from the start, at (0, 0, 60), never more than 0 m below it
+pass  view     V switches between first and third person, and the camera moves with it
+      first person: camera 1.7 m above the feet; third: 4.08 m from the eyes, behind; and back
+pass  fire     A click fires, and a shot uses ammunition
+      ammunition 12 to 11
+pass  hit      A shot that lands lowers a target's health, and one aimed away does not
+      aimed away: nothing; aimed: chaser-1 from health 100 to 66
+pass  defeat   An enemy can be defeated, and the score says so
+      1 defeated; score 0 to 100
+pass  reload   R reloads from the reserve
+      ammunition 9 to 12, reserve 48 to 45
+pass  threat   An enemy reaches a player who stands still, and hurts
+      health 100 to 90 after 6.4 s; the nearest enemy 1.5 m away
+pass  lose     A round can be lost
+      lost after 8.9 s, health 0
+pass  again    After a round ends, Enter starts another
+      a second round: health 100, score 0, 3 enemies
+pass  win      A round can be won
+      won after 3.5 s, health 100, score 300
+pass  seed     The same seed starts the same round; another seed starts another
+      seed 7 twice: within 0 m; seed 8: 27.3 m away
+pass  frames   The picture keeps up: 30 frames a second or more on a still scene
+      60 pictures a second; 19 browser frames in 20 took 16.7 ms or less (no window)
+
+21 of 21 checks pass
