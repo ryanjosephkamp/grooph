@@ -342,14 +342,46 @@ function slotQuestions(doc: Graph, template: Graph): string[] {
 
 // ─── what a share link carries ────────────────────────────────────────────
 
+/** A proposal set in a few lines, for the one tool that takes one; `grooph share --help` has it in full. */
+const SET_FORMAT =
+  '{ "groophProposals": 0, "id": "<kebab-case>", "title": "…", "brief": "the project and its constraints as you understood them", "candidates": [ one to four of { "id": "<kebab-case>", "label": "a word the person can say back", "graph": <the graph: its id if a tool returned it, the document, or { "file": "<name>.grooph.json" } beside the set>, "basedOn": "<template id>", "rationale": "…", "pros": ["…"], "cons": ["…"], "profile": { "cost": "low|medium|high", "speed": "fast|medium|slow", "rigor": "light|standard|high" } } ], "recommendation": { "candidate": "<a candidate id>", "why": "…" } }';
+
 /** The envelope for a link, or a refusal carrying the issues that stop it. */
 function envelopeOf(json: unknown, label: string, tool: string): ShareEnvelope {
   try {
     return buildShareEnvelope(json as Graph);
   } catch (err) {
     if (!(err instanceof ShareError)) throw err;
+    // A set's issues are about the set: the graph repairs do not apply to it.
+    if (isProposalSetLike(json)) {
+      throw new Refusal([`${label} cannot be shared: ${err.message}`, ...err.issues.map(formatIssue)], `correct the proposal set as the lines say, then ${tool} again. Its shape: ${SET_FORMAT}`, { issues: err.issues });
+    }
     throw new Refusal([`${label} cannot be shared: ${err.message}`, ...issueLines(err.issues)], `fix what is listed with grooph_apply, check with grooph_validate (forExport: true), then ${tool} again`, { issues: err.issues });
   }
+}
+
+/**
+ * A proposal set handed over as JSON may name a candidate's graph by the id of a graph the server remembers,
+ * so two or three candidates are not sent back whole. Each such id is replaced by its document.
+ */
+function inlineRemembered(set: Json, ctx: McpContext): Json {
+  const candidates = set["candidates"];
+  if (!Array.isArray(candidates)) return set;
+  return {
+    ...set,
+    candidates: candidates.map((candidate: unknown) => {
+      if (!isObject(candidate) || typeof candidate["graph"] !== "string") return candidate;
+      const id = candidate["graph"].trim();
+      const kept = ctx.graphs?.get(id);
+      if (!kept) {
+        throw new Refusal(
+          `Candidate "${String(candidate["id"] ?? "?")}" names the graph "${id}", and no graph with that id has been made in this conversation.`,
+          `give that candidate's "graph" as the document itself, or make the graph first (grooph_use_template, grooph_new, grooph_apply) and name it by the id that comes back`,
+        );
+      }
+      return { ...candidate, graph: JSON.parse(canonicalize(kept)) as unknown };
+    }),
+  };
 }
 
 // ─── the tools ────────────────────────────────────────────────────────────
@@ -591,11 +623,11 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_share",
     title: "Make a link that opens a graph",
     description:
-      `A link that opens the document in the grooph app on any device, a phone included: the way a person sees what you made. The document travels in the link after the #, which a browser sends to no server; nothing is uploaded and nothing is stored. Also returns the embed line: HTML that shows the same picture in any web page. Takes a graph, or a proposal set (one to four candidate graphs, each inline, for the person to compare side by side), or an operation map. Refuses a graph with errors, naming each. Give the person the link itself, whole, on a line of its own. Read-only.`,
+      `A link that opens the document in the grooph app on any device, a phone included: the way a person sees what you made. The document travels in the link after the #, which a browser sends to no server; nothing is uploaded and nothing is stored. Also returns the embed line: HTML that shows the same picture in any web page. Takes a graph, or a proposal set (one to four candidate graphs for the person to compare side by side), or an operation map. Refuses a graph with errors, naming each. Give the person the link itself, whole, on a line of its own. Read-only. A proposal set is ${SET_FORMAT}.`,
     inputSchema: {
       type: "object",
       properties: {
-        graph: DOC_ARG("A graph, a proposal set with its candidates' graphs inline, or an operation map."),
+        graph: DOC_ARG("A graph, a proposal set, or an operation map."),
         path: { type: "string", description: "Or a file to read: a graph, a proposal set (its { file } candidates are read from beside it) or an operation map." },
         base: { type: "string", description: `Where the app is served. Default ${SHARE_BASE}; a local build is http://localhost:<port>/grooph/.` },
       },
@@ -606,6 +638,10 @@ export const AUTHOR_TOOLS: Tool[] = [
       if (base !== undefined && !/^(https?|file):\/\//.test(base)) throw new Refusal(`"base" must be an http(s) or file URL, like http://localhost:4174/grooph/; got "${base}".`, "leave base out to use the published app");
       const read = readJson(args, ctx, "grooph_share");
       let json = read.json;
+      if (isObject(json) && Array.isArray(json["candidates"]) && !isProposalSetLike(json)) {
+        throw new Refusal(`${read.label} has "candidates" and no "groophProposals": 0, so it is not yet a proposal set.`, `add "groophProposals": 0 (and "title") and grooph_share again. A proposal set's shape: ${SET_FORMAT}`);
+      }
+      if (read.file === undefined && isProposalSetLike(json) && isObject(json)) json = inlineRemembered(json, ctx);
       // A proposal set on disk names its candidates by file; the CLI's loader reads and inlines them.
       if (read.file !== undefined && isProposalSetLike(json)) {
         try {

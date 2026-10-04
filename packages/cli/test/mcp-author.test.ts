@@ -511,3 +511,40 @@ test("the data a tool returns carries the reply's lines, next: included, and the
     for (const t of tools.filter((x) => x.inputSchema.properties["graph"] !== undefined)) assert.deepEqual(t.inputSchema.properties["graph"]!.type, ["object", "string"], t.name);
   });
 });
+
+test("a proposal set is shared from JSON, its candidates named by the ids of graphs the tools returned, and a set that is not yet one is told its shape", async () => {
+  await withProject(async (ctx) => {
+    const lean = graphOf(await call(ctx, "grooph_use_template", { id: "grind-loop", name: "Slugify lean", values: { task: "Add slugify.", "test-command": "npm test" } }));
+    const gated = graphOf(await call(ctx, "grooph_use_template", { id: "review-gate", name: "Slugify reviewed", values: { task: "Add slugify.", "test-command": "npm test", checklist: "docs/REVIEW-CHECKLIST.md" } }));
+    const candidate = (id: string, label: string, graph: unknown, cons: string[] = []): Record<string, unknown> => ({ id, label, graph, rationale: "Fits a small, tested change.", pros: ["small"], cons, profile: { cost: "low", speed: "fast", rigor: "light" } });
+    const set = {
+      groophProposals: 0,
+      id: "slugify",
+      title: "slugify(text)",
+      brief: "Add slugify to src/strings.js; npm test is the check.",
+      candidates: [candidate("lean", "Lean", lean.id), candidate("reviewed", "Reviewed", gated.id, ["a critic on the builder's tier"])],
+      recommendation: { candidate: "lean", why: "Tests define done." },
+    };
+    const shared = await call(ctx, "grooph_share", { graph: set });
+    assert.equal(shared.isError, undefined, textOf(shared));
+    assert.equal(shared.structuredContent!["kind"], "proposals");
+    assert.match(textOf(shared), /^slugify · slugify\(text\) · 2 candidates: Lean \(1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes\); Reviewed \(/);
+    const opened = decodeSharePayload(sharePayloadFrom(shared.structuredContent!["link"] as string)!, inflateRaw);
+    assert.ok(opened.ok && opened.envelope.kind === "proposals");
+    assert.deepEqual((opened.envelope.doc as { candidates: { graph: Graph }[] }).candidates.map((c) => c.graph.id), [lean.id, gated.id]);
+
+    // The marker left out, as a model writing one from memory leaves it out: the refusal says what is missing and gives the shape.
+    const { groophProposals: _marker, ...unmarked } = set;
+    const told = await call(ctx, "grooph_share", { graph: unmarked });
+    refused(told, /has "candidates" and no "groophProposals": 0, so it is not yet a proposal set\.\nnext: add "groophProposals": 0 \(and "title"\) and grooph_share again\. A proposal set's shape: \{ "groophProposals": 0, "id"/);
+    // A candidate naming a graph nobody made, and a set with a field wrong: named, with the shape, and no graph repair offered.
+    refused(await call(ctx, "grooph_share", { graph: { ...set, candidates: [candidate("lean", "Lean", "never-made")] } }), /^Candidate "lean" names the graph "never-made", and no graph with that id has been made in this conversation\./);
+    const wrong = await call(ctx, "grooph_share", { graph: { ...set, recommendation: { candidate: "nobody", why: "?" } } });
+    refused(wrong, /cannot be shared: .*\nerror {2}E_DANGLING_REF .*nobody/);
+    assert.doesNotMatch(textOf(wrong), /\nfix {2}/);
+    assert.match(textOf(wrong), /\nnext: correct the proposal set as the lines say, then grooph_share again\. Its shape: /);
+    // The tool's description carries the shape, since a session with only tools has nowhere else to read it.
+    const tools = ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx)) as { result: { tools: { name: string; description: string }[] } }).result.tools;
+    assert.match(tools.find((t) => t.name === "grooph_share")!.description, /A proposal set is \{ "groophProposals": 0, "id": "<kebab-case>", "title"/);
+  });
+});
