@@ -113,14 +113,19 @@ test("a map file imports from the library into the same view, and stores nothing
   await expect(page.getByRole("alert")).toContainText("E_SCHEMA");
 });
 
-test("on a wide screen the picture keeps its phone width and the details sit beside it", async ({ page }) => {
+test("on a wide screen the picture is drawn large and the details sit beside it", async ({ page }) => {
+  // Handoff 0062: from 1100 px the picture is no longer kept at a phone's width. Between 900 and 1100 px it still is.
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto(linkFor(mapOf(SAMPLE)));
   await page.locator('[data-session="grooph"]').click();
   const picture = (await page.locator(".map-picture svg").boundingBox())!;
-  expect(picture.width).toBeLessThanOrEqual(560);
+  expect(picture.width).toBeGreaterThan(640);
   const panel = (await sheet(page).boundingBox())!;
   expect(panel.x).toBeGreaterThan(picture.x + picture.width - 1);
+
+  await page.setViewportSize({ width: 1000, height: 800 });
+  expect((await page.locator(".map-picture svg").boundingBox())!.width).toBeLessThanOrEqual(560);
+  expect((await sheet(page).boundingBox())!.x).toBeGreaterThan(560);
 });
 
 test("the map says what a person carries by hand, and a session's graph link opens that graph in the app", async ({ page }) => {

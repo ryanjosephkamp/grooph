@@ -1,10 +1,10 @@
-import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { buildRunBundle, canonicalize, parseEvents, parseGraphText, parseMapText, summarizeSessions, type LiveView, type OperationMap, type RunBundle, type SessionEvent } from "@grooph/core";
+import { canonicalize } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
 import { bundleText, linkFor, repoRoot, runBundle } from "./support.js";
+import { AT, desktop, eventsOf, httpsSite, mapNamed, patternRun, sampleMap, sessionsView, stubSessions, viewOf } from "./support-alive.js";
 
 /**
  * Handoff 0062, criteria 1 and 9: the map, the live view and a run, at phone
@@ -20,49 +20,14 @@ const phase = process.env["GROOPH_SHOTS"];
 test.skip(phase !== "before" && phase !== "after", "screenshots are made on request (GROOPH_SHOTS=before or after)");
 
 const dir = join(repoRoot, "handoffs/0062-map-live-run/shots");
-const sizes = { phone: { width: 400, height: 800 }, desktop: { width: 1440, height: 900 } } as const;
 
-const MAP = "fixtures/maps/valid/owner-operation-2026-10-01.grooph-map.json";
-const sampleMap = (): OperationMap => parseMapText(readFileSync(join(repoRoot, MAP), "utf8")).map!;
-
-const eventsOf = (name: string, source?: string): (SessionEvent & { source?: string })[] =>
-  parseEvents(readFileSync(join(repoRoot, "fixtures/events", name), "utf8")).events.map((e) => (source ? { ...e, source } : e));
-
-/** Every recording in fixtures/events, read a few seconds after the last line of the one still running, with one more session that went silent two hours before. */
-function sessionsView(): LiveView {
-  const silent: SessionEvent[] = [
-    { v: 1, t: "2026-09-30T23:40:00.000Z", harness: "claude-code", event: "session-start", session: "99999999-aaaa-4bbb-8ccc-dddddddddddd", cwd: "/work/cloud-lane" },
-    { v: 1, t: "2026-09-30T23:40:02.000Z", harness: "claude-code", event: "turn-start", session: "99999999-aaaa-4bbb-8ccc-dddddddddddd", cwd: "/work/cloud-lane" },
-    { v: 1, t: "2026-09-30T23:41:00.000Z", harness: "claude-code", event: "subagent-start", session: "99999999-aaaa-4bbb-8ccc-dddddddddddd", agent: "z01", type: "general-purpose" },
-  ];
-  const events = [...eventsOf("claude-code-running.jsonl"), ...eventsOf("claude-code-planned.jsonl"), ...eventsOf("claude-code-nested.jsonl"), ...eventsOf("codex-two-subagents.jsonl"), ...silent];
-  return { groophLive: 0, at: "2026-10-01T02:01:10.000Z", sessions: summarizeSessions(events.sort((a, b) => (a.t < b.t ? -1 : 1))) };
-}
-
-/** A run kept under experiments/patterns, as `grooph runs bundle` would build it from a placed package. */
-function patternRun(pattern: string): RunBundle {
-  const base = join(repoRoot, "experiments/patterns", pattern, "run");
-  const run = readdirSync(join(base, "runs"))[0]!;
-  const graph = (path: string) => parseGraphText(readFileSync(path, "utf8")).doc!;
-  return buildRunBundle({
-    source: graph(join(base, "package/graph.grooph.json")),
-    working: graph(join(base, "runs", run, "graph.grooph.json")),
-    notesText: readFileSync(join(base, "runs", run, "notes.jsonl"), "utf8"),
-    run,
-    progress: readFileSync(join(base, "runs", run, "PROGRESS.md"), "utf8"),
-  });
-}
-
-const stubSessions = (page: Page, view: LiveView) =>
-  page.route("**/grooph/api/live.json", (route) => route.fulfill({ status: 200, contentType: "application/json; charset=utf-8", body: JSON.stringify(view) }));
-
-for (const [size, viewport] of Object.entries(sizes)) {
+for (const size of ["phone", "desktop"] as const) {
   for (const scheme of ["light", "dark"] as const) {
     test.describe(`${size}, ${scheme}`, () => {
-      const desktop = size === "desktop";
-      test.use({ viewport, colorScheme: scheme, ...(desktop ? { isMobile: false, hasTouch: false, deviceScaleFactor: 1 } : {}) });
+      const wide = size === "desktop";
+      test.use({ colorScheme: scheme, ...(wide ? desktop : { deviceScaleFactor: 1.5 }) });
       const shot = (page: Page, name: string) => page.screenshot({ path: join(dir, `${phase}-${name}-${size}-${scheme}.png`) });
-      const press = (page: Page, selector: string) => (desktop ? page.locator(selector).click() : page.locator(selector).tap());
+      const press = (page: Page, selector: string) => (wide ? page.locator(selector).click() : page.locator(selector).tap());
 
       test(`map ${size} ${scheme}`, async ({ page }) => {
         await page.goto(linkFor(sampleMap() as never));
@@ -74,7 +39,7 @@ for (const [size, viewport] of Object.entries(sizes)) {
         await shot(page, "map-session");
         if (scheme === "light") {
           await press(page, '[data-number="h-brief-grooph"]');
-          await page.waitForTimeout(300);
+          await page.waitForTimeout(700);
           await shot(page, "map-handoff");
         }
       });
@@ -83,25 +48,25 @@ for (const [size, viewport] of Object.entries(sizes)) {
         const errors: string[] = [];
         page.on("console", (m) => (m.type() === "error" ? errors.push(m.text()) : undefined));
 
-        // No grooph watch behind the page: what the public site shows.
-        await page.goto("./#/live");
-        await page.waitForTimeout(900);
+        // No grooph watch behind the page: the public site, which answers the sessions endpoint with a 404.
+        const site = await httpsSite(page);
+        await page.goto(`${site}#/live`);
+        await page.waitForTimeout(2_600);
         await shot(page, "live-none");
-        console.log(`[0062] live with no watch, ${size} ${scheme}: ${errors.length} console error(s)${errors.length ? `: ${errors[0]}` : ""}`);
+        console.log(`[0062 ${phase}] live view on a site with no watch, ${size} ${scheme}: ${errors.length} console error(s)${errors.length ? `, the first: ${errors[0]}` : ""}`);
 
+        // Sessions in every state.
         await stubSessions(page, sessionsView());
-        await page.goto("./");
         await page.goto("./#/live");
         await expect(page.locator(".live-session").first()).toBeVisible();
         await page.waitForTimeout(300);
         await shot(page, "live");
 
+        // With an operation map.
         if (scheme === "light") {
           await page.unroute("**/grooph/api/live.json");
-          const view = sessionsView();
-          const map = parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"), "utf8")).map!;
           const named = [...eventsOf("claude-code-running.jsonl", "operator"), ...eventsOf("codex-two-subagents.jsonl", "codex"), ...eventsOf("claude-code-planned.jsonl", "grooph")];
-          await stubSessions(page, { ...view, sessions: summarizeSessions(named.sort((a, b) => (a.t < b.t ? -1 : 1))), map });
+          await stubSessions(page, { ...viewOf(named, AT), map: mapNamed("owner-operation-2026-09-30.grooph-map.json") });
           await page.goto("./");
           await page.goto("./#/live");
           await expect(page.locator(".live-map svg")).toBeVisible();
@@ -109,6 +74,7 @@ for (const [size, viewport] of Object.entries(sizes)) {
           await shot(page, "live-map");
         }
 
+        // As a real grooph watch serves the recordings, read today: every one of them is over or long silent.
         const watch = process.env["GROOPH_WATCH"];
         if (watch) {
           await page.unroute("**/grooph/api/live.json");

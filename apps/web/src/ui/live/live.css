@@ -1,6 +1,10 @@
 /* Live sessions (handoff 0062). The phone's rules are in styles.css; these add each state's mark, the words for a
    page nothing serves, and from 900 px a grid in place of one column. */
 
+/* One column that never grows past the screen, so a long word in the bar shortens the title and not the page. */
+.live-view {
+  grid-template-columns: minmax(0, 1fr);
+}
 .live-view .topbar .status {
   display: inline-flex;
   align-items: center;
