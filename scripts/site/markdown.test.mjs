@@ -146,6 +146,10 @@ test("hard breaks: two spaces or a backslash; soft breaks stay newlines", () => 
   assert.equal(html("a  \nb\\\nc\nd"), "<p>a<br>\nb<br>\nc\nd</p>");
 });
 
+test("a line that is only an empty anchor is a place to link to, not a paragraph", () => {
+  assert.equal(html('<a id="x"></a>\n### Title'), '<a id="x"></a>\n<h3 id="title">Title<a class="anchor" href="#title" aria-label="Link to Title">#</a></h3>');
+});
+
 test("backslash escapes and entities", () => {
   assert.equal(html("\\*not em\\* and \\[x\\]"), "<p>*not em* and [x]</p>");
 });

@@ -844,6 +844,8 @@ function renderBlock(block, ctx, tight) {
         if (ctx.summary === null && plainText.length >= 60) ctx.summary = plainText;
         ctx.firstText ??= plainText;
       }
+      // A line that is only an empty anchor, <a id="x"></a>, is a place to link to, not a paragraph.
+      if (/^(?:<a\b[^>]*><\/a>\s*)+$/.test(html)) return html;
       return tight ? html : `<p>${html}</p>`;
     }
     case "code": {

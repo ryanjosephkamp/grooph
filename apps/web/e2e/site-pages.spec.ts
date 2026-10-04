@@ -162,6 +162,10 @@ test("the bar: a wordmark to the app, and links that go somewhere", async ({ pag
   const nav = page.getByRole("navigation", { name: "grooph" });
   await expect(nav.getByRole("link", { name: "Docs" })).toHaveAttribute("aria-current", "page");
   await expect(nav.getByRole("link", { name: "GitHub" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph");
+  // The field guide and the blog have a place on the bar once they have pages, and not before.
+  const pages = renderedPages();
+  await expect(nav.getByRole("link", { name: "Field guide" })).toHaveCount(pages.includes("field-guide") ? 1 : 0);
+  await expect(nav.getByRole("link", { name: "Blog" })).toHaveCount(pages.some((p) => p.startsWith("blog/")) ? 1 : 0);
   // Each address on the bar that is ours answers.
   const hrefs = await nav.getByRole("link").evaluateAll((links) => links.map((a) => (a as HTMLAnchorElement).href));
   for (const href of hrefs) if (href.startsWith(baseURL!.replace(/grooph\/$/, ""))) expect((await request.get(href.split("#")[0]!)).status(), href).toBe(200);
@@ -189,9 +193,17 @@ test("each page: an h1, anchors on its headings, no image that fails, nothing sc
         .map((h) => h.id),
     );
     expect(unanchored, `${path} headings without an anchor`).toEqual([]);
-    // Every image in the column loads.
-    await page.evaluate(() => Promise.all(Array.from(document.images).map((img) => (img.loading === "lazy" ? img.decode().catch(() => undefined) : undefined))));
-    const broken = await page.evaluate(() => Array.from(document.images).filter((img) => img.complete && img.naturalWidth === 0).map((img) => img.getAttribute("src")));
+    // Every image in the column loads: all of them are fetched now, lazy or not, and none may come back empty.
+    const broken = await page.evaluate(async () => {
+      const images = Array.from(document.images);
+      await Promise.all(
+        images.map((img) => {
+          img.loading = "eager";
+          return img.complete ? undefined : new Promise<void>((done) => ["load", "error"].forEach((event) => img.addEventListener(event, () => done(), { once: true })));
+        }),
+      );
+      return images.filter((img) => img.naturalWidth === 0).map((img) => img.getAttribute("src"));
+    });
     expect(broken, `${path} images`).toEqual([]);
     // The skip link and the landmarks are there.
     await expect(page.locator("main#main")).toHaveCount(1);
@@ -307,6 +319,7 @@ test.describe("screenshots", () => {
     { name: "quickstart", path: "docs/quickstart/" },
     { name: "rules", path: "docs/rules/" },
     { name: "rules-entry", path: "docs/rules/", at: "#e_loop_back_edge" },
+    { name: "graph-ir-top", path: "docs/graph-ir/" },
     { name: "graph-ir-tables", path: "docs/graph-ir/", at: "#3-validation-rules" },
   ];
   for (const [size, viewport] of Object.entries(sizes)) {

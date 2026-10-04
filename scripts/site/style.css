@@ -320,6 +320,7 @@ a {
   max-width: 100%;
 }
 .doc iframe {
+  margin: 0 0 1em;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface);
