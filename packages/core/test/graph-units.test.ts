@@ -203,8 +203,9 @@ test("the picture of a subgrooph is behind a door of its own: core's first door 
     return into;
   };
   const reached = follow(join(src, "base.ts"), new Set());
-  assert.ok(reached.size > 20 && reached.has(join(src, "picture", "graph-picture.ts")) && reached.has(join(src, "picture", "units-kit.ts")), "base.ts was not followed");
-  for (const door of ["picture/graph-units.ts", "groups.ts", "subgrooph.ts", "reach.ts"]) assert.ok(!reached.has(join(src, door)), `base.ts leads to ${door}`);
+  assert.ok(reached.size > 20 && reached.has(join(src, "picture", "graph-picture.ts")), "base.ts was not followed");
+  // Nor to placing and refreshing, which the app does not do, nor to the kit, which names the glyph: an embed draws none.
+  for (const door of ["picture/graph-units.ts", "picture/units-kit.ts", "groups.ts", "subgrooph.ts", "reach.ts", "brakes.ts"]) assert.ok(!reached.has(join(src, door)), `base.ts leads to ${door}`);
   // Behind it: the picture and what reads a group, which imports only types. The rest is handed in (units-kit.ts).
   const behind = follow(join(src, "picture", "graph-units.ts"), new Set());
   assert.deepEqual([...behind].map((file) => file.slice(src.length + 1)).sort(), ["groups.ts", "picture/graph-units.ts"]);

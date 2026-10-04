@@ -36,7 +36,6 @@ export { mapSchema, mapJsonSchema, MAP_SCHEMA_ID } from "./schema/map.js";
 export { mapPicture, handoffNumbers, CARRIER_STYLE } from "./picture/map-picture.js";
 export { mapKit, type MapKit } from "./picture/map-kit.js";
 export { picture, type Face, type PictureView } from "./picture/graph-picture.js";
-export { unitsKit, type UnitsKit } from "./picture/units-kit.js";
 export { PICTURE_WIDTH, type MapPictureOptions, type PictureOptions, type PictureTheme } from "./picture/svg.js";
 export * from "./outline.js";
 export { offlinePage, type OfflinePageOptions } from "./offline.js";

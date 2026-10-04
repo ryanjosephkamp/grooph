@@ -14,7 +14,8 @@ export * from "./base.js";
 export { compile, tryCompile, CompileError } from "./compile/index.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
 export * from "./subgrooph.js";
-export { mapSequenceWith, mapWideWith, pictureWithUnits, type UnitsOptions };
+export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
+export type { UnitsKit } from "./picture/units-kit.js";
 
 /**
  * A graph's picture (docs/exports.md). A subgrooph is one box, closed unless `open` names it; a graph with none is
