@@ -58,7 +58,7 @@ const looksLikeMap = (text: string): boolean => {
 };
 
 /**
- * `grooph export <file> --target claude-code --into <dir>`
+ * `grooph export <file> --target <harness> --into <dir>`
  *
  * Refuses with the error list when the document does not validate for export
  * (spec §9), writes the package files, then prints the kickoff prompt.
@@ -112,7 +112,7 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
   }
 
   io.out("");
-  io.out(`Kickoff — paste this into a Claude Code session opened in ${flags.into}:`);
+  io.out(`Kickoff — paste this into a ${getProfile(flags.target).title} session opened in ${flags.into}:`);
   io.out("");
   io.out(compiled.kickoff.trimEnd());
   printNext(io, `open a ${flags.target} session in ${flags.into} and paste the kickoff above`);

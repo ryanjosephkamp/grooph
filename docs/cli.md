@@ -22,7 +22,7 @@ Check
   canonicalize print or rewrite a document in canonical form
 
 Compile
-  export       write the prompt package for a harness (claude-code)
+  export       write the prompt package for a harness (claude-code, codex)
   adopt        take a run's working copy as the graph's next version
 
 See
@@ -197,13 +197,13 @@ Example
 
 ## `grooph export`
 
-Write the prompt package for a harness (claude-code)
+Write the prompt package for a harness (claude-code, codex)
 
 ```text
 grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
-Refuses, with the reasons, when the document has errors. Targets: claude-code.
+Refuses, with the reasons, when the document has errors. Targets: claude-code, codex.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
@@ -212,6 +212,7 @@ Refuses, with the reasons, when the document has errors. Targets: claude-code.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .
+  grooph export flaky.grooph.json --target codex --into .
   grooph export flaky.grooph.json --target claude-code --into . --models frontier=opus,strong=sonnet,fast=haiku
 ```
 

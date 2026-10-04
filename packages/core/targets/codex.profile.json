@@ -1,0 +1,21 @@
+{
+  "harness": "codex",
+  "title": "Codex",
+  "verifiedAgainst": "0.160.0",
+  "verifiedOn": "2026-10-04",
+  "models": {
+    "frontier": "gpt-6.1-sol",
+    "strong": "gpt-6.1-sol",
+    "fast": "gpt-6-luna"
+  },
+  "defaultTier": "strong",
+  "effort": { "low": "low", "medium": "medium", "high": "high", "max": "max" },
+  "capabilityTools": {
+    "read-files": [], "edit-files": [], "write-outputs": [],
+    "run-commands": [], "run-tests": [], "web": [], "spawn-agents": []
+  },
+  "defaultCapabilities": ["read-files"],
+  "toolOrder": [],
+  "advisoryBudgetMeasures": ["usd", "turns", "tokens"],
+  "runIdFormat": "<yyyymmdd-hhmmss>"
+}

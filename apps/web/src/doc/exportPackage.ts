@@ -25,7 +25,7 @@ export function loadCompiler(): Promise<Compiler> {
 export const compilerHere = (): boolean => compiler !== undefined;
 
 /**
- * `claude-code` is the only compile target today; any other harness fails `E_NO_TARGET` in the validator.
+ * A known harness compiles with its own profile; any other harness fails `E_NO_TARGET` in the validator.
  * `undefined` when the graph validates and the compiler has not arrived yet (`loadCompiler`).
  */
 export function attemptExport(doc: Graph): ExportAttempt | undefined {

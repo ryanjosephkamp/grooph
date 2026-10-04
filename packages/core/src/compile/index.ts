@@ -10,8 +10,9 @@ import { KNOWN_TARGETS } from "../targets/index.js";
 import { validate } from "../validate.js";
 import type { Graph, Tier } from "../types.js";
 import { compileClaudeCode } from "./claude-code/index.js";
+import { compileCodex } from "./codex/index.js";
 
-export type CompileTarget = "claude-code";
+export type CompileTarget = "claude-code" | "codex";
 
 export type CompileResult = {
   /** path relative to the project root → file contents */
@@ -53,6 +54,10 @@ export function compile(doc: Graph, target: CompileTarget, options: CompileOptio
   const warnings = issues.filter((issue) => issue.severity === "warning");
 
   switch (target) {
+    case "codex": {
+      const pkg = compileCodex(doc, warnings, options);
+      return { files: pkg.files, kickoff: pkg.kickoff, warnings };
+    }
     case "claude-code": {
       const pkg = compileClaudeCode(doc, warnings, options);
       return { files: pkg.files, kickoff: pkg.kickoff, warnings };

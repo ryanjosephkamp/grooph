@@ -8,6 +8,7 @@
  */
 
 import claudeCode from "../../targets/claude-code.profile.json" with { type: "json" };
+import codex from "../../targets/codex.profile.json" with { type: "json" };
 import type { Capability, Effort, HarnessId, Tier } from "../types.js";
 
 export type TargetProfile = {
@@ -30,6 +31,7 @@ export type TargetProfile = {
 
 const PROFILES: Record<string, TargetProfile> = {
   "claude-code": claudeCode as TargetProfile,
+  codex: codex as TargetProfile,
 };
 
 export type TargetId = keyof typeof PROFILES & string;

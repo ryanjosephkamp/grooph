@@ -128,6 +128,7 @@ Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGET
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .
+  grooph export flaky.grooph.json --target codex --into .
   grooph export flaky.grooph.json --target claude-code --into . --models frontier=opus,strong=sonnet,fast=haiku`;
 
 export const EXPLAIN_HELP = `grooph explain <file> [--json]

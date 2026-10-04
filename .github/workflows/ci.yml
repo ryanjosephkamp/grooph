@@ -32,10 +32,12 @@ jobs:
       # The packages a human reviews must still be the packages the compiler emits.
       - name: export matches the golden packages
         run: |
-          for graph in review-loop fix-until-green; do
-            pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
-              --target claude-code --into "$RUNNER_TEMP/grooph-pkg-$graph" > /dev/null
-            diff -r "$RUNNER_TEMP/grooph-pkg-$graph" "fixtures/golden/claude-code/$graph"
+          for target in claude-code codex; do
+            for graph in review-loop fix-until-green; do
+              pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
+                --target "$target" --into "$RUNNER_TEMP/grooph-pkg-$target-$graph" > /dev/null
+              diff -r "$RUNNER_TEMP/grooph-pkg-$target-$graph" "fixtures/golden/$target/$graph"
+            done
           done
 
       # An agent's route from nothing to the review loop: new, then apply the example ops.

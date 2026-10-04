@@ -186,6 +186,23 @@ test("export writes the package and prints the kickoff", async () => {
   }
 });
 
+test("export accepts Codex and names the selected harness in its kickoff", async () => {
+  const dir = scratch();
+  try {
+    const io = capture();
+    const code = await run(
+      ["export", fixture("valid", "review-loop.grooph.json"), "--target", "codex", "--into", dir],
+      io,
+    );
+    assert.equal(code, 0, io.stderr.join("\n"));
+    assert.ok(existsSync(join(dir, ".codex/agents/review-loop--builder.toml")));
+    assert.match(io.stdout.join("\n"), /Kickoff — paste this into a Codex session/);
+    assert.match(readFileSync(join(dir, ".grooph/review-loop/KICKOFF.md"), "utf8"), /codex/i);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("export refuses an invalid document, names the reasons, and writes nothing", async () => {
   const dir = scratch();
   try {

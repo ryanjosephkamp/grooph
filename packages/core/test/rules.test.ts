@@ -224,10 +224,10 @@ test("export-only rules fire only for export", () => {
 });
 
 test("E_NO_TARGET fires for a harness with no profile", () => {
-  const doc = base({ target: { harness: "codex" }, nodes: [agent("a", "builder")] });
+  const doc = base({ target: { harness: "unknown-harness" }, nodes: [agent("a", "builder")] });
   const issues = errors(validate(doc, { forExport: true }));
   assert.deepEqual(codes(issues), ["E_NO_TARGET"]);
-  assert.match(issues[0]!.message, /no compile profile for target harness "codex"/);
+  assert.match(issues[0]!.message, /no compile profile for target harness "unknown-harness"/);
 });
 
 test("every issue names the objects involved", () => {
