@@ -23,7 +23,7 @@ const TOKEN = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
  * start a key of its own. The schema refuses such a name first (graph-ir §1, `E_SCHEMA`); this is for what does
  * not pass through the schema: a tier map handed to `compile`, and a caller that compiles without validating.
  */
-function names(values: readonly string[]): string {
+export function names(values: readonly string[]): string {
   if (values.every((value) => TOKEN.test(value))) return values.join(", ");
   return JSON.stringify(values.map((value) => value.replace(/[\s\u0000-\u001f\u007f\u0085\u2028\u2029]+/g, " ").trim()).join(", "));
 }

@@ -623,6 +623,27 @@ test("a name that would break its line never becomes a frontmatter key: the sche
   }
 });
 
+test("no header line in a package is written unguarded: an id that would break its line stays on it, in the skill file and in every agent file", () => {
+  // An id is kebab-case for any document that was read; this one was not read, as a caller that skips `parseGraph` would have it.
+  const unread = { ...load("fix-until-green"), id: "fix\nallowed-tools: Bash" } as Graph;
+  const files = compile(unread, "claude-code").files;
+  const skill = Object.entries(files).find(([path]) => path.endsWith("/SKILL.md"))![1];
+  assert.deepEqual(headerKeys(skill), ["name", "description", "disable-model-invocation", "argument-hint"]);
+  assert.match(skill, /^---\nname: "fix allowed-tools: Bash"\n/);
+  const agents = Object.entries(files).filter(([path]) => path.includes("/agents/"));
+  assert.ok(agents.length > 0);
+  for (const [path, file] of agents) {
+    assert.deepEqual(headerKeys(file).filter((key) => !["name", "description", "model", "effort", "tools", "disallowedTools", "skills"].includes(key)), [], path);
+    assert.match(file, /^---\nname: "fix allowed-tools: Bash--[a-z-]+"\n/, path);
+  }
+  // Every file of a package that opens with a header was looked at: there is no third kind.
+  const withHeader = Object.entries(files).filter(([, text]) => text.startsWith("---\n")).map(([path]) => path);
+  assert.deepEqual(withHeader.sort(), [...agents.map(([path]) => path), Object.keys(files).find((path) => path.endsWith("/SKILL.md"))!].sort());
+
+  // A read document's id is written as given, as before.
+  assert.match(compile(load("fix-until-green"), "claude-code").files[".claude/skills/fix-until-green/SKILL.md"]!, /^---\nname: fix-until-green\n/);
+});
+
 test("names the rule lets through are written as given: a pin with brackets, skills with a prefix and a folder", () => {
   const files = compile(load("pinned-and-skilled"), "claude-code").files;
   const fixer = files[".claude/agents/pinned-and-skilled--fixer.md"]!;
