@@ -15,6 +15,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 **Slice 0054: the Operator's seventh reply, documents only, pull request open.** With 0.2.5 on the other project's lanes, a turn's start is sent and a tool call sends in passing [reported]; a turn longer than ten minutes has not happened yet. Corrected here: the harness's own helper stops after some turn ends, not every one (about one in four in the cloud lanes). Recorded here: a cloud turn can end twice; and a second lane went on with the hook entries it had started with after the settings changed under it. No code changed.
 
+**Slice 0056: embed and replay, pull request #35. Status: done (head `618c74b`).** `#/embed?d=<share payload>` draws a graph, map or run from core's picture, with pan, zoom, briefs and a replay; the first load is 137.8 KB gzipped. `grooph embed` waits for the driver to wire it into `index.ts`. `main.tsx` changed with the owner's approval; see the handback.
+
 **The plan for the push to Monday, 2026-10-05, 11 a.m. ET** is a draft pull request of its own: `handoffs/briefs/plan-2026-10-04.md`.
 
 ## Waiting on the owner
