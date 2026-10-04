@@ -1,6 +1,6 @@
 # Handback 0078 · grooph for agents: authoring over MCP, a package on npm, and a way in from a chat
 
-**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `222b753` (the work, after the driver's two fix passes and with `main` merged in at `89fc884`; the handback commit follows it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** `ca97a31` (the work, after the driver's two fix passes, with `main` merged in at `89fc884` and the paste reader behind a door; the handback commit follows it) · **Date:** 2026-10-04
 
 ## Status
 
@@ -28,7 +28,7 @@
 **From a chat**
 - `plugins/grooph-chat/` (new): the skill for claude.ai (`SKILL.md`, `README.md`). The zip and the desktop extension are built, not committed.
 - `plugins/grooph/`: the design skill uses the tools when it has them; `.mcp.json` (new) starts the server; plugin version 0.2.0.
-- `apps/web/src/ui/Library.tsx`, `apps/web/src/store/library.ts`: **Paste a document**. `apps/web/test/paste.test.ts` (9 tests), `apps/web/e2e/paste.spec.ts` (4) (new).
+- `apps/web/src/ui/Import.tsx` (new), `apps/web/src/ui/Library.tsx`: **Paste a document**, behind a door (below). `apps/web/test/paste.test.ts` (9 tests), `apps/web/e2e/paste.spec.ts` (7) (new). `apps/web/vite.config.ts`: the page names the piece, in a commit of its own, by the driver's leave. `apps/web/src/store/library.ts` is `main`'s, untouched.
 
 **Pages**
 - `docs/agents.md`, `docs/chat.md` (new), `docs/quickstart.md`, `apps/web/public/llms.txt` (new), two entries in `scripts/site/pages.json`.
@@ -38,14 +38,14 @@
 
 ## Verified, and how
 
-Run from a clean build at `222b753`: both fix passes, and `main` merged in at `89fc884`, which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
+Run from a clean build at `ca97a31`: both fix passes, the door, and `main` merged in at `89fc884`, which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
 
 ```text
 pnpm -r build && pnpm -r test          core 363 pass · cli 152 pass · web 68 pass
-scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 772 KB, 77 files; installed and run in a fresh folder)
+scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 772 KB, 78 files; installed and run in a fresh folder)
 scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 241 KB, grooph.mcpb 240 KB; …run with nothing installed beside them)
 scripts/first-run.sh                   first run: ok
-GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      210 passed, 125 skipped, none failed
+GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      213 passed, 125 skipped, none failed
 node scripts/american-english.mjs --check      nothing British in 577 public-facing files
 node scripts/site-pages.mjs --check    23 pages and an index, links and anchors resolve
 version · cli-reference · check-pictures · check-outside-addresses (--check)      all current; nothing is loaded from another host
@@ -54,20 +54,31 @@ export of review-loop and fix-until-green                    the same as the gol
 a line break in a pin, and in a skill name, through grooph_export (with into, and returned)      each refused by E_SCHEMA; nothing written
 ```
 
-`node scripts/perf-budget.mjs --check`, every line inside:
+`node scripts/perf-budget.mjs --check`, as **CI printed it** for `ca97a31` (the push run 37239404565; Node 22 and Node 24 print the same sizes), every line inside:
 
 ```text
-ok     179.33 of   180  the app's first load (HTML, scripts and styles), gzip KB
-ok     157.94 of   162    of which scripts
-ok      19.91 of    20    of which styles
+ok     178.25 of   180  the app's first load (HTML, scripts and styles), gzip KB
+ok     156.87 of   162    of which scripts
+ok      19.89 of    20    of which styles
 ok      40.69 of    42  the fonts a first visit to the front page fetches, KB as sent
-ok     221.35 of   224  a first visit to the front page in all (first load, fonts, icons), KB
-ok     277.24 of   280  the first load of an address that draws on the canvas, gzip KB
-ok     126.06 of   132  an embed's first load, gzip KB
-ok      97.15 of   400  the CLI's cold start, ms (middle of five)
+ok     220.26 of   224  a first visit to the front page in all (first load, fonts, icons), KB
+ok     276.36 of   280  the first load of an address that draws on the canvas, gzip KB
+ok     126.24 of   132  an embed's first load, gzip KB
+ok      97.49 of   400  the CLI's cold start, ms (middle of five)
+         2.04            loaded later: Import-BUFCYsHa.js
 ```
 
-The paste reader is 1,239 bytes gzip of the scripts, in the app's own script, and adds no stylesheet: it is laid out with classes the app already has, and this branch does not touch `styles.css` (the styles line is `main`'s own 19.91).
+CI printed for `main` at `0e90da0` (run 37238036786): first load 178.31, scripts 156.95, a canvas address 276.42, an embed 126.22. So this branch's first load is **0.06 KB under `main`'s** on CI, a canvas address 0.06 under, and an embed 0.02 over (the page names one more file). Before the door, CI printed 179.50 and 277.61 for this branch. On this Mac the same build reads 178.08 against `main`'s 178.14; a Mac's gzip is not CI's, so only CI's lines are the ones to hold a budget to.
+
+**The door.** The paste reader, the box it is pasted into and `main`'s own file-import path are one piece, `apps/web/src/ui/Import.tsx`, 2.04 KB, fetched when a person picks a file or opens **Paste a document**, and never with the page. `Library.tsx` keeps only the door: the button, the fetch, the sentence said when the piece cannot be fetched, and the listener for a paste on the screen itself. On this Mac the door alone, with the file-import path left where `main` has it, cost about 0.33 KB of the first load, which was over the 0.1 KB asked for; moving the file-import path behind the same door gives about 0.4 KB back, which is how the first load ends under `main`'s. `openRouteFor` is handed through the door and not imported by the piece: imported there, `doc/share.ts` left the file every address loads for a file of its own, and an embed fetched one file more. As built, no address's set of files changes; `routes.json` gains the piece under `later`, which `index.html` names for the service worker (`apps/web/vite.config.ts`, a commit of its own). The door adds no stylesheet, and this branch does not touch `styles.css`.
+
+What the door changes for a person, and its tests (`apps/web/e2e/paste.spec.ts`):
+
+- The piece is not asked for by the page, and is asked for once by the box or by a file.
+- With the service worker running and no network, after a visit that saw only the front page, a paste opens: the worker kept the piece. (`offline.spec.ts` already picks a file with no network, which now goes through the same piece, and passes untouched.)
+- When the piece cannot be fetched, Paste says "Could not import what you paste. The part of grooph that opens it could not be fetched. It needs a connection the first time: reload this page when you have one.", Import says the same with the file's name, and a paste on the screen says nothing. It says to reload because Chromium does not ask again for a script it failed to fetch until the page is loaded again; the test showed that, and tests the reload.
+- That last case is new for **Import**: on `main` a file opens with no piece to fetch. It can only happen on a first visit that loses its connection before the worker has the files, the same window in which Export (slice 0070) and a map's other views (slice 0080) cannot be fetched.
+- `release.spec.ts`, "the page names every file the app can ask for", passes; with the `later` line taken out of `vite.config.ts` it fails, and so does the no-network test.
 
 `(cd packages/cli && npm pack --dry-run)` from the handoff is answered under Deviations.
 
@@ -105,7 +116,7 @@ All six sessions and their costs are in [`runs/README.md`](runs/README.md). Tota
 | **Claude's desktop app** | The extension `grooph.mcpb` built; its manifest checked against the bundle format's 0.3 schema; its server started exactly as the manifest starts it, from `/`, driven by Claude Code with no other tool (runs A, B) | A validated graph and a working link in six calls; the server refuses to write there | The app itself. Adding a config entry or an extension changes your app, and the config route restarts it while every session, this one included, runs inside it |
 | **claude.ai** | The skill zip built; unzipped into an empty folder with a shell that may run only `node`, `ls`, `cat`, and `grooph` off the `PATH` (run C) | The graph, the link, the SVG and the `.grooph.json` file, all from the skill's one script | Uploading it: your account. Whether claude.ai's sandbox Node is new enough is unknown; Anthropic's own skills run Node there |
 | **ChatGPT** | Nothing in ChatGPT. Its documents were read: remote MCP servers only; the code tool is Python with no network | (with a Claude model) a document written from the page alone validates with no issues and the app's paste reader takes the reply whole (run D) | Everything in ChatGPT itself |
-| **The app's paste** | Unit tests (9) and browser tests (4) on port 4362 | A document alone, in a fence, in prose, after other JSON, cut short; a link; a refusal that keeps the text | — |
+| **The app's paste** | Unit tests (9) and browser tests (7) on port 4362 | A document alone, in a fence, in prose, after other JSON, cut short; a link; a refusal that keeps the text; the piece fetched on demand, held by the worker with no network, and a plain sentence when it cannot be fetched | — |
 
 **Prompts for you.** The same request everywhere:
 
@@ -125,14 +136,14 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **790,535 bytes packed (772 KB), 2,198,577 unpacked, 77 files.** It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
+`grooph-0.3.0.tgz`: **791,008 bytes packed (772 KB), 2,199,407 unpacked, 78 files.** It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
 
 | In it | Files | Size |
 |---|---|---|
 | `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 601 KB |
 | `dist/patterns/`, the templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
-| `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 30 | 1,297 KB |
+| `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 31 | 1,297 KB |
 | `hooks/`, the event hook and the push script | 2 | 56 KB |
 | `README.md`, `LICENSE`, `package.json` | 3 | 5 KB |
 
@@ -173,6 +184,7 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **`(cd packages/cli && npm pack --dry-run)`** from the handoff lists the private workspace package, not what is published. What would be published is `(cd packages/cli/dist/npm && npm pack --dry-run)` after `node packages/cli/scripts/npm-package.mjs`, for the reason under Decisions.
 - **Model sessions are recorded in the slice's folder, not under `experiments/`**, which this lane may not change. They follow `experiments/hooks/README.md` and can be moved as they are.
 - **`docs/quickstart.md`** keeps the clone install first and adds npm second: the site's own browser test reads the page's first code block, and that test is not this lane's to change.
+- **`apps/web/vite.config.ts`** and **`apps/web/src/ui/Import.tsx`** are outside the allowed list. The driver asked for the door and gave leave for the config, only the lines the door needs, in a commit of its own (`ca97a31`). The file-import path moved into `Import.tsx` as it was on `main`, with `return true` or `return false` where it returned, and the screen's setters reached through `host`.
 - **`docs/cli.md`** is outside the allowed list and was regenerated on the driver's instruction; `main` was merged in (two conflicts, both kept whole: the page list and CI).
 
 ## Risks and leftovers
@@ -217,5 +229,5 @@ The driver's second reviewer found all seven holding and six more things. Each i
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head 222b753: both fix passes, main merged in at 89fc884). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (head ca97a31: both fix passes, main merged in at 89fc884, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
 ```
