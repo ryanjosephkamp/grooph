@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
-import { buildShareEnvelope, encodeSharePayload, offlinePage, parseMapText, picture, type OperationMap } from "@grooph/core";
+import { buildRunBundle, buildShareEnvelope, encodeSharePayload, offlinePage, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
 import { PICTURE_THEMES, pictureLook } from "@grooph/core/themes";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
@@ -17,6 +17,17 @@ import { downloadText, fixturePath, importDocument, linkFor, node, repoRoot, rev
 const FIVE = PICTURE_THEMES.filter((name) => name !== "paper");
 const map = (): OperationMap => parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"), "utf8")).map!;
 const payload = (doc: Parameters<typeof buildShareEnvelope>[0]): string => encodeSharePayload(buildShareEnvelope(doc), (bytes) => deflateRawSync(bytes, { level: 9 }));
+
+/** The proving run of the heterogeneous-critic template: it fails round 0, passes its bar in round 1, and halts at the gate. */
+function provingRun(): RunBundle {
+  const dir = join(repoRoot, "experiments/patterns/heterogeneous-critic/run");
+  const graph = (path: string): Graph => parseGraphText(readFileSync(path, "utf8")).doc!;
+  return buildRunBundle({
+    source: graph(join(dir, "package/graph.grooph.json")),
+    working: graph(join(dir, "runs/20260920-192538/graph.grooph.json")),
+    notesText: readFileSync(join(dir, "runs/20260920-192538/notes.jsonl"), "utf8"),
+  });
+}
 
 /** The requests a page makes for the themes' piece. */
 function fetches(page: Page): string[] {
@@ -225,6 +236,42 @@ test("an embed draws the theme its address names, with the theme's ground and ba
   await expect(frame).not.toHaveAttribute("data-look", /.+/);
   await page.waitForTimeout(300);
   expect(asked).toEqual([]);
+});
+
+test("while a run plays in Ink, which has one color, each state of a node is still told apart: in words on its card, and by dimming", async ({ page }) => {
+  // With reduced motion a node is dimmed, or not, at once: nothing is read half-way through a fade.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`./#/embed?d=${payload(provingRun())}&theme=ink-light`);
+  const svg = page.locator(".gx-canvas svg.grooph-picture");
+  await expect(svg).toHaveAttribute("data-look", "ink");
+  const slider = page.getByRole("slider", { name: "Replay position" });
+  const steps = Number(await slider.getAttribute("max"));
+  const seen = new Map<string, { words: string; dimmed: boolean; outline: string }>();
+  for (let step = 0; step <= steps; step++) {
+    await slider.fill(String(step));
+    const nodes = await page.locator("g[data-node][data-state]").evaluateAll((all) =>
+      all.map((g) => ({
+        state: (g as SVGGElement).dataset["state"]!,
+        words: g.querySelector(".gx-pill text")?.textContent ?? "",
+        name: g.getAttribute("aria-label") ?? "",
+        dimmed: Number(getComputedStyle(g).opacity) < 0.6,
+        outline: getComputedStyle(g.querySelector("rect[data-card]")!).stroke,
+      })),
+    );
+    for (const n of nodes) {
+      // Not reached yet: dimmed, with no word. Reached: its state in a word on the card, and in its accessible name.
+      if (n.state === "pending") expect(n).toMatchObject({ words: "", dimmed: true });
+      else {
+        expect(n.words.startsWith(n.state), `step ${step}: a ${n.state} node says "${n.words}"`).toBe(true);
+        expect(n.name).toContain(n.state);
+        expect(n.dimmed).toBe(false);
+      }
+      seen.set(n.state, n);
+    }
+  }
+  // The run shows every state, and in Ink every one of them is outlined in the same ink: color says nothing here.
+  expect([...seen.keys()].sort()).toEqual(["failed", "halted", "passed", "pending", "running"]);
+  expect(new Set([...seen.values()].map((n) => n.outline))).toEqual(new Set(["rgb(0, 0, 0)"]));
 });
 
 test("Keep a copy keeps the picture and the offline page in the theme, as core draws them, and offers the choice", async ({ page }) => {
