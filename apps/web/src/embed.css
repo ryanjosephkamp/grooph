@@ -1,0 +1,634 @@
+/*
+ * The embed (slice 0056): a grooph picture in someone else's page. Everything
+ * here is scoped to .gx, or to html.gx-page when the embed is the whole page,
+ * so the app can render an embed without these rules reaching its screens.
+ * The picture brings its own palette (--gp-*); these tokens match it.
+ */
+
+.gx {
+  --gx-bg: #f1f4f3;
+  --gx-surface: #fdfefe;
+  --gx-surface-2: #e8edeb;
+  --gx-ink: #1a201e;
+  --gx-ink-2: #454c49;
+  --gx-ink-3: #5f6764;
+  --gx-line: #dce1df;
+  --gx-line-strong: #b9c1be;
+  --gx-accent: #1f5f4a;
+  --gx-focus: #2f7d62;
+  --gx-ok: #1f7a4d;
+  --gx-error: #b42318;
+  --gx-gate: #b25e09;
+  --gx-loop-0: #7a4cc2;
+  --gx-loop-1: #0f7c8c;
+  --gx-loop-2: #c2410c;
+  --gx-loop-3: #b5306e;
+  --gx-shadow: 0 2px 6px rgb(0 0 0 / 0.08), 0 10px 30px rgb(0 0 0 / 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  .gx:not([data-theme="light"]) {
+    --gx-bg: #111514;
+    --gx-surface: #1b201e;
+    --gx-surface-2: #242a27;
+    --gx-ink: #ebefed;
+    --gx-ink-2: #c0c7c4;
+    --gx-ink-3: #99a19e;
+    --gx-line: #2d3331;
+    --gx-line-strong: #4a524f;
+    --gx-accent: #5dbb94;
+    --gx-focus: #7fd0ad;
+    --gx-ok: #6fcf9d;
+    --gx-error: #ff8f80;
+    --gx-gate: #eb9a45;
+    --gx-loop-0: #a883f0;
+    --gx-loop-1: #3cc0d0;
+    --gx-loop-2: #f0874f;
+    --gx-loop-3: #ee6fa6;
+    --gx-shadow: 0 2px 6px rgb(0 0 0 / 0.4), 0 10px 30px rgb(0 0 0 / 0.5);
+  }
+}
+
+.gx[data-theme="dark"] {
+  color-scheme: dark;
+  --gx-bg: #111514;
+  --gx-surface: #1b201e;
+  --gx-surface-2: #242a27;
+  --gx-ink: #ebefed;
+  --gx-ink-2: #c0c7c4;
+  --gx-ink-3: #99a19e;
+  --gx-line: #2d3331;
+  --gx-line-strong: #4a524f;
+  --gx-accent: #5dbb94;
+  --gx-focus: #7fd0ad;
+  --gx-ok: #6fcf9d;
+  --gx-error: #ff8f80;
+  --gx-gate: #eb9a45;
+  --gx-loop-0: #a883f0;
+  --gx-loop-1: #3cc0d0;
+  --gx-loop-2: #f0874f;
+  --gx-loop-3: #ee6fa6;
+  --gx-shadow: 0 2px 6px rgb(0 0 0 / 0.4), 0 10px 30px rgb(0 0 0 / 0.5);
+}
+
+.gx[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* The whole page is the embed: no margin, no scrollbar, and the host page's background shows through. */
+html.gx-page,
+html.gx-page body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+html.gx-page #root {
+  height: 100%;
+}
+
+.gx {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  color: var(--gx-ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+html.gx-page .gx {
+  height: 100%;
+}
+
+.gx *,
+.gx *::before,
+.gx *::after {
+  box-sizing: border-box;
+}
+
+.gx[data-frame] {
+  background: var(--gx-bg);
+  border: 1px solid var(--gx-line);
+  border-radius: 12px;
+}
+
+/* ─── the picture ─────────────────────────────────────────────────────── */
+
+.gx-main {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.gx-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  cursor: grab;
+  /* While the whole picture is in view, a vertical swipe scrolls the host page. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gx-stage[data-overflow="1"] {
+  touch-action: none;
+}
+
+.gx-stage[data-dragging] {
+  cursor: grabbing;
+}
+
+.gx-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.gx-canvas svg {
+  display: block;
+  overflow: visible;
+}
+
+.gx:not([data-frame]) .gx-canvas svg > rect:first-of-type {
+  fill: transparent !important;
+}
+
+.gx-canvas [role="button"] {
+  cursor: pointer;
+  outline: none;
+}
+
+.gx-canvas g[data-node]:focus-visible rect[data-card],
+.gx-canvas g[data-node].is-picked rect[data-card],
+.gx-canvas g[data-node]:hover rect[data-card] {
+  stroke: var(--gx-focus) !important;
+  stroke-width: 2.5px;
+}
+
+.gx-canvas g[data-loop]:focus-visible,
+.gx-canvas g[data-loop].is-picked,
+.gx-canvas [data-session]:focus-visible,
+.gx-canvas [data-session].is-picked,
+.gx-canvas [data-person]:focus-visible,
+.gx-canvas [data-person].is-picked,
+.gx-canvas [data-handoff-row]:focus-visible,
+.gx-canvas [data-handoff-row].is-picked {
+  outline: 2px solid var(--gx-focus);
+  outline-offset: 2px;
+}
+
+.gx-canvas [data-handoff].is-picked path {
+  stroke-width: 3px;
+}
+
+/* ─── a run, as the replay reaches it ─────────────────────────────────── */
+
+.gx[data-replay] g[data-node] {
+  transition: opacity 180ms ease-out;
+}
+
+.gx[data-replay] g[data-node][data-state="pending"] {
+  opacity: 0.42;
+}
+
+.gx[data-replay] g[data-node][data-state="running"] rect[data-card] {
+  stroke: var(--gp-accent) !important;
+  stroke-width: 2.5px;
+  animation: gx-pulse 1.1s ease-in-out infinite;
+}
+
+.gx[data-replay] g[data-node][data-state="passed"] rect[data-card] {
+  stroke: var(--gp-ok) !important;
+  stroke-width: 2px;
+}
+
+.gx[data-replay] g[data-node][data-state="failed"] rect[data-card] {
+  stroke: var(--gp-error) !important;
+  stroke-width: 2px;
+}
+
+.gx[data-replay] g[data-node][data-state="halted"] rect[data-card] {
+  stroke: var(--gp-gate) !important;
+  stroke-width: 2.5px;
+}
+
+.gx[data-replay] g[data-node][data-focus] rect[data-card] {
+  stroke-width: 3.5px;
+}
+
+.gx[data-replay] g[data-edge][data-focus] path:first-child {
+  stroke-width: 3px;
+}
+
+.gx[data-replay] g[data-loop][data-focus] circle {
+  r: 6px;
+}
+
+@keyframes gx-pulse {
+  50% {
+    stroke-opacity: 0.35;
+  }
+}
+
+.gx-pill rect {
+  fill: var(--gp-surface-2);
+}
+
+.gx-pill text {
+  fill: var(--gp-ink-2);
+}
+
+.gx-pill[data-state="running"] rect {
+  fill: var(--gp-accent-soft);
+}
+
+.gx-pill[data-state="running"] text {
+  fill: var(--gp-accent);
+}
+
+.gx-pill[data-state="passed"] rect,
+.gx-pill[data-state="stopped"] rect {
+  fill: var(--gp-ok-soft);
+}
+
+.gx-pill[data-state="passed"] text,
+.gx-pill[data-state="stopped"] text {
+  fill: var(--gp-ok);
+}
+
+.gx-pill[data-state="failed"] rect {
+  fill: var(--gp-error-soft);
+}
+
+.gx-pill[data-state="failed"] text {
+  fill: var(--gp-error);
+}
+
+.gx-pill[data-state="halted"] rect {
+  fill: var(--gp-gate-soft);
+}
+
+.gx-pill[data-state="halted"] text {
+  fill: var(--gp-gate);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gx[data-replay] g[data-node] {
+    transition: none;
+  }
+
+  .gx[data-replay] g[data-node][data-state="running"] rect[data-card] {
+    animation: none;
+    stroke-width: 3.5px;
+  }
+}
+
+/* ─── controls ────────────────────────────────────────────────────────── */
+
+.gx-bars {
+  flex: none;
+}
+
+.gx-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 1px solid var(--gx-line);
+}
+
+.gx-spacer {
+  flex: 1 1 auto;
+}
+
+.gx-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--gx-line-strong);
+  border-radius: 8px;
+  background: var(--gx-surface);
+  color: var(--gx-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease-out, border-color 150ms ease-out;
+}
+
+.gx-btn:hover:not(:disabled) {
+  border-color: var(--gx-accent);
+}
+
+.gx-btn:focus-visible,
+.gx-scrub:focus-visible {
+  outline: 2px solid var(--gx-focus);
+  outline-offset: 2px;
+}
+
+.gx-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.gx-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.gx-btn svg .gx-fill {
+  fill: currentColor;
+}
+
+.gx-icon {
+  width: 36px;
+  padding: 0;
+}
+
+.gx-open svg {
+  width: 15px;
+  height: 15px;
+}
+
+.gx-play {
+  width: 44px;
+  height: 40px;
+  padding: 0;
+  border-color: var(--gx-accent);
+  background: var(--gx-accent);
+  color: var(--gx-surface);
+}
+
+.gx-play:hover:not(:disabled) {
+  border-color: var(--gx-accent);
+  filter: brightness(1.08);
+}
+
+.gx-replay {
+  padding: 8px 8px 6px;
+  border-top: 1px solid var(--gx-line);
+}
+
+.gx-replay-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gx-scrub {
+  flex: 1 1 auto;
+  min-width: 48px;
+  height: 36px;
+  margin: 0 2px;
+  accent-color: var(--gx-accent);
+  cursor: pointer;
+}
+
+.gx-count {
+  min-width: 3.4em;
+  color: var(--gx-ink-3);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.gx-caption {
+  margin: 6px 2px 0;
+  min-height: calc(1.35em * 2);
+  color: var(--gx-ink-2);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.gx-caption.is-end {
+  color: var(--gx-ink);
+  font-weight: 600;
+}
+
+.gx-loops {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.gx-loop-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  padding: 3px 9px;
+  border: 1px solid var(--gx-line);
+  border-radius: 999px;
+  color: var(--gx-ink-2);
+}
+
+.gx-loop-chip.is-stopped {
+  border-color: var(--gx-ok);
+}
+
+.gx-round {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--gx-ink);
+}
+
+.gx-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+}
+
+.gx-loop-0 {
+  background: var(--gx-loop-0);
+}
+
+.gx-loop-1 {
+  background: var(--gx-loop-1);
+}
+
+.gx-loop-2 {
+  background: var(--gx-loop-2);
+}
+
+.gx-loop-3 {
+  background: var(--gx-loop-3);
+}
+
+/* ─── the brief ───────────────────────────────────────────────────────── */
+
+.gx-brief {
+  position: absolute;
+  z-index: 2;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  max-height: calc(100% - 16px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--gx-line-strong);
+  border-radius: 12px;
+  background: var(--gx-surface);
+  box-shadow: var(--gx-shadow);
+  animation: gx-rise 160ms ease-out;
+}
+
+@media (min-width: 640px) {
+  .gx-brief {
+    left: auto;
+    top: 8px;
+    width: min(360px, 50%);
+  }
+}
+
+@keyframes gx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gx-brief {
+    animation: none;
+  }
+}
+
+.gx-brief header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 10px 6px 14px;
+  background: var(--gx-surface);
+}
+
+.gx-brief-kind {
+  color: var(--gx-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.gx-brief h2 {
+  margin: 2px 0 0;
+  font-size: 16px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.gx-brief-body {
+  padding: 0 14px 14px;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+
+.gx-rows {
+  margin: 0;
+}
+
+.gx-rows > div {
+  margin-top: 10px;
+}
+
+.gx-rows dt {
+  color: var(--gx-ink-3);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.gx-rows dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.gx-rows ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.gx-prose {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.gx-brief code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: var(--gx-surface-2);
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  font-size: 12.5px;
+}
+
+.gx-runline {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-left: 3px solid var(--gx-line-strong);
+  border-radius: 6px;
+  background: var(--gx-surface-2);
+}
+
+.gx-runline[data-state="passed"] {
+  border-left-color: var(--gx-ok);
+}
+
+.gx-runline[data-state="failed"] {
+  border-left-color: var(--gx-error);
+}
+
+.gx-runline[data-state="halted"] {
+  border-left-color: var(--gx-gate);
+}
+
+.gx-runline[data-state="running"] {
+  border-left-color: var(--gx-accent);
+}
+
+.gx-runline p {
+  margin: 4px 0 0;
+  color: var(--gx-ink-2);
+}
+
+/* ─── a link that does not open ───────────────────────────────────────── */
+
+.gx-problem {
+  margin: auto;
+  max-width: 34em;
+  padding: 16px;
+  color: var(--gx-ink-2);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.gx-problem strong {
+  color: var(--gx-ink);
+}
