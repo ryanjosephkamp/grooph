@@ -40,7 +40,6 @@ import {
   type Level,
   type Placed,
 } from "./map-parts.js";
-import { mapWide } from "./map-wide.js";
 import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, rect, text, type Ink, type MapPictureOptions } from "./svg.js";
 
 export { CARRIER_STYLE } from "./map-parts.js";
@@ -52,13 +51,12 @@ const CARD_SHARE = 0.56; // the share of a lane's inner width its cards keep whi
 type Card = { height: number; y: number; slots: { handoff: Id; end: "from" | "to" }[] };
 
 /**
- * An operation map as one SVG with its words on it. Laid out for a phone unless `layout` is `wide`, which draws
- * the lanes side by side (`map-wide.ts`). Sessions and handoffs carry `data-session` and `data-handoff`, so a
- * page that holds the picture inline can make them tappable. A session whose lane is unknown, and a handoff
- * whose end is, are left out: the validator names them.
+ * An operation map as one SVG with its words on it, laid out for a phone. Sessions and handoffs carry
+ * `data-session` and `data-handoff`, so a page that holds the picture inline can make them tappable. A session
+ * whose lane is unknown, and a handoff whose end is, are left out: the validator names them. A map's other two
+ * views, its lanes side by side and its sequence, are behind a door of their own (`map-views.ts`).
  */
 export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): string {
-  if (options.layout === "wide") return mapWide(map, options);
   const theme = options.theme ?? "auto";
   const W = options.width ?? PICTURE_WIDTH;
   const ink = inkFor(theme);
@@ -156,7 +154,8 @@ export function mapPicture(map: OperationMap, options: MapPictureOptions = {}): 
   };
   // Where each arc runs: its two ends on the cards' edge and its upright's track.
   const runs = handoffs.map((h, i) => ({ y1: slotY(h.from, h.id, "from"), y2: slotY(h.to, h.id, "to"), x: edgeX + TRACK_LEAD + tracks[i]! * track }));
-  const levels: Level[] = runs.flatMap((o, of) => [o.y1, o.y2].map((level) => ({ y: level, from: edgeX, to: o.x, of })));
+  // A level run counts from wherever it starts: in a picture too narrow for its cards the tracks are left of the edge.
+  const levels: Level[] = runs.flatMap((o, of) => [o.y1, o.y2].map((level) => ({ y: level, from: -Infinity, to: o.x, of })));
   const badges: Placed[] = [];
   // Three layers, so that a number is seen to belong to one line. The rings go down first. Then every line: an arc's
   // own line stops at its ring and starts again beyond it, and every other line that passes behind the ring is drawn

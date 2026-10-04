@@ -2,6 +2,8 @@
  * An operation map with its lanes side by side (docs/operation-map.md §4c), for a screen with room: the people in a
  * band across the top, each lane a column, each session a card in its lane's column, and the handoffs listed below
  * in as many columns as fit. The cards, the numbers and the list are the phone's picture's own (`map-parts.ts`).
+ * It is reached through `map-views.ts`, never from `base.ts`: a page that draws no map does not carry it. It
+ * imports nothing but types, and is handed the parts it draws with (`map-kit.ts` says why).
  *
  * Arcs never run over a card. Between two lanes, and outside the first and the last, is a gutter of upright tracks;
  * above the lanes is a deck of level ones. An arc leaves its card by the edge that faces where it is going:
@@ -18,29 +20,10 @@
  */
 
 import type { Handoff, Id, OperationMap } from "../types.js";
-import {
-  BADGE_R,
-  M,
-  PAD,
-  SLOT,
-  TRACK,
-  TRACK_MIN,
-  badgeHalf,
-  drawn,
-  handoffRow,
-  heading,
-  laneHead,
-  numberRing,
-  numberText,
-  personCard,
-  placeNumber,
-  sessionCard,
-  stroke,
-  styleOf,
-  type Level,
-  type Placed,
-} from "./map-parts.js";
-import { assignTracks, fmt, frame, inkFor, rect, text, type MapPictureOptions } from "./svg.js";
+import { open } from "./map-kit-open.js";
+import type { MapKit } from "./map-kit.js";
+import type { Level, Placed } from "./map-parts.js";
+import type { MapPictureOptions } from "./svg.js";
 
 const CARD = 168; // a card's width when there is room
 const CARD_LOW = 150; // and its least: wider than the phone's, so that a repository's or a model's name is still whole on it
@@ -50,6 +33,8 @@ const GAP = 10; // between two lanes with nothing running between them
 const DECK = 11; // between two level runs above the lanes
 const HEAD = 5.5; // where an arc's line stops short of its end, for the arrowhead
 const MORE = 3; // the lines words may take beyond the phone's: the cards and the list are narrower, and nothing is cut short for it
+const LEAN = 2.5; // how far the ends on a card's two edges are set apart: up on its right, down on its left
+const PERSON = 150; // the least width of a person's card
 const LIST = 290; // the least width of a column of the list
 const LEAST = 340; // and of the whole picture
 
@@ -74,7 +59,12 @@ function tidy(pts: P[]): P[] {
   return out;
 }
 
-export function mapWide(map: OperationMap, options: MapPictureOptions): string {
+/**
+ * `width`, when given, is the room there is: the picture is as wide as its lanes need, which may be less, and is
+ * more only when its cards are already at their least. The other options are the phone's picture's.
+ */
+export function mapWideWith(kit: MapKit, map: OperationMap, options: MapPictureOptions = {}): string {
+  const { BADGE_R, M, PAD, SLOT, TRACK, TRACK_MIN, assignTracks, badgeHalf, drawn, fmt, frame, handoffRow, heading, inkFor, laneHead, numberRing, numberText, personCard, placeNumber, rect, sessionCard, stroke, styleOf, text } = open(kit);
   const theme = options.theme ?? "auto";
   const ink = inkFor(theme);
   const lanes = map.lanes;
@@ -145,8 +135,8 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   const lead = (g: number): number => (g === 0 && people.length ? REACH : LEAD); // before a gutter's first track
   const still = (g: number): number => (T[g] ? lead(g) + (g === n && people.length ? REACH : LEAD) : g > 0 && g < n ? GAP : 0); // a gutter's width but for its tracks
   const fixed = 2 * M + n * 2 * PAD + T.reduce((sum, _, g) => sum + still(g), 0);
-  let track = TRACK;
-  let card = CARD;
+  let track: number = TRACK;
+  let card: number = CARD;
   const room = options.width;
   if (room !== undefined && Number.isFinite(room) && n > 0) {
     const cardAt = (t: number): number => (room - fixed - steps * t) / n;
@@ -164,8 +154,11 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
       x += card + 2 * PAD;
     }
   }
-  const W = Math.max(x + M, LEAST);
-  const trackX = (r: Run): number => gx[r.g]! + lead(r.g) + (r.group === 0 ? r.t : r.group === 1 ? count[r.g]![0]! + r.t : T[r.g]! - 1 - r.t) * track;
+  // The picture is as wide as its lanes, or as its people need for their names; the lanes are in its middle.
+  const W = Math.max(x + M, LEAST, people.length ? 2 * (M + PAD) + people.length * PERSON + (people.length - 1) * 8 : 0);
+  const aside = (W - x - M) / 2;
+  lx.forEach((v, i) => (lx[i] = v + aside));
+  const trackX = (r: Run): number => aside + gx[r.g]! + lead(r.g) + (r.group === 0 ? r.t : r.group === 1 ? count[r.g]![0]! + r.t : T[r.g]! - 1 - r.t) * track;
 
   const body: string[] = [];
   const cardSvg: string[] = [];
@@ -191,24 +184,51 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
     );
   }
 
-  // Where each arc meets a person's card: straight above its track when the card is, else at the card's near end.
-  const taken = new Map<Id, [number, number]>();
-  const port = (id: Id, toward: number): number => {
-    const [x0, x1] = span.get(id)!;
-    if (toward >= x0 + 10 && toward <= x1 - 10) return toward;
-    const used = taken.get(id) ?? taken.set(id, [0, 0]).get(id)!;
-    return toward > x1 - 10 ? x1 - 12 - used[1]++ * SLOT : x0 + 12 + used[0]++ * SLOT;
-  };
-  // The two uprights an arc runs between on the deck, when it uses the deck.
-  const over = handoffs.map((h, arc): P | undefined => {
+  // Where each arc meets a person's card. One whose track is under the card drops straight from it. The others
+  // leave from the end of the card nearer their track, each at a place of its own: clear of the straight ones, and
+  // closer together when there are many, so none leaves the card. A person's handoff to themself leaves and
+  // comes back about the middle of the card, each one outside the last.
+  const asks = people.map(() => [] as { arc: number; end: 0 | 1; toward: number }[]);
+  const middleOf = (k: number): number => (span.get(people[k]!.id)![0] + span.get(people[k]!.id)![1]) / 2;
+  handoffs.forEach((_, arc) => {
+    const [a, b] = pairs[arc]!;
     const { from, to } = arcs[arc]!;
-    if (from && to) return from.run === to.run ? undefined : [trackX(from.run), trackX(to.run)];
-    if (!from && !to) {
-      const [a, b] = [span.get(h.from)!, span.get(h.to)!];
-      return h.from === h.to ? [(a[0] + a[1]) / 2 - 7, (a[0] + a[1]) / 2 + 7] : [port(h.from, (b[0] + b[1]) / 2), port(h.to, (a[0] + a[1]) / 2)];
+    if (a.lane < 0) asks[a.k]!.push({ arc, end: 0, toward: to ? trackX(to.run) : a.k === b.k ? Number.NaN : middleOf(b.k) });
+    if (b.lane < 0) asks[b.k]!.push({ arc, end: 1, toward: from ? trackX(from.run) : a.k === b.k ? Number.NaN : middleOf(a.k) });
+  });
+  const port = handoffs.map((): P => [0, 0]);
+  const tracks = runs.map(trackX);
+  people.forEach((p, k) => {
+    const [x0, x1] = span.get(p.id)!;
+    const under = (at: number): boolean => at >= x0 + 9.5 && at <= x1 - 9.5;
+    const apart = clamp((x1 - x0 - 16) / (asks[k]!.filter((a) => !under(a.toward)).length + 1), 3, SLOT);
+    const seats: number[] = [];
+    // The nearest free place from `from`, going `step` at a time: on the card, clear of every track under it (an
+    // arc on that track passes there) and of the places already taken. With none free, the card's end.
+    const seat = (from: number, step: number): number => {
+      const start = clamp(from, x0 + 8, x1 - 8);
+      // On a crowded card the places close up, by halves, before two arcs are given one place.
+      for (let gap = apart; gap >= 1.5; gap /= 2) {
+        for (let x = start; x >= x0 + 8 && x <= x1 - 8; x += step) {
+          if (tracks.every((t) => Math.abs(t - x) >= Math.min(5, gap)) && seats.every((t) => Math.abs(t - x) >= gap - 0.01)) {
+            seats.push(x);
+            return x;
+          }
+        }
+      }
+      seats.push(start);
+      return start;
+    };
+    for (const ask of asks[k]!) {
+      const to = ask.toward;
+      port[ask.arc]![ask.end] = under(to) ? to : Number.isNaN(to) ? seat(middleOf(k) + (ask.end ? 7 : -7), ask.end ? 1 : -1) : to < x0 + 9.5 ? seat(x0 + 12, 1) : seat(x1 - 12, -1);
     }
-    const down = trackX((from ?? to)!.run);
-    return from ? [down, port(h.to, down)] : [port(h.from, down), down];
+  });
+  // The two uprights an arc runs between on the deck, when it uses the deck.
+  const over = handoffs.map((_, arc): P | undefined => {
+    const { from, to } = arcs[arc]!;
+    if (from && to && from.run === to.run) return undefined;
+    return [from ? trackX(from.run) : port[arc]![0], to ? trackX(to.run) : port[arc]![1]];
   });
   const level = over.flatMap((o, arc) => (o && o[0] !== o[1] ? [{ arc, from: o[0], to: o[1] }] : []));
   const deck = assignTracks(level, 6);
@@ -239,16 +259,18 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   });
   lanes.forEach((lane, i) => body.push(`<g data-lane="${lane.id}">${rect(lx[i]!, lanesTop, card + 2 * PAD, floor - lanesTop, { fill: ink("surface-2"), stroke: ink("line"), rx: 12 })}${heads[i]!.svg.join("")}</g>`));
   body.push(...cardSvg);
-  y = n > 0 ? floor + 10 : y;
+  y = n > 0 ? floor + 10 : lanesTop; // with no lanes the list still starts below the deck
 
   // The ends down each edge: those that go up, inner track first; then a session's handoff to itself and the arcs
-  // across, in the order of the cards they reach; then those that go down, outer track first.
+  // across, in the order of the cards they reach; then those that go down, outer track first. The two edges are
+  // set a little apart, up on the right and down on the left: two cards that are level across a gutter would
+  // otherwise put an arc leaving one and an arc reaching the other on one line, and they would read as one arc.
   const middle = (id: Id): number => box.get(id)!.y + box.get(id)!.h / 2;
   const key = (e: End): number => (e.lean ? -e.lean * e.run.t : e.run.group === 1 ? middle(e.other) : -Infinity);
   for (const [id, both] of edges) {
     for (const list of both) {
       list.sort((a, b) => a.lean - b.lean || key(a) - key(b) || a.arc - b.arc || (a.from ? -1 : 1));
-      list.forEach((e, k) => (e.y = middle(id) + (k - (list.length - 1) / 2) * SLOT));
+      list.forEach((e, k) => (e.y = middle(id) + (k - (list.length - 1) / 2) * SLOT + (e.side ? -LEAN : LEAN)));
     }
   }
   // Arcs across one gutter: those that rise from left to right take the left tracks, the highest first; those that
@@ -257,6 +279,12 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
     const across = arcs.flatMap(({ from, to }) => (from && to && from.run === to.run && from.run.g === g && from.run.group === 1 ? [from.side ? { run: from.run, left: from.y, right: to.y } : { run: from.run, left: to.y, right: from.y }] : []));
     const rises = (c: { left: number; right: number }): boolean => c.right < c.left;
     across.sort((a, b) => Number(rises(b)) - Number(rises(a)) || (rises(a) ? a.left - b.left : b.left - a.left));
+    // Where the run that reaches the right card from one track and the run that leaves the left card for a track
+    // further right are level, they would share the line between the two tracks: those two arcs change places.
+    const inLine = (p: { left: number }, q: { right: number }): boolean => Math.abs(p.left - q.right) < 2;
+    for (let i = 0; i < across.length; i++) {
+      for (let j = i + 1; j < across.length; j++) if (inLine(across[j]!, across[i]!) && !inLine(across[i]!, across[j]!)) [across[i], across[j]] = [across[j]!, across[i]!];
+    }
     across.forEach((c, k) => (c.run.t = k));
   }
 
@@ -274,7 +302,9 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
 
   // Three layers, as on the phone's picture: the rings, then every line (an arc's own line stops at its ring; the
   // others pass over it), then the numbers.
+  const uprights: Level[] = paths.flatMap((pts, of) => pts.slice(1).flatMap((p, k) => (p[0] === pts[k]![0] ? [{ y: p[0], from: Math.min(p[1], pts[k]![1]), to: Math.max(p[1], pts[k]![1]), of }] : [])));
   const placed: Placed[] = [];
+  const turned: Placed[] = []; // the same numbers with their two directions changed over, for one placed along a level run
   const plates: string[] = [];
   const lines: string[] = [];
   const numbers: string[] = [];
@@ -288,20 +318,31 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
     const length = (k: number): number => Math.abs(pts[k + 1]![0] - pts[k]![0]) + Math.abs(pts[k + 1]![1] - pts[k]![1]);
     const upright = (k: number): boolean => pts[k]![0] === pts[k + 1]![0];
     const r = pts.map((_, k) => (k === 0 || k > last ? 0 : Math.min(6, length(k - 1) / 2, length(k) / 2)));
-    // The number sits on the arc's longest upright, clear of the other numbers and of the level runs that cross it;
-    // an arc that is one level line has it in the middle.
-    let on = -1;
-    for (let k = 0; k <= last; k++) if (upright(k) && (on < 0 || length(k) > length(on))) on = k;
-    let nx = (pts[0]![0] + pts[1]![0]) / 2;
-    let ny = pts[0]![1];
-    let cut = false;
+    // The number sits on the arc's longest upright, clear of the other numbers and of the level runs that cross it.
+    // An arc with no upright to speak of and a long level run (one that only crosses the deck, or runs straight
+    // from card to card) has it on that run, placed the same way with the two directions changed over.
+    const longest = (want: boolean): number => {
+      let at = -1;
+      for (let k = 0; k <= last; k++) if (upright(k) === want && (at < 0 || length(k) > length(at))) at = k;
+      return at;
+    };
+    const flat = longest(false);
+    let on = longest(true);
+    if (flat >= 0 && (on < 0 || (length(on) < 24 && length(flat) >= 40))) on = -1;
+    const half = badgeHalf(label);
+    let [nx, ny, cut] = [0, 0, false];
     if (on >= 0) {
       const [y1, y2] = [pts[on]![1], pts[on + 1]![1]];
       const dir = Math.sign(y2 - y1);
       nx = pts[on]![0];
-      ny = placeNumber(nx, y1, y2, badgeHalf(label), arc, placed, levels);
+      ny = placeNumber(nx, y1, y2, half, arc, placed, levels);
+      turned.push({ x: ny, y: nx, half: BADGE_R });
       cut = (ny - dir * BADGE_R - (y1 + dir * r[on]!)) * dir >= 0 && (y2 - dir * (on === last ? HEAD : r[on + 1]!) - (ny + dir * BADGE_R)) * dir >= 0;
-    } else placed.push({ x: nx, y: ny, half: badgeHalf(label) });
+    } else if (flat >= 0) {
+      ny = pts[flat]![1];
+      nx = placeNumber(ny, pts[flat]![0], pts[flat + 1]![0], BADGE_R, arc, turned, uprights);
+      placed.push({ x: nx, y: ny, half });
+    }
 
     let d = `M${fmt(pts[0]![0])},${fmt(pts[0]![1])}`;
     let ux = 0;

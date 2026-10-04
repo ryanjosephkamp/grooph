@@ -9,8 +9,9 @@
  */
 
 import type { Id, OperationMap } from "../types.js";
-import { M, carriedBy, drawn, heading, numberBadge, stroke, styleOf } from "./map-parts.js";
-import { PICTURE_WIDTH, fmt, frame, inkFor, rect, text, textWidth, wrap, type PictureOptions } from "./svg.js";
+import { open } from "./map-kit-open.js";
+import type { MapKit } from "./map-kit.js";
+import type { PictureOptions } from "./svg.js";
 
 const COLUMN = 104; // the most a column is wide, and the least
 const COLUMN_LEAST = 62;
@@ -20,7 +21,9 @@ const WORDS_MOST = 360;
 const ROW = 30; // a row's least height
 const NOTE = "Read down: the order the map lists its handoffs in. An order, not a clock: a map records no times.";
 
-export function mapSequence(map: OperationMap, options: PictureOptions = {}): string {
+/** Like the lanes side by side, it imports nothing but types and is handed the parts it draws with (`map-kit.ts`). */
+export function mapSequenceWith(kit: MapKit, map: OperationMap, options: PictureOptions = {}): string {
+  const { M, PICTURE_WIDTH, carriedBy, drawn, fmt, frame, heading, inkFor, numberBadge, rect, stroke, styleOf, text, textWidth, wrap } = open(kit);
   const theme = options.theme ?? "auto";
   const ink = inkFor(theme);
   const { sessions, people, handoffs, numberOf } = drawn(map);

@@ -27,11 +27,6 @@ export type MapPictureOptions = PictureOptions & {
   live?: Record<string, { sessions: number; working: number; waiting: number; ended: number; agentsRunning: number; agentsDone: number; lastAt: string; quiet?: number; quietLastAt?: string }>;
   /** when the live state was read, ISO 8601; shown in the caption */
   at?: string;
-  /**
-   * `wide` draws the lanes side by side, for a screen with room (`map-wide.ts`); `width` is then the room there is,
-   * and the picture is as wide as its lanes need, which may be less or more. Left out, the picture is the phone's.
-   */
-  layout?: "wide";
 };
 
 export const PICTURE_WIDTH = 400;

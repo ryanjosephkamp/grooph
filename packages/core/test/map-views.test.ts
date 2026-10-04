@@ -11,8 +11,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { parseMapText } from "../src/map.js";
+import { mapSequence, mapWide } from "../src/index.js";
 import { CARRIER_STYLE, mapPicture } from "../src/picture/map-picture.js";
-import { mapSequence } from "../src/picture/map-sequence.js";
 import { textWidth } from "../src/picture/svg.js";
 import type { Handoff, OperationMap } from "../src/types.js";
 import { fixturesDir, read, repoRoot } from "./helpers.js";
@@ -30,7 +30,7 @@ const every = (): [string, OperationMap][] => [
     .map((f): [string, OperationMap] => [f, mapAt(join(mapsDir, "valid", f))]),
   ["the long map", long()],
 ];
-const wide = (map: OperationMap, more: { width?: number; theme?: "light" | "dark" } = {}): string => mapPicture(map, { theme: "light", layout: "wide", ...more });
+const wide = (map: OperationMap, more: { width?: number; theme?: "light" | "dark" } = {}): string => mapWide(map, { theme: "light", ...more });
 
 // ─── reading a picture back ───────────────────────────────────────────────
 
@@ -247,8 +247,126 @@ test("given a room, the cards give way first, then the tracks, and a card is nev
   // Even then no word is cut short, on this map or the others: a card's least is wide enough for a repository's name.
   for (const [name, each] of every()) for (const room of [undefined, 900, 300]) assert.deepEqual(cut(wide(each, room === undefined ? {} : { width: room })), [], `${name}, in ${room ?? "its own width"}`);
   whole("in no room", least, map);
-  // The phone's picture does not know the option's other values, and is what it was: the golden files say so.
-  assert.equal(mapPicture(map, { theme: "light", width: 400 }), mapPicture(map, { theme: "light" }));
+  // A width that is not a number is no width.
+  for (const odd of [Number.NaN, Number.POSITIVE_INFINITY]) assert.equal(wide(map, { width: odd }), natural);
+});
+
+// ─── what an independent read found (2026-10-04), each with the map that showed it ───
+
+const lane = (id: string) => ({ id, name: id, machine: "a machine", account: "an account" });
+const session = (id: string, in_: string) => ({ id, name: id, lane: in_, harness: "codex", role: "a role" });
+const person = (k: number) => ({ id: `p${k}`, name: `Person ${k}` });
+const hand = (id: string, from: string, to: string): Handoff => ({ id, from, to, carrier: { kind: "pull-request", repo: "a/b" } });
+const made = (parts: Pick<OperationMap, "lanes" | "sessions" | "handoffs"> & { people?: OperationMap["people"] }): OperationMap => ({ groophMap: 0, id: "made", name: "Made for a test", version: 1, ...parts });
+/** Two arcs whose lines run along each other: on one line, or within a unit and a half of it, for more than three units. */
+function alongside(svg: string): string[] {
+  const arcs = arcsOf(svg);
+  const out: string[] = [];
+  arcs.forEach((one, i) => {
+    for (const other of arcs.slice(i + 1)) {
+      const close = one.runs.some((a) =>
+        other.runs.some((b) => (level(a) && level(b) && Math.abs(a[1] - b[1]) < 1.5 && shared(a[0], a[2], b[0], b[2]) > 3) || (upright(a) && upright(b) && Math.abs(a[0] - b[0]) < 1.5 && shared(a[1], a[3], b[1], b[3]) > 3)),
+      );
+      if (close) out.push(`${one.id} and ${other.id}`);
+    }
+  });
+  return out;
+}
+/** Where each arc starts and ends, and whether that is on the edge of the card it should be. */
+function offTheirCards(svg: string, map: OperationMap): string[] {
+  const cards = new Map(cardsOf(svg).map((c) => [c.id, c]));
+  const on = (x: number, y: number, c: Box, slack: number): boolean => x >= c.x - slack && x <= c.x + c.w + slack && y >= c.y - slack && y <= c.y + c.h + slack;
+  return arcsOf(svg).flatMap((arc) => {
+    const h = map.handoffs.find((x) => x.id === arc.id)!;
+    const [first, last] = [arc.runs[0]!, arc.runs[arc.runs.length - 1]!];
+    return [...(on(first[0], first[1], cards.get(h.from)!, 0.6) ? [] : [`${arc.id} does not start on ${h.from}`]), ...(on(last[2], last[3], cards.get(h.to)!, 6.2) ? [] : [`${arc.id} does not end at ${h.to}`])];
+  });
+}
+
+test("two arcs that cross between level cards do not share a line, and a number is on its own arc", () => {
+  // a1 and b1 are level, a2 and b2 are level: one arc goes down across the gutter and one goes up.
+  const map = made({ lanes: [lane("l"), lane("r")], sessions: [session("a1", "l"), session("a2", "l"), session("b1", "r"), session("b2", "r")], handoffs: [hand("down", "a1", "b2"), hand("up", "a2", "b1")] });
+  const svg = wide(map);
+  assert.deepEqual(alongside(svg), []);
+  assert.deepEqual(offTheirCards(svg, map), []);
+  assert.equal(meetings(arcsOf(svg)).crossings, 1, "they cross once, as they must");
+});
+
+test("on a person's card every arc has a place of its own: clear of the tracks under the card, and on the card", () => {
+  // One of three people hands to a lane that is not under their card and to one that is.
+  const three = made({ lanes: ["l0", "l1", "l2"].map(lane), people: [0, 1, 2].map(person), sessions: [0, 1, 2].map((i) => session(`s${i}`, `l${i}`)), handoffs: [hand("h0", "p1", "s0"), hand("h1", "p1", "s1")] });
+  assert.deepEqual(alongside(wide(three)), []);
+  // Six arcs between one session and the last of four people: more than fit at a slot apiece.
+  const crowd = made({ lanes: [lane("l")], people: [0, 1, 2, 3].map(person), sessions: [session("s", "l")], handoffs: [0, 1, 2, 3, 4, 5].map((k) => (k % 2 ? hand(`h${k}`, "s", "p3") : hand(`h${k}`, "p3", "s"))) });
+  const svg = wide(crowd);
+  assert.deepEqual(offTheirCards(svg, crowd), []);
+  assert.deepEqual(alongside(svg), []);
+  // And the people have room for their names, however few lanes there are under them.
+  assert.deepEqual(wordsOf(svg).filter((w) => w.endsWith("…")), []);
+  assert.ok(cardsOf(svg).filter((c) => c.id.startsWith("p")).every((c) => c.w >= 150));
+  // A track at the very end of a card is under it: the arc drops straight, at any width.
+  const ends = made({ lanes: ["l0", "l1", "l2", "l3"].map(lane), people: [0, 1, 2].map(person), sessions: [0, 1, 2, 3].map((i) => session(`s${i}`, `l${i}`)), handoffs: [hand("h0", "s2", "s3"), hand("h1", "p2", "s3")] });
+  for (const room of [800, 820, 840]) {
+    const uprights = arcsOf(wide(ends, { width: room })).find((a) => a.id === "h1")!.runs.filter((r) => upright(r) && Math.abs(r[3] - r[1]) > 0.5);
+    assert.equal(new Set(uprights.map((r) => r[0])).size, 1, `in ${room} the arc jogs sideways on its way down`);
+  }
+  // A person who hands to themself twice has two arcs, one outside the other.
+  const twice = made({ lanes: [lane("l")], people: [person(0)], sessions: [session("s", "l")], handoffs: [hand("h0", "p0", "p0"), hand("h1", "p0", "p0"), hand("h2", "p0", "s")] });
+  assert.deepEqual(alongside(wide(twice)), []);
+  assert.deepEqual(offTheirCards(wide(twice), twice), []);
+});
+
+test("a map of people and no lanes keeps its arcs above its list", () => {
+  const map = made({ lanes: [], people: [person(0), person(1)], sessions: [], handoffs: [hand("h0", "p0", "p1"), hand("h1", "p1", "p0"), hand("h2", "p0", "p1")] });
+  const svg = wide(map);
+  whole("no lanes", svg, map);
+  const list = Math.min(...boxes(svg, /<g data-handoff-row="([^"]+)"><rect data-row="" x="([-\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"/g).map((r) => r.y));
+  for (const arc of arcsOf(svg)) for (const run of arc.runs) assert.ok(Math.max(run[1], run[3]) < list, `${arc.id} reaches ${Math.max(run[1], run[3])}, and the list starts at ${list}`);
+  assert.deepEqual(alongside(svg), []);
+});
+
+/** A map made from a seed: lanes, people and sessions in any number, and handoffs between any two ends. */
+function seeded(seed: number): OperationMap {
+  let s = seed >>> 0;
+  const next = (): number => {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const upTo = (n: number): number => Math.floor(next() * n);
+  const lanes = Array.from({ length: 1 + upTo(5) }, (_, i) => lane(`l${i}`));
+  const people = Array.from({ length: upTo(4) }, (_, i) => ({ ...person(i), ...(next() < 0.5 ? { role: "Says yes or no, and carries what the sessions cannot reach" } : {}) }));
+  const sessions = Array.from({ length: 1 + upTo(9) }, (_, i) => ({ ...session(`s${i}`, `l${upTo(lanes.length)}`), name: ["Lead", "Worker lanes", "Reviewer", "A session with a long name"][upTo(4)]!, ...(next() < 0.3 ? { count: 2 + upTo(9) } : {}) }));
+  const ends = [...people.map((p) => p.id), ...sessions.map((x) => x.id), ...sessions.map((x) => x.id)]; // a session is twice as likely an end as a person
+  const handoffs = Array.from({ length: 2 + upTo(12) }, (_, i) => {
+    const from = ends[upTo(ends.length)]!;
+    const to = next() < 0.06 && from.startsWith("s") ? from : ends[upTo(ends.length)]!;
+    return { ...hand(`h${i}`, from, to), what: "a piece of the work" };
+  });
+  return made({ lanes, people, sessions, handoffs });
+}
+
+test("three hundred maps made from seeds draw whole, side by side and as a sequence, at four widths", () => {
+  let along = 0;
+  for (let seed = 1; seed <= 300; seed++) {
+    const map = seeded(seed);
+    for (const room of [undefined, 1400, 900, 500]) {
+      const name = `seed ${seed}, in ${room ?? "its own width"}`;
+      const svg = wide(map, room === undefined ? {} : { width: room });
+      whole(name, svg, map);
+      assert.equal(arcsOf(svg).length, map.handoffs.length, name);
+      assert.deepEqual(overCards(svg), [], name);
+      assert.deepEqual(offTheirCards(svg, map), [], name);
+      const [width, height] = sizeOf(svg);
+      for (const arc of arcsOf(svg)) for (const run of arc.runs) assert.ok(Math.min(run[0], run[2]) >= 0 && Math.max(run[0], run[2]) <= width && Math.max(run[1], run[3]) <= height, `${name}: ${arc.id} leaves the picture`);
+      if (alongside(svg).length > 0) along++;
+      whole(name, mapSequence(map, { theme: "light", ...(room === undefined ? {} : { width: room }) }), map);
+    }
+  }
+  // Two arcs along one line is the one fault left, where two people hand to each other again and again and their
+  // cards have no more places: 3 of these 1,200 pictures on the day this was written. It may not grow unseen.
+  assert.ok(along <= 6, `${along} of 1,200 pictures have two arcs along one line`);
 });
 
 // ─── the sequence ─────────────────────────────────────────────────────────
@@ -309,6 +427,35 @@ test("a width gives the sequence's words more room or less; its columns stay as 
 
 // ─── what both must survive, and what is kept ─────────────────────────────
 
+test("the two views are behind a door of their own: core's first door does not lead to them, and they lead nowhere", () => {
+  // The web app starts from base.ts and a bundler follows every import (decision 0021), so a page that draws no
+  // map would carry the views if any file base.ts reaches imported them.
+  const src = join(repoRoot, "packages", "core", "src");
+  const runtimeImports = (file: string): string[] => [...read(file).matchAll(/^(?:import|export)\s+(?!type\b)[^;]*?from\s+"(\.[^"]+)\.js"/gms)].map((m) => join(file, "..", `${m[1]}.ts`));
+  const reached = new Set<string>();
+  const follow = (file: string): void => {
+    if (reached.has(file)) return;
+    reached.add(file);
+    for (const next of runtimeImports(file)) follow(next);
+  };
+  follow(join(src, "base.ts"));
+  assert.ok(reached.size > 20 && reached.has(join(src, "picture", "map-picture.ts")) && reached.has(join(src, "picture", "map-kit.ts")), "base.ts was not followed");
+  for (const door of ["map-views.ts", "map-wide.ts", "map-sequence.ts"]) assert.ok(!reached.has(join(src, "picture", door)), `base.ts leads to picture/${door}`);
+  // And the views import nothing but types: what they share with the rest of core is handed to them (map-kit.ts).
+  // When they imported it, the bundler cut the file every address loads in two.
+  const behind = new Set<string>();
+  const walk = (file: string): void => {
+    if (behind.has(file)) return;
+    behind.add(file);
+    for (const next of runtimeImports(file)) walk(next);
+  };
+  walk(join(src, "picture", "map-views.ts"));
+  assert.deepEqual([...behind].map((f) => f.slice(src.length + 1)).sort(), ["picture/map-kit-open.ts", "picture/map-sequence.ts", "picture/map-views.ts", "picture/map-wide.ts"]);
+  for (const file of behind) assert.ok(!reached.has(file), `${file} is on both sides of the door`);
+  // In Node the whole of core has them, with their parts already in hand.
+  assert.equal(mapWide(sample("two-sessions"), { theme: "light" }).slice(0, 4), "<svg");
+});
+
 test("a map with errors, with nothing to hand, or with an empty lane still draws both ways", () => {
   const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : f.endsWith(".grooph-map.json") ? [join(dir, f)] : []));
   let drawn = 0;
@@ -348,7 +495,7 @@ test("the committed pictures of both views are what the code draws, light and da
     assert.equal(map.id, id);
     for (const theme of ["light", "dark"] as const) {
       for (const [view, flags, svg] of [
-        ["wide", "--layout wide", wide(map, { theme })],
+        ["wide", "--layout wide", mapWide(map, { theme })],
         ["sequence", "--view sequence", mapSequence(map, { theme })],
       ] as const) {
         const file = join(mapsDir, "pictures", `${id}.${view}.${theme}.svg`);

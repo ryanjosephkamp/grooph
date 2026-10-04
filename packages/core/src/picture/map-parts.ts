@@ -114,7 +114,8 @@ export function placeNumber(x: number, y1: number, y2: number, half: number, of:
     let least = Infinity;
     // Two numbers on neighboring tracks keep a clear gap between their rings, so they do not read as one cluster.
     for (const b of placed) if (Math.abs(b.x - x) <= b.half + half + 1) least = Math.min(least, Math.abs(b.y - at) - (2 * BADGE_R + NUMBER_GAP));
-    for (const l of levels) if (l.of !== of && l.to >= x - half - 1 && l.from <= x + half + 1) least = Math.min(least, Math.abs(l.y - at) - (BADGE_R + 2.5));
+    // Written as two refusals, so that a width that is no number refuses nothing, as before the parts were shared.
+    for (const l of levels) if (l.of !== of && !(l.to < x - half - 1) && !(l.from > x + half + 1)) least = Math.min(least, Math.abs(l.y - at) - (BADGE_R + 2.5));
     return least;
   };
   const mid = (y1 + y2) / 2;
@@ -272,8 +273,7 @@ export function laneHead(lane: Lane, x: number, width: number, y: number, ink: I
   const headW = width - 2;
   const placeLabel = lane.place ?? "";
   const place = placeLabel ? pill(0, 0, placeLabel, { size: 9.5, fill: ink("surface"), ink: ink("ink-2"), stroke: ink("line-strong") }) : undefined;
-  // On the phone's picture every line of the name stops short of the place; given more lines, only the first does.
-  wrap(lane.name || lane.id, (line) => headW - (place && (line === 0 || !more) ? place.width + 8 : 0), 12.5, 2 + more, "bold").forEach((line, k) => {
+  wrap(lane.name || lane.id, headW - (place ? place.width + 8 : 0), 12.5, 2 + more, "bold").forEach((line, k) => {
     if (k > 0) y += 15;
     svg.push(text(x + 2, y, line, { size: 12.5, fill: ink("ink"), weight: "bold" }));
     // The place sits at the column's right edge, on the name's first line, wherever the name ends.
