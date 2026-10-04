@@ -1,5 +1,5 @@
 import { sharePayloadFrom } from "@grooph/core";
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 
 import type { TemplateSource } from "./doc/templates.js";
 import "./store/persist.js";
@@ -13,6 +13,9 @@ import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
 import { TemplateView } from "./ui/templates/TemplateView.js";
 import { UseTemplate } from "./ui/templates/UseTemplate.js";
 
+/** The embed, fetched only when a route asks for it (slice 0056 keeps it out of the app's own load). */
+const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ default: m.EmbedApp })));
+
 type Route =
   | { name: "library" }
   | { name: "about" }
@@ -22,6 +25,7 @@ type Route =
   | { name: "live" }
   | { name: "run"; key: string }
   | { name: "templates" }
+  | { name: "embed" }
   | { name: "template"; source: TemplateSource; id: string; use: boolean };
 
 /**
@@ -53,6 +57,7 @@ function parse(hash: string): Route {
   if (run) return { name: "run", key: decodeKey(run[1]!) };
   if (hash === "#/about") return { name: "about" };
   if (hash === "#/templates") return { name: "templates" };
+  if (hash === "#/embed" || hash.startsWith("#/embed?")) return { name: "embed" };
   const template = /^#\/templates\/(built-in|yours)\/([^/?]+)(\/use)?$/.exec(hash);
   if (template) return { name: "template", source: template[1] as TemplateSource, id: decodeKey(template[2]!), use: template[3] !== undefined };
   const graph = /^#\/g\/([^/?]+)(\?new)?$/.exec(hash);
@@ -82,6 +87,15 @@ export function App() {
   if (route.name === "run") return <StoredRun key={route.key} runKey={route.key} />;
   if (route.name === "about") return <Landing />;
   if (route.name === "templates") return <TemplatesScreen />;
+  // Reached from inside the app (a page opened on `#/embed` is drawn by main.tsx without the app at all): the embed
+  // is fetched then, so the app itself never carries it.
+  if (route.name === "embed") {
+    return (
+      <Suspense fallback={null}>
+        <EmbedApp />
+      </Suspense>
+    );
+  }
   if (route.name === "template") {
     const key = `${route.source}/${route.id}`;
     return route.use ? <UseTemplate key={key} source={route.source} id={route.id} /> : <TemplateView key={key} source={route.source} id={route.id} />;
