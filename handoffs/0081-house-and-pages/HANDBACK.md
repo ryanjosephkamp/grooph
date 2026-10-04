@@ -1,6 +1,6 @@
 # Handback 0081 · The house in order, and the pages the site is missing
 
-**Implementer:** Opus 5.5, the house lane (a session the owner started; assigned and run by the driver) · **Branch:** `slice/0081-house-and-pages` holds this file only; each item has a branch and a pull request of its own, listed below · **Head commit:** the commit that adds this file, on `main` at `cad617b` · **Date:** 2026-10-04
+**Implementer:** Opus 5.5, the house lane (a session the owner started; assigned and run by the driver) · **Branch:** `slice/0081-house-and-pages` holds this file only; each item has a branch and a pull request of its own, listed below · **Head commit:** the commit that last changed this file (the first version merged with #55; this one is in #56) · **Date:** 2026-10-04
 
 ## Status
 
@@ -172,5 +172,5 @@ The cache is per branch until one exists on `main`. #53's merge run on `main` ma
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0081 is at handoffs/0081-house-and-pages/HANDBACK.md on branch slice/0081-house-and-pages (one commit on main at cad617b; its pull request names it). Status: done. Seven items in eight pull requests: #47, #48, #49, #50, #51 and #53 are merged; #52 (privacy, releases, contributing) is corrected as you asked (head 9b24d11) and green; #54 (the FAQ, stacked on #52, head 0529703) is green and waits for the owner and the audit lane. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0081 is at handoffs/0081-house-and-pages/HANDBACK.md on branch slice/0081-house-and-pages (its first version merged with #55; the version brought up to date after the privacy correction is in #56). Status: done. Seven items in eight pull requests: #47, #48, #49, #50, #51 and #53 are merged; #52 (privacy, releases, contributing) is corrected as you asked (head 9b24d11) and green; #54 (the FAQ, stacked on #52, head 0529703) is green and waits for the owner and the audit lane. Please reconcile with the grooph-reconcile skill.
 ```
