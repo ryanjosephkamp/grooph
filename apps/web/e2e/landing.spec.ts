@@ -316,12 +316,14 @@ test("the front page plays a recorded run when asked, in the picture's place, an
 
 test("the front page loads without the canvas screens and fetches them once it is up; a template's address asks for them at once", async ({ page }) => {
   // Slice 0069: index.html names what an address needs before the entry script runs.
-  // When the screens were asked for, against when the entry script and the app's own module had arrived.
+  // When the screens were asked for, against when the app's own module had arrived. The page asks for both in one
+  // breath when the address needs the screens, so they are asked for before the app's module can have come back;
+  // otherwise the app asks for them itself, once it has run.
   const asked = () =>
     page.evaluate(() => {
       const entries = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
       const one = (pattern: RegExp) => entries.find((e) => pattern.test(e.name))!;
-      return { screens: one(/\/assets\/screens-[^/]*\.js/).startTime, entry: one(/\/assets\/index-/).responseEnd, app: one(/\/assets\/App-[^/]*\.js/).responseEnd };
+      return { screens: one(/\/assets\/screens-[^/]*\.js/).startTime, app: one(/\/assets\/App-[^/]*\.js/).responseEnd };
     });
   const arrived = () => page.waitForFunction(() => performance.getEntriesByType("resource").some((e) => /\/assets\/screens-[^/]*\.js/.test(e.name)));
 
@@ -337,7 +339,7 @@ test("the front page loads without the canvas screens and fetches them once it i
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
   await arrived();
   const template = await asked();
-  expect(template.screens).toBeLessThan(template.entry);
+  expect(template.screens).toBeLessThan(template.app);
   // Slice 0070: neither address fetches the compiler. The editor does, once it is up, and the Export panel if it is first.
   expect(await page.evaluate(() => performance.getEntriesByType("resource").filter((e) => /\/assets\/compile-/.test(e.name)).length)).toBe(0);
 });
