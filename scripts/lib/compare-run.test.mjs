@@ -1,13 +1,14 @@
-// The runner's pure parts (handoff 0016, criteria 1 and 6): the ledger's rules, the alternation,
-// the judge's letters and the diff it sees. Run with: node --test scripts/lib/compare-run.test.mjs
+// The runner's pure parts (handoffs 0016 and 0019): the ledger's rules and its tripwires, the alternation
+// over three arms and over four, the tier map, the judge's letters and what it sees.
+// Run with: node --test scripts/lib/compare-run.test.mjs
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { gate, loadLedger, openRunEntry, runLabel, settleEntry, totals } from "./compare-ledger.mjs";
-import { ARMS, drawLetters, judgePrompt, judgedDiff, nextRun, runDirs, shuffle } from "./compare-run.mjs";
+import { gate, loadLedger, openRunEntry, passedMarks, projectStop, runLabel, saveLedger, setCap, settleEntry, totals, tripwireNotice } from "./compare-ledger.mjs";
+import { ARMS, NEVER, PROTOCOLS, drawLetters, judgePrompt, judgedDiff, neverUsed, nextRun, parseTierMap, resolveTierMap, runDirs, shuffle, tierMapText } from "./compare-run.mjs";
 
 const fresh = () => loadLedger(join(tmpdir(), "no-such-ledger.json"));
 
@@ -88,21 +89,134 @@ test("the alternation A1 B1 C1 A2 B2 C2 follows what is on disk", () => {
     mark("C-2");
     assert.equal(nextRun(proj), null);
     assert.deepEqual(Object.keys(runDirs(dir)).sort(), ["A-1", "A-2", "B-1", "B-2", "C-1", "C-2"]);
-    assert.deepEqual(ARMS, ["A", "B", "C"]);
+    assert.deepEqual(PROTOCOLS[1].arms, ["A", "B", "C"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("the judge's letters are never the arms' names and come in random order", () => {
+test("protocol version 2 alternates A1 B1 C1 D1 A2 B2 C2 D2", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-alt-"));
+  try {
+    const proj = { dir, replicates: 2, arms: PROTOCOLS[2].arms };
+    const mark = (name) => {
+      mkdirSync(join(dir, name));
+      writeFileSync(join(dir, name, "result.json"), "{}");
+    };
+    const order = [];
+    for (let next = nextRun(proj); next; next = nextRun(proj)) {
+      order.push(`${next.arm}${next.replicate}`);
+      mark(`${next.arm}-${next.replicate}`);
+    }
+    assert.deepEqual(order, ["A1", "B1", "C1", "D1", "A2", "B2", "C2", "D2"]);
+    assert.equal(Object.keys(runDirs(dir)).length, 8);
+    assert.deepEqual(ARMS, ["A", "B", "C", "D"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the two studies' models are apart, study one is closed, and no version names Fable for a new call", () => {
+  assert.deepEqual({ lead: PROTOCOLS[1].lead_model, judge: PROTOCOLS[1].judge_model, closed: PROTOCOLS[1].closed }, { lead: "claude-opus-5", judge: "claude-fable-5-1", closed: true });
+  assert.deepEqual({ lead: PROTOCOLS[2].lead_model, judge: PROTOCOLS[2].judge_model, closed: PROTOCOLS[2].closed }, { lead: "claude-opus-5-5", judge: "claude-opus-5-5", closed: false });
+  for (const version of Object.values(PROTOCOLS).filter((v) => !v.closed)) {
+    assert.ok(!NEVER.test(version.lead_model) && !NEVER.test(version.judge_model));
+  }
+});
+
+test("the tier map: every tier named, never Fable, pre-registered before a paid run, and the environment may not contradict it", () => {
+  assert.deepEqual(parseTierMap("frontier=a, strong=b,fast=c"), { frontier: "a", strong: "b", fast: "c" });
+  assert.equal(parseTierMap(""), null);
+  assert.equal(parseTierMap(undefined), null);
+  assert.throws(() => parseTierMap("best=a"), /not a tier/);
+  assert.throws(() => parseTierMap("strong=a,strong=b"), /named twice/);
+  assert.throws(() => parseTierMap("strong="), /needs a model name/);
+  assert.equal(tierMapText({ fast: "c", frontier: "a", strong: "b" }), "frontier=a,strong=b,fast=c", "one spelling, whatever order it was given in");
+
+  const registered = { frontier: "claude-opus-5-5", strong: "claude-sonnet-5-5", fast: "claude-haiku-4-5-20251001" };
+  const text = tierMapText(registered);
+  // Not pre-registered: nothing paid starts; a dry run may borrow one from the environment and says it is provisional.
+  assert.match(resolveTierMap({ registered: null, envText: text, paid: true }).error, /not pre-registered/);
+  assert.match(resolveTierMap({ registered: null, envText: undefined, paid: false }).error, /GROOPH_MODELS=/);
+  const provisional = resolveTierMap({ registered: null, envText: text, paid: false });
+  assert.equal(provisional.provisional, true);
+  assert.equal(provisional.text, text);
+  // Pre-registered: it is the map, with or without the environment saying the same.
+  assert.deepEqual(resolveTierMap({ registered, envText: undefined, paid: true }).map, registered);
+  assert.equal(resolveTierMap({ registered, envText: "fast=claude-haiku-4-5-20251001,strong=claude-sonnet-5-5,frontier=claude-opus-5-5", paid: true }).provisional, false);
+  assert.match(resolveTierMap({ registered, envText: "frontier=claude-opus-5-5,strong=claude-opus-5-5,fast=claude-sonnet-5-5", paid: true }).error, /differs from the pre-registered/);
+  // Every tier, and never the models this study does not use.
+  assert.match(resolveTierMap({ registered: { frontier: "claude-opus-5-5", strong: "claude-sonnet-5-5" }, envText: undefined, paid: true }).error, /fast missing/);
+  assert.match(resolveTierMap({ registered: null, envText: "frontier=fable,strong=opus,fast=sonnet", paid: false }).error, /never uses: frontier=fable/);
+  assert.match(resolveTierMap({ registered: { ...registered, frontier: "claude-fable-5-1" }, envText: undefined, paid: true }).error, /never uses/);
+  assert.match(resolveTierMap({ registered: null, envText: "frontier=opus;strong=sonnet", paid: false }).error, /GROOPH_MODELS/);
+  // What a run reported, by the harness's count or by a transcript.
+  assert.deepEqual(neverUsed({ "claude-opus-5-5": {}, "claude-sonnet-5-5": {} }, { lead: ["claude-opus-5-5"] }), []);
+  assert.deepEqual(neverUsed({ "claude-opus-5-5": {} }, { critic: ["claude-fable-5-1"] }), ["claude-fable-5-1"]);
+});
+
+test("the cap lifted: no countdown, the ceiling stays, the total's marks are said and a project stops and asks", () => {
+  const ledger = fresh();
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-ledger-"));
+  try {
+    const spend = (project, cost, arm = "A", replicate = 1) => {
+      const e = openRunEntry(ledger, { project, arm, replicate, kind: "kickoff", maxBudget: 9 });
+      settleEntry(e, { status: "ok", cost_usd: cost });
+    };
+    spend("old", 60.62);
+    assert.throws(() => setCap(ledger, { to: null, by: "owner" }), /needs its tripwires/);
+    assert.throws(() => setCap(ledger, { to: 150 }), /who decided/);
+    const line = setCap(ledger, { to: null, by: "owner, 2026-10-04", notifyEvery: 50, projectStop: 60, on: "2026-10-04" });
+    assert.deepEqual(line, { from_usd: 100, to_usd: null, on: "2026-10-04", by: "owner, 2026-10-04", tripwire: { notify_every_usd: 50, project_stop_usd: 60 } });
+    assert.equal(ledger.cap_history.length, 2);
+    assert.deepEqual(totals(ledger), { spent: 60.62, remaining: Infinity });
+    // Saved, the ledger is plain JSON: no cap, nothing remaining to count.
+    const path = join(dir, "ledger.json");
+    saveLedger(ledger, path);
+    const saved = loadLedger(path);
+    assert.equal(saved.cap_usd, null);
+    assert.equal(saved.remaining_usd, null);
+    assert.equal(saved.spent_usd, 60.62);
+    // The ceiling per invocation stays.
+    let d = gate(ledger, { project: "p", arm: "A", replicate: 1, kind: "kickoff" });
+    assert.equal(d.ok, true);
+    assert.equal(d.maxBudget, 9);
+    // The total's marks: each multiple of 50 it passes, once.
+    assert.deepEqual(passedMarks(ledger, 60.62, 99.99), []);
+    assert.deepEqual(passedMarks(ledger, 99.99, 100), [100]);
+    assert.deepEqual(passedMarks(ledger, 96, 152), [100, 150]);
+    spend("p", 38);
+    assert.equal(tripwireNotice(ledger, 60.62), "");
+    spend("p", 2, "B");
+    assert.match(tripwireNotice(ledger, 98.62), /passed \$100\.00 \(\$100\.62 spent in all\): tell the driver/);
+    // One project past its stop starts no new run, until someone says it may; a run under way finishes.
+    assert.deepEqual(projectStop(ledger, "p"), { spent: 40, limit: 60, passed: false });
+    spend("p", 20.5, "C");
+    assert.equal(projectStop(ledger, "p").passed, true);
+    d = gate(ledger, { project: "p", arm: "D", replicate: 1, kind: "kickoff" });
+    assert.equal(d.ok, false);
+    assert.match(d.reason, /past the \$60\.00 at which one project stops and asks/);
+    assert.equal(gate(ledger, { project: "p", arm: "judge", replicate: null, kind: "kickoff" }).ok, false, "the judge's call is a new run too");
+    assert.equal(gate(ledger, { project: "p", arm: "C", replicate: 1, kind: "iteration" }).ok, true, "an iteration of a run under way is not a new run");
+    assert.equal(gate(ledger, { project: "q", arm: "A", replicate: 1, kind: "kickoff" }).ok, true, "another project is not stopped");
+    assert.equal(projectStop(ledger, "old").passed, true, "any project past the mark, an old one too");
+    ledger.project_stop_lifted = { p: { to_usd: 90, on: "2026-10-04", by: "driver" } };
+    assert.equal(gate(ledger, { project: "p", arm: "D", replicate: 1, kind: "kickoff" }).ok, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the judge's letters are never the arms' names (A to D) and come in random order", () => {
   let seed = 7;
   const random = () => {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  const letters = drawLetters(6, random);
-  assert.equal(new Set(letters).size, 6);
-  for (const l of letters) assert.ok(!["A", "B", "C"].includes(l), l);
+  const letters = drawLetters(8, random);
+  assert.equal(new Set(letters).size, 8);
+  for (let i = 0; i < 200; i += 1) for (const l of drawLetters(8)) assert.ok(!["A", "B", "C", "D"].includes(l), l);
+  for (const l of letters) assert.ok(!["A", "B", "C", "D"].includes(l), l);
   const order = shuffle(["A-1", "B-1", "C-1", "A-2", "B-2", "C-2"], random);
   assert.deepEqual([...order].sort(), ["A-1", "A-2", "B-1", "B-2", "C-1", "C-2"]);
   assert.notDeepEqual(order, ["A-1", "B-1", "C-1", "A-2", "B-2", "C-2"]);
@@ -125,4 +239,15 @@ test("the judge sees only the deliverable paths, with the tool's name redacted",
   assert.ok(prompt.includes("(no change to the deliverable paths)"));
   assert.ok(prompt.includes('"ranking": ["Q", "M"]'));
   assert.ok(!/\barm\b/i.test(prompt), "the prompt never says which arm");
+  assert.ok(!/renders/.test(prompt), "a project with no rendered artifact gets study one's prompt, word for word");
+});
+
+test("a project that names a rendered artifact shows the judge what each candidate renders, and says when there is none", () => {
+  const proj = { slots: { values: { task: "Polish the statement." } }, expect: { judge: { artifact: { command: "npm run render", path: "out/statement.txt" } } } };
+  const prompt = judgePrompt({ proj, taskFiles: [{ path: "STYLE.md", text: "# style" }], candidates: [{ letter: "Q", diff: "diff --git a/src/x b/src/x\n+x\n", artifact: "Total due   3,580.78\n" }, { letter: "M", diff: "", artifact: null }] });
+  assert.ok(prompt.includes("### What candidate Q renders"));
+  assert.ok(prompt.includes("Total due   3,580.78"));
+  assert.ok(prompt.includes("the render command failed on this candidate's tree"));
+  assert.ok(prompt.includes("the output of `npm run render` on its final tree (`out/statement.txt`)"));
+  assert.ok(!/\barm\b/i.test(prompt));
 });

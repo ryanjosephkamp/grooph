@@ -18,7 +18,8 @@
  *   3. each loop and its stops restated as one sentence of prose, from the
  *      graph document ("repeat until …, at most 4 rounds, at most 10 dispatches").
  *   4. each human gate restated as "stop and report when you reach this point;
- *      do not merge".
+ *      do not proceed past it" (protocol version 2; study one's prompts, which
+ *      are records, end "do not merge").
  *   5. the held-out folder is named exactly where the package names it (the task
  *      text, a checklist): nothing is added or removed, and `derive()` reports
  *      how many times it appears in the package and in the prompt.
@@ -30,6 +31,11 @@
  * committed beside the prompt for a reader; both come from here so they cannot
  * drift. An iteration says whether it is done on its last line
  * (`done: yes` | `done: no`), which is how the runner reads "the reply says done".
+ *
+ * Arm D (protocol version 2, §1) gets none of this: `deriveD` writes its prompt
+ * from the project's task folder alone — the task text, the acceptance files
+ * and the test command — and never reads the package, so no role, routing,
+ * loop or brief can reach it.
  *
  *   node scripts/lib/compare-prompt.mjs <scratch project> [--held-out <path>]   print the prompt
  */
@@ -216,11 +222,12 @@ function stopClause(stop) {
     case "budget":
       return `at most ${stop.limit} ${stop.measure}`;
     case "diminishing-returns":
-      return `stop when ${stop.rounds} rounds in a row add no ${stop.metric ?? "progress"}`;
+      // A named metric is something the rounds should move ("major gaps remaining"); without one, the rounds should add progress.
+      return stop.metric ? `stop when ${stop.rounds} rounds in a row bring no improvement in ${stop.metric}` : `stop when ${stop.rounds} rounds in a row add no progress`;
     case "evidence-invalid":
       return `stop after ${stop.n ?? 2} invalid-evidence verdicts`;
     case "human":
-      return `stop and ask ${stop.at ? `at ${tick(stop.at)}` : "the human"}`;
+      return `stop and ask ${stop.at ? `at ${tick(stop.at)}` : "the human"}${stop.every ? ` every ${stop.every} rounds` : ""}`;
     default:
       return `stop: ${stop.kind}`;
   }
@@ -237,10 +244,11 @@ export function loopSentence(doc, loop) {
   return `Loop ${tick(loop.id)} (members ${list(loop.members)}; ${round}): repeat until ${passCondition(doc, loop)}${judged}${caps}.`;
 }
 
-/** Rule 4: one line per human gate. */
+/** Rule 4: one line per human gate, in the words of protocol version 2 (decision 0012; version 1 ended "do not merge"). */
+export const GATE_SENTENCE = "stop and report when you reach this point; do not proceed past it.";
 export function gateSentence(node) {
   const prompt = node.prompt ? ` — ${node.prompt.trim().replace(/\.$/, "")}` : "";
-  return `${tick(node.id)} (${node.name ?? node.id})${prompt}: stop and report when you reach this point; do not merge.`;
+  return `${tick(node.id)} (${node.name ?? node.id})${prompt}: ${GATE_SENTENCE}`;
 }
 
 // ── the agent briefs ─────────────────────────────────────────────────────
@@ -334,6 +342,51 @@ export function derive(pkg, { heldOut } = {}) {
   return { prompt, report };
 }
 
+// ── arm D: the task alone ────────────────────────────────────────────────
+
+/** Words that would carry a role, a routing or a loop into arm D's prompt. The task text of a version-2 project is written without them, and the runner refuses a prompt that has one. */
+export const DESIGN_WORDS = /\b(?:critics?|builders?|reviewers?|sub-?agents?|dispatch(?:es|ed|ing)?|loops?|briefs?|lead|(?:human|merge) gate)\b/gi;
+
+/**
+ * Arm D's prompt (protocol version 2, §1): the task, its acceptance material and
+ * the test command, with no roles, routing, loop or briefs. Built from the
+ * project's task folder alone: `task` and `testCommand` as the project states
+ * them, `acceptance` the files in the task folder that say what the result must
+ * satisfy (the same files the blind judge is given). The held-out suite is
+ * named to nobody in this arm, so a prompt that names it is refused by the
+ * runner (`report.held_out_named`). Returns { prompt, report }.
+ */
+export function deriveD({ task, testCommand, acceptance, heldOutMarks = [] }) {
+  const files = (acceptance ?? []).map(tick);
+  const material =
+    files.length === 0
+      ? "The task above is all of it."
+      : `${files.length === 1 ? `${files[0]} in this project says` : `${files.slice(0, -1).join(", ")} and ${files[files.length - 1]} in this project say`} what the result must satisfy. Read ${files.length === 1 ? "it" : "them"} before you start.`;
+  const prompt = `# Task
+
+${task.trim()}
+
+# Acceptance material
+
+${material}
+
+# Test command
+
+\`${testCommand}\`
+
+Done when the task is done, everything the acceptance material asks for holds, and \`${testCommand}\` passes. Work in this project folder, and end by saying what you changed.
+`;
+  const report = {
+    arm: "D",
+    from: "the task folder alone: the task text, the acceptance files and the test command",
+    acceptance: acceptance ?? [],
+    design_words: [...new Set([...prompt.matchAll(DESIGN_WORDS)].map((m) => m[0].toLowerCase()))],
+    held_out_named: heldOutMarks.filter((mark) => mark && prompt.includes(mark)),
+    mechanics_left: [...prompt.matchAll(new RegExp(MECHANICS.source, "gi"))].map((m) => m[0]),
+  };
+  return { prompt, report };
+}
+
 /** N for arm C: the main loop's round cap (its `max-iterations`), the largest when there are several loops. */
 export function roundCap(doc) {
   const caps = (doc.loops ?? []).flatMap((loop) => (loop.stops ?? []).filter((s) => s.kind === "max-iterations").map((s) => s.n));
@@ -366,7 +419,7 @@ export function saysDone(reply) {
 }
 
 /** The C loop as a shell script, committed beside the prompt so a reader can see exactly what runs. The runner performs the same loop through the ledger. */
-export function loopScript({ project, n, testCommand }) {
+export function loopScript({ project, n, testCommand, model = "claude-opus-5-5", effort = "high" }) {
   return `#!/usr/bin/env bash
 #
 # Arm C for ${project} (docs/comparisons.md §3): the B prompt piped into a fresh
@@ -396,7 +449,7 @@ for i in $(seq 1 "$N"); do
 
 Iteration $i of $N. Continue from the working tree as it is. Stop when your done check passes. $DONE_LINE" \\
     --permission-mode acceptEdits --output-format json --settings "$(cat "$SETTINGS")" \\
-    --max-budget-usd "$BUDGET" --strict-mcp-config --model claude-opus-5 --effort high \\
+    --max-budget-usd "$BUDGET" --strict-mcp-config --model ${model} --effort ${effort} \\
     > "../$(basename "$SCRATCH").harness/claude-output-$i.json"
   reply="$(node -e 'const o=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(String(o.result??""))' "../$(basename "$SCRATCH").harness/claude-output-$i.json")"
   last="$(printf '%s\\n' "$reply" | sed -e 's/[[:space:]]*$//' | grep -v '^$' | tail -1)"
