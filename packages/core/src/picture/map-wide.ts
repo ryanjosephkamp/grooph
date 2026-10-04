@@ -20,7 +20,6 @@
 import type { Handoff, Id, OperationMap } from "../types.js";
 import {
   BADGE_R,
-  CARD_LEAST,
   M,
   PAD,
   SLOT,
@@ -43,13 +42,14 @@ import {
 } from "./map-parts.js";
 import { assignTracks, fmt, frame, inkFor, rect, text, type MapPictureOptions } from "./svg.js";
 
-const CARD = 184; // a card's width when there is room
-const CARD_MID = 150; // what the cards give up to before the tracks close up
+const CARD = 168; // a card's width when there is room
+const CARD_LOW = 150; // and its least: wider than the phone's, so that a repository's or a model's name is still whole on it
 const LEAD = 9; // from a lane's edge to the first track beside it
 const REACH = 18; // and from the page's margin to the outermost track, so a person's card is above every track
 const GAP = 10; // between two lanes with nothing running between them
 const DECK = 11; // between two level runs above the lanes
 const HEAD = 5.5; // where an arc's line stops short of its end, for the arrowhead
+const MORE = 3; // the lines words may take beyond the phone's: the cards and the list are narrower, and nothing is cut short for it
 const LIST = 290; // the least width of a column of the list
 const LEAST = 340; // and of the whole picture
 
@@ -94,7 +94,7 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
     if (a.lane >= 0 && b.lane >= 0 && a.lane !== b.lane) {
       reached[a.lane]![a.lane < b.lane ? 1 : 0]!++;
       reached[b.lane]![b.lane < a.lane ? 1 : 0]!++;
-    } else if (a.lane < 0 !== b.lane < 0) met[Math.max(a.lane, b.lane)] = true;
+    } else if (a.lane < 0 !== b.lane < 0) met[Math.max(a.lane, b.lane)] = true; // one end is a person
   }
   const personSide = reached.map(([l, r]) => (l! <= r! ? 0 : 1));
   const ownSide = reached.map(([l, r], i) => (met[i] ? 1 - personSide[i]! : r! <= l! ? 1 : 0));
@@ -139,8 +139,8 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   for (const r of runs) if (r.group === 1) r.t = count[r.g]![1]!++;
   const T = count.map((c) => c[0]! + c[1]! + c[2]!);
 
-  // The room: cards at their full width while it lasts, then narrower, then the tracks close up, then the cards
-  // go to their least. Past that the picture is wider than the room, and whole.
+  // The room: cards at their full width while it lasts, then narrower, down to their least; then the tracks close
+  // up. Past that the picture is wider than the room, and whole.
   const steps = T.reduce((sum, t) => sum + Math.max(0, t - 1), 0);
   const lead = (g: number): number => (g === 0 && people.length ? REACH : LEAD); // before a gutter's first track
   const still = (g: number): number => (T[g] ? lead(g) + (g === n && people.length ? REACH : LEAD) : g > 0 && g < n ? GAP : 0); // a gutter's width but for its tracks
@@ -149,8 +149,8 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   let card = CARD;
   if (options.width !== undefined && n > 0) {
     const cardAt = (t: number): number => (options.width! - fixed - steps * t) / n;
-    if (cardAt(TRACK) < CARD_MID && steps) track = clamp((options.width - fixed - n * CARD_MID) / steps, TRACK_MIN, TRACK);
-    card = clamp(cardAt(track), CARD_LEAST, CARD);
+    if (cardAt(TRACK) < CARD_LOW && steps) track = clamp((options.width - fixed - n * CARD_LOW) / steps, TRACK_MIN, TRACK);
+    card = clamp(cardAt(track), CARD_LOW, CARD);
   }
   const gx: number[] = [];
   const lx: number[] = [];
@@ -176,7 +176,7 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   if (people.length > 0) {
     const top = y;
     const pw = (W - 2 * M - 2 * PAD - (people.length - 1) * 8) / people.length;
-    const measured = people.map((p) => personCard(p, pw, 0, ink));
+    const measured = people.map((p) => personCard(p, pw, 0, ink, MORE));
     const ph = Math.max(...measured.map((c) => c.height));
     people.forEach((p, k) => {
       const px = M + PAD + k * (pw + 8);
@@ -215,7 +215,7 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
   const deckY = new Map(level.map((l, k) => [l.arc, lanesTop - 10 - deck.tracks[k]! * DECK]));
 
   // Lanes: their headings on one line, their first cards on another, their boxes to one depth.
-  const heads = lanes.map((lane, i) => laneHead(lane, lx[i]! + PAD, card, lanesTop + PAD + 12, ink));
+  const heads = lanes.map((lane, i) => laneHead(lane, lx[i]! + PAD, card, lanesTop + PAD + 12, ink, MORE));
   const cardsTop = Math.max(lanesTop + PAD, ...heads.map((h) => h.cardsTop));
   const edges = new Map<Id, [End[], End[]]>();
   for (const e of ends) (edges.get(e.id) ?? edges.set(e.id, [[], []]).get(e.id)!)[e.side].push(e);
@@ -225,7 +225,7 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
     let cy = cardsTop;
     for (const s of list) {
       const on = edges.get(s.id) ?? [[], []];
-      const c = sessionCard(map, s, card, Math.max(on[0].length, on[1].length), ink, options);
+      const c = sessionCard(map, s, card, Math.max(on[0].length, on[1].length), ink, options, MORE);
       box.set(s.id, { x: lx[i]! + PAD, y: cy, h: c.height });
       cardSvg.push(c.draw(lx[i]! + PAD, cy));
       cy += c.height + (c.family ? 14 : 8);
@@ -331,7 +331,7 @@ export function mapWide(map: OperationMap, options: MapPictureOptions): string {
     y += 20;
     const columns = clamp(Math.floor((W - 2 * M + 16) / (LIST + 16)), 1, map.handoffs.length);
     const width = (W - 2 * M - (columns - 1) * 16) / columns;
-    const row = (h: Handoff, left: number, top: number) => handoffRow(map, h, numberOf.get(h.id)!, left, top, width, ink);
+    const row = (h: Handoff, left: number, top: number) => handoffRow(map, h, numberOf.get(h.id)!, left, top, width, ink, MORE);
     const heights = map.handoffs.map((h) => row(h, 0, 0).bottom);
     const total = heights.reduce((sum, v) => sum + v, 0);
     let column = 0;

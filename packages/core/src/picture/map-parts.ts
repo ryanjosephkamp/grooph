@@ -144,10 +144,14 @@ export type Measured = { height: number; family: boolean; draw: (x: number, y: n
 /** The height a card needs so that `ends` arc ends fit down one of its edges. */
 const forSlots = (ends: number): number => (ends + 1) * SLOT + 4;
 
-/** A person's card, `width` wide, with room for `ends` arc ends on an edge. It grows with what it has to say, as a session's does. */
-export function personCard(person: Person, width: number, ends: number, ink: Ink): Measured {
+/**
+ * A person's card, `width` wide, with room for `ends` arc ends on an edge. It grows with what it has to say, as a
+ * session's does. `more` is how many lines a name may take beyond the phone's picture's two: a view whose cards
+ * are narrower gives its words more lines rather than cut them short.
+ */
+export function personCard(person: Person, width: number, ends: number, ink: Ink, more = 0): Measured {
   const textW = width - 2 * CARD_PAD;
-  const name = wrap(person.name || person.id, textW, 13.5, 2, "bold");
+  const name = wrap(person.name || person.id, textW, 13.5, 2 + more, "bold");
   const fixed = CARD_PAD + name.length * 16 + CARD_PAD - 3;
   const role = person.role ? wrap(person.role, textW, 11, Math.max(ROLE_LINES, Math.floor((forSlots(ends) - fixed - 2) / 13.5))) : [];
   const own = Math.max(fixed + (role.length ? 2 + role.length * 13.5 : 0), forSlots(ends));
@@ -171,8 +175,11 @@ export function personCard(person: Person, width: number, ends: number, ink: Ink
   };
 }
 
-/** A session's card, `width` wide, with room for `ends` arc ends on an edge; marked with what the hooks saw of it, when given. */
-export function sessionCard(map: OperationMap, session: Session, width: number, ends: number, ink: Ink, options: MapPictureOptions): Measured {
+/**
+ * A session's card, `width` wide, with room for `ends` arc ends on an edge; marked with what the hooks saw of it,
+ * when given. `more` is how many lines its name, its model and its last line may each take beyond the phone's.
+ */
+export function sessionCard(map: OperationMap, session: Session, width: number, ends: number, ink: Ink, options: MapPictureOptions, more = 0): Measured {
   const textW = width - 2 * CARD_PAD;
   const family = (session.count ?? 1) > 1;
   const countLabel = family ? `×${session.count}` : "";
@@ -180,12 +187,12 @@ export function sessionCard(map: OperationMap, session: Session, width: number, 
   const harness = HARNESS_LABEL[session.harness] ?? session.harness;
   const now = options.live?.[session.id];
   // Every line of words is wrapped before the card is sized. The name's first line shares its row with the count.
-  const name = wrap(session.name || session.id, (line) => textW - (family && line === 0 ? countW + 6 : 0), 13.5, 2, "bold");
+  const name = wrap(session.name || session.id, (line) => textW - (family && line === 0 ? countW + 6 : 0), 13.5, 2 + more, "bold");
   // The harness and the model share a line when they fit; otherwise each has its own.
   const together = session.model ? `${harness} · ${session.model}` : harness;
-  const runsOn = !session.model || textWidth(together, 10.5, "bold") <= textW ? [truncate(together, textW, 10.5, "bold")] : [truncate(harness, textW, 10.5, "bold"), ...wrap(session.model, textW, 10.5, 2, "bold")];
+  const runsOn = !session.model || textWidth(together, 10.5, "bold") <= textW ? [truncate(together, textW, 10.5, "bold")] : [truncate(harness, textW, 10.5, "bold"), ...wrap(session.model, textW, 10.5, 2 + more, "bold")];
   const meta = [session.lifetime ? LIFETIME_LABEL[session.lifetime] : undefined, session.repo].filter(Boolean).join(" · ");
-  const metaLines = meta ? wrap(meta, textW, 10, 3) : [];
+  const metaLines = meta ? wrap(meta, textW, 10, 3 + more) : [];
   // A session that sends itself a scheduled message wakes itself: said on its card, with the schedule when the handoff names one.
   const wakes = wakesItself(map, session.id);
   const wakesLines = wakes === undefined ? [] : wrap(wakes === "" ? "wakes itself" : `wakes itself · ${wakes}`, textW - 13, 10, 2, "bold");
@@ -258,20 +265,21 @@ export function sessionCard(map: OperationMap, session: Session, width: number, 
 /**
  * A lane's heading over its cards' column, which starts at `x` and is `width` wide: its name with its place at the
  * column's right edge, then its machine and account. `y` is the baseline of the name's first line. Returns the
- * markup and the top of the first card.
+ * markup and the top of the first card. `more` is how many lines each may take beyond the phone's two and three.
  */
-export function laneHead(lane: Lane, x: number, width: number, y: number, ink: Ink): { svg: string[]; cardsTop: number } {
+export function laneHead(lane: Lane, x: number, width: number, y: number, ink: Ink, more = 0): { svg: string[]; cardsTop: number } {
   const svg: string[] = [];
   const headW = width - 2;
   const placeLabel = lane.place ?? "";
   const place = placeLabel ? pill(0, 0, placeLabel, { size: 9.5, fill: ink("surface"), ink: ink("ink-2"), stroke: ink("line-strong") }) : undefined;
-  wrap(lane.name || lane.id, headW - (place ? place.width + 8 : 0), 12.5, 2, "bold").forEach((line, k) => {
+  // On the phone's picture every line of the name stops short of the place; given more lines, only the first does.
+  wrap(lane.name || lane.id, (line) => headW - (place && (line === 0 || !more) ? place.width + 8 : 0), 12.5, 2 + more, "bold").forEach((line, k) => {
     if (k > 0) y += 15;
     svg.push(text(x + 2, y, line, { size: 12.5, fill: ink("ink"), weight: "bold" }));
     // The place sits at the column's right edge, on the name's first line, wherever the name ends.
     if (k === 0 && place) svg.push(pill(x + width - place.width, y - 0.5, placeLabel, { size: 9.5, fill: ink("surface"), ink: ink("ink-2"), stroke: ink("line-strong") }).svg);
   });
-  for (const line of wrap(`${lane.machine} · ${lane.account}`, headW, 10.5, 3)) {
+  for (const line of wrap(`${lane.machine} · ${lane.account}`, headW, 10.5, 3 + more)) {
     y += 13.5;
     svg.push(text(x + 2, y, line, { size: 10.5, fill: ink("ink-3") }));
   }
@@ -285,9 +293,10 @@ export const carriedBy = (map: OperationMap, h: Handoff): string => (h.carrier ?
 
 /**
  * One handoff as a line of the list, numbered as its arc is: who to whom, what carries it, what is handed.
- * The line starts at (`x`, `top`) and is `width` wide; returns the markup and where the next line starts.
+ * The line starts at (`x`, `top`) and is `width` wide; returns the markup and where the next line starts. `more` is
+ * how many lines each of the three may take beyond the phone's picture's, where the list is in narrower columns.
  */
-export function handoffRow(map: OperationMap, h: Handoff, n: number, x: number, top: number, width: number, ink: Ink): { svg: string; bottom: number } {
+export function handoffRow(map: OperationMap, h: Handoff, n: number, x: number, top: number, width: number, ink: Ink, more = 0): { svg: string; bottom: number } {
   const style = styleOf(h);
   const color = ink(style.color);
   const listX = x + 24;
@@ -296,18 +305,18 @@ export function handoffRow(map: OperationMap, h: Handoff, n: number, x: number, 
   let y = top + 12;
   row.push(numberBadge(x + 8, y - 4, String(n), color, ink));
   const who = h.from === h.to ? `${endName(map, h.from)} → itself` : `${endName(map, h.from)} → ${endName(map, h.to)}`;
-  wrap(who, listW, 12, 2, "bold").forEach((line, k) => {
+  wrap(who, listW, 12, 2 + more, "bold").forEach((line, k) => {
     if (k > 0) y += 14;
     row.push(text(listX, y, line, { size: 12, fill: ink("ink"), weight: "bold" }));
   });
   y += 14;
   row.push(`<path d="M${fmt(listX)},${fmt(y - 3.5)} h18" ${stroke(style, color)}/>`);
-  wrap(carriedBy(map, h), listW - 24, 11, 2, "bold").forEach((line, k) => {
+  wrap(carriedBy(map, h), listW - 24, 11, 2 + more, "bold").forEach((line, k) => {
     if (k > 0) y += 13.5;
     row.push(text(listX + 24, y, line, { size: 11, fill: color, weight: "bold" }));
   });
   if (h.what) {
-    for (const line of wrap(h.what, listW, 11, 4)) {
+    for (const line of wrap(h.what, listW, 11, 4 + more)) {
       y += 13.5;
       row.push(text(listX, y, line, { size: 11, fill: ink("ink-2") }));
     }

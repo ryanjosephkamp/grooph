@@ -167,6 +167,8 @@ test("side by side a map's arcs cross a handful of times, where the phone's one 
     ["the first draft", sample("owner-operation-2026-09-30"), 30, 0],
     ["a person and two sessions", sample("a-person-and-two-sessions"), 2, 0],
   ];
+  // docs/operation-map.md §4 and §4c give the long map's two figures.
+  assert.deepEqual([meetings(arcsOf(mapPicture(long(), { theme: "light" }))).crossings, meetings(arcsOf(wide(long()))).crossings], [118, 3]);
   for (const [name, map, phoneAtLeast, wideAtMost] of counted) {
     const phone = meetings(arcsOf(mapPicture(map, { theme: "light" }))).crossings;
     const side = meetings(arcsOf(wide(map))).crossings;
@@ -223,24 +225,27 @@ test("no session is assumed to be the hub: arcs of every kind between three lane
 });
 
 test("given a room, the cards give way first, then the tracks, and a card is never narrower than its least", () => {
+  const cut = (svg: string): string[] => wordsOf(svg).filter((w) => w.endsWith("…"));
   const map = sample("owner-operation-2026-10-01-with-ryan");
   const cardWidth = (svg: string): number => cardsOf(svg).find((c) => c.id === "operator")!.w;
   const natural = wide(map);
-  assert.equal(cardWidth(natural), 184);
+  assert.equal(cardWidth(natural), 168);
   // More room than it needs changes nothing: the picture is as wide as its lanes make it.
   assert.equal(wide(map, { width: 4000 }), natural);
   // Less: the picture fits the room while its cards can still be read.
-  for (const room of [900, 800, 720]) {
+  for (const room of [900, 820, 760]) {
     const fitted = wide(map, { width: room });
     assert.ok(sizeOf(fitted)[0] <= room + 0.1, `in ${room} it is ${sizeOf(fitted)[0]} wide`);
-    assert.ok(cardWidth(fitted) >= 120 && cardWidth(fitted) < 184);
+    assert.ok(cardWidth(fitted) >= 150 && cardWidth(fitted) < 168);
     assert.deepEqual(overCards(fitted), []);
     assert.equal(meetings(arcsOf(fitted)).shared, 0);
   }
   // Far less: the cards are at their least, and the picture is wider than the room and whole.
   const least = wide(map, { width: 300 });
-  assert.equal(cardWidth(least), 120);
+  assert.equal(cardWidth(least), 150);
   assert.ok(sizeOf(least)[0] > 300);
+  // Even then no word is cut short, on this map or the others: a card's least is wide enough for a repository's name.
+  for (const [name, each] of every()) for (const room of [undefined, 900, 300]) assert.deepEqual(cut(wide(each, room === undefined ? {} : { width: room })), [], `${name}, in ${room ?? "its own width"}`);
   whole("in no room", least, map);
   // The phone's picture does not know the option's other values, and is what it was: the golden files say so.
   assert.equal(mapPicture(map, { theme: "light", width: 400 }), mapPicture(map, { theme: "light" }));
