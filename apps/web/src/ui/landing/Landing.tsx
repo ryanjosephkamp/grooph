@@ -5,6 +5,7 @@ import { copyText } from "../../doc/exportPackage.js";
 import { builtInTemplate } from "../../doc/templates.js";
 import { Glyph, hasLongGlyph } from "../Glyph.js";
 import { templateHref } from "../templates/TemplatesScreen.js";
+import { RunDemo } from "./RunDemo.js";
 
 const SOURCE = "https://github.com/ryanjosephkamp/grooph";
 
@@ -16,6 +17,9 @@ const STRIP = ["grind-loop", "spec-then-loop", "metric-sandwich", "heterogeneous
 
 /** The line to paste into Claude Code; the skill proposes graphs for it. */
 const ASK = "/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
+
+/** The site's own pages (handoff 0060), beside the app. */
+const DOCS = `${import.meta.env.BASE_URL}docs/`;
 
 /**
  * The hero: the review gate as a real graph, its slots filled with the
@@ -47,7 +51,8 @@ export function Landing({ device }: { device?: ReactNode }) {
       <header className="land-bar">
         <h1 className="wordmark">grooph</h1>
         <nav className="land-nav" aria-label="grooph">
-          <a href={`${import.meta.env.BASE_URL}docs/`}>Docs</a>
+          <a href={DOCS}>Docs</a>
+          <a href={`${DOCS}field-guide/`}>Field guide</a>
           <a href={SOURCE} rel="noopener">
             GitHub
           </a>
@@ -71,10 +76,12 @@ export function Landing({ device }: { device?: ReactNode }) {
           </div>
         </div>
         <figure className="land-figure">
-          <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: hero() }} />
-          <figcaption className="muted">
-            The <a href={templateHref("built-in", HERO)}>review gate</a> template, drawn by grooph.
-          </figcaption>
+          <RunDemo>
+            <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: hero() }} />
+            <figcaption className="muted">
+              The <a href={templateHref("built-in", HERO)}>review gate</a> template, drawn by grooph.
+            </figcaption>
+          </RunDemo>
         </figure>
       </section>
 
@@ -100,7 +107,7 @@ export function Landing({ device }: { device?: ReactNode }) {
           <div className="land-way">
             <h3>Ask your agent</h3>
             <p>
-              In Claude Code, with grooph <a href={`${SOURCE}#quickstart`}>installed</a>, describe the work. The session proposes one to three graphs,
+              In Claude Code, with grooph <a href={`${DOCS}quickstart/`}>installed</a>, describe the work. The session proposes one to three graphs,
               sends a link to compare them on your phone, and places the package you pick.
             </p>
             <CopyLine text={ASK} />
@@ -134,6 +141,37 @@ export function Landing({ device }: { device?: ReactNode }) {
               </a>
             </li>
           ))}
+        </ul>
+        <p className="land-guide-line muted">
+          All twenty, with what each one&rsquo;s recorded run showed: <a href={`${DOCS}field-guide/`}>the field guide</a>, and{" "}
+          <a href={`${DOCS}field-guide/poster.svg`}>a poster of the shapes</a>.
+        </p>
+      </section>
+
+      <section className="land-more" aria-labelledby="land-more-title">
+        <h2 id="land-more-title" className="land-h2">
+          More than a drawing
+        </h2>
+        <ul className="land-more-list">
+          <li>
+            <h3>Put a graph on any page</h3>
+            <p>
+              One line of HTML shows a live graph a reader can pan, zoom and tap, or a recorded run that plays. <a href={`${DOCS}exports/`}>How to embed</a>.
+            </p>
+          </li>
+          <li>
+            <h3>See what is running</h3>
+            <p>
+              A hook records when each session and subagent starts and stops, and nothing they say. A screen shows it live.{" "}
+              <a href={`${DOCS}subagents/`}>How it works</a>.
+            </p>
+          </li>
+          <li>
+            <h3>Map work across sessions</h3>
+            <p>
+              Sessions, the people they work with, and what carries work between them, drawn and checked. <a href={`${DOCS}operation-map/`}>Operation maps</a>.
+            </p>
+          </li>
         </ul>
       </section>
 

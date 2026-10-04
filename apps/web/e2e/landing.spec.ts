@@ -285,3 +285,32 @@ test.describe("link-preview image", () => {
     await page.screenshot({ path: join(repoRoot, "apps/web/public/og.png") });
   });
 });
+
+test("the front page plays a recorded run when asked, in the picture's place, and fetches nothing of it before", async ({ page }) => {
+  const asked: string[] = [];
+  page.on("request", (request) => asked.push(new URL(request.url()).pathname));
+  await page.goto("./");
+  const picture = page.getByRole("img", { name: /The review gate template as a graph/ });
+  await expect(picture).toBeVisible();
+  // Before the button is pressed: no run, and none of the embed's own files.
+  expect(asked.some((path) => path.endsWith("/demo/run.txt") || /EmbedApp-/.test(path))).toBe(false);
+
+  await page.getByRole("button", { name: "Watch a recorded run" }).click();
+  const frame = page.frameLocator("iframe.land-run-frame");
+  // The replay's own controls are there: the scrubber, and the run's graph drawn above it.
+  await expect(frame.getByRole("slider")).toBeVisible();
+  await expect(frame.locator("svg [data-node]").first()).toBeVisible();
+  await expect(picture).toBeHidden();
+  expect(asked.some((path) => path.endsWith("/demo/run.txt"))).toBe(true);
+
+  // And back.
+  await page.getByRole("button", { name: "Back to the picture" }).click();
+  await expect(picture).toBeVisible();
+  await expect(page.locator("iframe.land-run-frame")).toHaveCount(0);
+
+  // The front page names the guide and the pages beside the app.
+  await expect(page.getByRole("link", { name: "the field guide" })).toHaveAttribute("href", /\/docs\/field-guide\/$/);
+  await expect(page.getByRole("link", { name: "installed" })).toHaveAttribute("href", /\/docs\/quickstart\/$/);
+  await expect(page.getByRole("heading", { name: "More than a drawing" })).toBeVisible();
+});
+
