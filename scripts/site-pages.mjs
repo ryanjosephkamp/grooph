@@ -104,6 +104,7 @@ const IMAGE_COPY = /\.(?:svg|png|jpe?g|gif|webp|avif|ico|mp4|webm)$/i;
  */
 function resolvers(page, bySource, problems) {
   const assets = new Map(); // name beside the page → absolute source path
+  const wholes = new Map(); // a shorter view's name beside the page → the whole picture's name
   const pathOf = (href) => {
     if (ABSOLUTE.test(href)) return null;
     const bare = href.split("#")[0].split("?")[0];
@@ -131,10 +132,17 @@ function resolvers(page, bySource, problems) {
       return `${github("blob", at.target)}${at.frag}`;
     }
     // A picture a page links to (the poster) is a file of the site, beside the page, as a picture it shows is.
-    if (!statSync(full).isDirectory() && IMAGE_COPY.test(at.target)) return `${image(href.split("#")[0])}${at.frag}`;
+    if (!statSync(full).isDirectory() && IMAGE_COPY.test(at.target)) return `${image(href.split("#")[0], true)}${at.frag}`;
     return `${github(statSync(full).isDirectory() ? "tree" : "blob", at.target)}${at.frag}`;
   };
-  function image(src) {
+  /** Copies a picture beside the page and gives its name there; a second file with the same name gets a number. */
+  const beside = (from) => {
+    let name = basename(from);
+    for (let n = 2; assets.has(name) && assets.get(name) !== from; n += 1) name = `${basename(from, extname(from))}-${n}${extname(from)}`;
+    assets.set(name, from);
+    return encodeURIComponent(name);
+  };
+  function image(src, whole = false) {
     const at = pathOf(src);
     if (at === null) return src;
     const from = join(root, at.target);
@@ -142,13 +150,29 @@ function resolvers(page, bySource, problems) {
       problems.error(`${page.source}: image ${src} is not a file in the repository`);
       return src;
     }
-    // Beside the page, under its own name; a second file with the same name gets a number.
-    let name = basename(at.target);
-    for (let n = 2; assets.has(name) && assets.get(name) !== from; n += 1) name = `${basename(at.target, extname(at.target))}-${n}${extname(at.target)}`;
-    assets.set(name, from);
-    return encodeURIComponent(name);
+    // A long picture with a shorter view beside it (handoff 0077): when `<name>.short.<ext>` stands beside a picture
+    // a page shows, the page shows the short one, and it opens the whole one. A link to the picture is still to all of it.
+    const short = `${from.slice(0, -extname(from).length)}.short${extname(from)}`;
+    if (!whole && existsSync(short)) {
+      const shown = beside(short);
+      wholes.set(shown, beside(from));
+      return shown;
+    }
+    return beside(from);
   }
-  return { link, image, assets };
+  return { link, image, assets, wholes };
+}
+
+/** Each picture shown by its shorter view becomes a link to the whole picture, unless it already stands inside a link. */
+function linkWholes(html, wholes) {
+  for (const [short, whole] of wholes) {
+    html = html.replace(new RegExp(`<img\\b[^>]*\\ssrc="${short.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"[^>]*>`, "g"), (img, at) => {
+      const before = html.slice(0, at);
+      if (before.lastIndexOf("<a ") > before.lastIndexOf("</a>")) return img;
+      return `<a class="whole" href="${whole}">${img}<span>The whole picture</span></a>`;
+    });
+  }
+  return html;
 }
 
 // ─── building ────────────────────────────────────────────────────────────────
@@ -220,8 +244,9 @@ function build(out) {
   const written = [];
   for (const page of pages) {
     const md = readFileSync(join(root, page.source), "utf8");
-    const { link, image, assets } = resolvers(page, bySource, problems);
+    const { link, image, assets, wholes } = resolvers(page, bySource, problems);
     const rendered = renderMarkdown(md, { link, image });
+    rendered.html = linkWholes(rendered.html, wholes);
     for (const d of rendered.diagnostics) problems.error(`${page.source}:${d.line}: ${d.message}`);
     page.title = rendered.title ?? page.slug;
     page.summary = page.summary ?? clip(rendered.summary ?? "", 170);

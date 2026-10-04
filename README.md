@@ -1,11 +1,13 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/review-gate-dark.svg" />
-    <img src="docs/assets/review-gate-light.svg" width="400" alt="A grooph loop graph: a builder and a critic loop for at most four rounds, a person approves the merge, then the work stops." />
-  </picture>
-</p>
-
 # grooph 💮
+
+<picture>
+  <source media="(prefers-reduced-motion: reduce)" srcset="docs/assets/readme-grooph.png">
+  <img src="docs/assets/readme-grooph.gif" width="640" alt="A grooph loop graph running, one step at a time: the builder builds, the critic passes the work, the loop stops because its bar passed, and the run halts at the merge approval for a person to decide.">
+</picture>
+
+[View the animation](https://raw.githubusercontent.com/ryanjosephkamp/grooph/main/docs/assets/readme-grooph.gif) · [View the still picture](docs/assets/readme-grooph.png)
+
+[Website](https://ryanjosephkamp.github.io/grooph/) · [Docs](https://ryanjosephkamp.github.io/grooph/docs/) · [Report a bug or suggest a feature](https://github.com/ryanjosephkamp/grooph/issues)
 
 **Loop graphs for coding agents.** You, or an agent working with you, draw who builds, who checks, where a person decides and when the work stops.
 grooph checks that every loop can end and every critic can actually inspect something, then compiles the graph into a prompt package for Claude Code.
@@ -63,4 +65,12 @@ The same documents as pages: [ryanjosephkamp.github.io/grooph/docs/](https://rya
 - **Community**: loop graphs sent in by pull request, checked and drawn by CI: [`community/`](community/README.md), [`docs/community.md`](docs/community.md).
 - **The product contract**: [`spec/capability-spec.md`](spec/capability-spec.md) with [`spec/AMENDMENTS.md`](spec/AMENDMENTS.md).
 
-Agents entering this repository start at [`AGENTS.md`](AGENTS.md). MIT licensed.
+Agents entering this repository start at [`AGENTS.md`](AGENTS.md).
+
+The picture at the top is the review gate template's recorded run, replayed step by step by the same embed that plays it on any page. `node scripts/readme-picture.mjs` makes it and its still.
+
+## License and author
+
+MIT licensed; see [LICENSE](LICENSE). The site's Atkinson Hyperlegible Next and Mono fonts retain their SIL Open Font License notices in `apps/web/public/assets/fonts/`.
+
+Created by **[Ryan Kamp](https://github.com/ryanjosephkamp/)**. grooph and all its features are free. Optional support never unlocks features or changes functionality.

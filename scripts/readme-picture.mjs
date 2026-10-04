@@ -3,7 +3,7 @@
  * The README's moving picture (handoff 0077): the review gate's recorded run, replayed step by step, as a GIF, and its
  * last step as a still PNG for a reader who asks for less motion.
  *
- *   node scripts/readme-picture.mjs [--run <run folder>] [--port <n>] [--check]
+ *   node scripts/readme-picture.mjs [--run <a proving run's folder>] [--port <n>] [--check]
  *
  * It needs the built app and CLI (`pnpm -r build`), the browser Playwright installs for the app's tests, and `ffmpeg`.
  * It serves apps/web/dist on a port of this machine, asks the CLI for the run's embed address (`grooph embed`, the same
@@ -11,12 +11,14 @@
  * step 0 is the graph before the run, and each later step is one of the lead's notes. Nothing is drawn for the picture
  * that the embed does not draw for a reader.
  *
- * The run is experiments/patterns/review-gate/run, the template's proving run of 20 September 2026. Each step shows
- * for 1.3 s and the last for 4 s, and the GIF loops. `--check` only says whether the two files are there and the GIF is
+ * The run is experiments/patterns/review-gate/run, the template's proving run of 20 September 2026: the builder, the
+ * critic's pass, the loop's stop, and the halt at the merge gate. A proving run is kept as `package/` and `runs/<id>/`
+ * side by side; a copy is laid out the way a project holds it (the run two levels below its graph) for the CLI to
+ * read. Each step shows for 1.3 s and the last for 4 s, and the GIF loops. `--check` only says whether the two files are there and the GIF is
  * under its limit; the pictures are made on request and committed, like the link-preview image.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
@@ -47,8 +49,12 @@ if (args.includes("--check")) {
   process.exit(0);
 }
 
-const runsFolder = join(root, "experiments", "patterns", "review-gate", "run", "runs");
-const run = resolve(option("--run", join(runsFolder, readdirSync(runsFolder).sort()[0])));
+const proving = resolve(option("--run", join(root, "experiments", "patterns", "review-gate", "run")));
+const runId = existsSync(join(proving, "runs")) ? readdirSync(join(proving, "runs")).sort()[0] : undefined;
+if (!runId || !existsSync(join(proving, "package", "graph.grooph.json"))) {
+  console.error(`readme-picture: ${proving} is not a proving run: it has no package/graph.grooph.json or no runs/<id>/.`);
+  process.exit(1);
+}
 const port = Number(option("--port", "4393"));
 if (!existsSync(join(dist, "index.html"))) {
   console.error("readme-picture: apps/web/dist/index.html is not there. Run pnpm -r build first.");
@@ -77,6 +83,10 @@ await new Promise((done) => server.listen(port, "127.0.0.1", done));
 
 const frames = mkdtempSync(join(tmpdir(), "grooph-readme-"));
 try {
+  // The run as a project holds it: runs/<id>/ two levels below the graph it ran.
+  const run = join(frames, "package", "runs", runId);
+  cpSync(join(proving, "package", "graph.grooph.json"), join(frames, "package", "graph.grooph.json"));
+  cpSync(join(proving, "runs", runId), run, { recursive: true });
   // The address `grooph embed` prints for the run, with the embed's own background, in the dark palette.
   const printed = execFileSync(process.execPath, [join(root, "packages", "cli", "bin", "grooph.js"), "embed", run, "--theme", "dark", "--frame", "--base", `http://127.0.0.1:${port}/grooph/`], { encoding: "utf8" });
   const address = /<iframe[^>]*\ssrc="([^"]+)"/.exec(printed)?.[1]?.replace(/&amp;/g, "&");
@@ -84,14 +94,20 @@ try {
 
   const { chromium } = createRequire(join(root, "apps", "web", "package.json"))("@playwright/test");
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: 1, colorScheme: "dark", reducedMotion: "reduce" });
+  // Two device pixels to a CSS pixel, so the picture is sharp on a phone; the README shows it WIDTH wide.
+  const page = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: 2, colorScheme: "dark", reducedMotion: "reduce" });
   await page.goto(address);
   const previous = page.getByRole("button", { name: "Previous step" });
   const next = page.getByRole("button", { name: "Next step" });
   await next.waitFor();
-  // A run opens at its end. Size the window to the whole picture there, then go back to the start.
-  const height = await page.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
-  await page.setViewportSize({ width: WIDTH, height: height + (height % 2) });
+  // A run opens at its end. The picture is as wide as the window and centered in the room above the replay's bar:
+  // take the spare room away, so the window is the picture and its bars and no more. Then go back to the start.
+  const spare = await page.evaluate(() => {
+    const picture = document.querySelector("svg.grooph-picture").getBoundingClientRect();
+    const bar = document.querySelector(".gx-replay").getBoundingClientRect();
+    return Math.max(0, Math.floor(picture.top - 12 + (bar.top - picture.bottom - 12)));
+  });
+  await page.setViewportSize({ width: WIDTH, height: 900 - spare - ((900 - spare) % 2) });
   while (await previous.isEnabled()) await previous.click();
   let count = 0;
   const shoot = async () => {
@@ -114,7 +130,7 @@ try {
   ffmpeg("-f", "concat", "-safe", "0", "-i", list, "-vf", "palettegen=max_colors=96:stats_mode=full", "palette.png");
   ffmpeg("-f", "concat", "-safe", "0", "-i", list, "-i", "palette.png", "-lavfi", "paletteuse=dither=none:diff_mode=rectangle", "-loop", "0", GIF);
   ffmpeg("-i", names[count - 1], "-i", "palette.png", "-lavfi", "paletteuse=dither=none", "-frames:v", "1", STILL);
-  console.log(`readme-picture: ${count} steps of ${run.slice(root.length + 1)}; the GIF is ${kb(GIF)} KB (limit ${GIF_LIMIT_KB} KB), ${WIDTH} px wide, the still ${kb(STILL)} KB.`);
+  console.log(`readme-picture: ${count} steps of ${proving.slice(root.length + 1)}/runs/${runId}; the GIF is ${kb(GIF)} KB (limit ${GIF_LIMIT_KB} KB), drawn ${WIDTH * 2} px wide to show at ${WIDTH}, the still ${kb(STILL)} KB.`);
   if (kb(GIF) > GIF_LIMIT_KB) process.exitCode = 1;
 } finally {
   rmSync(frames, { recursive: true, force: true });

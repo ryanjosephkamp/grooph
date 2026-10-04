@@ -280,3 +280,26 @@ test("--check fails when the app has a theme the pages do not carry", () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a long picture with a shorter view beside it is shown short and opens whole; a link to it is still to all of it", () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';
+  const root = tree({
+    "docs/quickstart.md": '# Quickstart\n\nThe map:\n\n<img src="pictures/map.light.svg" alt="The map" width="400">\n\nAnd ![another](pictures/plain.svg), and [the map itself](pictures/map.light.svg).\n',
+    "docs/pictures/map.light.svg": SVG,
+    "docs/pictures/map.light.short.svg": SVG,
+    "docs/pictures/plain.svg": SVG,
+  });
+  const out = mkdtempSync(join(tmpdir(), "grooph-site-out-"));
+  try {
+    assert.equal(run(root, "--out", out).status, 0);
+    const page = readFileSync(join(out, "docs", "quickstart", "index.html"), "utf8");
+    assert.match(page, /<a class="whole" href="map\.light\.svg"><img src="map\.light\.short\.svg" alt="The map" width="400"><span>The whole picture<\/span><\/a>/);
+    assert.match(page, /<img src="plain\.svg" alt="another" loading="lazy" decoding="async">/);
+    assert.match(page, /<a href="map\.light\.svg">the map itself<\/a>/);
+    for (const name of ["map.light.svg", "map.light.short.svg", "plain.svg"]) assert.ok(existsSync(join(out, "docs", "quickstart", name)), name);
+    assert.equal(run(root, "--check").status, 0, run(root, "--check").stderr);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+});
