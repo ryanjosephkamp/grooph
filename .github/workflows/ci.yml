@@ -97,6 +97,13 @@ jobs:
       - name: no pattern restates a brake value
         run: node scripts/check-brake-values.mjs
 
+      # A picture added under handoffs/, docs/ or apps/web/public/ is at most 150 KB (handoff 0081): a clone carries
+      # every picture ever committed. The ones from before the rule are in scripts/pictures-baseline.json and may not grow.
+      - name: no new picture is over the size rule
+        run: |
+          node --test scripts/check-pictures.test.mjs
+          node scripts/check-pictures.mjs --check
+
       # An agent's route from a name to an exportable graph, through the bundled library only.
       - name: a built-in template instantiates and exports
         env:
