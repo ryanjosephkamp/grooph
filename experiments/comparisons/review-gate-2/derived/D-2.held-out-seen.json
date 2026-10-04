@@ -1,0 +1,9 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "review-gate-2/D-2",
+  "sessions": [
+    "3eafb16f-29e0-49ec-bffd-816efd4d79cb"
+  ],
+  "transcripts_found": 1,
+  "suite_runs": []
+}

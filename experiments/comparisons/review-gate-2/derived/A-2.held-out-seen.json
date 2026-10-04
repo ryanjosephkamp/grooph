@@ -1,0 +1,26 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "review-gate-2/A-2",
+  "sessions": [
+    "89ff0d99-8d88-4def-925b-b1b72708159b"
+  ],
+  "transcripts_found": 5,
+  "suite_runs": [
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:29:02.665Z",
+      "command": "node --test <held-out>/layer-cases.test.mjs",
+      "tests": 55,
+      "pass": 44,
+      "fail": 11
+    },
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:30:56.365Z",
+      "command": "node --test <held-out>/layer-cases.test.mjs",
+      "tests": 55,
+      "pass": 55,
+      "fail": 0
+    }
+  ]
+}
