@@ -22,11 +22,10 @@ export type Way = {
   when?: string;
   /** the loop whose stop leads on (`then`), when the way is that */
   loop?: Id;
-  /**
-   * the way is a brake firing: a round cap, a budget or the stop where a person is asked, leading to a human gate or
-   * to a stop that halts. It hands the run to a person or ends it, so it is no way around a critic.
-   */
+  /** the way is a brake firing into a stop that halts: a round cap, a budget or the stop where a person is asked. It ends the run, so it is no way around a critic. */
   escalates?: true;
+  /** the way is a loop's bar being passed (`bar-passed` with a `then`): the verdict of the critics among the loop's members, who are named */
+  verdictOf?: Id[];
 };
 
 /** An edge's condition as one word: `always`, `pass`, `fail`, or the verdict it names. */
@@ -35,13 +34,15 @@ export const whenOf = (edge: Edge): string => (typeof edge.when === "object" ? e
 /** Every way of the graph: each edge, and each stop with a `then`, from every member of its loop. */
 export function waysOf(doc: Graph): Way[] {
   const kind = new Map(doc.nodes.map((node) => [node.id, node.kind]));
-  const halts = new Set(doc.nodes.filter((node) => node.kind === "human-gate" || (node.kind === "stop" && node.outcome === "halt")).map((node) => node.id));
+  const halts = new Set(doc.nodes.filter((node) => node.kind === "stop" && node.outcome === "halt").map((node) => node.id));
+  const critics = new Set(doc.nodes.filter(isCriticFamily).map((node) => node.id));
   const ways: Way[] = doc.edges.map((edge) => ({ from: edge.from, to: edge.to, person: edge.approval === true || kind.get(edge.from) === "human-gate", edge: edge.id, when: whenOf(edge) }));
   for (const loop of doc.loops) {
     for (const stop of loop.stops) {
       if (stop.then === undefined) continue;
       const escalates = (stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human") && halts.has(stop.then);
-      for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(escalates ? { escalates } : {}) });
+      const judges = stop.kind === "bar-passed" ? loop.members.filter((member) => critics.has(member)) : [];
+      for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(escalates ? { escalates } : {}), ...(judges.length > 0 ? { verdictOf: judges } : {}) });
     }
   }
   return ways;
@@ -58,6 +59,8 @@ export function shut(way: Way, closed: Closed): boolean {
   if (closed === "every") return way.person;
   if ("approval" in closed) return way.edge === closed.approval;
   if ("critic" in closed && way.escalates) return true;
+  // The bar passed is the critic's "pass": shut with the critic, and with that verdict of it.
+  if ("critic" in closed && way.verdictOf?.includes(closed.critic) && (closed.when === undefined || closed.when === "pass")) return true;
   const node = "gate" in closed ? closed.gate : closed.critic;
   return way.edge !== undefined && way.from === node && (closed.when === undefined || way.when === closed.when);
 }
