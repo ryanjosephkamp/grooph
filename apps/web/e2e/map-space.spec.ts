@@ -18,7 +18,15 @@ const linkFor = (map: OperationMap): string => `./#/open?d=${encodeSharePayload(
 const sheet = (page: Page) => page.locator("aside.sheet");
 const view = (page: Page, name: string) => page.getByRole("radio", { name });
 const posed = (page: Page) => page.locator(".space-world").evaluate((el) => (el as HTMLElement).style.transform);
-const sized = async (page: Page): Promise<number> => Number(/scale\(([\d.]+)\)/.exec(await posed(page))![1]);
+/** How far in the view has been moved: 1 at the starting view. */
+const sized = async (page: Page): Promise<number> => Number(/scale\(([\d.]+)\)/.exec(await page.locator(".space-lens").evaluate((el) => (el as HTMLElement).style.transform))![1]);
+/** A point of the page that a part of the scene is itself under: a card turned in space is not its bounding box. */
+const pointOn = (page: Page, selector: string) =>
+  page.locator(selector).evaluate((part) => {
+    const box = part.getBoundingClientRect();
+    for (let y = box.bottom - 4; y > box.top; y -= 4) for (let x = box.left + 4; x < box.right; x += 4) if (document.elementFromPoint(x, y)?.closest("[data-session], [data-person]") === part) return [x, y] as const;
+    throw new Error("no point of the page is on that part");
+  });
 const slider = (page: Page) => page.getByRole("slider", { name: "Handoff, in the order the map lists them" });
 const says = (page: Page) => page.locator(".space output");
 
@@ -27,7 +35,7 @@ async function open(page: Page, map: OperationMap = LONG()): Promise<void> {
   await page.goto(linkFor(map));
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
-  await expect.poll(() => posed(page)).toContain("scale(");
+  await expect.poll(() => posed(page)).toContain("scale3d(");
 }
 
 /** Drag across the scene with one pointer, in steps, from its middle. */
@@ -73,13 +81,8 @@ test("the third choice on the switch draws the map in three dimensions: every se
   await expect(page.locator(".space-note")).toHaveText("The order the map lists its handoffs in. An order, not a clock: a map records no times.");
 
   // A card opens what the map says about its session, as in the flat views; so does an arc from the keyboard.
-  // (A card turned in space is not its bounding box: the point is one the card itself is under.)
-  const on = await scene.locator('[data-session="driver"]').evaluate((card) => {
-    const box = card.getBoundingClientRect();
-    for (let y = box.bottom - 4; y > box.top; y -= 4) for (let x = box.left + 4; x < box.right; x += 4) if (document.elementFromPoint(x, y)?.closest("[data-session]") === card) return [x, y] as const;
-    return undefined;
-  });
-  await page.mouse.click(on![0], on![1]);
+  const on = await pointOn(page, '.space [data-session="driver"]');
+  await page.mouse.click(on[0], on[1]);
   await expect(sheet(page).getByRole("heading", { name: "Session" })).toBeVisible();
   await expect(scene.locator('[data-session="driver"]')).toHaveClass(/is-on/);
   await scene.locator(`[data-handoff="${map.handoffs[2]!.id}"]`).focus();
@@ -92,7 +95,9 @@ test("the slider steps through the handoffs in the map's order, by hand or playe
   await open(page, map);
   await slider(page).fill("7");
   await expect(says(page)).toHaveText(/^Handoff 7 of 19: Ryan to Lane 5: Codex target · carried by Ryan/);
-  await expect(slider(page)).toHaveAttribute("aria-valuetext", /^Handoff 7 of 19: Ryan to Lane 5: Codex target/);
+  // The slider says where it is; the sentence under it, read out as it changes, says the rest.
+  await expect(slider(page)).toHaveAttribute("aria-valuetext", "handoff 7 of 19");
+  await expect(page.locator(".space-n").first()).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator(".space-arc.is-lit")).toHaveCount(1);
   await expect(page.locator('.space-arc[data-arc="6"]')).toHaveClass(/is-lit/);
   await expect(page.locator(".space-arc.is-past")).toHaveCount(6);
@@ -124,7 +129,7 @@ test("the slider steps through the handoffs in the map's order, by hand or playe
   await expect.poll(async () => Number(await slider(page).inputValue()), { timeout: 6000 }).toBeGreaterThan(5);
   await page.getByRole("button", { name: "Pause" }).click();
   const paused = await slider(page).inputValue();
-  await page.waitForTimeout(1700);
+  await page.waitForTimeout(2700);
   expect(await slider(page).inputValue()).toBe(paused);
   // Back at the start, all of them are lit alike.
   await slider(page).fill("0");
@@ -136,7 +141,7 @@ test("a handoff picked in three dimensions is picked in the other views, and the
   const id = map.handoffs[2]!.id;
   await open(page, map);
   // Its number opens it, as its line does.
-  await page.locator(`.space-n[data-number="${id}"]`).dispatchEvent("click");
+  await page.locator(`.space-n [data-number="${id}"]`).dispatchEvent("click");
   await expect(sheet(page).getByRole("heading", { name: "Handoff 3" })).toBeVisible();
   await expect(page.locator(`.space [data-handoff="${id}"]`)).toHaveClass(/is-on/);
   await expect(slider(page)).toHaveValue("3");
@@ -153,12 +158,63 @@ test("a handoff picked in three dimensions is picked in the other views, and the
   await expect(page.locator(`.space [data-handoff="${id}"]`)).toHaveClass(/is-on/);
   await expect(slider(page)).toHaveValue("3");
   expect(await posed(page)).toBe(turned);
+
+  // The slider is the reader's once it has been moved: an open handoff does not take it back, not when its mark
+  // is put on again in markup drawn anew, and not when another line of the list is pointed at.
+  await slider(page).fill("9");
+  await view(page, "Sequence").click();
+  await view(page, "3D").click();
+  await expect(page.locator(`.space [data-handoff="${id}"]`)).toHaveClass(/is-on/);
+  await expect(slider(page)).toHaveValue("9");
+  // The open arc keeps its wide target for a finger, and its line is heavier, as an open handoff's is in the picture.
+  const arc = page.locator(`.space [data-handoff="${id}"]`);
+  expect(await arc.locator(".space-hit").evaluate((el) => getComputedStyle(el).strokeWidth)).toBe("16px");
+  expect(await arc.locator("path").first().evaluate((el) => getComputedStyle(el).strokeWidth)).toBe("3.4px");
+  // The handoff the slider lights is heavier still, open or not.
+  await slider(page).fill("3");
+  expect(await arc.locator("path").first().evaluate((el) => getComputedStyle(el).strokeWidth)).toBe("3.8px");
+  expect(await page.locator('.space-arc[data-arc="8"] path').first().evaluate((el) => getComputedStyle(el).strokeWidth)).not.toBe("3.8px");
+});
+
+test("on a phone, with details open under it, the scene and what was picked are still in view", async ({ page }) => {
+  await open(page);
+  const on = await pointOn(page, '.space [data-session="operator"]');
+  await page.mouse.click(on[0], on[1]);
+  await expect(sheet(page).getByRole("heading", { name: "Session" })).toBeVisible();
+  const top = (await sheet(page).boundingBox())!.y;
+  // The scene is no taller than the room left above the details, and is brought whole into it, refitted.
+  await expect.poll(async () => ((await page.locator(".space-scene").boundingBox())!.y + (await page.locator(".space-scene").boundingBox())!.height)).toBeLessThanOrEqual(top + 1);
+  const card = await page.locator('.space [data-session="operator"]').evaluate((el) => el.getBoundingClientRect().toJSON());
+  expect(card.bottom).toBeLessThanOrEqual(top);
+  expect(card.top).toBeGreaterThanOrEqual((await page.locator(".space-scene").boundingBox())!.y - 1);
+  // Closed again, the scene takes its room back.
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await expect.poll(async () => (await page.locator(".space-scene").boundingBox())!.height).toBeGreaterThan(400);
+});
+
+test("a map with thirty sessions in one lane is fitted whole: no card and no sheet outside the frame", async ({ page }) => {
+  const base = SMALL();
+  await open(page, { ...base, sessions: Array.from({ length: 30 }, (_, k) => ({ ...base.sessions[0]!, id: `s-${k}`, name: `Session ${k}` })), handoffs: [] });
+  const frame = (await page.locator(".space-scene").boundingBox())!;
+  const boxes = await page.locator(".space-card, .space-sheet").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+  expect(boxes.length).toBe(33);
+  for (const box of boxes) {
+    expect(box.left).toBeGreaterThanOrEqual(frame.x);
+    expect(box.right).toBeLessThanOrEqual(frame.x + frame.width);
+    expect(box.top).toBeGreaterThanOrEqual(frame.y);
+    expect(box.bottom).toBeLessThanOrEqual(frame.y + frame.height);
+  }
+  // With nothing to step through, the stepping is off and says so.
+  await expect(slider(page)).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeDisabled();
+  await expect(says(page)).toHaveText("This map has no handoffs to step through.");
 });
 
 test("a drag turns it and is not a tap; pinch, the buttons and the keyboard move it; one tap returns to the starting view", async ({ page }) => {
   await open(page);
   const start = await posed(page);
   const size = await sized(page);
+  expect(size).toBe(1);
 
   await drag(page, 90, 40);
   await expect.poll(() => posed(page)).not.toBe(start);
@@ -183,6 +239,23 @@ test("a drag turns it and is not a tap; pinch, the buttons and the keyboard move
   await expect.poll(() => sized(page)).toBeGreaterThan(size);
   await page.keyboard.press("Home");
   await expect.poll(() => posed(page)).toBe(start);
+  await expect.poll(() => sized(page)).toBe(1);
+  // The arrows turn it the way a drag does: down looks from higher, as a drag down does.
+  const tipped = () => posed(page).then((t) => Number(/rotateX\(([-\d.]+)rad\)/.exec(t)![1]));
+  const level = await tipped();
+  await page.keyboard.press("ArrowDown");
+  await expect.poll(tipped).toBeLessThan(level);
+  await page.keyboard.press("0");
+  await expect.poll(() => posed(page)).toBe(start);
+  // The browser's own keys are the browser's: its zoom and its way back are not taken.
+  const taken = (key: { key: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean }) => page.locator(".space-scene").evaluate((el, i) => !el.dispatchEvent(new KeyboardEvent("keydown", { ...i, bubbles: true, cancelable: true })), key);
+  expect(await taken({ key: "=", ctrlKey: true })).toBe(false);
+  expect(await taken({ key: "0", metaKey: true })).toBe(false);
+  expect(await taken({ key: "ArrowLeft", altKey: true })).toBe(false);
+  expect(await posed(page)).toBe(start);
+  expect(await taken({ key: "=" })).toBe(true);
+  await page.keyboard.press("0");
+  await expect.poll(() => sized(page)).toBe(1);
 
   // The buttons.
   await page.getByRole("button", { name: "Move in" }).click();
@@ -190,6 +263,39 @@ test("a drag turns it and is not a tap; pinch, the buttons and the keyboard move
   await page.getByRole("button", { name: "Move out" }).click();
   await page.getByRole("button", { name: "Move out" }).click();
   await expect.poll(() => sized(page)).toBeCloseTo(size * 0.8, 3);
+  await page.getByRole("button", { name: "Starting view" }).click();
+  await expect.poll(() => posed(page)).toBe(start);
+  await expect.poll(() => sized(page)).toBe(1);
+
+  // Only a mouse's main button drags, and a mouse seen with no button down is not dragging: its release was missed.
+  const box = (await page.locator(".space-scene").boundingBox())!;
+  await page.mouse.move(box.x + 80, box.y + 120);
+  await page.mouse.down({ button: "right" });
+  await page.mouse.move(box.x + 180, box.y + 160, { steps: 5 });
+  await page.mouse.up({ button: "right" });
+  await page.locator(".space-scene").evaluate((el) => {
+    const at = el.getBoundingClientRect();
+    const send = (type: string, x: number, buttons: number) => el.dispatchEvent(new PointerEvent(type, { pointerId: 1, pointerType: "mouse", isPrimary: true, button: 0, buttons, clientX: at.x + x, clientY: at.y + 90, bubbles: true }));
+    send("pointerdown", 100, 1);
+    send("pointermove", 180, 0);
+    send("pointermove", 260, 0);
+  });
+  await page.waitForTimeout(150);
+  expect(await posed(page)).toBe(start);
+
+  // A finger's drag ends with no click of its own: the next click, from a reader's tool with no press before it, is a click.
+  await page.locator(".space-scene").evaluate((el) => {
+    const at = el.getBoundingClientRect();
+    const send = (type: string, x: number) => el.dispatchEvent(new PointerEvent(type, { pointerId: 21, pointerType: "touch", isPrimary: true, clientX: at.x + x, clientY: at.y + 90, bubbles: true }));
+    send("pointerdown", 100);
+    send("pointermove", 130);
+    send("pointermove", 160);
+    send("pointerup", 160);
+  });
+  await page.waitForTimeout(150);
+  await page.locator('.space [data-session="driver"]').dispatchEvent("click");
+  await expect(sheet(page).getByRole("heading", { name: "Session" })).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
   await page.getByRole("button", { name: "Starting view" }).click();
   await expect.poll(() => posed(page)).toBe(start);
 
@@ -244,7 +350,7 @@ test("a device that cannot draw it thirty times a second is told so, and offered
   }
   await page.mouse.up();
   await expect(note).toBeVisible();
-  await expect(note).toHaveText(/drawing the map in three dimensions (1\d|2\d) times a second, too slowly to turn it smoothly\. The picture and the sequence show the same map, flat\./);
+  await expect(note).toHaveText(/drawing the map in three dimensions (1\d|2\d) times a second, fewer than 30: too slowly to turn it smoothly\. The picture and the sequence show the same map, flat\./);
   await expect(note).toHaveAttribute("role", "status");
   // It is still there to use; the note offers the others.
   await expect(page.locator(".space-scene")).toBeVisible();
@@ -311,6 +417,20 @@ test("when the view cannot be fetched the switch says so and goes back to the fl
   await expect(page.locator(".space")).toHaveCount(0);
 });
 
+test("when the view fails to come after another view was chosen, the switch stays on the view that is drawn", async ({ page }) => {
+  await page.route("**/assets/space-*.js", async (route) => {
+    await new Promise((done) => setTimeout(done, 700));
+    await route.abort();
+  });
+  await page.goto(linkFor(LONG()));
+  await view(page, "3D").click();
+  await view(page, "Sequence").click();
+  await expect(page.getByRole("status")).toHaveText(/could not be fetched/);
+  await expect(view(page, "Sequence")).toHaveAttribute("aria-checked", "true");
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "false");
+  await expect(page.locator('.map-picture svg[data-picture="sequence"]')).toBeVisible();
+});
+
 test.describe("with the service worker running", () => {
   test.use({ serviceWorkers: "allow" });
 
@@ -349,6 +469,34 @@ test.describe("from 1100 px", () => {
     await expect(slider(page)).toHaveValue("5");
     // Opening the details narrowed the stage; the scene was fitted again and nothing scrolled inside its frame.
     expect(await page.locator(".space-scene").evaluate((el) => [el.scrollLeft, el.scrollTop])).toEqual([0, 0]);
+
+    // The slider moved on by hand stays where it was put when a line of the list is pointed at, the open one included.
+    for (let k = 0; k < 3; k++) await page.getByRole("button", { name: "Next handoff" }).click();
+    await expect(slider(page)).toHaveValue("8");
+    const lines = page.locator(".map-list .map-handoff-line");
+    await lines.nth(4).hover();
+    await lines.nth(1).hover();
+    await expect(page.locator(`.space [data-handoff="${map.handoffs[1]!.id}"]`)).toHaveClass(/is-hot/);
+    await expect(slider(page)).toHaveValue("8");
+    // The line pointed at is the heavier, and in three dimensions it is the slider that dims: nothing is dimmed twice.
+    expect(await page.locator(`.space [data-handoff="${map.handoffs[1]!.id}"] > path`).first().evaluate((el) => getComputedStyle(el).strokeWidth)).toBe("3.4px");
+    expect(await page.locator(`.space [data-handoff="${map.handoffs[1]!.id}"]`).evaluate((el) => getComputedStyle(el).opacity)).toBe("1");
+    expect(await page.locator('.space-arc[data-arc="1"]').evaluate((el) => getComputedStyle(el).opacity)).toBe("0.5");
+  });
+
+  test("a scene drawn again for a new room gives the keyboard back to the scene, the slider or the button that had it", async ({ page }) => {
+    await open(page);
+    const drawn = () => page.locator(".space").evaluate((el) => ((el as unknown as { seen?: number }).seen ??= Math.random()));
+    for (const part of [".space-scene", ".space input", '.space [data-do="next"]']) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await expect(page.locator(".space-card").first()).toBeVisible();
+      const before = await drawn();
+      await page.locator(part).focus();
+      // A narrower room holds four cards in a row and not six: the scene is new markup.
+      await page.setViewportSize({ width: 1150, height: 900 });
+      await expect.poll(drawn).not.toBe(before);
+      await expect(page.locator(part)).toBeFocused();
+    }
   });
 
   test("the wheel scrolls the page until the scene has been picked, and then moves in and out", async ({ page }) => {
@@ -361,6 +509,6 @@ test.describe("from 1100 px", () => {
     expect(await posed(page)).toBe(start);
     await page.locator(".space-scene").focus();
     await page.mouse.wheel(0, -240);
-    await expect.poll(() => sized(page)).toBeGreaterThan(Number(/scale\(([\d.]+)\)/.exec(start)![1]));
+    await expect.poll(() => sized(page)).toBeGreaterThan(1);
   });
 });

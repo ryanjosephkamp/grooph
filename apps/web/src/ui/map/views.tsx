@@ -57,10 +57,14 @@ export function Views({ map, kit, wide, stage, onDrawn, live, at }: { map: Opera
   const [room, setRoom] = useState<number>();
   const sequence = flat === "sequence";
   const three = view === "space" && piece ? piece : undefined;
+  // If the piece cannot be had, the switch goes back to the flat view that is drawn by then, which may not be the
+  // one that was drawn when 3D was pressed.
+  const drawnFlat = useRef(flat);
+  drawnFlat.current = flat;
   const choose = (next: View): void => {
     setView(next);
     if (next !== "space") return setFlat(next);
-    if (!piece) import("./space.js").then((m) => setPiece((space = m)), () => (setPiece(null), setView(flat)));
+    if (!piece) import("./space.js").then((m) => setPiece((space = m)), () => (setPiece(null), setView((now) => (now === "space" ? drawnFlat.current : now))));
   };
   note(stage.current);
   useEffect(() => refocus(stage.current));
@@ -86,12 +90,13 @@ export function Views({ map, kit, wide, stage, onDrawn, live, at }: { map: Opera
   // The scene is markup like the pictures; once the screen has put it on the page it is given its behavior, and
   // that is taken from it when the markup goes. How it was turned and where its slider was are kept between the two.
   const kept = useRef<ReturnType<Space["held"]>>(undefined);
-  const scene = useRef<{ el: HTMLElement; off: () => void }>(undefined);
+  const scene = useRef<{ el: HTMLElement; made: typeof made; off: () => void }>(undefined);
   useEffect(() => {
     const el = (made && stage.current?.querySelector<HTMLElement>(".space")) || undefined;
-    if (el === scene.current?.el) return;
+    // The same markup can stand for a newer plan (what the hooks saw, read a minute later): it is attached again.
+    if (el === scene.current?.el && (!el || made === scene.current?.made)) return;
     scene.current?.off();
-    scene.current = el && three && made ? { el, off: three.attach(el, made, (kept.current ??= three.held()), choose) } : undefined;
+    scene.current = el && three && made ? { el, made, off: three.attach(el, made, (kept.current ??= three.held()), choose) } : undefined;
   });
   useEffect(() => () => scene.current?.off(), []);
   // A set of radios, as the app's other switches are. Which layout the picture has is the screen's business.
@@ -121,14 +126,15 @@ let held: string | undefined;
 const PARTS = ["session", "person", "handoff", "handoff-row"];
 
 function note(stage: HTMLElement | null): void {
-  const at = stage?.contains(document.activeElement) ? document.activeElement : null;
+  const at = stage?.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
   const part = PARTS.find((name) => at?.hasAttribute(`data-${name}`));
-  held = part ? `[data-${part}="${CSS.escape(at!.getAttribute(`data-${part}`)!)}"]` : undefined;
+  // And in three dimensions the scene itself, its slider and its buttons.
+  held = part ? `[data-${part}="${CSS.escape(at!.getAttribute(`data-${part}`)!)}"]` : at?.closest(".space") ? (at.dataset["do"] ? `.space [data-do="${at.dataset["do"]}"]` : at.matches("input") ? ".space input" : at.matches(".space-scene") ? ".space-scene" : undefined) : undefined;
 }
 
 function refocus(stage: HTMLElement | null): void {
   if (!held || document.activeElement !== document.body) return;
   const part = stage?.querySelector<SVGElement>(held);
-  part?.setAttribute("tabindex", "0");
+  if (held.startsWith("[")) part?.setAttribute("tabindex", "0");
   part?.focus({ preventScroll: true });
 }

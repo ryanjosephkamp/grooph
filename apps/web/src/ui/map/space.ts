@@ -33,20 +33,23 @@ const YAW = 0.96;
 const PITCH: [number, number] = [0.1, 1.05];
 /** A view that cannot be drawn this many times a second is not worth turning: the flat views are offered instead. */
 export const FRAMES = 30;
+/** With room to spare the view is shown larger, up to this many pixels to the unit. */
+const LARGEST = 1.4;
 
 const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
 
 /**
- * How far apart two lanes are drawn: nearest when they are one machine under two accounts, further when they are
- * two machines, furthest when one is local and the other in the cloud. It reads only what the document says.
+ * How far apart two lanes are drawn: nearest when they are on one machine, further when they are on two, furthest
+ * when the map says one is local and the other in the cloud. It reads only what the document says: a lane that
+ * does not say where it is is placed by its machine alone.
  */
 export function apart(a: OperationMap["lanes"][number], b: OperationMap["lanes"][number]): number {
   if (a.place && b.place && a.place !== b.place) return 1.8;
   return a.machine === b.machine ? 1 : 1.35;
 }
 
-export type Stop = { handoff?: Id; now?: boolean; says: string };
+export type Stop = { handoff?: Id; now?: boolean; says: string; short: string };
 export type Arc = { id: Id; n: number; from: Id; to: Id; a: V; b: V; lift: number };
 export type Plan = { html: string; box: { min: V; max: V }; arcs: Arc[]; stops: Stop[]; cards: Map<Id, { at: V; h: number }>; floors: number[] };
 
@@ -118,7 +121,10 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
   // A sheet is as deep as its rows; the front edges step forward down the stack, so no sheet stands over the
   // front row of the one below it.
   const depthOf = (count: number): number => 2 * EDGE + (Math.max(1, Math.ceil(count / across)) - 1) * ROW;
-  const deepest = Math.max(...sheets.map((s) => depthOf(s.items.length))) + (sheets.length - 1) * FORWARD;
+  const deepest = Math.max(0, ...sheets.map((s) => depthOf(s.items.length))) + Math.max(0, sheets.length - 1) * FORWARD;
+  // Every sheet keeps the room the map's tallest card needs, so that the step from one sheet to the next is that
+  // room and the gap, and the gap alone says how far apart two lanes are.
+  const band = Math.max(40, ...sheets.flatMap((s) => s.items.map((c) => c.h)));
 
   // Down the stack: each sheet clear of the cards on the one below, by more where the two lanes are further apart.
   const cards: Plan["cards"] = new Map();
@@ -126,10 +132,9 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
   const parts: string[] = [];
   let floor = 0;
   sheets.forEach((sheet, i) => {
-    const tallest = Math.max(40, ...sheet.items.map((c) => c.h));
     const lanes = map.lanes;
     const gap = i === 0 ? 0 : sheets[i - 1]!.person ? 1 : apart(lanes[i - (people.length ? 2 : 1)]!, lanes[i - (people.length ? 1 : 0)]!);
-    floor += tallest + (i === 0 ? 0 : CLEAR * gap);
+    floor += band + (i === 0 ? 0 : CLEAR * gap);
     floors.push(floor);
     const depth = depthOf(sheet.items.length);
     const front = deepest - (sheets.length - 1 - i) * FORWARD;
@@ -186,29 +191,29 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
     const d = `M0,${fmt(tall)} Q${fmt(cx)},${fmt(cy)} ${fmt(ex)},${fmt(ey)}`;
     parts.push(
       `<div class="space-arc" data-arc="${k}" style="width:${fmt(length)}px;height:${fmt(tall + HEAD)}px"><svg viewBox="0 0 ${fmt(length)} ${fmt(tall + HEAD)}" width="${fmt(length)}" height="${fmt(tall + HEAD)}">` +
-        `<g data-handoff="${esc(h.id)}" tabindex="0"><path class="space-hit" d="${d}"/><path d="${d}" ${stroke(style, color)}/><circle cx="0" cy="${fmt(tall)}" r="2.4" style="fill:${color}"/>` +
+        `<g data-handoff="${esc(h.id)}" tabindex="0"><path d="${d}" ${stroke(style, color)}/><path class="space-hit" d="${d}"/><circle cx="0" cy="${fmt(tall)}" r="2.4" style="fill:${color}"/>` +
         `<path d="M0,0 L-8,-3.8 L-8,3.8 z" transform="translate(${fmt(length)},${fmt(tall)}) rotate(${fmt((slope * 180) / Math.PI)})" style="fill:${color}"/></g></svg></div>` +
-        `<div class="space-n" data-number="${esc(h.id)}" data-arc="${k}"><svg viewBox="-11 -9 22 18" width="22" height="18">${numberBadge(0, 0, String(arc.n), color, ink)}</svg></div>`,
+        `<div class="space-n" data-arc="${k}" aria-hidden="true"><svg data-number="${esc(h.id)}" viewBox="-11 -9 22 18" width="22" height="18">${numberBadge(0, 0, String(arc.n), color, ink)}</svg></div>`,
     );
   });
 
   // The slider's stops: all of them, then one at a time in the map's order, then now, where the hooks saw anything.
   const total = handoffs.length;
-  const stops: Stop[] = [{ says: total === 0 ? "This map has no handoffs to step through." : `All ${total} handoffs are lit. Move the slider or press Play to light them one at a time.` }];
+  const stops: Stop[] = [{ short: "all handoffs", says: total === 0 ? "This map has no handoffs to step through." : total === 1 ? "The map's one handoff is lit." : `All ${total} handoffs are lit. Move the slider or press Play to light them one at a time.` }];
   handoffs.forEach((h: Handoff, k) => {
     const who = h.from === h.to ? `${nameOf(h.from)} to itself` : `${nameOf(h.from)} to ${nameOf(h.to)}`;
-    stops.push({ handoff: h.id, says: `Handoff ${arcs[k]!.n} of ${map.handoffs.length}: ${who} · ${carriedBy(map, h)}${h.what ? ` · ${h.what}` : ""}` });
+    stops.push({ handoff: h.id, short: `handoff ${arcs[k]!.n} of ${map.handoffs.length}`, says: `Handoff ${arcs[k]!.n} of ${map.handoffs.length}: ${who} · ${carriedBy(map, h)}${h.what ? ` · ${h.what}` : ""}` });
   });
   if (opts.live) {
     const states = Object.values(opts.live).map((now) => seen(now).state);
     const count = (state: string, word: string): string[] => (states.includes(state as never) ? [`${states.filter((s) => s === state).length} ${word}`] : []);
     const said = [...count("working", "working"), ...count("waiting", "waiting"), ...count("quiet", "gone quiet"), ...count("ended", "ended")];
-    stops.push({ now: true, says: `Now${opts.at ? `, as the hooks saw it at ${opts.at.slice(0, 16).replace("T", " ")} UTC` : ""}: ${said.length ? said.join(", ") : "no session has been seen"}.` });
+    stops.push({ now: true, short: "now", says: `Now${opts.at ? `, as the hooks saw it at ${opts.at.slice(0, 16).replace("T", " ")} UTC` : ""}: ${said.length ? said.join(", ") : "no session has been seen"}.` });
   }
 
   const palette = /<style>[\s\S]*?<\/style>/.exec(frame(1, 1, "", "auto", ink, "", "space"))?.[0] ?? "";
   // The box the starting view must show whole: the sheets with their labels, and each arc's highest point there.
-  const box: Plan["box"] = { min: [0, 0, 0], max: [width, floors[floors.length - 1]! + LABEL, deepest] };
+  const box: Plan["box"] = { min: [0, 0, 0], max: [width, (floors[floors.length - 1] ?? 0) + LABEL, deepest] };
   for (const arc of arcs) {
     const side = bow(arc, START.yaw, START.pitch);
     for (const k of [0, 1, 2] as const) {
@@ -221,7 +226,7 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
   const html =
     `<div class="space grooph-picture" data-picture="space">${palette}` +
     `<div class="space-bar"><span>Drag to turn. Pinch to move in and out, or pick the scene and scroll.</span><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Starting view</button></div>` +
-    `<div class="space-scene" tabindex="0" role="group" aria-label="${esc(map.name || map.id)} in three dimensions: ${sheets.length} sheets, ${cards.size} cards, ${total} handoffs. Drag, or use the arrow keys, to turn it; pinch, scroll, or use plus and minus, to move in and out."><div class="space-world">${parts.join("")}</div></div>` +
+    `<div class="space-scene" tabindex="0" role="group" aria-label="${esc(map.name || map.id)} in three dimensions: ${sheets.length} sheets, ${cards.size} cards, ${total} handoffs. Drag, or use the arrow keys, to turn it; pinch, scroll, or use plus and minus, to move in and out."><div class="space-lens"><div class="space-world">${parts.join("")}</div></div></div>` +
     `<div class="space-time"><div class="space-steps"><button type="button" data-do="play" aria-label="Play"${last === 0 ? " disabled" : ""}>Play</button><button type="button" data-do="back" aria-label="Previous handoff"${last === 0 ? " disabled" : ""}>‹</button><button type="button" data-do="next" aria-label="Next handoff"${last === 0 ? " disabled" : ""}>›</button>` +
     `<input type="range" min="0" max="${last}" step="1" value="0" aria-label="Handoff, in the order the map lists them"${last === 0 ? " disabled" : ""}></div>` +
     `<output>${esc(stops[0]!.says)}</output><p class="space-note">The order the map lists its handoffs in. An order, not a clock: a map records no times${opts.live ? "; the slider's last stop is now" : ""}.</p></div>` +
@@ -263,7 +268,10 @@ export function bow(arc: Arc, yaw: number, pitch: number, before?: V): V {
   return side;
 }
 
-/** The size at which the whole box is inside a frame `w` by `h`, seen from the starting view through `lens`. */
+/**
+ * The size at which the whole box is inside a frame `w` by `h`, seen from the starting view through `lens`. The
+ * world is made that size in all three directions, depth included, so it looks the same at any size.
+ */
 export function fit(box: Plan["box"], w: number, h: number, lens: number, yaw = START.yaw, pitch = START.pitch): number {
   const center = scaled([box.min[0] + box.max[0], box.min[1] + box.max[1], box.min[2] + box.max[2]], 0.5);
   const corners: V[] = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => turned(sub([k & 1 ? box.max[0] : box.min[0], k & 2 ? box.max[1] : box.min[1], k & 4 ? box.max[2] : box.min[2]], center), yaw, pitch));
@@ -281,11 +289,15 @@ export function fit(box: Plan["box"], w: number, h: number, lens: number, yaw = 
   return lo;
 }
 
-/** Whether the frames just drawn came too slowly: the mean of the last two dozen, against `FRAMES` a second. */
+/**
+ * Whether the frames just drawn came too slowly: the middle one of the last two dozen gaps, as a rate, against
+ * `FRAMES` a second. The middle and not the mean, so that one long frame (a tab coming back, a first paint) is not
+ * a slow device; and the rate is compared as it is said, in whole frames, so the note never says "30, too slow".
+ */
 export function tooSlow(gaps: number[]): number | undefined {
   if (gaps.length < 24) return undefined;
-  const rate = 1000 / (gaps.slice(-24).reduce((sum, g) => sum + g, 0) / 24);
-  return rate < FRAMES ? Math.round(rate) : undefined;
+  const rate = Math.round(1000 / gaps.slice(-24).sort((a, b) => a - b)[12]!);
+  return rate < FRAMES ? rate : undefined;
 }
 
 /**
@@ -301,8 +313,8 @@ export function lights(made: Plan, step: number): { stop: Stop; arcs: ("lit" | "
 // ─── behavior ─────────────────────────────────────────────────────────────
 
 /** What a view keeps while its markup is drawn again (a new room, a new theme): how it is turned and where the slider is. */
-export type Held = { yaw: number; pitch: number; size?: number; step: number };
-export const held = (): Held => ({ ...START, step: 0 });
+export type Held = { yaw: number; pitch: number; zoom: number; step: number };
+export const held = (): Held => ({ ...START, zoom: 1, step: 0 });
 
 let styled = false;
 
@@ -319,14 +331,16 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
   }
   const $ = <T extends Element = HTMLElement>(q: string): T => root.querySelector<T>(q)!;
   const scene = $(".space-scene");
+  const glass = $(".space-lens");
   const world = $(".space-world");
+  const stage = root.closest<HTMLElement>(".map-stage");
   const range = $<HTMLInputElement>('input[type="range"]');
   const says = $("output");
   const note = $(".space-flat");
   const play = $<HTMLButtonElement>('[data-do="play"]');
   const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const off: (() => void)[] = [];
-  const on = <K extends keyof HTMLElementEventMap>(el: Element | Window, name: K, fn: (e: HTMLElementEventMap[K]) => void, more?: AddEventListenerOptions): void => {
+  const on = <K extends keyof HTMLElementEventMap>(el: Element | Document, name: K, fn: (e: HTMLElementEventMap[K]) => void, more?: AddEventListenerOptions): void => {
     el.addEventListener(name, fn as EventListener, more);
     off.push(() => el.removeEventListener(name, fn as EventListener, more));
   };
@@ -357,7 +371,9 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
   /** Put the world, each arc and each number where the view now has them. */
   const pose = (): void => {
     const { yaw, pitch } = state;
-    world.style.transform = `translate3d(${scene.clientWidth / 2}px,${scene.clientHeight / 2}px,0) scale(${state.size ?? fitted}) rotateX(${-pitch}rad) rotateY(${yaw}rad) translate3d(${-center[0]}px,${-center[1]}px,${-center[2]}px)`;
+    // Moving in and out enlarges the picture the lens has made, so that nothing passes the eye however near it is taken.
+    glass.style.transform = `scale(${state.zoom})`;
+    world.style.transform = `translate3d(${scene.clientWidth / 2}px,${scene.clientHeight / 2}px,0) scale3d(${fitted},${fitted},${fitted}) rotateX(${-pitch}rad) rotateY(${yaw}rad) translate3d(${-center[0]}px,${-center[1]}px,${-center[2]}px)`;
     made.arcs.forEach((arc, k) => {
       const along = unit(sub(arc.b, arc.a));
       const side = (sides[k] = bow(arc, yaw, pitch, sides[k]));
@@ -369,10 +385,18 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
       numbers[k]!.style.transform = `translate3d(${top[0]}px,${top[1]}px,${top[2]}px) rotateY(${-yaw}rad) rotateX(${pitch}rad) translate(-50%,-50%)`;
     });
   };
+  let room = stage?.clientHeight ?? 0;
   const measure = (): void => {
+    // The scene is never taller than the room the screen's stage has. With details open under it (on a phone they
+    // take the lower half of the screen) the whole of it is then in view above them, and what was picked with it.
+    const want = Math.max(340, Math.min(820, innerHeight - 300));
+    scene.style.height = `${Math.max(180, Math.min(want, stage ? stage.clientHeight - 12 : want))}px`;
+    if (stage && stage.clientHeight < room && root.querySelector(".is-on")) scene.scrollIntoView({ block: "nearest" });
+    room = stage?.clientHeight ?? 0;
     lens = Math.max(900, scene.clientWidth * 1.7);
-    scene.style.perspective = `${lens}px`;
-    fitted = fit(made.box, scene.clientWidth, scene.clientHeight, lens);
+    glass.style.perspective = `${lens}px`;
+    // A small map is not blown up to fill a large frame: past this its text is drawn soft.
+    fitted = Math.min(LARGEST, fit(made.box, scene.clientWidth, scene.clientHeight, lens));
     pose();
   };
 
@@ -383,7 +407,7 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
   let until = 0;
   let asked = false;
   let posed = "";
-  let glide: { from: Held; to: { yaw: number; pitch: number; size: number }; start: number } | undefined;
+  let glide: { from: Held; start: number } | undefined;
   const tick = (now: number): void => {
     frame = 0;
     // By the frames' own clock, so that the two times compared are of one kind.
@@ -392,23 +416,20 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     if (glide) {
       const t = Math.min(1, (now - (glide.start ||= now)) / 320);
       const e = 1 - (1 - t) ** 3;
-      state.yaw = glide.from.yaw + (glide.to.yaw - glide.from.yaw) * e;
-      state.pitch = glide.from.pitch + (glide.to.pitch - glide.from.pitch) * e;
-      state.size = (glide.from.size ?? fitted) + (glide.to.size - (glide.from.size ?? fitted)) * e;
-      if (t >= 1) {
-        glide = undefined;
-        delete state.size;
-      }
+      state.yaw = glide.from.yaw + (START.yaw - glide.from.yaw) * e;
+      state.pitch = glide.from.pitch + (START.pitch - glide.from.pitch) * e;
+      state.zoom = glide.from.zoom + (1 - glide.from.zoom) * e;
+      if (t >= 1) glide = undefined;
     }
     // Only a frame that changed the view, straight after another, says how fast the view is drawn.
-    const now_ = `${state.yaw} ${state.pitch} ${state.size}`;
+    const now_ = `${state.yaw} ${state.pitch} ${state.zoom}`;
     if (last && now_ !== posed) gaps.push(now - last);
     if (gaps.length > 96) gaps.splice(0, 48);
     posed = now_;
     last = now;
     pose();
     const rate = tooSlow(gaps);
-    if (rate !== undefined && note.hidden) refuse(`This device is drawing the map in three dimensions ${rate} times a second, too slowly to turn it smoothly.`);
+    if (rate !== undefined && note.hidden) refuse(`This device is drawing the map in three dimensions ${rate} times a second, fewer than ${FRAMES}: too slowly to turn it smoothly.`);
     if (glide || now < until) frame = requestAnimationFrame(tick);
     else last = 0;
   };
@@ -417,6 +438,13 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     if (!frame) frame = requestAnimationFrame(tick);
   };
   off.push(() => cancelAnimationFrame(frame));
+  // A page that was out of sight drew nothing: the gap across that is not a frame.
+  const unseen = (): void => {
+    last = 0;
+    gaps.length = 0;
+  };
+  document.addEventListener("visibilitychange", unseen);
+  off.push(() => document.removeEventListener("visibilitychange", unseen));
 
   const turn = (yaw: number, pitch: number): void => {
     state.yaw = Math.max(-YAW, Math.min(YAW, yaw));
@@ -424,16 +452,15 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     draw();
   };
   const move = (by: number): void => {
-    state.size = Math.max(fitted * 0.4, Math.min(fitted * 5, (state.size ?? fitted) * by));
+    state.zoom = Math.max(0.4, Math.min(5, state.zoom * by));
     draw();
   };
   const reset = (): void => {
     if (still) {
-      Object.assign(state, START);
-      delete state.size;
+      Object.assign(state, START, { zoom: 1 });
       pose();
     } else {
-      glide = { from: { ...state }, to: { ...START, size: fitted }, start: 0 };
+      glide = { from: { ...state }, start: 0 };
       draw();
     }
   };
@@ -441,14 +468,20 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
   // One finger turns it, two move in and out; a drag is not a tap, so what it ends on is not picked.
   const fingers = new Map<number, [number, number]>();
   let dragged = false;
+  let forget = 0;
   on(scene, "pointerdown", (e) => {
+    // Only a mouse's main button turns it: the others have their own work (a menu, a scroll).
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     // A first finger down is the only finger down: one lifted outside the frame was never seen to lift.
     if (e.isPrimary) fingers.clear();
     fingers.set(e.pointerId, [e.clientX, e.clientY]);
+    clearTimeout(forget);
     dragged = false;
     glide = undefined;
   });
   on(scene, "pointermove", (e) => {
+    // A mouse with no button down is not dragging, whatever was last seen of it: its release was missed.
+    if (e.pointerType === "mouse" && e.buttons === 0) fingers.delete(e.pointerId);
     const was = fingers.get(e.pointerId);
     if (!was) return;
     const [dx, dy] = [e.clientX - was[0], e.clientY - was[1]];
@@ -465,9 +498,20 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     } else return;
     fingers.set(e.pointerId, [e.clientX, e.clientY]);
   });
-  for (const name of ["pointerup", "pointercancel"] as const) on(scene, name, (e) => void fingers.delete(e.pointerId));
+  for (const name of ["pointerup", "pointercancel"] as const) {
+    on(scene, name, (e) => {
+      fingers.delete(e.pointerId);
+      // The click a mouse's drag ends with comes at once; a finger's drag ends with none. Either way the drag is
+      // then over, and the next click, from a keyboard or a reader's own tool, is a click.
+      clearTimeout(forget);
+      forget = window.setTimeout(() => (dragged = false), 60);
+    });
+  }
+  off.push(() => clearTimeout(forget));
+  // The click that ends a drag is not a tap. It is caught on its way down from the page, since a browser may send
+  // it to whatever holds both the place the drag began and the place it ended, which need not be the scene.
   on(
-    scene,
+    document,
     "click",
     (e) => {
       if (!dragged) return;
@@ -490,7 +534,9 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
   );
   on(scene, "keydown", (e) => {
     if (e.target !== scene) return; // a card or an arc has the keyboard: Enter and Space are the screen's
-    const step = { ArrowLeft: [-0.09, 0], ArrowRight: [0.09, 0], ArrowUp: [0, 0.07], ArrowDown: [0, -0.07] }[e.key];
+    if (e.metaKey || e.ctrlKey || e.altKey) return; // the browser's own: its zoom, its way back
+    // The arrows turn it the way a drag does: right as a drag to the right, down as a drag down.
+    const step = { ArrowLeft: [-0.09, 0], ArrowRight: [0.09, 0], ArrowUp: [0, -0.07], ArrowDown: [0, 0.07] }[e.key];
     if (step) turn(state.yaw + step[0]!, state.pitch + step[1]!);
     else if (e.key === "+" || e.key === "=") move(1.15);
     else if (e.key === "-" || e.key === "_") move(1 / 1.15);
@@ -517,7 +563,8 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     for (const id of ends) root.querySelector(`[data-session="${CSS.escape(id)}"],[data-person="${CSS.escape(id)}"]`)?.classList.add("is-end");
     root.classList.toggle("is-now", stop.now === true);
     range.value = String(state.step);
-    range.setAttribute("aria-valuetext", stop.says);
+    // The slider says where it is; the sentence under it, which is read out as it changes, says the rest.
+    range.setAttribute("aria-valuetext", stop.short);
     says.textContent = stop.says;
   };
   on(range, "input", () => {
@@ -538,7 +585,7 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
       timer = window.setInterval(() => {
         light(state.step + 1);
         if (state.step >= made.stops.length - 1) stopPlaying();
-      }, 1400);
+      }, 2400);
     }
   });
   off.push(stopPlaying);
@@ -549,21 +596,24 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     else if (what) move(what === "in" ? 1.25 : 0.8);
   });
 
-  // A handoff picked on the screen, here or in the list beside it, is the one the slider lights.
+  // A handoff picked on the screen, here or in the list beside it, is the one the slider lights: when it is
+  // picked, and not when its mark is merely put back on markup drawn again, unless the slider has not been moved.
+  let settled = false;
+  const settle = window.setTimeout(() => (settled = true), 0);
+  off.push(() => clearTimeout(settle));
   const watch = new MutationObserver((changes) => {
     for (const change of changes) {
       const el = change.target as Element;
       const id = el.getAttribute("data-handoff");
-      if (id && el.classList.contains("is-on")) {
-        const at = made.stops.findIndex((s) => s.handoff === id);
-        if (at > 0 && at !== state.step) {
-          stopPlaying();
-          light(at);
-        }
+      if (!id || !el.classList.contains("is-on") || /\bis-on\b/.test(change.oldValue ?? "")) continue;
+      const at = made.stops.findIndex((s) => s.handoff === id);
+      if (at > 0 && at !== state.step && (settled || state.step === 0)) {
+        stopPlaying();
+        light(at);
       }
     }
   });
-  watch.observe(world, { attributes: true, attributeFilter: ["class"], subtree: true });
+  watch.observe(world, { attributes: true, attributeFilter: ["class"], attributeOldValue: true, subtree: true });
   off.push(() => watch.disconnect());
 
   // The scene never scrolls: a part brought into view by the screen moves the page, not the world inside its frame.
@@ -571,6 +621,7 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
   if (typeof ResizeObserver === "function") {
     const sized = new ResizeObserver(measure);
     sized.observe(scene);
+    if (stage) sized.observe(stage);
     off.push(() => sized.disconnect());
   }
   measure();
