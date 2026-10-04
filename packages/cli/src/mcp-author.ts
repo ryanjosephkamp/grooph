@@ -28,6 +28,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node
 
 import {
   KNOWN_TARGETS,
+  OP_ARGS,
   OP_NAMES,
   SHARE_BASE,
   SHARE_LINK_WARN,
@@ -83,8 +84,12 @@ type Json = Record<string, unknown>;
 
 export type Content = { type: "text"; text: string } | { type: "image"; data: string; mimeType: string };
 
-/** What a tool hands back: the lines a model reads, the same as data, and any further content (a document, a picture). */
-export type ToolOut = { text: string; data?: unknown; isError?: boolean; more?: Content[] };
+/**
+ * What a tool hands back: the lines a model reads, the same as data, and any further content (a document, a picture).
+ * Some clients show a model the data and not the lines (Claude Code does: seen in run A of slice 0078), so the server
+ * puts the lines into the data too, under `text`; `brief` replaces them there when the data already says the rest.
+ */
+export type ToolOut = { text: string; brief?: string; data?: unknown; isError?: boolean; more?: Content[] };
 
 export type Tool = {
   name: string;
@@ -146,16 +151,34 @@ const counted = (issues: readonly IssueLike[]): string => {
 /** A document's issues as lines: "no issues", or the count, each issue, and what to do about each code. */
 export const issuesBlock = (issues: readonly IssueLike[]): string[] => (issues.length === 0 ? ["no issues"] : [counted(issues), ...issueLines(issues)]);
 
-/** The `next:` line after a graph was checked: what an author usually does now. */
-export function nextAfter(issues: readonly IssueLike[], forExport: boolean): string {
-  if (hasErrors(issues)) return `fix what is listed with grooph_apply (each "fix" line names the usual operation; ${AGENTS_PAGE} has them all), then grooph_validate`;
-  if (!forExport) return "grooph_validate with forExport: true, which adds the rules a package must pass (a goal, a target, no unfilled slot)";
-  return "grooph_share for a link the person opens, grooph_picture to show it here, grooph_export for the package";
+/** The `next:` line after a graph was checked: what an author usually does now. `id` names the graph when the server remembers it. */
+export function nextAfter(issues: readonly IssueLike[], forExport: boolean, id?: string): string {
+  const by = id === undefined ? "" : ` (pass "graph": "${id}"; the server remembers it)`;
+  if (hasErrors(issues)) return `fix what is listed with grooph_apply${by} (each "fix" line names the usual operation; ${AGENTS_PAGE} has them all), then grooph_validate`;
+  if (!forExport) return `grooph_validate${by}, which adds the rules a package must pass (a goal, a target, no unfilled slot)`;
+  return `grooph_share${by} for a link the person opens, grooph_picture to show it here, grooph_export for the package`;
 }
 
 // ─── reading a document ───────────────────────────────────────────────────
 
-const GRAPH_ARG = { type: "object", description: "The graph document itself, whole, as a JSON object: what grooph_new, grooph_use_template or grooph_apply returned. Give this or path, not both." };
+const GRAPH_ARG = {
+  type: ["object", "string"],
+  description:
+    'The graph: the id of a graph a grooph tool returned earlier in this conversation (the server remembers those, so the document need not be sent back each time), or the whole document as a JSON object. Give this or path, not both.',
+};
+const DOC_ARG = (what: string): Json => ({ type: ["object", "string"], description: `${what} As JSON, or the id of a graph a grooph tool returned earlier in this conversation. Give this or path.` });
+
+/** How many graphs a server remembers; the oldest is forgotten first. A conversation makes a handful. */
+const REMEMBERED = 64;
+const ID = /^[a-z][a-z0-9-]*$/;
+
+/** Keep a graph a tool returned or was handed, under its id, so a later call can name it and need not carry it. */
+export function remember(ctx: McpContext, doc: Graph): void {
+  const graphs = (ctx.graphs ??= new Map<string, Graph>());
+  graphs.delete(doc.id);
+  graphs.set(doc.id, doc);
+  if (graphs.size > REMEMBERED) graphs.delete(graphs.keys().next().value!);
+}
 const PATH_ARG = { type: "string", description: "Or a graph file to read (*.grooph.json), absolute or relative to the project folder." };
 const OUT_ARG = { type: "string", description: "Also write the graph to this file, inside the project folder. Leave it out in a chat: the document comes back either way." };
 
@@ -170,16 +193,26 @@ export function readJson(args: Json, ctx: McpContext, tool: string): { json: unk
   if (given !== undefined) {
     if (isObject(given)) return { json: given, label: typeof given["id"] === "string" ? given["id"] : "the document" };
     if (typeof given === "string") {
+      const text = given.trim();
+      if (ID.test(text)) {
+        const kept = ctx.graphs?.get(text);
+        if (kept) return { json: kept, label: text };
+        const near = closest(text, [...(ctx.graphs?.keys() ?? [])]);
+        throw new Refusal(
+          `No graph "${text}" has been made in this conversation${near === undefined ? "" : `; did you mean "${near}"?`} (the server remembers the graphs its tools return, until it restarts).`,
+          `pass the whole document as "graph", or make one with grooph_use_template or grooph_new`,
+        );
+      }
       try {
-        const json: unknown = JSON.parse(given);
+        const json: unknown = JSON.parse(text);
         return { json, label: isObject(json) && typeof json["id"] === "string" ? json["id"] : "the document" };
       } catch (err) {
-        throw new Refusal(`"graph" is text that is not JSON: ${(err as Error).message}`, `pass the document as a JSON object, exactly as a grooph tool returned it`);
+        throw new Refusal(`"graph" is text that is neither a graph's id nor JSON: ${(err as Error).message}`, `pass the id of a graph a grooph tool returned, or the document as a JSON object, exactly as a tool returned it`);
       }
     }
-    throw new Refusal(`"graph" must be the document as a JSON object, got ${Array.isArray(given) ? "a list" : typeof given}.`, `pass the whole document; grooph_new makes an empty one`);
+    throw new Refusal(`"graph" must be a graph's id or the document as a JSON object, got ${Array.isArray(given) ? "a list" : typeof given}.`, `pass the whole document; grooph_new makes an empty one`);
   }
-  if (path === undefined) throw new Refusal(`${tool} needs "graph" (the document as JSON) or "path" (a file).`, `grooph_new or grooph_use_template makes a document to pass as "graph"`);
+  if (path === undefined) throw new Refusal(`${tool} needs "graph" (a graph's id, or the document as JSON) or "path" (a file).`, `grooph_new or grooph_use_template makes a document to pass as "graph"`);
   const file = fileOf(ctx, path);
   if (!existsSync(file)) throw new Refusal(`No such file: ${path}`, `pass a path that exists, relative to ${ctx.project}, or pass the document itself as "graph"`);
   const text = readFileSync(file, "utf8");
@@ -205,6 +238,7 @@ export function readGraph(args: Json, ctx: McpContext, tool: string): { doc: Gra
       { issues: parsed.issues },
     );
   }
+  remember(ctx, parsed.doc);
   return { doc: parsed.doc, ...(read.file !== undefined ? { file: read.file } : {}), label: read.label };
 }
 
@@ -360,7 +394,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         ]);
         lines.push(`${plural(rows.length, "template")}; the three words after each title are cost · speed · rigor.`);
         lines.push('next: grooph_templates with id for one in full, or grooph_use_template with id, name and values. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, the right answer is no graph: say so.');
-        return { text: lines.join("\n"), data: { templates: rows } };
+        return { text: lines.join("\n"), brief: lines.slice(-2).join("\n"), data: { templates: rows } };
       }
       const found = findTemplate(ctx, id);
       const block = found.doc.template!;
@@ -424,6 +458,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         throw new Refusal([`The graph made from "${id}" does not match the schema, so nothing was returned:`, ...issueLines(checked.schema)], "a slot value probably broke a field; pass plain text values and call again", { issues: checked.schema });
       }
       const doc = checked.doc;
+      remember(ctx, doc);
       const issues = validate(doc);
       const unfilled = findSlots(doc).map((use) => use.key);
       const out = str(args["out"]);
@@ -433,7 +468,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...slotQuestions(doc, found.doc),
         ...issuesBlock(issues),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
-        `next: ${unfilled.length > 0 ? `get the values for ${unfilled.join(", ")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false)}`,
+        `next: ${unfilled.length > 0 ? `get the values for ${unfilled.join(", ")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false, doc.id)}`,
       ];
       return { text: lines.join("\n"), data: { ok: !hasErrors(issues), graph: docData(doc), unfilled, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
@@ -460,12 +495,13 @@ export const AUTHOR_TOOLS: Tool[] = [
       const goal = str(args["goal"]);
       const target = str(args["target"]);
       const doc = newGraph({ name, ...(goal !== undefined ? { goal } : {}), ...(target !== undefined ? { target } : {}) });
+      remember(ctx, doc);
       const out = str(args["out"]);
       const wrote = out === undefined ? undefined : save(ctx, out, canonicalize(doc), () => false);
       const lines = [
         `graph "${doc.id}": empty`,
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
-        'next: grooph_apply with this graph and ops, for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"…","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]',
+        `next: grooph_apply with "graph": "${doc.id}" and "ops", for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"…","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]`,
       ];
       return { text: lines.join("\n"), data: { ok: true, graph: docData(doc), ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
@@ -474,7 +510,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_apply",
     title: "Change a graph with operations",
     description:
-      `Change a graph with a list of typed operations, in order: {"op": "<name>", …arguments}. All or nothing: the first operation that cannot apply stops the list and is named by its index, with why, and the graph comes back unchanged. Otherwise the changed graph comes back with its issues. A "set" argument is a patch: each key replaces that field, null removes it. Operations: ${OP_NAMES.join(", ")}. ${AGENTS_PAGE} shows each by example. A graph may be built in steps, so rule errors do not stop the change; check with grooph_validate.`,
+      `Change a graph with a list of typed operations, in order: {"op": "<name>", …arguments}. All or nothing: the first operation that cannot apply stops the list and is named by its index, with why, and the graph comes back unchanged. Otherwise the changed graph comes back with its issues. A "set" argument is a patch: each key replaces that field, null removes it. Operations and their arguments: ${OP_NAMES.map((name) => `${name}(${OP_ARGS[name].join(", ")})`).join(" · ")}. ${AGENTS_PAGE} shows each by example. A graph may be built in steps, so rule errors do not stop the change; check with grooph_validate.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -510,6 +546,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         );
       }
       const doc = checked.doc;
+      remember(ctx, doc);
       const forExport = args["forExport"] === true;
       const issues = validate(doc, { forExport });
       const out = str(args["out"]);
@@ -519,7 +556,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         `applied ${plural(ops.length, "operation")} to "${doc.id}"${made.length > 0 ? `; ids: ${made.join(", ")}` : ""}`,
         ...issuesBlock(issues),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
-        `next: ${nextAfter(issues, forExport)}`,
+        `next: ${nextAfter(issues, forExport, doc.id)}`,
       ];
       return { text: lines.join("\n"), data: { ok: !hasErrors(issues), graph: docData(doc), ids: result.ids, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
@@ -558,7 +595,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        graph: { type: "object", description: "The document as JSON: a graph, a proposal set with its candidates' graphs inline, or an operation map. Give this or path." },
+        graph: DOC_ARG("A graph, a proposal set with its candidates' graphs inline, or an operation map."),
         path: { type: "string", description: "Or a file to read: a graph, a proposal set (its { file } candidates are read from beside it) or an operation map." },
         base: { type: "string", description: `Where the app is served. Default ${SHARE_BASE}; a local build is http://localhost:<port>/grooph/.` },
       },
@@ -613,7 +650,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        graph: { type: "object", description: "The document as JSON: a graph or an operation map. Give this or path." },
+        graph: DOC_ARG("A graph or an operation map."),
         path: PATH_ARG,
         theme: { type: "string", enum: ["light", "dark", "auto"], description: "light or dark writes the colors in; auto (the SVG default) carries both and follows the viewer. A PNG is one theme: light unless dark." },
         png: { type: "boolean", description: "Also return a PNG as image content. Default false: the SVG is the same drawing and far smaller." },
@@ -744,6 +781,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       ];
       return {
         text: lines.join("\n"),
+        brief: lines.filter((line) => line !== "kickoff (the prompt that starts the run):" && line !== compiled.kickoff.trimEnd()).join("\n"),
         data: { ok: true, target, files: folder !== undefined ? paths : compiled.files, kickoff: compiled.kickoff, warnings: compiled.warnings, ...(folder !== undefined ? { into: folder } : {}), ...(models !== undefined ? { tiersTaken } : {}) },
         ...(folder === undefined ? { more: [{ type: "text" as const, text: JSON.stringify(compiled.files, null, 2) }] } : {}),
       };

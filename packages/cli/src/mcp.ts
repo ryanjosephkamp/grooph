@@ -20,11 +20,11 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { SAID_MAX, byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraph, parseGraphText, parseMap, validate, validateMap, type IssueLike, type OperationMap, type PlannedAgent, type SessionEvent } from "@grooph/core";
+import { SAID_MAX, byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraph, parseGraphText, parseMap, validate, validateMap, type Graph, type IssueLike, type OperationMap, type PlannedAgent, type SessionEvent } from "@grooph/core";
 
 import { sessionLines } from "./commands/hooks.js";
 import { EVENTS_DIR, readLive } from "./events-io.js";
-import { AUTHOR_TOOLS, Refusal, issuesBlock, nextAfter, readJson, refusing, type Content, type Tool } from "./mcp-author.js";
+import { AUTHOR_TOOLS, Refusal, issuesBlock, nextAfter, readJson, refusing, remember, type Content, type Tool } from "./mcp-author.js";
 import type { RegistryEnv } from "./registry.js";
 
 export const MCP_PROTOCOL = "2025-06-18";
@@ -37,6 +37,8 @@ export type McpContext = {
   writes?: boolean;
   /** in a chat app (`grooph mcp --chat`): only the authoring tools are offered; a chat has no subagents to plan and no hook to ask */
   chat?: boolean;
+  /** the graphs this server's tools have returned or been handed, by id, so a later call can name one and need not carry it */
+  graphs?: Map<string, Graph>;
   /** where templates are looked up; the default is the project's, the user's and the built-in library */
   registry?: RegistryEnv;
   version: string;
@@ -152,7 +154,7 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: "object",
       properties: {
-        graph: { type: "object", description: "The document itself as a JSON object: a graph or an operation map. Give this or path, not both." },
+        graph: { type: ["object", "string"], description: "The id of a graph a grooph tool returned earlier in this conversation, or the document itself as a JSON object: a graph or an operation map. Give this or path, not both." },
         path: { type: "string", description: "Or the file, absolute or relative to the project." },
         forExport: { type: "boolean", description: "For a graph: also apply the export-only rules (a goal, a target, no unfilled slot, not a template). Default true." },
       },
@@ -166,6 +168,7 @@ const TOOLS: Tool[] = [
       let issues: IssueLike[];
       let head: string;
       let map: OperationMap | undefined;
+      let known: string | undefined;
       const forExport = args["forExport"] !== false;
       if (isMapLike(json)) {
         const parsed = parseMap(json);
@@ -190,9 +193,13 @@ const TOOLS: Tool[] = [
         const parsed = parseGraph(json);
         issues = parsed.doc ? validate(parsed.doc, { forExport }) : parsed.issues;
         head = parsed.doc ? `graph ${parsed.doc.id}` : "not a graph document grooph can read";
+        if (parsed.doc) {
+          remember(ctx, parsed.doc);
+          known = parsed.doc.id;
+        }
       }
       const byHand = map ? byHandLines(mapShape(map)) : [];
-      const next = map || isMapLike(json) ? (hasErrors(issues) ? "correct what is listed in the map document, then grooph_validate" : "grooph_picture draws the map; grooph_share makes its link") : nextAfter(issues, forExport);
+      const next = map || isMapLike(json) ? (hasErrors(issues) ? "correct what is listed in the map document, then grooph_validate" : "grooph_picture draws the map; grooph_share makes its link") : nextAfter(issues, forExport, known);
       return { text: [head, ...issuesBlock(issues), ...byHand, `next: ${next}`].join("\n"), data: { ok: !hasErrors(issues), issues } };
     }),
   },
@@ -207,7 +214,7 @@ export const toolNames = (ctx: Pick<McpContext, "chat"> = {}): string[] => tools
 
 const AUTHORING = [
   "grooph is an authoring and checking surface for multi-agent loop graphs: one small JSON document that says who does what, where the loops are and what stops them. grooph never runs agents and calls no model; you think, these tools compute.",
-  "To make a graph for a person: grooph_templates (pick by when-to-use), grooph_use_template with the slot values (or grooph_new when nothing fits), grooph_apply to change it, grooph_validate until no error is left, then grooph_share for a link they open on any device and grooph_picture to show it here. Pass each document back as the \"graph\" argument exactly as a tool returned it; no file has to exist.",
+  "To make a graph for a person: grooph_templates (pick by when-to-use), grooph_use_template with the slot values (or grooph_new when nothing fits), grooph_apply to change it, grooph_validate until no error is left, then grooph_share for a link they open on any device and grooph_picture to show it here. The server remembers each graph it returns: in later calls pass just its id as the \"graph\" argument (or the whole document; no file has to exist).",
   "Judgment the tools do not have: the smallest graph that works; every loop ends on a real stop plus a budget; a critic needs something inspectable to judge against; a person gates what cannot be undone. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, say that no graph is the right answer. Ask for a slot value you do not have; never invent a test command or a path. Keep a warning and tell the person; do not bend the graph to silence it.",
 ];
 const INSTRUCTIONS = [
@@ -217,7 +224,7 @@ const INSTRUCTIONS = [
 ].join(" ");
 const CHAT_INSTRUCTIONS = [
   ...AUTHORING,
-  "A refusal names the rule's code and ends with a next: line that says what to call. Here no tool writes a file: every document, picture and package comes back in the reply. The person keeps a graph by opening the link and saving it in the app, or by pasting the document into the app.",
+  "A refusal names the rule's code and ends with a next: line that says what to call. Here no tool writes a file: every document, picture and package comes back in the reply. The person keeps a graph by opening the link and saving it in the app, or by pasting the document into the app. To show the picture, put the SVG grooph_picture returns in front of the person the way this app shows one (an artifact or an inline visual); where it cannot, describe the graph in a few lines and rely on the link.",
 ].join(" ");
 
 /**
@@ -257,7 +264,10 @@ export async function handle(message: unknown, ctx: McpContext): Promise<Json | 
       try {
         const out = await tool.run(args, ctx);
         const content: Content[] = [{ type: "text", text: out.text }, ...(out.more ?? [])];
-        return ok({ content, ...(out.data !== undefined ? { structuredContent: out.data as Json } : {}), ...(out.isError ? { isError: true } : {}) });
+        // The lines go into the data as well: a client that shows a model the data in place of the text (Claude Code) would
+        // otherwise drop every `next:` and `fix` line.
+        const structured = out.data === undefined ? undefined : typeof out.data === "object" && out.data !== null && !Array.isArray(out.data) ? { text: out.brief ?? out.text, ...(out.data as Json) } : out.data;
+        return ok({ content, ...(structured !== undefined ? { structuredContent: structured as Json } : {}), ...(out.isError ? { isError: true } : {}) });
       } catch (err) {
         return ok({ content: [{ type: "text", text: `${tool.name} failed: ${(err as Error).message}` }], isError: true });
       }

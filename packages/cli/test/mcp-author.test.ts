@@ -95,7 +95,7 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
     assert.deepEqual(made.structuredContent!["unfilled"], []);
     // The document is also there as text, canonical, for a client that shows a model only text.
     assert.equal((made.content[1] as { text: string }).text, canonicalize(graph));
-    assert.match(textOf(made), /\nno issues\nnext: grooph_validate with forExport: true/);
+    assert.match(textOf(made), /\nno issues\nnext: grooph_validate \(pass "graph": "fix-the-flaky-test"; the server remembers it\), which adds the rules a package must pass/);
 
     // Change it: a tighter round cap and a stronger builder. The ids an operation made come back.
     const changed = await call(ctx, "grooph_apply", {
@@ -118,8 +118,9 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
 
     // Check it for export.
     const checked = await call(ctx, "grooph_validate", { graph });
-    assert.equal(textOf(checked), "graph fix-the-flaky-test\nno issues\nnext: grooph_share for a link the person opens, grooph_picture to show it here, grooph_export for the package");
-    assert.deepEqual(checked.structuredContent, { ok: true, issues: [] });
+    assert.equal(textOf(checked), 'graph fix-the-flaky-test\nno issues\nnext: grooph_share (pass "graph": "fix-the-flaky-test"; the server remembers it) for a link the person opens, grooph_picture to show it here, grooph_export for the package');
+    // The data carries the same lines: a client that shows a model the data in place of the text loses nothing.
+    assert.deepEqual(checked.structuredContent, { text: textOf(checked), ok: true, issues: [] });
 
     // What bounds it, and its shape.
     const explained = await call(ctx, "grooph_explain", { graph });
@@ -174,7 +175,7 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
 test("from nothing: new, then apply builds the review loop the fixtures hold, byte for byte", async () => {
   await withProject(async (ctx) => {
     const empty = await call(ctx, "grooph_new", { name: "Review loop" });
-    assert.match(textOf(empty), /^graph "review-loop": empty\nnext: grooph_apply with this graph and ops/);
+    assert.match(textOf(empty), /^graph "review-loop": empty\nnext: grooph_apply with "graph": "review-loop" and "ops", for example \[/);
     const ops = JSON.parse(readFileSync(join(repoRoot, "fixtures", "ops", "review-loop.ops.json"), "utf8")) as unknown[];
     const built = await call(ctx, "grooph_apply", { graph: graphOf(empty), ops, forExport: true });
     assert.equal(canonicalize(graphOf(built)), readFileSync(join(repoRoot, "fixtures", "valid", "review-loop.grooph.json"), "utf8"));
@@ -234,10 +235,10 @@ test("a refusal carries the rule's code, what to do about it, and a next: line",
     // The wrong kind of document, the wrong arguments.
     const map = JSON.parse(readFileSync(join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"), "utf8")) as unknown;
     refused(await call(ctx, "grooph_apply", { graph: map, ops: [{ op: "setTarget" }] }), /is an operation map, not a graph/);
-    refused(await call(ctx, "grooph_shape", {}), /needs "graph" \(the document as JSON\) or "path" \(a file\)/);
+    refused(await call(ctx, "grooph_shape", {}), /needs "graph" \(a graph's id, or the document as JSON\) or "path" \(a file\)/);
     refused(await call(ctx, "grooph_shape", { graph: fixture("valid", "review-loop.grooph.json"), path: "x.grooph.json" }), /takes "graph" \(the document\) or "path" \(a file\), not both/);
-    refused(await call(ctx, "grooph_shape", { graph: "{ not json" }), /"graph" is text that is not JSON/);
-    refused(await call(ctx, "grooph_shape", { graph: [1] }), /"graph" must be the document as a JSON object, got a list/);
+    refused(await call(ctx, "grooph_shape", { graph: "{ not json" }), /"graph" is text that is neither a graph's id nor JSON/);
+    refused(await call(ctx, "grooph_shape", { graph: [1] }), /"graph" must be a graph's id or the document as a JSON object, got a list/);
     refused(await call(ctx, "grooph_shape", { path: "nope.grooph.json" }), /^No such file: nope\.grooph\.json/);
     refused(await call(ctx, "grooph_templates", { id: "grind-lop" }), /^No template "grind-lop" .*did you mean "grind-loop"\?/);
     refused(await call(ctx, "grooph_use_template", { id: "grind-loop", values: { tsk: "x" } }), /^template "grind-loop" has no slot "tsk"; did you mean "task"\?/);
@@ -451,4 +452,62 @@ test("in a chat (grooph mcp --chat) only the authoring tools are offered, and th
     },
     { writes: false },
   );
+});
+
+test("the server remembers the graphs it returns, so a later call names one by its id and need not carry it", async () => {
+  await withProject(async (ctx) => {
+    const made = await call(ctx, "grooph_use_template", { id: "grind-loop", name: "Fix the flaky test", values: { task: "make the checkout test pass", "test-command": "pnpm test checkout" } });
+    const id = graphOf(made).id;
+    // Change it, check it, count it, draw it, share it and compile it, by id alone.
+    const changed = await call(ctx, "grooph_apply", { graph: id, ops: [{ op: "setStop", loop: "grind", index: 0, stop: { kind: "max-iterations", n: 2 } }], forExport: true });
+    assert.equal(changed.isError, undefined, textOf(changed));
+    assert.match(textOf(changed), /next: grooph_share \(pass "graph": "fix-the-flaky-test"; the server remembers it\)/);
+    // The id now means the changed graph, not the one before.
+    assert.equal(textOf(await call(ctx, "grooph_shape", { graph: id })), "fix-the-flaky-test: 1 agent · 1 check · 1 loop · up to 2 rounds · 30 minutes\ntiers: 1 fast");
+    assert.equal((await call(ctx, "grooph_validate", { graph: id })).structuredContent!["ok"], true);
+    assert.match(textOf(await call(ctx, "grooph_explain", { graph: id })), /at most 2 rounds/);
+    assert.match(((await call(ctx, "grooph_picture", { graph: id })).content[1] as { text: string }).text, /^<svg /);
+    const link = (await call(ctx, "grooph_share", { graph: id })).structuredContent!["link"] as string;
+    const opened = decodeSharePayload(sharePayloadFrom(link)!, inflateRaw);
+    assert.ok(opened.ok && canonicalize(opened.envelope.doc as Graph) === canonicalize(graphOf(changed)));
+    assert.equal(Object.keys((await call(ctx, "grooph_export", { graph: id })).structuredContent!["files"] as object).length, 6);
+
+    // A document handed over whole is remembered too; a rename is remembered under the new id.
+    const fix = fixture("valid", "fix-until-green.grooph.json");
+    await call(ctx, "grooph_shape", { graph: fix });
+    assert.equal((await call(ctx, "grooph_shape", { graph: fix.id })).isError, undefined);
+    const renamed = graphOf(await call(ctx, "grooph_apply", { graph: fix.id, ops: [{ op: "setGraphName", name: "Green again" }] }));
+    assert.equal((await call(ctx, "grooph_shape", { graph: renamed.id })).isError, undefined);
+
+    // An id nobody made is refused, with the nearest one and what to do; a template is not a graph to name.
+    refused(await call(ctx, "grooph_shape", { graph: "fix-the-flaky-tset" }), /^No graph "fix-the-flaky-tset" has been made in this conversation; did you mean "fix-the-flaky-test"\? \(the server remembers the graphs its tools return, until it restarts\)\.\nnext: pass the whole document as "graph"/);
+    refused(await call(ctx, "grooph_shape", { graph: "grind-loop" }), /^No graph "grind-loop" has been made in this conversation/);
+  });
+  // Another server, another memory.
+  await withProject(async (ctx) => {
+    refused(await call(ctx, "grooph_validate", { graph: "fix-the-flaky-test" }), /^No graph "fix-the-flaky-test" has been made in this conversation \(/);
+  });
+});
+
+test("the data a tool returns carries the reply's lines, next: included, and the apply tool names every operation's arguments", async () => {
+  await withProject(async (ctx) => {
+    const made = await call(ctx, "grooph_use_template", { id: "grind-loop", values: { task: "t" } });
+    assert.equal(made.structuredContent!["text"], textOf(made));
+    assert.match(made.structuredContent!["text"] as string, /\nnext: get the values for test-command from the person/);
+    // The library's rows are the data; its lines there are only the legend and what to do next, not the list twice.
+    const list = await call(ctx, "grooph_templates", {});
+    assert.match(list.structuredContent!["text"] as string, /^\d+ templates; the three words after each title are cost · speed · rigor\.\nnext: /);
+    // The package's kickoff is in the data once.
+    const exported = await call(ctx, "grooph_export", { graph: fixture("valid", "fix-until-green.grooph.json") });
+    assert.ok(!(exported.structuredContent!["text"] as string).includes(exported.structuredContent!["kickoff"] as string));
+    assert.match(exported.structuredContent!["text"] as string, /next: .*do not start the run\.$/);
+
+    const tools = ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx)) as { result: { tools: { name: string; description: string; inputSchema: { properties: Record<string, { type?: unknown }> } }[] } }).result.tools;
+    const apply = tools.find((t) => t.name === "grooph_apply")!;
+    for (const name of OP_NAMES) assert.ok(apply.description.includes(`${name}(`), name);
+    assert.match(apply.description, /setGraphField\(key, value\)/);
+    assert.match(apply.description, /addNode\(kind, name, id, at, set\)/);
+    // Every tool that takes a graph takes its id or the document.
+    for (const t of tools.filter((x) => x.inputSchema.properties["graph"] !== undefined)) assert.deepEqual(t.inputSchema.properties["graph"]!.type, ["object", "string"], t.name);
+  });
 });

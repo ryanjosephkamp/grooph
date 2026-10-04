@@ -45,11 +45,11 @@ grind-loop · Grind loop · low · fast · light
 }
 ```
 
-The reply is the graph document. Keep it: you pass it back, whole, as the `graph` argument of every later call.
+The reply is the graph document, and the server remembers it: in later calls pass just its id as the `graph` argument (`"graph": "fix-the-flaky-test"`). The whole document works too, and is the only way once the server has restarted or when you wrote the document yourself.
 
-**3. Check it.** `grooph_validate` with `{ "graph": <the document> }`. It answers `no issues`, or lists each issue with its code and a `fix` line naming the usual repair. Errors (`E_…`) block the package; warnings (`W_…`) do not. Repair with `grooph_apply`, then check again.
+**3. Check it.** `grooph_validate` with `{ "graph": "fix-the-flaky-test" }`. It answers `no issues`, or lists each issue with its code and a `fix` line naming the usual repair. Errors (`E_…`) block the package; warnings (`W_…`) do not. Repair with `grooph_apply`, then check again.
 
-**4. Share it.** `grooph_share` with `{ "graph": <the document> }` returns a link. Give it to the person whole, on a line of its own. It opens the graph in the app on any device, where they can read it, save it, edit it and export the package. The document travels in the link after the `#`, which a browser sends to no server: nothing is uploaded. `grooph_picture` returns the same graph as SVG text to show in the conversation.
+**4. Share it.** `grooph_share` with `{ "graph": "fix-the-flaky-test" }` returns a link. Give it to the person whole, on a line of its own. It opens the graph in the app on any device, where they can read it, save it, edit it and export the package. The document travels in the link after the `#`, which a browser sends to no server: nothing is uploaded. `grooph_picture` returns the same graph as SVG text to show in the conversation.
 
 Then say, in a sentence or two, what the graph does and what bounds it (`grooph_explain` gives you the words), and **stop**. Starting a run spends the person's money and is their decision.
 
@@ -79,7 +79,7 @@ To offer a choice, build two or three graphs that differ in shape (a lean one, a
 | `grooph_picture` | `graph`, optionally `theme`, `png: true` | the picture as SVG text, and a PNG as an image when asked |
 | `grooph_export` | `graph`, optionally `target` | the package's files and the kickoff prompt |
 
-Every tool that takes `graph` takes `path` instead: a `.grooph.json` file, for a session that has a project. `grooph_new`, `grooph_use_template` and `grooph_apply` take `out` to write the graph to a file, `grooph_picture` takes `out` for an `.svg` or `.png`, and `grooph_export` takes `into` to place the package in the project. A tool writes only when you name a file, only inside the project folder the server was started in, and never replaces a file it did not read. In a chat (`grooph mcp --chat`) no tool writes anything.
+`graph` is the id of a graph a tool returned earlier in the conversation, or the document itself. Every tool that takes `graph` takes `path` instead: a `.grooph.json` file, for a session that has a project. `grooph_new`, `grooph_use_template` and `grooph_apply` take `out` to write the graph to a file, `grooph_picture` takes `out` for an `.svg` or `.png`, and `grooph_export` takes `into` to place the package in the project. A tool writes only when you name a file, only inside the project folder the server was started in, and never replaces a file it did not read. In a chat (`grooph mcp --chat`) no tool writes anything.
 
 A refusal names the rule's code where a rule refused, and always ends with a `next:` line saying what to call.
 
