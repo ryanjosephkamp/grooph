@@ -313,7 +313,7 @@
     },
     {
       "id": "patrol-pulse",
-      "version": 2,
+      "version": 3,
       "kind": "graph",
       "title": "Patrol pulse",
       "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.",

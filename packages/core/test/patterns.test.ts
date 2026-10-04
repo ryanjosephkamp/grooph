@@ -54,6 +54,8 @@ const CREDITED = new Set(["taste-polish", "ownership-not-swarm", "spec-then-loop
 const CREDITED_IN_0014 = new Set(["taste-polish", "ownership-not-swarm", "spec-then-loop"]);
 /** Slice 0073 put the public text in American English. One template had the word in a node's id and a gate's option, which is a change to the document, so it is version 2. */
 const RESPELLED_IN_0073 = new Set(["patrol-pulse"]);
+/** Slice 0019 renamed patrol-pulse's findings file to PULSE.md (the harness had refused a subagent's write of a file named like a report), which is version 3. */
+const VERSION_THREE = new Set(["patrol-pulse"]);
 
 const files = readdirSync(patternsDir).filter((name) => name.endsWith(".grooph.json")).sort();
 
@@ -100,7 +102,7 @@ for (const file of files) {
     assert.equal(doc.id, id, "named after its id");
     assert.equal(block.kind, TABLE[id]!.kind);
     assert.equal(`${block.profile.cost} ${block.profile.speed} ${block.profile.rigor}`, TABLE[id]!.profile);
-    assert.equal(doc.version, CREDITED_IN_0014.has(id) || RESPELLED_IN_0073.has(id) ? 2 : 1, "version 1, or 2 where slice 0014 added a credit or slice 0073 respelled an id");
+    assert.equal(doc.version, VERSION_THREE.has(id) ? 3 : CREDITED_IN_0014.has(id) || RESPELLED_IN_0073.has(id) ? 2 : 1, "version 1; 2 where slice 0014 added a credit or slice 0073 respelled an id; 3 where slice 0019 renamed an output after that");
     assert.equal(doc.layout, undefined, "layout-free: the app places nodes");
 
     // Credits (docs/templates.md §1 and §5, decision 0010): the three patterns that owe one carry it, and every credit is complete with a web link.
@@ -283,6 +285,8 @@ test("slice 0017: the four prior-art templates keep their point and their credit
   assert.ok(investigator.deny?.includes("edit-files") && !investigator.allow?.includes("edit-files"), "the investigator never edits");
   assert.ok(investigator.allow?.includes("run-commands"), "but may run what it needs");
   assert.deepEqual(agent(pulse, "ticket-writer").owns, ["{{ticket-store}}"]);
+  assert.ok(investigator.outputs?.some((o) => o.startsWith("PULSE.md:")) && agent(pulse, "ticket-writer").inputs?.includes("PULSE.md"), "the investigator's file is PULSE.md, and the writer reads it");
+  assert.ok(!JSON.stringify(pulse).includes("FINDINGS.md"), "the old name is gone from the document");
   assert.ok(pulse.nodes.some((n) => n.kind === "human-gate" && n.id === "prioritize"));
   assert.equal(pulse.nodes.filter((n) => n.kind === "stop").length, 2, "a clean stop and a done stop");
 
