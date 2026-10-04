@@ -110,7 +110,8 @@ const isLink = (path) => {
 
 const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 const oneLine = (text) => String(text).replace(CONTROL, " ").replace(/\s+/g, " ").trim();
-const plain = (text) => oneLine(text).replace(/::/g, ": :");
+// A line for a log or a code fence keeps its inner spacing (the validator's columns) and loses only what could end the line.
+const plain = (text) => String(text).replace(CONTROL, " ").replace(/::/g, ": :").trim();
 const md = (text) =>
   oneLine(text)
     .replace(/[\\<>&[\]]/g, (c) => ({ "\\": "\\\\", "<": "&lt;", ">": "&gt;", "&": "&amp;", "[": "\\[", "]": "\\]" })[c])
@@ -631,7 +632,7 @@ if (flags.report) {
   const notes = [];
   if (flags.author) {
     const login = flags.author.toLowerCase();
-    const folderOf = (path) => (path.split("/").length >= 3 ? path.split("/")[1] : undefined);
+    const folderOf = (path) => (path.split("/").length >= 3 && !RESERVED.has(path.split("/")[1]) ? path.split("/")[1] : undefined);
     const folders = [...new Set([...chosen.map((r) => r.author), ...misplaced.map((p) => folderOf(p.path)).filter(Boolean)])];
     const others = folders.filter((folder) => folder.toLowerCase() !== login);
     if (others.length > 0) notes.push(`${plural(others.length, "folder")} here ${others.length === 1 ? "is" : "are"} named for someone other than the pull request's author (${code(flags.author)}): ${others.map(code).join(", ")}. The name goes on the gallery page as the author, so the owner confirms it is right before merging.`);
