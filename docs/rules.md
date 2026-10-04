@@ -61,7 +61,7 @@ error  E_LOOP_BACK_EDGE  loop "fix-cycle": back edge "e-check-fail" runs suite �
 
 ### `E_CYCLE_NO_STOP`
 
-cycle with no stop | Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids.
+**Cycle with no stop.** Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids.
 
 **Fails:** [`fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json`](../fixtures/invalid/E_CYCLE_NO_STOP/loop-without-stop.grooph.json) prints
 
@@ -73,7 +73,7 @@ error  E_CYCLE_NO_STOP  cycle with no stop: builder → critic. Cover it with a 
 
 ### `E_JUDGMENT_LOOP_NO_BAR`
 
-taste loop with no bar | A loop whose `mode` is `judgment` (explicit or inferred) has no `bar`, or its bar has an empty `inspects`. An `answer-key` evidence entry counts as inspectable only when `answerKeyFrom` names a node in the graph.
+**Taste loop with no bar.** A loop whose `mode` is `judgment` (explicit or inferred) has no `bar`, or its bar has an empty `inspects`. An `answer-key` evidence entry counts as inspectable only when `answerKeyFrom` names a node in the graph.
 
 **Fails:** [`fixtures/invalid/E_JUDGMENT_LOOP_NO_BAR/taste-loop-without-bar.grooph.json`](../fixtures/invalid/E_JUDGMENT_LOOP_NO_BAR/taste-loop-without-bar.grooph.json) prints
 
@@ -85,7 +85,7 @@ error  E_JUDGMENT_LOOP_NO_BAR  judgment loop "polish-cycle" has no bar; name wha
 
 ### `E_STOP_NOT_INSPECTABLE`
 
-only stop is an adjective | A loop's stops are all `bar-passed` and the bar is missing or has empty `inspects`.
+**Only stop is an adjective.** A loop's stops are all `bar-passed` and the bar is missing or has empty `inspects`.
 
 **Fails:** [`fixtures/invalid/E_STOP_NOT_INSPECTABLE/only-stop-is-an-adjective.grooph.json`](../fixtures/invalid/E_STOP_NOT_INSPECTABLE/only-stop-is-an-adjective.grooph.json) prints
 
@@ -97,7 +97,7 @@ error  E_STOP_NOT_INSPECTABLE  loop "polish-cycle" stops only when its bar passe
 
 ### `E_NO_TARGET`
 
-no target harness | Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together.
+**No target harness.** Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together.
 
 **Fails:** [`fixtures/invalid/E_NO_TARGET/no-target-harness.grooph.json`](../fixtures/invalid/E_NO_TARGET/no-target-harness.grooph.json) prints
 
@@ -109,7 +109,7 @@ error  E_NO_TARGET  export needs a target harness; set target.harness  [at: no-t
 
 ### `E_NO_GOAL`
 
-bootstrap with no goal | Export or bootstrap requested and `goal` is absent or blank.
+**Bootstrap with no goal.** Export or bootstrap requested and `goal` is absent or blank.
 
 **Fails:** [`fixtures/invalid/E_NO_GOAL/no-goal.grooph.json`](../fixtures/invalid/E_NO_GOAL/no-goal.grooph.json) prints
 
@@ -121,7 +121,7 @@ error  E_NO_GOAL  export needs a goal; the lead brief is built from it  [at: no-
 
 ### `E_IS_TEMPLATE`
 
-— | Export requested on a document that still has a `template` block. Instantiate it first (`docs/templates.md` §2).
+**—.** Export requested on a document that still has a `template` block. Instantiate it first (`docs/templates.md` §2).
 
 **Fails:** [`fixtures/invalid/E_IS_TEMPLATE/template-exported.grooph.json`](../fixtures/invalid/E_IS_TEMPLATE/template-exported.grooph.json) prints
 
@@ -133,7 +133,7 @@ error  E_IS_TEMPLATE  "fix-it" is a template; instantiate it first (grooph templ
 
 ### `E_UNFILLED_SLOT`
 
-— | Export requested and a `{{slot}}` remains in a string field of a document without a `template` block. `at` names the objects holding it.
+**—.** Export requested and a `{{slot}}` remains in a string field of a document without a `template` block. `at` names the objects holding it.
 
 **Fails:** [`fixtures/invalid/E_UNFILLED_SLOT/slot-left-unfilled.grooph.json`](../fixtures/invalid/E_UNFILLED_SLOT/slot-left-unfilled.grooph.json) prints
 
@@ -145,7 +145,7 @@ error  E_UNFILLED_SLOT  slot {{test-command}} is still unfilled in "make-it-gree
 
 ### `E_CRITIC_NOT_ISOLATED`
 
-critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list.
+**Critic shares builder context.** A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list.
 
 **Fails:** [`fixtures/invalid/E_CRITIC_NOT_ISOLATED/critic-shares-builder-context.grooph.json`](../fixtures/invalid/E_CRITIC_NOT_ISOLATED/critic-shares-builder-context.grooph.json) prints
 
@@ -157,7 +157,7 @@ error  E_CRITIC_NOT_ISOLATED  edge "e-build-review" hands critic "critic" shared
 
 ### `E_OWNERSHIP_CONFLICT`
 
-two writers, one artifact, no merge | Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`.
+**Two writers, one artifact, no merge.** Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`.
 
 **Fails:** [`fixtures/invalid/E_OWNERSHIP_CONFLICT/two-writers-one-artifact.grooph.json`](../fixtures/invalid/E_OWNERSHIP_CONFLICT/two-writers-one-artifact.grooph.json) prints
 
@@ -169,7 +169,7 @@ error  E_OWNERSHIP_CONFLICT  artifact "src" is owned by writers "planner", "buil
 
 ### `E_IRREVERSIBLE_NO_GATE`
 
-irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human.
+**Irreversible action without a gate.** A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human.
 
 **Fails:** [`fixtures/invalid/E_IRREVERSIBLE_NO_GATE/mixed-inbound.grooph.json`](../fixtures/invalid/E_IRREVERSIBLE_NO_GATE/mixed-inbound.grooph.json) prints
 
