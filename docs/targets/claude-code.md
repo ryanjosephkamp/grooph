@@ -10,7 +10,7 @@ How the package contract in [`graph-ir.md` §5](../graph-ir.md#5-package-contrac
 | tier `strong` | `model: opus` |
 | tier `fast` | `model: sonnet` |
 | `pin["claude-code"]` | used verbatim as `model:` |
-| `grooph export --models frontier=…,strong=…,fast=…`, or `GROOPH_MODELS` in the environment | names the model of a tier for that export, in place of the three rows above; a tier not named keeps its row, and a pin still wins. `MAPPING.md` says "this export" where it lists the tiers. The graph does not change |
+| `grooph export --models frontier=…,strong=…,fast=…`, or `GROOPH_MODELS` in the environment | names the model of a tier for that export, in place of the three rows above; a tier not named keeps its row, and a pin still wins. `MAPPING.md` says "this export" where it lists the tiers. The graph does not change. The command prints what all three tiers mean in the package, and says so when two tiers the graph's agents use have become one model: `W_HOMOGENEOUS_CRITICS` reads tiers and cannot see that |
 | effort `low` `medium` `high` `max` | `effort:` same names (`xhigh` reachable only through a pin-like override, see below) |
 
 The profile is data (`packages/core/targets/claude-code.profile.json`), so a vendor rename is a one-file change.
