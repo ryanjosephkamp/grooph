@@ -16,7 +16,7 @@ import { defineConfig } from "@playwright/test";
  */
 const port = Number(process.env["GROOPH_E2E_PORT"] ?? 4173);
 const everyBrowser = process.env["GROOPH_BROWSERS"] === "1";
-const smoke = "smoke.spec.ts";
+const smoke = "probe.spec.ts";
 
 export default defineConfig({
   testDir: "e2e",
