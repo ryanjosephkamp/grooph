@@ -52,7 +52,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { checkRun } from "./prove-check.mjs";
 import { digestTranscripts, projectDiff, readNotes, redactHome, runFolders, sessionTranscripts } from "./prove-evidence.mjs";
-import { BASE_SETTINGS, HELD_OUT_TOKEN, Refusal, assertFreshBundle, buildScratch, claudeSignedIn, cleanEnv, collect, fail, finishResult, run, say } from "./prove-pattern.mjs";
+import { BASE_SETTINGS, HELD_OUT_TOKEN, NEVER, Refusal, agentModels, assertFreshBundle, buildScratch, claudeSignedIn, cleanEnv, collect, fail, finishResult, neverUsed, run, say } from "./prove-pattern.mjs";
 import { describe, gate, loadLedger, openRunEntry, saveLedger, settleEntry, totals, tripwireNotice } from "./compare-ledger.mjs";
 import { DONE_LINE, derive, deriveD, iterationPrompt, loopScript, readPackage, roundCap, saysDone } from "./compare-prompt.mjs";
 import { scoreTree } from "./compare-score.mjs";
@@ -78,8 +78,8 @@ export const LEAD_EFFORT = "high";
 /** Every arm any version has, for reading the command line and the run folders. */
 export const ARMS = ["A", "B", "C", "D"];
 export const TIERS = ["frontier", "strong", "fast"];
-/** Never Fable, never Astra: not a lead, a subagent, a judge or a tier (the owner's rule, 2026-10-04). */
-export const NEVER = /fable|astra/i;
+/** Never Fable, never Astra: not a lead, a subagent, a judge or a tier (the owner's rule, 2026-10-04). The pattern is the proving runner's. */
+export { NEVER, neverUsed };
 
 // ── the tier map ─────────────────────────────────────────────────────────
 
@@ -251,6 +251,10 @@ function buildFor(proj, arm) {
   const built = buildScratch(proj.template, proj, prefix);
   if (proj.protocol >= 2 && built.substituted.length > 0) fail(`${proj.project}: the held-out folder's path reached a task file (${built.substituted.join(", ")}); in protocol version 2 only a slot value names it`);
   if (proj.tierMap && !built.exportOutput.includes(`Named by GROOPH_MODELS`)) fail(`grooph export did not report the tier map it was given; is the CLI built from this branch (slice 0079)?`);
+  // The package itself is read, whatever the map said: no agent file names a model this study never uses (a pin on a node would win over the map).
+  built.agentModels = agentModels(built.scratch, built.graphId);
+  const never = Object.entries(built.agentModels).filter(([, model]) => NEVER.test(model));
+  if (never.length > 0) fail(`${proj.project}: the package would run ${never.map(([agent, model]) => `${agent.split("--").pop()} on ${model}`).join(", ")}, a model this study never uses`);
   const pkg = readPackage(built.scratch);
   const derived = derive(pkg, { heldOut: built.heldOut?.realDir });
   const n = roundCap(pkg.doc);
@@ -352,12 +356,6 @@ function invoke({ ledger, proj, arm, replicate, kind, iteration, retry, scratch,
 
 const remainingText = (remaining) => (Number.isFinite(remaining) ? `$${remaining.toFixed(2)} remains` : "no cap (the tripwires stand)");
 
-/** Every model a run reported, by the harness's own count or by a transcript, that this study never uses. Empty is the only good answer. */
-export function neverUsed(models, byAgent = {}) {
-  const seen = new Set([...Object.keys(models ?? {}), ...Object.values(byAgent ?? {}).flat()]);
-  return [...seen].filter((model) => NEVER.test(model)).sort();
-}
-
 // ── evidence common to every arm ─────────────────────────────────────────
 function digestFor(invocations, scratch) {
   const sessions = [...new Set(invocations.map((inv) => inv.output.session_id).filter(Boolean))];
@@ -439,6 +437,7 @@ function conditions(proj, built, harnessVersion) {
     lead_effort: LEAD_EFFORT,
     judge_model: proj.judgeModel,
     tier_map: proj.tierMap ? { ...proj.tierMap.map, said_as: `GROOPH_MODELS=${proj.tierMap.text}`, source: proj.tierMap.source } : null,
+    agent_models: built.agentModels ?? null,
     permission_allow_rules: built.settings.permissions.allow.length,
     strict_mcp_config: true,
     harness_version: harnessVersion,
@@ -518,7 +517,7 @@ async function runArmA({ proj, built, ledger, binDir, retry, evidenceDir, harnes
 
   say(`copying the evidence into ${evidenceDir.slice(root.length + 1)}/`);
   // The proving runner's evidence copy and check, unchanged: runs/, package/, project.diff, digest, result.json.
-  collect({ template: proj.template, experiment: proj, built, invocations, prompts, evidenceDir, harnessVersion });
+  collect({ template: proj.template, experiment: proj, built, invocations, prompts, evidenceDir, harnessVersion, lead: { model: proj.leadModel, effort: LEAD_EFFORT } });
   const checked = await finishResult(evidenceDir, core, proj.template);
   const result = JSON.parse(readFileSync(join(evidenceDir, "result.json"), "utf8"));
   const digest = JSON.parse(readFileSync(join(evidenceDir, "transcript-digest.json"), "utf8"));
