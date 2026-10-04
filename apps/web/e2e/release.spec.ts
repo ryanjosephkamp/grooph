@@ -33,11 +33,21 @@ const CHROMIUM = { tag: "@chromium" };
 const complaints: string[] = [];
 test.beforeEach(({ context }) => {
   complaints.length = 0;
-  context.on("weberror", (error) => complaints.push(`uncaught: ${error.error().message}`));
+  const began = Date.now();
+  const at = (): string => `${String(Date.now() - began).padStart(5)} ms`;
+  const file = (address: string): string => address.replace(/^https?:\/\/[^/]+\/grooph\//, "") || "(the page)";
+  context.on("weberror", (error) => complaints.push(`${at()} uncaught: ${error.error().message}`));
   context.on("console", (message) => {
-    if (message.type() === "error") complaints.push(`console: ${message.text()}`);
+    if (message.type() === "error") complaints.push(`${at()} console: ${message.text()}`);
   });
-  context.on("requestfailed", (request) => complaints.push(`failed: ${request.failure()?.errorText ?? ""} ${request.url()}`));
+  // Every script and page the tab asked for, in order, and how each ended: answered (by the worker or not), or failed.
+  context.on("request", (request) => {
+    if (/\.js$|\/grooph\/(#.*)?$/.test(request.url())) complaints.push(`${at()} asked ${request.isNavigationRequest() ? "NAVIGATION " : ""}${file(request.url())}`);
+  });
+  context.on("response", (response) => {
+    if (/\.js$|\/grooph\/(#.*)?$/.test(response.url())) complaints.push(`${at()} answered ${response.status()}${response.fromServiceWorker() ? " by the worker" : ""} ${file(response.url())}`);
+  });
+  context.on("requestfailed", (request) => complaints.push(`${at()} FAILED: ${request.failure()?.errorText ?? ""} ${file(request.url())}`));
 });
 test.afterEach(async ({ page }, testInfo) => {
   if (testInfo.status === testInfo.expectedStatus) return;
