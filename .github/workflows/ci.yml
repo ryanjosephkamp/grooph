@@ -151,6 +151,9 @@ jobs:
       - if: steps.chromium.outputs.cache-hit == 'true'
         run: pnpm --filter @grooph/web exec playwright install-deps chromium
 
+      # Some specs call the CLI's own code (the embed command, the site's pages), and that code loads core as built.
+      - run: pnpm -r build
+
       - run: pnpm --filter @grooph/web test:e2e
 
       - uses: actions/upload-artifact@v7

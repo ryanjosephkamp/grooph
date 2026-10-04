@@ -123,9 +123,10 @@ test("on a wide screen the picture is drawn large and the details sit beside it"
   const panel = (await sheet(page).boundingBox())!;
   expect(panel.x).toBeGreaterThan(picture.x + picture.width - 1);
 
+  // The picture is drawn again at the narrower width, so for a moment the old one is gone: ask until it has settled.
   await page.setViewportSize({ width: 1000, height: 800 });
-  expect((await page.locator(".map-picture svg").boundingBox())!.width).toBeLessThanOrEqual(560);
-  expect((await sheet(page).boundingBox())!.x).toBeGreaterThan(560);
+  await expect.poll(async () => (await page.locator(".map-picture svg").boundingBox())?.width ?? Infinity).toBeLessThanOrEqual(560);
+  await expect.poll(async () => (await sheet(page).boundingBox())?.x ?? 0).toBeGreaterThan(560);
 });
 
 test("the map says what a person carries by hand, and a session's graph link opens that graph in the app", async ({ page }) => {
