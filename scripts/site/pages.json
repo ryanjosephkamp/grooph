@@ -27,6 +27,11 @@
           "summary": "Every validation rule by its stable code, with a document that fires it and one that does not."
         },
         {
+          "source": "docs/cli.md",
+          "slug": "cli",
+          "summary": "The CLI, command by command, each with the help it prints itself."
+        },
+        {
           "source": "docs/graph-ir.md",
           "slug": "graph-ir",
           "summary": "The graph document: its schema, what it means, and the rules it must follow."
