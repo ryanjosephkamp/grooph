@@ -28,6 +28,15 @@ Counted before Codex saw anything, and open to its attack. The inventory has the
 - **Carried with other words:** the contract claim (18 of 20, stops "in order" by the lead's own note); the record claim (dispatch counts in 10 of 20); "every loop can end", "a critic that shares the builder's context" and "an irreversible step" (each depends on something the author writes); "back edges fired in six templates" (two were corrections on held-out evidence); "ids, names and times" (the local file also holds two paths).
 - **Carried:** the negative result of the comparison and every number in its table; that evidence is never edited; that grooph calls no model and sends no graph anywhere; the rule count; the sizes in the performance budget.
 
+## Held for the reconciliation
+
+From the driver, 2026-10-04, after reading round one:
+
+- No page changes until the rounds converge. The README's link to the claims page goes in the corrections pull request.
+- C30 has one more place once it is on `main`: `docs/privacy.md`, a new page from another lane, which said "ids, names and times" and is being corrected there.
+- The paint times in decision 0021 (C44) stay "not re-measured this round". No browser run is started for them.
+- A decision that supersedes 0013 is the owner's. The driver drafts it once Codex and the lane agree on the wording of C1.
+
 ## How it ended
 
 Not yet.
