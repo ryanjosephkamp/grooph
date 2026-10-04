@@ -58,9 +58,11 @@ for (const project of projects) {
     });
   }
 
-  test(`${project}: the task as it ships does not pass the held-out suite`, () => {
+  test(`${project}: the task as it ships does not pass the held-out suite, and every case is counted`, () => {
     const { held, tests } = scoreVariant(project, null);
-    assert.ok(!held.ran || held.passed < held.cases);
+    assert.equal(held.ran, true, held.reason);
+    assert.equal(held.cases, expect.held_out_cases, "a suite that cannot find the work still reports each of its cases");
+    assert.equal(held.passed, expect.bare_task_passes ?? 0);
     assert.equal(tests.pass, true, "the task folder's own tests pass before any work");
   });
 

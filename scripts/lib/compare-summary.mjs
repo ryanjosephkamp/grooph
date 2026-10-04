@@ -89,7 +89,7 @@ export function projectRows(project) {
   });
 }
 
-const heldOutCell = (h) => (!h ? "–" : h.ran ? `${h.passed}/${h.cases}` : `not run`);
+const heldOutCell = (h) => (!h ? "–" : h.ran ? `${h.passed}/${h.cases}${h.loaded === false ? " (the suite could not load the work)" : ""}` : `not run`);
 const testsCell = (t) => (!t ? "–" : t.pass ? "pass" : `**fail**${t.failed ? ` (${t.failed})` : t.todo || t.skipped ? " (skipped/todo)" : ""}`);
 const scopeCell = (s) => (!s ? "–" : s.outside.length === 0 && (s.protected_changed ?? []).length === 0 ? "clean" : [s.outside.length > 0 ? `**${s.outside.length} outside**: ${s.outside.join(", ")}` : "", (s.protected_changed ?? []).length > 0 ? `**protected changed**: ${s.protected_changed.join(", ")}` : ""].filter(Boolean).join("; "));
 const endingCell = (e) => (!e ? "–" : e.kind === "clean" ? `clean (${e.reason})` : `**cut off** (${e.reason})`);

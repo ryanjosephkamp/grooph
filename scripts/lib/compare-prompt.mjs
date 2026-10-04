@@ -345,7 +345,7 @@ export function derive(pkg, { heldOut } = {}) {
 // ── arm D: the task alone ────────────────────────────────────────────────
 
 /** Words that would carry a role, a routing or a loop into arm D's prompt. The task text of a version-2 project is written without them, and the runner refuses a prompt that has one. */
-export const DESIGN_WORDS = /\b(?:critics?|builders?|reviewers?|sub-?agents?|dispatch(?:es|ed|ing)?|loops?|briefs?|lead|(?:human|merge) gate)\b/gi;
+export const DESIGN_WORDS = /\b(?:critics?|builders?|reviewers?|owners?|judges?|(?:sub-?)?agents?|dispatch(?:es|ed|ing)?|loops?|rounds?|iterations?|briefs?|lead|(?:human|merge) gate)\b/gi;
 
 /**
  * Arm D's prompt (protocol version 2, §1): the task, its acceptance material and

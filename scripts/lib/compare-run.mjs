@@ -16,9 +16,20 @@
  *      command passes;
  *   D  (version 2) the task, its acceptance material and the test command in
  *      one headless session: no roles, routing, loop or briefs. Its prompt is
- *      written from the task folder alone (compare-prompt.mjs `deriveD`), the
- *      package is removed, and the held-out suite is named to nobody: it is
- *      moved away from the scratch before the run and comes back only to score.
+ *      written from the task folder alone (compare-prompt.mjs `deriveD`), its
+ *      scratch never held the package, and the held-out suite is named to
+ *      nobody: no copy of it is anywhere near the run.
+ *
+ * What a session can learn of where it is (version 2). A session is shown its
+ * working folder's path, its repository's user and its last commits, and it can
+ * list the folder above its own. So a version-2 scratch is named after the
+ * task's own package, sits alone in a folder of its own under the runner's work
+ * root, and has one commit, "initial commit", by a neutral user; in B, C and D
+ * that commit never held the package. The work root is the runner's alone:
+ * every run starts with it empty and, once its evidence is in the repository,
+ * leaves it empty, so no run can find another's tree or held-out copy beside
+ * it. The scorer runs the held-out suite from the repository, never from a copy
+ * a run could reach.
  *
  * Every arm: the lead's model and effort pinned on the command line, the
  * proving allowlist (plus `Read` on the held-out folder in A, B and C),
@@ -47,13 +58,13 @@
 import { spawnSync } from "node:child_process";
 import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { checkRun } from "./prove-check.mjs";
-import { digestTranscripts, projectDiff, readNotes, redactHome, runFolders, sessionTranscripts } from "./prove-evidence.mjs";
-import { BASE_SETTINGS, HELD_OUT_TOKEN, NEVER, Refusal, agentModels, assertFreshBundle, buildScratch, claudeSignedIn, cleanEnv, collect, fail, finishResult, neverUsed, run, say } from "./prove-pattern.mjs";
-import { describe, gate, loadLedger, openRunEntry, saveLedger, settleEntry, totals, tripwireNotice } from "./compare-ledger.mjs";
+import { digestTranscripts, projectDiff, readNotes, redactHome, runFolders, sessionTranscripts, sha256 } from "./prove-evidence.mjs";
+import { ALIAS_ENV, BASE_SETTINGS, HELD_OUT_TOKEN, NEVER, Refusal, agentModels, assertFreshBundle, buildScratch, claudeSignedIn, cleanEnv, collect, fail, finishResult, neverUsed, run, say } from "./prove-pattern.mjs";
+import { amendEntry, describe, gate, loadLedger, openRunEntry, reload, saveLedger, totals, tripwireNotice } from "./compare-ledger.mjs";
 import { DONE_LINE, derive, deriveD, iterationPrompt, loopScript, readPackage, roundCap, saysDone } from "./compare-prompt.mjs";
 import { scoreTree } from "./compare-score.mjs";
 
@@ -80,6 +91,46 @@ export const ARMS = ["A", "B", "C", "D"];
 export const TIERS = ["frontier", "strong", "fast"];
 /** Never Fable, never Astra: not a lead, a subagent, a judge or a tier (the owner's rule, 2026-10-04). The pattern is the proving runner's. */
 export { NEVER, neverUsed };
+
+// ── the runner's work root (version 2) ───────────────────────────────────
+
+/**
+ * Where version-2 scratch projects are built: one folder under $TMPDIR that is the runner's alone, each run in a folder
+ * of its own inside it. Its name says nothing of the tool or the study, because a session sees the path.
+ */
+export const workRoot = () => join(process.env.TMPDIR ?? tmpdir(), "wk");
+const WORK_MARK = ".keep";
+
+/** What an earlier run left in the work root: folders of runs that did not finish (a finished run removes its own). */
+export function leftovers(root = workRoot()) {
+  return existsSync(root) ? readdirSync(root).filter((name) => name !== WORK_MARK).map((name) => join(root, name)) : [];
+}
+
+/** A fresh folder for one run, in a work root that holds nothing else. */
+function openWork() {
+  const root = workRoot();
+  if (/grooph|compar/i.test(root)) fail(`the work root ${root} would put the tool's or the study's name in every session's path: point TMPDIR elsewhere`);
+  if (existsSync(root) && !existsSync(join(root, WORK_MARK))) fail(`${root} exists and is not the runner's (it has no ${WORK_MARK}): the runner builds only in a folder it made`);
+  const left = leftovers(root);
+  if (left.length > 0) fail(`the work root still holds ${left.length} folder(s) from a run that did not finish:\n${left.map((path) => `  ${path}`).join("\n")}\nA later run could read what is in them. Look at what they hold (a paid run's tree, if its evidence was never copied), then clear them with scripts/compare.sh --clear-work`);
+  mkdirSync(root, { recursive: true });
+  writeFileSync(join(root, WORK_MARK), "", "utf8");
+  return mkdtempSync(join(root, "/"));
+}
+
+/** `--clear-work`: remove what unfinished runs left in the work root, and say what went. Only that folder, and only when it is the runner's. */
+function clearWork() {
+  const root = workRoot();
+  if (!existsSync(root)) return console.log(`${root} does not exist: nothing to clear`) ?? 0;
+  if (!existsSync(join(root, WORK_MARK))) fail(`${root} is not the runner's (it has no ${WORK_MARK}); nothing was removed`);
+  const left = leftovers(root);
+  for (const path of left) {
+    rmSync(path, { recursive: true, force: true });
+    console.log(`removed ${path}`);
+  }
+  console.log(left.length === 0 ? `${root} was already empty` : `${root} is empty`);
+  return 0;
+}
 
 // ── the tier map ─────────────────────────────────────────────────────────
 
@@ -142,6 +193,7 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--status") args.status = true;
+    else if (arg === "--clear-work") args.clearWork = true;
     else if (arg === "--derive") args.derive = true;
     else if (arg === "--judge") args.judge = true;
     else if (arg === "--next") args.next = true;
@@ -233,23 +285,40 @@ export function nextRun(proj) {
 
 // ── the scratch project per arm ──────────────────────────────────────────
 
+/** Who made a version-2 scratch's one commit, and what it says: nothing of the tool, the study or the arm. */
+const NEUTRAL_COMMIT = { name: "dev", email: "dev@localhost", message: "initial commit" };
+
 /**
- * Build the scratch as the proving runner does (task, held-out beside it, the
- * package exported, one commit). For B and C, derive the prompt from that very
- * package, then remove the package and commit again: the arm starts from the
- * task alone, with the prompt carrying what the package said.
+ * Build the scratch as the proving runner does (task, held-out beside it, the package exported, one commit), in a
+ * folder of its own under the work root. Arm A runs on that. For B and C the prompt is derived from that very
+ * package; for D it is written from the task folder. Then, for B, C and D, the package is taken out and the
+ * repository is made again from what is left, so its one commit never held the package: a session is shown its
+ * repository's last commits, and `git show` would otherwise hand it the whole design.
+ *
+ * The held-out folder beside the scratch is a copy for a reviewer to read. In D there is none. In A, B and C a file
+ * that is the scorer's alone (expect.json `held_out_scorer_only`) is taken out of it. The scorer never uses the copy:
+ * it runs the suite from the project's own held-out folder in the repository.
  */
 function buildFor(proj, arm) {
   // The package is exported with the project's tier map: buildScratch hands the environment to `grooph export`.
   if (proj.tierMap) process.env.GROOPH_MODELS = proj.tierMap.text;
-  // Version 2: the scratch folder is named after the task's own package, never after the tool, the study or the arm.
-  // A session sees its working folder's path, and in A, B and C the held-out folder's path (it sits beside the
-  // scratch) is in the prompt: a path that said "grooph-compare-…-B-" would tell a session what it is part of, and
-  // would make the derivation drop every sentence that names the held-out folder as a mechanic of the tool.
-  const prefix = proj.protocol >= 2 ? `${JSON.parse(readFileSync(join(proj.dir, "task", "package.json"), "utf8")).name}-` : `grooph-compare-${proj.project}-${arm}-`;
-  if (proj.protocol >= 2 && /grooph|compare/i.test(prefix)) fail(`${proj.project}: the task's package name would put the tool's name in the scratch folder's path`);
-  const built = buildScratch(proj.template, proj, prefix);
-  if (proj.protocol >= 2 && built.substituted.length > 0) fail(`${proj.project}: the held-out folder's path reached a task file (${built.substituted.join(", ")}); in protocol version 2 only a slot value names it`);
+  const work = openWork();
+  try {
+    return buildIn(work, proj, arm);
+  } catch (error) {
+    // Nothing was run: a build that fails leaves nothing behind for a later run to find.
+    rmSync(work, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+function buildIn(work, proj, arm) {
+  const prefix = join(basename(workRoot()), basename(work), `${JSON.parse(readFileSync(join(proj.dir, "task", "package.json"), "utf8")).name}-`);
+  const built = buildScratch(proj.template, proj, prefix, NEUTRAL_COMMIT);
+  built.work = work;
+  built.arm = arm;
+  if (/grooph|compar/i.test(built.scratch)) fail(`${proj.project}: the scratch folder's path (${built.scratch}) names the tool or the study, and a session sees its path`);
+  if (built.substituted.length > 0) fail(`${proj.project}: the held-out folder's path reached a task file (${built.substituted.join(", ")}); in protocol version 2 only a slot value names it`);
   if (proj.tierMap && !built.exportOutput.includes(`Named by GROOPH_MODELS`)) fail(`grooph export did not report the tier map it was given; is the CLI built from this branch (slice 0079)?`);
   // The package itself is read, whatever the map said: no agent file names a model this study never uses (a pin on a node would win over the map).
   built.agentModels = agentModels(built.scratch, built.graphId);
@@ -259,39 +328,58 @@ function buildFor(proj, arm) {
   const derived = derive(pkg, { heldOut: built.heldOut?.realDir });
   const n = roundCap(pkg.doc);
   const kickoff = pkg.kickoff;
-  if (arm !== "A") {
-    run("git", ["-C", built.scratch, "rm", "-rq", ".grooph", ".claude"]);
-    run("git", ["-C", built.scratch, "commit", "-qm", arm === "D" ? "remove the package: this arm runs on the task alone" : "remove the package: this arm runs on the derived prompt alone"]);
-    built.base = run("git", ["-C", built.scratch, "rev-parse", "HEAD"]).stdout.trim();
-    for (const left of [".grooph", ".claude"]) rmSync(join(built.scratch, left), { recursive: true, force: true });
-  }
-  // A file of the held-out folder that is the scorer's alone (expect.json `held_out_scorer_only`: a suite no reviewer
-  // is named, as when the template names its critic a reference, not a suite) leaves the folder before the run.
-  const scorerOnly = (proj.expect.held_out_scorer_only ?? []).filter((name) => built.heldOut && existsSync(join(built.heldOut.dir, name)));
-  if (arm !== "D" && scorerOnly.length > 0) {
-    built.scoreDir = mkdtempSync(join(tmpdir(), "grooph-compare-scorer-"));
-    for (const name of scorerOnly) renameSync(join(built.heldOut.dir, name), join(built.scoreDir, name));
-    built.heldOut = { ...built.heldOut, scorer_only: scorerOnly };
-  }
-  if (arm !== "D") return { ...built, pkg, prompt: derived.prompt, derivation: derived.report, promptFile: "prompt-B.md", n, kickoff };
+  built.scoreDir = proj.heldOut;
 
-  // Arm D: the held-out suite is named to nobody. It leaves the scratch's side for the length of the run (the scorer
-  // gets it back by path), no rule allows reading it, and the prompt is written from the task folder alone.
+  if (arm !== "A") {
+    for (const gone of [".grooph", ".claude", ".git"]) rmSync(join(built.scratch, gone), { recursive: true, force: true });
+    run("git", ["-C", built.scratch, "init", "-q"]);
+    run("git", ["-C", built.scratch, "config", "user.email", NEUTRAL_COMMIT.email]);
+    run("git", ["-C", built.scratch, "config", "user.name", NEUTRAL_COMMIT.name]);
+    run("git", ["-C", built.scratch, "add", "-A"]);
+    run("git", ["-C", built.scratch, "commit", "-qm", NEUTRAL_COMMIT.message]);
+    built.base = run("git", ["-C", built.scratch, "rev-parse", "HEAD"]).stdout.trim();
+  }
+  const scorerOnly = (proj.expect.held_out_scorer_only ?? []).filter((name) => built.heldOut && existsSync(join(built.heldOut.dir, name)));
+  if (arm !== "D") {
+    for (const name of scorerOnly) rmSync(join(built.heldOut.dir, name));
+    if (built.heldOut) built.heldOut = { ...built.heldOut, scorer_only: scorerOnly, files: built.heldOut.files.map((file) => ({ ...file, at_run: !scorerOnly.includes(file.path) })) };
+    return { ...built, pkg, prompt: derived.prompt, derivation: derived.report, promptFile: "prompt-B.md", n, kickoff };
+  }
+
+  // Arm D: the held-out suite is named to nobody. The reviewer's copy is removed, no rule allows reading anything
+  // outside the project, and the prompt is written from the task folder alone.
   const marks = [HELD_OUT_TOKEN, built.heldOut?.dir, built.heldOut?.realDir, "held-out"].filter(Boolean);
   if (built.heldOut) {
-    const away = mkdtempSync(join(tmpdir(), "grooph-compare-scorer-"));
-    renameSync(built.heldOut.dir, join(away, "suite"));
-    built.heldOut = { ...built.heldOut, dir: join(away, "suite"), realDir: realpathSync(join(away, "suite")), named_to: "nobody", beside_scratch_during_run: false, scorer_only: scorerOnly };
-    built.scoreDir = built.heldOut.realDir;
-    built.scoreDirParent = away;
+    rmSync(built.heldOut.dir, { recursive: true, force: true });
+    built.heldOut = { ...built.heldOut, dir: null, realDir: null, named_to: "nobody", beside_scratch_during_run: false, scorer_only: scorerOnly, files: built.heldOut.files.map((file) => ({ ...file, at_run: false })) };
   }
   built.settings = BASE_SETTINGS;
   const d = deriveD({ task: proj.slots.values.task, testCommand: proj.testCommand, acceptance: proj.acceptance, heldOutMarks: marks });
   return { ...built, pkg, prompt: d.prompt, derivation: d.report, promptFile: "prompt-D.md", n: 1, kickoff };
 }
 
+/** The reviewer's copy of the held-out folder after a run: which of its files the run changed, added or removed. */
+function heldOutChanges(built) {
+  if (!built.heldOut?.dir) return [];
+  const before = Object.fromEntries(built.heldOut.files.filter((file) => file.at_run !== false).map((file) => [file.path, file.sha256]));
+  const now = existsSync(built.heldOut.dir) ? readdirSync(built.heldOut.dir).sort() : [];
+  const changed = [];
+  for (const name of new Set([...Object.keys(before), ...now])) {
+    const path = join(built.heldOut.dir, name);
+    if (!now.includes(name)) changed.push(`${name} (removed)`);
+    else if (!(name in before)) changed.push(`${name} (added)`);
+    else if (sha256(path) !== before[name]) changed.push(`${name} (changed)`);
+  }
+  return changed;
+}
+
+/** A run is over: its evidence is in the repository, or it never called a model. Its folder under the work root goes. */
+function closeWork(built) {
+  if (built?.work && built.work.startsWith(`${workRoot()}/`)) rmSync(built.work, { recursive: true, force: true });
+}
+
 /** The prompt an arm's committed file should hold: the held-out path as its token, so the file is the same on every machine. */
-const tokenized = (built) => (built.heldOut && built.promptFile !== "prompt-D.md" ? built.prompt.replaceAll(built.heldOut.realDir, HELD_OUT_TOKEN) : built.prompt);
+const tokenized = (built) => (built.heldOut?.realDir && built.promptFile !== "prompt-D.md" ? built.prompt.replaceAll(built.heldOut.realDir, HELD_OUT_TOKEN) : built.prompt);
 
 /** Arm D's prompt carries nothing of the design and names no held-out suite, or it is not arm D. */
 function assertTaskOnly(proj, built) {
@@ -310,10 +398,12 @@ function assertPromptCurrent(proj, built) {
 
 // ── one model-calling invocation ─────────────────────────────────────────
 function invoke({ ledger, proj, arm, replicate, kind, iteration, retry, scratch, harnessDir, binDir, prompt, resumeSession, suffix, note, settings }) {
+  // The ledger is read from its file before every write, so what another process recorded meanwhile is kept.
+  reload(ledger);
   const decision = gate(ledger, { project: proj.project, arm, replicate, kind: kind === "iteration" ? "iteration" : kind, retry });
   if (!decision.ok) fail(`the ledger refuses this ${kind}: ${decision.reason}`);
   const spentBefore = totals(ledger).spent;
-  const entry = openRunEntry(ledger, { project: proj.project, arm, replicate, kind, iteration, maxBudget: decision.maxBudget, retry, sessionId: resumeSession, note });
+  let entry = openRunEntry(ledger, { project: proj.project, arm, replicate, kind, iteration, maxBudget: decision.maxBudget, retry, sessionId: resumeSession, note });
   saveLedger(ledger);
   console.log(`ledger: invocation ${entry.n} opened; ${remainingText(decision.remaining)}, this one is capped at $${decision.maxBudget.toFixed(2)}`);
 
@@ -325,7 +415,8 @@ function invoke({ ledger, proj, arm, replicate, kind, iteration, retry, scratch,
   const out = openSync(outPath, "w");
   const err = openSync(errPath, "w");
   const started = Date.now();
-  const child = spawnSync("claude", args, { cwd: scratch, env: cleanEnv(`${binDir}:${process.env.PATH}`), stdio: ["ignore", out, err], timeout: RUN_TIMEOUT_MS });
+  // The tool is on PATH only where the arm is the tool's own package (A). The aliases mean what the record says in every arm.
+  const child = spawnSync("claude", args, { cwd: scratch, env: cleanEnv(arm === "A" ? `${binDir}:${process.env.PATH}` : process.env.PATH, ALIAS_ENV), stdio: ["ignore", out, err], timeout: RUN_TIMEOUT_MS });
   closeSync(out);
   closeSync(err);
   const wall = Math.round((Date.now() - started) / 1000);
@@ -335,18 +426,22 @@ function invoke({ ledger, proj, arm, replicate, kind, iteration, retry, scratch,
     output = JSON.parse(readFileSync(outPath, "utf8"));
   } catch {}
   const reported = typeof output?.total_cost_usd === "number" ? output.total_cost_usd : null;
-  settleEntry(entry, {
+  const never = neverUsed(output?.modelUsage);
+  entry = amendEntry(ledger, entry, {
+    ended: new Date().toISOString(),
     status: output === null ? "failed" : output.is_error ? "error" : "ok",
     cost_usd: reported === null ? null : Math.round(reported * 1e6) / 1e6,
     reported_cost_usd: reported,
     session_id: output?.session_id ?? resumeSession ?? null,
     note: [note, output?.subtype && output.subtype !== "success" ? `result ${output.subtype}` : "", child.error ? `spawn: ${child.error.message}` : "", child.status ? `exit ${child.status}` : ""].filter(Boolean).join("; "),
+    // A model no run uses, reported by the harness: the line carries it, and the ledger lets nothing else start until someone answers for it.
+    ...(never.length > 0 ? { never_used: never } : {}),
   });
-  saveLedger(ledger);
   console.log(`claude exit ${child.status ?? child.signal ?? "?"} after ${wall}s; reported cost ${reported === null ? "unknown" : `$${reported.toFixed(4)}`}`);
   console.log(describe(ledger).split("\n")[0]);
   const notice = tripwireNotice(ledger, spentBefore);
   if (notice) console.log(`\n\x1b[33m${notice}\x1b[0m`);
+  if (never.length > 0) console.log(`\n\x1b[31mNEVER\x1b[0m invocation ${entry.n} reported ${never.join(", ")}; the ledger now refuses every new call`);
   if (output === null) {
     const stderr = existsSync(errPath) ? readFileSync(errPath, "utf8").slice(0, 2000) : "";
     fail(`claude produced no JSON output${stderr ? `:\n${stderr}` : ""}`);
@@ -362,7 +457,39 @@ function digestFor(invocations, scratch) {
   return sessions.flatMap((sid) => digestTranscripts(sessionTranscripts(CLAUDE_DIR, sid), scratch).map((entry) => ({ session: sid, ...entry })));
 }
 
-function processMeasures(invocations, digest, heldOutDir) {
+/**
+ * What a session reached for outside its own project, from the transcript digest: every absolute path that is not
+ * under the scratch (the reviewer's held-out copy apart, which is counted on its own), and every command or path that
+ * climbs with `..`. Arm D is told nothing lies outside; the other arms are told of one folder. Whatever any of them
+ * went looking for is listed here, by who, so a write-up can say so instead of assuming.
+ */
+export function reachedOutside(digest, scratch, heldOutDir) {
+  const inside = [scratch, (() => { try { return realpathSync(scratch); } catch { return scratch; } })(), ...(heldOutDir ? [heldOutDir, heldOutDir.replace(/^\/private/, "")] : [])];
+  const harmless = /^\/(dev\/|usr\/|bin\/|opt\/|etc\/|tmp$)/;
+  const out = {};
+  for (const entry of digest) {
+    const found = new Set();
+    for (const use of entry.tool_uses) {
+      if (use.tool === "Agent" || use.tool === "Task") continue;
+      const texts = [use.file, use.path, use.command].filter((t) => typeof t === "string");
+      for (const text of texts) {
+        for (const m of text.matchAll(/(?<![\w.~-])\/(?:[\w.@+~-]+\/)*[\w.@+~-]+/g)) {
+          const path = m[0];
+          if (harmless.test(path) || inside.some((base) => path === base || path.startsWith(`${base}/`))) continue;
+          found.add(`${use.tool}: ${path}`);
+        }
+        if (/(^|[\s"'=(])\.\.(\/|\s|$)/.test(text)) found.add(`${use.tool}: ${text.slice(0, 160)}`);
+      }
+    }
+    if (found.size > 0) {
+      const who = entry.who === "lead" || entry.who.includes("--") ? entry.who : `${entry.who} (${entry.description ?? entry.transcript})`;
+      out[who] = [...new Set([...(out[who] ?? []), ...found])].slice(0, 40);
+    }
+  }
+  return out;
+}
+
+function processMeasures(invocations, digest, heldOutDir, scratch) {
   const models = {};
   // Who touched the held-out evidence (a read, a search or a command on the folder), as the proving check counts it.
   const touched = {};
@@ -385,7 +512,7 @@ function processMeasures(invocations, digest, heldOutDir) {
   const byAgent = {};
   for (const entry of digest) byAgent[entry.who] = [...new Set([...(byAgent[entry.who] ?? []), ...entry.models])];
   const denials = invocations.flatMap((inv) => (inv.output.permission_denials ?? []).map((d) => ({ tool: d.tool_name, command: d.tool_input?.command ?? d.tool_input?.file_path ?? null })));
-  const dispatches = digest.filter((e) => e.who === "lead").flatMap((e) => e.tool_uses.filter((u) => u.tool === "Agent" || u.tool === "Task")).map((u) => ({ subagent_type: u.subagent_type, description: u.description }));
+  const dispatches = digest.filter((e) => e.who === "lead").flatMap((e) => e.tool_uses.filter((u) => u.tool === "Agent" || u.tool === "Task")).map((u) => ({ subagent_type: u.subagent_type, description: u.description, model_asked: u.model ?? undefined }));
   const sum = (key) => invocations.reduce((total, inv) => total + (inv.output[key] ?? 0), 0);
   return {
     models,
@@ -399,6 +526,7 @@ function processMeasures(invocations, digest, heldOutDir) {
     subagents_dispatched: dispatches.length,
     dispatches,
     held_out_touched: heldOutDir ? touched : undefined,
+    reached_outside_project: scratch ? reachedOutside(digest, scratch, heldOutDir) : undefined,
   };
 }
 
@@ -430,7 +558,7 @@ function conditions(proj, built, harnessVersion) {
   return {
     task: `experiments/comparisons/${proj.project}/task`,
     test_command: proj.testCommand,
-    held_out: built.heldOut ? { dir: built.heldOut.realDir, files: built.heldOut.files, substituted_in: built.substituted, named_to: built.heldOut.named_to ?? "a reviewer, as the template names it to its critic", beside_scratch_during_run: built.heldOut.beside_scratch_during_run ?? true, scorer_only: built.heldOut.scorer_only ?? [] } : null,
+    held_out: built.heldOut ? { dir: built.heldOut.realDir, files: built.heldOut.files, substituted_in: built.substituted, named_to: built.heldOut.named_to ?? "a reviewer, as the template names it to its critic", beside_scratch_during_run: built.heldOut.beside_scratch_during_run ?? true, scorer_only: built.heldOut.scorer_only ?? [], scored_from: `experiments/comparisons/${proj.project}/held-out (the repository's, never the copy beside the scratch)` } : null,
     protocol: proj.protocol,
     study: proj.study,
     lead_model: proj.leadModel,
@@ -438,6 +566,10 @@ function conditions(proj, built, harnessVersion) {
     judge_model: proj.judgeModel,
     tier_map: proj.tierMap ? { ...proj.tierMap.map, said_as: `GROOPH_MODELS=${proj.tierMap.text}`, source: proj.tierMap.source } : null,
     agent_models: built.agentModels ?? null,
+    aliases: ALIAS_ENV,
+    // What the session could see of where it was: its repository's user and one commit, and whether the tool was on PATH.
+    repository: { user: NEUTRAL_COMMIT.name, commits: [NEUTRAL_COMMIT.message], holds_the_package: built.arm === "A" },
+    tool_on_path: built.arm === "A",
     permission_allow_rules: built.settings.permissions.allow.length,
     strict_mcp_config: true,
     harness_version: harnessVersion,
@@ -493,8 +625,7 @@ async function runArmA({ proj, built, ledger, binDir, retry, evidenceDir, harnes
   first.notesAfter = notesPath() ? readNotes(notesPath()).lines : 0;
   invocations.push(first);
   const runId = runFolders(join(built.scratch, ".grooph", built.graphId, "runs"))[0] ?? null;
-  first.entry.run_id = runId;
-  saveLedger(ledger);
+  first.entry = amendEntry(ledger, first.entry, { run_id: runId });
 
   // A scripted gate answer is given only when the project's expect.json names one (none does unless the owner decided so), and only to a run that halted at that gate.
   const resume = proj.expect.resume;
@@ -509,8 +640,7 @@ async function runArmA({ proj, built, ledger, binDir, retry, evidenceDir, harnes
       say(`resuming run ${runId} once with the scripted answer "${resume.answer}" at ${resume.gate}`);
       const second = invoke({ ledger, proj, arm: "A", replicate: built.replicate, kind: "resume", scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt, resumeSession: first.output.session_id, suffix: "-2", note: `scripted answer "${resume.answer}" at ${resume.gate}`, settings: built.settings });
       second.notesAfter = notesPath() ? readNotes(notesPath()).lines : 0;
-      second.entry.run_id = runId;
-      saveLedger(ledger);
+      second.entry = amendEntry(ledger, second.entry, { run_id: runId });
       invocations.push(second);
     }
   }
@@ -521,7 +651,7 @@ async function runArmA({ proj, built, ledger, binDir, retry, evidenceDir, harnes
   const checked = await finishResult(evidenceDir, core, proj.template);
   const result = JSON.parse(readFileSync(join(evidenceDir, "result.json"), "utf8"));
   const digest = JSON.parse(readFileSync(join(evidenceDir, "transcript-digest.json"), "utf8"));
-  const measures = processMeasures(invocations, digest, built.heldOut?.realDir);
+  const measures = processMeasures(invocations, digest, built.heldOut?.realDir, built.scratch);
   Object.assign(result, {
     arm: "A",
     replicate: built.replicate,
@@ -548,7 +678,7 @@ function collectPromptArm({ proj, built, arm, invocations, prompts, evidenceDir,
   cpSync(join(proj.dir, "expect.json"), join(evidenceDir, "expect.json"));
   const digest = digestFor(invocations, built.scratch);
   writeFileSync(join(evidenceDir, "transcript-digest.json"), `${JSON.stringify(digest, null, 2)}\n`, "utf8");
-  const measures = processMeasures(invocations, digest, built.heldOut?.realDir);
+  const measures = processMeasures(invocations, digest, built.heldOut?.realDir, built.scratch);
   const result = {
     template: proj.template,
     arm,
@@ -670,6 +800,10 @@ function runArmC({ proj, built, ledger, binDir, retry, evidenceDir, harnessVersi
       console.log(`iteration ${i} ended with ${inv.output.subtype}; the loop stops here`);
       break;
     }
+    if ((inv.entry.never_used ?? []).length > 0) {
+      console.log(`iteration ${i} reported a model no run uses; the loop stops here and its evidence is kept`);
+      break;
+    }
     if (inv.saysDone && inv.testsAfter) break;
   }
   say(`copying the evidence into ${evidenceDir.slice(root.length + 1)}/`);
@@ -704,10 +838,15 @@ function renderArtifact({ proj, built, evidenceDir }) {
 // ── scoring ──────────────────────────────────────────────────────────────
 function scoreRun({ proj, built, evidenceDir, files, ending }) {
   say("scoring the final tree (identically for every arm)");
-  const score = scoreTree({ tree: built.scratch, heldOutDir: built.scoreDir ?? built.heldOut?.realDir ?? null, testCommand: proj.testCommand, allowed: proj.expect.scope.allowed, protectedPaths: proj.expect.scope.protected ?? [], files, ending });
-  if (built.heldOut) score.held_out.suite = built.heldOut.files;
+  const score = scoreTree({ tree: built.scratch, heldOutDir: built.scoreDir ?? null, testCommand: proj.testCommand, allowed: proj.expect.scope.allowed, protectedPaths: proj.expect.scope.protected ?? [], files, ending, expectedCases: proj.expect.held_out_cases });
+  if (built.heldOut) {
+    score.held_out.suite = built.heldOut.files;
+    score.held_out.scored_from = `experiments/comparisons/${proj.project}/held-out`;
+    // The reviewer's copy beside the scratch was the run's to read; the scorer did not use it. What the run did to it is recorded.
+    score.held_out.reviewers_copy_changed = heldOutChanges(built);
+  }
   writeFileSync(join(evidenceDir, "score.json"), `${JSON.stringify(score, null, 2)}\n`, "utf8");
-  console.log(`held-out ${score.held_out.ran ? `${score.held_out.passed}/${score.held_out.cases}` : `not run (${score.held_out.reason})`} · tests ${score.tests.pass ? "pass" : "fail"} · outside scope ${score.scope.outside.length}${score.scope.protected_changed.length > 0 ? ` · protected changed: ${score.scope.protected_changed.join(", ")}` : ""} · ending ${score.ending.kind} (${score.ending.reason})`);
+  console.log(`held-out ${score.held_out.ran ? `${score.held_out.passed}/${score.held_out.cases}${score.held_out.loaded === false ? " (the suite could not load the work)" : ""}` : `not run (${score.held_out.reason})`} · tests ${score.tests.pass ? "pass" : "fail"} · outside scope ${score.scope.outside.length}${score.scope.protected_changed.length > 0 ? ` · protected changed: ${score.scope.protected_changed.join(", ")}` : ""} · ending ${score.ending.kind} (${score.ending.reason})`);
   return score;
 }
 
@@ -826,6 +965,7 @@ function runJudge({ proj, ledger, dryRun, retry }) {
   const prompt = judgePrompt({ proj, taskFiles, candidates });
   const mapping = { about: "Which run each letter stood for. Written by the runner beside the verdict and read only by compare-summary.mjs; the judge never saw it.", letters: Object.fromEntries(candidates.map((c) => [c.letter, c.run])), order: candidates.map((c) => c.letter), files_judged: paths, redactions: Object.fromEntries(candidates.map((c) => [c.run, c.redactions])) };
 
+  reload(ledger);
   const decision = gate(ledger, { project: proj.project, arm: "judge", replicate: null, kind: "kickoff", retry });
   if (dryRun) {
     say("dry run: the judge's prompt");
@@ -843,14 +983,15 @@ function runJudge({ proj, ledger, dryRun, retry }) {
   }
   mkdirSync(judgeDir, { recursive: true });
   const spentBefore = totals(ledger).spent;
-  const entry = openRunEntry(ledger, { project: proj.project, arm: "judge", replicate: null, kind: "kickoff", maxBudget: decision.maxBudget, retry, note: `blind judge over ${candidates.length} candidates` });
+  let entry = openRunEntry(ledger, { project: proj.project, arm: "judge", replicate: null, kind: "kickoff", maxBudget: decision.maxBudget, retry, note: `blind judge over ${candidates.length} candidates` });
   saveLedger(ledger);
   console.log(`ledger: invocation ${entry.n} opened; ${remainingText(decision.remaining)}, this one is capped at $${decision.maxBudget.toFixed(2)}`);
 
-  const cwd = mkdtempSync(join(tmpdir(), "grooph-compare-judge-"));
+  // The judge's working folder is empty and its name says nothing: a session is shown the path it runs in.
+  const cwd = mkdtempSync(join(tmpdir(), "j-"));
   const args = ["-p", prompt, "--output-format", "json", "--model", proj.judgeModel, "--tools", "", "--max-budget-usd", decision.maxBudget.toFixed(2), "--strict-mcp-config"];
   const started = Date.now();
-  const child = spawnSync("claude", args, { cwd, env: cleanEnv(process.env.PATH), encoding: "utf8", maxBuffer: 64 << 20, timeout: 30 * 60 * 1000 });
+  const child = spawnSync("claude", args, { cwd, env: cleanEnv(process.env.PATH, ALIAS_ENV), encoding: "utf8", maxBuffer: 64 << 20, timeout: 30 * 60 * 1000 });
   const wall = Math.round((Date.now() - started) / 1000);
   rmSync(cwd, { recursive: true, force: true });
   let output = null;
@@ -858,8 +999,8 @@ function runJudge({ proj, ledger, dryRun, retry }) {
     output = JSON.parse(child.stdout);
   } catch {}
   const reported = typeof output?.total_cost_usd === "number" ? output.total_cost_usd : null;
-  settleEntry(entry, { status: output === null ? "failed" : output.is_error ? "error" : "ok", cost_usd: reported === null ? null : Math.round(reported * 1e6) / 1e6, reported_cost_usd: reported, session_id: output?.session_id ?? null, note: [entry.note, output?.subtype && output.subtype !== "success" ? `result ${output.subtype}` : "", child.status ? `exit ${child.status}` : ""].filter(Boolean).join("; ") });
-  saveLedger(ledger);
+  const judgeNever = neverUsed(output?.modelUsage);
+  entry = amendEntry(ledger, entry, { ended: new Date().toISOString(), status: output === null ? "failed" : output.is_error ? "error" : "ok", cost_usd: reported === null ? null : Math.round(reported * 1e6) / 1e6, reported_cost_usd: reported, session_id: output?.session_id ?? null, note: [entry.note, output?.subtype && output.subtype !== "success" ? `result ${output.subtype}` : "", child.status ? `exit ${child.status}` : ""].filter(Boolean).join("; "), ...(judgeNever.length > 0 ? { never_used: judgeNever } : {}) });
   console.log(`claude exit ${child.status ?? child.signal ?? "?"} after ${wall}s; reported cost ${reported === null ? "unknown" : `$${reported.toFixed(4)}`}`);
   const notice = tripwireNotice(ledger, spentBefore);
   if (notice) console.log(`\n\x1b[33m${notice}\x1b[0m`);
@@ -892,9 +1033,7 @@ function writeDerivation(proj) {
   console.log(JSON.stringify(built.derivation, null, 2));
   console.log(`N for arm C: ${built.n}\nwrote experiments/comparisons/${proj.project}/prompt-B.md (${text.length} characters) and loop-C.sh`);
   if (proj.tierMap?.provisional) console.log(`note: this prompt names the models of a provisional tier map (${proj.tierMap.text}); it is derived again, and committed again, when the project pre-registers its map`);
-  rmSync(built.scratch, { recursive: true, force: true });
-  rmSync(built.harnessDir, { recursive: true, force: true });
-  if (built.scoreDir) rmSync(built.scoreDir, { recursive: true, force: true });
+  closeWork(built);
   if (proj.arms.includes("D")) {
     say(`writing ${proj.project}/prompt-D.md from the task folder alone (protocol §1, arm D)`);
     const d = buildFor(proj, "D");
@@ -902,9 +1041,7 @@ function writeDerivation(proj) {
     writeFileSync(join(proj.dir, "prompt-D.md"), d.prompt, "utf8");
     console.log(JSON.stringify(d.derivation, null, 2));
     console.log(`wrote experiments/comparisons/${proj.project}/prompt-D.md (${d.prompt.length} characters)`);
-    rmSync(d.scratch, { recursive: true, force: true });
-    rmSync(d.harnessDir, { recursive: true, force: true });
-    if (d.scoreDirParent) rmSync(d.scoreDirParent, { recursive: true, force: true });
+    closeWork(d);
   }
   return 0;
 }
@@ -919,6 +1056,8 @@ function flagNever(models, where) {
 function status() {
   const ledger = loadLedger();
   console.log(describe(ledger));
+  const left = leftovers();
+  if (left.length > 0) console.log(`\nthe work root holds ${left.length} folder(s) from a run that did not finish; no run starts until they are looked at and cleared (--clear-work):\n${left.map((path) => `  ${path}`).join("\n")}`);
   if (!existsSync(COMPARISONS)) return 0;
   const projects = readdirSync(COMPARISONS).filter((name) => existsSync(join(COMPARISONS, name, "expect.json"))).sort();
   console.log("");
@@ -944,6 +1083,7 @@ function status() {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.status) return status();
+  if (args.clearWork) return clearWork();
   if (args.score) {
     const out = spawnSync(process.execPath, [join(root, "scripts", "lib", "compare-score.mjs"), resolve(args.score), ...(args.write ? ["--write"] : [])], { stdio: "inherit" });
     return out.status ?? 1;
@@ -981,62 +1121,75 @@ async function main() {
     replicate = 1;
     while (have[`${arm}-${replicate}`]) replicate += 1;
   }
+  if (!Number.isInteger(replicate) || replicate < 1 || replicate > proj.replicates) fail(`${proj.project} pre-registers ${proj.replicates} replicates per arm; ${arm}-${replicate} is not one of them`);
   const evidenceDir = join(proj.dir, `${arm}-${replicate}`);
+  // Any file in the run's folder is evidence, a result.json or not (a copy that broke half-way still holds the harness's output).
+  const holdsEvidence = existsSync(evidenceDir) && readdirSync(evidenceDir).length > 0;
   assertFreshBundle(proj.template);
   if (!args.dryRun) {
-    if (existsSync(join(evidenceDir, "result.json"))) {
-      if (!args.retry) fail(`${evidenceDir.slice(root.length + 1)} already holds a run's evidence; it is never overwritten. A failure outside the prompt or package may be retried once with --retry "<why>", which moves the evidence to ${arm}-${replicate}-failed-<k>/`);
-      const k = readdirSync(proj.dir).filter((n) => n.startsWith(`${arm}-${replicate}-failed`)).length + 1;
-      renameSync(evidenceDir, join(proj.dir, `${arm}-${replicate}-failed-${k}`));
-      console.log(`moved the earlier evidence to ${arm}-${replicate}-failed-${k}/`);
-    }
+    if (holdsEvidence && !args.retry) fail(`${evidenceDir.slice(root.length + 1)} already holds a run's evidence; it is never overwritten. A failure outside the prompt or package may be retried once with --retry "<why>", which moves the evidence to ${arm}-${replicate}-failed-<k>/`);
     if (spawnSync("claude", ["--version"], { encoding: "utf8" }).status !== 0) fail("claude is not on PATH; install Claude Code first");
     if (!claudeSignedIn()) fail("the claude CLI is not signed in, so a headless run would fail. Sign in with `claude auth login` and run this again.");
+    // The ledger is asked now, before anything is built or moved: a refusal must leave the earlier evidence where it is.
+    const first = gate(ledger, { project: proj.project, arm, replicate, kind: "kickoff", retry: args.retry });
+    if (!first.ok) fail(`the ledger refuses this run: ${first.reason}`);
   }
 
   say(`building the scratch project for ${proj.project}, arm ${arm}, replicate ${replicate}`);
   const built = buildFor(proj, arm);
-  built.replicate = replicate;
-  console.log(`scratch project: ${built.scratch}\ngraph: ${built.graphId} (from ${built.doc.lineage?.from ?? `${proj.template} v${built.doc.version ?? "?"}`})\nbase commit: ${built.base}${arm !== "A" ? " (package removed)" : ""}`);
-  if (built.heldOut && arm === "D") console.log(`held-out: ${built.heldOut.realDir} (${built.heldOut.files.map((f) => f.path).join(", ")}); moved away from the scratch for the run and named to nobody: no task file, no rule and no line of the prompt points at it; the scorer runs it afterwards`);
-  else if (built.heldOut) console.log(`${built.heldOut.scorer_only?.length > 0 ? `the scorer's alone, moved out of the held-out folder for the run: ${built.heldOut.scorer_only.join(", ")}\n` : ""}` + `held-out: ${built.heldOut.realDir} (${built.heldOut.files.map((f) => f.path).join(", ")}); the token replaced in ${built.substituted.length > 0 ? built.substituted.join(", ") : "no task file"}; Read allowed there by rule; named ${built.derivation.held_out_mentions?.prompt ?? 0} time(s) in the prompt, ${built.derivation.held_out_mentions?.package ?? 0} in the package`);
-  if (arm === "D") assertTaskOnly(proj, built);
-  if (arm !== "A") assertPromptCurrent(proj, built);
-
-  const binDir = mkdtempSync(join(tmpdir(), "grooph-compare-bin-"));
-  writeFileSync(join(binDir, "grooph"), `#!/bin/sh\nexec "${process.execPath}" "${CLI}" "$@"\n`, { mode: 0o755 });
+  // From here a run either finishes with its evidence in the repository, or, once a model has been called, leaves its
+  // folder under the work root for someone to look at. Before any call there is nothing in it worth keeping.
+  let finished = false;
+  let called = false;
   try {
+    built.replicate = replicate;
+    console.log(`scratch project: ${built.scratch}\ngraph: ${built.graphId} (from ${built.doc.lineage?.from ?? `${proj.template} v${built.doc.version ?? "?"}`})\nbase commit: ${built.base}${arm !== "A" ? " (one commit, which never held the package)" : ""}`);
+    if (built.heldOut && arm === "D") console.log(`held-out: named to nobody. No copy of it is near the scratch, no task file, rule or line of the prompt points at it, and the scorer runs it from the repository afterwards (${built.heldOut.files.map((f) => f.path).join(", ")})`);
+    else if (built.heldOut) console.log(`${built.heldOut.scorer_only?.length > 0 ? `the scorer's alone, taken out of the reviewer's copy: ${built.heldOut.scorer_only.join(", ")}\n` : ""}held-out, the reviewer's copy: ${built.heldOut.realDir} (${built.heldOut.files.filter((f) => f.at_run !== false).map((f) => f.path).join(", ")}); Read allowed there by rule; named ${built.derivation.held_out_mentions?.prompt ?? 0} time(s) in the prompt, ${built.derivation.held_out_mentions?.package ?? 0} in the package; the scorer runs the suite from the repository`);
+    if (arm === "D") assertTaskOnly(proj, built);
+    if (arm !== "A") assertPromptCurrent(proj, built);
+
+    // The tool on PATH, for arm A only (its lead validates an amended working copy with it); the folder sits beside
+    // the scratch. The other arms get neither the folder nor the entry on PATH.
+    const binDir = join(built.work, "tools");
+    if (arm === "A") {
+      mkdirSync(binDir);
+      writeFileSync(join(binDir, "grooph"), `#!/bin/sh\nexec "${process.execPath}" "${CLI}" "$@"\n`, { mode: 0o755 });
+    }
     const harnessVersion = spawnSync("claude", ["--version"], { encoding: "utf8" }).stdout?.trim() ?? null;
     if (args.dryRun) {
       say("dry run: everything but the model call");
       const files = run("git", ["-C", built.scratch, "ls-files"]).stdout.trim().split("\n");
       console.log(files.map((f) => `  ${f}`).join("\n"));
+      console.log(`repository as the session would see it: user ${run("git", ["-C", built.scratch, "config", "user.name"]).stdout.trim()}; commits: ${run("git", ["-C", built.scratch, "log", "--format=%s"]).stdout.trim().split("\n").join(" | ")}`);
+      console.log(`beside the scratch: ${readdirSync(built.work).sort().join(", ")}`);
       const decision = gate(ledger, { project: proj.project, arm, replicate, kind: "kickoff", retry: args.retry });
       console.log(describe(ledger).split("\n")[0]);
       console.log(decision.ok ? `the ledger would allow the kickoff, capped at $${decision.maxBudget.toFixed(2)}` : `the ledger would refuse: ${decision.reason}`);
       const common = `--permission-mode acceptEdits --output-format json --settings '<${built.settings.permissions.allow.length} allow rules>' --max-budget-usd ${decision.ok ? decision.maxBudget.toFixed(2) : "–"} --strict-mcp-config --model ${proj.leadModel} --effort ${LEAD_EFFORT}`;
       if (proj.tierMap) console.log(built.exportOutput.split("\n").filter((line) => /^tiers in this package|^note:/.test(line)).join("\n"));
-      if (arm === "A") {
-        console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" ${common}`);
-        if (proj.expect.resume) console.log(`then, only after a halt at ${proj.expect.resume.gate}, once: claude -p "<scripted ${proj.expect.resume.answer}>" --resume <session id> …`);
-      } else if (arm === "B") {
-        console.log(`would run in ${built.scratch}:\n  claude -p "$(cat prompt-B.md)" ${common}`);
-        if (proj.expect.resume?.prompt_arm) console.log(`then, only if the tree shows a halt at ${proj.expect.resume.gate} (${(proj.expect.resume.planning_outputs ?? []).join(", ")} present, src/ and tests/ untouched), once: claude -p "<scripted ${proj.expect.resume.answer}>" --resume <session id> …`);
-      } else if (arm === "D") {
-        console.log(`would run in ${built.scratch}:\n  claude -p "$(cat prompt-D.md)" ${common}`);
-      } else {
-        console.log(`would run in ${built.scratch}, for i in 1..${built.n}, each its own ledger line with its own ceiling:\n  claude -p "$(cat prompt-B.md)\\n\\nIteration $i of ${built.n}. Continue from the working tree as it is. Stop when your done check passes. ${DONE_LINE.slice(0, 60)}…" ${common}\n  stopping early when the reply's last line is \`done: yes\` and \`${proj.testCommand}\` exits 0`);
-        if (proj.expect.resume?.prompt_arm) console.log(`the iteration that halts at ${proj.expect.resume.gate} is resumed once with the scripted ${proj.expect.resume.answer}; later iterations are told it was given`);
-      }
+      console.log(`aliases during the run: ${Object.entries(ALIAS_ENV).map(([key, model]) => `${key.replace("ANTHROPIC_DEFAULT_", "").replace("_MODEL", "").toLowerCase()} → ${model}`).join(", ")}`);
+      if (arm === "A") console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" ${common}`);
+      else if (arm === "B") console.log(`would run in ${built.scratch}:\n  claude -p "$(cat prompt-B.md)" ${common}`);
+      else if (arm === "D") console.log(`would run in ${built.scratch}:\n  claude -p "$(cat prompt-D.md)" ${common}`);
+      else console.log(`would run in ${built.scratch}, for i in 1..${built.n}, each its own ledger line with its own ceiling:\n  claude -p "$(cat prompt-B.md)\\n\\nIteration $i of ${built.n}. Continue from the working tree as it is. Stop when your done check passes. ${DONE_LINE.slice(0, 60)}…" ${common}\n  stopping early when the reply's last line is \`done: yes\` and \`${proj.testCommand}\` exits 0`);
       console.log(`prompt for this arm: ${arm === "A" ? "KICKOFF.md" : built.promptFile} (${(arm === "A" ? built.kickoff : built.prompt).length} characters)${arm !== "A" ? `; matches the committed ${built.promptFile}` : ""}`);
       if (proj.expect.judge?.artifact) console.log(`would render the artifact for the judge from the final tree: \`${proj.expect.judge.artifact.command}\` → ${proj.expect.judge.artifact.path}`);
-      console.log(`would score the final tree against ${built.heldOut ? `${built.heldOut.files.length} held-out file(s)` : "no held-out suite"}, \`${proj.testCommand}\`, and the allowed paths ${proj.expect.scope.allowed.join(", ")}`);
-      console.log(`would copy the evidence into experiments/comparisons/${proj.project}/${arm}-${replicate}/`);
+      console.log(`would score the final tree against the repository's held-out suite (${proj.expect.held_out_cases} cases), \`${proj.testCommand}\`, and the allowed paths ${proj.expect.scope.allowed.join(", ")}`);
+      console.log(`would copy the evidence into experiments/comparisons/${proj.project}/${arm}-${replicate}/, then remove ${built.work}`);
       say("dry run done; the model was not called and the ledger is unchanged");
+      finished = true;
       return 0;
     }
 
+    // The one retry: the earlier evidence is moved aside only now, when the ledger has agreed and the run is about to start.
+    if (holdsEvidence) {
+      const k = readdirSync(proj.dir).filter((n) => n.startsWith(`${arm}-${replicate}-failed`)).length + 1;
+      renameSync(evidenceDir, join(proj.dir, `${arm}-${replicate}-failed-${k}`));
+      console.log(`moved the earlier evidence to ${arm}-${replicate}-failed-${k}/`);
+    }
     const context = { proj, built, ledger, binDir, retry: args.retry, evidenceDir, harnessVersion, core };
+    called = true;
     const { result, files } = arm === "A" ? await runArmA(context) : arm === "B" ? runArmB(context) : arm === "C" ? runArmC(context) : runArmD(context);
     renderArtifact({ proj, built, evidenceDir });
     const score = scoreRun({ proj, built, evidenceDir, files, ending: result.ending_kind });
@@ -1048,18 +1201,20 @@ async function main() {
       writeFileSync(path, `${JSON.stringify(r, null, 2)}\n`, "utf8");
     }
     say(`run ${arm}-${replicate} recorded`);
-    console.log(`evidence  experiments/comparisons/${proj.project}/${arm}-${replicate}/\nscratch   ${built.scratch}\ncost      $${(result.cost_usd ?? 0).toFixed(4)} · turns ${result.harness_turns} · ending ${score.ending.kind}`);
+    console.log(`evidence  experiments/comparisons/${proj.project}/${arm}-${replicate}/\ncost      $${(result.cost_usd ?? 0).toFixed(4)} · turns ${result.harness_turns} · ending ${score.ending.kind}`);
     console.log(`models    ${Object.keys(result.models ?? {}).join(", ") || "none reported"}`);
+    const outside = result.process?.reached_outside_project ?? {};
+    if (Object.keys(outside).length > 0) console.log(`reached outside its project: ${Object.entries(outside).map(([who, what]) => `${who} ×${what.length}`).join(", ")} (result.json process.reached_outside_project)`);
+    // The evidence is whole: result.json and score.json are in the repository, so the run's folder may go.
+    finished = existsSync(join(evidenceDir, "result.json")) && existsSync(join(evidenceDir, "score.json"));
     const never = result.process?.models_never_used ?? [];
     if (never.length > 0) return flagNever(never, `${proj.project}/${arm}-${replicate}`);
     const next = nextRun(proj);
     console.log(next ? `next in the alternation: ${next.arm}-${next.replicate}` : "all planned runs exist; --judge is next");
     return 0;
   } finally {
-    rmSync(binDir, { recursive: true, force: true });
-    // What was moved away for the run (arm D's held-out folder; a suite that is the scorer's alone) has been scored, or the run did not happen.
-    const moved = built.scoreDirParent ?? (built.scoreDir && built.scoreDir !== built.heldOut?.realDir ? built.scoreDir : null);
-    if (moved) rmSync(moved, { recursive: true, force: true });
+    if (finished || !called) closeWork(built);
+    else console.error(`\nthis run did not finish; its folder is kept for you to look at: ${built.work}\nNo other run starts until it is cleared (scripts/compare.sh --clear-work).`);
   }
 }
 

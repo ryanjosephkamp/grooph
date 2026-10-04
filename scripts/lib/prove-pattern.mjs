@@ -177,7 +177,7 @@ export function run(command, args, options = {}) {
  * and ANTHROPIC_* variables, a messaging socket, an effort override) reaches it.
  * The CLI signs in with its own stored credentials.
  */
-export function cleanEnv(path) {
+export function cleanEnv(path, extra = {}) {
   const env = {
     HOME,
     PATH: path,
@@ -189,8 +189,22 @@ export function cleanEnv(path) {
     TERM: process.env.TERM ?? "dumb",
   };
   if (process.env.CLAUDE_CONFIG_DIR) env.CLAUDE_CONFIG_DIR = process.env.CLAUDE_CONFIG_DIR;
-  return env;
+  return { ...env, ...extra };
 }
+
+/**
+ * What each of the harness's model aliases means during a run (Claude Code's ANTHROPIC_DEFAULT_*_MODEL variables). An
+ * agent file names a full model id, but a lead may also pass `model` to the Agent tool, and that argument is an alias
+ * and wins over the file. With these in the run's environment a lead that asks for `fable` gets Opus 5.5, and `opus`,
+ * `sonnet` and `haiku` are the ids the record names whatever the harness's own defaults are that day. The record still
+ * keeps what ran (`models`, `models_by_agent`), and a run that reports Fable all the same is flagged.
+ */
+export const ALIAS_ENV = {
+  ANTHROPIC_DEFAULT_FABLE_MODEL: "claude-opus-5-5",
+  ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-opus-5-5",
+  ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-sonnet-5-5",
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-haiku-4-5-20251001",
+};
 
 function loadExperiment(template) {
   const dir = join(EXPERIMENTS, template);
@@ -235,7 +249,10 @@ export function substituteHeldOut(dir, path) {
 }
 
 // ── the scratch project ──────────────────────────────────────────────────
-export function buildScratch(template, experiment, prefix = `grooph-prove-${template}-`) {
+export function buildScratch(template, experiment, prefix = `grooph-prove-${template}-`, commit = {}) {
+  // Who made the scratch's one commit and what it says. A session is shown its repository's user and last commits, so
+  // a caller that must not tell a session what it is part of (a comparison, protocol version 2) names neutral ones.
+  const author = { name: commit.name ?? "grooph prove", email: commit.email ?? "prove@grooph.local", message: commit.message ?? `task and the grooph package for ${template}` };
   const scratch = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix));
   const harnessDir = `${scratch}.harness`;
   mkdirSync(harnessDir);
@@ -255,8 +272,8 @@ export function buildScratch(template, experiment, prefix = `grooph-prove-${temp
   const fill = (values) => Object.fromEntries(Object.entries(values).map(([key, value]) => [key, heldOut ? String(value).replaceAll(HELD_OUT_TOKEN, heldOut.realDir) : String(value)]));
 
   run("git", ["-C", scratch, "init", "-q"]);
-  run("git", ["-C", scratch, "config", "user.email", "prove@grooph.local"]);
-  run("git", ["-C", scratch, "config", "user.name", "grooph prove"]);
+  run("git", ["-C", scratch, "config", "user.email", author.email]);
+  run("git", ["-C", scratch, "config", "user.name", author.name]);
 
   // Only this branch's built-in library may answer: no user templates, no remote.
   const groophHome = mkdtempSync(join(tmpdir(), "grooph-prove-home-"));
@@ -295,7 +312,7 @@ export function buildScratch(template, experiment, prefix = `grooph-prove-${temp
   rmSync(groophHome, { recursive: true, force: true });
 
   run("git", ["-C", scratch, "add", "-A"]);
-  run("git", ["-C", scratch, "commit", "-qm", `task and the grooph package for ${template}`]);
+  run("git", ["-C", scratch, "commit", "-qm", author.message]);
   const base = run("git", ["-C", scratch, "rev-parse", "HEAD"]).stdout.trim();
   const sourcePath = join(scratch, ".grooph", doc.id, "graph.grooph.json");
   return {
@@ -356,7 +373,7 @@ function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, pr
   const out = openSync(outPath, "w");
   const err = openSync(errPath, "w");
   const started = Date.now();
-  const child = spawnSync("claude", args, { cwd: scratch, env: cleanEnv(`${binDir}:${process.env.PATH}`), stdio: ["ignore", out, err], timeout: RUN_TIMEOUT_MS });
+  const child = spawnSync("claude", args, { cwd: scratch, env: cleanEnv(`${binDir}:${process.env.PATH}`, lead?.model ? ALIAS_ENV : {}), stdio: ["ignore", out, err], timeout: RUN_TIMEOUT_MS });
   closeSync(out);
   closeSync(err);
   const wall = Math.round((Date.now() - started) / 1000);
@@ -448,6 +465,7 @@ export function collect({ template, experiment, built, invocations, prompts, evi
     // exported under, and the model each agent file names. `models` and `models_by_agent` below are what ran.
     lead: lead ?? null,
     tier_map: process.env.GROOPH_MODELS ?? null,
+    aliases: lead?.model ? ALIAS_ENV : null,
     agent_models: agentModels(scratch, graphId),
     models,
     models_by_agent: byAgent,

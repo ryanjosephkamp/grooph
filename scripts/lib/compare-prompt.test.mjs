@@ -89,9 +89,10 @@ test("arm D's prompt is the task, the acceptance files by name and the test comm
   // What the runner refuses: a task text that carries the design, the held-out suite, or the tool.
   const leaky = deriveD({ task: "The builder adds it; the critic runs <held-out>/cases.test.mjs. Keep notes in the run folder.", testCommand: "npm test", acceptance: [], heldOutMarks: ["<held-out>"] }).report;
   assert.deepEqual(leaky.design_words, ["builder", "critic"]);
+  assert.deepEqual(deriveD({ task: "The owner polishes it over three rounds until a judge or an agent agrees; each iteration counts.", testCommand: "npm test", acceptance: [] }).report.design_words, ["owner", "rounds", "judge", "agent", "iteration"]);
   assert.deepEqual(leaky.held_out_named, ["<held-out>"]);
   assert.ok(leaky.mechanics_left.length > 0);
-  assert.ok("leading zeros, a reviewed page, briefly".match(DESIGN_WORDS) === null, "whole words only");
+  assert.ok("leading zeros, a reviewed page, briefly, rounded up, judged, the ownership of a page".match(DESIGN_WORDS) === null, "whole words only");
 });
 
 test("the sentence filter splits on sentence ends, not on file names, and drops what refers back", () => {

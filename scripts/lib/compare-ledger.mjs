@@ -83,6 +83,29 @@ export function saveLedger(ledger, path = LEDGER_PATH) {
   renameSync(temp, path);
 }
 
+/**
+ * Read the ledger from its file into the same object. The runner does this before it opens a line and before it
+ * settles one, so a line or a cap change that another process wrote while a model call ran is kept, not written over.
+ */
+export function reload(ledger, path = LEDGER_PATH) {
+  const fresh = loadLedger(path);
+  for (const key of Object.keys(ledger)) delete ledger[key];
+  return Object.assign(ledger, fresh);
+}
+
+/** One line of the ledger as it is on file now, found by its number and its start; changed, saved, and returned. */
+export function amendEntry(ledger, entry, fields, path = LEDGER_PATH) {
+  reload(ledger, path);
+  const line = ledger.invocations.find((e) => e.n === entry.n && e.started === entry.started);
+  if (!line) throw new Error(`invocation ${entry.n} (started ${entry.started}) is no longer in the ledger: it was not written by this runner; nothing was changed`);
+  Object.assign(line, fields);
+  saveLedger(ledger, path);
+  return line;
+}
+
+/** The lines that reported a model no run uses and that nobody has answered for yet: while there is one, nothing starts. */
+export const neverLines = (ledger) => ledger.invocations.filter((e) => (e.never_used ?? []).length > 0 && !e.never_acknowledged);
+
 /** The ledger's name for one run: `<project>/<arm>-<replicate>`, or `<project>/judge`. */
 export const runLabel = ({ project, arm, replicate }) => (arm === "judge" ? `${project}/judge` : `${project}/${arm}-${replicate}`);
 
@@ -97,6 +120,10 @@ export function gate(ledger, { project, arm, replicate, kind, retry }) {
   const refuse = (reason) => ({ ok: false, reason, remaining });
   const label = runLabel({ project, arm, replicate });
 
+  const flagged = neverLines(ledger);
+  if (flagged.length > 0) {
+    return refuse(`invocation ${flagged.map((e) => `${e.n} (${e.run}: ${e.never_used.join(", ")})`).join(", ")} reported a model no run uses. Nothing starts until the driver knows and the answer is recorded with \`compare-ledger.mjs ack-never --n <n> --by "<who and what was decided>"\``);
+  }
   const running = ledger.invocations.filter((entry) => entry.status === "running");
   if (running.length > 0) {
     return refuse(`invocation ${running.map((e) => e.n).join(", ")} is still marked running: settle it with its real cost first (a crashed run's cost is in its claude-output.json, or counts at its ceiling)`);
@@ -152,12 +179,12 @@ export function tripwireNotice(ledger, spentBefore) {
 /** A change of cap as the owner gave it: one line in `cap_history`, the new cap, and the tripwires when the cap is lifted. */
 export function setCap(ledger, { to, by, notifyEvery, projectStop: stop, on = new Date().toISOString().slice(0, 10) }) {
   if (!by) throw new Error("a cap change says who decided it and why (--by)");
+  // Nothing is changed until the whole change is known to be sound.
+  const tripwire = notifyEvery || stop ? { ...(ledger.tripwire ?? {}), ...(notifyEvery ? { notify_every_usd: notifyEvery } : {}), ...(stop ? { project_stop_usd: stop } : {}) } : ledger.tripwire;
+  if (to === null && !(tripwire?.notify_every_usd > 0 && tripwire?.project_stop_usd > 0)) throw new Error("a lifted cap needs both its tripwires (--notify-every and --project-stop)");
   const line = { from_usd: ledger.cap_usd, to_usd: to, on, by };
-  if (notifyEvery || stop) {
-    ledger.tripwire = { ...(ledger.tripwire ?? {}), ...(notifyEvery ? { notify_every_usd: notifyEvery } : {}), ...(stop ? { project_stop_usd: stop } : {}) };
-    line.tripwire = { ...ledger.tripwire };
-  }
-  if (to === null && !ledger.tripwire) throw new Error("a lifted cap needs its tripwires (--notify-every, --project-stop)");
+  if (notifyEvery || stop) line.tripwire = { ...tripwire };
+  if (tripwire) ledger.tripwire = tripwire;
   ledger.cap_usd = to;
   ledger.cap_history = [...(ledger.cap_history ?? []), line];
   return line;
@@ -177,7 +204,8 @@ export function openRunEntry(ledger, fields) {
 export function describe(ledger) {
   const { spent, remaining } = totals(ledger);
   const capped = ledger.cap_usd !== null;
-  const wires = ledger.tripwire ? `; tell the driver at each $${ledger.tripwire.notify_every_usd.toFixed(2)}; one project stops and asks at $${ledger.tripwire.project_stop_usd.toFixed(2)}` : "";
+  const wire = ledger.tripwire ?? {};
+  const wires = `${wire.notify_every_usd ? `; tell the driver at each $${wire.notify_every_usd.toFixed(2)}` : ""}${wire.project_stop_usd ? `; one project stops and asks at $${wire.project_stop_usd.toFixed(2)}` : ""}`;
   const lines = [
     capped
       ? `ledger ${LEDGER_PATH.slice(root.length + 1)}: $${cents(spent).toFixed(2)} spent of $${ledger.cap_usd.toFixed(2)}, $${cents(remaining).toFixed(2)} remaining (refuses below $${ledger.refuse_below_usd.toFixed(2)}; each invocation capped at $${ledger.per_invocation_ceiling_usd.toFixed(2)}${wires})`
@@ -224,6 +252,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     settleEntry(entry, { status: "ok", cost_usd: cost, reported_cost_usd: cost });
     saveLedger(ledger);
     console.log(describe(ledger));
+  } else if (command === "ack-never") {
+    const opt = (name) => {
+      const at = rest.indexOf(`--${name}`);
+      return at >= 0 ? rest[at + 1] : undefined;
+    };
+    const line = ledger.invocations.find((e) => e.n === Number(opt("n")));
+    if (!line || !(line.never_used ?? []).length || !opt("by")) {
+      console.error('usage: compare-ledger.mjs ack-never --n <invocation that reported a model no run uses> --by "<who and what was decided>"');
+      process.exit(64);
+    }
+    line.never_acknowledged = { on: new Date().toISOString().slice(0, 10), by: opt("by") };
+    saveLedger(ledger);
+    console.log(describe(ledger).split("\n")[0]);
   } else if (command === "cap" || command === "lift-project-stop") {
     const opt = (name) => {
       const at = rest.indexOf(`--${name}`);

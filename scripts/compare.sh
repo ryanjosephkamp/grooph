@@ -13,6 +13,7 @@
 #   scripts/compare.sh <project> --judge [--dry-run]                   the blind judge over the project's runs (§6)
 #   scripts/compare.sh --score <run dir> [--write]                     re-score a kept run from task/ + project.diff
 #   scripts/compare.sh --status                                        the ledger and every project's runs
+#   scripts/compare.sh --clear-work                                    remove what an unfinished run left in the work root
 #   scripts/compare.sh --test                                          the unit tests of the derivation, the scorer and the runner
 #
 # Arms (§1): A runs the template's package exactly as scripts/prove-pattern.sh
@@ -25,10 +26,19 @@
 # routing, loop or briefs, and is told nothing of the held-out suite.
 #
 # Equal conditions (§2), recorded in every result.json: the committed task folder,
-# the same in every arm, and its held-out suite beside the scratch (readable by
-# rule in A, B and C; moved away for D), the lead's model and effort on the
-# command line, the proving allowlist, --strict-mcp-config, one dollar ceiling per
-# invocation from the ledger, the harness version.
+# the same in every arm; a reviewer's copy of its held-out folder beside the
+# scratch in A, B and C (readable by rule) and none in D; the lead's model and
+# effort on the command line, the proving allowlist, --strict-mcp-config, one
+# dollar ceiling per invocation from the ledger, the harness version. The scorer
+# runs the held-out suite from this repository, never from a run's copy.
+#
+# What a session can learn of where it is. Each scratch is named after the task's
+# own package, sits alone in a folder of its own under the runner's work root
+# ($TMPDIR/wk), and has one commit, "initial commit", by a neutral user; in B, C
+# and D that commit never held the package, and only A has the tool on PATH. A
+# run's folder is removed once its evidence is in the repository. A run that
+# breaks after a model call keeps its folder, and no other run starts until it
+# has been looked at and cleared (--clear-work).
 #
 # Models. Study two (protocol version 2) runs its lead and its judge on
 # claude-opus-5-5, and every package is exported with the tier map the project
@@ -38,8 +48,12 @@
 #
 #   GROOPH_MODELS=frontier=…,strong=…,fast=… scripts/compare.sh <project> D --dry-run
 #
-# No call uses Fable. Study one (version 1: three arms, claude-opus-5, a Fable
-# judge) is finished; the runner reads its folders and makes no new call for them.
+# No call uses Fable. A tier map or an agent file that names it is refused; the
+# harness's aliases are pinned for the run, so a lead that asks for `fable` gets
+# Opus 5.5; and an invocation that reports it all the same is flagged in the
+# ledger, which then refuses every new call until someone answers for it. Study
+# one (version 1: three arms, claude-opus-5, a Fable judge) is finished; the
+# runner reads its folders and makes no new call for them.
 #
 # Spend: experiments/comparisons/ledger.json ($9.00 per invocation; the cap was
 # lifted by the owner on 2026-10-04 and two tripwires stand in its place: the
@@ -58,7 +72,7 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "${1:-}" in
-  -h|--help) sed -n '2,57p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,71p' "$0"; exit 0 ;;
   --test) exec node --test "$REPO_ROOT/scripts/lib/compare-prompt.test.mjs" "$REPO_ROOT/scripts/lib/compare-score.test.mjs" "$REPO_ROOT/scripts/lib/compare-run.test.mjs" "$REPO_ROOT/scripts/lib/compare-projects.test.mjs" ;;
 esac
 exec node "$REPO_ROOT/scripts/lib/compare-run.mjs" "$@"

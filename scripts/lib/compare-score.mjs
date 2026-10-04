@@ -86,6 +86,17 @@ export function scoreHeldOut(tree, heldOutDir) {
   };
 }
 
+/**
+ * A suite that could not load the work (the file is missing, the export is not there, the module throws) is reported
+ * by node as one failing test, not as its cases. When the project says how many cases its suite has, that is the
+ * denominator: 0 of 55, not 0 of 1, and the score says the suite could not load.
+ */
+export function withExpected(held, expectedCases) {
+  if (!held.ran || !Number.isInteger(expectedCases) || held.cases === expectedCases) return held;
+  const passed = Math.min(held.passed ?? 0, expectedCases);
+  return { ...held, loaded: false, cases_reported: held.cases, cases: expectedCases, passed, failed: expectedCases - passed, rate: Math.round((passed / expectedCases) * 1000) / 1000 };
+}
+
 /** The project's own test command against `tree`. */
 export function scoreTests(tree, testCommand) {
   const [command, ...args] = testCommand.split(/\s+/);
@@ -131,8 +142,8 @@ export function scoreScope(files, allowed, protectedPaths = []) {
  * Score one final tree. `ending` is the runner's record: { kind: "clean" | "cut-off", reason }.
  * `files` is the diff's name-status list against the base commit.
  */
-export function scoreTree({ tree, heldOutDir, testCommand, allowed, protectedPaths, files, ending }) {
-  const held_out = scoreHeldOut(tree, heldOutDir);
+export function scoreTree({ tree, heldOutDir, testCommand, allowed, protectedPaths, files, ending, expectedCases }) {
+  const held_out = withExpected(scoreHeldOut(tree, heldOutDir), expectedCases);
   const tests = scoreTests(tree, testCommand);
   const scope = scoreScope(files, allowed, protectedPaths ?? []);
   return {
@@ -203,7 +214,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   try {
     const heldOutDir = existsSync(join(projectDir, "held-out")) ? join(projectDir, "held-out") : null;
     const kept = existsSync(join(runDir, "score.json")) ? JSON.parse(readFileSync(join(runDir, "score.json"), "utf8")) : null;
-    const score = scoreTree({ tree, heldOutDir, testCommand: slots.values["test-command"], allowed: expect.scope?.allowed ?? [], protectedPaths: expect.scope?.protected ?? [], files: result.project_files_changed ?? [], ending: kept?.ending ?? result.ending_kind });
+    const score = scoreTree({ tree, heldOutDir, testCommand: expect.test_command ?? slots.values["test-command"], allowed: expect.scope?.allowed ?? [], protectedPaths: expect.scope?.protected ?? [], files: result.project_files_changed ?? [], ending: kept?.ending ?? result.ending_kind, expectedCases: expect.held_out_cases });
     score.rebuilt_from = "task/ + project.diff";
     console.log(JSON.stringify(score, null, 2));
     if (kept) {
@@ -211,6 +222,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       console.error(same ? "re-score agrees with the kept score.json" : "re-score DIFFERS from the kept score.json");
     }
     if (rest.includes("--write")) {
+      // Study one (protocol version 1) is finished: its records are read and re-scored on screen, never written again.
+      if ((expect.protocol ?? 1) === 1) {
+        console.error("this run belongs to study one, which is finished: the re-score is printed above and score.json is left as it is");
+        process.exit(1);
+      }
       writeFileSync(join(runDir, "score.json"), `${JSON.stringify(score, null, 2)}\n`, "utf8");
       console.error(`wrote ${join(runDir, "score.json")}`);
     }
