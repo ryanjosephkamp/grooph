@@ -3,7 +3,7 @@
   "id": "csv-export-reviewed",
   "name": "CSV export reviewed",
   "version": 1,
-  "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honouring its filters, with a header row and RFC 4180 quoting. Done when every item in docs/REVIEW-CHECKLIST.md is shown to hold, `npm test` passes, and a human approves the merge.",
+  "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honoring its filters, with a header row and RFC 4180 quoting. Done when every item in docs/REVIEW-CHECKLIST.md is shown to hold, `npm test` passes, and a human approves the merge.",
   "target": {
     "harness": "claude-code"
   },

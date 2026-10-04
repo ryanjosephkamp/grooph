@@ -712,7 +712,7 @@ export const isRunBundleLike = (json: unknown): boolean =>
  * Check an untrusted value (an imported file, a link, the watch endpoint)
  * against the bundle schema, graphs and notes included. `issues` are
  * `path: message` lines. Nothing is recomputed from what it claims: callers
- * summarise and diff from the documents themselves.
+ * summarize and diff from the documents themselves.
  */
 export function parseRunBundle(json: unknown): ParsedRunBundle {
   if (isRunBundleLike(json)) {

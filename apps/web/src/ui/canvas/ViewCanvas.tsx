@@ -26,7 +26,7 @@ export type Highlight = { nodes: Id[]; edges: Id[]; loop?: Id };
  * is the glyph since slice 0015.
  *
  * With `run`, each node carries its run state (icon and label as well as
- * colour) and `highlight` lights up the object a timeline note is about.
+ * color) and `highlight` lights up the object a timeline note is about.
  */
 export function ViewCanvas(props: {
   doc: Graph;

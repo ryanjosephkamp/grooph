@@ -132,7 +132,8 @@ test("every broken link fails with a message a person can act on, and nothing un
   refused("", /nothing after d=.*cut off/);
   refused("x".repeat(1_000_001), /far more than any graph needs.*Nothing was unpacked/);
   refused(`${good.slice(0, 20)}+/${good.slice(22)}`, /characters a grooph link never has/);
-  refused(good.slice(0, Math.floor(good.length / 2)), /damaged.*cut short/);
+  // Cut anywhere: one cut in four leaves a length no encoding produces, and that is still a cut, not a stray character.
+  for (const cut of [0, 1, 2, 3]) refused(good.slice(0, Math.floor(good.length / 2) + cut), /damaged.*cut short/);
   refused(`${good.slice(0, 30)}AAAA${good.slice(34)}`, /damaged/);
 
   // A bomb: 5 MB of spaces packs into a few kilobytes and must not be unpacked in full.

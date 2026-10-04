@@ -12,7 +12,7 @@
       "effort": "high",
       "brief": "Implement TASK.md in src/ with tests in tests/. Run the test command before reporting. On a later round, read REVIEW.md first and address every finding it lists; say which findings you addressed and how. Do not review your own work beyond running the tests.",
       "inputs": ["TASK.md", "REVIEW.md (from round 2 on)"],
-      "outputs": ["implementation in src/ and tests/", "test command output", "CHANGES.md summarising what changed this round"],
+      "outputs": ["implementation in src/ and tests/", "test command output", "CHANGES.md summarizing what changed this round"],
       "allow": ["read-files", "edit-files", "run-tests"],
       "owns": ["src", "tests"]
   } },

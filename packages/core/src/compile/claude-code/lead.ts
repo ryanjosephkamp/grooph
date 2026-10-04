@@ -793,7 +793,7 @@ function sectionEleven(ctx: PackageContext): string {
       adaptive ? "whether the working copy was amended (so they can adopt or discard it), " : ""
     }and what is left over.`,
     "",
-    `The final note and ${code("PROGRESS.md")} are the record. Your last reply is the report: it summarises them for whoever started this session and points at the run folder, ${code(
+    `The final note and ${code("PROGRESS.md")} are the record. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, ${code(
       `${ctx.paths.runs}/<run-id>/`,
     )}.`,
   );

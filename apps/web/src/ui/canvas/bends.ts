@@ -1,5 +1,5 @@
 /**
- * How far each edge bows from the straight line between its nodes' centres,
+ * How far each edge bows from the straight line between its nodes' centers,
  * in pixels at the middle of the curve (positive: to the right of the
  * direction of travel, in screen coordinates).
  *
@@ -82,11 +82,11 @@ export type Pt = { x: number; y: number };
 /** An edge as drawn: a straight line, or a quadratic curve through `control`. */
 export type Curve = { start: Pt; end: Pt; control?: Pt };
 
-const centre = (b: Box): Pt => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
+const center = (b: Box): Pt => ({ x: b.x + b.w / 2, y: b.y + b.h / 2 });
 
-/** Where the ray from the box's centre towards `toward` leaves the box, pushed out by `gap`. */
+/** Where the ray from the box's center towards `toward` leaves the box, pushed out by `gap`. */
 function border(b: Box, toward: Pt, gap: number): Pt {
-  const c = centre(b);
+  const c = center(b);
   const dx = toward.x - c.x;
   const dy = toward.y - c.y;
   if (dx === 0 && dy === 0) return c;
@@ -97,8 +97,8 @@ function border(b: Box, toward: Pt, gap: number): Pt {
 
 /** Edges float between node borders, straight or as a quadratic curve bowing `bend` pixels at its middle. */
 export function edgeCurve(a: Box, b: Box, bend: number): Curve {
-  const ca = centre(a);
-  const cb = centre(b);
+  const ca = center(a);
+  const cb = center(b);
   if (bend === 0) return { start: border(a, cb, 2), end: border(b, ca, 4) };
   const dist = Math.hypot(cb.x - ca.x, cb.y - ca.y) || 1;
   // right-hand normal in screen coordinates (y grows downward)

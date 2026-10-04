@@ -3,7 +3,7 @@
  * names, ids, and unknown document keys (`W_UNKNOWN_KEY`).
  */
 
-/** Edit distance where swapping two neighbouring letters counts once ("whne" → "when"). */
+/** Edit distance where swapping two neighboring letters counts once ("whne" → "when"). */
 function distance(a: string, b: string): number {
   if (a === b) return 0;
   const rows: number[][] = [Array.from({ length: b.length + 1 }, (_, j) => j)];

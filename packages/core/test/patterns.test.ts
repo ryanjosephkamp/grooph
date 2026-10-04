@@ -52,6 +52,8 @@ const TABLE: Record<string, { kind: TemplateKind; profile: `${Profile["cost"]} $
 const CREDITED = new Set(["taste-polish", "ownership-not-swarm", "spec-then-loop", ...PRIOR_ART]);
 /** Slice 0014 added a credit to three existing patterns (version 2); slice 0017's four were born credited (version 1). */
 const CREDITED_IN_0014 = new Set(["taste-polish", "ownership-not-swarm", "spec-then-loop"]);
+/** Slice 0073 put the public text in American English. One template had the word in a node's id and a gate's option, which is a change to the document, so it is version 2. */
+const RESPELLED_IN_0073 = new Set(["patrol-pulse"]);
 
 const files = readdirSync(patternsDir).filter((name) => name.endsWith(".grooph.json")).sort();
 
@@ -98,7 +100,7 @@ for (const file of files) {
     assert.equal(doc.id, id, "named after its id");
     assert.equal(block.kind, TABLE[id]!.kind);
     assert.equal(`${block.profile.cost} ${block.profile.speed} ${block.profile.rigor}`, TABLE[id]!.profile);
-    assert.equal(doc.version, CREDITED_IN_0014.has(id) ? 2 : 1, "version 1, or 2 where slice 0014 added a credit");
+    assert.equal(doc.version, CREDITED_IN_0014.has(id) || RESPELLED_IN_0073.has(id) ? 2 : 1, "version 1, or 2 where slice 0014 added a credit or slice 0073 respelled an id");
     assert.equal(doc.layout, undefined, "layout-free: the app places nodes");
 
     // Credits (docs/templates.md §1 and §5, decision 0010): the three patterns that owe one carry it, and every credit is complete with a web link.
@@ -281,7 +283,7 @@ test("slice 0017: the four prior-art templates keep their point and their credit
   assert.ok(investigator.deny?.includes("edit-files") && !investigator.allow?.includes("edit-files"), "the investigator never edits");
   assert.ok(investigator.allow?.includes("run-commands"), "but may run what it needs");
   assert.deepEqual(agent(pulse, "ticket-writer").owns, ["{{ticket-store}}"]);
-  assert.ok(pulse.nodes.some((n) => n.kind === "human-gate" && n.id === "prioritise"));
+  assert.ok(pulse.nodes.some((n) => n.kind === "human-gate" && n.id === "prioritize"));
   assert.equal(pulse.nodes.filter((n) => n.kind === "stop").length, 2, "a clean stop and a done stop");
 
   // gauntlet-decomposed: two loops, the inner nested in the outer, the outer bar on PIECES.md; a gate on the cut and one on the release.

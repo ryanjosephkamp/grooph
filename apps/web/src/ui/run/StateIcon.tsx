@@ -1,7 +1,7 @@
 import type { NodeRunState } from "@grooph/core";
 
 /**
- * A run state as a shape, so it reads without colour (docs/runs.md §4):
+ * A run state as a shape, so it reads without color (docs/runs.md §4):
  * pending an empty ring, running a ring with a dot, passed a tick, failed a
  * cross, halted two bars. Decorative: the label beside it says the same.
  */

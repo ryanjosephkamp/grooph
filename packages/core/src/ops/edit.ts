@@ -32,7 +32,7 @@ export type Position = { x: number; y: number };
 
 export type NodeKind = Node["kind"];
 
-/** How a node of each kind is labelled, and so what a new one is called ("Agent", "Agent 2", …). */
+/** How a node of each kind is labeled, and so what a new one is called ("Agent", "Agent 2", …). */
 export const KIND_LABEL: Record<NodeKind, string> = {
   agent: "Agent",
   "human-gate": "Human gate",

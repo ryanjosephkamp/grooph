@@ -51,7 +51,7 @@ export function Compare({ set, setIssues, payload }: { set: ProposalSet; setIssu
   const [allSaved, setAllSaved] = useState<number | null>(null);
   const { saved, busy, save } = useSaveFromLink();
 
-  // Which card is in view: the one whose centre is nearest the track's centre.
+  // Which card is in view: the one whose center is nearest the track's center.
   useEffect(() => {
     const el = track.current;
     if (!el) return;

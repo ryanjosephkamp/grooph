@@ -62,7 +62,7 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Cut the task into pieces along the real seams of the artifact and the code, few enough to build in sequence, and write PIECES.md: one entry per piece with its owner scope (what it may change), its cut of {{reference}} (which part of the reference the piece must match, named, never copied: no values, coordinates or colours out of the reference, which the owner must not see), its acceptance, and an unchecked box for the critic. Order the pieces so each can be judged on its own once the earlier ones are done. Plan only; build nothing.",
+      "brief": "Cut the task into pieces along the real seams of the artifact and the code, few enough to build in sequence, and write PIECES.md: one entry per piece with its owner scope (what it may change), its cut of {{reference}} (which part of the reference the piece must match, named, never copied: no values, coordinates or colors out of the reference, which the owner must not see), its acceptance, and an unchecked box for the critic. Order the pieces so each can be judged on its own once the earlier ones are done. Plan only; build nothing.",
       "inputs": [
         "the task",
         "{{reference}}",

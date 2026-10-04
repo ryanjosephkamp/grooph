@@ -10,23 +10,23 @@
  *   agent, critic family       diamond           (critic, judge, red-team)
  *   agent, any other role      rounded square    (lead, tester, researcher, custom)
  *   check                      hexagon
- *   human gate                 octagon, drawn heavier in the gate colour
+ *   human gate                 octagon, drawn heavier in the gate color
  *   merge                      circle
- *   stop                       filled dot        (a `halt` outcome in the warning colour)
+ *   stop                       filled dot        (a `halt` outcome in the warning color)
  *   irreversible               a bar under the node
  *
  *   edge `when`                line
  *   always, pass               solid
- *   fail                       dashed, warning colour
+ *   fail                       dashed, warning color
  *   { verdict }                dotted, muted
- *   approval                   doubled, in the gate colour
+ *   approval                   doubled, in the gate color
  *   a loop's back edge         drawn returning, in a lane below (or beside) the nodes it spans
- *   a loop                     a dashed hull around its members, in the loop's colour
+ *   a loop                     a dashed hull around its members, in the loop's color
  *
  * Layout: the document's own `layout` when it has one (scaled to glyph size),
  * otherwise `layerNodes` laid out left to right, one column per rank, so an
  * entry reads at the left and a stop at the right, as the sketch in the
- * roadmap brief has it. Colours are CSS variables with the app's light-theme
+ * roadmap brief has it. Colors are CSS variables with the app's light-theme
  * values as fallbacks, so the glyph reads inline in either theme and on its
  * own as a file. A `<title>` carries the graph name for accessibility only.
  */
@@ -46,7 +46,7 @@ type Shape = "square" | "rounded" | "diamond" | "hexagon" | "octagon" | "circle"
 
 const RANK_STEP = 60; // between rank columns
 const ORDER_STEP = 44; // between nodes in one rank
-const MIN_GAP = 40; // nearest two centres of a document's own layout, once scaled
+const MIN_GAP = 40; // nearest two centers of a document's own layout, once scaled
 const MAX_SIDE = 400; // a sprawling layout is scaled down to fit this
 const MARGIN = 4;
 const LANE_BASE = 14; // first back-edge lane, below the nodes it spans
@@ -54,7 +54,7 @@ const LANE_STEP = 8;
 const HULL_PAD = 8;
 const HULL_NEST = 6; // extra padding per loop nested inside
 
-const COLOUR = {
+const COLOR = {
   edge: "var(--edge, #5c6663)",
   muted: "var(--ink-3, #6b7370)",
   ink: "var(--ink, #2b302e)",
@@ -84,7 +84,7 @@ const shapeOf = (node: Node): Shape => {
   }
 };
 
-/** How far from the centre the shape's border lies in the direction (dx, dy); an approximation for the round ones. */
+/** How far from the center the shape's border lies in the direction (dx, dy); an approximation for the round ones. */
 function reach(shape: Shape, dx: number, dy: number): number {
   const len = Math.hypot(dx, dy) || 1;
   const c = Math.abs(dx / len);
@@ -105,7 +105,7 @@ function reach(shape: Shape, dx: number, dy: number): number {
   }
 }
 
-/** The extent a shape needs around its centre, bar included. */
+/** The extent a shape needs around its center, bar included. */
 const extent = (shape: Shape, bar: boolean): { x: number; top: number; bottom: number } => {
   const x = shape === "diamond" || shape === "hexagon" ? 14 : shape === "dot" ? 6 : shape === "octagon" ? 13 : 11;
   const y = shape === "diamond" ? 14 : shape === "dot" ? 6 : shape === "octagon" ? 13 : shape === "hexagon" ? 12 : 11;
@@ -136,11 +136,11 @@ const grow = (b: Bounds, x: number, y: number, pad = 0): void => {
 
 // ─── placement ────────────────────────────────────────────────────────────
 
-type Placed = { centres: Record<Id, Pt>; vertical: boolean };
+type Placed = { centers: Record<Id, Pt>; vertical: boolean };
 
-/** Node centres: from the document's layout, scaled to glyph spacing, or from the layered layout, left to right. */
+/** Node centers: from the document's layout, scaled to glyph spacing, or from the layered layout, left to right. */
 function place(doc: Graph): Placed {
-  const centres: Record<Id, Pt> = {};
+  const centers: Record<Id, Pt> = {};
   const hasLayout = doc.layout !== undefined && doc.nodes.some((n) => n.id in doc.layout!);
   if (!hasLayout) {
     const rows = layerNodes(doc);
@@ -149,13 +149,13 @@ function place(doc: Graph): Placed {
     rows.forEach((row, rank) => {
       const offset = mid - ((row.length - 1) * ORDER_STEP) / 2;
       row.forEach((id, i) => {
-        centres[id] = { x: rank * RANK_STEP, y: offset + i * ORDER_STEP };
+        centers[id] = { x: rank * RANK_STEP, y: offset + i * ORDER_STEP };
       });
     });
-    return { centres, vertical: false };
+    return { centers, vertical: false };
   }
 
-  // The document's own layout: box centres, then the nearest pair MIN_GAP apart, capped at MAX_SIDE across.
+  // The document's own layout: box centers, then the nearest pair MIN_GAP apart, capped at MAX_SIDE across.
   const { positions } = resolvePositions(doc);
   const raw: Record<Id, Pt> = {};
   for (const node of doc.nodes) {
@@ -178,8 +178,8 @@ function place(doc: Graph): Placed {
   let scale = nearest === Infinity ? 1 : MIN_GAP / nearest;
   if (spanX * scale > MAX_SIDE) scale = MAX_SIDE / spanX;
   if (spanY * scale > MAX_SIDE) scale = MAX_SIDE / spanY;
-  for (const id of ids) centres[id] = { x: (raw[id]!.x - b.minX) * scale, y: (raw[id]!.y - b.minY) * scale };
-  return { centres, vertical: spanY > spanX };
+  for (const id of ids) centers[id] = { x: (raw[id]!.x - b.minX) * scale, y: (raw[id]!.y - b.minY) * scale };
+  return { centers, vertical: spanY > spanX };
 }
 
 // ─── the glyph ────────────────────────────────────────────────────────────
@@ -195,7 +195,7 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
   const nodes = new Map<Id, Node>(doc.nodes.map((n) => [n.id, n]));
   const shapes = new Map<Id, Shape>(doc.nodes.map((n) => [n.id, shapeOf(n)]));
   const barred = new Set<Id>(doc.nodes.filter((n) => n.kind === "agent" && (n.irreversible ?? []).length > 0).map((n) => n.id));
-  const { centres, vertical } = place(doc);
+  const { centers, vertical } = place(doc);
   const edges = doc.edges.filter((e) => nodes.has(e.from) && nodes.has(e.to));
   const backOf = new Map<Id, number>(); // back edge → the loop it returns in (first, in document order)
   doc.loops.forEach((loop, i) => {
@@ -212,13 +212,13 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
   const outer = (id: Id): number => {
     // The far side of a node on the lane axis: its bottom, or its right edge in a portrait layout.
     const e = extent(shapes.get(id)!, barred.has(id));
-    return across(centres[id]!) + (vertical ? e.x : e.bottom);
+    return across(centers[id]!) + (vertical ? e.x : e.bottom);
   };
 
   // Lanes: the back edges of small loops first, then by the span they cross, then document order.
   const lanes = new Map<Id, number>();
   const loopSize = (edgeId: Id): number => Math.min(...doc.loops.filter((l) => l.back.includes(edgeId)).map((l) => l.members.length));
-  const span = (e: Edge): number => Math.abs(along(centres[e.from]!) - along(centres[e.to]!));
+  const span = (e: Edge): number => Math.abs(along(centers[e.from]!) - along(centers[e.to]!));
   edges
     .filter((e) => backOf.has(e.id))
     .map((e, i) => ({ e, i }))
@@ -234,10 +234,10 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
 
   /** The lane axis value a back edge's return runs at: below every node it passes over. */
   const laneAt = (e: Edge): number => {
-    const lo = Math.min(along(centres[e.from]!), along(centres[e.to]!));
-    const hi = Math.max(along(centres[e.from]!), along(centres[e.to]!));
+    const lo = Math.min(along(centers[e.from]!), along(centers[e.to]!));
+    const hi = Math.max(along(centers[e.from]!), along(centers[e.to]!));
     let base = -Infinity;
-    for (const id of nodes.keys()) if (along(centres[id]!) >= lo - 1 && along(centres[id]!) <= hi + 1) base = Math.max(base, outer(id));
+    for (const id of nodes.keys()) if (along(centers[id]!) >= lo - 1 && along(centers[id]!) <= hi + 1) base = Math.max(base, outer(id));
     return base + LANE_BASE + lanes.get(e.id)! * LANE_STEP;
   };
 
@@ -253,7 +253,7 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
     const pad = HULL_PAD + inside * HULL_NEST;
     const h = bounds();
     for (const id of memberSets[i]!) {
-      const c = centres[id]!;
+      const c = centers[id]!;
       const e = extent(shapes.get(id)!, barred.has(id));
       grow(h, c.x - e.x, c.y - e.top);
       grow(h, c.x + e.x, c.y + e.bottom);
@@ -271,7 +271,7 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
     grow(box, x, y);
     grow(box, x + w, y + ht);
     body.push(
-      `<rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(ht)}" rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:${COLOUR.loops[i % 4]}"/>`,
+      `<rect x="${fmt(x)}" y="${fmt(y)}" width="${fmt(w)}" height="${fmt(ht)}" rx="10" stroke-width="1.3" stroke-dasharray="4 3" style="stroke:${COLOR.loops[i % 4]}"/>`,
     );
   }
 
@@ -284,10 +284,10 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
   }
   for (const e of edges) {
     const when = e.when ?? "always";
-    const colour = e.approval ? COLOUR.gate : when === "fail" ? COLOUR.warning : typeof when === "object" ? COLOUR.muted : COLOUR.edge;
+    const color = e.approval ? COLOR.gate : when === "fail" ? COLOR.warning : typeof when === "object" ? COLOR.muted : COLOR.edge;
     const dash = when === "fail" ? ' stroke-dasharray="5 3"' : typeof when === "object" ? ' stroke-dasharray="1.5 3.5"' : "";
-    const a = centres[e.from]!;
-    const b = centres[e.to]!;
+    const a = centers[e.from]!;
+    const b = centers[e.to]!;
     let path: string;
     let tip: Pt;
     let dir: Pt;
@@ -340,7 +340,7 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
       dir = { x: ux, y: uy };
     }
 
-    const line = `<path d="${path}" stroke-width="1.6"${dash} style="stroke:${colour}"/>`;
+    const line = `<path d="${path}" stroke-width="1.6"${dash} style="stroke:${color}"/>`;
     if (e.approval) {
       // Doubled: the same path twice, a little either side of where it would run.
       const nx = -dir.y * 1.7;
@@ -357,12 +357,12 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
       { x: tip.x - dir.x * size + px * size * 0.5, y: tip.y - dir.y * size + py * size * 0.5 },
       { x: tip.x - dir.x * size - px * size * 0.5, y: tip.y - dir.y * size - py * size * 0.5 },
     ];
-    body.push(`<path d="M${head.map(pt).join(" L")} Z" style="fill:${colour}"/>`);
+    body.push(`<path d="M${head.map(pt).join(" L")} Z" style="fill:${color}"/>`);
   }
 
   // Nodes, on top.
   for (const node of doc.nodes) {
-    const c = centres[node.id]!;
+    const c = centers[node.id]!;
     const shape = shapes.get(node.id)!;
     const e = extent(shape, barred.has(node.id));
     grow(box, c.x - e.x, c.y - e.top);
@@ -371,17 +371,17 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
       case "square":
       case "rounded":
         body.push(
-          `<rect x="${fmt(c.x - 11)}" y="${fmt(c.y - 11)}" width="22" height="22" rx="${shape === "square" ? 2 : 7}" stroke-width="1.8" style="fill:${COLOUR.agentFill};stroke:${COLOUR.agent}"/>`,
+          `<rect x="${fmt(c.x - 11)}" y="${fmt(c.y - 11)}" width="22" height="22" rx="${shape === "square" ? 2 : 7}" stroke-width="1.8" style="fill:${COLOR.agentFill};stroke:${COLOR.agent}"/>`,
         );
         break;
       case "diamond":
         body.push(
-          `<path d="M${pt({ x: c.x, y: c.y - 14 })} L${pt({ x: c.x + 14, y: c.y })} L${pt({ x: c.x, y: c.y + 14 })} L${pt({ x: c.x - 14, y: c.y })} Z" stroke-width="1.8" style="fill:${COLOUR.agentFill};stroke:${COLOUR.agent}"/>`,
+          `<path d="M${pt({ x: c.x, y: c.y - 14 })} L${pt({ x: c.x + 14, y: c.y })} L${pt({ x: c.x, y: c.y + 14 })} L${pt({ x: c.x - 14, y: c.y })} Z" stroke-width="1.8" style="fill:${COLOR.agentFill};stroke:${COLOR.agent}"/>`,
         );
         break;
       case "hexagon":
         body.push(
-          `<path d="M${pt({ x: c.x - 7, y: c.y - 12 })} L${pt({ x: c.x + 7, y: c.y - 12 })} L${pt({ x: c.x + 14, y: c.y })} L${pt({ x: c.x + 7, y: c.y + 12 })} L${pt({ x: c.x - 7, y: c.y + 12 })} L${pt({ x: c.x - 14, y: c.y })} Z" stroke-width="1.8" style="fill:${COLOUR.surface};stroke:${COLOUR.check}"/>`,
+          `<path d="M${pt({ x: c.x - 7, y: c.y - 12 })} L${pt({ x: c.x + 7, y: c.y - 12 })} L${pt({ x: c.x + 14, y: c.y })} L${pt({ x: c.x + 7, y: c.y + 12 })} L${pt({ x: c.x - 7, y: c.y + 12 })} L${pt({ x: c.x - 14, y: c.y })} Z" stroke-width="1.8" style="fill:${COLOR.surface};stroke:${COLOR.check}"/>`,
         );
         break;
       case "octagon": {
@@ -390,18 +390,18 @@ export function glyph(doc: Graph, options: GlyphOptions = {}): string {
           const angle = ((22.5 + k * 45) * Math.PI) / 180;
           points.push({ x: c.x + 13 * Math.cos(angle), y: c.y + 13 * Math.sin(angle) });
         }
-        body.push(`<path d="M${points.map(pt).join(" L")} Z" stroke-width="2.4" style="fill:${COLOUR.surface};stroke:${COLOUR.gate}"/>`);
+        body.push(`<path d="M${points.map(pt).join(" L")} Z" stroke-width="2.4" style="fill:${COLOR.surface};stroke:${COLOR.gate}"/>`);
         break;
       }
       case "circle":
-        body.push(`<circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="11" stroke-width="1.8" style="fill:${COLOUR.surface};stroke:${COLOUR.merge}"/>`);
+        body.push(`<circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="11" stroke-width="1.8" style="fill:${COLOR.surface};stroke:${COLOR.merge}"/>`);
         break;
       case "dot":
-        body.push(`<circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="6" style="fill:${node.kind === "stop" && node.outcome === "halt" ? COLOUR.warning : COLOUR.ink}"/>`);
+        body.push(`<circle cx="${fmt(c.x)}" cy="${fmt(c.y)}" r="6" style="fill:${node.kind === "stop" && node.outcome === "halt" ? COLOR.warning : COLOR.ink}"/>`);
         break;
     }
     if (barred.has(node.id)) {
-      body.push(`<path d="M${pt({ x: c.x - 13, y: c.y + 17 })} L${pt({ x: c.x + 13, y: c.y + 17 })}" stroke-width="3" style="stroke:${COLOUR.error}"/>`);
+      body.push(`<path d="M${pt({ x: c.x - 13, y: c.y + 17 })} L${pt({ x: c.x + 13, y: c.y + 17 })}" stroke-width="3" style="stroke:${COLOR.error}"/>`);
     }
   }
 

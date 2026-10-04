@@ -141,8 +141,8 @@ function buildFor(proj, arm) {
 function assertPromptCurrent(proj, built) {
   const committed = join(proj.dir, "prompt-B.md");
   if (!existsSync(committed)) fail(`${proj.project}/prompt-B.md is not committed: run scripts/compare.sh ${proj.project} --derive first`);
-  const tokenised = built.heldOut ? built.prompt.replaceAll(built.heldOut.realDir, HELD_OUT_TOKEN) : built.prompt;
-  if (readFileSync(committed, "utf8") !== tokenised) fail(`${proj.project}/prompt-B.md differs from the prompt the package derives now: re-run --derive and commit it before running`);
+  const tokenized = built.heldOut ? built.prompt.replaceAll(built.heldOut.realDir, HELD_OUT_TOKEN) : built.prompt;
+  if (readFileSync(committed, "utf8") !== tokenized) fail(`${proj.project}/prompt-B.md differs from the prompt the package derives now: re-run --derive and commit it before running`);
 }
 
 // ── one model-calling invocation ─────────────────────────────────────────
@@ -656,11 +656,11 @@ function writeDerivation(proj) {
   assertFreshBundle(proj.template);
   say(`deriving ${proj.project}/prompt-B.md and loop-C.sh from the package (protocol §3)`);
   const built = buildFor(proj, "B");
-  const tokenised = built.heldOut ? built.prompt.replaceAll(built.heldOut.realDir, HELD_OUT_TOKEN) : built.prompt;
-  writeFileSync(join(proj.dir, "prompt-B.md"), tokenised, "utf8");
+  const tokenized = built.heldOut ? built.prompt.replaceAll(built.heldOut.realDir, HELD_OUT_TOKEN) : built.prompt;
+  writeFileSync(join(proj.dir, "prompt-B.md"), tokenized, "utf8");
   writeFileSync(join(proj.dir, "loop-C.sh"), loopScript({ project: proj.project, n: built.n, testCommand: proj.testCommand }), { mode: 0o755 });
   console.log(JSON.stringify(built.derivation, null, 2));
-  console.log(`N for arm C: ${built.n}\nwrote experiments/comparisons/${proj.project}/prompt-B.md (${tokenised.length} characters) and loop-C.sh`);
+  console.log(`N for arm C: ${built.n}\nwrote experiments/comparisons/${proj.project}/prompt-B.md (${tokenized.length} characters) and loop-C.sh`);
   rmSync(built.scratch, { recursive: true, force: true });
   rmSync(built.harnessDir, { recursive: true, force: true });
   return 0;

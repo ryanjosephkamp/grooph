@@ -28,7 +28,7 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
     <div className="keep" role="group" aria-label="Keep a copy">
       <h3 className="files-title">Keep a copy</h3>
       <Segmented
-        label="Picture colours"
+        label="Picture colors"
         value={theme}
         options={[
           { value: "light", label: "Light" },

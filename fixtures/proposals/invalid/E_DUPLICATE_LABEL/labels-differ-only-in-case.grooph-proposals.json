@@ -12,7 +12,7 @@
         "id": "csv-export-lean",
         "name": "CSV export lean",
         "version": 1,
-        "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honouring its filters, with a header row and RFC 4180 quoting. Done when `npm test` passes.",
+        "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honoring its filters, with a header row and RFC 4180 quoting. Done when `npm test` passes.",
         "target": {
           "harness": "claude-code"
         },
@@ -128,7 +128,7 @@
         "id": "csv-export-lean",
         "name": "CSV export lean",
         "version": 1,
-        "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honouring its filters, with a header row and RFC 4180 quoting. Done when `npm test` passes.",
+        "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honoring its filters, with a header row and RFC 4180 quoting. Done when `npm test` passes.",
         "target": {
           "harness": "claude-code"
         },

@@ -9,7 +9,7 @@ export type GraphEdgeData = {
   edge: DocEdge;
   /** the edge is a back edge of at least one loop */
   back: boolean;
-  /** colour index of the loop it returns work in */
+  /** color index of the loop it returns work in */
   loopColor?: number;
   /** how far the curve bows at its middle, to the right of travel (see `bends.ts`) */
   bend: number;

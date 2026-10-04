@@ -33,7 +33,7 @@ run (a run folder or a *.grooph-run.json bundle) plays: play, step and a scrubbe
 The document travels in the frame's address after the #, as in grooph share, so the host
 page's server never sees it. Nothing about the reader is sent anywhere.
 
-  --theme <t>    light or dark; without it the picture follows the reader's colour scheme
+  --theme <t>    light or dark; without it the picture follows the reader's color scheme
   --height <px>  the frame's height when the page has no script to size it
                  (default: the picture's own height at a phone's width)
   --frame        draw the embed's own background and border, not the page's background

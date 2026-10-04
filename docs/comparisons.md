@@ -61,7 +61,7 @@ At least two runs per arm per project; three where the template's bet involves j
 
 **Process, from the harness and the runner:** cost, wall time by the runner's clock for every arm (the harness under-reports its own with parallel dispatches), harness turns, permission refusals, sub-agents dispatched, and for A the run record's own facts (rounds, back edges, stop).
 
-**One blind judgment per project:** a frontier critic in a fresh context receives the task, the acceptance material the builder saw, and each run's final diff labelled by a random letter, in random order, without arm names. It scores each against the acceptance (1–5, with reasons) and ranks them. Its transcript is kept. The judgment is one measure among several and is never the headline.
+**One blind judgment per project:** a frontier critic in a fresh context receives the task, the acceptance material the builder saw, and each run's final diff labeled by a random letter, in random order, without arm names. It scores each against the acceptance (1–5, with reasons) and ranks them. Its transcript is kept. The judgment is one measure among several and is never the headline.
 
 ## 7. Pre-registration
 

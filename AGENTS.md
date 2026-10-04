@@ -41,6 +41,7 @@ If your prompt names a slice folder, you are an implementer: read that `HANDOFF.
 - **A run is recorded before its result is used.** Any model session started by command gets a folder under `experiments/`, the harness's output saved as it runs, and a ledger row with its session id and reported cost (decision 0015; `experiments/hooks/README.md`).
 - **Merges to `main` wait for the owner's word** until he says otherwise (decision 0015).
 - **Publish only from a file the repo keeps.** A published page (a gate brief, a share-link wrapper) belongs to the Claude account that published it and cannot be handed to another. Write its source into `handoffs/briefs/` first, publish from there, then record the URL beside it in that folder's table. Never publish from a session scratchpad: that directory is expected to vanish.
+- **American English.** Everything the public reads is American English: "color", "prioritize", "center", "labeled" (decision 0022). `node scripts/american-english.mjs --check` runs in CI over the public-facing files. Internal writing is American from here on; the older record is left as it was written.
 - **Tooling:** TypeScript monorepo, `pnpm` workspaces. Package-level choices belong to the implementer and are recorded in the handback.
 
 ## Layout

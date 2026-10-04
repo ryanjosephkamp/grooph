@@ -12,9 +12,9 @@ export type PictureTheme = "light" | "dark" | "auto";
 
 export type PictureOptions = {
   /**
-   * `light` and `dark` write the colours into the file, so it looks the same
+   * `light` and `dark` write the colors into the file, so it looks the same
    * anywhere and can be turned into a PNG. `auto` (the default) writes both
-   * as CSS variables and follows the viewer's colour scheme; a page that
+   * as CSS variables and follows the viewer's color scheme; a page that
    * holds the picture inline can set the variables itself.
    */
   theme?: PictureTheme;
@@ -31,7 +31,7 @@ export type MapPictureOptions = PictureOptions & {
 
 export const PICTURE_WIDTH = 400;
 
-/** The app's tokens (apps/web/src/styles.css) as plain colours, so a picture stands on its own. */
+/** The app's tokens (apps/web/src/styles.css) as plain colors, so a picture stands on its own. */
 const LIGHT = {
   bg: "#f1f4f3",
   surface: "#fdfefe",
@@ -59,7 +59,7 @@ const LIGHT = {
   "loop-3": "#b5306e",
 } as const;
 
-const DARK: Record<Colour, string> = {
+const DARK: Record<Color, string> = {
   bg: "#111514",
   surface: "#1b201e",
   "surface-2": "#242a27",
@@ -86,13 +86,13 @@ const DARK: Record<Colour, string> = {
   "loop-3": "#ee6fa6",
 };
 
-export type Colour = keyof typeof LIGHT;
+export type Color = keyof typeof LIGHT;
 
 export const FONT = `system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`;
 export const MONO = `ui-monospace, 'SF Mono', Menlo, Consolas, 'Roboto Mono', monospace`;
 
-/** A colour as it is written into a `style` attribute for the chosen theme. */
-export type Ink = (name: Colour) => string;
+/** A color as it is written into a `style` attribute for the chosen theme. */
+export type Ink = (name: Color) => string;
 
 export function inkFor(theme: PictureTheme): Ink {
   if (theme === "light") return (name) => LIGHT[name];
@@ -103,8 +103,8 @@ export function inkFor(theme: PictureTheme): Ink {
 /** The `<style>` an `auto` picture carries: both palettes as variables, the dark one under the viewer's preference. */
 export function paletteStyle(theme: PictureTheme): string {
   if (theme !== "auto") return "";
-  const vars = (palette: Record<Colour, string>): string =>
-    (Object.keys(LIGHT) as Colour[]).map((name) => `--gp-${name}:${palette[name]}`).join(";");
+  const vars = (palette: Record<Color, string>): string =>
+    (Object.keys(LIGHT) as Color[]).map((name) => `--gp-${name}:${palette[name]}`).join(";");
   return `<style>.grooph-picture{${vars(LIGHT)}}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){${vars(DARK)}}}.grooph-picture[data-theme="dark"]{${vars(DARK)}}</style>`;
 }
 

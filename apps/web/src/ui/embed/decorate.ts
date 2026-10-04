@@ -5,7 +5,7 @@ import { STOP_KIND_WORDS, endName, type Graph, type Id, type OperationMap, type 
  * `data-handoff` on its parts (docs/exports.md). Here those parts become
  * things a finger or a keyboard can reach, and, in a replay, carry the run's
  * state: `data-state` on each node (styled in embed.css), a pill with the
- * state in words, and each loop's round. State is never colour alone.
+ * state in words, and each loop's round. State is never color alone.
  */
 
 const SVG = "http://www.w3.org/2000/svg";

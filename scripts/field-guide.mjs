@@ -415,12 +415,12 @@ function twoLines(content, width, size) {
 /** The mark of a record: a green disc with a tick when its check passed, an amber one with a cross when it did not, a ring when there is no run. */
 function markIcon(cx, cy, state) {
   if (state === "none") return `<circle cx="${fmt(cx)}" cy="${fmt(cy)}" r="6" stroke-width="1.5" style="fill:none;stroke:${ink("ink-3")}"/>`;
-  const colour = state === "passed" ? ink("ok") : ink("warning");
+  const color = state === "passed" ? ink("ok") : ink("warning");
   const strokes =
     state === "passed"
       ? `M${fmt(cx - 3.3)},${fmt(cy + 0.2)} L${fmt(cx - 0.9)},${fmt(cy + 2.8)} L${fmt(cx + 3.5)},${fmt(cy - 2.7)}`
       : `M${fmt(cx - 2.9)},${fmt(cy - 2.9)} L${fmt(cx + 2.9)},${fmt(cy + 2.9)} M${fmt(cx + 2.9)},${fmt(cy - 2.9)} L${fmt(cx - 2.9)},${fmt(cy + 2.9)}`;
-  return `<circle cx="${fmt(cx)}" cy="${fmt(cy)}" r="7.5" style="fill:${colour}"/><path d="${strokes}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${ink("surface")}"/>`;
+  return `<circle cx="${fmt(cx)}" cy="${fmt(cy)}" r="7.5" style="fill:${color}"/><path d="${strokes}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${ink("surface")}"/>`;
 }
 
 function cell(id, x, y) {

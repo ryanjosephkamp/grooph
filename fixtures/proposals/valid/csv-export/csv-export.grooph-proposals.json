@@ -11,7 +11,7 @@
         "file": "lean.grooph.json"
       },
       "basedOn": "grind-loop",
-      "rationale": "The route is small and the behaviour is fully checkable: the tests can assert the header, the quoting and that filters match the JSON route. When tests define done, a fast builder grinding against them is the smallest graph that works. Five rounds and thirty minutes cap the spend.",
+      "rationale": "The route is small and the behavior is fully checkable: the tests can assert the header, the quoting and that filters match the JSON route. When tests define done, a fast builder grinding against them is the smallest graph that works. Five rounds and thirty minutes cap the spend.",
       "pros": [
         "cheapest and fastest: one fast agent and the test suite",
         "the tests it writes stay behind as the regression net"
@@ -73,6 +73,6 @@
   ],
   "recommendation": {
     "candidate": "lean",
-    "why": "The behaviour is fully testable and nothing is irreversible, so tests are the bar; pay for a critic only if you want someone to read the code."
+    "why": "The behavior is fully testable and nothing is irreversible, so tests are the bar; pay for a critic only if you want someone to read the code."
   }
 }

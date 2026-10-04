@@ -40,7 +40,7 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 | Lead brief | `LEAD.md`, loaded by the skill | The main session is the lead. If the graph has a `lead` node, its brief is the opening section; otherwise the compiler synthesizes one from goal, constraints and description. |
 | Node brief | `.claude/agents/<graph-id>--<node-id>.md` | Frontmatter: `name`, `description` (role + first sentence of brief), `model` (profile), `effort`, `tools` (from `allow`), `disallowedTools` (from `deny`). Body: brief, inputs, outputs, ownership, evidence rules, the report format. |
 | Capabilities → tools | `read-files` → `Read, Glob, Grep` · `edit-files` → `Read, Edit, Write, Glob, Grep` · `write-outputs` → `Write` (body rule: only the files named in `outputs`) · `run-commands` / `run-tests` → `Bash` · `web` → `WebFetch, WebSearch` · `spawn-agents` → `Agent` | Unknown capability strings are passed through as a comment in the body, never as a tool name. A node with no `allow` gets `read-files`. `disallowedTools` = tools(`deny`) − tools(`allow`), so denying `edit-files` on a node that allows `read-files` withholds `Edit, Write` and keeps `Read`. |
-| Edge `isolation: fresh` | A new `Agent` call whose prompt contains only the brief pointer, declared inputs, and the edge's `evidence` | The lead never pastes a transcript into a fresh worker. The intended reading, confirmed by the first acceptance run: the lead materialises the edge's evidence as files in the run folder (`diff-r0.patch`, `test-output-r0.txt`, …) and hands the worker those paths. |
+| Edge `isolation: fresh` | A new `Agent` call whose prompt contains only the brief pointer, declared inputs, and the edge's `evidence` | The lead never pastes a transcript into a fresh worker. The intended reading, confirmed by the first acceptance run: the lead materializes the edge's evidence as files in the run folder (`diff-r0.patch`, `test-output-r0.txt`, …) and hands the worker those paths. |
 | Edge `isolation: shared` | Continue the same worker with `SendMessage` when the build offers it, else the lead does the step itself | Continuation of a subagent is available in current builds but not documented; the lead brief says to fall back rather than fake it. |
 | Parallel edges, `concurrency.max` | Several `Agent` calls in one message, at most `max` at a time | |
 | Loop policy | A section per loop in `LEAD.md`: members, round definition, bar with its `inspects` refs, stops in order and the action on each | The lead keeps the round counter in `PROGRESS.md`. |
@@ -66,7 +66,7 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 8. **Progress and notes.** When to update `PROGRESS.md`; the `notes.jsonl` line format with one filled example.
 9. **Adapting the graph.** What the lead may change at this document's `adaptation` level, how to record it, and the brakes it may never loosen.
 10. **Validation warnings.** Verbatim, so the human sees them at run time too.
-11. **Ending.** Reaching a stop node, or a stop firing: write the final note, summarise which nodes ran and why the run ended.
+11. **Ending.** Reaching a stop node, or a stop firing: write the final note, summarize which nodes ran and why the run ended.
 
 ## Headless acceptance run
 

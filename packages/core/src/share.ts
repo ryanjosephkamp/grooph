@@ -186,6 +186,8 @@ export function decodeSharePayload(payload: string, inflate: InflateRaw): Opened
   }
   const bytes = fromBase64Url(payload);
   if (!bytes) {
+    // Every character is a link's own and only the length is one no encoding produces: the link was cut, not changed.
+    if (/^[A-Za-z0-9_-]+$/.test(payload)) return refuse(DAMAGED);
     return refuse(
       "The link contains characters a grooph link never has, so part of it was changed or cut on the way. Ask for the link again, or for the file (grooph share --out).",
     );

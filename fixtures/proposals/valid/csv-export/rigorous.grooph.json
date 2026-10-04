@@ -3,7 +3,7 @@
   "id": "csv-export-rigorous",
   "name": "CSV export rigorous",
   "version": 1,
-  "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honouring its filters, with a header row and RFC 4180 quoting. Done when every line of an approved ACCEPTANCE.md is shown to hold and `npm test` passes.",
+  "goal": "Add CSV export to the orders list: GET /orders.csv returns the same rows GET /orders shows, honoring its filters, with a header row and RFC 4180 quoting. Done when every line of an approved ACCEPTANCE.md is shown to hold and `npm test` passes.",
   "target": {
     "harness": "claude-code"
   },
@@ -11,7 +11,7 @@
     "pattern": "spec-then-loop",
     "from": "spec-then-loop@1"
   },
-  "description": "A frontier planner turns the task into ACCEPTANCE.md, a short list of observable behaviours. A human approves it; rejecting ends the run so the task can be restated. A builder then works and a critic in a fresh context judges the change line by line against the approved file, which is the loop's bar. The loop stops when every line holds, after four rounds, or at forty turns.",
+  "description": "A frontier planner turns the task into ACCEPTANCE.md, a short list of observable behaviors. A human approves it; rejecting ends the run so the task can be restated. A builder then works and a critic in a fresh context judges the change line by line against the approved file, which is the loop's bar. The loop stops when every line holds, after four rounds, or at forty turns.",
   "nodes": [
     {
       "id": "planner",
@@ -22,7 +22,7 @@
         "tier": "frontier"
       },
       "effort": "high",
-      "brief": "Turn the task into ACCEPTANCE.md: the observable behaviours that would make it done, each checkable by reading code or running `npm test`. Name what is out of scope. Keep it short enough to review in a minute, and write no code.",
+      "brief": "Turn the task into ACCEPTANCE.md: the observable behaviors that would make it done, each checkable by reading code or running `npm test`. Name what is out of scope. Keep it short enough to review in a minute, and write no code.",
       "inputs": [
         "the task"
       ],

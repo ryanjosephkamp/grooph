@@ -54,10 +54,10 @@ export function layerNodes(doc: Graph): Id[][] {
   for (const id of nodes) (rows[rank.get(id)!] ??= []).push(id);
 
   // Two barycenter sweeps to untangle crossings; document order breaks ties.
-  const neighbours = new Map<Id, Id[]>(nodes.map((id) => [id, []]));
+  const neighbors = new Map<Id, Id[]>(nodes.map((id) => [id, []]));
   for (const [from, to] of dag) {
-    neighbours.get(from)!.push(to);
-    neighbours.get(to)!.push(from);
+    neighbors.get(from)!.push(to);
+    neighbors.get(to)!.push(from);
   }
   const docOrder = new Map(nodes.map((id, i) => [id, i]));
   for (let sweep = 0; sweep < 2; sweep++) {
@@ -67,7 +67,7 @@ export function layerNodes(doc: Graph): Id[][] {
       const row = rows[r];
       if (!row) continue;
       const bary = (id: Id): number => {
-        const above = neighbours.get(id)!.filter((n) => rank.get(n) === r - 1);
+        const above = neighbors.get(id)!.filter((n) => rank.get(n) === r - 1);
         return above.length === 0 ? index.get(id)! : above.reduce((sum, n) => sum + index.get(n)!, 0) / above.length;
       };
       row.sort((a, b) => bary(a) - bary(b) || docOrder.get(a)! - docOrder.get(b)!);
@@ -79,7 +79,7 @@ export function layerNodes(doc: Graph): Id[][] {
 
 /**
  * A position for every node, whether or not the document carries one: the
- * ranks of `layerNodes` as rows, each centred on x = 0, a row wrapping after
+ * ranks of `layerNodes` as rows, each centered on x = 0, a row wrapping after
  * `columns` nodes so a wide fan-out stays legible on a phone.
  */
 export function autoLayout(doc: Graph, columns = 4, box: LayoutBox = DEFAULT_LAYOUT_BOX): Record<Id, Position> {

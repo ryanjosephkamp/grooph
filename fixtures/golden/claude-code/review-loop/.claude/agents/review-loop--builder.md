@@ -25,7 +25,7 @@ Leave all of these behind before you report:
 
 - implementation in src/ and tests/
 - test command output
-- CHANGES.md summarising what changed this round
+- CHANGES.md summarizing what changed this round
 
 ## Ownership
 
@@ -53,7 +53,7 @@ verdict: done
 outputs:
   - implementation in src/ and tests/ — <where you left it>
   - test command output — <where you left it>
-  - CHANGES.md summarising what changed this round — <where you left it>
+  - CHANGES.md summarizing what changed this round — <where you left it>
 changes:
   - <what you changed this round, and why>
 summary: <at most five lines>

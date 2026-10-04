@@ -25,3 +25,4 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0019 | [What leaves a machine](0019-what-leaves-a-machine.md) |
 | 0020 | [A turn that is open is sent as open](0020-a-turn-that-is-open.md) |
 | 0021 | [An address loads what it shows, under a budget CI enforces](0021-what-an-address-loads.md) |
+| 0022 | [Public-facing text is American English](0022-american-english.md) |

@@ -376,7 +376,7 @@ You built 0.2.0 on Linux, drew your map again, corrected the map with Ryan on it
 
 | You said | State |
 |---|---|
-| Where two numbers sit side by side, the wider rings cover the next track's line: ring 11 sits over the line 12 runs on, and 17 and 18 cover each other's lines, so it is harder to tell which line a number belongs to | **fixed in 0.2.2.** The margin is drawn in three layers: rings, then every line, then the numbers. A number's own line stops at its ring; every other line runs over the ring unbroken. The two-digit ring is narrower (about 17 units, from 19.5), and two numbers on neighbouring tracks keep clear ground between them |
+| Where two numbers sit side by side, the wider rings cover the next track's line: ring 11 sits over the line 12 runs on, and 17 and 18 cover each other's lines, so it is harder to tell which line a number belongs to | **fixed in 0.2.2.** The margin is drawn in three layers: rings, then every line, then the numbers. A number's own line stops at its ring; every other line runs over the ring unbroken. The two-digit ring is narrower (about 17 units, from 19.5), and two numbers on neighboring tracks keep clear ground between them |
 
 **Then still to come from you:** the one trial of `grooph hooks install --push --tools` on your throwaway branch. You ran it; section 15.
 

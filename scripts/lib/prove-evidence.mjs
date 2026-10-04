@@ -6,7 +6,7 @@
  *   run/
  *     result.json              the numbers: run id, versions, cost, turns, rounds, ending, …
  *     runs/<run-id>/           the run folder as the lead left it: PROGRESS.md, notes.jsonl,
- *                              the working copy, the evidence the lead materialised
+ *                              the working copy, the evidence the lead materialized
  *     package/                 the package the run was given: LEAD.md, KICKOFF.md, MAPPING.md,
  *                              graph.grooph.json (the source, as it stood after the run),
  *                              agents/*.md, skill/SKILL.md

@@ -82,10 +82,10 @@ test("a three-candidate link opens the comparison with each card's facts above t
   const facts = [
     lean.getByRole("heading", { name: "Lean" }),
     lean.getByText("Recommended", { exact: true }),
-    lean.getByText("The behaviour is fully testable"),
+    lean.getByText("The behavior is fully testable"),
     lean.getByRole("list", { name: "Profile" }),
     lean.getByText("1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes"),
-    lean.getByText(/^The route is small and the behaviour is fully checkable/),
+    lean.getByText(/^The route is small and the behavior is fully checkable/),
   ];
   for (const fact of facts) {
     await expect(fact).toBeVisible();

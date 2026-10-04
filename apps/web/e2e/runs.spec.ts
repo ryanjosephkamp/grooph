@@ -234,7 +234,7 @@ test("Pin to graph on a device without the graph saves the source with the note 
   expect(docs.map((d) => [d.version, d.notes?.map((n) => n.id)])).toEqual([[1, ["n-0014"]]]);
 });
 
-test("halted, failed, pending: every state has an icon and a label besides its colour", async ({ page }) => {
+test("halted, failed, pending: every state has an icon and a label besides its color", async ({ page }) => {
   await page.goto(linkFor(runBundle("run-gate")));
   await expect(status(page)).toHaveAttribute("aria-label", "Run state: Halted");
   await expect(runBadge(page, "merge-gate")).toHaveText("halted");
@@ -340,7 +340,7 @@ test("running nodes pulse; with reduced motion they show a static ring instead",
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await ring()).toEqual({ animation: "none", border: "2px", opacity: "1", content: '""' });
-  // Not only colour: the badge names the state.
+  // Not only color: the badge names the state.
   await expect(runBadge(page, "critic")).toHaveText("running");
 });
 

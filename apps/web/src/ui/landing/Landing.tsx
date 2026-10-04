@@ -24,7 +24,7 @@ const DOCS = `${import.meta.env.BASE_URL}docs/`;
 /**
  * The hero: the review gate as a real graph, its slots filled with the
  * template's own examples, drawn by core's picture in the `auto` theme so it
- * follows the page's colour scheme. Drawn once; the picture is deterministic.
+ * follows the page's color scheme. Drawn once; the picture is deterministic.
  */
 let heroSvg: string | undefined;
 function hero(): string {

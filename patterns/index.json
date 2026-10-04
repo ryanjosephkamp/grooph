@@ -313,10 +313,10 @@
     },
     {
       "id": "patrol-pulse",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Patrol pulse",
-      "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritises; one pulse is one run.",
+      "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.",
       "whenToUse": "Something should be looked at on a schedule (a log, a queue, a report) and the output of each look is a triaged record for a human, never a change: run the package under the harness's scheduler and each pulse is a run.",
       "profile": {
         "cost": "low",
@@ -341,7 +341,7 @@
         {
           "name": "u/croovies's \"Lloyd\" heartbeat orchestrator, as written up by explainx.ai (2026-08-14; a secondary source)",
           "url": "https://www.explainx.ai/blog/claude-code-loop-orchestrator-heartbeat-ticket-memory-august-2026",
-          "note": "a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritise"
+          "note": "a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritize"
         },
         {
           "name": "Steve Yegge's Gas Town patrols",
@@ -356,7 +356,7 @@
       "kind": "graph",
       "title": "Ralph loop",
       "summary": "A fresh builder takes the top unchecked item of a plan file each round, commits on green and appends what it learned to an agent file, until the plan is empty.",
-      "whenToUse": "The work is already a prioritised list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.",
+      "whenToUse": "The work is already a prioritized list of small items that tests can check one at a time, and you want a fresh context per item with the plan and an agent file as the only memory.",
       "profile": {
         "cost": "low",
         "speed": "fast",

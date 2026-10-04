@@ -33,7 +33,7 @@ async function gesture(page: Page, from: Point[], to: Point[], steps = 12): Prom
 const zoom = (page: Page): Promise<number> =>
   page.locator(".react-flow__viewport").evaluate((el) => new DOMMatrixReadOnly(getComputedStyle(el).transform).a);
 
-const centre = async (page: Page, id: string): Promise<Point> => {
+const center = async (page: Page, id: string): Promise<Point> => {
   const box = (await node(page, id).boundingBox())!;
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 };
@@ -55,9 +55,9 @@ test("two fingers pinch the canvas in and out; one finger on the background pans
   expect(await zoom(page)).toBeLessThan(spread / 2);
 
   // One finger on the background drags the whole graph; nothing in the document moves.
-  const before = await centre(page, "builder");
+  const before = await center(page, "builder");
   await gesture(page, [mid], [{ x: mid.x + 90, y: mid.y - 40 }]);
-  const after = await centre(page, "builder");
+  const after = await center(page, "builder");
   expect(after.x - before.x).toBeGreaterThan(60);
   expect(after.y - before.y).toBeLessThan(-20);
   await expect(page.getByRole("toolbar", { name: "Canvas" }).getByRole("button", { name: "Undo" })).toBeDisabled();
@@ -67,9 +67,9 @@ test("one finger on a node drags it, the move is saved in the layout, and one un
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
   await fit(page);
   const was = reviewLoop().layout!["critic"]!;
-  const from = await centre(page, "critic");
+  const from = await center(page, "critic");
   await gesture(page, [from], [{ x: from.x + 10, y: from.y + 120 }], 16);
-  const to = await centre(page, "critic");
+  const to = await center(page, "critic");
   expect(to.y - from.y).toBeGreaterThan(80);
   // A drag is not a tap: the node's sheet stays shut.
   await expect(sheet(page)).toHaveCount(0);
@@ -81,7 +81,7 @@ test("one finger on a node drags it, the move is saved in the layout, and one un
   await page.getByRole("button", { name: "Close panel" }).tap();
 
   await page.getByRole("toolbar", { name: "Canvas" }).getByRole("button", { name: "Undo" }).tap();
-  await expect.poll(async () => Math.round((await centre(page, "critic")).y)).toBe(Math.round(from.y));
+  await expect.poll(async () => Math.round((await center(page, "critic")).y)).toBe(Math.round(from.y));
 });
 
 test("in a read-only viewer a finger pans and two pinch, and nothing can be dragged out of place", async ({ page }) => {
@@ -89,13 +89,13 @@ test("in a read-only viewer a finger pans and two pinch, and nothing can be drag
   await expect(node(page, "builder")).toBeVisible();
   await page.waitForTimeout(300);
   const start = await zoom(page);
-  const on = await centre(page, "builder");
-  const critic = await centre(page, "critic");
+  const on = await center(page, "builder");
+  const critic = await center(page, "critic");
 
   // A finger that starts on a node moves the picture, not the node.
   await gesture(page, [on], [{ x: on.x - 80, y: on.y + 30 }]);
-  const builder = await centre(page, "builder");
-  const criticAfter = await centre(page, "critic");
+  const builder = await center(page, "builder");
+  const criticAfter = await center(page, "critic");
   expect(builder.x - on.x).toBeLessThan(-50);
   expect(Math.round(criticAfter.x - critic.x)).toBe(Math.round(builder.x - on.x));
 
