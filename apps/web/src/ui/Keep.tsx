@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { download } from "../doc/exportPackage.js";
 import { pageHtml, pageName, pictureName, pictureSvg, svgToPng, type KeepTheme } from "../doc/keep.js";
-import { LOOKS, chooseLook, useLook, useLookId } from "../doc/look.js";
+import { LOOKS, chooseLook, useLook, useLookId, useLookMissing } from "../doc/look.js";
 import { Segmented, Select } from "./fields.js";
 
 const prefersDark = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
@@ -20,7 +20,10 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
   // The pictures' theme (docs/themes.md): the one chosen for this browser, which can be changed here too.
   const lookId = useLookId();
   const look = useLook();
-  const waiting = lookId !== "paper" && !look;
+  // The theme's values are a file fetched when a theme is chosen. While it is on its way the buttons wait; if it
+  // cannot be had they do not, and what they make is in Paper, said below.
+  const missing = useLookMissing();
+  const waiting = lookId !== "paper" && !look && !missing;
   const png = async () => {
     setProblem(null);
     try {
@@ -56,6 +59,11 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
       {problem ? (
         <p className="refusal" role="alert">
           {problem}
+        </p>
+      ) : null}
+      {missing ? (
+        <p className="field-hint" role="status">
+          This theme could not be fetched (it needs a connection the first time), so these are in Paper for now. Load the page again to try once more.
         </p>
       ) : null}
       <p className="field-hint">The picture is laid out for a phone. The offline page holds the picture, every brief and the document itself in one file, and opens with no network.</p>

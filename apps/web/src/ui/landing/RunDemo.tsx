@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { useLookId } from "../../doc/look.js";
 import "./more.css";
 
 /**
@@ -15,6 +16,8 @@ export function RunDemo({ children }: { children: ReactNode }) {
   const [payload, setPayload] = useState<string | null>(null);
   const [height, setHeight] = useState(680);
   const frame = useRef<HTMLIFrameElement>(null);
+  // The frame is an embed, and an embed takes its theme from its address alone: so the one chosen here is named in it.
+  const look = useLookId();
 
   // The frame says how tall it wants to be, as it does on any page that embeds a graph.
   useEffect(() => {
@@ -35,7 +38,7 @@ export function RunDemo({ children }: { children: ReactNode }) {
           ref={frame}
           className="land-run-frame"
           title="A recorded run of the heterogeneous critic template, played step by step"
-          src={`${import.meta.env.BASE_URL}#/embed?d=${payload}&play=1`}
+          src={`${import.meta.env.BASE_URL}#/embed?d=${payload}&play=1${look === "paper" ? "" : `&theme=${look}`}`}
           style={{ height }}
         />
         <figcaption className="muted">

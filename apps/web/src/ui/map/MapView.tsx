@@ -315,6 +315,7 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
         <div
           ref={stage}
           className={`map-picture${sequence ? " is-sequence" : ""}`}
+          data-look={look?.name}
           hidden={svg === ""}
           style={theirs?.style}
           onClick={(e) => {

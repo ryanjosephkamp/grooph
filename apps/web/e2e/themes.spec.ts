@@ -2,11 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
-import { buildRunBundle, buildShareEnvelope, encodeSharePayload, offlinePage, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
+import { buildRunBundle, buildShareEnvelope, encodeSharePayload, mapKit, mapPicture, offlinePage, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
+import { mapSequenceWith, mapWideWith } from "@grooph/core/map-views";
 import { PICTURE_THEMES, pictureLook } from "@grooph/core/themes";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, sheet } from "./support.js";
+import { downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet } from "./support.js";
 
 /**
  * The picture's themes in the app (handoff 0086; docs/themes.md): six looks for the same picture. Paper is the
@@ -15,7 +16,10 @@ import { downloadText, fixturePath, importDocument, linkFor, node, repoRoot, rev
  * separate from the site's look and from light and dark.
  */
 const FIVE = PICTURE_THEMES.filter((name) => name !== "paper");
-const map = (): OperationMap => parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid/owner-operation-2026-09-30.grooph-map.json"), "utf8")).map!;
+const mapAt = (name: string): OperationMap => parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid", `${name}.grooph-map.json`), "utf8")).map!;
+const map = (): OperationMap => mapAt("owner-operation-2026-09-30");
+const graphAt = (path: string): Graph => parseGraphText(readFileSync(join(repoRoot, path), "utf8")).doc!;
+const rgb = (hex: string): string => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
 const payload = (doc: Parameters<typeof buildShareEnvelope>[0]): string => encodeSharePayload(buildShareEnvelope(doc), (bytes) => deflateRawSync(bytes, { level: 9 }));
 
 /** The proving run of the heterogeneous-critic template: it fails round 0, passes its bar in round 1, and halts at the gate. */
@@ -214,7 +218,6 @@ test("an embed draws the theme its address names, with the theme's ground and ba
   await expect(frame).toHaveAttribute("data-look", "chalk");
   // A theme's words are colored for its own ground, so the frame brings that ground: Chalk's board, in dark.
   const chalk = pictureLook("chalk")!;
-  const rgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
   expect(await frame.evaluate((n) => getComputedStyle(n).backgroundColor)).toBe(rgb(chalk.dark.bg));
   expect(await page.getByRole("link", { name: /Open in grooph/ }).evaluate((n) => getComputedStyle(n).color)).toBe(rgb(chalk.dark.ink));
   // A node still opens its brief, by the same name as in Paper.
@@ -300,7 +303,16 @@ test("Keep a copy keeps the picture and the offline page in the theme, as core d
   expect(await downloadText(file)).toBe(readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8"));
 });
 
-test("in every theme, with the site's own faces, no line of words runs past its card: the front page's picture and a map", async ({ browser }) => {
+test("in every theme, with the site's own faces, no line of words runs past its card: the front page's picture, a map in its three views, and lines that fill their room", async ({ browser }) => {
+  // A graph whose lines fill their room: a gate's question is two full lines of ordinary words, and a fixed-width
+  // face sets such a line wider than the face it was laid out for.
+  const full = reviewLoop();
+  const gate = full.nodes.find((n) => n.kind === "human-gate")!;
+  if (gate.kind === "human-gate") {
+    delete gate.options;
+    gate.prompt = "Write one line per item, citing the file and line that satisfies it or saying it is unmet; then list what is still left for the builder.";
+  }
+  const long = mapAt("owner-operation-2026-10-01-with-ryan");
   for (const name of FIVE) {
     const context = await browser.newContext({ viewport: { width: 400, height: 800 }, serviceWorkers: "block" });
     const page = await context.newPage();
@@ -311,16 +323,181 @@ test("in every theme, with the site's own faces, no line of words runs past its 
     await page.evaluate(() => document.fonts.ready);
     expect(await pastItsBox(hero), `${name}, the front page's picture`).toEqual({ over: 0, words: "" });
 
-    await page.goto(`./#/open?d=${payload(map())}`);
-    const picture = page.locator('.map-picture svg[data-picture="map"]');
-    await expect(picture).toHaveAttribute("data-look", name);
+    // More pictures, drawn by core and set into the same page, where the site's faces are: the full lines, and the
+    // long map as the phone's picture, with its lanes side by side, and as a sequence.
+    const look = pictureLook(name)!;
+    const more: [string, string][] = [
+      ["a graph with full lines", picture(full, { look })],
+      ["the long map, the phone's picture", mapPicture(long, { look })],
+      ["the long map, lanes side by side", mapWideWith(mapKit, long, { look })],
+      ["the long map, as a sequence", mapSequenceWith(mapKit, long, { look })],
+    ];
+    await page.evaluate((svgs) => {
+      const holder = document.createElement("div");
+      holder.id = "more-pictures";
+      holder.innerHTML = svgs.join("");
+      document.body.append(holder);
+    }, more.map(([, svg]) => svg));
     await page.evaluate(() => document.fonts.ready);
-    expect(await pastItsBox(picture), `${name}, a map`).toEqual({ over: 0, words: "" });
+    for (const [k, [what]] of more.entries()) expect(await pastItsBox(page.locator("#more-pictures > svg").nth(k)), `${name}, ${what}`).toEqual({ over: 0, words: "" });
+
+    await page.goto(`./#/open?d=${payload(map())}`);
+    const shown = page.locator('.map-picture svg[data-picture="map"]');
+    await expect(shown).toHaveAttribute("data-look", name);
+    await page.evaluate(() => document.fonts.ready);
+    expect(await pastItsBox(shown), `${name}, a map`).toEqual({ over: 0, words: "" });
     // Every session and handoff is there, under the name it has in Paper.
-    await expect(page.locator("[data-session]")).toHaveCount(map().sessions.length);
-    await expect(page.getByRole("button", { name: "Session Operator", exact: true })).toBeVisible();
+    await expect(page.locator(".map-picture [data-session]")).toHaveCount(map().sessions.length);
+    await expect(page.locator(".map-picture").getByRole("button", { name: "Session Operator", exact: true })).toBeVisible();
     await context.close();
   }
+});
+
+test("every rule of every theme finds something to style in a real picture, in a browser", async ({ page }) => {
+  // The rules are written for hooks the drawing code writes: a card's mark, an edge's dash, a label's size. A hook
+  // that the code no longer writes would leave its rule selecting nothing, and the theme would quietly lose a part.
+  const long = mapAt("owner-operation-2026-10-01-with-ryan");
+  for (const name of FIVE) {
+    const look = pictureLook(name)!;
+    const svgs = [
+      picture(reviewLoop(), { look }),
+      picture(graphAt("fixtures/valid/glyph-vocabulary.grooph.json"), { look }),
+      picture(graphAt("patterns/specialist-critic-bank.grooph.json"), { look }),
+      // the one template with an edge on a verdict that is no loop's: the dotted edge
+      picture(graphAt("patterns/patrol-pulse.grooph.json"), { look }),
+      mapPicture(long, { look }),
+      mapWideWith(mapKit, long, { look }),
+      mapSequenceWith(mapKit, long, { look }),
+    ];
+    await page.setContent(`<!doctype html><meta charset="utf-8"><body>${svgs.join("")}</body>`);
+    const read = await page.evaluate(() => {
+      const idle: string[] = [];
+      let rules = 0;
+      const walk = (list: CSSRuleList): void => {
+        for (const rule of list) {
+          if (rule instanceof CSSStyleRule) {
+            // A selector that holds a picture to light or dark is for a page that does so; none here does.
+            for (const selector of rule.selectorText.split(/,(?![^(]*\))/).map((x) => x.trim())) {
+              if (selector.includes("[data-theme=")) continue;
+              rules++;
+              if (!document.querySelector(selector)) idle.push(selector);
+            }
+          } else if ("cssRules" in rule) walk((rule as CSSGroupingRule).cssRules);
+        }
+      };
+      // The first picture's style holds the theme's rules; the others hold the same ones.
+      walk((document.querySelector("svg style") as SVGStyleElement).sheet!.cssRules);
+      return { idle, rules };
+    });
+    expect(read.rules, name).toBeGreaterThan(8);
+    expect(read.idle, `${name}: rules that select nothing in any picture`).toEqual([]);
+  }
+});
+
+test("the app's own marks are seen on a theme: Phosphor on a light device, Transit's cards, and Ink, which has one color", async ({ page }) => {
+  // Phosphor is dark whatever the device: a picked line of the list is filled with Phosphor's own ground, not the
+  // site's pale one, and a picked card is outlined in Phosphor's green, heavier than a card is.
+  await page.emulateMedia({ colorScheme: "light" });
+  await keep(page, "phosphor");
+  const small = mapAt("a-person-and-two-sessions");
+  await page.goto(`./#/open?d=${payload(small)}`);
+  const phosphor = pictureLook("phosphor")!.light;
+  await expect(page.locator(".map-picture")).toHaveAttribute("data-look", "phosphor");
+  await page.locator('[data-handoff-row="h-done"]').tap();
+  const row = page.locator('[data-handoff-row="h-done"] > rect[data-row]');
+  await expect.poll(() => row.evaluate((r) => getComputedStyle(r).fill)).toBe(rgb(phosphor["surface-2"]));
+  await page.getByRole("button", { name: "Close panel" }).tap();
+  await page.locator('[data-session="lead"]').tap();
+  const card = page.locator('[data-session="lead"] > rect[data-card]');
+  await expect.poll(() => card.evaluate((r) => getComputedStyle(r).stroke)).toBe(rgb(phosphor.ok));
+  expect(await card.evaluate((r) => parseFloat(getComputedStyle(r).strokeWidth))).toBeGreaterThan(2);
+
+  // An empty canvas's words are over the theme's ground, so they are in the theme's ink.
+  await page.goto("./");
+  await page.getByRole("button", { name: "New graph" }).tap();
+  await expect(page.locator("main.stage")).toHaveAttribute("data-look", "phosphor");
+  await page.getByRole("button", { name: "Close panel" }).tap();
+  expect(await page.locator(".empty-canvas p").first().evaluate((n) => getComputedStyle(n).color)).toBe(rgb(phosphor.ink));
+
+  // Transit outlines its cards in the color its accent is. The keyboard's place in an embed is an outline's color
+  // and weight, so there it is Transit's green, and heavier than a card.
+  const transit = pictureLook("transit")!.light;
+  expect(transit.accent).toBe(transit["line-strong"]);
+  await page.goto(`./#/embed?d=${payload(reviewLoop())}&theme=transit-light`);
+  const builder = page.getByRole("button", { name: "Agent Builder" });
+  await expect(page.locator(".gx")).toHaveAttribute("data-look", "transit");
+  const plain = await page.locator('g[data-node="critic"] rect[data-card]').evaluate((r) => ({ stroke: getComputedStyle(r).stroke, width: parseFloat(getComputedStyle(r).strokeWidth) }));
+  expect(plain).toEqual({ stroke: rgb(transit["line-strong"]), width: 2.6 });
+  // By the keyboard: a script's own focus() is not the keyboard's place, and is not marked.
+  for (let i = 0; i < 12 && !(await builder.evaluate((n) => n === document.activeElement)); i++) await page.keyboard.press("Tab");
+  await expect(builder).toBeFocused();
+  const focused = await page.locator('g[data-node="builder"] rect[data-card]').evaluate((r) => ({ stroke: getComputedStyle(r).stroke, width: parseFloat(getComputedStyle(r).strokeWidth) }));
+  expect(focused.stroke).toBe(rgb(transit.ok));
+  expect(focused.width).toBeGreaterThan(plain.width);
+
+  // Ink has one color, so on the canvas the marks the app tells apart by color keep the site's: a warning's dot is
+  // amber and a selected node's ring is green, as in Paper, and neither is Ink's black.
+  await page.goto(linkFor(reviewLoop()));
+  const stage = page.locator("main.stage");
+  await stage.getByRole("button", { name: /^Picture theme:/ }).tap();
+  await stage.getByRole("menuitemradio", { name: "Ink" }).tap();
+  await expect(stage).toHaveAttribute("data-look", "ink");
+  const marks = async () => ({
+    dot: await page.locator(".issue-dot-warning").first().evaluate((n) => getComputedStyle(n).backgroundColor),
+    ring: await node(page, "builder").locator(".gnode").evaluate((n) => getComputedStyle(n).outlineColor),
+    kind: await node(page, "builder").locator(".gnode-kind").evaluate((n) => getComputedStyle(n).color),
+  });
+  await node(page, "builder").tap();
+  await expect(node(page, "builder").locator(".gnode")).toHaveClass(/is-selected/);
+  await page.waitForTimeout(250);
+  const ink = await marks();
+  expect(ink.kind).toBe("rgb(0, 0, 0)");
+  expect(ink.dot).not.toBe("rgb(0, 0, 0)");
+  expect(ink.ring).not.toBe("rgb(0, 0, 0)");
+  // They are Paper's own.
+  await stage.getByRole("button", { name: "Picture theme: Ink" }).tap();
+  await stage.getByRole("menuitemradio", { name: "Paper" }).tap();
+  await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  await expect(node(page, "builder").locator(".gnode")).toHaveClass(/is-selected/);
+  await page.waitForTimeout(250);
+  const paper = await marks();
+  expect(paper.kind).not.toBe("rgb(0, 0, 0)");
+  expect({ dot: ink.dot, ring: ink.ring }).toEqual({ dot: paper.dot, ring: paper.ring });
+});
+
+test("on a run's view the menu has the corner to itself, on a phone and on a wide screen; the front page's run and an embed's link keep the theme", async ({ page }) => {
+  // A run's legend ran to the stage's edge, under the menu. Its pills are long: a name, a round, a stop.
+  for (const width of [400, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(linkFor(runBundle("slice-0007-sandwich")));
+    const stage = page.locator("main.stage");
+    const toggle = stage.getByRole("button", { name: "Picture theme: Paper" });
+    await expect(toggle).toBeVisible();
+    const [menu, legend] = [(await toggle.boundingBox())!, (await stage.locator(".loop-legend").boundingBox())!];
+    expect(legend.x + legend.width, `at ${width} px the legend ends before the menu begins`).toBeLessThanOrEqual(menu.x);
+    // At every width the menu is its dot alone, so the room the legend leaves is enough.
+    expect(menu.width).toBeLessThanOrEqual(48);
+    await toggle.click();
+    await stage.getByRole("menuitemradio", { name: "Blueprint" }).click();
+    await expect(stage).toHaveAttribute("data-look", "blueprint");
+    await stage.getByRole("button", { name: "Picture theme: Blueprint" }).click();
+    await stage.getByRole("menuitemradio", { name: "Paper" }).click();
+    await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  }
+
+  // The front page's recorded run takes the picture's place. It is an embed in a frame, and is told the theme.
+  await page.setViewportSize({ width: 400, height: 800 });
+  await page.evaluate(() => localStorage.setItem("groophPicture", "blueprint"));
+  await page.goto("./#/about");
+  await page.reload();
+  await expect(page.locator(".land-picture svg")).toHaveAttribute("data-look", "blueprint");
+  await page.getByRole("button", { name: "Watch a recorded run" }).click();
+  await expect(page.locator("iframe.land-run-frame")).toHaveAttribute("src", /&theme=blueprint$/);
+  await expect(page.frameLocator("iframe.land-run-frame").locator("svg.grooph-picture")).toHaveAttribute("data-look", "blueprint");
+
+  // An embed's "Open in grooph" opens the same document in the theme the embed was drawn in.
+  await page.goto(`./#/embed?d=${payload(reviewLoop())}&theme=chalk-dark`);
+  await expect(page.getByRole("link", { name: /Open in grooph/ })).toHaveAttribute("href", /#\/open\?d=[^&]+&theme=chalk$/);
 });
 
 test("pictures of different themes inline in one page each keep their own colors, in light and in dark, held to one or following the device", async ({ page }) => {
@@ -328,7 +505,6 @@ test("pictures of different themes inline in one page each keep their own colors
   // for dark must not recolor a themed one beside it, whichever comes first, and no theme's rule may reach Paper.
   const doc = reviewLoop();
   const names = ["phosphor", "paper", "blueprint", "paper", "ink"];
-  const rgb = (hex: string) => `rgb(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
   const PAPER = { light: "#f1f4f3", dark: "#111514" };
   const ground = (name: string, form: "light" | "dark") => rgb(name === "paper" ? PAPER[form] : pictureLook(name)![form].bg);
   for (const held of [undefined, "light", "dark"] as const) {
@@ -348,6 +524,46 @@ test("pictures of different themes inline in one page each keep their own colors
       expect(outlines).toEqual(["1px", "1px", "1.2px", "1px", "0.8px"]);
     }
   }
+});
+
+test("with the themes not to be had, Keep a copy does not wait: it says so and makes its files in Paper; loaded again with a network, they are in the theme", async ({ page }) => {
+  let refuse = true;
+  const asked: string[] = [];
+  await page.route("**/assets/themes-*.js", (route) => {
+    asked.push(route.request().url());
+    return refuse ? route.abort() : route.continue();
+  });
+  await keep(page, "ink");
+  await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const keepCopy = sheet(page).getByRole("group", { name: "Keep a copy" });
+  await expect(keepCopy.getByLabel("Picture theme")).toHaveValue("ink");
+  // The buttons are not left waiting for a file that is not coming.
+  await expect(keepCopy.getByRole("status")).toContainText("This theme could not be fetched");
+  const svg = keepCopy.getByRole("button", { name: "Picture (SVG)" });
+  await expect(svg).toBeEnabled();
+  await expect(keepCopy.getByRole("button", { name: "Offline page (.html)" })).toBeEnabled();
+  const [file] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
+  expect(file.suggestedFilename()).toBe("review-loop.light.svg");
+  expect(await downloadText(file)).toBe(readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8"));
+
+  // Paper chosen, there is nothing to say; the theme chosen again, it is said again.
+  await keepCopy.getByLabel("Picture theme").selectOption("paper");
+  await expect(keepCopy.getByRole("status")).toHaveCount(0);
+  await keepCopy.getByLabel("Picture theme").selectOption("ink");
+  await expect(svg).toBeEnabled();
+
+  // The network is back. A browser may remember a file that failed for as long as the page lives, so the page is
+  // loaded again: the choice was kept, the theme arrives, and the files are in it.
+  refuse = false;
+  const before = asked.length;
+  await page.reload();
+  await expect(page.locator("main.stage")).toHaveAttribute("data-look", "ink");
+  expect(asked.length).toBeGreaterThan(before);
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  await expect(keepCopy.getByRole("status")).toHaveCount(0);
+  const [again] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
+  expect(again.suggestedFilename()).toBe("review-loop.ink-light.svg");
 });
 
 test("with the themes not to be had, the choice is kept and every picture stays Paper", async ({ page }) => {

@@ -5,9 +5,10 @@ import { Menu, usePictureChoices } from "../landing/Chrome.js";
 
 /**
  * The pictures' theme, offered on the canvas (handoff 0086; docs/themes.md): the header's menu button with the one
- * set of choices, in the corner the loops' legend leaves free. It is drawn by the header's own rules, with the
- * header's night colors read as the screen's own, so it needs no style of its own: the site's stylesheet is at its
- * budget.
+ * set of choices, as a dot in the stage's top right corner. The loops' legend stops 80 px short of that edge in the
+ * editor and the viewer (styles.css) and 64 px short in the run view (`RunView.tsx`), so nothing lies over it. It
+ * is drawn by the header's own rules, with the header's night colors read as the screen's own, so it needs no
+ * style of its own: the site's stylesheet is at its budget.
  */
 export function LookMenu() {
   const pictures = usePictureChoices();

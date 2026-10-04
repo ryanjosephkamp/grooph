@@ -242,7 +242,7 @@ function LiveMap({ map, view }: { map: OperationMap; view: LiveView }) {
   const svg = useMemo(() => mapPicture(map, { live: mapLive(view.sessions, map, view.at), at: view.at, ...(look ? { look } : {}) }), [map, view, look]);
   return (
     <section className="live-map" aria-label={`Operation map: ${map.name}`}>
-      <div className="map-picture" dangerouslySetInnerHTML={{ __html: svg }} />
+      <div className="map-picture" data-look={look?.name} dangerouslySetInnerHTML={{ __html: svg }} />
     </section>
   );
 }

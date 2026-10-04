@@ -123,6 +123,7 @@ export function usePictureChoices(): Choices {
  * alone (`canvas/LookMenu.tsx`).
  */
 export function Menu({ name, sets, dot, style, toggleStyle }: { name: string; sets: Choices[]; dot?: string; style?: CSSProperties; toggleStyle?: CSSProperties }) {
+  // With a place of its own (the canvas) it is the dot alone at every width; its name is still read out.
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -183,7 +184,7 @@ export function Menu({ name, sets, dot, style, toggleStyle }: { name: string; se
         }}
       >
         <span className="site-theme-dot" style={dot ? { ["--dot" as string]: dot } : undefined} aria-hidden="true" />
-        <span className="site-theme-label">Theme</span>
+        {style ? null : <span className="site-theme-label">Theme</span>}
       </button>
       {/* Drawn only while it is open: the rule that hides a `hidden` list is the header's, and the canvas has no header. */}
       <ul className="site-theme-list" id={list} role="menu" aria-label="Theme" hidden={!open} style={open ? undefined : { display: "none" }} onKeyDown={onListKey}>

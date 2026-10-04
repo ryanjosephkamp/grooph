@@ -87,6 +87,9 @@ function loopAtWork(summary: RunSummary, doc: Graph): Loop | undefined {
  * (apply to a copy). Nothing is applied to any graph without a tap, and a
  * run from a link or a watch is stored only when the person saves it.
  */
+/** Where a run's legend ends, from the stage's right edge: clear of the theme menu in the corner (44 px, 10 from the edge, and a gap). */
+const LEGEND_RIGHT = 64;
+
 export function RunView({
   bundle,
   origin,
@@ -191,7 +194,8 @@ export function RunView({
         {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
         {loopsIndexed.length > 0 ? (
-          <nav className="loop-legend" aria-label="Loops">
+          // A run's legend runs to the stage's right edge (styles.css); it stops short of the theme menu's corner here.
+          <nav className="loop-legend" aria-label="Loops" style={{ right: LEGEND_RIGHT }}>
             {loopsIndexed.map(({ loop, i, run }) => {
               const on = highlight?.loop === loop.id;
               const stop = run?.lastStop?.fired ? STOP_WORDS[run.lastStop.fired] : undefined;
