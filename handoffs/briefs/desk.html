@@ -62,6 +62,11 @@ summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accen
 .pic{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:10px;overflow-x:auto}
 .pic svg{display:block;max-width:100%;height:auto;margin:0 auto}
 .lane-facts{font-size:.9rem;color:var(--ink2);margin:4px 0 0}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:12px 0}
+.shots figure{margin:0;min-width:0}
+.shot-frame{max-height:420px;overflow-y:auto;border:1px solid var(--line);border-radius:6px;background:var(--paper)}
+.shot-frame img{display:block;width:100%;height:auto}
+.shots figcaption{font-size:.84rem;color:var(--ink2);margin-top:4px}
 .empty{color:var(--ink3);font-size:.95rem;margin:10px 0}
 .idea{border-left:3px solid var(--line);padding-left:14px;margin:22px 0}
 .idea h3{margin-top:0}
@@ -126,7 +131,7 @@ summary{cursor:pointer;font-family:var(--head);font-weight:600;color:var(--accen
 <li><b>Released 0.3.0</b> on your word: merged, tagged, deployed, and checked on the live site in a browser.</li>
 <li><b>American English.</b> A checker now runs in CI over everything public. About 300 words in 85 files were corrected. One template had the British word in a node's id, so it is version 2.</li>
 <li><b>Governance.</b> Three decisions: American English (0022), who merges what (0023), lanes, this desk and the audit loop with Codex (0024). <code>AGENTS.md</code> names the roles as they are now.</li>
-<li><b>The poster.</b> You asked where it is. The front page's link to it was dead on the live site. Fixed, with a check so it cannot break again. It is at <a href="https://ryanjosephkamp.github.io/grooph/docs/field-guide/poster.svg">docs/field-guide/poster.svg</a> once the fix deploys, and in the repository at <code>docs/field-guide/poster.svg</code>.</li>
+<li><b>The poster.</b> You asked where it is. The front page's link to it was dead on the live site. Fixed, with a check so it cannot break again. It is live at <a href="https://ryanjosephkamp.github.io/grooph/docs/field-guide/poster.svg">docs/field-guide/poster.svg</a>, and in the repository at <code>docs/field-guide/poster.svg</code>.</li>
 <li><b>Briefs for five lanes</b>, ready for you to start.</li>
 </ul>
 <h3>What went wrong, all of it</h3>
@@ -503,6 +508,14 @@ Follow the format exactly. Every loop needs at least one stop. Any step that can
         card.appendChild(el("h3", { text: q.title || q.id }));
         card.appendChild(rich(q.body));
         if (q.recommend) card.appendChild(el("p", { class: "rec" }, el("b", { text: "Recommended" }), q.recommend));
+        // Pictures published beside the page: each in a frame that scrolls, since a whole page is tall.
+        if (q.images && q.images.length) {
+          var shots = el("div", { class: "shots" });
+          q.images.forEach(function (im) {
+            shots.appendChild(el("figure", null, el("div", { class: "shot-frame", tabindex: "0", role: "group", "aria-label": im.caption || "picture" }, el("img", { src: im.src, alt: im.alt || im.caption || "", loading: "lazy" })), el("figcaption", { text: im.caption || "" })));
+          });
+          card.appendChild(shots);
+        }
         (q.links || []).forEach(function (l) { card.appendChild(el("p", { class: "small" }, el("a", { href: l.url, text: l.label }))); });
         if (q.prompt) {
           var pid = "qp-" + q.id;

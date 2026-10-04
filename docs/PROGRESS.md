@@ -34,7 +34,11 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 Not yet briefs, and on the desk for the owner's direction first: nested and linked graphs (an amendment), other views and themes (a 3D view, shorter layouts for a long map), a desktop app, and one game built from one spec in Claude Code and in Codex.
 
-**Found on 2026-10-04:** the Claude Code target gives the `frontier` tier to Fable, and study one's judge was Fable. The owner's rule is never Fable. Slice 0079 (pull request #43, waiting for the owner) lets the one exporting say which model a tier means: `grooph export --models`, or `GROOPH_MODELS` for a whole machine. Until it is merged no experiment runs. The app's Export panel still uses the target's own map.
+**Found on 2026-10-04:** the Claude Code target gives the `frontier` tier to Fable, and study one's judge was Fable. The owner's rule is never Fable. Slice 0079 (pull request #43, merged on his word) lets the one exporting say which model a tier means: `grooph export --models`, or `GROOPH_MODELS` for a whole machine. A fresh reviewer found two defects in it, both fixed before the merge. The app's Export panel still uses the target's own map.
+
+**The owner's answers, 2026-10-04, on the review desk and confirmed in the chat:** start all five lanes; the tier map merged (#43); study two now, once it is in; Codex builds its own target today; the first audit covers everything published as of 0.3.0; the exchange folder stays outside the repository; subgroophs drafted first, under his names (subgrooph, intergrooph); other views in the order side by side, sequence, then 3D; the game a first- and third-person shooter in a small open arena world, two public repositories, six hours each; the desktop app after agents and the Codex target; a hosted endpoint for chat designed and not built; all the recommended pages and stack changes; the npm name `grooph`; a fresh driver session once the lanes are up. He also chose to take Fable out of grooph's default tiers; which models the tiers then mean is still open on the desk.
+
+**Lanes at work since 13:00:** audit (0075), site (0077), agents (0078), in three sessions he started. The site lane's first pass was pushed at 13:15.
 
 **Merged by the driver under decision 0023, without asking:** #41 (the poster the front page links to was missing from the site: a fix with a test, read by a fresh subagent) and #42 (the review desk's source: documents). The desk lists every such merge.
 
@@ -68,7 +72,7 @@ What went wrong on the way, kept here because it changes how the next slice is d
 
 ## Deferred until the owner reopens Codex
 
-- Stages 9, 10b and 11 (Codex target, cross-harness paired runs, dual-harness nodes). The owner's Codex subscription ends about 2026-10-07; nothing in the repository depends on it. Slice 0003 (the neutrality review) is reassigned to an Opus session and is not deferred.
+- Stages 10b and 11 (cross-harness paired runs, dual-harness nodes). Stage 9, the Codex target, was reopened on 2026-10-04 (handoff 0076). The owner's Codex plan is not ending, as an earlier note here said it would: he said so on 2026-10-04. Slice 0003 (the neutrality review) is reassigned to an Opus session and is not deferred.
 
 ## Done
 

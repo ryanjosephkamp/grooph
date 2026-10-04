@@ -1,0 +1,1247 @@
+<title>grooph Design Studio</title>
+<style>
+/* Layout: one left-aligned reading column up to 1100px. Every sketch sits in a plain framed panel under a short label (T, L, V).
+   Quiet green-gray ground, grooph's own green as the single accent; carrier colors are the picture's own. */
+:root{
+  --bg:#fafbfa; --panel:#f1f4f3; --card:#fdfefe; --lane:#e8edeb;
+  --ink:#1a201e; --ink-2:#454c49; --ink-3:#5f6764;
+  --line:#dce1df; --line-strong:#b9c1be;
+  --accent:#1f5f4a; --accent-soft:#dcefe6; --on-accent:#fdfefe;
+  --k-branch:#1f5f4a; --k-pr:#2b5f9e; --k-person:#b25e09; --k-person-soft:#fcf0d9; --k-message:#454c49; --k-page:#b5306e;
+  --font-display:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-pic:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1110; --panel:#131817; --card:#1b201e; --lane:#242a27;
+    --ink:#ebefed; --ink-2:#c0c7c4; --ink-3:#99a19e;
+    --line:#2d3331; --line-strong:#4a524f;
+    --accent:#5dbb94; --accent-soft:#1e3a30; --on-accent:#0d1110;
+    --k-branch:#5dbb94; --k-pr:#6fa3e0; --k-person:#eb9a45; --k-person-soft:#362a15; --k-message:#c0c7c4; --k-page:#ee6fa6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1110; --panel:#131817; --card:#1b201e; --lane:#242a27;
+  --ink:#ebefed; --ink-2:#c0c7c4; --ink-3:#99a19e;
+  --line:#2d3331; --line-strong:#4a524f;
+  --accent:#5dbb94; --accent-soft:#1e3a30; --on-accent:#0d1110;
+  --k-branch:#5dbb94; --k-pr:#6fa3e0; --k-person:#eb9a45; --k-person-soft:#362a15; --k-message:#c0c7c4; --k-page:#ee6fa6;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1.0625rem/1.55 var(--font-body);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.page{max-width:68.75rem;margin-inline:auto;padding-inline:1rem;padding-block:2.25rem 4rem;display:flex;flex-direction:column;gap:3.5rem}
+h1,h2,h3{font-family:var(--font-display);margin:0;line-height:1.15;text-wrap:balance}
+h1{font-size:clamp(2.1rem,1.5rem + 2.6vw,3.1rem);font-weight:700;letter-spacing:-.02em}
+h2{font-size:clamp(1.45rem,1.2rem + 1vw,1.9rem);font-weight:700;letter-spacing:-.012em}
+p{margin:0;max-width:65ch}
+a{color:var(--accent);text-underline-offset:.18em}
+code{font-family:var(--font-mono);font-size:.86em}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:.2rem}
+.eyebrow,.range{font:500 .78rem/1.3 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);max-width:none}
+
+/* masthead */
+.mast{display:flex;flex-direction:column;gap:1rem}
+.mast .lede{font-size:1.2rem;line-height:1.45;color:var(--ink-2)}
+.toc{list-style:none;margin:.5rem 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(15rem,100%),1fr));gap:0 1.5rem;border-top:1px solid var(--line-strong)}
+.toc li{border-bottom:1px solid var(--line);min-width:0}
+.toc a{display:flex;gap:.9rem;align-items:baseline;padding:.7rem 0;text-decoration:none;color:var(--ink)}
+.toc a:hover b{text-decoration:underline;text-underline-offset:.18em}
+.toc .range{flex:0 0 3.4rem;color:var(--accent)}
+.toc b{font:600 1.02rem/1.25 var(--font-display)}
+.toc small{display:block;font-size:.92rem;color:var(--ink-3);line-height:1.35}
+
+/* sections */
+.sec{display:flex;flex-direction:column;gap:1.6rem;border-top:1px solid var(--line-strong);padding-top:1.4rem;min-width:0}
+.sec-head{display:flex;flex-direction:column;gap:.6rem}
+.notes{display:flex;flex-direction:column;gap:.55rem;color:var(--ink-2);font-size:1rem}
+
+/* a sketch: label, frame, caption */
+.sk{margin:0;display:flex;flex-direction:column;gap:.55rem;min-width:0}
+.lab{font:600 1rem/1.25 var(--font-display);word-spacing:.14em;display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:baseline}
+.lab .is-today{font:500 .72rem/1 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:1rem;padding:.2rem .5rem}
+.cap{font-size:.97rem;line-height:1.45;color:var(--ink-2)}
+.cap b{font-weight:600;color:var(--ink)}
+.chg{font:400 .76rem/1.4 var(--font-mono);color:var(--ink-3)}
+.frame{border:1px solid var(--line-strong);border-radius:.6rem;background:var(--panel);overflow:hidden;max-width:100%}
+.pic{container-type:inline-size}
+.pic svg{display:block;width:100%;height:auto;max-width:100%}
+.scroll{overflow-x:auto}
+.scroll svg{display:block;max-width:none}
+
+/* T: themes */
+.themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(17rem,100%),1fr));gap:2.25rem 1.5rem}
+
+/* L: layouts */
+.key{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.45rem 1.4rem;font-size:.95rem;color:var(--ink-2)}
+.key li{display:flex;align-items:center;gap:.5rem}
+.key svg{flex:none}
+details.more{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.55rem 0}
+details.more summary{cursor:pointer;font:600 .98rem/1.3 var(--font-display)}
+details.more .inner{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(19rem,100%),1fr));gap:1rem 2rem;padding:.9rem 0 .4rem;font-size:.93rem;color:var(--ink-2)}
+.tags,.hlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.3rem}
+.tags li{display:flex;gap:.7rem}
+.tags b{flex:0 0 2.6rem;font:500 .82rem/1.6 var(--font-mono);color:var(--ink)}
+.hlist li{display:grid;grid-template-columns:1.7rem minmax(0,1fr);gap:.1rem .4rem;line-height:1.35}
+.hlist .n{font:500 .82rem/1.6 var(--font-mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.hlist b{color:var(--ink);font-weight:600}
+.hlist .c{color:var(--k)}
+.lay{display:grid;grid-template-columns:minmax(0,1fr);gap:2.25rem 1.75rem;align-items:start}
+.lay-main{display:flex;flex-direction:column;gap:2.25rem;min-width:0}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(20rem,100%),1fr));gap:2.25rem 1.5rem;align-items:start}
+.today-row{display:flex;gap:1rem;align-items:flex-start}
+.today-pic{flex:0 0 5.25rem;min-width:0}
+.today-side{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:.6rem}
+.lay.is-full .today-row{flex-direction:column}
+.lay.is-full .today-pic{flex:none;width:min(100%,25rem);max-height:75vh;overflow-y:auto}
+@media (min-width:60rem){
+  .lay:not(.is-full){grid-template-columns:9.5rem minmax(0,1fr)}
+  .lay:not(.is-full) .today-row{flex-direction:column}
+  .lay:not(.is-full) .today-pic{flex:none;width:100%}
+}
+
+/* controls */
+button{font:600 .95rem/1.2 var(--font-body);color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:.45rem;padding:.45rem .8rem;cursor:pointer}
+button:hover{border-color:var(--ink-3)}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+button:disabled,input:disabled{opacity:.5;cursor:default}
+.btn-plain{align-self:flex-start}
+
+/* V: three dimensions */
+.vbar{display:flex;flex-wrap:wrap;gap:.6rem 1rem;align-items:center}
+.seg{display:inline-flex}
+.seg button{border-radius:0}
+.seg button:first-child{border-radius:.45rem 0 0 .45rem}
+.seg button:last-child{border-radius:0 .45rem .45rem 0;margin-left:-1px}
+.vbar .grow{flex:1 1 auto}
+.vbar .sq{min-width:2.4rem;padding-inline:.5rem}
+.stage{position:relative;height:clamp(26rem,116vw,36rem)}
+@media (min-width:44rem){.stage{height:clamp(26rem,56vw,37rem)}}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.stage .nogl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:1.5rem;color:var(--ink-2);max-width:none}
+.timebar{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6rem 1rem;align-items:center}
+.timebar label{grid-column:1 / -1;font:500 .78rem/1.3 var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.timebar input[type=range]{width:100%;accent-color:var(--accent);min-width:0}
+.timebar output{grid-column:1 / -1;min-height:3.1em;font-size:1rem;line-height:1.45;color:var(--ink)}
+.timebar output b{font-weight:600}
+.hint{font-size:.93rem;color:var(--ink-3)}
+.foot{border-top:1px solid var(--line-strong);padding-top:1.2rem;color:var(--ink-3);font-size:.95rem;display:flex;flex-direction:column;gap:.4rem}
+
+/* the page's own drawings (L2 to L5 and the key) */
+.gsk{font-family:var(--font-pic)}
+.gsk text{fill:var(--ink)}
+.gsk .t2{fill:var(--ink-2)} .gsk .t3{fill:var(--ink-3)} .gsk .ta{fill:var(--accent)} .gsk .tp{fill:var(--k-person)}
+.gsk .mono{font-family:var(--font-mono)}
+.gsk .card{fill:var(--card);stroke:var(--line-strong)}
+.gsk .lane{fill:var(--lane);stroke:var(--line)}
+.gsk .pill{fill:var(--accent-soft)}
+.gsk .pband{fill:var(--lane);stroke:var(--line-strong);stroke-dasharray:5 4}
+.gsk .pcard{fill:var(--k-person-soft);stroke:var(--k-person)}
+.gsk .life{stroke:var(--line-strong);stroke-dasharray:2 4;fill:none}
+.gsk .rule{stroke:var(--line);fill:none}
+.gsk .cell{fill:var(--card);stroke:var(--line)}
+.gsk .diag{fill:var(--lane);stroke:var(--line)}
+.gsk .arc{stroke:var(--line-strong);fill:none;stroke-width:2;stroke-linecap:round}
+.gsk .arch{fill:var(--panel);stroke:var(--panel);stroke-width:6px;stroke-linejoin:round;font-family:var(--font-mono)}
+.gsk .arct{fill:var(--ink-2);font-family:var(--font-mono)}
+.k-branch{--k:var(--k-branch)} .k-pull-request{--k:var(--k-pr)} .k-person{--k:var(--k-person)}
+.k-session-message{--k:var(--k-message)} .k-review-page{--k:var(--k-page)} .k-other{--k:var(--k-message)}
+.gsk .kl{stroke:var(--k);fill:none;stroke-linecap:round}
+.gsk .kf{fill:var(--k)}
+.gsk .bdg circle{fill:var(--panel);stroke:var(--k)}
+.gsk .bdg text{font-weight:700}
+
+/* ---- T2 to T6: a theme is values for the picture's variables plus a few rules. The picture's markup is untouched. ---- */
+.th-blueprint svg.grooph-picture{
+  --gp-bg:#f2f6fc;--gp-surface:#f8fbff;--gp-surface-2:#e3ebf7;--gp-ink:#0f2f63;--gp-ink-2:#24467e;--gp-ink-3:#48628f;
+  --gp-line:#d3dff0;--gp-line-strong:#24467e;--gp-accent:#0f2f63;--gp-accent-soft:#dde7f6;
+  --gp-gate:#a4470b;--gp-gate-soft:#fbeedd;--gp-check:#1d4e9e;--gp-merge:#5a3fa0;--gp-stop:#48628f;
+  --gp-ok:#1c6b4a;--gp-ok-soft:#dcf0e6;--gp-warning:#8a5200;--gp-error:#a8261c;--gp-error-soft:#fbe6e3;
+  --gp-loop-0:#0a6a9c;--gp-loop-1:#6a45b5;--gp-loop-2:#a8431a;--gp-loop-3:#9c2a63;
+  background-color:var(--gp-bg);
+  background-image:linear-gradient(var(--gp-line) 1px,transparent 1px),linear-gradient(90deg,var(--gp-line) 1px,transparent 1px);
+  background-size:5cqw 5cqw;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .th-blueprint svg.grooph-picture{
+    --gp-bg:#143d73;--gp-surface:#184683;--gp-surface-2:#1d4f92;--gp-ink:#f1f6ff;--gp-ink-2:#d0def5;--gp-ink-3:#a9c0e6;
+    --gp-line:#2a5594;--gp-line-strong:#d0def5;--gp-accent:#f1f6ff;--gp-accent-soft:#24579e;
+    --gp-gate:#ffc566;--gp-gate-soft:#3a4f6e;--gp-check:#a9d1ff;--gp-merge:#d7c2ff;--gp-stop:#a9c0e6;
+    --gp-ok:#9ff0c0;--gp-ok-soft:#1c5a60;--gp-warning:#ffd27f;--gp-error:#ffb3a8;--gp-error-soft:#5a3550;
+    --gp-loop-0:#7fe3ff;--gp-loop-1:#d7c2ff;--gp-loop-2:#ffb08a;--gp-loop-3:#f7a8d8;
+  }
+}
+:root[data-theme="dark"] .th-blueprint svg.grooph-picture{
+  --gp-bg:#143d73;--gp-surface:#184683;--gp-surface-2:#1d4f92;--gp-ink:#f1f6ff;--gp-ink-2:#d0def5;--gp-ink-3:#a9c0e6;
+  --gp-line:#2a5594;--gp-line-strong:#d0def5;--gp-accent:#f1f6ff;--gp-accent-soft:#24579e;
+  --gp-gate:#ffc566;--gp-gate-soft:#3a4f6e;--gp-check:#a9d1ff;--gp-merge:#d7c2ff;--gp-stop:#a9c0e6;
+  --gp-ok:#9ff0c0;--gp-ok-soft:#1c5a60;--gp-warning:#ffd27f;--gp-error:#ffb3a8;--gp-error-soft:#5a3550;
+  --gp-loop-0:#7fe3ff;--gp-loop-1:#d7c2ff;--gp-loop-2:#ffb08a;--gp-loop-3:#f7a8d8;
+}
+.th-blueprint svg.grooph-picture>rect:first-of-type{fill-opacity:0}
+.th-blueprint svg.grooph-picture rect[data-card]:not([rx="16"]){rx:0;ry:0}
+.th-blueprint svg.grooph-picture rect[data-card]{stroke-width:1.2}
+.th-blueprint svg.grooph-picture rect[data-card][stroke-width="1.8"]{stroke-width:2.4}
+.th-blueprint svg.grooph-picture rect[rx="7.4"],.th-blueprint svg.grooph-picture rect[rx="6.5"]{rx:0;ry:0}
+.th-blueprint svg.grooph-picture [data-node] text[font-size="9.5"],.th-blueprint svg.grooph-picture [data-node] text[font-size="10.5"]{font-family:var(--font-mono);letter-spacing:.03em}
+.th-blueprint svg.grooph-picture [data-node] text[font-size="9.5"]{text-transform:uppercase;letter-spacing:.09em;font-weight:500}
+.th-blueprint svg.grooph-picture text[font-size="17"]{text-transform:uppercase;letter-spacing:.06em}
+
+.th-ink svg.grooph-picture{
+  --gp-bg:#ffffff;--gp-surface:#ffffff;--gp-surface-2:#f1f1f1;--gp-ink:#000000;--gp-ink-2:#1c1c1c;--gp-ink-3:#3d3d3d;
+  --gp-line:#bdbdbd;--gp-line-strong:#000000;--gp-accent:#000000;--gp-accent-soft:#ececec;
+  --gp-gate:#000000;--gp-gate-soft:#ececec;--gp-check:#000000;--gp-merge:#000000;--gp-stop:#000000;
+  --gp-ok:#000000;--gp-ok-soft:#ececec;--gp-warning:#000000;--gp-error:#000000;--gp-error-soft:#ececec;
+  --gp-loop-0:#000000;--gp-loop-1:#000000;--gp-loop-2:#000000;--gp-loop-3:#000000;
+  font-family:"STIX Two Text","Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .th-ink svg.grooph-picture{
+    --gp-bg:#0b0b0b;--gp-surface:#0b0b0b;--gp-surface-2:#1c1c1c;--gp-ink:#f6f6f6;--gp-ink-2:#e2e2e2;--gp-ink-3:#bdbdbd;
+    --gp-line:#4a4a4a;--gp-line-strong:#f6f6f6;--gp-accent:#f6f6f6;--gp-accent-soft:#222222;
+    --gp-gate:#f6f6f6;--gp-gate-soft:#222222;--gp-check:#f6f6f6;--gp-merge:#f6f6f6;--gp-stop:#f6f6f6;
+    --gp-ok:#f6f6f6;--gp-ok-soft:#222222;--gp-warning:#f6f6f6;--gp-error:#f6f6f6;--gp-error-soft:#222222;
+    --gp-loop-0:#f6f6f6;--gp-loop-1:#f6f6f6;--gp-loop-2:#f6f6f6;--gp-loop-3:#f6f6f6;
+  }
+}
+:root[data-theme="dark"] .th-ink svg.grooph-picture{
+  --gp-bg:#0b0b0b;--gp-surface:#0b0b0b;--gp-surface-2:#1c1c1c;--gp-ink:#f6f6f6;--gp-ink-2:#e2e2e2;--gp-ink-3:#bdbdbd;
+  --gp-line:#4a4a4a;--gp-line-strong:#f6f6f6;--gp-accent:#f6f6f6;--gp-accent-soft:#222222;
+  --gp-gate:#f6f6f6;--gp-gate-soft:#222222;--gp-check:#f6f6f6;--gp-merge:#f6f6f6;--gp-stop:#f6f6f6;
+  --gp-ok:#f6f6f6;--gp-ok-soft:#222222;--gp-warning:#f6f6f6;--gp-error:#f6f6f6;--gp-error-soft:#222222;
+  --gp-loop-0:#f6f6f6;--gp-loop-1:#f6f6f6;--gp-loop-2:#f6f6f6;--gp-loop-3:#f6f6f6;
+}
+.th-ink svg.grooph-picture rect[data-card]{stroke-width:.8}
+.th-ink svg.grooph-picture rect[data-card]:not([rx="16"]){rx:2px;ry:2px}
+.th-ink svg.grooph-picture rect[data-card][stroke-width="1.8"]{stroke-width:3}
+.th-ink svg.grooph-picture [data-edge] path[fill="none"]{stroke-width:1.1}
+.th-ink svg.grooph-picture [data-edge] path[stroke-dasharray]{stroke-dasharray:3.5 2.5}
+.th-ink svg.grooph-picture [data-node] text[font-size="9.5"]{text-transform:uppercase;letter-spacing:.1em;font-size:8.5px}
+
+.th-phosphor svg.grooph-picture{
+  --gp-bg:#0a0f0b;--gp-surface:#0e1610;--gp-surface-2:#132017;--gp-ink:#b8f5c2;--gp-ink-2:#8fd69b;--gp-ink-3:#6aa876;
+  --gp-line:#1c2e21;--gp-line-strong:#3c6b48;--gp-accent:#5dff8a;--gp-accent-soft:#123620;
+  --gp-gate:#ffb84a;--gp-gate-soft:#33260e;--gp-check:#7fd4ff;--gp-merge:#c9a6ff;--gp-stop:#9fb5a4;
+  --gp-ok:#5dff8a;--gp-ok-soft:#123620;--gp-warning:#ffb84a;--gp-error:#ff7a6a;--gp-error-soft:#3a1714;
+  --gp-loop-0:#6fe3ff;--gp-loop-1:#ffd84a;--gp-loop-2:#ff8f6a;--gp-loop-3:#ff8fd0;
+  font-family:"Ubuntu Mono",ui-monospace,Menlo,Consolas,monospace;
+  background-color:var(--gp-bg);
+  background-image:repeating-linear-gradient(0deg,var(--gp-surface-2) 0 1px,transparent 1px 3px);
+}
+.th-phosphor svg.grooph-picture>rect:first-of-type{fill-opacity:0}
+.th-phosphor svg.grooph-picture rect{rx:2px;ry:2px}
+.th-phosphor svg.grooph-picture rect[data-card][rx="16"]{rx:16px;ry:16px}
+.th-phosphor svg.grooph-picture rect[data-card][stroke-width="1.8"]{stroke-width:2.2}
+.th-phosphor svg.grooph-picture [data-node] text[font-size="9.5"]{text-transform:uppercase;letter-spacing:.1em}
+
+.th-transit svg.grooph-picture{
+  --route:#0057b8;
+  --gp-bg:#ffffff;--gp-surface:#ffffff;--gp-surface-2:#eef1f5;--gp-ink:#0f1b2d;--gp-ink-2:#26344a;--gp-ink-3:#4a5a72;
+  --gp-line:#d5dbe4;--gp-line-strong:#0f1b2d;--gp-accent:#0f1b2d;--gp-accent-soft:#e3e9f2;
+  --gp-gate:#b85300;--gp-gate-soft:#fdeed9;--gp-check:#0057b8;--gp-merge:#6b3fb0;--gp-stop:#0f1b2d;
+  --gp-ok:#007a4d;--gp-ok-soft:#dbf2e6;--gp-warning:#8f5200;--gp-error:#c4281c;--gp-error-soft:#fde7e4;
+  --gp-loop-0:#d7261e;--gp-loop-1:#007a4d;--gp-loop-2:#b85300;--gp-loop-3:#b0178a;
+  font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  word-spacing:.1em;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .th-transit svg.grooph-picture{
+    --route:#6db3ff;
+    --gp-bg:#0d1524;--gp-surface:#121c2e;--gp-surface-2:#1a2740;--gp-ink:#f3f6fb;--gp-ink-2:#cfd8e6;--gp-ink-3:#9fadc2;
+    --gp-line:#26344d;--gp-line-strong:#f3f6fb;--gp-accent:#f3f6fb;--gp-accent-soft:#1f2e49;
+    --gp-gate:#ffab4a;--gp-gate-soft:#3a2a12;--gp-check:#6db3ff;--gp-merge:#b99cff;--gp-stop:#f3f6fb;
+    --gp-ok:#5fd6a0;--gp-ok-soft:#143a2a;--gp-warning:#ffc266;--gp-error:#ff8a7d;--gp-error-soft:#3d1c19;
+    --gp-loop-0:#ff6b5e;--gp-loop-1:#5fd6a0;--gp-loop-2:#ffab4a;--gp-loop-3:#f07ad0;
+  }
+}
+:root[data-theme="dark"] .th-transit svg.grooph-picture{
+  --route:#6db3ff;
+  --gp-bg:#0d1524;--gp-surface:#121c2e;--gp-surface-2:#1a2740;--gp-ink:#f3f6fb;--gp-ink-2:#cfd8e6;--gp-ink-3:#9fadc2;
+  --gp-line:#26344d;--gp-line-strong:#f3f6fb;--gp-accent:#f3f6fb;--gp-accent-soft:#1f2e49;
+  --gp-gate:#ffab4a;--gp-gate-soft:#3a2a12;--gp-check:#6db3ff;--gp-merge:#b99cff;--gp-stop:#f3f6fb;
+  --gp-ok:#5fd6a0;--gp-ok-soft:#143a2a;--gp-warning:#ffc266;--gp-error:#ff8a7d;--gp-error-soft:#3d1c19;
+  --gp-loop-0:#ff6b5e;--gp-loop-1:#5fd6a0;--gp-loop-2:#ffab4a;--gp-loop-3:#f07ad0;
+}
+.th-transit svg.grooph-picture [data-edge]{--gp-ink-2:var(--route)}
+.th-transit svg.grooph-picture [data-edge] path[fill="none"]{stroke-width:4.5}
+.th-transit svg.grooph-picture [data-edge] path[stroke-dasharray]{stroke-dasharray:10 5;stroke-linecap:butt}
+.th-transit svg.grooph-picture [data-edge] path:not([fill="none"]){transform-box:fill-box;transform-origin:center;transform:scale(1.7)}
+.th-transit svg.grooph-picture [data-edge] circle{r:4.2px;stroke:var(--gp-bg);stroke-width:1.5}
+.th-transit svg.grooph-picture rect[data-card]{rx:22px;ry:22px;stroke-width:2.6}
+.th-transit svg.grooph-picture rect[data-card][stroke-width="1.8"]{stroke-width:4.2}
+.th-transit svg.grooph-picture rect[data-card][rx="16"]{rx:5px;ry:5px}
+.th-transit svg.grooph-picture [data-node] text[font-size="9.5"]{text-transform:uppercase;letter-spacing:.08em}
+
+.th-chalk svg.grooph-picture{
+  --gp-bg:#f6f7f7;--gp-surface:#fbfbfb;--gp-surface-2:#eceeee;--gp-ink:#2a2e32;--gp-ink-2:#454a50;--gp-ink-3:#62686f;
+  --gp-line:#d5d8db;--gp-line-strong:#4a5057;--gp-accent:#2456a6;--gp-accent-soft:#dfe8f6;
+  --gp-gate:#b3540c;--gp-gate-soft:#fbeedd;--gp-check:#2456a6;--gp-merge:#6a45b5;--gp-stop:#62686f;
+  --gp-ok:#1c6b4a;--gp-ok-soft:#dcf0e6;--gp-warning:#8a5200;--gp-error:#a8261c;--gp-error-soft:#fbe6e3;
+  --gp-loop-0:#7a3fb8;--gp-loop-1:#0f7c8c;--gp-loop-2:#b8430f;--gp-loop-3:#a82a66;
+  font-family:"Patrick Hand","Segoe Print","Bradley Hand",cursive;
+  font-size-adjust:.5;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .th-chalk svg.grooph-picture{
+    --gp-bg:#26302e;--gp-surface:#2a3533;--gp-surface-2:#313d3a;--gp-ink:#f3f2ec;--gp-ink-2:#d9dcd5;--gp-ink-3:#b0b8b1;
+    --gp-line:#3d4a47;--gp-line-strong:#d9dcd5;--gp-accent:#a8d8ff;--gp-accent-soft:#2f4652;
+    --gp-gate:#ffd28a;--gp-gate-soft:#4a4230;--gp-check:#a8d8ff;--gp-merge:#d9c2ff;--gp-stop:#b0b8b1;
+    --gp-ok:#a6e8c0;--gp-ok-soft:#2c4a3c;--gp-warning:#ffd28a;--gp-error:#ffb0a6;--gp-error-soft:#4f3532;
+    --gp-loop-0:#f5a8cc;--gp-loop-1:#9fe0d6;--gp-loop-2:#ffb48a;--gp-loop-3:#d9c2ff;
+  }
+}
+:root[data-theme="dark"] .th-chalk svg.grooph-picture{
+  --gp-bg:#26302e;--gp-surface:#2a3533;--gp-surface-2:#313d3a;--gp-ink:#f3f2ec;--gp-ink-2:#d9dcd5;--gp-ink-3:#b0b8b1;
+  --gp-line:#3d4a47;--gp-line-strong:#d9dcd5;--gp-accent:#a8d8ff;--gp-accent-soft:#2f4652;
+  --gp-gate:#ffd28a;--gp-gate-soft:#4a4230;--gp-check:#a8d8ff;--gp-merge:#d9c2ff;--gp-stop:#b0b8b1;
+  --gp-ok:#a6e8c0;--gp-ok-soft:#2c4a3c;--gp-warning:#ffd28a;--gp-error:#ffb0a6;--gp-error-soft:#4f3532;
+  --gp-loop-0:#f5a8cc;--gp-loop-1:#9fe0d6;--gp-loop-2:#ffb48a;--gp-loop-3:#d9c2ff;
+}
+.th-chalk svg.grooph-picture rect[data-card],.th-chalk svg.grooph-picture [data-edge],.th-chalk svg.grooph-picture>rect:not(:first-of-type),.th-chalk svg.grooph-picture g[transform]>rect{filter:url(#studio-rough)}
+.th-chalk svg.grooph-picture rect[data-card]{stroke-width:1.5}
+.th-chalk svg.grooph-picture rect[data-card][stroke-width="1.8"]{stroke-width:2.6}
+.th-chalk svg.grooph-picture [data-edge] path[fill="none"]{stroke-width:1.8}
+.th-chalk svg.grooph-picture text{letter-spacing:.01em}
+
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto !important}}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:wght@400;700&family=Ubuntu+Mono:wght@400;700&family=Patrick+Hand&display=swap">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <filter id="studio-rough" filterUnits="userSpaceOnUse" x="-20" y="-20" width="440" height="3000">
+    <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</defs></svg>
+<div class="page">
+
+<header class="mast">
+  <p class="eyebrow">grooph · sketches for review · 2026-10-04</p>
+  <h1>Design Studio</h1>
+  <p class="lede">Twelve sketches on real data: six themes for one graph picture, five ways to lay out the push-to-Monday map, and one scene in three dimensions with a time slider. Today's look stays. Everything else here is an option to add, change or drop.</p>
+  <p>Every sketch has a label, such as T2 or L3. To react, name the label and say what you want.</p>
+  <ul class="toc">
+    <li><a href="#themes"><span class="range">T1–T6</span><span><b>Themes</b><small>One picture, six looks</small></span></a></li>
+    <li><a href="#layouts"><span class="range">L1–L5</span><span><b>A long map, laid out other ways</b><small>Columns, sequence, matrix, ring</small></span></a></li>
+    <li><a href="#space"><span class="range">V1</span><span><b>Three dimensions, and time</b><small>Orbit it, flatten it, play it</small></span></a></li>
+  </ul>
+</header>
+
+<section class="sec" id="themes" aria-labelledby="themes-h">
+  <div class="sec-head">
+    <p class="range">T1–T6</p>
+    <h2 id="themes-h">Themes</h2>
+    <p>The same picture six times: the review loop from the repository's fixtures, exactly as <code>grooph image</code> writes it. A theme is a set of values for the picture's color variables, plus a few style rules for lettering, line weight and corners. The graph document and the picture's markup are identical in all six, so a theme costs an agent nothing. It never sees one.</p>
+  </div>
+  <div class="themes">
+    <figure class="sk" id="t1">
+      <h3 class="lab">T1 · Paper <span class="is-today">today</span></h3>
+      <div class="frame pic th-paper"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="graph" viewBox="0 0 400 604.5" width="400" height="604.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>Review loop</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="604.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Review loop</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">claude-code · 2 agents · 1 gate · 1 loop · up to 4 rounds · 40</text><text x="12" y="65" font-size="11" style="fill:var(--gp-ink-3)">turns</text><text x="12" y="84.5" font-size="11.5" style="fill:var(--gp-ink-2)">Implement the change described in TASK.md so that every</text><text x="12" y="99" font-size="11.5" style="fill:var(--gp-ink-2)">item in the review checklist is satisfied and the test command</text><text x="12" y="113.5" font-size="11.5" style="fill:var(--gp-ink-2)">passes.</text><g data-edge="e-build-review"><path d="M179.5,187 V211.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,216.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-pass"><path d="M179.5,276.5 V301" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,306 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-gate-approve"><path d="M179.5,366 V390.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,395.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-fail"><path d="M347,246.8 H357 Q363,246.8 363,240.8 V157.3 Q363,151.3 357,151.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="246.8" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,151.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-edge="e-gate-reject"><path d="M347,336.3 H370 Q376,336.3 376,330.3 V169.3 Q376,163.3 370,163.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="336.3" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,163.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-node="builder"><rect data-card="" x="12" y="127.5" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="142.1" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="145.5" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="142.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="165" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Builder</text><text x="22" y="178" font-size="10.5" style="fill:var(--gp-ink-2)">builder · strong · high</text></g><g data-node="critic"><rect data-card="" x="12" y="217" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="231.6" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="235" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="231.6" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="254.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Critic</text><text x="22" y="267.5" font-size="10.5" style="fill:var(--gp-ink-2)">critic · strong · high</text></g><g data-node="merge-gate"><rect data-card="" x="12" y="306.5" width="335" height="59.5" rx="9" stroke-width="1.8" style="fill:var(--gp-surface);stroke:var(--gp-gate)"/><circle cx="25.5" cy="321.1" r="3.5" style="fill:var(--gp-gate)"/><text x="33" y="324.5" font-size="9.5" font-weight="700" style="fill:var(--gp-gate)">Human gate</text><circle cx="333.5" cy="321.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="344" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Merge approval</text><text x="22" y="357" font-size="10.5" style="fill:var(--gp-ink-2)">approve / reject with feedback</text></g><g data-node="done"><rect data-card="" x="12" y="396" width="335" height="59.5" rx="16" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="410.6" r="3.5" style="fill:var(--gp-stop)"/><text x="33" y="414" font-size="9.5" font-weight="700" style="fill:var(--gp-stop)">Stop</text><text x="22" y="433.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Done</text><text x="22" y="446.5" font-size="10.5" style="fill:var(--gp-ink-2)">success</text></g><rect x="161.8" y="284.4" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="294.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><rect x="161.8" y="373.9" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="384.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><g transform="rotate(-90 363 199)"><rect x="350.3" y="192.5" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="363" y="202.2" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><g transform="rotate(-90 376 249.8)"><rect x="363.3" y="243.3" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="376" y="253" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><text x="12" y="484.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Loop</text><g data-loop="review-cycle"><circle cx="17" cy="501.5" r="4.5" style="fill:var(--gp-loop-0)"/><text x="28" y="505.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Build-review cycle</text><text x="28" y="519" font-size="11" style="fill:var(--gp-ink-3)">judgment loop · Builder, Critic, Merge approval</text><text x="28" y="532.5" font-size="11" style="fill:var(--gp-ink-2)">Bar: Review checklist. Every checklist item is cited as satisfied</text><text x="28" y="546" font-size="11" style="fill:var(--gp-ink-2)">with a file and line, and the test command exits 0.</text><text x="28" y="559.5" font-size="11" style="fill:var(--gp-ink-2)">1. bar passed: follow the loop's pass exit edges</text><text x="28" y="573" font-size="11" style="fill:var(--gp-ink-2)">2. max iterations: 4: halt the run and report to the human</text><text x="28" y="586.5" font-size="11" style="fill:var(--gp-ink-2)">3. budget: 40 turns: halt the run and report to the human</text></g></svg></div>
+      <p class="cap">Today's look, unchanged. The baseline the other five are measured against.</p>
+      <p class="chg">Changes: nothing</p>
+    </figure>
+    <figure class="sk" id="t2">
+      <h3 class="lab">T2 · Blueprint</h3>
+      <div class="frame pic th-blueprint"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="graph" viewBox="0 0 400 604.5" width="400" height="604.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>Review loop</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="604.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Review loop</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">claude-code · 2 agents · 1 gate · 1 loop · up to 4 rounds · 40</text><text x="12" y="65" font-size="11" style="fill:var(--gp-ink-3)">turns</text><text x="12" y="84.5" font-size="11.5" style="fill:var(--gp-ink-2)">Implement the change described in TASK.md so that every</text><text x="12" y="99" font-size="11.5" style="fill:var(--gp-ink-2)">item in the review checklist is satisfied and the test command</text><text x="12" y="113.5" font-size="11.5" style="fill:var(--gp-ink-2)">passes.</text><g data-edge="e-build-review"><path d="M179.5,187 V211.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,216.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-pass"><path d="M179.5,276.5 V301" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,306 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-gate-approve"><path d="M179.5,366 V390.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,395.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-fail"><path d="M347,246.8 H357 Q363,246.8 363,240.8 V157.3 Q363,151.3 357,151.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="246.8" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,151.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-edge="e-gate-reject"><path d="M347,336.3 H370 Q376,336.3 376,330.3 V169.3 Q376,163.3 370,163.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="336.3" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,163.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-node="builder"><rect data-card="" x="12" y="127.5" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="142.1" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="145.5" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="142.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="165" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Builder</text><text x="22" y="178" font-size="10.5" style="fill:var(--gp-ink-2)">builder · strong · high</text></g><g data-node="critic"><rect data-card="" x="12" y="217" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="231.6" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="235" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="231.6" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="254.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Critic</text><text x="22" y="267.5" font-size="10.5" style="fill:var(--gp-ink-2)">critic · strong · high</text></g><g data-node="merge-gate"><rect data-card="" x="12" y="306.5" width="335" height="59.5" rx="9" stroke-width="1.8" style="fill:var(--gp-surface);stroke:var(--gp-gate)"/><circle cx="25.5" cy="321.1" r="3.5" style="fill:var(--gp-gate)"/><text x="33" y="324.5" font-size="9.5" font-weight="700" style="fill:var(--gp-gate)">Human gate</text><circle cx="333.5" cy="321.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="344" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Merge approval</text><text x="22" y="357" font-size="10.5" style="fill:var(--gp-ink-2)">approve / reject with feedback</text></g><g data-node="done"><rect data-card="" x="12" y="396" width="335" height="59.5" rx="16" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="410.6" r="3.5" style="fill:var(--gp-stop)"/><text x="33" y="414" font-size="9.5" font-weight="700" style="fill:var(--gp-stop)">Stop</text><text x="22" y="433.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Done</text><text x="22" y="446.5" font-size="10.5" style="fill:var(--gp-ink-2)">success</text></g><rect x="161.8" y="284.4" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="294.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><rect x="161.8" y="373.9" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="384.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><g transform="rotate(-90 363 199)"><rect x="350.3" y="192.5" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="363" y="202.2" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><g transform="rotate(-90 376 249.8)"><rect x="363.3" y="243.3" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="376" y="253" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><text x="12" y="484.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Loop</text><g data-loop="review-cycle"><circle cx="17" cy="501.5" r="4.5" style="fill:var(--gp-loop-0)"/><text x="28" y="505.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Build-review cycle</text><text x="28" y="519" font-size="11" style="fill:var(--gp-ink-3)">judgment loop · Builder, Critic, Merge approval</text><text x="28" y="532.5" font-size="11" style="fill:var(--gp-ink-2)">Bar: Review checklist. Every checklist item is cited as satisfied</text><text x="28" y="546" font-size="11" style="fill:var(--gp-ink-2)">with a file and line, and the test command exits 0.</text><text x="28" y="559.5" font-size="11" style="fill:var(--gp-ink-2)">1. bar passed: follow the loop's pass exit edges</text><text x="28" y="573" font-size="11" style="fill:var(--gp-ink-2)">2. max iterations: 4: halt the run and report to the human</text><text x="28" y="586.5" font-size="11" style="fill:var(--gp-ink-2)">3. budget: 40 turns: halt the run and report to the human</text></g></svg></div>
+      <p class="cap">For architecture notes and slides, where the picture should read as an engineering drawing.</p>
+      <p class="chg">Changes: colors, square corners, a grid behind, fixed-width labels</p>
+    </figure>
+    <figure class="sk" id="t3">
+      <h3 class="lab">T3 · Ink</h3>
+      <div class="frame pic th-ink"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="graph" viewBox="0 0 400 604.5" width="400" height="604.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>Review loop</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="604.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Review loop</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">claude-code · 2 agents · 1 gate · 1 loop · up to 4 rounds · 40</text><text x="12" y="65" font-size="11" style="fill:var(--gp-ink-3)">turns</text><text x="12" y="84.5" font-size="11.5" style="fill:var(--gp-ink-2)">Implement the change described in TASK.md so that every</text><text x="12" y="99" font-size="11.5" style="fill:var(--gp-ink-2)">item in the review checklist is satisfied and the test command</text><text x="12" y="113.5" font-size="11.5" style="fill:var(--gp-ink-2)">passes.</text><g data-edge="e-build-review"><path d="M179.5,187 V211.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,216.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-pass"><path d="M179.5,276.5 V301" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,306 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-gate-approve"><path d="M179.5,366 V390.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,395.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-fail"><path d="M347,246.8 H357 Q363,246.8 363,240.8 V157.3 Q363,151.3 357,151.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="246.8" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,151.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-edge="e-gate-reject"><path d="M347,336.3 H370 Q376,336.3 376,330.3 V169.3 Q376,163.3 370,163.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="336.3" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,163.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-node="builder"><rect data-card="" x="12" y="127.5" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="142.1" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="145.5" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="142.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="165" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Builder</text><text x="22" y="178" font-size="10.5" style="fill:var(--gp-ink-2)">builder · strong · high</text></g><g data-node="critic"><rect data-card="" x="12" y="217" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="231.6" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="235" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="231.6" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="254.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Critic</text><text x="22" y="267.5" font-size="10.5" style="fill:var(--gp-ink-2)">critic · strong · high</text></g><g data-node="merge-gate"><rect data-card="" x="12" y="306.5" width="335" height="59.5" rx="9" stroke-width="1.8" style="fill:var(--gp-surface);stroke:var(--gp-gate)"/><circle cx="25.5" cy="321.1" r="3.5" style="fill:var(--gp-gate)"/><text x="33" y="324.5" font-size="9.5" font-weight="700" style="fill:var(--gp-gate)">Human gate</text><circle cx="333.5" cy="321.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="344" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Merge approval</text><text x="22" y="357" font-size="10.5" style="fill:var(--gp-ink-2)">approve / reject with feedback</text></g><g data-node="done"><rect data-card="" x="12" y="396" width="335" height="59.5" rx="16" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="410.6" r="3.5" style="fill:var(--gp-stop)"/><text x="33" y="414" font-size="9.5" font-weight="700" style="fill:var(--gp-stop)">Stop</text><text x="22" y="433.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Done</text><text x="22" y="446.5" font-size="10.5" style="fill:var(--gp-ink-2)">success</text></g><rect x="161.8" y="284.4" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="294.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><rect x="161.8" y="373.9" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="384.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><g transform="rotate(-90 363 199)"><rect x="350.3" y="192.5" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="363" y="202.2" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><g transform="rotate(-90 376 249.8)"><rect x="363.3" y="243.3" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="376" y="253" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><text x="12" y="484.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Loop</text><g data-loop="review-cycle"><circle cx="17" cy="501.5" r="4.5" style="fill:var(--gp-loop-0)"/><text x="28" y="505.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Build-review cycle</text><text x="28" y="519" font-size="11" style="fill:var(--gp-ink-3)">judgment loop · Builder, Critic, Merge approval</text><text x="28" y="532.5" font-size="11" style="fill:var(--gp-ink-2)">Bar: Review checklist. Every checklist item is cited as satisfied</text><text x="28" y="546" font-size="11" style="fill:var(--gp-ink-2)">with a file and line, and the test command exits 0.</text><text x="28" y="559.5" font-size="11" style="fill:var(--gp-ink-2)">1. bar passed: follow the loop's pass exit edges</text><text x="28" y="573" font-size="11" style="fill:var(--gp-ink-2)">2. max iterations: 4: halt the run and report to the human</text><text x="28" y="586.5" font-size="11" style="fill:var(--gp-ink-2)">3. budget: 40 turns: halt the run and report to the human</text></g></svg></div>
+      <p class="cap">For papers and print. One ink and no tints, so it survives a photocopier. A gate is a heavy rule, a loop a dashed one.</p>
+      <p class="chg">Changes: colors, serif lettering, line weights</p>
+    </figure>
+    <figure class="sk" id="t4">
+      <h3 class="lab">T4 · Phosphor</h3>
+      <div class="frame pic th-phosphor"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="graph" viewBox="0 0 400 604.5" width="400" height="604.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>Review loop</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="604.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Review loop</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">claude-code · 2 agents · 1 gate · 1 loop · up to 4 rounds · 40</text><text x="12" y="65" font-size="11" style="fill:var(--gp-ink-3)">turns</text><text x="12" y="84.5" font-size="11.5" style="fill:var(--gp-ink-2)">Implement the change described in TASK.md so that every</text><text x="12" y="99" font-size="11.5" style="fill:var(--gp-ink-2)">item in the review checklist is satisfied and the test command</text><text x="12" y="113.5" font-size="11.5" style="fill:var(--gp-ink-2)">passes.</text><g data-edge="e-build-review"><path d="M179.5,187 V211.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,216.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-pass"><path d="M179.5,276.5 V301" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,306 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-gate-approve"><path d="M179.5,366 V390.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,395.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-fail"><path d="M347,246.8 H357 Q363,246.8 363,240.8 V157.3 Q363,151.3 357,151.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="246.8" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,151.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-edge="e-gate-reject"><path d="M347,336.3 H370 Q376,336.3 376,330.3 V169.3 Q376,163.3 370,163.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="336.3" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,163.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-node="builder"><rect data-card="" x="12" y="127.5" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="142.1" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="145.5" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="142.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="165" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Builder</text><text x="22" y="178" font-size="10.5" style="fill:var(--gp-ink-2)">builder · strong · high</text></g><g data-node="critic"><rect data-card="" x="12" y="217" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="231.6" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="235" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="231.6" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="254.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Critic</text><text x="22" y="267.5" font-size="10.5" style="fill:var(--gp-ink-2)">critic · strong · high</text></g><g data-node="merge-gate"><rect data-card="" x="12" y="306.5" width="335" height="59.5" rx="9" stroke-width="1.8" style="fill:var(--gp-surface);stroke:var(--gp-gate)"/><circle cx="25.5" cy="321.1" r="3.5" style="fill:var(--gp-gate)"/><text x="33" y="324.5" font-size="9.5" font-weight="700" style="fill:var(--gp-gate)">Human gate</text><circle cx="333.5" cy="321.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="344" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Merge approval</text><text x="22" y="357" font-size="10.5" style="fill:var(--gp-ink-2)">approve / reject with feedback</text></g><g data-node="done"><rect data-card="" x="12" y="396" width="335" height="59.5" rx="16" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="410.6" r="3.5" style="fill:var(--gp-stop)"/><text x="33" y="414" font-size="9.5" font-weight="700" style="fill:var(--gp-stop)">Stop</text><text x="22" y="433.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Done</text><text x="22" y="446.5" font-size="10.5" style="fill:var(--gp-ink-2)">success</text></g><rect x="161.8" y="284.4" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="294.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><rect x="161.8" y="373.9" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="384.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><g transform="rotate(-90 363 199)"><rect x="350.3" y="192.5" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="363" y="202.2" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><g transform="rotate(-90 376 249.8)"><rect x="363.3" y="243.3" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="376" y="253" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><text x="12" y="484.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Loop</text><g data-loop="review-cycle"><circle cx="17" cy="501.5" r="4.5" style="fill:var(--gp-loop-0)"/><text x="28" y="505.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Build-review cycle</text><text x="28" y="519" font-size="11" style="fill:var(--gp-ink-3)">judgment loop · Builder, Critic, Merge approval</text><text x="28" y="532.5" font-size="11" style="fill:var(--gp-ink-2)">Bar: Review checklist. Every checklist item is cited as satisfied</text><text x="28" y="546" font-size="11" style="fill:var(--gp-ink-2)">with a file and line, and the test command exits 0.</text><text x="28" y="559.5" font-size="11" style="fill:var(--gp-ink-2)">1. bar passed: follow the loop's pass exit edges</text><text x="28" y="573" font-size="11" style="fill:var(--gp-ink-2)">2. max iterations: 4: halt the run and report to the human</text><text x="28" y="586.5" font-size="11" style="fill:var(--gp-ink-2)">3. budget: 40 turns: halt the run and report to the human</text></g></svg></div>
+      <p class="cap">For terminals and dark dashboards. Fixed-width lettering on a dark screen, with gates in amber.</p>
+      <p class="chg">Changes: colors, fixed-width lettering, scan lines behind</p>
+    </figure>
+    <figure class="sk" id="t5">
+      <h3 class="lab">T5 · Transit</h3>
+      <div class="frame pic th-transit"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="graph" viewBox="0 0 400 604.5" width="400" height="604.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>Review loop</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="604.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Review loop</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">claude-code · 2 agents · 1 gate · 1 loop · up to 4 rounds · 40</text><text x="12" y="65" font-size="11" style="fill:var(--gp-ink-3)">turns</text><text x="12" y="84.5" font-size="11.5" style="fill:var(--gp-ink-2)">Implement the change described in TASK.md so that every</text><text x="12" y="99" font-size="11.5" style="fill:var(--gp-ink-2)">item in the review checklist is satisfied and the test command</text><text x="12" y="113.5" font-size="11.5" style="fill:var(--gp-ink-2)">passes.</text><g data-edge="e-build-review"><path d="M179.5,187 V211.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,216.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-pass"><path d="M179.5,276.5 V301" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,306 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-gate-approve"><path d="M179.5,366 V390.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,395.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-fail"><path d="M347,246.8 H357 Q363,246.8 363,240.8 V157.3 Q363,151.3 357,151.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="246.8" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,151.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-edge="e-gate-reject"><path d="M347,336.3 H370 Q376,336.3 376,330.3 V169.3 Q376,163.3 370,163.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="336.3" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,163.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-node="builder"><rect data-card="" x="12" y="127.5" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="142.1" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="145.5" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="142.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="165" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Builder</text><text x="22" y="178" font-size="10.5" style="fill:var(--gp-ink-2)">builder · strong · high</text></g><g data-node="critic"><rect data-card="" x="12" y="217" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="231.6" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="235" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="231.6" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="254.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Critic</text><text x="22" y="267.5" font-size="10.5" style="fill:var(--gp-ink-2)">critic · strong · high</text></g><g data-node="merge-gate"><rect data-card="" x="12" y="306.5" width="335" height="59.5" rx="9" stroke-width="1.8" style="fill:var(--gp-surface);stroke:var(--gp-gate)"/><circle cx="25.5" cy="321.1" r="3.5" style="fill:var(--gp-gate)"/><text x="33" y="324.5" font-size="9.5" font-weight="700" style="fill:var(--gp-gate)">Human gate</text><circle cx="333.5" cy="321.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="344" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Merge approval</text><text x="22" y="357" font-size="10.5" style="fill:var(--gp-ink-2)">approve / reject with feedback</text></g><g data-node="done"><rect data-card="" x="12" y="396" width="335" height="59.5" rx="16" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="410.6" r="3.5" style="fill:var(--gp-stop)"/><text x="33" y="414" font-size="9.5" font-weight="700" style="fill:var(--gp-stop)">Stop</text><text x="22" y="433.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Done</text><text x="22" y="446.5" font-size="10.5" style="fill:var(--gp-ink-2)">success</text></g><rect x="161.8" y="284.4" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="294.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><rect x="161.8" y="373.9" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="384.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><g transform="rotate(-90 363 199)"><rect x="350.3" y="192.5" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="363" y="202.2" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><g transform="rotate(-90 376 249.8)"><rect x="363.3" y="243.3" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="376" y="253" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><text x="12" y="484.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Loop</text><g data-loop="review-cycle"><circle cx="17" cy="501.5" r="4.5" style="fill:var(--gp-loop-0)"/><text x="28" y="505.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Build-review cycle</text><text x="28" y="519" font-size="11" style="fill:var(--gp-ink-3)">judgment loop · Builder, Critic, Merge approval</text><text x="28" y="532.5" font-size="11" style="fill:var(--gp-ink-2)">Bar: Review checklist. Every checklist item is cited as satisfied</text><text x="28" y="546" font-size="11" style="fill:var(--gp-ink-2)">with a file and line, and the test command exits 0.</text><text x="28" y="559.5" font-size="11" style="fill:var(--gp-ink-2)">1. bar passed: follow the loop's pass exit edges</text><text x="28" y="573" font-size="11" style="fill:var(--gp-ink-2)">2. max iterations: 4: halt the run and report to the human</text><text x="28" y="586.5" font-size="11" style="fill:var(--gp-ink-2)">3. budget: 40 turns: halt the run and report to the human</text></g></svg></div>
+      <p class="cap">For talks and posters seen from across a room. Edges become thick route lines and each loop keeps its own color.</p>
+      <p class="chg">Changes: colors, heavy lines, pill cards, bolder lettering</p>
+    </figure>
+    <figure class="sk" id="t6">
+      <h3 class="lab">T6 · Chalk</h3>
+      <div class="frame pic th-chalk"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="graph" viewBox="0 0 400 604.5" width="400" height="604.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>Review loop</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="604.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Review loop</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">claude-code · 2 agents · 1 gate · 1 loop · up to 4 rounds · 40</text><text x="12" y="65" font-size="11" style="fill:var(--gp-ink-3)">turns</text><text x="12" y="84.5" font-size="11.5" style="fill:var(--gp-ink-2)">Implement the change described in TASK.md so that every</text><text x="12" y="99" font-size="11.5" style="fill:var(--gp-ink-2)">item in the review checklist is satisfied and the test command</text><text x="12" y="113.5" font-size="11.5" style="fill:var(--gp-ink-2)">passes.</text><g data-edge="e-build-review"><path d="M179.5,187 V211.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,216.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-pass"><path d="M179.5,276.5 V301" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,306 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-gate-approve"><path d="M179.5,366 V390.5" fill="none" stroke-width="1.5" stroke-linecap="round" style="stroke:var(--gp-ink-2)"/><path d="M179.5,395.5 l-3.6,-6.5 h7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-edge="e-review-fail"><path d="M347,246.8 H357 Q363,246.8 363,240.8 V157.3 Q363,151.3 357,151.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="246.8" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,151.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-edge="e-gate-reject"><path d="M347,336.3 H370 Q376,336.3 376,330.3 V169.3 Q376,163.3 370,163.3 H352.5" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-loop-0)"/><circle cx="347" cy="336.3" r="2.2" style="fill:var(--gp-loop-0)"/><path d="M347.5,163.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-0)"/></g><g data-node="builder"><rect data-card="" x="12" y="127.5" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="142.1" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="145.5" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="142.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="165" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Builder</text><text x="22" y="178" font-size="10.5" style="fill:var(--gp-ink-2)">builder · strong · high</text></g><g data-node="critic"><rect data-card="" x="12" y="217" width="335" height="59.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="231.6" r="3.5" style="fill:var(--gp-accent)"/><text x="33" y="235" font-size="9.5" font-weight="700" style="fill:var(--gp-accent)">Agent</text><circle cx="333.5" cy="231.6" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="254.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Critic</text><text x="22" y="267.5" font-size="10.5" style="fill:var(--gp-ink-2)">critic · strong · high</text></g><g data-node="merge-gate"><rect data-card="" x="12" y="306.5" width="335" height="59.5" rx="9" stroke-width="1.8" style="fill:var(--gp-surface);stroke:var(--gp-gate)"/><circle cx="25.5" cy="321.1" r="3.5" style="fill:var(--gp-gate)"/><text x="33" y="324.5" font-size="9.5" font-weight="700" style="fill:var(--gp-gate)">Human gate</text><circle cx="333.5" cy="321.1" r="3.5" style="fill:var(--gp-loop-0)"/><text x="22" y="344" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Merge approval</text><text x="22" y="357" font-size="10.5" style="fill:var(--gp-ink-2)">approve / reject with feedback</text></g><g data-node="done"><rect data-card="" x="12" y="396" width="335" height="59.5" rx="16" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><circle cx="25.5" cy="410.6" r="3.5" style="fill:var(--gp-stop)"/><text x="33" y="414" font-size="9.5" font-weight="700" style="fill:var(--gp-stop)">Stop</text><text x="22" y="433.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Done</text><text x="22" y="446.5" font-size="10.5" style="fill:var(--gp-ink-2)">success</text></g><rect x="161.8" y="284.4" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="294.7" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><rect x="161.8" y="373.9" width="35.4" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="179.5" y="384.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">pass</text><g transform="rotate(-90 363 199)"><rect x="350.3" y="192.5" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="363" y="202.2" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><g transform="rotate(-90 376 249.8)"><rect x="363.3" y="243.3" width="25.4" height="13" rx="6.5" stroke-width="1" style="fill:var(--gp-bg);stroke:var(--gp-loop-0)"/><text x="376" y="253" font-size="9" font-weight="700" text-anchor="middle" style="fill:var(--gp-loop-0)">fail</text></g><text x="12" y="484.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Loop</text><g data-loop="review-cycle"><circle cx="17" cy="501.5" r="4.5" style="fill:var(--gp-loop-0)"/><text x="28" y="505.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Build-review cycle</text><text x="28" y="519" font-size="11" style="fill:var(--gp-ink-3)">judgment loop · Builder, Critic, Merge approval</text><text x="28" y="532.5" font-size="11" style="fill:var(--gp-ink-2)">Bar: Review checklist. Every checklist item is cited as satisfied</text><text x="28" y="546" font-size="11" style="fill:var(--gp-ink-2)">with a file and line, and the test command exits 0.</text><text x="28" y="559.5" font-size="11" style="fill:var(--gp-ink-2)">1. bar passed: follow the loop's pass exit edges</text><text x="28" y="573" font-size="11" style="fill:var(--gp-ink-2)">2. max iterations: 4: halt the run and report to the human</text><text x="28" y="586.5" font-size="11" style="fill:var(--gp-ink-2)">3. budget: 40 turns: halt the run and report to the human</text></g></svg></div>
+      <p class="cap">For early drafts and teaching. Hand lettering and lines that wobble say the graph is still open to change.</p>
+      <p class="chg">Changes: colors, hand lettering, one wobble filter</p>
+    </figure>
+  </div>
+  <div class="notes">
+    <p>In all six, a gate is the card with the heavy outline and the words Human gate, a loop edge is dashed and labeled fail, and a stop has its own corner shape. Color repeats what shape and words already say.</p>
+    <p>Where a theme has a light and a dark form, this page's theme picks it. T4 has one form and stays dark.</p>
+    <p>Three costs to know. Every theme after T1 changes some lettering, so the drawing code would have to measure text in that face, or use one no wider than today's, as these five do. T6 needs one small filter placed beside the picture for the wobble. Square and pill corners come from a style rule that older browsers ignore, and there the corners stay as they are today.</p>
+  </div>
+</section>
+
+<section class="sec" id="layouts" aria-labelledby="layouts-h">
+  <div class="sec-head">
+    <p class="range">L1–L5</p>
+    <h2 id="layouts-h">A long map, laid out other ways</h2>
+    <p>The map is the plan for the push to Monday: 9 sessions in 3 lanes, 1 person, 19 handoffs. Today it is drawn as one column, 400 units wide and 2,705 tall. L2 to L5 draw the same document with small drawing code written for this page. Line style and color say the carrier, as in today's picture.</p>
+  </div>
+  <ul class="key" aria-label="Carriers">
+    <li class="k-person"><svg class="gsk" width="34" height="10" aria-hidden="true"><path d="M2,5 H32" class="kl" stroke-width="2.4"/></svg>carried by a person</li>
+    <li class="k-branch"><svg class="gsk" width="34" height="10" aria-hidden="true"><path d="M2,5 H32" class="kl" stroke-width="1.6"/></svg>branch</li>
+    <li class="k-pull-request"><svg class="gsk" width="34" height="10" aria-hidden="true"><path d="M2,5 H32" class="kl" stroke-width="1.6"/></svg>pull request</li>
+    <li class="k-session-message"><svg class="gsk" width="34" height="10" aria-hidden="true"><path d="M2,5 H32" class="kl" stroke-width="1.4" stroke-dasharray="5 3"/></svg>session message</li>
+    <li class="k-review-page"><svg class="gsk" width="34" height="10" aria-hidden="true"><path d="M2,5 H32" class="kl" stroke-width="1.4" stroke-dasharray="7 3 1.5 3"/></svg>review page</li>
+  </ul>
+  <details class="more">
+    <summary>The tags, and all 19 handoffs by number</summary>
+    <div class="inner">
+      <ul class="tags" id="tag-list"></ul>
+      <ol class="hlist" id="handoff-list"></ol>
+    </div>
+  </details>
+
+  <div class="lay" id="lay">
+    <figure class="sk" id="l1">
+      <h3 class="lab">L1 · As it is today <span class="is-today">today</span></h3>
+      <div class="today-row">
+        <div class="frame pic today-pic" id="l1-pic" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="map" viewBox="0 0 400 2705.5" width="400" height="2705.5" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>grooph builds grooph: the push to Monday</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="2705.5" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">grooph builds grooph: the push to</text><text x="12" y="56" font-size="17" font-weight="700" style="fill:var(--gp-ink)">Monday</text><text x="12" y="73" font-size="11" style="fill:var(--gp-ink-3)">as of 2026-10-04 · 3 lanes · 9 sessions (10 counting families) · 1</text><text x="12" y="86" font-size="11" style="fill:var(--gp-ink-3)">person · 19 handoffs, 9 waiting on a person</text><g data-people=""><rect x="12" y="98" width="376" height="158.5" rx="12" stroke-width="1" stroke-dasharray="5 4" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="118" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Person</text></g><g data-lane="mac"><rect x="12" y="266.5" width="376" height="901.5" rx="12" stroke-width="1" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="286.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Ryan's Mac, this</text><rect x="185.4" y="275.7" width="36.2" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="203.5" y="286" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">local</text><text x="22" y="301.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">account</text><text x="22" y="315" font-size="10.5" style="fill:var(--gp-ink-3)">the Mac · the account signed in on</text><text x="22" y="328.5" font-size="10.5" style="fill:var(--gp-ink-3)">the Mac</text></g><g data-lane="codex"><rect x="12" y="1178" width="376" height="168" rx="12" stroke-width="1" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="1198" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Codex on the Mac</text><rect x="185.4" y="1187.2" width="36.2" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="203.5" y="1197.5" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">local</text><text x="22" y="1211.5" font-size="10.5" style="fill:var(--gp-ink-3)">the Mac · ChatGPT subscription</text></g><g data-lane="cloud"><rect x="12" y="1356" width="376" height="321" rx="12" stroke-width="1" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="1376" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Cloud, the other</text><rect x="181.5" y="1365.2" width="40.1" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="201.6" y="1375.5" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">cloud</text><text x="22" y="1391" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">account</text><text x="22" y="1404.5" font-size="10.5" style="fill:var(--gp-ink-3)">cloud · Ryan's other Claude account</text></g><g data-person="ryan"><rect data-card="" x="20" y="127.5" width="201.6" height="121" rx="14" stroke-width="1.4" style="fill:var(--gp-gate-soft);stroke:var(--gp-gate)"/><text x="30" y="148.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Ryan</text><text x="30" y="164" font-size="11" style="fill:var(--gp-ink-2)">Owner. Says yes or no at each</text><text x="30" y="177.5" font-size="11" style="fill:var(--gp-ink-2)">gate, from his phone. Pastes</text><text x="30" y="191" font-size="11" style="fill:var(--gp-ink-2)">the lane briefs. Says save</text><text x="30" y="204.5" font-size="11" style="fill:var(--gp-ink-2)">point.</text></g><g data-session="driver"><rect data-card="" x="20" y="338" width="201.6" height="186" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="359" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Driver</text><text x="30" y="373" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="386" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-opus-5-5</text><text x="30" y="401.5" font-size="11" style="fill:var(--gp-ink-2)">Writes each lane's brief,</text><text x="30" y="415" font-size="11" style="fill:var(--gp-ink-2)">reviews each handback,</text><text x="30" y="428.5" font-size="11" style="fill:var(--gp-ink-2)">merges on Ryan's word, keeps</text><text x="30" y="442" font-size="11" style="fill:var(--gp-ink-2)">the plan and progress current,</text><text x="30" y="455.5" font-size="11" style="fill:var(--gp-ink-2)">publishes the gate pages</text><text x="30" y="469.5" font-size="10" style="fill:var(--gp-ink-3)">long-lived ·</text><text x="30" y="482.5" font-size="10" style="fill:var(--gp-ink-3)">ryanjosephkamp/grooph</text></g><g data-session="front-door"><rect data-card="" x="20" y="532" width="201.6" height="103" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="553" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lane 1: front door</text><text x="30" y="567" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="580" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-opus-5-5</text><text x="30" y="595.5" font-size="11" style="fill:var(--gp-ink-2)">Landing page, README,</text><text x="30" y="609" font-size="11" style="fill:var(--gp-ink-2)">desktop layout</text><text x="30" y="623" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="embed"><rect data-card="" x="20" y="643" width="201.6" height="132.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="664" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lane 2: embed and</text><text x="30" y="680" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">replay</text><text x="30" y="694" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="707" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-opus-5-5</text><text x="30" y="722.5" font-size="11" style="fill:var(--gp-ink-2)">A graph anyone can embed in</text><text x="30" y="736" font-size="11" style="fill:var(--gp-ink-2)">a page, and a recorded run</text><text x="30" y="749.5" font-size="11" style="fill:var(--gp-ink-2)">that plays</text><text x="30" y="763.5" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="toolkit"><rect data-card="" x="20" y="783.5" width="201.6" height="119" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="804.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lane 3: no-friction</text><text x="30" y="820.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">toolkit</text><text x="30" y="834.5" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="847.5" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-sonnet-5-5</text><text x="30" y="863" font-size="11" style="fill:var(--gp-ink-2)">First run, CLI help and errors,</text><text x="30" y="876.5" font-size="11" style="fill:var(--gp-ink-2)">quickstart, rule reference</text><text x="30" y="890.5" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="evidence"><rect data-card="" x="20" y="910.5" width="201.6" height="103" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="931.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lane 4: evidence</text><text x="30" y="945.5" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="958.5" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-opus-5-5</text><text x="30" y="974" font-size="11" style="fill:var(--gp-ink-2)">Study two: runs the paired</text><text x="30" y="987.5" font-size="11" style="fill:var(--gp-ink-2)">comparison, unattended</text><text x="30" y="1001.5" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="later"><rect x="26" y="1027.5" width="195.6" height="130.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line)"/><rect x="23" y="1024.5" width="198.6" height="131.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line)"/><rect data-card="" x="20" y="1021.5" width="201.6" height="132.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="1042.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lanes 6 and 7:</text><rect x="182.5" y="1030.7" width="28.6" height="16.3" rx="8.1" style="fill:var(--gp-accent-soft)"/><text x="196.8" y="1042" font-size="10.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-accent)">×2</text><text x="30" y="1058.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">community, writing</text><text x="30" y="1072.5" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="1085.5" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-sonnet-5-5</text><text x="30" y="1101" font-size="11" style="fill:var(--gp-ink-2)">Submissions by pull request;</text><text x="30" y="1114.5" font-size="11" style="fill:var(--gp-ink-2)">the blog draft and the technical</text><text x="30" y="1128" font-size="11" style="fill:var(--gp-ink-2)">report. Start when a slot frees</text><text x="30" y="1142" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="codex-target"><rect data-card="" x="20" y="1221" width="201.6" height="117" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="1242" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lane 5: Codex target</text><text x="30" y="1256" font-size="10.5" font-weight="700" style="fill:var(--gp-check)">Codex · gpt-6.1-sol</text><text x="30" y="1271.5" font-size="11" style="fill:var(--gp-ink-2)">The Codex compile target and</text><text x="30" y="1285" font-size="11" style="fill:var(--gp-ink-2)">one proving run; an outside</text><text x="30" y="1298.5" font-size="11" style="fill:var(--gp-ink-2)">read of each Claude lane's</text><text x="30" y="1312" font-size="11" style="fill:var(--gp-ink-2)">change</text><text x="30" y="1326" font-size="10" style="fill:var(--gp-ink-3)">per task · ryanjosephkamp/grooph</text></g><g data-session="dot"><rect data-card="" x="20" y="1414" width="201.6" height="117" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="1435" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">The Dot</text><text x="30" y="1449" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="1464.5" font-size="11" style="fill:var(--gp-ink-2)">Research it does itself: prior</text><text x="30" y="1478" font-size="11" style="fill:var(--gp-ink-2)">art, comparable tools, design</text><text x="30" y="1491.5" font-size="11" style="fill:var(--gp-ink-2)">references, the npm name.</text><text x="30" y="1505" font-size="11" style="fill:var(--gp-ink-2)">Never hands work to Codex</text><text x="30" y="1519" font-size="10" style="fill:var(--gp-ink-3)">per task</text></g><g data-session="operator"><rect data-card="" x="20" y="1539" width="201.6" height="130" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="1560" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Operator</text><text x="30" y="1574" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="1587" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">claude-opus-5-5</text><text x="30" y="1602.5" font-size="11" style="fill:var(--gp-ink-2)">Runs the other project's lanes,</text><text x="30" y="1616" font-size="11" style="fill:var(--gp-ink-2)">which publish their events.</text><text x="30" y="1629.5" font-size="11" style="fill:var(--gp-ink-2)">Asked only for what the events</text><text x="30" y="1643" font-size="11" style="fill:var(--gp-ink-2)">do not show</text><text x="30" y="1657" font-size="10" style="fill:var(--gp-ink-3)">long-lived</text></g><g data-plate="h-plan"><circle cx="237.6" cy="247.8" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/></g><g data-plate="h-yes"><circle cx="245.6" cy="268.8" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/></g><g data-plate="h-brief"><circle cx="261.7" cy="382.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-brief-2"><circle cx="277.7" cy="404.6" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-brief-3"><circle cx="293.8" cy="522" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-brief-4"><circle cx="317.9" cy="588" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-brief-5"><circle cx="341.9" cy="753.3" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-handoff"><circle cx="237.6" cy="518.8" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/></g><g data-plate="h-pr-1"><circle cx="245.6" cy="539.8" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-pr-2"><rect x="245.2" y="554.7" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-pr-3"><rect x="261.2" y="620.1" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-pr-4"><rect x="277.3" y="686.1" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-pr-5"><rect x="317.4" y="864.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/></g><g data-plate="h-later"><rect x="293.3" y="755.4" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/></g><g data-plate="h-later-back"><rect x="301.4" y="776.4" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/></g><g data-plate="h-dot"><rect x="357.5" y="849.1" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-dot-back"><rect x="325.4" y="967.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-plate="h-events"><rect x="341.5" y="1039.6" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/></g><g data-plate="h-ask"><rect x="349.5" y="1060.6" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/></g><g data-handoff="h-plan"><path d="M221.6,353 H231.6 Q237.6,353 237.6,347 V255 M237.6,240.6 V148.5 Q237.6,142.5 231.6,142.5 H227.1" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><circle cx="221.6" cy="353" r="2.2" style="fill:var(--gp-loop-3)"/><path d="M222.1,142.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-3)"/></g><g data-handoff="h-yes"><path d="M221.6,155.5 H239.6 Q245.6,155.5 245.6,161.5 V261.6 M245.6,276 V360 Q245.6,366 239.6,366 H227.1" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><circle cx="221.6" cy="155.5" r="2.2" style="fill:var(--gp-ink-2)"/><path d="M222.1,366 l6.5,-3.6 v7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-handoff="h-brief"><path d="M221.6,168.5 H255.7 Q261.7,168.5 261.7,174.5 V375.3 M261.7,389.7 V590.5 Q261.7,596.5 255.7,596.5 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="168.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,596.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-brief-2"><path d="M221.6,181.5 H271.7 Q277.7,181.5 277.7,187.5 V397.4 M277.7,411.8 V709.8 Q277.7,715.8 271.7,715.8 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="181.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,715.8 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-brief-3"><path d="M221.6,194.5 H287.8 Q293.8,194.5 293.8,200.5 V514.8 M293.8,529.2 V843.5 Q293.8,849.5 287.8,849.5 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="194.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,849.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-brief-4"><path d="M221.6,207.5 H311.9 Q317.9,207.5 317.9,213.5 V580.8 M317.9,595.2 V962.5 Q317.9,968.5 311.9,968.5 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="207.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,968.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-brief-5"><path d="M221.6,220.5 H335.9 Q341.9,220.5 341.9,226.5 V746.1 M341.9,760.5 V1280 Q341.9,1286 335.9,1286 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="220.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,1286 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-handoff"><path d="M221.6,379 H231.6 Q237.6,379 237.6,385 V511.6 M237.6,526 V564.5 Q237.6,570.5 231.6,570.5 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><circle cx="221.6" cy="379" r="2.2" style="fill:var(--gp-accent)"/><path d="M222.1,570.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-accent)"/></g><g data-handoff="h-pr-1"><path d="M221.6,583.5 H239.6 Q245.6,583.5 245.6,577.5 V547 M245.6,532.6 V398 Q245.6,392 239.6,392 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="221.6" cy="583.5" r="2.2" style="fill:var(--gp-check)"/><path d="M222.1,392 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-pr-2"><path d="M221.6,702.8 H247.7 Q253.7,702.8 253.7,696.8 V569.1 M253.7,554.7 V411 Q253.7,405 247.7,405 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="221.6" cy="702.8" r="2.2" style="fill:var(--gp-check)"/><path d="M222.1,405 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-pr-3"><path d="M221.6,836.5 H263.7 Q269.7,836.5 269.7,830.5 V634.5 M269.7,620.1 V424 Q269.7,418 263.7,418 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="221.6" cy="836.5" r="2.2" style="fill:var(--gp-check)"/><path d="M222.1,418 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-pr-4"><path d="M221.6,955.5 H279.8 Q285.8,955.5 285.8,949.5 V700.5 M285.8,686.1 V437 Q285.8,431 279.8,431 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="221.6" cy="955.5" r="2.2" style="fill:var(--gp-check)"/><path d="M222.1,431 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-pr-5"><path d="M221.6,1273 H319.9 Q325.9,1273 325.9,1267 V878.7 M325.9,864.3 V476 Q325.9,470 319.9,470 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><circle cx="221.6" cy="1273" r="2.2" style="fill:var(--gp-accent)"/><path d="M222.1,470 l6.5,-3.6 v7.2 z" style="fill:var(--gp-accent)"/></g><g data-handoff="h-later"><path d="M221.6,444 H295.8 Q301.8,444 301.8,450 V755.4 M301.8,769.8 V1075.3 Q301.8,1081.3 295.8,1081.3 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><circle cx="221.6" cy="444" r="2.2" style="fill:var(--gp-accent)"/><path d="M222.1,1081.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-accent)"/></g><g data-handoff="h-later-back"><path d="M221.6,1094.3 H303.8 Q309.8,1094.3 309.8,1088.3 V790.8 M309.8,776.4 V463 Q309.8,457 303.8,457 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><circle cx="221.6" cy="1094.3" r="2.2" style="fill:var(--gp-check)"/><path d="M222.1,457 l6.5,-3.6 v7.2 z" style="fill:var(--gp-check)"/></g><g data-handoff="h-dot"><path d="M221.6,233.5 H360 Q366,233.5 366,239.5 V849.1 M366,863.5 V1473 Q366,1479 360,1479 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="233.5" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,1479 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-dot-back"><path d="M221.6,1466 H327.9 Q333.9,1466 333.9,1460 V981.7 M333.9,967.3 V489 Q333.9,483 327.9,483 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="1466" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,483 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-handoff="h-events"><path d="M221.6,1597.5 H344 Q350,1597.5 350,1591.5 V1054 M350,1039.6 V502 Q350,496 344,496 H227.1" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><circle cx="221.6" cy="1597.5" r="2.2" style="fill:var(--gp-accent)"/><path d="M222.1,496 l6.5,-3.6 v7.2 z" style="fill:var(--gp-accent)"/></g><g data-handoff="h-ask"><path d="M221.6,509 H352 Q358,509 358,515 V1060.6 M358,1075 V1604.5 Q358,1610.5 352,1610.5 H227.1" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><circle cx="221.6" cy="509" r="2.2" style="fill:var(--gp-gate)"/><path d="M222.1,1610.5 l6.5,-3.6 v7.2 z" style="fill:var(--gp-gate)"/></g><g data-number="h-plan"><text x="237.6" y="251.1" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">1</text></g><g data-number="h-yes"><text x="245.6" y="272.1" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">2</text></g><g data-number="h-brief"><text x="261.7" y="385.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">3</text></g><g data-number="h-brief-2"><text x="277.7" y="407.9" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">4</text></g><g data-number="h-brief-3"><text x="293.8" y="525.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">5</text></g><g data-number="h-brief-4"><text x="317.9" y="591.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">6</text></g><g data-number="h-brief-5"><text x="341.9" y="756.6" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">7</text></g><g data-number="h-handoff"><text x="237.6" y="522.1" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">8</text></g><g data-number="h-pr-1"><text x="245.6" y="543.1" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">9</text></g><g data-number="h-pr-2"><text x="253.7" y="565.2" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">10</text></g><g data-number="h-pr-3"><text x="269.7" y="630.6" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">11</text></g><g data-number="h-pr-4"><text x="285.8" y="696.6" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">12</text></g><g data-number="h-pr-5"><text x="325.9" y="874.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">13</text></g><g data-number="h-later"><text x="301.8" y="765.9" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">14</text></g><g data-number="h-later-back"><text x="309.8" y="786.9" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">15</text></g><g data-number="h-dot"><text x="366" y="859.6" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">16</text></g><g data-number="h-dot-back"><text x="333.9" y="977.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">17</text></g><g data-number="h-events"><text x="350" y="1050.1" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">18</text></g><g data-number="h-ask"><text x="358" y="1071.1" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">19</text></g><text x="12" y="1704" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Handoffs</text><g data-handoff-row="h-plan"><rect data-row="" x="8" y="1711" width="384" height="61" rx="8" style="fill:transparent"/><circle cx="20" cy="1721" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-3)"/><text x="20" y="1724.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">1</text><text x="36" y="1725" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Driver → Ryan</text><path d="M36,1735.5 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="7 3 1.5 3" style="stroke:var(--gp-loop-3)"/><text x="60" y="1739" font-size="11" font-weight="700" style="fill:var(--gp-loop-3)">review page: gate pages</text><text x="36" y="1752.5" font-size="11" style="fill:var(--gp-ink-2)">the plan, then each gate: what was done, what needs only a</text><text x="36" y="1766" font-size="11" style="fill:var(--gp-ink-2)">yes</text></g><g data-handoff-row="h-yes"><rect data-row="" x="8" y="1775" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1785" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="20" y="1788.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">2</text><text x="36" y="1789" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Driver</text><path d="M36,1799.5 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><text x="60" y="1803" font-size="11" font-weight="700" style="fill:var(--gp-ink-2)">session message</text><text x="36" y="1816.5" font-size="11" style="fill:var(--gp-ink-2)">approved, or save point</text></g><g data-handoff-row="h-brief"><rect data-row="" x="8" y="1825.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1835.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1838.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">3</text><text x="36" y="1839.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Lane 1: front door</text><path d="M36,1850 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1853.5" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1867" font-size="11" style="fill:var(--gp-ink-2)">the paste line that starts a lane, in a new Terminal tab</text></g><g data-handoff-row="h-brief-2"><rect data-row="" x="8" y="1876" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1886" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1889.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">4</text><text x="36" y="1890" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Lane 2: embed and replay</text><path d="M36,1900.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1904" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1917.5" font-size="11" style="fill:var(--gp-ink-2)">the paste line</text></g><g data-handoff-row="h-brief-3"><rect data-row="" x="8" y="1926.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1936.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1939.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">5</text><text x="36" y="1940.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Lane 3: no-friction toolkit</text><path d="M36,1951 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="1954.5" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="1968" font-size="11" style="fill:var(--gp-ink-2)">the paste line</text></g><g data-handoff-row="h-brief-4"><rect data-row="" x="8" y="1977" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="1987" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="1990.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">6</text><text x="36" y="1991" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Lane 4: evidence</text><path d="M36,2001.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="2005" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="2018.5" font-size="11" style="fill:var(--gp-ink-2)">the paste line, once he says go to study two</text></g><g data-handoff-row="h-brief-5"><rect data-row="" x="8" y="2027.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="2037.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="2040.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">7</text><text x="36" y="2041.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → Lane 5: Codex target</text><path d="M36,2052 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="2055.5" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="2069" font-size="11" style="fill:var(--gp-ink-2)">the prompt, in the Codex app</text></g><g data-handoff-row="h-handoff"><rect data-row="" x="8" y="2078" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="2088" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/><text x="20" y="2091.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">8</text><text x="36" y="2092" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Driver → Lane 1: front door</text><path d="M36,2102.5 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><text x="60" y="2106" font-size="11" font-weight="700" style="fill:var(--gp-accent)">branch main on ryanjosephkamp/grooph</text><text x="36" y="2119.5" font-size="11" style="fill:var(--gp-ink-2)">HANDOFF.md for each lane, on main</text></g><g data-handoff-row="h-pr-1"><rect data-row="" x="8" y="2128.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="2138.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="2141.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">9</text><text x="36" y="2142.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lane 1: front door → Driver</text><path d="M36,2153 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="2156.5" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="2170" font-size="11" style="fill:var(--gp-ink-2)">the lane's work with its HANDBACK.md</text></g><g data-handoff-row="h-pr-2"><rect data-row="" x="8" y="2179" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2181.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="2192.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">10</text><text x="36" y="2193" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lane 2: embed and replay → Driver</text><path d="M36,2203.5 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="2207" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="2220.5" font-size="11" style="fill:var(--gp-ink-2)">the lane's work with its HANDBACK.md</text></g><g data-handoff-row="h-pr-3"><rect data-row="" x="8" y="2229.5" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2232.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="2242.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">11</text><text x="36" y="2243.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lane 3: no-friction toolkit → Driver</text><path d="M36,2254 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="2257.5" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="2271" font-size="11" style="fill:var(--gp-ink-2)">the lane's work with its HANDBACK.md</text></g><g data-handoff-row="h-pr-4"><rect data-row="" x="8" y="2280" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2282.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="2293.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">12</text><text x="36" y="2294" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lane 4: evidence → Driver</text><path d="M36,2304.5 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="2308" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="2321.5" font-size="11" style="fill:var(--gp-ink-2)">the study's records and write-ups</text></g><g data-handoff-row="h-pr-5"><rect data-row="" x="8" y="2330.5" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2333.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/><text x="20" y="2343.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">13</text><text x="36" y="2344.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lane 5: Codex target → Driver</text><path d="M36,2355 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><text x="60" y="2358.5" font-size="11" font-weight="700" style="fill:var(--gp-accent)">branch on ryanjosephkamp/grooph</text><text x="36" y="2372" font-size="11" style="fill:var(--gp-ink-2)">the Codex target on a branch, with its HANDBACK.md</text></g><g data-handoff-row="h-later"><rect data-row="" x="8" y="2381" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2383.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/><text x="20" y="2394.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">14</text><text x="36" y="2395" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Driver → Lanes 6 and 7: community, writing</text><path d="M36,2405.5 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><text x="60" y="2409" font-size="11" font-weight="700" style="fill:var(--gp-accent)">branch main on ryanjosephkamp/grooph</text><text x="36" y="2422.5" font-size="11" style="fill:var(--gp-ink-2)">their briefs, when a slot frees</text></g><g data-handoff-row="h-later-back"><rect data-row="" x="8" y="2431.5" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2434.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-check)"/><text x="20" y="2444.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">15</text><text x="36" y="2445.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lanes 6 and 7: community, writing → Driver</text><path d="M36,2456 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-check)"/><text x="60" y="2459.5" font-size="11" font-weight="700" style="fill:var(--gp-check)">pull request on ryanjosephkamp/grooph</text><text x="36" y="2473" font-size="11" style="fill:var(--gp-ink-2)">their work</text></g><g data-handoff-row="h-dot"><rect data-row="" x="8" y="2482" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2484.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="2495.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">16</text><text x="36" y="2496" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Ryan → The Dot</text><path d="M36,2506.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="2510" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="2523.5" font-size="11" style="fill:var(--gp-ink-2)">the research questions</text></g><g data-handoff-row="h-dot-back"><rect data-row="" x="8" y="2532.5" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2535.3" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="2545.8" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">17</text><text x="36" y="2546.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">The Dot → Driver</text><path d="M36,2557 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="2560.5" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="2574" font-size="11" style="fill:var(--gp-ink-2)">what it found, as a file Ryan attaches</text></g><g data-handoff-row="h-events"><rect data-row="" x="8" y="2583" width="384" height="61" rx="8" style="fill:transparent"/><rect x="11.5" y="2585.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/><text x="20" y="2596.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">18</text><text x="36" y="2597" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Operator → Driver</text><path d="M36,2607.5 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><text x="60" y="2611" font-size="11" font-weight="700" style="fill:var(--gp-accent)">branch grooph-events/* on the other project's</text><text x="60" y="2624.5" font-size="11" font-weight="700" style="fill:var(--gp-accent)">public repository</text><text x="36" y="2638" font-size="11" style="fill:var(--gp-ink-2)">the other project's lanes' events, read with grooph sessions</text></g><g data-handoff-row="h-ask"><rect data-row="" x="8" y="2647" width="384" height="47.5" rx="8" style="fill:transparent"/><rect x="11.5" y="2649.8" width="16.9" height="14.4" rx="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-gate)"/><text x="20" y="2660.3" font-size="8.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">19</text><text x="36" y="2661" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Driver → Operator</text><path d="M36,2671.5 h18" fill="none" stroke-width="2.4" stroke-linecap="round" style="stroke:var(--gp-gate)"/><text x="60" y="2675" font-size="11" font-weight="700" style="fill:var(--gp-gate)">carried by Ryan</text><text x="36" y="2688.5" font-size="11" style="fill:var(--gp-ink-2)">only what the events do not show</text></g></svg></div>
+        <div class="today-side">
+          <p class="cap"><b>Good at</b> fitting a phone with nothing to learn, with full cards and every word. <b>Loses</b> the overview. At phone width it runs to more than three screens, and an arc ends at a card you have scrolled past.</p>
+          <button type="button" class="btn-plain" id="l1-toggle" aria-pressed="false" aria-controls="l1-pic">Show at full size</button>
+        </div>
+      </div>
+    </figure>
+
+    <div class="lay-main">
+      <figure class="sk" id="l2">
+        <h3 class="lab">L2 · Lanes side by side</h3>
+        <div class="frame scroll" tabindex="0" role="group" aria-label="L2, lanes side by side. Scrolls sideways on a narrow screen."><div id="l2-draw"></div></div>
+        <p class="cap"><b>Good at</b> showing the whole operation on one wide screen with the same cards, and the busiest session stretched tall so every handoff to it is a short straight line. <b>Loses</b> the phone, where it scrolls sideways, and the lifetime and repository line on each card.</p>
+      </figure>
+
+      <figure class="sk" id="l3">
+        <h3 class="lab">L3 · Sequence</h3>
+        <div class="frame scroll" tabindex="0" role="group" aria-label="L3, sequence."><div id="l3-draw"></div></div>
+        <p class="cap"><b>Good at</b> reading the handoffs one at a time, each on its own row with nothing crossing a card. <b>Loses</b> the cards, and it looks like a timeline, though the map only lists its handoffs in an order and records no times.</p>
+      </figure>
+
+      <div class="pair">
+        <figure class="sk" id="l4">
+          <h3 class="lab">L4 · Matrix</h3>
+          <div class="frame scroll" tabindex="0" role="group" aria-label="L4, matrix."><div id="l4-draw"></div></div>
+          <p class="cap"><b>Good at</b> answering whether anything passes from one session to another, and at showing the hub as one full row and one full column. <b>Loses</b> order and route, and most of the grid stays empty.</p>
+        </figure>
+        <figure class="sk" id="l5">
+          <h3 class="lab">L5 · Ring</h3>
+          <div class="frame scroll" tabindex="0" role="group" aria-label="L5, ring."><div id="l5-draw"></div></div>
+          <p class="cap"><b>Good at</b> the shape of the whole, with the hub and the edge plain at a glance. <b>Loses</b> the words, since names shrink to tags, and nineteen chords cross in the middle.</p>
+        </figure>
+      </div>
+    </div>
+  </div>
+  <div class="notes">
+    <p>The tags, such as L1 and Dr, and the short names beside them were written by hand for these sketches. The map document has no short name for a session, and every compact layout needs one.</p>
+    <p>Branch and pull request share one line style in today's picture and differ by color alone. That carries over here unchanged, and it is worth a look whichever layout wins.</p>
+  </div>
+</section>
+
+<section class="sec" id="space" aria-labelledby="space-h">
+  <div class="sec-head">
+    <p class="range">V1</p>
+    <h2 id="space-h">Three dimensions, and time</h2>
+    <p>The same map as a scene. Each lane is a sheet, each session a slab on its sheet, each handoff a tube in its carrier's color with its number. Flat lays the sheets out as rows seen from above. 3D stacks them. The slider lights the handoffs one at a time in the order the map lists them. The map records no times, so that is a reading order and says nothing about when a handoff happens.</p>
+  </div>
+  <figure class="sk" id="v1">
+    <h3 class="lab">V1 · 3D and time</h3>
+    <div class="vbar">
+      <div class="seg" role="group" aria-label="Arrangement">
+        <button type="button" id="v1-flat" aria-pressed="false">Flat</button>
+        <button type="button" id="v1-3d" aria-pressed="true">3D</button>
+      </div>
+      <span class="grow"></span>
+      <button type="button" class="sq" id="v1-out" aria-label="Zoom out">−</button>
+      <button type="button" class="sq" id="v1-in" aria-label="Zoom in">+</button>
+      <button type="button" id="v1-reset">Reset view</button>
+    </div>
+    <div class="frame stage" id="v1-stage">
+      <canvas id="v1-canvas" tabindex="0" role="img" aria-label="The push-to-Monday map as a 3D scene: four sheets, ten slabs and nineteen numbered tubes. Drag to orbit. Arrow keys orbit and plus or minus zoom when the scene has focus."></canvas>
+      <p class="nogl" id="v1-nogl" hidden>This browser did not give the page WebGL, so the 3D scene cannot be drawn here. The rest of the page is unaffected.</p>
+    </div>
+    <div class="timebar">
+      <label for="v1-time">Handoff, in the order the map lists them</label>
+      <button type="button" id="v1-play">Play</button>
+      <input type="range" id="v1-time" min="0" max="19" step="1" value="0">
+      <output id="v1-caption" for="v1-time">All 19 handoffs are lit. Move the slider or press Play to light them one at a time.</output>
+    </div>
+    <p class="hint">Drag to orbit. Pinch to zoom, or click the scene and then scroll. With the scene in focus, the arrow keys orbit and plus and minus zoom.</p>
+  </figure>
+  <div class="notes">
+    <p>Depth gives each lane its own sheet, so a handoff that crosses lanes looks different from one that stays inside a lane, and the slider replays a long map one handoff at a time.</p>
+    <p>Text is harder to read at an angle and from a distance, and the scene asks for a finger or a pointer before it makes sense.</p>
+    <p>It must stay a view and never become the document, so nothing arranged in this scene would be written back into the file.</p>
+    <p>It would load only when someone asks for it, so the app's speed budget is untouched.</p>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Drawn on 2026-10-04 from <code>fixtures/valid/review-loop.grooph.json</code> and <code>handoffs/briefs/plan-2026-10-04/build.grooph-map.json</code>.</p>
+  <p>These are sketches for a decision. None of this is in the product.</p>
+</footer>
+
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+const root = document.documentElement;
+const MAP = {"groophMap":0,"id":"grooph-builds-grooph-2026-10-04","name":"grooph builds grooph: the push to Monday","version":1,"asOf":"2026-10-04","lanes":[{"id":"mac","name":"Ryan's Mac, this account","machine":"the Mac","place":"local","account":"the account signed in on the Mac"},{"id":"codex","name":"Codex on the Mac","machine":"the Mac","place":"local","account":"ChatGPT subscription"},{"id":"cloud","name":"Cloud, the other account","machine":"cloud","place":"cloud","account":"Ryan's other Claude account"}],"people":[{"id":"ryan","name":"Ryan","role":"Owner. Says yes or no at each gate, from his phone. Pastes the lane briefs. Says save point."}],"sessions":[{"id":"driver","name":"Driver","lane":"mac","harness":"claude-code","model":"claude-opus-5-5","role":"Writes each lane's brief, reviews each handback, merges on Ryan's word, keeps the plan and progress current, publishes the gate pages","lifetime":"long-lived","repo":"ryanjosephkamp/grooph"},{"id":"front-door","name":"Lane 1: front door","lane":"mac","harness":"claude-code","model":"claude-opus-5-5","role":"Landing page, README, desktop layout","lifetime":"per-task","repo":"ryanjosephkamp/grooph"},{"id":"embed","name":"Lane 2: embed and replay","lane":"mac","harness":"claude-code","model":"claude-opus-5-5","role":"A graph anyone can embed in a page, and a recorded run that plays","lifetime":"per-task","repo":"ryanjosephkamp/grooph"},{"id":"toolkit","name":"Lane 3: no-friction toolkit","lane":"mac","harness":"claude-code","model":"claude-sonnet-5-5","role":"First run, CLI help and errors, quickstart, rule reference","lifetime":"per-task","repo":"ryanjosephkamp/grooph"},{"id":"evidence","name":"Lane 4: evidence","lane":"mac","harness":"claude-code","model":"claude-opus-5-5","role":"Study two: runs the paired comparison, unattended","lifetime":"per-task","repo":"ryanjosephkamp/grooph"},{"id":"later","name":"Lanes 6 and 7: community, writing","lane":"mac","harness":"claude-code","model":"claude-sonnet-5-5","role":"Submissions by pull request; the blog draft and the technical report. Start when a slot frees","lifetime":"per-task","count":2,"repo":"ryanjosephkamp/grooph"},{"id":"codex-target","name":"Lane 5: Codex target","lane":"codex","harness":"codex","model":"gpt-6.1-sol","role":"The Codex compile target and one proving run; an outside read of each Claude lane's change","lifetime":"per-task","repo":"ryanjosephkamp/grooph"},{"id":"dot","name":"The Dot","lane":"cloud","harness":"claude-code","role":"Research it does itself: prior art, comparable tools, design references, the npm name. Never hands work to Codex","lifetime":"per-task"},{"id":"operator","name":"Operator","lane":"cloud","harness":"claude-code","model":"claude-opus-5-5","role":"Runs the other project's lanes, which publish their events. Asked only for what the events do not show","lifetime":"long-lived"}],"handoffs":[{"id":"h-plan","from":"driver","to":"ryan","carrier":{"kind":"review-page","where":"gate pages"},"what":"the plan, then each gate: what was done, what needs only a yes"},{"id":"h-yes","from":"ryan","to":"driver","carrier":{"kind":"session-message"},"what":"approved, or save point"},{"id":"h-brief","from":"ryan","to":"front-door","carrier":{"kind":"person","who":"Ryan"},"what":"the paste line that starts a lane, in a new Terminal tab"},{"id":"h-brief-2","from":"ryan","to":"embed","carrier":{"kind":"person","who":"Ryan"},"what":"the paste line"},{"id":"h-brief-3","from":"ryan","to":"toolkit","carrier":{"kind":"person","who":"Ryan"},"what":"the paste line"},{"id":"h-brief-4","from":"ryan","to":"evidence","carrier":{"kind":"person","who":"Ryan"},"what":"the paste line, once he says go to study two"},{"id":"h-brief-5","from":"ryan","to":"codex-target","carrier":{"kind":"person","who":"Ryan"},"what":"the prompt, in the Codex app"},{"id":"h-handoff","from":"driver","to":"front-door","carrier":{"kind":"branch","repo":"ryanjosephkamp/grooph","ref":"main"},"what":"HANDOFF.md for each lane, on main"},{"id":"h-pr-1","from":"front-door","to":"driver","carrier":{"kind":"pull-request","repo":"ryanjosephkamp/grooph"},"what":"the lane's work with its HANDBACK.md"},{"id":"h-pr-2","from":"embed","to":"driver","carrier":{"kind":"pull-request","repo":"ryanjosephkamp/grooph"},"what":"the lane's work with its HANDBACK.md"},{"id":"h-pr-3","from":"toolkit","to":"driver","carrier":{"kind":"pull-request","repo":"ryanjosephkamp/grooph"},"what":"the lane's work with its HANDBACK.md"},{"id":"h-pr-4","from":"evidence","to":"driver","carrier":{"kind":"pull-request","repo":"ryanjosephkamp/grooph"},"what":"the study's records and write-ups"},{"id":"h-pr-5","from":"codex-target","to":"driver","carrier":{"kind":"branch","repo":"ryanjosephkamp/grooph"},"what":"the Codex target on a branch, with its HANDBACK.md"},{"id":"h-later","from":"driver","to":"later","carrier":{"kind":"branch","repo":"ryanjosephkamp/grooph","ref":"main"},"what":"their briefs, when a slot frees"},{"id":"h-later-back","from":"later","to":"driver","carrier":{"kind":"pull-request","repo":"ryanjosephkamp/grooph"},"what":"their work"},{"id":"h-dot","from":"ryan","to":"dot","carrier":{"kind":"person","who":"Ryan"},"what":"the research questions"},{"id":"h-dot-back","from":"dot","to":"driver","carrier":{"kind":"person","who":"Ryan"},"what":"what it found, as a file Ryan attaches"},{"id":"h-events","from":"operator","to":"driver","carrier":{"kind":"branch","repo":"the other project's public repository","ref":"grooph-events/*"},"what":"the other project's lanes' events, read with grooph sessions"},{"id":"h-ask","from":"driver","to":"operator","carrier":{"kind":"person","who":"Ryan"},"what":"only what the events do not show"}]};
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const f1 = v => Math.round(v * 10) / 10;
+const PICFONT = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+
+/* ---------- the page's theme, mirrored onto each grooph picture ---------- */
+const themeSubs = [];
+function mirrorTheme() {
+  const t = root.getAttribute('data-theme');
+  $$('svg.grooph-picture').forEach(s => {
+    if (t === 'light' || t === 'dark') s.setAttribute('data-theme', t); else s.removeAttribute('data-theme');
+  });
+}
+function themeChanged() { mirrorTheme(); themeSubs.forEach(f => f()); }
+mirrorTheme();
+new MutationObserver(themeChanged).observe(root, {attributes: true, attributeFilter: ['data-theme']});
+const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
+if (mqDark.addEventListener) mqDark.addEventListener('change', themeChanged); else if (mqDark.addListener) mqDark.addListener(themeChanged);
+
+/* ---------- the map, read once ---------- */
+// Tags and short names are presentation hints written for these sketches; the map document has neither.
+const TAGS = {
+  'ryan': ['Ry', 'Ryan'], 'driver': ['Dr', 'Driver'], 'front-door': ['L1', 'front door'], 'embed': ['L2', 'embed, replay'],
+  'toolkit': ['L3', 'toolkit'], 'evidence': ['L4', 'evidence'], 'later': ['L6·7', 'community, writing'],
+  'codex-target': ['L5', 'Codex target'], 'dot': ['Dot', 'The Dot'], 'operator': ['Op', 'Operator']
+};
+const HARNESS = {'claude-code': 'Claude Code', 'codex': 'Codex'};
+const people = (MAP.people || []).map(p => Object.assign({kind: 'person'}, p));
+const sessions = MAP.sessions.map(s => Object.assign({kind: 'session'}, s));
+const byId = {};
+people.concat(sessions).forEach(n => {
+  const t = TAGS[n.id] || [n.name.slice(0, 2), n.name];
+  n.tag = t[0]; n.short = t[1]; byId[n.id] = n;
+});
+const CAR = {
+  'person': {w: 2.4, dash: ''},
+  'branch': {w: 1.6, dash: ''},
+  'pull-request': {w: 1.6, dash: ''},
+  'session-message': {w: 1.4, dash: '5 3'},
+  'review-page': {w: 1.4, dash: '7 3 1.5 3'}
+};
+const carOf = k => CAR[k] || {w: 1.4, dash: '1 3'};
+const kClass = k => 'k-' + (CAR[k] ? k : 'other');
+function carrierText(h) {
+  const c = h.carrier || {};
+  if (c.kind === 'person') return 'carried by ' + (c.who || byId[h.from].name);
+  if (c.kind === 'branch') return 'branch' + (c.ref ? ' ' + c.ref : '');
+  if (c.kind === 'pull-request') return 'pull request';
+  if (c.kind === 'session-message') return 'session message';
+  if (c.kind === 'review-page') return 'review page' + (c.where ? ': ' + c.where : '');
+  return c.kind || 'no carrier';
+}
+const H = MAP.handoffs.map((h, i) => ({n: i + 1, id: h.id, from: h.from, to: h.to, kind: (h.carrier || {}).kind || 'other', ctext: carrierText(h), what: h.what || ''}));
+const pairKey = h => [h.from, h.to].sort().join('|');
+const PAIRS = {};
+H.forEach(h => { (PAIRS[pairKey(h)] = PAIRS[pairKey(h)] || []).push(h); });
+const pairOffset = h => { const g = PAIRS[pairKey(h)]; return g.indexOf(h) - (g.length - 1) / 2; };
+const degree = id => H.filter(h => h.from === id || h.to === id).length;
+const hub = sessions.slice().sort((a, b) => degree(b.id) - degree(a.id))[0];
+const tip = h => `${h.n} · ${byId[h.from].name} → ${byId[h.to].name} · ${h.ctext} · ${h.what}`;
+const GROUPS = (people.length ? [{id: 'person', name: people.length > 1 ? 'People' : 'Person', ids: people.map(p => p.id), person: true}] : [])
+  .concat(MAP.lanes.map(l => ({id: l.id, name: l.name, ids: sessions.filter(s => s.lane === l.id).map(s => s.id)})).filter(g => g.ids.length));
+
+/* ---------- small SVG kit ---------- */
+const mctx = document.createElement('canvas').getContext('2d');
+function tw(text, size, bold) { mctx.font = (bold ? '700 ' : '400 ') + size + 'px ' + PICFONT; return mctx.measureText(text).width; }
+function wrap(text, maxW, size, bold) {
+  const lines = []; let cur = '';
+  String(text).split(/\s+/).filter(Boolean).forEach(word => {
+    const t = cur ? cur + ' ' + word : word;
+    if (!cur || tw(t, size, bold) <= maxW) cur = t; else { lines.push(cur); cur = word; }
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+function txt(x, y, s, o) {
+  o = o || {};
+  return `<text x="${f1(x)}" y="${f1(y)}" font-size="${o.size || 11}"${o.bold ? ' font-weight="700"' : ''}${o.anchor ? ` text-anchor="${o.anchor}"` : ''}${o.cls ? ` class="${o.cls}"` : ''}>${esc(s)}</text>`;
+}
+function pathFor(d, h) { const c = carOf(h.kind); return `<path d="${d}" class="kl" stroke-width="${c.w}"${c.dash ? ` stroke-dasharray="${c.dash}"` : ''}/>`; }
+const ahead = (x, y, deg) => `<path d="M0,0 l-6.5,-3.6 v7.2 z" class="kf" transform="translate(${f1(x)} ${f1(y)}) rotate(${f1(deg)})"/>`;
+const sdot = (x, y) => `<circle cx="${f1(x)}" cy="${f1(y)}" r="2.2" class="kf"/>`;
+function badge(x, y, h, r) {
+  r = r || 7.6;
+  const c = carOf(h.kind);
+  const bd = !c.dash ? '' : (h.kind === 'review-page' ? '4 1.6 1 1.6' : '3 1.8');
+  return `<g class="bdg ${kClass(h.kind)}"><circle cx="${f1(x)}" cy="${f1(y)}" r="${r}" stroke-width="${c.w > 2 ? 2.2 : 1.3}"${bd ? ` stroke-dasharray="${bd}"` : ''}/><text x="${f1(x)}" y="${f1(y + (r > 6 ? 3.3 : 2.8))}" font-size="${r > 6 ? 9.5 : 8}" text-anchor="middle">${h.n}</text></g>`;
+}
+const hgroup = (h, inner) => `<g class="${kClass(h.kind)}" data-n="${h.n}"><title>${esc(tip(h))}</title>${inner}</g>`;
+const svgWrap = (w, h, label, inner) => `<svg class="gsk" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f1(w)} ${f1(h)}" width="${f1(w)}" height="${f1(h)}" role="img" aria-label="${esc(label)}">${inner}</svg>`;
+
+/* ---------- L2 · lanes side by side ---------- */
+function cardLines(s, width) {
+  const inner = width - 18;
+  return {
+    name: wrap(s.name, inner - (s.count > 1 ? 30 : 0), 12.5, true),
+    hm: [HARNESS[s.harness] || s.harness].concat(s.model ? [s.model] : []),
+    role: wrap(s.role || '', inner, 10.5)
+  };
+}
+const cardHeight = L => 8 + L.name.length * 15 + L.hm.length * 12.5 + 4 + L.role.length * 13 + 8;
+function cardSvg(s, p) {
+  let o = `<rect x="${f1(p.x)}" y="${f1(p.y)}" width="${f1(p.w)}" height="${f1(p.h)}" rx="9" class="card"/>`;
+  let y = p.y + 8;
+  if (s.count > 1) o += `<rect x="${f1(p.x + p.w - 36)}" y="${f1(p.y + 8)}" width="28" height="15.5" rx="7.75" class="pill"/>` + txt(p.x + p.w - 22, p.y + 19.2, '×' + s.count, {size: 9.5, bold: true, anchor: 'middle', cls: 'ta'});
+  p.L.name.forEach(t => { y += 15; o += txt(p.x + 9, y - 3, t, {size: 12.5, bold: true}); });
+  p.L.hm.forEach(t => { y += 12.5; o += txt(p.x + 9, y - 2.5, t, {size: 10, bold: true, cls: 'ta'}); });
+  y += 4;
+  p.L.role.forEach(t => { y += 13; o += txt(p.x + 9, y - 3, t, {size: 10.5, cls: 't2'}); });
+  return `<g data-s="${esc(s.id)}">${o}</g>`;
+}
+function drawLanes(W) {
+  const minW = 800, w = Math.max(minW, W);
+  const pad = 10, lp = 10, ag = 58, gapY = 10;
+  const laneList = MAP.lanes.slice().sort((a, b) => (b.id === hub.lane) - (a.id === hub.lane));
+  const isP = id => byId[id].kind === 'person';
+  const isMate = id => byId[id].kind === 'session' && byId[id].lane === hub.lane && id !== hub.id;
+  const mates = sessions.filter(s => isMate(s.id));
+  const trackH = H.filter(h => (isP(h.from) && isMate(h.to)) || (isP(h.to) && isMate(h.from)));
+  const tm = trackH.length ? 30 + (trackH.length - 1) * 14 : 0;
+  const extra = w - minW;
+  const cw = Math.min(190, 140 + extra * 0.25), hw = Math.min(156, 124 + extra * 0.12);
+  const laneW = l => l.id === hub.lane ? lp + tm + cw + ag + hw + lp : lp + cw + lp;
+  const sumW = laneList.reduce((a, l) => a + laneW(l), 0);
+  const G = laneList.length > 1 ? (w - 2 * pad - sumW) / (laneList.length - 1) : 0;
+  let o = '';
+
+  // the people, as one band across the top
+  const ppos = {};
+  let bandBottom = 8;
+  if (people.length) {
+    const pw = (w - 2 * pad - (people.length - 1) * 10) / people.length;
+    const roles = people.map(p => wrap(p.role || '', pw - 24, 11));
+    const ph = 30 + Math.max(...roles.map(r => r.length)) * 14 + 6;
+    people.forEach((p, i) => {
+      const x = pad + i * (pw + 10);
+      ppos[p.id] = {x, y: 8, w: pw, h: ph};
+      o += `<g data-p="${esc(p.id)}"><rect x="${f1(x)}" y="8" width="${f1(pw)}" height="${f1(ph)}" rx="14" class="pcard" stroke-width="1.4"/>`
+        + txt(x + 12, 27, p.name, {size: 13.5, bold: true}) + txt(x + pw - 12, 26, 'Person', {size: 9.5, bold: true, cls: 'tp', anchor: 'end'})
+        + roles[i].map((t, j) => txt(x + 12, 43 + j * 14, t, {size: 11, cls: 't2'})).join('') + '</g>';
+    });
+    bandBottom = 8 + ph;
+  }
+  const laneTop = bandBottom + 38;
+
+  // lanes and their headers
+  const lx = {};
+  let x = pad;
+  laneList.forEach(l => { lx[l.id] = x; x += laneW(l) + G; });
+  const hdr = {};
+  let hdrH = 0;
+  laneList.forEach(l => {
+    const isHub = l.id === hub.lane, tw_ = isHub ? cw + ag - 12 : cw - 40;
+    const t = wrap(l.name, tw_, 12.5, true), s = wrap([l.place, l.machine, l.account].filter(Boolean).join(' · '), tw_, 10);
+    hdr[l.id] = {t, s, x: lx[l.id] + lp + (isHub ? tm : 0)};
+    hdrH = Math.max(hdrH, 8 + t.length * 15 + s.length * 12.5 + 10);
+  });
+  const cardsTop = laneTop + hdrH;
+
+  // cards
+  const pos = {};
+  const sx = lx[hub.lane] + lp + tm, hubX = sx + cw + ag;
+  let yy = cardsTop;
+  mates.forEach(s => { const L = cardLines(s, cw), h = cardHeight(L); pos[s.id] = {x: sx, y: yy, w: cw, h, L}; yy += h + gapY; });
+  const stackBottom = mates.length ? yy - gapY : cardsTop;
+  let stair = cardsTop, otherBottom = cardsTop;
+  laneList.filter(l => l.id !== hub.lane).forEach(l => {
+    let y2 = stair;
+    sessions.filter(s => s.lane === l.id).forEach(s => { const L = cardLines(s, cw), h = cardHeight(L); pos[s.id] = {x: lx[l.id] + lp, y: y2, w: cw, h, L}; y2 += h + gapY; });
+    stair = y2 + 2; otherBottom = Math.max(otherBottom, y2 - gapY);
+  });
+  const hubL = cardLines(hub, hw);
+  const hubH = Math.max(stackBottom, otherBottom, cardsTop + cardHeight(hubL)) - cardsTop;
+  pos[hub.id] = {x: hubX, y: cardsTop, w: hw, h: hubH, L: hubL};
+  const lanesBottom = cardsTop + hubH + lp;
+
+  laneList.forEach(l => {
+    o += `<g data-lane="${esc(l.id)}"><rect x="${f1(lx[l.id])}" y="${f1(laneTop)}" width="${f1(laneW(l))}" height="${f1(lanesBottom - laneTop)}" rx="12" class="lane"/>`;
+    let ty = laneTop + 8;
+    hdr[l.id].t.forEach(t => { ty += 15; o += txt(hdr[l.id].x, ty - 3, t, {size: 12.5, bold: true}); });
+    hdr[l.id].s.forEach(t => { ty += 12.5; o += txt(hdr[l.id].x, ty - 3, t, {size: 10, cls: 't3'}); });
+    o += '</g>';
+  });
+
+  // handoffs
+  const lines = [], badges = [];
+  const put = (h, d, hx, hy, deg, dx, dy, bx, by) => { lines.push(hgroup(h, pathFor(d, h) + sdot(dx, dy) + ahead(hx, hy, deg))); badges.push(badge(bx, by, h)); };
+  const mateOf = h => pos[isP(h.from) ? h.to : h.from];
+  const tracks = trackH.slice().sort((a, b) => mateOf(a).y - mateOf(b).y);
+  const drops = {};
+  H.forEach(h => {
+    const a = byId[h.from], b = byId[h.to], off = pairOffset(h);
+    if (a.kind === 'person' && b.kind === 'person') return;
+    if (a.kind === 'person' || b.kind === 'person') {
+      const down = a.kind === 'person', p = ppos[(down ? a : b).id], s = down ? b : a, sp = pos[s.id], y0 = p.y + p.h;
+      if (isMate(s.id)) {
+        const tx = sx - 20 - tracks.indexOf(h) * 14, cy = sp.y + sp.h / 2;
+        if (down) put(h, `M${f1(tx)},${f1(y0)} V${f1(cy - 7)} Q${f1(tx)},${f1(cy)} ${f1(tx + 7)},${f1(cy)} H${f1(sp.x - 5.5)}`, sp.x - 0.5, cy, 0, tx, y0, tx, cy);
+        else put(h, `M${f1(sp.x)},${f1(cy)} H${f1(tx + 7)} Q${f1(tx)},${f1(cy)} ${f1(tx)},${f1(cy - 7)} V${f1(y0 + 5.5)}`, tx, y0 + 0.5, -90, sp.x, cy, tx, cy);
+      } else {
+        let xx;
+        if (s.id === hub.id) xx = sp.x + sp.w / 2 + off * 26;
+        else { drops[s.id] = (drops[s.id] || 0) + 1; xx = sp.x + sp.w - 22 - (drops[s.id] - 1) * 20; }
+        if (down) put(h, `M${f1(xx)},${f1(y0)} V${f1(sp.y - 5.5)}`, xx, sp.y - 0.5, 90, xx, y0, xx, y0 + 19);
+        else put(h, `M${f1(xx)},${f1(sp.y)} V${f1(y0 + 5.5)}`, xx, y0 + 0.5, -90, xx, sp.y, xx, y0 + 19);
+      }
+      return;
+    }
+    if (a.id === hub.id || b.id === hub.id) {
+      const toHub = b.id === hub.id, s = toHub ? a : b, sp = pos[s.id], hp = pos[hub.id];
+      const y = sp.y + sp.h / 2 + off * 18;
+      if (isMate(s.id)) {
+        const xs = sp.x + sp.w, xh = hp.x, mid = (xs + xh) / 2;
+        if (toHub) put(h, `M${f1(xs)},${f1(y)} H${f1(xh - 5.5)}`, xh - 0.5, y, 0, xs, y, mid, y);
+        else put(h, `M${f1(xh)},${f1(y)} H${f1(xs + 5.5)}`, xs + 0.5, y, 180, xh, y, mid, y);
+      } else {
+        const xs = sp.x, xh = hp.x + hp.w;
+        if (toHub) put(h, `M${f1(xs)},${f1(y)} H${f1(xh + 5.5)}`, xh + 0.5, y, 180, xs, y, xs - lp - G / 2, y);
+        else put(h, `M${f1(xh)},${f1(y)} H${f1(xs - 5.5)}`, xs - 0.5, y, 0, xh, y, xh + lp + G / 2, y);
+      }
+      return;
+    }
+    const pa = pos[a.id], pb = pos[b.id];
+    if (!pa || !pb) return;
+    const x1 = pa.x + pa.w / 2, y1 = pa.y + pa.h / 2, x2 = pb.x + pb.w / 2, y2 = pb.y + pb.h / 2;
+    put(h, `M${f1(x1)},${f1(y1)} L${f1(x2)},${f1(y2)}`, x2, y2, Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI, x1, y1, (x1 + x2) / 2, (y1 + y2) / 2);
+  });
+  const cards = sessions.map(s => cardSvg(s, pos[s.id])).join('');
+  return svgWrap(w, lanesBottom + 8, 'The push-to-Monday map with its lanes as columns', o + lines.join('') + cards + badges.join(''));
+}
+
+/* ---------- L3 · sequence ---------- */
+function drawSequence(W) {
+  const cols = people.concat(sessions), n = cols.length;
+  const full = W >= 700;
+  const w = Math.max(W, full ? 700 : 340);
+  const aw = w >= 760 ? clamp(w * 0.27, 170, 270) : 0;
+  const left = 4, colW = (w - aw - left * 2) / n;
+  const cx = {};
+  cols.forEach((c, i) => { cx[c.id] = left + colW * (i + 0.5); });
+  let o = '';
+  const bandY = 6;
+  const bl = GROUPS.map(g => full ? wrap(g.name, g.ids.length * colW - 14, 9.5, true) : [g.id]);
+  const bandH = full ? Math.max(...bl.map(l => l.length)) * 12 + 9 : 18;
+  GROUPS.forEach((g, i) => {
+    const x0 = cx[g.ids[0]] - colW / 2 + 3, sw = g.ids.length * colW - 6;
+    o += `<rect x="${f1(x0)}" y="${bandY}" width="${f1(sw)}" height="${f1(bandH)}" rx="6" class="${g.person ? 'pband' : 'lane'}"/>`;
+    bl[i].forEach((t, j) => { o += txt(x0 + sw / 2, bandY + (full ? 14 : 12.5) + j * 12, t, {size: full ? 9.5 : 8.5, bold: full, anchor: 'middle', cls: full ? 't2' : 't2 mono'}); });
+  });
+  const headY = bandY + bandH + 6;
+  const names = cols.map(c => full ? wrap(c.short, colW - 14, 9.5) : []);
+  const headH = full ? 21 + Math.max(...names.map(l => l.length)) * 11.5 + 4 : 20;
+  cols.forEach((c, i) => {
+    const bw = colW - (full ? 8 : 4), x0 = cx[c.id] - bw / 2;
+    o += `<rect x="${f1(x0)}" y="${f1(headY)}" width="${f1(bw)}" height="${f1(headH)}" rx="${c.kind === 'person' ? 10 : 6}" class="${c.kind === 'person' ? 'pcard' : 'card'}"/>`
+      + txt(cx[c.id], headY + 14, c.tag, {size: full ? 11 : 9.5, bold: true, anchor: 'middle'})
+      + names[i].map((t, j) => txt(cx[c.id], headY + 27 + j * 11.5, t, {size: 9.5, anchor: 'middle', cls: 't2'})).join('');
+  });
+  const rowH = full ? 31 : 25, y0 = headY + headH + 20, bottom = y0 + (H.length - 1) * rowH + 16;
+  cols.forEach(c => { o += `<path d="M${f1(cx[c.id])},${f1(headY + headH)} V${f1(bottom)}" class="life"/>`; });
+  const lines = [], badges = [];
+  H.forEach((h, k) => {
+    const y = y0 + k * rowH, x1 = cx[h.from], x2 = cx[h.to];
+    if (aw) {
+      if (k) o += `<path d="M${left},${f1(y - rowH / 2)} H${f1(w - left)}" class="rule"/>`;
+      const ls = wrap(h.what, aw - 18, 10.5);
+      ls.forEach((t, j) => { o += txt(left + colW * n + 12, y + 3.6 - (ls.length - 1) * 6.5 + j * 13, t, {size: 10.5, cls: 't2'}); });
+    }
+    if (x1 === x2) {
+      lines.push(hgroup(h, pathFor(`M${f1(x1)},${f1(y - 5)} h14 v10 h${f1(-8.5)}`, h) + sdot(x1, y - 5) + ahead(x1 + 0.5, y + 5, 180)));
+      badges.push(badge(x1 + 14, y, h));
+    } else {
+      const dir = x2 > x1 ? 1 : -1;
+      lines.push(hgroup(h, pathFor(`M${f1(x1)},${f1(y)} H${f1(x2 - dir * 5.5)}`, h) + sdot(x1, y) + ahead(x2 - dir * 0.5, y, dir > 0 ? 0 : 180)));
+      badges.push(badge(x1 + dir * Math.min(15, colW * 0.44), y, h));
+    }
+  });
+  return svgWrap(w, bottom + 6, 'The push-to-Monday map as a sequence: one column for each session and one row for each handoff', o + lines.join('') + badges.join(''));
+}
+
+/* ---------- L4 · matrix ---------- */
+function drawMatrix(W) {
+  const order = GROUPS.reduce((a, g) => a.concat(g.ids), []), n = order.length, ng = GROUPS.length;
+  const w = Math.max(W, 330);
+  const tagW = 30, nameW = Math.ceil(Math.max(...order.map(id => tw(byId[id].short, 10)))) + 8;
+  const rh = tagW + nameW, gg = 6, gv = 17, top = 34;
+  const cell = clamp((w - rh - (ng - 1) * gg - 6) / n, 20, 36);
+  const px = {}, py = {};
+  let xx = rh + 2, yy = top + gv;
+  GROUPS.forEach(g => { g.ids.forEach(id => { px[id] = xx; xx += cell; }); xx += gg; });
+  GROUPS.forEach(g => { g.y = yy; g.ids.forEach(id => { py[id] = yy; yy += cell; }); yy += gv; });
+  const height = yy - gv + 6;
+  let o = txt(2, 12, 'Row hands to column', {size: 9.5, cls: 't3'});
+  order.forEach(id => { o += txt(px[id] + cell / 2, top - 6, byId[id].tag, {size: cell < 25 ? 8 : 9.5, bold: true, anchor: 'middle'}); });
+  GROUPS.forEach(g => { o += txt(2, g.y - 5, g.name, {size: 9.5, bold: true, cls: 't3'}); });
+  const inCell = {};
+  H.forEach(h => { const k = h.from + '>' + h.to; (inCell[k] = inCell[k] || []).push(h); });
+  const badges = [];
+  order.forEach(r => {
+    o += txt(2, py[r] + cell / 2 + 3.5, byId[r].tag, {size: 10, bold: true}) + txt(2 + tagW, py[r] + cell / 2 + 3.5, byId[r].short, {size: 10, cls: 't2'});
+    order.forEach(c => {
+      o += `<rect x="${f1(px[c])}" y="${f1(py[r])}" width="${f1(cell)}" height="${f1(cell)}" class="${r === c ? 'diag' : 'cell'}"/>`;
+      const hs = inCell[r + '>' + c] || [];
+      hs.forEach((h, i) => {
+        const small = hs.length > 1, bx = px[c] + cell / 2 + (small ? (i - (hs.length - 1) / 2) * 11.5 : 0);
+        badges.push(`<g data-n="${h.n}"><title>${esc(tip(h))}</title>${badge(bx, py[r] + cell / 2, h, small ? 5.4 : Math.min(7.6, cell / 2 - 2.5))}</g>`);
+      });
+    });
+  });
+  return svgWrap(Math.max(w, xx - gg + 4), height, 'The push-to-Monday map as a matrix: each handoff number sits in the row of its sender and the column of its receiver', o + badges.join(''));
+}
+
+/* ---------- L5 · ring ---------- */
+function drawRing(W) {
+  const w = clamp(W, 330, 470);
+  // people first at the top, then each lane; in the hub's lane the hub goes last, so it sits away from the person
+  const order = [], arcs = [];
+  GROUPS.forEach(g => {
+    const ids = g.ids.slice();
+    if (ids.indexOf(hub.id) >= 0) { ids.splice(ids.indexOf(hub.id), 1); ids.push(hub.id); }
+    arcs.push({id: g.id, from: order.length, to: order.length + ids.length - 1});
+    ids.forEach(id => order.push(id));
+  });
+  const n = order.length, step = Math.PI * 2 / n, r = 14;
+  const ang = i => -Math.PI / 2 - i * step;
+  const R = w / 2 - 88, cx = w / 2, cy = R + 62, Ra = R + r + 6;
+  const at = (a, rad) => [cx + rad * Math.cos(a), cy + rad * Math.sin(a)];
+  const idx = {};
+  order.forEach((id, i) => { idx[id] = i; });
+  let o = '';
+  arcs.forEach((a, i) => {
+    const a1 = ang(a.from) + step / 2 - 0.06, a2 = ang(a.to) - step / 2 + 0.06, mid = (a1 + a2) / 2;
+    const large = a1 - a2 > Math.PI ? 1 : 0, p1 = at(a1, Ra), p2 = at(a2, Ra);
+    const d = Math.sin(mid) < 0
+      ? `M${f1(p2[0])},${f1(p2[1])} A${f1(Ra)},${f1(Ra)} 0 ${large} 1 ${f1(p1[0])},${f1(p1[1])}`
+      : `M${f1(p1[0])},${f1(p1[1])} A${f1(Ra)},${f1(Ra)} 0 ${large} 0 ${f1(p2[0])},${f1(p2[1])}`;
+    o += `<path id="ring-arc-${i}" d="${d}" class="arc"/>` + ['arch', 'arct'].map(c => `<text font-size="9" class="${c}" dominant-baseline="central"><textPath href="#ring-arc-${i}" startOffset="50%" text-anchor="middle">${esc(a.id)}</textPath></text>`).join('');
+  });
+  const lines = [], badges = [];
+  H.forEach(h => {
+    const ia = idx[h.from], ib = idx[h.to];
+    if (ia === ib) return;
+    const off = pairOffset(h);
+    const Na = at(ang(ia), R), Nb = at(ang(ib), R);
+    let sep = Math.abs(ia - ib) * step; if (sep > Math.PI) sep = Math.PI * 2 - sep;
+    const k = 0.8 - 0.5 * sep / Math.PI;
+    const lo = h.from < h.to ? Na : Nb, hi = h.from < h.to ? Nb : Na;
+    let nx = -(hi[1] - lo[1]), ny = hi[0] - lo[0];
+    const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+    const C = [cx + ((Na[0] + Nb[0]) / 2 - cx) * k + nx * off * 22, cy + ((Na[1] + Nb[1]) / 2 - cy) * k + ny * off * 22];
+    const edge = (N) => { const dx = C[0] - N[0], dy = C[1] - N[1], l = Math.hypot(dx, dy) || 1; return [N[0] + dx / l * (r + 1) + nx * off * 7, N[1] + dy / l * (r + 1) + ny * off * 7]; };
+    const A = edge(Na), B = edge(Nb);
+    const tdx = B[0] - C[0], tdy = B[1] - C[1], tl = Math.hypot(tdx, tdy) || 1;
+    const Bs = [B[0] - tdx / tl * 5.5, B[1] - tdy / tl * 5.5];
+    lines.push(hgroup(h, pathFor(`M${f1(A[0])},${f1(A[1])} Q${f1(C[0])},${f1(C[1])} ${f1(Bs[0])},${f1(Bs[1])}`, h) + sdot(A[0], A[1]) + ahead(B[0], B[1], Math.atan2(tdy, tdx) * 180 / Math.PI)));
+    // the number sits near the end that is neither the hub nor a person, so each session keeps its own numbers close
+    const plain = id => id !== hub.id && byId[id].kind !== 'person';
+    const nearFrom = plain(h.from) ? true : plain(h.to) ? false : byId[h.from].kind === 'person';
+    const f = 0.3 + off * 0.15, t = nearFrom ? f : 1 - f;
+    badges.push(badge((1 - t) * (1 - t) * A[0] + 2 * t * (1 - t) * C[0] + t * t * B[0], (1 - t) * (1 - t) * A[1] + 2 * t * (1 - t) * C[1] + t * t * B[1], h));
+  });
+  let nodes = '';
+  order.forEach((id, i) => {
+    const nd = byId[id], a = ang(i), c = Math.cos(a), s = Math.sin(a), p = at(a, R), q = at(a, R + 31);
+    nodes += `<circle cx="${f1(p[0])}" cy="${f1(p[1])}" r="${r}" class="${nd.kind === 'person' ? 'pcard' : 'card'}" stroke-width="1.2"/>` + txt(p[0], p[1] + 3.4, nd.tag, {size: 9.5, bold: true, anchor: 'middle'});
+    const side = Math.abs(c) > 0.35;
+    const ls = wrap(nd.short, side ? (c > 0 ? w - q[0] : q[0]) - 3 : 110, 9.5);
+    const anchor = !side ? 'middle' : (c > 0 ? 'start' : 'end');
+    const ty = side ? q[1] - (ls.length - 1) * 5.5 + 3.3 : (s < 0 ? q[1] - (ls.length - 1) * 11 : q[1] + 7);
+    ls.forEach((t, j) => { nodes += txt(q[0], ty + j * 11, t, {size: 9.5, anchor, cls: 't2'}); });
+  });
+  return svgWrap(w, cy + R + 62, 'The push-to-Monday map as a ring: sessions around a circle and handoffs as chords', o + lines.join('') + nodes + badges.join(''));
+}
+
+/* ---------- mount the drawings; redraw when their box changes width ---------- */
+function mount(id, fn) {
+  const host = $('#' + id);
+  if (!host) return;
+  const box = host.parentElement;
+  let last = -1;
+  const run = () => { const W = Math.floor(box.clientWidth); if (W < 60 || W === last) return; last = W; host.innerHTML = fn(W); };
+  run();
+  if ('ResizeObserver' in window) new ResizeObserver(run).observe(box); else window.addEventListener('resize', run);
+}
+mount('l2-draw', drawLanes);
+mount('l3-draw', drawSequence);
+mount('l4-draw', drawMatrix);
+mount('l5-draw', drawRing);
+
+/* ---------- the key ---------- */
+$('#tag-list').innerHTML = people.concat(sessions).map(n => `<li><b>${esc(n.tag)}</b><span>${esc(n.name)}</span></li>`).join('');
+$('#handoff-list').innerHTML = H.map(h => `<li class="${kClass(h.kind)}"><span class="n">${h.n}</span><span><b>${esc(byId[h.from].name)} → ${esc(byId[h.to].name)}</b> <span class="c">${esc(h.ctext)}</span><br>${esc(h.what)}</span></li>`).join('');
+
+/* ---------- L1: thumbnail or full size ---------- */
+(() => {
+  const btn = $('#l1-toggle'), lay = $('#lay'), pic = $('#l1-pic');
+  btn.addEventListener('click', () => {
+    const on = btn.getAttribute('aria-pressed') !== 'true';
+    btn.setAttribute('aria-pressed', String(on));
+    btn.textContent = on ? 'Show small again' : 'Show at full size';
+    lay.classList.toggle('is-full', on);
+    pic.tabIndex = on ? 0 : -1;
+  });
+})();
+
+/* ---------- V1 · three dimensions, and time ---------- */
+(() => {
+  const stage = $('#v1-stage'), canvas = $('#v1-canvas'), nogl = $('#v1-nogl');
+  const bFlat = $('#v1-flat'), b3d = $('#v1-3d'), bReset = $('#v1-reset'), bIn = $('#v1-in'), bOut = $('#v1-out'), bPlay = $('#v1-play'), time = $('#v1-time'), cap = $('#v1-caption');
+  const fail = msg => { canvas.hidden = true; nogl.hidden = false; if (msg) nogl.textContent = msg; [bFlat, b3d, bReset, bIn, bOut, bPlay, time].forEach(c => { c.disabled = true; }); };
+  const T = window.THREE;
+  if (!T) { fail('The 3D library did not load, so the scene cannot be drawn here. The rest of the page is unaffected.'); return; }
+  let renderer;
+  try {
+    const probe = document.createElement('canvas');
+    if (!(probe.getContext('webgl2') || probe.getContext('webgl') || probe.getContext('experimental-webgl'))) throw new Error('no webgl');
+    renderer = new T.WebGLRenderer({canvas, antialias: true, alpha: true});
+  } catch (e) { fail(); return; }
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new T.Scene(), camera = new T.PerspectiveCamera(32, 1, 0.1, 400);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const UP = new T.Vector3(0, 1, 0);
+  const col = {};
+  const readColors = () => {
+    const cs = getComputedStyle(root);
+    ['panel', 'card', 'lane', 'ink', 'ink-2', 'ink-3', 'line', 'line-strong', 'accent', 'accent-soft', 'k-branch', 'k-pr', 'k-person', 'k-person-soft', 'k-message', 'k-page']
+      .forEach(k => { col[k] = cs.getPropertyValue('--' + k).trim() || '#808080'; });
+  };
+  const KC = {'branch': 'k-branch', 'pull-request': 'k-pr', 'person': 'k-person', 'session-message': 'k-message', 'review-page': 'k-page'};
+  const kcol = kind => col[KC[kind] || 'k-message'];
+  const sheets = GROUPS.map(g => ({id: g.id, name: g.name, items: g.ids.map(id => byId[id])}));
+
+  const paints = [];
+  const makeTex = (w, h, draw) => {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const tex = new T.CanvasTexture(c); tex.minFilter = T.LinearFilter; tex.generateMipmaps = false;
+    const job = () => { const x = c.getContext('2d'); x.clearRect(0, 0, w, h); draw(x, w, h); tex.needsUpdate = true; };
+    job(); paints.push(job);
+    return tex;
+  };
+  const dashTex = spans => {
+    const c = document.createElement('canvas'); c.width = 64; c.height = 2;
+    const x = c.getContext('2d'); x.fillStyle = '#000'; x.fillRect(0, 0, 64, 2); x.fillStyle = '#fff';
+    spans.forEach(s => x.fillRect(s[0], 0, s[1] - s[0], 2));
+    const t = new T.CanvasTexture(c); t.wrapS = T.RepeatWrapping; t.magFilter = T.NearestFilter; t.minFilter = T.NearestFilter; t.generateMipmaps = false;
+    return t;
+  };
+  const DASH = {'session-message': [[0, 38]], 'review-page': [[0, 30], [42, 50]]};
+
+  const SW = 1.9, SH = 0.26, SD = 1.25, PZ = 2.3;
+  const P3D = {theta: -0.55, phi: 1.05}, PFLAT = {theta: 0, phi: 0.02};
+  const view = {theta: P3D.theta, phi: P3D.phi, radius: 34, blend: 1};
+  const now = {k: 0};
+  let world = null, wide = null, mode = '3d', zoomed = false, lastBlend = -1;
+
+  function build(isWide) {
+    if (world) {
+      scene.remove(world.group);
+      world.group.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        const m = obj.material;
+        if (m) (Array.isArray(m) ? m : [m]).forEach(x => { if (x.map) x.map.dispose(); if (x.alphaMap) x.alphaMap.dispose(); x.dispose(); });
+      });
+    }
+    paints.length = 0;
+    const group = new T.Group(); scene.add(group);
+    const per = isWide ? 6 : 3, PX = isWide ? 2.4 : 3, PW = per * PX + 0.8, N = sheets.length;
+    const L = sheets.map(sh => { const rows = Math.max(1, Math.ceil(sh.items.length / per)); return {sh, rows, depth: rows * PZ + 0.8}; });
+    const gap = 1.05, total = L.reduce((a, l) => a + l.depth, 0) + gap * (N - 1);
+    let z = -total / 2;
+    const slabs = {};
+    L.forEach((l, i) => {
+      l.flat = new T.Vector3(0, 0, z + l.depth / 2); z += l.depth + gap;
+      l.stack = new T.Vector3(0, ((N - 1) / 2 - i) * 2.6, (i - (N - 1) / 2) * 0.8);
+      l.g = new T.Group(); group.add(l.g);
+      const pg = new T.PlaneGeometry(PW, l.depth);
+      l.plane = new T.Mesh(pg, new T.MeshBasicMaterial({transparent: true, opacity: 0.55, side: T.DoubleSide, depthWrite: false}));
+      l.plane.rotation.x = -Math.PI / 2; l.g.add(l.plane);
+      l.edge = new T.LineSegments(new T.EdgesGeometry(pg), new T.LineBasicMaterial());
+      l.edge.rotation.x = -Math.PI / 2; l.g.add(l.edge);
+      const name = l.sh.name;
+      const lt = makeTex(1024, 128, (x, w, h) => {
+        x.font = '700 58px ' + PICFONT; x.textBaseline = 'middle'; x.lineJoin = 'round'; x.lineWidth = 12;
+        x.strokeStyle = col.panel; x.strokeText(name, 8, h / 2); x.fillStyle = col['ink-2']; x.fillText(name, 8, h / 2);
+      });
+      const ls = new T.Sprite(new T.SpriteMaterial({map: lt, transparent: true, depthTest: false}));
+      ls.center.set(0, 0.5); ls.scale.set(5.2, 0.65, 1); ls.position.set(-PW / 2 + 0.05, 0.3, -l.depth / 2 - 0.5); ls.renderOrder = 12; l.g.add(ls); l.label = ls;
+      l.sh.items.forEach((it, j) => {
+        const row = Math.floor(j / per), c = j % per, inRow = Math.min(per, l.sh.items.length - row * per);
+        const x = (c - (inRow - 1) / 2) * PX, zz = (row - (l.rows - 1) / 2) * PZ + 0.3;
+        const top = new T.MeshBasicMaterial(), side = new T.MeshBasicMaterial();
+        const box = new T.Mesh(new T.BoxGeometry(SW, SH, SD), [side, side, top, side, side, side]);
+        box.position.set(x, SH / 2, zz); l.g.add(box);
+        const eg = new T.LineSegments(new T.EdgesGeometry(box.geometry), new T.LineBasicMaterial());
+        eg.position.copy(box.position); l.g.add(eg);
+        const person = it.kind === 'person';
+        const tex = makeTex(512, 256, (cx, w) => {
+          cx.textAlign = 'center'; cx.lineJoin = 'round'; cx.strokeStyle = col.panel;
+          cx.font = '700 92px ' + PICFONT; cx.lineWidth = 18; cx.strokeText(it.tag, w / 2, 88);
+          cx.fillStyle = person ? col['k-person'] : col.ink; cx.fillText(it.tag, w / 2, 88);
+          cx.font = '600 68px ' + PICFONT; cx.lineWidth = 14;
+          // a name too long for one line breaks at the space nearest its middle
+          let lines = [it.short];
+          if (cx.measureText(it.short).width > w - 24 && it.short.indexOf(' ') > 0) {
+            const mid = it.short.length / 2;
+            let cut = -1;
+            for (let i = 0; i < it.short.length; i++) if (it.short[i] === ' ' && (cut < 0 || Math.abs(i - mid) < Math.abs(cut - mid))) cut = i;
+            lines = [it.short.slice(0, cut), it.short.slice(cut + 1)];
+          }
+          lines.forEach((t, i) => { cx.strokeText(t, w / 2, 164 + i * 70); });
+          cx.fillStyle = col['ink-2'];
+          lines.forEach((t, i) => { cx.fillText(t, w / 2, 164 + i * 70); });
+        });
+        const sp = new T.Sprite(new T.SpriteMaterial({map: tex, transparent: true, depthTest: false}));
+        sp.scale.set(2.3 * PX / 2.4, 1.15 * PX / 2.4, 1); sp.position.set(x, SH + 0.66 * PX / 2.4, zz); sp.renderOrder = 20; l.g.add(sp);
+        slabs[it.id] = {l, top, side, edge: eg.material, person, local: new T.Vector3(x, SH, zz)};
+      });
+    });
+    const tubes = H.map(h => {
+      const mat = new T.MeshBasicMaterial(), coneMat = new T.MeshBasicMaterial();
+      if (DASH[h.kind]) { mat.alphaMap = dashTex(DASH[h.kind]); mat.alphaTest = 0.5; }
+      const mesh = new T.Mesh(new T.BufferGeometry(), mat); group.add(mesh);
+      const cone = new T.Mesh(new T.ConeGeometry(1, 1, 12), coneMat); group.add(cone);
+      const tex = makeTex(128, 128, x => {
+        const c = carOf(h.kind);
+        x.beginPath(); x.arc(64, 64, 50, 0, Math.PI * 2); x.fillStyle = col.panel; x.fill();
+        x.lineWidth = c.w > 2 ? 14 : 8; x.strokeStyle = kcol(h.kind);
+        x.setLineDash(h.kind === 'review-page' ? [26, 10, 6, 10] : (c.dash ? [20, 12] : [])); x.stroke(); x.setLineDash([]);
+        x.fillStyle = col.ink; x.font = '700 60px ' + PICFONT; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(h.n), 64, 68);
+      });
+      const num = new T.Sprite(new T.SpriteMaterial({map: tex, transparent: true, depthTest: false}));
+      num.renderOrder = 15; group.add(num);
+      return {h, mat, coneMat, mesh, cone, num};
+    });
+    world = {group, L, slabs, tubes, PW, total, maxDepth: Math.max(...L.map(l => l.depth)), stackH: (N - 1) * 2.6};
+    paint(); applyBlend(true);
+  }
+
+  function layoutTubes() {
+    const b = view.blend;
+    const top = id => { const s = world.slabs[id]; return s.l.g.position.clone().add(s.local); };
+    world.tubes.forEach(t => {
+      const h = t.h, A = top(h.from), B = top(h.to), off = pairOffset(h);
+      const dir = new T.Vector3(B.x - A.x, 0, B.z - A.z), fl = dir.length();
+      if (fl > 1e-4) dir.multiplyScalar(1 / fl); else dir.set(1, 0, 0);
+      const perp = new T.Vector3(-dir.z, 0, dir.x).multiplyScalar(h.from < h.to ? 1 : -1);
+      const nudge = new T.Vector3(clamp(dir.x * 0.6, -0.7, 0.7), 0, clamp(dir.z * 0.45, -0.45, 0.45));
+      if (fl > 1e-4) { A.add(nudge); B.sub(nudge); }
+      A.addScaledVector(perp, off * 0.24); B.addScaledVector(perp, off * 0.24);
+      const dist = A.distanceTo(B), cross = Math.abs(A.y - B.y) > 0.5 ? 1 : 0;
+      const C = A.clone().add(B).multiplyScalar(0.5);
+      C.y = Math.max(A.y, B.y) + 0.7 + dist * 0.2; C.addScaledVector(perp, off * 0.5); C.z += 0.9 * b * cross;
+      // seen from above, arcs along one row would lie on one line: lean each to the left of its travel
+      if (fl > 1e-4) C.addScaledVector(new T.Vector3(-dir.z, 0, dir.x), -dist * 0.17 * (1 - 0.6 * b));
+      const lit = now.k > 0 && h.n === now.k;
+      const rad = (carOf(h.kind).w > 2 ? 0.075 : 0.048) * (lit ? 1.8 : 1), coneH = lit ? 0.56 : 0.42, coneR = rad * 2.8;
+      const tan = new T.QuadraticBezierCurve3(A, C, B).getTangent(1);
+      const curve = new T.QuadraticBezierCurve3(A, C, B.clone().addScaledVector(tan, -coneH));
+      t.mesh.geometry.dispose(); t.mesh.geometry = new T.TubeGeometry(curve, 32, rad, 7, false);
+      if (t.mat.alphaMap) t.mat.alphaMap.repeat.set(Math.max(2, Math.round(curve.getLength() / 0.5)), 1);
+      t.cone.scale.set(coneR, coneH, coneR); t.cone.position.copy(B).addScaledVector(tan, -coneH / 2); t.cone.quaternion.setFromUnitVectors(UP, tan);
+      t.num.position.copy(curve.getPoint(0.5)); t.num.position.y += 0.05;
+      const ns = lit ? 0.86 : 0.54; t.num.scale.set(ns, ns, 1);
+    });
+  }
+  function paint() {
+    const k = now.k, panel = new T.Color(col.panel), litH = k > 0 ? H[k - 1] : null;
+    world.L.forEach(l => { l.plane.material.color.set(col.lane); l.edge.material.color.set(col['line-strong']); });
+    Object.keys(world.slabs).forEach(id => {
+      const s = world.slabs[id], on = !!litH && (litH.from === id || litH.to === id);
+      s.top.color.set(on ? col['accent-soft'] : (s.person ? col['k-person-soft'] : col.card));
+      s.side.color.set(col.line);
+      s.edge.color.set(on ? col.accent : (s.person ? col['k-person'] : col['line-strong']));
+    });
+    world.tubes.forEach(t => {
+      const n = t.h.n, lit = k > 0 && n === k;
+      const c = new T.Color(kcol(t.h.kind)).lerp(panel, k === 0 || lit ? 0 : (n < k ? 0.5 : 0.86));
+      t.mat.color.copy(c); t.coneMat.color.copy(c);
+      t.mat.depthTest = t.coneMat.depthTest = !lit;
+      t.mesh.renderOrder = t.cone.renderOrder = lit ? 10 : 0;
+      t.num.material.opacity = k === 0 || lit ? 1 : (n < k ? 0.75 : 0.3);
+      t.num.renderOrder = lit ? 30 : 15;
+    });
+  }
+  function applyBlend(force) {
+    if (!force && view.blend === lastBlend) return;
+    lastBlend = view.blend;
+    world.L.forEach(l => {
+      l.g.position.lerpVectors(l.flat, l.stack, view.blend);
+      l.label.position.z = (l.depth / 2 + 0.5) * (view.blend * 2 - 1);
+    });
+    layoutTubes();
+  }
+  function aim(theta, phi, radius) {
+    const sp = Math.sin(phi), cp = Math.cos(phi);
+    camera.position.set(radius * sp * Math.sin(theta), radius * cp, radius * sp * Math.cos(theta));
+    camera.lookAt(0, 0, 0);
+  }
+  // the smallest distance at which every sheet, with its labels, is inside the frame
+  function fit(blend) {
+    const pre = blend < 0.5 ? PFLAT : P3D, pts = [], c = new T.Vector3(), q = new T.Vector3();
+    world.L.forEach(l => {
+      c.lerpVectors(l.flat, l.stack, blend);
+      [-1, 1].forEach(ax => [-1, 1].forEach(az => [0, 1.7].forEach(y => pts.push(new T.Vector3(c.x + ax * world.PW / 2, c.y + y, c.z + az * (l.depth / 2 + 0.95))))));
+    });
+    let lo = 4, hi = 240;
+    for (let i = 0; i < 22; i++) {
+      const r = (lo + hi) / 2;
+      aim(pre.theta, pre.phi, r); camera.updateMatrixWorld();
+      let out = false;
+      pts.forEach(p => { q.copy(p).project(camera); if (q.z > 1 || Math.abs(q.x) > 0.95 || Math.abs(q.y) > 0.95) out = true; });
+      if (out) lo = r; else hi = r;
+    }
+    return hi;
+  }
+  const place = () => aim(view.theta, view.phi, view.radius);
+
+  /* the frame loop runs only while something moves */
+  let raf = 0, dirty = true, anim = null, auto = !reduce.matches, visible = true, baseTheta = P3D.theta;
+  const t0 = performance.now();
+  function tick(t) {
+    raf = 0;
+    let again = false;
+    if (anim) {
+      const p = clamp((t - anim.start) / anim.dur, 0, 1), e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      Object.keys(anim.to).forEach(key => { view[key] = anim.from[key] + (anim.to[key] - anim.from[key]) * e; });
+      applyBlend(false);
+      if (p < 1) again = true; else anim = null;
+      dirty = true;
+    } else if (auto && visible && mode === '3d') {
+      view.theta = baseTheta + 0.16 * Math.sin((t - t0) / 2600);
+      dirty = true; again = true;
+    }
+    if (dirty) { place(); renderer.render(scene, camera); dirty = false; }
+    if (again) raf = requestAnimationFrame(tick);
+  }
+  const kick = () => { dirty = true; if (!raf) raf = requestAnimationFrame(tick); };
+  const stopAuto = () => { auto = false; };
+
+  function go(m, immediate) {
+    mode = m;
+    bFlat.setAttribute('aria-pressed', String(m === 'flat')); b3d.setAttribute('aria-pressed', String(m === '3d'));
+    const pre = m === 'flat' ? PFLAT : P3D, blend = m === 'flat' ? 0 : 1;
+    const to = {theta: pre.theta, phi: pre.phi, blend, radius: fit(blend)};
+    view.theta = ((view.theta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+    zoomed = false; baseTheta = pre.theta;
+    if (immediate || reduce.matches) { Object.assign(view, to); anim = null; applyBlend(false); }
+    else anim = {from: Object.assign({}, view), to, start: performance.now(), dur: 750};
+    kick();
+  }
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    const nowWide = w / h > 1.25;
+    if (nowWide !== wide) { wide = nowWide; build(wide); }
+    if (!zoomed && !anim) view.radius = fit(view.blend);
+    kick();
+  }
+  const zoom = f => { view.radius = clamp(view.radius * f, 5, 160); zoomed = true; stopAuto(); kick(); };
+
+  /* orbit: one pointer turns, two pinch */
+  const pts = new Map();
+  let pinch = 0, active = false;
+  canvas.addEventListener('pointerdown', e => {
+    active = true; stopAuto(); anim = null;
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    pts.set(e.pointerId, {x: e.clientX, y: e.clientY});
+    if (pts.size === 2) { const a = Array.from(pts.values()); pinch = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y); }
+  });
+  canvas.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId);
+    if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    p.x = e.clientX; p.y = e.clientY;
+    if (pts.size === 1) {
+      view.theta -= dx * 0.008; view.phi = clamp(view.phi - dy * 0.008, 0.02, 1.54); kick();
+    } else if (pts.size === 2) {
+      const a = Array.from(pts.values()), d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+      if (pinch > 0 && d > 0) { view.radius = clamp(view.radius * pinch / d, 5, 160); zoomed = true; kick(); }
+      pinch = d;
+    }
+  });
+  const drop = e => { pts.delete(e.pointerId); pinch = 0; };
+  canvas.addEventListener('pointerup', drop);
+  canvas.addEventListener('pointercancel', drop);
+  canvas.addEventListener('pointerleave', e => { if (!pts.size) active = false; });
+  canvas.addEventListener('blur', () => { active = false; });
+  canvas.addEventListener('wheel', e => {
+    if (!active) return;
+    e.preventDefault();
+    zoom(Math.exp(clamp(e.deltaY, -120, 120) * 0.0016));
+  }, {passive: false});
+  canvas.addEventListener('keydown', e => {
+    const k = e.key;
+    if (k === 'ArrowLeft') view.theta -= 0.12; else if (k === 'ArrowRight') view.theta += 0.12;
+    else if (k === 'ArrowUp') view.phi = clamp(view.phi - 0.09, 0.02, 1.54); else if (k === 'ArrowDown') view.phi = clamp(view.phi + 0.09, 0.02, 1.54);
+    else if (k === '+' || k === '=') { zoom(0.87); e.preventDefault(); return; } else if (k === '-' || k === '_') { zoom(1.15); e.preventDefault(); return; }
+    else return;
+    e.preventDefault(); stopAuto(); anim = null; kick();
+  });
+  bFlat.addEventListener('click', () => { stopAuto(); go('flat'); });
+  b3d.addEventListener('click', () => { stopAuto(); go('3d'); });
+  bReset.addEventListener('click', () => { stopAuto(); go(mode); });
+  bIn.addEventListener('click', () => zoom(0.84));
+  bOut.addEventListener('click', () => zoom(1.19));
+
+  /* time: one handoff lit at a time, in document order */
+  function setTime(k) {
+    now.k = k; time.value = String(k);
+    if (k === 0) cap.textContent = `All ${H.length} handoffs are lit. Move the slider or press Play to light them one at a time.`;
+    else { const h = H[k - 1]; cap.innerHTML = `<b>${k} of ${H.length}</b> · ${esc(byId[h.from].name)} → ${esc(byId[h.to].name)} · ${esc(h.ctext)} · ${esc(h.what)}`; }
+    time.setAttribute('aria-valuetext', cap.textContent);
+    paint(); layoutTubes(); kick();
+  }
+  let timer = 0;
+  const stopPlay = () => { if (timer) { clearInterval(timer); timer = 0; } bPlay.textContent = 'Play'; };
+  time.max = String(H.length);
+  time.addEventListener('input', () => { stopPlay(); setTime(+time.value); });
+  bPlay.addEventListener('click', () => {
+    if (timer) { stopPlay(); return; }
+    bPlay.textContent = 'Pause';
+    setTime(now.k >= H.length ? 1 : now.k + 1);
+    timer = setInterval(() => { if (now.k >= H.length) { stopPlay(); return; } setTime(now.k + 1); }, 1100);
+  });
+
+  themeSubs.push(() => { readColors(); paints.forEach(j => j()); paint(); kick(); });
+  const onReduce = () => { if (reduce.matches) { auto = false; if (anim) { Object.assign(view, anim.to); anim = null; applyBlend(false); kick(); } } };
+  if (reduce.addEventListener) reduce.addEventListener('change', onReduce); else if (reduce.addListener) reduce.addListener(onReduce);
+  if ('IntersectionObserver' in window) new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) kick(); }).observe(stage);
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+
+  readColors();
+  resize();
+  if (!world) { wide = true; build(true); }
+  view.radius = fit(1);
+  setTime(0);
+})();
+})();
+</script>
