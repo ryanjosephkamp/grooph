@@ -55,14 +55,22 @@ const CARD = `& rect[data-card]`;
 const GATE = `& rect[data-card][stroke-width="1.8"]`;
 const PERSON = `& rect[data-card][stroke-width="1.4"]`;
 const STOP = `& rect[data-card][rx="16"]`;
-/** a card that is neither a stop's nor a person's, and a family's two edges behind it */
-const PLAIN = `& [data-node] rect[data-card],& [data-session] rect`;
+/** a card that is neither a stop's nor a person's, and a family's two edges behind it (not the pill that counts the family) */
+const PLAIN = `& [data-node]>rect[data-card],& [data-session]>rect[data-card],& [data-session]>rect[rx="9"]`;
 /** the pills: an edge's condition, a label along a margin, a lane's place, a family's count */
 const PILL = `& rect[rx="7.4"],& rect[rx="6.5"],& rect[rx="8.1"]`;
 const LINE = `& [data-edge] path[fill="none"]`;
-const KIND = `& [data-node] text[font-size="9.5"]`;
+/** a node's kind, in the card's first line. A child of the node, so not a mark a page adds inside the card. */
+const KIND = `& [data-node]>text[font-size="9.5"]`;
 /** the small lines of a card, drawn in the regular weight */
-const SUB = `& [data-node] text[font-size="10.5"]`;
+const SUB = `& [data-node]>text[font-size="10.5"]`;
+/**
+ * How far a fixed-width face's letters are drawn in, in em. Every line of a picture is laid out for a face that sets
+ * its letters by their own widths, and a fixed-width one sets a line of narrow letters wider. Drawn this much closer
+ * and at the sizes below, no full line of the repository's prose (over twenty thousand of them, wrapped as the
+ * pictures wrap them) leaves its box in the widest fixed-width face there is to meet, the site's own at 0.632 em.
+ */
+const TIGHT = `letter-spacing:-.05em`;
 
 const blueprint: ThemeValues = {
   name: "blueprint",
@@ -82,15 +90,16 @@ const blueprint: ThemeValues = {
     line: "#2a5594", "line-strong": "#d0def5", accent: "#f1f6ff", "accent-soft": "#24579e",
     gate: "#ffc566", "gate-soft": "#3a4f6e", check: "#a9d1ff", merge: "#d7c2ff", stop: "#b3c8eb",
     ok: "#9ff0c0", "ok-soft": "#1c5a60", warning: "#ffd27f", error: "#ffb3a8", "error-soft": "#5a3550",
-    "loop-0": "#7fe3ff", "loop-1": "#d7c2ff", "loop-2": "#ffb08a", "loop-3": "#f7a8d8",
+    "loop-0": "#7fe3ff", "loop-1": "#d7c2ff", "loop-2": "#ffb08a", "loop-3": "#f8afdb",
   },
   rules: () =>
     `${CARD}{stroke-width:1.2}${GATE}{stroke-width:2.4}` +
     `${PLAIN},${PILL}{rx:0;ry:0}${STOP}{rx:16px;ry:16px}` +
-    // Fixed-width labels, a size down: a fixed-width face is wider than the one the lines were measured for.
+    // Fixed-width labels, smaller and closer (`TIGHT`). The title in capitals is smaller too: capitals are wider than
+    // what was measured, in any face.
     `${KIND}{font-family:${MONO};font-weight:500;text-transform:uppercase;letter-spacing:.09em}` +
-    `${SUB},& [data-lane] text[font-size="10.5"]{font-family:${MONO};font-size:9px}` +
-    `& text[font-size="17"]{text-transform:uppercase;letter-spacing:.06em;font-size:13.5px}`,
+    `${SUB},& [data-lane] text[font-size="10.5"]{font-family:${MONO};font-size:8.5px;${TIGHT}}` +
+    `& text[font-size="17"]{text-transform:uppercase;letter-spacing:.06em;font-size:12.5px}`,
   defs: (c, id) => `<pattern id="${id}" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20,.5H.5V20" fill="none" stroke-width="1" style="stroke:${c("line")}"/></pattern>`,
   ground: true,
   canvas: { radius: 0, stop: 16, border: 1.2, gate: 2.4, edge: 1.5, caps: 0.09, labelFace: MONO },
@@ -146,16 +155,16 @@ const phosphor: ThemeValues = {
   dark: SCREEN,
   face: MONO,
   rules: () =>
-    `& rect{rx:2px;ry:2px}${STOP}{rx:16px;ry:16px}& rect[rx="7.2"]{rx:7.2px;ry:7.2px}` +
+    // Every corner but the picture's own: the cards, the lanes, the pills. A stop, a person and a number keep theirs.
+    `& g rect,&>rect[rx]{rx:2px;ry:2px}${STOP}{rx:16px;ry:16px}${PERSON}{rx:12px;ry:12px}& rect[rx="7.2"]{rx:7.2px;ry:7.2px}` +
     `${GATE}{stroke-width:2.2}` +
-    // Every line was measured for a face that sets its letters by their own widths. A fixed-width one sets a line
-    // of narrow letters wider, so the letters sit a little closer and each line is drawn a size down: the lines in
-    // the regular weight by more, since the bold ones were measured wider.
-    `& text{letter-spacing:-.05em}` +
-    `& text[font-size="17"]{font-size:16px}& text[font-size="13.5"]{font-size:13px}& text[font-size="12.5"]{font-size:12px}& text[font-size="12"]{font-size:11.5px}` +
-    `& text[font-size="11.5"]{font-size:10px}& text[font-size="11"]{font-size:9.5px}& text[font-size="10.5"]{font-size:9px}& text[font-size="10"]{font-size:8.5px}` +
-    `& text[font-size="11"][font-weight="700"]{font-size:10.5px}& text[font-size="10.5"][font-weight="700"]{font-size:10px}& text[font-size="10"][font-weight="700"]{font-size:9.5px}` +
-    `& text[font-size="9.5"]{font-size:8.5px}& text[font-size="9"]{font-size:8.5px}` +
+    // Fixed-width throughout, so every line is closer and smaller (`TIGHT`): the bold ones by less, since they were
+    // measured wider.
+    `& text{${TIGHT}}` +
+    `& text[font-size="17"]{font-size:16px}& text[font-size="13.5"]{font-size:12.25px}& text[font-size="12.5"]{font-size:11.25px}& text[font-size="12"]{font-size:11px}` +
+    `& text[font-size="11.5"]{font-size:9.75px}& text[font-size="11"]{font-size:9px}& text[font-size="10.5"]{font-size:8.5px}& text[font-size="10"]{font-size:8px}` +
+    `& text[font-size="11"][font-weight="700"]{font-size:10.5px}& text[font-size="10.5"][font-weight="700"]{font-size:9.75px}& text[font-size="10"][font-weight="700"]{font-size:9.5px}` +
+    `& text[font-size="9.5"]{font-size:8.75px}& text[font-size="9"]{font-size:8.25px}` +
     `${KIND}{text-transform:uppercase;letter-spacing:.06em}`,
   defs: (c, id) => `<pattern id="${id}" width="3" height="3" patternUnits="userSpaceOnUse"><path d="M0,.5H3" fill="none" stroke-width="1" style="stroke:${c("surface-2")}"/></pattern>`,
   ground: true,
@@ -190,7 +199,9 @@ const transit: ThemeValues = {
     `& [data-edge] [style="stroke:${c("ink-2")}"]{stroke:${c("route")}!important}& [data-edge] [style="fill:${c("ink-2")}"]{fill:${c("route")}!important}` +
     `${LINE}{stroke-width:4.5}` +
     `& [data-edge] path[stroke-dasharray="5 3"]{stroke-dasharray:10 5;stroke-linecap:butt}& [data-edge] path[stroke-dasharray="1.5 3"]{stroke-dasharray:.1 8}` +
-    `& [data-edge] path+path,& [data-edge] circle+path{transform-box:fill-box;transform-origin:center;transform:scale(1.6)}` +
+    // The arrowheads, larger about their own middle. Only where that can be said: a renderer that knows `transform`
+    // and not `transform-box` (the CLI's, for a PNG) would move each one across the picture.
+    `@supports (transform-box:fill-box){& [data-edge] path+path,& [data-edge] circle+path{transform-box:fill-box;transform-origin:center;transform:scale(1.6)}}` +
     `& [data-edge] circle{r:4.2px;stroke:${c("bg")};stroke-width:1.5}` +
     `${CARD}{stroke-width:2.6}${GATE}{stroke-width:4.2}${PERSON}{stroke-width:3.4}` +
     `${PLAIN}{rx:22px;ry:22px}${STOP}{rx:5px;ry:5px}` +
@@ -208,7 +219,7 @@ const chalk: ThemeValues = {
     line: "#d5d8db", "line-strong": "#4a5057", accent: "#2456a6", "accent-soft": "#dfe8f6",
     gate: "#a94e08", "gate-soft": "#fbeedd", check: "#2456a6", merge: "#6a45b5", stop: "#62686f",
     ok: "#1c6b4a", "ok-soft": "#dcf0e6", warning: "#8a5200", error: "#a8261c", "error-soft": "#fbe6e3",
-    "loop-0": "#7a3fb8", "loop-1": "#0f7c8c", "loop-2": "#b8430f", "loop-3": "#a82a66",
+    "loop-0": "#7a3fb8", "loop-1": "#0e7584", "loop-2": "#b8430f", "loop-3": "#a82a66",
   },
   // prettier-ignore
   dark: {
