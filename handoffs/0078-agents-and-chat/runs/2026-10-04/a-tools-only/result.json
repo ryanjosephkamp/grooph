@@ -1,0 +1,98 @@
+{
+  "duration_api_ms": 46733,
+  "stop_reason": "end_turn",
+  "session_id": "be412943-91a6-4b84-a9b6-9f143c9c15e8",
+  "total_cost_usd": 0.19466300000000003,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 27227,
+    "cache_read_input_tokens": 83785,
+    "output_tokens": 6897,
+    "output_tokens_details": {
+      "thinking_tokens": 204
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27227,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1819,
+        "cache_read_input_tokens": 18260,
+        "cache_creation_input_tokens": 8967,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8967
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6897,
+      "cacheReadInputTokens": 83785,
+      "cacheCreationInputTokens": 27227,
+      "webSearchRequests": 0,
+      "costUSD": 0.19466300000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 204,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "I made a small loop graph for the flaky checkout test. It validates clean with no warnings. I haven't run it or exported it.\n\n**Open on your phone:**\n\nhttps://ryanjosephkamp.github.io/grooph/#/open?d=bVXBjts4DP0VQqcWsIMZFHtJLzvdbtvLtsBub0WAKhadCLElQ5InEwzy7_so2U7SBrlEIvX4SD7Sr-pZrR8rdbDOqLXaBT3sVaWMb9T6FUfvcV4_VMqKubUvddvpw6lu9twc_JjqxDHhgdM9w-GTfaHsQLMDTQ7PHKL1Lgfbed1NzmnPNARvxibBSo03TNHn6zs4NOgYOVLgzuptd1rRR0_OJ2JjU0XxYIeKDHecuKLO-8iOfIB7Cqf6iNwycEbCtU2RkFEaA8f38i9bkXKiRo-Rybp8I6QkkmM67oH4c3BDX1Bmdj8nZitkmnTYcZLy7XVwHCNSbTo9Gq4FSZ0r1VnHesfiM-iUOLhce_SgBusBIG3w_c3dn4_y0HBsgh1SrqR6ou1oO8MBPLTboTAzXdLOkC70KIwuLonHFT1Rq22HrGnn8War4ZNKzWe8o037q1qNaRjTewBKlsTOFDwAr-i7hMxxbLnd6lBNPUQIXDpPIJ1sU5wlG4rJD5F0yk0IfgTdBu2ZupJsL1wM6ki2vXAnx9BRZiGVdsgU1f3xWtQ5kVeLmlFidyXOD4s9-I5vHvRA6qQdyeIMoWuIFvXmtvUBvVQ9FDb28NwGyy0u_tEHLsR0RPnCCMKn0gfrdvd0fVesRwaOm0V7R6w3-o_igFsbFuFWudWmIAdtIVupHl7EWb9Fqd61did9lqKWTq7oEwr1q-p9u4yfFfnSm6AbCQRcpAbm0DUbtFDLmEFczAbnACK-lxcVaKKucH6b2clo2XQ7Tt8cSHRACKX9leCFRCL8Eh8alUoW8dHJj4SwhAIj2Ir-5QGdwUDqYisTYHK84942-1kx_rjoxTogiWDU3DiZtCnOldLpTWZRZPlI3r1Vm0oV2_K8BATAX1-evn7--79Vb9aFzkwl7e2s7cLqJDC66_xRQAJrU7e2g4QhNGhiOWCu8l6NanOuJnGX8yLtLIuLtL9P1nINHU9u8ysg4vT73oJJigMbv9hUVsdDZouhzZ4i04GNOi9MDBbhhYgM8oXHx2IDcuPzRRybRlbgeSM57q7Hletp_uqZ5bT0LmOZ_JLDEp6Ley19u7yZIfKLC4Ds6zzO2ZefrWHXcG7hpd1XVZ7Bc1Hug0_pT8jZUZKTrXaVXF7cl7p8no4991t8CIXAVZal1dgtWpr34zbFTdlOV5h5d-ZQUw96_VJbTJKWXSNEwewPyWmyl02aw-uIpSFPrBtTFluHqcaGe_dw3uB3_h8\n\nThe document travels in the link after the `#`, so nothing is uploaded or stored. The picture is an SVG, which I can't render inline here. Here is what it shows, top to bottom:\n\n```\n[Agent]  Builder   (fast model, medium effort)\n   │                  ▲\n   ▼                  │ fail (test output goes back)\n[Check]  Tests: pnpm test checkout ──┘\n   │ pass\n   ▼\n[Stop]   Done (success)\n\nLoop \"Grind\": Builder + Tests\n  1. max 5 rounds → halt and report to you\n  2. 30 minute budget → halt and report to you\n```\n\n- **It can't run forever.** The loop stops after 5 rounds or 30 minutes, whichever comes first. It then halts and reports to you instead of continuing.\n- **Weakening the test is blocked in two places.**\n  - The builder's brief forbids editing, skipping, deleting or retry-wrapping the checkout tests or their fixtures. It also forbids raising timeouts in the test config. It has to find the root cause (races, timing, shared state, unseeded randomness, ordering) and fix it in the production code.\n  - The check only passes on `exit code 0 and no test skipped`, so skipping the test doesn't count as a pass.\n- **The weakening rule is instruction-only.** grooph has no way to make the test files read-only. If you want a hard guarantee, check `git diff` on the test files after the run.\n- **One green run can be luck.** The check runs `pnpm test checkout` once, and a flaky test can pass once by chance. If you want more confidence, I can have the check run it several times in a row, or add a reviewer step.",
+  "ttft_ms": 1374,
+  "type": "result",
+  "duration_ms": 48649,
+  "uuid": "3fc12444-5a93-4a83-b9cc-a6d59398838a",
+  "ttft_stream_ms": 1046,
+  "time_to_request_ms": 140,
+  "first_content_frame_ms": 1046,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

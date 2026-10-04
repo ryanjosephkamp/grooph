@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-04",
+  "slice": "0078-agents-and-chat",
+  "totalCostUSD": 0.5428,
+  "note": "costUSD is total_cost_usd as Claude Code printed it at the end of each session: the list price of the tokens used; on a subscription it is usage, not a charge.",
+  "runs": [
+    {
+      "run": "a-tools-only",
+      "what": "grooph's ten authoring tools and nothing else, served by the server inside grooph.mcpb; before the three fixes",
+      "harness": "claude-code 2.1.289, headless (claude -p)",
+      "session": "be412943-91a6-4b84-a9b6-9f143c9c15e8",
+      "turns": 8,
+      "durationMs": 48649,
+      "costUSD": 0.19466300000000003,
+      "usage": [
+        {
+          "model": "claude-sonnet-5-5",
+          "inputTokens": 14,
+          "outputTokens": 6897,
+          "cacheReadInputTokens": 83785,
+          "cacheCreationInputTokens": 27227,
+          "costUSD": 0.19466300000000003
+        }
+      ],
+      "files": [
+        "command.txt",
+        "mcp.json",
+        "prompt.txt",
+        "result.json",
+        "transcript.md"
+      ],
+      "stream": {
+        "path": "local/stream.jsonl (not committed)",
+        "bytes": 133330,
+        "sha256": "1146146182b74aeb904edd1ccd12288d280a1c5b0e94d96d27dd6e6491bf5a15"
+      },
+      "transcript": {
+        "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-a/be412943-91a6-4b84-a9b6-9f143c9c15e8.jsonl",
+        "bytes": 193240,
+        "sha256": "9009db2f9849194461766d0d9626a65ee014f70301a17930161e96cea583e32a"
+      }
+    },
+    {
+      "run": "b-tools-only-after",
+      "what": "the same prompt, model and flags after the fixes: lines carried in the data, graphs named by id, operation arguments in the apply tool's description",
+      "harness": "claude-code 2.1.289, headless (claude -p)",
+      "session": "eb746d71-937c-4f6a-91c7-4ac1bacce420",
+      "turns": 7,
+      "durationMs": 26344,
+      "costUSD": 0.1430036,
+      "usage": [
+        {
+          "model": "claude-sonnet-5-5",
+          "inputTokens": 10,
+          "outputTokens": 2672,
+          "cacheReadInputTokens": 56178,
+          "cacheCreationInputTokens": 26257,
+          "costUSD": 0.1430036
+        }
+      ],
+      "files": [
+        "command.txt",
+        "mcp.json",
+        "prompt.txt",
+        "result.json",
+        "transcript.md"
+      ],
+      "stream": {
+        "path": "local/stream.jsonl (not committed)",
+        "bytes": 126383,
+        "sha256": "aab0da942ee7232fbe08389e49d0e608adb8226c0030946fde148f4acdfbf48a"
+      },
+      "transcript": {
+        "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-b/eb746d71-937c-4f6a-91c7-4ac1bacce420.jsonl",
+        "bytes": 181060,
+        "sha256": "5cb059b6dada63fb287165bf296654ea8ff69478170e3627b5f96de241f43ad6"
+      }
+    },
+    {
+      "run": "c-skill-and-a-shell",
+      "what": "the unzipped grooph-chat skill and a shell that may run node, ls and cat; no MCP server, grooph not on PATH: a stand-in for claude.ai's code tool",
+      "harness": "claude-code 2.1.289, headless (claude -p)",
+      "session": "e88e041c-2046-48db-bafa-19d64020757d",
+      "turns": 9,
+      "durationMs": 46376,
+      "costUSD": 0.12117240000000001,
+      "usage": [
+        {
+          "model": "claude-sonnet-5-5",
+          "inputTokens": 16,
+          "outputTokens": 3427,
+          "cacheReadInputTokens": 95792,
+          "cacheCreationInputTokens": 16928,
+          "costUSD": 0.12117240000000001
+        }
+      ],
+      "files": [
+        "command.txt",
+        "prompt.txt",
+        "result.json",
+        "transcript.md"
+      ],
+      "stream": {
+        "path": "local/stream.jsonl (not committed)",
+        "bytes": 71103,
+        "sha256": "4f2b4575a0ac4a792d154eead02962047c950049a5aec68ae9e6bbe91caf6942"
+      },
+      "transcript": {
+        "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-c/e88e041c-2046-48db-bafa-19d64020757d.jsonl",
+        "bytes": 144067,
+        "sha256": "5500939341f316ba96a20518d384f79582c90d288f516df05e76515dc22ff123"
+      }
+    },
+    {
+      "run": "d-no-tools-page-only",
+      "what": "no tool of any kind; the request and docs/agents.md in the prompt; the reply's document then checked with grooph validate --for-export",
+      "harness": "claude-code 2.1.289, headless (claude -p)",
+      "session": "4bc2d30a-60f5-4d5f-b190-880a64718afd",
+      "turns": 1,
+      "durationMs": 24262,
+      "costUSD": 0.08393819999999999,
+      "usage": [
+        {
+          "model": "claude-sonnet-5-5",
+          "inputTokens": 2,
+          "outputTokens": 3270,
+          "cacheReadInputTokens": 531,
+          "cacheCreationInputTokens": 12782,
+          "costUSD": 0.08393819999999999
+        }
+      ],
+      "files": [
+        "command.txt",
+        "pasted.grooph.json",
+        "prompt.txt",
+        "reply.md",
+        "result.json",
+        "transcript.md"
+      ],
+      "stream": {
+        "path": "local/stream.jsonl (not committed)",
+        "bytes": 23958,
+        "sha256": "07f03168c742c3c3971384d24cda2751199090d6aa1b76f4509f17200ffc3ace"
+      },
+      "transcript": {
+        "path": "~/.claude/projects/-private-tmp-claude-501--Users-noir-Documents-grooph--claude-worktrees-session-initialization-9cb661-41f4817f-06d3-48e7-bb7a-9d5b8e7de82d-scratchpad-chat-d/4bc2d30a-60f5-4d5f-b190-880a64718afd.jsonl",
+        "bytes": 95691,
+        "sha256": "578d67fd56fba03a01082ef9dcf8083a1dc8998fd97020132199085ffb97b207"
+      }
+    }
+  ]
+}

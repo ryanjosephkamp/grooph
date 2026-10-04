@@ -1,0 +1,6 @@
+# Run A again, same prompt, same model, same flags, after three changes run A asked for: the reply's lines travel in the
+# data too, a call may name a graph by its id, and grooph_apply's description lists every operation's arguments.
+# Run from an empty folder (<scratch>/chat-b), 2026-10-04; the server is the one inside the rebuilt grooph.mcpb.
+claude -p "$(cat prompt.txt)" --model claude-sonnet-5-5 --tools "" --disable-slash-commands --setting-sources project,local \
+  --strict-mcp-config --mcp-config mcp.json --allowedTools mcp__grooph --max-budget-usd 2 \
+  --output-format stream-json --verbose > local/stream.jsonl

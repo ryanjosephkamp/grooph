@@ -1,0 +1,1 @@
+I have a flaky checkout test in my web shop's repo. I want an agent to keep fixing the code until `pnpm test checkout` passes, but it must not run forever and it must not weaken the test to get a pass. Use grooph to make me a graph for that. Show me the picture and give me the link so I can open it on my phone.

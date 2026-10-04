@@ -1,0 +1,98 @@
+{
+  "duration_api_ms": 24062,
+  "stop_reason": "end_turn",
+  "session_id": "4bc2d30a-60f5-4d5f-b190-880a64718afd",
+  "total_cost_usd": 0.08393819999999999,
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 12782,
+    "cache_read_input_tokens": 531,
+    "output_tokens": 3270,
+    "output_tokens_details": {
+      "thinking_tokens": 1502
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12782,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "not_available",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3270,
+        "cache_read_input_tokens": 531,
+        "cache_creation_input_tokens": 12782,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 12782
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-sonnet-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 3270,
+      "cacheReadInputTokens": 531,
+      "cacheCreationInputTokens": 12782,
+      "webSearchRequests": 0,
+      "costUSD": 0.08393819999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1502,
+      "canonicalModel": "claude-sonnet-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "is_error": false,
+  "num_turns": 1,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "This graph has a builder, the test check, a critic and a loop with brakes. A passing check alone could be reached by weakening the test, so the critic reads the diff for exactly that before the run can end.\n\n```json\n{\n  \"grooph\": 0,\n  \"id\": \"fix-flaky-checkout-test\",\n  \"name\": \"Fix flaky checkout test\",\n  \"version\": 1,\n  \"goal\": \"Make `pnpm test checkout` pass by fixing the code, without skipping, weakening or deleting any test.\",\n  \"target\": { \"harness\": \"claude-code\" },\n  \"nodes\": [\n    {\n      \"id\": \"builder\",\n      \"kind\": \"agent\",\n      \"name\": \"Builder\",\n      \"role\": \"builder\",\n      \"model\": { \"tier\": \"strong\" },\n      \"brief\": \"Find the cause of the flaky checkout test and fix it in the application code. Do not edit test files, and do not skip, delete, retry, loosen an assertion in, or lengthen a timeout of any test. If you believe the test itself is wrong, say so in CHANGES.md instead of changing it. Say what you changed and why.\",\n      \"inputs\": [\"the task\", \"the failing test output or the review, from round 1 on\"],\n      \"outputs\": [\"the change\", \"CHANGES.md\"],\n      \"allow\": [\"read-files\", \"edit-files\", \"run-tests\"]\n    },\n    {\n      \"id\": \"tests\",\n      \"kind\": \"check\",\n      \"name\": \"Tests\",\n      \"check\": { \"kind\": \"tests\", \"run\": \"pnpm test checkout\", \"pass\": \"exit code 0\" }\n    },\n    {\n      \"id\": \"critic\",\n      \"kind\": \"agent\",\n      \"name\": \"Test integrity critic\",\n      \"role\": \"critic\",\n      \"model\": { \"tier\": \"frontier\" },\n      \"brief\": \"Compare the working tree with the commit the run started from. Fail the change if any test file was edited, or if any test was skipped, deleted, retried, given a longer timeout or a looser assertion, or if the fix only hides the flakiness instead of removing its cause. Read the diff and the repository; trust no claim in CHANGES.md that you cannot check. Pass or fail, with findings.\",\n      \"outputs\": [\"REVIEW.md\"],\n      \"allow\": [\"read-files\", \"write-outputs\"],\n      \"deny\": [\"edit-files\"]\n    },\n    { \"id\": \"done\", \"kind\": \"stop\", \"name\": \"Done\", \"outcome\": \"success\" }\n  ],\n  \"edges\": [\n    { \"id\": \"e-builder-tests\", \"from\": \"builder\", \"to\": \"tests\" },\n    { \"id\": \"e-tests-fail\", \"from\": \"tests\", \"to\": \"builder\", \"when\": \"fail\", \"evidence\": [\"the failing test output\"] },\n    {\n      \"id\": \"e-tests-critic\",\n      \"from\": \"tests\",\n      \"to\": \"critic\",\n      \"when\": \"pass\",\n      \"isolation\": \"fresh\",\n      \"evidence\": [\"the diff against the starting commit\", \"CHANGES.md\", \"the repository at the head commit, read-only\"]\n    },\n    { \"id\": \"e-critic-fail\", \"from\": \"critic\", \"to\": \"builder\", \"when\": \"fail\", \"evidence\": [\"REVIEW.md\"] },\n    { \"id\": \"e-critic-pass\", \"from\": \"critic\", \"to\": \"done\", \"when\": \"pass\" }\n  ],\n  \"loops\": [\n    {\n      \"id\": \"fix\",\n      \"name\": \"Fix\",\n      \"mode\": \"judgment\",\n      \"members\": [\"builder\", \"tests\", \"critic\"],\n      \"back\": [\"e-tests-fail\", \"e-critic-fail\"],\n      \"bar\": {\n        \"name\": \"Test integrity\",\n        \"inspects\": [{ \"kind\": \"file\", \"ref\": \"REVIEW.md\" }],\n        \"acceptance\": \"No test file is changed, no test is skipped, deleted, retried, given a longer timeout or a looser assertion, and the checkout tests pass.\"\n      },\n      \"stops\": [\n        { \"kind\": \"bar-passed\" },\n        { \"kind\": \"max-iterations\", \"n\": 5 },\n        { \"kind\": \"budget\", \"measure\": \"minutes\", \"limit\": 30 }\n      ]\n    }\n  ]\n}\n```\n\nTo open it, go to https://ryanjosephkamp.github.io/grooph/, choose **Paste a document** and paste the JSON. I couldn't run the validator in this chat. If the app lists any issues, paste the list back to me and I'll repair the document.\n\n**What bounds it:**\n- **Rounds and time:** the loop stops after 5 rounds or 30 minutes, whichever comes first.\n- **Finish line:** the run only ends when `pnpm test checkout` exits 0 and the critic passes the diff.\n- **No weakening:** the builder's brief forbids touching tests. The critic then checks the actual diff on a stronger model tier, so the rule is checked and not only asked for.\n\n**Choices to review:**\n- **Lean version:** if you'd rather have no critic, I can drop it. The loop then ends on the test passing, but nothing would catch a weakened test.\n- **Flakiness:** a single green run can be luck. If you want proof the flake is gone, give me a command that repeats the suite, such as a script that runs it ten times, and I'll put it in the check's `run` field. I haven't invented one.\n- **Harness:** I set the target to `claude-code`. Say so if you use another.\n\nI haven't started anything. Running it is your call.",
+  "ttft_ms": 13448,
+  "type": "result",
+  "duration_ms": 24262,
+  "uuid": "9ef21d64-d62b-4bc9-9879-911628d4d4a8",
+  "ttft_stream_ms": 1036,
+  "time_to_request_ms": 178,
+  "first_content_frame_ms": 1036,
+  "queued_turn_count": 0,
+  "result_index": 0
+}
