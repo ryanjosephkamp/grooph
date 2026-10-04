@@ -1,0 +1,43 @@
+name: Suggest a loop
+description: You have a shape for a multi-agent loop but no document. Describe it, and someone may draw it.
+title: "Loop: "
+labels: ["loop-suggestion"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Already have the document? Send it as a pull request instead: see [community/README.md](https://github.com/ryanjosephkamp/grooph/blob/main/community/README.md). A suggestion here is not a promise that anyone will build it, and nothing you write is run.
+  - type: textarea
+    id: purpose
+    attributes:
+      label: What is it for?
+      description: The work the loop does and what it leaves behind, in a few sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: builds
+    attributes:
+      label: Who builds?
+      description: Which agents or people do the work, and what each one makes.
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Who checks?
+      description: Who or what looks at the work, and what they look at. Tests, a checklist, a critic in its own context, a person.
+    validations:
+      required: true
+  - type: textarea
+    id: stops
+    attributes:
+      label: What stops it?
+      description: What ends the loop when it goes well, and what ends it when it does not. A bar that can be met, a cap on rounds, a budget, a person saying stop.
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: A link
+      description: "Where the shape comes from or is described: a post, a paper, a repository. Credit goes to whoever wrote it. Optional."
+      placeholder: https://

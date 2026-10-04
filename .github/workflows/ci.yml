@@ -58,6 +58,15 @@ jobs:
       - name: the rule reference is current
         run: node scripts/rule-reference.mjs --check
 
+      # community/index.json, its pictures and docs/community.md are generated from the documents under community/,
+      # and every one of those documents must validate (handoff 0065). community.yml is what tells a sender what is
+      # wrong with theirs. This keeps the generated files honest on main and on the owner's own branches; a pull
+      # request from a fork is not asked to regenerate them (the owner does when merging, and a stale gallery
+      # then shows here, on the push to main).
+      - name: the community gallery is current
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        run: node scripts/community-index.mjs --check
+
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works
         run: scripts/first-run.sh

@@ -15,13 +15,18 @@
  *   node scripts/community-index.mjs --check               exit 1 when a document fails or anything generated is stale (CI)
  *   node scripts/community-index.mjs --report [--changed <git rev> | --only <path>...] [--pictures <dir>] [--author <login>]
  *                                                          a Markdown report for a pull request's job summary: valid or not, with the
- *                                                          validator's own lines, for each document in scope. Exit 1 when one fails.
- *                                                          It does not fail for stale generated files (the owner regenerates those);
- *                                                          it says so. --pictures writes the pictures of the documents in scope there.
+ *                                                          validator's own lines, for each document in scope. Exit 1 when one fails, or
+ *                                                          when a generated file the change touches is not what the generator makes.
+ *                                                          Generated files the change leaves alone may be stale (the owner regenerates
+ *                                                          them); the report says so and does not fail. --pictures writes the
+ *                                                          pictures of the documents in scope into that folder.
  *
  * Documents are only ever read: parsed as JSON, checked, drawn. Nothing in one is run. A `check` node's command, a
  * brief's instructions and a bash block in a summary are text for a harness to read much later, never for this script.
- * A symbolic link is never followed and a file over 256 KB is never read.
+ * A symbolic link is never followed (community/, community/pictures/ and docs/ included), a file over 256 KB is never
+ * read, and an author's folder may hold only documents and Markdown write-ups. Every line that came out of a document
+ * is put on one line before it is printed, so a document cannot write a workflow command into a log or break out of
+ * a code fence in a summary.
  *
  * A link opens a document in the app and is what `grooph share` makes: the same envelope, the same raw DEFLATE
  * and base64url. A template opens with its slot examples filled in, because `grooph share` refuses a template
@@ -33,7 +38,7 @@
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateRawSync, inflateRawSync } from "node:zlib";
@@ -71,25 +76,41 @@ const {
 
 const REPO = "ryanjosephkamp/grooph";
 const RAW = `https://raw.githubusercontent.com/${REPO}/main/`;
+const DOCS = join(root, "docs");
 const COMMUNITY = join(root, "community");
 const PICTURES = join(COMMUNITY, "pictures");
+const PAGE = join(DOCS, "community.md");
 const MAX_BYTES = 256 * 1024;
-/** A GitHub handle: letters, digits and single hyphens, not at either end, at most 39 characters. */
-const HANDLE = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/;
+const MAX_REPORT_LINES = 40;
+/** A GitHub handle: letters and digits in groups joined by single hyphens, at most 39 characters. */
+const HANDLE = /^(?=.{1,39}$)[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
 const RESERVED = new Set(["pictures"]);
 const DOCUMENT = /\.grooph(?:-map)?\.json$/i;
 const DOCUMENT_NAME = /^([a-z][a-z0-9-]*)\.grooph(-map)?\.json$/;
+const WRITE_UP = /^[A-Za-z0-9][A-Za-z0-9._-]*\.md$/;
+const TOP_LEVEL_FILES = new Set(["README.md", "index.json"]);
 
 const rel = (path) => relative(root, path).split(sep).join("/");
 const sha = (text) => createHash("sha256").update(text).digest("hex");
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const isLink = (path) => {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch {
+    return false;
+  }
+};
 
 // ─── text that came from a document, made safe to print ───────────────────
-// A summary, a name or a validator line is someone else's text. It lands in a Markdown page that a site renders,
-// so it is put on one line, its HTML and link syntax is escaped, and a leading character that would make a block
-// (a heading, a list, a fence) is escaped too. It never gets to start a line of its own.
+// A summary, a name or a validator line is someone else's text. It lands in a Markdown page that a site renders and
+// in a log that a runner reads, so it is put on one line with control and direction-changing characters taken out;
+// for Markdown its HTML and link syntax is escaped and a leading character that would make a block (a heading, a
+// list, a fence) is escaped too; for a log a "::" that would start a workflow command is broken. It never gets to
+// start a line of its own.
 
-const oneLine = (text) => String(text).replace(/\s+/g, " ").trim();
+const CONTROL = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
+const oneLine = (text) => String(text).replace(CONTROL, " ").replace(/\s+/g, " ").trim();
+const plain = (text) => oneLine(text).replace(/::/g, ": :");
 const md = (text) =>
   oneLine(text)
     .replace(/[\\<>&[\]]/g, (c) => ({ "\\": "\\\\", "<": "&lt;", ">": "&gt;", "&": "&amp;", "[": "\\[", "]": "\\]" })[c])
@@ -105,11 +126,13 @@ const code = (text) => {
   const tick = "`".repeat(longest + 1);
   return `${tick}${longest > 0 ? ` ${body} ` : body}${tick}`;
 };
-/** A fenced block whose fence is longer than any run of backticks inside it. */
-const fence = (lines) => {
-  const longest = Math.max(0, ...lines.flatMap((line) => (line.match(/`+/g) ?? []).map((run) => run.length)));
+/** A fenced block whose fence is longer than any run of backticks inside it, one line per entry, and not too long. */
+const fence = (entries) => {
+  const lines = entries.map(plain);
+  const shown = lines.length > MAX_REPORT_LINES ? [...lines.slice(0, MAX_REPORT_LINES), `... and ${lines.length - MAX_REPORT_LINES} more`] : lines;
+  const longest = Math.max(0, ...shown.flatMap((line) => (line.match(/`+/g) ?? []).map((run) => run.length)));
   const tick = "`".repeat(Math.max(3, longest + 1));
-  return `${tick}text\n${lines.join("\n")}\n${tick}`;
+  return `${tick}text\n${shown.join("\n")}\n${tick}`;
 };
 const urlIn = (url) => url.replace(/[()<>"'`\\[\]|\s]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`);
 const isWebUrl = (text) => {
@@ -141,61 +164,91 @@ const withLinksDigested = (text) =>
 
 // ─── reading the folder ───────────────────────────────────────────────────
 
+const LINKED = "is a symbolic link; submissions are read as data and a link is never followed";
+const LINKED_OUTPUT = "is a symbolic link; the generated files are regular files and the generator never writes through a link";
+
 /**
- * Every document under community/, and every path that is where a document should not be. Symbolic links are
- * reported and never followed; files that are not documents (a write-up, a README) are left alone.
+ * Every document under community/, and every path that is where it should not be. Symbolic links are reported and
+ * never followed. Nothing else is read here: names only.
  */
 function scan() {
   const entries = [];
   const problems = [];
-  const bad = (path, message) => problems.push({ path: rel(path), message });
+  const bad = (path, message) => problems.push({ path: rel(path), message: plain(message) });
   const list = (dir) => {
+    if (isLink(dir)) return [];
     try {
       return readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     } catch {
       return [];
     }
   };
-  const nested = (dir, author) => {
+
+  // The generated files are written by this script, so a link among them (or in the folders above them) would be written through.
+  if (isLink(DOCS)) bad(DOCS, LINKED_OUTPUT);
+  if (isLink(PAGE)) bad(PAGE, LINKED_OUTPUT);
+  if (isLink(COMMUNITY)) {
+    bad(COMMUNITY, LINKED);
+    return { entries, problems };
+  }
+  const generated = (dir) => {
     for (const item of list(dir)) {
       const path = join(dir, item.name);
-      if (item.isSymbolicLink()) bad(path, "is a symbolic link; submissions are read as data and a link is never followed");
-      else if (item.isDirectory()) nested(path, author);
-      else if (DOCUMENT.test(item.name)) bad(path, `a document must sit directly in community/${author}/, not in a folder inside it`);
+      if (item.isSymbolicLink()) bad(path, LINKED_OUTPUT);
+      else if (item.isDirectory()) generated(path);
     }
   };
 
   for (const item of list(COMMUNITY)) {
     const path = join(COMMUNITY, item.name);
-    if (item.isSymbolicLink()) bad(path, "is a symbolic link; submissions are read as data and a link is never followed");
+    if (item.isSymbolicLink()) bad(path, LINKED);
     else if (item.isFile()) {
       if (DOCUMENT.test(item.name)) bad(path, "a document goes in a folder named for its author: community/<handle>/<id>.grooph.json");
-    } else if (item.isDirectory() && !RESERVED.has(item.name)) {
-      if (!HANDLE.test(item.name)) {
-        bad(path, `"${item.name}" is not a GitHub handle (letters, digits and single hyphens); name the folder for yours`);
+      else if (!TOP_LEVEL_FILES.has(item.name)) bad(path, "community/ holds README.md, index.json, pictures/ and one folder per author; this file does not belong");
+    } else if (item.isDirectory()) {
+      if (item.name === "pictures") {
+        generated(path);
+        continue;
+      }
+      if (RESERVED.has(item.name) || !HANDLE.test(item.name)) {
+        bad(path, `"${item.name}" is not a GitHub handle (letters and digits, single hyphens between them); name the folder for yours`);
         continue;
       }
       for (const file of list(path)) {
         const filePath = join(path, file.name);
-        if (file.isSymbolicLink()) bad(filePath, "is a symbolic link; submissions are read as data and a link is never followed");
-        else if (file.isDirectory()) nested(filePath, item.name);
-        else if (DOCUMENT.test(file.name)) {
-          if (DOCUMENT_NAME.test(file.name)) entries.push({ rel: rel(filePath), abs: filePath, author: item.name, file: file.name });
-          else bad(filePath, "name the file for the document's id, in lower-case kebab-case: <id>.grooph.json or <id>.grooph-map.json");
-        }
+        if (file.isSymbolicLink()) bad(filePath, LINKED);
+        else if (file.isDirectory()) bad(filePath, `a folder inside community/${item.name}/ is not read; put files directly in community/${item.name}/`);
+        else if (DOCUMENT_NAME.test(file.name)) entries.push({ rel: rel(filePath), abs: filePath, author: item.name, file: file.name });
+        else if (DOCUMENT.test(file.name)) bad(filePath, "name the file for the document's id, in lower-case kebab-case: <id>.grooph.json or <id>.grooph-map.json");
+        else if (!WRITE_UP.test(file.name)) bad(filePath, "an author's folder holds documents (.grooph.json, .grooph-map.json) and Markdown write-ups (.md), and nothing else");
       }
+    } else {
+      bad(path, "is not a regular file or folder");
     }
   }
   return { entries, problems };
 }
 
-/** A repository path (the file a template's `demo` names) that stays inside the repository. */
-const repoPath = (text) => !text.startsWith("/") && !text.split("/").includes("..") && !/[\\\0]/.test(text);
+const regularFileInRepo = (path) => {
+  try {
+    const stat = lstatSync(path);
+    return stat.isFile() && realpathSync(path).startsWith(`${realpathSync(root)}${sep}`);
+  } catch {
+    return false;
+  }
+};
+/** A repository file a template's `demo` may name: under experiments/ or the author's own folder, a regular file, no hidden parts. */
+const demoFile = (demo, author) =>
+  !demo.startsWith("/") &&
+  !/[\\\0]/.test(demo) &&
+  demo.split("/").every((part) => part !== "" && !part.startsWith(".")) &&
+  (demo.startsWith("experiments/") || demo.startsWith(`community/${author}/`)) &&
+  regularFileInRepo(join(root, demo));
 
 /** Read one document as data, check it, and work out everything the gallery shows of it. */
 function load(entry) {
   const record = { path: entry.rel, author: entry.author, fileId: DOCUMENT_NAME.exec(entry.file)[1], problems: [], warnings: [] };
-  const fail = (...lines) => record.problems.push(...lines);
+  const fail = (...lines) => record.problems.push(...lines.map(plain));
 
   const size = lstatSync(entry.abs).size;
   if (size > MAX_BYTES) {
@@ -229,7 +282,7 @@ function load(entry) {
     }
     const map = parsed.map;
     issues = validateMap(map);
-    Object.assign(record, { kind: "map", id: map.id, name: map.name, summary: oneLine(map.description ?? ""), shape: mapShapeLine(mapShape(map)) });
+    Object.assign(record, { kind: "map", id: map.id, name: oneLine(map.name), summary: oneLine(map.description ?? ""), shape: mapShapeLine(mapShape(map)) });
     if (record.summary === "") fail("error  community  a map in the gallery needs a `description` that says what operation it draws");
     shared = drawn = map;
   } else {
@@ -242,7 +295,7 @@ function load(entry) {
     record.id = doc.id;
     if (doc.template) {
       const block = doc.template;
-      Object.assign(record, { kind: "template", templateKind: block.kind, name: block.title, summary: oneLine(block.summary) });
+      Object.assign(record, { kind: "template", templateKind: block.kind, name: oneLine(block.title), summary: oneLine(block.summary) });
       if (record.summary === "") fail("error  community  a template needs a `template.summary`");
 
       // Every slot declared has a question and an example; every slot used is declared. Then the template is filled with
@@ -281,27 +334,26 @@ function load(entry) {
       }
       const credits = block.credits ?? [];
       for (const credit of credits) {
-        if (!credit.name.trim() || !credit.note.trim() || !isWebUrl(credit.url)) fail(`error  community  a credit needs a name, a web link and a note on what was taken: ${oneLine(credit.name)}`);
+        if (!credit.name.trim() || !credit.note.trim() || !isWebUrl(credit.url)) fail(`error  community  a credit needs a name, a web link and a note on what was taken: ${credit.name}`);
       }
       if (credits.length > 0) record.credits = credits.map((c) => ({ name: oneLine(c.name), url: c.url, note: oneLine(c.note) }));
       record.proof = null;
       if (block.demo !== undefined && block.demo.trim() !== "") {
         const demo = block.demo.trim();
-        if (isWebUrl(demo)) record.proof = demo;
-        else if (repoPath(demo) && existsSync(join(root, demo))) record.proof = demo;
-        else fail(`error  community  template.demo must be a web link or a file in this repository that exists: ${oneLine(demo)}`);
+        if (isWebUrl(demo) || demoFile(demo, entry.author)) record.proof = demo;
+        else fail(`error  community  template.demo must be a web link, or a file under experiments/ or community/${entry.author}/ that exists: ${demo}`);
       }
     } else {
       issues = validate(doc, { forExport: true });
-      Object.assign(record, { kind: "graph", name: doc.name, summary: oneLine(doc.description ?? doc.goal ?? ""), shape: shapeLine(estimateShape(doc)) });
+      Object.assign(record, { kind: "graph", name: oneLine(doc.name), summary: oneLine(doc.description ?? doc.goal ?? ""), shape: shapeLine(estimateShape(doc)) });
       if (record.summary === "") fail("error  community  a graph needs a `description` or a `goal` that says what it is for");
-      if (doc.lineage?.pattern) record.from = doc.lineage.pattern;
+      if (doc.lineage?.pattern) record.from = oneLine(doc.lineage.pattern);
       shared = drawn = doc;
     }
   }
 
   if (record.id !== record.fileId) fail(`error  community  the file is named ${record.fileId} but the document's id is ${record.id}; name the file for the id`);
-  for (const issue of issues) (issue.severity === "error" ? record.problems : record.warnings).push(formatIssue(issue));
+  for (const issue of issues) (issue.severity === "error" ? record.problems : record.warnings).push(plain(formatIssue(issue)));
 
   // The link, and the pictures. Pictures are drawn for anything that parsed, valid or not, so a sender can see what is wrong.
   if (drawn) {
@@ -321,7 +373,8 @@ function load(entry) {
   if (shared && record.problems.length === 0) {
     try {
       record.link = shareLink(encodeSharePayload(buildShareEnvelope(shared), deflate), SHARE_BASE);
-      if (record.link.length > SHARE_LINK_WARN) record.warnings.push(`warning  community  the link to open it is ${record.link.length.toLocaleString("en")} characters; messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")}`);
+      // The warning never says how long: that depends on this machine's compressor, and the page must read the same everywhere.
+      if (record.link.length > SHARE_LINK_WARN) record.warnings.push(`warning  community  the link to open it is longer than ${SHARE_LINK_WARN.toLocaleString("en")} characters; messengers often cut links that long`);
     } catch (err) {
       fail(`error  community  the document cannot be shared: ${err.message}`, ...(err.issues ?? []).map(formatIssue));
     }
@@ -402,7 +455,7 @@ function outputsFor(records) {
   const index = { groophCommunity: 0, documents: good.map(indexRow) };
   return [
     { path: join(COMMUNITY, "index.json"), text: `${JSON.stringify(index, null, 2)}\n`, digestLinks: true },
-    { path: join(root, "docs", "community.md"), text: galleryMarkdown(good), digestLinks: true },
+    { path: PAGE, text: galleryMarkdown(good), digestLinks: true },
     ...good.flatMap((r) => [
       { path: join(root, r.pictureFile), text: r.pictureText },
       ...(r.glyphFile ? [{ path: join(root, r.glyphFile), text: r.glyphText }] : []),
@@ -410,9 +463,16 @@ function outputsFor(records) {
   ];
 }
 
+/** Every file below a folder, leaving out only what the Finder scatters. A link is never followed. */
 function filesBelow(dir) {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir, { withFileTypes: true }).flatMap((item) => (item.isDirectory() ? filesBelow(join(dir, item.name)) : [join(dir, item.name)]));
+  if (isLink(dir)) return [];
+  let items;
+  try {
+    items = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  return items.filter((item) => item.name !== ".DS_Store").flatMap((item) => (item.isDirectory() ? filesBelow(join(dir, item.name)) : [join(dir, item.name)]));
 }
 
 /** Generated files that differ from what the documents say, and pictures left behind by a document that is gone. */
@@ -426,12 +486,13 @@ function staleness(outputs) {
         return true;
       }
     })
-    .map(({ path }) => rel(path));
+    .map(({ path }) => ({ path: rel(path) }));
   const strays = filesBelow(PICTURES)
     .filter((path) => !outputs.some((o) => o.path === path))
-    .map((path) => `${rel(path)} (no document)`);
+    .map((path) => ({ path: rel(path), note: "no document makes it" }));
   return [...stale, ...strays];
 }
+const staleText = ({ path, note }) => plain(note ? `${path} (${note})` : path);
 
 // ─── arguments ────────────────────────────────────────────────────────────
 
@@ -456,7 +517,7 @@ for (let i = 0; i < args.length; i += 1) {
     console.log(USAGE);
     process.exit(0);
   } else {
-    console.error(`community-index: unknown argument ${arg}\n${USAGE}`);
+    console.error(`community-index: unknown argument ${plain(arg)}\n${USAGE}`);
     process.exit(2);
   }
 }
@@ -472,17 +533,24 @@ if (!flags.report && (flags.changed !== undefined || flags.only !== undefined ||
 // ─── run ──────────────────────────────────────────────────────────────────
 
 const { entries, problems: structural } = scan();
-const records = entries.map(load);
+/** A document that makes the checker itself throw is a failed document, never a crashed run. */
+const safeLoad = (entry) => {
+  try {
+    return load(entry);
+  } catch (err) {
+    return { path: entry.rel, author: entry.author, fileId: entry.file, problems: [plain(`error  community  the document could not be checked: ${err.message}`)], warnings: [], ok: false };
+  }
+};
+const records = entries.map(safeLoad);
 
 /** Failures as plain lines, grouped under the path they belong to. */
-function failureLines(onlyPaths) {
-  const keep = (path) => onlyPaths === undefined || onlyPaths.has(path);
+function failureLines() {
   const lines = [];
   const paths = [...new Set([...records.filter((r) => !r.ok).map((r) => r.path), ...structural.map((p) => p.path)])].sort();
-  for (const path of paths.filter(keep)) {
-    lines.push(path);
-    for (const r of records.filter((x) => x.path === path)) for (const line of r.problems) lines.push(`  ${line}`);
-    for (const p of structural.filter((x) => x.path === path)) lines.push(`  error  community  ${p.message}`);
+  for (const path of paths) {
+    lines.push(plain(path));
+    for (const r of records.filter((x) => x.path === path)) for (const line of r.problems) lines.push(`  ${plain(line)}`);
+    for (const p of structural.filter((x) => x.path === path)) lines.push(`  error  community  ${plain(p.message)}`);
   }
   return lines;
 }
@@ -490,23 +558,26 @@ function failureLines(onlyPaths) {
 if (flags.report) {
   // The scope: documents changed since a git revision, the paths named, or everything.
   let scope;
+  let touched;
   let outside = [];
   let removed = [];
   if (flags.changed !== undefined) {
     if (!/^[A-Za-z0-9_./^~@{}][A-Za-z0-9_./^~@{}-]*$/.test(flags.changed)) {
-      console.error(`community-index: "${flags.changed}" is not a git revision`);
+      console.error(`community-index: "${plain(flags.changed)}" is not a git revision`);
       process.exit(2);
     }
     let names;
     try {
-      names = execFileSync("git", ["diff", "--name-only", "--no-renames", "-z", flags.changed, "HEAD"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).split("\0").filter(Boolean);
+      names = execFileSync("git", ["diff", "--no-ext-diff", "--no-textconv", "--name-only", "--no-renames", "-z", flags.changed, "HEAD"], { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).split("\0").filter(Boolean);
     } catch (err) {
-      console.error(`community-index: could not ask git what changed since ${flags.changed}: ${err.message}`);
+      console.error(`community-index: could not ask git what changed since ${plain(flags.changed)}: ${plain(err.message)}`);
       process.exit(2);
     }
+    touched = new Set(names);
     scope = new Set(names.filter((name) => name.startsWith("community/")));
-    outside = names.filter((name) => !name.startsWith("community/"));
-    removed = [...scope].filter((name) => DOCUMENT.test(name) && !existsSync(join(root, name)));
+    // docs/community.md is what a change under community/ regenerates, so it is expected and not worth a note.
+    outside = names.filter((name) => !name.startsWith("community/") && name !== "docs/community.md");
+    removed = [...scope].filter((name) => DOCUMENT.test(name) && !lstatExists(join(root, name)));
   } else if (flags.only !== undefined) {
     scope = new Set(flags.only.map((p) => rel(resolve(p))));
   }
@@ -516,6 +587,8 @@ if (flags.report) {
   const misplaced = structural.filter((p) => inScope(p.path));
   const outputs = outputsFor(records);
   const stale = staleness(outputs);
+  // A generated file the change touches must be what the generator makes: it is not a place to write anything by hand.
+  const handEdited = touched === undefined ? [] : stale.filter((s) => touched.has(s.path));
 
   if (flags.pictures !== undefined) {
     for (const r of chosen) {
@@ -528,17 +601,20 @@ if (flags.report) {
     }
   }
 
-  const bad = chosen.filter((r) => !r.ok).length + misplaced.length;
+  const bad = chosen.filter((r) => !r.ok).length + misplaced.length + handEdited.length;
+  const items = chosen.length + misplaced.length + handEdited.length;
   const out = ["## Community submission check", ""];
-  if (chosen.length === 0 && misplaced.length === 0 && removed.length === 0) {
+  if (items === 0 && removed.length === 0) {
     out.push(scope === undefined ? "There is no document under `community/` to check." : "No document under `community/` changed in this pull request, so there is nothing to check here.");
   } else {
-    out.push(
-      bad === 0
-        ? `${chosen.length === 1 ? "The document" : `All ${chosen.length} documents`} checked ${chosen.length === 1 ? "is" : "are"} valid.`
-        : `**${bad} of ${plural(chosen.length + misplaced.length, "item")} did not pass.** Each failure is listed below with the validator's own lines; an error blocks the document, a warning does not.`,
-      "",
-    );
+    if (items > 0) {
+      out.push(
+        bad === 0
+          ? `${chosen.length === 1 ? "The document" : `All ${chosen.length} documents`} checked ${chosen.length === 1 ? "is" : "are"} valid.`
+          : `**${bad} of ${plural(items, "item")} did not pass.** Each failure is listed below with the validator's own lines; an error blocks the document, a warning does not.`,
+        "",
+      );
+    }
     for (const r of chosen) {
       out.push(`### ${code(r.path)}: ${r.ok ? "valid" : "**not valid**"}`, "");
       if (r.kind) out.push(`${kindLabel(r)} · ${md(r.name)}${r.shape ? ` · ${md(r.shape)}` : ""}`, "");
@@ -546,13 +622,17 @@ if (flags.report) {
       out.push(lines.length === 0 ? "No issues." : fence(lines), "");
     }
     for (const p of misplaced) out.push(`### ${code(p.path)}: **not valid**`, "", fence([`error  community  ${p.message}`]), "");
+    for (const s of handEdited) {
+      out.push(`### ${code(s.path)}: **not valid**`, "", fence([`error  community  a generated file that is not what the generator makes${s.note ? ` (${s.note})` : ""}. Do not edit it by hand: run node scripts/community-index.mjs and commit what it writes, or leave it out of the pull request`]), "");
+    }
     for (const path of removed) out.push(`### ${code(path)}: removed`, "", "The pull request deletes this document; it leaves the gallery when the generated files are refreshed.", "");
   }
 
   const notes = [];
   if (flags.author) {
     const login = flags.author.toLowerCase();
-    const folders = [...new Set([...chosen.map((r) => r.author), ...misplaced.map((p) => p.path.split("/")[1]).filter(Boolean)])];
+    const folderOf = (path) => (path.split("/").length >= 3 ? path.split("/")[1] : undefined);
+    const folders = [...new Set([...chosen.map((r) => r.author), ...misplaced.map((p) => folderOf(p.path)).filter(Boolean)])];
     const others = folders.filter((folder) => folder.toLowerCase() !== login);
     if (others.length > 0) notes.push(`${plural(others.length, "folder")} here ${others.length === 1 ? "is" : "are"} named for someone other than the pull request's author (${code(flags.author)}): ${others.map(code).join(", ")}. The name goes on the gallery page as the author, so the owner confirms it is right before merging.`);
   }
@@ -563,7 +643,9 @@ if (flags.report) {
   notes.push(
     stale.length === 0
       ? "The generated gallery files are current."
-      : "The generated gallery files (`community/index.json`, `community/pictures/`, `docs/community.md`) do not list this change yet. That does not block it: whoever merges runs `node scripts/community-index.mjs` and commits the result, and the sender may do it first.",
+      : handEdited.length === stale.length
+        ? "The generated gallery files do not match the documents, as listed above."
+        : "The generated gallery files (`community/index.json`, `community/pictures/`, `docs/community.md`) do not list this change yet. That does not block it: whoever merges runs `node scripts/community-index.mjs` and commits the result.",
   );
   if (flags.pictures !== undefined) notes.push("The pictures of these documents are attached to this run as the `community-pictures` artifact.");
   out.push(...notes.map((note) => `- ${note}`), "");
@@ -571,7 +653,7 @@ if (flags.report) {
   process.exit(bad > 0 ? 1 : 0);
 }
 
-const failures = failureLines(undefined);
+const failures = failureLines();
 if (failures.length > 0) {
   console.error(`community: ${plural(records.filter((r) => !r.ok).length + structural.length, "item")} did not pass\n${failures.join("\n")}`);
   if (!flags.check) console.error("nothing was written");
@@ -582,7 +664,7 @@ const outputs = outputsFor(records);
 if (flags.check) {
   const stale = staleness(outputs);
   if (stale.length > 0) {
-    console.error(`stale: ${stale.join(", ")}; run \`node scripts/community-index.mjs\` and commit the result`);
+    console.error(`stale: ${stale.map(staleText).join(", ")}; run \`node scripts/community-index.mjs\` and commit the result`);
     process.exit(1);
   }
   console.log(`community/index.json, community/pictures/ and docs/community.md are current (${plural(records.length, "document")})`);
@@ -599,4 +681,14 @@ if (flags.check) {
     }
   }
   console.log(`wrote community/index.json, docs/community.md and ${outputs.length - 2} pictures (${plural(records.length, "document")})`);
+}
+
+/** Whether anything, a link included, is at this path. */
+function lstatExists(path) {
+  try {
+    lstatSync(path);
+    return true;
+  } catch {
+    return false;
+  }
 }
