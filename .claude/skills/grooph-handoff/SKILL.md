@@ -17,4 +17,4 @@ You are the driver. A handoff is the only thing the implementer will have beside
 6. **Commit and push** on `main`: `handoffs: draft NNNN-<slug>`.
 7. **Present and stop.** If the `handoff-brief` skill is available, use it so the owner gets the prompt with a copy button; otherwise print the prompt block. Then end the turn: no implementer session starts until the owner confirms.
 
-Done when the handoff is on `main`, the ledger and progress rows are updated, and the owner has the prompt in front of them.
+Done when the handoff is on `main`, the ledger and progress rows are updated (a dated row goes at the top of `docs/HISTORY.md`), and the owner has the prompt in front of them.

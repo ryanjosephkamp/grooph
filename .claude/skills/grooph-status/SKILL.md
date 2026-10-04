@@ -9,7 +9,7 @@ The owner reads on a phone and cannot see tool calls. The report is how they aud
 
 ## Steps
 
-1. **Gather from the repository only.** Read `docs/PROGRESS.md`, `docs/PLAN.md`, the latest `handoffs/NNNN-*/REVIEW.md` and `HANDBACK.md`, `experiments/patterns/README.md`, and run:
+1. **Gather from the repository only.** Read `docs/PROGRESS.md`, `docs/HISTORY.md`, `docs/PLAN.md`, the latest `handoffs/NNNN-*/REVIEW.md` and `HANDBACK.md`, `experiments/patterns/README.md`, and run:
    ```bash
    scripts/prove-pattern.sh --status
    node scripts/lib/prove-summary.mjs
@@ -22,7 +22,7 @@ The owner reads on a phone and cannot see tool calls. The report is how they aud
    - **Who ran what**: which sessions made the runs and which made the report; what the reporting session verified itself; what nobody has done.
    - **At a glance**: the handful of figures that matter, each with its source path.
    - **What grooph can do today**, with the live URLs.
-   - **What has been done**, dated, from the Done table and the slice ledger.
+   - **What has been done**, dated, from `docs/HISTORY.md` and the slice ledger.
    - **What a proving run records and where**: the audit map (ledger, `result.json`, `notes.jsonl`, `PROGRESS.md`, the working copy, digest, diff, package, write-up) and the commands that re-derive the tables. The same for comparisons (`experiments/comparisons/`: per-arm run folders, `score.json`, the judge's transcript and verdict with its separate mapping, `scripts/compare.sh --status`, `node scripts/lib/compare-summary.mjs`).
    - **Results**: the per-template table from `prove-summary.mjs`, a chart only when the data warrants one (load the `dataviz` skill first), the batch comparison.
    - **Findings**, each pointing at the write-up or handback it comes from.

@@ -40,7 +40,7 @@ If your prompt names a slice folder, you are a lane: read that `HANDOFF.md` befo
 - **Human is the brake.** Spend, merge and publish are gated, and loops never default to "until perfect". Graphs are adaptive by default, but a run amends only its own working copy, visibly, and can tighten brakes, never loosen them (decision 0008).
 - **Latitude over procedure.** Briefs state purpose, limits and outputs. The smallest graph that works beats a thorough one.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
-- **State lives in `docs/PROGRESS.md`, reasons in `docs/decisions/`.** README stays a product description.
+- **State lives in `docs/PROGRESS.md`, what was done in `docs/HISTORY.md`, reasons in `docs/decisions/`.** README stays a product description.
 - **A run is recorded before its result is used.** Any model session started by command gets a folder under `experiments/`, the harness's output saved as it runs, and a ledger row with its session id and reported cost (decision 0015; `experiments/hooks/README.md`).
 - **The driver merges what is small and safe; the rest waits for the owner** (decision 0023). Documents, tests, fixes with a test, and slices he has said yes to merge once CI is green and someone other than the author has read them. The contract, claims and evidence, spending, dependencies, packages, releases, and anything a person would notice on the site wait for his word on the review desk. A lane never merges.
 - **Claims are audited before they are published.** A sentence about what grooph does to the quality, cost, speed or safety of work goes through the audit loop with Codex first (decision 0024); the record is under `experiments/audits/`.
@@ -53,14 +53,14 @@ If your prompt names a slice folder, you are a lane: read that `HANDOFF.md` befo
 
 ```
 spec/        capability spec (frozen) + amendments
-docs/        PLAN, PROGRESS, ARCHITECTURE, GLOSSARY, graph-ir, targets/, decisions/
+docs/        PLAN, PROGRESS, HISTORY, ARCHITECTURE, GLOSSARY, graph-ir, targets/, decisions/
 handoffs/    protocol, templates, one folder per slice (HANDOFF, HANDBACK, REVIEW)
 handoffs/briefs/  sources of the gate briefs published as Artifacts, with their URLs
 packages/    core (schema, validate, compile, pictures, events) · cli (commands, the event hook, the MCP server)
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
 community/   loop graphs sent in by pull request; a generated index, pictures and gallery (docs/community.md)
-scripts/     generators with --check (patterns index, rule reference, field guide, community index, site pages), the proving and comparison runners, the performance budget
+scripts/     generators with --check (patterns index, rule reference, field guide, community index, site pages), the proving and comparison runners, the performance budget; driver/ holds the driver's merge and watch scripts
 fixtures/    graphs per error code, golden packages; operation maps per map rule, with the sample
 experiments/ proving runs, paired comparisons, hook records, and audits/ (each claim's audit by a second harness, round by round)
 plugins/grooph/  the product's own skill (grooph-design), packaged as a Claude Code plugin

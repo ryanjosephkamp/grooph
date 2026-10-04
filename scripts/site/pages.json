@@ -14,6 +14,11 @@
           "source": "docs/quickstart.md",
           "slug": "quickstart",
           "summary": "Install grooph, then ask your agent for a graph or build one by hand."
+        },
+        {
+          "source": "docs/GLOSSARY.md",
+          "slug": "glossary",
+          "summary": "The words grooph uses, each in a line: graph document, loop, bar, stop, package, lead and the rest."
         }
       ]
     },
@@ -25,6 +30,11 @@
           "source": "docs/rules.md",
           "slug": "rules",
           "summary": "Every validation rule by its stable code, with a document that fires it and one that does not."
+        },
+        {
+          "source": "docs/cli.md",
+          "slug": "cli",
+          "summary": "The CLI, command by command, each with the help it prints itself."
         },
         {
           "source": "docs/graph-ir.md",
@@ -55,6 +65,26 @@
           "source": "docs/runs.md",
           "slug": "runs",
           "summary": "Run folders, notes back, adopting a run's working copy, and the monitor."
+        },
+        {
+          "source": "docs/targets/claude-code.md",
+          "slug": "targets/claude-code",
+          "summary": "The Claude Code target: the files of a package, and what each part of a graph becomes in the harness."
+        },
+        {
+          "source": "docs/executive.md",
+          "slug": "executive",
+          "summary": "Proposal sets, share links and the compare view: how a session proposes graphs and a pick becomes a package."
+        },
+        {
+          "source": "docs/comparisons.md",
+          "slug": "comparisons",
+          "summary": "The paired-comparison protocol: the same task run as a graph, as a prompt, as a prompt in a loop and bare, under equal conditions."
+        },
+        {
+          "source": "docs/ARCHITECTURE.md",
+          "slug": "architecture",
+          "summary": "One pure core and the shells around it: the web app, the CLI and the MCP server."
         }
       ]
     },
@@ -71,6 +101,27 @@
           "source": "docs/community.md",
           "slug": "community",
           "summary": "Loop graphs other people have sent in by pull request, each checked and drawn by CI."
+        }
+      ]
+    },
+    {
+      "id": "project",
+      "title": "Project",
+      "entries": [
+        {
+          "source": "docs/releases.md",
+          "slug": "releases",
+          "summary": "Each version, its date and what changed for a person using it."
+        },
+        {
+          "source": "CONTRIBUTING.md",
+          "slug": "contributing",
+          "summary": "How to send a loop graph, a fix or a rule, and the house rules a pull request is held to."
+        },
+        {
+          "source": "docs/privacy.md",
+          "slug": "privacy",
+          "summary": "No account, no server, no cookies, no analytics: where a graph lives and what leaves your device."
         }
       ]
     },
