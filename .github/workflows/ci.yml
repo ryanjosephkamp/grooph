@@ -62,6 +62,10 @@ jobs:
       - name: the rule reference is current
         run: node scripts/rule-reference.mjs --check
 
+      # docs/cli.md is generated from the help the CLI prints: `grooph --help` and `grooph help <command>`.
+      - name: the CLI reference is current
+        run: node scripts/cli-reference.mjs --check
+
       # community/index.json, its pictures and docs/community.md are generated from the documents under community/,
       # and every one of those documents must validate (handoff 0065). community.yml is what tells a sender what is
       # wrong with theirs. This keeps the generated files honest on main and on the owner's own branches; a pull
