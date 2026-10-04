@@ -24,7 +24,7 @@ Write the graphs you make in the working directory, not in this folder. `node sc
 
 ## Before any graph: is one the right answer?
 
-A graph earns its place when the work needs a loop that turns (build, check, fix, check again), a brake (a round cap, a budget), a person's decision before something that cannot be undone, or a record of what ran. It does not make one-pass work better. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, say plainly that no graph is the right answer and give them the plain prompt instead.
+A graph is for work that needs a loop that turns (build, check, fix, check again), a brake written down (a round cap, a budget), a person's decision before something that cannot be undone, or a record of what ran. It is not shown to raise quality over the same instructions given as a prompt, on small tasks. When a strong builder would finish the task in one pass and the person wants neither a brake nor a record, say plainly that no graph is the right answer and give them the plain prompt instead.
 
 ## Steps
 

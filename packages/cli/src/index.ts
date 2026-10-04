@@ -377,14 +377,16 @@ export async function run(
       case "mcp": {
         const { values } = parseArgs({ args: rest, allowPositionals: false, options: { dir: { type: "string" }, harness: { type: "string" }, chat: { type: "boolean" } } });
         const chat = values["chat"] === true;
-        if (chat && values["dir"] !== undefined) return usageError(io, "--chat writes no file, so it takes no --dir; leave one of them out");
+        if (chat && values["dir"] !== undefined) return usageError(io, "--chat reads and writes no file, so it takes no --dir; leave one of them out");
         const e = env.env ?? process.env;
         // An empty --dir or an empty CLAUDE_PROJECT_DIR names no folder, and counts as none.
-        const named = [values["dir"], e["CLAUDE_PROJECT_DIR"]].find((dir) => dir !== undefined && dir.trim() !== "");
-        const project = resolve(named ?? process.cwd());
+        const given = (dir: string | undefined): string | undefined => (dir !== undefined && dir.trim() !== "" ? dir : undefined);
+        const flag = given(values["dir"]);
+        const project = resolve(flag ?? given(e["CLAUDE_PROJECT_DIR"]) ?? process.cwd());
         // A chat app starts a server wherever it likes, often in the file system's root or the home folder. A folder
-        // nobody chose is not a project: there the tools still return every document, and write no file. Folders are
-        // compared by real location, so a home reached through a link is still home.
+        // nobody chose is not a project: there the tools still return every document, and write no file. Only --dir
+        // can choose the root or home; a harness's variable pointing there is where it happened to start, not a choice.
+        // Folders are compared by real location, so a home reached through a link is still home.
         const real = (dir: string): string => {
           try {
             return realpathSync.native(dir);
@@ -393,11 +395,11 @@ export async function run(
           }
         };
         const nowhere = real(project) === parse(real(project)).root || real(project) === real(homedir());
-        const writes = !chat && (named !== undefined || !nowhere);
+        const writes = !chat && (flag !== undefined || !nowhere);
         // The harness does not always tell an MCP server which session it serves; then the id is this server's own.
         const session = e["CLAUDE_CODE_SESSION_ID"] ?? e["CODEX_SESSION_ID"] ?? `mcp-${Date.now().toString(36)}-${process.pid}`;
         const harness = values["harness"] ?? (e["CLAUDECODE"] ? "claude-code" : e["CODEX_HOME"] || e["CODEX_SESSION_ID"] ? "codex" : "unknown");
-        await serveMcp({ project, writes, ...(chat ? { chat } : {}), version: VERSION, harness: chat && values["harness"] === undefined ? "chat" : harness, session, now: () => new Date() });
+        await serveMcp({ project, writes, env: e, ...(chat ? { chat } : {}), version: VERSION, harness: chat && values["harness"] === undefined ? "chat" : harness, session, now: () => new Date() });
         return 0;
       }
 
@@ -470,8 +472,12 @@ For a session's lead, beside what the event hook sees (docs/subagents.md §7):
   grooph_running   what the event hook has seen: sessions, subagents, what is running,
                    and each declared plan with how much of it has started
 
-A tool writes a file only when it is given a name for one, and only inside the project
-folder. A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
+A tool writes a file only when it is given a name for one, only inside the project folder,
+never under .git and never through a link. A graph is saved as <name>.grooph.json. A file
+already there is replaced only when it is the graph the call read, a picture grooph drew,
+or a package's files as grooph last wrote them; anything else needs "replace": true.
+A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
+grooph_export reads GROOPH_MODELS from the server's environment, as grooph export does.
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp
@@ -483,11 +489,12 @@ Add it to a harness:
                 { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 
   --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in).
-                    Started in the file system's root or a home folder with no --dir, the
-                    tools return every document and write no file.
+                    When that is the file system's root or a home folder and no --dir said
+                    so, the tools return every document and write no file.
   --harness <name>  claude-code or codex, when it cannot be told from the environment
-  --chat            for a chat app: only the authoring tools, and no file is ever written;
-                    every document, picture and package comes back in the reply`;
+  --chat            for a chat app: only the authoring tools, and no file of yours is read
+                    or written; a document goes in as an argument, and every document,
+                    picture and package comes back in the reply`;
 
 /** `grooph <command> --help`: the command's own page where it has one, else the overview. */
 const COMMAND_HELP: Record<string, string> = {

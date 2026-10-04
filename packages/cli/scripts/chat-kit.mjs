@@ -75,9 +75,9 @@ const desktop = {
   name: "grooph",
   display_name: "grooph",
   version: manifest.version,
-  description: "Make, check, draw and share loop graphs for coding agents, from a chat. It never runs agents and writes no file.",
+  description: "Make, check, draw and share loop graphs for coding agents, from a chat. It never runs agents, and reads and writes no file of yours.",
   long_description:
-    "grooph is an authoring and checking surface for multi-agent loop graphs: one small document that says who does what, where the loops are and what stops them. This extension runs grooph's MCP server on your computer with its authoring tools only: Claude picks a template, fills it, changes it, checks it against grooph's rules, draws it and hands you a link that opens it in the grooph app on any device. Nothing is uploaded: the link carries the graph after its #, which a browser sends to no server. No model is called, no file is written, and nothing is started.",
+    "grooph is an authoring and checking surface for multi-agent loop graphs: one small document that says who does what, where the loops are and what stops them. This extension runs grooph's MCP server on your computer with its authoring tools only: Claude picks a template, fills it, changes it, checks it against grooph's rules, draws it and hands you a link that opens it in the grooph app on any device. Nothing is uploaded: the link carries the graph after its #, which a browser sends to no server. No model is called, no file of yours is read or written, and nothing is started.",
   author: { name: "ryanjosephkamp", url: "https://github.com/ryanjosephkamp" },
   homepage: "https://ryanjosephkamp.github.io/grooph/",
   documentation: "https://ryanjosephkamp.github.io/grooph/docs/chat/",
@@ -91,7 +91,8 @@ const desktop = {
     mcp_config: { command: "node", args: ["${__dirname}/server/grooph.mjs", "mcp", "--chat"] },
   },
   tools: listed.map((tool) => ({ name: tool.name, description: tool.title })),
-  compatibility: { platforms: ["darwin", "win32", "linux"], runtimes: { node: ">=18.17.0" } },
+  // Node 22 is what grooph asks for and what it was run on; nothing lower was tried.
+  compatibility: { platforms: ["darwin", "win32", "linux"], runtimes: { node: ">=22.0.0" } },
 };
 const bundle = zip([
   { name: "manifest.json", data: Buffer.from(`${JSON.stringify(desktop, null, 2)}\n`) },

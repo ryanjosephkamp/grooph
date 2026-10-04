@@ -2,7 +2,7 @@
 
 **Loop graphs for coding agents.** You, or an agent working with you, say who builds, who checks, where a person decides and when the work stops, in one small JSON document. grooph checks that every loop can end and every critic can actually inspect something, then compiles the graph into a prompt package for Claude Code. Your harness runs the package. grooph never runs an agent and never calls a model.
 
-This package is the command line, the built-in templates, an MCP server and the app `grooph watch` serves. It has no dependencies to install.
+This package is the command line, the built-in templates, an MCP server and the app `grooph watch` serves. It has no dependencies, and one optional one: `@resvg/resvg-js`, the PNG renderer, which has no install script.
 
 ```bash
 npx grooph --help
@@ -48,7 +48,7 @@ args = ["-y", "grooph", "mcp", "--harness", "codex"]
 { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 ```
 
-The last one is for a chat in Claude's desktop app (`claude_desktop_config.json`): `--chat` offers the authoring tools only and writes no file.
+The last one is for a chat in Claude's desktop app (`claude_desktop_config.json`): `--chat` offers the authoring tools only, and reads and writes no file of yours.
 
 - [The page for agents](https://ryanjosephkamp.github.io/grooph/docs/agents/): the shortest path, every operation by example, what to do about each rule, and when no graph is the right answer.
 - [From a chat](https://ryanjosephkamp.github.io/grooph/docs/chat/): what works in Claude's desktop app, in claude.ai and in ChatGPT.

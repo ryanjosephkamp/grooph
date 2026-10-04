@@ -37,7 +37,7 @@ In [the app](https://ryanjosephkamp.github.io/grooph/), choose **Paste a documen
 
 ## Claude's desktop app
 
-The desktop app runs local MCP servers in ordinary chats, and grooph's server has a mode for that: `grooph mcp --chat` offers the ten authoring tools and writes no file, so every document, picture and package comes back in the reply.
+The desktop app runs local MCP servers in ordinary chats, and grooph's server has a mode for that: `grooph mcp --chat` offers the ten authoring tools, takes a document only as an argument, and reads and writes no file of yours, so every document, picture and package comes back in the reply.
 
 **With a config entry.** In the app's menu bar, Settings, then Developer, then Edit Config opens `claude_desktop_config.json` (`~/Library/Application Support/Claude/` on macOS, `%APPDATA%\Claude\` on Windows). Add the entry, save, and quit and reopen the app. [**[documented]**](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
 
@@ -58,7 +58,7 @@ What is known about it:
 - The app asks for your approval before a tool runs. [**[documented]**](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
 - A session with these ten tools and nothing else went from the request above to a validated graph and a link in six calls, naming the graph by its id once it was made. The server was the one inside `grooph.mcpb`, unpacked and started exactly as its manifest starts it; the client was Claude Code, not the desktop app. **[seen]**, run B.
 - The link from that session opened in the published app and showed the graph, read-only, with Save to this device. **[seen]**
-- The server answers when it is started in the file system's root, which is where a desktop app may start one, and there it refuses to write even when asked. **[seen]**, the CLI's tests.
+- The server answers when it is started in the file system's root, which is where a desktop app may start one. In chat mode it refuses a file path before looking at it, so a file that is there and one that is not answer the same. **[seen]**, the CLI's tests.
 - The desktop app itself, loading this entry or this extension, was **not tried**. Adding either changes the owner's app, and the config route needs the app restarted while it was in use. Whether the app shows a tool's picture to you, and whether it hands the model a tool's text or its data, are **[unknown]**; the server puts the same lines in both.
 
 In the app, the model has the SVG and can put it in front of you as an artifact; it is told to. If it describes the picture in words, the link still shows it.
@@ -72,7 +72,7 @@ To add it: turn on "Code execution and file creation" in Settings, Capabilities;
 What is known about it:
 
 - A session with only the unzipped skill and a shell allowed to run `node`, with no grooph installed, made the graph from a template, validated it, explained it, and produced the link, the SVG and the `.grooph.json` file. The shell was Claude Code's, standing in for claude.ai's code tool. **[seen]**, run C.
-- The script runs with nothing beside it but the templates: no `node_modules`, no network. **[seen]**, on Node 22, 24 and 26. It uses nothing newer than Node 18.17 has, by reading; no older Node was run.
+- The script runs with nothing beside it but the templates: no `node_modules`, no network. **[seen]**, on Node 22, 24 and 26; grooph asks for Node 22 or later, and no older Node was run.
 - claude.ai's code tool has Node: Anthropic's own published skills have Claude write and run Node scripts. [**[documented]**](https://github.com/anthropics/skills/blob/main/skills/pptx/SKILL.md) Which version of Node. **[unknown]**
 - Two of Anthropic's pages give different limits for a skill's description, 1,024 characters and 200; the skill's is within the smaller.
 - Uploading the skill to claude.ai and asking there was **not tried**: it is the owner's account. If the code tool has no `node`, the skill tells the model to write the document itself and send you to **Paste a document**.
@@ -96,7 +96,7 @@ In Codex, OpenAI's coding harness, the local server works as it does in Claude C
 
 One thing would give ChatGPT, claude.ai in a browser and the phone apps the same ten tools at once: grooph's server reachable at a public address. claude.ai takes a custom connector on every plan, one of them on Free [**[documented]**](https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp), and accepts one with no authentication. [**[documented]**](https://claude.com/docs/connectors/building/authentication)
 
-The tools are ready for it. In chat mode every one is a pure function of its arguments: no file, no account, nothing kept between calls except the convenience of naming a graph by its id, which a stateless endpoint would simply not offer. Every tool that cannot write is marked read-only.
+The tools are close to ready for it. In chat mode a tool takes a document only as an argument and refuses a file path, so it reads nothing of the person's and writes nothing; the one thing it reads is the template library grooph ships. There is no account, and nothing is kept between calls except the convenience of naming a graph by its id, which a stateless endpoint would simply not offer. In chat mode every tool is marked read-only.
 
 It is not built, because it would be grooph's first backend, and that is the owner's decision. Today a graph never leaves your device unless you send the link yourself; with an endpoint, every document a chat works on would pass through a server someone runs. The design, what it would cost and what it would change are written up for the owner in the slice's handback.
 

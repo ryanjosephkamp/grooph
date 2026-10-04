@@ -2,7 +2,8 @@
 /**
  * Assemble the package that goes to npm as `grooph`, in dist/npm/:
  *
- *   package.json            name grooph, the version of this workspace package, no dependencies
+ *   package.json            name grooph, the version of this workspace package, no dependencies and one
+ *                           optional one (@resvg/resvg-js, for PNG; it has no install script)
  *   dist/bundle/grooph.js   the CLI and core as one file (scripts/bundle.mjs): the `grooph` command
  *   dist/patterns/          the built-in templates
  *   dist/app/               the built web app `grooph watch` serves, without its source maps

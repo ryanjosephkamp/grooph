@@ -14,7 +14,7 @@ You can reach grooph three ways, and the vocabulary is the same in all of them:
 
 Often it is not, and saying so is part of the job.
 
-A graph earns its place when the work needs a **loop that turns** (build, check, fix, check again), a **brake** (a round cap, a budget), a **person's decision** before something that cannot be undone, or a **record** of what ran. It does not make one-pass work better. As of the first paired comparison the evidence shows that grooph bounds and records autonomous work and holds a design as a runtime contract; it does not show better quality than the same instructions given as a prompt, on small tasks a strong builder finishes in one pass (decisions [0012](decisions/0012-first-comparison.md) and [0013](decisions/0013-value-as-of-study-one.md)).
+A graph is for work that needs a **loop that turns** (build, check, fix, check again), a **brake** written down (a round cap, a budget), a **person's decision** before something that cannot be undone, or a **record** of what ran. It is not shown to raise quality over the same instructions given as a prompt, on small tasks ([decision 0012](decisions/0012-first-comparison.md)).
 
 So when a strong builder would finish the task in one pass, and the person wants neither a brake nor a run record, tell them plainly that no graph is the right answer and offer the plain prompt instead. When you do propose a graph, propose the smallest one that works.
 
@@ -77,9 +77,9 @@ To offer a choice, build two or three graphs that differ in shape (a lean one, a
 | `grooph_shape` | `graph` | one line of counts: agents, checks, gates, loops, rounds, tiers |
 | `grooph_share` | `graph` (or a proposal set) | a link the app opens, and the embed line for a web page |
 | `grooph_picture` | `graph`, optionally `theme`, `png: true` | the picture as SVG text, and a PNG as an image when asked |
-| `grooph_export` | `graph`, optionally `target` | the package's files and the kickoff prompt |
+| `grooph_export` | `graph`, optionally `target`, `models` | the package's files and the kickoff prompt; which model a tier means comes from `models`, else from `GROOPH_MODELS` in the server's environment |
 
-`graph` is the id of a graph a tool returned earlier in the conversation, or the document itself. Every tool that takes `graph` takes `path` instead: a `.grooph.json` file, for a session that has a project. `grooph_new`, `grooph_use_template` and `grooph_apply` take `out` to write the graph to a file, `grooph_picture` takes `out` for an `.svg` or `.png`, and `grooph_export` takes `into` to place the package in the project. A tool writes only when you name a file, only inside the project folder the server was started in, and never replaces a file it did not read. In a chat (`grooph mcp --chat`) no tool writes anything.
+`graph` is the id of a graph a tool returned earlier in the conversation, or the document itself. Every tool that takes `graph` takes `path` instead: a `.grooph.json` file, for a session that has a project. `grooph_new`, `grooph_use_template` and `grooph_apply` take `out` to write the graph to a file, `grooph_picture` takes `out` for an `.svg` or `.png`, and `grooph_export` takes `into` to place the package in the project. A tool writes only when you name a file, only inside the project folder the server was started in, never under `.git` and never through a link. A graph is saved as `<name>.grooph.json`. A file already there is replaced only when it is the graph file the call read, an SVG grooph drew, or a package's files as grooph last wrote them; anything else is left alone unless you pass `replace: true`, which is for when the person said to. In a chat (`grooph mcp --chat`) a tool takes no file argument at all: it reads nothing of the person's and writes nothing.
 
 A refusal names the rule's code where a rule refused, and always ends with a `next:` line saying what to call.
 

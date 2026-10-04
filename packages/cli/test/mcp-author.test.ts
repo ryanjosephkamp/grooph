@@ -16,7 +16,7 @@ import { IMPLEMENTED_CODES, OP_NAMES, canonicalize, decodeSharePayload, parseGra
 
 import { FIXES, fixLines } from "../src/fixes.js";
 import { handle, type McpContext } from "../src/mcp.js";
-import { within } from "../src/mcp-author.js";
+import { nearestExisting, within } from "../src/mcp-author.js";
 import { defaultRegistryEnv } from "../src/registry.js";
 
 const repoRoot = (() => {
@@ -289,7 +289,7 @@ test("the file forms: path reads, out writes, and only inside the project folder
     assert.match(textOf(made), /\nwrote graphs\/scratch\.grooph\.json\n/);
     const file = join(ctx.project, "graphs", "scratch.grooph.json");
     assert.equal(readFileSync(file, "utf8"), canonicalize(graphOf(made)));
-    refused(await call(ctx, "grooph_new", { name: "Scratch", out: "graphs/scratch.grooph.json" }), /^graphs\/scratch\.grooph\.json already exists, and this tool does not replace a file it did not read\./);
+    refused(await call(ctx, "grooph_new", { name: "Scratch", out: "graphs/scratch.grooph.json" }), /^graphs\/scratch\.grooph\.json already exists, and it is not a file this tool read, so it was left as it is\.\nnext: give "out" another name, or pass "replace": true to replace it, when the person said to$/);
     refused(await call(ctx, "grooph_use_template", { id: "ralph-loop", out: "graphs/scratch.grooph.json" }), /already exists/);
 
     // apply reads the file and may write the file it read; another existing file it will not replace.
@@ -299,7 +299,7 @@ test("the file forms: path reads, out writes, and only inside the project folder
       { op: "connect", from: "builder", to: "done" },
     ];
     writeFileSync(join(ctx.project, "graphs", "other.grooph.json"), "{}");
-    refused(await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/other.grooph.json", ops }), /graphs\/other\.grooph\.json already exists/);
+    refused(await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/other.grooph.json", ops }), /graphs\/other\.grooph\.json already exists, and it is not the file this call read/);
     assert.equal(readFileSync(join(ctx.project, "graphs", "other.grooph.json"), "utf8"), "{}");
     const applied = await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/scratch.grooph.json", ops, forExport: true });
     assert.match(textOf(applied), /\nno issues\nwrote graphs\/scratch\.grooph\.json\n/);
@@ -588,7 +588,8 @@ test("what an independent read found: links, hard links, a project reached throu
     // A second name for a file outside the project (a hard link): the picture takes the name, and the file outside keeps what it had.
     writeFileSync(join(root, "outside.svg"), "<svg>outside</svg>");
     linkSync(join(root, "outside.svg"), join(ctx.project, "hard.svg"));
-    assert.equal((await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg" })).isError, undefined);
+    refused(await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg" }), /^hard\.svg already exists, and it is not a picture grooph drew/);
+    assert.equal((await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg", replace: true })).isError, undefined);
     assert.equal(readFileSync(join(root, "outside.svg"), "utf8"), "<svg>outside</svg>");
     assert.match(readFileSync(join(ctx.project, "hard.svg"), "utf8"), /^<svg xmlns/);
     // No half-written file is left beside anything.
@@ -615,4 +616,198 @@ test("an id that named another graph is not taken over in silence", async () => 
     assert.match(textOf(renamed), /\nnote: the id "fix-it" named another graph/);
     assert.match(renamed.structuredContent!["text"] as string, /\nnote: /);
   });
+});
+
+test("B: with no tier map of its own, grooph_export takes GROOPH_MODELS from the server's environment, as the CLI does", async () => {
+  await withProject(
+    async (ctx) => {
+      const graph = fixture("valid", "review-loop.grooph.json");
+      const fromEnv = await call(ctx, "grooph_export", { graph });
+      const files = fromEnv.structuredContent!["files"] as Record<string, string>;
+      // Every agent file names a model the environment gave; none names the target's own for a tier that was mapped.
+      const models = Object.entries(files).filter(([path]) => path.startsWith(".claude/agents/")).map(([, text]) => /^model: (.+)$/m.exec(text)![1]);
+      assert.ok(models.length > 0 && models.every((model) => ["opus-of-mine", "sonnet-of-mine", "haiku-of-mine"].includes(model!)), models.join(", "));
+      assert.match(textOf(fromEnv), /\ntiers in this package: frontier → opus-of-mine, strong → sonnet-of-mine, fast → haiku-of-mine\. Named by GROOPH_MODELS\./);
+      assert.equal(fromEnv.structuredContent!["modelsFrom"], "GROOPH_MODELS");
+      // The call's own map wins over the environment's.
+      const own = await call(ctx, "grooph_export", { graph, models: { strong: "named-in-the-call" } });
+      assert.match(textOf(own), /strong → named-in-the-call, .*Named by "models"\./);
+      assert.equal(own.structuredContent!["modelsFrom"], '"models"');
+    },
+    { env: { GROOPH_MODELS: "frontier=opus-of-mine,strong=sonnet-of-mine,fast=haiku-of-mine" } },
+  );
+  // A map in the environment that is not one is said, with where it is.
+  await withProject(async (ctx) => refused(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json") }), /^GROOPH_MODELS, in the environment this server started in: "huge" is not a tier/), { env: { GROOPH_MODELS: "huge=x" } });
+  // No environment map and none in the call: the target's own, and nothing is said about tiers.
+  await withProject(async (ctx) => assert.doesNotMatch(textOf(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json") })), /tiers in this package/), { env: {} });
+});
+
+test("C: a graph is saved only under a name ending .grooph.json, and nothing is written under .git", async () => {
+  await withProject(async (ctx) => {
+    const made = graphOf(await call(ctx, "grooph_new", { name: "Named" }));
+    // The names a session reading untrusted text could be led to: each is refused, and nothing is there afterwards.
+    for (const out of [".claude/settings.local.json", ".mcp.json", ".vscode/tasks.json", "packages/x/package.json", "AGENTS.md", "notes.json", "graph.grooph.json.sh", ".grooph.json/x"]) {
+      const r = await call(ctx, "grooph_apply", { graph: made, ops: [{ op: "setGraphField", key: "goal", value: "x" }], out });
+      refused(r, /is not a name for a graph: a graph is saved as <name>\.grooph\.json\.\nnext: give "out" a name ending \.grooph\.json$/);
+      assert.equal(existsSync(join(ctx.project, out)), false, out);
+    }
+    for (const tool of ["grooph_new", "grooph_use_template"] as const) {
+      refused(await call(ctx, tool, tool === "grooph_new" ? { name: "N", out: "AGENTS.md" } : { id: "ralph-loop", out: ".mcp.json" }), /is not a name for a graph/);
+    }
+    // Under .git, in any case of the name and at any depth: refused, whatever the file is called.
+    mkdirSync(join(ctx.project, ".git", "hooks"), { recursive: true });
+    mkdirSync(join(ctx.project, "sub", ".git"), { recursive: true });
+    for (const out of [".git/index.grooph.json", ".git/hooks/pre-commit.grooph.json", ".GIT/x.grooph.json", "sub/.git/y.grooph.json"]) {
+      refused(await call(ctx, "grooph_new", { name: "N", out }), /is under \.git, and grooph writes nothing there\./);
+    }
+    refused(await call(ctx, "grooph_picture", { graph: made, out: ".git/x.svg" }), /is under \.git/);
+    refused(await call(ctx, "grooph_export", { graph: fixture("valid", "fix-until-green.grooph.json"), into: ".git" }), /is under \.git/);
+    // A folder that is a link into .git is under .git too.
+    symlinkSync(join(ctx.project, ".git", "hooks"), join(ctx.project, "looks-harmless"));
+    refused(await call(ctx, "grooph_new", { name: "N", out: "looks-harmless/x.grooph.json" }), /is under \.git/);
+    assert.deepEqual(readdirSync(join(ctx.project, ".git", "hooks")), []);
+    assert.deepEqual(readdirSync(join(ctx.project, ".git")).sort(), ["hooks"]);
+  });
+});
+
+test("D: a file that is there is replaced only when it is grooph's own, or when the call says replace", async () => {
+  await withProject(async (ctx) => {
+    const graph = fixture("valid", "fix-until-green.grooph.json");
+    // The project's own picture is not a picture grooph drew.
+    writeFileSync(join(ctx.project, "logo.svg"), "<svg><!-- ours --></svg>");
+    refused(await call(ctx, "grooph_picture", { graph, out: "logo.svg" }), /^logo\.svg already exists, and it is not a picture grooph drew \(an SVG carries a mark that says so; a PNG carries none\), so it was left as it is\.\nnext: give "out" another name, or pass "replace": true/);
+    assert.equal(readFileSync(join(ctx.project, "logo.svg"), "utf8"), "<svg><!-- ours --></svg>");
+    // A picture grooph drew is replaced by the next one; a PNG, which carries no mark, only when asked.
+    assert.equal((await call(ctx, "grooph_picture", { graph, out: "graph.svg" })).isError, undefined);
+    assert.equal((await call(ctx, "grooph_picture", { graph, out: "graph.svg", theme: "dark" })).isError, undefined);
+    writeFileSync(join(ctx.project, "shot.png"), "not really a png");
+    const overPng = await call(ctx, "grooph_picture", { graph, out: "shot.png" });
+    assert.equal(overPng.isError, true);
+    assert.equal(readFileSync(join(ctx.project, "shot.png"), "utf8"), "not really a png");
+    // Asked to, it replaces.
+    assert.equal((await call(ctx, "grooph_picture", { graph, out: "logo.svg", replace: true })).isError, undefined);
+    assert.match(readFileSync(join(ctx.project, "logo.svg"), "utf8"), /class="grooph-picture"/);
+    assert.equal((await call(ctx, "grooph_new", { name: "Twice", out: "twice.grooph.json" })).isError, undefined);
+    assert.equal((await call(ctx, "grooph_new", { name: "Twice", goal: "again", out: "twice.grooph.json", replace: true })).isError, undefined);
+
+    // A package: placed, then placed again after the graph changed. Its files are as grooph wrote them, so they are replaced.
+    assert.equal((await call(ctx, "grooph_export", { graph, into: "." })).isError, undefined);
+    const changed = graphOf(await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: "fixer", set: { effort: "high" } }] }));
+    assert.equal((await call(ctx, "grooph_export", { graph: changed, into: "." })).isError, undefined);
+    const agent = join(ctx.project, ".claude", "agents", "fix-until-green--fixer.md");
+    assert.match(readFileSync(agent, "utf8"), /^effort: high$/m);
+    // With a tier map this time: still grooph's files, still replaced.
+    assert.equal((await call(ctx, "grooph_export", { graph: changed, into: ".", models: { strong: "mine" } })).isError, undefined);
+    assert.equal((await call(ctx, "grooph_export", { graph: changed, into: "." })).isError, undefined);
+
+    // An agent file edited by hand: the export stops, says which file, and places nothing.
+    const edited = `${readFileSync(agent, "utf8")}\nA line the person added.\n`;
+    writeFileSync(agent, edited);
+    const lead = join(ctx.project, ".grooph", "fix-until-green", "LEAD.md");
+    const leadBefore = readFileSync(lead, "utf8");
+    const again = graphOf(await call(ctx, "grooph_apply", { graph: changed, ops: [{ op: "setGraphField", key: "goal", value: "Another goal entirely." }] }));
+    const stopped = await call(ctx, "grooph_export", { graph: again, into: "." });
+    refused(stopped, /^1 file of this package is already in \. and not as grooph last wrote it, so nothing was placed:\n {2}\.claude\/agents\/fix-until-green--fixer\.md\nnext: look at it: a change made by hand is lost when the file is replaced\. Then pass "replace": true/);
+    assert.deepEqual(stopped.structuredContent!["changed"], [".claude/agents/fix-until-green--fixer.md"]);
+    assert.equal(readFileSync(agent, "utf8"), edited);
+    assert.equal(readFileSync(lead, "utf8"), leadBefore, "no other file of the package was replaced either");
+    // Asked to, it replaces, and the package is whole again.
+    assert.equal((await call(ctx, "grooph_export", { graph: again, into: ".", replace: true })).isError, undefined);
+    assert.doesNotMatch(readFileSync(agent, "utf8"), /A line the person added/);
+    assert.match(readFileSync(lead, "utf8"), /Another goal entirely\./);
+
+    // A file at a package's path that grooph never wrote (no package there before): the same refusal.
+    mkdirSync(join(ctx.project, "fresh", ".claude", "agents"), { recursive: true });
+    writeFileSync(join(ctx.project, "fresh", ".claude", "agents", "fix-until-green--fixer.md"), "an agent of our own");
+    refused(await call(ctx, "grooph_export", { graph, into: "fresh" }), /not as grooph last wrote it, so nothing was placed/);
+    assert.equal(existsSync(join(ctx.project, "fresh", ".grooph")), false);
+  });
+});
+
+test("E: in a chat a tool reads no file and is offered no file argument", async () => {
+  await withProject(
+    async (ctx, root) => {
+      // A file that is there and one that is not answer the same, and nothing of either comes back.
+      writeFileSync(join(root, "secret.txt"), "TOPSECRET-0123456789");
+      const there = await call(ctx, "grooph_validate", { path: join(root, "secret.txt") });
+      const notThere = await call(ctx, "grooph_validate", { path: join(root, "no-such-file.txt") });
+      refused(there, /^grooph_validate takes no "path" here: this server was started for a chat, where it reads and writes no file\.\nnext: pass the document itself as "graph"/);
+      assert.equal(textOf(there), textOf(notThere));
+      assert.doesNotMatch(JSON.stringify(there), /TOPSECRET/);
+      for (const tool of ["grooph_shape", "grooph_explain", "grooph_share", "grooph_picture", "grooph_export", "grooph_apply"]) {
+        refused(await call(ctx, tool, { path: join(root, "secret.txt"), ops: [{ op: "setTarget" }] }), /takes no "path" here/);
+      }
+      refused(await call(ctx, "grooph_new", { name: "N", out: "n.grooph.json" }), /takes no "out" here/);
+      refused(await call(ctx, "grooph_export", { graph: fixture("valid", "fix-until-green.grooph.json"), into: "." }), /takes no "into" here/);
+
+      // What a chat is offered says the same: no tool lists a file argument, none speaks of one, and each says it changes nothing.
+      const tools = ((await handle({ jsonrpc: "2.0", id: 1, method: "tools/list" }, ctx)) as { result: { tools: { name: string; description: string; inputSchema: { properties: Record<string, { description?: string }> }; annotations: { readOnlyHint: boolean } }[] } }).result.tools;
+      for (const tool of tools) {
+        assert.deepEqual(Object.keys(tool.inputSchema.properties).filter((key) => ["path", "out", "into", "replace"].includes(key)), [], tool.name);
+        assert.doesNotMatch(JSON.stringify(tool.inputSchema), /\bor path\b|Give this or path/, tool.name);
+        assert.doesNotMatch(tool.description, /with into|\.grooph\.json file|project's templates/, tool.name);
+        assert.equal(tool.annotations.readOnlyHint, true, tool.name);
+      }
+      // The library in a chat is the one grooph ships: a template in the folder the server started in is not read.
+      mkdirSync(join(ctx.project, ".git"));
+      mkdirSync(join(ctx.project, ".grooph", "templates"), { recursive: true });
+      const mine = JSON.parse(readFileSync(join(repoRoot, "patterns", "grind-loop.grooph.json"), "utf8")) as Graph;
+      writeFileSync(join(ctx.project, ".grooph", "templates", "grind-loop.grooph.json"), canonicalize({ ...mine, template: { ...mine.template!, title: "Not the shipped one" } }));
+      const rows = (await call(ctx, "grooph_templates", {})).structuredContent!["templates"] as { id: string; title: string; source: string }[];
+      assert.ok(rows.every((row) => row.source === "built-in"));
+      assert.equal(rows.find((row) => row.id === "grind-loop")!.title, "Grind loop");
+    },
+    { chat: true, writes: false },
+  );
+  // Outside a chat a file is read, and one that is not JSON is named without a character of it coming back.
+  await withProject(async (ctx, root) => {
+    writeFileSync(join(root, "secret.txt"), "TOPSECRET-0123456789");
+    const r = await call(ctx, "grooph_validate", { path: join(root, "secret.txt") });
+    refused(r, /secret\.txt is not JSON, so it is not a grooph document\./);
+    assert.doesNotMatch(JSON.stringify(r), /TOPSECRET|Unexpected token/);
+  });
+});
+
+test("F: an export is placed whole or not at all; a note is not written through a link; the walk to an existing folder ends on any path", async () => {
+  await withProject(async (ctx, root) => {
+    const graph = fixture("valid", "fix-until-green.grooph.json");
+    const files = Object.keys((await call(ctx, "grooph_export", { graph })).structuredContent!["files"] as object);
+    // A folder where one of the package's files goes: the refusal names it, gives a next: line, and nothing is placed.
+    const blocked = files[files.length - 1]!;
+    mkdirSync(join(ctx.project, "pk", blocked), { recursive: true });
+    const stopped = await call(ctx, "grooph_export", { graph, into: "pk", replace: true });
+    refused(stopped, /^Could not write .* \(EISDIR\); nothing was written\.\nnext: a file or a folder of another kind is in the way/);
+    for (const path of files.filter((f) => f !== blocked)) assert.equal(existsSync(join(ctx.project, "pk", path)), false, path);
+    const leftovers: string[] = [];
+    const walk = (dir: string): void => readdirSync(dir, { withFileTypes: true }).forEach((e) => (e.isDirectory() ? walk(join(dir, e.name)) : leftovers.push(e.name)));
+    walk(join(ctx.project, "pk"));
+    assert.deepEqual(leftovers, [], "no file and no half-written file is left");
+    // A file where a folder of the package goes.
+    mkdirSync(join(ctx.project, "pk2"));
+    writeFileSync(join(ctx.project, "pk2", ".claude"), "a file, not a folder");
+    refused(await call(ctx, "grooph_export", { graph, into: "pk2" }), /^Could not write .*; nothing was written\./);
+    assert.deepEqual(readdirSync(join(ctx.project, "pk2")), [".claude"]);
+    // A folder of the package that is a link to nothing: refused as outside, not a raw error.
+    mkdirSync(join(ctx.project, "pk3"));
+    symlinkSync(join(root, "nowhere"), join(ctx.project, "pk3", ".claude"));
+    refused(await call(ctx, "grooph_export", { graph, into: "pk3" }), /is outside the project folder/);
+    assert.deepEqual(readdirSync(join(ctx.project, "pk3")), [".claude"]);
+
+    // A note through a linked events folder is refused, and nothing lands where the link points.
+    mkdirSync(join(root, "elsewhere"));
+    mkdirSync(join(ctx.project, ".grooph"));
+    symlinkSync(join(root, "elsewhere"), join(ctx.project, ".grooph", "events"));
+    refused(await call(ctx, "grooph_note", { text: "hello" }), /^\.grooph\/events in this project is a link, and grooph records nothing through a link\./);
+    refused(await call(ctx, "grooph_plan", { agents: [{ type: "Explore" }] }), /records nothing through a link/);
+    assert.deepEqual(readdirSync(join(root, "elsewhere")), []);
+  });
+
+  // The walk, over Windows paths: a drive that is not there has no existing ancestor, and the walk says so and ends.
+  const { win32 } = await import("node:path");
+  const none = { exists: () => false, isLink: () => false };
+  assert.equal(nearestExisting("Z:\\no\\such\\folder\\x.grooph.json", none, win32.dirname), undefined);
+  assert.equal(nearestExisting("\\\\server\\share\\x.grooph.json", none, win32.dirname), undefined);
+  assert.equal(nearestExisting("C:\\proj\\a\\b.grooph.json", { exists: (p) => p === "C:\\proj", isLink: () => false }, win32.dirname), "C:\\proj");
+  // A link to nothing on the way stops the walk too.
+  assert.equal(nearestExisting("/p/dangling/x.svg", { exists: (p) => p === "/p", isLink: (p) => p === "/p/dangling" }), undefined);
 });

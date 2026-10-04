@@ -186,7 +186,21 @@ test("started where nobody chose (the file system's root) the server answers and
   const chat = await session(["--chat"], "/", [list, written]);
   assert.deepEqual((chat.replies[0]!.result!["tools"] as { name: string }[]).map((t) => t.name).slice(0, 2), ["grooph_validate", "grooph_templates"]);
   assert.equal((chat.replies[0]!.result!["tools"] as unknown[]).length, 10);
-  assert.match(textOf(chat.replies[1]!), /so it writes no file/);
+  assert.match(textOf(chat.replies[1]!), /takes no "out" here: this server was started for a chat, where it reads and writes no file/);
+
+  // A harness's variable pointing at the home folder is where it started, not a choice: nothing is written there.
+  // Only --dir can choose such a folder.
+  const home = mkdtempSync(join(tmpdir(), "grooph-mcp-home-"));
+  try {
+    const inHome = await session([], home, [written], { HOME: home, CLAUDE_PROJECT_DIR: home });
+    assert.match(textOf(inHome.replies[0]!), /so it writes no file/);
+    assert.deepEqual(readdirSync(home), []);
+    const chosen = await session(["--dir", home], home, [written], { HOME: home });
+    assert.equal(chosen.replies[0]!.result!["isError"], undefined);
+    assert.deepEqual(readdirSync(home), ["grooph-test-never-written.grooph.json"]);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
 
   // An empty CLAUDE_PROJECT_DIR names no folder; it does not make the root a project.
   const empty = await session([], "/", [written], { CLAUDE_PROJECT_DIR: "" });
@@ -197,5 +211,5 @@ test("started where nobody chose (the file system's root) the server answers and
 
   const both = await session(["--chat", "--dir", "."], repoRoot, []);
   assert.equal(both.code, 1);
-  assert.match(both.err, /--chat writes no file, so it takes no --dir/);
+  assert.match(both.err, /--chat reads and writes no file, so it takes no --dir/);
 });

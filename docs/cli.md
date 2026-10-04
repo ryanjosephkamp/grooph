@@ -542,8 +542,12 @@ For a session's lead, beside what the event hook sees (docs/subagents.md §7):
   grooph_running   what the event hook has seen: sessions, subagents, what is running,
                    and each declared plan with how much of it has started
 
-A tool writes a file only when it is given a name for one, and only inside the project
-folder. A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
+A tool writes a file only when it is given a name for one, only inside the project folder,
+never under .git and never through a link. A graph is saved as <name>.grooph.json. A file
+already there is replaced only when it is the graph the call read, a picture grooph drew,
+or a package's files as grooph last wrote them; anything else needs "replace": true.
+A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
+grooph_export reads GROOPH_MODELS from the server's environment, as grooph export does.
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp
@@ -555,11 +559,12 @@ Add it to a harness:
                 { "mcpServers": { "grooph": { "command": "npx", "args": ["-y", "grooph", "mcp", "--chat"] } } }
 
   --dir <project>   the project (default: CLAUDE_PROJECT_DIR, else the folder it starts in).
-                    Started in the file system's root or a home folder with no --dir, the
-                    tools return every document and write no file.
+                    When that is the file system's root or a home folder and no --dir said
+                    so, the tools return every document and write no file.
   --harness <name>  claude-code or codex, when it cannot be told from the environment
-  --chat            for a chat app: only the authoring tools, and no file is ever written;
-                    every document, picture and package comes back in the reply
+  --chat            for a chat app: only the authoring tools, and no file of yours is read
+                    or written; a document goes in as an argument, and every document,
+                    picture and package comes back in the reply
 ```
 
 ## `grooph share`

@@ -17,14 +17,14 @@
  * the whole server as a function, so it is tested without a process.
  */
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { SAID_MAX, byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraph, parseGraphText, parseMap, validate, validateMap, type Graph, type IssueLike, type OperationMap, type PlannedAgent, type SessionEvent } from "@grooph/core";
 
 import { sessionLines } from "./commands/hooks.js";
 import { EVENTS_DIR, readLive } from "./events-io.js";
-import { AUTHOR_TOOLS, Refusal, issuesBlock, nextAfter, readJson, refusing, remember, type Content, type Tool } from "./mcp-author.js";
+import { AUTHOR_TOOLS, FILE_ARGS, Refusal, issuesBlock, nextAfter, readJson, refusing, remember, within, type Content, type Tool } from "./mcp-author.js";
 import type { RegistryEnv } from "./registry.js";
 
 export const MCP_PROTOCOL = "2025-06-18";
@@ -37,6 +37,8 @@ export type McpContext = {
   writes?: boolean;
   /** in a chat app (`grooph mcp --chat`): only the authoring tools are offered; a chat has no subagents to plan and no hook to ask */
   chat?: boolean;
+  /** the environment the server started in (GROOPH_MODELS is read from it); `process.env` when not given */
+  env?: NodeJS.ProcessEnv;
   /** the graphs this server's tools have returned or been handed, by id, so a later call can name one and need not carry it */
   graphs?: Map<string, Graph>;
   /** where templates are looked up; the default is the project's, the user's and the built-in library */
@@ -57,11 +59,22 @@ function say(ctx: McpContext, line: Pick<SessionEvent, "event"> & Partial<Sessio
   if (ctx.writes === false) {
     throw new Refusal(`grooph was not given a project folder (it started in ${ctx.project}), so there is nowhere to record this.`, "start the server with grooph mcp --dir <project>; the authoring tools work without one");
   }
-  const dir = join(ctx.project, EVENTS_DIR);
-  mkdirSync(dir, { recursive: true });
   const name = /^[A-Za-z0-9._-]{1,128}$/.test(ctx.session) ? ctx.session : "session";
+  // The same rule as every other write: inside the project by real location, and never through a link, so a linked
+  // .grooph or .grooph/events cannot send the line somewhere else.
+  for (const part of [".grooph", EVENTS_DIR, join(EVENTS_DIR, `said-${name}.jsonl`)]) {
+    let link = false;
+    try {
+      link = lstatSync(join(ctx.project, part)).isSymbolicLink();
+    } catch {
+      link = false;
+    }
+    if (link) throw new Refusal(`${part} in this project is a link, and grooph records nothing through a link.`, "make it a folder of the project's own, or start the server with --dir on another project");
+  }
+  const file = within(ctx, join(EVENTS_DIR, `said-${name}.jsonl`));
+  mkdirSync(dirname(file), { recursive: true });
   const full: SessionEvent = { v: 1, t: ctx.now().toISOString(), harness: ctx.harness, session: ctx.session, cwd: ctx.project, ...line };
-  appendFileSync(join(dir, `said-${name}.jsonl`), `${JSON.stringify(full)}\n`);
+  appendFileSync(file, `${JSON.stringify(full)}\n`);
 }
 
 const TOOLS: Tool[] = [
@@ -149,6 +162,8 @@ const TOOLS: Tool[] = [
     name: "grooph_validate",
     title: "Check a graph or an operation map",
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+    chatDescription:
+      'Check a grooph document against the rules: a graph or an operation map, as JSON or by the id of a graph a grooph tool returned. Returns every issue with its stable code (E_… blocks export, W_… is a warning to pass on to the person), one "fix" line per code naming the usual repair, or says there are none. forExport adds the rules a package must pass. A warning is not silenced by distorting the graph: keep it and say it.',
     description:
       'Check a grooph document against the rules: a graph (the document as JSON, or a *.grooph.json file), or an operation map. Returns every issue with its stable code (E_… blocks export, W_… is a warning to pass on to the person), one "fix" line per code naming the usual repair, or says there are none. forExport adds the rules a package must pass. A warning is not silenced by distorting the graph: keep it and say it. Read-only.',
     inputSchema: {
@@ -208,7 +223,37 @@ const TOOLS: Tool[] = [
 
 /** The tools a session's lead uses beside the hook; a chat is offered none of them. */
 const LEAD_TOOLS = new Set(["grooph_plan", "grooph_note", "grooph_running"]);
-const toolsFor = (ctx: Pick<McpContext, "chat">): Tool[] => (ctx.chat === true ? TOOLS.filter((t) => !LEAD_TOOLS.has(t.name)) : TOOLS);
+/**
+ * In a chat a tool takes no file: `path`, `out`, `into` and `replace` are left out of what is offered (and refused
+ * when passed anyway), so what a chat is told about a tool is what the tool does there.
+ */
+function forChat(tool: Tool): Tool {
+  const properties = { ...((tool.inputSchema["properties"] ?? {}) as Record<string, Json>) };
+  for (const key of FILE_ARGS) delete properties[key];
+  for (const [key, value] of Object.entries(properties)) {
+    if (typeof value["description"] === "string") properties[key] = { ...value, description: value["description"].replace(/ Give this or path(, not both)?\./, "") };
+  }
+  return {
+    ...tool,
+    description: tool.chatDescription ?? tool.description,
+    inputSchema: { ...tool.inputSchema, properties },
+    annotations: { ...tool.annotations, readOnlyHint: true, destructiveHint: false },
+    run: (args, ctx) => {
+      const file = FILE_ARGS.find((key) => args[key] !== undefined);
+      if (file !== undefined) {
+        const refusal = new Refusal(`${tool.name} takes no "${file}" here: this server was started for a chat, where it reads and writes no file.`, file === "path" ? 'pass the document itself as "graph", or the id of a graph a grooph tool returned' : `leave "${file}" off: the result comes back in this reply`);
+        return { text: [...refusal.lines, `next: ${refusal.next}`].join("\n"), isError: true, data: { ok: false, next: refusal.next } };
+      }
+      return tool.run(args, ctx);
+    },
+  };
+}
+const CHAT_TOOLS: Tool[] = [];
+const toolsFor = (ctx: Pick<McpContext, "chat">): Tool[] => {
+  if (ctx.chat !== true) return TOOLS;
+  if (CHAT_TOOLS.length === 0) CHAT_TOOLS.push(...TOOLS.filter((t) => !LEAD_TOOLS.has(t.name)).map(forChat));
+  return CHAT_TOOLS;
+};
 
 export const toolNames = (ctx: Pick<McpContext, "chat"> = {}): string[] => toolsFor(ctx).map((t) => t.name);
 

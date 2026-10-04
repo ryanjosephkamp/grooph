@@ -95,19 +95,23 @@ jobs:
       # What goes to npm as `grooph` (handoff 0078): assembled from the build, packed, installed from the tarball into a
       # fresh folder that is not a clone, and run there. Publishing it is the owner's; this only proves it would work.
       - name: the npm package installs from its tarball and runs
-        run: scripts/pack-check.sh --keep "$RUNNER_TEMP/grooph-kit"
+        run: scripts/pack-check.sh --keep grooph-kit-out
 
       # The skill for claude.ai and the extension for Claude's desktop app (docs/chat.md), built and then used as the
       # app would use them: unzipped into an empty folder, with nothing installed beside them.
       - name: the chat kit builds and runs with nothing beside it
-        run: scripts/kit-check.sh --keep "$RUNNER_TEMP/grooph-kit"
+        run: |
+          scripts/kit-check.sh --keep grooph-kit-out
+          # --keep was given a relative path on purpose: both scripts work in a folder of their own and delete it,
+          # and what they keep has to land where the caller said, not in there.
+          ls grooph-kit-out/grooph-*.tgz grooph-kit-out/grooph-chat.zip grooph-kit-out/grooph.mcpb
 
       # The three files as this commit builds them, for anyone who wants to try them without a clone.
       - uses: actions/upload-artifact@v7
         if: ${{ matrix.node == '22' }}
         with:
           name: grooph-kit
-          path: ${{ runner.temp }}/grooph-kit
+          path: grooph-kit-out
           retention-days: 30
 
       # The version is written in eight files (handoff 0081). scripts/version.mjs is the one command that writes
