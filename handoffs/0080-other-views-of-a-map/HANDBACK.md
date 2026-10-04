@@ -1,6 +1,6 @@
 # Handback 0080 · Other views of a map: lanes side by side, and a sequence
 
-**Implementer:** Opus 5.5 (the views lane) · **Branch:** `slice/0080-other-views-of-a-map` · **Head commit:** see the prompt below (the commit that adds this file) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the views lane) · **Branch:** `slice/0080-other-views-of-a-map` · **Pull request:** [ryanjosephkamp/grooph#65](https://github.com/ryanjosephkamp/grooph/pull/65), not merged · **Head commit:** the one after `48aca28`, which added this file (the prompt in the lane's last reply names it) · **Date:** 2026-10-04
 
 ## Status
 
@@ -197,5 +197,5 @@ In `shots/`. Core's own, as `grooph image` writes them (`view-<map>-<view>-<them
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0080 is at handoffs/0080-other-views-of-a-map/HANDBACK.md on branch slice/0080-other-views-of-a-map (head <sha>). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0080 is at handoffs/0080-other-views-of-a-map/HANDBACK.md on branch slice/0080-other-views-of-a-map (pull request https://github.com/ryanjosephkamp/grooph/pull/65, head: the commit after 48aca28). Status: done. Please reconcile with the grooph-reconcile skill.
 ```
