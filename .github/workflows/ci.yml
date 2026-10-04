@@ -79,6 +79,11 @@ jobs:
           node --test scripts/site/markdown.test.mjs scripts/site/site-pages.test.mjs
           node scripts/site-pages.mjs --check
 
+      # What the app and the CLI weigh (handoff 0058): the app's first load, an embed's, and the CLI's cold start,
+      # against scripts/perf-budget.json. Raising a budget is a decision made in a pull request that says why.
+      - name: the app and the CLI are inside their performance budget
+        run: node scripts/perf-budget.mjs --check
+
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works
         run: scripts/first-run.sh

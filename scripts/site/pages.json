@@ -66,6 +66,11 @@
           "source": "docs/field-guide.md",
           "slug": "field-guide",
           "summary": "Every template as a shape, with when to use it and what its recorded run showed."
+        },
+        {
+          "source": "docs/community.md",
+          "slug": "community",
+          "summary": "Loop graphs other people have sent in by pull request, each checked and drawn by CI."
         }
       ]
     },
@@ -73,8 +78,19 @@
       "id": "writing",
       "title": "Writing",
       "entries": [
-        { "glob": "docs/blog/*.md", "slugPrefix": "blog/", "id": "blog", "label": "Blog", "order": "newest" },
-        { "glob": "docs/report/*.md", "slugPrefix": "report/", "id": "reports", "label": "Reports" }
+        {
+          "glob": "docs/blog/*.md",
+          "slugPrefix": "blog/",
+          "id": "blog",
+          "label": "Blog",
+          "order": "newest"
+        },
+        {
+          "glob": "docs/report/*.md",
+          "slugPrefix": "report/",
+          "id": "reports",
+          "label": "Reports"
+        }
       ]
     }
   ]
