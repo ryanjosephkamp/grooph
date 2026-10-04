@@ -367,6 +367,328 @@ a {
   margin-top: 28px;
   font-size: 13px;
 }
+/* Wide screens (handoff 0055): the library and the templates use the width instead of a phone column. */
+.library-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.library-about {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+@media (min-width: 900px) {
+  .library {
+    max-width: 1120px;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  .library .library-actions .btn {
+    flex: 0 0 auto;
+  }
+  .graph-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 32px;
+    align-items: start;
+  }
+}
+
+/* ─── front page (handoff 0055) ───────────────────────────────────────── */
+
+.land {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: calc(8px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+}
+.land-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 56px;
+}
+.land-bar .wordmark {
+  font-size: 24px;
+}
+.land-nav {
+  display: flex;
+  gap: 2px;
+  margin-right: -10px;
+}
+.land-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius);
+  color: var(--ink-2);
+  font-size: 14.5px;
+  font-weight: 560;
+  text-decoration: none;
+}
+.land-hero {
+  display: grid;
+  gap: 24px;
+  margin: 16px 0 40px;
+}
+.land-headline {
+  margin: 0;
+  font-size: clamp(36px, 9vw, 60px);
+  font-weight: 760;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.land-lede {
+  max-width: 34em;
+  margin: 14px 0 22px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.land-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.land-figure {
+  margin: 0;
+}
+.land-picture {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.land-picture svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.land-figure figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.land-claims {
+  display: grid;
+  gap: 18px;
+  margin: 0 0 44px;
+  padding: 0;
+  list-style: none;
+}
+.land-claims li {
+  padding-top: 12px;
+  border-top: 2px solid var(--accent);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.land-claims strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 17px;
+  color: var(--ink);
+}
+.land-h2 {
+  margin: 0 0 14px;
+  font-size: 22px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+}
+.land-start {
+  margin-bottom: 44px;
+}
+.land-ways {
+  display: grid;
+  gap: 12px;
+}
+.land-way {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.land-way h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.land-way p {
+  margin: 0;
+  color: var(--ink-2);
+}
+.land-way-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+.copy-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+.copy-line-text {
+  flex: 1 1 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.copy-line-said {
+  font-size: 13px;
+}
+.land-device {
+  margin-top: 16px;
+}
+.land-empty {
+  padding: 4px 0 12px;
+  text-align: left;
+}
+.land-device .library-actions {
+  margin-bottom: 12px;
+}
+.land-strip {
+  margin-bottom: 44px;
+}
+.land-strip-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.land-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  padding: 10px 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 620;
+  line-height: 1.25;
+  text-decoration: none;
+}
+.land-tile-glyph {
+  height: 64px;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--bg);
+}
+.land-honest p {
+  max-width: 68ch;
+  margin: 0;
+  padding-left: 14px;
+  border-left: 3px solid var(--line-strong);
+  color: var(--ink-2);
+}
+.land-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 44px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+.land-tile,
+.land-nav a,
+.template-row {
+  transition:
+    border-color 160ms ease-out,
+    background-color 160ms ease-out,
+    transform 160ms ease-out;
+}
+@media (hover: hover) {
+  .land-nav a:hover {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .land-tile:hover,
+  .template-row:hover {
+    border-color: var(--line-strong);
+    transform: translateY(-1px);
+  }
+}
+@media (min-width: 640px) {
+  .land-strip-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 760px) {
+  .land-claims {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+  }
+  .land-ways {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+  .land-way {
+    padding: 20px;
+  }
+  .land-device .library-actions .btn {
+    flex: 0 0 auto;
+  }
+}
+@media (min-width: 900px) {
+  .land {
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+  .land-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+    align-items: center;
+    gap: 64px;
+    margin: 24px 0 64px;
+  }
+  .land-lede {
+    font-size: 18px;
+  }
+  .land-claims,
+  .land-start,
+  .land-strip {
+    margin-bottom: 64px;
+  }
+  .land-strip-list {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .land-tile,
+  .land-nav a,
+  .template-row {
+    transition: none;
+  }
+  .land-tile:hover,
+  .template-row:hover {
+    transform: none;
+  }
+}
+
 .notice {
   padding: 10px 12px;
   border-radius: var(--radius);
@@ -2100,6 +2422,31 @@ a {
 @media (min-width: 640px) {
   .template-list {
     grid-template-columns: 1fr 1fr;
+  }
+}
+/* Even rows (handoff 0055): every card fills its grid cell, so a row is as tall as its tallest card. */
+.template-list > li {
+  display: flex;
+}
+.template-list > li > .template-row {
+  flex: 1 1 auto;
+}
+/* On a wide screen, three to a row and one shape for every card: the glyph in a band above the text. */
+@media (min-width: 900px) {
+  .template-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .template-list .template-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+  .template-list .template-glyph,
+  .template-list .template-glyph.is-long {
+    width: 100%;
+    height: 84px;
   }
 }
 .template-row,
