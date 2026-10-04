@@ -2,6 +2,8 @@
 
 Does a grooph graph produce better work than a prompt that says the same things? Decision 0011 made this question the project's effectiveness evidence; [`docs/comparisons.md`](../../docs/comparisons.md) is the protocol; this folder is the first study (stage 10a, slice 0016, 2026-09-21). Four templates, one designed project each, three arms under equal conditions, scored by one script, judged blind, written up with the one required line per project: **did the graph earn its cost**.
 
+**Two studies share this folder and are never one table.** This page is the record of study one, as it was written, down to "Study two" near the end. Study two (slice 0019, protocol version 2) adds a fourth arm, other models and tasks built so a first pass fails; its three projects are prepared and pre-registered, and none has run yet.
+
 | Arm | What ran |
 |---|---|
 | **A · graph** | the template's package, headless, exactly as `scripts/prove-pattern.sh` runs a proving run |
@@ -46,13 +48,40 @@ Per project, the required line, from each write-up:
 
 It can show, for four small designed tasks on one harness version and one model family, whether the package produced work that a held-out suite and a blind frontier judge rate above the same instructions given as prose, and what each arm cost. Ranges, never means: n is two per arm (three for `spec-then-loop`), so a difference of one held-out case or one judge rank is noise, and only a range that lies wholly above another says anything. It cannot show that a graph beats a human team, a named product (spec §15) or a different model; it says nothing about tasks larger than one function with a written contract, about graphs with more than three nodes, or about work where the human gate is real (`spec-then-loop` ran on a scripted approve, labelled in its write-up). The B prompt is derived by a rule that removes grooph's mechanics but keeps the roles, the routing and the briefs, and every prompt arm in this study chose to dispatch the roles as subagents: what the study compares is therefore the **package** against **the same design said in prose**, not structure against no structure. A prompt that omitted the roles would be a different arm, and a fairer test of "no graph" would need one.
 
+## Study two
+
+Protocol version 2 ([`docs/comparisons.md`](../../docs/comparisons.md), decision 0012; slice 0019). Study one could not tell the graph's design from its record, because the derived prompt kept the roles, and could not make a loop turn, because every task passed at round 0. Study two changes four things.
+
+- **A fourth arm.** **D · task only**: the task, the names of its acceptance files and the test command, in one session, with no roles, routing, loop or briefs. Its prompt is written from the task folder alone and committed as `prompt-D.md`. The held-out material is named to nobody in D and is moved away from its scratch project for the run.
+- **Tasks built so a first pass fails.** Each project's task leaves points open that its held-out suite settles one way, and each pre-registration states the expected chance of a round-0 pass and why. Beside each task are a solution that passes the suite and a first pass, written without it, that does not; `scripts/lib/compare-projects.test.mjs` holds those numbers to the files. They are one author's code and are never copied into a run.
+- **Other models.** The lead of every arm and the blind judge are `claude-opus-5-5` (study one: `claude-opus-5` leads, a `claude-fable-5-1` judge). Every package is exported with a tier map the project pre-registers (`tier_map` in its `expect.json`, handed to `grooph export` as `GROOPH_MODELS`), so no tier falls back to the target's own and no call uses Fable. **The two studies are not compared run for run.**
+- **A task folder that says nothing of the tool or the suite.** No task file names grooph or the held-out folder; a slot value names the folder, where the template hands its checklist or its reference to the critic. A scratch project is named after the task's own package.
+
+| Project | Template | Task | Held-out | Expected round-0 pass | A first pass, measured |
+|---|---|---|---|---|---|
+| [`heterogeneous-critic`](heterogeneous-critic/README.md) | `heterogeneous-critic` | parse the page box of a print dialog; six points left open | 68 cases | 0.03 | 45 of 68 |
+| [`review-gate-2`](review-gate-2/README.md) | `review-gate` | lay one layer of settings on another; a checklist with two items the task does not state, three points left open | 55 cases | 0.05 | 38 of 55 |
+| [`taste-polish`](taste-polish/README.md) | `taste-polish` | polish a plain-text usage statement against a reference with seven properties the style brief does not state | 24 cases | 0.01 | 12 of 24 |
+
+Four arms, two replicates, in the order A1 B1 C1 D1 A2 B2 C2 D2; one blind judgment per project over eight candidates, under letters that are never A to D. Each write-up will carry two required lines: **did the graph earn its cost**, and **did a loop turn, and did the turn change the result**.
+
+**Status, 2026-10-04:** the runner, the three projects and their pre-registrations are committed, and every arm of every project has had a dry run. **No run has been made.** The tier map is a named field and is not filled in yet; the runner starts no paid run until it is. The index below is generated when runs exist.
+
+_(generated by `node scripts/lib/compare-summary.mjs --index`)_
+
+No run yet; projects prepared: `heterogeneous-critic`, `review-gate-2`, `taste-polish`.
+
+**The ledger, both studies:** $60.62 across 40 invocations; no cap since the owner lifted it, $9.00 per invocation. The driver is told at each $50.00, and one project stops and asks at $60.00.
+
 ## Layout
 
 ```
 <project>/            task/, slots.json, expect.json (pre-registration + scorer paths), held-out/,
-                      prompt-B.md, loop-C.sh, README.md (pre-registration first, then results)
+                      prompt-B.md, loop-C.sh, README.md (pre-registration first, then results);
+                      in study two also prompt-D.md and reference/ (a solution and a first pass, never run)
 <project>/<arm>-<n>/  claude-output*.json, project.diff, result.json, score.json,
-                      transcript-digest.json, settings.json, prompts/; for A also runs/ and package/
+                      transcript-digest.json, settings.json, prompts/; for A also runs/ and package/;
+                      artifact/ when the project names a rendered one for the judge
 <project>/judge/      transcript.md, verdict.json, mapping.json (letters → runs; the judge never saw it)
 ledger.json           every model call of the study, written by the runner
 ```
