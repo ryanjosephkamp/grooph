@@ -1,5 +1,6 @@
 import {
   CARRIER_LABEL,
+  CARRIER_STYLE,
   canonicalizeMap,
   endName,
   handoffCarrierText,
@@ -15,16 +16,42 @@ import {
   type Person,
   type Session,
 } from "@grooph/core";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { download } from "../../doc/exportPackage.js";
 import { Keep } from "../Keep.js";
 import { IssueList } from "../open/Details.js";
 import { Sheet } from "../Sheet.js";
+import "./map.css";
 
 type Panel = { type: "session"; id: Id } | { type: "person"; id: Id } | { type: "handoff"; id: Id } | { type: "issues" } | { type: "about" } | null;
 
 const HARNESS: Record<string, string> = { "claude-code": "Claude Code", codex: "Codex" };
+
+/**
+ * From this width the handoff list and the details sit beside the picture, and core draws the picture this many
+ * units wide instead of a phone's 400: its cards are wider, so their words take fewer lines, and map.css shows it
+ * at up to 880 px, a unit at about one and a half pixels.
+ */
+const WIDE = "(min-width: 1100px)";
+const WIDE_UNITS = 600;
+
+function useWide(): boolean {
+  const [wide, setWide] = useState(() => matchMedia(WIDE).matches);
+  useEffect(() => {
+    const query = matchMedia(WIDE);
+    const on = () => setWide(query.matches);
+    query.addEventListener("change", on);
+    return () => query.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
+/** A handoff on the picture: its line, and the ring and the number that sit on it in layers of their own. */
+const arcOf = (id: Id): string => ["handoff", "plate", "number"].map((part) => `[data-${part}="${CSS.escape(id)}"]`).join(",");
+
+/** A carrier's color in the picture, as the app's own token of the same color. */
+const tone = (color: string): string => `var(--${{ gate: "kind-human-gate", check: "kind-check", merge: "kind-merge" }[color] ?? color})`;
 
 function Rows({ rows }: { rows: [string, ReactNode][] }) {
   return (
@@ -74,7 +101,8 @@ function GraphPointer({ pointer }: { pointer: string }) {
 }
 
 export function MapView({ map, issues, back = { href: "#/", label: "All graphs" } }: { map: OperationMap; issues: readonly IssueLike[]; back?: { href: string; label: string } }) {
-  const svg = useMemo(() => mapPicture(map), [map]);
+  const wide = useWide();
+  const svg = useMemo(() => mapPicture(map, wide ? { width: WIDE_UNITS } : {}), [map, wide]);
   const [panel, setPanel] = useState<Panel>(null);
   const [expanded, setExpanded] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
@@ -107,23 +135,45 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     for (const el of root.querySelectorAll<SVGGElement>("[data-handoff], [data-handoff-row]")) {
       const id = el.dataset["handoff"] ?? el.dataset["handoffRow"]!;
       const h = map.handoffs.find((x) => x.id === id);
-      if (el.dataset["handoffRow"]) el.setAttribute("tabindex", "0");
+      // Beside the picture the handoffs are a list of their own, and the picture's lines of them are out of its frame.
+      if (el.dataset["handoffRow"] && !wide) el.setAttribute("tabindex", "0");
       el.setAttribute("role", "button");
       el.setAttribute("aria-label", h ? `Handoff ${numberOf(id)}: ${nameOf(h.from)} to ${nameOf(h.to)}` : `Handoff ${id}`);
     }
   }, [svg]);
 
-  // What is open in the sheet is marked on the picture.
+  // On a wide screen the picture's frame ends where its lanes do: the handoffs are listed beside it. The picture itself is not changed.
+  useLayoutEffect(() => {
+    const root = stage.current;
+    if (!root) return;
+    let bottom = 0;
+    if (wide && map.handoffs.length > 0) {
+      for (const r of root.querySelectorAll<SVGRectElement>("[data-lane] > rect, [data-people] > rect")) bottom = Math.max(bottom, r.y.baseVal.value + r.height.baseVal.value);
+    }
+    root.style.aspectRatio = bottom > 0 ? `${WIDE_UNITS} / ${bottom + 12}` : "";
+  }, [svg]);
+
+  // What is open in the sheet is marked on the picture, and brought into view where the picture scrolls on its own.
   useEffect(() => {
     const root = stage.current;
     if (!root) return;
-    for (const el of root.querySelectorAll(".is-on")) el.classList.remove("is-on");
-    if (panel?.type === "session") root.querySelector(`[data-session="${CSS.escape(panel.id)}"]`)?.classList.add("is-on");
-    if (panel?.type === "person") root.querySelector(`[data-person="${CSS.escape(panel.id)}"]`)?.classList.add("is-on");
-    if (panel?.type === "handoff") {
-      for (const el of root.querySelectorAll(`[data-handoff="${CSS.escape(panel.id)}"], [data-handoff-row="${CSS.escape(panel.id)}"]`)) el.classList.add("is-on");
-    }
+    // The line that was under the pointer may be gone with its list, so its mark goes too.
+    for (const el of root.querySelectorAll(".is-on, .is-hot")) el.classList.remove("is-on", "is-hot");
+    if (!panel || !("id" in panel)) return;
+    const id = CSS.escape(panel.id);
+    const marked = root.querySelectorAll(panel.type === "handoff" ? `${arcOf(panel.id)}, [data-handoff-row="${id}"]` : `[data-${panel.type}="${id}"]`);
+    for (const el of marked) el.classList.add("is-on");
+    if (!wide) return;
+    (panel.type === "handoff" ? root.querySelector(`[data-number="${id}"]`) : marked[0])?.scrollIntoView({ block: "nearest" });
+    // A line of the list is gone once it has opened its handoff: the keyboard goes on from the same line, under the details.
+    if (document.activeElement === document.body) document.querySelector<HTMLElement>(".map-list [aria-current]")?.focus({ preventScroll: true });
   }, [panel, svg]);
+
+  /** A handoff under the pointer in the list is picked out on the picture. */
+  const point = (id: Id | null) => {
+    for (const el of stage.current?.querySelectorAll(".is-hot") ?? []) el.classList.remove("is-hot");
+    if (id) for (const el of stage.current?.querySelectorAll(arcOf(id)) ?? []) el.classList.add("is-hot");
+  };
 
   const pick = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false;
@@ -146,6 +196,15 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     return false;
   };
 
+  /** Every handoff in the order of its number: beside the picture on a wide screen, and there under an open handoff's details too. */
+  const list = (current?: Id) => (
+    <ul className="map-handoffs map-list" onMouseLeave={() => point(null)} onBlur={() => point(null)}>
+      {map.handoffs.map((h) => (
+        <HandoffLine key={h.id} map={map} handoff={h} current={h.id === current} onOpen={(id) => setPanel({ type: "handoff", id })} onPoint={point} />
+      ))}
+    </ul>
+  );
+
   const sheet = (() => {
     if (!panel) return null;
     if (panel.type === "session") {
@@ -158,7 +217,14 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
     }
     if (panel.type === "handoff") {
       const h = map.handoffs.find((x) => x.id === panel.id);
-      return h ? { title: `Handoff ${numberOf(h.id)}`, subtitle: h.id, body: <HandoffDetails map={map} handoff={h} onSession={openEnd} /> } : null;
+      if (!h) return null;
+      const all = wide ? (
+        <>
+          <h3 className="files-title">All handoffs</h3>
+          {list(h.id)}
+        </>
+      ) : null;
+      return { title: `Handoff ${numberOf(h.id)}`, subtitle: h.id, body: <HandoffDetails map={map} handoff={h} onSession={openEnd} after={all} /> };
     }
     if (panel.type === "issues") {
       return {
@@ -198,9 +264,11 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
       ),
     };
   })();
+  // With nothing open, a wide screen lists the handoffs where the details would be.
+  const side = wide && !sheet && map.handoffs.length > 0;
 
   return (
-    <div className={`editor viewer map-view${sheet ? " has-sheet" : ""}${expanded && sheet ? " sheet-expanded" : ""}`}>
+    <div className={`editor viewer map-view${sheet ? " has-sheet" : ""}${expanded && sheet ? " sheet-expanded" : ""}${wide ? " is-wide" : ""}${side ? " has-side" : ""}`}>
       <header className="topbar">
         <a className="icon-btn" href={back.href} aria-label={back.label}>
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -234,23 +302,39 @@ export function MapView({ map, issues, back = { href: "#/", label: "All graphs" 
         <Sheet title={sheet.title} subtitle={sheet.subtitle} expanded={expanded} onToggle={() => setExpanded((x) => !x)} onClose={() => setPanel(null)}>
           {sheet.body}
         </Sheet>
+      ) : side ? (
+        <aside className="map-side" aria-label="Handoffs">
+          <div className="map-side-head">
+            <h2>Handoffs</h2>
+            <p>{map.handoffs.length} on this map, numbered as on the picture. Pick one, or a session, for what the map says about it.</p>
+          </div>
+          {list()}
+        </aside>
       ) : null}
     </div>
   );
 }
 
-function HandoffLine({ map, handoff, onOpen }: { map: OperationMap; handoff: Handoff; onOpen: (id: Id) => void }) {
+/** One handoff as a line of a list: its number in a ring of its carrier's color and its carrier's line, as on the picture. */
+function HandoffLine({ map, handoff, onOpen, onPoint, current }: { map: OperationMap; handoff: Handoff; onOpen: (id: Id) => void; onPoint?: (id: Id) => void; current?: boolean }) {
   const nameOf = (id: Id): string => endName(map, id);
   const n = map.handoffs.findIndex((h) => h.id === handoff.id) + 1;
+  const style = CARRIER_STYLE[handoff.carrier?.kind ?? "none"];
+  const over = onPoint && (() => onPoint(handoff.id));
   return (
     <li>
-      <button type="button" className="map-handoff-line" onClick={() => onOpen(handoff.id)}>
-        <span className="map-handoff-n">{n}</span>
+      <button type="button" className="map-handoff-line" aria-current={current || undefined} onClick={() => onOpen(handoff.id)} onMouseEnter={over} onFocus={over}>
+        <span className="map-handoff-n" style={{ borderColor: tone(style.colour) }}>
+          {n}
+        </span>
         <span>
           <strong>
             {handoff.from === handoff.to ? `${nameOf(handoff.from)} → itself` : `${nameOf(handoff.from)} → ${nameOf(handoff.to)}`}
           </strong>
           <br />
+          <svg className="map-carrier" viewBox="0 0 22 8" aria-hidden="true">
+            <path d="M2 4h18" strokeWidth={style.width} strokeDasharray={style.dash} style={{ stroke: tone(style.colour) }} />
+          </svg>
           {handoffCarrierText(map, handoff) || "no carrier named"}
         </span>
       </button>
@@ -328,7 +412,7 @@ function SessionDetails({ map, session, onHandoff }: { map: OperationMap; sessio
   );
 }
 
-function HandoffDetails({ map, handoff, onSession }: { map: OperationMap; handoff: Handoff; onSession: (id: Id) => void }) {
+function HandoffDetails({ map, handoff, onSession, after }: { map: OperationMap; handoff: Handoff; onSession: (id: Id) => void; after?: ReactNode }) {
   const session = (id: Id): ReactNode => {
     const s = map.sessions.find((x) => x.id === id) ?? (map.people ?? []).find((x) => x.id === id);
     return s ? (
@@ -352,6 +436,7 @@ function HandoffDetails({ map, handoff, onSession }: { map: OperationMap; handof
           ["Label", handoff.label],
         ]}
       />
+      {after}
     </div>
   );
 }
