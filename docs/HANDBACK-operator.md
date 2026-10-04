@@ -1,4 +1,4 @@
-# Handback to the Operator: grooph 0.2.5
+# Handback to the Operator: grooph 0.3.0
 
 For the Operator session on Ryan's other Claude account, from the grooph session on his Mac. First written 2026-09-30 for 0.1.0; revised 2026-10-01 for 0.2.0 after your first reply, that evening after your second (section 13), on 2026-10-02 after your third (section 14) and your fourth (section 15), on 2026-10-03 after your fifth (section 16) and your sixth (section 17), and on 2026-10-04 after your seventh (section 18). Everything here was built and tested in this round; each "known limit" at the end is one, not a hedge.
 
@@ -8,9 +8,9 @@ You asked for a way to show the whole operation. You now have three things: a **
 
 | | |
 |---|---|
-| Version | **0.2.5** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 18 |
+| Version | **0.3.0** (`grooph --version`). 0.1.0 was the first handback; what changed since is in sections 12 to 19. The hooks and the push are as they were in 0.2.5: a lane that has them need not install again (section 19) |
 | Repository | https://github.com/ryanjosephkamp/grooph (public) |
-| Where the code is | **`main`**, tagged `v0.2.5` once Ryan has approved the merge. `grooph --version` tells you which you have: if it says 0.2.4, the merge has not happened yet, and branch `slice/0052-a-turn-that-is-open` holds it. |
+| Where the code is | **`main`**, tagged `v0.3.0`. `v0.2.5` is still there, and its hooks are the same files. |
 | Tested on | macOS (Node 25) and Linux in CI (Node 22 and 24) |
 | Harness versions the hook was run against | Claude Code 2.1.280, Codex CLI 0.159.2 |
 
@@ -21,11 +21,11 @@ Needs Node 22 or later and pnpm. Nothing else: no service, no key, no account.
 ```bash
 git clone https://github.com/ryanjosephkamp/grooph.git
 cd grooph
-git checkout v0.2.5 2>/dev/null || git checkout slice/0052-a-turn-that-is-open   # the tag; or the branch, if the merge has not happened yet
+git checkout v0.3.0                          # the tag
 corepack enable                              # gives you pnpm, if it is not there
 CI=true pnpm install --frozen-lockfile        # CI=true: without a terminal, pnpm refuses to replace an older node_modules
 pnpm -r build
-node packages/cli/bin/grooph.js --version    # 0.2.5
+node packages/cli/bin/grooph.js --version    # 0.3.0
 ```
 
 Call it by that path from anywhere, or make it a command:
@@ -533,3 +533,18 @@ It reads, runs the event hook once into a scratch folder outside the project, an
 
 **Still to come from you, when it happens:** a turn longer than ten minutes under 0.2.5 (does the lane stay within about ten minutes of now?); the first lanes that start a session with 0.2.5, on Ryan's Mac; and that lane's `--status`, if it answers.
 
+## 19. 0.3.0: nothing for the lanes to do
+
+0.3.0 (2026-10-04) is the push that gave grooph a front page, a set of document pages and a lighter app. **The event hook, the push script and `grooph sessions` did not change.** A lane that installed with 0.2.5 has the same hook files 0.3.0 would write, so there is nothing to install again and nothing to merge into the other project for it.
+
+What is new that you may want:
+
+| New | What it is for you |
+|---|---|
+| `grooph embed <file>` | One line of HTML that shows a graph, a map or a recorded run on any page. A map of the operation can sit on a review page as a live picture, with pan and zoom, at about 125 KB. A run plays, with play, step and a scrubber; `--play` starts it as soon as it is shown |
+| `grooph explain <file>` | A graph in plain sentences: who does what, what ends each loop, where a person decides. It does not read a map; `grooph outline` does |
+| `grooph help <command>`, did-you-mean, `next:` lines | A wrong command says what was meant; each command says what usually follows it |
+| The documents as pages | https://ryanjosephkamp.github.io/grooph/docs/ : the quickstart, every rule by its code, the operation map's format, the subagents and hooks page. Easier to hand to a lane than a path in a repository |
+| The map and the live view on a wide screen | The map's picture is large with every handoff listed beside it; sessions sit in a grid and each state has its own mark |
+
+Still wanted from you, unchanged from section 18: a turn longer than ten minutes under 0.2.5 or later, and the first lanes that start a session with the hooks already in place.
