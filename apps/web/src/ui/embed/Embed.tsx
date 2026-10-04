@@ -5,7 +5,7 @@ import { openPayload } from "../../doc/share.js";
 import { Brief, type Picked, type RunHere } from "./Brief.js";
 import { decorateGraph, decorateMap } from "./decorate.js";
 import { openInAppHref, type EmbedLink } from "./link.js";
-import { Replay, loopRoundText } from "./Replay.js";
+import { Replay, loopRoundText, reducedMotion } from "./Replay.js";
 import { Stage, type StageHandle } from "./Stage.js";
 
 /**
@@ -105,7 +105,8 @@ function Shown({ shown, link, frameWidth, root }: { shown: Exclude<Shown, { kind
 
   // Replay: a step is a note; step 0 is the graph before the run.
   const replay = useMemo(() => (shown.kind === "run" ? replaySteps(shown.bundle.notes, shown.doc) : undefined), [shown]);
-  const [step, setStep] = useState(() => (replay && !link.play ? replay.steps.length - 1 : 0));
+  // A run opens at its end, unless it is to play; under reduced motion it does not play, so it opens at its end too.
+  const [step, setStep] = useState(() => (replay && !(link.play && !reducedMotion()) ? replay.steps.length - 1 : 0));
   const current = replay?.steps[step];
 
   const decorate = useCallback(
@@ -153,7 +154,14 @@ function Shown({ shown, link, frameWidth, root }: { shown: Exclude<Shown, { kind
     send();
     const observer = new ResizeObserver(send);
     observer.observe(barEl);
-    return () => observer.disconnect();
+    // A host page's script may arrive after the frame (deferred, or added by a CMS): say it again a little later.
+    const later = [1000, 3000].map((ms) => setTimeout(send, ms));
+    window.addEventListener("load", send);
+    return () => {
+      observer.disconnect();
+      later.forEach(clearTimeout);
+      window.removeEventListener("load", send);
+    };
   }, [size.h, baseScale, root]);
 
   const runHere = useMemo((): RunHere | undefined => {

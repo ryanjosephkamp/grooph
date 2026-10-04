@@ -14,7 +14,7 @@ export const STEP_MS = 900;
 export const loopRoundText = (run: LoopRun | undefined): string =>
   run === undefined || run.round === null ? "not entered" : `round ${run.round}${run.lastStop?.fired ? ` · ${STOP_KIND_WORDS[run.lastStop.fired]}` : ""}`;
 
-const reducedMotion = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+export const reducedMotion = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function Replay({
   replay,

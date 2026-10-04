@@ -207,19 +207,26 @@ export function Brief({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  // Focus comes in when the panel opens and goes back to what opened it when it shuts.
+  // Focus comes in when the panel opens or shows something else, and goes back to the part of the picture it shows when it shuts.
+  const pickedRef = useRef(picked);
+  pickedRef.current = picked;
+  useEffect(() => {
+    close.current?.focus({ preventScroll: true });
+  }, [picked.kind, picked.id]);
   useEffect(() => {
     const before = document.activeElement;
-    close.current?.focus({ preventScroll: true });
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", key);
     return () => {
       document.removeEventListener("keydown", key);
-      if (before instanceof HTMLElement || before instanceof SVGElement) before.focus({ preventScroll: true });
+      const { kind, id } = pickedRef.current;
+      const shown = document.querySelector(kind === "handoff" ? `[data-handoff-row="${CSS.escape(id)}"]` : `[data-${kind}="${CSS.escape(id)}"]`);
+      const back = shown ?? before;
+      if (back instanceof HTMLElement || back instanceof SVGElement) back.focus({ preventScroll: true });
     };
-  }, [picked.kind, picked.id]);
+  }, []);
 
   if (!title) return null;
   let body: ReactNode = null;

@@ -85,6 +85,15 @@ test("tap or Enter opens a node's brief, Escape and Close shut it, and focus com
   await expect(brief(page)).toHaveCount(0);
   await expect(builder).toBeFocused();
 
+  // Tapping another node while a brief is open shows that one, and closing returns to it (side by side, at a desktop's width).
+  await page.setViewportSize({ width: 900, height: 800 });
+  await nodeButton(page, "Agent", "Critic").tap();
+  await nodeButton(page, "Agent", "Builder").tap();
+  await expect(brief(page).getByRole("heading")).toHaveText("Builder");
+  await page.keyboard.press("Escape");
+  await expect(builder).toBeFocused();
+  await page.setViewportSize({ width: 400, height: 800 });
+
   // A loop opens its bar and its stops.
   await page.getByRole("button", { name: /^Loop Build-review cycle/ }).tap();
   await expect(brief(page)).toContainText("Stops, in order");
@@ -275,6 +284,15 @@ test("a run opens at its end without play=1, and run= carries a run like d=", as
   await page.goto(embedFor(provingRun()).replace("embed?d=", "embed?run="));
   await expect(page.getByTestId("replay-caption")).toHaveText(PROVING_END);
   await expect(page.getByRole("button", { name: "Play the run from the start" })).toBeVisible();
+});
+
+test.describe("a reader who asks for reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+  test("play=1 does not play, and the run opens at its end", async ({ page }) => {
+    await page.goto(embedFor(provingRun(), "&play=1"));
+    await expect(page.getByTestId("replay-caption")).toHaveText(PROVING_END);
+    await expect(page.getByRole("button", { name: "Play the run from the start" })).toBeVisible();
+  });
 });
 
 test("grooph embed prints a frame whose page shows the graph's name", async ({ page, baseURL }) => {

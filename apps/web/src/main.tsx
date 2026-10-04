@@ -10,7 +10,9 @@ if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
   document.documentElement.classList.add("gx-page-only");
   void import("./ui/embed/EmbedApp.js").then(({ EmbedApp }) => render(<EmbedApp />));
 } else {
-  const app = Promise.all([import("@xyflow/react/dist/base.css"), import("./styles.css"), import("./App.js")]).then(([, , { App }]) => render(<App />));
+  // The stylesheets in order (React Flow's base, then the app's, which overrides it), the app beside them.
+  const css = import("@xyflow/react/dist/base.css").then(() => import("./styles.css"));
+  const app = Promise.all([css, import("./App.js")]).then(([, { App }]) => render(<App />));
 
   // Stage 8: once opened with a network, the app opens without one (public/sw.js). Only in a built app:
   // the dev server's modules are not files to cache.

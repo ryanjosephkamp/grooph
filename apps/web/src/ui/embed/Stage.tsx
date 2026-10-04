@@ -218,11 +218,12 @@ export function Stage({
       const dy = p.y - press.y;
       if (!press.moved && Math.hypot(dx, dy) < TAP_SLOP) return;
       if (!press.moved) {
-        press.moved = true;
+        // The press may have focused a node and moved the view to it; drag from where the view is now.
+        press = { ...press, x: p.x, y: p.y, from: view.current, moved: true };
         st.setPointerCapture(e.pointerId);
         st.dataset["dragging"] = "1";
       }
-      apply(clamp({ x: press.from.x + dx, y: press.from.y + dy, s: press.from.s }), true);
+      apply(clamp({ x: press.from.x + (p.x - press.x), y: press.from.y + (p.y - press.y), s: press.from.s }), true);
     };
     const up = (e: PointerEvent) => {
       if (!pointers.delete(e.pointerId)) return;

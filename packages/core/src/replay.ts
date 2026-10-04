@@ -83,7 +83,7 @@ function caption(note: RunNote, graph: Graph): string {
   if (focus.kind === "loop") {
     const loop = graph.loops.find((l) => l.id === focus.id);
     const name = loop?.name || focus.id;
-    const stop = note.stop && note.stop in STOP_KIND_WORDS ? ` · ${STOP_KIND_WORDS[note.stop as StopKind]}` : "";
+    const stop = note.stop && Object.hasOwn(STOP_KIND_WORDS, note.stop) ? ` · ${STOP_KIND_WORDS[note.stop as StopKind]}` : "";
     if (note.round !== undefined && outcome !== undefined) return `${name}: round ${note.round} ends, ${outcome}${stop}`;
     if (note.proposal) return `${name}: proposal`;
     return `${name}${roundOf(note)}${stop}`;
