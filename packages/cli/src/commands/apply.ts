@@ -1,7 +1,7 @@
 import { applyOps, canonicalize, formatOpError, hasErrors, parseGraph, parseGraphText, validate } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
-import { plural, printIssues, type Output } from "../print.js";
+import { plural, printIssues, printNext, type Output } from "../print.js";
 
 export type ApplyFlags = { ops: string; write?: boolean; forExport?: boolean; json?: boolean };
 
@@ -28,7 +28,7 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
   if (!parsed.doc) {
     if (flags.json === true) report({ ok: false, written: false, issues: parsed.issues });
     else {
-      io.err(`cannot apply ops to ${file}: it does not match the schema; fix it by hand, or start again with grooph new`);
+      io.err(`grooph: cannot apply ops to ${file}: it does not match the schema; fix it by hand, or start again with grooph new`);
       printIssues(io, parsed.issues, file);
     }
     return 1;
@@ -51,7 +51,7 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
     if (flags.json === true) report({ ok: false, written: false, error: result.error });
     else {
       io.err(`grooph: ${formatOpError(result.error)}`);
-      io.err(`no op was applied and ${file} is unchanged`);
+      io.err(`grooph: no op was applied and ${file} is unchanged`);
     }
     return 1;
   }
@@ -60,7 +60,7 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
   if (!schema.doc) {
     if (flags.json === true) report({ ok: false, written: false, ids: result.ids, issues: schema.issues });
     else {
-      io.err(`the ops applied, but the result does not match the schema, so ${file} is unchanged:`);
+      io.err(`grooph: the ops applied, but the result does not match the schema, so ${file} is unchanged:`);
       printIssues(io, schema.issues, file);
     }
     return 1;
@@ -79,6 +79,7 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
         ? `applied ${plural(ops.length, "op")}; wrote ${file}`
         : `applied ${plural(ops.length, "op")}; ${file} not written (dry run — pass --write to save)`,
     );
+    printNext(io, written ? `grooph validate --for-export ${file}` : `grooph apply ${file} --ops ${flags.ops} --write`);
   }
   return hasErrors(issues) ? 1 : 0;
 }

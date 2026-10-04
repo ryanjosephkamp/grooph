@@ -40,7 +40,7 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; wr
   const adopted = adoptWorkingCopy(run.source, run.working, { run: run.runId });
   if (!adopted.ok) {
     io.err("");
-    io.err(`cannot adopt: ${adopted.message}`);
+    io.err(`grooph: cannot adopt: ${adopted.message}`);
     for (const issue of adopted.issues) io.err(formatIssue(issue));
     return 1;
   }

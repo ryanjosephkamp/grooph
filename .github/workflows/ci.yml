@@ -54,6 +54,14 @@ jobs:
       - name: the pattern index is current
         run: node scripts/patterns-index.mjs --check
 
+      # docs/rules.md is generated from the rule tables and the fixtures.
+      - name: the rule reference is current
+        run: node scripts/rule-reference.mjs --check
+
+      # The quickstart's by-hand path, in a fresh folder, against the built CLI.
+      - name: the quickstart's first run works
+        run: scripts/first-run.sh
+
       # A loop's stops are the only place its numbers live (handoff 0009, criterion 7).
       - name: no pattern restates a brake value
         run: node scripts/check-brake-values.mjs

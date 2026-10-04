@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { CompileError, formatIssue, isMapLike, parseGraphText, tryCompile, type CompileTarget } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
-import { printIssues, plural, type Output } from "../print.js";
+import { printIssues, printNext, plural, type Output } from "../print.js";
 
 export type ExportFlags = { target: CompileTarget; into: string };
 
@@ -26,14 +26,14 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
   // Amendment A-011: a map is drawn and validated, never compiled. Say so, by name, before any schema path.
   if (looksLikeMap(text)) {
     io.err(
-      `cannot export ${file}: it is an operation map, and a map is never compiled or run. ` +
+      `grooph: cannot export ${file}: it is an operation map, and a map is never compiled or run. ` +
         `Export the loop graph one of its sessions points at; draw the map with \`grooph image ${file}\` or share it with \`grooph share ${file}\`.`,
     );
     return 1;
   }
   const parsed = parseGraphText(text);
   if (!parsed.doc) {
-    io.err(`cannot export ${file}: it is not a graph document`);
+    io.err(`grooph: cannot export ${file}: it is not a graph document`);
     printIssues(io, parsed.issues, file);
     return 1;
   }
@@ -42,7 +42,7 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
   try {
     const attempt = tryCompile(parsed.doc, flags.target);
     if (!attempt.ok) {
-      io.err(`cannot export ${file} for ${flags.target}: fix these first`);
+      io.err(`grooph: cannot export ${file} for ${flags.target}: fix these first`);
       printIssues(io, attempt.issues, file);
       return 1;
     }
@@ -52,7 +52,7 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
       printIssues(io, err.issues, file);
       return 1;
     }
-    io.err(`cannot export ${file}: ${(err as Error).message}`);
+    io.err(`grooph: cannot export ${file}: ${(err as Error).message}`);
     return 2;
   }
 
@@ -72,5 +72,6 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
   io.out(`Kickoff — paste this into a Claude Code session opened in ${flags.into}:`);
   io.out("");
   io.out(compiled.kickoff.trimEnd());
+  printNext(io, `open a ${flags.target} session in ${flags.into} and paste the kickoff above`);
   return 0;
 }

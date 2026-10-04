@@ -112,7 +112,7 @@ export async function shareCommand(io: Output, file: string, flags: ShareFlags, 
     envelope = buildShareEnvelope(loaded.doc);
   } catch (err) {
     if (!(err instanceof ShareError)) throw err;
-    io.err(`cannot share ${file}: fix these first`);
+    io.err(`grooph: cannot share ${file}: fix these first`);
     for (const issue of err.issues) io.err(formatIssue(issue));
     return 1;
   }

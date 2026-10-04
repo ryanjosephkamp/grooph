@@ -241,7 +241,7 @@ export async function templateShow(io: Output, env: RegistryEnv, name: string, f
 
 // ─── use ──────────────────────────────────────────────────────────────────
 
-export type UseFlags = { name: string; sets: string[]; out?: string; force?: boolean; registries: string[] };
+export type UseFlags = { name?: string; sets: string[]; out?: string; force?: boolean; registries: string[] };
 
 export async function templateUse(io: Output, env: RegistryEnv, name: string, flags: UseFlags): Promise<number> {
   const found = await resolveTemplate(name, env, flags.registries);
@@ -251,24 +251,29 @@ export async function templateUse(io: Output, env: RegistryEnv, name: string, fl
   if (flags.out !== undefined && existsSync(resolve(flags.out)) && flags.force !== true) {
     throw new RegistryError(`${flags.out} already exists; pass --force to overwrite it`);
   }
-  const doc = instantiate(found.doc, { name: flags.name, values: parseSets(flags.sets) });
+  const doc = instantiate(found.doc, { name: flags.name ?? found.doc.template?.title ?? found.doc.name, values: parseSets(flags.sets) });
+  // A person at a terminal gets a file; a pipe gets the document.
+  const out = flags.out ?? (io.isTTY === true ? `${doc.id}.grooph.json` : undefined);
+  if (flags.out === undefined && out !== undefined && existsSync(resolve(out)) && flags.force !== true) {
+    throw new RegistryError(`${out} already exists; pass --force to overwrite it, or --out <file> to write elsewhere`);
+  }
   const checked = checkWritable(doc);
   if ("schema" in checked) {
-    io.err(`the graph made from "${name}" does not match the schema, so nothing was written:`);
-    printIssues(io, checked.schema, flags.out ?? name);
+    io.err(`grooph: the graph made from "${name}" does not match the schema, so nothing was written:`);
+    printIssues(io, checked.schema, out ?? name);
     return 1;
   }
 
   // With no --out the document is the output, so everything else goes to stderr.
-  const info: Output = flags.out === undefined ? { out: io.err, err: io.err } : io;
-  if (flags.out === undefined) process.stdout.write(canonicalize(checked.doc));
-  else writeText(flags.out, canonicalize(checked.doc));
+  const info: Output = out === undefined ? { out: io.err, err: io.err } : io;
+  if (out === undefined) process.stdout.write(canonicalize(checked.doc));
+  else writeText(out, canonicalize(checked.doc));
 
   askForSlots(io, checked.doc, found.doc);
-  printIssues(info, checked.issues, flags.out ?? checked.doc.id);
-  if (flags.out !== undefined) {
-    info.out(`wrote ${flags.out} (graph "${checked.doc.id}" from ${found.doc.id}@${found.doc.version}, ${found.source})`);
-    info.out(`next: grooph validate --for-export ${flags.out}`);
+  printIssues(info, checked.issues, out ?? checked.doc.id);
+  if (out !== undefined) {
+    info.out(`wrote ${out} (graph "${checked.doc.id}" from ${found.doc.id}@${found.doc.version}, ${found.source})`);
+    info.out(`next: grooph validate --for-export ${out}`);
   }
   return hasErrors(checked.issues) ? 1 : 0;
 }
@@ -280,7 +285,7 @@ export type InsertFlags = { into: string; sets: string[]; prefix?: string; write
 export async function templateInsert(io: Output, env: RegistryEnv, name: string, flags: InsertFlags): Promise<number> {
   const host = parseGraphText(readText(flags.into));
   if (!host.doc) {
-    io.err(`cannot insert into ${flags.into}: it does not match the schema`);
+    io.err(`grooph: cannot insert into ${flags.into}: it does not match the schema`);
     printIssues(io, host.issues, flags.into);
     return 1;
   }
@@ -291,7 +296,7 @@ export async function templateInsert(io: Output, env: RegistryEnv, name: string,
   });
   const checked = checkWritable(result.doc);
   if ("schema" in checked) {
-    io.err(`inserting "${name}" leaves ${flags.into} failing the schema, so it is unchanged:`);
+    io.err(`grooph: inserting "${name}" leaves ${flags.into} failing the schema, so it is unchanged:`);
     printIssues(io, checked.schema, flags.into);
     return 1;
   }
@@ -339,7 +344,7 @@ const registryDir = (env: RegistryEnv, to: "project" | "user"): string => (to ==
 export function templateSave(io: Output, env: RegistryEnv, file: string, flags: SaveFlags): number {
   const parsed = parseGraphText(readText(file));
   if (!parsed.doc) {
-    io.err(`cannot save ${file} as a template: it does not match the schema`);
+    io.err(`grooph: cannot save ${file} as a template: it does not match the schema`);
     printIssues(io, parsed.issues, file);
     return 1;
   }
@@ -350,7 +355,7 @@ export function templateSave(io: Output, env: RegistryEnv, file: string, flags: 
   });
   const issues = validate(template);
   if (hasErrors(issues)) {
-    io.err(`not saved: the template would carry these errors`);
+    io.err(`grooph: not saved: the template would carry these errors`);
     printIssues(io, issues, flags.id);
     const kept = new Set(template.nodes.map((node) => node.id));
     for (const loop of parsed.doc.loops) {
@@ -391,7 +396,7 @@ export async function templateAdd(io: Output, env: RegistryEnv, nameOrUrl: strin
     : await resolveRemote(nameOrUrl, flags.registries.length > 0 ? flags.registries : [env.defaultRegistry], env);
   const issues = validate(found.doc);
   if (hasErrors(issues)) {
-    io.err(`not added: ${found.location} carries errors`);
+    io.err(`grooph: not added: ${found.location} carries errors`);
     printIssues(io, issues, found.doc.id);
     return 1;
   }

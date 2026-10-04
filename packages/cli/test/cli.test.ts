@@ -246,12 +246,12 @@ test("bad invocations fail with usage, not a stack trace", async () => {
     ["export", "x.grooph.json"],
     ["export", "x.grooph.json", "--target", "claude-code"],
     ["export", "x.grooph.json", "--target", "brainwave", "--into", "out"],
-    ["wat"],
     [],
   ]) {
     const io = capture();
     assert.equal(await run(argv, io), 1, `${argv.join(" ") || "(no arguments)"} should exit 1`);
     assert.match(io.all(), /Usage/, `${argv.join(" ") || "(no arguments)"} should print usage`);
+    assert.ok(io.all().split("\n").length <= 45, "the usage fits a screen");
   }
 });
 
@@ -264,7 +264,7 @@ test("a missing file is reported as a missing file", async () => {
 test("help and version are not errors", async () => {
   const help = capture();
   assert.equal(await run(["help"], help), 0);
-  assert.match(help.stdout.join("\n"), /grooph never runs a graph/);
+  assert.match(help.stdout.join("\n"), /It never runs them/);
 
   const version = capture();
   assert.equal(await run(["--version"], version), 0);

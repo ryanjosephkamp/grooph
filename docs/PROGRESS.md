@@ -17,6 +17,8 @@ The one file that says where grooph is right now. The driver rewrites it after e
 
 **The plan for the push to Monday, 2026-10-05, 11 a.m. ET** is a draft pull request of its own: `handoffs/briefs/plan-2026-10-04.md`.
 
+**Slice 0057: no-friction toolkit, done** (head `9a99bcf`, pull request open): did-you-mean, short help, files for people, `next:` lines, `explain`, quickstart, first-run script, generated rule reference. Handback in `handoffs/0057-no-friction-toolkit/`.
+
 ## Waiting on the owner
 
 | Item | Recommended answer |
