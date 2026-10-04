@@ -33,6 +33,10 @@ template?: {
 | `instantiate(template, { name, values, id? })` | Fills slots, removes the `template` block, sets a new id and name, sets `version: 1`, sets `lineage: { pattern: <template id>, from: "<template id>@<version>" }`. Unfilled slots stay as `{{key}}`. Refuses `kind: "fragment"`. |
 | `insertFragment(doc, template, { values, prefix? })` | Accepts fragments and whole-graph templates (inserted as a subgraph; a graph-scoped policy comes along unless the host has the identical one). Adds the template's nodes, edges, loops, policies and groups into `doc`, re-deriving ids that collide (or applying `prefix`), and returns the id map. Layout is dropped. |
 | `extractTemplate(doc, { kind, nodeIds?, meta })` | Whole graph, or a fragment of the given nodes with the edges between them, loops whose members and back edges are all inside, and policies scoped inside. Fragments drop everything graph-level (goal, target, constraints, adaptation, description, layout, notes); whole-graph templates keep goal, target and layout and drop run notes. |
+| `placeSubgrooph(doc, template, { as, name?, values, after?, then? })` | Places a template as a subgrooph (below): `insertFragment` under the prefix `as`, inside a group `as` that carries `from` and `with`. `then` sends what reached the template's success stop to a node of the graph and drops that stop; `after` leads into its entry nodes. Refuses an `as` whose ids the graph already uses. |
+| `listGroups(doc)`, `groupContents(doc, id)` | Every group with the template it came from, the nodes it holds at any depth, and its entries and exits; one group's nodes, edges, loops, entries and exits. |
+| `refreshSubgrooph(doc, groupId, template, { allow? })` | What the template as it is now would change in a subgrooph, as named changes, and the graph with them applied. A change that loosens a brake (amendment A-008's list) is not applied unless its name is in `allow`; while a change to the shape is held, every change to the shape waits. |
+| `extractGroup(doc, groupId, meta)` | A fragment template from a group's nodes, with the groups inside it and without itself. |
 | `templateIndexEntry(template)` | The index row (§3). |
 | `findSlots(doc)` | Every `{{key}}` with the ids of the objects holding it. |
 
@@ -50,6 +54,14 @@ template?: {
 ```
 
 It is by value, not by reference. The nodes are in `nodes` like any others, there is no second file to find, and the same document gives the same package. `from` and `with` are what a refresh needs: which template to look at again, and how it was filled. `fixtures/valid/subgrooph-in-a-graph.grooph.json` is the built-in review gate placed between a planner and a release step, with its own stop replaced by the edge to the release. The shape and its three rules are in [graph-ir.md](graph-ir.md) §1 and §3.
+
+**Placing.** Everything that comes in gets an id under the group's: `review-builder`, `review-critic`. That is what lets a subgrooph be found again and refreshed, so an id the graph already uses is refused, not renamed.
+
+**Refreshing.** `grooph sub update` places the template afresh, with the values in `with`, and compares it with what stands in the graph under the group's ids. Each difference has a name (`node:review-critic.brief`, `loop:review-review.stops`). Three things hold:
+
+- **A change that removes or loosens a brake is listed first and not applied** unless it is asked for by its name: a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's acceptance, critic isolation (amendment A-008's list), and a new way into a node that every way into passes a person today. Tightening applies with the rest.
+- **The shape moves as a whole.** While a change to the nodes, the edges or a loop's members is held back, every other change to the shape waits for it: a gate kept while the edges around it are replaced is a gate nobody reaches. A brief, a cap or an approval is its own.
+- **What a person added is theirs.** A node inside the box under another id, and its edges, are left alone, and so is every edge that leads into the subgrooph. An edit to one of the template's own nodes is a difference like any other and is shown before it is undone: nothing keeps the version a group was placed from, so the template's change cannot be told from a person's.
 
 ## 3. Registries and the index
 
@@ -81,7 +93,14 @@ grooph template use <name> --name <graph name> [--set key=value …] [--out <fil
 grooph template insert <name> --into <file> [--set key=value …] [--prefix <p>] [--write]
 grooph template save <file> --id <id> --title <t> --summary <s> --when <w> [--fragment --nodes a,b,c] [--to project|user]
 grooph template add <name | url> [--to project|user]
+
+grooph sub add <template> --into <file> --as <id> [--name <name>] [--set key=value …] [--after <node>] [--then <node>] [--write]
+grooph sub list <file> [--json]
+grooph sub update <file> [<group> …] [--allow <change> …] [--write]
+grooph sub extract <file> <group> --id <id> --title <t> --summary <s> --when <w> [--to project|user]
 ```
+
+`grooph sub` places a template as a subgrooph, lists a graph's groups, refreshes subgroophs from their templates, and saves a group as a template (§2, "A template placed as a unit"). `add` and `update` are dry runs unless `--write`.
 
 `--registry` is repeatable and replaces the default remote. `save` and `add` default to `--to project`, refuse to overwrite without `--force` (`save --force` bumps the template's version), and `save` estimates the `profile` from the graph and prints it for correction. `use` prints the questions for unfilled slots to stderr and still writes the document, so an agent can fill the rest by editing or with `grooph apply`.
 

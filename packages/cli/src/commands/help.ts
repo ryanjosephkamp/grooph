@@ -12,6 +12,7 @@ Usage: grooph <command> [options]      grooph help <command> for one command in 
 Start
   new          make an empty graph document
   template     list, show and use ready-made graphs (try: template list)
+  sub          place a template inside a graph as one box, and keep it current
   apply        change a graph with a list of JSON ops
   pick         write one candidate of a proposal set out as a graph
 
@@ -48,7 +49,7 @@ First time? docs/quickstart.md.   grooph --version prints the version.`;
 
 /** Commands the overview lists, for the "did you mean" and the unknown-command check. */
 export const COMMANDS = [
-  "new", "template", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
+  "new", "template", "sub", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
   "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share", "embed",
 ] as const;
 
