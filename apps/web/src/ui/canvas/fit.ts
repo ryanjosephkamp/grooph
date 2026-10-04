@@ -38,6 +38,13 @@ export const fitOptions = (pad: Pad): FitViewOptions => ({
 export const FIT: FitViewOptions = fitOptions(EDITOR_PAD);
 
 /**
+ * How long the view takes to move when the app moves it (a fit, a refit beside
+ * a panel that opened): as long as the panel takes to open, and no time at all
+ * for someone who asked for less motion.
+ */
+export const glide = (): number => (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 180);
+
+/**
  * The smallest size a canvas opens at. Below about half size a node's name is
  * under 7 px on a phone and nothing can be read without a pinch (the
  * review-loop fixture's own layout opened at 0.33 on a 390 px screen, and an

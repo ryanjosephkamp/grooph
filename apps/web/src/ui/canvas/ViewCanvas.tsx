@@ -6,7 +6,7 @@ import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, labelSpots, type Box } from "./bends.js";
-import { RUN_PAD, VIEWER_PAD, fitOptions } from "./fit.js";
+import { RUN_PAD, VIEWER_PAD, fitOptions, glide } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
@@ -149,7 +149,7 @@ function FocusOn({ ids }: { ids: Id[] }) {
   useEffect(() => {
     if (key === "") return;
     const zoom = flow.getZoom();
-    void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: 250 });
+    void flow.fitView({ nodes: key.split(" ").map((id) => ({ id })), padding: 0.5, maxZoom: zoom, duration: glide() });
   }, [key, flow]);
   return null;
 }

@@ -8,7 +8,7 @@ import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
 import { DocStore, useDoc, useHistory } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
-import { FIT, isDesktop } from "./canvas/fit.js";
+import { FIT, glide, isDesktop } from "./canvas/fit.js";
 import { EditorContext, type Editor, type Mode, type Panel } from "./editorContext.js";
 import { ExportPanel } from "./ExportPanel.js";
 import { EdgeInspector } from "./inspector/EdgeInspector.js";
@@ -121,7 +121,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   const modeActive = mode.type !== "idle";
   useEffect(() => {
     if (!modeActive) return;
-    requestAnimationFrame(() => requestAnimationFrame(() => void flow.fitView({ ...FIT, duration: 200 })));
+    requestAnimationFrame(() => requestAnimationFrame(() => void flow.fitView({ ...FIT, duration: glide() })));
   }, [modeActive, flow]);
 
   const issues = useMemo(() => computeIssues(doc), [doc]);
@@ -132,7 +132,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
       // Two frames: one for the document to render, one for the nodes to be measured.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
-          void flow.fitView({ ...FIT, maxZoom: 1, nodes: ids.map((id) => ({ id })), duration: 250 });
+          void flow.fitView({ ...FIT, maxZoom: 1, nodes: ids.map((id) => ({ id })), duration: glide() });
         }),
       );
     },
@@ -158,7 +158,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
           const { x, y } = node.internals.positionAbsolute;
           const w = node.measured.width ?? NODE_WIDTH;
           const h = node.measured.height ?? NODE_HEIGHT;
-          void flow.setCenter(x + w / 2, y + h / 2, { zoom: flow.getZoom(), duration: 200 });
+          void flow.setCenter(x + w / 2, y + h / 2, { zoom: flow.getZoom(), duration: glide() });
         }),
       );
     },
@@ -462,7 +462,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
               disabled={doc.nodes.length === 0}
               onClick={() => {
                 viewMoved.current = false;
-                void flow.fitView({ ...FIT, duration: 250 });
+                void flow.fitView({ ...FIT, duration: glide() });
               }}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">

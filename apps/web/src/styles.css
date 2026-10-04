@@ -1749,6 +1749,14 @@ a {
 .react-flow__node {
   cursor: pointer;
 }
+/* The keyboard's ring follows the node's own shape, a step outside the ring that says it is selected. */
+.react-flow__node:focus-visible {
+  outline: 0;
+}
+.react-flow__node:focus-visible .gnode {
+  outline: 2px solid var(--focus);
+  outline-offset: 5px;
+}
 .react-flow__node.dragging {
   cursor: grabbing;
 }
@@ -4041,6 +4049,9 @@ div.field-diff.ins {
   :is(.icon-btn, .tool, button.title-btn, .file, .seg):hover:not(:disabled, .seg-on, [aria-pressed="true"]) {
     background: var(--surface-2);
   }
+  .gnode:hover:not(.run-state) {
+    border-color: var(--ink-3);
+  }
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -4052,6 +4063,12 @@ div.field-diff.ins {
 @media (max-width: 1099px) {
   .sheet-rail:has(~ .sheet) {
     display: none;
+  }
+}
+/* A form reads in a column, not across the page. */
+@media (min-width: 900px) {
+  .use-template {
+    max-width: 720px;
   }
 }
 
@@ -4154,9 +4171,12 @@ div.field-diff.ins {
   .sheet-title {
     padding-top: 0;
   }
-  /* Beside the canvas a panel covers nothing, so it stays whole while the canvas is the input. */
+  /* Beside the canvas a panel covers nothing, so it stays whole while the canvas is the input; the banner takes the legend's place. */
   .mode-active .sheet-body {
     display: block;
+  }
+  .mode-active .loop-legend {
+    visibility: hidden;
   }
   .add-menu {
     grid-template-columns: 1fr;
