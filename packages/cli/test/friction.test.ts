@@ -203,3 +203,36 @@ test("embed is a command like the others: listed in the overview, with its own h
   }
 });
 
+test("export --models names the model of a tier for one export; GROOPH_MODELS says it for a machine; the flag wins", async () => {
+  const graph = join(import.meta.dirname, "..", "..", "..", "..", "fixtures", "valid", "review-loop.grooph.json");
+  const builder = (dir: string): string => readFileSync(join(dir, ".claude", "agents", "review-loop--builder.md"), "utf8");
+  const dir = mkdtempSync(join(tmpdir(), "grooph-models-"));
+  try {
+    let io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=sonnet,frontier=opus"], io, () => "", { env: {} }), 0);
+    assert.match(builder(dir), /^model: sonnet$/m);
+    assert.match(io.stdout.join("\n"), /tiers: strong → sonnet, frontier → opus \(--models\)/);
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.match(builder(dir), /^model: haiku$/m);
+    assert.match(io.stdout.join("\n"), /\(GROOPH_MODELS\)/);
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=sonnet"], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.match(builder(dir), /^model: sonnet$/m);
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: {} }), 0);
+    assert.match(builder(dir), /^model: opus$/m);
+    assert.doesNotMatch(io.stdout.join("\n"), /tiers:/);
+
+    for (const bad of ["best=opus", "strong", "strong=", "strong=a b", ","]) {
+      io = capture();
+      assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", bad], io, () => "", { env: {} }), 1, bad);
+      assert.match(io.stderr.join("\n"), /--models: /);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

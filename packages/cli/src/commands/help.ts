@@ -116,13 +116,19 @@ Print the document in canonical form (docs/graph-ir.md §7), or rewrite the file
 Example
   grooph canonicalize g.grooph.json --write`;
 
-export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir>
+export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGETS.join(", ")}.
 
+  --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
+                                A tier not named keeps the target's own; a pin on a node still wins.
+                                GROOPH_MODELS in the environment says the same for every export
+                                on a machine; the flag wins over it. The graph does not change.
+
 Example
-  grooph export flaky.grooph.json --target claude-code --into .`;
+  grooph export flaky.grooph.json --target claude-code --into .
+  grooph export flaky.grooph.json --target claude-code --into . --models frontier=opus,strong=sonnet,fast=haiku`;
 
 export const EXPLAIN_HELP = `grooph explain <file> [--json]
 

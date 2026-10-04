@@ -1,11 +1,31 @@
 import { join } from "node:path";
 
-import { CompileError, formatIssue, isMapLike, parseGraphText, tryCompile, type CompileTarget } from "@grooph/core";
+import { CompileError, formatIssue, isMapLike, parseGraphText, tryCompile, type CompileOptions, type CompileTarget } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
 import { printIssues, printNext, plural, type Output } from "../print.js";
 
-export type ExportFlags = { target: CompileTarget; into: string };
+export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string };
+
+const TIERS = ["frontier", "strong", "fast"] as const;
+
+/**
+ * `frontier=opus,strong=sonnet,fast=haiku` → which model each tier means for this export. A tier left out keeps the
+ * target's own. Returns a message when the text is not that.
+ */
+export function parseModels(text: string): { models: NonNullable<CompileOptions["models"]> } | { error: string } {
+  const models: NonNullable<CompileOptions["models"]> = {};
+  for (const part of text.split(",").map((p) => p.trim()).filter((p) => p !== "")) {
+    const at = part.indexOf("=");
+    const tier = at < 0 ? part : part.slice(0, at).trim();
+    const model = at < 0 ? "" : part.slice(at + 1).trim();
+    if (!(TIERS as readonly string[]).includes(tier)) return { error: `"${tier}" is not a tier; the tiers are ${TIERS.join(", ")}` };
+    if (model === "" || /\s/.test(model)) return { error: `the tier ${tier} needs a model name with no spaces: ${tier}=opus` };
+    models[tier as (typeof TIERS)[number]] = model;
+  }
+  if (Object.keys(models).length === 0) return { error: "name at least one tier: frontier=opus,strong=sonnet,fast=haiku" };
+  return { models };
+}
 
 const looksLikeMap = (text: string): boolean => {
   try {
@@ -40,7 +60,7 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
 
   let compiled;
   try {
-    const attempt = tryCompile(parsed.doc, flags.target);
+    const attempt = tryCompile(parsed.doc, flags.target, flags.models ? { models: flags.models } : {});
     if (!attempt.ok) {
       io.err(`grooph: cannot export ${file} for ${flags.target}: fix these first`);
       printIssues(io, attempt.issues, file);
@@ -61,6 +81,10 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
 
   io.out(`wrote ${plural(paths.length, "file")} into ${flags.into}`);
   for (const path of paths) io.out(`  ${path}`);
+  if (flags.models) {
+    const said = Object.entries(flags.models).map(([tier, model]) => `${tier} → ${model}`).join(", ");
+    io.out(`tiers: ${said} (${flags.modelsFrom ?? "--models"}); a tier not named keeps the target's own model, and a pin on a node still wins`);
+  }
 
   if (compiled.warnings.length > 0) {
     io.out("");

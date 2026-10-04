@@ -84,7 +84,7 @@ export function mappingNotes(ctx: PackageContext): string {
       fence(
         lines(
           `# ${ctx.agents[0]?.file ?? ".claude/agents/<graph-id>--<node-id>.md"}`,
-          `model: ${ctx.agents[0]?.model ?? "opus"}      # profile: frontier → ${ctx.profile.models.frontier}, strong → ${ctx.profile.models.strong}, fast → ${ctx.profile.models.fast}`,
+          `model: ${ctx.agents[0]?.model ?? "opus"}      # ${ctx.tiersNamed.length > 0 ? "this export" : "profile"}: frontier → ${ctx.profile.models.frontier}, strong → ${ctx.profile.models.strong}, fast → ${ctx.profile.models.fast}`,
           `effort: ${ctx.agents[0]?.effort ?? "high"}      # low | medium | high | max`,
         ),
         "yaml",
