@@ -6,7 +6,7 @@
 
 `done`. The six criteria are met and verified. Read before merging:
 
-1. **The door the driver asked for is built, and does not quite reach the figure asked.** The two views are a piece fetched only when a map is drawn. Against `main`, the front page is 0.4 KB heavier (172.4 to 172.8), an embed 0.4 (125.1 to 125.5) and a template's address 0.7 (270.0 to 270.7). The ask was "within about 0.3". What is left, and what removing it would cost, is under Deviations 1.
+1. **The door the driver asked for is built, and does not quite reach the figure asked. The driver has read the figures and accepted them as they are** (by message, after the pull request was opened). The two views are a piece fetched only when a map is drawn. Against `main`, the front page is 0.4 KB heavier (172.4 to 172.8), an embed 0.4 (125.1 to 125.5) and a template's address 0.7 (270.0 to 270.7). The ask was "within about 0.3". What is left, and why, is under Deviations 1.
 2. **On a wide screen a map's picture now waits for one more file:** 115 ms later on fast 4G and 336 ms on slow 4G (Risks 1). On a phone nothing waits.
 3. **An independent read found nine faults, all real, and all nine are fixed**, one of them a byte difference in the phone's picture that my own comparison had missed (The independent read).
 
@@ -162,7 +162,7 @@ In `shots/`. Core's own, as `grooph image` writes them (`view-<map>-<view>-<them
    - 278 in the canvas screens' file: about 110 is the bundler's helper for the first fetch-on-demand in that file, the rest is the map screen asking for the piece and showing what it drew;
    - about 30 in the page, which names one more file.
 
-   To remove the 350, the views would carry their own copy of the card, the heading and the list line, and the phone's picture would go back to `main`'s code: two sources that must be kept alike. To remove the 278, the whole map screen would be fetched on demand, which is a change to `screens.ts` and not this lane's. I stopped here rather than do either unasked.
+   To remove the 350, the views would carry their own copy of the card, the heading and the list line, and the phone's picture would go back to `main`'s code: two sources that must be kept alike. To remove the 278, the whole map screen would be fetched on demand, which is a change to `screens.ts` and not this lane's. I stopped rather than do either unasked. **The driver's answer: accept it as it is; do neither.** Sharing the parts between three views is the better trade, and first paint is unchanged at every address.
 2. **`mapPicture(map, { layout: "wide" })` (criterion 1's call) is `mapWide(map, options)`.** `mapPicture` is in `base.ts`; a function there cannot reach the views without every address carrying them.
 3. **Files outside the handoff's allowed changes**, each on the driver's word or forced by it:
    - `packages/cli/src/index.ts`, eight lines in `case "image"` (the driver said yes), in a commit of its own;
@@ -177,7 +177,8 @@ In `shots/`. Core's own, as `grooph image` writes them (`view-<map>-<view>-<them
 ## Risks and leftovers
 
 1. **A wide screen waits for the piece**: the picture is in the page 115 ms later on fast 4G and 336 ms later on slow 4G (the table above). The page cannot ask for the piece sooner without asking for it at every link, graphs included: it does not know a link is a map until it has read it.
-2. **Decision 0021's text is behind.** It says the build makes five pieces and core has two doors; there are six and three. `docs/decisions/` is the driver's.
+2. **Decision 0021's text is behind**, and a decision record is not edited after it is accepted. It says the build makes five pieces and core has two doors; there are six and three. The correction is where a reader meets the pieces today, in the two such places this lane holds: the head of `packages/core/src/base.ts`, and `docs/exports.md` under "The app itself, offline". **One place is left for the driver to carry:** `docs/ARCHITECTURE.md`, "Repo shape", still says only that the app "fetches the compiler when a person exports"; it is not among this lane's paths.
+   - **The budget and the other open pull requests.** A template's address is at 270.7 of 276 KB here. The driver has said the site lane's #58 takes it to 275.2 on its own, so whichever of the two merges second will be near 275.9, and #60 adds to the app as well. When the driver says another has merged, this lane merges `main`, runs `node scripts/perf-budget.mjs --check` and reports the figures. If a line goes over, it is not raised here: it becomes the owner's decision.
 3. **Maps no one would draw still have faults.** Where two or three people hand to each other twenty times, their cards run out of places: the reviewer's checker still finds two arcs along one line 144 times in 18,000 pictures, and stacked numbers 163 times. A test lets at most 6 of 1,200 seeded pictures have the first, and 4 do.
 4. **A hairline kink.** Where an arc's two ends are within half a unit of level, its path has a jog too small to see. Not fixed.
 5. **The kit's order.** `map-kit.ts` and `map-kit-open.ts` are one list written twice. Most parts differ in type, so one out of place does not compile; the three that do not are caught by the committed pictures.
