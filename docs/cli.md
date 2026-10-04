@@ -547,7 +547,10 @@ never under .git and never through a link. A graph is saved as <name>.grooph.jso
 already there is replaced only when it is the graph the call read, a picture grooph drew,
 or a package's files as grooph last wrote them; anything else needs "replace": true.
 A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
-grooph_export reads GROOPH_MODELS from the server's environment, as grooph export does.
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is written only by grooph_export.
+grooph_export reads GROOPH_MODELS from the server's environment, lays the call's own "models"
+over it, says what every tier means, and asks before it changes the model of an agent file
+already in place.
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp

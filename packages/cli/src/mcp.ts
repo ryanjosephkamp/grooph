@@ -17,14 +17,14 @@
  * the whole server as a function, so it is tested without a process.
  */
 
-import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync } from "node:fs";
+import { appendFileSync, existsSync, lstatSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { SAID_MAX, byHandLines, hasErrors, isMapLike, isProposalSetLike, mapShape, mapShapeLine, parseGraph, parseGraphText, parseMap, validate, validateMap, type Graph, type IssueLike, type OperationMap, type PlannedAgent, type SessionEvent } from "@grooph/core";
 
 import { sessionLines } from "./commands/hooks.js";
 import { EVENTS_DIR, readLive } from "./events-io.js";
-import { AUTHOR_TOOLS, FILE_ARGS, Refusal, issuesBlock, nextAfter, readJson, refusing, remember, within, type Content, type Tool } from "./mcp-author.js";
+import { AUTHOR_TOOLS, FILE_ARGS, Refusal, issuesBlock, nextAfter, readJson, refusing, remember, reply, within, type Content, type Tool } from "./mcp-author.js";
 import type { RegistryEnv } from "./registry.js";
 
 export const MCP_PROTOCOL = "2025-06-18";
@@ -72,6 +72,10 @@ function say(ctx: McpContext, line: Pick<SessionEvent, "event"> & Partial<Sessio
     if (link) throw new Refusal(`${part} in this project is a link, and grooph records nothing through a link.`, "make it a folder of the project's own, or start the server with --dir on another project");
   }
   const file = within(ctx, join(EVENTS_DIR, `said-${name}.jsonl`));
+  // A line is appended in place, so a file that has a second name somewhere (a hard link) would carry it there.
+  if (existsSync(file) && statSync(file).nlink > 1) {
+    throw new Refusal(`${join(EVENTS_DIR, `said-${name}.jsonl`)} has another name somewhere (a hard link), and grooph records nothing that would also be written elsewhere.`, "remove that file, or start the server with --dir on another project");
+  }
   mkdirSync(dirname(file), { recursive: true });
   const full: SessionEvent = { v: 1, t: ctx.now().toISOString(), harness: ctx.harness, session: ctx.session, cwd: ctx.project, ...line };
   appendFileSync(file, `${JSON.stringify(full)}\n`);
@@ -215,7 +219,7 @@ const TOOLS: Tool[] = [
       }
       const byHand = map ? byHandLines(mapShape(map)) : [];
       const next = map || isMapLike(json) ? (hasErrors(issues) ? "correct what is listed in the map document, then grooph_validate" : "grooph_picture draws the map; grooph_share makes its link") : nextAfter(issues, forExport, known);
-      return { text: [head, ...issuesBlock(issues), ...byHand, `next: ${next}`].join("\n"), data: { ok: !hasErrors(issues), issues } };
+      return { text: reply([head, ...issuesBlock(issues), ...byHand, `next: ${next}`]), data: { ok: !hasErrors(issues), issues } };
     }),
   },
   ...AUTHOR_TOOLS,
@@ -242,7 +246,7 @@ function forChat(tool: Tool): Tool {
       const file = FILE_ARGS.find((key) => args[key] !== undefined);
       if (file !== undefined) {
         const refusal = new Refusal(`${tool.name} takes no "${file}" here: this server was started for a chat, where it reads and writes no file.`, file === "path" ? 'pass the document itself as "graph", or the id of a graph a grooph tool returned' : `leave "${file}" off: the result comes back in this reply`);
-        return { text: [...refusal.lines, `next: ${refusal.next}`].join("\n"), isError: true, data: { ok: false, next: refusal.next } };
+        return { text: reply([...refusal.lines, `next: ${refusal.next}`]), isError: true, data: { ok: false, next: refusal.next } };
       }
       return tool.run(args, ctx);
     },
