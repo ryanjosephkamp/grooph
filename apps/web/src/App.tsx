@@ -2,13 +2,14 @@ import { sharePayloadFrom } from "@grooph/core";
 import { Suspense, lazy, useEffect, useState } from "react";
 
 import type { TemplateSource } from "./doc/templates.js";
+import { piece } from "./piece.js";
 import "./store/persist.js";
 import { Landing } from "./ui/landing/Landing.js";
 import { Library } from "./ui/Library.js";
 import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
 
 /** The embed, fetched only when a route asks for it (slice 0056 keeps it out of the app's own load). */
-const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ default: m.EmbedApp })));
+const EmbedApp = lazy(() => piece("EmbedApp", () => import("./ui/embed/EmbedApp.js")).then((m) => ({ default: m.EmbedApp })));
 
 /**
  * The screens that draw on the canvas (slice 0069): one module, fetched when an address first shows one. The front
@@ -19,14 +20,13 @@ const EmbedApp = lazy(() => import("./ui/embed/EmbedApp.js").then((m) => ({ defa
  */
 type Screens = typeof import("./ui/screens.js");
 let screens: Screens | undefined;
-let asked: Promise<Screens> | undefined;
 
 /**
- * Fetch the canvas screens, once. A browser may remember a module fetch that failed for as long as the page lives,
- * so a failure is not tried again here: the screen that needed it offers to load the page again.
+ * Fetch the canvas screens, once they have come. A fetch that fails is tried again there and then (`piece.ts`), and
+ * if the screens still cannot be had the next call asks afresh: the next screen opened, or the page loaded again.
  */
 export function loadScreens(): Promise<Screens> {
-  return (asked ??= import("./ui/screens.js").then((m) => (screens = m)));
+  return piece("screens", () => import("./ui/screens.js")).then((m) => (screens = m));
 }
 
 /** Whether an address opens on a screen that draws on the canvas. */
@@ -111,6 +111,10 @@ export function App() {
       gone = true;
     };
   }, [fetched]);
+  // What could not be fetched is asked for again when the next screen is opened: the connection may be back.
+  useEffect(() => {
+    if (fetched === "failed") setFetched("no");
+  }, [route]);
 
   if (route.name === "about") return <Landing />;
   if (route.name === "templates") return <TemplatesScreen />;
