@@ -123,29 +123,58 @@ export function oneLine(text: string): string {
   return lead + text.slice(lead.length).replace(CONTROL, " ");
 }
 
-/** A line whose first word is "next", whatever stands before the word or after it. */
-const READS_AS_NEXT = /^[^\p{L}\p{N}]*next(?![\p{L}\p{N}])/iu;
+/** The letters of other scripts that are drawn like n, e, x and t. Not every one there is: the common ones. */
+const DRAWN_LIKE: Record<string, string> = {
+  "\u0578": "n", "\u03b7": "n", "\u0274": "n",
+  "\u0435": "e", "\u03b5": "e", "\u04bd": "e", "\u0454": "e",
+  "\u0445": "x", "\u03c7": "x", "\u00d7": "x", "\u04b3": "x",
+  "\u0442": "t", "\u03c4": "t", "\u1d1b": "t",
+};
+
+/**
+ * Whether a line's first word is "next", whatever stands before the word: with characters that do not show taken
+ * out, wide and accented forms folded, and the look-alike letters of other scripts read as the letters they are
+ * drawn like. A word that goes on (`next-sprint`, an id) is another word.
+ */
+function readsAsNext(line: string): boolean {
+  const bare = line
+    .normalize("NFKD")
+    .replace(/[\p{Cf}\p{M}]/gu, "")
+    .toLowerCase()
+    .replace(/[^\u0000-\u007f]/gu, (ch) => DRAWN_LIKE[ch] ?? ch);
+  return /^[^\p{L}\p{N}]*next(?![\p{L}\p{N}_-])/u.test(bare);
+}
 
 /**
  * The lines of a reply, each held to one line, and then the tool's own `next:` line, when it has one. A model acts
  * on a `next:` line, so only the tool may write one: every other line carries, somewhere, text from a document, a
  * file or an argument (a gate's name, a template's summary, a note someone left), and one of those that would read
- * as a `next:` line is put in quotes, where it reads as what it is: someone's words.
+ * as a `next:` line is put in quotes, where it reads as what it is: someone's words. For the same reason `next` is
+ * the tool's own sentence and holds nothing of a document but an id that is an id (`keysSaid`, `ID`).
  */
 export function reply(lines: readonly string[], next?: string): string {
   const said = lines.map((line) => {
     const one = oneLine(line);
     const lead = /^\s*/.exec(one)![0];
     const rest = one.slice(lead.length);
-    return READS_AS_NEXT.test(rest) ? `${lead}"${rest}"` : one;
+    return readsAsNext(rest) ? `${lead}"${rest}"` : one;
   });
   return [...said, ...(next === undefined ? [] : [`next: ${oneLine(next)}`])].join("\n");
 }
 
-/** A path argument is refused outright when it holds a control character: a path has none, and its text is repeated in replies. */
+/**
+ * What a path here never holds: a character that ends a line, and one that does not show. The second kind makes a
+ * name that reads as another (a zero-width space inside `graph.grooph.json`): the format characters, every space
+ * but the plain one, and the letters that are drawn as nothing.
+ */
+const HIDDEN_IN_PATH = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\u115f\u1160\u3164\uffa0\u2800]/gu;
+
+/** A path argument is refused outright when it holds such a character: its text is repeated in replies, and it names a file. */
 export function pathArg(given: string, name: string): string {
-  if (new RegExp(CONTROL.source).test(given)) {
-    throw new Refusal(`"${name}" holds a line break or another control character (${JSON.stringify(given)}), which no path here has.`, `pass "${name}" as a plain path`);
+  if (new RegExp(HIDDEN_IN_PATH.source, "u").test(given)) {
+    // Shown with each such character written out, since some of them show as nothing.
+    const shown = JSON.stringify(given).replace(HIDDEN_IN_PATH, (ch) => `\\u{${ch.codePointAt(0)!.toString(16)}}`);
+    throw new Refusal(`"${name}" holds a character that ends a line or does not show (${shown}), which no path here has.`, `pass "${name}" as a plain path`);
   }
   return given;
 }
@@ -499,17 +528,30 @@ function graphName(ctx: McpContext, given: string): string {
   if (!/[^/\\]\.grooph\.json$/i.test(given)) {
     throw new Refusal(`${JSON.stringify(given)} is not a name for a graph: a graph is saved as <name>.grooph.json.`, `give "out" a name ending .grooph.json`);
   }
-  const parts = landing(ctx, given).split(sep).map((part) => part.toLowerCase());
-  const [folder, owner, name] = parts.slice(-3);
+  // Where the path lands, and the path as written: with .grooph (or the folder under it) a link, the two differ, and
+  // either one may be the name the package's graph goes by.
+  const forms = [landing(ctx, given), written(ctx, given)].map((form) => form.split(sep).map((part) => part.toLowerCase()).slice(-3));
+  const kept = forms.find(([folder, owner, name]) => name === "graph.grooph.json" && folder === ".grooph" && owner !== undefined && !["graphs", "proposals", "templates"].includes(owner));
+  const owner = kept?.[1] ?? "";
   // .grooph/graphs, .grooph/proposals and .grooph/templates hold graphs a person or an agent saved; every other
   // folder under .grooph is a package's, named for its graph.
-  if (name === "graph.grooph.json" && folder === ".grooph" && owner !== undefined && !["graphs", "proposals", "templates"].includes(owner)) {
+  if (kept !== undefined) {
     throw new Refusal(
       `${given} is the graph a package keeps: grooph_export writes it, and the next export reads it to tell its own files from yours.`,
-      `save the graph elsewhere (for example .grooph/graphs/${owner}.grooph.json), then grooph_export with "into" to bring the package up to date`,
+      `save the graph elsewhere (for example .grooph/graphs/${ID.test(owner) ? owner : "<name>"}.grooph.json), then grooph_export with "into" to bring the package up to date`,
     );
   }
   return given;
+}
+
+/** A path inside the project as it was written, relative to the project's real root: no link on the way resolved. */
+function written(ctx: McpContext, given: string): string {
+  try {
+    const root = realpathSync.native(ctx.project);
+    return relative(root, resolve(root, given));
+  } catch {
+    return given;
+  }
 }
 
 /** Where a path inside the project really lands, relative to the project's real root: links on the way resolved. */
@@ -539,9 +581,10 @@ function isGroophPicture(full: string): boolean {
   } catch {
     return false;
   }
-  const open = /^\uFEFF?\s*<svg(?=\s)/.exec(head);
+  // White space is XML's own four characters: JavaScript's `\s` also takes a no-break space, which XML does not.
+  const open = /^\uFEFF?[ \t\r\n]*<svg(?=[ \t\r\n])/.exec(head);
   if (!open) return false;
-  const attribute = /\s+([^\s=<>"'/]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/y;
+  const attribute = /[ \t\r\n]+([^ \t\r\n=<>"'/]+)[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')/y;
   attribute.lastIndex = open[0].length;
   for (let found = attribute.exec(head); found !== null; found = attribute.exec(head)) {
     if (found[1] === "class") return (found[2] ?? found[3]) === "grooph-picture";
@@ -579,6 +622,13 @@ function findTemplate(ctx: McpContext, id: string): Found {
   const near = closest(id, all.map((f) => f.doc.id));
   throw new Refusal(`No template "${id}" in the project's templates, the user's or the built-in library${near === undefined ? "" : `; did you mean "${near}"?`}`, "grooph_templates with no id lists every template with when to use it");
 }
+
+/**
+ * Slot keys as the tool's own `next:` line may say them. A key is free text in the schema, and a project's template
+ * is anyone's document: keys that are each one word are named, and any other are pointed at where they are listed.
+ */
+const KEY = /^[A-Za-z0-9][A-Za-z0-9_.-]*$/;
+const keysSaid = (keys: readonly string[], otherwise: string): string => (keys.every((key) => KEY.test(key)) ? keys.join(", ") : otherwise);
 
 /** The questions for slots still unfilled, as lines. */
 function slotQuestions(doc: Graph, template: Graph): string[] {
@@ -743,7 +793,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       const next =
         block.kind === "fragment"
           ? "a fragment is not a whole graph. Add its nodes and edges to your graph with grooph_apply; the document below is what to copy from."
-          : `grooph_use_template with id "${found.doc.id}", a name, and values for ${slots.length > 0 ? slots.map((s) => s.key).join(", ") : "no slots"}`;
+          : `grooph_use_template with id "${found.doc.id}", a name, and values for ${slots.length > 0 ? keysSaid(slots.map((s) => s.key), "each slot listed above") : "no slots"}`;
       return { text: reply(lines, next), data: { source: found.source, template: docData(found.doc) }, more: [docBlock(found.doc)] };
     }),
   },
@@ -802,7 +852,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${wrote}`] : []),
       ];
-      const next = unfilled.length > 0 ? `get the values for ${unfilled.join(", ")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false, doc.id);
+      const next = unfilled.length > 0 ? `get the values for ${keysSaid(unfilled, "the slots listed above")} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)` : nextAfter(issues, false, doc.id);
       return { text: reply(lines, next), data: { ok: !hasErrors(issues), graph: docData(doc), unfilled, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },
@@ -1034,7 +1084,7 @@ export const AUTHOR_TOOLS: Tool[] = [
           if (args["png"] === true) more.push({ type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" });
           lines.push(`PNG: ${Math.round(400 * scale).toLocaleString("en")} px wide, ${Math.ceil(png.length / 1024).toLocaleString("en")} KB`);
         } catch (err) {
-          if (ext === ".png") throw new Refusal(`Could not make a PNG: ${(err as Error).message}`, `the SVG is the same drawing: grooph_picture with out "${out!.replace(/\.png$/i, ".svg")}"`);
+          if (ext === ".png") throw new Refusal(`Could not make a PNG: ${(err as Error).message}`, 'the SVG is the same drawing: grooph_picture with "out" ending .svg');
           lines.push(`no PNG: ${(err as Error).message}. The SVG below is the same drawing.`);
         }
       }
@@ -1133,6 +1183,17 @@ export const AUTHOR_TOOLS: Tool[] = [
         const root = within(ctx, pathArg(into, "into"));
         // Every file's place is checked before the first is written, so a package is placed whole or not at all.
         const places = paths.map((path) => ({ path, full: within(ctx, join(into, path)), contents: compiled.files[path]! }));
+        // The graph a package keeps is how the next export tells its own files from the person's, and no tool may write
+        // it but this one. Behind a link it would have a second name that no tool knows to refuse, so the folders that
+        // lead to it are the project's own.
+        for (const folder of [".grooph", join(".grooph", doc.id)]) {
+          if (isLink(join(root, folder))) {
+            throw new Refusal(
+              `${shownIn(ctx, join(root, folder))} is a link to another folder, and a package keeps its graph in a folder of the project's own; nothing was placed.`,
+              'make it a folder of its own, or give "into" another folder',
+            );
+          }
+        }
         // Two questions, and "replace" answers both, so both are asked at once: one answered alone would waive the other
         // unseen. A file that is not as grooph last wrote it is lost when it is replaced; and a file grooph wrote is
         // replaced without asking except in the model an agent runs on, which a server started without the machine's

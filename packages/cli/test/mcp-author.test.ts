@@ -964,7 +964,7 @@ test("second pass 6: a note is not appended to a file that has another name; a p
       ["grooph_new", { name: "N", out: "tab\there.grooph.json" }],
     ] as const) {
       const r = await call(ctx, tool, args);
-      refused(r, /holds a line break or another control character \(".*"\), which no path here has\./);
+      refused(r, /holds a character that ends a line or does not show \(".*"\), which no path here has\./);
       const lines = textOf(r).split(/[\n\u2028\u2029\u0085]/);
       assert.equal(lines.filter((line) => line.startsWith("next:")).length, 1, tool);
       assert.equal(lines.filter((line) => line.startsWith("wrote ")).length, 0, tool);

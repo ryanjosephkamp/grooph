@@ -60,11 +60,17 @@ export function keptFolder(id: string): string | undefined {
   return Object.hasOwn(KEPT_FOLDERS, id) ? `its package would be placed in .grooph/${id}/, the folder grooph keeps ${KEPT_FOLDERS[id]} in` : undefined;
 }
 
-/** The `model:` value in a file's frontmatter, or undefined when the header names none (or the file has no header). */
-export function headerModel(text: string): string | undefined {
-  if (!text.startsWith("---\n")) return undefined;
-  const end = text.indexOf("\n---", 4);
-  return /^model: (.+)$/m.exec(end < 0 ? "" : text.slice(4, end))?.[1]?.trim();
+/**
+ * Every `model:` a file's header names, read as loosely as a harness might read it: a byte order mark and carriage
+ * returns set aside, the key in quotes or with space around it, the value with or without quotes. A header that
+ * names the key twice gives both: which of them a reader takes is the reader's to say, so both count.
+ */
+export function headerModels(text: string): string[] {
+  const plain = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  if (!plain.startsWith("---\n")) return [];
+  const end = plain.indexOf("\n---", 3);
+  if (end < 0) return [];
+  return [...plain.slice(4, end + 1).matchAll(/^[ \t]*(?:"model"|'model'|model)[ \t]*:[ \t]*(.*?)[ \t]*$/gm)].map((found) => found[1]!.replace(/^(["'])(.*)\1$/, "$2"));
 }
 
 /**
@@ -73,11 +79,12 @@ export function headerModel(text: string): string | undefined {
  * and an export from a shell or a server with another tier map (or none) would otherwise change it and say nothing.
  */
 export function modelChanges(places: readonly { path: string; full: string; contents: string }[]): string[] {
+  const said = (models: string[]): string => (models.length === 0 ? "(the session's)" : models.join(" and "));
   return places.flatMap((place) => {
     if (!existsSync(place.full) || !statSync(place.full).isFile()) return [];
-    const was = headerModel(readFileSync(place.full, "utf8"));
-    const now = headerModel(place.contents);
-    return was === now ? [] : [`  ${place.path}: model ${was ?? "(the session's)"} → ${now ?? "(the session's)"}`];
+    const was = said(headerModels(readFileSync(place.full, "utf8")));
+    const now = said(headerModels(place.contents));
+    return was === now ? [] : [`  ${place.path}: model ${was} → ${now}`];
   });
 }
 
