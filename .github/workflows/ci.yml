@@ -88,6 +88,13 @@ jobs:
       - name: the quickstart's first run works
         run: scripts/first-run.sh
 
+      # The version is written in eight files (handoff 0081). scripts/version.mjs is the one command that writes
+      # them all; this fails when they disagree, or when one of them can no longer be found where it was.
+      - name: the version is the same in every place it is written
+        run: |
+          node --test scripts/version.test.mjs
+          node scripts/version.mjs --check
+
       # Public-facing text is American English (decision 0022): the README, the site's documents, the app, the CLI,
       # the templates and what the compiler writes. The internal record and the evidence are not read.
       - name: public-facing text is American English
