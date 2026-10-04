@@ -25,9 +25,17 @@ const { parseGraphText, validate, parseMapText, validateMap, formatIssue, hasErr
 const read = (rel) => readFileSync(join(root, rel), "utf8");
 const problems = [];
 
-/** `| \`CODE\` | text |` rows of a document, in order. */
+/**
+ * `| \`CODE\` | text |` rows of a document, in order. The spec's hard errors have a row of three cells (the code,
+ * the spec's own bullet, the rule): the bullet is the rule's short name and the last cell says what is checked.
+ */
 const rules = (doc) =>
-  [...read(doc).matchAll(/^\| `([EW]_[A-Z_]+)` \| (.+) \|$/gm)].map((m) => ({ code: m[1], text: m[2].replace(/\s+/g, " ").trim() }));
+  [...read(doc).matchAll(/^\| `([EW]_[A-Z_]+)` \| (.+) \|$/gm)].map((m) => {
+    const cells = m[2].split(/ \| /).map((cell) => cell.replace(/\s+/g, " ").trim());
+    if (cells.length === 1) return { code: m[1], text: cells[0] };
+    const [bullet, ...rest] = cells;
+    return { code: m[1], text: `**${bullet.charAt(0).toUpperCase()}${bullet.slice(1)}.** ${rest.join(" ")}` };
+  });
 
 const graphIssues = (rel, forExport = true) => {
   const parsed = parseGraphText(read(rel));
