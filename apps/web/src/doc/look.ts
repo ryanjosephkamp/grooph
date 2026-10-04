@@ -73,8 +73,12 @@ export function chooseLook(id: LookId): void {
   } catch {
     /* shown, not kept */
   }
-  // A theme named in the address would bring the old one back on the next load.
-  if (lookNamed(location.hash) !== undefined) history.replaceState(history.state, "", location.href.replace(/&theme=[^&#]*/, ""));
+  // A theme named in the address would bring the old one back on the next load. Only the part after the # is
+  // touched: a ?theme= before it is the site's look.
+  if (lookNamed(location.hash) !== undefined) {
+    const hash = location.hash.replace(/([?&])theme=[^&]*(&|$)/, (_, before: string, after: string) => (after ? before : ""));
+    history.replaceState(history.state, "", `${location.pathname}${location.search}${hash}`);
+  }
   tell();
 }
 
