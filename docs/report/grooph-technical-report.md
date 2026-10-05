@@ -47,10 +47,10 @@ The rules encode a small number of ideas:
 
 | Idea | Example of what is refused |
 |---|---|
-| Every loop can end | A loop with no stop; a taste loop with no bar |
-| A critic must be able to disagree | A critic that shares the builder's context; evidence the critic cannot inspect |
+| Every loop names a stop | A loop with no stop; a taste loop with no bar. A loop with no cap draws a warning |
+| A critic must be able to disagree | Where the graph asks for isolation, a critic that shares the builder's context; a bar that names nothing the critic can inspect |
 | One owner per artifact | Two agents that may write the same file |
-| A person before anything irreversible | A merge, a publish or a payment with no human gate before it |
+| A person before a step marked irreversible | A node marked as a merge, a publish or a payment with no human gate before it |
 | A template is not a graph | Exporting a document with unfilled slots |
 
 Patterns in the built-in library must validate clean, and CI checks that they do.
