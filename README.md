@@ -52,6 +52,7 @@ Early, version 0.3.0. Each of the twenty templates has a recorded run: eighteen 
 
 The same documents as pages: [ryanjosephkamp.github.io/grooph/docs/](https://ryanjosephkamp.github.io/grooph/docs/).
 
+- **What grooph claims, and on what evidence**: every claim, where it is made, and where its audit by a second harness stands: [`docs/claims.md`](docs/claims.md).
 - **Quickstart**: [`docs/quickstart.md`](docs/quickstart.md). **Every rule, by its code**, with a document that fires it: [`docs/rules.md`](docs/rules.md).
 - **The field guide**: all twenty loop shapes, each with its picture, when to use it and what its recorded run showed, and [a one-page poster](docs/field-guide/poster.svg): [`docs/field-guide.md`](docs/field-guide.md).
 - **The graph document**, its schema and every validation rule with its code: [`docs/graph-ir.md`](docs/graph-ir.md).
