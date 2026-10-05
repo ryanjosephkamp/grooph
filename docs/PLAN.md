@@ -132,6 +132,7 @@ Slices are the unit of handoff. One folder each under `handoffs/`.
 | 0086 | 24 | Six themes for a picture (Paper, Blueprint, Ink, Phosphor, Transit, Chalk) and a switch, in the app, `grooph image` and embeds; the default unchanged and no first-load cost | Opus 5.5 lane | handoff drafted 2026-10-04 (the owner approved the design studio page) |
 | 0087 | 24 | A map in three dimensions, with a slider through its handoffs: an optional view in the app, behind a door, flat views untouched | Opus 5.5 lane, extra high | handoff drafted 2026-10-04 (the owner approved the studio's sketch V1); starts once #65 has merged |
 | 0089 | 24 | The game experiment's Claude Code arm made ready: the freeze, the starting contents built and not pushed, a clean profile, the record, a runbook for the owner. No model session | Opus 5.5 lane, extra high | handoff drafted 2026-10-04 (the owner asked to run the Claude Code arm first) |
+| 0092 | 24 | A loop graph in three dimensions, as a sequence, and a recorded run replayed in both: the switch a map has, for any graph, reusing the map's views behind their doors | Opus 5.5 lane, extra high | handoff drafted 2026-10-04 (the owner asked for it after seeing the map's 3D view on the site; to be merged and shown on the site for his review) |
 | 0007 | 4 | Templates in the web app and editing polish | Opus 5 lead running the `slice-0007-sandwich` package, then a plain fix pass | done 2026-09-19 (grooph run `20260919-0057-66c8`; fix pass 1) |
 
 ## Carried into slice 0004 (done)
