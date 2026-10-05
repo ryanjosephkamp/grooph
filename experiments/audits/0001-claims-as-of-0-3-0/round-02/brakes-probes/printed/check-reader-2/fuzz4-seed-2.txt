@@ -1,0 +1,26 @@
+seed 2: 5000 trials; 1477 did not apply; 358 not valid; 3165 counted; THROUGH 7
+  a stop leads on to what pass led to                  counted  135  through 7
+  bar + bar-passed on its loop                         counted  130  through 0
+  bar only on its loop                                 counted  131  through 0
+  cap leads on to what pass led to                     counted  149  through 0
+  check made an agent                                  counted  167  through 0
+  check pass text                                      counted  156  through 0
+  check replaced under another id                      counted  178  through 0
+  check runs true                                      counted  199  through 0
+  edge around the check                                counted  128  through 0
+  edge around, on a verdict, with approval             counted  130  through 0
+  evidence on its edge emptied                         counted  171  through 0
+  evidence on its edge replaced                        counted  181  through 0
+  fail led where pass led                              counted   29  through 0
+  new loop over its round with a bar                   counted  151  through 0
+  new success stop from before the check               counted  200  through 0
+  new success stop on fail                             counted  190  through 0
+  pass edge removed, same edge under a new id on fail  counted  203  through 0
+  pass taken always                                    counted  179  through 0
+  retry/label/isolation on its edge + when             counted  161  through 0
+  verdicts swapped                                     counted  187  through 0
+  weaker check in front, first one skipped             counted   10  through 0
+through, by weakening + decoys:
+    4  a stop leads on to what pass led to  +  (nothing)   e.g. fixtures/valid/irreversible-after-a-stop-gated.grooph.json (suite)
+    2  a stop leads on to what pass led to  +  cap lowered & target of a check edge made a critic   e.g. patterns/retrospective-rewrite.grooph.json (tests)
+    1  a stop leads on to what pass led to  +  a gate's prompt reworded   e.g. fixtures/valid/irreversible-after-a-stop-gated.grooph.json (suite)

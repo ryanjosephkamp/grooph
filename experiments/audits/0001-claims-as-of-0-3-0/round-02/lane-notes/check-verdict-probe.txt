@@ -1,6 +1,7 @@
 Does the comparison of brakes see a change to a check that judges a loop?
-Run by the audit lane on 2026-10-05 at this branch merged with main at 30b59d0, packages built there.
+Run by the audit lane on 2026-10-05 at main 1574c53 and this branch's audit record, packages built there; the comparison is as pull request #114 left it.
 Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/check-verdict-probe.mjs   (pure: one built-in template, core's checkAdoption; writes nothing, calls no model)
+The first run of this script, earlier the same day, had the first two cases and the control and printed the same for them; the third case was added after reading the draft of amendment A-019.
 
 the template as it is: {
  "check": [
@@ -24,6 +25,12 @@ the template as it is: {
 == the check's two verdicts swapped: fail leads on, pass leads back
    validator errors: none
    changes: edge:e-tests-fail.when | edge:e-tests-pass.when
+   refused: nothing
+   notices: none
+
+== the check untouched, and an edge added from the builder straight to the stop that ends in success
+   validator errors: none
+   changes: edge:e-around-the-check
    refused: nothing
    notices: none
 

@@ -1,0 +1,100 @@
+
+## adopt --write: H1 a budget of a measure the loop had not, 1 dispatch, then done [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-120000 · Retrospective rewrite: what it changed in its working copy
+  |   Changed the stops of loop Grind (grind)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt1/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:grind.stops
+  |   loop:grind.stops  a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt1/.grooph/retrospective-rewrite/runs/20261005-120000 --into <tmp>/grooph-brakes-pro
+  | grooph: not written: the working copy loosens a brake the graph has (loop:grind.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt --write: H1' a stop where a person is asked, then done [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-120000 · Retrospective rewrite: what it changed in its working copy
+  |   Changed the stops of loop Grind (grind)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt2/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:grind.stops
+  |   loop:grind.stops  a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt2/.grooph/retrospective-rewrite/runs/20261005-120000 --into <tmp>/grooph-brakes-pro
+  | grooph: not written: the working copy loosens a brake the graph has (loop:grind.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt --write: H2 a second loop on the same round, cap 1, then done [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-120000 · Retrospective rewrite: what it changed in its working copy
+  |   Added loop Quick (quick)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt3/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:quick
+  |   loop:quick  a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt3/.grooph/retrospective-rewrite/runs/20261005-120000 --into <tmp>/grooph-brakes-pro
+  | grooph: not written: the working copy loosens a brake the graph has (loop:quick, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt --write: control: diminishing-returns then done (held by the tests) [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-120000 · Retrospective rewrite: what it changed in its working copy
+  |   Changed the stops of loop Grind (grind)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt4/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:grind.stops
+  |   loop:grind.stops  a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt4/.grooph/retrospective-rewrite/runs/20261005-120000 --into <tmp>/grooph-brakes-pro
+  | grooph: not written: the working copy loosens a brake the graph has (loop:grind.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt --write: control: H1 on grind-loop (held) [grind-loop]
+  exit 1, written: false
+  | Run 20261005-120000 · Grind loop: what it changed in its working copy
+  |   Changed the stops of loop Grind (grind)  ← no amendment note explains this
+  | version 2 of grind-loop, from grind-loop@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt5/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:grind.stops
+  |   loop:grind.stops  a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-3/cli/adopt5/.grooph/grind-loop/runs/20261005-120000 --into <tmp>/grooph-brakes-probes/check-r
+  | grooph: not written: the working copy loosens a brake the graph has (loop:grind.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## sub update --write: H1 a budget of a measure the loop had not, 1 dispatch, then done [retrospective-rewrite]
+  placed valid: true; exit 0; file changed: true; valid: true
+  | q  retrospective-rewrite@1 → retrospective-rewrite@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-grind.stops
+  |     loop:q-grind.stops  a stop of the loop would lead on to "release", a way that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  before: q-grind: max-iterations>q-retro|budget>q-retro   pass edges: q-e-tests-fail>q-builder,e-q-tests-q-retro>q-retro
+  now:    q-grind: max-iterations>q-retro|budget>q-retro
+
+## sub update --write: H1' a stop where a person is asked, then done [retrospective-rewrite]
+  placed valid: true; exit 0; file changed: true; valid: true
+  | q  retrospective-rewrite@1 → retrospective-rewrite@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-grind.stops
+  |     loop:q-grind.stops  a stop of the loop would lead on to "release", a way that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  before: q-grind: max-iterations>q-retro|budget>q-retro   pass edges: q-e-tests-fail>q-builder,e-q-tests-q-retro>q-retro
+  now:    q-grind: max-iterations>q-retro|budget>q-retro
+
+## sub update --write: H2 a second loop on the same round, cap 1, then done [retrospective-rewrite]
+  placed valid: true; exit 0; file changed: true; valid: true
+  | q  retrospective-rewrite@1 → retrospective-rewrite@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-quick
+  |     loop:q-quick  a stop of the loop would lead on to "release", a way that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  before: q-grind: max-iterations>q-retro|budget>q-retro   pass edges: q-e-tests-fail>q-builder,e-q-tests-q-retro>q-retro
+  now:    q-grind: max-iterations>q-retro|budget>q-retro
+
+## sub update --write: control: diminishing-returns then done (held by the tests) [retrospective-rewrite]
+  placed valid: true; exit 0; file changed: true; valid: true
+  | q  retrospective-rewrite@1 → retrospective-rewrite@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-grind.stops
+  |     loop:q-grind.stops  a stop of the loop would lead on to "release", a way that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  before: q-grind: max-iterations>q-retro|budget>q-retro   pass edges: q-e-tests-fail>q-builder,e-q-tests-q-retro>q-retro
+  now:    q-grind: max-iterations>q-retro|budget>q-retro
+
+## sub update --write: control: H1 on grind-loop (held) [grind-loop]
+  placed valid: true; exit 0; file changed: true; valid: true
+  | q  grind-loop@1 → grind-loop@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-grind.stops
+  |     loop:q-grind.stops  a stop of the loop would lead on to "release", a way that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  before: q-grind: max-iterations|budget   pass edges: q-e-tests-fail>q-builder,e-q-tests-release>release
+  now:    q-grind: max-iterations|budget

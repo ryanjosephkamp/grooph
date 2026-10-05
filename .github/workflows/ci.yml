@@ -1,8 +1,12 @@
 name: CI
 
+# A branch is checked once, by its pull request. Until 2026-10-05 a push to a slice/** branch started these jobs
+# too, so every push to a branch with a pull request ran all of them twice; with six lanes pushing, that doubled
+# the wait for a machine. A branch with no pull request gets none: open one, as a draft if it is not ready. A pull
+# request that conflicts with main gets none either until main is merged in: GitHub checks the merge, not the head.
 on:
   push:
-    branches: ["main", "slice/**"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
@@ -100,11 +104,12 @@ jobs:
 
       # Study three's unpaid builds (slice 0095): the counter and the judge a brake experiment's result is read from,
       # the two packages it compiles from one graph, the two derived arms, and the clean profile's command. None of
-      # these starts a model session. The two --check modes fail when a kept prompt, or a line the pre-registration
-      # quotes from a package, is no longer what the compiler and the derivation rule give.
+      # these starts a model session: the last file tests the paid path against a stand-in for the harness, which
+      # calls no model. The two --check modes fail when a kept prompt, or a line the pre-registration quotes from a
+      # package, is no longer what the compiler and the derivation rule give.
       - name: the brake experiment's counter and packages, the derived arms and the comparison profile hold
         run: |
-          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs
+          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs scripts/lib/study-three-paid.test.mjs
           node scripts/lib/brake-run.mjs --check
           node scripts/lib/compare-arms-ef.mjs --check
 

@@ -1,0 +1,81 @@
+
+### C1h new-key budget then retro (same place, sooner)  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:grind.stops: removes the budget (1 dispatches)
+
+### C1i new-key budget then a new step that leads to done  [retrospective-rewrite]
+  changes: edge:e-sum-done, loop:grind.stops, node:sum, edge:e-retro-sum
+  refused: 
+    - edge:e-sum-done: adds a way into "done" that does not pass the check "tests"
+    - loop:grind.stops: adds a way from "builder" to end in success that does not pass the check "tests"
+    + tightens loop:grind.stops: removes the budget (1 dispatches)
+    + tightens node:sum: removes the budget (1 dispatches)
+
+### C1j human stop then land (irreversible)   [irreversible-after-a-stop-gated]
+  changes: loop:fix-cycle.stops
+  refused: 
+    - loop:fix-cycle.stops: a stop of the loop would lead on to "land", a way that does not pass the human gate "land-gate"; a stop of the loop would lead on to "land", a way that does not pass the check "suite"
+    + tightens loop:fix-cycle.stops: removes the stop where a person is asked
+
+### C1k budget dispatches then landed (past the gate)  [irreversible-after-a-stop-gated]
+  changes: loop:fix-cycle.stops
+  refused: 
+    - loop:fix-cycle.stops: a stop of the loop would lead on to "landed", a way that does not pass a person; a stop of the loop would lead on to "landed", a way that does not pass the check "suite"
+    + tightens loop:fix-cycle.stops: removes the budget (1 dispatches)
+
+### C1l budget dispatches then land (past the gate)  [irreversible-after-a-stop-gated]
+  NOT VALID: invalid: E_IRREVERSIBLE_NO_GATE
+
+### C3c new loop of new steps in front of builder, cap then done  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C3c' control on grind-loop  [grind-loop]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C3d new loop builder<->scribe, cap then done  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C3f new loop over [tests] alone? self edge  [retrospective-rewrite]
+  changes: loop:quick
+  refused: 
+    - loop:quick: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### C3g second loop, same round, gated: budget then landed  [irreversible-after-a-stop-gated]
+  changes: loop:quick   warnings: W_ONLY_MAX_ITERATIONS
+  refused: 
+    - loop:quick: a stop of the loop would lead on to "landed", a way that does not pass a person; a stop of the loop would lead on to "landed", a way that does not pass the check "suite"
+
+### C3h second loop, same round, gated: cap then land-gate  [irreversible-after-a-stop-gated]
+  changes: loop:quick   warnings: W_ONLY_MAX_ITERATIONS
+  refused: 
+    - loop:quick: a stop of the loop would lead on to "land-gate", a way that does not pass the check "suite"
+
+### C8 cap to a new halting stop that an edge leaves  [grind-loop]
+  NOT VALID: invalid: E_CYCLE_NO_STOP
+
+### C10b new step, member of grind, leads to done  [retrospective-rewrite]
+  changes: edge:e-builder-scribe, edge:e-scribe-done, node:scribe, loop:grind.members
+  refused: 
+    - edge:e-builder-scribe: adds a way from "builder" to end in success that does not pass the check "tests"
+    - edge:e-scribe-done: adds a way into "done" that does not pass the check "tests"
+
+### C10d new pair only a new-key stop reaches, leads to done  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C12 wrap leads to green by a new edge (cap -> wrap already)  [wrap-up-after-the-cap]
+  changes: edge:e-wrap-green
+  refused: 
+    - edge:e-wrap-green: adds a way from "wrap" to end in success that does not pass a person; adds a way into "green" that does not pass the check "suite"
+
+### C12b handed-over made a success  [wrap-up-after-the-cap]
+  changes: node:handed-over.outcome
+  refused: 
+    - node:handed-over.outcome: a run could end in success at "handed-over", a way that does not pass a person; a run could end in success at "handed-over", a way that does not pass the check "suite"
+
+### C12c wrap-up: human stop then wrap; wrap->green  [wrap-up-after-the-cap]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: removes the stop where a person is asked
+
+== 11 valid cases, 2 through

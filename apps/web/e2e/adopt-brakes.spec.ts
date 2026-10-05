@@ -304,6 +304,25 @@ const CASES: [string, () => Graph, (working: Graph) => void][] = [
     doc.edges = doc.edges.filter((e) => e.id !== "e-ship-done");
   }), (w) => void ((loop(w, "review").stops[0] as { then?: string }).then = "merge")],
   ["a way round a person newly opens: noted, not refused", () => valid(SUB), (w) => void review(w).stops.push({ kind: "human", every: 2, then: "review-builder" })],
+  // Amendment A-019: a check is a brake. The audit lane's two cases, and a tightening on an edge that leaves a check.
+  ["a check made to pass always", () => valid("fix-until-green.grooph.json"), (w) => {
+    const suite = w.nodes.find((n) => n.id === "suite") as Extract<Node, { kind: "check" }>;
+    suite.check = { ...suite.check, run: "true" };
+  }],
+  ["a check's two verdicts swapped", () => valid("fix-until-green.grooph.json"), (w) => {
+    for (const e of w.edges) if (e.from === "suite") e.when = e.when === "pass" ? "fail" : "pass";
+  }],
+  ["an approval asked on a check's pass: a tightening, saved", () => valid("fix-until-green.grooph.json"), (w) => void (edge(w, "e-suite-pass").approval = true)],
+  // What the reader of A-019 got through its first cut: neither is a tightening, whatever is asked beside it.
+  ["a failure led to a second stop that ends in success, with an approval asked beside it", () => valid("fix-until-green.grooph.json"), (w) => {
+    w.nodes.push({ id: "green-too", kind: "stop", name: "Green too", outcome: "success" });
+    Object.assign(edge(w, "e-suite-pass"), { when: "fail", to: "green-too" });
+    w.edges.push({ id: "e-suite-passed", from: "suite", to: "green", when: "pass", approval: true });
+  }],
+  ["a loop a check judges, given a bar and a stop on it", () => valid("fix-until-green.grooph.json"), (w) => {
+    loop(w, "fix-cycle").bar = { name: "Fixer says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+    loop(w, "fix-cycle").stops.unshift({ kind: "bar-passed", then: "green" });
+  }],
 ];
 
 test("the app and the command agree on every working copy, the readers' attacks among them; and the command the app shows is one the command takes", async ({ page }) => {
