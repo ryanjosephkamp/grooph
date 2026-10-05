@@ -947,3 +947,28 @@ test("the frame's height is worked out again when its room changes, whichever ca
   expect(errors).toEqual([]);
   expect(await page.evaluate(() => (window as unknown as { errorsSeen: string[] }).errorsSeen)).toEqual([]);
 });
+
+test("in the spiral on a phone the frame is given what its cards need where that clears them, and the templates whose cards still touch are these three", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "spiral"));
+  const ids = readdirSync(join(repoRoot, "patterns")).filter((f) => f.endsWith(".grooph.json")).map((f) => f.replace(".grooph.json", ""));
+  const touching: string[] = [];
+  for (const id of ids) {
+    await page.goto("about:blank");
+    await page.goto(`./#/templates/built-in/${id}`);
+    await canvasIsQuiet(page);
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await view(page, "3D").click();
+    await expect(page.locator('.s3[data-kind="spiral"] .s3-frame')).toBeVisible();
+    await viewIsStill(page);
+    await expect(cards(page)).toHaveCount(pattern(id).nodes.length);
+    if ((await overlaps(page)).length) touching.push(id);
+    const [frame, room] = [(await page.locator(".s3-frame").boundingBox())!.height, await page.locator(".graph-space").evaluate((el) => el.clientHeight)];
+    expect(frame, id).toBeGreaterThanOrEqual(329);
+    expect(frame, id).toBeLessThanOrEqual(Math.round(room * 0.8) + 1);
+  }
+  // Said by name: these are held by the frame's width, with two spirals or a wide turn side by side, so a taller
+  // frame does not clear them as it does in Panes. Moving in does.
+  expect(touching).toEqual(["debate-then-build", "gauntlet-decomposed", "specialist-critic-bank"]);
+});
