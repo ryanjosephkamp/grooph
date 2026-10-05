@@ -15,6 +15,8 @@ import {
   stopAction,
 } from "../../semantics.js";
 import { OP_ARGS, type OpName } from "../../ops/apply.js";
+import { contentsOf, listGroups } from "../../groups.js";
+import { GROUP_FROM_PATTERN } from "../../schema/graph.js";
 import type { Edge, Loop, Node, Stop } from "../../types.js";
 import { bullet, cell, code, doc, fence, lines, table } from "../markdown.js";
 import type { PackageContext } from "./context.js";
@@ -151,6 +153,38 @@ function sectionFour(ctx: PackageContext): string {
     `Dispatch an agent node with the ${code("Agent")} tool and the ${code(
       "subagent_type",
     )} named above; its file under ${code(".claude/agents/")} carries the full brief, so your prompt carries only the task, the declared inputs and the edge's evidence. Never paste a transcript into a fresh worker.`,
+    units(ctx),
+  );
+}
+
+/**
+ * The subgroophs of the graph (amendment A-018): each a template placed as a unit. Nothing about running them is
+ * new, so this says only what they are and asks the lead to name them. Absent for a graph that has none.
+ *
+ * A group's `from` is printed only as the token the schema holds it to, and the values it was filled with (`with`)
+ * are not printed at all: they are already in the nodes they filled, and a brief is no place for a second copy
+ * that nothing checks.
+ */
+function units(ctx: PackageContext): string | false {
+  const placed = listGroups(ctx.doc).filter((group) => group.from !== undefined);
+  if (placed.length === 0) return false;
+  const name = (id: string): string => code(id);
+  const fromOf = new Map((ctx.doc.groups ?? []).map((group) => [group.id, group.from ?? ""]));
+  const rows = placed.map((group) => [
+    cell(group.name),
+    code(group.id),
+    GROUP_FROM_PATTERN.test(fromOf.get(group.id)!) ? code(fromOf.get(group.id)!) : "a template",
+    contentsOf(ctx.doc, group.id)!.nodes.map(name).join(", "),
+    group.entries.length > 0 ? [...new Set(group.entries.map((edge) => name(edge.to)))].join(", ") : "nothing leads in",
+    group.exits.length > 0 ? [...new Set(group.exits.map((edge) => name(edge.to)))].join(", ") : "its own stop",
+  ]);
+  return lines(
+    "",
+    "### Units",
+    "",
+    `Some of these nodes were placed together, each set from one template: a **subgrooph**. A person reading the graph sees each as one box under its name. Its nodes are ordinary nodes: run them as you run any others, by the edges, loops and stops below. When ${code("PROGRESS.md")} or a note says where the run is, name the unit as well as the node.`,
+    "",
+    table(["unit", "id", "placed from", "its nodes", "entered at", "leads on to"], rows),
   );
 }
 

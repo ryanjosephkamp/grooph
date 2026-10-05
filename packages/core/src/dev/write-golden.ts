@@ -1,7 +1,7 @@
 /**
  * Regenerate the golden packages under `fixtures/golden/<target>/<graph>/`,
  * the golden pictures of the sample operation map under `fixtures/maps/pictures/`,
- * and of two graphs under `fixtures/pictures/`.
+ * and of three graphs under `fixtures/pictures/`: two with no subgrooph, and one with its subgrooph closed and open.
  *
  *   pnpm --filter @grooph/core run golden:write
  *
@@ -18,7 +18,9 @@ import { compile } from "../compile/index.js";
 import { parseMapText } from "../map.js";
 import { parseGraphText } from "../parse.js";
 import { picture } from "../picture/graph-picture.js";
+import { pictureWithUnits } from "../picture/graph-units.js";
 import { mapPicture } from "../picture/map-picture.js";
+import { unitsKit } from "../picture/units-kit.js";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -89,6 +91,20 @@ for (const file of GRAPH_PICTURES) {
     const out = join(outDir, `${parsed.doc.id}.${theme}.svg`);
     writeFileSync(out, picture(parsed.doc, { theme }), "utf8");
     process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+  }
+}
+
+/** A graph with a subgrooph (amendment A-018), as its picture with the box closed and with it open, light and dark. */
+{
+  const file = "fixtures/valid/subgrooph-in-a-graph.grooph.json";
+  const parsed = parseGraphText(readFileSync(join(repoRoot, file), "utf8"));
+  if (!parsed.doc) throw new Error(`${file} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
+  for (const theme of ["light", "dark"] as const) {
+    for (const open of [false, true]) {
+      const out = join(repoRoot, "fixtures", "pictures", `${parsed.doc.id}${open ? ".open" : ""}.${theme}.svg`);
+      writeFileSync(out, pictureWithUnits(unitsKit, parsed.doc, { theme, ...(open ? { open: "all" as const } : {}) }), "utf8");
+      process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+    }
   }
 }
 

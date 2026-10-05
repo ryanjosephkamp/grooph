@@ -248,11 +248,14 @@ test("a screen that could not be fetched is asked for again when the next one is
     refused += 1;
     return route.abort();
   });
-  await page.goto("./#/templates");
-  await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
-  await page.evaluate(() => ((window as unknown as { sameTab: boolean }).sameTab = true));
-  await page.locator('.template-row[data-template="review-gate"]').tap();
+  // The address of a screen that needs them. The page asks before it draws and the app asks again as it opens, and
+  // only then does the screen say so: nothing is asking any more when it does, so the connection can be given back
+  // without a try that was already on its way using it. (This test once opened the screen from the list, where the
+  // words show for a moment before the next try starts; on a slow machine the connection came back in that moment,
+  // the try succeeded, and the test looked for a way out of a screen that had opened.)
+  await page.goto("./#/templates/built-in/review-gate");
   await expect(page.getByText("This screen could not be fetched.")).toBeVisible();
+  await page.evaluate(() => ((window as unknown as { sameTab: boolean }).sameTab = true));
   expect(refused).toBeGreaterThan(1);
 
   // The connection is back. The way out the screen offers, and the same template again: it opens, in the same page.

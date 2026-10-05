@@ -14,7 +14,7 @@ import { layerNodes } from "./layout.js";
 import { CARRIER_LABEL, endName, handoffCarrierText, mapShape, mapShapeLine, wakesItself } from "./map.js";
 import { estimateShape, shapeLine, tierLine } from "./proposals.js";
 import { describeStop, loopMode, stopAction } from "./semantics.js";
-import type { Edge, Graph, Id, Node, OperationMap } from "./types.js";
+import type { Edge, Graph, Group, Id, Node, OperationMap } from "./types.js";
 
 /** One fact: a label and its text, or a list. */
 export type OutlineItem = { label: string; text?: string; list?: string[] };
@@ -22,10 +22,12 @@ export type OutlineItem = { label: string; text?: string; list?: string[] };
 export type OutlineSection = {
   /** the id of the object this section is about; the document's own id for the first */
   id: Id;
-  /** what kind of thing: "Graph", "Agent", "Human gate", "Loop", "Session", "Lane", "Handoffs" */
+  /** what kind of thing: "Graph", "Agent", "Human gate", "Subgrooph", "Loop", "Session", "Lane", "Handoffs" */
   kind: string;
   title: string;
   items: OutlineItem[];
+  /** the subgrooph this node, or this subgrooph, is part of: a view may fold its sections into that one box */
+  inside?: Id;
 };
 
 const KIND_LABEL: Record<Node["kind"], string> = { agent: "Agent", "human-gate": "Human gate", check: "Check", merge: "Merge", stop: "Stop" };
@@ -59,6 +61,15 @@ export function outline(doc: Graph): OutlineSection[] {
   const nameOf = (id: Id): string => nodes.get(id)?.name || id;
   const backEdges = new Set(doc.loops.flatMap((l) => l.back));
   const sections: OutlineSection[] = [];
+  // A subgrooph is read as a unit (amendment A-018): the nearest one that holds a node, through any plain group.
+  const groups = doc.groups ?? [];
+  const holder = (id: Id): Group | undefined => groups.find((group) => group.members.includes(id));
+  const unitOf = (id: Id): Group | undefined => {
+    let group = holder(id);
+    for (let n = 0; group && !group.from && n < groups.length; n++) group = holder(group.id);
+    return group?.from ? group : undefined;
+  };
+  const partOf = (id: Id): { inside?: Id } => (unitOf(id) ? { inside: unitOf(id)!.id } : {});
 
   const shape = estimateShape(doc);
   sections.push({
@@ -113,7 +124,25 @@ export function outline(doc: Graph): OutlineSection[] {
       id,
       kind: KIND_LABEL[node.kind],
       title: node.name || node.id,
-      items: [...item("About", node.description), ...own, ...item("In loop", inLoops), ...item("Then", out), ...item("Reached", into)],
+      items: [...item("About", node.description), ...item("Part of", unitOf(id)?.name), ...own, ...item("In loop", inLoops), ...item("Then", out), ...item("Reached", into)],
+      ...partOf(id),
+    });
+  }
+
+  for (const group of groups) {
+    if (!group.from) continue;
+    sections.push({
+      id: group.id,
+      kind: "Subgrooph",
+      title: group.name,
+      items: [
+        ...item("About", group.description),
+        ...item("Placed from", `the template ${group.from.replace("@", ", version ")}`),
+        ...item("Filled with", Object.entries(group.with ?? {}).map(([key, value]) => `${key}: ${value}`)),
+        ...item("Part of", unitOf(group.id)?.name),
+        ...item("Holds", [...doc.nodes, ...groups].filter((held) => unitOf(held.id) === group && (!("members" in held) || held.from)).map((held) => held.name || held.id)),
+      ],
+      ...partOf(group.id),
     });
   }
 
