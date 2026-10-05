@@ -8,6 +8,8 @@
 import { KNOWN_TARGETS, canonicalize, parseGraph, validate, type CompileResult, type CompileTarget, type Graph, type Issue } from "@grooph/core";
 import { strToU8, zipSync, type Zippable } from "fflate";
 
+import { piece } from "../piece.js";
+
 export type ExportAttempt =
   | { ok: true; target: CompileTarget; result: CompileResult }
   | { ok: false; target: string; reason: "schema" | "rules"; issues: Issue[] }
@@ -16,11 +18,13 @@ export type ExportAttempt =
 
 type Compiler = typeof import("@grooph/core/compile");
 let compiler: Compiler | undefined;
-let asked: Promise<Compiler> | undefined;
 
-/** Fetch the compiler, once. The editor asks for it soon after it opens, so the Export panel seldom waits. */
+/**
+ * Fetch the compiler, once it has come. The editor asks for it soon after it opens, so the Export panel seldom
+ * waits. A fetch that fails is tried again there and then (`piece.ts`), and the next call asks afresh.
+ */
 export function loadCompiler(): Promise<Compiler> {
-  return (asked ??= import("@grooph/core/compile").then((m) => (compiler = m)));
+  return piece("compile", () => import("@grooph/core/compile")).then((m) => (compiler = m));
 }
 
 /** Whether the compiler is here, so `attemptExport` can answer for a graph that validates. */
