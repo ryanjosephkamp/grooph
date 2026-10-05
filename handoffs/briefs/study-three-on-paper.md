@@ -69,7 +69,7 @@ I had drafted two tasks of my own that hid an unreachable item from the builder.
 
 ## 3. Many more dispatches
 
-**Why.** The owner's first guess. The arithmetic from study two says the package's premium falls from about 60% at four dispatches to about 45% at twenty, because the part paid once is diluted, and then rises again as the lead's context grows. That is arithmetic, and from each project's runs alone the figure at twenty is anywhere from 30% to 64%. This measures it, and asks whether a prose lead still holds a design of this size.
+**Why.** The owner's first guess. Nothing past four dispatches has been observed. By arithmetic on study two's twelve runs of four dispatches, the package would be about 45% above the prose at twenty, against about 60% as run, and from each project's runs alone anywhere from 30% to 64%. The arithmetic assumes that what fell before the first dispatch is paid once and that what fell in a cycle is paid again at each dispatch, and no slope could be fitted to check either. This measures it, and asks whether a prose lead still holds a design of this size.
 
 **Task.** Six independent pieces of one small library, each with a builder, a fresh reviewer and held-out cases; at most two pieces at once; then an integrator and a final reviewer. Fourteen dispatches if nothing fails and about twenty if each piece turns once.
 
@@ -85,7 +85,7 @@ I had drafted two tasks of my own that hid an unreachable item from the builder.
 
 **The game experiment is already this, once.** It is one six-hour run in Claude Code from a package, with a budget of 110 dispatches. Its own protocol says what one run can show: whether the brakes held for six hours, what was built, what it cost.
 
-**Before any second run, at no cost:** the lead-cost script can read the game run's transcript once it exists. That gives the first measured cost of a package's lead at about a hundred dispatches, where today there is only arithmetic that says about 74% above prose, and anywhere from 41% to 112% by project.
+**Before any second run, at no cost:** the lead-cost script can read the game run's transcript once it exists. That gives the first measured cost of a package's lead at about a hundred dispatches. Today there is only arithmetic, and at that length it stops being a guide: it carries the lead's context to about 465 thousand tokens and has no compaction, and what the harness does with a context of that size is not known here. The game run's transcript would also show whether the lead's context was compacted, and what it went on from.
 
 **What a second six-hour run would add, with the same spec and the design given as prose:**
 
@@ -137,7 +137,7 @@ Both sides of audit 0001 name them. None is run here.
 
 **What it is.** The largest single item in the package's extra cost is the reading before the first dispatch, and nothing tells the lead to read the graph document or the agent files. Six of six leads read both agent files and five read the graph. The cut is a sentence in the lead brief: what you need is here; the agent files are the subagents' and the graph is the record's; read them only to amend.
 
-**What it would save, by my count** (Table 10 of the lead-cost page): **$0.088 a run** at four dispatches, from $0.036 to $0.105 by run, which is 17% of the difference to prose. That is more than hook-written notes would remove ($0.054). About two thirds of it is paid once. The rest is every later call reading 6,700 tokens fewer, so it grows with the length of the run. It is arithmetic: it removes reading from runs that did read.
+**What it would save, by my count** (Table 10 of the lead-cost page): **$0.088 a run** at four dispatches, from $0.036 to $0.105 by run, which is 17% of the difference to prose. That is more than hook-written notes would remove ($0.054). About two thirds of it is the files written to the cache, once. The rest is every later call reading 6,700 tokens fewer. It is arithmetic: it removes reading from runs that did read.
 
 **What could go wrong.**
 
