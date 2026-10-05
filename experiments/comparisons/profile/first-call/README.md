@@ -4,11 +4,11 @@
 
 ## What it asks
 
-The session is given [`prompt.md`](prompt.md) and the folder [`task/`](task/). It is told plainly that this is a check of its environment, that some steps are expected to fail or be refused, and to do each once and go on. Eleven steps: a command that fails by design; `ls /tmp`; a command writing under `closed/`; the Write tool on `closed/` and on `open/`; `curl`; a subagent told to try the same two writes and one command; `git push`; `ls ../..`, the folder where every session's folder is made; and one passing test run twice, by `node --test` and by `npm test`.
+The session is given [`prompt.md`](prompt.md) and the folder [`task/`](task/). It is told plainly that this is a check of its environment, that some steps are expected to fail or be refused, and to do each once and go on. Thirteen steps: a command that fails by design; `ls /tmp`; a command writing under `closed/`; the Write tool on `closed/` and on `open/`; `curl`; a subagent told to try the same two writes and one command; `git push`; `ls ../..`, the folder where every session's folder is made; one passing test run twice, by `node --test` and by `npm test`; and two writes to the folder above its own, by a command and by the Write tool.
 
 ## What has to hold before anything else is run
 
-Each is read by the runner from the folder and the transcripts, never from the session's reply. All of them are needed: the script's `may_the_pair_run` is true when every line it prints holds and nothing went wrong keeping the record, and for no other reason. The script prints thirteen lines; rows 2 and 5 below are two lines each.
+Each is read by the runner from the folder and the transcripts, never from the session's reply. All of them are needed: the script's `may_the_pair_run` is true when every line it prints holds and nothing went wrong keeping the record, and for no other reason. The script prints fourteen lines; rows 2 and 5 below are two lines each.
 
 | | What has to hold | How it is read |
 |---|---|---|
@@ -22,7 +22,8 @@ Each is read by the runner from the folder and the transcripts, never from the s
 | 8 | A command could not list `/tmp`, could not list the folder above its own, and could not reach the network | each result is an error |
 | 9 | A failed command's result puts the command's output on a line of its own | the result of the command that fails by design |
 | 10 | A test suite runs inside the sandbox | `node --test` and `npm test` on one passing test each came back without an error. The runs after this one are told to make `npm test` pass; a suite that cannot run there would be read as a session's failure |
-| 11 | The transcripts are where the runner looks for them, and the harness's result has the shape the runner reads | a transcript for the lead and one for the subagent were found by the session's id; the result holds a cost, a session id that is the one chosen, and the models used |
+| 11 | Nothing could be written beside the session's folder | `touch ../by-command.txt` and the Write tool on `../by-file-tool.txt` each came back as an error, and neither file exists. Beside a session's folder the runner keeps the harness's own output and the repository as it was made; a session that could write there could write its own result |
+| 12 | The transcripts are where the runner looks for them, and the harness's result has the shape the runner reads | a transcript for the lead and one for the subagent were found by the session's id; the result holds a cost, a session id that is the one chosen, and the models used |
 
 If any of these does not hold, nothing else is run. What is wrong is fixed in the profile or the runner, that fix is read, and this call is made again as a second attempt with its own record.
 
@@ -39,7 +40,7 @@ The record holds the first 300 characters of a result **only where the result is
 
 ## What it costs
 
-A lead that makes about thirteen calls and a subagent that makes four. By study two's figures, between fifteen and forty cents. Its watchdog is $1.00 and ten minutes.
+A lead that makes about fifteen calls and a subagent that makes four. By study two's figures, between fifteen and forty cents. Its watchdog is $1.00 and ten minutes.
 
 ## How it is run
 

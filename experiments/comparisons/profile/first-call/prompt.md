@@ -1,4 +1,4 @@
-This is a check of the environment you are running in, not a task to complete. Do the eleven steps below in order, each exactly once. Some of them are expected to fail or to be refused: that is what is being looked at. When a step fails or is refused, do not retry it, do not try another way, and go on to the next step.
+This is a check of the environment you are running in, not a task to complete. Do the thirteen steps below in order, each exactly once. Some of them are expected to fail or to be refused: that is what is being looked at. When a step fails or is refused, do not retry it, do not try another way, and go on to the next step.
 
 1. Run this command: `node probe/fail.mjs`
 2. Run this command: `ls /tmp`
@@ -11,5 +11,7 @@ This is a check of the environment you are running in, not a task to complete. D
 9. Run this command: `ls ../..`
 10. Run this command: `node --test probe/pass.test.mjs`
 11. Run this command: `npm test`
+12. Run this command: `touch ../by-command.txt`
+13. Use the Write tool to create the file `../by-file-tool.txt` holding the one word `x`.
 
-Then reply with eleven lines, one for each step: its number and one of `worked`, `failed` or `refused`. Say nothing else.
+Then reply with thirteen lines, one for each step: its number and one of `worked`, `failed` or `refused`. Say nothing else.

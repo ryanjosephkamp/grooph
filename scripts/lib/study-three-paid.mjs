@@ -21,7 +21,8 @@
  *      whose cost is not known counts at its ceiling
  *   6. the record copied: the harness's output, the command without the prompt, the settings, the transcripts' digest
  *      (the transcripts stay on the machine, named with their checksums), what the session was given at its start,
- *      the project's change and its run folder. Nothing a session leaves stops the record being kept, and nothing
+ *      the project's change (read through a copy of the repository made before the session, never through the
+ *      session's own) and its run folder. Nothing a session leaves stops the record being kept, and nothing
  *      of the account's (the home folder's path, an e-mail address) is left in it
  *
  * BEFORE THE CALL, a refusal throws `NotStarted` and nothing was spent: a caller may then take away the folder it
@@ -34,14 +35,14 @@
 
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { closeSync, cpSync, existsSync, lstatSync, mkdirSync, openSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { closeSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { amendEntry, counted, gate, loadLedger, openRunEntry, saveLedger, totals, tripwireNotice, LEDGER_PATH } from "./compare-ledger.mjs";
 import { check as checkProfile, commandFor, layout, settingsFor } from "./compare-profile.mjs";
-import { digestTranscripts, projectDiff, sessionTranscripts } from "./prove-evidence.mjs";
+import { digestTranscripts, sessionTranscripts } from "./prove-evidence.mjs";
 import { neverUsed } from "./prove-pattern.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -136,15 +137,26 @@ export function endedBy({ child, output }) {
 /**
  * Run a program in a process group of its own, with its output to two files, for at most `ms`. At the limit the
  * whole group is asked to end, and killed `grace` later if any of it is left. If the runner is itself told to stop
- * (interrupted, ended, or its terminal closed), it ends the group first. Resolves, never rejects.
+ * (interrupted, ended, or its terminal closed), it ends the group first. When the program is gone, whatever it left
+ * running in its group is killed, however it ended. Resolves, never rejects: a program that could not be started is
+ * in `error`.
  */
 export function runBounded({ program, args, cwd, env, outPath, errPath, ms, grace = 5000 }) {
   return new Promise((done) => {
-    const out = openSync(outPath, "w");
-    const err = openSync(errPath, "w");
     const facts = { status: null, signal: null, error: null, timed_out: false, runner_stopped: null };
-    const child = spawn(program, args, { cwd, env, stdio: ["ignore", out, err], detached: true });
+    // A program that could not be started at all is a fact like any other, not something thrown.
+    let out, err, child;
+    try {
+      out = openSync(outPath, "w");
+      err = openSync(errPath, "w");
+      child = spawn(program, args, { cwd, env, stdio: ["ignore", out, err], detached: true });
+    } catch (error) {
+      for (const file of [out, err]) if (file !== undefined) closeSync(file);
+      done({ ...facts, error });
+      return;
+    }
     const group = (signal) => {
+      if (child.pid === undefined) return;
       try {
         process.kill(-child.pid, signal);
       } catch {}
@@ -171,9 +183,10 @@ export function runBounded({ program, args, cwd, env, outPath, errPath, ms, grac
       finished = true;
       clearTimeout(limit);
       for (const [signal, handler] of handlers) process.removeListener(signal, handler);
-      // The leader is gone. Whatever of its group it left behind after a limit or a stop is killed now, not in five seconds.
       if (killer) clearTimeout(killer);
-      if (facts.timed_out || facts.runner_stopped) group("SIGKILL");
+      // The session's own process is gone. Whatever it left running in its group goes now, however the session ended:
+      // nothing of a session outlives it, to write into its folder after the record is copied.
+      group("SIGKILL");
       closeSync(out);
       closeSync(err);
       done({ ...facts, ...more });
@@ -190,13 +203,13 @@ export function runBounded({ program, args, cwd, env, outPath, errPath, ms, grac
  */
 export async function runSession({ home, cwd, prompt, model, effort, usd, minutes, closed = [], label, note, go, claude, ledgerPath = LEDGER_PATH, harnessDir, gameOpen, profileCheck, plan = JSON.parse(readFileSync(FIRST_STEPS, "utf8")), findProgram = findHarness, grace }) {
   const at = layout(home);
-  const base = `${JSON.stringify(settingsFor({ home }), null, 2)}\n`;
-  let harness, ledger, ceiling, sessionId, command, entry, spentBefore;
+  let base, harness, ledger, ceiling, sessionId, command, entry, spentBefore;
   let settingsWritten = false;
   // Everything before the call. Whatever fails here, nothing was started: the settings go back if they were written,
   // and what is thrown is a `NotStarted`, whatever it was.
   try {
     if (!go) throw new NotStarted("no word from the driver for this step (--go)");
+    base = `${JSON.stringify(settingsFor({ home }), null, 2)}\n`;
     harness = claude ? { path: claude, version: null } : findProgram();
     const refused = refusals({ home, cwd, claude: harness.path, gameOpen, profileCheck });
     if (refused.length > 0) throw new NotStarted(`\n  - ${refused.join("\n  - ")}`);
@@ -395,11 +408,33 @@ export function plainSha(path) {
 }
 
 /**
+ * The project's change since its first commit, new files included, in the shape of prove-evidence.mjs `projectDiff`.
+ * It is read through `gitDir`, a copy of the repository made before the session started and kept beside its folder,
+ * where a session cannot write. The session's own `.git` is never used, and neither is the account's configuration:
+ * nothing a session configured there (a filter, a monitor, a hook, a diff program) is run by the runner.
+ */
+export function changeSince({ cwd, base, gitDir, excludes = [] }) {
+  const temp = mkdtempSync(join(tmpdir(), "grooph-paid-index-"));
+  const env = { PATH: process.env.PATH, HOME: process.env.HOME ?? "", GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0", GIT_INDEX_FILE: join(temp, "index") };
+  const git = (...args) => execFileSync("git", ["--git-dir", gitDir, "--work-tree", cwd, ...args], { cwd, env, encoding: "utf8", maxBuffer: 64 << 20, stdio: ["ignore", "pipe", "pipe"] });
+  try {
+    git("read-tree", base);
+    git("add", "-A");
+    const spec = [".", ...excludes.map((path) => `:(exclude)${path}`)];
+    const diff = git("diff", "--cached", "--no-color", "--no-ext-diff", "--no-textconv", base, "--", ...spec);
+    const stat = git("diff", "--cached", "--name-status", base, "--", ...spec);
+    return { diff, files: stat.split("\n").filter(Boolean).map((line) => line.replace(/\t/g, " ")) };
+  } finally {
+    rmSync(temp, { recursive: true, force: true });
+  }
+}
+
+/**
  * Copy a session's record into the repository's folder for it. Each part is tried on its own, so that nothing a
  * session left stops the rest being kept; what could not be kept is in `problems`. `annotate(digest, resultsOf)` lets
  * a caller add what its counter needs from the whole results. At the end nothing of the account's is left in it.
  */
-export function copyRecord({ home, cwd, base, call, recordDir, prompt, graphId, annotate = (digest) => digest, excludes = [".grooph", ".claude"] }) {
+export function copyRecord({ home, cwd, base, gitDir, call, recordDir, prompt, graphId, annotate = (digest) => digest, excludes = [".grooph", ".claude"] }) {
   const at = layout(home);
   const problems = [...(call.problems_after_the_call ?? [])];
   const attempt = (what, work, otherwise) => {
@@ -424,9 +459,9 @@ export function copyRecord({ home, cwd, base, call, recordDir, prompt, graphId, 
       writeFileSync(join(recordDir, "loaded.txt"), loaded.stdout || `loaded.mjs printed nothing (exit ${loaded.status})\n${loaded.stderr}`, "utf8");
     });
   }
-  if (base) {
+  if (base && gitDir) {
     attempt("the project's change", () => {
-      const change = projectDiff(cwd, base, excludes);
+      const change = changeSince({ cwd, base, gitDir, excludes });
       writeFileSync(join(recordDir, "project.diff"), change.diff.length > 2 * MAX_FILE ? `${change.diff.slice(0, 2 * MAX_FILE)}\n… cut at ${2 * MAX_FILE} characters of ${change.diff.length}\n` : change.diff, "utf8");
       call.project_files_changed = change.files;
     });
@@ -457,7 +492,11 @@ export function writeResult(recordDir, call, facts) {
   return JSON.parse(text);
 }
 
-/** A session's folder: a new one under the profile's work folder, which must be empty, holding one project with one neutral commit. */
+/**
+ * A session's folder: a new one under the profile's work folder, which must be empty, holding one project with one
+ * neutral commit. Beside it, where a session's commands and file tools cannot write, go the harness's output
+ * (`harness/`) and a copy of the repository as it was made (`base.git`).
+ */
 export function makeProject({ home, name, fill }) {
   const at = layout(home);
   const there = existsSync(at.work) ? readdirSync(at.work) : [];
@@ -472,7 +511,11 @@ export function makeProject({ home, name, fill }) {
   git("config", "user.name", "dev");
   git("add", "-A");
   git("commit", "-qm", "initial commit");
-  return { work, cwd, base: git("rev-parse", "HEAD").trim(), harnessDir: join(work, "harness") };
+  const base = git("rev-parse", "HEAD").trim();
+  // The repository as the runner made it, kept beside the session's folder: the change is read through this copy afterwards.
+  const gitDir = join(work, "base.git");
+  cpSync(join(cwd, ".git"), gitDir, { recursive: true });
+  return { work, cwd, base, gitDir, harnessDir: join(work, "harness") };
 }
 
 /**

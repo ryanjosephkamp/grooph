@@ -105,7 +105,7 @@ export async function runBrake({ form, budget, go, rerun = false, home = DEFAULT
     throw error;
   }
   // The record first. Then the runner's own measures, each of which may fail without stopping the rest.
-  const copied = copyRecord({ home, cwd: built.cwd, base: built.base, call, recordDir: record.dir, prompt: built.prompt, graphId: built.graphId, annotate: (digest, resultsOf) => addCheckLines(digest, resultsOf, expect.check_line_begins) });
+  const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir: record.dir, prompt: built.prompt, graphId: built.graphId, annotate: (digest, resultsOf) => addCheckLines(digest, resultsOf, expect.check_line_begins) });
   let measured = {};
   try {
     measured = afterTheSession({ cwd: built.cwd, checkFile: built.checkFile, expect });

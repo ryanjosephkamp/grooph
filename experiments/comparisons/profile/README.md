@@ -69,7 +69,9 @@ In order, for every session:
 
 **Before the call, a refusal means nothing was started and nothing was spent**: the settings are as they were and the folder made for the session is taken away again. **Once a call has started, nothing is thrown and nothing is removed**, whatever a session left: each part of the record is kept on its own, what could not be kept is named in the record, and a ledger line that could not be settled stays marked as running, which refuses every later call until a person has settled it.
 
-**Nothing a session wrote is ever executed by a runner.** A file a session could have replaced is read only if it is a plain file of a sane size, never through a link; a check is run from the repository's own copy.
+**A runner executes nothing a session wrote, with one exception that is said here.** A file a session could have replaced is read only if it is a plain file of a sane size, never through a link. A check is run from the repository's own copy. The project's change is read through a copy of the repository made before the session started and kept beside its folder, never through the session's own `.git`, so nothing a session configured there is run.
+
+**The exception is the scorer of roles or information.** It is study two's: it runs the task's own `npm test` and the repository's held-out suite against the session's final tree, and that runs the code the session wrote. It does so outside the sandbox, with the account's rights, as it did in study two. A session's commands run inside the sandbox; what it wrote is run outside it when it is scored. Nothing here closes that.
 
 **Nothing of the account's is left in a record.** The harness tells every session the account's e-mail address at its start, and paths under the home folder are in every command. Each file of a record is passed through one scrub before it is kept: the home folder's path becomes `~`, and an e-mail address is taken out.
 

@@ -142,7 +142,7 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
     if (error instanceof NotStarted) rmSync(built.work, { recursive: true, force: true });
     throw error;
   }
-  const copied = copyRecord({ home, cwd: built.cwd, base: built.base, call, recordDir, prompt: built.prompt, excludes: [] });
+  const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, excludes: [] });
   let scored = { held_out: { ran: false, reason: "the scorer did not run" }, tests: { pass: false }, scope: {} };
   try {
     scored = score({ run, cwd: built.cwd, call });

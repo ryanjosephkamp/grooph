@@ -1,7 +1,7 @@
 // Tests of the paid path that spend nothing: where a session would be started, a stand-in program is, which calls no
 // model (scripts/lib/fixtures/stand-in-harness.mjs). The profile, the ledger and the records are all temporary.
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
@@ -13,7 +13,7 @@ import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
 import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
 import { build as buildArm, expectation as rolesExpectation, nextRun, order, readings, runOne } from "./roles-or-information-paid.mjs";
-import { copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, spendFlags, writeResult } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
@@ -102,6 +102,21 @@ test("a watchdog's limit of minutes ends the whole group, a stubborn child and i
     assert.ok(Date.now() - started < 5000, "it did not wait for a child that ignored being asked");
     await new Promise((later) => setTimeout(later, 200));
     for (const pid of readFileSync(join(dir, "pids"), "utf8").split(" ").map(Number)) assert.throws(() => process.kill(pid, 0), /ESRCH/, `process ${pid} is gone`);
+    // A session that goes when it is asked does not leave behind a child of its own that would not.
+    const leaver = `const { spawn } = require("node:child_process"); const c = spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)"], { stdio: "ignore" }); require("node:fs").writeFileSync(${JSON.stringify(join(dir, "left"))}, String(c.pid)); setInterval(() => {}, 1000);`;
+    const left = await runBounded({ program: process.execPath, args: ["-e", leaver], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 400, grace: 5000 });
+    assert.deepEqual([left.timed_out, left.signal], [true, "SIGTERM"]);
+    await new Promise((later) => setTimeout(later, 200));
+    assert.throws(() => process.kill(Number(readFileSync(join(dir, "left"), "utf8")), 0), /ESRCH/, "the child it left is gone at once, not after the grace");
+    // Nor does one that ended by itself, with a child of its own still running.
+    const early = `const { spawn } = require("node:child_process"); const c = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" }); require("node:fs").writeFileSync(${JSON.stringify(join(dir, "after"))}, String(c.pid)); c.unref(); process.exit(0);`;
+    const over = await runBounded({ program: process.execPath, args: ["-e", early], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 5000 });
+    assert.deepEqual([over.status, over.timed_out], [0, false]);
+    await new Promise((later) => setTimeout(later, 200));
+    assert.throws(() => process.kill(Number(readFileSync(join(dir, "after"), "utf8")), 0), /ESRCH/, "nothing of a session outlives it");
+    // A program that cannot even be given its output files is a fact, not something thrown.
+    const nowhere = await runBounded({ program: process.execPath, args: ["-e", "0"], cwd: dir, env: process.env, outPath: join(dir, "no-such-folder", "out"), errPath: join(dir, "err"), ms: 5000 });
+    assert.equal(nowhere.error.code, "ENOENT");
     const quick = await runBounded({ program: process.execPath, args: ["-e", "console.log('done')"], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 5000 });
     assert.deepEqual([quick.status, quick.timed_out, readFileSync(join(dir, "out"), "utf8")], [0, false, "done\n"]);
     const missing = await runBounded({ program: join(dir, "no-such-program"), args: [], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 5000 });
@@ -142,7 +157,7 @@ test("nothing of the account's is left in a record: the home folder's path and a
   assert.equal(cleaned.text, `the repository as it was told: {"userEmail":"The user's email address is <an address, kept out>."} in ~/grooph-compare/work`);
   assert.deepEqual([cleaned.addresses, cleaned.home_paths], [1, 1]);
   assert.equal(scrub("Co-Authored-By: Claude <noreply@anthropic.com>; user dev@localhost", { home: "/Users/someone" }).addresses, 0, "the harness's own trailer and the neutral commit's user are nobody's");
-  assert.equal(scrub("npm i left-pad@1.3.0 @scope/name@2.0.0-beta.1 && git clone git@github.com:a/b.git", { home: "/Users/someone" }).addresses, 0, "a package and its version is not an address");
+  assert.equal(scrub("npm i left-pad@1.3.0 @scope/name@2.0.0-beta.1 next@15.0.rc2 && git clone git@github.com:a/b.git", { home: "/Users/someone" }).addresses, 0, "a package and its version is not an address");
   assert.equal(scrub("Reply-To: First.Last+tag@mail.example.co.uk, and x@y.io.", { home: "/Users/someone" }).text, "Reply-To: <an address, kept out>, and <an address, kept out>.");
   const dir = mkdtempSync(join(tmpdir(), "scrub-"));
   try {
@@ -296,6 +311,33 @@ test("a failure after the settings are written and before the call puts them bac
   }
 });
 
+test("the project's change is read through the runner's own copy of the repository, never through the session's", () => {
+  const p = place({});
+  try {
+    const project = aProject(p);
+    assert.ok(existsSync(join(project.gitDir, "HEAD")) && project.gitDir.startsWith(`${project.work}/`) && !project.gitDir.startsWith(`${project.cwd}/`), "the copy is beside the session's folder, not in it");
+    // What a session could do: change a file, add one, and set its own repository to run a program of its choosing.
+    const ran = join(p.top, "ran-by-git.txt");
+    writeFileSync(join(project.cwd, "a.txt"), "a\nb\n", "utf8");
+    writeFileSync(join(project.cwd, "new.txt"), "n\n", "utf8");
+    writeFileSync(join(project.cwd, ".gitattributes"), "*.txt filter=own\n", "utf8");
+    execFileSync("git", ["-C", project.cwd, "config", "filter.own.clean", `sh -c 'touch "${ran}"; cat'`]);
+    const change = changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir });
+    assert.deepEqual(change.files.sort(), ["A .gitattributes", "A new.txt", "M a.txt"]);
+    assert.match(change.diff, /^\+b$/m);
+    assert.ok(!existsSync(ran), "nothing the session configured was run");
+    assert.deepEqual(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir, excludes: ["new.txt", ".gitattributes"] }).files, ["M a.txt"]);
+    // So that this test can tell: the same change read through the session's own repository does run it.
+    execFileSync("git", ["-C", project.cwd, "add", "-A"]);
+    assert.ok(existsSync(ran));
+    // And a session that took its repository away altogether changes nothing about what is read.
+    rmSync(join(project.cwd, ".git"), { recursive: true, force: true });
+    assert.deepEqual(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir }).files.sort(), ["A .gitattributes", "A new.txt", "M a.txt"]);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
 test("the harness is looked for when no path is given, and a session starts with the path that was found", async () => {
   const p = place({ uses: [], cost: 0.01 });
   try {
@@ -360,11 +402,16 @@ test("one call: its line is on the ledger before it runs and settled after; the 
     assert.equal(dead.ended_by, "the harness");
     assert.deepEqual([p.ledger().invocations[3].status, p.ledger().invocations[3].cost_usd, dead.counted_usd], ["failed", null, 1], "a harness that started and said nothing counts at its ceiling");
 
+    // What was printed can be read and is not a result: a list, a number, a sentence. It is no result at all.
+    plan({ raw_output: '[{"type":"result","is_error":false}]' });
+    const odd = await ask({ label: { project: "x", arm: "a", replicate: "4b" } });
+    assert.deepEqual([odd.ended_by, odd.output, odd.counted_usd, p.ledger().invocations.at(-1).status], ["the harness", null, 1, "failed"]);
+
     const absent = await ask({ label: { project: "x", arm: "a", replicate: 5 }, claude: join(p.top, "no-such-harness") });
     assert.equal(absent.ended_by, "the harness");
     assert.match(absent.why, /the harness did not start/);
-    assert.deepEqual([p.ledger().invocations[4].status, p.ledger().invocations[4].cost_usd, absent.counted_usd], ["failed", 0, 0], "a harness that could not be started spent nothing");
-    assert.match(p.ledger().invocations[4].note, /nothing was spent/);
+    assert.deepEqual([p.ledger().invocations.at(-1).status, p.ledger().invocations.at(-1).cost_usd, absent.counted_usd], ["failed", 0, 0], "a harness that could not be started spent nothing");
+    assert.match(p.ledger().invocations.at(-1).note, /nothing was spent/);
 
     // A session whose own child ignores being asked to end: the minute limit ends the whole group, and kills what is left.
     plan({ children: true, hang_ms: 20000 });
@@ -453,6 +500,7 @@ test("a brake run from start to record, with a stand-in for the harness: built, 
     assert.deepEqual([line.run, line.status, line.cost_usd, line.max_budget_usd], ["brake-budget/package-2", "ok", 0.42, 3]);
     assert.deepEqual([readdirSync(p.at.work), readdirSync(p.at.temp)], [[], []], "the session's folder and its temp files were moved out of the next run's way");
     assert.ok(existsSync(join(done.kept, "work", "rounds", "out", "rounds.txt")), "and nothing was deleted");
+    assert.deepEqual(readdirSync(join(done.kept, "t")), [`left-by-${result.session_id}.tmp`], "what it left in the temp folder is beside it");
     const judged = count(done.recordDir);
     assert.equal(judged.status, 0, judged.stdout + judged.stderr);
     assert.match(judged.stdout, /package run · budget 2 · from the record: 1 subagent\(s\) dispatched and 1 line\(s\) of the check's/);
@@ -558,6 +606,8 @@ const probe = (more = {}) => ({
     ...(more.withoutOneStep ? [] : [{ tool: "Bash", input: { command: "ls ../.." }, result: "ls: ../..: Operation not permitted", is_error: true }]),
     { tool: "Bash", input: { command: "node --test probe/pass.test.mjs" }, result: "✔ one and one are two\nℹ pass 1" },
     more.npmFails ? { tool: "Bash", input: { command: "npm test" }, result: "Exit code 1\nnpm error code EPERM\nnpm error syscall open", is_error: true } : { tool: "Bash", input: { command: "npm test" }, result: "> probe@0.0.0 test\n> node --test probe/pass.test.mjs\n\n✔ one and one are two" },
+    more.wroteBeside ? { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "", appends: { "../by-command.txt": "" } } : { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "touch: ../by-command.txt: Operation not permitted", is_error: true },
+    ...(more.withoutTheWriteBeside ? [] : [{ tool: "Write", input: { file_path: "../by-file-tool.txt", content: "x" }, result: refusedText, is_error: true, ...(more.madeBesideAnyway ? { appends: { "../by-file-tool.txt": "x" } } : {}) }]),
   ],
   cost: 0.2,
   ...(more.plan ?? {}),
@@ -573,8 +623,8 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     const { result } = done;
     assert.deepEqual(failing(result), []);
     assert.equal(result.may_the_pair_run, true);
-    assert.equal(result.findings.length, 13, "thirteen lines, and every one of them has to hold");
-    assert.deepEqual(result.what_a_refusal_looks_like.map((r) => r.asked), ["ls /tmp", "touch closed/by-command.txt", "closed/by-file-tool.txt", "curl -sS -m 5 https://example.com", "git push", "ls ../..", "closed/by-subagent.txt", "touch closed/by-subagent-command.txt"]);
+    assert.equal(result.findings.length, 14, "fourteen lines, and every one of them has to hold");
+    assert.deepEqual(result.what_a_refusal_looks_like.map((r) => r.asked), ["ls /tmp", "touch closed/by-command.txt", "closed/by-file-tool.txt", "curl -sS -m 5 https://example.com", "git push", "ls ../..", "touch ../by-command.txt", "../by-file-tool.txt", "closed/by-subagent.txt", "touch closed/by-subagent-command.txt"]);
     assert.equal(result.what_a_refusal_looks_like[2].result_begins, refusedText);
     assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["profile-first-call/probe-1", 1]);
     assert.ok(existsSync(join(done.recordDir, "transcript-digest.json")));
@@ -625,9 +675,23 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     assert.deepEqual(failing((await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 10 })).result), ["it started one subagent, which ran on claude-sonnet-5-5 and nothing else"]);
     plan(probe({ plan: { reported_session_id: "another-session" } }));
     assert.deepEqual(failing((await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 11 })).result), ["the transcripts are where the runner looks, and the result has the shape it reads"]);
+    // A command that could write beside the session's folder, where the runner keeps the harness's output; and a file
+    // that is there although the tool said it was refused.
+    const wall = "nothing could be written beside the session's folder, by a command or by the file tool";
+    plan(probe({ wroteBeside: true }));
+    const beside = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 12 });
+    assert.deepEqual(failing(beside.result), [wall]);
+    assert.match(beside.result.findings.find((line) => line.what === wall).seen, /touch \.\.\/ NOT refused · Write \.\.\/ refused · made: \.\.\/by-command\.txt/);
+    plan(probe({ madeBesideAnyway: true }));
+    assert.deepEqual(failing((await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 13 })).result), [wall]);
+    // The write beside the folder left out: the write under closed/, to a file of the same name, does not stand for it.
+    plan(probe({ withoutTheWriteBeside: true }));
+    const untried = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 14 });
+    assert.deepEqual(failing(untried.result), ["every step was tried, by the lead and by the subagent", wall]);
+    assert.match(untried.result.findings.find((line) => line.what.startsWith("every step")).seen, /^not tried: Write \.\.\/$/);
     // Everything held, and something went wrong keeping the record (here the ledger is gone when the call ends): still a no.
     plan(probe({ plan: { mkdirs: [p.ledgerPath] } }));
-    const unkept = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 12 });
+    const unkept = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 15 });
     assert.deepEqual([failing(unkept.result), unkept.result.may_the_pair_run], [[], false]);
     assert.match(unkept.result.problems.join("\n"), /the ledger line could not be settled/);
   } finally {

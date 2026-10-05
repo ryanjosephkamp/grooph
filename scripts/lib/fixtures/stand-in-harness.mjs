@@ -36,9 +36,16 @@ const folderAt = (path) => {
 for (const path of plan.mkdirs ?? []) folderAt(path);
 if (plan.hang_ms) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, plan.hang_ms);
 if (plan.no_output) process.exit(plan.exit ?? 1);
+if (plan.raw_output !== undefined) {
+  // Something printed that is not a result of the harness's shape.
+  console.log(plan.raw_output);
+  process.exit(plan.exit ?? 0);
+}
 const sessionId = value("--session-id");
 const folder = join(process.env.CLAUDE_CONFIG_DIR, "projects", process.cwd().replace(/[^A-Za-z0-9]/g, "-"));
 mkdirSync(join(folder, sessionId, "subagents"), { recursive: true });
+// A session leaves files in its temp folder; the runner moves them out of the next session's way.
+if (process.env.TMPDIR) writeFileSync(join(process.env.TMPDIR, `left-by-${sessionId}.tmp`), "x", "utf8");
 const lines = [];
 // What the harness writes of what it put in front of the model, as experiments/game/setup/loaded.mjs reads it. The
 // address is nobody's: a record must not keep one, and a test looks for it.

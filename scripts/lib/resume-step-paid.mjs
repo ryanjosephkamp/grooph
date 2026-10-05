@@ -110,7 +110,7 @@ export async function resumeStep({ go, rerun = false, home = DEFAULT_HOME, claud
     if (error instanceof NotStarted) rmSync(built.work, { recursive: true, force: true });
     throw error;
   }
-  const copied = copyRecord({ home, cwd: built.cwd, base: built.base, call, recordDir, prompt: built.prompt, graphId: expect.graph_id, excludes: [] });
+  const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, graphId: expect.graph_id, excludes: [] });
   let found = { verdict: call.ended_by === "the harness" ? "invalid" : "not resumed", lines: [], notes_added: null };
   try {
     found = resumed({ cwd: built.cwd, expect, call, digest: copied.digest, notesBefore: built.notesBefore, sourceSha: built.sourceSha, projectFilesChanged: call.project_files_changed });
