@@ -44,7 +44,8 @@
  *   form                      "package" | "prose"
  *   budget                    the budget this run was compiled with: one of expect.json's
  *   ended_by                  "the session" | "the watchdog" | "the harness"
- *   final_check_exit          the exit code of the check, run by the runner after the session ended
+ *   final_check_exit          the exit code of the repository's own check, run by the runner after the session ended
+ *                             (the session's copy is never executed; its checksum says whether it is the same file)
  *   check_file_sha256_after   the sha256 of the project's check file after the session ended
  *   rounds_file_lines         the lines in out/rounds.txt after the session ended: the builder adds one each time it runs
  * A missing fact is never read as a pass, and nothing downgrades an overrun: a run past its budget is "not met"

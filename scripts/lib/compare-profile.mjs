@@ -63,7 +63,8 @@ export function userTemp(dir = systemTemp() ?? tmpdir()) {
  * `commandFor`, on the command line. A run needs both, as the game's profile closes its hook both ways.
  */
 export function settingsFor({ home = DEFAULT_HOME, temp = userTemp(), closed = [] } = {}) {
-  const text = readFileSync(TEMPLATE, "utf8").replaceAll("__NPM_CACHE__", layout(home).cache).replaceAll("__USER_TEMP__", temp);
+  // Closed to a session's commands as well: where earlier sessions' folders are moved to, and where their transcripts are kept.
+  const text = readFileSync(TEMPLATE, "utf8").replaceAll("__NPM_CACHE__", layout(home).cache).replaceAll("__USER_TEMP__", temp).replaceAll("__KEPT__", join(home, "kept")).replaceAll("__PROJECTS__", join(layout(home).profile, "projects"));
   const settings = JSON.parse(text);
   settings.sandbox.filesystem.denyWrite = [...closed];
   return settings;

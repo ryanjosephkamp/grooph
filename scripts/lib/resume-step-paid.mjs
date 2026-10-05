@@ -12,10 +12,9 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { sha256Of } from "./brake-count.mjs";
 import { commandFor, DEFAULT_HOME } from "./compare-profile.mjs";
 import { rebuildTree } from "./compare-score.mjs";
-import { copyRecord, makeProject, relativeToRoot, runSession, setAside, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { asThingsStand, copyRecord, firstCallAllows, makeProject, NotStarted, plainSha, relativeToRoot, runSession, setAside, spendFlags, writeResult } from "./study-three-paid.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const home0 = join(root, "experiments", "comparisons", "resume-by-a-fresh-session");
@@ -46,7 +45,7 @@ export function build({ home, expect }) {
       },
     });
     const graph = join(project.cwd, ".grooph", expect.graph_id);
-    return { ...project, prompt: resumePrompt(expect, readFileSync(join(from, "package", "KICKOFF.md"), "utf8")), notesBefore: readFileSync(join(graph, "runs", expect.run_id, "notes.jsonl"), "utf8"), sourceSha: sha256Of(join(graph, "graph.grooph.json")) };
+    return { ...project, prompt: resumePrompt(expect, readFileSync(join(from, "package", "KICKOFF.md"), "utf8")), notesBefore: readFileSync(join(graph, "runs", expect.run_id, "notes.jsonl"), "utf8"), sourceSha: plainSha(join(graph, "graph.grooph.json")) };
   } finally {
     rmSync(tree, { recursive: true, force: true });
   }
@@ -57,10 +56,10 @@ export function resumed({ cwd, expect, call, digest, notesBefore, sourceSha, pro
   const graph = join(cwd, ".grooph", expect.graph_id);
   const runs = existsSync(join(graph, "runs")) ? readdirSync(join(graph, "runs")).sort() : [];
   const notesPath = join(graph, "runs", expect.run_id, "notes.jsonl");
-  const notesAfter = existsSync(notesPath) ? readFileSync(notesPath, "utf8") : "";
-  const kept = notesAfter.startsWith(notesBefore.replace(/\n*$/, "\n")) || notesAfter.startsWith(notesBefore);
+  const notesAfter = plainSha(notesPath).length === 64 ? readFileSync(notesPath, "utf8") : "";
+  const prefix = notesAfter.startsWith(notesBefore.replace(/\n*$/, "\n")) || notesAfter.startsWith(notesBefore);
   const added = [];
-  if (kept) {
+  if (prefix) {
     for (const line of notesAfter.slice(notesBefore.length).split("\n")) {
       if (!line.trim()) continue;
       try {
@@ -73,12 +72,15 @@ export function resumed({ cwd, expect, call, digest, notesBefore, sourceSha, pro
   const lead = digest.find((session) => session.who === "lead") ?? { tool_uses: [] };
   const dispatches = lead.tool_uses.filter((use) => use.tool === "Agent" || use.tool === "Task").length;
   const subagents = digest.filter((session) => session.who !== "lead").length;
-  const atGate = added.filter((note) => note.at === `node:${expect.gate}` || /^edge:/.test(note.at ?? ""));
+  // The gate itself, or the edge its approval takes: by the kept graph, not any edge at all.
+  const kept = JSON.parse(readFileSync(join(root, ...expect.from.split("/"), "package", "graph.grooph.json"), "utf8"));
+  const approval = kept.edges.filter((edge) => edge.from === expect.gate && edge.when === "pass").map((edge) => `edge:${edge.id}`);
+  const atGate = added.filter((note) => note.at === `node:${expect.gate}` || approval.includes(note.at));
   const lines = [];
   const add = (what, holds, seen) => lines.push({ what, holds, seen });
   add("the session ended itself", call.ended_by === "the session", `ended by ${call.ended_by}${call.why ? `: ${call.why}` : ""}`);
   add("there is still one run folder, the one it was given", runs.length === 1 && runs[0] === expect.run_id, runs.join(", ") || "none");
-  add("the notes it was given are the first lines of the notes it left, with at least one line after them", kept && added.length > 0, kept ? `${added.length} line(s) added` : "the first lines are not what it was given");
+  add("the notes it was given are the first lines of the notes it left, with at least one line after them", prefix && added.length > 0, prefix ? `${added.length} line(s) added` : "the first lines are not what it was given");
   add("no subagent was dispatched", dispatches === 0 && subagents === 0, `${dispatches} Agent call(s), ${subagents} subagent transcript(s)`);
   add("a new note stands at the gate or on its approval edge", atGate.length > 0, atGate.map((note) => note.at).join(", ") || "none");
   // The brief's ending is two lines: one that says the run is ending, and after it the graph's final note.
@@ -86,31 +88,42 @@ export function resumed({ cwd, expect, call, digest, notesBefore, sourceSha, pro
   add("a new note says the run is ending, and the last note is the graph's", ending >= 0 && ending < added.length - 1 && added.at(-1).at === "graph" && added.at(-1).outcome !== "ending", added.map((note) => `${note.at ?? "?"}${note.outcome ? `:${note.outcome}` : ""}`).join(", ") || "no line added");
   // Everything the session changed, less what is inside a run folder: the package's own files and the agent files count.
   const changed = (projectFilesChanged ?? []).filter((file) => !/\.grooph\/[^/]+\/runs\//.test(file));
-  add("the source document is unchanged, and so is every file of the project outside the run folder", existsSync(join(graph, "graph.grooph.json")) && sha256Of(join(graph, "graph.grooph.json")) === sourceSha && changed.length === 0, changed.length === 0 ? "nothing changed" : changed.join(", "));
+  add("the source document is unchanged, and so is every file of the project outside the run folder", plainSha(join(graph, "graph.grooph.json")) === sourceSha && changed.length === 0, changed.length === 0 ? "nothing changed" : changed.join(", "));
   const verdict = call.ended_by === "the harness" ? "invalid" : lines.every((line) => line.holds) ? "resumed" : "not resumed";
   return { verdict, lines, notes_added: added.length };
 }
 
 /** The step, start to record. */
-export function resumeStep({ go, rerun = false, home = DEFAULT_HOME, claude, ledgerPath, recordRoot = home0, profileCheck, gameOpen }) {
+export async function resumeStep({ go, rerun = false, home = DEFAULT_HOME, claude, ledgerPath, recordRoot = home0, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace }) {
   const expect = expectation();
+  if (!firstCallGate.ok) throw new NotStarted(firstCallGate.why);
   const first = join(recordRoot, "record");
   const recordDir = rerun ? join(recordRoot, "record-rerun") : first;
-  if (!rerun && existsSync(join(first, "result.json"))) throw new Error(`not started: ${relativeToRoot(first)} is already recorded. Only an invalid run is made again, once, with --rerun and the driver's word`);
-  if (rerun && (!existsSync(join(first, "result.json")) || JSON.parse(readFileSync(join(first, "result.json"), "utf8")).verdict !== "invalid")) throw new Error("not started: there is no invalid first record to run again");
-  if (rerun && existsSync(join(recordDir, "result.json"))) throw new Error("not started: it was already run again once");
+  if (!rerun && existsSync(join(first, "result.json"))) throw new NotStarted(`${relativeToRoot(first)} is already recorded. Only an invalid run is made again, once, with --rerun and the driver's word`);
+  if (rerun && (!existsSync(join(first, "result.json")) || JSON.parse(readFileSync(join(first, "result.json"), "utf8")).verdict !== "invalid")) throw new NotStarted("there is no invalid first record to run again");
+  if (rerun && existsSync(join(recordDir, "result.json"))) throw new NotStarted("it was already run again once");
   const built = build({ home, expect });
   let call;
   try {
-    call = runSession({ home, cwd: built.cwd, prompt: built.prompt, ...expect.lead, usd: expect.watchdog.usd_per_session, minutes: expect.watchdog.minutes_per_session, label: { project: "resume-by-a-fresh-session", arm: "A", replicate: rerun ? "1-rerun" : 1 }, note: `a fresh session resuming ${expect.from} at ${expect.gate}; the gate's answer is scripted`, go, claude, ledgerPath, harnessDir: built.harnessDir, profileCheck, gameOpen });
+    call = await runSession({ home, cwd: built.cwd, prompt: built.prompt, ...expect.lead, usd: expect.watchdog.usd_per_session, minutes: expect.watchdog.minutes_per_session, label: { project: "resume-by-a-fresh-session", arm: "A", replicate: rerun ? "1-rerun" : 1 }, note: `a fresh session resuming ${expect.from} at ${expect.gate}; the gate's answer is scripted`, go, claude, ledgerPath, harnessDir: built.harnessDir, profileCheck, gameOpen, grace });
   } catch (error) {
-    rmSync(built.work, { recursive: true, force: true });
+    if (error instanceof NotStarted) rmSync(built.work, { recursive: true, force: true });
     throw error;
   }
   const copied = copyRecord({ home, cwd: built.cwd, base: built.base, call, recordDir, prompt: built.prompt, graphId: expect.graph_id, excludes: [] });
-  const found = resumed({ cwd: built.cwd, expect, call, digest: copied.digest, notesBefore: built.notesBefore, sourceSha: built.sourceSha, projectFilesChanged: call.project_files_changed });
-  const result = writeResult(recordDir, call, { verdict: found.verdict, resumed_if: found.lines, notes_added: found.notes_added, from: expect.from, run_id: expect.run_id, the_gates_answer_is_scripted: true, transcripts: copied.transcripts, pre_registration: "experiments/comparisons/resume-by-a-fresh-session/README.md" });
-  const kept = setAside({ home, work: built.work, sessionId: call.session_id });
+  let found = { verdict: call.ended_by === "the harness" ? "invalid" : "not resumed", lines: [], notes_added: null };
+  try {
+    found = resumed({ cwd: built.cwd, expect, call, digest: copied.digest, notesBefore: built.notesBefore, sourceSha: built.sourceSha, projectFilesChanged: call.project_files_changed });
+  } catch (error) {
+    copied.problems.push(`reading whether it resumed: ${error.message}`);
+  }
+  const result = writeResult(recordDir, call, { verdict: found.verdict, resumed_if: found.lines, notes_added: found.notes_added, from: expect.from, run_id: expect.run_id, the_gates_answer_is_scripted: true, transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, pre_registration: "experiments/comparisons/resume-by-a-fresh-session/README.md" });
+  let kept = null;
+  try {
+    kept = setAside({ home, work: built.work, sessionId: call.session_id });
+  } catch (error) {
+    console.error(`the session's folder could not be moved aside (${error.message}); it is still at ${built.work}`);
+  }
   return { recordDir, result, kept, tripwire: call.tripwire };
 }
 
@@ -120,8 +133,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (flags.includes("--dry-run")) {
     const built = build({ home: DEFAULT_HOME, expect });
     try {
-      const sample = commandFor({ home: DEFAULT_HOME, claude: "claude", cwd: built.cwd, prompt: built.prompt, ...expect.lead, sessionId: "<a new id>", maxBudgetUsd: expect.watchdog.usd_per_session });
-      console.log(`would start, in ${built.cwd} (rebuilt from ${expect.from}: ${built.notesBefore.split("\n").filter(Boolean).length} notes, the last a halt at ${expect.gate}):\n  ${sample.argv.map((arg) => (arg === built.prompt ? "<the prompt>" : /[\s(*]/.test(arg) ? `'${arg}'` : arg)).join(" ")}\nthe prompt ends: ${JSON.stringify(built.prompt.trim().split("\n").at(-1))}\nthe watchdog: $${expect.watchdog.usd_per_session.toFixed(2)} and ${expect.watchdog.minutes_per_session} minutes\nnothing was started.`);
+      const stand = asThingsStand({ home: DEFAULT_HOME, cwd: built.cwd });
+      const sample = commandFor({ home: DEFAULT_HOME, claude: stand.claude, cwd: built.cwd, prompt: built.prompt, ...expect.lead, sessionId: "<a new id>", maxBudgetUsd: expect.watchdog.usd_per_session });
+      console.log(`would start, in ${built.cwd} (rebuilt from ${expect.from}: ${built.notesBefore.split("\n").filter(Boolean).length} notes, the last a halt at ${expect.gate}):\n  ${sample.argv.map((arg) => (arg === built.prompt ? "<the prompt>" : /[\s(*]/.test(arg) ? `'${arg}'` : arg)).join(" ")}\nthe prompt ends: ${JSON.stringify(built.prompt.trim().split("\n").at(-1))}\nthe watchdog: $${expect.watchdog.usd_per_session.toFixed(2)} and ${expect.watchdog.minutes_per_session} minutes\n${stand.says}\nnothing was started.`);
     } finally {
       rmSync(built.work, { recursive: true, force: true });
     }
@@ -133,7 +147,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     process.exit(64);
   }
   try {
-    const done = resumeStep({ go: allowed.go, rerun: flags.includes("--rerun") });
+    const done = await resumeStep({ go: allowed.go, rerun: flags.includes("--rerun") });
     console.log(`recorded in ${relativeToRoot(done.recordDir)}: ended by ${done.result.ended_by}; reported cost ${done.result.reported_cost_usd === null ? "unknown (counted at the ceiling)" : `$${done.result.reported_cost_usd.toFixed(4)}`}; ledger line ${done.result.ledger_n}\n`);
     for (const line of done.result.resumed_if) console.log(`${line.holds ? "holds  " : "DOES NOT"} ${line.what}: ${line.seen}`);
     console.log(`\noutcome: ${done.result.verdict}`);

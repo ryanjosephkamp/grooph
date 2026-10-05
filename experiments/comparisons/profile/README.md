@@ -27,7 +27,7 @@ It is the game experiment's profile made for headless comparison sessions. [`exp
 
 ## What no check can show until one session is started
 
-This is the first paid step, and it is not taken here. One call that asks for one word, at most about fifteen cents, recorded like any run:
+This is the first paid step, and it is not taken here. [`first-call/`](first-call/) says what that one short session is asked, what has to hold by its record before anything else is run, and what it still cannot show. What is not known until then:
 
 - that a headless session starts under these settings at all, and reports the model it was asked for;
 - that the sandbox is on for its commands, and that `node --test` and `npm test` run inside it with no network;
@@ -49,19 +49,35 @@ Study two's runner was built for its own five measures. From this profile four t
 
 ## The paid path
 
-[`scripts/lib/study-three-paid.mjs`](../../../scripts/lib/study-three-paid.mjs) is what starts a session from this profile, and the only thing that does. Four scripts use it, each with "paid" in its name, each refusing without `--spend` and `--go "<the driver's words>"`: the first call ([`first-call/`](first-call/)), the brake runs, the resume step and the runs of roles or information. In order, for every session:
+[`scripts/lib/study-three-paid.mjs`](../../../scripts/lib/study-three-paid.mjs) is what starts a session from this profile, and the only thing that does. Four scripts use it, each with "paid" in its name, each refusing without `--spend` and `--go "<the driver's words>"`: the first call ([`first-call/`](first-call/)), the brake runs, the resume step and the runs of roles or information. **The three after the first call refuse to start unless the first call's latest record says they may.**
 
-1. **The gates.** The two flags. No session of the game experiment open on this machine, since they draw on one allowance. This profile made, clean and signed in. The comparisons ledger willing.
-2. **The settings for the run** written to the profile, with the paths the run closes, and read back.
+In order, for every session:
+
+1. **The gates, all of them before anything is written anywhere.**
+   - The two flags.
+   - No session of the game experiment open on this machine, since they draw on one allowance. The whole process list is read; a look that could not be made refuses.
+   - This profile made, clean and signed in, and its work folder holding this session's folder and nothing else.
+   - The harness found by its whole path. A session's own path does not hold the harness's folder, so the program is named whole.
+   - The comparisons ledger willing.
+   - The first steps' own ceiling not passed. The ledger has no cap of its own, so [`../study-three-first-steps.json`](../study-three-first-steps.json) holds what the owner approved and where these steps stop: what they have cost on the ledger, with this call at its ceiling, may not pass it.
+2. **The settings for the run** written to the profile, with the paths the run closes, and read back. **They are put back when the call is over**, whatever happened, so the next check of the profile finds them as the repository has them.
 3. **A ledger line opened before the call**, with the session's id, which is chosen beforehand.
-4. **The call**, under a watchdog of dollars and minutes that is recorded apart and is never a graph's brake.
-5. **The ledger line settled** with what the harness reported; a call with no reported cost counts at its ceiling.
-6. **The record copied** before anything is read from it: the harness's output, the prompt, the settings, the digest of the transcripts, what the session was given at its start, the project's change. The transcripts stay on the machine and are named with their checksums.
-7. **The session's folder and its temp files moved aside**, under `~/grooph-compare/kept/`, so the next session starts with both empty. Nothing is deleted.
+4. **The call**, in a process group of its own, under a watchdog of dollars and minutes that is recorded apart and is never a graph's brake. At the limit of minutes the whole group is asked to end, and killed five seconds later if any of it is left. A runner that is itself interrupted, ended, or has its terminal closed ends its session first.
+5. **The ledger line settled** with what the harness reported. A harness that could not be started spent nothing; any other call with no reported cost counts at its ceiling.
+6. **The record copied** before anything is read from it or measured: the harness's output, the prompt, the settings, the digest of the transcripts, what the session was given at its start, the project's change. The transcripts stay on the machine and are named with their checksums.
+7. **The session's folder and its temp files moved aside**, under `~/grooph-compare/kept/`, so the next session starts with both empty. Nothing is deleted. That folder and the profile's transcripts are closed to a later session's commands.
 
-Its tests run all of this against a stand-in for the harness that calls no model ([`scripts/lib/fixtures/stand-in-harness.mjs`](../../../scripts/lib/fixtures/stand-in-harness.mjs)).
+**Before the call, a refusal means nothing was started and nothing was spent**: the settings are as they were and the folder made for the session is taken away again. **Once a call has started, nothing is thrown and nothing is removed**, whatever a session left: each part of the record is kept on its own, what could not be kept is named in the record, and a ledger line that could not be settled stays marked as running, which refuses every later call until a person has settled it.
+
+**Nothing a session wrote is ever executed by a runner.** A file a session could have replaced is read only if it is a plain file of a sane size, never through a link; a check is run from the repository's own copy.
+
+**Nothing of the account's is left in a record.** The harness tells every session the account's e-mail address at its start, and paths under the home folder are in every command. Each file of a record is passed through one scrub before it is kept: the home folder's path becomes `~`, and an e-mail address is taken out.
+
+**A paid run is started from a terminal, by a person.** A tool with a time limit of its own would stop the runner in the middle of a call. A dry run (`--dry-run`, or `--next` for roles or information) makes a session's folder under the work folder, prints the command with the harness's real path and what a paid run would be refused for as things stand, and takes the folder away again. It starts nothing.
+
+Its tests run all of this against a stand-in for the harness that calls no model ([`scripts/lib/fixtures/stand-in-harness.mjs`](../../../scripts/lib/fixtures/stand-in-harness.mjs)): `node --test scripts/lib/study-three-paid.test.mjs`.
 
 ## The files
 
-- [`settings.json`](settings.json): the settings, with two placeholders the script fills (the npm cache folder and the account's temp folder).
+- [`settings.json`](settings.json): the settings, with four placeholders the script fills: the npm cache folder, the account's temp folder, and the two folders closed to a session's commands, where earlier sessions' folders are moved to and where transcripts are kept.
 - [`scripts/lib/compare-profile.mjs`](../../../scripts/lib/compare-profile.mjs): `--print` shows the folders, the settings and the command; `--make` makes the folders; `--check` is the check above. `--home` names another home for the profile and needs a folder after it. Before each run the runner writes the profile's settings with that run's closed paths.

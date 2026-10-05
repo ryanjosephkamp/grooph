@@ -39,7 +39,7 @@ test("the settings close what the game's profile closes, open no network, and wa
   assert.equal(settings.sandbox.allowUnsandboxedCommands, false);
   assert.deepEqual(settings.sandbox.network.allowedDomains, []);
   assert.equal(settings.sandbox.network.strictAllowlist, true);
-  assert.deepEqual(settings.sandbox.filesystem.denyRead, ["/tmp", "/private/tmp", "/var/folders/pv/abc123", "/private/var/folders/pv/abc123"]);
+  assert.deepEqual(settings.sandbox.filesystem.denyRead, ["/tmp", "/private/tmp", "/var/folders/pv/abc123", "/private/var/folders/pv/abc123", join(home, "kept"), join(home, "profile", "projects")], "the temp folders, and where earlier sessions' folders and transcripts are");
   assert.deepEqual(settings.sandbox.filesystem.denyWrite, ["/Users/someone/grooph-compare/work/x/rounds/check"]);
   assert.deepEqual(settings.sandbox.filesystem.allowWrite, [join(home, "npm-cache")]);
   assert.equal(settings.autoMemoryEnabled, false);

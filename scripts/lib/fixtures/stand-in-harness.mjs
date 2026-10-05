@@ -2,8 +2,8 @@
 // A STAND-IN for the harness, for tests of the paid path only. It calls no model and costs nothing. It does what a
 // plan in its prompt says: writes a transcript where the harness would, touches the files the plan names, and prints
 // a result of the harness's shape. A test puts the plan in stand-in-plan.json in the configuration folder it names.
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 const args = process.argv.slice(2);
 if (args[0] === "--version") {
@@ -20,12 +20,30 @@ if (args[0] === "auth") {
 }
 const value = (flag) => args[args.indexOf(flag) + 1];
 const plan = JSON.parse(readFileSync(join(process.env.CLAUDE_CONFIG_DIR, "stand-in-plan.json"), "utf8"));
+// What settings the profile held when this was started, for a test to read afterwards.
+writeFileSync(join(process.env.CLAUDE_CONFIG_DIR, "settings-seen-by-the-stand-in.json"), readFileSync(join(process.env.CLAUDE_CONFIG_DIR, "settings.json"), "utf8"), "utf8");
+if (plan.children) {
+  // A child that ignores being asked to end, and a grandchild of its own: what a watchdog has to stop.
+  const { spawn } = await import("node:child_process");
+  spawn(process.execPath, ["-e", `process.on("SIGTERM", () => {}); require("node:fs").writeFileSync(${JSON.stringify(join(process.env.CLAUDE_CONFIG_DIR, "child.pid"))}, String(process.pid)); setInterval(() => {}, 1000);`], { stdio: "ignore" });
+  process.on("SIGTERM", () => {});
+}
+// A folder put where a file was, by a path from the session's folder or a whole path: what a session could leave in a runner's way.
+const folderAt = (path) => {
+  rmSync(resolve(process.cwd(), path), { recursive: true, force: true });
+  mkdirSync(resolve(process.cwd(), path), { recursive: true });
+};
+for (const path of plan.mkdirs ?? []) folderAt(path);
 if (plan.hang_ms) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, plan.hang_ms);
 if (plan.no_output) process.exit(plan.exit ?? 1);
 const sessionId = value("--session-id");
 const folder = join(process.env.CLAUDE_CONFIG_DIR, "projects", process.cwd().replace(/[^A-Za-z0-9]/g, "-"));
 mkdirSync(join(folder, sessionId, "subagents"), { recursive: true });
 const lines = [];
+// What the harness writes of what it put in front of the model, as experiments/game/setup/loaded.mjs reads it. The
+// address is nobody's: a record must not keep one, and a test looks for it.
+const given = (attachment) => JSON.stringify({ type: "attachment", cwd: process.cwd(), attachment });
+if (!plan.no_attachments) lines.push(given({ type: "skill_listing", names: plan.skills ?? [] }), given({ type: "agent_listing_delta", builtInTypes: ["general-purpose"] }), given({ type: "session_context", context: { userEmail: "The user's email address is someone@example.com." } }));
 let agents = 0;
 (plan.uses ?? []).forEach((use, i) => {
   const id = `use-${i}`;
@@ -47,6 +65,8 @@ let agents = 0;
     mkdirSync(dirname(join(process.cwd(), path)), { recursive: true });
     appendFileSync(join(process.cwd(), path), text, "utf8");
   }
+  for (const [path, text] of Object.entries(use.writes ?? {})) writeFileSync(join(process.cwd(), path), text, "utf8");
+  for (const path of use.mkdirs ?? []) folderAt(path);
 });
 writeFileSync(join(folder, `${sessionId}.jsonl`), `${lines.join("\n")}\n`, "utf8");
 const models = { [plan.model ?? "claude-opus-5-5"]: { costUSD: plan.cost ?? 0.01 } };

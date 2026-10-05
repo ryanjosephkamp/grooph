@@ -22,7 +22,11 @@
   "readings": {
     "the_information_did_it": "holds when, in every task, both runs of E pass every held-out case and both runs of F pass no more than the task alone did in study two",
     "the_roles_did_some_of_it": "holds when, in at least two tasks, both runs of F pass more held-out cases than the task alone did in study two",
-    "otherwise": "neither is claimed; the scores are reported task by task"
+    "otherwise": "neither is claimed; the scores are reported task by task",
+    "read_when": "as soon as the recorded scores settle a statement either way, and not before; until then it is 'not decided yet', never false. The first is false at the first run of E short of every case or run of F above the task alone, and true only with all twelve scored and none of them either. The second is true once two tasks each have both runs of F above the task alone, and false once fewer than two tasks could still have that",
+    "a_run_the_harness_ended": "is not a score; its one rerun is read in its place. Invalid both times, it was not obtained: a task with a run of F not obtained cannot count toward the second statement, and the first is 'not decided: a run was not obtained' unless a run in hand has already settled it",
+    "a_run_the_watchdog_cut_off": "is scored as it stands, as study two's protocol scores a cut-off, and its score is marked so",
+    "a_tree_the_suite_cannot_run_against": "passed no case"
   },
   "said_beforehand": [
     "On review-gate-2 and heterogeneous-critic, arm E is handed the scorer's own suite and told to pass it: 'E passes everything' there is a ceiling, and would be a surprise only if it failed. The arm that can say something on those two tasks is F.",

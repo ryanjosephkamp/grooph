@@ -41,4 +41,4 @@ node scripts/lib/resume-step-paid.mjs --dry-run
 node scripts/lib/resume-step-paid.mjs --spend --go "<the driver's words>"
 ```
 
-The record goes to `record/` beside this page.
+Started from a terminal. It is refused unless the first paid call's latest record says the runs after it may be made ([`../profile/first-call/`](../profile/first-call/)). The record goes to `record/` beside this page.

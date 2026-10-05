@@ -48,11 +48,21 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 - **"The roles did some of it"** holds when, in at least two tasks, both runs of F pass more held-out cases than the task alone did.
 - **Otherwise neither is claimed**, and the scores are reported task by task.
 
+**When each is read.** As soon as the recorded scores settle it either way, and not before. Until then the runner prints "not decided yet", never "false".
+
+- "The information did it" is false at the first run of E short of every case, or run of F above the task alone. It is true only when all twelve runs are scored and none of them is either.
+- "The roles did some of it" is true once two tasks each have both runs of F above the task alone, whatever is still to come. It is false once fewer than two tasks could still have that.
+
+**What counts as a run's score.**
+
+- **A run the harness or the account ended is not a score.** It is recorded, the driver is told, and it is made again once on the driver's word; the rerun's score is read in its place. Invalid both times, the run was not obtained: a task with a run of F not obtained cannot count toward the second statement, and the first is "not decided: a run was not obtained" unless a run in hand has already settled it.
+- **A run the watchdog cut off is scored as it stands**, as study two's protocol scores a cut-off, and its score is marked so.
+- **A final tree the suite cannot be run against passed no case.**
+
 **Said beforehand.**
 
 - Two runs an arm give a range, never a rate. A difference of a case or two between F and the task alone is inside what two runs can show, which is why the second statement asks for both runs on two tasks.
 - Study two's numbers were made from the account's usual folder, under study two's five measures. These runs are made from the clean profile. The comparison with study two's task-alone arm is across that difference, and the write-up says so.
-- An invalid run, one the harness or the account ended, is recorded, the driver is told, and it is made again once on the driver's word.
 
 **The watchdog** is $2.00 and fifteen minutes for a session of arm E, and $4.00 and twenty minutes for one of arm F. It is never a brake of a graph.
 
@@ -61,6 +71,9 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 ```bash
 node scripts/lib/roles-or-information-paid.mjs --next                       # which run is next, and what it would start
 node scripts/lib/roles-or-information-paid.mjs --spend --go "<the driver's words>"   # the next run, and only that one
+node scripts/lib/roles-or-information-paid.mjs --readings                   # what the recorded scores are read as, so far
 ```
+
+A paid run is started from a terminal, and is refused unless the first paid call's record says the runs after it may be made ([`../profile/first-call/`](../profile/first-call/)).
 
 Each run's record goes to `<task>/<arm>-<n>/` here, with its `score.json`.

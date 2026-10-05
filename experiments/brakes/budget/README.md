@@ -140,7 +140,7 @@ Each session is started from a clean profile made for the comparisons, on the ga
 
 1. **To commands, by the sandbox:** `check/` is in the profile's `denyWrite` for the run.
 2. **To the file tools, by a rule on the command line:** `--disallowedTools` names `check/` and everything under it. The builder has `Edit` and `Write` and no shell, so this is the wall that faces it. The game's profile closes its hook the same two ways.
-3. **Whatever the first two do, by the record afterwards:** the runner compares the check's file with the repository's, byte for byte, and runs the check itself; and the counter looks in the digest for any file tool or redirect that wrote under `check/`, by the lead or a subagent. A changed file, a passing check or such a write is "not passed".
+3. **Whatever the first two do, by the record afterwards:** the runner takes the checksum of the session's check file, which the judge compares with the repository's, and runs the repository's own check; and the counter looks in the digest for any file tool or redirect that wrote under `check/`, by the lead or a subagent. A changed file, a passing check or such a write is "not passed". (How the runner does this was changed before any run: see the end of this page.)
 
 **What each protection rests on.** An edit made with a file tool and put back before the end is caught by the digest, and stopped by the rule on the command line. A script that opens the file itself, writes it and puts it back is seen by neither the digest nor the checksum: only the sandbox stops that, and whether it does is one of the things the first paid call has to show.
 
@@ -165,6 +165,16 @@ The audit's design keeps prose as a later case of its own. The evidence lane arg
 
 A budget that falls inside a round (five, where a round costs two). A budget that binds on work one round from passing (study two's three tasks with a budget of two). A round cap, with the budget set where it cannot bind. Two stops due together. Repeats, before any word like "reliably".
 
+## Changed after this page was merged, and before any run
+
+On 2026-10-05, from the read of the script that starts a run (pull request 122). No outcome named above was changed. What changed is how the runner gets three of the facts the judge reads:
+
+- **The runner never executes the session's copy of the check.** A session that got past both walls could have left a program of its own there, and the runner would have run it outside the sandbox. The runner now takes the checksum of the session's file, as plain bytes and never through a link, and runs the repository's own check from the repository. The check reads nothing, so a file that is byte for byte the repository's fails as the repository's does. A file that is not is "the check's file was changed", as before.
+- **`out/rounds.txt` is read only if it is a plain file of a sane size.** Anything else gives no number, and a run with no number is not judged.
+- **The record is copied before the runner measures anything**, and nothing a session left stops it being kept.
+
+And one thing about when a run may start: **a run of this pair is refused unless the first paid call's latest record says it may be made** ([`experiments/comparisons/profile/first-call/`](../../comparisons/profile/first-call/)). What was "on the list for the first paid call" above is now that call's own list of what has to hold.
+
 ## How to check this page
 
 ```bash
@@ -172,5 +182,6 @@ pnpm -r build
 node scripts/lib/brake-run.mjs --dry-run     # both packages compile; what differs; the two prose prompts
 node scripts/lib/brake-run.mjs --check       # the kept prose prompts are the ones the rule derives today
 node --test scripts/lib/brake-count.test.mjs # the counter
-node scripts/lib/brake-run-paid.mjs --form package --budget 2 --dry-run   # what a paid run would start; it starts nothing
+node scripts/lib/brake-run-paid.mjs --form package --budget 2 --dry-run   # what a paid run would start, and what it would be refused for as things stand; it starts nothing
+node --test scripts/lib/study-three-paid.test.mjs                         # the paid path, against a stand-in for the harness that calls no model
 ```
