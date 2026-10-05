@@ -956,3 +956,55 @@ test("after the merge, read again: what the comparison holds besides a loosening
     assert.match(textOf(older), /a file another version of grooph wrote reads the same way here/);
   });
 });
+
+test("after the merge, the schema: a patch that leaves a document outside the schema is refused before it is remembered, compared, compiled or written", async () => {
+  // `set` is a shallow merge and `setStop` takes the stop as given, so a patch can make a cap null. Every graph a tool
+  // is handed or makes goes through the schema (parseGraph) first: grooph_apply's result, and any document passed in.
+  const graph = fixture("valid", "review-loop.grooph.json");
+  const loop = graph.loops[0]!;
+  const cap = loop.stops.findIndex((stop) => stop.kind === "max-iterations");
+  const patches: [string, unknown[]][] = [
+    ["a cap of null", [{ op: "setStop", loop: loop.id, index: cap, stop: { kind: "max-iterations", n: null } }]],
+    ["evidence that is a string", [{ op: "updateEdge", id: graph.edges[0]!.id, set: { evidence: "a string" } }]],
+    ["stops that are null", [{ op: "updateLoop", id: loop.id, set: { stops: null } }]],
+  ];
+  await withProject(async (ctx) => {
+    const tree = (): string => JSON.stringify(readdirSync(ctx.project, { recursive: true }).map(String).sort().map((name) => { try { return [name, readFileSync(join(ctx.project, name), "utf8")]; } catch { return [name]; } }));
+    assert.equal((await call(ctx, "grooph_export", { graph, into: "." })).isError, undefined);
+    const before = tree();
+    for (const [what, ops] of patches) {
+      // By grooph_apply: refused by the schema's code, nothing written, and the graph the server remembers is the one from before.
+      const applied = await call(ctx, "grooph_apply", { graph, ops, out: "patched.grooph.json" });
+      assert.equal(applied.isError, true, `${what}: ${textOf(applied)}`);
+      assert.match(textOf(applied), /^refused: The operations applied, but the result does not match the schema, so the graph is unchanged:\nerror E_SCHEMA /, what);
+      ownNext(applied, what);
+      const remembered = await call(ctx, "grooph_export", { graph: graph.id, into: "." });
+      assert.equal(remembered.isError, undefined, `${what}: ${textOf(remembered)}`);
+      assert.ok(textOf(remembered).includes("brakes: compared with the graph this package kept; none removed or loosened"), what);
+
+      // The same document handed over whole, as an agent might write it: every tool that takes a graph refuses it,
+      // so it reaches neither the comparison nor the compiler, over a package in place or anywhere else.
+      const core = await import("@grooph/core");
+      const made = core.applyOps(graph, ops as Parameters<typeof core.applyOps>[1]);
+      assert.ok(made.ok, what);
+      for (const [tool, args] of [
+        ["grooph_export", { into: "." }],
+        ["grooph_export", { into: ".", replace: true, allow: [`loop:${loop.id}.stops`] }],
+        ["grooph_export", {}],
+        ["grooph_apply", { ops: [{ op: "setGraphName", name: "Another" }], out: "patched.grooph.json" }],
+        ["grooph_validate", {}],
+        ["grooph_explain", {}],
+        ["grooph_shape", {}],
+        ["grooph_share", {}],
+        ["grooph_picture", { out: "patched.svg" }],
+      ] as const) {
+        const r = await call(ctx, tool, { graph: made.doc, ...args });
+        // grooph_validate's answer is the schema's finding itself; every other tool refuses.
+        if (tool === "grooph_validate") assert.equal(r.structuredContent!["ok"], false, `${what}: ${textOf(r)}`);
+        else assert.equal(r.isError, true, `${what}, ${tool}: ${textOf(r)}`);
+        assert.match(textOf(r), /E_SCHEMA/, `${what}, ${tool}`);
+      }
+      assert.equal(tree(), before, `${what}: something in the project changed`);
+    }
+  });
+});
