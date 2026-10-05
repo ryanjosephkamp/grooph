@@ -4,7 +4,7 @@ import { copyText } from "../../doc/exportPackage.js";
 import { piece } from "../../piece.js";
 import { GlyphDrawn } from "../Glyph.js";
 import { templateHref } from "../templates/TemplatesScreen.js";
-import { Check, DOCS, SOURCE, SiteFooter, SiteHeader } from "./Chrome.js";
+import { Check, DOCS, SiteFooter, SiteHeader } from "./Chrome.js";
 import { RunDemo } from "./RunDemo.js";
 
 /** The template the front page draws, and the one "Open a template" opens. */
