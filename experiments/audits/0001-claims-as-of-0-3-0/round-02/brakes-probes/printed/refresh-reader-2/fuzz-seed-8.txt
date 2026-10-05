@@ -1,0 +1,8 @@
+seed 8: 3794 refreshed, 0 refused with a TemplateError, 206 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none  (x21)
+  merge-queue | sound template: true
+  newer version: repoint e-land-done.from land->land-gate
+  -> gate-answer-leads-elsewhere:s-land-gate
+  applied: edge:e-s-land-done, edge:e-s-land-gate-done
+  held: -

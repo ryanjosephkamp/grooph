@@ -1,0 +1,81 @@
+
+=== edge into the critic re-added under another id, no evidence
+applied: []
+held:    [
+  'edge:e-review-builder-review-critic [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  'edge:review-to-critic (waits edge:e-review-builder-review-critic)'
+]
+schema: ok | errors before: [] after: []
+into critic after: [
+  'e-review-builder-review-critic: from review-builder when "always" evidence ["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"] isolation fresh'
+]
+
+=== control: evidence deleted on the same id
+applied: []
+held:    [
+  'edge:e-review-builder-review-critic.evidence [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]'
+]
+schema: ok | errors before: [] after: []
+
+=== critic's pass edge removed; builder leads to the gate itself
+applied: []
+held:    [
+  'edge:e-review-builder-review-merge-gate [adds a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  'edge:review-e-critic-pass (waits edge:e-review-builder-review-merge-gate)'
+]
+schema: ok | errors before: [] after: []
+into gate after: [
+  'review-e-critic-pass: from review-critic when "pass" evidence null isolation fresh'
+] out of critic: [
+  'review-e-critic-fail: -> review-builder when "fail"',
+  'review-e-critic-pass: -> review-merge-gate when "pass"'
+]
+
+=== an edge added beside the critic: builder -> gate
+applied: []
+held:    [
+  'edge:e-review-builder-review-merge-gate [adds a way into "review-merge-gate" that does not pass the critic "review-critic"]'
+]
+schema: ok | errors before: [] after: []
+into gate after: [
+  'review-e-critic-pass: from review-critic when "pass" evidence null isolation fresh'
+]
+
+=== control: e-critic-pass.from moved to builder
+applied: []
+held:    [
+  'edge:review-e-critic-pass.from [opens a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  `edge:review-e-critic-pass.when [changes what the critic's verdict leads to; opens a way into "review-merge-gate" that does not pass the critic "review-critic"]`
+]
+schema: ok | errors before: [] after: []
+
+=== builder itself becomes the judge of its work: critic node removed-by-kind? no: critic role kept, builder->critic edge removed, critic gets edge from itself
+applied: []
+held:    [
+  'edge:e-review-builder-review-critic [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  'edge:e-review-builder-review-fast-check [adds a way from "review-builder" to end in success that does not pass the critic "review-critic"]',
+  'edge:review-e-fast-pass [adds a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  'loop:review-review.members [the loop "review-review" would no longer bound "review-critic", which is still in the graph]',
+  'node:review-fast-check (waits edge:e-review-builder-review-critic)',
+  'edge:review-e-critic-fail (waits edge:e-review-builder-review-critic)',
+  'edge:review-e-critic-pass (waits edge:e-review-builder-review-critic)',
+  'edge:review-e-fast-fail (waits edge:e-review-builder-review-critic)',
+  'loop:review-review.back (waits edge:e-review-builder-review-critic)'
+]
+schema: ok | errors before: [] after: []
+nodes: [
+  'plan(planner)',
+  'release(builder)',
+  'done(stop)',
+  'review-builder(builder)',
+  'review-critic(critic)',
+  'review-merge-gate(human-gate)'
+] edges: [
+  'release->done',
+  'review-builder->review-critic',
+  'review-critic->review-builder',
+  'review-critic->review-merge-gate',
+  'review-merge-gate->review-builder',
+  'review-merge-gate->release',
+  'plan->review-builder'
+]

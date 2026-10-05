@@ -1,0 +1,66 @@
+seed 2: 6000 trials; 2566 mutation did not apply to the graph drawn; 130 not valid for export (refused earlier, not counted); 3304 counted
+THROUGH with nothing refused: 11 of 3304; of those, the report marked a change as tightening in 11
+THROUGH and my own oracle also finds it looser (worst-case dispatches grew, or a pair of steps lost the person between them): 10
+
+family                                                                      counted  through  (my oracle agrees it is looser: of counted / of through)
+   cap: raised                                                                 117        0   rounds 58/0
+   cap: removed                                                                131        0   rounds 76/0
+   budget: removed                                                             120        0   rounds 2/0
+   budget: measure changed, huge limit                                         119        0   rounds 2/0
+   cap or budget: leads on to a new success stop                               117        0   rounds 0/0
+!! an earlier stop of another measure that leads on to a member                101        1   rounds 100/0
+   loop: same loop under another id, cap or budget raised                      121        0   rounds 67/0
+   loop: split, one back edge counted by a second loop                          48        0   rounds 43/0
+   human stop: asked less often                                                 58        0   by construction
+   human stop: removed                                                          57        0   by construction
+   gate: removed, its way in joined to its way on                               44        0   people 44/0
+   gate: becomes a check                                                        50        0   people 50/0
+   gate: a way around it (edge from what led to it, to what it led to)          60        0   people 60/0
+   approval: flag removed                                                       63        0   people 48/0
+   approval: edge replaced under another id without it                          68        0   people 48/0
+   approval: a twin edge beside it without approval                             64        0   people 60/0
+   marker: node replaced under another id without it                            61        0   by construction
+   critic: a way around it                                                      85        0   by construction
+   critic isolation: policy re-scoped to one node                               88        0   by construction
+   critic isolation: policy removed and the edge into the critic shared         87        0   by construction
+   stops: cap raised and budget lowered in the same loop                       126        0   rounds 39/0
+   stops: budget raised and cap lowered in the same loop                       123        0   rounds 0/0
+   human stop: leads on to a member instead of asking and halting               48        0   by construction
+   marker: the marked node becomes a check                                      58        0   by construction
+   critic: removed, its way in joined to its way on                             48        0   by construction
+   bar: acceptance weakened                                                     71        0   by construction
+   gate: an answer cut                                                          62        0   people 0/0
+   critic isolation: policy removed                                             89        0   by construction
+   two caps: a second cap of the same n that leads on to a member, set before the one that halts    105        0   rounds 45/0
+   gate: its answers no longer listed                                           64        0   people 0/0
+   approval: the approved edge moved aside to a new step, an unapproved edge in its place     71        0   people 67/0
+   level: loosened                                                              87        0   by construction
+   budget: raised                                                              132        0   rounds 2/0
+   cap or budget: leads on to a member (goes round again)                       98        0   rounds 30/0
+!! loop: a second way round through a new step, counted by a second loop        82       10   rounds 82/10
+   marker: removed                                                              59        0   by construction
+   marker: list shortened                                                       30        0   by construction
+   bar: removed, the loop called a grind                                        75        0   by construction
+   gate: a twin of the round it stands on, around it                             5        0   people 5/0
+   critic: an evidence item no longer handed                                    92        0   by construction
+   critic: given another role                                                   86        0   by construction
+   loop: an outer loop added around it (nested: inner counters start afresh)     15        0   rounds 15/0
+   two caps: the one that leads on to a wrap-up step now leads back into the loop     19        0   rounds 14/0
+
+-- through: loop: a second way round through a new step, counted by a second loop
+   start patterns/specialist-critic-bank.grooph.json; at review; noise [3,3]
+   changes: add node:redo [said to tighten: "redo" at the human gate "gate" would lead nowhere]; add edge:e-gate-redo [said to tighten: "redo" at the human gate "gate" would lead nowhere]; add edge:e-redo-builder; add loop:review-redo
+   my oracle: {"rounds":[{"node":"builder","was":3,"now":"40+"},{"node":"correctness","was":3,"now":"40+"},{"node":"security","was":3,"now":"40+"},{"node":"performance","was":3,"now":"40+"},{"node":"taste","was":3,"now":"40+"},{"node":"triage","was":3,"now":"40+"}],"people":[]}
+   files: <tmp>/grooph-brakes-probes/adopt-reader-1/fuzz/seed2-loop-a-second-way-round-through-a-new-step-counted-0.{source,adopted}.json
+
+-- through: loop: a second way round through a new step, counted by a second loop
+   start patterns/review-gate.grooph.json; at review; noise []
+   changes: add node:redo [said to tighten: "redo" at the human gate "merge-gate" would lead nowhere]; add edge:e-merge-gate-redo [said to tighten: "redo" at the human gate "merge-gate" would lead nowhere]; add edge:e-redo-builder; add loop:review-redo
+   my oracle: {"rounds":[{"node":"builder","was":3,"now":"40+"},{"node":"critic","was":3,"now":"40+"}],"people":[]}
+   files: <tmp>/grooph-brakes-probes/adopt-reader-1/fuzz/seed2-loop-a-second-way-round-through-a-new-step-counted-1.{source,adopted}.json
+
+-- through: an earlier stop of another measure that leads on to a member
+   start fixtures/composed/debate-then-build-composed.grooph.json; at debate-debate; noise [3]
+   changes: change loop:debate-debate.stops [said to tighten: removes the budget (0 turns)]
+   my oracle: {"rounds":[],"people":[]}
+   files: <tmp>/grooph-brakes-probes/adopt-reader-1/fuzz/seed2-an-earlier-stop-of-another-measure-that-leads-on-t-0.{source,adopted}.json

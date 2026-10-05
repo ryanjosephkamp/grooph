@@ -1,0 +1,28 @@
+group with no members: schema-valid=true -> THROWS TemplateError: the template's node "review-builder" needs an id that "plan-review-release" already uses outside the subgrooph "review": rename that one first
+all its nodes deleted by hand (edges, loops left): schema-valid=true -> ok in 3ms changes 3 held 0 notes ["the template now ends after \"review-merge-gate\", and nothing leads on from the subgrooph in this graph: connect it","the template now ends after \"review-critic\", and nothing leads on from the subgrooph in this graph: connect it"] result schema "ok"
+all its nodes, edges, loops, policies deleted by hand; group left: schema-valid=true -> ok in 0ms changes 10 held 0 notes ["the template now ends after \"review-merge-gate\", and nothing leads on from the subgrooph in this graph: connect it","the template now ends after \"review-critic\", and nothing leads on from the subgrooph in this graph: connect it"] result schema "ok"
+group cycle (review holds outer, outer holds review): schema-valid=true -> ok in 3ms changes 2 held 1 notes [] result schema "ok"
+group that holds itself: schema-valid=true -> ok in 1ms changes 2 held 1 notes [] result schema "ok"
+listGroups on a group cycle: schema-valid=true -> ok in 0ms ["review:3/1/outer","outer:3/1/review"]
+loop with no stops: schema-valid=true -> ok in 2ms changes 3 held 1 notes [] result schema "ok"
+loop with no members and no back: schema-valid=true -> ok in 1ms changes 4 held 3 notes [] result schema "ok"
+edge to a missing node: schema-valid=true -> ok in 1ms changes 2 held 1 notes [] result schema "ok"
+stop.then names a missing node: schema-valid=true -> ok in 1ms changes 3 held 1 notes [] result schema "ok"
+group member names a missing node: schema-valid=true -> ok in 1ms changes 2 held 1 notes [] result schema "ok"
+group.with holds a key the template never had, and a value with {{…}} and an id: schema-valid=true -> ok in 2ms changes 2 held 1 notes ["the template no longer has the slot \"extra\"; its value is kept in the group and used nowhere"] result schema "ok"
+no `with` at all: schema-valid=true -> ok in 1ms changes 6 held 3 notes [] result schema "ok"
+two edges with the same id out of the gate: schema-valid=true -> ok in 1ms changes 2 held 1 notes [] result schema "ok"
+duplicate node id: schema-valid=true -> ok in 1ms changes 2 held 1 notes [] result schema "ok"
+template with no nodes: schema-valid=true -> ok in 0ms changes 10 held 10 notes [] result schema "ok"
+template that is not a template (no template block): schema-valid=true -> THROWS TemplateError: "review-gate" is not a template: it has no template block
+template whose edge names a missing node: schema-valid=true -> ok in 1ms changes 1 held 0 notes [] result schema "ok"
+template whose loop stop names a missing node: schema-valid=true -> ok in 1ms changes 1 held 0 notes [] result schema "ok"
+template with two success stops: schema-valid=true -> ok in 0ms changes 1 held 1 notes [] result schema "ok"
+template with its own groups, nested: schema-valid=true -> ok in 0ms changes 0 held 0 notes [] result schema "ok"
+from without a version (hand-edited): schema-valid=false -> ok in 0ms changes 2 held 1 notes [] result schema "ok"
+subgrooph nested in a plain group, and a subgrooph inside a subgrooph: schema-valid=true -> ok in 1ms changes 2 held 1 notes [] result schema "ok"
+placing into a graph with a group cycle: schema-valid=true -> ok in 0ms {"opens":[],"dropped":["review-done"]}
+placing with after === then: schema-valid=true -> ok in 0ms {"opens":[],"connected":["e-review-merge-gate-release","e-release-review-builder"]}
+placing with then = a stop: schema-valid=true -> ok in 0ms {"opens":[],"connected":["e-review-merge-gate-done","e-plan-review-builder"]}
+as = 64+ chars: schema-valid=true -> ok in 1ms {"members":4,"schema":"ok"}
+extractGroup on an empty group: schema-valid=true -> THROWS TemplateError: group "review" holds no node: there is nothing to save

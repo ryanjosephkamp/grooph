@@ -1,0 +1,143 @@
+before: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== 8g-clean host gate before the box; builder renamed, edges re-made
+changes: [
+  'node:review-builder [LOOSENS: "pass" at the human gate "go" would lead nowhere; removes "review-builder", which a run reached only by passing a person, while "review-implementer" would come in with no such need: it may be the same step under another name]',
+  'edge:e-review-implementer-review-critic [LOOSENS: adds a way into "review-critic" that does not pass a person]',
+  'node:review-implementer',
+  'edge:e-review-builder-review-critic',
+  'edge:review-e-critic-fail',
+  'edge:review-e-merge-gate-reject',
+  'edge:e-review-critic-review-implementer',
+  'edge:e-review-merge-gate-review-implementer',
+  'loop:review-review.members',
+  'loop:review-review.back'
+]
+held: [
+  'node:review-builder',
+  'edge:e-review-implementer-review-critic',
+  'node:review-implementer (waits node:review-builder)',
+  'edge:e-review-builder-review-critic (waits node:review-builder)',
+  'edge:review-e-critic-fail (waits node:review-builder)',
+  'edge:review-e-merge-gate-reject (waits node:review-builder)',
+  'edge:e-review-critic-review-implementer (waits node:review-builder)',
+  'edge:e-review-merge-gate-review-implementer (waits node:review-builder)',
+  'loop:review-review.members (waits node:review-builder)',
+  'loop:review-review.back (waits node:review-builder)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into implementer (non-back): [] | edges from host gate 'go': [ 'e-go-review-builder' ]
+spec placed: [
+  'e-release-done:release->done',
+  'e-spec-planner-spec-spec-gate:spec-planner->spec-spec-gate',
+  'e-spec-spec-gate-spec-builder:spec-spec-gate->spec-builder',
+  'e-spec-builder-spec-critic:spec-builder->spec-critic',
+  'spec-e-critic-fail:spec-critic->spec-builder',
+  'e-spec-critic-release:spec-critic->release'
+] [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== 1f spec-then-loop: add planner -> builder (around spec-gate)
+changes: [
+  'edge:e-spec-planner-spec-builder [LOOSENS: adds a way into "spec-builder" that does not pass a person]'
+]
+held: [ 'edge:e-spec-planner-spec-builder' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into spec-builder: [
+  'e-spec-spec-gate-spec-builder(spec-spec-gate)',
+  'spec-e-critic-fail(spec-critic)'
+]
+
+=== 1f' spec-then-loop: gate dropped from the path: e-planner-spec-gate removed, planner -> builder added
+changes: [
+  'edge:e-spec-planner-spec-builder [LOOSENS: adds a way into "spec-builder" that does not pass a person]',
+  'edge:e-spec-planner-spec-spec-gate'
+]
+held: [
+  'edge:e-spec-planner-spec-builder',
+  'edge:e-spec-planner-spec-spec-gate (waits edge:e-spec-planner-spec-builder)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into spec-gate: [ 'e-spec-planner-spec-spec-gate' ]
+
+=== 9a gate removal held (shape waits) while stops.then -> a new node applies
+changes: [
+  'node:review-merge-gate [LOOSENS: removes a human gate; removes "review-merge-gate", which a run reached only by passing the critic "review-critic", while "review-wrap" would come in with no such need: it may be the same step under another name]',
+  'edge:e-review-wrap-release [LOOSENS: adds a way into "release" that does not pass a person; adds a way into "release" that does not pass the critic "review-critic"]',
+  'loop:review-review.members [LOOSENS: adds a way from "review-builder" to end in success that does not pass a person]',
+  'loop:review-review.stops [LOOSENS: adds a way from "review-builder" to end in success that does not pass a person]',
+  'node:review-wrap',
+  'edge:review-e-critic-pass',
+  'edge:review-e-merge-gate-reject',
+  'edge:e-review-merge-gate-release',
+  'loop:review-review.back'
+]
+held: [
+  'node:review-merge-gate',
+  'edge:e-review-wrap-release',
+  'loop:review-review.members',
+  'loop:review-review.stops',
+  'node:review-wrap (waits node:review-merge-gate)',
+  'edge:review-e-critic-pass (waits node:review-merge-gate)',
+  'edge:review-e-merge-gate-reject (waits node:review-merge-gate)',
+  'edge:e-review-merge-gate-release (waits node:review-merge-gate)',
+  'loop:review-review.back (waits node:review-merge-gate)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  stops: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}] | has review-wrap: false
+
+=== 9b stops held (cap raised), shape applies: node the held stop continues at is removed
+changes: [
+  'node:review-wrap [LOOSENS: raises the round cap from 4 to 9]',
+  'loop:review-review.stops [LOOSENS: raises the round cap from 4 to 9]',
+  'edge:e-review-wrap-release'
+]
+held: [
+  'node:review-wrap',
+  'loop:review-review.stops',
+  'edge:e-review-wrap-release (waits node:review-wrap)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  stops: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4,"then":"review-wrap"},{"kind":"budget","measure":"dispatches","limit":10}] | has review-wrap: true
+
+=== 9c shape held; policy scoped to a node that waits
+changes: [
+  'node:review-merge-gate [LOOSENS: removes a human gate]',
+  'edge:e-review-critic-review-wrap [LOOSENS: adds a way from "review-critic" to end in success that does not pass a person]',
+  'edge:e-review-wrap-release [LOOSENS: adds a way into "release" that does not pass a person]',
+  'node:review-wrap',
+  'edge:review-e-critic-pass',
+  'edge:review-e-merge-gate-reject',
+  'edge:e-review-merge-gate-release',
+  'loop:review-review.members',
+  'loop:review-review.back',
+  'policy:review-p-cap'
+]
+held: [
+  'node:review-merge-gate',
+  'edge:e-review-critic-review-wrap',
+  'edge:e-review-wrap-release',
+  'node:review-wrap (waits node:review-merge-gate)',
+  'edge:review-e-critic-pass (waits node:review-merge-gate)',
+  'edge:review-e-merge-gate-reject (waits node:review-merge-gate)',
+  'edge:e-review-merge-gate-release (waits node:review-merge-gate)',
+  'loop:review-review.members (waits node:review-merge-gate)',
+  'loop:review-review.back (waits node:review-merge-gate)',
+  'policy:review-p-cap (waits node:review-merge-gate)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 9d person's approval on e-critic-pass held; same version re-points that edge to done
+changes: [
+  'edge:review-e-critic-pass.to [LOOSENS: opens a way into "review-done" that does not pass a person; nothing would lead to "review-merge-gate", so a run would start there, where every way to it passed a person; nothing would lead to "review-merge-gate", so a run would start there, where every way to it passed the critic "review-critic"]',
+  `edge:review-e-critic-pass.approval [LOOSENS: removes a person's approval from the edge; opens a way into "review-done" that does not pass a person]`,
+  'loop:review-review.members [LOOSENS: the loop "review-review" would no longer bound "review-merge-gate", which is still in the graph]',
+  'loop:review-review.back [LOOSENS: the rounds that "review-e-merge-gate-reject" starts would no longer be counted by any loop]'
+]
+held: [
+  'edge:review-e-critic-pass.to',
+  'edge:review-e-critic-pass.approval',
+  'loop:review-review.members',
+  'loop:review-review.back'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edge: {"id":"review-e-critic-pass","from":"review-critic","to":"review-merge-gate","when":"pass","approval":true}
