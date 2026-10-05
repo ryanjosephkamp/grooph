@@ -29,6 +29,10 @@ for (const size of ["phone", "desktop"] as const) {
         await expect.poll(() => page.locator(".space-world").evaluate((el) => (el as HTMLElement).style.transform)).toContain("scale3d(");
         await page.waitForTimeout(300);
         await shot(page, "space-run");
+        // The run replayed: its eighth note, which is about an edge.
+        await page.getByRole("slider").fill("8");
+        await page.waitForTimeout(300);
+        await shot(page, "space-run-note-8");
       });
       for (const id of TEMPLATES) {
         test(`${id} ${size} ${scheme}`, async ({ page }) => {

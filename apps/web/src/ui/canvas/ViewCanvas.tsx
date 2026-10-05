@@ -1,4 +1,4 @@
-import type { Graph, Id, Issue, RunSummary } from "@grooph/core";
+import type { Graph, Id, Issue, RunNote, RunSummary } from "@grooph/core";
 import { Background, BackgroundVariant, ReactFlow, useReactFlow, type EdgeTypes, type NodeTypes } from "@xyflow/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -37,6 +37,8 @@ type Props = {
   onNodeTap?: (id: Id) => void;
   run?: RunSummary;
   highlight?: Highlight;
+  /** a run's notes in the order it wrote them: the canvas does not draw them; the view in three dimensions steps through them (`graph-views.tsx`) */
+  notes?: readonly RunNote[];
 };
 
 export const ViewCanvas = boxed<Props>(Drawn, (props) => props.doc);

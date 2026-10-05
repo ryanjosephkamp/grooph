@@ -184,6 +184,10 @@
   stroke-width: 2.4;
   fill: var(--gp-accent-soft) !important;
 }
+.space-sheet.is-end {
+  border-color: var(--gp-accent);
+  background: color-mix(in srgb, var(--gp-accent-soft) 80%, transparent);
+}
 /* Now: no handoff is lit, and the sessions that are working are. */
 .space.is-now [data-live="working"] > rect[data-card] {
   stroke: var(--gp-accent) !important;

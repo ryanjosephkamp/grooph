@@ -49,7 +49,12 @@ export function apart(a: OperationMap["lanes"][number], b: OperationMap["lanes"]
   return a.machine === b.machine ? 1 : 1.35;
 }
 
-export type Stop = { handoff?: Id; now?: boolean; says: string; short: string };
+/**
+ * A stop of the slider: what it says, and what it lights. `handoff` is the link that is lit, with its two ends.
+ * A stop about no link may light cards (`ends`) or a sheet (`sheet`, the sheet's own mark); and `alone` leaves the
+ * other links as they are, for a slider whose order is not the order the links are drawn in.
+ */
+export type Stop = { handoff?: Id; now?: boolean; says: string; short: string; ends?: Id[]; sheet?: string; alone?: boolean };
 export type Arc = { id: Id; n: number; from: Id; to: Id; a: V; b: V; lift: number };
 export type Plan = { html: string; box: { min: V; max: V }; arcs: Arc[]; stops: Stop[]; cards: Map<Id, { at: V; h: number }>; floors: number[] };
 
@@ -157,10 +162,10 @@ export type Link = { id: Id; n: number; from: Id; to: Id; style: { color: Parame
  * graph's loops, nodes and edges (`ui/canvas/views.tsx`, handoff 0092). The words are the caller's, because a map
  * steps through handoffs and a graph through edges.
  */
-export type Scene = { title: string; sheets: Sheet[]; links: Link[]; stops: Stop[]; per: number; link: string; links_: string; none: string; range: string; note: string; flat: string };
+export type Scene = { title: string; sheets: Sheet[]; links: Link[]; stops: Stop[]; per: number; link: string; links_: string; none: string; range: string; note: string; flat: string; step?: string };
 
 /** Where every sheet, card and arc of a scene is, and the markup for it. */
-export function scene(kit: MapKit, { title, sheets, links, stops, per, link, links_, none, range, note, flat }: Scene): Plan {
+export function scene(kit: MapKit, { title, sheets, links, stops, per, link, links_, none, range, note, flat, step = link }: Scene): Plan {
   const [, , , , , , , , , , , fmt, frame, , , inkFor, , numberBadge, , , , , , , stroke] = kit;
   const ink = inkFor("auto");
   const across = Math.max(1, Math.min(per, Math.max(...sheets.map((s) => s.items.length), 1)));
@@ -258,7 +263,7 @@ export function scene(kit: MapKit, { title, sheets, links, stops, per, link, lin
     `<div class="space grooph-picture" data-picture="space">${palette}` +
     `<div class="space-bar"><span>Drag to turn. Pinch to move in and out, or pick the scene and scroll.</span><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Starting view</button></div>` +
     `<div class="space-scene" tabindex="0" role="group" aria-label="${esc(title)} in three dimensions: ${sheets.length} sheets, ${cards.size} cards, ${links.length} ${links_}. Drag, or use the arrow keys, to turn it; pinch, scroll, or use plus and minus, to move in and out."><div class="space-lens"><div class="space-world">${parts.join("")}</div></div></div>` +
-    `<div class="space-time"><div class="space-steps"><button type="button" data-do="play" aria-label="Play"${last === 0 ? " disabled" : ""}>Play</button><button type="button" data-do="back" aria-label="Previous ${link}"${last === 0 ? " disabled" : ""}>‹</button><button type="button" data-do="next" aria-label="Next ${link}"${last === 0 ? " disabled" : ""}>›</button>` +
+    `<div class="space-time"><div class="space-steps"><button type="button" data-do="play" aria-label="Play"${last === 0 ? " disabled" : ""}>Play</button><button type="button" data-do="back" aria-label="Previous ${step}"${last === 0 ? " disabled" : ""}>‹</button><button type="button" data-do="next" aria-label="Next ${step}"${last === 0 ? " disabled" : ""}>›</button>` +
     `<input type="range" min="0" max="${last}" step="1" value="0" aria-label="${range}"${last === 0 ? " disabled" : ""}></div>` +
     `<output>${esc(stops[0]!.says)}</output><p class="space-note">${note}</p></div>` +
     `<p class="space-flat" role="status" hidden><span></span>${flat}</p></div>`;
@@ -338,7 +343,7 @@ export function tooSlow(gaps: number[]): number | undefined {
 export function lights(made: Plan, step: number): { stop: Stop; arcs: ("lit" | "past" | "ahead" | "")[]; ends: Id[] } {
   const stop = made.stops[Math.max(0, Math.min(made.stops.length - 1, step))]!;
   const at = made.arcs.findIndex((a) => a.id === stop.handoff);
-  return { stop, arcs: made.arcs.map((_, k) => (stop.now ? "past" : at < 0 ? "" : k === at ? "lit" : k < at ? "past" : "ahead")), ends: at < 0 ? [] : [made.arcs[at]!.from, made.arcs[at]!.to] };
+  return { stop, arcs: made.arcs.map((_, k) => (stop.now ? "past" : at < 0 ? "" : k === at ? "lit" : stop.alone ? "" : k < at ? "past" : "ahead")), ends: at < 0 ? (stop.ends ?? []) : [made.arcs[at]!.from, made.arcs[at]!.to] };
 }
 
 // ─── behavior ─────────────────────────────────────────────────────────────
@@ -593,6 +598,7 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     });
     for (const el of root.querySelectorAll(".is-end")) el.classList.remove("is-end");
     for (const id of ends) root.querySelector(["session", "person", "node"].map((part) => `[data-${part}="${CSS.escape(id)}"]`).join())?.classList.add("is-end");
+    if (stop.sheet) root.querySelector(`.space-sheet[${stop.sheet}]`)?.classList.add("is-end");
     root.classList.toggle("is-now", stop.now === true);
     range.value = String(state.step);
     // The slider says where it is; the sentence under it, which is read out as it changes, says the rest.
