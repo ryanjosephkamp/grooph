@@ -150,6 +150,11 @@ test("what Codex said and printed is written where git ignores it, and the recor
   assert.equal(err, join(run, "local", "codex-stderr.txt"));
   assert.equal(ignored(out), 0, "git would take codex-output.jsonl");
   assert.equal(ignored(err), 0, "git would take codex-stderr.txt");
+  // A run's folder moved aside (the runner refuses to write over `run/`, and a failed first record is kept): still out.
+  for (const aside of ["run-1", "run.failed", join("kept", "2026-10-05", "run")]) {
+    for (const name of ["codex-output.jsonl", "codex-stderr.txt"]) assert.equal(ignored(join(ROOT, "experiments", "patterns-codex", "review-gate", aside, "local", name)), 0, `${aside}/local/${name}`);
+  }
+  assert.equal(ignored(join(ROOT, "experiments", "patterns-codex", "fix-until-green", "run", "local", "codex-output.jsonl")), 0, "another template's run");
   // Where they were written before, and what the record keeps: git takes these, so nothing of the kind goes there.
   for (const kept of ["codex-output.jsonl", "codex-stderr.txt", "ledger.json", "result.json"]) assert.equal(ignored(join(run, kept)), 1, kept);
   // The runner writes them nowhere else: every path it opens for them comes from the one function.

@@ -222,7 +222,7 @@ test("what a group was filled with reaches no brief and no agent file, and a nam
   assert.doesNotMatch(forged, /New orders/);
   assert.match(forged, /\| `review` \| a template \|/);
   // The Codex brief prints the same table, so it holds the same: refused, and not printed by the writer behind.
-  assert.throws(() => compile(setTarget(doc, "codex"), "codex"), CompileError);
+  assert.throws(() => compile(setTarget(doc, "codex"), "codex"), (err: unknown) => err instanceof CompileError && err.issues.some((issue) => issue.code === "E_SCHEMA" && issue.message.startsWith("/groups/0/from")));
   const codex = compileCodex(setTarget(doc, "codex"), []).files;
   assert.doesNotMatch(codex[".grooph/plan-review-release/LEAD.md"]!, /New orders/);
   assert.match(codex[".grooph/plan-review-release/LEAD.md"]!, /\| `review` \| a template \|/);

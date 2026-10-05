@@ -51,7 +51,7 @@ const refusal = (doc: Graph, target: CompileTarget): Issue[] => {
   return assert.fail(`compile(${doc.id} naming ${doc.target?.harness ?? "nothing"}, ${target}) wrote a package`);
 };
 const mismatch = (named: string, target: string): string =>
-  `the document names the harness "${named}" and the export is for "${target}": export it for ${named}, or name ${target} in the document first (grooph apply with {"op":"setTarget","harness":"${target}"})`;
+  `the document names the harness "${named}" and the export is for "${target}": export it for ${named}, or name ${target} in the document first (grooph apply <file> --ops - --write, given [{"op":"setTarget","harness":"${target}"}])`;
 
 test("there are two targets, and the fixture these tests start from names Claude Code", () => {
   assert.deepEqual([...KNOWN_TARGETS].sort(), [...TARGETS].sort());

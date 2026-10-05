@@ -48,19 +48,19 @@ test("Codex kickoff uses the lead model and quotes the package kickoff path", ()
   assert.doesNotMatch(leadMapping, /codex exec[^\n]* -m /, "a lead node with no model keeps the session default");
 });
 
-test("Codex mapping sets no approval policy, says which one applies is unknown until a run shows it, and distinguishes refusal from a native halt", () => {
+test("Codex mapping sets no approval policy, says it does not know which one applies, and distinguishes refusal from a native halt", () => {
   const doc = load();
   const files = compile(doc, "codex").files;
   const mapping = files[`.grooph/${doc.id}/MAPPING.md`]!;
   assert.doesNotMatch(mapping, /approval_policy=|approval_policy =/);
-  assert.match(mapping, /The package sets no approval policy: no agent file has an approval_policy key and this command has no approval option\. Which approval policy then applies, to the lead under codex exec and to the agents it spawns, is unknown until a run shows it: this command has not been run\./);
-  assert.match(mapping, /The package does not set approval_policy; which approval policy applies is unknown until a run shows it/);
+  assert.match(mapping, /The package sets no approval policy: no agent file has an approval_policy key and this command has no approval option\. Which approval policy then applies, to the lead under codex exec and to the agents it spawns, is unknown to this package: grooph has no run on record that shows it\./);
+  assert.match(mapping, /The package does not set approval_policy; which approval policy applies is unknown to this package/);
   // Nobody has run the command (REVIEW.md, second read, item 3): no file of the package says whose policy applies.
   for (const [path, text] of Object.entries(files)) {
     assert.doesNotMatch(text, /approval[^.\n]*inherit|inherit[^.\n]*approval|owner's (configured )?(approval )?policy applies/i, path);
   }
   const worker = files[`.codex/agents/${doc.id}--critic.toml`]!;
-  assert.match(worker, /This file sets no approval policy, and which one applies to you is unknown until a run shows it: do not count on being asked before a command runs\./);
+  assert.match(worker, /This file sets no approval policy, and this package does not know which one applies\. Assume no person is asked before a command of yours runs: run only what your capabilities allow\./);
   assert.match(mapping, /An unattended operation requiring owner approval may be refused when nobody can respond; that refusal is not a native graph halt/);
   assert.match(mapping, /Graph gates and stops remain instructions the lead must follow/);
 });

@@ -225,7 +225,7 @@ test("export refuses a document that names one harness when asked for the other'
       assert.match(io.stderr.join("\n"), new RegExp(`cannot export .* for ${asked}: fix these first`));
       assert.match(
         io.stderr.join("\n"),
-        new RegExp(`error {2}E_NO_TARGET {2}the document names the harness "${named}" and the export is for "${asked}": export it for ${named}, or name ${asked} in the document first \\(grooph apply with \\{"op":"setTarget","harness":"${asked}"\\}\\)`),
+        new RegExp(`error {2}E_NO_TARGET {2}the document names the harness "${named}" and the export is for "${asked}": export it for ${named}, or name ${asked} in the document first \\(grooph apply <file> --ops - --write, given \\[\\{"op":"setTarget","harness":"${asked}"\\}\\]\\)`),
       );
       assert.ok(!existsSync(into), "nothing was written");
       assert.deepEqual(io.stdout.filter((line) => /Kickoff|wrote/.test(line)), []);

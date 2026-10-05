@@ -28,7 +28,7 @@ const CHECK_SCOPE = "Evidence check covers Codex dispatch records, run-note summ
 /**
  * What Codex said and what it printed are the whole transcript of the session, which can hold account details, and
  * this repository is public. Both files go under `local/` in the run's folder, which .gitignore keeps out
- * (its line for experiments/patterns-codex), as the raw transcripts beside the other experiment records are.
+ * (its line for experiments/patterns-codex, any folder deep), as the raw transcripts beside the other experiment records are.
  * The ledger keeps their checksums. A person reads them before either is moved to where git sees it.
  */
 const LOCAL = "local";

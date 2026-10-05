@@ -252,7 +252,8 @@ Validate for export, then write the harness package into <dir> and print the kic
 Refuses, with the reasons, when the document has errors. Targets: claude-code, codex.
 A package is one harness's files: --target is the harness the document names (target.harness),
 and a document that names another is refused (E_NO_TARGET) until it names this one:
-  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply <file> --ops - --write
+  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
+  grooph export flaky.grooph.json --target codex --into .
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
@@ -264,7 +265,6 @@ on one over a builder on the other is the same model: the export says so when a 
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .
-  grooph export flaky.grooph.json --target codex --into .
   grooph export flaky.grooph.json --target claude-code --into . --models frontier=opus,strong=sonnet,fast=haiku
 ```
 

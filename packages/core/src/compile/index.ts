@@ -88,7 +88,7 @@ function otherHarness(doc: Graph, target: CompileTarget): Issue[] {
   return [
     error(
       "E_NO_TARGET",
-      `the document names the harness "${named}" and the export is for "${target}": export it for ${named}, or name ${target} in the document first (grooph apply with {"op":"setTarget","harness":"${target}"})`,
+      `the document names the harness "${named}" and the export is for "${target}": export it for ${named}, or name ${target} in the document first (grooph apply <file> --ops - --write, given [{"op":"setTarget","harness":"${target}"}])`,
       [doc.id],
     ),
   ];
