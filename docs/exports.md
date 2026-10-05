@@ -20,6 +20,12 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 - nodes of one rank in a tinted band, marked "side by side";
 - below the cards, each loop: its kind and members, its bar, and its stops in order with what each does.
 
+**A subgrooph is one box** (a template placed as a unit, [templates.md](templates.md) §2). Closed, which is how it is drawn unless asked otherwise, it is one card in the column: its name, the template and version it came from, how many nodes it holds, how many of them are human gates and how many loops are inside, the line a person wrote on it, an irreversible step inside if there is one, and the glyph of what it holds. An edge that crosses its boundary starts or ends at the card; what is wholly inside is not drawn, and a loop inside is counted on the card and left out of the list below. `grooph image --open <group>` (or `--open all`) draws it open: its nodes are the cards they always were, kept together in the column inside a dashed frame, with the box's name and its template above the first. A subgrooph inside another is a box in its turn, and stays out of sight while the one that holds it is closed. A plain group, one with no `from`, is not drawn. The picture of a graph with no subgrooph is byte for byte what it was.
+
+This drawing is a piece of its own (`packages/core/src/picture/graph-units.ts`), like a map's other views: the web app fetches it only for a graph that has a subgrooph, and core's `picture` in Node has it already.
+
+**On the canvas** a subgrooph is one box too (`apps/web/src/ui/canvas/units.tsx`). Closed, which is how a graph opens, the box lies over the place its nodes have and says what the picture's card says, with the glyph of what it holds; an edge that crossed its boundary reaches the box. A tap, or Enter on it, opens it in place: the box becomes a frame around its nodes, with its name and a Close button, and no other node moves, because every node keeps the position the document gives it whether its box is open or shut. A closed box does not drag: its nodes are moved with the box open, where each can be seen. A node a panel is about, or an issue points at, opens the boxes around it; a run's canvas shows every node's state, so its boxes are open. The outline folds a subgrooph's nodes into one box as well, shut until it is opened. The box is fetched only for a document that has a subgrooph, and the page names it so that it is held for a visit with no network.
+
 An operation map's picture is described in [`operation-map.md`](operation-map.md) §4. A map has two more views, drawn by core from the same document and written by the same command:
 
 | View | What it is | Good at | Loses |
@@ -38,7 +44,7 @@ The glyph (`grooph glyph`) is still the wordless shape for a list row, and the c
 
 ## The outline
 
-`outline(doc)` returns sections: the graph, then each node in rank order, then each loop and policy. An edge is said from each end: "on fail, to Builder (back edge: starts the next round; fresh context; sees diff, test output)". In the editor each section has Edit, which opens that node's or loop's panel; the outline is a view of the open document, so an edit shows in it at once. `grooph outline` prints the same sections as Markdown.
+`outline(doc)` returns sections: the graph, then each node in rank order, then each subgrooph, then each loop and policy. A subgrooph's section says what it was placed from, what it was filled with and which nodes it holds; each of those nodes says which it is part of, and carries `inside`, so a view can fold them into the one box. An edge is said from each end: "on fail, to Builder (back edge: starts the next round; fresh context; sees diff, test output)". In the editor each section has Edit, which opens that node's or loop's panel; the outline is a view of the open document, so an edit shows in it at once. `grooph outline` prints the same sections as Markdown.
 
 ## The offline page
 
