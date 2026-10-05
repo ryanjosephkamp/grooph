@@ -199,6 +199,14 @@ test("on the canvas the themes are a dot in the stage's corner; the canvas takes
   await toggle.tap();
   await expect(list(stage).getByRole("menuitemradio")).toHaveText(["Paper", "Blueprint", "Ink", "Phosphor", "Transit", "Chalk"]);
   expect(asked).toHaveLength(1);
+  // The dot says its list is open, and a second press on it closes the list: it does not close and open again.
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await toggle.tap();
+  await expect(list(stage)).toHaveCount(0);
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await page.waitForTimeout(200);
+  await expect(list(stage)).toHaveCount(0);
+  await toggle.tap();
   await list(stage).getByRole("menuitemradio", { name: "Ink" }).tap();
   await expect(stage).toHaveAttribute("data-look", "ink");
   await expect(list(stage)).toHaveCount(0);
@@ -248,6 +256,12 @@ test("a share link may name a theme in its address: it is shown and not kept, a 
   await expect(stage).toHaveAttribute("data-look", "transit");
   await expect(stage.getByRole("button", { name: "Picture theme: Transit" })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem("groophPicture"))).toBeNull();
+  // The theme is the address's: on to another screen of the app, with nothing kept, and it is Paper there.
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(page.locator(".title-name")).toHaveText("Review gate");
+  await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  await page.goBack();
+  await expect(stage).toHaveAttribute("data-look", "transit");
   // Choosing another takes the name out of the address, so the choice is not undone by the next load.
   await stage.getByRole("button", { name: "Picture theme: Transit" }).tap();
   await list(stage).getByRole("menuitemradio", { name: "Chalk" }).tap();
@@ -432,6 +446,23 @@ test("in every theme, with the site's own faces, no line of words runs past its 
   }
 });
 
+test("a map drawn again, when the screen turns wide and its lanes go side by side, is in the theme as it arrives", async ({ page }) => {
+  await keep(page, "blueprint");
+  await page.goto(`./#/open?d=${payload(map())}`);
+  const shown = page.locator('.map-picture svg[data-picture="map"]');
+  await expect(shown).toHaveAttribute("data-look", "blueprint");
+  const narrow = (await shown.getAttribute("viewBox"))!;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Another picture altogether: wider than it is tall, and drawn by a piece of its own.
+  await expect.poll(() => shown.getAttribute("viewBox")).not.toBe(narrow);
+  await expect(shown).toHaveAttribute("data-look", "blueprint");
+  // With its grid behind it, once.
+  await expect(shown.locator("[data-of-look]")).toHaveCount(1);
+  await page.setViewportSize({ width: 400, height: 800 });
+  await expect.poll(() => shown.getAttribute("viewBox")).toBe(narrow);
+  await expect(shown).toHaveAttribute("data-look", "blueprint");
+});
+
 test("every rule of every theme finds something to style in a real picture, in a browser", async ({ page }) => {
   // The rules are written for hooks the drawing code writes: a card's mark, an edge's dash, a label's size. A hook
   // that the code no longer writes would leave its rule selecting nothing, and the theme would quietly lose a part.
@@ -573,6 +604,13 @@ test("on a run's view the dot has the corner to itself, on a phone and on a wide
   await page.getByRole("button", { name: "Watch a recorded run" }).click();
   await expect(page.locator("iframe.land-run-frame")).toHaveAttribute("src", /&theme=blueprint$/);
   await expect(page.frameLocator("iframe.land-run-frame").locator("svg.grooph-picture")).toHaveAttribute("data-look", "blueprint");
+  // Paper chosen while it plays: the frame's address names no theme again, and the run is in Paper.
+  const header = page.locator("header.site-header");
+  await header.getByRole("button", { name: "Theme: Grooph" }).click();
+  await header.getByRole("menuitem", { name: "Picture theme" }).click();
+  await list(header).getByRole("menuitemradio", { name: "Paper" }).click();
+  await expect(page.locator("iframe.land-run-frame")).not.toHaveAttribute("src", /theme=/);
+  await expect(page.frameLocator("iframe.land-run-frame").locator("svg.grooph-picture")).not.toHaveAttribute("data-look", /.+/);
 
   // An embed's "Open in grooph" opens the same document in the theme the embed was drawn in.
   await page.goto(`./#/embed?d=${payload(reviewLoop())}&theme=chalk-dark`);
@@ -615,7 +653,9 @@ test("with the themes not to be had, a control says what it needs and every pict
   await expect(stage).not.toHaveAttribute("data-look", /.+/);
   const dot = stage.getByRole("button", { name: "Picture theme" });
   await dot.tap();
-  await expect(dot).toHaveAttribute("title", "Needs a connection the first time");
+  // In words, beside the control, where the list would have been: a phone has nothing to hover over.
+  await expect(stage.getByRole("status")).toHaveText("The picture themes could not be fetched. They need a connection the first time.");
+  await expect(stage.getByRole("status")).toBeVisible();
   await expect(list(stage)).toHaveCount(0);
 
   await page.getByRole("button", { name: "Export", exact: true }).tap();
@@ -625,7 +665,11 @@ test("with the themes not to be had, a control says what it needs and every pict
   const [file] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.light.svg");
   expect(await downloadText(file)).toBe(readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8"));
-  await expect(keepCopy.getByRole("alert")).toContainText("This theme could not be fetched");
+  await expect(keepCopy.getByRole("alert")).toContainText("The picture themes could not be fetched");
+  // The offline page too: Paper's, and said.
+  const [paperPage] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Offline page (.html)" }).tap()]);
+  expect(await downloadText(paperPage)).toBe(offlinePage(reviewLoop(), { version: "0.3.0" }));
+  await expect(keepCopy.getByRole("alert")).toContainText("The picture themes could not be fetched");
 
   // The network is back. A browser remembers a script that failed for as long as the page lives, and the app asks
   // again in a way it honors (`piece.ts`): a press on the control fetches the themes, and the kept one is in effect.
@@ -637,6 +681,96 @@ test("with the themes not to be had, a control says what it needs and every pict
   const [again] = await Promise.all([page.waitForEvent("download"), svg.tap()]);
   expect(again.suggestedFilename()).toBe("review-loop.ink-light.svg");
   await expect(keepCopy.getByRole("alert")).toHaveCount(0);
+});
+
+test("a theme is said to be missing only when one could not be fetched: a kept value that is no theme, Paper by name and a name that is none are simply Paper, and fetch nothing", async ({ page }) => {
+  const asked = fetches(page);
+  const stage = page.locator("main.stage");
+  const paper = readFileSync(join(repoRoot, "fixtures/pictures/review-loop.light.svg"), "utf8");
+  await page.emulateMedia({ colorScheme: "light" });
+  // Keep a copy, with a kept value that is no theme, and with Paper kept by name: Paper's file, and nothing said.
+  await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+  for (const kept of ["sepia", "paper", "ink-dark", ""]) {
+    await page.evaluate((value) => localStorage.setItem("groophPicture", value), kept);
+    await page.reload();
+    await expect(node(page, "builder")).toBeVisible();
+    await page.getByRole("button", { name: "Export", exact: true }).tap();
+    const keepCopy = sheet(page).getByRole("group", { name: "Keep a copy" });
+    const [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Picture (SVG)" }).tap()]);
+    expect(file.suggestedFilename(), kept).toBe("review-loop.light.svg");
+    expect(await downloadText(file), kept).toBe(paper);
+    const [offline] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Offline page (.html)" }).tap()]);
+    expect(await downloadText(offline), kept).toBe(offlinePage(reviewLoop(), { version: "0.3.0" }));
+    await expect(keepCopy.getByRole("alert"), kept).toHaveCount(0);
+    await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  }
+  expect(asked).toEqual([]);
+  // A share link that names Paper, or a name that is none of the six: Paper, and nothing fetched.
+  await page.evaluate(() => localStorage.removeItem("groophPicture"));
+  for (const named of ["paper", "paper-dark", "sepia", "inklight", "ink-pink"]) {
+    await page.goto("about:blank");
+    await page.goto(`${linkFor(reviewLoop())}&theme=${named}`);
+    await expect(node(page, "builder")).toBeVisible();
+    await expect(stage, named).not.toHaveAttribute("data-look", /.+/);
+  }
+  await page.waitForTimeout(300);
+  expect(asked).toEqual([]);
+  // A kept theme, and an address that names Paper over it: the themes are fetched, and the screen is Paper.
+  await page.evaluate(() => localStorage.setItem("groophPicture", "chalk"));
+  await page.goto("about:blank");
+  await page.goto(`${linkFor(reviewLoop())}&theme=paper`);
+  await expect(node(page, "builder")).toBeVisible();
+  await expect.poll(() => asked.length).toBeGreaterThan(0);
+  await expect(stage).not.toHaveAttribute("data-look", /.+/);
+  // And without the name, the kept one.
+  await page.goto("about:blank");
+  await page.goto(linkFor(reviewLoop()));
+  await expect(stage).toHaveAttribute("data-look", "chalk");
+});
+
+test("a screen that is to be drawn in a theme is not shown in Paper first, and does not wait long for a theme that is slow to come", async ({ page }) => {
+  // Every frame in which the canvas or an embed's picture is there to be seen, noted with the theme it is in.
+  await page.addInitScript(() => {
+    const seen: string[] = [];
+    (window as unknown as { seen: string[] }).seen = seen;
+    const look = (): void => {
+      const drawn = document.querySelector<HTMLElement>("main.stage:has(.react-flow__node), .gx:has(svg.grooph-picture)");
+      if (drawn && getComputedStyle(drawn).visibility === "visible") seen.push(drawn.dataset["look"] ?? "paper");
+      requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
+  });
+  const seen = (): Promise<string[]> => page.evaluate(() => (window as unknown as { seen: string[] }).seen);
+  // Phosphor is dark on any device: on a light one, a first frame in Paper would be a flash of white.
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto(`${linkFor(reviewLoop())}&theme=phosphor`);
+  await expect(page.locator("main.stage")).toHaveAttribute("data-look", "phosphor");
+  await page.waitForTimeout(250);
+  expect((await seen()).length).toBeGreaterThan(5);
+  expect(new Set(await seen())).toEqual(new Set(["phosphor"]));
+  // An embed, the same.
+  await page.goto("about:blank");
+  await page.goto(`./#/embed?d=${payload(reviewLoop())}&theme=phosphor`);
+  await expect(page.locator(".gx")).toHaveAttribute("data-look", "phosphor");
+  await page.waitForTimeout(250);
+  expect(new Set(await seen())).toEqual(new Set(["phosphor"]));
+
+  // A theme that takes three seconds to come: the canvas is up well before that, in Paper, and takes the theme when it arrives.
+  await page.route("**/assets/themes-*.js", async (route) => {
+    await new Promise((later) => setTimeout(later, 3000));
+    await route.continue();
+  });
+  await page.goto("about:blank");
+  const from = Date.now();
+  await page.goto(`${linkFor(reviewLoop())}&theme=chalk`);
+  // The rest of the screen is there at once, and the canvas within the moment it is held for.
+  await expect(page.locator(".title-name")).toHaveText("Review loop");
+  await expect(node(page, "builder")).toBeAttached();
+  await expect(node(page, "builder")).toBeVisible();
+  expect(Date.now() - from).toBeLessThan(2500);
+  await expect(page.locator("main.stage")).not.toHaveAttribute("data-look", /.+/);
+  await expect(page.locator("main.stage")).toHaveAttribute("data-look", "chalk", { timeout: 8000 });
+  expect(new Set(await seen())).toEqual(new Set(["paper", "chalk"]));
 });
 
 test.describe("with the service worker running", () => {

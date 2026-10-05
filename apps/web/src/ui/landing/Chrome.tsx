@@ -197,6 +197,7 @@ function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) 
           <button
             type="button"
             role="menuitem"
+            aria-haspopup="menu"
             tabIndex={-1}
             data-pictures=""
             ref={(el) => void (items.current[THEMES.length] = el)}

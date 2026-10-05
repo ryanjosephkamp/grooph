@@ -41,7 +41,7 @@ let chosen: LookId = (() => {
  * address names no theme: `theme=dark` alone is an embed's light or dark, as it always was.
  */
 export function lookNamed(hash: string): LookId | undefined {
-  const value = /^#\/(?:open|embed)\?(?:[^&]*&)*?theme=([^&]*)/.exec(hash)?.[1]?.replace(/-?(?:light|dark|auto)$/, "");
+  const value = /^#\/(?:open|embed)\?(?:[^&]*&)*?theme=([^&]*)/.exec(hash)?.[1]?.replace(/(?:^|-)(?:light|dark|auto)$/, "");
   return value ? (known(value) ?? "paper") : undefined;
 }
 
@@ -49,7 +49,12 @@ export function lookNamed(hash: string): LookId | undefined {
 export const lookNow = (hash: string = location.hash): LookId => lookNamed(hash) ?? (hash.startsWith("#/embed") ? "paper" : chosen);
 
 /** An address without the theme it names: every `theme=` goes, and the rest stays as it was. */
-export const withoutLook = (hash: string): string => (lookNamed(hash) === undefined ? hash : hash.replace(/([?&])theme=[^&]*&?/g, "$1").replace(/[?&]$/, ""));
+export function withoutLook(hash: string): string {
+  if (lookNamed(hash) === undefined) return hash;
+  const [path, query = ""] = [hash.slice(0, hash.indexOf("?")), hash.slice(hash.indexOf("?") + 1)];
+  const rest = query.split("&").filter((pair) => !pair.startsWith("theme="));
+  return rest.length ? `${path}?${rest.join("&")}` : path;
+}
 
 /** Choose a theme for the pictures, keep the choice in this browser, and dress the page in it. */
 export function choose(id: LookId): void {
@@ -175,14 +180,22 @@ function embedRules(t: ThemeValues): string {
     ]);
   const node = `${at} .gx-canvas g[data-node]`;
   const c = t.canvas;
+  // A node the keyboard is on, that is picked or under the pointer, or that a replay has reached; one not reached
+  // yet keeps the theme's own outline, dimmed.
+  const marked = [`${node}:focus-visible`, `${node}.is-picked`, `${node}:hover`, ...["running", "passed", "failed", "halted"].map((state) => `${at}[data-replay] g[data-node][data-state="${state}"]`)];
+  // After the states and as particular as they are, so the step a replay is on is the heaviest, as in Paper.
+  const step = [`${at}[data-replay] g[data-node][data-focus]`];
+  // Each said twice: for a card, and for a gate's card, whose own outline is the heavier in every theme.
+  const weigh = (nodes: string[], more: number): string =>
+    `${nodes.map((n) => `${n} rect[data-card]`).join(",")}{stroke-width:${Math.max(2.5, c.border + more)}px}` + `${nodes.map((n) => `${n} rect[data-card][stroke-width="1.8"]`).join(",")}{stroke-width:${Math.max(2.5, c.gate + more)}px}`;
   return (
-    `${at}{${own(t.light)};background:var(--gx-bg)}` +
-    (t.dark === t.light ? "" : `@media (prefers-color-scheme:dark){${at}:not([data-theme="light"]){${own(t.dark)}}}${at}[data-theme="dark"]{${own(t.dark)}}`) +
-    `${node}:focus-visible rect[data-card],${node}.is-picked rect[data-card],${node}:hover rect[data-card],` +
-    // A node that has been reached; one not reached yet keeps the theme's own outline, dimmed.
-    `${["running", "passed", "failed", "halted"].map((state) => `${at}[data-replay] g[data-node][data-state="${state}"] rect[data-card]`).join(",")}{stroke-width:${Math.max(2.5, c.border + 0.9)}px}` +
-    // After the states and as particular as they are, so the step a replay is on is the heaviest, as in Paper.
-    `${at}[data-replay] g[data-node][data-focus] rect[data-card]{stroke-width:${Math.max(3.5, c.border + 1.9)}px}` +
+    // A theme with one form says its colors where embed.css says dark's, and one attribute more, so it is the one
+    // that holds whichever sheet comes later.
+    (t.dark === t.light
+      ? `${at},${at}:not([data-theme="light"]),${at}[data-theme]{${own(t.light)};background:var(--gx-bg)}`
+      : `${at}{${own(t.light)};background:var(--gx-bg)}@media (prefers-color-scheme:dark){${at}:not([data-theme="light"]){${own(t.dark)}}}${at}[data-theme="dark"]{${own(t.dark)}}`) +
+    weigh(marked, 0.9) +
+    weigh(step, 1.9) +
     `${at}[data-replay] g[data-edge][data-focus] path:first-child{stroke-width:${Math.max(3, c.edge + 1.5)}px}`
   );
 }
@@ -190,12 +203,12 @@ function embedRules(t: ThemeValues): string {
 /**
  * The stylesheet: for each of the five, the rules a picture in it carries (core's, for a picture that follows the
  * viewer), then the canvas's, the map frame's and an embed's. And one rule for a control that offers the themes
- * in words: it says the one in effect after its own name.
+ * in words: it says the one in effect after its own name, a little lighter, as a value beside its label.
  */
 export const styles = (): string =>
   Object.values(THEME_VALUES)
     .map((t) => themeParts(t.name)!.css + canvasRules(t) + mapRules(t) + embedRules(t))
-    .join("") + `[data-pictures][data-now]::after{content:": " attr(data-now)}`;
+    .join("") + `[data-pictures][data-now]::after{content:attr(data-now);opacity:.72}`;
 
 // ─── dressing the page ────────────────────────────────────────────────────
 
@@ -245,18 +258,22 @@ export function apply(): void {
 // ─── the list ─────────────────────────────────────────────────────────────
 
 const CHECK = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-let shut: (() => void) | undefined;
+/** The list that is open, if one is: where it was opened, and how to close it. */
+let opened: { at: Element; shut: () => void } | undefined;
 
 /**
  * Open the list of six at a control that offers the themes: a menu as the header's is, drawn by the header's own
  * rules (`.site-theme-list`), set beside the control. The arrows move, Enter or Space chooses, Escape closes and
- * gives the keyboard back; a press anywhere else closes it.
+ * gives the keyboard back; a press anywhere else closes it, and so does a second press on the control.
  */
 export function open(at: Element): void {
-  shut?.();
+  const same = opened?.at === at;
+  opened?.shut();
+  if (same) return;
   const host = (at.closest(".site-theme") ?? at.parentElement) as HTMLElement;
-  // The header's entry is inside the site's own menu, which has closed: the keyboard goes back to that menu's button.
-  const back = host.querySelector<HTMLElement>(".site-theme-toggle") ?? (at as HTMLElement);
+  // The header's entry is inside the site's own menu, which has closed: its button is the one this list belongs to
+  // now, for the keyboard and for anyone told whether a menu is open.
+  const button = host.querySelector<HTMLElement>(".site-theme-toggle") ?? (at as HTMLElement);
   const now = lookNow();
   const list = document.createElement("ul");
   list.className = "site-theme-list";
@@ -266,21 +283,27 @@ export function open(at: Element): void {
     (id) => `<li role="none"><button type="button" role="menuitemradio" aria-checked="${id === now}" tabindex="-1" data-id="${id}"><span class="site-theme-dot" style="--dot:${SWATCH[id]}" aria-hidden="true"></span>${labelOf(id)}${CHECK}</button></li>`,
   ).join("");
   host.append(list);
-  // Over a sheet that may cover the lower half of a canvas on a phone (--z-chrome is 40), while it is open.
+  button.setAttribute("aria-expanded", "true");
+  // Over a sheet that may cover the lower half of a canvas on a phone (--z-chrome is 40), while it is open; and no
+  // taller than the room under it, so a short window scrolls the list and cuts nothing off.
   const over = host.style.position === "absolute";
   if (over) host.style.zIndex = "50";
+  list.style.maxHeight = `${Math.max(140, innerHeight - list.getBoundingClientRect().top - 8)}px`;
+  list.style.overflowY = "auto";
   const items = [...list.querySelectorAll("button")];
+  // A press on the control itself is the control's to answer: it closes the list, above.
   const away = (e: Event): void => {
-    if (!list.contains(e.target as Node)) close(false);
+    if (!list.contains(e.target as Node) && !at.contains(e.target as Node)) close(false);
   };
   const close = (keyboard: boolean): void => {
     list.remove();
     document.removeEventListener("pointerdown", away);
     if (over) host.style.zIndex = "var(--z-overlay)";
-    shut = undefined;
-    if (keyboard) back.focus();
+    button.setAttribute("aria-expanded", "false");
+    opened = undefined;
+    if (keyboard) button.focus();
   };
-  shut = () => close(false);
+  opened = { at, shut: () => close(false) };
   list.addEventListener("click", (e) => {
     const item = (e.target as Element).closest("button");
     if (!item) return;

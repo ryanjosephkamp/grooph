@@ -1,7 +1,7 @@
 /**
  * `#/embed?d=<payload>[&theme=<name>][&frame=1][&play=1][&c=<candidate>]`
  * (docs/exports.md, "Embedding"). `theme` is light or dark, one of the picture's six themes (docs/themes.md), or
- * both as `chalk-dark`; the theme itself is read by `doc/look.ts`. The payload is an ordinary share payload,
+ * both as `chalk-dark`; the theme itself is read by `ui/theme/themes.ts`. The payload is an ordinary share payload,
  * the one `#/open?d=` carries, so a link and an embed of the same document
  * hold the same bytes. `run=<payload>` is the same as `d=` for a run.
  */
@@ -18,7 +18,7 @@ export type EmbedLink = {
   play: boolean;
   /** for a proposal set: the candidate to show, by id */
   candidate?: string;
-  /** one of the picture's themes, as the address names it; `doc/look.ts` decides what it means */
+  /** one of the picture's themes, as the address names it; `ui/theme/themes.ts` decides what it means */
   look?: string;
 };
 

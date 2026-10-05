@@ -10,11 +10,20 @@ import { Segmented } from "./fields.js";
 const prefersDark = (): boolean => typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches;
 
 /**
- * The theme this screen is drawn in, when it is not Paper (docs/themes.md): the themes' piece marks the stage of
- * every screen it has dressed, and Keep a copy is only ever beside one. Undefined in Paper, and when the themes
- * could not be fetched: then nothing is marked, and the files are Paper's.
+ * The theme this screen is drawn in, when it is not Paper (docs/themes.md). Which theme is in effect is the themes'
+ * piece's to say, and it is asked whenever there may be one: the piece has marked this screen's stage, or a theme
+ * was kept or is named in the address. Undefined in Paper. `null` when the piece was wanted and could not be
+ * fetched: the files are then Paper's, and that is said.
  */
-const lookNow = async () => (document.querySelector("main.stage[data-look]") ? (await themes()).look() : undefined);
+const lookNow = async () => {
+  if (!document.querySelector("main.stage[data-look]") && !wanted()) return undefined;
+  try {
+    return (await themes()).look();
+  } catch {
+    return null;
+  }
+};
+const NO_THEMES = "The picture themes could not be fetched (they need a connection the first time), so this copy is in Paper.";
 
 /**
  * Keep a copy (review 2026-10, exports): the whole graph, or map, as a
@@ -29,8 +38,7 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
   /** The picture as SVG: Paper's as it always was, and any other theme added to the picture that follows the viewer. */
   const drawn = async (): Promise<{ svg: string; look: string }> => {
     const look = await lookNow();
-    // A theme was kept, and the screen is not in it: its file could not be fetched. Said, and not waited for.
-    setProblem(!look && wanted() ? "This theme could not be fetched (it needs a connection the first time), so this copy is in Paper." : null);
+    setProblem(look === null ? NO_THEMES : null);
     return look ? { svg: look.picture(pictureSvg(doc, "auto"), theme), look: look.id } : { svg: pictureSvg(doc, theme), look: "" };
   };
   const png = async () => {
@@ -47,6 +55,7 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
   };
   const page = async () => {
     const look = await lookNow();
+    setProblem(look === null ? NO_THEMES : null);
     download(pageName(doc), look ? look.page(pageHtml(doc)) : pageHtml(doc), "text/html");
   };
   return (
