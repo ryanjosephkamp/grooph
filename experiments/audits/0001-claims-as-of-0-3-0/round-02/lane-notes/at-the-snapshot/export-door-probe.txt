@@ -1,4 +1,4 @@
-At a9921e4, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/export-door-probe.sh <scratch folder>
+At b74c9ee, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/export-door-probe.sh <scratch folder>
 
 == 1. export the graph into an empty project
 wrote 7 files into project

@@ -1,4 +1,4 @@
-At a9921e4, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/adopt-probe.sh <scratch folder>
+At b74c9ee, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/adopt-probe.sh <scratch folder>
 
 the working copy as the run left it: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]
 loosened for the probe:              [{"kind":"bar-passed"},{"kind":"max-iterations","n":40},{"kind":"budget","measure":"dispatches","limit":400}]

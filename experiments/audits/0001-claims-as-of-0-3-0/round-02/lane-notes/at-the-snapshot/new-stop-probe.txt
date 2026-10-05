@@ -1,4 +1,4 @@
-At a9921e4, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/new-stop-probe.mjs
+At b74c9ee, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/new-stop-probe.mjs
 
 the source: builder -> tests; tests pass -> critic, fail -> failed (halt); critic pass -> done (success), fail -> failed. validator errors: none
 

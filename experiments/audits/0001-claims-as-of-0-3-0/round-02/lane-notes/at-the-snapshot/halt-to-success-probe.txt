@@ -1,4 +1,4 @@
-At a9921e4, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/halt-to-success-probe.mjs
+At b74c9ee, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/halt-to-success-probe.mjs
 
 the source: builder -> tests; pass -> done (success); fail -> failed (halt). validator errors: none
 

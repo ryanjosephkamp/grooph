@@ -1,4 +1,4 @@
-At a9921e4, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/irreversible-entry-probe.mjs
+At b74c9ee, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/irreversible-entry-probe.mjs
 
 the graph: builder -> critic -> merge-gate -> done; back edges into builder: e-critic-fail, e-merge-gate-reject
 edges into builder: e-critic-fail (from critic, kind: agent); e-merge-gate-reject (from merge-gate, kind: human-gate)
@@ -8,9 +8,9 @@ entry nodes by graph-ir section 2 (no inbound edge that is not a loop's back edg
    errors: none
 
 == builder marked irreversible (merge)
-   errors: E_IRREVERSIBLE_NO_GATE: node "builder" performs irreversible actions (merge) and can be reached without a human decision through "e-critic-fail"; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node
+   errors: E_IRREVERSIBLE_NO_GATE: node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it
 
 == builder marked irreversible, and approval: true on e-critic-fail, so every edge into it passes a person
-   errors: none
+   errors: E_IRREVERSIBLE_NO_GATE: node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it
 
 In the last case the run still starts at the builder, with nobody asked, and no error is raised.

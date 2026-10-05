@@ -1,4 +1,4 @@
-At a9921e4, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh <scratch folder>
+At b74c9ee, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh <scratch folder>
 
   the check was: {"kind":"tests","run":"npm test","pass":"exit code 0 and no test skipped"}
   the check is now: {"kind":"tests","run":"true","pass":"exit code 0"}
