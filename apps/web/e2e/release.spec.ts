@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { fixturePath, node } from "./support.js";
+import { canvasIsQuiet, fixturePath, node } from "./support.js";
 import { builtApp, expectWhole, held, makeRelease, namedBy, removeReleases, seen, serveSite, settled, twoReleases, type Release, type Site, type WorkerOf } from "./support-release.js";
 
 /**
@@ -103,6 +103,7 @@ const frontPageIsUp = (page: Page): Promise<void> => expect(page.getByRole("head
 async function importAndExport(page: Page): Promise<void> {
   await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
   await expect(node(page, "builder")).toBeVisible();
+  await canvasIsQuiet(page);
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   const [zip] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download package (.zip)" }).tap()]);
   expect(zip.suggestedFilename()).toBe("review-loop-claude-code.zip");
@@ -110,10 +111,14 @@ async function importAndExport(page: Page): Promise<void> {
 
 /** A built-in template on the canvas, at an address typed in and loaded from nothing. */
 async function openTemplate(page: Page, site: Site): Promise<void> {
+  // An address that differs only after the # is drawn and not loaded, so the template is on the canvas before the
+  // reload: wait for all it fetches, or the reload cuts a fetch short and the tests that count failures count it.
   await page.goto(`${site.url}#/templates/built-in/review-gate`);
+  await canvasIsQuiet(page);
   await page.reload();
   await expect(node(page, "builder")).toBeVisible();
   await expect(page.locator(".react-flow__edge")).toHaveCount(5);
+  await canvasIsQuiet(page);
 }
 
 /** A visitor who has the older release: one visit, with the worker in control and holding all of it. */
