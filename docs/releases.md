@@ -2,6 +2,10 @@
 
 Each version of grooph, newest first: its date and what changed for a person using it. A version is a [tag on the repository](https://github.com/ryanjosephkamp/grooph/tags). The site and the app are published from `main`, so they are at least as new as the newest version here. To install or update, follow the [quickstart](quickstart.md).
 
+## Not yet released
+
+- **The default models changed.** A package for Claude Code made with nothing named now gives `frontier` to `opus`, and `strong` and `fast` both to `sonnet`; it gave them `fable`, `opus` and `sonnet`. For the old map: `grooph export … --models frontier=fable,strong=opus,fast=sonnet`, or the same in `GROOPH_MODELS` for every export on a machine. With `strong` and `fast` one model, a critic on one over a builder on the other is the same model, and the export says so when a graph has agents on both ([which templates](targets/claude-code.md)).
+
 ## 0.3.0 · October 4, 2026
 
 - **A front page** on a device with no graphs: what grooph is, a loop graph that plays a recorded run when asked, two ways to start, the twenty shapes, and what is shown and what is not.
