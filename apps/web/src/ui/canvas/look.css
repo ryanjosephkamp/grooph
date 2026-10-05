@@ -1,15 +1,19 @@
 /* The themes' dot on a canvas (LookMenu.tsx; docs/themes.md): in the stage's top right corner, under the switch of
    the graph's views (graph-views.css), which has the corner itself. A graph in three dimensions is Paper in every
-   theme, and its own bar is where the dot would be: there the dot steps aside, as it does for the words the switch
-   says while a view is on its way. These rules ride in LookMenu.tsx's script, with the canvas's screens: a
-   stylesheet of the app's is asked for by every address, and is at its budget. */
+   theme, and its own bar is where the dot would be: there the dot steps aside. When the view in three dimensions
+   could not be fetched the switch says so in a note that stays, in the place under it: the dot stands under the
+   note then, and is still there to be pressed. These rules ride in LookMenu.tsx's script, with the canvas's
+   screens: a stylesheet of the app's is asked for by every address, and is at its budget. */
 .stage > .look-dot {
   position: absolute;
   top: 74px;
   right: 10px;
   z-index: var(--z-overlay);
 }
-.stage:has(> .graph-views.is-space) > .look-dot,
-.stage:has(.graph-views-note) > .look-dot {
+.stage:has(> .graph-views.is-space) > .look-dot {
   display: none;
+}
+/* The note is three lines at most, on the narrowest phone. */
+.stage:has(.graph-views-note) > .look-dot {
+  top: 160px;
 }

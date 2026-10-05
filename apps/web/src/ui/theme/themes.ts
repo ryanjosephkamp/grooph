@@ -239,8 +239,15 @@ export function apply(): void {
   const id = now === "paper" ? undefined : now;
   for (const svg of document.querySelectorAll<SVGSVGElement>("svg.grooph-picture")) dress(svg, id);
   for (const el of document.querySelectorAll<HTMLElement>("main.stage,.map-picture,.gx")) {
-    if (el.dataset["look"] !== id) id ? (el.dataset["look"] = id) : delete el.dataset["look"];
+    // A view in three dimensions is Paper in every theme, and whole (docs/themes.md). While a stage or a map's frame
+    // holds one it is not dressed: a theme's variables would reach the view's own controls through it, and its
+    // slider, which is the browser's, takes its color from one of them.
+    const worn = el.querySelector('[data-picture="space"]') ? undefined : id;
+    if (el.dataset["look"] !== worn) worn ? (el.dataset["look"] = worn) : delete el.dataset["look"];
   }
+  // A list left open where it is no longer shown (at the dot, when a graph is turned to three dimensions by the
+  // keyboard) is closed: nobody could see it to close it.
+  if (opened && opened.host.getClientRects().length === 0) opened.shut();
   for (const el of document.querySelectorAll<HTMLElement>("[data-pictures]")) {
     el.style.setProperty("--dot", SWATCH[now]);
     // A control with words says the theme after them; one that is a dot alone says it in its name.
@@ -259,7 +266,7 @@ export function apply(): void {
 
 const CHECK = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4.5 10.5 3.5 3.5 7.5-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 /** The list that is open, if one is: where it was opened, and how to close it. */
-let opened: { at: Element; shut: () => void } | undefined;
+let opened: { at: Element; host: HTMLElement; shut: () => void } | undefined;
 
 /**
  * Open the list of six at a control that offers the themes: a menu as the header's is, drawn by the header's own
@@ -285,8 +292,9 @@ export function open(at: Element): void {
   host.append(list);
   button.setAttribute("aria-expanded", "true");
   // Over a sheet that may cover the lower half of a canvas on a phone (--z-chrome is 40), while it is open; and no
-  // taller than the room under it, so a short window scrolls the list and cuts nothing off.
-  const over = host.style.position === "absolute";
+  // taller than the room under it, so a short window scrolls the list and cuts nothing off. The dot on a canvas is
+  // known by its name: where it stands is in a stylesheet (ui/canvas/look.css), not on the element.
+  const over = host.classList.contains("look-dot");
   if (over) host.style.zIndex = "50";
   list.style.maxHeight = `${Math.max(140, innerHeight - list.getBoundingClientRect().top - 8)}px`;
   list.style.overflowY = "auto";
@@ -298,12 +306,12 @@ export function open(at: Element): void {
   const close = (keyboard: boolean): void => {
     list.remove();
     document.removeEventListener("pointerdown", away);
-    if (over) host.style.zIndex = "var(--z-overlay)";
+    if (over) host.style.zIndex = "";
     button.setAttribute("aria-expanded", "false");
     opened = undefined;
     if (keyboard) button.focus();
   };
-  opened = { at, shut: () => close(false) };
+  opened = { at, host, shut: () => close(false) };
   list.addEventListener("click", (e) => {
     const item = (e.target as Element).closest("button");
     if (!item) return;

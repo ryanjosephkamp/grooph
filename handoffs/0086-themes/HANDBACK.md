@@ -32,7 +32,7 @@ This is the second handback. The first had the switch and the kept choice in the
 - `src/ui/theme/themes.ts` (new): **the piece**, 6.58 KB, fetched when a theme is wanted. The five themes, the list of six with names and swatches, the kept choice, the address's theme, and everything that puts a screen into a theme. Plain DOM, no React.
 - `src/doc/look.ts` (new): what the app carries before a theme is wanted. One look at what was kept and at the address, and an ear for a press on a control that offers the themes. It rides with the canvas's screens, not the first load.
 - `src/ui/landing/Chrome.tsx`: one entry, "Picture theme", in the header's theme menu. **The only thing of the themes in the first load.**
-- `src/ui/canvas/LookMenu.tsx` (new): the dot in a stage's corner, a button and nothing more. `src/ui/canvas/look.css` (new): where it stands, under the switch of the graph's views, and that it steps aside in 3D; four rules that ride in the script. `src/ui/Editor.tsx`, `open/GraphViewer.tsx`, `run/RunView.tsx`: one line each, the dot.
+- `src/ui/canvas/LookMenu.tsx` (new): the dot in a stage's corner, a button and nothing more. `src/ui/canvas/look.css` (new): where it stands, under the switch of the graph's views, and that it steps aside in 3D; a few rules that ride in the script. `src/ui/Editor.tsx`, `open/GraphViewer.tsx`, `run/RunView.tsx`: one line each, the dot.
 - `src/ui/Keep.tsx`, `src/doc/keep.ts`: a "Picture theme" button; the picture and the offline page are made in the theme in effect.
 - `src/ui/embed/EmbedApp.tsx`, `embed/link.ts`: an embed fetches the piece when its address names one of the five; "Open in grooph" keeps the name.
 - `src/ui/screens.ts`: one import. `vite.config.ts`, `tsconfig.json`: the door, and the piece named in the page's list.
@@ -48,7 +48,7 @@ This is the second handback. The first had the switch and the kept choice in the
 
 - **The dot moved.** `main`'s Picture and 3D switch took the stage's top right corner, where the dot stood: the dot lay over the word "3D". It is now under the switch. The run view's legend is `main`'s again; `main`'s own rule keeps it clear of the switch.
 - **A graph's 3D view is Paper in every theme**, as a map's is, and its bar is where the dot would be, so the dot is not shown there. A test holds the view to Paper's colors inside a stage that is in Phosphor, and brings the dot back with the picture.
-- **`--theme` and `--open` go together.** `grooph image --theme chalk-dark --open all` draws Paper with its subgroophs as asked and adds the theme; `grooph page --theme ink` themes the page's picture, which is now the one with boxes. A subgrooph's picture, as one box and open, is in core's every-picture tests and in the browser's test that no line of words leaves its box. Its box takes a theme's colors and lettering and keeps its own corners, in the picture and on the canvas.
+- **`--theme` and `--open` go together.** `grooph image --theme chalk-dark --open all` draws Paper with its subgroophs as asked and adds the theme; `grooph page --theme ink` themes the page's picture, which is now the one with boxes. A subgrooph's picture, as one box and open, is in core's every-picture tests and in the browser's test that no line of words leaves its box. Its box takes a theme's colors; no theme has rules of its own for it yet, so its label is not set as a card's is, and only Phosphor changes its corners (corrected after the third read; `docs/themes.md` says it under Limits).
 - **Every theme test that reloads a canvas waits for the canvas's last fetch first** (`canvasIsQuiet`, #95).
 
 **The browser tests run on port 4367 from here on**, not 4361, which is the game experiment's. Nothing of this lane's listens on 4361.
@@ -119,10 +119,10 @@ The header's own theme menu (slice 0077) did not make this hard. It gained one `
 
 | File | `main` | this branch | | What it is |
 |---|---|---|---|---|
-| `screens-*.js` (the canvas) | 100,526 | 101,713 | +1,187 | `look.ts`; the dot on the editor, a share link's graph and a run, and the four rules for where it stands; Keep a copy's button, and its files made in the theme in effect; the words said when the themes cannot be had |
+| `screens-*.js` (the canvas) | 100,526 | 101,713 | +1,187 | `look.ts`; the dot on the editor, a share link's graph and a run, and the rules for where it stands; Keep a copy's button, and its files made in the theme in effect; the words said when the themes cannot be had |
 | `EmbedApp-*.js` | 7,811 | 8,101 | +290 | the embed's own check of its address; "Open in grooph" keeps the theme |
 
-**A stylesheet of the app's is first load, whichever screen it is for.** The dot's four rules were first written as a stylesheet beside the canvas's screens. The page links every stylesheet, so they were 0.07 KB on the first-load line and took its styles to 19.98 of 20. They ride in the canvas's script instead, as the views' switch's own rules do.
+**A stylesheet of the app's is first load, whichever screen it is for.** The dot's rules were first written as a stylesheet beside the canvas's screens. The page links every stylesheet, so they were 0.07 KB on the first-load line and took its styles to 19.98 of 20. They ride in the canvas's script instead, as the views' switch's own rules do.
 
 **A top-level await costs 3.2 KB of first load here.** The second read asked that a screen not be shown in Paper before its theme. Waiting for the piece with `await` at the top of `look.ts` did it, and moved the build's chunks: the first load went to 181.69 and over its limit. It is done with a style rule instead (Decisions 4).
 
@@ -165,6 +165,8 @@ Phosphor's light and dark are the same picture (Deviations 2). The shots were ma
 They match. In Paper the app calls the same function and gets the same bytes: Keep a copy's SVG is compared with the committed picture in `e2e/keep.spec.ts`, and that test passes unchanged. In a theme, Keep a copy's file is `themed(picture(doc), name)`, the very call the CLI makes, and `e2e/themes.spec.ts` compares the two.
 
 **The face matches too.** Asked through the browser's own font report, the words of a Paper picture are drawn in the device's face (`system-ui`: San Francisco on this Mac) on the front page, on the map screen at 400 and at 1,440 px, and in an embed, on `main` and on this branch. The picture sets `font-family` on its own root, so the site's face, which the page's `body` has, does not reach it. I could not reproduce what the views lane saw.
+
+**One exception since `main` gained subgroophs (#79), found by the third read:** for a graph with a subgrooph, `grooph image` and `grooph page` draw each subgrooph as a box, and Keep a copy in the app still draws every node, because the app's door into core has no boxes. The two files differ for such a graph. That split is slice 0085's, not the themes'; a theme is added to whichever picture each draws.
 
 In which face each theme's words are drawn, as Chromium reports it on this Mac:
 
