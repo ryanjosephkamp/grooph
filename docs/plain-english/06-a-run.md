@@ -120,7 +120,7 @@ Besides these, a note can be an **amendment** (the lead changed its working copy
 
 ## Waiting for a person, and carrying on
 
-The word **halt** is used for three things, and all three mean "stopped, short of finished": a run waiting at a gate, a run that stopped itself at a cap or a budget and reported to you, and a stop box whose outcome is "halt" and not "success". Only the first is expected to carry on.
+The word **halt** is used for three things, and all three mean "stopped, short of finished": a run waiting at a gate, a run whose lead stops it at a cap or a budget, as its instructions say, and reports to you (none is on record), and a stop box whose outcome is "halt" and not "success". Only the first is expected to carry on.
 
 A run that reaches a gate ends its turn there. If you are sitting in the session, you answer and it continues. If the session was started by a script with nobody watching (a **headless** run), it simply ends at the halt note. To carry on, you resume that same session, which is something the harness lets you do, and give it the run id: in Claude Code, by typing the package's command with the id after it. It reads `PROGRESS.md`, sees where it stopped, and keeps writing to the same `notes.jsonl`.
 

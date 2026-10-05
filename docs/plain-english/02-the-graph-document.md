@@ -142,9 +142,9 @@ A **loop** is written down as an object of its own. It is not left for a reader 
 - **`back`** lists the **back edges**: the arrows that send work back to an earlier step. Ours has two: the critic's "fail", shown above, and the person's "no" at the gate (`e-merge-gate-reject`). Each time the run takes a back edge, a new **round** begins. The first trip through is round 0.
 - **`mode`** is one of two. A **grind loop** is decided by a check: the tests pass or they do not. A **judgment loop** is decided by an agent's verdict. Ours is a judgment loop, because a critic decides.
 - **`bar`** is the standard the critic judges against. It must name something that can be looked at (`inspects`): a file, a web address, a number, a checklist, an answer key (a statement of the right result, written by an earlier step), or an **artifact**, which is anything the run produces, such as the tests' output. Its **acceptance** is the reachable "good enough to stop". A bar may also have an **aspiration**, a direction to aim in that may never be reached. Only the acceptance can stop a loop.
-- **`stops`** are the rules that end the loop. There are six kinds:
+- **`stops`** are the rules for ending the loop. They are what the lead is told to check. There are six kinds:
 
-| Stop | Ends the loop when |
+| Stop | The lead is told to end the loop when |
 |---|---|
 | `bar-passed` | the acceptance is met |
 | `max-iterations` | the loop has gone around `n` times (the **round cap**) |
@@ -153,7 +153,7 @@ A **loop** is written down as an object of its own. It is not left for a reader 
 | `diminishing-returns` | several rounds in a row have improved nothing |
 | `evidence-invalid` | several rounds in a row could not read their evidence |
 
-The stops are tried in the order written, each time a trip through the loop finishes and before another begins, and the first that applies wins. So our loop ends when the checklist is satisfied, or at 4 rounds, or at 10 dispatches, whichever comes first.
+The stops are tried in the order written, each time a trip through the loop finishes and before another begins, and the first that applies wins. So our loop is to end when the checklist is satisfied, or at 4 rounds, or at 10 dispatches, whichever comes first.
 
 A budget counts in **dispatches**. Chapter 1 said a dispatch is starting a subagent. For a budget, running a check counts as one too. Dispatches are the measure grooph recommends, because a dispatch is an event a lead can count. In the records, half the leads kept the count.
 
@@ -173,9 +173,9 @@ So **the graph asks for at most four builder runs**, counted the way the project
 Two more things follow.
 
 - **A person's "no" at the gate uses a round.** It sends the work back to the builder along one of the loop's two back edges, and the next trip is the next round.
-- **On that four-trip count, the budget of 10 cannot be reached before the cap.** Even if the critic had to be sent twice on every trip, that is 9 dispatches after three trips, and the cap ends things after the fourth. The budget here is a second line behind the cap. Budgets earn their keep in other graphs: where one loop sits inside another, the inner loop's round count starts again each time, and the outer budget is the limit that keeps counting across all of it.
+- **On that four-trip count, the budget of 10 cannot be reached before the cap.** Even if the critic had to be sent twice on every trip, that is 9 dispatches after three trips, and the cap is the limit that applies after the fourth. The budget here is a second line behind the cap. Budgets earn their keep in other graphs: where one loop sits inside another, the inner loop's round count starts again each time, and the outer budget is the limit that keeps counting across all of it.
 
-One soft edge remains. The instructions say "max iterations: 4" and leave the counting to the lead. A lead that read it as "four *returns*" would allow a fifth trip, and there the budget of 10 would stop it. In one recorded run the lead wrote its check down as "max-iterations 0<4" before the first trip, which is the four-trip reading. In another, a lead made five trips under a cap of 5 and wrote "4 rounds of max 5", which is the other reading. No cap is on record as firing (chapter 13), so there is no record of either reading being applied.
+One soft edge remains. The instructions say "max iterations: 4" and leave the counting to the lead. A lead that read it as "four *returns*" would allow a fifth trip, and there the budget of 10 is the next limit the lead is told to keep. In one recorded run the lead wrote its check down as "max-iterations 0<4" before the first trip, which is the four-trip reading. In another, a lead made five trips under a cap of 5 and wrote "4 rounds of max 5", which is the other reading. No cap is on record as firing (chapter 13), so there is no record of either reading being applied.
 
 ## Policies: rules that apply everywhere
 

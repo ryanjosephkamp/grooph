@@ -58,7 +58,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Check** | A step that runs a command and passes or fails, with no judgment | 2 |
 | **Merge** | A step where pieces of work are combined | 2 |
 | **Stop node** | A step that ends the run, as a success or as a halt | 2 |
-| **Halt** | Stopped, short of finished: waiting at a gate, stopped at a cap or a budget, or ended at a stop node that is not a success | 2, 6 |
+| **Halt** | Stopped, short of finished: waiting at a gate, stopped by its lead at a cap or a budget, or ended at a stop node that is not a success | 2, 6 |
 | **Group** | A named set of nodes drawn as one box. A subgrooph is a group that remembers its template | 3, 8 |
 | **Artifact** | Anything a run produces, such as a file or the tests' output | 2 |
 | **Irreversible marker** | A label on a step that does something that cannot be undone: merge, publish, spend, delete | 1, 3 |
@@ -77,7 +77,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Verdict** | How a check or a critic ends: pass, fail, or a named result | 2, 5 |
 | **Bar** | The named standard a critic judges against. It must point at something that can be inspected. An adjective is not a bar | 2 |
 | **Acceptance / aspiration** | The reachable "good enough to stop" / a direction to aim in. Only acceptance can stop a loop | 2 |
-| **Stop** | A rule that ends a loop: bar passed, round cap, budget, a person, diminishing returns, or unreadable evidence | 2 |
+| **Stop** | A rule for ending a loop, which the lead is told to check: bar passed, round cap, budget, a person, diminishing returns, or unreadable evidence | 2 |
 | **Round cap** | The most times a loop may go around (the `max-iterations` stop) | 1, 2 |
 | **Budget** | The most a loop may spend, counted in dispatches, minutes, dollars, turns or tokens | 1, 2 |
 | **Brake** | Anything in a graph whose job is to stop a run, make it wait for a person, or keep a reviewer independent: gates, approvals, irreversible markers, round caps and budgets, a bar's acceptance, critic isolation, the adaptation level, and checks. For the most part a brake is a written instruction to the lead, not a lock | 1, 7 |
