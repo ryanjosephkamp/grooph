@@ -98,6 +98,10 @@ and run its experiments/game/setup/make-repo.sh. The folder $out was made and is
 fi
 
 # One commit, with the date of the frozen commit and no signature, so that the same contents are the same commit.
+# Its message names the compiler of the freeze and not today's: what was built has just been shown to be, file for
+# file, what that compiler made, and a later compiler that makes the same files must not make another commit.
+compiled_by="$(sed -n 's/^COMPILED_BY=//p' "$here/frozen.env")"
+[ "$freeze" = 1 ] && compiled_by="$compiler"
 # The name and the e-mail are the ones grooph's own commits carry on this machine (the game's repository is public,
 # and the address grooph's clone commits with is the one already public there). They are written into the
 # repository itself: a session cannot write .git/config.
@@ -109,7 +113,7 @@ git -C "$out" config user.email "$mail"
 git -C "$out" add -A
 GIT_AUTHOR_DATE="$stamp" GIT_COMMITTER_DATE="$stamp" git -C "$out" -c commit.gpgsign=false commit -q \
   -m "The starting contents: the spec, the package and the hook that records the run" \
-  -m "SPEC.md, and the Claude Code package compiled from arena.grooph.json, as grooph's repository had them at $frozen. Compiled by grooph's packages as of $compiler with --models $MODELS. Nothing here was written by a session."
+  -m "SPEC.md, and the Claude Code package compiled from arena.grooph.json, as grooph's repository had them at $frozen. Compiled by grooph's packages as of $compiled_by with --models $MODELS. Nothing here was written by a session."
 
 echo "made $out"
 echo
@@ -118,7 +122,7 @@ echo
 echo "the tree:    $(git -C "$out" rev-parse 'HEAD^{tree}')"
 echo "the commit:  $(git -C "$out" rev-parse HEAD)"
 echo "the spec:    $(shasum -a 256 "$out/SPEC.md" | cut -d' ' -f1)"
-echo "compiled by: grooph's packages as of $compiler, --models $MODELS"
+echo "compiled by: grooph's packages as of $compiler, --models $MODELS$([ "$compiler" = "$compiled_by" ] || echo "; the same files, one for one, as the freeze's compiler made ($compiled_by)")"
 echo "the kickoff: $out/.grooph/arena/KICKOFF.md"
 if [ "$out" = "$home/grooph-game-experiment-claude" ]; then
   echo

@@ -164,6 +164,8 @@ The one item the status above held back, in a second pull request stacked on the
 - **The runbook** has a part 6 for it and one more install line; `runs/README.md` lists what it writes.
 - **Not known until a real game:** how long three runs take at full patience (the stand-ins are run with the waits shortened, as `prove.mjs` runs them), and whether a build made by a session installs and builds in a clean checkout as it did for the session.
 
+- **One fix to the first part, found by building again after `main` moved.** #78, #79 and #80 merged after the freeze and changed `packages/`. `make-repo.sh` on that `main` still made the frozen tree, `3238a905…`, file for file, and passed its own check; but the first commit came out different (`49cb587…`), because its message named today's compiler. The message now names the freeze's compiler, which the build has just been shown to equal, so the same contents are the same commit whichever later `main` builds them: `8c4aceb2…` again, as `FROZEN.md` says. The runbook has the owner check the tree, which was right throughout.
+
 With this the brief's six items are all made and dry-run. **Status: `done`.**
 
 ## Prompt to paste into the driver session
