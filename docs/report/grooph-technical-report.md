@@ -138,7 +138,7 @@ The validator counts how many handoffs move only when a person moves them. In th
 
 ## 8. Limitations
 
-- One compile target today. A Codex target is planned and not built.
+- Claude Code is the compile target the built-in templates have been run on. A second target, Codex, compiles and is tested against golden packages; no run in Codex is on record yet.
 - The comparison evidence stated here is one study of four small projects. A second has run and is not yet audited.
 - The turn-end sender has been seen working in Claude Code's cloud sessions by another session's report, not by this project's own records ([`docs/subagents.md`](../subagents.md) labels each fact as documented, seen, reported or unknown).
 - A session takes up hooks when it starts. Hooks that arrive mid-session are picked up, by Claude Code's documentation; in two reported trials three sessions of four did, then two of three.

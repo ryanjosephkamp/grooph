@@ -141,7 +141,11 @@ test("generic builder dispatch and started-only node notes do not satisfy custom
   assert.match(checked.problems.join("\n"), /completed outcome for node:builder/);
 });
 
-test("what Codex said and printed is written where git ignores it, and the record beside it is not", () => {
+// `git check-ignore` answers only in a checkout. In a copy without one (`git archive`, a tarball) the case is
+// shown as skipped, with the reason, and not as a failure of the rule.
+const inCheckout = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: ROOT, encoding: "utf8" }).stdout?.trim() === "true";
+
+test("what Codex said and printed is written where git ignores it, and the record beside it is not", { skip: inCheckout ? false : "not a git checkout: git cannot be asked what it ignores here" }, () => {
   // The two files are the whole transcript of a session and the repository is public (REVIEW.md, second read).
   const run = join(ROOT, "experiments", "patterns-codex", "review-gate", "run");
   const ignored = (path) => spawnSync("git", ["check-ignore", "-q", path], { cwd: ROOT }).status;
