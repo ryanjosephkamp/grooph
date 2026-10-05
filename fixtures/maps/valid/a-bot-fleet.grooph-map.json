@@ -4,7 +4,7 @@
   "name": "A bot fleet: two Bots, a dot and their person",
   "version": 1,
   "asOf": "2026-10-05",
-  "description": "A sample, drawn from the two vendors' own documentation as read on 2026-10-05 (docs/fleets/). Nobody here has run it: every handoff is one a vendor's page describes, or a person. Two Grok Bots share the one cloud computer of their person's account and message each other; a dot works on its own cloud computer and hands pieces to threads it starts. Nothing documented passes work from a Bot to a dot, so the person carries it.",
+  "description": "A sample, drawn from the two vendors' own documentation as read on 2026-10-05 (docs/fleets/). Nobody here has run it: every handoff is one a vendor's page describes, or a person. Two Grok Bots share the one cloud computer of their person's account and message each other; a dot works on its own cloud computer and hands pieces to threads it starts. No page describes a channel from a Bot to a dot, so the person carries it.",
   "lanes": [
     {
       "id": "bots-computer",
@@ -15,8 +15,8 @@
     },
     {
       "id": "dot-computer",
-      "name": "The dot's cloud computer",
-      "machine": "the dot's own cloud computer",
+      "name": "The dot's cloud",
+      "machine": "the dot's own cloud computer; where a thread it starts runs is not stated",
       "place": "cloud",
       "account": "the person's ChatGPT account"
     }

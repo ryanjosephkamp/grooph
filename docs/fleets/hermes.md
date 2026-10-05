@@ -42,7 +42,7 @@ The project moves quickly. When this page and its documentation disagree, the do
 
 **Across machines.** Through the desktop app, which relays a message from one connected machine's gateway to another's and gives the target ten minutes for its turn; or, with no desktop app running, gateway to gateway with `hermes peer`. [doc] ([Bot Mode])
 
-**Subagents are a different thing.** `delegate_task` starts child agents with a fresh conversation each; only a child's final summary returns to its parent. They inherit the parent's enabled toolsets. One setting gives every child the same other model; a single call cannot choose a model for its child. [doc] ([Delegation])
+**Subagents are a different thing.** `delegate_task` starts child agents with a fresh conversation each; only a child's final summary returns to its parent. They inherit the parent's enabled toolsets. One setting gives every child the same other model; a single call cannot choose a model for its child. [doc] ([Delegation]) A task on the board (below) can have a model of its own. [doc] ([Kanban])
 
 **A shared board.** Kanban is a task board shared by all of a machine's profiles, in `~/.hermes/kanban.db`: every task and every handoff is a row, and every worker a process of its own. [doc] ([Kanban])
 
@@ -61,7 +61,7 @@ The project moves quickly. When this page and its documentation disagree, the do
 | A relayed message's turn on another machine | ten minutes | [doc] ([Bot Mode]) |
 | Subagents at once | 10 by default, configurable, no ceiling | [doc] ([Delegation]) |
 | Subagents starting subagents | off by default (depth 1); a setting raises it | [doc] ([Delegation]) |
-| How long a subagent may run | no clock by default; it ends on errors or on its iteration budget | [doc] ([Delegation]) |
+| How long a subagent may run | no wall clock by default; it ends on errors, on its iteration budget (250 turns by default), or when it shows no progress for 450 seconds (1,200 inside a tool) | [doc] ([Delegation]) |
 | Waiting for a person's approval | 300 seconds by default, then denied | [doc] ([Security]) |
 
 **A spending limit for one Bot or for a fleet:** [unknown] on the pages read.
@@ -82,7 +82,7 @@ The project moves quickly. When this page and its documentation disagree, the do
 
 **No answer is a refusal.** A prompt nobody answers in time is denied. [doc] ([Security])
 
-**Unattended work is refused by default.** A cron job, a one-shot session and a webhook or API session each have a setting for what to do at a dangerous command, and each defaults to deny. [doc] ([Security])
+**Unattended work is refused by default.** A cron job, a one-shot session and a webhook or API session each have a setting for what to do at a dangerous command that would otherwise ask, and each defaults to deny. A command the person has permanently allowed still runs. [doc] ([Security])
 
 **A hook can ask too.** A shell hook that runs before a tool call can block it or send it to the person's approval. [doc] ([Hooks])
 
@@ -94,7 +94,7 @@ The project moves quickly. When this page and its documentation disagree, the do
 
 **A room's log,** which records each member turn starting and settling. [doc] ([Bot Mode])
 
-**A message between Bots:** the target profile keeps the delivery's id and receipt. [doc] ([Bot Mode])
+**A message between Bots:** for a delivery into a Bot Chat that is open, or one relayed from another machine, the target profile keeps the delivery's id and receipt. [doc] ([Bot Mode])
 
 **The board:** every task and handoff is a row. [doc] ([Kanban])
 
@@ -108,13 +108,13 @@ This is what a live view would need ([`subagents.md`](../subagents.md) §5).
 
 **A person agrees to each hook once.** The first use of an event and command pair asks for consent; a hook not agreed to is skipped. [doc] ([Hooks])
 
-**It can also push.** Outbound webhooks send signed lifecycle events to an address over HTTP. [doc] ([Hooks]) A plugin hook reports what a member of a group room is doing during its turn. [doc] ([Bot Mode])
+**It can also push.** Outbound webhooks send lifecycle events to an address over HTTP, signed when a secret is set. [doc] ([Hooks]) A plugin hook reports what a member of a group room is doing during its turn. [doc] ([Bot Mode])
 
-**Whether a shell hook fires for the turn a `message_agent` delivery starts,** and with what session id: [unknown]; not tried, and the pages read do not say.
+**Whether a shell hook fires for the turn a `message_agent` delivery starts,** and with what session id: [unknown]; not tried, and the pages read do not say. The session-start event is described as firing for a new session and not for a continued one, and a Bot Chat is continued. [doc] ([Hooks])
 
 ## 8. Sources
 
-All read on 2026-10-05, as web pages (this site has no plain-text form of a page).
+All read on 2026-10-05, as web pages: this site has no plain-text form of a single page. Its index names one file holding the whole documentation, which was not used.
 
 | Name here | Address |
 |---|---|

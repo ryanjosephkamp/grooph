@@ -1,6 +1,6 @@
 # Bot fleets: dots in ChatGPT
 
-The vendor's own documentation was found: six pages under `https://learn.chatgpt.com/docs/dots`, an admin guide and a page on dots in Space, read on 2026-10-05. Nobody at grooph has access to a dot, so nothing on this page is seen.
+The vendor's own documentation was found: six pages under `https://learn.chatgpt.com/docs/dots`, an admin guide, a page on local computer access and a page on dots in Space, read on 2026-10-05. Nobody at grooph has access to a dot, so nothing on this page is seen.
 
 Every statement here is marked:
 
@@ -16,7 +16,7 @@ The product is rolling out and changes. When this page and the vendor disagree, 
 
 **A dot is a personal, always-on agent in ChatGPT.** It lives in the cloud with a computer and a browser of its own, keeps working when the person's computer is off, and comes back with results or with decisions that need them. [doc] ([Meet dots], [Admin guide])
 
-**Its model is named and is not the person's to choose.** The first page says a dot is powered by GPT-6 Astra. [doc] ([Meet dots]) A workspace's model controls and defaults do not apply to dots. [doc] ([Admin guide])
+**Its model is named, and the pages describe no way to choose another.** The first page says a dot is powered by GPT-6 Astra. [doc] ([Meet dots]) A workspace's model controls and defaults do not apply to dots. [doc] ([Admin guide])
 
 **One person, one dot, as far as the pages go.** They say "your dot" throughout and call it a personal agent. [doc] ([Meet dots], [Admin guide]) Whether one account can have several: [unknown].
 
@@ -42,7 +42,7 @@ The product is rolling out and changes. When this page and the vendor disagree, 
 
 **One dot to another dot:** [unknown]. No page read describes a dot messaging another person's dot, a group of dots, or a shared task list.
 
-**The nearest things the pages do describe.** In Slack only the owner can direct their dot: a message from anyone else does not start work, though a dot may use other people's messages as context when its owner brings it into a thread. [doc] ([Admin guide]) In Space, a person types `@dot` in a page or a comment to ask their own dot to act there, and collaborators on one page may each be using a different agent. [doc] ([Space]) So two people's dots can read the same thread or page; each acts for its own person. That last sentence is this page's reading of the two before it, not a sentence of the vendor's.
+**The nearest things the pages do describe.** In Slack only the owner can direct their dot: a message from anyone else does not start work, though a dot may use other people's messages as context when its owner brings it into a thread. [doc] ([Admin guide]) Two other pages put it less firmly: by default a dot responds to its owner in Slack, and the owner can instruct it to engage with others. [doc] ([Channels], [Meet dots]) The pages do not reconcile the two. In Space, a person types `@dot` in a page or a comment to ask their own dot to act there, and collaborators on one page may each be using a different agent. [doc] ([Space]) So two people's dots can read the same thread or page, and by default each acts for its own person. That last sentence is this page's reading of the ones before it, not a sentence of the vendor's.
 
 ## 3. A tool, and a limit
 
@@ -74,9 +74,9 @@ The product is rolling out and changes. When this page and the vendor disagree, 
 
 **Signing in is the person's.** The dot sends a request with a private form, or the person takes over its browser; credentials go to the browser outside the conversation. Using a saved login again needs confirmation. [doc] ([Computers and apps])
 
-**Stopping is three separate acts.** Pause stops the dot's current main task and nothing else; a delegated task is stopped in Activity; a schedule is disabled or deleted under Scheduled. None of them undoes what is done. [doc] ([Controls])
+**Stopping is three separate acts.** Pause stops the dot's current main task, and does not stop every delegated task or cancel scheduled runs; a delegated task is stopped in Activity; a schedule is disabled or deleted under Scheduled. None of them undoes what is done. [doc] ([Controls])
 
-**What a scheduled task does when it reaches an approval and nobody answers:** [unknown].
+**When nobody answers.** A task waiting for a decision or an approval waits until its request is opened and answered. [doc] ([Controls]) Whether it ever gives up: [unknown].
 
 ## 6. What leaves a record
 
@@ -86,7 +86,7 @@ The product is rolling out and changes. When this page and the vendor disagree, 
 
 **Scheduled,** the list of recurring tasks with their instructions, timing and destination. [doc] ([Controls])
 
-**For an enterprise workspace,** the Compliance API has records of people's messages and dots' replies, which the admin guide says to check for coverage before relying on them for an audit; the Analytics API has adoption figures. [doc] ([Admin guide])
+**For an enterprise workspace,** the Compliance API has records of people's messages and dots' replies, which the admin guide says to check for coverage before relying on them for an audit; the Analytics API has adoption figures. [doc] ([Admin guide]) What the cloud does while orchestrating a dot's work does not reach a workspace's existing OpenTelemetry collector. [doc] ([Local access])
 
 **A record of each tool call a dot made, kept where its owner can export it:** [unknown].
 
@@ -94,9 +94,11 @@ The product is rolling out and changes. When this page and the vendor disagree, 
 
 This is what a live view would need ([`subagents.md`](../subagents.md) §5).
 
-**A hook, a webhook or a stream of a dot's events:** [unknown]. None of the pages read mentions one.
+**For an enterprise workspace, a hook that an administrator manages.** With managed policy and remote hooks turned on, dots use remote MCP hooks: the cloud that orchestrates the work calls a service the workspace has connected, at supported task and tool events. They are not available to personal accounts. The page says they are no substitute for an audit trail and do not cover every internal subagent path. [doc] ([Local access])
 
-**A dot can create a Codex task on a connected computer.** [doc] ([Tasks and memory]) Codex runs a project's hooks, which is documented and was seen in [`subagents.md`](../subagents.md) §5. Whether those hooks run in a task that a dot created: [unknown].
+**A project's own hooks do not run.** A dot can create a Codex task on a connected computer. [doc] ([Tasks and memory]) Codex runs a project's hooks ([`subagents.md`](../subagents.md) §5), but under cloud orchestration command hooks and hooks from local configuration, plugins or local folders are not supported, even when the task's tools run on the person's computer. [doc] ([Local access]) grooph's event hook is a command hook from local configuration.
+
+**For a person on an individual plan, a hook, a webhook or a stream of a dot's events:** [unknown].
 
 ## 8. Sources
 
@@ -111,9 +113,10 @@ All read on 2026-10-05. Each page is also served as plain text at the same addre
 | [Computers and apps] | `https://learn.chatgpt.com/docs/dots/computers-and-apps` |
 | [Controls] | `https://learn.chatgpt.com/docs/dots/controls` |
 | [Admin guide] | `https://learn.chatgpt.com/docs/enterprise/dots-admin-guide` |
+| [Local access] | `https://learn.chatgpt.com/docs/enterprise/cloud-local-access` |
 | [Space] | `https://learn.chatgpt.com/docs/space/agents` |
 
-The index that lists them is `https://learn.chatgpt.com/llms.txt`. [Getting started] was read and is not cited: it repeats the others. The announcement at `https://openai.com/index/introducing-dots/` could not be read from here (the site refused the request), so nothing on this page comes from it.
+The index, `https://learn.chatgpt.com/llms.txt`, lists all of them but the admin guide, which is linked from [Meet dots]. [Getting started] was read and is not cited: it repeats the others. The announcement at `https://openai.com/index/introducing-dots/` could not be read from here (the site refused the request), so nothing on this page comes from it.
 
 [Meet dots]: https://learn.chatgpt.com/docs/dots
 [Getting started]: https://learn.chatgpt.com/docs/dots/getting-started
@@ -122,4 +125,5 @@ The index that lists them is `https://learn.chatgpt.com/llms.txt`. [Getting star
 [Computers and apps]: https://learn.chatgpt.com/docs/dots/computers-and-apps
 [Controls]: https://learn.chatgpt.com/docs/dots/controls
 [Admin guide]: https://learn.chatgpt.com/docs/enterprise/dots-admin-guide
+[Local access]: https://learn.chatgpt.com/docs/enterprise/cloud-local-access
 [Space]: https://learn.chatgpt.com/docs/space/agents

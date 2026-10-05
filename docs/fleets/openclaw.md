@@ -1,6 +1,6 @@
 # Bot fleets: OpenClaw
 
-The project's own documentation was found: `https://docs.openclaw.ai/`, of which ten pages and the index were read on 2026-10-05. Nobody at grooph has run it, so nothing on this page is seen.
+The project's own documentation was found: `https://docs.openclaw.ai/`, of which twelve pages and the index were read on 2026-10-05. Nobody at grooph has run it, so nothing on this page is seen.
 
 OpenClaw was not one of the two the owner named. It is here as one of the two closest in kind: several lasting agents behind one gateway, each reached from chat apps, that can message each other, with its documentation saying how.
 
@@ -28,9 +28,9 @@ The project moves quickly. When this page and its documentation disagree, the do
 
 **A tool call.** `sessions_send` runs another session on the same Gateway and can wait for its answer or return at once; the reply reaches the sender once, inline or later. Naming an agent's id addresses that agent without listing its sessions first. [doc] ([Session tools], [Cross-agent settings])
 
-**Who may reach whom is configuration.** Agent-to-agent access is on by default, and with no list every agent can reach every other. An `allow` list names the agents that may take part; a per-agent `send` list lets one agent send to chosen others without being able to read their history. [doc] ([Cross-agent settings])
+**Who may reach whom is configuration.** Agent-to-agent access is on by default, and with no list every agent can reach every other. An `allow` list names the agents that may take part; a per-agent `send` list lets one agent send to chosen others, and does so without letting it read their history only when session visibility is narrowed from its default, which is every session. [doc] ([Cross-agent settings])
 
-**Subagents.** `sessions_spawn` creates a separate session for a background task, with its own context unless told to copy the requester's, and returns at once; the result arrives as a completion event. A child can be given a model of its own and can be required to run sandboxed. [doc] ([Session tools])
+**Subagents.** `sessions_spawn` creates a separate session for a background task, with its own context unless told to copy the requester's (a spawn bound to a chat thread copies it by default), and returns at once; the result arrives as a completion event. A child can be given a model of its own and can be required to run sandboxed. [doc] ([Session tools])
 
 **In a chat channel.** On channels that allow it, a message written by another bot can start a turn; Discord and Slack accept them by default under the usual mention and access rules. [doc] ([Bot loops])
 
@@ -51,7 +51,7 @@ The project moves quickly. When this page and its documentation disagree, the do
 
 The loop limit is a rate, not a count: the page says a slower exchange under it can go on. [doc] ([Bot loops])
 
-**A limit on rounds between two agents that message each other with `sessions_send`, or on what a task may spend:** [unknown] on the pages read.
+**A limit on rounds between two agents that message each other with `sessions_send`, or on what a task may spend:** [unknown] on the pages read. A round limit exists for a different thing, a group thread of agents answering one inbound message: at most 4 rounds and 32 turns. [doc] ([Bot loops])
 
 ## 4. What can be scheduled
 
@@ -63,11 +63,11 @@ The loop limit is a rate, not a count: the page says a slower exchange under it 
 
 ## 5. What a human approval is
 
-**A guard on commands run on a real host.** A command runs only when policy, an allowlist and, where asked for, a person's approval all agree. The policy can deny, allow only what is listed, ask when the list does not match, have misses reviewed automatically, or run everything. [doc] ([Exec approvals])
+**A guard on commands run on a real host.** A command runs only when policy, an allowlist and, where asked for, a person's approval all agree. The policy can deny, allow only what is listed, ask when the list does not match, have misses reviewed automatically, or run everything. On a gateway or node host the default is to run everything and ask nothing; a sandbox host defaults to deny. [doc] ([Exec approvals])
 
 **No answer is a refusal by default.** When a prompt is needed and nobody can be reached, or it times out, the fallback decides, and it is deny unless set otherwise. [doc] ([Exec approvals])
 
-**Asked in the chat.** A pending approval can be answered in the channel it came from: on Matrix, by a reaction for allow once, allow always or deny, with a typed `/approve` as the fallback. [doc] ([Exec approvals])
+**Asked in the chat, for work a person started.** Where a chat channel acts as an approval client, a pending approval can be answered there: on Matrix, by a reaction for allow once, allow always or deny, with a typed `/approve` as the fallback. An approval raised by a scheduled run is never sent to a chat channel: it goes to a connected approval client such as the control page or the apps, and is denied at once when none is connected. [doc] ([Exec approvals])
 
 **Approvals can only tighten.** Outside one exception the page names, the effective policy is the stricter of the configuration and the approvals defaults. [doc] ([Exec approvals])
 
@@ -77,7 +77,7 @@ The loop limit is a rate, not a count: the page says a slower exchange under it 
 
 **Each agent's sessions and transcripts,** in its own SQLite file under `~/.openclaw/agents/<agentId>/agent/`. [doc] ([Multi-agent]) A command lists, shows and exports stored transcripts. [doc] ([Index])
 
-**Each automation run:** `openclaw automations runs <job-id>` shows the history, a run's recorded conversation can be read from the control page, and finished runs are kept 7 days, the newest 2,000 for each job. [doc] ([Managing jobs])
+**Each automation run:** `openclaw automations runs <job-id>` shows the history, a run's recorded conversation can be read from the control page, and finished runs are kept 7 days (24 hours for a run recorded as lost), at most the newest 2,000 for each job and kind of history. The session of an isolated run is pruned after 24 hours by default. [doc] ([Managing jobs])
 
 **Who made which agent:** the operator, an agent, or an installed package, with the asking agent's id kept. [doc] ([Multi-agent])
 
@@ -93,7 +93,7 @@ This is what a live view would need ([`subagents.md`](../subagents.md) §5).
 
 **Controlling is a different system.** Changing prompts, intercepting tool calls and controlling replies is done by plugin hooks; exporting telemetry is done by diagnostic events. [doc] ([Hooks])
 
-**An event for a subagent starting or stopping:** none is in the internal hooks' list. [doc] ([Hook events]) Whether a plugin hook reports one: [unknown]; that page was not read through.
+**A subagent starting or stopping is a plugin hook's event, not an internal hook's.** The internal hooks' list has none. [doc] ([Hook events]) The plugin hooks' list has a subagent spawned, ended and making progress, a tool call finished, and a session's start and end. [doc] ([Plugin hooks]) A plugin hook before a tool call can also block the call or ask for approval, so a plugin is code that can steer. [doc] ([Plugin hook guide])
 
 ## 8. Sources
 
@@ -112,8 +112,10 @@ All read on 2026-10-05. Each page is also served as plain text at the same addre
 | [Exec approvals] | `https://docs.openclaw.ai/tools/exec-approvals` |
 | [Hooks] | `https://docs.openclaw.ai/automation/hooks` |
 | [Hook events] | `https://docs.openclaw.ai/automation/hooks/event-types` |
+| [Plugin hook guide] | `https://docs.openclaw.ai/plugins/hooks` |
+| [Plugin hooks] | `https://docs.openclaw.ai/plugins/hooks/reference` |
 
-Fetched and not read through: `tools/subagents` and `plugins/hooks`. These are long pages and were read for the questions above, not end to end.
+Fetched and not read through: `tools/subagents`. The two plugin hook pages were read for their lists of events, after this page's second reader found the reference. These are long pages and were read for the questions above, not end to end.
 
 [Index]: https://docs.openclaw.ai/llms.txt
 [Multi-agent]: https://docs.openclaw.ai/concepts/multi-agent
@@ -126,3 +128,5 @@ Fetched and not read through: `tools/subagents` and `plugins/hooks`. These are l
 [Exec approvals]: https://docs.openclaw.ai/tools/exec-approvals
 [Hooks]: https://docs.openclaw.ai/automation/hooks
 [Hook events]: https://docs.openclaw.ai/automation/hooks/event-types
+[Plugin hook guide]: https://docs.openclaw.ai/plugins/hooks
+[Plugin hooks]: https://docs.openclaw.ai/plugins/hooks/reference
