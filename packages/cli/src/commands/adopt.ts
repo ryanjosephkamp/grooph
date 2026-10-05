@@ -146,8 +146,10 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   }
   writeText(target, canonicalize(adopted.doc));
   io.out(`wrote ${shown(target)} (version ${adopted.doc.version}); the source ${shown(join(run.graphDir, "graph.grooph.json"))} is unchanged`);
-  // The export holds the package's kept graph to the same brakes, so what was adopted on purpose is named there again.
-  const again = meant.map((change) => ` --allow ${/^[A-Za-z0-9_.:/@=+-]+$/.test(change.name) ? change.name : `'${change.name.replace(/'/g, "'\\''")}'`}`).join("");
-  io.out(`place it for the next run with: grooph export ${shown(target)} --target ${adopted.doc.target?.harness ?? "<harness>"} --into <project>${again}`);
+  // The export holds the package's kept graph to the same brakes, so what was adopted on purpose is named there again;
+  // and the project is the one this run's package is in, so the line is one to run as it stands.
+  const word = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
+  const exportLine = ["grooph", "export", word(shown(target)), "--target", adopted.doc.target?.harness ?? "<harness>", "--into", word(shown(dirname(dirname(run.graphDir)))), ...meant.flatMap((change) => ["--allow", word(change.name)])].join(" ");
+  io.out(`place it for the next run with: ${exportLine}`);
   return 0;
 }

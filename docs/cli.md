@@ -272,7 +272,10 @@ written, and the exit code is 1, until each is asked for with --allow. The compa
 stricter wording or a renamed part from a looser one, so it lists those too. It is not made, and a
 line that opens "brakes:" says so, on a first export, for a graph under a new id (a second package
 beside the first), and when the kept graph is gone or does not read. It does not see a check's
-command, a brief or a node's tools.
+command, a brief, a node's tools, the graph's own constraints (its budget line among them) or an
+edge's retry and concurrency: "none of the brakes it compares" is all the line that follows a
+comparison says. A brake is removed or loosened on a person's word: an agent that meets the refusal
+puts each listed change to the person, and adds --allow only for the ones they said yes to.
 
 Every file is written inside <dir> by where it really is, never through a link at the file's own
 place, and the package is placed whole or not at all.

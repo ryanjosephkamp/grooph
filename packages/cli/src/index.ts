@@ -181,7 +181,7 @@ export async function run(
           return usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);
         }
         const into = values["into"];
-        if (into === undefined) return usageError(io, "export needs --into <dir>, the project to write the package into");
+        if (into === undefined || into === "") return usageError(io, "export needs --into <dir>, the project to write the package into");
         return exportCommand(io, file, { target: target as CompileTarget, into, ...(tierMap ? { models: tierMap.models, modelsFrom } : {}), changeModels: values["change-models"] === true, allow: values["allow"] ?? [] });
       }
 

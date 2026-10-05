@@ -72,7 +72,7 @@ import {
 } from "@grooph/core";
 
 import { embedHtml } from "./commands/embed.js";
-import { MODEL_NAME, TIERS, brakesAtExport, modelChanges, modelsSaid, parseModels, tiersSaid } from "./commands/export.js";
+import { MODEL_NAME, NAMED_AT_MOST, NOT_JUDGED, TIERS, brakesAtExport, modelChanges, modelsSaid, parseModels, tiersSaid } from "./commands/export.js";
 import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
@@ -895,7 +895,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_export",
     title: "Compile a graph into a prompt package",
     description:
-      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. It also stops, and "replace" does not answer, when this graph may have removed or loosened a brake of the graph that package keeps: each such change is listed after "loosens", and is placed only when its name is passed in "allow". That comparison is made only over a package in place for the same graph id, while the graph that package keeps reads: a graph under a new id is a second package and is compared with nothing, with the kept graph gone "replace" places the graph and the reply says "brakes: not compared", and it does not see a check's command, a brief or a node's tools. Every reply that placed files says on a "brakes:" line which of these happened. A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
+      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. It also stops, and "replace" does not answer, when this graph may have removed or loosened a brake of the graph that package keeps: each such change is listed after "loosens", and is placed only when its name is passed in "allow". That comparison is made only over a package in place for the same graph id, while the graph that package keeps reads: a graph under a new id is a second package and is compared with nothing, with the kept graph gone "replace" places the graph and the reply says "brakes: not compared", and it does not see a check's command, a brief, a node's tools, the graph's own constraints (its budget line among them) or an edge's retry and concurrency. Every reply that placed files says on a "brakes:" line which of these happened. A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -984,6 +984,13 @@ export const AUTHOR_TOOLS: Tool[] = [
       let moved: ReturnType<typeof modelChanges> = [];
       let meant: AdoptionChange[] = [];
       let uncompared = false;
+      let tighter: AdoptionChange[] = [];
+      let unjudged: AdoptionChange[] = [];
+      // What tightens, and what core does not judge, said as `grooph adopt` says them, each change's name and words as JSON strings.
+      const tighterLines = (refused: boolean): string[] => [
+        ...(tighter.length > 0 ? [refused ? "tightens a brake:" : "tightens a brake, and is placed with the rest:", ...tighter.map((change) => `  change ${q(change.name)}: undoing it: ${q(change.tightens ?? "")}`)] : []),
+        ...(unjudged.length > 0 ? [NOT_JUDGED, ...unjudged.map((change) => `  change ${q(change.name)}`)] : []),
+      ];
       let compared = false;
       let beside: string[] | undefined;
       let notices: string[] = [];
@@ -1039,6 +1046,8 @@ export const AUTHOR_TOOLS: Tool[] = [
         uncompared = brakes.unreadable;
         beside = brakes.beside;
         notices = brakes.notices;
+        tighter = brakes.tighter;
+        unjudged = brakes.unjudged;
         const unanswered = (theirs.length > 0 || moved.length > 0) && args["replace"] !== true;
         if (held.length > 0) {
           const byBrake = `${plural(held.length, "change")} in this graph may remove or loosen a brake the package there has`;
@@ -1047,6 +1056,7 @@ export const AUTHOR_TOOLS: Tool[] = [
             [
               `Nothing was placed in ${q(shownIn(ctx, root))}: ${[byBrake, ...others].join(", and ")}.`,
               ...held.map(loosensLine),
+              ...tighterLines(true),
               ...(unanswered ? [...theirs.map((path) => `  file ${q(path)}: not as grooph last wrote it`), ...moved.map(movedLine), ...(moved.length > 0 ? tiers : [])] : []),
             ],
             `a brake is removed or loosened only when the person asks for that change by its name. The comparison cannot tell a stricter wording or a renamed part from a looser one, so it lists those too. Put each "loosens" line to the person; for the ones they mean, pass those names in "allow" and export again; for the others, change the graph back with grooph_apply${unanswered ? '. The files and models listed are a separate question, which "replace": true answers when the person said to' : ""}`,
@@ -1085,10 +1095,11 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...(moved.length > 0 ? [`changed the model of ${plural(moved.length, "agent file")} that ${moved.length === 1 ? "was" : "were"} already there ("replace"):`, ...moved.map(movedLine)] : []),
         ...(meant.length > 0 ? [`brakes: placed with ${plural(meant.length, "change")} that may remove or loosen a brake the package there had, each asked for by name ("allow"):`, ...meant.map(loosensLine)] : []),
         ...(uncompared ? ["brakes: not compared. The graph this package kept was gone or did not read."] : []),
-        ...(compared && meant.length === 0 ? ["brakes: compared with the graph this package kept; none removed or loosened"] : []),
+        ...(compared && meant.length === 0 ? ["brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"] : []),
         ...(beside !== undefined
-          ? [`brakes: nothing in place to compare with. No package of this graph's id was there${beside.length > 0 ? `; ${plural(beside.length, "other package")} ${beside.length === 1 ? "is" : "are"}, and ${beside.length === 1 ? "its graph was" : "their graphs were"} not compared with this one: ${beside.map(q).join(", ")}` : ""}`]
+          ? [`brakes: nothing in place to compare with. No package of this graph's id was there${beside.length > 0 ? `; ${plural(beside.length, "other package")} ${beside.length === 1 ? "is" : "are"}, and ${beside.length === 1 ? "its graph was" : "their graphs were"} not compared with this one: ${beside.slice(0, NAMED_AT_MOST).map(q).join(", ")}${beside.length > NAMED_AT_MOST ? `, and ${beside.length - NAMED_AT_MOST} more` : ""}` : ""}`]
           : []),
+        ...tighterLines(false),
         ...notices.map((notice) => `note: ${q(notice)}`),
         ...tiers,
         ...(compiled.warnings.length > 0 ? [`warnings: ${compiled.warnings.length}, carried into the lead's brief:`, ...issueLines(compiled.warnings)] : []),

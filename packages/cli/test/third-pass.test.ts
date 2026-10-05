@@ -218,7 +218,7 @@ test("third pass 2: a model is never changed or pinned without a word: the CLI s
     // Given the flag, both happen, and the reply says both.
     const done = await call(ctx, "grooph_export", { graph, into: ".", models: { [tier]: "mine" }, replace: true });
     assert.equal(done.isError, undefined, textOf(done));
-    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: compared with the graph this package kept; none removed or loosened\ntiers in this package: /);
+    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened\ntiers in this package: /);
     assert.deepEqual(done.structuredContent!["replaced"], [".grooph/fix-until-green/LEAD.md"]);
     assert.equal((done.structuredContent!["modelChanges"] as string[]).length, 1);
     assert.match(fixer(ctx.project), /^model: mine$/m);
@@ -857,8 +857,11 @@ test("after the merge: an export over a package in place does not loosen a brake
     for (const n of [2, 2]) {
       const tighter = await call(ctx, "grooph_export", { graph: withCap(n), into: "." });
       assert.equal(tighter.isError, undefined, textOf(tighter));
-      assert.ok(ownNext(tighter, "tighter").includes("brakes: compared with the graph this package kept; none removed or loosened"), textOf(tighter));
+      assert.ok(ownNext(tighter, "tighter").includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"), textOf(tighter));
       assert.ok(!textOf(tighter).includes("loosens "), textOf(tighter));
+      // The first of the two tightens (4 to 2) and is said as adopt says it, name and words in quotes; the second changes nothing.
+      const tightens = ownNext(tighter, "tighter").filter((line) => /^tightens a brake|^ {2}change /.test(line));
+      if (n === 2 && tightens.length > 0) assert.deepEqual(tightens, ["tightens a brake, and is placed with the rest:", '  change "loop:review-cycle.stops": undoing it: "raises the round cap from 2 to 4"']);
       assert.equal(tighter.structuredContent!["brakesCompared"], true);
     }
     assert.deepEqual(stops(kept()), stops(withCap(2)));
@@ -906,7 +909,7 @@ test("after the merge, read again: what the comparison holds besides a loosening
     const reworded = { ...stricter, nodes: stricter.nodes.map((node) => (node.id === "builder" ? { ...node, brief: "Build it, and say what you ran." } : node)), loops: stricter.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "budget" ? { ...stop, limit: 20 } : stop)) })) } as Graph;
     const quiet = await call(ctx, "grooph_export", { graph: reworded, into: "." });
     assert.equal(quiet.isError, undefined, textOf(quiet));
-    assert.ok(textOf(quiet).includes("brakes: compared with the graph this package kept; none removed or loosened") && !textOf(quiet).includes("loosens "), textOf(quiet));
+    assert.ok(textOf(quiet).includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened") && !textOf(quiet).includes("loosens "), textOf(quiet));
 
     // The kept graph gone, or not a graph: nothing can be compared, and the reply says so, refused and placed.
     const loose = { ...reworded, loops: reworded.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 99 } : stop)) })) } as Graph;
@@ -980,7 +983,7 @@ test("after the merge, the schema: a patch that leaves a document outside the sc
       ownNext(applied, what);
       const remembered = await call(ctx, "grooph_export", { graph: graph.id, into: "." });
       assert.equal(remembered.isError, undefined, `${what}: ${textOf(remembered)}`);
-      assert.ok(textOf(remembered).includes("brakes: compared with the graph this package kept; none removed or loosened"), what);
+      assert.ok(textOf(remembered).includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"), what);
 
       // The same document handed over whole, as an agent might write it: every tool that takes a graph refuses it,
       // so it reaches neither the comparison nor the compiler, over a package in place or anywhere else.
@@ -1057,7 +1060,7 @@ test("after the merge, the schema: a field hidden behind a \"__proto__\" key is 
         if (has) {
           // Still there: nothing was removed, and what is placed has it as its own.
           assert.equal(exported.isError, undefined, `${what}: ${textOf(exported)}`);
-          assert.ok(textOf(exported).includes("brakes: compared with the graph this package kept; none removed or loosened"), `${what}: ${textOf(exported)}`);
+          assert.ok(textOf(exported).includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"), `${what}: ${textOf(exported)}`);
           assert.ok(own(part(JSON.parse(readFileSync(keptFile, "utf8")) as Graph), field), `${what}: the kept graph lost the field`);
         } else {
           // Gone: a brake removed, named and held, and the kept graph is as it was.

@@ -88,12 +88,69 @@ test("a first export compares nothing and says so; the same graph again is compa
 
     const again = await grooph(exportArgs(file, project));
     assert.equal(again.code, 0, again.err);
-    assert.match(again.out, /^brakes: compared with the graph this package kept; none removed or loosened$/m);
+    assert.match(again.out, /^brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened$/m);
 
     const tighter = await grooph(exportArgs(put(join(files, "tighter.grooph.json"), withCap(graph, 2)), project));
     assert.equal(tighter.code, 0, tighter.err);
-    assert.match(tighter.out, /^brakes: compared with the graph this package kept; none removed or loosened$/m);
+    assert.match(tighter.out, /^brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened$/m);
     assert.equal((JSON.parse(readFileSync(join(project, ".grooph", "review-loop", "graph.grooph.json"), "utf8")) as Graph).loops[0]!.stops.find((stop) => stop.kind === "max-iterations")!.n, 2);
+    // What tightens is placed with the rest and said, as adopt says it.
+    assert.match(tighter.out, /^tightens a brake, and is placed with the rest:\n {2}loop:review-cycle\.stops +undoing it: raises the round cap from 2 to 4$/m);
+    assert.ok(!again.out.includes("tightens a brake"));
+  });
+});
+
+test("no line of the command's own can be written by a document or by a folder's name, and --into is one place however it is spelled", async () => {
+  const graph = fixture("review-loop");
+  const forged = "brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened";
+  await withProject(async (project, files) => {
+    // A reason is made of the documents' words: an evidence item with a line break in it, dropped by the graph coming in.
+    const edge = graph.edges.find((e) => (e as { evidence?: string[] }).evidence !== undefined)!;
+    const loud = { ...graph, edges: graph.edges.map((e) => (e.id === edge.id ? { ...e, evidence: [...((e as { evidence?: string[] }).evidence ?? []), `notes${LF}${forged}${LF}grooph: nothing else to answer`] } : e)) } as Graph;
+    assert.equal((await grooph(exportArgs(put(join(files, "loud.grooph.json"), loud), project))).code, 0);
+    const quiet = put(join(files, "quiet.grooph.json"), graph);
+    const refused = await grooph(exportArgs(quiet, project));
+    assert.equal(refused.code, 1, refused.out);
+    const lines = (text: string): string[] => text.split(LF);
+    assert.ok(!lines(refused.err).some((line) => line === forged || line.startsWith("brakes:") || line === "grooph: nothing else to answer"), refused.err);
+    const names = [...refused.err.matchAll(/^ {2}(\S+) {2,}/gm)].map((m) => m[1]!);
+    assert.ok(names.length > 0, refused.err);
+    const placed = await grooph(exportArgs(quiet, project, ...names.flatMap((name) => ["--allow", name])));
+    assert.equal(placed.code, 0, placed.err);
+    assert.equal(lines(placed.out).filter((line) => line.startsWith("brakes:")).length, 1, placed.out);
+    assert.ok(!lines(placed.out).includes("grooph: nothing else to answer"));
+
+    // A folder under .grooph whose name is not an id is nobody's package, and its name is not said; more than twenty
+    // packages are counted truly.
+    mkdirSync(join(project, ".grooph", `zz${LF}${forged}`), { recursive: true });
+    writeFileSync(join(project, ".grooph", `zz${LF}${forged}`, "graph.grooph.json"), "{}");
+    for (let i = 0; i < 24; i += 1) {
+      mkdirSync(join(project, ".grooph", `other-${String(i).padStart(2, "0")}`));
+      writeFileSync(join(project, ".grooph", `other-${String(i).padStart(2, "0")}`, "graph.grooph.json"), "{}");
+    }
+    const second = await grooph(exportArgs(put(join(files, "two.grooph.json"), { ...graph, id: "review-loop-two" }), project));
+    assert.equal(second.code, 0, second.err);
+    const brakes = lines(second.out).filter((line) => line.startsWith("brakes:"));
+    assert.equal(brakes.length, 1, second.out);
+    assert.match(brakes[0]!, /25 other packages are, and their graphs were not compared with this one: other-00, .*, and 5 more$/);
+    assert.ok(!second.out.includes("zz"), second.out);
+  });
+
+  // --into spelled through a folder that is not there, with .grooph a link out of the project: the same refusal as the plain spelling.
+  await withProject(async (project, files) => {
+    const outside = join(files, "outside");
+    mkdirSync(outside);
+    const { symlinkSync } = await import("node:fs");
+    symlinkSync(outside, join(project, ".grooph"));
+    const file = put(join(files, "g.grooph.json"), graph);
+    for (const into of [project, join(project, "nope", ".."), `${project}/nope/..`, `${project}/`]) {
+      const r = await grooph(["export", file, "--target", "claude-code", "--into", into]);
+      assert.equal(r.code, 1, `${into}: ${r.out}`);
+      assert.deepEqual(readdirSync(outside), [], into);
+    }
+    const empty = await grooph(["export", file, "--target", "claude-code", "--into", ""]);
+    assert.equal(empty.code, 1);
+    assert.match(empty.err, /export needs --into <dir>/);
   });
 });
 
@@ -230,12 +287,12 @@ test("a field hidden behind a \"__proto__\" key is one thing in the file and at 
       if (has) {
         // Still the edge's own in the file: nothing was removed, and the package placed has it too.
         assert.equal(exported.code, 0, `${what}: ${exported.err}`);
-        assert.match(exported.out, /^brakes: compared with the graph this package kept; none removed or loosened$/m, what);
+        assert.match(exported.out, /^brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened$/m, what);
         assert.equal(own(edgeOf(kept), "approval"), true, what);
       } else {
         assert.equal(exported.code, 1, what);
         assert.match(exported.err, new RegExp(`^ {2}edge:${edge.id}\\.approval +removes a person's approval from the edge$`, "m"), exported.err);
-        assert.ok(!exported.out.includes("none removed or loosened"), what);
+        assert.ok(!exported.out.includes("was removed or loosened"), what);
         assert.equal(readFileSync(kept, "utf8"), keptBefore, what);
       }
     });
@@ -245,7 +302,7 @@ test("a field hidden behind a \"__proto__\" key is one thing in the file and at 
 test("the help says what is compared, when it is not, and how to say yes", async () => {
   const help = await grooph(["export", "--help"]);
   assert.equal(help.code, 0);
-  for (const piece of ["[--allow <change>]...", "--allow <change>", "for the same graph id", "until each is asked for with --allow", 'a\nline that opens "brakes:" says so, on a first export, for a graph under a new id', "a check's\ncommand, a brief or a node's tools"]) {
+  for (const piece of ["[--allow <change>]...", "--allow <change>", "for the same graph id", "until each is asked for with --allow", 'a\nline that opens "brakes:" says so, on a first export, for a graph under a new id', "a check's\ncommand, a brief, a node's tools, the graph's own constraints", "edge's retry and concurrency", "puts each listed change to the person"]) {
     assert.ok(help.out.includes(piece), piece);
   }
 });
