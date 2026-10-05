@@ -1,0 +1,43 @@
+placed: 0 0 | errors: [] | stderr of second add: [ '' ]
+
+--- update, no allow
+exit 0
+b  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-b-critic-release
+    edge:e-b-critic-release  adds a way from "b-critic" to end in success that does not pass a person; adds a way into "release" that does not pass the human gate "b-merge-gate"; adds a way into "release" that does not pass "pass" from the critic "b-critic"
+    loop:b-review.stops      raises the round cap from 4 to 9
+a  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-a-critic-b-builder
+    edge:e-a-critic-b-builder  adds a way into "b-builder" that does not pass a person; adds a way into "b-builder" that does not pass "pass" from the critic "a-critic"
+    loop:a-review.stops        raises the round cap from 4 to 9
+warning  W_HOMOGENEOUS_CRITICS  critic "b-critic" judges "b-builder" on the same model (tier strong); critic "a-critic" judges "a-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: b-builder, b-critic, a-builder, a-critic]
+plan.grooph.json: 0 errors, 1 warning
+plan.grooph.json not written (dry run — pass --write to save)
+
+--- update --write --allow loop:a-review.stops (a's cap only)
+exit 0
+b  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-b-critic-release
+    edge:e-b-critic-release  adds a way from "b-critic" to end in success that does not pass a person; adds a way into "release" that does not pass the human gate "b-merge-gate"; adds a way into "release" that does not pass "pass" from the critic "b-critic"
+    loop:b-review.stops      raises the round cap from 4 to 9
+a  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-a-critic-b-builder
+    edge:e-a-critic-b-builder  adds a way into "b-builder" that does not pass a person; adds a way into "b-builder" that does not pass "pass" from the critic "a-critic"
+  the rest:
+    loop:a-review.stops        loop "a-review": stops changes from [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"… to [{"kind":"bar-passed"},{"kind":"max-iterations","n":9},{"…   (loosens a brake: raises the round cap from 4 to 9; asked for by name)
+warning  W_HOMOGENEOUS_CRITICS  critic "b-critic" judges "b-builder" on the same model (tier strong); critic "a-critic" judges "a-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: b-builder, b-critic, a-builder, a-critic]
+plan.grooph.json: 0 errors, 1 warning
+wrote plan.grooph.json
+caps: [ 'b-review: 4', 'a-review: 9' ] | froms: [ 'b:review-gate@2', 'a:review-gate@2' ] | new edges: []
+
+--- update --write a --allow loop:b-review.stops (a name of the other box, with only a named)
+exit 1
+a  review-gate@2 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-a-critic-b-builder
+    edge:e-a-critic-b-builder  adds a way into "b-builder" that does not pass a person; adds a way into "b-builder" that does not pass "pass" from the critic "a-critic"
+[stderr] grooph: no change named "loop:b-review.stops" in "a"; the names are listed above
+
+add --after release --then release: exit 1 | last: grooph: plan.grooph.json is unchanged: this would leave it with E_CYCLE_NO_STOP, which it does not have now | file changed: false
+add --as plan (an id the graph uses): exit 1 | grooph: "plan" is taken in "plan-review-release": give the subgrooph another id | file changed: false
+add with odd slot values: exit 0 | wrote plan.grooph.json | goal: "Ship the checkout flow behind a review gate." | with: {"checklist":"release","task":"uses $& and $1 and {{checklist}} and \"quotes\"\\n","test-command":"pnpm test"}
+update right after (same version): exit 0 | review  review-gate@1 → review-gate@1 (built-in): nothing to change / plan.grooph.json is up to date

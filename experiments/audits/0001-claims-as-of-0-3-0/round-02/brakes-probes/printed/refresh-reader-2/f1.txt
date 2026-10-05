@@ -1,0 +1,96 @@
+
+=== F1: a NEW stop where a person is asked every 2 rounds, then back to the builder (none before)
+applied: [ 'loop:review-review.stops' ]
+held:    []
+notes:   [
+  `the loop "review-review": the round cap (4) and the budget (10 dispatches) would count the rounds between two of a person's decisions, and no longer the whole run. A way round its nodes that they do not count is opened each time by the stop where a person is asked, which continues at "review-builder"`
+]
+schema: ok | errors before: [] after: []
+
+=== F1b: a NEW human stop with no then
+applied: [ 'loop:review-review.stops' ]
+held:    []
+schema: ok | errors before: [] after: []
+
+=== F2: a NEW budget in minutes (none before) that leads to a new wrap-up step; the dispatch budget and the cap stay
+applied: []
+held:    [
+  'edge:review-e-wrap-gate ["review-e-wrap-gate" (review-wrap → review-merge-gate) would make a way round the nodes of "review-review" that its stops do not count; adds a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  'loop:review-review.stops [a stop of the loop "review-review" would lead back to "review-wrap": a way round the nodes of "review-review" that its stops do not count; adds a way from "review-builder" to end in success that does not pass the critic "review-critic"]',
+  'node:review-wrap (waits edge:review-e-wrap-gate)'
+]
+schema: ok | errors before: [] after: []
+
+=== F2b: a second, LOWER round cap that leads back to the builder, the cap of 4 still halting
+applied: []
+held:    [
+  'loop:review-review.stops [the round cap of 2 that leads on to "review-critic" would fire before the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-critic": a way round the nodes of "review-review" that its stops do not count]'
+]
+schema: ok | errors before: [] after: []
+
+=== F3: a lint check inserted between builder and critic
+applied: [
+  'node:review-lint',
+  'edge:e-review-builder-review-critic',
+  'edge:e-review-lint-review-critic',
+  'edge:e-review-builder-review-lint',
+  'edge:review-e-lint-fail',
+  'loop:review-review.members',
+  'loop:review-review.back'
+]
+held:    []
+schema: ok | errors before: [] after: []
+
+=== F4: a smoke check inserted between the critic and the gate (critic's pass edge re-pointed by `to`)
+applied: [
+  'node:review-smoke',
+  'edge:review-e-critic-pass.to',
+  'edge:review-e-smoke-gate',
+  'edge:review-e-smoke-fail',
+  'loop:review-review.members',
+  'loop:review-review.back'
+]
+held:    []
+schema: ok | errors before: [] after: []
+
+=== F5: a second critic added beside the first, both must pass before the gate
+applied: []
+held:    [
+  'edge:e-review-builder-review-security [adds a way from "review-builder" to end in success that does not pass the critic "review-critic"]',
+  'edge:review-e-security-pass [adds a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  'node:review-security (waits edge:e-review-builder-review-security)',
+  'edge:review-e-security-fail (waits edge:e-review-builder-review-security)',
+  'loop:review-review.members (waits edge:e-review-builder-review-security)',
+  'loop:review-review.back (waits edge:e-review-builder-review-security)'
+]
+schema: ok | errors before: [] after: []
+
+=== F6: a new first step before the builder (a new entry)
+applied: [ 'node:review-triage', 'edge:e-review-triage-review-builder' ]
+held:    []
+notes:   [
+  'the newer version starts at "review-triage" too, and nothing in this graph leads to it: a run would begin there. Lead into it from where the subgrooph is entered'
+]
+schema: ok | errors before: [] after: []
+
+=== F7: the same new first step, where the graph has its own gate before the box
+applied: []
+held:    [
+  'edge:e-review-triage-review-builder [adds a way into "review-builder" that does not pass a person]',
+  'node:review-triage (waits edge:e-review-triage-review-builder)'
+]
+schema: ok | errors before: [] after: []
+
+=== F8: the gate gains an answer and an edge for it back to the builder
+applied: [
+  'node:review-merge-gate.options',
+  'edge:review-e-merge-gate-tests',
+  'loop:review-review.back'
+]
+held:    []
+schema: ok | errors before: [] after: []
+
+=== F9: cap lowered 4 -> 3, budget lowered, acceptance untouched, brief reworded
+applied: [ 'node:review-builder.brief', 'loop:review-review.stops' ]
+held:    []
+schema: ok | errors before: [] after: []

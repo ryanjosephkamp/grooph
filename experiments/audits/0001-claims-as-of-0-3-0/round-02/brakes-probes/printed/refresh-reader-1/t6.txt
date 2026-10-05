@@ -1,0 +1,9 @@
+place throws: "plan-review-release" already has "review-cap", and every id that begins with "review-" would be the subgrooph's own: give the subgrooph another id
+file://<repo>/packages/core/dist/src/subgrooph.js:57
+        throw new TemplateError(`"${doc.id}" already has "${under}", and every id that begins with "${as}-" would be the subgrooph's own: give the subgrooph another id`);
+              ^
+
+TemplateError: "plan-review-release" already has "review-two-builder", and every id that begins with "review-" would be the subgrooph's own: give the subgrooph another id
+    at placeSubgrooph (file://<repo>/packages/core/dist/src/subgrooph.js:57:15)
+    at file://<repo>/experiments/audits/0001-claims-as-of-0-3-0/round-02/brakes-probes/refresh-reader-1/t6.mjs:15:7
+

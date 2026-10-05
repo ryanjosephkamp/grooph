@@ -1,0 +1,15 @@
+seed 3: 3823 refreshed, 0 refused with a TemplateError, 177 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none  (x24)
+  human-gated-irreversible | sound template: true
+  newer version: addEdge gate->done "pass"
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-gate-done
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x4)
+  merge-queue | sound template: true
+  newer version: addEdge land-gate->bisect "always" ; when e-land-gate-land="always"
+  -> gate-answer-leads-elsewhere:s-land-gate
+  applied: edge:s-x-land-gate-bisect
+  held: edge:e-s-land-gate-s-land.when

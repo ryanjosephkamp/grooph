@@ -1,0 +1,110 @@
+================ the other loop's OWN back-edge id, re-pointed (old rule skips an id the other loop had; new rule skips a name that was already a way round)
+
+### N1 glyph: grind's back edge e-tests-fail re-pointed critic -> build on a new verdict; grind gains critic + a bar
+  changes: change edge:e-tests-fail.from, change edge:e-tests-fail.when, change loop:grind.members, change loop:grind.bar
+  refused: 
+    - edge:e-tests-fail.from: a round between "critic" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops; "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+    - edge:e-tests-fail.when: "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+  tightens:
+    + edge:e-tests-fail.from: a round between "tests" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops
+    + edge:e-tests-fail.when: changes what the critic's verdict leads to
+    + loop:grind.members: the loop "grind" would no longer bound "critic", which is still in the graph
+    + loop:grind.bar: removes the loop's bar
+
+### N1b the same, mode grind stated instead of a bar
+  changes: change edge:e-tests-fail.from, change edge:e-tests-fail.when, change loop:grind.members, change loop:grind.mode
+  refused: 
+    - edge:e-tests-fail.from: a round between "critic" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops; "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+    - edge:e-tests-fail.when: "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+  tightens:
+    + edge:e-tests-fail.from: a round between "tests" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops
+    + edge:e-tests-fail.when: changes what the critic's verdict leads to
+    + loop:grind.members: the loop "grind" would no longer bound "critic", which is still in the graph
+
+### N1c N1 plus a new tests -> build (fail) edge listed by BOTH loops, so tests' fail still returns
+  changes: change edge:e-tests-fail.from, change edge:e-tests-fail.when, change loop:grind.back, add edge:e-tests-fail-again, change loop:grind.members, change loop:grind.bar, change loop:review.back
+  refused: 
+    - edge:e-tests-fail.from: a round between "critic" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops; "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+    - edge:e-tests-fail.when: "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+    - loop:grind.back: a round between "critic" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops; "e-tests-fail" (critic → build) would make a way round the nodes of "review" that its stops do not count: "grind" would count it, and each time round "review" starts afresh
+  tightens:
+    + edge:e-tests-fail.from: a round between "tests" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops
+    + edge:e-tests-fail.when: changes what the critic's verdict leads to
+    + loop:grind.back: the rounds that "e-tests-fail" starts would be counted by "grind", not against the stops of "review"; a round between "tests" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops
+    + loop:grind.members: the loop "grind" would no longer bound "critic", which is still in the graph
+    + loop:grind.bar: removes the loop's bar
+    + loop:review.back: the rounds that "e-tests-fail" starts would be counted by "grind", not against the stops of "review"
+
+### N2 fresh-grind: e-tests-fail re-pointed judge -> builder on a new verdict; grind gains judge + a bar
+  changes: change edge:e-tests-fail.from, change edge:e-tests-fail.when, change loop:grind.members, change loop:grind.bar
+  refused: 
+    - edge:e-tests-fail.from: a round between "judge" and "builder", which the loop "phases" bounds, would be counted by "grind" and not against its stops; "e-tests-fail" (judge → builder) would make a way round the nodes of "phases" that its stops do not count: "grind" would count it, and each time round "phases" starts afresh
+    - edge:e-tests-fail.when: "e-tests-fail" (judge → builder) would make a way round the nodes of "phases" that its stops do not count: "grind" would count it, and each time round "phases" starts afresh
+  tightens:
+    + edge:e-tests-fail.from: a round between "tests" and "builder", which the loop "phases" bounds, would be counted by "grind" and not against its stops
+    + edge:e-tests-fail.when: changes what the critic's verdict leads to
+    + loop:grind.members: the loop "grind" would no longer bound "judge", which is still in the graph
+    + loop:grind.bar: removes the loop's bar
+
+### N3 gauntlet: pieces' back edge e-next-piece-pass re-pointed critic -> owner on a new verdict; a new next-piece -> owner (pass) edge listed by pieces
+  changes: change edge:e-next-piece-pass.from, change loop:pieces.back, change edge:e-next-piece-pass.when, add edge:e-next-piece-next
+  refused: 
+    - edge:e-next-piece-pass.from: a round between "critic" and "owner", which the loop "polish" bounds, would be counted by "pieces" and not against its stops
+    - loop:pieces.back: a round between "critic" and "owner", which the loop "polish" bounds, would be counted by "pieces" and not against its stops
+  tightens:
+    + edge:e-next-piece-pass.when: changes what the critic's verdict leads to
+
+### N3b gauntlet: only the re-pointing (no new edge)
+  changes: change edge:e-next-piece-pass.from, change edge:e-next-piece-pass.when
+  refused: 
+    - edge:e-next-piece-pass.from: a round between "critic" and "owner", which the loop "polish" bounds, would be counted by "pieces" and not against its stops
+  tightens:
+    + edge:e-next-piece-pass.when: changes what the critic's verdict leads to
+
+### N4 gauntlet: polish's back edge e-capture-check-fail re-pointed next-piece -> owner on 'fail'... (pieces' territory, counted by polish cap 3: control, tighter?)
+  changes: change edge:e-capture-check-fail.from, change edge:e-capture-check-fail.when, change loop:polish.members
+  refused: 
+    - edge:e-capture-check-fail.from: a round between "next-piece" and "owner", which the loop "pieces" bounds, would be counted by "polish" and not against its stops; "e-capture-check-fail" (next-piece → owner) would make a way round the nodes of "pieces" that its stops do not count: "polish" would count it, and each time round "pieces" starts afresh
+    - edge:e-capture-check-fail.when: "e-capture-check-fail" (next-piece → owner) would make a way round the nodes of "pieces" that its stops do not count: "polish" would count it, and each time round "pieces" starts afresh
+  tightens:
+    + edge:e-capture-check-fail.from: a round between "capture-check" and "owner", which the loop "pieces" bounds, would be counted by "polish" and not against its stops
+    + loop:polish.members: the loop "polish" would no longer bound "next-piece", which is still in the graph
+
+================ confirmations
+
+### C1 sub: approval put on plan->builder (NOT on the way round) + critic -> redo -> builder under a new loop cap 1000
+  changes: add edge:e-critic-redo, add edge:e-redo-builder, add loop:redo-loop, add node:redo, change edge:e-plan-review-builder.approval
+  refused: 
+    - edge:e-critic-redo: "e-critic-redo" (review-critic → redo) would make a way round the nodes of "review-review" that its stops do not count
+    - edge:e-redo-builder: "e-redo-builder" (redo → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "redo-loop" would count it, and each time round "review-review" starts afresh
+    - loop:redo-loop: "e-redo-builder" (redo → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "redo-loop" would count it, and each time round "review-review" starts afresh
+  tightens:
+    + edge:e-plan-review-builder.approval: removes a person's approval from the edge; opens a way into "review-builder" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS, W_LONG_LOOP_NO_BUDGET, W_ONLY_MAX_ITERATIONS
+
+### C2 sub: approval put on builder->critic (ON every lap) + the same (stated limit: an edge that needs approval)
+  changes: add node:redo, change edge:e-review-builder-review-critic.approval, add edge:e-critic-redo, add edge:e-redo-builder, add loop:redo-loop
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + edge:e-review-builder-review-critic.approval: removes a person's approval from the edge; opens a way into "review-critic" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS, W_LONG_LOOP_NO_BUDGET, W_ONLY_MAX_ITERATIONS
+  first reader's oracle, worst-case dispatches grown: [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### C3 sub: the gate's approve edge (existing person edge) re-pointed to plan: a way round by an old person edge
+  NOT VALID (refused earlier): E_CYCLE_NO_STOP: cycle with no stop: plan → review-builder → review-critic → review-merge-gate. Cover it with a loop that has at least one stop.
+
+### C4 sub: non-brake stop (diminishing-returns) then: plan, which leads back in by an existing edge
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: a stop of the loop "review-review" would lead back to "plan": a way round the nodes of "review-review" that its stops do not count
+  warnings: W_HOMOGENEOUS_CRITICS, W_UNREACHABLE_NODE, W_NO_TERMINAL
+
+### C5 glyph (nested): honest: a lint check between build and tests, listed in both loops, its fail a grind back edge
+  changes: add node:lint, change edge:e-build-tests.from, change edge:e-build-tests.when, add edge:e-build-lint, add edge:e-lint-fail, change loop:grind.members, change loop:grind.back, change loop:review.members
+  refused: NONE  <<<<<< adopted with no --allow
+  first reader's oracle, worst-case dispatches grown: []
+
+### C6 glyph (nested): honest: a formatter step between build and tests, listed in both loops
+  changes: add node:format, change edge:e-build-tests.from, add edge:e-build-format, change loop:grind.members, change loop:review.members
+  refused: NONE  <<<<<< adopted with no --allow
+  first reader's oracle, worst-case dispatches grown: []
