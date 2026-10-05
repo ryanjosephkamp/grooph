@@ -26,6 +26,7 @@ import { saveUserTemplate } from "../store/templates.js";
 import { Glyph, hasLongGlyph } from "./Glyph.js";
 import { Landing } from "./landing/Landing.js";
 import { PersistNotice } from "./Notices.js";
+import { piece } from "../piece.js";
 import { templateHref } from "./templates/TemplatesScreen.js";
 
 const when = (ms: number): string => {
@@ -41,6 +42,8 @@ const when = (ms: number): string => {
  * fetched when someone picks a file or opens the paste box. What is here is the door to it.
  */
 type Door = typeof import("./Import.js");
+/** Through `piece` (../piece.ts), so a fetch that failed is asked for again, in a way every engine honors. */
+const door = (): Promise<Door> => piece("Import", () => import("./Import.js"));
 
 /** On the front page the controls sit below the fold: bring what an import said into view. */
 const inView = (el: HTMLElement | null): void => el?.scrollIntoView({ block: "nearest" });
@@ -87,10 +90,10 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
   useEffect(() => void refresh(), [refresh]);
 
   // The door, and what is said when the piece cannot be fetched: a first visit that lost its connection before the
-  // worker held the file. A browser may not ask again for a script it failed to fetch until the page is loaded again.
+  // worker held the file. The next try asks for it afresh.
   const host = { open, route: openRouteFor, problem: setImportProblem, offer: setTemplateOffer, close: () => setPasteBox(null) };
   const through = (name: string, then: (door: Door) => unknown): void =>
-    void import("./Import.js").then(then, () => setImportProblem({ name, issues: [], what: "The part of grooph that opens it could not be fetched. It needs a connection the first time: reload this page when you have one." }));
+    void door().then(then, () => setImportProblem({ name, issues: [], what: "The part of grooph that opens it could not be fetched. It needs a connection the first time: try again when you have one." }));
   const onFile = (file: File | undefined): void => {
     if (file) through(file.name, async (door) => door.importText(await file.text(), file, host));
   };
@@ -100,7 +103,7 @@ export function Library({ open }: { open: (key: string, fresh?: boolean) => void
     const onPaste = (event: ClipboardEvent): void => {
       const text = event.clipboardData?.getData("text/plain");
       if (text && event.target instanceof Element && !event.target.closest("input, textarea, select")) {
-        void import("./Import.js").then((door) => door.openPasted(text, host, true), () => undefined);
+        void door().then((door) => door.openPasted(text, host, true), () => undefined);
       }
     };
     window.addEventListener("paste", onPaste);

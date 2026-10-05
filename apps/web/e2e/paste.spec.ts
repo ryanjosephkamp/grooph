@@ -108,7 +108,7 @@ test("what opens a document is not fetched with the page: it is fetched when som
   expect(asked).toHaveLength(1);
 });
 
-test("when the piece cannot be fetched, Paste and Import each say so in plain words, and a reload with a connection mends it", async ({ page }) => {
+test("when the piece cannot be fetched, Paste and Import each say so in plain words, and the next try with a connection works", async ({ page }) => {
   // A first visit that lost its connection before the worker held the file: every later visit has it from the worker.
   await page.route(piece, (route) => route.abort("internetdisconnected"));
   const errors: string[] = [];
@@ -116,7 +116,7 @@ test("when the piece cannot be fetched, Paste and Import each say so in plain wo
   await page.goto("./");
 
   await page.getByRole("button", { name: "Paste a document" }).tap();
-  await expect(page.getByRole("alert")).toContainText("Could not import what you paste. The part of grooph that opens it could not be fetched. It needs a connection the first time: reload this page when you have one.");
+  await expect(page.getByRole("alert")).toContainText("Could not import what you paste. The part of grooph that opens it could not be fetched. It needs a connection the first time: try again when you have one.");
   await expect(page.getByLabel(/A graph's JSON/)).toHaveCount(0);
 
   await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(doc) });
@@ -134,10 +134,9 @@ test("when the piece cannot be fetched, Paste and Import each say so in plain wo
   await expect(page.getByRole("alert")).toHaveCount(0);
   expect(errors).toEqual([]);
 
-  // The connection is back. Chromium does not ask again for a script it failed to fetch until the page is loaded
-  // again, which is why the sentence says to reload; after that the same button fetches the piece and the paste opens.
+  // The connection is back. Left to itself Chromium would not ask again for a script it failed to fetch; the door
+  // goes through `piece` (src/piece.ts, slice 0088), which does, so the same button now fetches it with no reload.
   await page.unroute(piece);
-  await page.reload();
   await paste(page, doc);
   await expect(status(page)).toHaveText("1 warning");
 });
