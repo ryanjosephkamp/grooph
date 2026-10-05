@@ -17,11 +17,17 @@
  * **A recorded run** is given the slider instead: its own notes, in the order it wrote them, each lighting what it
  * is about (a node's card, an edge's arc, a loop's sheet) and saying who did what and in which round, as the run's
  * replay says it (`replaySteps` in core). That order is the run's, and it happened.
+ *
+ * **The picture becomes the scene.** Chosen, 3D is not put in the picture's place: each node is seen to go to its
+ * card, tilting as it goes, while the canvas's edges fade and the sheets and arcs come; and back the same way
+ * (`ui/become.ts`). The scene it ends on is the scene as it was before there was any motion, and with reduced
+ * motion, or in a browser with no view transitions, the change is that scene in one paint.
  */
 import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { piece } from "../../piece.js";
+import { become } from "../become.js";
 import css from "./graph-views.css?inline";
 
 type Space = typeof import("../map/space.js");
@@ -149,9 +155,22 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     document.head.append(sheet);
     styled = true;
   }
+  // The nodes on the canvas, or their cards when the scene is up: what is seen to go from the one view to the other.
+  const parts = (): [HTMLElement, string][] => {
+    const stage = host.current?.parentElement;
+    const cards = [...(stage?.querySelectorAll<HTMLElement>(".space-card") ?? [])].map((card): [HTMLElement, string] => [card, card.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? ""]);
+    return cards.length ? cards : [...(stage?.querySelectorAll<HTMLElement>(".react-flow__node[data-id]") ?? [])].map((node) => [node, node.dataset["id"]!]);
+  };
+  // What to call once the page has a change that was asked for: the layout effect below does, after the scene's own.
+  // The browser asks for the change a frame after it is told of it; a view that has gone by then has none to make,
+  // and says so at once, or the browser would hold the page still while it waited.
+  const moved = useRef<() => void>(undefined);
+  const go = (change: () => void): void => become(parts, (done) => (host.current ? ((moved.current = done), change()) : done()));
   const choose = (next: "picture" | "space"): void => {
-    setView(next);
-    if (next === "space" && !three) piece("space", () => import("../map/space.js")).then((m) => setThree((space = m)), () => (setThree(null), setView("picture")));
+    if (next === view) return;
+    // The first press of a visit fetches the scene's piece, and nothing moves until it has come.
+    if (next === "space" && !three) (setView(next), piece("space", () => import("../map/space.js")).then((m) => go(() => setThree((space = m))), () => (setThree(null), setView("picture"))));
+    else go(() => setView(next));
   };
   const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
   // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
@@ -173,8 +192,14 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       el.setAttribute("role", "img");
       if (at) el.setAttribute("aria-label", `Step ${at.n}: ${name(at.from)} to ${name(at.to)}`);
     }
-    return three.attach(root, made, (kept.current ??= three.held()), () => setView("picture"));
+    return three.attach(root, made, (kept.current ??= three.held()), () => choose("picture"));
   }, [made]);
+  useLayoutEffect(() => {
+    moved.current?.();
+    moved.current = undefined;
+  });
+  // A view that goes while a change is on its way must not leave the browser waiting for it.
+  useEffect(() => () => moved.current?.(), []);
   // Three cards in a row at a phone's width, and more where there is room, as a map's sheets have.
   useEffect(() => {
     const stage = host.current?.parentElement;

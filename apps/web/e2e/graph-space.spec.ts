@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { parseGraphText, type Graph } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
-import { fixturePath, importDocument, linkFor, node, repoRoot, runBundle, sheet } from "./support.js";
+import { fixturePath, importDocument, linkFor, node, repoRoot, runBundle, sheet, viewIsStill } from "./support.js";
 
 /**
  * A loop graph in three dimensions (handoff 0092): the switch a map has, on every canvas. The scene, the slider and
@@ -17,11 +17,12 @@ const slider = (page: Page) => page.getByRole("slider", { name: "Step, in the or
 const says = (page: Page) => page.locator(".space output");
 const posed = (page: Page) => page.locator(".space-world").evaluate((el) => (el as HTMLElement).style.transform);
 
-/** Choose 3D and wait until the scene is drawn and fitted. */
+/** Choose 3D and wait until the scene is drawn and fitted, and the move to it has ended. */
 async function threeD(page: Page): Promise<void> {
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
   await expect.poll(() => posed(page)).toContain("scale3d(");
+  await viewIsStill(page);
 }
 
 test("a template's page has the switch a map has; 3D draws each loop as a sheet, every node a card and every edge an arc, named and whole in its frame", async ({ page }) => {
@@ -106,6 +107,7 @@ test("a link to a graph: a card opens what its node does on the canvas, and back
   await expect(page.locator(".space")).toHaveCount(0);
   await expect.poll(where).toBe(before);
   // The switch lies over the canvas and is not in its way: a node under the pointer is the node.
+  await viewIsStill(page);
   const box = (await node(page, "builder").boundingBox())!;
   expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x!, y!)?.closest(".react-flow__node"), [box.x + box.width / 2, box.y + box.height / 2])).toBe(true);
   // Chosen again, it is where it was left.
@@ -219,95 +221,277 @@ async function slowing(page: Page): Promise<(rate: number) => Promise<void>> {
   };
 }
 
-test("the switch is one paint each way, as a map's is: the canvas is whole until the scene is there, the scene comes styled, turned and named, and Picture puts the canvas back", async ({ page }) => {
+/**
+ * With reduced motion, or in a browser with no view transitions, the switch is what it was before the picture was
+ * made to become the scene: one paint each way. The two tests of that are as they were written, run in that mode.
+ */
+test.describe("with reduced motion the switch is one paint each way", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("the switch is one paint each way, as a map's is: the canvas is whole until the scene is there, the scene comes styled, turned and named, and Picture puts the canvas back", async ({ page }) => {
+    await page.goto("./#/templates/built-in/review-gate");
+    await expect(node(page, "builder")).toBeVisible();
+    await expect(view(page, "3D")).toBeVisible();
+    await page.getByRole("button", { name: "Close panel" }).click();
+    const where = async () => JSON.stringify(await node(page, "builder").boundingBox());
+    await expect.poll(async () => (await where()) === (await where())).toBe(true);
+    const before = await where();
+    const legend = page.locator(".stage > .loop-legend");
+    await expect(legend).toBeVisible();
+
+    // The first press of a visit, with the scene's piece still on its way: the switch has moved, and nothing else has.
+    const arrivals = await noteArrivals(page);
+    const scene = await holdTheScene(page);
+    await view(page, "3D").click();
+    await scene.asked;
+    await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
+    await expect(legend).toBeVisible();
+    await expect(page.locator(".space")).toHaveCount(0);
+    expect(await where()).toBe(before);
+
+    // It arrives on a slow device, and is whole in the turn that draws it: its styles, its starting view, its names.
+    const slowed = await slowing(page);
+    await slowed(6);
+    scene.release();
+    await expect(page.locator(".space-scene")).toBeVisible();
+    await slowed(1);
+    await expect.poll(() => posed(page)).toContain("scale3d(");
+    expect(await arrivals()).toEqual([{ styled: true, posed: true, named: true }]);
+    // With the scene the loops' names leave the canvas: they are on the sheets.
+    await expect(legend).toBeHidden();
+
+    // Back: the canvas is as it was, with its loops' names, in the same change.
+    await view(page, "Picture").click();
+    await expect(page.locator(".space")).toHaveCount(0);
+    await expect(legend).toBeVisible();
+    await expect.poll(where).toBe(before);
+
+    // A later press, with the piece in hand, and back again.
+    await slowed(6);
+    await view(page, "3D").click();
+    await expect(page.locator(".space-scene")).toBeVisible();
+    await slowed(1);
+    expect(await arrivals()).toEqual([
+      { styled: true, posed: true, named: true },
+      { styled: true, posed: true, named: true },
+    ]);
+    await view(page, "Picture").click();
+    await expect(page.locator(".space")).toHaveCount(0);
+    await expect.poll(where).toBe(before);
+  });
+
+  test("on a run's page the canvas keeps its size until the scene is there; in 3D the page makes room for it and does not lie under it, and Picture gives the room back", async ({ page }) => {
+    await page.goto(linkFor(runBundle("slice-0007-sandwich")));
+    await expect(page.locator(".react-flow__node").first()).toBeVisible();
+    await expect(view(page, "3D")).toBeVisible();
+    const stage = page.locator(".run-stage");
+    const panel = page.locator(".run-panel");
+    const height = async () => Math.round((await stage.boundingBox())!.height);
+    const top = async () => Math.round((await panel.boundingBox())!.y);
+    const [short, under] = [await height(), await top()];
+    const bigger = page.getByRole("button", { name: "Bigger graph" });
+    await expect(bigger).toBeVisible();
+
+    // Pressed, with the piece on its way: the page has not moved.
+    const scene = await holdTheScene(page);
+    await view(page, "3D").click();
+    await scene.asked;
+    await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
+    await expect(bigger).toBeVisible();
+    expect([await height(), await top()]).toEqual([short, under]);
+
+    // With the scene the stage is given a screen's room, and what is under it moves down: nothing of the run's
+    // summary is behind the scene.
+    scene.release();
+    await expect(page.locator(".space-scene")).toBeVisible();
+    await expect.poll(() => posed(page)).toContain("scale3d(");
+    expect(await height()).toBeGreaterThan(short + 100);
+    const foot = await stage.evaluate((el) => Math.round(el.getBoundingClientRect().bottom));
+    expect(await top()).toBeGreaterThanOrEqual(foot - 1);
+    await expect(bigger).toBeHidden();
+    // The scene has the room a viewer's bar would take at the foot, and its slider and words are read without scrolling.
+    expect((await page.locator(".space-scene").boundingBox())!.height).toBeGreaterThan(300);
+    expect(await page.locator(".graph-space").evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
+
+    await view(page, "Picture").click();
+    await expect(page.locator(".space")).toHaveCount(0);
+    await expect.poll(async () => [await height(), await top()]).toEqual([short, under]);
+    await expect(bigger).toBeVisible();
+  });
+
+  test("and no move is started: with reduced motion, and in a browser that has no view transitions", async ({ page }) => {
+    const moves = await noteMoves(page);
+    await page.goto("./#/templates/built-in/review-gate");
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await threeD(page);
+    await view(page, "Picture").click();
+    await expect(page.locator(".space")).toHaveCount(0);
+    expect(await moves()).toEqual([]);
+
+    // No view transitions at all, and motion allowed: the same one paint, and nothing is asked of what is not there.
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.addInitScript(() => Object.defineProperty(document, "startViewTransition", { value: undefined }));
+    await page.reload();
+    await expect(node(page, "builder")).toBeVisible();
+    await page.getByRole("button", { name: "Close panel" }).click();
+    const arrivals = await noteArrivals(page);
+    await threeD(page);
+    expect(await arrivals()).toEqual([{ styled: true, posed: true, named: true }]);
+    await view(page, "Picture").click();
+    await expect(page.locator(".space")).toHaveCount(0);
+    await expect(node(page, "builder")).toBeVisible();
+  });
+});
+
+/* ─── the picture becomes the scene (the owner's notes of 2026-10-05): each node is seen to go to its card ─── */
+
+type Move = { parts: number; ended: boolean };
+
+/**
+ * Note each view transition the page starts: how many of the graph's parts the browser is moving in it, read when
+ * its pictures are ready, and whether it has ended. Asked for before the page is opened. With `held`, each move is
+ * stopped where it starts, with the page under the browser's picture of it, until `letGo` is called in the page.
+ */
+async function noteMoves(page: Page, held = false): Promise<() => Promise<Move[]>> {
+  await page.addInitScript((hold) => {
+    const real = document.startViewTransition?.bind(document);
+    if (!real) return;
+    const log: { parts: number; ended: boolean }[] = [];
+    const its = (): Animation[] => document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition"));
+    Object.assign(window, { __moves: log, letGo: () => its().forEach((a) => a.finish()) });
+    document.startViewTransition = (update?: unknown) => {
+      const move = real(update as ViewTransitionUpdateCallback);
+      const seen = { parts: -1, ended: false };
+      log.push(seen);
+      void move.ready.then(
+        () => {
+          if (hold) its().forEach((a) => a.pause());
+          seen.parts = new Set(its().map((a) => (a.effect as KeyframeEffect).pseudoElement!).filter((part) => part.startsWith("::view-transition-group(gv"))).size;
+        },
+        () => (seen.parts = 0),
+      );
+      void move.finished.then(() => (seen.ended = true));
+      return move;
+    };
+  }, held);
+  return () => page.evaluate(() => (window as unknown as { __moves?: Move[] }).__moves ?? []);
+}
+
+/** Where everything of the scene stands on the screen: its cards, sheets and arcs, and how its world is turned. */
+const stands = (page: Page): Promise<string> =>
+  page.evaluate(() =>
+    JSON.stringify([
+      document.querySelector<HTMLElement>(".space-world")!.style.transform,
+      ...[...document.querySelectorAll(".space-card, .space-sheet, .space-arc")].map((el) => {
+        const box = el.getBoundingClientRect();
+        return [box.x, box.y, box.width, box.height].map(Math.round);
+      }),
+    ]),
+  );
+/** How many parts of the page still carry a name for the browser to move them by. */
+const namedStill = (page: Page): Promise<number> => page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".react-flow__node, .space-card")].filter((el) => el.style.getPropertyValue("view-transition-name")).length);
+
+test("the picture becomes the scene and the scene the picture: nothing moves while the scene is fetched, then every node is seen to go to its card and back, and each ends as it is with no motion", async ({ page }) => {
+  const moves = await noteMoves(page);
+  // The scene with no motion at all, first: what the move must end on.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("./#/templates/built-in/review-gate");
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await threeD(page);
+  const asItIs = await stands(page);
+  expect(await moves()).toEqual([]);
+
+  // Then a visit of its own, with motion.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.reload();
   await expect(node(page, "builder")).toBeVisible();
   await expect(view(page, "3D")).toBeVisible();
   await page.getByRole("button", { name: "Close panel" }).click();
   const where = async () => JSON.stringify(await node(page, "builder").boundingBox());
   await expect.poll(async () => (await where()) === (await where())).toBe(true);
   const before = await where();
+  const nodes = await page.locator(".react-flow__node").count();
   const legend = page.locator(".stage > .loop-legend");
-  await expect(legend).toBeVisible();
 
-  // The first press of a visit, with the scene's piece still on its way: the switch has moved, and nothing else has.
-  const arrivals = await noteArrivals(page);
+  // The first press of a visit: the scene's piece is on its way, and nothing has moved or been named.
   const scene = await holdTheScene(page);
   await view(page, "3D").click();
   await scene.asked;
   await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
   await expect(legend).toBeVisible();
-  await expect(page.locator(".space")).toHaveCount(0);
-  expect(await where()).toBe(before);
+  expect([await moves(), await namedStill(page)]).toEqual([[], 0]);
 
-  // It arrives on a slow device, and is whole in the turn that draws it: its styles, its starting view, its names.
-  const slowed = await slowing(page);
-  await slowed(6);
+  // It comes: one move, of every node, and it ends on the scene as it is with no motion, with no name left on it.
   scene.release();
   await expect(page.locator(".space-scene")).toBeVisible();
-  await slowed(1);
-  await expect.poll(() => posed(page)).toContain("scale3d(");
-  expect(await arrivals()).toEqual([{ styled: true, posed: true, named: true }]);
-  // With the scene the loops' names leave the canvas: they are on the sheets.
+  await expect.poll(moves).toEqual([{ parts: nodes, ended: true }]);
+  expect(await stands(page)).toBe(asItIs);
+  expect(await namedStill(page)).toBe(0);
   await expect(legend).toBeHidden();
+  const cards = await page.locator(".space [data-node]").evaluateAll((els) => els.map((el) => [el.getAttribute("aria-label"), el.getAttribute("role")]));
+  expect(cards.length === nodes && cards.every(([name, role]) => !!name && role === "button")).toBe(true);
 
-  // Back: the canvas is as it was, with its loops' names, in the same change.
+  // Back: every card is seen to go home, and the canvas is as it was.
   await view(page, "Picture").click();
   await expect(page.locator(".space")).toHaveCount(0);
+  await expect.poll(moves).toEqual(Array(2).fill({ parts: nodes, ended: true }));
   await expect(legend).toBeVisible();
-  await expect.poll(where).toBe(before);
+  expect([await where(), await namedStill(page)]).toEqual([before, 0]);
 
-  // A later press, with the piece in hand, and back again.
-  await slowed(6);
-  await view(page, "3D").click();
-  await expect(page.locator(".space-scene")).toBeVisible();
-  await slowed(1);
-  expect(await arrivals()).toEqual([
-    { styled: true, posed: true, named: true },
-    { styled: true, posed: true, named: true },
-  ]);
+  // And again, both ways: the names of the first time were taken off, so no part has two and every move is whole.
+  await threeD(page);
   await view(page, "Picture").click();
   await expect(page.locator(".space")).toHaveCount(0);
-  await expect.poll(where).toBe(before);
+  await expect.poll(moves).toEqual(Array(4).fill({ parts: nodes, ended: true }));
+  expect([await where(), await namedStill(page)]).toEqual([before, 0]);
 });
 
-test("on a run's page the canvas keeps its size until the scene is there; in 3D the page makes room for it and does not lie under it, and Picture gives the room back", async ({ page }) => {
-  await page.goto(linkFor(runBundle("slice-0007-sandwich")));
-  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+test("a tap while the picture is becoming the scene does nothing and no harm, and the same tap works once the move has ended", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(String(error)));
+  // Each move is stopped where it starts, so that "while" is not a matter of being quick.
+  const moves = await noteMoves(page, true);
+  const letGo = () => page.evaluate(() => (window as unknown as { letGo: () => void }).letGo());
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(node(page, "builder")).toBeVisible();
   await expect(view(page, "3D")).toBeVisible();
-  const stage = page.locator(".run-stage");
-  const panel = page.locator(".run-panel");
-  const height = async () => Math.round((await stage.boundingBox())!.height);
-  const top = async () => Math.round((await panel.boundingBox())!.y);
-  const [short, under] = [await height(), await top()];
-  const bigger = page.getByRole("button", { name: "Bigger graph" });
-  await expect(bigger).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const nodes = await page.locator(".react-flow__node").count();
+  const center = async (of: ReturnType<typeof view>) => {
+    const box = (await of.boundingBox())!;
+    return [box.x + box.width / 2, box.y + box.height / 2] as const;
+  };
+  const picture = await center(view(page, "Picture"));
+  const builder = await center(node(page, "builder"));
 
-  // Pressed, with the piece on its way: the page has not moved.
-  const scene = await holdTheScene(page);
   await view(page, "3D").click();
-  await scene.asked;
+  await expect.poll(moves).toEqual([{ parts: nodes, ended: false }]);
+  // On the way: the browser shows its picture of the page, and a finger on it reaches nothing under it.
+  await page.touchscreen.tap(...picture);
+  await page.touchscreen.tap(...builder);
   await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
-  await expect(bigger).toBeVisible();
-  expect([await height(), await top()]).toEqual([short, under]);
+  await expect(page.locator(".space")).toHaveCount(1);
+  await expect(sheet(page)).toHaveCount(0);
+  expect(await moves()).toEqual([{ parts: nodes, ended: false }]);
 
-  // With the scene the stage is given a screen's room, and what is under it moves down: nothing of the run's
-  // summary is behind the scene.
-  scene.release();
-  await expect(page.locator(".space-scene")).toBeVisible();
-  await expect.poll(() => posed(page)).toContain("scale3d(");
-  expect(await height()).toBeGreaterThan(short + 100);
-  const foot = await stage.evaluate((el) => Math.round(el.getBoundingClientRect().bottom));
-  expect(await top()).toBeGreaterThanOrEqual(foot - 1);
-  await expect(bigger).toBeHidden();
-  // The scene has the room a viewer's bar would take at the foot, and its slider and words are read without scrolling.
-  expect((await page.locator(".space-scene").boundingBox())!.height).toBeGreaterThan(300);
-  expect(await page.locator(".graph-space").evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
-
-  await view(page, "Picture").click();
+  // Ended: the page is the page again, and the tap on Picture that did nothing now starts the way back.
+  await letGo();
+  await expect.poll(moves).toEqual([{ parts: nodes, ended: true }]);
+  await viewIsStill(page);
+  await page.touchscreen.tap(...picture);
+  await expect.poll(moves).toEqual([
+    { parts: nodes, ended: true },
+    { parts: nodes, ended: false },
+  ]);
+  await letGo();
+  await expect.poll(async () => (await moves()).every((move) => move.ended)).toBe(true);
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".space")).toHaveCount(0);
-  await expect.poll(async () => [await height(), await top()]).toEqual([short, under]);
-  await expect(bigger).toBeVisible();
+  await viewIsStill(page);
+  // And the canvas takes a finger again: the node opens what it opens.
+  await page.touchscreen.tap(...builder);
+  await expect(sheet(page).getByText("Builder").first()).toBeVisible();
+  expect(errors).toEqual([]);
 });
 
 /* ─── behind doors (decision 0021): the switch comes with a canvas, the scene when 3D is chosen ─── */
