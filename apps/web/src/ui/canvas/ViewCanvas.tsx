@@ -1,4 +1,4 @@
-import type { Graph, Id, Issue, RunSummary } from "@grooph/core";
+import type { Graph, Id, Issue, RunNote, RunSummary } from "@grooph/core";
 import { Background, BackgroundVariant, ReactFlow, useReactFlow, type EdgeTypes, type NodeTypes } from "@xyflow/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -6,6 +6,7 @@ import { stateLabel } from "../../doc/run.js";
 import { severityById } from "../../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { edgeBends, labelSpots, type Box } from "./bends.js";
+import { boxed, type UseBoxes } from "./boxes.js";
 import { RUN_PAD, VIEWER_PAD, fitOptions, glide } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
@@ -28,7 +29,7 @@ export type Highlight = { nodes: Id[]; edges: Id[]; loop?: Id };
  * With `run`, each node carries its run state (icon and label as well as
  * color) and `highlight` lights up the object a timeline note is about.
  */
-export function ViewCanvas(props: {
+type Props = {
   doc: Graph;
   variant: "full";
   issues?: Issue[];
@@ -36,15 +37,26 @@ export function ViewCanvas(props: {
   onNodeTap?: (id: Id) => void;
   run?: RunSummary;
   highlight?: Highlight;
-}) {
-  const { doc } = props;
+  /** a run's notes in the order it wrote them: the canvas does not draw them; the view in three dimensions steps through them (`graph-views.tsx`) */
+  notes?: readonly RunNote[];
+};
+
+export const ViewCanvas = boxed<Props>(Drawn, (props) => props.doc);
+
+function Drawn(props: Props & { useBoxes: UseBoxes }) {
   // The link viewer keeps room for its bottom bar; the run view has none, and its canvas is shorter.
   const pad = props.run ? RUN_PAD : VIEWER_PAD;
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
   /** Whether the person has panned or zoomed: until then the view is the app's, and follows the room a panel leaves. */
   const moved = useRef(false);
-  const positions = useMemo(() => resolvePositions(doc).positions, [doc]);
+  const own = useMemo(() => resolvePositions(props.doc).positions, [props.doc]);
   const severity = useMemo(() => severityById(props.issues ?? []), [props.issues]);
+  // A subgrooph is one box (handoff 0085): the document is drawn with each closed box as one node, placed over the
+  // room its nodes take. A run's canvas shows every node's state, so its boxes are open; a node a note is about
+  // opens the boxes around it.
+  const boxes = props.useBoxes(props.doc, own, measured, severity, props.highlight?.nodes, props.selected, !!props.run);
+  const doc = boxes?.doc ?? props.doc;
+  const positions = boxes?.positions ?? own;
 
   const nodes = useMemo(
     () =>
@@ -105,7 +117,7 @@ export function ViewCanvas(props: {
 
   return (
     <ReactFlow<GraphFlowNode, GraphFlowEdge>
-      nodes={nodes}
+      nodes={boxes?.with(nodes) ?? nodes}
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}

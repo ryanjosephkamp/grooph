@@ -1,6 +1,8 @@
 import { StrictMode, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
+import { piece } from "./piece.js";
+
 const root = createRoot(document.getElementById("root")!);
 const render = (node: ReactNode) => root.render(<StrictMode>{node}</StrictMode>);
 
@@ -8,14 +10,16 @@ const render = (node: ReactNode) => root.render(<StrictMode>{node}</StrictMode>)
 // fetches a fraction of what the app weighs. Everything else loads the app as before.
 if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
   document.documentElement.classList.add("gx-page-only");
-  void import("./ui/embed/EmbedApp.js").then(({ EmbedApp }) => render(<EmbedApp />));
+  void piece("EmbedApp", () => import("./ui/embed/EmbedApp.js")).then(({ EmbedApp }) => render(<EmbedApp />));
 } else {
   // The stylesheets in order (React Flow's base, then the app's, which overrides it), the app beside them.
   const css = import("@xyflow/react/dist/base.css").then(() => import("./styles.css"));
-  // An address that opens on a screen that draws on the canvas waits for those screens too (slice 0069); index.html
-  // has already asked for them beside the app, so this costs no round of its own. Any other address does not wait.
+  // An address that opens on a screen that draws on the canvas waits for those screens too (slice 0069); one that
+  // lists or opens a built-in template waits for the templates, and the front page's for its picture (slice 0093).
+  // index.html has already asked for each beside the app, by the same rules (`doors.ts`), so this costs no round of
+  // its own.
   const app = Promise.all([css, import("./App.js")]).then(async ([, loaded]) => {
-    if (loaded.needsScreens(location.hash)) await loaded.loadScreens().catch(() => undefined);
+    await loaded.ready(location.hash);
     render(<loaded.App />);
     return loaded;
   });

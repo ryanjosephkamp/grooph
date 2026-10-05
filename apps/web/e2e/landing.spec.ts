@@ -4,12 +4,15 @@ import { gzipSync } from "node:zlib";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { fixturePath, importDocument, repoRoot } from "./support.js";
+import { fixturePath, importDocument, repoRoot, requestsOut, visitIsOver } from "./support.js";
 
 /**
  * Handoff 0055: the front door. On an empty device `#/` is the front page; with
  * graphs it is the library, which links to the same page at `#/about`. On a
  * desktop the front page and the templates use the width.
+ *
+ * Handoff 0077: the page in the owner's style. A night header with the mark, the
+ * menu and the theme switch, his footer, and fonts that are files of the site.
  */
 
 const ASK = "/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
@@ -52,8 +55,11 @@ const sidewaysScroll = (page: Page): Promise<number> => page.evaluate(() => docu
 
 test("an empty device opens on the front page, in the order the handoff gives", async ({ page }) => {
   await page.goto("./");
-  await expect(page.getByRole("heading", { name: "grooph", level: 1 })).toBeVisible();
+  // The headline is the page's heading, in two lines; the name is the mark's link in the header.
+  await expect(page.getByRole("heading", { name: "Loop graphs for coding agents.", level: 1 })).toBeVisible();
   await expect(page.locator(".land-headline")).toHaveText("Loop graphs for coding agents.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.locator(".site-header").getByRole("link", { name: "grooph", exact: true })).toBeVisible();
 
   // A real graph, drawn by core's picture from the review gate, its slots filled.
   const svg = page.locator(".land-picture svg.grooph-picture");
@@ -73,6 +79,8 @@ test("an empty device opens on the front page, in the order the handoff gives", 
 
   await expect(page.locator(".land-foot").getByRole("link", { name: "Source" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph");
   // Handoff 0060: "Docs" opens the documents as pages on the site, not files on GitHub; "GitHub" still goes to the repository.
+  // At this width the header's links are under Menu (handoff 0077).
+  await page.getByRole("button", { name: "Menu" }).tap();
   const docs = page.locator(".land-nav").getByRole("link", { name: "Docs" });
   await expect(docs).toHaveAttribute("href", "/grooph/docs/");
   expect(await docs.evaluate((a: HTMLAnchorElement) => a.href)).toBe(new URL("docs/", page.url()).href);
@@ -86,11 +94,11 @@ test("an empty device opens on the front page, in the order the handoff gives", 
   await expect(page.locator('input[type="file"]')).toHaveCount(1);
 });
 
-test("the claims are decision 0013's and no more", async ({ page }) => {
+test("the claims are the audited ones and no more", async ({ page }) => {
   await page.goto("./");
   const honest = page.locator(".land-honest");
-  await expect(honest).toContainText("grooph is shown to bound and record autonomous work and to hold a design as a runtime contract.");
-  await expect(honest).toContainText("It is not shown to raise quality over the same instructions given as a prompt, on small tasks.");
+  await expect(honest).toContainText("No round cap or budget is on record as firing.");
+  await expect(honest).toContainText("the package showed no quality advantage over a prompt derived from it.");
   const text = (await page.locator(".land").innerText()).toLowerCase();
   for (const overclaim of ["better results", "smarter", "higher quality", "best", "10x", "faster agents"]) expect(text, overclaim).not.toContain(overclaim);
 });
@@ -156,16 +164,24 @@ test("motion stops when the device asks for less", async ({ page }) => {
   expect(await page.locator(".template-row").first().evaluate((el) => getComputedStyle(el).transitionDuration)).toBe("0s");
 });
 
-test("the first load is at most 300 KB compressed", async ({ page }) => {
+test("the first load is at most 300 KB compressed, and the fonts are inside their own budget", async ({ page }) => {
   const bodies: Promise<number>[] = [];
+  const fonts: Promise<number>[] = [];
   page.on("response", (response) => {
     if (response.url().startsWith("data:")) return;
-    bodies.push(response.body().then((body) => gzipSync(body).length, () => 0));
+    // Handoff 0077: the fonts have a line of their own in scripts/perf-budget.json, as they are sent (woff2 is compressed already).
+    if (response.url().endsWith(".woff2")) fonts.push(response.body().then((body) => body.length, () => 0));
+    else bodies.push(response.body().then((body) => gzipSync(body).length, () => 0));
   });
   await page.goto("./");
   await expect(page.locator(".land-picture svg")).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
   const total = (await Promise.all(bodies)).reduce((a, b) => a + b, 0);
   expect(total).toBeLessThanOrEqual(300 * 1024);
+  const budget = JSON.parse(readFileSync(join(repoRoot, "scripts/perf-budget.json"), "utf8")) as { fontsKB: number };
+  const sent = (await Promise.all(fonts)).reduce((a, b) => a + b, 0);
+  expect(sent).toBeGreaterThan(0);
+  expect(sent).toBeLessThanOrEqual(budget.fontsKB * 1024);
 });
 
 test("the page carries a title, a description and link-preview tags with a 1200 × 630 image", async ({ page, request, baseURL }) => {
@@ -186,11 +202,13 @@ test("the page carries a title, a description and link-preview tags with a 1200 
 test.describe("at desktop width", () => {
   test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
 
-  test("the front page uses the width: about 1,120 px, the graph beside the words", async ({ page }) => {
+  test("the front page uses the width: about 1,180 px, the graph beside the words", async ({ page }) => {
     await page.goto("./");
-    const land = (await page.locator(".land").boundingBox())!;
-    expect(land.width).toBeGreaterThan(1080);
-    expect(land.width).toBeLessThanOrEqual(1120);
+    // Bands the width of the window, each with a column of Link Meteor's width inside.
+    const land = (await page.locator(".land-hero .site-wrap").boundingBox())!;
+    expect(land.width).toBeGreaterThan(1140);
+    expect(land.width).toBeLessThanOrEqual(1180);
+    expect((await page.locator(".land-hero").boundingBox())!.width).toBe(1440);
     const text = (await page.locator(".land-hero-text").boundingBox())!;
     const figure = (await page.locator(".land-figure").boundingBox())!;
     expect(figure.x).toBeGreaterThan(text.x + text.width);
@@ -219,6 +237,195 @@ test.describe("at desktop width", () => {
     expect((await page.locator(".library").boundingBox())!.width).toBeGreaterThan(1080);
     await expect(page.getByRole("link", { name: "What is grooph?" })).toBeVisible();
   });
+});
+
+/** Handoff 0077, criterion 1: the owner's footer, exactly. */
+const OWNER = [
+  ["Ryan Kamp’s website", "https://ryanjosephkamp.github.io/"],
+  ["Ryan Kamp on GitHub", "https://github.com/ryanjosephkamp/"],
+  ["Ryan Kamp on LinkedIn", "https://www.linkedin.com/in/rjk1999"],
+  ["Ryan Kamp on X", "https://x.com/ryanjosephkamp"],
+  ["Ryan Kamp on YouTube", "https://m.youtube.com/@RyanJosephKamp"],
+] as const;
+
+test("the footer is the owner's: who made it, his five links in his order, the sponsor button, the small print", async ({ page }) => {
+  await page.goto("./");
+  const foot = page.locator("footer.site-footer");
+  await expect(foot.getByRole("link", { name: "Ryan Kamp", exact: true })).toHaveAttribute("href", "https://ryanjosephkamp.github.io/");
+  await expect(foot.locator(".site-made")).toHaveText("Made by Ryan Kamp");
+  const social = foot.getByRole("list", { name: "Ryan Kamp online" }).getByRole("link");
+  await expect(social).toHaveCount(5);
+  expect(await social.evaluateAll((links) => links.map((a) => [a.getAttribute("aria-label"), a.getAttribute("href")]))).toEqual(OWNER.map((pair) => [...pair]));
+  for (const [name] of OWNER) await expect(foot.getByRole("link", { name, exact: true })).toBeVisible();
+  await expect(foot.getByRole("link", { name: "Sponsor on GitHub" })).toHaveAttribute("href", "https://github.com/sponsors/ryanjosephkamp");
+  const fine = foot.locator(".site-fine");
+  await expect(fine).toContainText("Every feature is free; sponsorship is optional and never unlocks anything.");
+  await expect(fine).toContainText("MIT license, © 2026 Ryan Kamp.");
+  await expect(fine).toContainText("This site uses no cookies, analytics or third-party requests.");
+  await expect(fine).toContainText("Fonts: Atkinson Hyperlegible Next and Mono, SIL Open Font License.");
+  await expect(fine.getByRole("link", { name: "Credits" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph#license-and-author");
+  // The columns above it, with grooph's own links.
+  await expect(foot.getByRole("heading", { name: "Use it" })).toBeVisible();
+  await expect(foot.getByRole("heading", { name: "Help and contact" })).toBeVisible();
+  await expect(foot.getByRole("link", { name: "Report a bug or suggest a feature" })).toHaveAttribute("href", "https://github.com/ryanjosephkamp/grooph/issues");
+  await expect(foot.getByRole("link", { name: "Quickstart" })).toHaveAttribute("href", "/grooph/docs/quickstart/");
+  // Each of the five is a target a thumb can hit.
+  for (const link of await social.all()) {
+    const box = (await link.boundingBox())!;
+    expect(Math.min(box.width, box.height)).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("the header folds its links under Menu on a phone, and the theme switch changes the look and keeps it", async ({ page }) => {
+  await page.goto("./");
+  const header = page.locator("header.site-header");
+  const docs = header.getByRole("link", { name: "Docs" });
+  const menu = header.getByRole("button", { name: "Menu" });
+  await expect(docs).toBeHidden();
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await menu.tap();
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  await expect(docs).toBeVisible();
+  await expect(header.getByRole("link", { name: "Templates" })).toHaveAttribute("href", "#/templates");
+  // Escape folds them away, and focus goes back to the button, not to nowhere.
+  await docs.focus();
+  await page.keyboard.press("Escape");
+  await expect(docs).toBeHidden();
+  await expect(menu).toBeFocused();
+
+  // The theme switch: a menu button whose choice is the root's data-theme, kept in this browser.
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bright").trim());
+  const green = await accent();
+  const theme = header.getByRole("button", { name: "Theme: Grooph" });
+  await theme.tap();
+  const choices = header.getByRole("menuitemradio");
+  await expect(choices).toHaveCount(2);
+  await expect(header.getByRole("menuitemradio", { name: "Grooph" })).toHaveAttribute("aria-checked", "true");
+  await header.getByRole("menuitemradio", { name: "Meteor" }).tap();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  await expect(header.getByRole("button", { name: "Theme: Meteor" })).toBeFocused();
+  await expect(header.getByRole("menu")).toBeHidden();
+  expect(await accent()).not.toBe(green);
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  // The app's own screens take the look too: one set of variables for the site and the app.
+  await page.goto("./#/templates");
+  await expect(page.locator(".template-row").first()).toBeVisible();
+  const meteor = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    return { accent: root.getPropertyValue("--accent").trim(), bg: root.getPropertyValue("--bg").trim() };
+  });
+  expect(meteor.accent).not.toBe("#1f5f4a");
+  // An embed is someone else's page: its address takes no theme, kept or not.
+  await page.goto("./#/embed");
+  await page.reload();
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
+  await page.goto("./");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+  // The same choice on a document page is not this test's: e2e/site-pages.spec.ts renders them. Back to the page as it loads.
+  await header.getByRole("button", { name: "Theme: Meteor" }).tap();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme", /.+/);
+  expect(await accent()).toBe(green);
+  // ?theme= wins, and an embed's address takes no theme.
+  await page.goto("./?theme=meteor");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "meteor");
+});
+
+test("the fonts are files of the site, and the front page asks no other origin for anything", async ({ page, baseURL }) => {
+  const asked: string[] = [];
+  page.on("request", (request) => asked.push(request.url()));
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  const faces = await page.evaluate(() => Array.from(document.fonts, (f) => ({ family: f.family.replace(/"/g, ""), status: f.status, display: f.display })));
+  expect(faces.filter((f) => f.status === "loaded").map((f) => f.family).sort()).toEqual(["Atkinson Hyperlegible Mono", "Atkinson Hyperlegible Next"]);
+  for (const face of faces) expect(face.display, face.family).toBe("swap");
+  expect(await page.locator(".land-headline").evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/^"?Atkinson Hyperlegible Next/);
+  expect(await page.locator(".copy-line-text").evaluate((el) => getComputedStyle(el).fontFamily)).toMatch(/^"?Atkinson Hyperlegible Mono/);
+  const fonts = asked.filter((url) => url.endsWith(".woff2")).map((url) => new URL(url).pathname);
+  expect(fonts.sort()).toEqual(["/grooph/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "/grooph/assets/fonts/atkinson-hyperlegible-next.v1.woff2"]);
+  // Nothing from anywhere else: no font service, no analytics, no picture from another host.
+  const origin = new URL(baseURL!).origin;
+  expect(asked.filter((url) => !url.startsWith("data:") && new URL(url).origin !== origin)).toEqual([]);
+  // The licenses are beside the fonts.
+  for (const name of ["OFL-atkinson-hyperlegible-next.txt", "OFL-atkinson-hyperlegible-mono.txt"]) {
+    const license = await page.request.get(`assets/fonts/${name}`);
+    expect(license.status(), name).toBe(200);
+    expect(await license.text()).toContain("SIL OPEN FONT LICENSE Version 1.1");
+  }
+  // The app's own screens take the same fonts: the site and the app are one thing.
+  await page.goto("./#/templates");
+  await expect(page.locator(".template-row").first()).toBeVisible();
+  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toMatch(/^"?Atkinson Hyperlegible Next/);
+});
+
+test.describe("with the app installed (its service worker in control)", () => {
+  test.use({ serviceWorkers: "allow" });
+
+  test("a first visit keeps the fonts and the footer's icons, so the front page looks the same with no network", async ({ page, context }) => {
+    const out = requestsOut(page);
+    await page.goto("./");
+    await expect(page.locator(".land-headline")).toBeVisible();
+    // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`).
+    await visitIsOver(page, out);
+    const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.replace("/grooph/", "")));
+    // The page names them, so the worker holds them when it installs, whether or not the page had finished fetching them
+    // by then; the italic face too, which the front page never asks for and a document or a graph's notes may.
+    const kept = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-next-italic.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2", "assets/site-icons.v1.svg"];
+    await expect
+      .poll(async () => {
+        const files = await held();
+        return kept.filter((file) => !files.includes(file));
+      })
+      .toEqual([]);
+
+    await context.setOffline(true);
+    const failed: string[] = [];
+    page.on("requestfailed", (r) => failed.push(r.url()));
+    await page.goto("./");
+    await expect(page.locator(".land-headline")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => Array.from(document.fonts).filter((f) => f.status === "loaded").map((f) => f.family.replace(/"/g, "")).sort())).toEqual(["Atkinson Hyperlegible Mono", "Atkinson Hyperlegible Next"]);
+    // The poster is a file of the documents, which the app's worker leaves alone: its card stands without the picture,
+    // and no picture on the page is a broken one. Nothing of the app's own failed.
+    await page.locator(".land-poster").scrollIntoViewIfNeeded();
+    await expect(page.locator(".land-poster img")).toHaveCount(0);
+    expect(await page.evaluate(() => Array.from(document.images).filter((img) => img.complete && img.naturalWidth === 0).length)).toBe(0);
+    expect(failed.filter((url) => !url.includes("/docs/"))).toEqual([]);
+    await context.setOffline(false);
+  });
+});
+
+/** The poster is a file of the documents, which this suite's build may or may not have rendered yet: each test says what the address answers. */
+const POSTER_ADDRESS = "**/docs/field-guide/poster.svg";
+
+test("the poster of the shapes is a picture that opens it", async ({ page }) => {
+  await page.route(POSTER_ADDRESS, (route) => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1778"><rect width="1200" height="1778" fill="#f1f4f3"/></svg>' }));
+  await page.goto("./");
+  const poster = page.locator(".land-poster");
+  const picture = poster.getByRole("link", { name: "Open the poster of the twenty loop shapes" });
+  await expect(picture).toHaveAttribute("href", "/grooph/docs/field-guide/poster.svg");
+  await expect(picture.locator("img")).toHaveAttribute("src", "/grooph/docs/field-guide/poster.svg");
+  await expect(picture.locator("img")).toHaveAttribute("loading", "lazy");
+  await expect(picture.locator("img")).toHaveAttribute("alt", /twenty loop shapes/);
+  await poster.scrollIntoViewIfNeeded();
+  await expect.poll(() => picture.locator("img").evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await expect(poster.getByRole("link", { name: "a poster of the shapes" })).toHaveAttribute("href", "/grooph/docs/field-guide/poster.svg");
+});
+
+test("when the poster cannot be fetched, its card stands without a picture and keeps its links", async ({ page }) => {
+  // With no network the documents' files are not there: the app's worker keeps the app, not the pages beside it.
+  await page.route(POSTER_ADDRESS, (route) => route.abort());
+  await page.goto("./");
+  const poster = page.locator(".land-poster");
+  await poster.scrollIntoViewIfNeeded();
+  await expect(poster.locator("img")).toHaveCount(0);
+  await expect(poster.getByRole("heading", { name: "Twenty shapes on one page" })).toBeVisible();
+  await expect(poster.getByRole("link", { name: "the field guide" })).toBeVisible();
+  await expect(poster.getByRole("link", { name: "a poster of the shapes" })).toBeVisible();
 });
 
 /**
@@ -266,22 +473,33 @@ test.describe("link-preview image", () => {
   test("preview image", async ({ page }) => {
     await page.goto("./");
     const svg = await page.locator(".land-picture").innerHTML();
+    // Since handoff 0077 the card is the front page's hero in small: the night, the mark, the two-line headline, the site's own font.
     await page.setContent(`<!doctype html><html><head><style>
+      @font-face { font-family: "Atkinson Hyperlegible Next"; src: url("/grooph/assets/fonts/atkinson-hyperlegible-next.v1.woff2") format("woff2"); font-weight: 400 800; }
       * { box-sizing: border-box; }
-      body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #f1f4f3; color: #1a201e;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-      .wrap { display: grid; grid-template-columns: 1fr 470px; gap: 56px; height: 100%; padding: 0 0 0 80px; }
+      body { position: relative; margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #061a14; color: #edf4f0;
+        font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+      body::before { content: ""; position: absolute; right: -160px; top: -320px; width: 900px; height: 900px;
+        background: radial-gradient(closest-side, #64eab726, transparent 70%); }
+      .wrap { position: relative; display: grid; grid-template-columns: 1fr 450px; gap: 56px; height: 100%; padding: 0 0 0 80px; }
       .words { align-self: center; }
-      .mark { font-size: 40px; font-weight: 760; letter-spacing: -0.03em; color: #1f5f4a; margin: 0 0 28px; }
-      h1 { font-size: 68px; line-height: 1.03; letter-spacing: -0.035em; font-weight: 760; margin: 0 0 24px; }
-      p { font-size: 25px; line-height: 1.4; color: #454c49; margin: 0; max-width: 520px; }
-      .pic { margin-top: 56px; border: 1px solid #dce1df; border-radius: 18px 0 0 0; border-right: 0; overflow: hidden;
-        box-shadow: 0 4px 24px rgb(0 0 0 / 0.08); background: #f1f4f3; }
+      .mark { display: flex; align-items: center; gap: 14px; margin: 0 0 30px; font-size: 34px; font-weight: 750; letter-spacing: -0.01em; }
+      .mark svg { width: 52px; height: 52px; }
+      .mark rect { fill: #2d423b; }
+      .mark circle { fill: #64eab7; }
+      .mark path { fill: none; stroke: #64eab7; stroke-width: 1.6; }
+      h1 { margin: 0 0 26px; font-size: 62px; line-height: 0.98; letter-spacing: -0.035em; font-weight: 800; white-space: nowrap; }
+      h1 span { display: block; color: #64eab7; }
+      p { margin: 0; max-width: 540px; color: #acbcb4; font-size: 25px; line-height: 1.4; }
+      .pic { margin-top: 56px; border-radius: 18px 0 0 0; overflow: hidden; box-shadow: 0 24px 60px -20px #000c; background: #f1f4f3; }
       .pic svg { display: block; width: 100%; height: auto; }
-    </style></head><body><div class="wrap"><div class="words"><div class="mark">grooph</div>
-      <h1>Loop graphs for coding agents.</h1>
+    </style></head><body><div class="wrap"><div class="words">
+      <div class="mark"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8.5"/><path d="M13.5 12.5 19 21M18.5 12.5 13 21M14 11h4"/><circle cx="10" cy="11" r="4"/><circle cx="22" cy="11" r="4"/><circle cx="16" cy="23" r="4"/></svg>grooph</div>
+      <h1>Loop graphs <span>for coding agents.</span></h1>
       <p>Draw the loop, check that it can end, and compile it into a package Claude Code runs.</p>
     </div><div class="pic">${svg.replace('class="grooph-picture"', 'class="grooph-picture" data-theme="light"')}</div></div></body></html>`);
+    await page.evaluate(() => document.fonts.load('800 62px "Atkinson Hyperlegible Next"'));
+    await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: join(repoRoot, "apps/web/public/og.png") });
   });
 });

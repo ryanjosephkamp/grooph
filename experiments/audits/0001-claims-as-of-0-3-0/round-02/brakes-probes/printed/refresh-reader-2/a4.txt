@@ -1,0 +1,41 @@
+before: [
+  'review-review: members review-builder,review-critic,review-merge-gate back review-e-critic-fail,review-e-merge-gate-reject mode judgment bar "Every checklist item is cited as satisf stops [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]'
+]
+
+=== (a) inner cycle moved to a new loop, cap 50; old loop keeps its stops over the gate's round only
+applied: []
+held:    [
+  'loop:review-review.back [the rounds that "review-e-critic-fail" starts would be counted by "review-inner", not against the stops of "review-review"; there would be a way round the nodes of "review-review" that its stops do not count]',
+  'loop:review-inner [the rounds that "review-e-critic-fail" starts would be counted by "review-inner", not against the stops of "review-review"; a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-inner" and not against its stops]'
+]
+schema: ok | errors before: [] after: []
+after: [
+  'review-review: members review-builder,review-critic,review-merge-gate back review-e-critic-fail,review-e-merge-gate-reject mode judgment bar "Every checklist item is cited as satisf stops [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]'
+] 
+issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== (b) both back edges handed to a new loop with cap 500 and a weaker bar; old loop kept on a new trivial cycle
+applied: []
+held:    [
+  'loop:review-review.members [the loop "review-review" would keep its stops and bound none of the nodes it did; there would be a way round the nodes of "review-review" that its stops do not count]',
+  'loop:review-review.back [the rounds that "review-e-critic-fail" starts would be counted by "review-work", not against the stops of "review-review"; the rounds that "review-e-merge-gate-reject" starts would be counted by "review-work", not against the stops of "review-review"; the loop "review-review" would keep its stops and bound none of the nodes it did; there would be a way round the nodes of "review-review" that its stops do not count]',
+  'loop:review-work [the rounds that "review-e-critic-fail" starts would be counted by "review-work", not against the stops of "review-review"; the rounds that "review-e-merge-gate-reject" starts would be counted by "review-work", not against the stops of "review-review"; a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-work" and not against its stops; a round between "review-merge-gate" and "review-builder", which the loop "review-review" bounds, would be counted by "review-work" and not against its stops]',
+  'node:review-lint (waits loop:review-review.members)',
+  'node:review-fmt (waits loop:review-review.members)',
+  'edge:e-review-builder-review-lint (waits loop:review-review.members)',
+  'edge:e-review-lint-review-fmt (waits loop:review-review.members)',
+  'edge:e-review-fmt-review-lint (waits loop:review-review.members)'
+]
+schema: ok | errors before: [] after: []
+after: [
+  'review-review: members review-builder,review-critic,review-merge-gate back review-e-critic-fail,review-e-merge-gate-reject mode judgment bar "Every checklist item is cited as satisf stops [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]'
+] 
+issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== (c) control: cap raised and bar changed on the same loop id
+applied: []
+held:    [
+  "loop:review-review.bar [changes the bar's acceptance]",
+  'loop:review-review.stops [raises the round cap from 4 to 500]'
+]
+schema: ok | errors before: [] after: []

@@ -83,10 +83,30 @@ jobs:
           node --test scripts/site/markdown.test.mjs scripts/site/site-pages.test.mjs
           node scripts/site-pages.mjs --check
 
+      # docs/privacy.md says the app and the site's pages load nothing from another host. This reads the built app and
+      # the rendered pages and fails on a script, a style sheet, a font, a picture or a frame from elsewhere. A link is
+      # not a load. What a script asks for at run time is seen by the smoke visits, in web-e2e and web-browsers.
+      - name: the app and the site's pages load nothing from another host
+        run: |
+          node --test scripts/check-outside-addresses.test.mjs
+          node scripts/check-outside-addresses.mjs --check
+
       # What the app and the CLI weigh (handoff 0058): the app's first load, an embed's, and the CLI's cold start,
       # against scripts/perf-budget.json. Raising a budget is a decision made in a pull request that says why.
       - name: the app and the CLI are inside their performance budget
-        run: node scripts/perf-budget.mjs --check
+        run: |
+          node --test scripts/perf-budget.test.mjs
+          node scripts/perf-budget.mjs --check
+
+      # Study three's unpaid builds (slice 0095): the counter and the judge a brake experiment's result is read from,
+      # the two packages it compiles from one graph, the two derived arms, and the clean profile's command. None of
+      # these starts a model session. The two --check modes fail when a kept prompt, or a line the pre-registration
+      # quotes from a package, is no longer what the compiler and the derivation rule give.
+      - name: the brake experiment's counter and packages, the derived arms and the comparison profile hold
+        run: |
+          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs
+          node scripts/lib/brake-run.mjs --check
+          node scripts/lib/compare-arms-ef.mjs --check
 
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works
@@ -183,5 +203,50 @@ jobs:
         if: failure()
         with:
           name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+
+  # The smoke set in Safari's engine and in Firefox (handoff 0081): five visits a stranger makes, in the two
+  # browsers the rest of the suite never opens. Chromium runs the same five above, in web-e2e.
+  web-browsers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The two browsers are cached per Playwright version; their system libraries are installed either way.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @grooph/web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: webkit-firefox-${{ runner.os }}-playwright-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter @grooph/web exec playwright install --with-deps webkit firefox
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter @grooph/web exec playwright install-deps webkit firefox
+
+      # The specs read core as built. The app is built by the test server, from source.
+      - run: pnpm --filter @grooph/core build
+
+      - run: pnpm --filter @grooph/web test:e2e --project=safari --project=firefox
+        env:
+          GROOPH_BROWSERS: "1"
+
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report-browsers
           path: apps/web/playwright-report
           retention-days: 7

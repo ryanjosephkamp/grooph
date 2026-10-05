@@ -6,14 +6,31 @@ How the package contract in [`graph-ir.md` §5](../graph-ir.md#5-package-contrac
 
 | grooph | Claude Code |
 |---|---|
-| tier `frontier` | `model: fable` |
-| tier `strong` | `model: opus` |
+| tier `frontier` | `model: opus` |
+| tier `strong` | `model: sonnet` |
 | tier `fast` | `model: sonnet` |
 | `pin["claude-code"]` | used verbatim as `model:` |
 | `grooph export --models frontier=…,strong=…,fast=…`, or `GROOPH_MODELS` in the environment | names the model of a tier for that export, in place of the three rows above; a tier not named keeps its row, and a pin still wins. `MAPPING.md` says "this export" where it lists the tiers. The graph does not change. The command prints what all three tiers mean in the package, and says so when two tiers the graph's agents use have become one model: `W_HOMOGENEOUS_CRITICS` reads tiers and cannot see that |
 | effort `low` `medium` `high` `max` | `effort:` same names (`xhigh` reachable only through a pin-like override, see below) |
 
 The profile is data (`packages/core/targets/claude-code.profile.json`), so a vendor rename is a one-file change.
+
+### The default map, and what it makes one model
+
+Since handoff 0084 the profile's own map is the one the second comparison study runs with: `frontier` is `opus`, and `strong` and `fast` are both `sonnet`. Until then it was `fable`, `opus` and `sonnet`. For that map, or any other, name the tiers: `grooph export … --models frontier=fable,strong=opus,fast=sonnet`, or `GROOPH_MODELS` for every export on a machine.
+
+Two tiers are now one model, so **a critic on `strong` over a builder on `fast` is the same model judging its own kind.** The validator cannot say so: `W_HOMOGENEOUS_CRITICS` compares tiers and pins, and those still differ. The export says it instead. When a graph has agents on both `strong` and `fast` and nothing is named, it prints "note: strong and fast are both sonnet in this package, by the target's own map, …".
+
+For the twenty templates, each critic against its nearest writers (the pairs `W_HOMOGENEOUS_CRITICS` looks at):
+
+| | Templates | Under the default |
+|---|---|---|
+| **A critic and the builder it checks become one model** | `contradiction-seeker` (critic `strong` over builder `fast`) | both `sonnet`; they were `opus` over `sonnet` |
+| **They were one tier already**, and the validator says so | `review-gate`, `spec-then-loop`, and four of `specialist-critic-bank`'s five critics (all `strong` over a `strong` builder) | both `sonnet`; they were both `opus` |
+| **They stay apart**: a `frontier` critic over a `strong` or `fast` writer | `debate-then-build`, `dual-bar`, `fresh-grind-rare-judge`, `gauntlet-decomposed` (both its critics), `heterogeneous-critic`, `metric-sandwich`, `red-team-loop`, `taste-polish`, `tournament-then-judge` (its judge over all three candidates), and `specialist-critic-bank`'s triage | `opus` over `sonnet`; they were `fable` over `opus` or `sonnet` |
+| **No critic over a writer** | `grind-loop`, `human-gated-irreversible`, `merge-queue`, `ownership-not-swarm`, `patrol-pulse`, `ralph-loop`, `retrospective-rewrite` | nothing to collapse |
+
+The export's note is about tiers, not pairs, so it is printed for every template with agents on both `strong` and `fast`: `contradiction-seeker`, `debate-then-build`, `ownership-not-swarm`, `patrol-pulse`, `retrospective-rewrite` and `tournament-then-judge`. In the last five, the agents on those two tiers do not judge one another. No template's own tiers were changed: to keep `contradiction-seeker`'s critic apart from its builder, export it with `--models strong=opus`, or pin the critic.
 
 ## Package layout (files mode)
 
@@ -60,7 +77,7 @@ Names are lowercase with hyphens (subagent `name` forbids colons). The `--` sepa
 1. **You are the lead.** One paragraph: run the graph, do not do the workers' jobs, never grade your own work when a critic exists.
 2. **Goal and constraints.** Verbatim from the document.
 3. **Run setup.** Read the run id from the clock, create `runs/<id>/`, copy the source document in as the working copy, write the initial `PROGRESS.md`.
-4. **Nodes.** One line each: id, agent name to dispatch, role, what it returns.
+4. **Nodes.** One line each: id, agent name to dispatch, role, what it returns. A graph that has a subgrooph (a template placed as a unit, amendment A-018) gets a short table after them, **Units**: each one's name, id, template and version, its nodes, where it is entered and what it leads on to. It tells the lead nothing new about running them, only to name the unit when it says where the run is. The values a group was filled with are not printed, and a graph with no subgrooph has no such table.
 5. **Edges.** How results route: `pass`/`fail`/verdict → next node; isolation and evidence for each.
 6. **Loops.** Per loop: members, what counts as a round, the bar (with the refs the critic inspects), the stops in order with the action for each (`bar-passed` → follow pass edges; others → halt and report unless `then` is set).
 7. **Human gates.** The list, in graph order, and the rule: ask, end the turn, wait.

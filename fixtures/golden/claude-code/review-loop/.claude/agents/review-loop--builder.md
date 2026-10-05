@@ -1,7 +1,7 @@
 ---
 name: review-loop--builder
 description: builder for graph review-loop. Implement TASK.md in src/ with tests in tests/.
-model: opus
+model: sonnet
 effort: high
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---

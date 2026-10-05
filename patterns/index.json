@@ -106,7 +106,7 @@
     },
     {
       "id": "gauntlet-decomposed",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Gauntlet, decomposed",
       "summary": "A planner cuts the work into pieces and a human approves the cut; one piece at a time an owner polishes while a fresh frontier critic compares captures blind against the reference; an integrator and a final blind comparison close it.",
@@ -166,8 +166,8 @@
       "version": 1,
       "kind": "graph",
       "title": "Heterogeneous critic",
-      "summary": "The review gate with the critic on a different model tier from the builder, so it does not share the builder's blind spots.",
-      "whenToUse": "The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic keeps approving the mistakes the builder makes.",
+      "summary": "The review gate with the critic on a different model tier from the builder, so it need not share the builder's blind spots.",
+      "whenToUse": "The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic may keep approving the mistakes the builder makes.",
       "profile": {
         "cost": "medium",
         "speed": "medium",
@@ -313,7 +313,7 @@
     },
     {
       "id": "patrol-pulse",
-      "version": 2,
+      "version": 3,
       "kind": "graph",
       "title": "Patrol pulse",
       "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.",
@@ -390,7 +390,7 @@
       "version": 1,
       "kind": "graph",
       "title": "Red-team loop",
-      "summary": "A separate attacker records reproducible failing traces; the builder sees only the traces, until no new one appears.",
+      "summary": "A separate attacker records reproducible failing traces; the builder is given only the traces, until no new one appears.",
       "whenToUse": "A separate attacker should produce failing traces and the builder should see only those: hardening against inputs or abuse nobody has listed yet.",
       "profile": {
         "cost": "medium",

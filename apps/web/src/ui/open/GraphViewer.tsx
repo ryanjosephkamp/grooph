@@ -2,6 +2,7 @@ import { validate, type Graph, type Id, type Issue } from "@grooph/core";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
+import { LookMenu } from "../canvas/LookMenu.js";
 import { countBySeverity } from "../../doc/issues.js";
 import { isDesktop } from "../canvas/fit.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
@@ -123,6 +124,7 @@ export function GraphViewer({
 
       <main className="stage">
         <ViewCanvas doc={doc} variant="full" issues={issues} selected={panel?.type === "node" ? panel.id : undefined} onNodeTap={(id) => toggle({ type: "node", id })} />
+        <LookMenu />
 
         {doc.loops.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">

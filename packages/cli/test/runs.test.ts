@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { appendFileSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, cpSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
@@ -234,6 +234,160 @@ test("adopt refuses a working copy with export errors, naming them", async () =>
     assert.match(text(io.stderr), /cannot adopt: The working copy has an error that blocks export, so it cannot become version 2 of run-broken/);
     assert.match(text(io.stderr), /E_DANGLING_REF/);
     assert.equal(existsSync(join(dir, ".grooph", "graphs")), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+/** The run's working copy, changed by `change` as a run might have left it. */
+const amend = (run: string, change: (working: Graph) => void): void => {
+  const path = join(run, "graph.grooph.json");
+  const working = readGraph(path);
+  change(working);
+  writeFileSync(path, canonicalize(working));
+};
+const stopsOf = (doc: Graph): Graph["loops"][number]["stops"] => doc.loops[0]!.stops;
+
+test("adopt refuses a working copy that loosens a brake, names each, and takes it when asked by name (the audit's probe)", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
+    // What the audit lane did by hand: the round cap from 5 to 50, the budget from 80 turns to 800.
+    amend(run, (working) => {
+      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
+    });
+    const before = tree(dir);
+
+    // Without --write: the same report, and nothing changed.
+    const dry = capture();
+    assert.equal(await grooph(["adopt", run], dry), 0);
+    assert.match(text(dry.stdout), /loosens a brake/);
+    assert.match(text(dry.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.match(text(dry.stdout), /--allow loop:sandwich\.stops/);
+    assert.match(text(dry.stdout), /--write would be refused/);
+    assert.deepEqual(tree(dir), before);
+
+    // With --write: refused, each one named with how to say yes, nothing written.
+    const refused = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
+    assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
+    assert.match(text(refused.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.deepEqual(tree(dir), before);
+    assert.equal(existsSync(target), false);
+
+    // The line it prints to adopt on purpose is one it takes, word for word (the app shows the same line).
+    const line = text(refused.stdout).match(/all of them, on purpose: (grooph adopt .*)$/m)![1]!;
+    assert.equal(line, `grooph adopt ${run} --write --allow loop:sandwich.stops`);
+    const again = project("slice-0007-sandwich");
+    try {
+      const other = runDir(again, "slice-0007-sandwich");
+      amend(other, (working) => {
+        working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
+      });
+      assert.equal(await grooph(line.replace(run, other).split(" ").slice(1), capture()), 0);
+      assert.equal(readGraph(join(again, ".grooph", "graphs", "slice-0007-sandwich.grooph.json")).version, 2);
+    } finally {
+      rmSync(again, { recursive: true, force: true });
+    }
+
+    // A name that is no change of this run is refused, and says so.
+    const wrong = capture();
+    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.bar"], wrong), 1);
+    assert.match(text(wrong.stderr), /no change named "loop:sandwich\.bar"/);
+    assert.equal(existsSync(target), false);
+
+    // Asked for by name, it is adopted, and the report says what was allowed.
+    const allowed = capture();
+    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
+    assert.match(text(allowed.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns {3}\(asked for by name\)/);
+    const adopted = readGraph(target);
+    assert.equal(adopted.version, 2);
+    assert.deepEqual(stopsOf(adopted).map((stop) => (stop.kind === "max-iterations" ? stop.n : stop.kind === "budget" ? stop.limit : undefined)), [undefined, 50, 800]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("adopt never writes the source or the run's working copy, even when --into names one", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    const sourcePath = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
+    const before = tree(dir);
+    for (const [path, what] of [[sourcePath, "the source this run started from"], [join(run, "graph.grooph.json"), "the run's working copy"]] as const) {
+      const io = capture();
+      assert.equal(await grooph(["adopt", run, "--write", "--into", path], io), 1);
+      assert.match(text(io.stderr), new RegExp(`--into names ${what} .*which adopt never writes`));
+    }
+    assert.deepEqual(tree(dir), before);
+    // The same file by another name: a symbolic link to it, a hard link, a folder that is a link.
+    const links = mkdtempSync(join(tmpdir(), "grooph-links-"));
+    symlinkSync(sourcePath, join(links, "soft.grooph.json"));
+    linkSync(sourcePath, join(links, "hard.grooph.json"));
+    symlinkSync(dirname(sourcePath), join(links, "folder"));
+    for (const path of [join(links, "soft.grooph.json"), join(links, "hard.grooph.json"), join(links, "folder", "graph.grooph.json")]) {
+      const io = capture();
+      assert.equal(await grooph(["adopt", run, "--write", "--into", path], io), 1, path);
+      assert.match(text(io.stderr), /--into names the source this run started from .*which adopt never writes/);
+    }
+    assert.deepEqual(tree(dir), before);
+    rmSync(links, { recursive: true, force: true });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a refused adoption does not say that what tightens is adopted, and lists a change that does both under what it loosens", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    amend(run, (working) => {
+      // The cap lowered and the budget raised in the same field; and an approval added elsewhere.
+      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 2 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
+      working.edges.find((edge) => edge.id === "e-critic-pass")!.approval = true;
+    });
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 1);
+    const out = text(io.stdout);
+    assert.match(out, /loosens a brake[^\n]*\n {2}loop:sandwich\.stops +raises the budget from 80 to 800 turns/);
+    assert.match(out, /\ntightens a brake:\n {2}edge:e-critic-pass\.approval/);
+    assert.doesNotMatch(out, /adopted with the rest/);
+    assert.doesNotMatch(out, /tightens a brake:\n(?: {2}[^\n]*\n)* {2}loop:sandwich\.stops/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("adopt notes, without refusing, a loop whose cap would come to count the rounds between a person's decisions", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    amend(run, (working) => void working.loops[0]!.stops.push({ kind: "human", every: 2, then: "builder" }));
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
+    assert.match(text(io.stdout), /\nnote: the loop "sandwich": the round cap \(5\) and the budget \(80 turns\) would count the rounds between two of a person's decisions, and no longer the whole run\. A way round its nodes that they do not count is opened each time by the stop where a person is asked, which continues at "builder"/);
+    assert.doesNotMatch(text(io.stdout), /loosens a brake/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("adopt takes a working copy that tightens a brake, and says which", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    amend(run, (working) => {
+      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 3 } : stop));
+      working.edges.find((edge) => edge.id === "e-critic-pass")!.approval = true;
+    });
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
+    assert.match(text(io.stdout), /tightens a brake, and is adopted with the rest/);
+    assert.match(text(io.stdout), /loop:sandwich\.stops/);
+    assert.match(text(io.stdout), /edge:e-critic-pass\.approval/);
+    assert.doesNotMatch(text(io.stdout), /loosens a brake/);
+    assert.equal(readGraph(join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json")).version, 2);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

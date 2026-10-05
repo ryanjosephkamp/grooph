@@ -1,0 +1,73 @@
+{
+  "project": "heterogeneous-critic",
+  "protocol": 2,
+  "study": 2,
+  "model": "claude-opus-5-5",
+  "models_reported": [
+    "claude-opus-5-5"
+  ],
+  "models_never_used": [],
+  "tool_on_path": false,
+  "skills_listed": "none (--disable-slash-commands)",
+  "tool_named_in_transcript": 0,
+  "ledger_n": 58,
+  "cost_usd": 0.3626182,
+  "harness_turns": 1,
+  "wall_s": 58,
+  "candidates": [
+    "J",
+    "N",
+    "T",
+    "Z",
+    "U",
+    "G",
+    "H",
+    "M"
+  ],
+  "parsed": true,
+  "scores": {
+    "J": {
+      "score": 3,
+      "reasons": "The code is correct for what it chooses to do and well tested. It covers both examples, every TypeError value, page 0, past-last, words, \"1-2-3\" and huge numbers, and the README documents everything. However it accepts \"8-\", \"-3\" and \"\" (as every page) and counts \"5-3\" down, which the task did not ask for. Those are parts that are neither a page nor a first-last range, so they should throw a RangeError."
+    },
+    "N": {
+      "score": 5,
+      "reasons": "It accepts exactly a page (`PAGE`) or a first-last range (`RANGE`) and bounds-checks both ends in `page()`. A backward range throws a RangeError, and the final test loop covers \"\", \"1,,3\", \"8-\", \"-3\", \"3-1\", \"+2\" and \"1.5\". Every checklist example is tested, and the README gives an example, the values that throw and the ascending de-duplicated result."
+    },
+    "T": {
+      "score": 3,
+      "reasons": "Its single bounds check uses `Math.min`/`Math.max` and is sound, and the tests cover out-of-range open and backward parts as well as empty parts. It shares the invented behaviour: open-ended ranges, empty text meaning every page, and descending ranges, all documented and tested instead of throwing a RangeError."
+    },
+    "Z": {
+      "score": 3,
+      "reasons": "The one-regex parse with explicit rejection of \"\" and \"-\" is correct, and the tests cover the examples, the types and the malformed parts. Its tests are the thinnest of the extended group. It also accepts \"-3\", \"8-\" and blank text (as every page), which the spec says should be rejected."
+    },
+    "U": {
+      "score": 3,
+      "reasons": "The `PART` regex and bounds check are correct, and the tests include \"00\", \"1 0\" and a 20-digit page. It has the same extensions as the others: open ends, blank text meaning every page, and backward ranges counting down. They are documented, but they replace the RangeError the task implies."
+    },
+    "G": {
+      "score": 3,
+      "reasons": "It has the strongest tests in its group (\"1e1\", \"0x1\", \"1--3\", \"1, ,2\", a type check before parsing), `@throws` documentation and a `Number.isSafeInteger` check. The behaviour still goes beyond the spec: \"8-\", \"-3\" and \"\" are accepted and \"5-3\" counts down, where the task and checklist call for a RangeError."
+    },
+    "H": {
+      "score": 3,
+      "reasons": "Its split-based parsing is correct and the tests pass by trace, but it explicitly accepts leading zeros (\"02-03\") on top of the open-end, empty-means-every-page and backward-range extensions. Its tests are packed into one loop, and the README merges the throws text into the behaviour paragraph."
+    },
+    "M": {
+      "score": 4,
+      "reasons": "It is strict and matches the task, with tests for both examples, page 0, past-last, words and malformed parts, including \"\" and \"3-1\". The bounds check `first < 1 || last > pageCount` misses \"11-10\", which is only caught afterwards as a backward range, so correctness depends on the order of the checks. The JSDoc omits the throws and the text-type test leaves out arrays."
+    }
+  },
+  "ranking": [
+    "N",
+    "M",
+    "G",
+    "U",
+    "J",
+    "T",
+    "H",
+    "Z"
+  ],
+  "notes": "Six candidates add the same untasked behaviour: open-ended ranges, empty text meaning every page, and backward ranges counting down. Each accepts input that the task and checklist item 3 say should throw a RangeError; among them, the order reflects test rigour and documentation, since their code is otherwise equivalent. Every diff I read stays within src/, tests/ and README.md, and I traced every test against its implementation without finding one that fails, but I could not run npm test."
+}

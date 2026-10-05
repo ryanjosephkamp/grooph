@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { MECHANICS, derive, filterBlock, filterSentences, gateSentence, iterationPrompt, leadSections, loopScript, loopSentence, readPackage, roundCap, saysDone, sentences } from "./compare-prompt.mjs";
+import { DESIGN_WORDS, GATE_SENTENCE, MECHANICS, derive, deriveD, filterBlock, filterSentences, gateSentence, iterationPrompt, leadSections, loopScript, loopSentence, readPackage, roundCap, saysDone, sentences } from "./compare-prompt.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const golden = join(root, "fixtures", "golden", "claude-code", "review-loop");
@@ -21,7 +21,11 @@ test("the prompt holds every agent brief, its inputs, outputs and capabilities",
     for (const cap of node.allow ?? []) assert.ok(prompt.includes(`\`${cap}\``), `capability ${cap} of ${node.id}`);
     assert.ok(prompt.includes(`role ${node.role}`), `role of ${node.id}`);
   }
-  assert.match(prompt, /model opus, effort high/);
+  // Each brief's heading names the model and effort its agent file names, whatever the target's tiers mean this month.
+  for (const [id, file] of Object.entries(pkg.agents)) {
+    const named = (key) => file.match(new RegExp(`^${key}:\\s*(.+)$`, "m"))[1].trim();
+    assert.ok(prompt.includes(`node \`${id}\``) && prompt.includes(`model ${named("model")}, effort ${named("effort")}`), `model and effort of ${id}`);
+  }
 });
 
 test("the prompt holds the goal verbatim and the sections the rule keeps", () => {
@@ -54,8 +58,45 @@ test("the loop is one sentence with the bar and every cap; the gate is the proto
   }
   assert.ok(prompt.includes(sentence));
   const gate = pkg.doc.nodes.find((n) => n.kind === "human-gate");
-  assert.ok(gateSentence(gate).endsWith("stop and report when you reach this point; do not merge."));
+  assert.equal(GATE_SENTENCE, "stop and report when you reach this point; do not proceed past it.", "protocol version 2's words (decision 0012)");
+  assert.ok(gateSentence(gate).endsWith(GATE_SENTENCE));
   assert.ok(prompt.includes(gateSentence(gate)));
+  assert.ok(!prompt.includes("do not merge"), "version 1's ending is gone");
+});
+
+test("a loop's other stops are said as the package says them: a check-in every n rounds, rounds that bring no improvement", () => {
+  const doc = { nodes: [], edges: [{ id: "e-back", from: "critic", to: "owner" }] };
+  const loop = { id: "polish", members: ["owner", "critic"], back: ["e-back"], bar: { acceptance: "No major gap." }, stops: [{ kind: "bar-passed" }, { kind: "diminishing-returns", rounds: 2, metric: "major gaps remaining" }, { kind: "human", every: 2 }, { kind: "max-iterations", n: 5 }, { kind: "budget", measure: "dispatches", limit: 16 }] };
+  const sentence = loopSentence(doc, loop);
+  assert.ok(sentence.includes("stop when 2 rounds in a row bring no improvement in major gaps remaining"), sentence);
+  assert.ok(sentence.includes("stop and ask the human every 2 rounds"), sentence);
+  assert.ok(sentence.includes("at most 5 rounds, at most 16 dispatches"), sentence);
+  assert.ok(loopSentence(doc, { ...loop, stops: [{ kind: "diminishing-returns", rounds: 3 }] }).includes("stop when 3 rounds in a row add no progress"));
+  assert.ok(loopSentence(doc, { ...loop, stops: [{ kind: "human", at: "merge-gate" }] }).includes("stop and ask at `merge-gate`"));
+});
+
+test("arm D's prompt is the task, the acceptance files by name and the test command, and nothing of the design", () => {
+  const task = "Add `slugify(text)` in src/slug.mjs. Tests go in tests/slug.test.mjs.";
+  const { prompt, report } = deriveD({ task, testCommand: "npm test", acceptance: ["README.md", "docs/REVIEW-CHECKLIST.md"], heldOutMarks: ["<held-out>", "/tmp/x.harness/held-out"] });
+  assert.ok(prompt.startsWith(`# Task\n\n${task}\n`));
+  assert.ok(prompt.includes("`README.md` and `docs/REVIEW-CHECKLIST.md` in this project say what the result must satisfy."));
+  assert.ok(prompt.includes("# Test command\n\n`npm test`"));
+  assert.deepEqual(report.design_words, []);
+  assert.deepEqual(report.held_out_named, []);
+  assert.deepEqual(report.mechanics_left, []);
+  // None of what arms A, B and C are told: no role, no routing, no loop, no brief, no gate, no model.
+  for (const word of ["builder", "critic", "subagent", "dispatch", "round", "loop", "brief", "gate", "model", "effort", "Iteration", "done: yes"]) assert.ok(!prompt.includes(word), word);
+  assert.equal(deriveD({ task, testCommand: "npm test", acceptance: ["README.md", "docs/REVIEW-CHECKLIST.md"] }).prompt, prompt, "deterministic");
+  // One file, and none.
+  assert.ok(deriveD({ task, testCommand: "npm test", acceptance: ["STYLE.md"] }).prompt.includes("`STYLE.md` in this project says what the result must satisfy. Read it before you start."));
+  assert.ok(deriveD({ task, testCommand: "npm test", acceptance: [] }).prompt.includes("The task above is all of it."));
+  // What the runner refuses: a task text that carries the design, the held-out suite, or the tool.
+  const leaky = deriveD({ task: "The builder adds it; the critic runs <held-out>/cases.test.mjs. Keep notes in the run folder.", testCommand: "npm test", acceptance: [], heldOutMarks: ["<held-out>"] }).report;
+  assert.deepEqual(leaky.design_words, ["builder", "critic"]);
+  assert.deepEqual(deriveD({ task: "The owner polishes it over three rounds until a judge or an agent agrees; each iteration counts.", testCommand: "npm test", acceptance: [] }).report.design_words, ["owner", "rounds", "judge", "agent", "iteration"]);
+  assert.deepEqual(leaky.held_out_named, ["<held-out>"]);
+  assert.ok(leaky.mechanics_left.length > 0);
+  assert.ok("leading zeros, a reviewed page, briefly, rounded up, judged, the ownership of a page".match(DESIGN_WORDS) === null, "whole words only");
 });
 
 test("the sentence filter splits on sentence ends, not on file names, and drops what refers back", () => {
@@ -85,6 +126,8 @@ test("arm C: N is the round cap, each iteration carries its number and the done 
   assert.equal(saysDone(""), false);
   const script = loopScript({ project: "review-gate", n: 4, testCommand: "npm test" });
   assert.ok(script.includes("N=4"));
+  assert.ok(script.includes("--model claude-opus-5-5 --effort high"), "the loop script names the lead's model of its project");
+  assert.ok(loopScript({ project: "p", n: 2, testCommand: "npm test", model: "m-1", effort: "max" }).includes("--model m-1 --effort max"));
   assert.ok(script.includes("Iteration $i of $N. Continue from the working tree as it is. Stop when your done check passes."));
   assert.ok(script.includes("prompt-B.md"));
 });

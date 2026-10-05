@@ -15,6 +15,7 @@ import type {
   Capability,
   Effort,
   Graph,
+  GroupFrom,
   HarnessId,
   PolicyScope,
   Role,
@@ -24,6 +25,8 @@ import type {
 } from "../types.js";
 import {
   ID_PATTERN,
+  NAME_PATTERN,
+  ONE_LINE_PATTERN,
   anyOf,
   any,
   arr,
@@ -52,7 +55,12 @@ const harness = openEnum<HarnessId>(["claude-code", "codex"], "harness id");
 const capability = openEnum<Capability>(
   ["read-files", "edit-files", "write-outputs", "run-commands", "run-tests", "web", "spawn-agents"],
   "capability",
+  // A custom capability is written into a node's brief for a person to wire by hand: one line of it.
+  { pattern: ONE_LINE_PATTERN },
 );
+// A model pin and a skill name go into a target's file header as given (Claude Code: the agent file's frontmatter).
+const modelName = str({ pattern: NAME_PATTERN, patternName: "model name" });
+const skillName = str({ pattern: NAME_PATTERN, patternName: "skill name" });
 const tier = enumOf<Tier>("frontier", "strong", "fast");
 const effort = enumOf<Effort>("low", "medium", "high", "max");
 const role = enumOf<Role>(
@@ -81,7 +89,7 @@ const agentNode = obj(
   {
     ...nodeHead("agent"),
     role: anyOf([role, obj({ custom: str() })], { describe: "role name or { custom }" }),
-    model: opt(obj({ tier, pin: opt(rec(str(), { keyName: "harness id" })) })),
+    model: opt(obj({ tier, pin: opt(rec(modelName, { keyName: "harness id" })) })),
     effort: opt(effort),
     brief: str(),
     inputs: opt(arr(str())),
@@ -90,7 +98,7 @@ const agentNode = obj(
     deny: opt(arr(capability)),
     owns: opt(arr(str())),
     irreversible: opt(arr(str())),
-    skills: opt(arr(str())),
+    skills: opt(arr(skillName)),
   },
   { name: "AgentNode" },
 );
@@ -243,8 +251,25 @@ const policy = obj(
   { name: "Policy" },
 );
 
+/**
+ * Where a subgrooph came from (A-018): a template's id, which is an id, and its version, a whole number from 1.
+ * Nothing looser: a lead's brief names it, and a name that is an id and a number cannot carry a line break or a
+ * word of anyone's into a file a harness reads.
+ */
+export const GROUP_FROM_PATTERN = /^[a-z][a-z0-9-]*@[1-9][0-9]*$/;
+/** A slot's key as `{{key}}` can hold it: no braces and no space. */
+export const SLOT_KEY_PATTERN = /^[^{}\s]+$/;
+
 const group = obj(
-  { id: id(), name: str(), members: arr(idRef()), coupled: opt(bool()) },
+  {
+    id: id(),
+    name: str(),
+    members: arr(idRef()),
+    coupled: opt(bool()),
+    description: opt(str({ pattern: ONE_LINE_PATTERN, patternName: "one line of text" })),
+    from: opt(typedStr<GroupFrom>(GROUP_FROM_PATTERN, "<template id>@<version>")),
+    with: opt(rec(str(), { keyPattern: SLOT_KEY_PATTERN, keyName: "slot key" })),
+  },
   { name: "Group" },
 );
 

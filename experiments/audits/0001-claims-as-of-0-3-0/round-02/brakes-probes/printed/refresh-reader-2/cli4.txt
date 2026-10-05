@@ -1,0 +1,10 @@
+critic-bypass: add exit 0; update exit 0; held back: true; last line: wrote plan.grooph.json; errors in file: []
+   into the gate: review-critic; out of the critic: fail->review-builder,pass->review-merge-gate
+critic-evidence: add exit 0; update exit 0; held back: true; last line: wrote plan.grooph.json; errors in file: []
+   critic is handed: ["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]
+cap-target: add exit 0; update exit 0; held back: true; last line: wrote plan.grooph.json; errors in file: []
+   stops: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4,"then":"review-halted"},{"kind":"budget","measure":"dispatches","limit":10,"then":"review-halted"}]; review-halted is a stop that leads to 
+step-renamed: add exit 0; update exit 0; held back: true; last line: wrote plan.grooph.json; errors in file: []
+   nodes: review-tag; into review-tagger: 
+critic-to-check: add exit 0; update exit 0; held back: true; last line: wrote plan.grooph.json; errors in file: []
+   review-critic: {"id":"review-critic","kind":"agent","name":"Critic","role":"critic","model":{"tier":"strong"},"effort":"high","brief":"Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet; use the repository only to understand what the change touches. Run the test command yourself rather than trusting a report; you judge, you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.","inputs":["diff of the change","the repository as the change leaves it, read-only","docs/checklist.md"],"outputs":["REVIEW.md: one line per checklist item and a verdict line","verdict: pass | fail | invalid-evidence"],"allow":["read-files","write-outputs","run-tests"],"deny":["edit-files"]}

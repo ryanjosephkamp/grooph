@@ -11,7 +11,7 @@
     "time": "about 20 minutes"
   },
   "adaptation": "fixed",
-  "description": "fix-until-green with harness skills named on the fixer: `skills` is passed to the target's subagent frontmatter and never validated by grooph (graph-ir §1, slice 0014).",
+  "description": "fix-until-green with harness skills named on the fixer: `skills` is passed to the target's subagent frontmatter; grooph holds each name to one token and does not check that a skill of that name exists (graph-ir §1, slice 0014).",
   "nodes": [
     {
       "id": "fixer",

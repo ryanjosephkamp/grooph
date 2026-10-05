@@ -59,6 +59,30 @@ error  E_LOOP_BACK_EDGE  loop "fix-cycle": back edge "e-check-fail" runs suite �
 
 **Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
 
+### `E_GROUP_CYCLE`
+
+A group holds itself, directly or through another group. Groups form a tree (amendment A-018), and no view can draw a box inside itself. One issue for each ring of groups.
+
+**Fails:** [`fixtures/invalid/E_GROUP_CYCLE/group-holds-itself.grooph.json`](../fixtures/invalid/E_GROUP_CYCLE/group-holds-itself.grooph.json) prints
+
+```text
+error  E_GROUP_CYCLE  group "fix" holds itself: fix → notes → fix; groups form a tree  [at: fix, notes]
+```
+
+**Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
+
+### `E_SECOND_LEAD`
+
+More than one agent node has the role `lead`. A graph is one session and the lead is that session (§2); the compiler would take the first and run the other as a subagent. Placing a template inside a graph is the first operation that could add one (A-018).
+
+**Fails:** [`fixtures/invalid/E_SECOND_LEAD/two-leads.grooph.json`](../fixtures/invalid/E_SECOND_LEAD/two-leads.grooph.json) prints
+
+```text
+error  E_SECOND_LEAD  the graph has 2 lead nodes ("lead", "placed-lead"); a graph is one session and has at most one lead  [at: lead, placed-lead]
+```
+
+**Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
+
 ### `E_CYCLE_NO_STOP`
 
 **Cycle with no stop.** Remove the back-edges of all loops that have at least one stop. Any cycle that remains is uncovered. Message lists its node ids.
@@ -169,7 +193,7 @@ error  E_OWNERSHIP_CONFLICT  artifact "src" is owned by writers "planner", "buil
 
 ### `E_IRREVERSIBLE_NO_GATE`
 
-**Irreversible action without a gate.** A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human.
+**Irreversible action without a gate.** A node with non-empty `irreversible` is reachable without a human decision: nothing leads to it, or at least one inbound edge neither carries `approval: true` nor starts at a `human-gate` node, or a loop's stop other than `human` continues at it (`then`). Every way in must pass a human.
 
 **Fails:** [`fixtures/invalid/E_IRREVERSIBLE_NO_GATE/mixed-inbound.grooph.json`](../fixtures/invalid/E_IRREVERSIBLE_NO_GATE/mixed-inbound.grooph.json) prints
 
@@ -186,7 +210,7 @@ A critic-family node resolves to the same tier and pins as every one of its **ne
 **Fails:** [`fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json`](../fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json) prints
 
 ```text
-warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: builder, critic]
+warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]
 ```
 
 **Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
@@ -241,7 +265,7 @@ warning  W_ONLY_MAX_ITERATIONS  loop "fix-cycle" stops only on max-iterations, w
 
 ### `W_UNREACHABLE_NODE`
 
-A node is not reachable from any entry node. Under the entry rule this always accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`); it exists to name the stranded nodes so a view can highlight them.
+A node is not reachable from any entry node, along edges or from a loop's member to where the loop's stops continue (`then`). Under the entry rule this accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`) unless loops' stops continue only into one another, so that nothing starts; it exists to name the stranded nodes so a view can highlight them.
 
 **Fails:** [`fixtures/invalid/W_UNREACHABLE_NODE/cycle-with-no-way-in.grooph.json`](../fixtures/invalid/W_UNREACHABLE_NODE/cycle-with-no-way-in.grooph.json) prints
 
@@ -254,7 +278,7 @@ warning  W_UNREACHABLE_NODE  node "reviewer-b" is not reachable from any entry n
 
 ### `W_NO_TERMINAL`
 
-No `stop` node is reachable from an entry node. Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host).
+No `stop` node is reachable from an entry node, along edges or by a loop's stop that continues at one (`then`). Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host).
 
 **Fails:** [`fixtures/invalid/W_NO_TERMINAL/no-stop-node.grooph.json`](../fixtures/invalid/W_NO_TERMINAL/no-stop-node.grooph.json) prints
 
@@ -272,6 +296,18 @@ An agent node declares `outputs` but is allowed neither `edit-files` nor `write-
 
 ```text
 warning  W_OUTPUT_NOT_WRITABLE  agent "critic" must leave outputs behind but is allowed neither edit-files nor write-outputs, so it cannot write them itself; allow write-outputs  [at: critic]
+```
+
+**Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.
+
+### `W_GROUP_OVERLAP`
+
+A node or a group is a member of two groups and neither holds the other (A-018). A view draws it in one box only, the first. A member listed again by a group that already holds it through an inner group is nesting said twice, and is not an overlap.
+
+**Fails:** [`fixtures/invalid/W_GROUP_OVERLAP/node-in-two-groups.grooph.json`](../fixtures/invalid/W_GROUP_OVERLAP/node-in-two-groups.grooph.json) prints
+
+```text
+warning  W_GROUP_OVERLAP  node "writer" is a member of groups "fix" and "notes", and neither holds the other; views draw it in "fix"  [at: writer, fix, notes]
 ```
 
 **Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.

@@ -1,0 +1,142 @@
+
+### 1 husk (wrap): fixer replaced by fixer2/suite2 under a new loop cap 1000; fix-cycle keeps suite + a stub
+  changes: remove node:fixer, change loop:fix-cycle.members, add node:stub, add node:fixer2, add node:suite2, remove edge:e-fix-suite, change edge:e-suite-fail.to, add edge:e-stub-suite, add edge:e-fix2-suite2, add edge:e-suite2-fail, add edge:e-suite2-pass, add loop:fix-cycle-2
+  refused: 
+    - node:fixer: removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name
+    - loop:fix-cycle.members: removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name
+  warnings: W_LONG_LOOP_NO_BUDGET, W_ONLY_MAX_ITERATIONS
+
+### 1b husk (wrap), smaller: same, but the old suite is left with a no-op stub and its own pass edge removed
+  changes: remove node:fixer, change loop:fix-cycle.members, add node:stub, add node:fixer2, add node:suite2, remove edge:e-fix-suite, change edge:e-suite-fail.to, change edge:e-suite-pass.from, add edge:e-stub-suite, add edge:e-fix2-suite2, add edge:e-suite2-fail, add loop:fix-cycle-2
+  refused: 
+    - node:fixer: removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name
+    - loop:fix-cycle.members: removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name
+  tightens:
+    + edge:e-suite-fail.to: adds a way from "suite" to end in success that does not pass a person
+    + edge:e-suite-pass.from: adds a way from "suite" to end in success that does not pass a person
+  warnings: W_LONG_LOOP_NO_BUDGET, W_ONLY_MAX_ITERATIONS
+
+### 2 hollow (debate build loop): old builder/tests made no-ops by brief/command, real work in builder2/tests2 cap 1000
+  changes: change node:builder.brief, change node:tests.check, add node:builder2, add node:tests2, add edge:e-gate-b2, add edge:e-b2-t2, add edge:e-t2-fail, add edge:e-t2-pass, add loop:build-2
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_LONG_LOOP_NO_BUDGET, W_ONLY_MAX_ITERATIONS
+
+### 3 cap leads to an EXISTING gate whose existing answer leads back in (debate build: cap 5 then plan-gate)
+  changes: change loop:build.stops
+  refused: 
+    - loop:build.stops: a stop of the loop "build" would lead back to "plan-gate": a way round the nodes of "build" that its stops do not count
+
+### 4 budget leads to the merge gate (sub)
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: a stop of the loop would lead on to "review-merge-gate", a way that does not pass the critic "review-critic"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### 5 self edge on a member counted by a new loop cap 1000 (sub)
+  NOT VALID (refused earlier): E_JUDGMENT_LOOP_NO_BAR: judgment loop "again" has no bar; name what stopping looks like and what the critic inspects
+
+### 5b self edge on a check member counted by a new loop (wrap)
+  changes: add edge:e-again, add loop:again
+  refused: 
+    - edge:e-again: a round between "suite" and "suite", which the loop "fix-cycle" bounds, would be counted by "again" and not against its stops
+    - loop:again: a round between "suite" and "suite", which the loop "fix-cycle" bounds, would be counted by "again" and not against its stops
+  warnings: W_LONG_LOOP_NO_BUDGET, W_ONLY_MAX_ITERATIONS
+
+### 5c self edge on a NON-member in front of the loop (sub: plan -> plan) cap 1000
+  NOT VALID (refused earlier): E_JUDGMENT_LOOP_NO_BAR: judgment loop "again" has no bar; name what stopping looks like and what the critic inspects
+
+### 6 edge whose id is a stop-way's name (debate: 'debate → judge')
+  SCHEMA REJECTS: [{"code":"E_SCHEMA","severity":"error","message":"/edges/8/id: expected kebab-case id matching ^[a-z][a-z0-9-]*$, got \"debate → judge\"","at":["debate → judge"]},{"code":"E_SCHEMA","severity":"error","message":"/loops/2/back/0: expected kebab-case id matching ^[a-z][a-z0-9-]*$, got \"debate → judge
+
+### 7 glyph: grind's twin back edge on another verdict, counted by review
+  changes: add edge:e-tests-flaky, change loop:review.back
+  refused: 
+    - edge:e-tests-flaky: a round between "tests" and "build", which the loop "grind" bounds, would be counted by "review" and not against its stops
+    - loop:review.back: a round between "tests" and "build", which the loop "grind" bounds, would be counted by "review" and not against its stops
+  tightens:
+    + loop:review.back: the rounds that "e-tests-fail" starts would be counted by "grind", not against the stops of "review"
+
+### 8 glyph: e-critic-evidence moved from review.back to grind.back (grind gains critic as member)
+  NOT VALID (refused earlier): E_JUDGMENT_LOOP_NO_BAR: judgment loop "grind" has no bar; name what stopping looks like and what the critic inspects
+
+### 9 glyph: review's back edge ALSO put in grind.back, then review cap unchanged (no loosening expected: control)
+  NOT VALID (refused earlier): E_JUDGMENT_LOOP_NO_BAR: judgment loop "grind" has no bar; name what stopping looks like and what the critic inspects
+
+### 10 debate: second stop of another measure, then: judge (known residual)
+  changes: change loop:debate.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:debate.stops: removes the budget (0 tokens)
+
+### 11 wrap: new edge wrap -> fixer (cap leads to wrap; wrap now leads back): no edge cycle, no loop needed
+  changes: add edge:e-wrap-fixer
+  refused: 
+    - edge:e-wrap-fixer: "e-wrap-fixer" (wrap → fixer) would make a way round the nodes of "fix-cycle" that its stops do not count; adds a way from "wrap" to end in success that does not pass a person
+  warnings: W_UNREACHABLE_NODE, W_NO_TERMINAL
+
+### 11b wrap: existing e-wrap-handed-over re-pointed to fixer
+  changes: change edge:e-wrap-handed-over.to
+  refused: 
+    - edge:e-wrap-handed-over.to: "e-wrap-handed-over" (wrap → fixer) would make a way round the nodes of "fix-cycle" that its stops do not count; adds a way from "wrap" to end in success that does not pass a person
+  warnings: W_UNREACHABLE_NODE
+
+### 11c wrap: wrap -> NEW gate -> fixer (person newly opens; stated limit)
+  changes: add node:again-gate, add edge:e-wrap-gate, add edge:e-gate-fixer
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:again-gate: removes a human gate; nothing would lead to "fixer", so a run would start there, where every way to it passed a person
+  warnings: W_UNREACHABLE_NODE, W_NO_TERMINAL
+
+### 11d wrap: wrap -> fixer with approval:true (stated limit)
+  changes: add edge:e-wrap-fixer
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + edge:e-wrap-fixer: removes an edge that needs a person's approval; nothing would lead to "fixer", so a run would start there, where every way to it passed a person
+  warnings: W_UNREACHABLE_NODE, W_NO_TERMINAL
+
+### 11e wrap: wrap -> relay (approval) and relay -> fixer; PLUS a non-approved wrap -> relay2 -> nothing (decoy)
+  changes: add node:relay, add edge:e-wrap-relay, add edge:e-relay-fixer
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:relay: removes an edge that needs a person's approval; nothing would lead to "fixer", so a run would start there, where every way to it passed a person
+    + edge:e-wrap-relay: removes an edge that needs a person's approval
+  warnings: W_UNREACHABLE_NODE, W_NO_TERMINAL
+
+### 12 wrap: leading cap's target `wrap` becomes a member of the loop (members grows; stop now continues inside)
+  changes: change loop:fix-cycle.members, add edge:e-wrap-fixer
+  refused: 
+    - loop:fix-cycle.members: there would be a way round the nodes of "fix-cycle" that its stops do not count
+  tightens:
+    + loop:fix-cycle.members: the loop "fix-cycle" would no longer bound "wrap", which is still in the graph
+    + edge:e-wrap-fixer: removes an edge that needs a person's approval; nothing would lead to "fixer", so a run would start there, where every way to it passed a person
+
+### 12b wrap: `wrap` added to members only (no edge)
+  changes: change loop:fix-cycle.members
+  refused: 
+    - loop:fix-cycle.members: there would be a way round the nodes of "fix-cycle" that its stops do not count
+  tightens:
+    + loop:fix-cycle.members: the loop "fix-cycle" would no longer bound "wrap", which is still in the graph
+
+### 13 gaunt: human stop every 2 gains then: decomposition-gate (existing gate upstream; stated limit?)
+  changes: change loop:pieces.stops
+  refused: NONE  <<<<<< adopted with no --allow
+
+### 13b gaunt: NEW human stop every 1000000 then: owner, first in the list
+  changes: change loop:polish.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:polish.stops: removes the stop where a person is asked
+
+### 13c sub: NEW human stop every 5 then: review-builder placed first (cap 4 never asked?)
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:review-review.stops: removes the stop where a person is asked
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### 14 sub: cap 4 then: NEW gate with one option -> builder (stated limit)
+  changes: add node:more-gate, add edge:e-more, change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:more-gate: removes a human gate
+  warnings: W_HOMOGENEOUS_CRITICS

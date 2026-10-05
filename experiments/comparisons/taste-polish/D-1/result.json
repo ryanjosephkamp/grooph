@@ -1,0 +1,181 @@
+{
+  "template": "taste-polish",
+  "arm": "D",
+  "replicate": 1,
+  "project": "taste-polish",
+  "graph_id": "polish-usage-statement",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/taste-polish/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": null,
+      "files": [
+        {
+          "path": "REFERENCE.md",
+          "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+          "at_run": false
+        },
+        {
+          "path": "reference.txt",
+          "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+          "at_run": false
+        },
+        {
+          "path": "statement-properties.test.mjs",
+          "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+          "at_run": false
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "nobody",
+      "beside_scratch_during_run": false,
+      "scorer_only": [
+        "statement-properties.test.mjs"
+      ],
+      "scored_from": "experiments/comparisons/taste-polish/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "polish-usage-statement--critic": "claude-opus-5-5",
+      "polish-usage-statement--owner": "claude-sonnet-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 24,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "taste-polish",
+    "template_version": "taste-polish@2",
+    "graph_id": "polish-usage-statement",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/bsbeXt/usage-statement-cZHZqy"
+  },
+  "derivation": {
+    "arm": "D",
+    "from": "the task folder alone: the task text, the acceptance files and the test command",
+    "acceptance": [
+      "README.md",
+      "STYLE.md"
+    ],
+    "design_words": [],
+    "held_out_named": [],
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.2534586,
+      "output_tokens": 5997
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 0.253459,
+  "harness_turns": 7,
+  "duration_s": 56,
+  "wall_s": 57,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.2534586,
+        "output_tokens": 5997
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 0.253459,
+    "harness_turns": 7,
+    "duration_s": 56,
+    "wall_s": 57,
+    "permission_denials": [],
+    "subagents_dispatched": 0,
+    "dispatches": [],
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 1,
+      "where": []
+    }
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 62,
+      "session_id": "d34cea2e-2482-4784-8422-afad1f50485b",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.253459,
+      "reported_cost_usd": 0.2534586,
+      "max_budget_usd": 9,
+      "harness_turns": 7,
+      "duration_s": 56,
+      "wall_s": 57,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "f a name or reason is too long for its column, it wraps onto the next line instead of pushing past the width limit.\n\nI only had STYLE.md to work from, because the billing team's own statement isn't in this project. Choices like the 68-character width (below the 72 limit, leaving room for email quoting), the `=` rules around the total, and showing credits as `-164.25` rather than `(164.25)` are my reading of the brief. They're quick to change if the real statement does it differently.\n\n`npm run capture` also wrote `captures/statement.txt` and `captures/CAPTURE.md`. I haven't committed anything."
+    }
+  ],
+  "base_commit": "25e81d450262e253de8747ce743c91c6f47c5b89",
+  "project_files_changed": [
+    "A captures/CAPTURE.md",
+    "A captures/statement.txt",
+    "M src/statement.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/bsbeXt/usage-statement-cZHZqy",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

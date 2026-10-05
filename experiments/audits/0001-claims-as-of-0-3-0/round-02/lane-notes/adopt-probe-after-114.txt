@@ -1,0 +1,38 @@
+The audit's adoption probe, run again after pull request #114.
+Run by the audit lane on 2026-10-05 at this branch merged with main at 30b59d0 (the merge is c035cc4), packages built there.
+Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/adopt-probe.sh <scratch folder>. No model was called.
+At 0.3.0 the same probe ended: adopted as version 2 with the cap at 40 and the budget at 400 (round-01, F6, and this audit's README).
+
+the working copy as the run left it: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]
+loosened for the probe:              [{"kind":"bar-passed"},{"kind":"max-iterations","n":40},{"kind":"budget","measure":"dispatches","limit":400}]
+== grooph adopt (shows the change)
+Run 20260920-192538 · Parse duration: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of parse-duration, from parse-duration@1 and run 20260920-192538, would go to .grooph/graphs/parse-duration.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review.stops
+  loop:review.stops  raises the round cap from 4 to 40; raises the budget from 10 to 400 dispatches
+--write would be refused: the working copy loosens a brake the graph has (loop:review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 0
+== grooph adopt --write
+Run 20260920-192538 · Parse duration: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of parse-duration, from parse-duration@1 and run 20260920-192538, would go to adopted.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review.stops
+  loop:review.stops  raises the round cap from 4 to 40; raises the budget from 10 to 400 dispatches
+grooph: not written: the working copy loosens a brake the graph has (loop:review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 1
+no file adopted.grooph.json was written
+
+And the same working copy with the change asked for by name (run by hand in the probe's folder):
+  grooph adopt .grooph/parse-duration/runs/<run> --allow loop:review.stops --write --into adopted-allowed.grooph.json
+
+loosens a brake, and is adopted because it was asked for:
+  loop:review.stops  raises the round cap from 4 to 40; raises the budget from 10 to 400 dispatches   (asked for by name)
+wrote adopted-allowed.grooph.json (version 2); the source .grooph/parse-duration/graph.grooph.json is unchanged
+place it for the next run with: grooph export adopted-allowed.grooph.json --target claude-code --into <project>
+   exit 0
+adopted as version 2 with stops [{"kind":"bar-passed"},{"kind":"max-iterations","n":40},{"kind":"budget","measure":"dispatches","limit":400}]

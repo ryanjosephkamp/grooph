@@ -3,12 +3,21 @@
 # Pattern proving ground (handoff 0009): one recorded headless Claude Code run of
 # a built-in template on a small task designed so the pattern's point shows.
 #
-#   scripts/prove-pattern.sh <template id>                  run it (spends money)
+#   scripts/prove-pattern.sh <template id> --model <id> --effort <level>
+#                                                           run it (spends money); the lead's model and effort are named
 #   scripts/prove-pattern.sh <template id> --dry-run        everything but the model call
 #   scripts/prove-pattern.sh <template id> --check <dir>    re-assert on a kept run's evidence
 #   scripts/prove-pattern.sh <template id> --retry "<why>"  the one retry a run may get, for a
 #                                                           failure outside the package (sign-in, network)
 #   scripts/prove-pattern.sh --status                       the spend ledger
+#
+# Since slice 0019 a paid run names its models: the lead on the command line
+# (--model claude-opus-5-5 --effort high) and what each tier means in the
+# environment (GROOPH_MODELS=frontier=…,strong=…,fast=…, which `grooph export`
+# reads). The Claude Code target gives the frontier tier to Fable, and no run
+# uses Fable: a package that would is refused before any call, and a run that
+# reports it is kept and flagged. result.json keeps what was asked for (lead,
+# tier_map, agent_models) beside what ran (models, models_by_agent).
 #
 # A run:
 #   1. builds a scratch project under $TMPDIR from experiments/patterns/<id>/task/,
@@ -50,6 +59,6 @@
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 case "${1:-}" in
-  -h|--help) sed -n '2,49p' "$0"; exit 0 ;;
+  -h|--help) sed -n '2,58p' "$0"; exit 0 ;;
 esac
 exec node "$REPO_ROOT/scripts/lib/prove-pattern.mjs" "$@"

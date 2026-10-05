@@ -12,6 +12,7 @@ Usage: grooph <command> [options]      grooph help <command> for one command in 
 Start
   new          make an empty graph document
   template     list, show and use ready-made graphs (try: template list)
+  sub          place a template inside a graph as one box, and keep it current
   apply        change a graph with a list of JSON ops
   pick         write one candidate of a proposal set out as a graph
 
@@ -102,6 +103,51 @@ holding one), or else the published library ($GROOPH_REGISTRY overrides it).
 
 Example
   grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass" --out flaky.grooph.json
+```
+
+## `grooph sub`
+
+Place a template inside a graph as one box, and keep it current.
+
+```text
+grooph sub add <template> --into <file> --as <id> [--name <name>] [--set key=value …] [--after <node>] [--then <node>] [--write]
+grooph sub list <file> [--json]
+grooph sub update <file> [<group> …] [--allow <change> …] [--write]
+grooph sub extract <file> <group> --id <id> --title <t> --summary <s> --when <w> [--to project|user] [--force]
+
+A subgrooph is a template placed inside a graph as a unit: a group that remembers which
+template and version it came from, and the values it was filled with. Its nodes are ordinary
+nodes of the one document. Nothing is fetched or inlined when a package is compiled.
+
+  add      Place a template in the graph as a group named --as. Everything that comes in gets an
+           id that starts with it (review-builder). --after <node> leads into it from a node of the
+           graph. --then <node> leads on from it: the edges that reached the template's own
+           success stop go to that node, and that stop is dropped; a stop that halts stays.
+           Every id that begins with --as and a dash is the subgrooph's own from then on, so an
+           --as the graph already uses that way is refused, and so is a template with a lead
+           node. If the graph kept a node behind a person and the subgrooph now leads to it
+           around that person, that is said. Dry run unless --write.
+  list     Every group: the template and version it came from if it is a subgrooph, how many
+           nodes it holds, and the edges that lead in and out. --json prints the same as data.
+  update   What a newer version of its template would change in each subgrooph (or in the ones
+           named), then the graph with those changes. A change that removes or loosens a brake
+           (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
+           acceptance, critic isolation) is listed first and NOT applied unless you ask for it by
+           its name with --allow. The brakes are compared on the whole graph as it would be
+           written, so one cannot be shed under a new id or in two changes: what a run could reach
+           only by a gate, an approval or a critic's verdict, it may not reach without it afterwards.
+           A change says every reason it is held for. Tightening applies with the rest. The shape moves as a whole: while a change to the
+           nodes, edges or loop members is held back, the others wait for it. A node you added
+           inside the box under another id is yours, and stays. Dry run unless --write.
+  Neither add nor update writes a graph it would leave with an error the file does not have now.
+  extract  Save any group as a template, in the project (default) or user folder.
+
+A template is found as grooph template finds it: the project, then your home folder, then
+the built-in library, then --registry <url> or the published library.
+
+Example
+  grooph sub add review-gate --into plan.grooph.json --as review --after plan --then release \
+    --set task="the checkout flow" --set test-command="pnpm test" --set checklist=docs/checklist.md --write
 ```
 
 ## `grooph apply`
@@ -210,6 +256,9 @@ Refuses, with the reasons, when the document has errors. Targets: claude-code.
                                 GROOPH_MODELS in the environment says the same for every export
                                 on a machine; the flag wins over it. The graph does not change.
 
+The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
+on one over a builder on the other is the same model: the export says so when a graph has agents on both.
+
 Example
   grooph export flaky.grooph.json --target claude-code --into .
   grooph export flaky.grooph.json --target claude-code --into . --models frontier=opus,strong=sonnet,fast=haiku
@@ -220,7 +269,7 @@ Example
 Take a run's working copy as the graph's next version.
 
 ```text
-grooph adopt <run dir> [--into <graph file>] [--write]
+grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]
 
 Take what a run learned: its working copy becomes the next version of the graph. Shows the
 changes the run made (each with the amendment note that says why) and the version it would
@@ -228,7 +277,19 @@ write. Nothing is written without --write; the source the package placed is neve
 
   --into <graph file>   where the next version goes (default .grooph/graphs/<graph-id>.grooph.json,
                         beside the run's .grooph/<graph-id>/ folder)
+  --allow <change>      adopt a change that removes or loosens a brake, by the name it is
+                        listed under (loop:review.stops); repeatable
   --write               write it
+
+A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
+marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
+isolation, the adaptation level. The working copy is compared with the source on the whole
+graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
+with its reasons, and --write is refused until each is asked for with --allow; one that
+tightens is adopted with the rest, and said. A way round a loop that a person newly opens
+each time (a gate's new answer, a stop that asks a person and continues inside) is not
+refused: it is noted, with the loop whose cap would then count the rounds between that
+person's decisions. What is compared and what is not: docs/templates.md, "Refreshing".
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting
@@ -240,7 +301,7 @@ then would undo someone's change. Re-export the new version to place it for the 
 A picture of a graph or map, SVG or PNG.
 
 ```text
-grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--events <id>=<source>]...
+grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme <name>] [--scale <n>] [--open <group> | all]... [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -250,15 +311,44 @@ A graph is drawn as one column in the order work reaches each node: a card per n
 margin, every loop's back edge in the right, and below the cards each loop with its
 bar and its stops in order.
 
+A subgrooph (a template placed as a unit, grooph sub) is one box: its name, the template
+and version it came from, how many nodes it holds, which brakes are among them, and the
+glyph of what is inside. What crosses its edge starts or ends at the box.
+
+  --open <group>         draw that subgrooph open: its nodes as cards of their own, kept
+                         together inside a frame under its name. As often as wanted.
+  --open all             every subgrooph open. One inside a closed one stays out of sight.
+
 An operation map (*.grooph-map.json, docs/operation-map.md) is drawn as its lanes top to
 bottom, each session a card in its lane, each handoff a numbered arc in the margin, and
 the handoffs listed below with what carries each.
 
-  --theme light | dark   colors written into the file: it looks the same anywhere
-  --theme auto           (SVG only, the SVG default) both palettes; follows the viewer
+An operation map has two more views, for a screen with room or a map with many handoffs
+(docs/operation-map.md §4c and §4d). Both are wider than a phone:
+
+  --layout wide          its lanes side by side: the people in a band across the top, each lane
+                         a column, each handoff an arc in the gutters between the lanes, and
+                         the list below in columns. As wide as its lanes need, about 900 units
+                         for three lanes. --layout phone is the picture above, and the default.
+  --view sequence        a column for each person and session, and a row for each handoff in the
+                         order the map lists them: a numbered arrow from sender to receiver, with
+                         what carries it and what is handed. An order, not a clock: a map records
+                         no times. --view picture is the default.
+
+  --theme <name>         one of six looks for the same picture: paper, blueprint, ink, phosphor, transit, chalk
+                         (docs/themes.md). Without it, paper: the picture as it has always been.
+                         A theme changes colors, line weights, lettering and the ground, never
+                         the words or where anything is.
+  --theme light | dark   light or dark only, the colors written into the file: it looks the
+                         same anywhere. With a name: --theme chalk-dark
+  --theme auto           (SVG only, the SVG default) light and dark both; follows the viewer
   --out <file.svg>       write the SVG; without --out it is printed
-  --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide); --scale changes
-                         that. A PNG is one theme: light unless --theme dark.
+  --out <file.png>       write a PNG, 3 pixels to the unit (1,200 px wide for the phone's
+                         picture); --scale changes that. A PNG is light unless told dark
+                         (Phosphor has one form, and is dark either way). Its renderer knows
+                         a theme's colors, line weights, lettering, ground and Chalk's wobble,
+                         and not the rules for corners, capitals, and Transit's route color
+                         and larger arrowheads: for those, the SVG, or Keep a copy in the app.
 
   --events <id>=<src>    for an operation map: draw what the event hook has seen on the
                          session with that id (working, waiting or ended; subagents running
@@ -287,7 +377,7 @@ sessions and handoffs. One way only: edit the document, never the outline.
 One offline HTML file with a viewer.
 
 ```text
-grooph page <graph | operation map> --out <file.html> [--events <id>=<source>]...
+grooph page <graph | operation map> --out <file.html> [--theme <name>] [--events <id>=<source>]...
 
 One HTML file that holds the document and a viewer for it: the picture, the outline, the
 validator's list and the document itself. It asks the network for nothing (its content
@@ -298,6 +388,10 @@ document writes the .grooph.json (or .grooph-map.json) back out for the app to i
 For an operation map, --events <session id>=<source> (as often as wanted) marks each
 session with what the event hook has seen of it, as grooph image does: a snapshot, taken
 when the page is made.
+
+--theme <name> draws the page's picture in one of six looks (paper, blueprint, ink, phosphor, transit, chalk;
+docs/themes.md). The page follows the device's light or dark and has its own button for
+it, so neither is named here. Without --theme the picture is paper, as always.
 
 A document with rule errors still makes a page, with the errors listed. One that does
 not match its schema cannot be drawn.
@@ -605,7 +699,7 @@ A proposal set, <set-id>.grooph-proposals.json (docs/executive.md §1):
 One line of HTML that shows a graph on any page.
 
 ```text
-grooph embed <file> [--theme light|dark] [--height <px>] [--frame] [--play] [--base <url>]
+grooph embed <file> [--theme <name>] [--height <px>] [--frame] [--play] [--base <url>]
 
 <file> is a graph, a run folder or *.grooph-run.json bundle, an operation map, or a proposal set.
 
@@ -617,7 +711,10 @@ run (a run folder or a *.grooph-run.json bundle) plays: play, step and a scrubbe
 The document travels in the frame's address after the #, as in grooph share, so the host
 page's server never sees it. Nothing about the reader is sent anywhere.
 
-  --theme <t>    light or dark; without it the picture follows the reader's color scheme
+  --theme <t>    one of six looks for the picture: paper, blueprint, ink, phosphor, transit, chalk
+                 (docs/themes.md); without it, paper. Or light or dark, which hold the picture
+                 to that form; without one it follows the reader's color scheme. Both as
+                 chalk-dark. The theme is in the frame's address, and fetched only then.
   --height <px>  the frame's height when the page has no script to size it
                  (default: the picture's own height at a phone's width)
   --frame        draw the embed's own background and border, not the page's background

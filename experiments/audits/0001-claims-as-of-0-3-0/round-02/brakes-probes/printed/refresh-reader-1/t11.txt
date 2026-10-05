@@ -1,0 +1,13 @@
+
+=== 1g control: add critic -> done inside the box (no --then)
+changes: [
+  'edge:e-review-critic-review-done [LOOSENS: adds a way into "review-done" that does not pass a person; adds a way into "review-done" that does not pass "pass" from the critic "review-critic"]'
+]
+held: [ 'edge:e-review-critic-review-done' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+ordinary pair 'review' / 'second-review': [
+  'loop:review-review.stops',
+  'policy:review-p-critic-isolation',
+  'policy:review-p-no-self-grading'
+] [ 'loop:second-review-review.stops' ] shared: []

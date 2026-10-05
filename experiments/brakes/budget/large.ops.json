@@ -1,0 +1,3 @@
+[
+  { "op": "setStop", "loop": "rounds", "index": 0, "stop": { "kind": "budget", "measure": "dispatches", "limit": 6 } }
+]

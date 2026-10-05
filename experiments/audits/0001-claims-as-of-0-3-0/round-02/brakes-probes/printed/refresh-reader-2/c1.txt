@@ -1,0 +1,25 @@
+before: errors [] | not reached without a person: [ 'release', 'done', 'review-tag', 'review-hotfix' ]
+
+=== no allow
+applied: []
+held:    [
+  'edge:e-review-critic-review-tag [adds a way into "review-tag" that does not pass a person; adds a way into "review-tag" that does not pass "pass" from the critic "review-critic"]',
+  'edge:e-review-tag-review-hotfix [adds a way into "review-hotfix" that does not pass a person; adds a way into "review-hotfix" that does not pass "pass" from the critic "review-critic"]'
+]
+schema: ok | errors before: [] after: []
+
+=== allow only edge:e-review-critic-review-tag
+applied: []
+held:    [
+  'edge:e-review-critic-review-tag (waits edge:e-review-tag-review-hotfix)',
+  'edge:e-review-tag-review-hotfix [adds a way into "review-hotfix" that does not pass a person; adds a way into "review-hotfix" that does not pass "pass" from the critic "review-critic"]'
+]
+schema: ok | errors before: [] after: []
+after: not reached without a person: [ 'release', 'done', 'review-tag', 'review-hotfix' ] | new edges: [] | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== control: only the critic -> hotfix edge
+applied: []
+held:    [
+  'edge:e-review-critic-review-hotfix [adds a way into "review-hotfix" that does not pass a person; adds a way into "review-hotfix" that does not pass "pass" from the critic "review-critic"]'
+]
+schema: ok | errors before: [] after: []

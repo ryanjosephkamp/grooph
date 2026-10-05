@@ -1,0 +1,52 @@
+e-planner-gate: planner->decomposition-gate ""
+e-gate-owner: decomposition-gate->owner "pass"
+e-owner-capture-check: owner->capture-check ""
+e-capture-check-fail: capture-check->owner "fail"
+e-capture-check-critic: capture-check->critic "pass"
+e-critic-fail: critic->owner "fail"
+e-critic-pass: critic->next-piece "pass"
+e-next-piece-pass: next-piece->owner "pass"
+e-next-piece-fail: next-piece->integrator "fail"
+e-integrator-final-critic: integrator->final-critic ""
+e-final-critic-release-gate: final-critic->release-gate ""
+e-release-gate-done: release-gate->done "pass"
+[{"id":"polish","members":["owner","capture-check","critic"],"back":["e-capture-check-fail","e-critic-fail"],"stops":[{"kind":"bar-passed"},{"kind":"diminishing-returns","rounds":2,"metric":"major gaps remaining"},{"kind":"max-iterations","n":3},{"kind":"budget","measure":"dispatches","limit":10}]},{"id":"pieces","members":["owner","capture-check","critic","next-piece"],"back":["e-next-piece-pass"],"stops":[{"kind":"bar-passed","then":"integrator"},{"kind":"human","every":2},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":42}]}]
+placed: []
+
+=== G1 built-in gauntlet-decomposed (placed --then release): e-gate-owner.from gate -> planner
+changes: [
+  'edge:g-e-gate-owner.from [LOOSENS: "pass" at the human gate "g-decomposition-gate" would lead nowhere; opens a way into "g-owner" that does not pass a person]',
+  `edge:g-e-gate-owner.when [LOOSENS: "pass" at the human gate "g-decomposition-gate" would lead nowhere; changes what a person's answer leads to; opens a way into "g-owner" that does not pass a person]`
+]
+held: [ 'edge:g-e-gate-owner.from', 'edge:g-e-gate-owner.when' ]
+schema ok: true | validate: clean
+  edge: {"id":"g-e-gate-owner","from":"g-decomposition-gate","to":"g-owner","when":"pass"} | edges out of g-gate: []
+
+=== G2 same template: human stop every 2 -> 200
+changes: [
+  'loop:g-pieces.stops [LOOSENS: a person would be asked every 200 rounds, not every 2]'
+]
+held: [ 'loop:g-pieces.stops' ]
+schema ok: true | validate: clean
+
+=== G3 same template: bar-passed then integrator -> then done (skip integrator and release-gate)
+changes: [
+  'loop:g-pieces.stops [LOOSENS: adds a way from "g-owner" to end in success that does not pass a person; a stop of the loop would lead on to "release", a way that does not pass the human gate "g-release-gate"; a stop of the loop would lead on to "release", a way that does not pass the critic "g-final-critic"]'
+]
+held: [ 'loop:g-pieces.stops' ]
+schema ok: true | validate: clean
+  stops: [[],[{"kind":"bar-passed","then":"g-integrator"}]]
+e-integrate-fail: integrate->bisect "fail"
+e-bisect-integrate: bisect->integrate ""
+e-integrate-land-gate: integrate->land-gate "pass"
+e-land-gate-land: land-gate->land "pass"
+e-land-done: land->done "" [[{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":9}]]
+placed: []
+
+=== M1 merge-queue: a loop stop gains then: land (the irreversible node)
+changes: [
+  'loop:mq-queue.stops [LOOSENS: the round cap (4) would no longer halt the run; a stop of the loop would lead on to "mq-land", a way that does not pass a person]'
+]
+held: [ 'loop:mq-queue.stops' ]
+schema ok: true | validate: clean
+  stops: [{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":9}]

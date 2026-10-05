@@ -1,24 +1,25 @@
-/* The front page's later additions (slice 0068): a run played on request, and three ways grooph is more than a drawing.
-   Kept beside the components that use it; the colors and radius are styles.css's own variables. */
+/* The front page's recorded run (slice 0068), played on request in the picture's place.
+   Kept beside the component that uses it; the colors and radius are styles.css's variables. */
 
 .land-play {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  margin: 12px 0 0;
+  margin: 14px 0 0;
 }
 
 .land-run-frame {
   display: block;
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border: 1px solid oklch(1 0 0 / 0.1);
+  border-radius: 16px;
   background: var(--surface);
+  box-shadow: var(--shadow-night);
 }
 
 .land-run-frame + figcaption {
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .link-button {
@@ -29,39 +30,4 @@
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
-}
-
-.land-guide-line {
-  margin: 14px 0 0;
-}
-
-.land-more-list {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.land-more-list li {
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.land-more-list h3 {
-  margin: 0 0 6px;
-  font-size: 1rem;
-}
-
-.land-more-list p {
-  margin: 0;
-  color: var(--ink-2);
-}
-
-@media (min-width: 900px) {
-  .land-more-list {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }

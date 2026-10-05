@@ -1,0 +1,73 @@
+{
+  "project": "taste-polish",
+  "protocol": 2,
+  "study": 2,
+  "model": "claude-opus-5-5",
+  "models_reported": [
+    "claude-opus-5-5"
+  ],
+  "models_never_used": [],
+  "tool_on_path": false,
+  "skills_listed": "none (--disable-slash-commands)",
+  "tool_named_in_transcript": 0,
+  "ledger_n": 67,
+  "cost_usd": 0.3717342,
+  "harness_turns": 1,
+  "wall_s": 70,
+  "candidates": [
+    "F",
+    "W",
+    "G",
+    "M",
+    "S",
+    "Y",
+    "J",
+    "R"
+  ],
+  "parsed": true,
+  "scores": {
+    "F": {
+      "score": 4,
+      "reasons": "The render meets every STYLE.md point: a heading with customer, account and month; aligned columns whose decimals line up through the trailing-slot `amountCell`; credits with their own total; TOTAL DUE between `=` rules; trailing spaces stripped by the final `replace(/\\s+$/, \"\")`. Zero-usage services move to a footnote whose `\\u0000` placeholder keeps names whole. No tests were added, and width comes from the content with no cap or wrap at 72."
+    },
+    "W": {
+      "score": 4,
+      "reasons": "A fixed `WIDTH = 68` and a label `wrap` make the 72-character limit robust, and integer `money()` keeps amounts exact. Credits have their own underline and total, and the total due sits between `=` rules. It lists 0.00 services, uses minus signs for credits, keeps data order, and adds no tests."
+    },
+    "G": {
+      "score": 3,
+      "reasons": "The render is clean, but `isUnused` uses `quantity === 0 || amount_cents === 0` and `chargeCents` sums only `listed`, so a zero-quantity line with a nonzero fee would silently drop out of the total due. Every credit is wrapped in parentheses regardless of sign, and the footnote splits a service name across lines. No tests were added."
+    },
+    "M": {
+      "score": 4,
+      "reasons": "Decimals align through `wCol = wAmount + 1`, a credits subtotal is shown, the total due sits between `=` rules, and the footnote keeps names whole. The credits rows have no heading, and the wrap relies on an invisible non-breaking-space placeholder in `.replace(/ /g, \" \")`. Width grows with content and there are no tests."
+    },
+    "S": {
+      "score": 4,
+      "reasons": "This is the most complete layout: a Qty/Unit/Share table, indented credits with \"Total credits\", and TOTAL DUE between full `=` rules, with the closing parenthesis hanging at `edge = WIDTH - 1`. It renders at exactly 72 columns, and `svcW` is only the leftover room, so a longer service name would push the row past the limit. No tests were added."
+    },
+    "Y": {
+      "score": 3,
+      "reasons": "The table and credits render well, and the `throw` when `widest > MAX_WIDTH` guards the 72-character limit. The total due is set off only by the same `-` rule used inside the table, which falls short of letting the reader find it at once. There is no credits subtotal and no tests."
+    },
+    "J": {
+      "score": 4,
+      "reasons": "J is the only candidate with tests: width, trailing-space and ASCII checks, exact amounts, and long-name wrapping, all backed by the `MAX_WIDTH` cap on `labelWidth`. The render is the least polished, with a sentence heading, an \"Amount\" column without its currency, no rule under the column header, and only a short `========` marking the total due. Credits shown with minus signs and the 0.00 services left in the table add to the plain look."
+    },
+    "R": {
+      "score": 3,
+      "reasons": "The charges table is aligned and credits sit in a parenthesis slot, but the total due follows a single plain `-` rule with no emphasis and there is no credits subtotal. The footnote breaks \"Machine learning inference\" across lines. Width is content-driven with no 72-character guard, and no tests were added."
+    }
+  },
+  "ranking": [
+    "F",
+    "S",
+    "M",
+    "W",
+    "J",
+    "Y",
+    "R",
+    "G"
+  ],
+  "notes": "Only J added tests, so for every other candidate no regression in width, trailing spaces or exact totals would be caught. F, G, M, R and S size columns from content without wrapping or capping long names; only W and J wrap, and Y refuses to render. Every candidate keeps the money arithmetic in integer cents, and all eight renders are exact to the data."
+}

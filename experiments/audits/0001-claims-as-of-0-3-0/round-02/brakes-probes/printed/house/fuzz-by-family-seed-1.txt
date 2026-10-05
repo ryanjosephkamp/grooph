@@ -1,0 +1,176 @@
+seed 1: 3825 refreshed, 0 refused with a TemplateError, 175 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | debate-then-build | addEdge  (x1)
+  debate-then-build | sound template: false
+  newer version: addEdge plan-gate->judge "pass"
+  -> gate-answer-leads-elsewhere:s-plan-gate
+  applied: edge:s-x-plan-gate-judge
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | gauntlet-decomposed | addEdge  (x1)
+  gauntlet-decomposed | sound template: false
+  newer version: addEdge release-gate->next-piece "pass"
+  -> gate-answer-leads-elsewhere:s-release-gate
+  applied: edge:s-x-release-gate-next-piece
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | gauntlet-decomposed | brief+brief+repoint  (x1)
+  gauntlet-decomposed | sound template: false
+  newer version: repoint e-capture-check-fail.from capture-check->release-gate ; brief integrator ; brief final-critic
+  -> gate-answer-leads-elsewhere:s-release-gate
+  applied: node:s-integrator.brief, node:s-final-critic.brief, edge:s-e-capture-check-fail.from
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | merge-queue | members+reidEdge+repoint  (x1)
+  merge-queue | sound template: false
+  newer version: reidEdge e-bisect-integrate ; members queue +land ; repoint r-e-bisect-integrate.from bisect->land-gate
+  -> gate-answer-leads-elsewhere:s-land-gate
+  applied: edge:e-s-bisect-s-integrate, edge:s-r-e-bisect-integrate, loop:s-queue.members, loop:s-queue.back
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate before an approved deploy | addEdge+outcome  (x1)
+  review-gate before an approved deploy | sound template: false
+  newer version: outcome done ; addEdge merge-gate->critic "always"
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-done, edge:e-s-merge-gate-s-done, edge:s-x-merge-gate-critic
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate before an approved deploy | addEdge+when  (x1)
+  review-gate before an approved deploy | sound template: false
+  newer version: when e-critic-fail="fail" ; addEdge merge-gate->critic {"verdict":"trivial"}
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-x-merge-gate-critic
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate behind a gate of the graph's | addEdge+kind  (x1)
+  review-gate behind a gate of the graph's | sound template: false
+  newer version: kind done stop->human-gate ; addEdge merge-gate->critic {"verdict":"trivial"}
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-done, edge:e-s-merge-gate-s-done, edge:s-x-merge-gate-critic
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate behind a gate of the graph's | addEdge+outcome  (x1)
+  review-gate behind a gate of the graph's | sound template: false
+  newer version: addEdge merge-gate->critic {"verdict":"trivial"} ; outcome done
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-done, edge:e-s-merge-gate-s-done, edge:s-x-merge-gate-critic
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate behind a gate of the graph's | addEdge+renameNode+role  (x1)
+  review-gate behind a gate of the graph's | sound template: false
+  newer version: addEdge merge-gate->builder {"verdict":"trivial"} ; renameNode done ; role builder "builder"->builder
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-x-merge-gate-builder
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate behind a gate of the graph's | addEdge  (x1)
+  review-gate behind a gate of the graph's | sound template: false
+  newer version: addEdge merge-gate->builder "always"
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-x-merge-gate-builder
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate behind a gate of the graph's | marker+repoint  (x1)
+  review-gate behind a gate of the graph's | sound template: false
+  newer version: marker critic ; repoint e-merge-gate-reject.to builder->merge-gate
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-critic.irreversible, edge:s-e-merge-gate-reject.to
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate behind a gate of the graph's | repoint  (x1)
+  review-gate behind a gate of the graph's | sound template: false
+  newer version: repoint e-critic-pass.from critic->merge-gate
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-e-critic-pass.from
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate, own stop | addEdge+back+role  (x1)
+  review-gate, own stop | sound template: false
+  newer version: role builder "builder"->critic ; addEdge merge-gate->builder {"verdict":"trivial"} ; back review +x-merge-gate-builder
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-builder.role, edge:s-x-merge-gate-builder, loop:s-review.back
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate, own stop | addEdge  (x1)
+  review-gate, own stop | sound template: false
+  newer version: addEdge merge-gate->builder "always"
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-x-merge-gate-builder
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | review-gate, then release | addEdge+members+renameNode  (x1)
+  review-gate, then release | sound template: false
+  newer version: renameNode builder ; members review +done ; addEdge merge-gate->critic "pass"
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-builder, node:s-builderx, edge:e-s-builder-s-critic, edge:s-e-critic-fail.to, edge:s-e-merge-gate-reject.to, edge:s-e-builder-critic, edge:s-x-merge-gate-critic, loop:s-review.members
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound false | spec-then-loop | addEdge+role  (x1)
+  spec-then-loop | sound template: false
+  newer version: role critic "critic"->critic ; addEdge spec-gate->planner "fail"
+  -> gate-answer-leads-elsewhere:s-spec-gate
+  applied: edge:s-x-spec-gate-planner
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound true | human-gated-irreversible | addEdge+addEdge  (x1)
+  human-gated-irreversible | sound template: true
+  newer version: addEdge gate->act "pass" ; addEdge gate->done "always"
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:s-x-gate-act, edge:e-s-gate-done
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound true | human-gated-irreversible | repoint  (x1)
+  human-gated-irreversible | sound template: true
+  newer version: repoint e-act-done.from act->gate
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-act-done, edge:e-s-gate-done
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound true | merge-queue | addEdge  (x2)
+  merge-queue | sound template: true
+  newer version: addEdge land-gate->bisect {"verdict":"trivial"}
+  -> gate-answer-leads-elsewhere:s-land-gate
+  applied: edge:s-x-land-gate-bisect
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound true | merge-queue | members+repoint  (x1)
+  merge-queue | sound template: true
+  newer version: repoint e-integrate-fail.from integrate->land-gate ; members queue +land-gate
+  -> gate-answer-leads-elsewhere:s-land-gate
+  applied: edge:s-e-integrate-fail.from, loop:s-queue.members
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound true | review-gate behind a gate of the graph's | repoint  (x1)
+  review-gate behind a gate of the graph's | sound template: true
+  newer version: repoint e-merge-gate-reject.to builder->merge-gate
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-e-merge-gate-reject.to
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none | sound true | review-gate, own stop | members+repoint  (x1)
+  review-gate, own stop | sound template: true
+  newer version: members review +done ; repoint e-merge-gate-reject.to builder->merge-gate
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-e-merge-gate-reject.to, loop:s-review.members
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some | sound true | human-gated-irreversible | marker+repoint  (x1)
+  human-gated-irreversible | sound template: true
+  newer version: marker act ; repoint e-act-done.from act->gate
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-act-done, edge:e-s-gate-done
+  held: node:s-act.irreversible
+
+BRAKE gate-answer-leads-elsewhere | held some | sound true | human-gated-irreversible | options+repoint  (x1)
+  human-gated-irreversible | sound template: true
+  newer version: options gate ; repoint e-act-done.from act->gate
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-act-done, edge:e-s-gate-done
+  held: node:s-gate.options
+
+BRAKE gate-answer-leads-elsewhere | held some | sound true | review-gate behind a gate of the graph's | options+repoint+role  (x1)
+  review-gate behind a gate of the graph's | sound template: true
+  newer version: role builder "builder"->tester ; repoint e-merge-gate-reject.to builder->merge-gate ; options merge-gate
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: node:s-builder.role, edge:s-e-merge-gate-reject.to
+  held: node:s-merge-gate.options

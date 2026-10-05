@@ -20,7 +20,8 @@ test("the Templates screen lists the bundled patterns; one opens read-only with 
   page.on("request", (r) => requests.push(r.url()));
 
   await page.goto("./");
-  await page.getByRole("link", { name: "Templates" }).tap();
+  // The library's own link; the front page's header and footer name the templates too (handoff 0077).
+  await page.getByRole("main").getByRole("link", { name: "Templates" }).tap();
   await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
 
   const builtIn = page.getByRole("list", { name: "Built-in templates" }).locator(":scope > li");
@@ -286,6 +287,6 @@ test("importing a template that carries errors does not offer it to Yours", asyn
 
   // Nothing reached Yours.
   await offer.getByRole("button", { name: "Cancel" }).tap();
-  await page.getByRole("link", { name: "Templates" }).tap();
+  await page.getByRole("main").getByRole("link", { name: "Templates" }).tap();
   await expect(page.getByRole("list", { name: "Your templates" })).toHaveCount(0);
 });

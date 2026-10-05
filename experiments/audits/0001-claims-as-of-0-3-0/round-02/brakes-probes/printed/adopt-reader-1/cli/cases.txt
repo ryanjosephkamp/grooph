@@ -1,0 +1,138 @@
+
+=== 00-control-cap-raised
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  raises the round cap from 4 to 40
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 01-outer-loop
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (edge:e-replan, loop:replan, with the reasons above). Adopt each on purpose w
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-replan
+    |   edge:e-replan  "e-replan" (review-critic → plan) would make a way round the nodes of "review-review" that its stops do not count: "replan" would count it, and each time round "review-review" starts afresh
+    |   loop:replan    "e-replan" (review-critic → plan) would make a way round the nodes of "review-review" that its stops do not count: "replan" would count it, and each time round "review-review" starts afresh
+    | grooph: not written: the working copy loosens a brake the graph has (edge:e-replan, loop:replan, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 02-second-way-round-through-a-new-step
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (edge:e-critic-fixer, edge:e-fixer-builder, loop:revise, with the reasons abo
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-critic-fixer
+    |   edge:e-critic-fixer   "e-critic-fixer" (review-critic → fixer) would make a way round the nodes of "review-review" that its stops do not count
+    |   edge:e-fixer-builder  "e-fixer-builder" (fixer → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "revise" would count it, and each time round "review-review" starts afresh
+    |   loop:revise           "e-fixer-builder" (fixer → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "revise" would count it, and each time round "review-review" starts afresh
+    | grooph: not written: the working copy loosens a brake the graph has (edge:e-critic-fixer, edge:e-fixer-builder, loop:revise, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 03-earlier-stop-leads-on-budget-minutes-0
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 03b-earlier-stop-leads-on-diminishing-returns (an 'other stop': stated limit, same effect)
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 04-approval-twin
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (edge:e-critic-fail-again, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-critic-fail-again
+    |   edge:e-critic-fail-again  "e-critic-fail-again" would lead from "review-critic" to "review-builder" beside "review-e-critic-fail", which needs a person's approval, and need none
+    | grooph: not written: the working copy loosens a brake the graph has (edge:e-critic-fail-again, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 05-two-caps-the-leading-one-leads-back-in
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  the round cap would lead on to "review-builder", not to "wrap-up"; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not 
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 06-second-cap-of-the-same-n-leads-on-before-the-one-that-halts
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  the round cap of 4 that leads on to "review-builder" would fire as soon as the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes 
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 07-gate-on-every-return-and-a-new-edge-round-it
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (edge:e-critic-minor, with the reasons above). Adopt each on purpose with --a
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-critic-minor
+    |   edge:e-critic-minor      adds a way from "review-critic" to "review-builder" that does not pass a person
+    | grooph: not written: the working copy loosens a brake the graph has (edge:e-critic-minor, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 08-a-dispatched-step-taken-out-of-the-loops-members
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.members, with the reasons above). Adopt each on purpose w
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.members
+    |   loop:review-review.members    the loop "review-review" would no longer bound "review-tests", which is still in the graph
+    | tightens a brake:
+    |   edge:e-builder-critic-direct  undoing it: the critic would no longer be handed "diff of the change" by "review-builder"
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.members, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 10-allow-one-of-two
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (node:review-merge-gate.options, with the reasons above). Adopt each on purpo
+  --write --allow loop:review-review.stops: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:review-merge-gate.options
+    |   node:review-merge-gate.options  the gate would no longer offer "reject with feedback"
+    | loosens a brake, and is adopted because it was asked for:
+    |   loop:review-review.stops        raises the round cap from 4 to 40   (asked for by name)
+    | grooph: not written: the working copy loosens a brake the graph has (node:review-merge-gate.options, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 11-allow-a-tightening-and-a-neutral-name-only
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write --allow node:plan.brief: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  raises the round cap from 4 to 40
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 12-allow-unknown-with-known
+  dry run: exit 1, nothing written; says:   loop:review-review.stops        raises the round cap from 4 to 40   (asked for by name)
+  --write --allow loop:review-review.stops --allow node:review-merge-gate.options --allow node:nobody: exit 1; target written: false
+    | loosens a brake, and is adopted because it was asked for:
+    |   node:review-merge-gate.options  the gate would no longer offer "reject with feedback"   (asked for by name)
+    |   loop:review-review.stops        raises the round cap from 4 to 40   (asked for by name)
+    | grooph: no change named "node:nobody" in this run; its changes are node:review-merge-gate.options, loop:review-review.stops
+
+=== 13-allow-both
+  dry run: exit 0, nothing written; says: dry run: --write writes it; the source stays as it is
+  --write --allow loop:review-review.stops --allow node:review-merge-gate.options: exit 0; target written: true (version 2, export errors: 0, compiles: yes)
+    | loosens a brake, and is adopted because it was asked for:
+    |   node:review-merge-gate.options  the gate would no longer offer "reject with feedback"   (asked for by name)
+    |   loop:review-review.stops        raises the round cap from 4 to 40   (asked for by name)
+    | wrote <tmp>/grooph-brakes-probes/adopt-reader-1/cli/13-allow-both/.grooph/graphs/plan-review-release.grooph.json (version 2); the source <tmp>/g
+  my oracle on source -> written: rounds [{"node":"review-builder","was":4,"now":5},{"node":"review-critic","was":4,"now":5}]; people []
+
+=== 14-allow-odd-names
+  dry run: exit 1, nothing written; says:   loop:review-review.stops        raises the round cap from 4 to 40
+  --write --allow loop:review-review.stops; node:review-merge-gate.options --allow * --allow : exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:review-merge-gate.options
+    |   node:review-merge-gate.options  the gate would no longer offer "reject with feedback"
+    |   loop:review-review.stops        raises the round cap from 4 to 40
+    | grooph: no change named "loop:review-review.stops; node:review-merge-gate.options", "*", "" in this run; its changes are node:review-merge-gate.options, loop:review-review.stops
+
+=== 15-allow-covers-everything-in-the-field (cap 4->5 meant; budget removed rides on the same name)
+  dry run: exit 0, nothing written; says: dry run: --write writes it; the source stays as it is
+  --write --allow loop:review-review.stops: exit 0; target written: true (version 2, export errors: 0, compiles: yes)
+    | loosens a brake, and is adopted because it was asked for:
+    |   loop:review-review.stops  raises the round cap from 4 to 5; removes the budget (10 dispatches)   (asked for by name)
+    | wrote <tmp>/grooph-brakes-probes/adopt-reader-1/cli/15-allow-covers-everything-in-the-field (cap 4->5 meant; budget removed rides on the same name)/.grooph/graphs/plan-review-release.groo
+  my oracle on source -> written: rounds [{"node":"review-builder","was":4,"now":5},{"node":"review-critic","was":4,"now":5}]; people []
+
+=== 16-weaker-acceptance (report says both)
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.bar, with the reasons above). Adopt each on purpose with 
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.bar
+    |   loop:review-review.bar  changes the bar's acceptance
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.bar, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+=== 17-mixed-tighten-and-loosen
+  dry run: exit 0, nothing written; says: --write would be refused: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose wit
+  --write: exit 1; target written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+    |   loop:review-review.stops  raises the budget from 10 to 400 dispatches
+    | grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy

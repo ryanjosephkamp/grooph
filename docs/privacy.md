@@ -16,7 +16,7 @@ In the browser you made it in, on that device.
 
 - **Graphs, the templates you save and the runs you keep** are in the browser's own storage for this site (IndexedDB). They are not copied anywhere. Clearing the site's data, or the browser doing so when it is short of space, deletes them: **Export**, then **Download graph**, gives you a file to keep. The app asks the browser once to keep its storage, and tells you once what the browser answered.
 - **Two small notes** sit beside them (local storage): the browser's answer to that question, and the search and filters you last used on the templates page.
-- **The app's own files** are kept by its service worker so it opens with no network. It stores nothing else and sends nothing.
+- **The app's own files** are kept by its service worker so it opens with no network: the version you have and the one before it. Older ones are dropped. It stores nothing else and sends nothing.
 - **In a private window** some browsers refuse storage. The app then works in memory and says that nothing will survive a reload.
 
 ## What leaves your device, and when
@@ -46,4 +46,4 @@ The site is served by GitHub. As any web host does, it receives each request for
 
 ## If this page is wrong
 
-It is checked against the code, not promised. If you find the app or the tool doing something this page says it does not, that is a bug: [open an issue](https://github.com/ryanjosephkamp/grooph/issues).
+It is checked against the code, not promised. One part is held on every change: the build fails if the app or these pages would load a script, a style sheet, a font, a picture or a frame from another host. If you find the app or the tool doing something this page says it does not, that is a bug: [open an issue](https://github.com/ryanjosephkamp/grooph/issues).

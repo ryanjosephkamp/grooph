@@ -1,0 +1,127 @@
+{
+  "grooph": 0,
+  "id": "land-when-green",
+  "name": "Land when green",
+  "version": 1,
+  "goal": "Make the failing test suite pass, then land the fix on main.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "time": "about 20 minutes"
+  },
+  "adaptation": "fixed",
+  "description": "A fix loop whose bar, once passed, continues at the node that merges to main. No edge leads to that node and no person is asked: the only way in is the loop's stop, and a stop's `then` is a way in like any edge.",
+  "nodes": [
+    {
+      "id": "fixer",
+      "kind": "agent",
+      "name": "Fixer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Make the failing tests in tests/ pass by changing src/. Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
+      "inputs": [
+        "the failing test output"
+      ],
+      "outputs": [
+        "src/ changes",
+        "FIXES.md naming each test fixed and its cause"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src"
+      ]
+    },
+    {
+      "id": "suite",
+      "kind": "check",
+      "name": "Test suite",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "land",
+      "kind": "agent",
+      "name": "Land",
+      "role": "builder",
+      "brief": "Merge the branch into main and push.",
+      "outputs": [
+        "the merge commit"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "irreversible": [
+        "merge to main"
+      ]
+    },
+    {
+      "id": "landed",
+      "kind": "stop",
+      "name": "Landed",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-fix-suite",
+      "from": "fixer",
+      "to": "suite"
+    },
+    {
+      "id": "e-suite-fail",
+      "from": "suite",
+      "to": "fixer",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-land-landed",
+      "from": "land",
+      "to": "landed"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "fixer",
+        "suite"
+      ],
+      "back": [
+        "e-suite-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "bar-passed",
+          "then": "land"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

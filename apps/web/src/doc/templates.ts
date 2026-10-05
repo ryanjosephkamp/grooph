@@ -4,29 +4,34 @@
  * Templates screen needs no network; the person's own templates live on the
  * device beside the graphs (store/templates.ts).
  *
+ * The library itself is a piece of the app (`builtins.ts`), fetched when a
+ * screen first needs it. What is here is the door to it, and everything about
+ * a template that needs no library.
+ *
  * Every semantic is core's (docs/templates.md): `instantiate`, `insertFragment`
  * and `extractTemplate` are called as they are.
  */
-import { allIds, hasErrors, parseGraphText, slotKeys, slugify, uniqueId, validate, type Graph, type Issue, type Profile, type TemplateSlot } from "@grooph/core";
+import { allIds, hasErrors, slotKeys, slugify, uniqueId, validate, type Graph, type Issue, type Profile, type TemplateSlot } from "@grooph/core";
+
+import { piece } from "../piece.js";
 
 /** Where a template came from: the bundled pattern library, or saved on this device. */
 export type TemplateSource = "built-in" | "yours";
 
 export type TemplateEntry = { source: TemplateSource; doc: Graph };
 
-// Vite reads these at build time; the files ship inside the bundle.
-const files = import.meta.glob<string>("../../../../patterns/*.grooph.json", { eager: true, query: "?raw", import: "default" });
+let held: readonly Graph[] | undefined;
 
-function loadBuiltIns(): Graph[] {
-  const docs: Graph[] = [];
-  for (const [path, text] of Object.entries(files)) {
-    const parsed = parseGraphText(text);
-    // A pattern that does not parse is a repo bug the core tests catch; the app skips it rather than failing to start.
-    if (parsed.doc?.template) docs.push(parsed.doc);
-    else console.warn(`grooph: skipped ${path}: not a template document`);
-  }
-  return sortTemplates(docs);
-}
+/**
+ * Fetch the built-in templates, once they have come (slice 0093). Asked for as every piece is (`piece.ts`): tried
+ * again if the fetch fails, named in the page, and so held by the service worker from the first visit. The app
+ * asks before it draws a screen that lists or opens one (`App.tsx`, `main.tsx`), and once its first screen is up,
+ * so that the next screen finds them here.
+ */
+export const loadBuiltIns = (): Promise<readonly Graph[]> => piece("builtins", () => import("./builtins.js")).then((m) => (held = m.BUILT_IN_TEMPLATES));
+
+/** The built-in templates, if they are here: `undefined` until `loadBuiltIns` has brought them. */
+export const builtIns = (): readonly Graph[] | undefined => held;
 
 /** Whole-graph templates first, then fragments; each by title. */
 export function sortTemplates(docs: readonly Graph[]): Graph[] {
@@ -34,9 +39,8 @@ export function sortTemplates(docs: readonly Graph[]): Graph[] {
   return [...docs].sort((a, b) => rank(a) - rank(b) || a.template!.title.localeCompare(b.template!.title));
 }
 
-export const BUILT_IN_TEMPLATES: readonly Graph[] = loadBuiltIns();
-
-export const builtInTemplate = (id: string): Graph | undefined => BUILT_IN_TEMPLATES.find((doc) => doc.id === id);
+/** One of them by its id, once they are here. */
+export const builtInTemplate = (id: string): Graph | undefined => held?.find((doc) => doc.id === id);
 
 /**
  * Why a template may not be kept in Yours: the rule `grooph template save` and

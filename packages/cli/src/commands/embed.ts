@@ -18,10 +18,15 @@ import type { Output } from "../print.js";
 import { isRunDir, readRun } from "../run-io.js";
 import { LoadError, deflateRaw, loadShareable, type Loaded } from "../share-io.js";
 
-export type EmbedTheme = "light" | "dark";
+/**
+ * What the frame's address says after `theme=`: `light` or `dark`, one of the picture's themes (docs/themes.md), or
+ * both as `chalk-dark`. `index.ts` reads `--theme` and hands on only what an address should say: this file is also
+ * read by the web app's tests, which see core without its themes.
+ */
+export type EmbedTheme = string;
 export type EmbedFlags = { theme?: EmbedTheme; height?: number; base?: string; frame?: boolean; play?: boolean };
 
-export const EMBED_HELP = `grooph embed <file> [--theme light|dark] [--height <px>] [--frame] [--play] [--base <url>]
+export const EMBED_HELP = `grooph embed <file> [--theme <name>] [--height <px>] [--frame] [--play] [--base <url>]
 
 <file> is a graph, a run folder or *.grooph-run.json bundle, an operation map, or a proposal set.
 
@@ -33,7 +38,10 @@ run (a run folder or a *.grooph-run.json bundle) plays: play, step and a scrubbe
 The document travels in the frame's address after the #, as in grooph share, so the host
 page's server never sees it. Nothing about the reader is sent anywhere.
 
-  --theme <t>    light or dark; without it the picture follows the reader's color scheme
+  --theme <t>    one of six looks for the picture: paper, blueprint, ink, phosphor, transit, chalk
+                 (docs/themes.md); without it, paper. Or light or dark, which hold the picture
+                 to that form; without one it follows the reader's color scheme. Both as
+                 chalk-dark. The theme is in the frame's address, and fetched only then.
   --height <px>  the frame's height when the page has no script to size it
                  (default: the picture's own height at a phone's width)
   --frame        draw the embed's own background and border, not the page's background
@@ -87,7 +95,7 @@ export function resizeScript(base: string = SHARE_BASE): string {
 }
 
 /**
- * `grooph embed <file> [--theme light|dark] [--height <px>] [--frame] [--play] [--base <url>]`
+ * `grooph embed <file> [--theme <name>] [--height <px>] [--frame] [--play] [--base <url>]`
  * (docs/exports.md, "Embedding"). Prints two lines, the frame and the script; exit 1 when
  * the document cannot be shared.
  */

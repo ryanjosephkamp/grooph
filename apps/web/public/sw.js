@@ -6,12 +6,15 @@
  * offline needs only the files. On install this caches the page and the
  * scripts and styles it names, in its tags and in the lists its first script
  * hands the browser (vite.config.ts): the app, and the screens it fetches
- * only when an address needs them. After that:
+ * only when an address needs them. A file that could not be fetched is tried
+ * once more, a second later (`hold`). After that:
  *
- *   the page and other unhashed files   network first, the cached copy when offline,
+ *   the page and other unhashed files   network first, the cached copy when offline or when the host answers that it
+ *                                       cannot (a 5xx; a redirect or a "not found" is an answer, and is passed on),
  *                                       so a new deploy is picked up on the next visit;
- *                                       a page that names files not held yet has them fetched then,
- *                                       so a visit cut short does not leave a page without its files
+ *                                       a page that names files not held yet has them fetched then, and becomes the
+ *                                       page to open with no network only once every one of them is held: until
+ *                                       then the page kept before, whose files are all here, stays (handoff 0083)
  *   /assets/ (hashed by the build)      the cached copy first: a name never changes its content
  *   /api/ (grooph watch's endpoints)    never touched: they are live
  *   /docs/ (the documents, static pages beside the app, handoff 0060)
@@ -20,9 +23,19 @@
  *                                       never touched: only the app's own address, "./", is the app
  *   other origins, anything not a GET   never touched
  *
+ * Old files go when no window can still be on a page that names them (handoff 0083). The worker keeps the page it
+ * holds and the page it held before that one. When a visit brings a page, and the page that visit made is the only
+ * window there is, it drops the older builds of the files those two pages name: `App-<another hash>.js`. A tab left
+ * open on an older version is another window, and while there is one nothing is dropped. A file the pages do not
+ * name at all (the embed's own, fetched when someone watches the demo) is not known to be old, and stays.
+ * What this does not cover: a page that is no window, which a browser keeps for the Back button or shows again from
+ * its own stale copy. It is safe while it is one of the two pages kept, and not when two releases have gone by.
+ *
  * It stores nothing but grooph's own files, and sends nothing anywhere.
  */
 const CACHE = "grooph-app-v1";
+/** Where the page held before the one held now is kept. No address of the app is asked for with this query. */
+const BEFORE = "./?the-page-before";
 
 /** The files of the app a page names: in a tag, or as a quoted path under assets/ in its first script. */
 function named(html) {
@@ -32,14 +45,102 @@ function named(html) {
     .filter((u) => u.origin === self.location.origin && u.href.startsWith(self.registration.scope));
 }
 
-/** Fetch and keep each named file that is not held yet. One that fails is left for the page to ask for. */
+/** How long after a file could not be fetched it is asked for the second time. */
+const AGAIN_AFTER = 1000;
+
+/**
+ * Fetch and keep each named file that is not held yet. One that fails is tried once more, a second later, and
+ * after that is left for the page to ask for, and for the next visit that reaches the network.
+ * Says whether, after that, every hashed file the page names is held. A page that names none is not the app's
+ * (a sign-in page a network puts in front of everything, say), and is never whole.
+ *
+ * The second try: a request lost on a poor link is not a file that cannot be had. A first visit has no page to
+ * fall back on, so its page is kept with whatever came; and the pieces no first screen asks for (the compiler, a
+ * map's views, the graph's, the themes) are fetched here and nowhere else in that visit. With one try, one lost
+ * request left such a piece out until the next visit with a network. A file that truly cannot be had yet (a deploy
+ * still arriving) costs the wait and is dropped as before; which page is kept does not change (decision 0026).
+ *
+ * The wait is inside the page's turn (`inTurn`), so that pages are still kept in the order they came: a visit that
+ * follows within that second has its page kept when the turn before it is over, up to a second later than it was.
+ * Until then the page kept before, whose files are all here, is the one that opens with no network.
+ */
 async function hold(cache, html) {
+  const files = named(html);
+  const fetched = async (u) => {
+    if (await cache.match(u.href, { ignoreVary: true })) return;
+    await cache.add(u.href);
+  };
   await Promise.all(
-    named(html).map(async (u) => {
-      if (await cache.match(u.href, { ignoreVary: true })) return;
-      await cache.add(u.href).catch(() => undefined);
-    }),
+    files.map((u) =>
+      fetched(u)
+        .catch(() => new Promise((later) => setTimeout(later, AGAIN_AFTER)).then(() => fetched(u)))
+        .catch(() => undefined),
+    ),
   );
+  const hashed = files.filter((u) => u.pathname.includes("/assets/"));
+  if (hashed.length === 0) return false;
+  for (const u of hashed) if (!(await cache.match(u.href, { ignoreVary: true }))) return false;
+  return true;
+}
+
+/**
+ * Make a page that came from the network the page to open with no network: once it is whole, and not before. A page
+ * whose files have not all arrived (a deploy still reaching the host, a visit cut short) must not take the place of
+ * one whose files are all here. Only when there is no page to fall back on is it kept as it is.
+ * The page it replaces is kept beside it. `visit`: the id of the page a visit made of this one, when a visit brought
+ * it, so the cache may be tidied after; `undefined` when the worker fetched it for itself.
+ */
+async function keep(cache, page, visit) {
+  const html = await page.clone().text();
+  const whole = await hold(cache, html);
+  const held = await cache.match("./", { ignoreVary: true });
+  if (!whole && held) return;
+  const before = held ? await held.text() : undefined;
+  if (before !== undefined && before !== html) await cache.put(BEFORE, new Response(before, { headers: { "content-type": "text/html; charset=utf-8" } }));
+  await cache.put("./", page);
+  if (whole && visit !== undefined) await tidy(cache, visit);
+}
+
+/** A hashed file's name without its hash: `…/assets/App-ClXlJ-zx.js` is `App.js`. Any other name has none. */
+function unhashed(href) {
+  const name = /\/assets\/([^/]+)-[A-Za-z0-9_-]{8}(\.(?:js|css))$/.exec(new URL(href).pathname);
+  return name ? `${name[1]}${name[2]}` : undefined;
+}
+
+/**
+ * Drop the older builds of the files that the page held now and the page held before it name. Not until a page has
+ * been replaced under this worker, and not while there is any window but the page this visit made: another tab,
+ * the page this tab is still leaving, or the tab that was open all along when the visiting one has been closed
+ * already. Any of them may be on an older page still. Where a browser does not say which page a visit made,
+ * nothing is dropped.
+ */
+async function tidy(cache, visit) {
+  if (!visit) return;
+  const now = await cache.match("./", { ignoreVary: true });
+  const before = await cache.match(BEFORE);
+  if (!now || !before) return;
+  // Wait for the page this visit made to be there: in the same tab, the page it replaces is gone by then. A visit
+  // that was given up, or a tab closed at once, never gets there, and whoever is left is looked at as they are.
+  for (let waited = 0; waited < 10 && !(await self.clients.get(visit)); waited += 1) await new Promise((done) => setTimeout(done, 200));
+  const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  if (windows.some((client) => client.id !== visit)) return;
+  const wanted = [...named(await now.text()), ...named(await before.text())].map((u) => u.href);
+  const kept = new Set(wanted);
+  const names = new Set(wanted.map(unhashed).filter(Boolean));
+  for (const request of await cache.keys()) {
+    const name = unhashed(request.url);
+    if (name && names.has(name) && !kept.has(request.url)) await cache.delete(request);
+  }
+}
+
+/**
+ * One page is kept at a time. Two visits a moment apart with a deploy between them would otherwise each fetch its
+ * own files and tidy the other's away.
+ */
+let keeping = Promise.resolve();
+function inTurn(work) {
+  keeping = keeping.then(work, work);
+  return keeping;
 }
 
 self.addEventListener("install", (event) => {
@@ -47,11 +148,8 @@ self.addEventListener("install", (event) => {
     (async () => {
       const cache = await caches.open(CACHE);
       const page = await fetch("./", { cache: "no-store" });
-      if (page.ok) {
-        const html = await page.clone().text();
-        await cache.put("./", page);
-        await hold(cache, html);
-      }
+      // No tidying here: a worker installs while tabs are open, and none of them is on its way to this page.
+      if (page.ok) await inTurn(() => keep(cache, page, undefined));
       await self.skipWaiting();
     })(),
   );
@@ -93,14 +191,22 @@ self.addEventListener("fetch", (event) => {
       try {
         const fresh = await fetch(request);
         if (fresh.ok) {
-          await cache.put(key, fresh.clone());
-          // A new deploy's page names new files. They are fetched now, whether or not the visit lasts long enough to ask.
+          // A new deploy's page names new files. They are fetched now, whether or not the visit lasts long enough to
+          // ask, and the page is kept once they are all here.
           if (request.mode === "navigate") {
             const page = fresh.clone();
-            event.waitUntil(page.text().then((html) => hold(cache, html)).catch(() => undefined));
+            const visit = event.resultingClientId || "";
+            event.waitUntil(inTurn(() => keep(cache, page, visit)).catch(() => undefined));
+          } else if (url.pathname !== scopePath) {
+            // The page's own address is kept by a visit, above, and by nothing else: a script that asks for it
+            // must not put a page in the kept one's place, or over the one before it.
+            await cache.put(key, fresh.clone());
           }
+          return fresh;
         }
-        return fresh;
+        // The host answered that it cannot (it is down, a deploy is half-way): the copy held, if there is one.
+        // Anything else is an answer: a redirect to where the site has moved, a "not found" for a file that is gone.
+        return fresh.status >= 500 ? ((await cached()) ?? fresh) : fresh;
       } catch (err) {
         const hit = await cached();
         if (hit) return hit;
