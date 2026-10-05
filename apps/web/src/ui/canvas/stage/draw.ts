@@ -243,7 +243,6 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         const el = cardOf(p.id);
         if (!el) return;
         placed.add(p.id);
-        el.classList.toggle("is-small", !!p.small);
         const [x, y, , , s] = boxOf(p, el, at[0]![0], at[0]![1], at[0]![3]);
         el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
         el.style.zIndex = String(order);
@@ -426,6 +425,8 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     grown: 1,
     set(list) {
       prims = list;
+      // A card that is its name alone is so before anything is measured: the frame's height is worked out from it.
+      for (const p of prims) if (p.t === "card") cardOf(p.id)?.classList.toggle("is-small", !!p.small);
       size();
       fit();
     },

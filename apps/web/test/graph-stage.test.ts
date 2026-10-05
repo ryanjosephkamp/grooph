@@ -539,6 +539,48 @@ describe("the spiral and its lid", () => {
     expect(edges(spiral(modelAt(lr, places(lr)), whole).prims)["e-critic-again@0>1"]).toEqual([1, 0.5, 0.5]);
   });
 
+  it("a way back that is another loop's, between two nodes of one spiral, does not turn that spiral", () => {
+    // Twins: the sandwich's loop listed twice, with one way back each. The critic's way back is B's; on A's spiral,
+    // where builder and critic stand, it arrives in the round A is in, not a turn on.
+    const twins: Graph = { ...RUN, loops: [{ ...RUN.loops[0]!, id: "a", name: "A", back: ["e-checks-fail"] }, { ...RUN.loops[0]!, id: "b", name: "B", back: ["e-critic-fail"] }] };
+    const run = modelAt(twins, places(twins), notes([["builder", "pass"], ["checks", "fail"], ["builder", "pass"], ["checks", "pass"], ["critic", "fail"], ["builder", "pass"]]));
+    expect(edges(spiral(run, at(run, 0)).prims)["e-critic-fail@1>1"]).toEqual([1, 1.67, 1]);
+    expect(edges(spiral(modelAt(twins, places(twins)), whole).prims)["e-critic-fail@0>1"]).toEqual([1, 0.67, 0]);
+    // A's own way back, from the middle of its round, still arrives a turn on.
+    expect(edges(spiral(run, at(run, 0)).prims)["e-checks-fail@0>1"]).toEqual([1, 0.33, 1]);
+    // An outer loop's way back between two nodes of the loop inside it: the inner loop starts afresh, so the edge
+    // arrives at round 0 of the inner spiral, on a run and on a template.
+    const outer: Graph = { ...NEST, edges: [...NEST.edges, { id: "e-tests-next", from: "tests", to: "builder", when: { verdict: "next" } }], loops: NEST.loops.map((l) => (l.id === "phases" ? { ...l, back: [...l.back, "e-tests-next"] } : l)) } as Graph;
+    const again = modelAt(outer, places(outer), notes([["builder", "pass"], ["tests", "fail"], ["builder", "pass"], ["tests", "fail", undefined, "next"], ["builder", "pass"]]));
+    expect(again.run!.dispatches.map((d) => d.round)).toEqual([0, 0, 1, 1, 0]);
+    expect(edges(spiral(again, at(again, 0)).prims)["e-tests-next@1>0"]).toEqual([1, 1.5, 0]);
+    expect(edges(spiral(modelAt(outer, places(outer)), whole).prims)["e-tests-next@0>1"]).toEqual([1, 0.5, 0]);
+    // And the judge's way back into the inner loop, on a template: at round 0, not a turn up.
+    expect(edges(spiral(modelAt(NEST, places(NEST)), whole).prims)["e-judge-next-phase@0>1"]).toEqual([1, 0.5, 0]);
+  });
+
+  it("an edge from the ground into a spiral goes over the ground nodes it passes, and a bead stays where it is as the slider goes on", () => {
+    // Plan, scout and docs stand in a line before the first spiral, and plan and scout each have an edge into it.
+    const doc = graph("fixtures/valid/glyph-vocabulary.grooph.json");
+    const m = modelAt(doc, places(doc));
+    const built = spiral(m, whole);
+    const before = ["plan", "scout", "docs"];
+    expect(before.map((id) => m.nodes.find((n) => n.id === id)!.loop)).toEqual([null, null, null]);
+    const lift = (from: string) => {
+      const e = m.edges.find((x) => x.from === from && m.nodes.find((n) => n.id === x.to)!.loop)!;
+      const pts = built.path(e.id);
+      const straight = (n: number) => pts[0]![1] + ((pts[pts.length - 1]![1] - pts[0]![1]) * n) / (pts.length - 1);
+      return Math.round(Math.max(...pts.map((p, n) => p[1] - straight(n))));
+    };
+    expect([lift("plan"), lift("scout")]).toEqual([52, 26]);
+    // The nested run: the beads at note 3 are where the same two are in the whole run.
+    const [nested, written] = runAt("run-nested");
+    const r = modelAt(nested, places(nested), written);
+    const beads = (k: number) => spiral(r, at(r, k)).prims.flatMap((p) => (p.t === "dot" && p.r === 6 ? [p.at.map((v) => Math.round(v)).join(",")] : []));
+    expect(beads(0).slice(0, 2)).toEqual(beads(3));
+    expect(beads(0)).toHaveLength(7);
+  });
+
   it("beads at one place stop short of the middle however many there are, and the solid part stops at the top", () => {
     const phase = (): [string, string, number?, string?][] => [["builder", "pass", 0], ["tests", "pass", 0], ["judge", "fail", undefined, "next-phase"]];
     const open = withStops(withStops(NEST, "phases", []), "grind", [{ kind: "max-iterations", n: 2 }]);
