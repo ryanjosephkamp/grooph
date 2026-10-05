@@ -223,11 +223,11 @@ Written at the pause the owner asked for, for the session that takes this up nex
 | **A check is a brake** (amendment A-019), for `grooph adopt`, `grooph sub update` and the app's button; the amendment's row reworded in it at the driver's ruling; three more readers' scripts beside the others | [ryanjosephkamp/grooph#132](https://github.com/ryanjosephkamp/grooph/pull/132) | open, head `7b9b9ca`. The driver's reader has it; the driver merges on a clean read and green jobs |
 | `E_IRREVERSIBLE_NO_GATE` holds for a step the run starts at | [ryanjosephkamp/grooph#133](https://github.com/ryanjosephkamp/grooph/pull/133) | open, head `8ac4eba`, read by the driver and queued to merge. Nothing more is pushed to it without telling the driver |
 | The tool's own words say what decision 0029 allows | [ryanjosephkamp/grooph#135](https://github.com/ryanjosephkamp/grooph/pull/135) | open, head `37334e7`, queued behind #133 |
-| "Apply to a copy" says which brakes the copy loosens | [ryanjosephkamp/grooph#136](https://github.com/ryanjosephkamp/grooph/pull/136) | open, head `727295f`. The driver's reader has it; it changes what a person sees, so it is shown to the owner |
+| "Apply to a copy" says which brakes the copy loosens | [ryanjosephkamp/grooph#136](https://github.com/ryanjosephkamp/grooph/pull/136) | open, head `65e6e23`, which answers the eight points of the driver's reader; it changes what a person sees, so it is shown to the owner |
 
 The four open ones merge together with no conflict in any order, and #60's head merges on top of them with none (trial-merged 2026-10-05; core 492 and CLI 136 tests pass on the four as one). **One line is owed after the first of #132 and #136 merges**: `docs/runs.md` section 5 ends "'Apply to a copy' on a proposal is not checked … The page does not yet say which proposals loosen a brake", which #136 makes false. The sentence is on the long line #132 edits, so it is corrected on whichever of the two merges second, after main is merged into it.
 
-GitHub was slow to give out machines that afternoon: when this was written, two jobs of #133 had passed and every other job of the four was still queued. **CI's budget lines for #132 were not yet read.** On this Mac they are 160.59 of 164 (first load), 258.00 of 262 (canvas), 279.04 of 280 (a template's own address) and 127.90 of 132 (embed); #136 adds about 0.05 KB to the canvas and template lines. CI has read 0.2 to 0.45 KB above this Mac, so the template line is the one to look at, and with #132 and #136 both in it has about half a KB of room.
+GitHub was slow to give out machines that afternoon: when this was written, two jobs of #133 had passed and every other job of the four was still queued. **CI's budget lines for #132 were not yet read.** On this Mac they are 160.59 of 164 (first load), 258.00 of 262 (canvas), 279.04 of 280 (a template's own address) and 127.90 of 132 (embed); #136 adds about 0.13 KB to the canvas and template lines. CI has read 0.2 to 0.45 KB above this Mac, so the template line is the one to look at, and with #132 and #136 both in it has well under half a KB of room.
 
 ### What the check kind leaves open, on purpose
 
@@ -242,6 +242,10 @@ Each was run once before it was written, and each is listed where a person adopt
 - **g.** `grooph export <graph> --into <dir>` over a package in place compares nothing: a cap of 5 exported there again as 50 exits 0 with no word. A-019's row names its doors and this is not one. Whether it becomes one is on the owner's desk.
 
 Three readers got seven ways through the check kind's earlier versions (three, three and one); each is closed and a test in `packages/core/test/adoption.test.ts`, and their scripts are in `experiments/audits/0001-claims-as-of-0-3-0/round-02/brakes-probes/check-reader-1` to `3`. That is eight readers on this comparison, each of whom found something. I do not read that as done. The next reader should be another harness.
+
+### A slice for later: the comparison trusts that sizes are numbers
+
+Found by the driver's reader of #136, and left alone here by the driver's word. `brakesOf` in `packages/core/src/brakes.ts` reads a round cap's `n` and a budget's `limit` as numbers. A document that has been through the schema always has them so, and the three doors hand it nothing else: `grooph adopt` and a refresh read their documents through the parser, and since #136 "Apply to a copy" reads the copy back through the schema and does not ask the comparison when it fails. But a cap of `null` handed straight to `brakesLost` compares as no change. The guard is small and is its own slice: a size that is not a finite number counts as the brake removed, with a test for `null`, a string and `NaN` on a cap and on a budget.
 
 ### Item 4, parked: its next step
 
