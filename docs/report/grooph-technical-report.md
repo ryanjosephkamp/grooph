@@ -35,7 +35,7 @@ One JSON file ([`docs/graph-ir.md`](../graph-ir.md)), small enough for a model t
 | **Loops** | A named set of nodes with a back edge, a kind (a grind loop toward a check; a judgment loop toward a bar), and its **stops** in order |
 | **Stops** | What ends a loop: the bar is met, a maximum number of rounds, a budget (dispatches, minutes, dollars), a person, diminishing returns, evidence that does not hold. Each has an action: leave by the pass edges, go on at a named node, or halt and report |
 | **Bars** | What "good enough" means for a judgment loop, and what evidence shows it |
-| **Adaptation** | Whether the lead may amend a working copy of the graph during a run. Its brief tells it to tighten a brake and never loosen one ([decision 0008](../decisions/0008-adaptive-by-default.md)); nothing checks that while a run goes on. Since 2026-10-05 the `grooph adopt` command does not write a working copy that loosens a brake it can see until the change is asked for by name; the web app's Adopt button does not make that check yet |
+| **Adaptation** | Whether the lead may amend a working copy of the graph during a run. Its brief tells it to tighten a brake and never loosen one ([decision 0008](../decisions/0008-adaptive-by-default.md)); nothing checks that while a run goes on. Since 2026-10-05 the `grooph adopt` command does not write a working copy that loosens a brake it can see until the change is asked for by name, and the web app's Adopt button, which makes the same comparison, does not save one |
 
 A graph is one session: the lead is the harness's main session, and every other agent is its subagent. Work that spans sessions is drawn as an operation map (section 6), which is validated and never compiled.
 
