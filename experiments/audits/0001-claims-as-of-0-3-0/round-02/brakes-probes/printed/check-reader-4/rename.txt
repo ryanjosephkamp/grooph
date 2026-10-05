@@ -1,0 +1,46 @@
+
+## the check under another id, nothing else
+  no --allow: exit 1, written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:tests
+    |   node:tests               removes a check, while a check the graph has not comes in ("test-suite": runs "npm test", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this name allows every change made to it and every way round it
+    | not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:
+    |   node:test-suite          undoing it: removes a check
+    | grooph: not written: the working copy loosens a brake the graph has (node:tests, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  --allow node:tests: exit 0, written: true, version 2, errors 0
+    | loosens a brake, and is adopted because it was asked for:
+    |   node:tests               removes a check, while a check the graph has not comes in ("test-suite": runs "npm test", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this name allows every change made to it and every way round it   (asked for by name)
+    | not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:
+    |   node:test-suite          undoing it: removes a check
+    written: the check is "test-suite", runs "npm test", passes on "exit code 0 and no test skipped"; edges to "done": test-suite (pass); stops: max-iterations, budget; bar: none
+
+## under another id, with its command made true and an edge from the builder straight to the end
+  no --allow: exit 1, written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:tests
+    |   node:tests               removes a check, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this name allows every change made to it and every way round it
+    | not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:
+    |   node:test-suite          undoing it: removes a check
+    | grooph: not written: the working copy loosens a brake the graph has (node:tests, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  --allow node:tests: exit 0, written: true, version 2, errors 0
+    | loosens a brake, and is adopted because it was asked for:
+    |   node:tests               removes a check, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this name allows every change made to it and every way round it   (asked for by name)
+    | not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:
+    |   node:test-suite          undoing it: removes a check
+    written: the check is "test-suite", runs "true", passes on "exit code 0 and no test skipped"; edges to "done": test-suite (pass), builder (always); stops: max-iterations, budget; bar: none
+
+## under another id, and everything a reader could think of beside it
+  no --allow: exit 1, written: false
+    | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:tests
+    |   node:tests                  removes a check, while a check the graph has not comes in ("test-suite": runs "true", passes on "any exit code"): if that is this check under another id, allowing this name allows every change made to it and every way round it
+    | not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:
+    |   node:test-suite             undoing it: removes a check
+    |   loop:grind.stops            undoing it: removes the budget (1 dispatches)
+    |   loop:grind.bar              undoing it: removes the loop's bar
+    | grooph: not written: the working copy loosens a brake the graph has (node:tests, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  --allow node:tests: exit 0, written: true, version 2, errors 0
+    | loosens a brake, and is adopted because it was asked for:
+    |   node:tests                  removes a check, while a check the graph has not comes in ("test-suite": runs "true", passes on "any exit code"): if that is this check under another id, allowing this name allows every change made to it and every way round it   (asked for by name)
+    | not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:
+    |   node:test-suite             undoing it: removes a check
+    |   loop:grind.stops            undoing it: removes the budget (1 dispatches)
+    |   loop:grind.bar              undoing it: removes the loop's bar
+    written: the check is "test-suite", runs "true", passes on "any exit code"; edges to "done": test-suite (always), builder (always), test-suite (close-enough); stops: bar-passed, budget then done, max-iterations, budget; bar: "CHANGES.md says the change is made."

@@ -15,7 +15,7 @@
  * Pure. Not on the web app's way in: it brings `brakes.ts` and `reach.ts` with it.
  */
 
-import { brakesLost, roundsLeftToAPerson, type Loss } from "./brakes.js";
+import { brakesLost, roundsLeftToAPerson, saidOf, type Loss } from "./brakes.js";
 import { effectiveAdaptation } from "./semantics.js";
 import type { Graph, Id } from "./types.js";
 
@@ -27,6 +27,12 @@ export type AdoptionChange = {
   loosens?: string;
   /** set when undoing the change would remove or loosen a brake, which is to say it tightens one: what undoing it would do */
   tightens?: string;
+  /**
+   * What undoing the change would do, where that is not called a tightening: in a working copy that removes a check
+   * while a check the graph has not comes in. It may be one check under two ids, and then a bar or a budget built
+   * round it under its new id would read as a brake gained. The change is still named; only the label is withheld.
+   */
+  unjudged?: string;
 };
 
 export type AdoptionCheck = {
@@ -101,24 +107,32 @@ const lost = (before: Graph, after: Graph): Loss[] => [...brakesLost(before, aft
 export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: readonly string[] } = {}): AdoptionCheck {
   let changes = changesBetween(source, adopted);
   const names = new Set(changes.map((change) => change.name));
-  const lay = (losses: readonly Loss[], key: "loosens" | "tightens", unnamed: boolean): void => {
+  const lay = (losses: readonly Loss[], key: "loosens" | "tightens" | "unjudged", unnamed: boolean): void => {
     for (const loss of losses) {
       // A line that is held whichever way the change goes says nothing about what undoing it would lose.
-      if (key === "tightens" && loss.either) continue;
+      if (key !== "loosens" && loss.either) continue;
       const named = new Set(loss.at.filter((name) => names.has(name)));
       if (named.size === 0 && !unnamed) continue;
       changes = changes.map((change) => {
-        if ((named.size > 0 && !named.has(change.name)) || (change[key] ?? "").split("; ").includes(loss.why)) return change;
+        if ((named.size > 0 && !named.has(change.name)) || saidOf(change[key], loss.why)) return change;
         // A change that reads the same both ways (an acceptance reworded) is said once, as what it may loosen. And a
         // loop that is new bounds only what it brings: undoing it "removes a loop with its stops", and tightens nothing.
-        if (key === "tightens" && ((change.loosens ?? "").split("; ").includes(loss.why) || (change.kind === "add" && change.name.startsWith("loop:")))) return change;
+        if (key !== "loosens" && (saidOf(change.loosens, loss.why) || (change.kind === "add" && change.name.startsWith("loop:")))) return change;
         return { ...change, [key]: change[key] === undefined ? loss.why : `${change[key]}; ${loss.why}` };
       });
     }
   };
-  lay(lost(source, adopted), "loosens", true);
-  // Only where a change can be named for it: "every change tightens something" would say nothing.
-  lay(lost(adopted, source), "tightens", false);
+  const loosened = lost(source, adopted);
+  lay(loosened, "loosens", true);
+  // Only where a change can be named for it: "every change tightens something" would say nothing. And nothing is
+  // called a tightening in a copy where a check goes while another comes in: it may be one check under two ids, and
+  // then the comparison can follow neither what was done to it nor what was built round it (a bar, a budget that
+  // leads on), which would otherwise be printed as brakes gained. Each such change is still named, unjudged.
+  // (The check that comes in is named there by what undoing it would do, in the plain words: its own line, read
+  // backwards, would speak of the check that went as the one coming in.)
+  const undone = lost(adopted, source);
+  if (loosened.some((loss) => loss.swap)) lay(undone.map((loss) => (loss.swap ? { ...loss, why: "removes a check" } : loss)), "unjudged", false);
+  else lay(undone, "tightens", false);
   changes.sort((x, y) => Number(y.loosens !== undefined) - Number(x.loosens !== undefined));
   const allow = new Set(options.allow ?? []);
   return {

@@ -1,0 +1,27 @@
+
+a critic, no person: another verdict's edge ADDED, to a stop that ends in success that the run adds
+   head: REFUSED edge:e-critic-meh [adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"]
+
+a critic, no person: a verdict's edge LED to such a stop, while the stop it left keeps another way in
+   head: REFUSED edge:e-critic-hopeless.to [adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"]
+
+a critic, no person: a verdict's edge led to a stop that ends in success that the graph HAD and reaches without the critic
+   head: REFUSED edge:e-critic-hopeless.to [adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"]
+
+a check: the step its failure leads to, made a stop that ends in success (its edge on, and the stop that halted, dropped)
+   head: REFUSED node:report.kind [a run could end in success at "report", a way that does not pass "pass" from the check "tests"]
+
+a critic, no person: a verdict's edge led to the stop that ends in success that only its PASS reached
+   head: REFUSED edge:e-critic-hopeless.to [opens a way into "done" that does not pass "pass" from the critic "critic"]
+
+a gate: its "no" led to the stop that ends in success that only its "yes" reached
+   head: REFUSED edge:e-gate-no.to [opens a way into "done" that does not pass "yes" at the human gate "gate"]
+
+a gate: the stop that halts that its "no" leads to, made to end in success (the tests' failure leads there too, with nobody asked)
+   head: REFUSED node:stopped.outcome [a run could end in success at "stopped", a way that does not pass a person; a run could end in success at "stopped", a way that does not pass "pass" from the check "tests]
+
+NOT HELD, a stated limit. A gate: its "no" led to a stop that ends in success that the run ADDS
+   head: ADOPTED, nothing refused
+
+NOT HELD, a stated limit. A gate: its "no" led to a stop that ends in success that the graph had and a run already reached another way
+   head: ADOPTED, nothing refused

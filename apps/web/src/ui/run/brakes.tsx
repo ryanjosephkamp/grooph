@@ -27,6 +27,7 @@ const copy = (text: string) => () => void navigator.clipboard?.writeText(text).c
 export function judge(source: Graph, adopted: Graph, run: string): Judged {
   const check = checkAdoption(source, adopted);
   const tighter = check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined);
+  const unjudged = check.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined);
   const command = adoptCommandLine(`.grooph/${source.id}/runs/${run}`, check.refused.map((change) => change.name));
   const more = (
     <>
@@ -42,6 +43,18 @@ export function judge(source: Graph, adopted: Graph, run: string): Judged {
           </ul>
         </>
       ) : null}
+      {unjudged.length > 0 ? (
+        <>
+          <p>With a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:</p>
+          <ul className="brakes-list" data-brakes="unjudged">
+            {unjudged.map((change) => (
+              <li key={change.name} data-change-name={change.name}>
+                <span className="mono">{change.name}</span> undoing it: {change.unjudged}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       {check.notices.map((notice) => (
         <p key={notice} data-brakes="note">
           Note: {notice}
@@ -49,7 +62,7 @@ export function judge(source: Graph, adopted: Graph, run: string): Judged {
       ))}
     </>
   );
-  if (check.refused.length === 0) return { ok: true, view: tighter.length + check.notices.length > 0 ? <div className="field-hint" data-brakes="said">{more}</div> : null };
+  if (check.refused.length === 0) return { ok: true, view: tighter.length + unjudged.length + check.notices.length > 0 ? <div className="field-hint" data-brakes="said">{more}</div> : null };
   return {
     ok: false,
     view: (

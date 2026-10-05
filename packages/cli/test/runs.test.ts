@@ -411,12 +411,21 @@ test("A-019: the audit lane's two check cases, and the two its reader got throug
       w.nodes.push({ id: "done-too", kind: "stop", name: "Done too", outcome: "success" });
       Object.assign(w.edges.find((edge) => edge.id === "e-tests-pass")!, { when: "fail", to: "done-too" });
       w.edges.push({ id: "e-tests-passed", from: "tests", to: "done", when: "pass", approval: true });
-    }, ["edge:e-tests-pass.to", "edge:e-tests-pass.when", "edge:e-tests-passed"], /edge:e-tests-pass\.when +changes "e-tests-pass", an edge that leaves the check "tests" \(when\)/],
+    }, ["edge:e-tests-pass.to", "edge:e-tests-pass.when", "edge:e-tests-passed"], /edge:e-tests-pass\.when +.*changes "e-tests-pass", an edge that leaves the check "tests" \(when\)/],
     // And a bar of the builder's own word, with a stop that leads on when it is passed.
     ["the loop given a bar and a stop on it", (w) => {
       w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
       w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
     }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
+    // The driver's reader: the check under another id, with a bar put round it. One name is held, its line shows
+    // the check that comes in, and the bar is listed by name as not judged, where it was printed as a tightening.
+    ["the check under another id, with a bar given to its loop", (w) => {
+      const check = w.nodes.find((n) => n.id === "tests")!;
+      check.id = "test-suite";
+      for (const edge of w.edges) Object.assign(edge, { from: edge.from === "tests" ? "test-suite" : edge.from, to: edge.to === "tests" ? "test-suite" : edge.to });
+      w.loops[0]!.members = w.loops[0]!.members.map((member) => (member === "tests" ? "test-suite" : member));
+      w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+    }, ["node:tests"], /node:tests +removes a check, while a check the graph has not comes in \("test-suite": runs "npm test"[\s\S]*\nnot judged: with a check removed in this copy, no change is called a tightening\.[\s\S]*\n  loop:grind\.bar +undoing it: removes the loop's bar/],
   ];
   for (const [what, change, allow, said] of cases) {
     const dir = mkdtempSync(join(tmpdir(), "grooph-check-brake-"));
