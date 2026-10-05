@@ -1,0 +1,10630 @@
+{
+ "about": "Derived after the runs, not evidence of them: every request the lead session of each arm A and arm B run of study two made to the model, what it was for and what it cost, read from the harness's own transcripts by scripts/lib/compare-lead.mjs. Counts and kinds only. The harness's reported cost of each run is in the run's claude-output.json.",
+ "rates_usd_per_million_tokens": {
+  "claude-opus-5-5": {
+   "input": 4,
+   "output": 20,
+   "cache_read": 0.2,
+   "cache_write_1h": 8,
+   "cache_write_5m": 5
+  },
+  "claude-sonnet-5-5": {
+   "input": 2,
+   "output": 10,
+   "cache_read": 0.2,
+   "cache_write_1h": 4,
+   "cache_write_5m": 2.5
+  }
+ },
+ "order_of_kinds": [
+  "dispatch",
+  "amendment",
+  "note",
+  "progress",
+  "report",
+  "brief",
+  "run-folder",
+  "check",
+  "started-line",
+  "clock"
+ ],
+ "runs": [
+  {
+   "run": "review-gate-2/A-1",
+   "project": "review-gate-2",
+   "arm": "A",
+   "replicate": 1,
+   "transcripts_found": 5,
+   "reported_usd": 1.18369,
+   "harness_turns": 36,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0.00236,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.808942,
+     "computed_usd": 0.808942
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.374748,
+     "computed_usd": 0.372388
+    }
+   },
+   "lead": {
+    "calls": 24,
+    "tool_uses": 35,
+    "dispatches": 4,
+    "refused_tool_uses": 1,
+    "usd": {
+     "read": 0.200406,
+     "added": 0.325656,
+     "output": 0.28288,
+     "total": 0.808942
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 41549,
+    "context_at_reply": 56690
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 19,
+    "usd": 0.372388
+   },
+   "uses_by_kind": {
+    "brief": 5,
+    "run-folder": 3,
+    "clock": 6,
+    "amendment": 3,
+    "note": 5,
+    "progress": 5,
+    "started-line": 2,
+    "dispatch": 4,
+    "check": 1,
+    "report": 1
+   },
+   "characters_sent_by_kind": {
+    "brief": 578,
+    "run-folder": 250,
+    "clock": 252,
+    "amendment": 1085,
+    "note": 5003,
+    "progress": 5570,
+    "started-line": 818,
+    "dispatch": 6651,
+    "check": 48,
+    "report": 96
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4688,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.037504,
+      "output": 0,
+      "total": 0.037504
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 69523,
+      "added": 16650,
+      "output": 967
+     },
+     "usd": {
+      "read": 0.013927,
+      "added": 0.1332,
+      "output": 0.01934,
+      "total": 0.166467
+     }
+    },
+    "run-folder": {
+     "calls": 2,
+     "tokens": {
+      "read": 71520,
+      "added": 825,
+      "output": 597
+     },
+     "usd": {
+      "read": 0.014319,
+      "added": 0.0066,
+      "output": 0.01194,
+      "total": 0.032859
+     }
+    },
+    "amendment": {
+     "calls": 3,
+     "tokens": {
+      "read": 114980,
+      "added": 1239,
+      "output": 806
+     },
+     "usd": {
+      "read": 0.023019,
+      "added": 0.009912,
+      "output": 0.01612,
+      "total": 0.049051
+     }
+    },
+    "note": {
+     "calls": 5,
+     "tokens": {
+      "read": 235898,
+      "added": 7456,
+      "output": 5775
+     },
+     "usd": {
+      "read": 0.047218,
+      "added": 0.059648,
+      "output": 0.1155,
+      "total": 0.222366
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 39385,
+      "added": 596,
+      "output": 396
+     },
+     "usd": {
+      "read": 0.007885,
+      "added": 0.004768,
+      "output": 0.00792,
+      "total": 0.020573
+     }
+    },
+    "clock": {
+     "calls": 3,
+     "tokens": {
+      "read": 142978,
+      "added": 718,
+      "output": 477
+     },
+     "usd": {
+      "read": 0.028619,
+      "added": 0.005744,
+      "output": 0.00954,
+      "total": 0.043903
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 184801,
+      "added": 7447,
+      "output": 3488
+     },
+     "usd": {
+      "read": 0.03699,
+      "added": 0.059576,
+      "output": 0.06976,
+      "total": 0.166326
+     }
+    },
+    "check": {
+     "calls": 1,
+     "tokens": {
+      "read": 41549,
+      "added": 594,
+      "output": 412
+     },
+     "usd": {
+      "read": 0.008317,
+      "added": 0.004752,
+      "output": 0.00824,
+      "total": 0.021309
+     }
+    },
+    "report": {
+     "calls": 1,
+     "tokens": {
+      "read": 45561,
+      "added": 494,
+      "output": 364
+     },
+     "usd": {
+      "read": 0.00912,
+      "added": 0.003952,
+      "output": 0.00728,
+      "total": 0.020352
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 54921,
+      "added": 0,
+      "output": 862
+     },
+     "usd": {
+      "read": 0.010992,
+      "added": 0,
+      "output": 0.01724,
+      "total": 0.028232
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 11,
+     "tokens": {
+      "read": 375247,
+      "added": 25566,
+      "output": 3908
+     },
+     "usd": {
+      "read": 0.075133,
+      "added": 0.204528,
+      "output": 0.07816,
+      "total": 0.357821
+     }
+    },
+    "cycle 1": {
+     "calls": 3,
+     "tokens": {
+      "read": 126598,
+      "added": 4012,
+      "output": 2262
+     },
+     "usd": {
+      "read": 0.025342,
+      "added": 0.032096,
+      "output": 0.04524,
+      "total": 0.102678
+     }
+    },
+    "cycle 2": {
+     "calls": 3,
+     "tokens": {
+      "read": 137114,
+      "added": 3909,
+      "output": 2652
+     },
+     "usd": {
+      "read": 0.027445,
+      "added": 0.031272,
+      "output": 0.05304,
+      "total": 0.111757
+     }
+    },
+    "cycle 3": {
+     "calls": 3,
+     "tokens": {
+      "read": 148460,
+      "added": 3300,
+      "output": 1847
+     },
+     "usd": {
+      "read": 0.029715,
+      "added": 0.0264,
+      "output": 0.03694,
+      "total": 0.093055
+     }
+    },
+    "cycle 4": {
+     "calls": 3,
+     "tokens": {
+      "read": 158776,
+      "added": 3920,
+      "output": 2613
+     },
+     "usd": {
+      "read": 0.031779,
+      "added": 0.03136,
+      "output": 0.05226,
+      "total": 0.115399
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 54921,
+      "added": 0,
+      "output": 862
+     },
+     "usd": {
+      "read": 0.010992,
+      "added": 0,
+      "output": 0.01724,
+      "total": 0.028232
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 383592,
+     "usd": 0.076896
+    },
+    "prompt": {
+     "tokens": 107824,
+     "usd": 0.021565
+    },
+    "brief": {
+     "tokens": 358726,
+     "usd": 0.071745
+    },
+    "run-folder": {
+     "tokens": 15451,
+     "usd": 0.00309
+    },
+    "amendment": {
+     "tokens": 20306,
+     "usd": 0.004061
+    },
+    "note": {
+     "tokens": 44652,
+     "usd": 0.00893
+    },
+    "started-line": {
+     "tokens": 7748,
+     "usd": 0.00155
+    },
+    "clock": {
+     "tokens": 3587,
+     "usd": 0.000717
+    },
+    "dispatch": {
+     "tokens": 49832,
+     "usd": 0.009966
+    },
+    "check": {
+     "tokens": 5940,
+     "usd": 0.001188
+    },
+    "report": {
+     "tokens": 3458,
+     "usd": 0.000692
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4688,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.037504,
+      "output": 0,
+      "total": 0.037504
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 69523,
+      "added": 16650,
+      "output": 967
+     },
+     "usd": {
+      "read": 0.013927,
+      "added": 0.1332,
+      "output": 0.01934,
+      "total": 0.166467
+     }
+    },
+    "run-folder": {
+     "calls": 2,
+     "tokens": {
+      "read": 71520,
+      "added": 825,
+      "output": 597
+     },
+     "usd": {
+      "read": 0.014319,
+      "added": 0.0066,
+      "output": 0.01194,
+      "total": 0.032859
+     }
+    },
+    "amendment": {
+     "calls": 3,
+     "tokens": {
+      "read": 114980,
+      "added": 1239,
+      "output": 806
+     },
+     "usd": {
+      "read": 0.023019,
+      "added": 0.009912,
+      "output": 0.01612,
+      "total": 0.049051
+     }
+    },
+    "note": {
+     "calls": 1,
+     "tokens": {
+      "read": 39101,
+      "added": 1353,
+      "output": 1024
+     },
+     "usd": {
+      "read": 0.007828,
+      "added": 0.010824,
+      "output": 0.02048,
+      "total": 0.039132
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 39385,
+      "added": 596,
+      "output": 396
+     },
+     "usd": {
+      "read": 0.007885,
+      "added": 0.004768,
+      "output": 0.00792,
+      "total": 0.020573
+     }
+    },
+    "clock": {
+     "calls": 1,
+     "tokens": {
+      "read": 40738,
+      "added": 215,
+      "output": 118
+     },
+     "usd": {
+      "read": 0.008155,
+      "added": 0.00172,
+      "output": 0.00236,
+      "total": 0.012235
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 4688,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.037504,
+      "output": 0,
+      "total": 0.037504
+     },
+     "read_back_later": {
+      "tokens": 107824,
+      "usd": 0.021565
+     }
+    },
+    {
+     "n": 1,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "brief"
+     ],
+     "tools": [
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      116,
+      126
+     ],
+     "context": 20671,
+     "tokens": {
+      "read": 15983,
+      "added": 12198,
+      "output": 247
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.097584,
+      "output": 0.00494,
+      "total": 0.105728
+     },
+     "read_back_later": {
+      "tokens": 268356,
+      "usd": 0.053671
+     }
+    },
+    {
+     "n": 2,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      44,
+      83
+     ],
+     "context": 32869,
+     "tokens": {
+      "read": 20671,
+      "added": 1330,
+      "output": 475
+     },
+     "usd": {
+      "read": 0.004142,
+      "added": 0.01064,
+      "output": 0.0095,
+      "total": 0.024282
+     },
+     "read_back_later": {
+      "tokens": 27930,
+      "usd": 0.005586
+     }
+    },
+    {
+     "n": 3,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "brief"
+     ],
+     "tools": [
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      127,
+      126
+     ],
+     "context": 34199,
+     "tokens": {
+      "read": 32869,
+      "added": 3122,
+      "output": 245
+     },
+     "usd": {
+      "read": 0.006581,
+      "added": 0.024976,
+      "output": 0.0049,
+      "total": 0.036457
+     },
+     "read_back_later": {
+      "tokens": 62440,
+      "usd": 0.012488
+     }
+    },
+    {
+     "n": 4,
+     "phase": "setup",
+     "kind": "run-folder",
+     "uses": [
+      "run-folder",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      69,
+      47
+     ],
+     "context": 37321,
+     "tokens": {
+      "read": 34199,
+      "added": 601,
+      "output": 471
+     },
+     "usd": {
+      "read": 0.006847,
+      "added": 0.004808,
+      "output": 0.00942,
+      "total": 0.021075
+     },
+     "read_back_later": {
+      "tokens": 11419,
+      "usd": 0.002284
+     }
+    },
+    {
+     "n": 5,
+     "phase": "setup",
+     "kind": "run-folder",
+     "uses": [
+      "run-folder"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      137
+     ],
+     "context": 37922,
+     "tokens": {
+      "read": 37321,
+      "added": 224,
+      "output": 126
+     },
+     "usd": {
+      "read": 0.007472,
+      "added": 0.001792,
+      "output": 0.00252,
+      "total": 0.011784
+     },
+     "read_back_later": {
+      "tokens": 4032,
+      "usd": 0.000806
+     }
+    },
+    {
+     "n": 6,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      923
+     ],
+     "context": 38146,
+     "tokens": {
+      "read": 37922,
+      "added": 766,
+      "output": 612
+     },
+     "usd": {
+      "read": 0.007592,
+      "added": 0.006128,
+      "output": 0.01224,
+      "total": 0.02596
+     },
+     "read_back_later": {
+      "tokens": 13022,
+      "usd": 0.002604
+     }
+    },
+    {
+     "n": 7,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      43
+     ],
+     "context": 38912,
+     "tokens": {
+      "read": 38146,
+      "added": 189,
+      "output": 82
+     },
+     "usd": {
+      "read": 0.007637,
+      "added": 0.001512,
+      "output": 0.00164,
+      "total": 0.010789
+     },
+     "read_back_later": {
+      "tokens": 3024,
+      "usd": 0.000605
+     }
+    },
+    {
+     "n": 8,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      119
+     ],
+     "context": 39101,
+     "tokens": {
+      "read": 38912,
+      "added": 284,
+      "output": 112
+     },
+     "usd": {
+      "read": 0.00779,
+      "added": 0.002272,
+      "output": 0.00224,
+      "total": 0.012302
+     },
+     "read_back_later": {
+      "tokens": 4260,
+      "usd": 0.000852
+     }
+    },
+    {
+     "n": 9,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Write",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      846,
+      1072
+     ],
+     "context": 39385,
+     "tokens": {
+      "read": 39101,
+      "added": 1353,
+      "output": 1024
+     },
+     "usd": {
+      "read": 0.007828,
+      "added": 0.010824,
+      "output": 0.02048,
+      "total": 0.039132
+     },
+     "read_back_later": {
+      "tokens": 18942,
+      "usd": 0.003788
+     }
+    },
+    {
+     "n": 10,
+     "phase": "setup",
+     "kind": "started-line",
+     "uses": [
+      "started-line"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 1,
+     "characters_sent": [
+      366
+     ],
+     "context": 40738,
+     "tokens": {
+      "read": 39385,
+      "added": 596,
+      "output": 396
+     },
+     "usd": {
+      "read": 0.007885,
+      "added": 0.004768,
+      "output": 0.00792,
+      "total": 0.020573
+     },
+     "read_back_later": {
+      "tokens": 7748,
+      "usd": 0.00155
+     }
+    },
+    {
+     "n": 11,
+     "phase": "setup",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 41334,
+     "tokens": {
+      "read": 40738,
+      "added": 215,
+      "output": 118
+     },
+     "usd": {
+      "read": 0.008155,
+      "added": 0.00172,
+      "output": 0.00236,
+      "total": 0.012235
+     },
+     "read_back_later": {
+      "tokens": 2580,
+      "usd": 0.000516
+     }
+    },
+    {
+     "n": 12,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "started-line",
+      "dispatch"
+     ],
+     "tools": [
+      "Edit",
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      452,
+      1216
+     ],
+     "context": 41549,
+     "tokens": {
+      "read": 41334,
+      "added": 2166,
+      "output": 935
+     },
+     "usd": {
+      "read": 0.008274,
+      "added": 0.017328,
+      "output": 0.0187,
+      "total": 0.044302
+     },
+     "read_back_later": {
+      "tokens": 23826,
+      "usd": 0.004765
+     }
+    },
+    {
+     "n": 13,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      48,
+      41
+     ],
+     "context": 43715,
+     "tokens": {
+      "read": 41549,
+      "added": 594,
+      "output": 412
+     },
+     "usd": {
+      "read": 0.008317,
+      "added": 0.004752,
+      "output": 0.00824,
+      "total": 0.021309
+     },
+     "read_back_later": {
+      "tokens": 5940,
+      "usd": 0.001188
+     }
+    },
+    {
+     "n": 14,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      833,
+      665
+     ],
+     "context": 44309,
+     "tokens": {
+      "read": 43715,
+      "added": 1252,
+      "output": 915
+     },
+     "usd": {
+      "read": 0.008751,
+      "added": 0.010016,
+      "output": 0.0183,
+      "total": 0.037067
+     },
+     "read_back_later": {
+      "tokens": 11268,
+      "usd": 0.002254
+     }
+    },
+    {
+     "n": 15,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1937
+     ],
+     "context": 45561,
+     "tokens": {
+      "read": 44309,
+      "added": 1683,
+      "output": 892
+     },
+     "usd": {
+      "read": 0.008869,
+      "added": 0.013464,
+      "output": 0.01784,
+      "total": 0.040173
+     },
+     "read_back_later": {
+      "tokens": 13464,
+      "usd": 0.002693
+     }
+    },
+    {
+     "n": 16,
+     "phase": "cycle 2",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      96,
+      41
+     ],
+     "context": 47244,
+     "tokens": {
+      "read": 45561,
+      "added": 494,
+      "output": 364
+     },
+     "usd": {
+      "read": 0.00912,
+      "added": 0.003952,
+      "output": 0.00728,
+      "total": 0.020352
+     },
+     "read_back_later": {
+      "tokens": 3458,
+      "usd": 0.000692
+     }
+    },
+    {
+     "n": 17,
+     "phase": "cycle 2",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1268,
+      1383
+     ],
+     "context": 47738,
+     "tokens": {
+      "read": 47244,
+      "added": 1732,
+      "output": 1396
+     },
+     "usd": {
+      "read": 0.009456,
+      "added": 0.013856,
+      "output": 0.02792,
+      "total": 0.051232
+     },
+     "read_back_later": {
+      "tokens": 10392,
+      "usd": 0.002078
+     }
+    },
+    {
+     "n": 18,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1487
+     ],
+     "context": 49470,
+     "tokens": {
+      "read": 47738,
+      "added": 1782,
+      "output": 741
+     },
+     "usd": {
+      "read": 0.009555,
+      "added": 0.014256,
+      "output": 0.01482,
+      "total": 0.038631
+     },
+     "read_back_later": {
+      "tokens": 8910,
+      "usd": 0.001782
+     }
+    },
+    {
+     "n": 19,
+     "phase": "cycle 3",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 51252,
+     "tokens": {
+      "read": 49470,
+      "added": 168,
+      "output": 96
+     },
+     "usd": {
+      "read": 0.009902,
+      "added": 0.001344,
+      "output": 0.00192,
+      "total": 0.013166
+     },
+     "read_back_later": {
+      "tokens": 672,
+      "usd": 0.000134
+     }
+    },
+    {
+     "n": 20,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      893,
+      852
+     ],
+     "context": 51420,
+     "tokens": {
+      "read": 51252,
+      "added": 1350,
+      "output": 1010
+     },
+     "usd": {
+      "read": 0.010258,
+      "added": 0.0108,
+      "output": 0.0202,
+      "total": 0.041258
+     },
+     "read_back_later": {
+      "tokens": 4050,
+      "usd": 0.00081
+     }
+    },
+    {
+     "n": 21,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2011
+     ],
+     "context": 52770,
+     "tokens": {
+      "read": 51420,
+      "added": 1816,
+      "output": 920
+     },
+     "usd": {
+      "read": 0.010292,
+      "added": 0.014528,
+      "output": 0.0184,
+      "total": 0.04322
+     },
+     "read_back_later": {
+      "tokens": 3632,
+      "usd": 0.000726
+     }
+    },
+    {
+     "n": 22,
+     "phase": "cycle 4",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 54586,
+     "tokens": {
+      "read": 52770,
+      "added": 335,
+      "output": 263
+     },
+     "usd": {
+      "read": 0.010562,
+      "added": 0.00268,
+      "output": 0.00526,
+      "total": 0.018502
+     },
+     "read_back_later": {
+      "tokens": 335,
+      "usd": 0.000067
+     }
+    },
+    {
+     "n": 23,
+     "phase": "cycle 4",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1163,
+      1598
+     ],
+     "context": 54921,
+     "tokens": {
+      "read": 54586,
+      "added": 1769,
+      "output": 1430
+     },
+     "usd": {
+      "read": 0.010925,
+      "added": 0.014152,
+      "output": 0.0286,
+      "total": 0.053677
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 24,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 56690,
+     "tokens": {
+      "read": 54921,
+      "added": 0,
+      "output": 862
+     },
+     "usd": {
+      "read": 0.010992,
+      "added": 0,
+      "output": 0.01724,
+      "total": 0.028232
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "review-gate-2/A-2",
+   "project": "review-gate-2",
+   "arm": "A",
+   "replicate": 2,
+   "transcripts_found": 5,
+   "reported_usd": 1.230222,
+   "harness_turns": 41,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.820797,
+     "computed_usd": 0.820797
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.409425,
+     "computed_usd": 0.409425
+    }
+   },
+   "lead": {
+    "calls": 28,
+    "tool_uses": 40,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.237255,
+     "added": 0.31636,
+     "output": 0.26718,
+     "total": 0.820795
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 39674,
+    "context_at_reply": 55528
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 24,
+    "usd": 0.409425
+   },
+   "uses_by_kind": {
+    "brief": 5,
+    "run-folder": 3,
+    "clock": 5,
+    "progress": 5,
+    "note": 5,
+    "started-line": 1,
+    "dispatch": 4,
+    "check": 11,
+    "report": 1
+   },
+   "characters_sent_by_kind": {
+    "brief": 578,
+    "run-folder": 250,
+    "clock": 257,
+    "progress": 5334,
+    "note": 3842,
+    "started-line": 326,
+    "dispatch": 6608,
+    "check": 1330,
+    "report": 141
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4677,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.037416,
+      "output": 0,
+      "total": 0.037416
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 69447,
+      "added": 16332,
+      "output": 711
+     },
+     "usd": {
+      "read": 0.013912,
+      "added": 0.130656,
+      "output": 0.01422,
+      "total": 0.158788
+     }
+    },
+    "run-folder": {
+     "calls": 2,
+     "tokens": {
+      "read": 70850,
+      "added": 805,
+      "output": 580
+     },
+     "usd": {
+      "read": 0.014185,
+      "added": 0.00644,
+      "output": 0.0116,
+      "total": 0.032225
+     }
+    },
+    "note": {
+     "calls": 5,
+     "tokens": {
+      "read": 230296,
+      "added": 5820,
+      "output": 4739
+     },
+     "usd": {
+      "read": 0.046097,
+      "added": 0.04656,
+      "output": 0.09478,
+      "total": 0.187437
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 37797,
+      "added": 805,
+      "output": 406
+     },
+     "usd": {
+      "read": 0.007567,
+      "added": 0.00644,
+      "output": 0.00812,
+      "total": 0.022127
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 179418,
+      "added": 6739,
+      "output": 3199
+     },
+     "usd": {
+      "read": 0.035913,
+      "added": 0.053912,
+      "output": 0.06398,
+      "total": 0.153805
+     }
+    },
+    "check": {
+     "calls": 9,
+     "tokens": {
+      "read": 404578,
+      "added": 2873,
+      "output": 1785
+     },
+     "usd": {
+      "read": 0.080984,
+      "added": 0.022984,
+      "output": 0.0357,
+      "total": 0.139668
+     }
+    },
+    "progress": {
+     "calls": 1,
+     "tokens": {
+      "read": 42883,
+      "added": 682,
+      "output": 511
+     },
+     "usd": {
+      "read": 0.008584,
+      "added": 0.005456,
+      "output": 0.01022,
+      "total": 0.02426
+     }
+    },
+    "report": {
+     "calls": 1,
+     "tokens": {
+      "read": 44028,
+      "added": 556,
+      "output": 398
+     },
+     "usd": {
+      "read": 0.008813,
+      "added": 0.004448,
+      "output": 0.00796,
+      "total": 0.021221
+     }
+    },
+    "clock": {
+     "calls": 1,
+     "tokens": {
+      "read": 51902,
+      "added": 256,
+      "output": 187
+     },
+     "usd": {
+      "read": 0.010388,
+      "added": 0.002048,
+      "output": 0.00374,
+      "total": 0.016176
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 54020,
+      "added": 0,
+      "output": 843
+     },
+     "usd": {
+      "read": 0.010812,
+      "added": 0,
+      "output": 0.01686,
+      "total": 0.027672
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 7,
+     "tokens": {
+      "read": 215670,
+      "added": 23691,
+      "output": 2446
+     },
+     "usd": {
+      "read": 0.043187,
+      "added": 0.189528,
+      "output": 0.04892,
+      "total": 0.281635
+     }
+    },
+    "cycle 1": {
+     "calls": 8,
+     "tokens": {
+      "read": 331179,
+      "added": 4354,
+      "output": 2722
+     },
+     "usd": {
+      "read": 0.066296,
+      "added": 0.034832,
+      "output": 0.05444,
+      "total": 0.155568
+     }
+    },
+    "cycle 2": {
+     "calls": 3,
+     "tokens": {
+      "read": 133332,
+      "added": 4050,
+      "output": 2637
+     },
+     "usd": {
+      "read": 0.026689,
+      "added": 0.0324,
+      "output": 0.05274,
+      "total": 0.111829
+     }
+    },
+    "cycle 3": {
+     "calls": 6,
+     "tokens": {
+      "read": 294663,
+      "added": 3824,
+      "output": 2338
+     },
+     "usd": {
+      "read": 0.058978,
+      "added": 0.030592,
+      "output": 0.04676,
+      "total": 0.13633
+     }
+    },
+    "cycle 4": {
+     "calls": 3,
+     "tokens": {
+      "read": 156355,
+      "added": 3626,
+      "output": 2373
+     },
+     "usd": {
+      "read": 0.031293,
+      "added": 0.029008,
+      "output": 0.04746,
+      "total": 0.107761
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 54020,
+      "added": 0,
+      "output": 843
+     },
+     "usd": {
+      "read": 0.010812,
+      "added": 0,
+      "output": 0.01686,
+      "total": 0.027672
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 447524,
+     "usd": 0.089712
+    },
+    "prompt": {
+     "tokens": 126279,
+     "usd": 0.025256
+    },
+    "brief": {
+     "tokens": 417310,
+     "usd": 0.083462
+    },
+    "run-folder": {
+     "tokens": 18294,
+     "usd": 0.003658
+    },
+    "note": {
+     "tokens": 46246,
+     "usd": 0.009249
+    },
+    "started-line": {
+     "tokens": 16100,
+     "usd": 0.00322
+    },
+    "dispatch": {
+     "tokens": 65052,
+     "usd": 0.013011
+    },
+    "check": {
+     "tokens": 34414,
+     "usd": 0.006883
+    },
+    "progress": {
+     "tokens": 8184,
+     "usd": 0.001637
+    },
+    "report": {
+     "tokens": 5560,
+     "usd": 0.001112
+    },
+    "clock": {
+     "tokens": 256,
+     "usd": 0.000051
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4677,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.037416,
+      "output": 0,
+      "total": 0.037416
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 69447,
+      "added": 16332,
+      "output": 711
+     },
+     "usd": {
+      "read": 0.013912,
+      "added": 0.130656,
+      "output": 0.01422,
+      "total": 0.158788
+     }
+    },
+    "run-folder": {
+     "calls": 2,
+     "tokens": {
+      "read": 70850,
+      "added": 805,
+      "output": 580
+     },
+     "usd": {
+      "read": 0.014185,
+      "added": 0.00644,
+      "output": 0.0116,
+      "total": 0.032225
+     }
+    },
+    "note": {
+     "calls": 1,
+     "tokens": {
+      "read": 37576,
+      "added": 1072,
+      "output": 749
+     },
+     "usd": {
+      "read": 0.007523,
+      "added": 0.008576,
+      "output": 0.01498,
+      "total": 0.031079
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 37797,
+      "added": 805,
+      "output": 406
+     },
+     "usd": {
+      "read": 0.007567,
+      "added": 0.00644,
+      "output": 0.00812,
+      "total": 0.022127
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 4677,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.037416,
+      "output": 0,
+      "total": 0.037416
+     },
+     "read_back_later": {
+      "tokens": 126279,
+      "usd": 0.025256
+     }
+    },
+    {
+     "n": 1,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "brief"
+     ],
+     "tools": [
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      116,
+      126
+     ],
+     "context": 20660,
+     "tokens": {
+      "read": 15983,
+      "added": 12144,
+      "output": 241
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.097152,
+      "output": 0.00482,
+      "total": 0.105176
+     },
+     "read_back_later": {
+      "tokens": 315744,
+      "usd": 0.063149
+     }
+    },
+    {
+     "n": 2,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      44,
+      83
+     ],
+     "context": 32804,
+     "tokens": {
+      "read": 20660,
+      "added": 1054,
+      "output": 192
+     },
+     "usd": {
+      "read": 0.00414,
+      "added": 0.008432,
+      "output": 0.00384,
+      "total": 0.016412
+     },
+     "read_back_later": {
+      "tokens": 26350,
+      "usd": 0.00527
+     }
+    },
+    {
+     "n": 3,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "brief"
+     ],
+     "tools": [
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      127,
+      126
+     ],
+     "context": 33858,
+     "tokens": {
+      "read": 32804,
+      "added": 3134,
+      "output": 278
+     },
+     "usd": {
+      "read": 0.006568,
+      "added": 0.025072,
+      "output": 0.00556,
+      "total": 0.0372
+     },
+     "read_back_later": {
+      "tokens": 75216,
+      "usd": 0.015043
+     }
+    },
+    {
+     "n": 4,
+     "phase": "setup",
+     "kind": "run-folder",
+     "uses": [
+      "run-folder",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      69,
+      47
+     ],
+     "context": 36992,
+     "tokens": {
+      "read": 33858,
+      "added": 584,
+      "output": 454
+     },
+     "usd": {
+      "read": 0.006779,
+      "added": 0.004672,
+      "output": 0.00908,
+      "total": 0.020531
+     },
+     "read_back_later": {
+      "tokens": 13432,
+      "usd": 0.002686
+     }
+    },
+    {
+     "n": 5,
+     "phase": "setup",
+     "kind": "run-folder",
+     "uses": [
+      "run-folder"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      137
+     ],
+     "context": 37576,
+     "tokens": {
+      "read": 36992,
+      "added": 221,
+      "output": 126
+     },
+     "usd": {
+      "read": 0.007406,
+      "added": 0.001768,
+      "output": 0.00252,
+      "total": 0.011694
+     },
+     "read_back_later": {
+      "tokens": 4862,
+      "usd": 0.000972
+     }
+    },
+    {
+     "n": 6,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "progress",
+      "note"
+     ],
+     "tools": [
+      "Write",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      931,
+      248
+     ],
+     "context": 37797,
+     "tokens": {
+      "read": 37576,
+      "added": 1072,
+      "output": 749
+     },
+     "usd": {
+      "read": 0.007523,
+      "added": 0.008576,
+      "output": 0.01498,
+      "total": 0.031079
+     },
+     "read_back_later": {
+      "tokens": 22512,
+      "usd": 0.004502
+     }
+    },
+    {
+     "n": 7,
+     "phase": "setup",
+     "kind": "started-line",
+     "uses": [
+      "started-line"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      326
+     ],
+     "context": 38869,
+     "tokens": {
+      "read": 37797,
+      "added": 805,
+      "output": 406
+     },
+     "usd": {
+      "read": 0.007567,
+      "added": 0.00644,
+      "output": 0.00812,
+      "total": 0.022127
+     },
+     "read_back_later": {
+      "tokens": 16100,
+      "usd": 0.00322
+     }
+    },
+    {
+     "n": 8,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1346
+     ],
+     "context": 39674,
+     "tokens": {
+      "read": 38869,
+      "added": 1502,
+      "output": 737
+     },
+     "usd": {
+      "read": 0.007781,
+      "added": 0.012016,
+      "output": 0.01474,
+      "total": 0.034537
+     },
+     "read_back_later": {
+      "tokens": 28538,
+      "usd": 0.005708
+     }
+    },
+    {
+     "n": 9,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      48,
+      53
+     ],
+     "context": 41176,
+     "tokens": {
+      "read": 39674,
+      "added": 502,
+      "output": 327
+     },
+     "usd": {
+      "read": 0.007942,
+      "added": 0.004016,
+      "output": 0.00654,
+      "total": 0.018498
+     },
+     "read_back_later": {
+      "tokens": 9036,
+      "usd": 0.001807
+     }
+    },
+    {
+     "n": 10,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      109,
+      124
+     ],
+     "context": 41678,
+     "tokens": {
+      "read": 41176,
+      "added": 358,
+      "output": 235
+     },
+     "usd": {
+      "read": 0.008243,
+      "added": 0.002864,
+      "output": 0.0047,
+      "total": 0.015807
+     },
+     "read_back_later": {
+      "tokens": 6086,
+      "usd": 0.001217
+     }
+    },
+    {
+     "n": 11,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      133
+     ],
+     "context": 42036,
+     "tokens": {
+      "read": 41678,
+      "added": 279,
+      "output": 181
+     },
+     "usd": {
+      "read": 0.008343,
+      "added": 0.002232,
+      "output": 0.00362,
+      "total": 0.014195
+     },
+     "read_back_later": {
+      "tokens": 4464,
+      "usd": 0.000893
+     }
+    },
+    {
+     "n": 12,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      141
+     ],
+     "context": 42315,
+     "tokens": {
+      "read": 42036,
+      "added": 233,
+      "output": 165
+     },
+     "usd": {
+      "read": 0.008415,
+      "added": 0.001864,
+      "output": 0.0033,
+      "total": 0.013579
+     },
+     "read_back_later": {
+      "tokens": 3495,
+      "usd": 0.000699
+     }
+    },
+    {
+     "n": 13,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      222
+     ],
+     "context": 42548,
+     "tokens": {
+      "read": 42315,
+      "added": 335,
+      "output": 171
+     },
+     "usd": {
+      "read": 0.008471,
+      "added": 0.00268,
+      "output": 0.00342,
+      "total": 0.014571
+     },
+     "read_back_later": {
+      "tokens": 4690,
+      "usd": 0.000938
+     }
+    },
+    {
+     "n": 14,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      676
+     ],
+     "context": 42883,
+     "tokens": {
+      "read": 42548,
+      "added": 463,
+      "output": 395
+     },
+     "usd": {
+      "read": 0.008517,
+      "added": 0.003704,
+      "output": 0.0079,
+      "total": 0.020121
+     },
+     "read_back_later": {
+      "tokens": 6019,
+      "usd": 0.001204
+     }
+    },
+    {
+     "n": 15,
+     "phase": "cycle 1",
+     "kind": "progress",
+     "uses": [
+      "progress"
+     ],
+     "tools": [
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      865
+     ],
+     "context": 43346,
+     "tokens": {
+      "read": 42883,
+      "added": 682,
+      "output": 511
+     },
+     "usd": {
+      "read": 0.008584,
+      "added": 0.005456,
+      "output": 0.01022,
+      "total": 0.02426
+     },
+     "read_back_later": {
+      "tokens": 8184,
+      "usd": 0.001637
+     }
+    },
+    {
+     "n": 16,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1912
+     ],
+     "context": 44028,
+     "tokens": {
+      "read": 43346,
+      "added": 1930,
+      "output": 904
+     },
+     "usd": {
+      "read": 0.008677,
+      "added": 0.01544,
+      "output": 0.01808,
+      "total": 0.042197
+     },
+     "read_back_later": {
+      "tokens": 21230,
+      "usd": 0.004246
+     }
+    },
+    {
+     "n": 17,
+     "phase": "cycle 2",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      141,
+      52
+     ],
+     "context": 45958,
+     "tokens": {
+      "read": 44028,
+      "added": 556,
+      "output": 398
+     },
+     "usd": {
+      "read": 0.008813,
+      "added": 0.004448,
+      "output": 0.00796,
+      "total": 0.021221
+     },
+     "read_back_later": {
+      "tokens": 5560,
+      "usd": 0.001112
+     }
+    },
+    {
+     "n": 18,
+     "phase": "cycle 2",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1184,
+      1148
+     ],
+     "context": 46514,
+     "tokens": {
+      "read": 45958,
+      "added": 1564,
+      "output": 1335
+     },
+     "usd": {
+      "read": 0.009199,
+      "added": 0.012512,
+      "output": 0.0267,
+      "total": 0.048411
+     },
+     "read_back_later": {
+      "tokens": 14076,
+      "usd": 0.002815
+     }
+    },
+    {
+     "n": 19,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1434
+     ],
+     "context": 48078,
+     "tokens": {
+      "read": 46514,
+      "added": 1445,
+      "output": 651
+     },
+     "usd": {
+      "read": 0.00931,
+      "added": 0.01156,
+      "output": 0.01302,
+      "total": 0.03389
+     },
+     "read_back_later": {
+      "tokens": 11560,
+      "usd": 0.002312
+     }
+    },
+    {
+     "n": 20,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "clock",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      53,
+      48
+     ],
+     "context": 49523,
+     "tokens": {
+      "read": 48078,
+      "added": 347,
+      "output": 175
+     },
+     "usd": {
+      "read": 0.009623,
+      "added": 0.002776,
+      "output": 0.0035,
+      "total": 0.015899
+     },
+     "read_back_later": {
+      "tokens": 2429,
+      "usd": 0.000486
+     }
+    },
+    {
+     "n": 21,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      107,
+      124
+     ],
+     "context": 49870,
+     "tokens": {
+      "read": 49523,
+      "added": 358,
+      "output": 235
+     },
+     "usd": {
+      "read": 0.009912,
+      "added": 0.002864,
+      "output": 0.0047,
+      "total": 0.017476
+     },
+     "read_back_later": {
+      "tokens": 2148,
+      "usd": 0.00043
+     }
+    },
+    {
+     "n": 22,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      133
+     ],
+     "context": 50228,
+     "tokens": {
+      "read": 49870,
+      "added": 222,
+      "output": 125
+     },
+     "usd": {
+      "read": 0.009982,
+      "added": 0.001776,
+      "output": 0.0025,
+      "total": 0.014258
+     },
+     "read_back_later": {
+      "tokens": 1110,
+      "usd": 0.000222
+     }
+    },
+    {
+     "n": 23,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      141
+     ],
+     "context": 50450,
+     "tokens": {
+      "read": 50228,
+      "added": 239,
+      "output": 171
+     },
+     "usd": {
+      "read": 0.010053,
+      "added": 0.001912,
+      "output": 0.00342,
+      "total": 0.015385
+     },
+     "read_back_later": {
+      "tokens": 956,
+      "usd": 0.000191
+     }
+    },
+    {
+     "n": 24,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      701,
+      1025
+     ],
+     "context": 50689,
+     "tokens": {
+      "read": 50450,
+      "added": 1213,
+      "output": 981
+     },
+     "usd": {
+      "read": 0.010098,
+      "added": 0.009704,
+      "output": 0.01962,
+      "total": 0.039422
+     },
+     "read_back_later": {
+      "tokens": 3639,
+      "usd": 0.000728
+     }
+    },
+    {
+     "n": 25,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1916
+     ],
+     "context": 51902,
+     "tokens": {
+      "read": 50689,
+      "added": 1862,
+      "output": 907
+     },
+     "usd": {
+      "read": 0.010145,
+      "added": 0.014896,
+      "output": 0.01814,
+      "total": 0.043181
+     },
+     "read_back_later": {
+      "tokens": 3724,
+      "usd": 0.000745
+     }
+    },
+    {
+     "n": 26,
+     "phase": "cycle 4",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      52
+     ],
+     "context": 53764,
+     "tokens": {
+      "read": 51902,
+      "added": 256,
+      "output": 187
+     },
+     "usd": {
+      "read": 0.010388,
+      "added": 0.002048,
+      "output": 0.00374,
+      "total": 0.016176
+     },
+     "read_back_later": {
+      "tokens": 256,
+      "usd": 0.000051
+     }
+    },
+    {
+     "n": 27,
+     "phase": "cycle 4",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1033,
+      1365
+     ],
+     "context": 54020,
+     "tokens": {
+      "read": 53764,
+      "added": 1508,
+      "output": 1279
+     },
+     "usd": {
+      "read": 0.01076,
+      "added": 0.012064,
+      "output": 0.02558,
+      "total": 0.048404
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 28,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 55528,
+     "tokens": {
+      "read": 54020,
+      "added": 0,
+      "output": 843
+     },
+     "usd": {
+      "read": 0.010812,
+      "added": 0,
+      "output": 0.01686,
+      "total": 0.027672
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "review-gate-2/B-1",
+   "project": "review-gate-2",
+   "arm": "B",
+   "replicate": 1,
+   "transcripts_found": 5,
+   "reported_usd": 0.666462,
+   "harness_turns": 7,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.296583,
+     "computed_usd": 0.296583
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.369879,
+     "computed_usd": 0.369879
+    }
+   },
+   "lead": {
+    "calls": 6,
+    "tool_uses": 6,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.030438,
+     "added": 0.136704,
+     "output": 0.12944,
+     "total": 0.296582
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 23630,
+    "context_at_reply": 33071
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 22,
+    "usd": 0.369879
+   },
+   "uses_by_kind": {
+    "dispatch": 4,
+    "check": 2
+   },
+   "characters_sent_by_kind": {
+    "dispatch": 10629,
+    "check": 88
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7647,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061176,
+      "output": 0,
+      "total": 0.061176
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 97419,
+      "added": 8810,
+      "output": 5436
+     },
+     "usd": {
+      "read": 0.019513,
+      "added": 0.07048,
+      "output": 0.10872,
+      "total": 0.198713
+     }
+    },
+    "check": {
+     "calls": 1,
+     "tokens": {
+      "read": 23630,
+      "added": 631,
+      "output": 258
+     },
+     "usd": {
+      "read": 0.004734,
+      "added": 0.005048,
+      "output": 0.00516,
+      "total": 0.014942
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 30918,
+      "added": 0,
+      "output": 778
+     },
+     "usd": {
+      "read": 0.006191,
+      "added": 0,
+      "output": 0.01556,
+      "total": 0.021751
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7647,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061176,
+      "output": 0,
+      "total": 0.061176
+     }
+    },
+    "cycle 1": {
+     "calls": 2,
+     "tokens": {
+      "read": 39613,
+      "added": 2949,
+      "output": 1517
+     },
+     "usd": {
+      "read": 0.007938,
+      "added": 0.023592,
+      "output": 0.03034,
+      "total": 0.06187
+     }
+    },
+    "cycle 2": {
+     "calls": 1,
+     "tokens": {
+      "read": 25948,
+      "added": 2330,
+      "output": 1536
+     },
+     "usd": {
+      "read": 0.005197,
+      "added": 0.01864,
+      "output": 0.03072,
+      "total": 0.054557
+     }
+    },
+    "cycle 3": {
+     "calls": 1,
+     "tokens": {
+      "read": 26579,
+      "added": 2009,
+      "output": 1149
+     },
+     "usd": {
+      "read": 0.005323,
+      "added": 0.016072,
+      "output": 0.02298,
+      "total": 0.044375
+     }
+    },
+    "cycle 4": {
+     "calls": 1,
+     "tokens": {
+      "read": 28909,
+      "added": 2153,
+      "output": 1492
+     },
+     "usd": {
+      "read": 0.005789,
+      "added": 0.017224,
+      "output": 0.02984,
+      "total": 0.052853
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 30918,
+      "added": 0,
+      "output": 778
+     },
+     "usd": {
+      "read": 0.006191,
+      "added": 0,
+      "output": 0.01556,
+      "total": 0.021751
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 95898,
+     "usd": 0.019224
+    },
+    "prompt": {
+     "tokens": 38235,
+     "usd": 0.007647
+    },
+    "dispatch": {
+     "tokens": 15941,
+     "usd": 0.003188
+    },
+    "check": {
+     "tokens": 1893,
+     "usd": 0.000379
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7647,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061176,
+      "output": 0,
+      "total": 0.061176
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 7647,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061176,
+      "output": 0,
+      "total": 0.061176
+     },
+     "read_back_later": {
+      "tokens": 38235,
+      "usd": 0.007647
+     }
+    },
+    {
+     "n": 1,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1851
+     ],
+     "context": 23630,
+     "tokens": {
+      "read": 15983,
+      "added": 2318,
+      "output": 1259
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.018544,
+      "output": 0.02518,
+      "total": 0.046928
+     },
+     "read_back_later": {
+      "tokens": 9272,
+      "usd": 0.001854
+     }
+    },
+    {
+     "n": 2,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      54,
+      34
+     ],
+     "context": 25948,
+     "tokens": {
+      "read": 23630,
+      "added": 631,
+      "output": 258
+     },
+     "usd": {
+      "read": 0.004734,
+      "added": 0.005048,
+      "output": 0.00516,
+      "total": 0.014942
+     },
+     "read_back_later": {
+      "tokens": 1893,
+      "usd": 0.000379
+     }
+    },
+    {
+     "n": 3,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3136
+     ],
+     "context": 26579,
+     "tokens": {
+      "read": 25948,
+      "added": 2330,
+      "output": 1536
+     },
+     "usd": {
+      "read": 0.005197,
+      "added": 0.01864,
+      "output": 0.03072,
+      "total": 0.054557
+     },
+     "read_back_later": {
+      "tokens": 4660,
+      "usd": 0.000932
+     }
+    },
+    {
+     "n": 4,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2282
+     ],
+     "context": 28909,
+     "tokens": {
+      "read": 26579,
+      "added": 2009,
+      "output": 1149
+     },
+     "usd": {
+      "read": 0.005323,
+      "added": 0.016072,
+      "output": 0.02298,
+      "total": 0.044375
+     },
+     "read_back_later": {
+      "tokens": 2009,
+      "usd": 0.000402
+     }
+    },
+    {
+     "n": 5,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3360
+     ],
+     "context": 30918,
+     "tokens": {
+      "read": 28909,
+      "added": 2153,
+      "output": 1492
+     },
+     "usd": {
+      "read": 0.005789,
+      "added": 0.017224,
+      "output": 0.02984,
+      "total": 0.052853
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 6,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 33071,
+     "tokens": {
+      "read": 30918,
+      "added": 0,
+      "output": 778
+     },
+     "usd": {
+      "read": 0.006191,
+      "added": 0,
+      "output": 0.01556,
+      "total": 0.021751
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "review-gate-2/B-2",
+   "project": "review-gate-2",
+   "arm": "B",
+   "replicate": 2,
+   "transcripts_found": 5,
+   "reported_usd": 0.692462,
+   "harness_turns": 5,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0.0039,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.26049,
+     "computed_usd": 0.26049
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.431972,
+     "computed_usd": 0.428072
+    }
+   },
+   "lead": {
+    "calls": 5,
+    "tool_uses": 4,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.024525,
+     "added": 0.123504,
+     "output": 0.11246,
+     "total": 0.260489
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 23658,
+    "context_at_reply": 31421
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 25,
+    "usd": 0.428072
+   },
+   "uses_by_kind": {
+    "dispatch": 4
+   },
+   "characters_sent_by_kind": {
+    "dispatch": 9767
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7675,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.0614,
+      "output": 0,
+      "total": 0.0614
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 92817,
+      "added": 7763,
+      "output": 4933
+     },
+     "usd": {
+      "read": 0.018593,
+      "added": 0.062104,
+      "output": 0.09866,
+      "total": 0.179357
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 29623,
+      "added": 0,
+      "output": 690
+     },
+     "usd": {
+      "read": 0.005932,
+      "added": 0,
+      "output": 0.0138,
+      "total": 0.019732
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7675,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.0614,
+      "output": 0,
+      "total": 0.0614
+     }
+    },
+    "cycle 1": {
+     "calls": 1,
+     "tokens": {
+      "read": 15983,
+      "added": 1871,
+      "output": 1140
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.014968,
+      "output": 0.0228,
+      "total": 0.040972
+     }
+    },
+    "cycle 2": {
+     "calls": 1,
+     "tokens": {
+      "read": 23658,
+      "added": 2118,
+      "output": 1373
+     },
+     "usd": {
+      "read": 0.004739,
+      "added": 0.016944,
+      "output": 0.02746,
+      "total": 0.049143
+     }
+    },
+    "cycle 3": {
+     "calls": 1,
+     "tokens": {
+      "read": 25529,
+      "added": 1976,
+      "output": 1065
+     },
+     "usd": {
+      "read": 0.005113,
+      "added": 0.015808,
+      "output": 0.0213,
+      "total": 0.042221
+     }
+    },
+    "cycle 4": {
+     "calls": 1,
+     "tokens": {
+      "read": 27647,
+      "added": 1798,
+      "output": 1355
+     },
+     "usd": {
+      "read": 0.005537,
+      "added": 0.014384,
+      "output": 0.0271,
+      "total": 0.047021
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 29623,
+      "added": 0,
+      "output": 690
+     },
+     "usd": {
+      "read": 0.005932,
+      "added": 0,
+      "output": 0.0138,
+      "total": 0.019732
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 79915,
+     "usd": 0.01602
+    },
+    "prompt": {
+     "tokens": 30700,
+     "usd": 0.00614
+    },
+    "dispatch": {
+     "tokens": 11825,
+     "usd": 0.002365
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7675,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.0614,
+      "output": 0,
+      "total": 0.0614
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 7675,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.0614,
+      "output": 0,
+      "total": 0.0614
+     },
+     "read_back_later": {
+      "tokens": 30700,
+      "usd": 0.00614
+     }
+    },
+    {
+     "n": 1,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1779
+     ],
+     "context": 23658,
+     "tokens": {
+      "read": 15983,
+      "added": 1871,
+      "output": 1140
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.014968,
+      "output": 0.0228,
+      "total": 0.040972
+     },
+     "read_back_later": {
+      "tokens": 5613,
+      "usd": 0.001123
+     }
+    },
+    {
+     "n": 2,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2919
+     ],
+     "context": 25529,
+     "tokens": {
+      "read": 23658,
+      "added": 2118,
+      "output": 1373
+     },
+     "usd": {
+      "read": 0.004739,
+      "added": 0.016944,
+      "output": 0.02746,
+      "total": 0.049143
+     },
+     "read_back_later": {
+      "tokens": 4236,
+      "usd": 0.000847
+     }
+    },
+    {
+     "n": 3,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2059
+     ],
+     "context": 27647,
+     "tokens": {
+      "read": 25529,
+      "added": 1976,
+      "output": 1065
+     },
+     "usd": {
+      "read": 0.005113,
+      "added": 0.015808,
+      "output": 0.0213,
+      "total": 0.042221
+     },
+     "read_back_later": {
+      "tokens": 1976,
+      "usd": 0.000395
+     }
+    },
+    {
+     "n": 4,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3010
+     ],
+     "context": 29623,
+     "tokens": {
+      "read": 27647,
+      "added": 1798,
+      "output": 1355
+     },
+     "usd": {
+      "read": 0.005537,
+      "added": 0.014384,
+      "output": 0.0271,
+      "total": 0.047021
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 5,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 31421,
+     "tokens": {
+      "read": 29623,
+      "added": 0,
+      "output": 690
+     },
+     "usd": {
+      "read": 0.005932,
+      "added": 0,
+      "output": 0.0138,
+      "total": 0.019732
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "heterogeneous-critic/A-1",
+   "project": "heterogeneous-critic",
+   "arm": "A",
+   "replicate": 1,
+   "transcripts_found": 5,
+   "reported_usd": 1.600141,
+   "harness_turns": 41,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 1.376276,
+     "computed_usd": 1.376276
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.223864,
+     "computed_usd": 0.223864
+    }
+   },
+   "lead": {
+    "calls": 21,
+    "tool_uses": 40,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.175781,
+     "added": 0.33276,
+     "output": 0.27134,
+     "total": 0.779881
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 39334,
+    "context_at_reply": 57578
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 22,
+    "usd": 0.820259
+   },
+   "uses_by_kind": {
+    "brief": 4,
+    "run-folder": 3,
+    "check": 11,
+    "clock": 6,
+    "progress": 3,
+    "note": 5,
+    "started-line": 1,
+    "dispatch": 4,
+    "report": 3
+   },
+   "characters_sent_by_kind": {
+    "brief": 495,
+    "run-folder": 263,
+    "check": 1138,
+    "clock": 369,
+    "progress": 3665,
+    "note": 3908,
+    "started-line": 329,
+    "dispatch": 7706,
+    "report": 2403
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4754,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038032,
+      "output": 0,
+      "total": 0.038032
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 65848,
+      "added": 16327,
+      "output": 1026
+     },
+     "usd": {
+      "read": 0.013192,
+      "added": 0.130616,
+      "output": 0.02052,
+      "total": 0.164328
+     }
+    },
+    "clock": {
+     "calls": 2,
+     "tokens": {
+      "read": 86933,
+      "added": 712,
+      "output": 573
+     },
+     "usd": {
+      "read": 0.017402,
+      "added": 0.005696,
+      "output": 0.01146,
+      "total": 0.034558
+     }
+    },
+    "note": {
+     "calls": 5,
+     "tokens": {
+      "read": 233556,
+      "added": 5971,
+      "output": 4771
+     },
+     "usd": {
+      "read": 0.04675,
+      "added": 0.047768,
+      "output": 0.09542,
+      "total": 0.189938
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 37511,
+      "added": 731,
+      "output": 328
+     },
+     "usd": {
+      "read": 0.00751,
+      "added": 0.005848,
+      "output": 0.00656,
+      "total": 0.019918
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 182336,
+      "added": 8590,
+      "output": 3686
+     },
+     "usd": {
+      "read": 0.036497,
+      "added": 0.06872,
+      "output": 0.07372,
+      "total": 0.178937
+     }
+    },
+    "check": {
+     "calls": 3,
+     "tokens": {
+      "read": 129734,
+      "added": 2992,
+      "output": 1449
+     },
+     "usd": {
+      "read": 0.025969,
+      "added": 0.023936,
+      "output": 0.02898,
+      "total": 0.078885
+     }
+    },
+    "report": {
+     "calls": 2,
+     "tokens": {
+      "read": 86197,
+      "added": 1518,
+      "output": 1152
+     },
+     "usd": {
+      "read": 0.017254,
+      "added": 0.012144,
+      "output": 0.02304,
+      "total": 0.052438
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 55995,
+      "added": 0,
+      "output": 582
+     },
+     "usd": {
+      "read": 0.011207,
+      "added": 0,
+      "output": 0.01164,
+      "total": 0.022847
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 6,
+     "tokens": {
+      "read": 173693,
+      "added": 23351,
+      "output": 2462
+     },
+     "usd": {
+      "read": 0.034784,
+      "added": 0.186808,
+      "output": 0.04924,
+      "total": 0.270832
+     }
+    },
+    "cycle 1": {
+     "calls": 5,
+     "tokens": {
+      "read": 204070,
+      "added": 4995,
+      "output": 2622
+     },
+     "usd": {
+      "read": 0.040851,
+      "added": 0.03996,
+      "output": 0.05244,
+      "total": 0.133251
+     }
+    },
+    "cycle 2": {
+     "calls": 3,
+     "tokens": {
+      "read": 135121,
+      "added": 4708,
+      "output": 2753
+     },
+     "usd": {
+      "read": 0.027047,
+      "added": 0.037664,
+      "output": 0.05506,
+      "total": 0.119771
+     }
+    },
+    "cycle 3": {
+     "calls": 3,
+     "tokens": {
+      "read": 147490,
+      "added": 4626,
+      "output": 2559
+     },
+     "usd": {
+      "read": 0.029521,
+      "added": 0.037008,
+      "output": 0.05118,
+      "total": 0.117709
+     }
+    },
+    "cycle 4": {
+     "calls": 3,
+     "tokens": {
+      "read": 161741,
+      "added": 3915,
+      "output": 2589
+     },
+     "usd": {
+      "read": 0.032371,
+      "added": 0.03132,
+      "output": 0.05178,
+      "total": 0.115471
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 55995,
+      "added": 0,
+      "output": 582
+     },
+     "usd": {
+      "read": 0.011207,
+      "added": 0,
+      "output": 0.01164,
+      "total": 0.022847
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 335643,
+     "usd": 0.067284
+    },
+    "prompt": {
+     "tokens": 95080,
+     "usd": 0.019016
+    },
+    "brief": {
+     "tokens": 298483,
+     "usd": 0.059697
+    },
+    "clock": {
+     "tokens": 7417,
+     "usd": 0.001483
+    },
+    "note": {
+     "tokens": 33717,
+     "usd": 0.006744
+    },
+    "started-line": {
+     "tokens": 10234,
+     "usd": 0.002047
+    },
+    "dispatch": {
+     "tokens": 60889,
+     "usd": 0.012178
+    },
+    "check": {
+     "tokens": 23246,
+     "usd": 0.004649
+    },
+    "report": {
+     "tokens": 13401,
+     "usd": 0.00268
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4754,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038032,
+      "output": 0,
+      "total": 0.038032
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 65848,
+      "added": 16327,
+      "output": 1026
+     },
+     "usd": {
+      "read": 0.013192,
+      "added": 0.130616,
+      "output": 0.02052,
+      "total": 0.164328
+     }
+    },
+    "clock": {
+     "calls": 1,
+     "tokens": {
+      "read": 33270,
+      "added": 447,
+      "output": 380
+     },
+     "usd": {
+      "read": 0.006662,
+      "added": 0.003576,
+      "output": 0.0076,
+      "total": 0.017838
+     }
+    },
+    "note": {
+     "calls": 1,
+     "tokens": {
+      "read": 37064,
+      "added": 1092,
+      "output": 728
+     },
+     "usd": {
+      "read": 0.00742,
+      "added": 0.008736,
+      "output": 0.01456,
+      "total": 0.030716
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 37511,
+      "added": 731,
+      "output": 328
+     },
+     "usd": {
+      "read": 0.00751,
+      "added": 0.005848,
+      "output": 0.00656,
+      "total": 0.019918
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 4754,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038032,
+      "output": 0,
+      "total": 0.038032
+     },
+     "read_back_later": {
+      "tokens": 95080,
+      "usd": 0.019016
+     }
+    },
+    {
+     "n": 1,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "run-folder"
+     ],
+     "tools": [
+      "Read",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      116,
+      48
+     ],
+     "context": 20737,
+     "tokens": {
+      "read": 15983,
+      "added": 8391,
+      "output": 231
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.067128,
+      "output": 0.00462,
+      "total": 0.074952
+     },
+     "read_back_later": {
+      "tokens": 159429,
+      "usd": 0.031886
+     }
+    },
+    {
+     "n": 2,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      72,
+      126
+     ],
+     "context": 29128,
+     "tokens": {
+      "read": 20737,
+      "added": 4142,
+      "output": 224
+     },
+     "usd": {
+      "read": 0.004155,
+      "added": 0.033136,
+      "output": 0.00448,
+      "total": 0.041771
+     },
+     "read_back_later": {
+      "tokens": 74556,
+      "usd": 0.014911
+     }
+    },
+    {
+     "n": 3,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "check",
+      "brief",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      143,
+      38,
+      126,
+      127
+     ],
+     "context": 33270,
+     "tokens": {
+      "read": 29128,
+      "added": 3794,
+      "output": 571
+     },
+     "usd": {
+      "read": 0.005833,
+      "added": 0.030352,
+      "output": 0.01142,
+      "total": 0.047605
+     },
+     "read_back_later": {
+      "tokens": 64498,
+      "usd": 0.0129
+     }
+    },
+    {
+     "n": 4,
+     "phase": "setup",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      56
+     ],
+     "context": 37064,
+     "tokens": {
+      "read": 33270,
+      "added": 447,
+      "output": 380
+     },
+     "usd": {
+      "read": 0.006662,
+      "added": 0.003576,
+      "output": 0.0076,
+      "total": 0.017838
+     },
+     "read_back_later": {
+      "tokens": 7152,
+      "usd": 0.00143
+     }
+    },
+    {
+     "n": 5,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "progress",
+      "note"
+     ],
+     "tools": [
+      "Write",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1006,
+      248
+     ],
+     "context": 37511,
+     "tokens": {
+      "read": 37064,
+      "added": 1092,
+      "output": 728
+     },
+     "usd": {
+      "read": 0.00742,
+      "added": 0.008736,
+      "output": 0.01456,
+      "total": 0.030716
+     },
+     "read_back_later": {
+      "tokens": 16380,
+      "usd": 0.003276
+     }
+    },
+    {
+     "n": 6,
+     "phase": "setup",
+     "kind": "started-line",
+     "uses": [
+      "started-line"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      329
+     ],
+     "context": 38603,
+     "tokens": {
+      "read": 37511,
+      "added": 731,
+      "output": 328
+     },
+     "usd": {
+      "read": 0.00751,
+      "added": 0.005848,
+      "output": 0.00656,
+      "total": 0.019918
+     },
+     "read_back_later": {
+      "tokens": 10234,
+      "usd": 0.002047
+     }
+    },
+    {
+     "n": 7,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1645
+     ],
+     "context": 39334,
+     "tokens": {
+      "read": 38603,
+      "added": 2029,
+      "output": 734
+     },
+     "usd": {
+      "read": 0.007728,
+      "added": 0.016232,
+      "output": 0.01468,
+      "total": 0.03864
+     },
+     "read_back_later": {
+      "tokens": 26377,
+      "usd": 0.005275
+     }
+    },
+    {
+     "n": 8,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "clock",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      64,
+      48
+     ],
+     "context": 41363,
+     "tokens": {
+      "read": 39334,
+      "added": 505,
+      "output": 325
+     },
+     "usd": {
+      "read": 0.007874,
+      "added": 0.00404,
+      "output": 0.0065,
+      "total": 0.018414
+     },
+     "read_back_later": {
+      "tokens": 6060,
+      "usd": 0.001212
+     }
+    },
+    {
+     "n": 9,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check",
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      127,
+      157,
+      164,
+      46
+     ],
+     "context": 41868,
+     "tokens": {
+      "read": 41363,
+      "added": 1034,
+      "output": 470
+     },
+     "usd": {
+      "read": 0.00828,
+      "added": 0.008272,
+      "output": 0.0094,
+      "total": 0.025952
+     },
+     "read_back_later": {
+      "tokens": 11374,
+      "usd": 0.002275
+     }
+    },
+    {
+     "n": 10,
+     "phase": "cycle 1",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Write",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      992,
+      61
+     ],
+     "context": 42902,
+     "tokens": {
+      "read": 41868,
+      "added": 925,
+      "output": 689
+     },
+     "usd": {
+      "read": 0.008381,
+      "added": 0.0074,
+      "output": 0.01378,
+      "total": 0.029561
+     },
+     "read_back_later": {
+      "tokens": 9250,
+      "usd": 0.00185
+     }
+    },
+    {
+     "n": 11,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      705
+     ],
+     "context": 43827,
+     "tokens": {
+      "read": 42902,
+      "added": 502,
+      "output": 404
+     },
+     "usd": {
+      "read": 0.008588,
+      "added": 0.004016,
+      "output": 0.00808,
+      "total": 0.020684
+     },
+     "read_back_later": {
+      "tokens": 4518,
+      "usd": 0.000904
+     }
+    },
+    {
+     "n": 12,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2170
+     ],
+     "context": 44329,
+     "tokens": {
+      "read": 43827,
+      "added": 2636,
+      "output": 1046
+     },
+     "usd": {
+      "read": 0.008773,
+      "added": 0.021088,
+      "output": 0.02092,
+      "total": 0.050781
+     },
+     "read_back_later": {
+      "tokens": 21088,
+      "usd": 0.004218
+     }
+    },
+    {
+     "n": 13,
+     "phase": "cycle 2",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      147,
+      63
+     ],
+     "context": 46965,
+     "tokens": {
+      "read": 44329,
+      "added": 593,
+      "output": 463
+     },
+     "usd": {
+      "read": 0.008873,
+      "added": 0.004744,
+      "output": 0.00926,
+      "total": 0.022877
+     },
+     "read_back_later": {
+      "tokens": 4151,
+      "usd": 0.00083
+     }
+    },
+    {
+     "n": 14,
+     "phase": "cycle 2",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1160,
+      1204
+     ],
+     "context": 47558,
+     "tokens": {
+      "read": 46965,
+      "added": 1479,
+      "output": 1244
+     },
+     "usd": {
+      "read": 0.009401,
+      "added": 0.011832,
+      "output": 0.02488,
+      "total": 0.046113
+     },
+     "read_back_later": {
+      "tokens": 8874,
+      "usd": 0.001775
+     }
+    },
+    {
+     "n": 15,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1692
+     ],
+     "context": 49037,
+     "tokens": {
+      "read": 47558,
+      "added": 1858,
+      "output": 825
+     },
+     "usd": {
+      "read": 0.009519,
+      "added": 0.014864,
+      "output": 0.0165,
+      "total": 0.040883
+     },
+     "read_back_later": {
+      "tokens": 9290,
+      "usd": 0.001858
+     }
+    },
+    {
+     "n": 16,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check",
+      "check",
+      "check",
+      "check",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Bash",
+      "Bash",
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      125,
+      166,
+      173,
+      48,
+      46,
+      63
+     ],
+     "context": 50895,
+     "tokens": {
+      "read": 49037,
+      "added": 1453,
+      "output": 654
+     },
+     "usd": {
+      "read": 0.009815,
+      "added": 0.011624,
+      "output": 0.01308,
+      "total": 0.034519
+     },
+     "read_back_later": {
+      "tokens": 5812,
+      "usd": 0.001162
+     }
+    },
+    {
+     "n": 17,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "report",
+      "note"
+     ],
+     "tools": [
+      "Write",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1264,
+      719
+     ],
+     "context": 52348,
+     "tokens": {
+      "read": 50895,
+      "added": 1315,
+      "output": 1080
+     },
+     "usd": {
+      "read": 0.010187,
+      "added": 0.01052,
+      "output": 0.0216,
+      "total": 0.042307
+     },
+     "read_back_later": {
+      "tokens": 3945,
+      "usd": 0.000789
+     }
+    },
+    {
+     "n": 18,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2199
+     ],
+     "context": 53663,
+     "tokens": {
+      "read": 52348,
+      "added": 2067,
+      "output": 1081
+     },
+     "usd": {
+      "read": 0.010477,
+      "added": 0.016536,
+      "output": 0.02162,
+      "total": 0.048633
+     },
+     "read_back_later": {
+      "tokens": 4134,
+      "usd": 0.000827
+     }
+    },
+    {
+     "n": 19,
+     "phase": "cycle 4",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      62
+     ],
+     "context": 55730,
+     "tokens": {
+      "read": 53663,
+      "added": 265,
+      "output": 193
+     },
+     "usd": {
+      "read": 0.01074,
+      "added": 0.00212,
+      "output": 0.00386,
+      "total": 0.01672
+     },
+     "read_back_later": {
+      "tokens": 265,
+      "usd": 0.000053
+     }
+    },
+    {
+     "n": 20,
+     "phase": "cycle 4",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1076,
+      1455
+     ],
+     "context": 55995,
+     "tokens": {
+      "read": 55730,
+      "added": 1583,
+      "output": 1315
+     },
+     "usd": {
+      "read": 0.011154,
+      "added": 0.012664,
+      "output": 0.0263,
+      "total": 0.050118
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 21,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 57578,
+     "tokens": {
+      "read": 55995,
+      "added": 0,
+      "output": 582
+     },
+     "usd": {
+      "read": 0.011207,
+      "added": 0,
+      "output": 0.01164,
+      "total": 0.022847
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "heterogeneous-critic/A-2",
+   "project": "heterogeneous-critic",
+   "arm": "A",
+   "replicate": 2,
+   "transcripts_found": 5,
+   "reported_usd": 1.285219,
+   "harness_turns": 30,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 1.108807,
+     "computed_usd": 1.108807
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.176412,
+     "computed_usd": 0.176412
+    }
+   },
+   "lead": {
+    "calls": 19,
+    "tool_uses": 29,
+    "dispatches": 4,
+    "refused_tool_uses": 1,
+    "usd": {
+     "read": 0.139506,
+     "added": 0.26876,
+     "output": 0.23372,
+     "total": 0.641986
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 34855,
+    "context_at_reply": 49578
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 22,
+    "usd": 0.643235
+   },
+   "uses_by_kind": {
+    "brief": 4,
+    "run-folder": 3,
+    "clock": 5,
+    "progress": 5,
+    "note": 5,
+    "started-line": 1,
+    "dispatch": 4,
+    "check": 1,
+    "report": 1
+   },
+   "characters_sent_by_kind": {
+    "brief": 493,
+    "run-folder": 259,
+    "clock": 205,
+    "progress": 4726,
+    "note": 4564,
+    "started-line": 385,
+    "dispatch": 6709,
+    "check": 48,
+    "report": 114
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4754,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038032,
+      "output": 0,
+      "total": 0.038032
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 65830,
+      "added": 12059,
+      "output": 677
+     },
+     "usd": {
+      "read": 0.013189,
+      "added": 0.096472,
+      "output": 0.01354,
+      "total": 0.123201
+     }
+    },
+    "run-folder": {
+     "calls": 1,
+     "tokens": {
+      "read": 29455,
+      "added": 464,
+      "output": 334
+     },
+     "usd": {
+      "read": 0.005899,
+      "added": 0.003712,
+      "output": 0.00668,
+      "total": 0.016291
+     }
+    },
+    "note": {
+     "calls": 5,
+     "tokens": {
+      "read": 201708,
+      "added": 7120,
+      "output": 5399
+     },
+     "usd": {
+      "read": 0.04038,
+      "added": 0.05696,
+      "output": 0.10798,
+      "total": 0.20532
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 33260,
+      "added": 593,
+      "output": 419
+     },
+     "usd": {
+      "read": 0.00666,
+      "added": 0.004744,
+      "output": 0.00838,
+      "total": 0.019784
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 156813,
+      "added": 7073,
+      "output": 3079
+     },
+     "usd": {
+      "read": 0.031393,
+      "added": 0.056584,
+      "output": 0.06158,
+      "total": 0.149557
+     }
+    },
+    "check": {
+     "calls": 1,
+     "tokens": {
+      "read": 34855,
+      "added": 544,
+      "output": 357
+     },
+     "usd": {
+      "read": 0.006979,
+      "added": 0.004352,
+      "output": 0.00714,
+      "total": 0.018471
+     }
+    },
+    "report": {
+     "calls": 1,
+     "tokens": {
+      "read": 38585,
+      "added": 524,
+      "output": 361
+     },
+     "usd": {
+      "read": 0.007725,
+      "added": 0.004192,
+      "output": 0.00722,
+      "total": 0.019137
+     }
+    },
+    "clock": {
+     "calls": 2,
+     "tokens": {
+      "read": 88399,
+      "added": 464,
+      "output": 292
+     },
+     "usd": {
+      "read": 0.017695,
+      "added": 0.003712,
+      "output": 0.00584,
+      "total": 0.027247
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 47893,
+      "added": 0,
+      "output": 768
+     },
+     "usd": {
+      "read": 0.009586,
+      "added": 0,
+      "output": 0.01536,
+      "total": 0.024946
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 6,
+     "tokens": {
+      "read": 161341,
+      "added": 18872,
+      "output": 2071
+     },
+     "usd": {
+      "read": 0.032315,
+      "added": 0.150976,
+      "output": 0.04142,
+      "total": 0.224711
+     }
+    },
+    "cycle 1": {
+     "calls": 3,
+     "tokens": {
+      "read": 105676,
+      "added": 3730,
+      "output": 2065
+     },
+     "usd": {
+      "read": 0.021158,
+      "added": 0.02984,
+      "output": 0.0413,
+      "total": 0.092298
+     }
+    },
+    "cycle 2": {
+     "calls": 3,
+     "tokens": {
+      "read": 116179,
+      "added": 4067,
+      "output": 2503
+     },
+     "usd": {
+      "read": 0.023259,
+      "added": 0.032536,
+      "output": 0.05006,
+      "total": 0.105855
+     }
+    },
+    "cycle 3": {
+     "calls": 3,
+     "tokens": {
+      "read": 127933,
+      "added": 3095,
+      "output": 1750
+     },
+     "usd": {
+      "read": 0.02561,
+      "added": 0.02476,
+      "output": 0.035,
+      "total": 0.08537
+     }
+    },
+    "cycle 4": {
+     "calls": 3,
+     "tokens": {
+      "read": 137776,
+      "added": 3831,
+      "output": 2529
+     },
+     "usd": {
+      "read": 0.027578,
+      "added": 0.030648,
+      "output": 0.05058,
+      "total": 0.108806
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 47893,
+      "added": 0,
+      "output": 768
+     },
+     "usd": {
+      "read": 0.009586,
+      "added": 0,
+      "output": 0.01536,
+      "total": 0.024946
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 303677,
+     "usd": 0.060876
+    },
+    "prompt": {
+     "tokens": 85572,
+     "usd": 0.017114
+    },
+    "brief": {
+     "tokens": 197976,
+     "usd": 0.039595
+    },
+    "run-folder": {
+     "tokens": 6496,
+     "usd": 0.001299
+    },
+    "note": {
+     "tokens": 40128,
+     "usd": 0.008025
+    },
+    "started-line": {
+     "tokens": 7116,
+     "usd": 0.001423
+    },
+    "dispatch": {
+     "tokens": 45760,
+     "usd": 0.009153
+    },
+    "check": {
+     "tokens": 5440,
+     "usd": 0.001088
+    },
+    "report": {
+     "tokens": 3668,
+     "usd": 0.000734
+    },
+    "clock": {
+     "tokens": 965,
+     "usd": 0.000193
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4754,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038032,
+      "output": 0,
+      "total": 0.038032
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 65830,
+      "added": 12059,
+      "output": 677
+     },
+     "usd": {
+      "read": 0.013189,
+      "added": 0.096472,
+      "output": 0.01354,
+      "total": 0.123201
+     }
+    },
+    "run-folder": {
+     "calls": 1,
+     "tokens": {
+      "read": 29455,
+      "added": 464,
+      "output": 334
+     },
+     "usd": {
+      "read": 0.005899,
+      "added": 0.003712,
+      "output": 0.00668,
+      "total": 0.016291
+     }
+    },
+    "note": {
+     "calls": 1,
+     "tokens": {
+      "read": 32796,
+      "added": 1002,
+      "output": 641
+     },
+     "usd": {
+      "read": 0.006567,
+      "added": 0.008016,
+      "output": 0.01282,
+      "total": 0.027403
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 33260,
+      "added": 593,
+      "output": 419
+     },
+     "usd": {
+      "read": 0.00666,
+      "added": 0.004744,
+      "output": 0.00838,
+      "total": 0.019784
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 4754,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038032,
+      "output": 0,
+      "total": 0.038032
+     },
+     "read_back_later": {
+      "tokens": 85572,
+      "usd": 0.017114
+     }
+    },
+    {
+     "n": 1,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "run-folder"
+     ],
+     "tools": [
+      "Read",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      116,
+      44
+     ],
+     "context": 20737,
+     "tokens": {
+      "read": 15983,
+      "added": 8373,
+      "output": 213
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.066984,
+      "output": 0.00426,
+      "total": 0.074448
+     },
+     "read_back_later": {
+      "tokens": 142341,
+      "usd": 0.028468
+     }
+    },
+    {
+     "n": 2,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 1,
+     "characters_sent": [
+      124
+     ],
+     "context": 29110,
+     "tokens": {
+      "read": 20737,
+      "added": 345,
+      "output": 120
+     },
+     "usd": {
+      "read": 0.004155,
+      "added": 0.00276,
+      "output": 0.0024,
+      "total": 0.009315
+     },
+     "read_back_later": {
+      "tokens": 5520,
+      "usd": 0.001104
+     }
+    },
+    {
+     "n": 3,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "brief",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      72,
+      127,
+      126
+     ],
+     "context": 29455,
+     "tokens": {
+      "read": 29110,
+      "added": 3341,
+      "output": 344
+     },
+     "usd": {
+      "read": 0.00583,
+      "added": 0.026728,
+      "output": 0.00688,
+      "total": 0.039438
+     },
+     "read_back_later": {
+      "tokens": 50115,
+      "usd": 0.010023
+     }
+    },
+    {
+     "n": 4,
+     "phase": "setup",
+     "kind": "run-folder",
+     "uses": [
+      "run-folder",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      143,
+      41
+     ],
+     "context": 32796,
+     "tokens": {
+      "read": 29455,
+      "added": 464,
+      "output": 334
+     },
+     "usd": {
+      "read": 0.005899,
+      "added": 0.003712,
+      "output": 0.00668,
+      "total": 0.016291
+     },
+     "read_back_later": {
+      "tokens": 6496,
+      "usd": 0.001299
+     }
+    },
+    {
+     "n": 5,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "progress",
+      "note"
+     ],
+     "tools": [
+      "Write",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      782,
+      248
+     ],
+     "context": 33260,
+     "tokens": {
+      "read": 32796,
+      "added": 1002,
+      "output": 641
+     },
+     "usd": {
+      "read": 0.006567,
+      "added": 0.008016,
+      "output": 0.01282,
+      "total": 0.027403
+     },
+     "read_back_later": {
+      "tokens": 13026,
+      "usd": 0.002605
+     }
+    },
+    {
+     "n": 6,
+     "phase": "setup",
+     "kind": "started-line",
+     "uses": [
+      "started-line"
+     ],
+     "tools": [
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      385
+     ],
+     "context": 34262,
+     "tokens": {
+      "read": 33260,
+      "added": 593,
+      "output": 419
+     },
+     "usd": {
+      "read": 0.00666,
+      "added": 0.004744,
+      "output": 0.00838,
+      "total": 0.019784
+     },
+     "read_back_later": {
+      "tokens": 7116,
+      "usd": 0.001423
+     }
+    },
+    {
+     "n": 7,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1280
+     ],
+     "context": 34855,
+     "tokens": {
+      "read": 34262,
+      "added": 1704,
+      "output": 564
+     },
+     "usd": {
+      "read": 0.00686,
+      "added": 0.013632,
+      "output": 0.01128,
+      "total": 0.031772
+     },
+     "read_back_later": {
+      "tokens": 18744,
+      "usd": 0.003749
+     }
+    },
+    {
+     "n": 8,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      48,
+      41
+     ],
+     "context": 36559,
+     "tokens": {
+      "read": 34855,
+      "added": 544,
+      "output": 357
+     },
+     "usd": {
+      "read": 0.006979,
+      "added": 0.004352,
+      "output": 0.00714,
+      "total": 0.018471
+     },
+     "read_back_later": {
+      "tokens": 5440,
+      "usd": 0.001088
+     }
+    },
+    {
+     "n": 9,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      871,
+      937
+     ],
+     "context": 37103,
+     "tokens": {
+      "read": 36559,
+      "added": 1482,
+      "output": 1144
+     },
+     "usd": {
+      "read": 0.007319,
+      "added": 0.011856,
+      "output": 0.02288,
+      "total": 0.042055
+     },
+     "read_back_later": {
+      "tokens": 13338,
+      "usd": 0.002668
+     }
+    },
+    {
+     "n": 10,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1885
+     ],
+     "context": 38585,
+     "tokens": {
+      "read": 37103,
+      "added": 1906,
+      "output": 845
+     },
+     "usd": {
+      "read": 0.007428,
+      "added": 0.015248,
+      "output": 0.0169,
+      "total": 0.039576
+     },
+     "read_back_later": {
+      "tokens": 15248,
+      "usd": 0.00305
+     }
+    },
+    {
+     "n": 11,
+     "phase": "cycle 2",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      114,
+      41
+     ],
+     "context": 40491,
+     "tokens": {
+      "read": 38585,
+      "added": 524,
+      "output": 361
+     },
+     "usd": {
+      "read": 0.007725,
+      "added": 0.004192,
+      "output": 0.00722,
+      "total": 0.019137
+     },
+     "read_back_later": {
+      "tokens": 3668,
+      "usd": 0.000734
+     }
+    },
+    {
+     "n": 12,
+     "phase": "cycle 2",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1300,
+      965
+     ],
+     "context": 41015,
+     "tokens": {
+      "read": 40491,
+      "added": 1637,
+      "output": 1297
+     },
+     "usd": {
+      "read": 0.008106,
+      "added": 0.013096,
+      "output": 0.02594,
+      "total": 0.047142
+     },
+     "read_back_later": {
+      "tokens": 9822,
+      "usd": 0.001964
+     }
+    },
+    {
+     "n": 13,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1560
+     ],
+     "context": 42652,
+     "tokens": {
+      "read": 41015,
+      "added": 1614,
+      "output": 681
+     },
+     "usd": {
+      "read": 0.008211,
+      "added": 0.012912,
+      "output": 0.01362,
+      "total": 0.034743
+     },
+     "read_back_later": {
+      "tokens": 8070,
+      "usd": 0.001614
+     }
+    },
+    {
+     "n": 14,
+     "phase": "cycle 3",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 44266,
+     "tokens": {
+      "read": 42652,
+      "added": 167,
+      "output": 96
+     },
+     "usd": {
+      "read": 0.008538,
+      "added": 0.001336,
+      "output": 0.00192,
+      "total": 0.011794
+     },
+     "read_back_later": {
+      "tokens": 668,
+      "usd": 0.000134
+     }
+    },
+    {
+     "n": 15,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      805,
+      932
+     ],
+     "context": 44433,
+     "tokens": {
+      "read": 44266,
+      "added": 1314,
+      "output": 973
+     },
+     "usd": {
+      "read": 0.008861,
+      "added": 0.010512,
+      "output": 0.01946,
+      "total": 0.038833
+     },
+     "read_back_later": {
+      "tokens": 3942,
+      "usd": 0.000788
+     }
+    },
+    {
+     "n": 16,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1984
+     ],
+     "context": 45747,
+     "tokens": {
+      "read": 44433,
+      "added": 1849,
+      "output": 989
+     },
+     "usd": {
+      "read": 0.008894,
+      "added": 0.014792,
+      "output": 0.01978,
+      "total": 0.043466
+     },
+     "read_back_later": {
+      "tokens": 3698,
+      "usd": 0.00074
+     }
+    },
+    {
+     "n": 17,
+     "phase": "cycle 4",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 47596,
+     "tokens": {
+      "read": 45747,
+      "added": 297,
+      "output": 196
+     },
+     "usd": {
+      "read": 0.009157,
+      "added": 0.002376,
+      "output": 0.00392,
+      "total": 0.015453
+     },
+     "read_back_later": {
+      "tokens": 297,
+      "usd": 0.000059
+     }
+    },
+    {
+     "n": 18,
+     "phase": "cycle 4",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1340,
+      1110
+     ],
+     "context": 47893,
+     "tokens": {
+      "read": 47596,
+      "added": 1685,
+      "output": 1344
+     },
+     "usd": {
+      "read": 0.009527,
+      "added": 0.01348,
+      "output": 0.02688,
+      "total": 0.049887
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 19,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 49578,
+     "tokens": {
+      "read": 47893,
+      "added": 0,
+      "output": 768
+     },
+     "usd": {
+      "read": 0.009586,
+      "added": 0,
+      "output": 0.01536,
+      "total": 0.024946
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "heterogeneous-critic/B-1",
+   "project": "heterogeneous-critic",
+   "arm": "B",
+   "replicate": 1,
+   "transcripts_found": 5,
+   "reported_usd": 1.047213,
+   "harness_turns": 11,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.829757,
+     "computed_usd": 0.829757
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.217456,
+     "computed_usd": 0.217456
+    }
+   },
+   "lead": {
+    "calls": 8,
+    "tool_uses": 10,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.044818,
+     "added": 0.179928,
+     "output": 0.13988,
+     "total": 0.364626
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 23709,
+    "context_at_reply": 38474
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 22,
+    "usd": 0.682586
+   },
+   "uses_by_kind": {
+    "dispatch": 4,
+    "check": 6
+   },
+   "characters_sent_by_kind": {
+    "dispatch": 10965,
+    "check": 365
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7726,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061808,
+      "output": 0,
+      "total": 0.061808
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 111249,
+      "added": 9862,
+      "output": 5521
+     },
+     "usd": {
+      "read": 0.022281,
+      "added": 0.078896,
+      "output": 0.11042,
+      "total": 0.211597
+     }
+    },
+    "check": {
+     "calls": 3,
+     "tokens": {
+      "read": 76480,
+      "added": 4903,
+      "output": 740
+     },
+     "usd": {
+      "read": 0.015318,
+      "added": 0.039224,
+      "output": 0.0148,
+      "total": 0.069342
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 36059,
+      "added": 0,
+      "output": 733
+     },
+     "usd": {
+      "read": 0.007219,
+      "added": 0,
+      "output": 0.01466,
+      "total": 0.021879
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7726,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061808,
+      "output": 0,
+      "total": 0.061808
+     }
+    },
+    "cycle 1": {
+     "calls": 4,
+     "tokens": {
+      "read": 92463,
+      "added": 7401,
+      "output": 2057
+     },
+     "usd": {
+      "read": 0.018522,
+      "added": 0.059208,
+      "output": 0.04114,
+      "total": 0.11887
+     }
+    },
+    "cycle 2": {
+     "calls": 1,
+     "tokens": {
+      "read": 30470,
+      "added": 2576,
+      "output": 1389
+     },
+     "usd": {
+      "read": 0.006102,
+      "added": 0.020608,
+      "output": 0.02778,
+      "total": 0.05449
+     }
+    },
+    "cycle 3": {
+     "calls": 1,
+     "tokens": {
+      "read": 31110,
+      "added": 2373,
+      "output": 1167
+     },
+     "usd": {
+      "read": 0.00623,
+      "added": 0.018984,
+      "output": 0.02334,
+      "total": 0.048554
+     }
+    },
+    "cycle 4": {
+     "calls": 1,
+     "tokens": {
+      "read": 33686,
+      "added": 2415,
+      "output": 1648
+     },
+     "usd": {
+      "read": 0.006745,
+      "added": 0.01932,
+      "output": 0.03296,
+      "total": 0.059025
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 36059,
+      "added": 0,
+      "output": 733
+     },
+     "usd": {
+      "read": 0.007219,
+      "added": 0,
+      "output": 0.01466,
+      "total": 0.021879
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 127864,
+     "usd": 0.025632
+    },
+    "prompt": {
+     "tokens": 54082,
+     "usd": 0.010816
+    },
+    "dispatch": {
+     "tokens": 22513,
+     "usd": 0.004503
+    },
+    "check": {
+     "tokens": 19329,
+     "usd": 0.003866
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7726,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061808,
+      "output": 0,
+      "total": 0.061808
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 7726,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.061808,
+      "output": 0,
+      "total": 0.061808
+     },
+     "read_back_later": {
+      "tokens": 54082,
+      "usd": 0.010816
+     }
+    },
+    {
+     "n": 1,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2209
+     ],
+     "context": 23709,
+     "tokens": {
+      "read": 15983,
+      "added": 2498,
+      "output": 1317
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.019984,
+      "output": 0.02634,
+      "total": 0.049528
+     },
+     "read_back_later": {
+      "tokens": 14988,
+      "usd": 0.002998
+     }
+    },
+    {
+     "n": 2,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      54
+     ],
+     "context": 26207,
+     "tokens": {
+      "read": 23709,
+      "added": 357,
+      "output": 251
+     },
+     "usd": {
+      "read": 0.004749,
+      "added": 0.002856,
+      "output": 0.00502,
+      "total": 0.012625
+     },
+     "read_back_later": {
+      "tokens": 1785,
+      "usd": 0.000357
+     }
+    },
+    {
+     "n": 3,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check",
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      36,
+      91,
+      83,
+      67
+     ],
+     "context": 26564,
+     "tokens": {
+      "read": 26207,
+      "added": 3906,
+      "output": 373
+     },
+     "usd": {
+      "read": 0.005249,
+      "added": 0.031248,
+      "output": 0.00746,
+      "total": 0.043957
+     },
+     "read_back_later": {
+      "tokens": 15624,
+      "usd": 0.003125
+     }
+    },
+    {
+     "n": 4,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      34
+     ],
+     "context": 30470,
+     "tokens": {
+      "read": 26564,
+      "added": 640,
+      "output": 116
+     },
+     "usd": {
+      "read": 0.00532,
+      "added": 0.00512,
+      "output": 0.00232,
+      "total": 0.01276
+     },
+     "read_back_later": {
+      "tokens": 1920,
+      "usd": 0.000384
+     }
+    },
+    {
+     "n": 5,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3079
+     ],
+     "context": 31110,
+     "tokens": {
+      "read": 30470,
+      "added": 2576,
+      "output": 1389
+     },
+     "usd": {
+      "read": 0.006102,
+      "added": 0.020608,
+      "output": 0.02778,
+      "total": 0.05449
+     },
+     "read_back_later": {
+      "tokens": 5152,
+      "usd": 0.00103
+     }
+    },
+    {
+     "n": 6,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2360
+     ],
+     "context": 33686,
+     "tokens": {
+      "read": 31110,
+      "added": 2373,
+      "output": 1167
+     },
+     "usd": {
+      "read": 0.00623,
+      "added": 0.018984,
+      "output": 0.02334,
+      "total": 0.048554
+     },
+     "read_back_later": {
+      "tokens": 2373,
+      "usd": 0.000475
+     }
+    },
+    {
+     "n": 7,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3317
+     ],
+     "context": 36059,
+     "tokens": {
+      "read": 33686,
+      "added": 2415,
+      "output": 1648
+     },
+     "usd": {
+      "read": 0.006745,
+      "added": 0.01932,
+      "output": 0.03296,
+      "total": 0.059025
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 8,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 38474,
+     "tokens": {
+      "read": 36059,
+      "added": 0,
+      "output": 733
+     },
+     "usd": {
+      "read": 0.007219,
+      "added": 0,
+      "output": 0.01466,
+      "total": 0.021879
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "heterogeneous-critic/B-2",
+   "project": "heterogeneous-critic",
+   "arm": "B",
+   "replicate": 2,
+   "transcripts_found": 5,
+   "reported_usd": 1.029937,
+   "harness_turns": 12,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.776351,
+     "computed_usd": 0.776351
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.253586,
+     "computed_usd": 0.253586
+    }
+   },
+   "lead": {
+    "calls": 8,
+    "tool_uses": 11,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.045784,
+     "added": 0.179192,
+     "output": 0.13412,
+     "total": 0.359096
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 23829,
+    "context_at_reply": 38382
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 26,
+    "usd": 0.67084
+   },
+   "uses_by_kind": {
+    "dispatch": 4,
+    "check": 7
+   },
+   "characters_sent_by_kind": {
+    "dispatch": 10601,
+    "check": 424
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7846,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.062768,
+      "output": 0,
+      "total": 0.062768
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 109099,
+      "added": 9800,
+      "output": 4966
+     },
+     "usd": {
+      "read": 0.02185,
+      "added": 0.0784,
+      "output": 0.09932,
+      "total": 0.19957
+     }
+    },
+    "check": {
+     "calls": 3,
+     "tokens": {
+      "read": 83443,
+      "added": 4753,
+      "output": 859
+     },
+     "usd": {
+      "read": 0.016711,
+      "added": 0.038024,
+      "output": 0.01718,
+      "total": 0.071915
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 36077,
+      "added": 0,
+      "output": 881
+     },
+     "usd": {
+      "read": 0.007223,
+      "added": 0,
+      "output": 0.01762,
+      "total": 0.024843
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7846,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.062768,
+      "output": 0,
+      "total": 0.062768
+     }
+    },
+    "cycle 1": {
+     "calls": 3,
+     "tokens": {
+      "read": 65796,
+      "added": 6588,
+      "output": 1788
+     },
+     "usd": {
+      "read": 0.013181,
+      "added": 0.052704,
+      "output": 0.03576,
+      "total": 0.101645
+     }
+    },
+    "cycle 2": {
+     "calls": 1,
+     "tokens": {
+      "read": 26942,
+      "added": 3213,
+      "output": 1344
+     },
+     "usd": {
+      "read": 0.005396,
+      "added": 0.025704,
+      "output": 0.02688,
+      "total": 0.05798
+     }
+    },
+    "cycle 3": {
+     "calls": 2,
+     "tokens": {
+      "read": 64047,
+      "added": 2447,
+      "output": 1342
+     },
+     "usd": {
+      "read": 0.012825,
+      "added": 0.019576,
+      "output": 0.02684,
+      "total": 0.059241
+     }
+    },
+    "cycle 4": {
+     "calls": 1,
+     "tokens": {
+      "read": 35757,
+      "added": 2305,
+      "output": 1351
+     },
+     "usd": {
+      "read": 0.007159,
+      "added": 0.01844,
+      "output": 0.02702,
+      "total": 0.052619
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 36077,
+      "added": 0,
+      "output": 881
+     },
+     "usd": {
+      "read": 0.007223,
+      "added": 0,
+      "output": 0.01762,
+      "total": 0.024843
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 127864,
+     "usd": 0.025632
+    },
+    "prompt": {
+     "tokens": 54922,
+     "usd": 0.010984
+    },
+    "dispatch": {
+     "tokens": 26823,
+     "usd": 0.005365
+    },
+    "check": {
+     "tokens": 19010,
+     "usd": 0.003802
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7846,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.062768,
+      "output": 0,
+      "total": 0.062768
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 7846,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.062768,
+      "output": 0,
+      "total": 0.062768
+     },
+     "read_back_later": {
+      "tokens": 54922,
+      "usd": 0.010984
+     }
+    },
+    {
+     "n": 1,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2038
+     ],
+     "context": 23829,
+     "tokens": {
+      "read": 15983,
+      "added": 2155,
+      "output": 1136
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.01724,
+      "output": 0.02272,
+      "total": 0.043164
+     },
+     "read_back_later": {
+      "tokens": 12930,
+      "usd": 0.002586
+     }
+    },
+    {
+     "n": 2,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      54,
+      34
+     ],
+     "context": 25984,
+     "tokens": {
+      "read": 23829,
+      "added": 958,
+      "output": 278
+     },
+     "usd": {
+      "read": 0.004773,
+      "added": 0.007664,
+      "output": 0.00556,
+      "total": 0.017997
+     },
+     "read_back_later": {
+      "tokens": 4790,
+      "usd": 0.000958
+     }
+    },
+    {
+     "n": 3,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check",
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41,
+      91,
+      83,
+      67
+     ],
+     "context": 26942,
+     "tokens": {
+      "read": 25984,
+      "added": 3475,
+      "output": 374
+     },
+     "usd": {
+      "read": 0.005204,
+      "added": 0.0278,
+      "output": 0.00748,
+      "total": 0.040484
+     },
+     "read_back_later": {
+      "tokens": 13900,
+      "usd": 0.00278
+     }
+    },
+    {
+     "n": 4,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3015
+     ],
+     "context": 30417,
+     "tokens": {
+      "read": 26942,
+      "added": 3213,
+      "output": 1344
+     },
+     "usd": {
+      "read": 0.005396,
+      "added": 0.025704,
+      "output": 0.02688,
+      "total": 0.05798
+     },
+     "read_back_later": {
+      "tokens": 9639,
+      "usd": 0.001928
+     }
+    },
+    {
+     "n": 5,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2419
+     ],
+     "context": 33630,
+     "tokens": {
+      "read": 30417,
+      "added": 2127,
+      "output": 1135
+     },
+     "usd": {
+      "read": 0.006091,
+      "added": 0.017016,
+      "output": 0.0227,
+      "total": 0.045807
+     },
+     "read_back_later": {
+      "tokens": 4254,
+      "usd": 0.000851
+     }
+    },
+    {
+     "n": 6,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      54
+     ],
+     "context": 35757,
+     "tokens": {
+      "read": 33630,
+      "added": 320,
+      "output": 207
+     },
+     "usd": {
+      "read": 0.006734,
+      "added": 0.00256,
+      "output": 0.00414,
+      "total": 0.013434
+     },
+     "read_back_later": {
+      "tokens": 320,
+      "usd": 0.000064
+     }
+    },
+    {
+     "n": 7,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      3129
+     ],
+     "context": 36077,
+     "tokens": {
+      "read": 35757,
+      "added": 2305,
+      "output": 1351
+     },
+     "usd": {
+      "read": 0.007159,
+      "added": 0.01844,
+      "output": 0.02702,
+      "total": 0.052619
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 8,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 38382,
+     "tokens": {
+      "read": 36077,
+      "added": 0,
+      "output": 881
+     },
+     "usd": {
+      "read": 0.007223,
+      "added": 0,
+      "output": 0.01762,
+      "total": 0.024843
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "taste-polish/A-1",
+   "project": "taste-polish",
+   "arm": "A",
+   "replicate": 1,
+   "transcripts_found": 5,
+   "reported_usd": 1.583982,
+   "harness_turns": 48,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 1.317912,
+     "computed_usd": 1.317912
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.26607,
+     "computed_usd": 0.26607
+    }
+   },
+   "lead": {
+    "calls": 31,
+    "tool_uses": 47,
+    "dispatches": 4,
+    "refused_tool_uses": 5,
+    "usd": {
+     "read": 0.288945,
+     "added": 0.407704,
+     "output": 0.35856,
+     "total": 1.055209
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 46347,
+    "context_at_reply": 66946
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 24,
+    "usd": 0.528773
+   },
+   "uses_by_kind": {
+    "brief": 5,
+    "run-folder": 3,
+    "check": 8,
+    "amendment": 6,
+    "note": 7,
+    "progress": 6,
+    "clock": 6,
+    "dispatch": 4,
+    "report": 2
+   },
+   "characters_sent_by_kind": {
+    "brief": 652,
+    "run-folder": 278,
+    "check": 683,
+    "amendment": 2548,
+    "note": 8996,
+    "progress": 6461,
+    "clock": 222,
+    "dispatch": 5283,
+    "report": 228
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4791,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038328,
+      "output": 0,
+      "total": 0.038328
+     }
+    },
+    "brief": {
+     "calls": 4,
+     "tokens": {
+      "read": 95945,
+      "added": 18595,
+      "output": 1418
+     },
+     "usd": {
+      "read": 0.019219,
+      "added": 0.14876,
+      "output": 0.02836,
+      "total": 0.196339
+     }
+    },
+    "amendment": {
+     "calls": 5,
+     "tokens": {
+      "read": 198813,
+      "added": 3234,
+      "output": 2424
+     },
+     "usd": {
+      "read": 0.0398,
+      "added": 0.025872,
+      "output": 0.04848,
+      "total": 0.114152
+     }
+    },
+    "note": {
+     "calls": 7,
+     "tokens": {
+      "read": 355228,
+      "added": 9786,
+      "output": 7754
+     },
+     "usd": {
+      "read": 0.071099,
+      "added": 0.078288,
+      "output": 0.15508,
+      "total": 0.304467
+     }
+    },
+    "clock": {
+     "calls": 2,
+     "tokens": {
+      "read": 92251,
+      "added": 536,
+      "output": 393
+     },
+     "usd": {
+      "read": 0.018465,
+      "added": 0.004288,
+      "output": 0.00786,
+      "total": 0.030613
+     }
+    },
+    "progress": {
+     "calls": 1,
+     "tokens": {
+      "read": 44715,
+      "added": 715,
+      "output": 540
+     },
+     "usd": {
+      "read": 0.008951,
+      "added": 0.00572,
+      "output": 0.0108,
+      "total": 0.025471
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 212633,
+      "added": 7205,
+      "output": 2484
+     },
+     "usd": {
+      "read": 0.042558,
+      "added": 0.05764,
+      "output": 0.04968,
+      "total": 0.149878
+     }
+    },
+    "check": {
+     "calls": 5,
+     "tokens": {
+      "read": 265160,
+      "added": 4773,
+      "output": 926
+     },
+     "usd": {
+      "read": 0.05307,
+      "added": 0.038184,
+      "output": 0.01852,
+      "total": 0.109774
+     }
+    },
+    "report": {
+     "calls": 2,
+     "tokens": {
+      "read": 114108,
+      "added": 1328,
+      "output": 1062
+     },
+     "usd": {
+      "read": 0.022837,
+      "added": 0.010624,
+      "output": 0.02124,
+      "total": 0.054701
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 64690,
+      "added": 0,
+      "output": 927
+     },
+     "usd": {
+      "read": 0.012946,
+      "added": 0,
+      "output": 0.01854,
+      "total": 0.031486
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 14,
+     "tokens": {
+      "read": 510281,
+      "added": 30364,
+      "output": 6721
+     },
+     "usd": {
+      "read": 0.102162,
+      "added": 0.242912,
+      "output": 0.13442,
+      "total": 0.479494
+     }
+    },
+    "cycle 1": {
+     "calls": 5,
+     "tokens": {
+      "read": 238610,
+      "added": 5175,
+      "output": 2389
+     },
+     "usd": {
+      "read": 0.04776,
+      "added": 0.0414,
+      "output": 0.04778,
+      "total": 0.13694
+     }
+    },
+    "cycle 2": {
+     "calls": 4,
+     "tokens": {
+      "read": 208909,
+      "added": 6145,
+      "output": 2800
+     },
+     "usd": {
+      "read": 0.041812,
+      "added": 0.04916,
+      "output": 0.056,
+      "total": 0.146972
+     }
+    },
+    "cycle 3": {
+     "calls": 4,
+     "tokens": {
+      "read": 233285,
+      "added": 4919,
+      "output": 2192
+     },
+     "usd": {
+      "read": 0.046688,
+      "added": 0.039352,
+      "output": 0.04384,
+      "total": 0.12988
+     }
+    },
+    "cycle 4": {
+     "calls": 3,
+     "tokens": {
+      "read": 187768,
+      "added": 4360,
+      "output": 2899
+     },
+     "usd": {
+      "read": 0.037577,
+      "added": 0.03488,
+      "output": 0.05798,
+      "total": 0.130437
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 64690,
+      "added": 0,
+      "output": 927
+     },
+     "usd": {
+      "read": 0.012946,
+      "added": 0,
+      "output": 0.01854,
+      "total": 0.031486
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 495473,
+     "usd": 0.099324
+    },
+    "prompt": {
+     "tokens": 143730,
+     "usd": 0.028746
+    },
+    "brief": {
+     "tokens": 514259,
+     "usd": 0.102852
+    },
+    "amendment": {
+     "tokens": 71899,
+     "usd": 0.01438
+    },
+    "note": {
+     "tokens": 88676,
+     "usd": 0.017735
+    },
+    "clock": {
+     "tokens": 8070,
+     "usd": 0.001614
+    },
+    "progress": {
+     "tokens": 11440,
+     "usd": 0.002288
+    },
+    "dispatch": {
+     "tokens": 60725,
+     "usd": 0.012145
+    },
+    "check": {
+     "tokens": 41391,
+     "usd": 0.008278
+    },
+    "report": {
+     "tokens": 7880,
+     "usd": 0.001576
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4791,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038328,
+      "output": 0,
+      "total": 0.038328
+     }
+    },
+    "brief": {
+     "calls": 4,
+     "tokens": {
+      "read": 95945,
+      "added": 18595,
+      "output": 1418
+     },
+     "usd": {
+      "read": 0.019219,
+      "added": 0.14876,
+      "output": 0.02836,
+      "total": 0.196339
+     }
+    },
+    "amendment": {
+     "calls": 5,
+     "tokens": {
+      "read": 198813,
+      "added": 3234,
+      "output": 2424
+     },
+     "usd": {
+      "read": 0.0398,
+      "added": 0.025872,
+      "output": 0.04848,
+      "total": 0.114152
+     }
+    },
+    "note": {
+     "calls": 3,
+     "tokens": {
+      "read": 127161,
+      "added": 2756,
+      "output": 2137
+     },
+     "usd": {
+      "read": 0.025455,
+      "added": 0.022048,
+      "output": 0.04274,
+      "total": 0.090243
+     }
+    },
+    "clock": {
+     "calls": 1,
+     "tokens": {
+      "read": 43647,
+      "added": 273,
+      "output": 202
+     },
+     "usd": {
+      "read": 0.008737,
+      "added": 0.002184,
+      "output": 0.00404,
+      "total": 0.014961
+     }
+    },
+    "progress": {
+     "calls": 1,
+     "tokens": {
+      "read": 44715,
+      "added": 715,
+      "output": 540
+     },
+     "usd": {
+      "read": 0.008951,
+      "added": 0.00572,
+      "output": 0.0108,
+      "total": 0.025471
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 4791,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038328,
+      "output": 0,
+      "total": 0.038328
+     },
+     "read_back_later": {
+      "tokens": 143730,
+      "usd": 0.028746
+     }
+    },
+    {
+     "n": 1,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "run-folder"
+     ],
+     "tools": [
+      "Read",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      128,
+      48
+     ],
+     "context": 20774,
+     "tokens": {
+      "read": 15983,
+      "added": 8212,
+      "output": 234
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.065696,
+      "output": 0.00468,
+      "total": 0.07358
+     },
+     "read_back_later": {
+      "tokens": 238148,
+      "usd": 0.04763
+     }
+    },
+    {
+     "n": 2,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      77,
+      90
+     ],
+     "context": 28986,
+     "tokens": {
+      "read": 20774,
+      "added": 1216,
+      "output": 197
+     },
+     "usd": {
+      "read": 0.004162,
+      "added": 0.009728,
+      "output": 0.00394,
+      "total": 0.01783
+     },
+     "read_back_later": {
+      "tokens": 34048,
+      "usd": 0.00681
+     }
+    },
+    {
+     "n": 3,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "brief",
+      "brief",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Read",
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      153,
+      137,
+      138,
+      102
+     ],
+     "context": 30202,
+     "tokens": {
+      "read": 28986,
+      "added": 3721,
+      "output": 490
+     },
+     "usd": {
+      "read": 0.005805,
+      "added": 0.029768,
+      "output": 0.0098,
+      "total": 0.045373
+     },
+     "read_back_later": {
+      "tokens": 100467,
+      "usd": 0.020093
+     }
+    },
+    {
+     "n": 4,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "check"
+     ],
+     "tools": [
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      159,
+      109
+     ],
+     "context": 33923,
+     "tokens": {
+      "read": 30202,
+      "added": 5446,
+      "output": 497
+     },
+     "usd": {
+      "read": 0.006048,
+      "added": 0.043568,
+      "output": 0.00994,
+      "total": 0.059556
+     },
+     "read_back_later": {
+      "tokens": 141596,
+      "usd": 0.028319
+     }
+    },
+    {
+     "n": 5,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      76
+     ],
+     "context": 39369,
+     "tokens": {
+      "read": 33923,
+      "added": 776,
+      "output": 624
+     },
+     "usd": {
+      "read": 0.006792,
+      "added": 0.006208,
+      "output": 0.01248,
+      "total": 0.02548
+     },
+     "read_back_later": {
+      "tokens": 19400,
+      "usd": 0.00388
+     }
+    },
+    {
+     "n": 6,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Write",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      260,
+      853
+     ],
+     "context": 40145,
+     "tokens": {
+      "read": 39369,
+      "added": 1044,
+      "output": 709
+     },
+     "usd": {
+      "read": 0.007881,
+      "added": 0.008352,
+      "output": 0.01418,
+      "total": 0.030413
+     },
+     "read_back_later": {
+      "tokens": 25056,
+      "usd": 0.005011
+     }
+    },
+    {
+     "n": 7,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 1,
+     "characters_sent": [
+      34
+     ],
+     "context": 41189,
+     "tokens": {
+      "read": 40145,
+      "added": 195,
+      "output": 125
+     },
+     "usd": {
+      "read": 0.008037,
+      "added": 0.00156,
+      "output": 0.0025,
+      "total": 0.012097
+     },
+     "read_back_later": {
+      "tokens": 4485,
+      "usd": 0.000897
+     }
+    },
+    {
+     "n": 8,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1101
+     ],
+     "context": 41384,
+     "tokens": {
+      "read": 41189,
+      "added": 788,
+      "output": 611
+     },
+     "usd": {
+      "read": 0.008245,
+      "added": 0.006304,
+      "output": 0.01222,
+      "total": 0.026769
+     },
+     "read_back_later": {
+      "tokens": 17336,
+      "usd": 0.003467
+     }
+    },
+    {
+     "n": 9,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment",
+      "amendment"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 2,
+     "characters_sent": [
+      752,
+      454
+     ],
+     "context": 42172,
+     "tokens": {
+      "read": 41384,
+      "added": 1178,
+      "output": 861
+     },
+     "usd": {
+      "read": 0.008284,
+      "added": 0.009424,
+      "output": 0.01722,
+      "total": 0.034928
+     },
+     "read_back_later": {
+      "tokens": 24738,
+      "usd": 0.004948
+     }
+    },
+    {
+     "n": 10,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      131
+     ],
+     "context": 43350,
+     "tokens": {
+      "read": 42172,
+      "added": 297,
+      "output": 203
+     },
+     "usd": {
+      "read": 0.008442,
+      "added": 0.002376,
+      "output": 0.00406,
+      "total": 0.014878
+     },
+     "read_back_later": {
+      "tokens": 5940,
+      "usd": 0.001188
+     }
+    },
+    {
+     "n": 11,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "note"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 1,
+     "characters_sent": [
+      1481
+     ],
+     "context": 43647,
+     "tokens": {
+      "read": 43350,
+      "added": 795,
+      "output": 683
+     },
+     "usd": {
+      "read": 0.008678,
+      "added": 0.00636,
+      "output": 0.01366,
+      "total": 0.028698
+     },
+     "read_back_later": {
+      "tokens": 15105,
+      "usd": 0.003021
+     }
+    },
+    {
+     "n": 12,
+     "phase": "setup",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      37
+     ],
+     "context": 44442,
+     "tokens": {
+      "read": 43647,
+      "added": 273,
+      "output": 202
+     },
+     "usd": {
+      "read": 0.008737,
+      "added": 0.002184,
+      "output": 0.00404,
+      "total": 0.014961
+     },
+     "read_back_later": {
+      "tokens": 4914,
+      "usd": 0.000983
+     }
+    },
+    {
+     "n": 13,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "note"
+     ],
+     "tools": [
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1569
+     ],
+     "context": 44715,
+     "tokens": {
+      "read": 44442,
+      "added": 917,
+      "output": 745
+     },
+     "usd": {
+      "read": 0.008896,
+      "added": 0.007336,
+      "output": 0.0149,
+      "total": 0.031132
+     },
+     "read_back_later": {
+      "tokens": 15589,
+      "usd": 0.003118
+     }
+    },
+    {
+     "n": 14,
+     "phase": "setup",
+     "kind": "progress",
+     "uses": [
+      "progress"
+     ],
+     "tools": [
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1066
+     ],
+     "context": 45632,
+     "tokens": {
+      "read": 44715,
+      "added": 715,
+      "output": 540
+     },
+     "usd": {
+      "read": 0.008951,
+      "added": 0.00572,
+      "output": 0.0108,
+      "total": 0.025471
+     },
+     "read_back_later": {
+      "tokens": 11440,
+      "usd": 0.002288
+     }
+    },
+    {
+     "n": 15,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1381
+     ],
+     "context": 46347,
+     "tokens": {
+      "read": 45632,
+      "added": 1883,
+      "output": 609
+     },
+     "usd": {
+      "read": 0.009134,
+      "added": 0.015064,
+      "output": 0.01218,
+      "total": 0.036378
+     },
+     "read_back_later": {
+      "tokens": 28245,
+      "usd": 0.005649
+     }
+    },
+    {
+     "n": 16,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "clock",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      37,
+      36
+     ],
+     "context": 48230,
+     "tokens": {
+      "read": 46347,
+      "added": 374,
+      "output": 188
+     },
+     "usd": {
+      "read": 0.009277,
+      "added": 0.002992,
+      "output": 0.00376,
+      "total": 0.016029
+     },
+     "read_back_later": {
+      "tokens": 5236,
+      "usd": 0.001047
+     }
+    },
+    {
+     "n": 17,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Read",
+      "Bash"
+     ],
+     "refused": 1,
+     "characters_sent": [
+      109,
+      85
+     ],
+     "context": 48604,
+     "tokens": {
+      "read": 48230,
+      "added": 1193,
+      "output": 284
+     },
+     "usd": {
+      "read": 0.009654,
+      "added": 0.009544,
+      "output": 0.00568,
+      "total": 0.024878
+     },
+     "read_back_later": {
+      "tokens": 15509,
+      "usd": 0.003102
+     }
+    },
+    {
+     "n": 18,
+     "phase": "cycle 1",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      37
+     ],
+     "context": 49797,
+     "tokens": {
+      "read": 48604,
+      "added": 263,
+      "output": 191
+     },
+     "usd": {
+      "read": 0.009728,
+      "added": 0.002104,
+      "output": 0.00382,
+      "total": 0.015652
+     },
+     "read_back_later": {
+      "tokens": 3156,
+      "usd": 0.000631
+     }
+    },
+    {
+     "n": 19,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1315,
+      580
+     ],
+     "context": 50060,
+     "tokens": {
+      "read": 49797,
+      "added": 1462,
+      "output": 1117
+     },
+     "usd": {
+      "read": 0.009967,
+      "added": 0.011696,
+      "output": 0.02234,
+      "total": 0.044003
+     },
+     "read_back_later": {
+      "tokens": 16082,
+      "usd": 0.003216
+     }
+    },
+    {
+     "n": 20,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1197
+     ],
+     "context": 51522,
+     "tokens": {
+      "read": 50060,
+      "added": 1732,
+      "output": 598
+     },
+     "usd": {
+      "read": 0.01002,
+      "added": 0.013856,
+      "output": 0.01196,
+      "total": 0.035836
+     },
+     "read_back_later": {
+      "tokens": 17320,
+      "usd": 0.003464
+     }
+    },
+    {
+     "n": 21,
+     "phase": "cycle 2",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      114,
+      37
+     ],
+     "context": 53254,
+     "tokens": {
+      "read": 51522,
+      "added": 819,
+      "output": 686
+     },
+     "usd": {
+      "read": 0.010312,
+      "added": 0.006552,
+      "output": 0.01372,
+      "total": 0.030584
+     },
+     "read_back_later": {
+      "tokens": 7371,
+      "usd": 0.001474
+     }
+    },
+    {
+     "n": 22,
+     "phase": "cycle 2",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      97
+     ],
+     "context": 54073,
+     "tokens": {
+      "read": 53254,
+      "added": 1867,
+      "output": 167
+     },
+     "usd": {
+      "read": 0.010658,
+      "added": 0.014936,
+      "output": 0.00334,
+      "total": 0.028934
+     },
+     "read_back_later": {
+      "tokens": 14936,
+      "usd": 0.002987
+     }
+    },
+    {
+     "n": 23,
+     "phase": "cycle 2",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1350,
+      989
+     ],
+     "context": 55940,
+     "tokens": {
+      "read": 54073,
+      "added": 1727,
+      "output": 1349
+     },
+     "usd": {
+      "read": 0.010822,
+      "added": 0.013816,
+      "output": 0.02698,
+      "total": 0.051618
+     },
+     "read_back_later": {
+      "tokens": 12089,
+      "usd": 0.002418
+     }
+    },
+    {
+     "n": 24,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1469
+     ],
+     "context": 57667,
+     "tokens": {
+      "read": 55940,
+      "added": 1995,
+      "output": 668
+     },
+     "usd": {
+      "read": 0.011196,
+      "added": 0.01596,
+      "output": 0.01336,
+      "total": 0.040516
+     },
+     "read_back_later": {
+      "tokens": 11970,
+      "usd": 0.002394
+     }
+    },
+    {
+     "n": 25,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "clock",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      37,
+      36
+     ],
+     "context": 59662,
+     "tokens": {
+      "read": 57667,
+      "added": 354,
+      "output": 168
+     },
+     "usd": {
+      "read": 0.011541,
+      "added": 0.002832,
+      "output": 0.00336,
+      "total": 0.017733
+     },
+     "read_back_later": {
+      "tokens": 1770,
+      "usd": 0.000354
+     }
+    },
+    {
+     "n": 26,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      109
+     ],
+     "context": 60016,
+     "tokens": {
+      "read": 59662,
+      "added": 985,
+      "output": 119
+     },
+     "usd": {
+      "read": 0.01194,
+      "added": 0.00788,
+      "output": 0.00238,
+      "total": 0.0222
+     },
+     "read_back_later": {
+      "tokens": 3940,
+      "usd": 0.000788
+     }
+    },
+    {
+     "n": 27,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1325,
+      651
+     ],
+     "context": 61001,
+     "tokens": {
+      "read": 60016,
+      "added": 1585,
+      "output": 1237
+     },
+     "usd": {
+      "read": 0.012011,
+      "added": 0.01268,
+      "output": 0.02474,
+      "total": 0.049431
+     },
+     "read_back_later": {
+      "tokens": 4755,
+      "usd": 0.000951
+     }
+    },
+    {
+     "n": 28,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1236
+     ],
+     "context": 62586,
+     "tokens": {
+      "read": 61001,
+      "added": 1595,
+      "output": 609
+     },
+     "usd": {
+      "read": 0.012208,
+      "added": 0.01276,
+      "output": 0.01218,
+      "total": 0.037148
+     },
+     "read_back_later": {
+      "tokens": 3190,
+      "usd": 0.000638
+     }
+    },
+    {
+     "n": 29,
+     "phase": "cycle 4",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      114,
+      37
+     ],
+     "context": 64181,
+     "tokens": {
+      "read": 62586,
+      "added": 509,
+      "output": 376
+     },
+     "usd": {
+      "read": 0.012525,
+      "added": 0.004072,
+      "output": 0.00752,
+      "total": 0.024117
+     },
+     "read_back_later": {
+      "tokens": 509,
+      "usd": 0.000102
+     }
+    },
+    {
+     "n": 30,
+     "phase": "cycle 4",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Edit",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1696,
+      2322
+     ],
+     "context": 64690,
+     "tokens": {
+      "read": 64181,
+      "added": 2256,
+      "output": 1914
+     },
+     "usd": {
+      "read": 0.012844,
+      "added": 0.018048,
+      "output": 0.03828,
+      "total": 0.069172
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 31,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 66946,
+     "tokens": {
+      "read": 64690,
+      "added": 0,
+      "output": 927
+     },
+     "usd": {
+      "read": 0.012946,
+      "added": 0,
+      "output": 0.01854,
+      "total": 0.031486
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "taste-polish/A-2",
+   "project": "taste-polish",
+   "arm": "A",
+   "replicate": 2,
+   "transcripts_found": 5,
+   "reported_usd": 1.420756,
+   "harness_turns": 49,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 1.181783,
+     "computed_usd": 1.181783
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.238973,
+     "computed_usd": 0.238973
+    }
+   },
+   "lead": {
+    "calls": 30,
+    "tool_uses": 48,
+    "dispatches": 4,
+    "refused_tool_uses": 1,
+    "usd": {
+     "read": 0.274153,
+     "added": 0.35812,
+     "output": 0.2918,
+     "total": 0.924073
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 43606,
+    "context_at_reply": 60748
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 21,
+    "usd": 0.49668
+   },
+   "uses_by_kind": {
+    "brief": 4,
+    "run-folder": 3,
+    "check": 12,
+    "clock": 8,
+    "amendment": 4,
+    "note": 7,
+    "progress": 3,
+    "started-line": 1,
+    "dispatch": 4,
+    "report": 2
+   },
+   "characters_sent_by_kind": {
+    "brief": 541,
+    "run-folder": 274,
+    "check": 834,
+    "clock": 328,
+    "amendment": 1515,
+    "note": 5688,
+    "progress": 4457,
+    "started-line": 220,
+    "dispatch": 5676,
+    "report": 316
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4792,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038336,
+      "output": 0,
+      "total": 0.038336
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 65747,
+      "added": 17744,
+      "output": 1341
+     },
+     "usd": {
+      "read": 0.013172,
+      "added": 0.141952,
+      "output": 0.02682,
+      "total": 0.181944
+     }
+    },
+    "amendment": {
+     "calls": 3,
+     "tokens": {
+      "read": 111705,
+      "added": 2771,
+      "output": 2131
+     },
+     "usd": {
+      "read": 0.022364,
+      "added": 0.022168,
+      "output": 0.04262,
+      "total": 0.087152
+     }
+    },
+    "note": {
+     "calls": 7,
+     "tokens": {
+      "read": 351246,
+      "added": 6464,
+      "output": 5152
+     },
+     "usd": {
+      "read": 0.070302,
+      "added": 0.051712,
+      "output": 0.10304,
+      "total": 0.225054
+     }
+    },
+    "clock": {
+     "calls": 5,
+     "tokens": {
+      "read": 237961,
+      "added": 1065,
+      "output": 712
+     },
+     "usd": {
+      "read": 0.047631,
+      "added": 0.00852,
+      "output": 0.01424,
+      "total": 0.070391
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 42616,
+      "added": 822,
+      "output": 169
+     },
+     "usd": {
+      "read": 0.008531,
+      "added": 0.006576,
+      "output": 0.00338,
+      "total": 0.018487
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 197091,
+      "added": 7153,
+      "output": 2668
+     },
+     "usd": {
+      "read": 0.039447,
+      "added": 0.057224,
+      "output": 0.05336,
+      "total": 0.150031
+     }
+    },
+    "check": {
+     "calls": 4,
+     "tokens": {
+      "read": 199902,
+      "added": 2582,
+      "output": 660
+     },
+     "usd": {
+      "read": 0.04001,
+      "added": 0.020656,
+      "output": 0.0132,
+      "total": 0.073866
+     }
+    },
+    "report": {
+     "calls": 2,
+     "tokens": {
+      "read": 104412,
+      "added": 1372,
+      "output": 1047
+     },
+     "usd": {
+      "read": 0.020897,
+      "added": 0.010976,
+      "output": 0.02094,
+      "total": 0.052813
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 58959,
+      "added": 0,
+      "output": 710
+     },
+     "usd": {
+      "read": 0.011799,
+      "added": 0,
+      "output": 0.0142,
+      "total": 0.025999
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 9,
+     "tokens": {
+      "read": 302210,
+      "added": 27623,
+      "output": 4728
+     },
+     "usd": {
+      "read": 0.060511,
+      "added": 0.220984,
+      "output": 0.09456,
+      "total": 0.376055
+     }
+    },
+    "cycle 1": {
+     "calls": 7,
+     "tokens": {
+      "read": 316827,
+      "added": 4472,
+      "output": 2059
+     },
+     "usd": {
+      "read": 0.063418,
+      "added": 0.035776,
+      "output": 0.04118,
+      "total": 0.140374
+     }
+    },
+    "cycle 2": {
+     "calls": 3,
+     "tokens": {
+      "read": 145794,
+      "added": 4058,
+      "output": 2443
+     },
+     "usd": {
+      "read": 0.029181,
+      "added": 0.032464,
+      "output": 0.04886,
+      "total": 0.110505
+     }
+    },
+    "cycle 3": {
+     "calls": 7,
+     "tokens": {
+      "read": 375337,
+      "added": 4198,
+      "output": 1862
+     },
+     "usd": {
+      "read": 0.07512,
+      "added": 0.033584,
+      "output": 0.03724,
+      "total": 0.145944
+     }
+    },
+    "cycle 4": {
+     "calls": 3,
+     "tokens": {
+      "read": 170512,
+      "added": 4414,
+      "output": 2788
+     },
+     "usd": {
+      "read": 0.034124,
+      "added": 0.035312,
+      "output": 0.05576,
+      "total": 0.125196
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 58959,
+      "added": 0,
+      "output": 710
+     },
+     "usd": {
+      "read": 0.011799,
+      "added": 0,
+      "output": 0.0142,
+      "total": 0.025999
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 479490,
+     "usd": 0.09612
+    },
+    "prompt": {
+     "tokens": 138968,
+     "usd": 0.027794
+    },
+    "brief": {
+     "tokens": 482374,
+     "usd": 0.096475
+    },
+    "amendment": {
+     "tokens": 67142,
+     "usd": 0.013429
+    },
+    "note": {
+     "tokens": 63095,
+     "usd": 0.012618
+    },
+    "clock": {
+     "tokens": 13820,
+     "usd": 0.002765
+    },
+    "started-line": {
+     "tokens": 16440,
+     "usd": 0.003288
+    },
+    "dispatch": {
+     "tokens": 73774,
+     "usd": 0.014755
+    },
+    "check": {
+     "tokens": 26544,
+     "usd": 0.005309
+    },
+    "report": {
+     "tokens": 7992,
+     "usd": 0.001598
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 4792,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038336,
+      "output": 0,
+      "total": 0.038336
+     }
+    },
+    "brief": {
+     "calls": 3,
+     "tokens": {
+      "read": 65747,
+      "added": 17744,
+      "output": 1341
+     },
+     "usd": {
+      "read": 0.013172,
+      "added": 0.141952,
+      "output": 0.02682,
+      "total": 0.181944
+     }
+    },
+    "amendment": {
+     "calls": 3,
+     "tokens": {
+      "read": 111705,
+      "added": 2771,
+      "output": 2131
+     },
+     "usd": {
+      "read": 0.022364,
+      "added": 0.022168,
+      "output": 0.04262,
+      "total": 0.087152
+     }
+    },
+    "note": {
+     "calls": 1,
+     "tokens": {
+      "read": 40852,
+      "added": 1326,
+      "output": 991
+     },
+     "usd": {
+      "read": 0.008178,
+      "added": 0.010608,
+      "output": 0.01982,
+      "total": 0.038606
+     }
+    },
+    "clock": {
+     "calls": 1,
+     "tokens": {
+      "read": 41290,
+      "added": 168,
+      "output": 96
+     },
+     "usd": {
+      "read": 0.008266,
+      "added": 0.001344,
+      "output": 0.00192,
+      "total": 0.01153
+     }
+    },
+    "started-line": {
+     "calls": 1,
+     "tokens": {
+      "read": 42616,
+      "added": 822,
+      "output": 169
+     },
+     "usd": {
+      "read": 0.008531,
+      "added": 0.006576,
+      "output": 0.00338,
+      "total": 0.018487
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 4792,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.038336,
+      "output": 0,
+      "total": 0.038336
+     },
+     "read_back_later": {
+      "tokens": 138968,
+      "usd": 0.027794
+     }
+    },
+    {
+     "n": 1,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "run-folder"
+     ],
+     "tools": [
+      "Read",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      128,
+      44
+     ],
+     "context": 20775,
+     "tokens": {
+      "read": 15983,
+      "added": 8214,
+      "output": 233
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.065712,
+      "output": 0.00466,
+      "total": 0.073576
+     },
+     "read_back_later": {
+      "tokens": 229992,
+      "usd": 0.045998
+     }
+    },
+    {
+     "n": 2,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "run-folder",
+      "check",
+      "brief"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      77,
+      30,
+      138
+     ],
+     "context": 28989,
+     "tokens": {
+      "read": 20775,
+      "added": 4602,
+      "output": 448
+     },
+     "usd": {
+      "read": 0.004163,
+      "added": 0.036816,
+      "output": 0.00896,
+      "total": 0.049939
+     },
+     "read_back_later": {
+      "tokens": 124254,
+      "usd": 0.024851
+     }
+    },
+    {
+     "n": 3,
+     "phase": "setup",
+     "kind": "brief",
+     "uses": [
+      "brief",
+      "brief",
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Read",
+      "Read",
+      "Read",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      137,
+      138,
+      102,
+      109
+     ],
+     "context": 33591,
+     "tokens": {
+      "read": 28989,
+      "added": 4928,
+      "output": 660
+     },
+     "usd": {
+      "read": 0.005805,
+      "added": 0.039424,
+      "output": 0.0132,
+      "total": 0.058429
+     },
+     "read_back_later": {
+      "tokens": 128128,
+      "usd": 0.025626
+     }
+    },
+    {
+     "n": 4,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "run-folder",
+      "clock",
+      "amendment"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      153,
+      41,
+      32
+     ],
+     "context": 38519,
+     "tokens": {
+      "read": 33591,
+      "added": 1076,
+      "output": 871
+     },
+     "usd": {
+      "read": 0.006726,
+      "added": 0.008608,
+      "output": 0.01742,
+      "total": 0.032754
+     },
+     "read_back_later": {
+      "tokens": 26900,
+      "usd": 0.00538
+     }
+    },
+    {
+     "n": 5,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment",
+      "amendment"
+     ],
+     "tools": [
+      "Edit",
+      "Edit"
+     ],
+     "refused": 1,
+     "characters_sent": [
+      754,
+      602
+     ],
+     "context": 39595,
+     "tokens": {
+      "read": 38519,
+      "added": 1257,
+      "output": 914
+     },
+     "usd": {
+      "read": 0.007711,
+      "added": 0.010056,
+      "output": 0.01828,
+      "total": 0.036047
+     },
+     "read_back_later": {
+      "tokens": 30168,
+      "usd": 0.006034
+     }
+    },
+    {
+     "n": 6,
+     "phase": "setup",
+     "kind": "amendment",
+     "uses": [
+      "amendment"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      127
+     ],
+     "context": 40852,
+     "tokens": {
+      "read": 39595,
+      "added": 438,
+      "output": 346
+     },
+     "usd": {
+      "read": 0.007927,
+      "added": 0.003504,
+      "output": 0.00692,
+      "total": 0.018351
+     },
+     "read_back_later": {
+      "tokens": 10074,
+      "usd": 0.002015
+     }
+    },
+    {
+     "n": 7,
+     "phase": "setup",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Write",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1033,
+      1092
+     ],
+     "context": 41290,
+     "tokens": {
+      "read": 40852,
+      "added": 1326,
+      "output": 991
+     },
+     "usd": {
+      "read": 0.008178,
+      "added": 0.010608,
+      "output": 0.01982,
+      "total": 0.038606
+     },
+     "read_back_later": {
+      "tokens": 29172,
+      "usd": 0.005834
+     }
+    },
+    {
+     "n": 8,
+     "phase": "setup",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 42616,
+     "tokens": {
+      "read": 41290,
+      "added": 168,
+      "output": 96
+     },
+     "usd": {
+      "read": 0.008266,
+      "added": 0.001344,
+      "output": 0.00192,
+      "total": 0.01153
+     },
+     "read_back_later": {
+      "tokens": 3528,
+      "usd": 0.000706
+     }
+    },
+    {
+     "n": 9,
+     "phase": "setup",
+     "kind": "started-line",
+     "uses": [
+      "started-line"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      220
+     ],
+     "context": 42784,
+     "tokens": {
+      "read": 42616,
+      "added": 822,
+      "output": 169
+     },
+     "usd": {
+      "read": 0.008531,
+      "added": 0.006576,
+      "output": 0.00338,
+      "total": 0.018487
+     },
+     "read_back_later": {
+      "tokens": 16440,
+      "usd": 0.003288
+     }
+    },
+    {
+     "n": 10,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1408
+     ],
+     "context": 43606,
+     "tokens": {
+      "read": 42784,
+      "added": 1691,
+      "output": 617
+     },
+     "usd": {
+      "read": 0.008564,
+      "added": 0.013528,
+      "output": 0.01234,
+      "total": 0.034432
+     },
+     "read_back_later": {
+      "tokens": 32129,
+      "usd": 0.006426
+     }
+    },
+    {
+     "n": 11,
+     "phase": "cycle 1",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 45297,
+     "tokens": {
+      "read": 43606,
+      "added": 191,
+      "output": 122
+     },
+     "usd": {
+      "read": 0.008729,
+      "added": 0.001528,
+      "output": 0.00244,
+      "total": 0.012697
+     },
+     "read_back_later": {
+      "tokens": 3438,
+      "usd": 0.000688
+     }
+    },
+    {
+     "n": 12,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      467,
+      32
+     ],
+     "context": 45488,
+     "tokens": {
+      "read": 45297,
+      "added": 538,
+      "output": 356
+     },
+     "usd": {
+      "read": 0.009067,
+      "added": 0.004304,
+      "output": 0.00712,
+      "total": 0.020491
+     },
+     "read_back_later": {
+      "tokens": 9146,
+      "usd": 0.001829
+     }
+    },
+    {
+     "n": 13,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      52
+     ],
+     "context": 46026,
+     "tokens": {
+      "read": 45488,
+      "added": 253,
+      "output": 161
+     },
+     "usd": {
+      "read": 0.009105,
+      "added": 0.002024,
+      "output": 0.00322,
+      "total": 0.014349
+     },
+     "read_back_later": {
+      "tokens": 4048,
+      "usd": 0.00081
+     }
+    },
+    {
+     "n": 14,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      82,
+      109
+     ],
+     "context": 46279,
+     "tokens": {
+      "read": 46026,
+      "added": 1068,
+      "output": 210
+     },
+     "usd": {
+      "read": 0.009213,
+      "added": 0.008544,
+      "output": 0.0042,
+      "total": 0.021957
+     },
+     "read_back_later": {
+      "tokens": 16020,
+      "usd": 0.003204
+     }
+    },
+    {
+     "n": 15,
+     "phase": "cycle 1",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 47347,
+     "tokens": {
+      "read": 46279,
+      "added": 327,
+      "output": 256
+     },
+     "usd": {
+      "read": 0.009263,
+      "added": 0.002616,
+      "output": 0.00512,
+      "total": 0.016999
+     },
+     "read_back_later": {
+      "tokens": 4578,
+      "usd": 0.000916
+     }
+    },
+    {
+     "n": 16,
+     "phase": "cycle 1",
+     "kind": "note",
+     "uses": [
+      "note"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      610
+     ],
+     "context": 47674,
+     "tokens": {
+      "read": 47347,
+      "added": 404,
+      "output": 337
+     },
+     "usd": {
+      "read": 0.009477,
+      "added": 0.003232,
+      "output": 0.00674,
+      "total": 0.019449
+     },
+     "read_back_later": {
+      "tokens": 5252,
+      "usd": 0.00105
+     }
+    },
+    {
+     "n": 17,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1424
+     ],
+     "context": 48078,
+     "tokens": {
+      "read": 47674,
+      "added": 1964,
+      "output": 716
+     },
+     "usd": {
+      "read": 0.009542,
+      "added": 0.015712,
+      "output": 0.01432,
+      "total": 0.039574
+     },
+     "read_back_later": {
+      "tokens": 23568,
+      "usd": 0.004714
+     }
+    },
+    {
+     "n": 18,
+     "phase": "cycle 2",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      158,
+      41
+     ],
+     "context": 50042,
+     "tokens": {
+      "read": 48078,
+      "added": 662,
+      "output": 530
+     },
+     "usd": {
+      "read": 0.009623,
+      "added": 0.005296,
+      "output": 0.0106,
+      "total": 0.025519
+     },
+     "read_back_later": {
+      "tokens": 7282,
+      "usd": 0.001456
+     }
+    },
+    {
+     "n": 19,
+     "phase": "cycle 2",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1145,
+      1353
+     ],
+     "context": 50704,
+     "tokens": {
+      "read": 50042,
+      "added": 1432,
+      "output": 1197
+     },
+     "usd": {
+      "read": 0.010016,
+      "added": 0.011456,
+      "output": 0.02394,
+      "total": 0.045412
+     },
+     "read_back_later": {
+      "tokens": 14320,
+      "usd": 0.002864
+     }
+    },
+    {
+     "n": 20,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1405
+     ],
+     "context": 52136,
+     "tokens": {
+      "read": 50704,
+      "added": 1583,
+      "output": 613
+     },
+     "usd": {
+      "read": 0.010148,
+      "added": 0.012664,
+      "output": 0.01226,
+      "total": 0.035072
+     },
+     "read_back_later": {
+      "tokens": 14247,
+      "usd": 0.002849
+     }
+    },
+    {
+     "n": 21,
+     "phase": "cycle 3",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 53719,
+     "tokens": {
+      "read": 52136,
+      "added": 190,
+      "output": 121
+     },
+     "usd": {
+      "read": 0.010435,
+      "added": 0.00152,
+      "output": 0.00242,
+      "total": 0.014375
+     },
+     "read_back_later": {
+      "tokens": 1520,
+      "usd": 0.000304
+     }
+    },
+    {
+     "n": 22,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "note",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      579,
+      32
+     ],
+     "context": 53909,
+     "tokens": {
+      "read": 53719,
+      "added": 570,
+      "output": 385
+     },
+     "usd": {
+      "read": 0.010751,
+      "added": 0.00456,
+      "output": 0.0077,
+      "total": 0.023011
+     },
+     "read_back_later": {
+      "tokens": 3990,
+      "usd": 0.000798
+     }
+    },
+    {
+     "n": 23,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      52
+     ],
+     "context": 54479,
+     "tokens": {
+      "read": 53909,
+      "added": 171,
+      "output": 79
+     },
+     "usd": {
+      "read": 0.010789,
+      "added": 0.001368,
+      "output": 0.00158,
+      "total": 0.013737
+     },
+     "read_back_later": {
+      "tokens": 1026,
+      "usd": 0.000205
+     }
+    },
+    {
+     "n": 24,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      82,
+      109
+     ],
+     "context": 54650,
+     "tokens": {
+      "read": 54479,
+      "added": 1090,
+      "output": 210
+     },
+     "usd": {
+      "read": 0.010903,
+      "added": 0.00872,
+      "output": 0.0042,
+      "total": 0.023823
+     },
+     "read_back_later": {
+      "tokens": 5450,
+      "usd": 0.00109
+     }
+    },
+    {
+     "n": 25,
+     "phase": "cycle 3",
+     "kind": "clock",
+     "uses": [
+      "clock"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      41
+     ],
+     "context": 55740,
+     "tokens": {
+      "read": 54650,
+      "added": 189,
+      "output": 117
+     },
+     "usd": {
+      "read": 0.010938,
+      "added": 0.001512,
+      "output": 0.00234,
+      "total": 0.01479
+     },
+     "read_back_later": {
+      "tokens": 756,
+      "usd": 0.000151
+     }
+    },
+    {
+     "n": 26,
+     "phase": "cycle 3",
+     "kind": "note",
+     "uses": [
+      "note"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      610
+     ],
+     "context": 55929,
+     "tokens": {
+      "read": 55740,
+      "added": 405,
+      "output": 337
+     },
+     "usd": {
+      "read": 0.011156,
+      "added": 0.00324,
+      "output": 0.00674,
+      "total": 0.021136
+     },
+     "read_back_later": {
+      "tokens": 1215,
+      "usd": 0.000243
+     }
+    },
+    {
+     "n": 27,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1439
+     ],
+     "context": 56334,
+     "tokens": {
+      "read": 55929,
+      "added": 1915,
+      "output": 722
+     },
+     "usd": {
+      "read": 0.011193,
+      "added": 0.01532,
+      "output": 0.01444,
+      "total": 0.040953
+     },
+     "read_back_later": {
+      "tokens": 3830,
+      "usd": 0.000766
+     }
+    },
+    {
+     "n": 28,
+     "phase": "cycle 4",
+     "kind": "report",
+     "uses": [
+      "report",
+      "clock",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      158,
+      41,
+      43
+     ],
+     "context": 58249,
+     "tokens": {
+      "read": 56334,
+      "added": 710,
+      "output": 517
+     },
+     "usd": {
+      "read": 0.011274,
+      "added": 0.00568,
+      "output": 0.01034,
+      "total": 0.027294
+     },
+     "read_back_later": {
+      "tokens": 710,
+      "usd": 0.000142
+     }
+    },
+    {
+     "n": 29,
+     "phase": "cycle 4",
+     "kind": "note",
+     "uses": [
+      "note",
+      "progress"
+     ],
+     "tools": [
+      "Bash",
+      "Write"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1244,
+      2012
+     ],
+     "context": 58959,
+     "tokens": {
+      "read": 58249,
+      "added": 1789,
+      "output": 1549
+     },
+     "usd": {
+      "read": 0.011657,
+      "added": 0.014312,
+      "output": 0.03098,
+      "total": 0.056949
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 30,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 60748,
+     "tokens": {
+      "read": 58959,
+      "added": 0,
+      "output": 710
+     },
+     "usd": {
+      "read": 0.011799,
+      "added": 0,
+      "output": 0.0142,
+      "total": 0.025999
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "taste-polish/B-1",
+   "project": "taste-polish",
+   "arm": "B",
+   "replicate": 1,
+   "transcripts_found": 5,
+   "reported_usd": 0.890728,
+   "harness_turns": 11,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.623447,
+     "computed_usd": 0.623447
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.267281,
+     "computed_usd": 0.267281
+    }
+   },
+   "lead": {
+    "calls": 9,
+    "tool_uses": 10,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.048157,
+     "added": 0.145696,
+     "output": 0.10588,
+     "total": 0.299733
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 23287,
+    "context_at_reply": 34195
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 19,
+    "usd": 0.590995
+   },
+   "uses_by_kind": {
+    "dispatch": 4,
+    "check": 6
+   },
+   "characters_sent_by_kind": {
+    "dispatch": 7796,
+    "check": 396
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7304,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058432,
+      "output": 0,
+      "total": 0.058432
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 100003,
+      "added": 7735,
+      "output": 4053
+     },
+     "usd": {
+      "read": 0.020031,
+      "added": 0.06188,
+      "output": 0.08106,
+      "total": 0.162971
+     }
+    },
+    "check": {
+     "calls": 4,
+     "tokens": {
+      "read": 108138,
+      "added": 3173,
+      "output": 558
+     },
+     "usd": {
+      "read": 0.021658,
+      "added": 0.025384,
+      "output": 0.01116,
+      "total": 0.058202
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 32300,
+      "added": 0,
+      "output": 683
+     },
+     "usd": {
+      "read": 0.006468,
+      "added": 0,
+      "output": 0.01366,
+      "total": 0.020128
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7304,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058432,
+      "output": 0,
+      "total": 0.058432
+     }
+    },
+    "cycle 1": {
+     "calls": 3,
+     "tokens": {
+      "read": 64541,
+      "added": 3569,
+      "output": 1312
+     },
+     "usd": {
+      "read": 0.012931,
+      "added": 0.028552,
+      "output": 0.02624,
+      "total": 0.067723
+     }
+    },
+    "cycle 2": {
+     "calls": 1,
+     "tokens": {
+      "read": 25866,
+      "added": 2012,
+      "output": 1054
+     },
+     "usd": {
+      "read": 0.005181,
+      "added": 0.016096,
+      "output": 0.02108,
+      "total": 0.042357
+     }
+    },
+    "cycle 3": {
+     "calls": 3,
+     "tokens": {
+      "read": 86436,
+      "added": 3432,
+      "output": 1194
+     },
+     "usd": {
+      "read": 0.01731,
+      "added": 0.027456,
+      "output": 0.02388,
+      "total": 0.068646
+     }
+    },
+    "cycle 4": {
+     "calls": 1,
+     "tokens": {
+      "read": 31298,
+      "added": 1895,
+      "output": 1051
+     },
+     "usd": {
+      "read": 0.006267,
+      "added": 0.01516,
+      "output": 0.02102,
+      "total": 0.042447
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 32300,
+      "added": 0,
+      "output": 683
+     },
+     "usd": {
+      "read": 0.006468,
+      "added": 0,
+      "output": 0.01366,
+      "total": 0.020128
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 143847,
+     "usd": 0.028836
+    },
+    "prompt": {
+     "tokens": 58432,
+     "usd": 0.011686
+    },
+    "dispatch": {
+     "tokens": 27468,
+     "usd": 0.005494
+    },
+    "check": {
+     "tokens": 10694,
+     "usd": 0.002138
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7304,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058432,
+      "output": 0,
+      "total": 0.058432
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 7304,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058432,
+      "output": 0,
+      "total": 0.058432
+     },
+     "read_back_later": {
+      "tokens": 58432,
+      "usd": 0.011686
+     }
+    },
+    {
+     "n": 1,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1702
+     ],
+     "context": 23287,
+     "tokens": {
+      "read": 15983,
+      "added": 1984,
+      "output": 1027
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.015872,
+      "output": 0.02054,
+      "total": 0.039616
+     },
+     "read_back_later": {
+      "tokens": 13888,
+      "usd": 0.002778
+     }
+    },
+    {
+     "n": 2,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      35,
+      54
+     ],
+     "context": 25271,
+     "tokens": {
+      "read": 23287,
+      "added": 595,
+      "output": 168
+     },
+     "usd": {
+      "read": 0.004665,
+      "added": 0.00476,
+      "output": 0.00336,
+      "total": 0.012785
+     },
+     "read_back_later": {
+      "tokens": 3570,
+      "usd": 0.000714
+     }
+    },
+    {
+     "n": 3,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      109
+     ],
+     "context": 25866,
+     "tokens": {
+      "read": 25271,
+      "added": 990,
+      "output": 117
+     },
+     "usd": {
+      "read": 0.005062,
+      "added": 0.00792,
+      "output": 0.00234,
+      "total": 0.015322
+     },
+     "read_back_later": {
+      "tokens": 4950,
+      "usd": 0.00099
+     }
+    },
+    {
+     "n": 4,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2051
+     ],
+     "context": 26856,
+     "tokens": {
+      "read": 25866,
+      "added": 2012,
+      "output": 1054
+     },
+     "usd": {
+      "read": 0.005181,
+      "added": 0.016096,
+      "output": 0.02108,
+      "total": 0.042357
+     },
+     "read_back_later": {
+      "tokens": 8048,
+      "usd": 0.00161
+     }
+    },
+    {
+     "n": 5,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1923
+     ],
+     "context": 28868,
+     "tokens": {
+      "read": 26856,
+      "added": 1844,
+      "output": 921
+     },
+     "usd": {
+      "read": 0.005379,
+      "added": 0.014752,
+      "output": 0.01842,
+      "total": 0.038551
+     },
+     "read_back_later": {
+      "tokens": 5532,
+      "usd": 0.001106
+     }
+    },
+    {
+     "n": 6,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      35,
+      54
+     ],
+     "context": 30712,
+     "tokens": {
+      "read": 28868,
+      "added": 586,
+      "output": 156
+     },
+     "usd": {
+      "read": 0.005781,
+      "added": 0.004688,
+      "output": 0.00312,
+      "total": 0.013589
+     },
+     "read_back_later": {
+      "tokens": 1172,
+      "usd": 0.000234
+     }
+    },
+    {
+     "n": 7,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      109
+     ],
+     "context": 31298,
+     "tokens": {
+      "read": 30712,
+      "added": 1002,
+      "output": 117
+     },
+     "usd": {
+      "read": 0.00615,
+      "added": 0.008016,
+      "output": 0.00234,
+      "total": 0.016506
+     },
+     "read_back_later": {
+      "tokens": 1002,
+      "usd": 0.0002
+     }
+    },
+    {
+     "n": 8,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2120
+     ],
+     "context": 32300,
+     "tokens": {
+      "read": 31298,
+      "added": 1895,
+      "output": 1051
+     },
+     "usd": {
+      "read": 0.006267,
+      "added": 0.01516,
+      "output": 0.02102,
+      "total": 0.042447
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 9,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 34195,
+     "tokens": {
+      "read": 32300,
+      "added": 0,
+      "output": 683
+     },
+     "usd": {
+      "read": 0.006468,
+      "added": 0,
+      "output": 0.01366,
+      "total": 0.020128
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  },
+  {
+   "run": "taste-polish/B-2",
+   "project": "taste-polish",
+   "arm": "B",
+   "replicate": 2,
+   "transcripts_found": 5,
+   "reported_usd": 0.881128,
+   "harness_turns": 10,
+   "rates_give_the_reported_cost_back": true,
+   "furthest_from_reported_usd": 0,
+   "by_model": {
+    "claude-opus-5-5": {
+     "reported_usd": 0.598765,
+     "computed_usd": 0.598765
+    },
+    "claude-sonnet-5-5": {
+     "reported_usd": 0.282363,
+     "computed_usd": 0.282363
+    }
+   },
+   "lead": {
+    "calls": 9,
+    "tool_uses": 9,
+    "dispatches": 4,
+    "refused_tool_uses": 0,
+    "usd": {
+     "read": 0.048431,
+     "added": 0.146144,
+     "output": 0.11074,
+     "total": 0.305315
+    },
+    "context_at_first_call": 15983,
+    "context_at_first_dispatch": 23325,
+    "context_at_reply": 34251
+   },
+   "subagents": {
+    "transcripts": 4,
+    "calls": 20,
+    "usd": 0.575813
+   },
+   "uses_by_kind": {
+    "dispatch": 4,
+    "check": 5
+   },
+   "characters_sent_by_kind": {
+    "dispatch": 7902,
+    "check": 360
+   },
+   "by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7342,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058736,
+      "output": 0,
+      "total": 0.058736
+     }
+    },
+    "dispatch": {
+     "calls": 4,
+     "tokens": {
+      "read": 100489,
+      "added": 8117,
+      "output": 4178
+     },
+     "usd": {
+      "read": 0.020128,
+      "added": 0.064936,
+      "output": 0.08356,
+      "total": 0.168624
+     }
+    },
+    "check": {
+     "calls": 4,
+     "tokens": {
+      "read": 108976,
+      "added": 2809,
+      "output": 502
+     },
+     "usd": {
+      "read": 0.021826,
+      "added": 0.022472,
+      "output": 0.01004,
+      "total": 0.054338
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 32347,
+      "added": 0,
+      "output": 857
+     },
+     "usd": {
+      "read": 0.006477,
+      "added": 0,
+      "output": 0.01714,
+      "total": 0.023617
+     }
+    }
+   },
+   "by_phase": {
+    "setup": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7342,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058736,
+      "output": 0,
+      "total": 0.058736
+     }
+    },
+    "cycle 1": {
+     "calls": 3,
+     "tokens": {
+      "read": 64780,
+      "added": 3753,
+      "output": 1312
+     },
+     "usd": {
+      "read": 0.012979,
+      "added": 0.030024,
+      "output": 0.02624,
+      "total": 0.069243
+     }
+    },
+    "cycle 2": {
+     "calls": 1,
+     "tokens": {
+      "read": 26083,
+      "added": 1957,
+      "output": 1116
+     },
+     "usd": {
+      "read": 0.005224,
+      "added": 0.015656,
+      "output": 0.02232,
+      "total": 0.0432
+     }
+    },
+    "cycle 3": {
+     "calls": 3,
+     "tokens": {
+      "read": 87257,
+      "added": 3312,
+      "output": 1173
+     },
+     "usd": {
+      "read": 0.017474,
+      "added": 0.026496,
+      "output": 0.02346,
+      "total": 0.06743
+     }
+    },
+    "cycle 4": {
+     "calls": 1,
+     "tokens": {
+      "read": 31345,
+      "added": 1904,
+      "output": 1079
+     },
+     "usd": {
+      "read": 0.006277,
+      "added": 0.015232,
+      "output": 0.02158,
+      "total": 0.043089
+     }
+    },
+    "reply": {
+     "calls": 1,
+     "tokens": {
+      "read": 32347,
+      "added": 0,
+      "output": 857
+     },
+     "usd": {
+      "read": 0.006477,
+      "added": 0,
+      "output": 0.01714,
+      "total": 0.023617
+     }
+    }
+   },
+   "read_back_by_origin": {
+    "start": {
+     "tokens": 143847,
+     "usd": 0.028836
+    },
+    "prompt": {
+     "tokens": 58736,
+     "usd": 0.011747
+    },
+    "dispatch": {
+     "tokens": 29184,
+     "usd": 0.005837
+    },
+    "check": {
+     "tokens": 10045,
+     "usd": 0.002008
+    },
+    "reply": {
+     "tokens": 0,
+     "usd": 0
+    }
+   },
+   "setup_by_kind": {
+    "prompt": {
+     "calls": 0,
+     "tokens": {
+      "read": 0,
+      "added": 7342,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058736,
+      "output": 0,
+      "total": 0.058736
+     }
+    }
+   },
+   "rows": [
+    {
+     "n": 0,
+     "phase": "setup",
+     "kind": "prompt",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": null,
+     "tokens": {
+      "read": 0,
+      "added": 7342,
+      "output": 0
+     },
+     "usd": {
+      "read": 0,
+      "added": 0.058736,
+      "output": 0,
+      "total": 0.058736
+     },
+     "read_back_later": {
+      "tokens": 58736,
+      "usd": 0.011747
+     }
+    },
+    {
+     "n": 1,
+     "phase": "cycle 1",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      1679
+     ],
+     "context": 23325,
+     "tokens": {
+      "read": 15983,
+      "added": 2147,
+      "output": 1009
+     },
+     "usd": {
+      "read": 0.003204,
+      "added": 0.017176,
+      "output": 0.02018,
+      "total": 0.04056
+     },
+     "read_back_later": {
+      "tokens": 15029,
+      "usd": 0.003006
+     }
+    },
+    {
+     "n": 2,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check",
+      "check"
+     ],
+     "tools": [
+      "Bash",
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      44,
+      54
+     ],
+     "context": 25472,
+     "tokens": {
+      "read": 23325,
+      "added": 611,
+      "output": 184
+     },
+     "usd": {
+      "read": 0.004673,
+      "added": 0.004888,
+      "output": 0.00368,
+      "total": 0.013241
+     },
+     "read_back_later": {
+      "tokens": 3666,
+      "usd": 0.000733
+     }
+    },
+    {
+     "n": 3,
+     "phase": "cycle 1",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      109
+     ],
+     "context": 26083,
+     "tokens": {
+      "read": 25472,
+      "added": 995,
+      "output": 119
+     },
+     "usd": {
+      "read": 0.005102,
+      "added": 0.00796,
+      "output": 0.00238,
+      "total": 0.015442
+     },
+     "read_back_later": {
+      "tokens": 4975,
+      "usd": 0.000995
+     }
+    },
+    {
+     "n": 4,
+     "phase": "cycle 2",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2012
+     ],
+     "context": 27078,
+     "tokens": {
+      "read": 26083,
+      "added": 1957,
+      "output": 1116
+     },
+     "usd": {
+      "read": 0.005224,
+      "added": 0.015656,
+      "output": 0.02232,
+      "total": 0.0432
+     },
+     "read_back_later": {
+      "tokens": 7828,
+      "usd": 0.001566
+     }
+    },
+    {
+     "n": 5,
+     "phase": "cycle 3",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2088
+     ],
+     "context": 29035,
+     "tokens": {
+      "read": 27078,
+      "added": 2109,
+      "output": 974
+     },
+     "usd": {
+      "read": 0.005423,
+      "added": 0.016872,
+      "output": 0.01948,
+      "total": 0.041775
+     },
+     "read_back_later": {
+      "tokens": 6327,
+      "usd": 0.001265
+     }
+    },
+    {
+     "n": 6,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Bash"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      44
+     ],
+     "context": 31144,
+     "tokens": {
+      "read": 29035,
+      "added": 201,
+      "output": 80
+     },
+     "usd": {
+      "read": 0.005815,
+      "added": 0.001608,
+      "output": 0.0016,
+      "total": 0.009023
+     },
+     "read_back_later": {
+      "tokens": 402,
+      "usd": 0.00008
+     }
+    },
+    {
+     "n": 7,
+     "phase": "cycle 3",
+     "kind": "check",
+     "uses": [
+      "check"
+     ],
+     "tools": [
+      "Read"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      109
+     ],
+     "context": 31345,
+     "tokens": {
+      "read": 31144,
+      "added": 1002,
+      "output": 119
+     },
+     "usd": {
+      "read": 0.006236,
+      "added": 0.008016,
+      "output": 0.00238,
+      "total": 0.016632
+     },
+     "read_back_later": {
+      "tokens": 1002,
+      "usd": 0.0002
+     }
+    },
+    {
+     "n": 8,
+     "phase": "cycle 4",
+     "kind": "dispatch",
+     "uses": [
+      "dispatch"
+     ],
+     "tools": [
+      "Agent"
+     ],
+     "refused": 0,
+     "characters_sent": [
+      2123
+     ],
+     "context": 32347,
+     "tokens": {
+      "read": 31345,
+      "added": 1904,
+      "output": 1079
+     },
+     "usd": {
+      "read": 0.006277,
+      "added": 0.015232,
+      "output": 0.02158,
+      "total": 0.043089
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    },
+    {
+     "n": 9,
+     "phase": "reply",
+     "kind": "reply",
+     "uses": [],
+     "tools": [],
+     "refused": 0,
+     "characters_sent": [],
+     "context": 34251,
+     "tokens": {
+      "read": 32347,
+      "added": 0,
+      "output": 857
+     },
+     "usd": {
+      "read": 0.006477,
+      "added": 0,
+      "output": 0.01714,
+      "total": 0.023617
+     },
+     "read_back_later": {
+      "tokens": 0,
+      "usd": 0
+     }
+    }
+   ]
+  }
+ ]
+}
