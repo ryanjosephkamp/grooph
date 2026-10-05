@@ -133,7 +133,13 @@ function routes(): Plugin {
         const frontPage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/landing/front.ts"));
         if (!frontPage) throw new Error("grooph-routes: no chunk of its own for the front page's picture (src/ui/landing/front.ts). The build no longer splits where vite.config.ts expects.");
         found.front = [...closure(frontPage)].filter((f) => !inEntry.has(f) && !inApp.has(f));
-        found.later = [...new Set([...found.later, ...found.templates, ...found.front])];
+        // A graph's other views in three dimensions (slice 0096; src/ui/canvas/graph-stage.tsx): one piece for the
+        // stage and every view on it, fetched when one is chosen, and named in the page so the worker holds it. One
+        // piece and not one a view: a name is on every address's first load. Written apart from the lists above too.
+        const graphStage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-stage.tsx"));
+        if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
+        const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
+        found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them

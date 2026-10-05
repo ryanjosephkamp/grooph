@@ -22,6 +22,12 @@
  * card, tilting as it goes, while the canvas's edges fade and the sheets and arcs come; and back the same way
  * (`ui/become.ts`). The scene it ends on is the scene as it was before there was any motion, and with reduced
  * motion, or in a browser with no view transitions, the change is that scene in one paint.
+ *
+ * **The kinds of 3D.** The stairs are one way of seeing a graph in three dimensions; the others the owner picked
+ * from the studio (handoff 0096) are a piece of their own (`graph-stage.tsx`), fetched when one is chosen. While a
+ * view in three dimensions is up, a row under the switch says which kind it is and offers the others; the switch
+ * itself stays Picture and 3D, and 3D opens the kind last chosen in the visit, the stairs the first time. From one
+ * kind to another each card is seen to go to its place in the next, as from the picture.
  */
 import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -32,8 +38,41 @@ import css from "./graph-views.css?inline";
 
 type Space = typeof import("../map/space.js");
 type Scene = Parameters<Space["scene"]>[1];
+type Stage3 = typeof import("./graph-stage.js");
 let space: Space | undefined;
+let stage3: Stage3 | undefined;
 let styled = false;
+
+/** The kinds of view in three dimensions, in the order the row has them: each with its name and what it is. */
+const KINDS = [
+  ["stairs", "Stairs", "Each loop is a floor with its own nodes standing on it; a loop inside it has a floor of its own."],
+  ["panes", "Panes", "The picture as it is, with each loop and each box lifted toward you on a pane of its own."],
+] as const;
+type Kind = (typeof KINDS)[number][0];
+/** What is drawn over the canvas: nothing, which is the picture, or a kind of view in three dimensions. */
+type On = "picture" | Kind;
+/** The piece a kind is in: the map's scene for the stairs, the stage for the rest. */
+const pieceOf = (kind: Kind): "space" | "stage" => (kind === "stairs" ? "space" : "stage");
+
+// The kind last chosen, for the visit: the tab's own storage, and memory where a browser refuses that.
+let last: Kind | undefined;
+const kept = (): Kind => {
+  if (last) return last;
+  try {
+    const was = sessionStorage.getItem("groophSpace");
+    return KINDS.find(([id]) => id === was)?.[0] ?? "stairs";
+  } catch {
+    return "stairs";
+  }
+};
+const keep = (kind: Kind): void => {
+  last = kind;
+  try {
+    sessionStorage.setItem("groophSpace", kind);
+  } catch {
+    // Kept in memory, then.
+  }
+};
 
 const KIND: Record<Exclude<Node["kind"], "agent">, [string, "gate" | "check" | "merge" | "stop"]> = { "human-gate": ["Human gate", "gate"], check: ["Check", "check"], merge: ["Merge", "merge"], stop: ["Stop", "stop"] };
 const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -143,39 +182,43 @@ export function graphScene(doc: Graph, per: number, card: number, notes?: readon
  * a tap on its node does there.
  */
 export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] } }) {
+  // What the switch shows, what the row of kinds shows, and what is drawn. The first two follow a press at once; the
+  // third waits until the piece that draws it has come, and until then the page is as it was.
   const [view, setView] = useState<"picture" | "space">("picture");
-  // `undefined` until the scene's piece has come, `null` when it could not be fetched.
+  const [kind, setKind] = useState<Kind>(kept);
+  const [on, setOn] = useState<On>("picture");
+  // `undefined` until a piece has come, `null` when it could not be fetched.
   const [three, setThree] = useState<Space | null | undefined>(space);
+  const [more, setMore] = useState<Stage3 | null | undefined>(stage3);
   const [per, setPer] = useState(3);
   const host = useRef<HTMLDivElement>(null);
-  const kept = useRef<ReturnType<Space["held"]>>(undefined);
+  const held = useRef<ReturnType<Space["held"]>>(undefined);
   if (!styled) {
     const sheet = document.createElement("style");
     sheet.textContent = css;
     document.head.append(sheet);
     styled = true;
   }
-  // The nodes on the canvas, or their cards when the scene is up: what is seen to go from the one view to the other.
-  // Only those wholly in the frame that holds them, the stage and in it the canvas or the scene's own: the browser
-  // draws a moving part over everything that is not moving, uncut, so a node the canvas cuts off (on a phone, one that
-  // would be under a template's details) would be seen to cross what it was behind. And only the graph's nodes: a
-  // subgrooph's frame is drawn on the canvas as one more, larger than the stage as often as not. Measured, not asked
-  // of the page: while the browser waits for a change, every point of the page is the page's root.
+  // The nodes on the canvas, or their cards when a view in three dimensions is up: what is seen to go from the one
+  // view to the other. Only those wholly in the frame that holds them, the stage and in it the canvas or the view's
+  // own: the browser draws a moving part over everything that is not moving, uncut, so a node the canvas cuts off (on
+  // a phone, one that would be under a template's details) would be seen to cross what it was behind. And only the
+  // graph's nodes: a subgrooph's frame is drawn on the canvas as one more, larger than the stage as often as not.
+  // Measured, not asked of the page: while the browser waits for a change, every point of the page is the page's root.
   const parts = (): [HTMLElement, string][] => {
     const stage = host.current?.parentElement;
     if (!stage) return [];
-    const cards = [...stage.querySelectorAll<HTMLElement>(".space-card")].map((card): [HTMLElement, string] => [card, card.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? ""]);
-    const [a, b] = [stage, stage.querySelector(cards.length ? ".space-scene" : ".react-flow") ?? stage].map((el) => el.getBoundingClientRect()) as [DOMRect, DOMRect];
+    const cards = [...stage.querySelectorAll<HTMLElement>(".space-card, .s3-card")].map((card): [HTMLElement, string] => [card, card.dataset["node"] ?? card.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? ""]);
+    const [a, b] = [stage, stage.querySelector(cards.length ? ".space-scene, .s3-frame" : ".react-flow") ?? stage].map((el) => el.getBoundingClientRect()) as [DOMRect, DOMRect];
     return (cards.length ? cards : [...stage.querySelectorAll<HTMLElement>(".react-flow__node[data-id]")].map((node): [HTMLElement, string] => [node, node.dataset["id"]!])).filter(([el, id]) => {
       const box = el.getBoundingClientRect();
       return doc.nodes.some((n) => n.id === id) && box.left > Math.max(a.left, b.left) - 1 && box.right < Math.min(a.right, b.right) + 1 && box.top > Math.max(a.top, b.top) - 1 && box.bottom < Math.min(a.bottom, b.bottom) + 1;
     });
   };
-  // The view that was last asked for, which the page may not have yet; the view it has; and whether the scene's
-  // piece is on its way.
-  const asked = useRef<"picture" | "space">("picture");
-  const shown = useRef(view);
-  const fetching = useRef(false);
+  // What was last asked for, which the page may not have yet; what it has; and which pieces are on their way.
+  const asked = useRef<On>("picture");
+  const shown = useRef<On>(on);
+  const fetching = useRef<{ space?: boolean; stage?: boolean }>({});
   // What to call once the page has a change that was asked for. Each change is numbered and made with `again` set to
   // its number, so that a commit follows it even when it changes nothing, and the layout effect below, which runs
   // after the scene's own, calls those the commit has reached: the browser holds the page still until it is told, for
@@ -196,33 +239,57 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       again(count.current);
     });
   };
-  const choose = (next: "picture" | "space"): void => {
+  // Another press may have come by the time a change is made: what the page is given is what was asked for last.
+  // The switch and the row say it at once; it is drawn only if its piece has come, and until then the page keeps
+  // what it has (the piece's arrival draws it).
+  const show = (): void => {
+    const now = asked.current;
+    if (now === "picture" || (pieceOf(now) === "space" ? space : stage3)) setOn(now);
+    setView(now === "picture" ? "picture" : "space");
+    if (now !== "picture") setKind(now);
+  };
+  const choose = (next: On): void => {
     if (next === asked.current) return;
     asked.current = next;
-    if (next === "space" && !three) {
-      // The first press of a visit fetches the scene's piece, once, and nothing moves until it has come; nor then, if
-      // the picture was asked for again meanwhile.
-      setView(next);
-      if (fetching.current) return;
-      fetching.current = true;
-      piece("space", () => import("../map/space.js")).then(
-        (m) => {
-          const come = (): void => setThree((space = m));
-          if (asked.current === "space") go(come, () => asked.current !== "space");
-          else come();
+    if (next !== "picture") keep(next);
+    // A new choice puts away the note that an earlier one could not be fetched; asking again is a new try.
+    if (three === null) setThree(undefined);
+    if (more === null) setMore(undefined);
+    const slot = next === "picture" ? undefined : pieceOf(next);
+    if (slot && !(slot === "space" ? three : more)) {
+      // The first press of a kind fetches its piece, once, and nothing moves until it has come; nor then, if
+      // something else was asked for meanwhile. The switch and the row follow the press at once.
+      setView("space");
+      setKind(next as Kind);
+      if (fetching.current[slot]) return;
+      fetching.current[slot] = true;
+      const mine = (): boolean => asked.current !== "picture" && pieceOf(asked.current) === slot;
+      (slot === "space" ? piece("space", () => import("../map/space.js")).then((m) => () => setThree((space = m))) : piece("graph-stage", () => import("./graph-stage.js")).then((m) => () => setMore((stage3 = m)))).then(
+        (come) => {
+          const arrive = (): void => (come(), mine() ? show() : undefined);
+          if (mine()) go(arrive, () => !mine());
+          else arrive();
         },
-        () => ((fetching.current = false), (asked.current = "picture"), setThree(null), setView("picture")),
+        () => {
+          fetching.current[slot] = false;
+          (slot === "space" ? setThree : setMore)(null);
+          // The kind that could not be had is not the one 3D opens next: the one that is drawn is, or the stairs.
+          if (kept() !== "stairs" && pieceOf(kept()) === slot) keep(shown.current === "picture" ? "stairs" : shown.current);
+          // Back to what is drawn, if this is still what was being waited for.
+          if (!mine()) return;
+          asked.current = shown.current;
+          setKind(kept());
+          show();
+        },
       );
-    } else if (next === "space" || made)
-      // Another press may have come by the time the browser asks: the view the page is given is the one asked for last.
-      go(
-        () => setView(asked.current),
-        () => asked.current === shown.current,
-      );
-    // The picture, asked for while the scene was still on its way: the page is the picture already.
-    else setView(next);
+    } else if (next !== "picture" || shown.current !== "picture")
+      go(show, () => asked.current === shown.current);
+    // The picture, asked for while a view was still on its way: the page is the picture already.
+    else show();
   };
-  const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
+  const made = useMemo(() => (on === "stairs" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, on, three, per, of.notes]);
+  // One of the other kinds, drawn by the stage.
+  const staged = on !== "picture" && on !== "stairs" && more ? on : undefined;
   // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
   // cards and arcs their names. Before the browser paints, as a map's is: the first press of a visit is drawn by a
   // fetch that has arrived and not by the press, and React then gives the browser its chance to paint before it
@@ -242,11 +309,11 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       el.setAttribute("role", "img");
       if (at) el.setAttribute("aria-label", `Step ${at.n}: ${name(at.from)} to ${name(at.to)}`);
     }
-    return three.attach(root, made, (kept.current ??= three.held()), () => choose("picture"));
+    return three.attach(root, made, (held.current ??= three.held()), () => choose("picture"));
   }, [made]);
   const told = (upTo: number): void => void (moved.current = moved.current.filter(([n, done]) => n > upTo || (done(), false)));
   useLayoutEffect(() => {
-    shown.current = view;
+    shown.current = on;
     told(reached);
   });
   // A view that goes while a change is on its way must not leave the browser waiting for it.
@@ -264,26 +331,37 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (node) of.onNodeTap?.(node.dataset["node"]!);
     return !!node;
   };
+  const up = !!made || !!staged;
   return (
-    // `is-space` when the scene is on the page, not when it is asked for: until then the canvas is whole.
-    <div ref={host} className={`graph-views${made ? " is-space" : ""}`}>
+    // `is-space` when a view in three dimensions is on the page, not when it is asked for: until then the canvas is
+    // whole.
+    <div ref={host} className={`graph-views${up ? " is-space" : ""}`}>
       <div className="segmented graph-switch" role="radiogroup" aria-label="View of the graph">
         {(["picture", "space"] as const).map((name) => (
-          <button key={name} type="button" role="radio" aria-checked={view === name} className={view === name ? "seg seg-on" : "seg"} onClick={() => choose(name)}>
+          <button key={name} type="button" role="radio" aria-checked={view === name} className={view === name ? "seg seg-on" : "seg"} onClick={() => choose(name === "picture" ? "picture" : kind)}>
             {name === "picture" ? "Picture" : "3D"}
           </button>
         ))}
       </div>
-      {three === null ? (
+      {up ? (
+        <div className="segmented graph-kinds" role="radiogroup" aria-label="Kind of view in three dimensions">
+          {KINDS.map(([id, name, says]) => (
+            <button key={id} type="button" role="radio" aria-checked={kind === id} aria-description={says} title={says} className={kind === id ? "seg seg-on" : "seg"} onClick={() => choose(id)}>
+              {name}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      {three === null || more === null ? (
         <p className="graph-views-note" role="status">
-          The view in three dimensions could not be fetched. The picture shows the same graph.
+          {more === null && three !== null ? (on === "picture" ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "That view could not be fetched. This one shows the same graph.") : "The view in three dimensions could not be fetched. The picture shows the same graph."}
         </p>
       ) : null}
       {made ? (
-        // `data-keep`: the room the switch, the bar, the slider and a viewer's own bar at the foot take, so that the
-        // scene is as tall as what is left and the slider's words are read without scrolling where that can be. A
-        // run's page has no bar at its foot, and its scene has that room too.
-        <div className="graph-space map-stage" data-keep={of.notes ? 280 : 300}>
+        // `data-keep`: the room the switch, the row of kinds, the bar, the slider and a viewer's own bar at the foot
+        // take, so that the scene is as tall as what is left and the slider's words are read without scrolling where
+        // that can be. A run's page has no bar at its foot, and its scene has that room too.
+        <div className="graph-space map-stage" data-keep={of.notes ? 326 : 346}>
           <div
             className="map-picture"
             onClick={(e) => void tap(e.target)}
@@ -292,6 +370,10 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
             }}
             dangerouslySetInnerHTML={{ __html: made.html }}
           />
+        </div>
+      ) : staged && more ? (
+        <div className="graph-space">
+          <more.Stage3 key={staged} doc={doc} kind={staged} of={of} />
         </div>
       ) : null}
     </div>
