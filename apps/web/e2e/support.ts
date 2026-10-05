@@ -15,7 +15,7 @@ import {
   type ProposalSet,
   type RunBundle,
 } from "@grooph/core";
-import { expect, type Download, type Locator, type Page } from "@playwright/test";
+import { expect, type Download, type Locator, type Page, type Request } from "@playwright/test";
 
 export const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 export const fixturePath = join(repoRoot, "fixtures/valid/review-loop.grooph.json");
@@ -74,6 +74,80 @@ export const viewIsStill = (page: Page): Promise<void> =>
       }),
     )
     .toBe(false);
+
+/**
+ * The requests a page has sent that have not come back, by their addresses. To be set up before the page goes
+ * anywhere. (Playwright's "network idle" never comes with a service worker in control.)
+ */
+export function requestsOut(page: Page): () => string[] {
+  const out = new Set<Request>();
+  page.on("request", (request) => out.add(request));
+  page.on("requestfinished", (request) => out.delete(request));
+  page.on("requestfailed", (request) => out.delete(request));
+  // A `fetch` whose answer the page does not read is never finished, only answered: the app asks the worker again
+  // for each file it had fetched before the worker was there, to have it kept, and drops what comes back (main.tsx).
+  page.on("response", (response) => {
+    if (response.request().resourceType() === "fetch") out.delete(response.request());
+  });
+  return () => [...out].map((request) => request.url());
+}
+
+/**
+ * Wait for a first visit to be over, so that the network can be taken away as it is after a visit and not in the
+ * middle of one: the worker in control; every file the page it kept names held by it, whole; and nothing the page
+ * itself asked for still on its way.
+ *
+ * The files are read from the page the worker kept, as the worker reads them (`named` in public/sw.js), and from
+ * no list in a test: a piece added to the app tomorrow is waited for without this being looked at again. A test
+ * that waited for three of them by name passed until a screen it then opened with no network needed a fourth
+ * (the offline visit in Safari's engine, 2026-10-05). Each is read back in full and measured against the built
+ * file: an engine may list a file in its cache before the whole of it has come.
+ *
+ * `out` is `requestsOut(page)`. The page fetches pieces for itself once its first screen is up, beside the
+ * worker's own fetch of the same files; a network that goes while one of those is half-way is another event than
+ * "no network after a visit", and an engine may say so in the page's console.
+ */
+export async function visitIsOver(page: Page, out: () => string[], { dist = join(repoRoot, "apps/web/dist"), within = 30_000 }: { dist?: string; within?: number } = {}): Promise<void> {
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  const notWhole = async (): Promise<string[]> => {
+    const read = await page.evaluate(async () => {
+      const cache = await caches.open("grooph-app-v1");
+      const scope = (await navigator.serviceWorker.ready).scope;
+      const kept = await cache.match(scope, { ignoreVary: true });
+      if (!kept) return undefined;
+      const html = await kept.text();
+      const found = [...html.matchAll(/(?:src|href)="([^"]+)"/g), ...html.matchAll(/"([^"]*\/assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]!);
+      const files = [...new Set(found)].map((path) => new URL(path, scope)).filter((u) => u.origin === location.origin && u.href.startsWith(scope));
+      return Promise.all(
+        files.map(async (u) => {
+          const hit = await cache.match(u.href, { ignoreVary: true });
+          // The whole body, as a page with no network would be handed it.
+          const bytes = hit ? await hit.arrayBuffer().then((body) => body.byteLength, () => -1) : undefined;
+          return { path: u.pathname.slice(new URL(scope).pathname.length), bytes };
+        }),
+      );
+    });
+    if (!read) return ["the page itself is not kept yet"];
+    if (read.filter((file) => file.path.startsWith("assets/")).length < 10) return [`the kept page names only ${read.length} files`];
+    return read.flatMap((file) => {
+      const built = statSync(join(dist, file.path || "index.html")).size;
+      return file.bytes === built ? [] : [`${file.path || "the page"}: ${file.bytes === undefined ? "not held" : `${file.bytes} of ${built} bytes`}`];
+    });
+  };
+  await expect.poll(notWhole, { message: "files the page names that the worker does not hold whole", timeout: within }).toEqual([]);
+  // And the page's own requests are back, and stay back for a moment: what it starts once it is in the worker's
+  // hands (it asks again, through the worker, for what it had fetched before) has started and ended by then.
+  await expect
+    .poll(
+      async () => {
+        if (out().length > 0) return out();
+        await page.waitForTimeout(300);
+        return out();
+      },
+      { message: "requests the page has sent that have not come back", timeout: within },
+    )
+    .toEqual([]);
+}
 
 export async function closeSheet(page: Page): Promise<void> {
   const close = page.getByRole("button", { name: "Close panel" });
