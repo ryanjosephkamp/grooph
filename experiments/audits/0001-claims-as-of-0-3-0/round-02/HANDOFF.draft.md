@@ -108,6 +108,23 @@ Protocol version 2 (`docs/comparisons.md`). Three projects, four arms, two repli
 
 Arm C ran one iteration in all six of its runs. The blind judge ranked both D runs first and second in the two code projects, against the held-out suites. Two templates were run again (`gauntlet-decomposed`, whose check still fails, and `patrol-pulse`, which now passes), so the proving ledger stands at $62.68 over 35 invocations. `docs/comparisons.md` still names the earlier lead model and three replicates where two ran; the study lists both as deviations.
 
+### S7 · Where the package's extra cost goes (a document to audit, not yet on `main`)
+
+- **Stated at:** `experiments/comparisons/derived/lead-cost.md`, with `scripts/lib/compare-lead.mjs` and `lead-cost.json`. Pull request #106, branch `docs/study-two-cost-anatomy`, head `ef90ea5` when this was drafted; the driver holds it unmerged until you have read it. The snapshot for this round is made so that it holds these three files. The page is headed "derived … not evidence of the runs … not audited".
+- **Its statements:** (1) all of the difference between the package and the prose is the lead: $0.838 a run against $0.314, with the subagents costing the same on the mean; (2) that $0.524 is three parts of about the same size: reading the context back, adding to it, and output; (3) about half is paid once and half again at every dispatch ($0.276, and $0.062 a dispatch); (4) two items are most of it: reading the brief, the graph and the agent files ($0.241), and writing notes and the progress file ($0.222); (5) by arithmetic, a longer run "would first dilute the premium and then compound it, and would never take it much below 45%".
+- **Evidence:** the script reads the harness's transcripts of the twelve runs (arms A and B), which are on the Mac that ran them and not in the repository; `lead-cost.json` keeps the counts, with no prompt, reply or file content. `node scripts/lib/compare-lead.mjs --check` works anywhere; `--write` only on that Mac.
+- **What we believe, and how sure we are:** The arithmetic re-derives. On 2026-10-05 the lane ran `--write` in a scratch checkout of the branch on that Mac: the page and the JSON came out byte for byte as committed (`git status` clean after it), `--check` passed, and the script's 8 tests pass. Statements (1), (2) and (4) are carried as descriptions of these twelve runs. Three things say more than the count carries:
+  - **Statement (5).** "Never … much below 45%" is against the page's own spread: from one project's runs alone the figure at 20 dispatches is 30%. Every run had four dispatches, so nothing past four is observed, and the page says so. The branch that compounds, to 100 dispatches, carries the lead's context to about 465 thousand tokens (41 thousand, and 4.2 thousand more at each dispatch) with no word about what a session does to a context of that size.
+  - **Statement (3).** "Paid again at every dispatch" is read from where a call fell inside runs of four dispatches. The page says a slope cannot be fitted. The sentence that is carried is: at four dispatches, about $0.28 before the first dispatch and at the reply, and about $0.06 in each of the four cycles.
+  - **Its table of who was given what** ends: "The two arms differ in what the lead is given and asked to keep, and in nothing a builder or a reviewer is given." That is your F4 again, unchanged in study two. In `review-gate-2` the package's builder is a named agent with a tool list, a line that it dispatches nobody, and sections on ownership, evidence rules and report format; the prose's builder is a general-purpose subagent given the brief, inputs, outputs and capabilities. The cost finding does not rest on that sentence (the subagents cost the same on the mean), but the sentence is wrong as written.
+- **What we most want attacked:**
+  - Whether the split by kind of turn can be re-derived from the transcripts' usage figures by a second route than the script's own. If you cannot read the transcripts, say so, and check `lead-cost.json` against the page.
+  - **The rates.** The script's dollars per million tokens (for the lead's model: input 4, output 20, cache read 0.20, one-hour cache write 8) are "the ones that reproduce every reported per-model cost", not a price list. Are they the only set that does? The three-way split depends on them.
+  - Whether "paid once" against "per dispatch" can be said at all from runs that all had four dispatches.
+  - Whether the projection is labeled as arithmetic everywhere it appears, the summary at the top included.
+  - Whether "all of it is the lead" holds by project and not only on the mean: the subagents' difference is −$0.008, +$0.055 and −$0.071.
+  - Its section on what a planned change would remove ("about a sixth, not a half"): arithmetic on twelve runs about work not yet built.
+
 ### The one sentence we would publish, if these hold
 
 "In a second comparison, on three tasks built so that a first pass fails, a design with a reviewer who holds evidence the builder has not seen ended above the task alone in every project. Said as a package or as prose it scored the same, and the package cost more. No brake fired."
@@ -134,7 +151,7 @@ The owner first read the result as "only certain graphs appear to be worth that 
 
 ## What to hand back
 
-`round-02/HANDBACK.md`, from the template beside this file. Number findings F1, F2, … afresh. For part A name the correction by its number; for part B name the claim S1 to S6. Say what you checked and found sound, and what you could not check. End your reply with the prompt the owner should carry back.
+`round-02/HANDBACK.md`, from the template beside this file. Number findings F1, F2, … afresh. For part A name the correction by its number; for part B name the claim S1 to S7. Say what you checked and found sound, and what you could not check. End your reply with the prompt the owner should carry back.
 
 ## The prompt for Codex (a draft)
 
