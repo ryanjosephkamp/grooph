@@ -4,30 +4,31 @@
 
 ## Status
 
-`blocked` — four of the five items are up as five pull requests, all green; item 4 (the same operations as MCP tools) waits for #60, as the handoff says it must, and nothing else is owed.
+`blocked` — four of the five items are done: item 1 is merged and the other three are four open pull requests; item 4 (the same operations as MCP tools) waits for #60, as the handoff says it must, and nothing else is owed.
 
-**Amended 2026-10-04, late, after the driver's review.** Two things changed after this was first written, and the sections below are brought up to date where they are marked "amended":
+**Amended 2026-10-04, late, after the driver's review.** Three things changed after this was first written, and the sections below are brought up to date where they are marked "amended":
 
 - **#79 was reworked** at the driver's word: the glue every canvas address carried was too heavy. It is 0.48 KB of the canvas line now, where it was 1.40. A closed box no longer drags.
-- **#83 is new**: `E_IRREVERSIBLE_NO_GATE` follows a loop stop's `then`, the hole reported under "Risks and leftovers" in the first version.
+- **#83 is new, and merged**: `E_IRREVERSIBLE_NO_GATE` follows a loop stop's `then`, the hole reported under "Risks and leftovers" in the first version.
+- **The owner merged #72 (item 1) and #83, and main moved under the stack three more times** (slice 0084's default tiers, #72 itself, and slice 0087's map in three dimensions). Every open branch has main merged in. Two of those merges needed a hand: slice 0084 changed the model each golden package names, so #80's package was written again (the judge is opus and the two planners sonnet, as in every other package; nothing else in it moved); and slice 0087 added its piece to the same two lists of `apps/web/vite.config.ts` as #79 did, so that merge keeps both.
 
 The driver's answers to my two questions about `apps/web/vite.config.ts` had been given and were queued behind my turn; the change was approved, with `apps/web/tsconfig.json`.
 
 ## Each pull request and its state
 
-Read each one's checks; these are as I last read them, 2026-10-04 about 20:00.
+Read each one's checks; these are as I last read them, 2026-10-04 about 21:15 (amended).
 
 | item | pull request | branch, head | stacked on | CI | whose to merge |
 |---|---|---|---|---|---|
-| 1. The document and the rules | [ryanjosephkamp/grooph#72](https://github.com/ryanjosephkamp/grooph/pull/72) | `slice/0085-document-and-rules`, `cb53aa9` | main | 8 of 8 pass | the owner |
-| 2. Placing and refreshing | [ryanjosephkamp/grooph#77](https://github.com/ryanjosephkamp/grooph/pull/77) | `slice/0085-place-and-refresh`, `a2fd0d5` | #72 | 8 of 8 pass | the owner |
-| 3a. The picture, the outline, the lead's brief | [ryanjosephkamp/grooph#78](https://github.com/ryanjosephkamp/grooph/pull/78) | `slice/0085-what-a-person-sees`, `b05b828` | #77 | 8 of 8 pass | the owner |
-| 3b. The canvas, and the outline folded (amended) | [ryanjosephkamp/grooph#79](https://github.com/ryanjosephkamp/grooph/pull/79) | `slice/0085-the-canvas`, `cd0ec6d` | #78, with main merged in | both builds pass with the budget step; the browser jobs were running when this was amended (they pass here: 214 of 214) | the owner |
+| 1. The document and the rules | [ryanjosephkamp/grooph#72](https://github.com/ryanjosephkamp/grooph/pull/72) | `slice/0085-document-and-rules`, `cb53aa9` | main | **merged by the owner** (`5e97cc0`) | done |
+| 2. Placing and refreshing | [ryanjosephkamp/grooph#77](https://github.com/ryanjosephkamp/grooph/pull/77) | `slice/0085-place-and-refresh`, `4a6f91d` | main (#72 is in it) | 8 of 8 pass | the owner: it is next |
+| 3a. The picture, the outline, the lead's brief | [ryanjosephkamp/grooph#78](https://github.com/ryanjosephkamp/grooph/pull/78) | `slice/0085-what-a-person-sees`, `16c302d` | #77 | 8 of 8 pass | the owner |
+| 3b. The canvas, and the outline folded (amended) | [ryanjosephkamp/grooph#79](https://github.com/ryanjosephkamp/grooph/pull/79) | `slice/0085-the-canvas`, `cc89ee2` | #78 | both builds pass with the budget step, and one browser job; the rest were running when this was amended (the suite passes here: 231 of 231) | the owner |
 | 4. MCP tools | none | | #60 | | waits: #60 is open |
-| 5. The proof | [ryanjosephkamp/grooph#80](https://github.com/ryanjosephkamp/grooph/pull/80) | `slice/0085-the-proof`, `d6cf549` | #78 | 8 of 8 pass | the owner |
-| Found in passing (amended): the irreversible rule follows a stop's `then` | [ryanjosephkamp/grooph#83](https://github.com/ryanjosephkamp/grooph/pull/83) | `slice/0085-irreversible-then`, `97f4e47` | main, on its own | 8 of 8 pass | the owner: it changes what validates |
+| 5. The proof | [ryanjosephkamp/grooph#80](https://github.com/ryanjosephkamp/grooph/pull/80) | `slice/0085-the-proof`, `0b73b23` | #78 | 8 of 8 pass | the owner |
+| Found in passing (amended): the irreversible rule follows a stop's `then` | [ryanjosephkamp/grooph#83](https://github.com/ryanjosephkamp/grooph/pull/83) | `slice/0085-irreversible-then`, `97f4e47` | main, on its own | **merged by the owner** (`6bdee4a`) | done |
 
-They merge in that order, each with a merge commit. #79 and #80 both sit on #78 and do not need each other. Main moved under the stack once (slice 0088 changed how a piece is fetched); #79 has main merged in and uses its `piece.ts`. The others merge cleanly as they are.
+They merge in that order, each with a merge commit. #79 and #80 both sit on #78 and do not need each other. Each open branch has main merged in as of this amendment (#79 at `bd6b446`, the others at `e57a292`, and those three still merge cleanly with main as it is). When one merges I merge main into the next, as the driver asked.
 
 ## What changed
 
@@ -50,6 +51,8 @@ Run from clean on 2026-10-04 on a local branch that joined #79 (before main was 
 
 And #79 again after main was merged in: core 431, CLI 129, web 65; browser suite 214 passed, 129 skipped. And once more after the rework (amended), at `cd0ec6d`: the same counts, all passing. #83, on main alone: core 367, CLI 120, web 65.
 
+After main was merged into each open branch (amended), built from clean each time: #77 core 424, CLI 128, web 65; #78 core 435, CLI 129, web 65; #80 core 440, CLI 129, web 65; #79 core 435, CLI 129, web 79 (slice 0087 brought fourteen of the web's), and the browser suite 231 passed, 145 skipped.
+
 Against the handoff's limits:
 
 - **No line of `scripts/perf-budget.json` is raised**: the file is not in any of the five diffs.
@@ -64,15 +67,20 @@ As CI's build job weighs them (Node 22). My own machine reads 0.2 to 0.45 KB low
 | | first load, of 180 KB | canvas, of 280 | embed, of 132 | styles, of 20 |
 |---|---|---|---|---|
 | main before slice 0088 (at #73) | 178.31 | 276.42 | 126.22 | |
-| main as it is now (after slice 0088) | 178.54 | 276.70 | 126.44 | 19.89 |
+| main after slice 0088 | 178.54 | 276.70 | 126.44 | 19.89 |
 | before item 3: #77 (items 1 and 2), on main before 0088 | 178.87 | 276.97 | 126.78 | 19.89 |
 | after item 3a: #78 | 179.20 | 277.32 | 127.12 | 19.89 |
 | after item 3b: #79, as first pushed | 179.25 | 278.72 | 127.15 | 19.89 |
 | #79 with main merged in, as first pushed | 179.48 | 278.98 | 127.36 | 19.89 |
 | **#79 reworked (amended): the whole stack as it would land** | **179.49** | **278.06** | **127.37** | 19.89 |
-| #83 alone, on main as it is now (amended) | 178.70 | 276.85 | 126.59 | |
+| #83 alone, on main as it was then (amended) | 178.70 | 276.85 | 126.59 | |
+| main with #72, #83 and slice 0084 merged (`e57a292`; amended) | 179.25 | 277.41 | 127.15 | |
+| #77 on that main: item 2 weighs nothing (amended) | 179.25 | 277.41 | 127.15 | |
+| #78 on that main (amended) | 179.59 | 277.75 | 127.49 | |
+| main as it is now, with slice 0087 too (`bd6b446`; amended) | 179.27 | 277.42 | 127.16 | |
+| **#79 on main as it is now: everything here as it would land (amended)** | **179.65** | **278.22** | **127.52** | 19.89 |
 
-So with items 1 to 3 merged the first-load line has **0.51 KB** of room and the canvas line **1.94 KB** (amended; it was 1.02 before the rework). With #83 merged as well, each line is 0.16 KB higher: first load about 179.65 of 180. The stack adds 0.95 KB to main's first load and 1.36 KB to its canvas line, and this is where it goes:
+So with everything here merged the first-load line has **0.35 KB** of room and the canvas line **1.78 KB** (amended; these are CI's figures for #79 with today's main in it). The slice in all, items 1 to 3, adds 0.95 KB to the first load and 1.36 KB to the canvas line, and #83 another 0.16 to each; this is where it goes:
 
 - **Item 1: about 0.56 KB of both** (178.87 against 178.31, and 276.97 against 276.42). The three rules and the schema's new fields are in the validator, which every address loads. I did not say this figure in #72; it is the largest share of the first load's, and it is not behind any door, because a rule cannot be.
 - Item 2: nothing. Placing and refreshing are not in the web app.
@@ -165,8 +173,8 @@ The gate does not go until the way around it has been asked for too, and the cap
 ## Risks and leftovers
 
 - **Whether the list of what a brake is, is complete, I cannot claim.** Three readers each found something the one before had not. `brakes.ts` says so at its head and `docs/templates.md` lists the stated limits. If one claim of this slice goes to the audit loop before it is published, it should be "a refresh never loosens a brake unasked".
-- **The first-load line will have 0.52 KB of room** with the stack merged, and the canvas line 1.02 KB. The next slice that touches what every address loads will meet it. More than half of what this slice spent of the first load is item 1's rules, which I did not weigh aloud when I sent #72.
-- **`E_IRREVERSIBLE_NO_GATE` counted only inbound edges** (amended: fixed in #83). No template, fixture, community graph or experiment graph that validated fails under the rule as it is now: 153 documents checked both ways. To say the hole exactly: where a stop's `then` was the only way in, the rule already refused; what validated clean was a gated edge with a stop that goes around the gate.
+- **The first-load line will have 0.35 KB of room** with the stack merged (amended; it had 1.46 before this slice and #83), and the canvas line 1.78 KB. The next slice that touches what every address loads will meet it. More than half of what this slice spent of the first load is item 1's rules, which I did not weigh aloud when I sent #72.
+- **`E_IRREVERSIBLE_NO_GATE` counted only inbound edges** (amended: fixed in #83, which is merged). No template, fixture, community graph or experiment graph that validated fails under the rule as it is now: 153 documents checked both ways. To say the hole exactly: where a stop's `then` was the only way in, the rule already refused; what validated clean was a gated edge with a stop that goes around the gate.
 - **The entry rule does not see a stop's `then`** (amended: found while doing #83, reported, not changed). A node that only a stop continues at has no inbound edge, so it is an entry node, and the compiled package says so: `Entry nodes (start here): fixer, wrap`, while the loop's stop says `continue at node wrap`. No issue is reported. No built-in template has the shape; a hand-written graph with an escalation step reached only by a stop is told to start that step at kickoff. A rule and the compiler together, so it is the driver's to scope.
 - **An embed and "keep a picture" in the web app draw the plain picture** for a graph with a subgrooph. Drawing the box there needs the glyph where an embed has none (2.5 KB if it is simply named; measured, and avoided).
 - **A subgrooph has no panel in the editor.** A tap opens the box. A closed box does not drag (amended). Placing and refreshing are in the CLI only; the web app does neither.
@@ -177,5 +185,5 @@ The gate does not go until the way around it has been asked for too, and the cap
 ## Prompt to paste into the driver session
 
 ```text
-The handback for slice 0085 (handoffs/0085-subgroophs/HANDBACK.md, on main) is amended on branch slice/0085-handback-amended. Status: blocked on item 4 only (the MCP tools wait for #60). Items 1, 2, 3 and 5 are pull requests #72, #77, #78, #79 and #80, stacked in that order (#79 and #80 both on #78); #83 is the irreversible rule following a stop's then, on main alone. All are the owner's to merge. #79 was reworked: its glue is 0.48 KB of the canvas line where it was 1.40, and with the stack merged CI reads first load 179.49 of 180 and canvas 278.06 of 280 (0.16 KB more on each with #83). Still to scope: the entry rule does not see a stop's then. Please reconcile with the grooph-reconcile skill.
+The handback for slice 0085 (handoffs/0085-subgroophs/HANDBACK.md, on main) is amended on branch slice/0085-handback-amended. Status: blocked on item 4 only (the MCP tools wait for #60). #72 (item 1) and #83 (the irreversible rule follows a stop's then) are merged. Open, in the order they merge, each the owner's: #77, #78, then #79 and #80 (both on #78). Every one has main merged in. #79 was reworked: its glue is 0.48 KB of the canvas line where it was 1.40. With all of it merged CI reads first load 179.65 of 180 and canvas 278.22 of 280. Still to scope: the entry rule does not see a stop's then. Please reconcile with the grooph-reconcile skill.
 ```
