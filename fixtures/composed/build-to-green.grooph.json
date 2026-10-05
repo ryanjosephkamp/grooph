@@ -1,0 +1,116 @@
+{
+  "grooph": 0,
+  "id": "build-to-green",
+  "name": "Build to green",
+  "version": 1,
+  "lineage": {
+    "from": "debate-then-build@1"
+  },
+  "template": {
+    "kind": "fragment",
+    "title": "Build to green",
+    "summary": "A builder works until the tests pass, within a round cap and a time budget.",
+    "whenToUse": "When a command can say whether the work is done.",
+    "profile": {
+      "cost": "low",
+      "speed": "fast",
+      "rigor": "light"
+    },
+    "slots": [
+      {
+        "key": "test-command",
+        "ask": "What should \"test-command\" be?",
+        "example": "test-command"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Build the first version PLAN.md describes and nothing past it, with tests. On a later round, start from the failing output you are handed. Report what you built and anything in the plan that proved wrong.",
+      "inputs": [
+        "PLAN.md",
+        "failing test output (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "tests",
+      "kind": "check",
+      "name": "Tests",
+      "check": {
+        "kind": "tests",
+        "run": "{{test-command}}",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-tests",
+      "from": "builder",
+      "to": "tests"
+    },
+    {
+      "id": "e-tests-fail",
+      "from": "tests",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ]
+    },
+    {
+      "id": "e-tests-pass",
+      "from": "tests",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "build",
+      "name": "Build",
+      "members": [
+        "builder",
+        "tests"
+      ],
+      "back": [
+        "e-tests-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 30
+        }
+      ]
+    }
+  ]
+}

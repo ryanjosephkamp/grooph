@@ -1,0 +1,195 @@
+/* A subgrooph on the canvas: a box closed, a frame open (ui/canvas/units.tsx). */
+.unit {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+}
+.unit-closed {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  /* A second card behind the first: this one holds more than it shows. */
+  box-shadow:
+    5px 5px 0 -1px var(--surface-2),
+    5px 5px 0 0 var(--line-strong),
+    var(--shadow);
+  outline-color: transparent;
+  outline-offset: 7px;
+}
+.unit-kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink-2);
+}
+.unit-mark {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--ink-2);
+  border-radius: 3px;
+  box-shadow: 2px 2px 0 0 var(--ink-3);
+}
+.unit-name {
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.unit-line,
+.unit-about {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.unit-about {
+  color: var(--ink-3);
+}
+.unit-warn {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--kind-human-gate);
+}
+.unit-glyph {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+.unit-glyph svg {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+}
+.unit-hint {
+  position: absolute;
+  top: 9px;
+  right: 12px;
+  padding: 1px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  color: var(--ink-2);
+  background: var(--surface);
+}
+.react-flow__node:focus-visible .unit-closed {
+  outline: 2px solid var(--focus);
+  outline-offset: 5px;
+}
+/* Open: a frame the nodes stand in. Only its name's line takes a tap; the rest is the canvas. */
+.react-flow__node.unit-frame {
+  pointer-events: none;
+  cursor: default;
+}
+.unit-open {
+  border: 1.5px dashed var(--line-strong);
+  background: color-mix(in srgb, var(--surface-2) 45%, transparent);
+}
+.unit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 6px 0 14px;
+}
+.unit-head .unit-name {
+  font-size: 13px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.unit-from {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.unit-close {
+  pointer-events: all;
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+}
+.unit-close:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+/* The room a tap needs on a phone: the control is small on the canvas, so its reach goes past its edge. */
+.unit-close::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+.unit-close {
+  position: relative;
+}
+
+/* A subgrooph in the outline: one box that holds its nodes' sections, shut until it is opened. */
+.outline-unit {
+  margin: 12px 0;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: 14px;
+  padding: 0 12px;
+}
+.outline-unit > summary {
+  display: grid;
+  gap: 1px;
+  padding: 12px 26px 12px 0;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+}
+.outline-unit > summary::-webkit-details-marker {
+  display: none;
+}
+.outline-unit > summary::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 22px;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--ink-3);
+  border-bottom: 2px solid var(--ink-3);
+  transform: rotate(45deg);
+}
+.outline-unit[open] > summary::after {
+  transform: rotate(-135deg);
+  top: 26px;
+}
+.outline-unit > summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.outline-unit-name {
+  font-size: 18px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.outline-unit-line {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.outline-unit[open] > summary {
+  border-bottom: 1px solid var(--line);
+}

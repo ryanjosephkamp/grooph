@@ -24,7 +24,7 @@ export const FIXES: Record<ImplementedCode, string> = {
   E_GROUP_CYCLE:
     'A group holds itself, directly or through another group, and groups form a tree. No operation edits groups: in the document itself, take the inner group\'s id out of one group\'s "members", and pass the whole document again.',
   E_SECOND_LEAD:
-    'Two agent nodes have the role "lead", and a graph is one session with one lead. Keep one and say what the other does: {"op":"updateNode","id":"<the other>","set":{"role":"builder"}} (or critic, or a role of its own). A template placed inside a graph is the usual way a second arrives.',
+    'Two agent nodes have the role "lead", and a graph is one session with one lead. Keep one and say what the other does: {"op":"updateNode","id":"<the other>","set":{"role":"builder"}} (or critic, or a role of its own).',
   E_CYCLE_NO_STOP:
     'A cycle no loop with a stop covers. Wrap it: {"op":"addLoop","members":[…the cycle\'s nodes…]}, toggleLoopBack for its returning edge, then {"op":"addStop","loop":"<loop>","kind":"max-iterations","set":{"n":4}} and a budget stop.',
   E_JUDGMENT_LOOP_NO_BAR:
