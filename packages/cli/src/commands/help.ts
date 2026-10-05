@@ -23,7 +23,7 @@ Start
 
 Check
   validate     check a graph or an operation map; say what to fix
-  explain      what bounds a graph: rounds, budgets, gates, worst case
+  explain      what a graph's brakes are: rounds, budgets, gates, worst case
   shape        counts and brakes at a glance
   canonicalize print or rewrite a document in canonical form
 
@@ -152,7 +152,7 @@ Example
 
 export const EXPLAIN_HELP = `grooph explain <file> [--json]
 
-Say in plain words what bounds a graph: for each loop, how many rounds at most, its budget and
+Say in plain words what a graph's brakes are: for each loop, how many rounds at most, its budget and
 what happens at each stop; every human gate and what it guards; and the worst case in one line.
 It adds no rule: it reads what the validator reads. --json gives the same as data.
 

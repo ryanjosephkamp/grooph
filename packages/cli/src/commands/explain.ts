@@ -19,7 +19,7 @@ export type Explained = {
 };
 
 /**
- * What bounds a graph, read from the document and from the same shape the validator's
+ * What a graph's brakes are, read from the document and from the same shape the validator's
  * brake rules read. It adds no rule and judges nothing.
  */
 export function explain(doc: Graph): Explained {
@@ -101,7 +101,7 @@ export function explainLines(e: Explained): string[] {
   return lines;
 }
 
-/** `grooph explain <file> [--json]`: plain words for what bounds a graph. */
+/** `grooph explain <file> [--json]`: plain words for what a graph's brakes are. */
 export function explainCommand(io: Output, file: string, flags: { json?: boolean } = {}): number {
   const parsed = parseGraphText(readText(file));
   if (!parsed.doc) {

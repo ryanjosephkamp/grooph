@@ -36,7 +36,7 @@ G() { node "$SKILL/scripts/grooph.mjs" "$@"; }
 G template list | grep >/dev/null "^  grind-loop " || fail "the skill's script did not find its templates"
 G template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass" --set test-command="pnpm test checkout" --out flaky.grooph.json
 G validate --for-export flaky.grooph.json
-G explain flaky.grooph.json | grep >/dev/null "at most 5 rounds" || fail "explain did not say what bounds the graph"
+G explain flaky.grooph.json | grep >/dev/null "at most 5 rounds" || fail "explain did not say what the graph's brakes are"
 G share flaky.grooph.json | grep >/dev/null '^https://ryanjosephkamp.github.io/grooph/#/open?d=' || fail "share printed no link"
 G image flaky.grooph.json --out flaky.svg
 head -c 5 flaky.svg | grep >/dev/null "<svg" || fail "image wrote no SVG"
