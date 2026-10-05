@@ -13,7 +13,7 @@
 grooph checks that every loop names a stop and every bar names what a critic can inspect, then compiles the graph into a prompt package for Claude Code.
 Your harness runs the package. grooph never runs an agent, never calls a model, and keeps your graphs on your device.
 
-**Open the app:** [ryanjosephkamp.github.io/grooph](https://ryanjosephkamp.github.io/grooph/). It works on a phone, needs no account, and opens offline once it has been opened online.
+**Open the app:** [ryanjosephkamp.github.io/grooph](https://ryanjosephkamp.github.io/grooph/). It is built for a phone's screen, needs no account, and opens offline once it has been opened online.
 
 ## Quickstart
 
@@ -38,7 +38,7 @@ With grooph installed, describe the work to Claude Code:
 /grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging
 ```
 
-The session proposes one to three validated graphs, from the templates or from scratch. It gives you a link that opens a side-by-side comparison on your phone, and it places the package you pick. It does not start the run until you say so. You can also install the skill as a plugin: [`plugins/grooph/README.md`](plugins/grooph/README.md).
+The session proposes one to three validated graphs, from the templates or from scratch. It gives you a link that opens a side-by-side comparison on your phone, and it places the package you pick. The skill tells the session not to start the run until you say so. You can also install the skill as a plugin: [`plugins/grooph/README.md`](plugins/grooph/README.md).
 
 ## What it is not
 
