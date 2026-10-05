@@ -1,0 +1,123 @@
+retrospective-rewrite: e-builder-tests:builder->tests  e-tests-fail:tests->builder(fail)  e-tests-retro:tests->retro(pass)  e-retro-done:retro->done | stops [{"kind":"max-iterations","n":5,"then":"retro"},{"kind":"budget","measure":"minutes","limit":30,"then":"retro"}]
+
+### P1 builder -> NEW success stop on its own word; check untouched  [retrospective-rewrite]
+  changes: edge:e-builder-done-too, node:done-too
+  refused: 
+    - edge:e-builder-done-too: adds a way from "builder" to end in success that does not pass the check "tests"
+
+### P2 builder -> retro (what pass led to), always  [retrospective-rewrite]
+  changes: edge:e-builder-retro
+  refused: 
+    - edge:e-builder-retro: adds a way into "retro" that does not pass the check "tests"
+
+### P3 builder -> done directly  [retrospective-rewrite]
+  changes: edge:e-builder-done
+  refused: 
+    - edge:e-builder-done: adds a way into "done" that does not pass the check "tests"
+
+### P4 a stop on no progress after 1 round leads on to retro  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "retro", a way that does not pass the check "tests"
+
+### P5 a stop on no progress leads on to done  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### P6 fixer -> NEW success stop  [wrap-up-after-the-cap]
+  changes: edge:e-fixer-done-too, node:done-too
+  refused: 
+    - edge:e-fixer-done-too: adds a way from "fixer" to end in success that does not pass the check "suite"
+
+### P7 fixer -> land-gate around the suite  [irreversible-after-a-stop-gated]
+  changes: edge:e-fixer-gate
+  refused: 
+    - edge:e-fixer-gate: adds a way into "land-gate" that does not pass the check "suite"
+
+### P8 control on grind-loop: builder -> NEW success stop  [grind-loop]
+  changes: edge:e-builder-done-too, node:done-too
+  refused: 
+    - edge:e-builder-done-too: adds a way from "builder" to end in success that does not pass the check "tests"
+
+### Q1 new loop over sandwich's members and back edges, a looser bar, bar-passed  [metric-sandwich]
+  changes: loop:sandwich-2
+  refused: 
+    - loop:sandwich-2: gives the new loop "sandwich-2", around the check "checks", a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check; adds a stop on "bar passed" to the new loop "sandwich-2", around the check "checks": a way out that does not pass the check
+
+### Q2 same on taste-polish  [taste-polish]
+  changes: loop:polish-2
+  refused: 
+    - loop:polish-2: gives the new loop "polish-2", around the check "capture-check", a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check; adds a stop on "bar passed" to the new loop "polish-2", around the check "capture-check": a way out that does not pass the check
+
+### R1 two checks changed, one allowed  [ralph-loop] allow=node:tests.check
+  changes: node:tests.check, node:plan-check.check
+  refused: 
+    - node:plan-check.check: changes the check's definition (pass): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+
+### R2 bar and stop, bar allowed  [grind-loop] allow=loop:grind.bar
+  changes: loop:grind.stops, loop:grind.bar
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"; adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+
+### R3 bar and stop, stops allowed  [grind-loop] allow=loop:grind.stops
+  changes: loop:grind.stops, loop:grind.bar
+  refused: 
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+
+### R4 edge added (allowed) and another removed  [ralph-loop] allow=edge:e-tests-done
+  NOT VALID: invalid: E_LOOP_BACK_EDGE
+
+### R5 stops allowed for a lower cap, carries a raised budget? (same name)  [grind-loop] allow=loop:grind.stops
+  changes: loop:grind.stops
+  refused: NONE   <<<<<< THROUGH
+
+### R6 when allowed on the fail edge; to changed too  [grind-loop] allow=edge:e-tests-fail.when
+  changes: edge:e-tests-fail.to, edge:e-tests-fail.when
+  refused: 
+    - edge:e-tests-fail.to: changes "e-tests-fail", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+### S1 a label on the check's pass edge  [grind-loop]
+  changes: edge:e-tests-pass.label
+  refused: 
+    - edge:e-tests-pass.label: changes "e-tests-pass", an edge that leaves the check "tests" (label): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+### S2 when 'pass' written as {verdict:'pass'}  [grind-loop]
+  changes: edge:e-tests-pass.when
+  refused: NONE   <<<<<< THROUGH
+
+### S3 the builder handed one more piece on failure  [grind-loop]
+  changes: edge:e-tests-fail.evidence
+  refused: 
+    - edge:e-tests-fail.evidence: changes "e-tests-fail", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+### S4 retry on the fail edge  [grind-loop]
+  changes: edge:e-tests-fail.retry
+  refused: 
+    - edge:e-tests-fail.retry: changes "e-tests-fail", an edge that leaves the check "tests" (retry): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+### S5 a critic put after the check's pass in a new step (edge to moved)  [grind-loop]
+  changes: edge:e-tests-pass.to, node:review, edge:e-review-done
+  refused: 
+    - edge:e-tests-pass.to: changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens node:review: removes a critic
+
+### S6 check's name and description changed  [grind-loop]
+  changes: node:tests.name, node:tests.description
+  refused: NONE   <<<<<< THROUGH
+
+### S7 a lint check added in front (the test's own case)  [grind-loop]
+  changes: node:lint, edge:e-builder-tests.from, edge:e-builder-lint, edge:e-lint-fail, loop:grind.members, loop:grind.back
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:lint: removes a check
+
+### S8 a new judgment loop elsewhere, away from the check  [debate-then-build]
+  changes: loop:debate.stops
+  refused: NONE   <<<<<< THROUGH
+
+### S9 approval on the fail (back) edge  [grind-loop]
+  changes: edge:e-tests-fail.approval
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-fail.approval: removes a person's approval from the edge
