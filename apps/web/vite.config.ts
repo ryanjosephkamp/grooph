@@ -133,9 +133,12 @@ function routes(): Plugin {
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
-        // again, one after another.
-        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[],/${BUILT_INS}/.test(location.hash)?${list(found.templates)}:[],/${FRONT}/.test(location.hash)?${list(found.front)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
-        return html.replace("</title>", `</title>\n    ${hint}`);
+        // again, one after another. The scripts go in as `modulepreload`, or, in a browser that does not know it
+        // (Safari before 17, Firefox before 115), as a preload of a script fetched as a module is: such a browser
+        // would otherwise ask for a piece only when the app imported it, a round after the app (slice 0093).
+        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}const r=document.createElement("link").relList,m=r&&r.supports&&r.supports("modulepreload");for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[],/${BUILT_INS}/.test(location.hash)?${list(found.templates)}:[],/${FRONT}/.test(location.hash)?${list(found.front)}:[])){const l=document.createElement("link");if(m)l.rel="modulepreload";else{l.rel="preload";l.as="script";l.crossOrigin=""}l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
+        // With a function: a replacement given as text is read for `$&` and its kind, and the rules are full of `$`.
+        return html.replace("</title>", () => `</title>\n    ${hint}`);
       },
     },
     closeBundle() {

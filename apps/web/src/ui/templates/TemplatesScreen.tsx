@@ -53,8 +53,11 @@ export function TemplatesScreen() {
     };
   }, []);
 
-  // The built-in templates are here: the app fetches them before it draws this screen (`App.tsx`).
-  const builtIn = builtIns() ?? NONE;
+  // The built-in templates are nearly always here: an address that opens on this screen has waited for them, and
+  // any other screen fetched them once it was up. In the moment before they are, the screen says it is opening and
+  // is not drawn with half its list. If they cannot be had, a person's own are listed, and that is said.
+  const fetched = useBuiltIns();
+  const builtIn = fetched ?? NONE;
   const all = useMemo(() => [...(yours ?? []), ...builtIn], [yours, builtIn]);
   const tags = useMemo(() => allTags(all), [all]);
   const shownYours = useMemo(() => browse(yours ?? [], state), [yours, state]);
@@ -69,6 +72,7 @@ export function TemplatesScreen() {
 
   const set = <K extends keyof Browse>(key: K, value: Browse[K]) => setState((s) => ({ ...s, [key]: value }));
 
+  if (fetched === undefined) return <div className="loading">Opening…</div>;
   return (
     <div className="library templates">
       <header className="screen-head">
@@ -170,6 +174,12 @@ export function TemplatesScreen() {
           </h2>
           <TemplateList source="built-in" docs={shownBuiltIn} />
         </section>
+      ) : null}
+
+      {fetched === null ? (
+        <p className="muted templates-hint" role="status">
+          The built-in templates could not be fetched. They need a connection the first time. Yours are listed.
+        </p>
       ) : null}
 
       {shown === 0 ? (

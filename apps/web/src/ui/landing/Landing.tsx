@@ -24,27 +24,39 @@ const ASK = "/grooph-design a builder and a critic that loop until the checkout 
  * the piece beside the app, and the app waits for it before the first screen there (`ready` in `App.tsx`), so the
  * page is drawn with its picture in it. Reached from another screen it is nearly always here already, fetched once
  * that screen was up; in the moment before it is, the page says it is opening and is not drawn in part. If the
- * piece cannot be had, the page is drawn without its picture and its tiles, and says nothing of them.
+ * piece cannot be had, or is held up, the page is drawn without its picture and its tiles, and says nothing of
+ * them; a picture that comes late is put in then.
  */
 type Front = typeof import("./front.js");
 let front: Front | undefined;
 export const loadFront = (): Promise<Front> => piece("front", () => import("./front.js")).then((m) => (front = m));
 
-/** The piece: `undefined` while it is on its way, `null` when it could not be had. */
+/**
+ * How long the page says it is opening while its picture is on its way, before it is drawn without it. Reached
+ * from another screen in the first moment of a first visit the picture is some tenths of a second behind (0.4 s
+ * on slow 4G, measured), and the page waits that out and is drawn whole. A request that is held up longer does
+ * not hold the page: it is drawn, and the picture is put in when it comes.
+ */
+const GRACE = 600;
+
+/** The piece: `undefined` while it is on its way and worth waiting for; `null` when the page is to be drawn without it. */
 function useFront(): Front | null | undefined {
-  const [got, setGot] = useState<Front | null | undefined>(front);
+  const [got, setGot] = useState(front);
+  const [without, setWithout] = useState(false);
   useEffect(() => {
-    if (got !== undefined) return;
+    if (got) return;
     let live = true;
+    const tired = setTimeout(() => live && setWithout(true), GRACE);
     loadFront().then(
       (m) => live && setGot(m),
-      () => live && setGot(null),
+      () => live && setWithout(true),
     );
     return () => {
       live = false;
+      clearTimeout(tired);
     };
   }, []);
-  return got;
+  return got ?? (without ? null : undefined);
 }
 
 /** What the README says of the app, as the hero's short list. */

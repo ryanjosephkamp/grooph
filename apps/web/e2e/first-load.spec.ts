@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { glyph, instantiate, parseGraphText, picture, type Graph } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
-import { canvasIsQuiet, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, sheet, toolbar } from "./support.js";
+import { canvasIsQuiet, closeSheet, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, sheet, toolbar } from "./support.js";
 
 /**
  * Slice 0093: weight out of the first load. The twenty built-in templates were part of every address's first load
@@ -22,7 +22,7 @@ const pattern = (id: string): Graph => parseGraphText(readFileSync(join(repoRoot
  * is asked for, which is before any of the app has run. (Once it runs, the app asks for the rest itself, for the
  * next screen: read any later, the head would hold those too.) The app's script is held back while the head is read.
  */
-async function asked(page: Page, address: string): Promise<{ front: boolean; templates: boolean; canvas: boolean }> {
+async function asked(page: Page, address: string): Promise<{ front: boolean; templates: boolean; canvas: boolean; how: string }> {
   let reached: () => void = () => undefined;
   let release: () => void = () => undefined;
   let passed: () => void = () => undefined;
@@ -38,16 +38,17 @@ async function asked(page: Page, address: string): Promise<{ front: boolean; tem
   await page.goto(address, { waitUntil: "commit" });
   await atTheApp;
   const found = await page.evaluate(() => {
-    const files = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"]')].map((link) => link.href);
-    const has = (name: string): boolean => files.some((file) => new RegExp(`/assets/${name}-[\\w-]+\\.js$`).test(file));
-    return { front: has("front"), templates: has("builtins"), canvas: has("screens"), app: has("App") };
+    // As a module's preload, or, where the browser does not know that, as the preload of a script fetched as one.
+    const links = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="modulepreload"], link[rel="preload"][as="script"]')];
+    const has = (name: string): boolean => links.some((link) => new RegExp(`/assets/${name}-[\\w-]+\\.js$`).test(link.href));
+    return { front: has("front"), templates: has("builtins"), canvas: has("screens"), app: has("App"), how: [...new Set(links.map((link) => `${link.rel}${link.rel === "preload" ? ` as=${link.as} crossorigin=${JSON.stringify(link.getAttribute("crossorigin"))}` : ""}`))].join("; ") };
   });
   release();
   await onItsWay;
   await page.unroute("**/assets/App-*.js");
   // The app itself is among them: the head was read where it was meant to be.
   expect(found.app, address).toBe(true);
-  return { front: found.front, templates: found.templates, canvas: found.canvas };
+  return { front: found.front, templates: found.templates, canvas: found.canvas, how: found.how };
 }
 
 /** Whether an element holds this markup, as a browser reads it. */
@@ -76,7 +77,7 @@ test("each address asks, beside the app, for the pieces its first screen needs a
   ];
   for (const [what, address, wanted, shown] of cases) {
     await page.goto("about:blank");
-    expect(await asked(page, address), what).toEqual(wanted);
+    expect(await asked(page, address), what).toEqual({ ...wanted, how: "modulepreload" });
     await expect(page.locator(shown).first(), what).toBeVisible();
     if (wanted.canvas && shown === ".react-flow__node") await canvasIsQuiet(page);
   }
@@ -148,29 +149,53 @@ test("the template list holds every built-in template on a first visit, and a te
   await expect(page.locator(".notfound")).toContainText("This template is not on this device.");
 });
 
-test("with the templates not to be had, their screens say so and nothing else is held up; they are asked for again at the next screen", async ({ page }) => {
+test("with the templates not to be had: a built-in template's screen says so, the list and the Insert panel show a person's own, and all ask again at the next screen", async ({ page }) => {
   let refused = true;
   await page.route("**/assets/builtins-*.js", (route) => (refused ? route.abort() : route.continue()));
-  // The front page is whole, and a graph opens.
+  // The front page is whole, and a graph opens: neither needs them.
   await page.goto("./");
   await expect(page.locator(".land-picture svg")).toBeVisible();
   await expect(page.locator(".land-strip-list .land-tile")).toHaveCount(6);
-  // The list cannot be drawn without them: said, with a way on.
-  await page.goto("./#/templates");
-  await expect(page.locator(".notfound")).toContainText("This screen could not be fetched. It needs a connection the first time.", { timeout: 15000 });
-  await expect(page.getByRole("link", { name: "Back to the library" })).toBeVisible();
-  // The editor's Insert panel lists what is on this device, and says what is missing.
+  // A template of the person's own, saved without them.
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
   await expect(node(page, "builder")).toBeVisible();
   await canvasIsQuiet(page);
+  await page.locator(".title-btn").tap();
+  await sheet(page).getByRole("button", { name: "Save as template…" }).tap();
+  await sheet(page).getByLabel("Template id").fill("my-review");
+  await sheet(page).getByLabel("Title").fill("My review loop");
+  await sheet(page).getByLabel("Summary").fill("Builder, critic, then a human merges.");
+  await sheet(page).getByLabel("When to use").fill("A change a person must approve before it merges.");
+  await sheet(page).getByRole("button", { name: "Save to Yours" }).tap();
+  await expect(sheet(page)).toContainText("Saved My review loop in Yours");
+  await closeSheet(page);
+  // The editor's Insert panel lists what is on this device, and says what is missing.
   await toolbar(page).getByRole("button", { name: "Add" }).tap();
   await sheet(page).getByRole("button", { name: /^Insert a template/ }).tap();
   await expect(sheet(page)).toContainText("The built-in templates could not be fetched.", { timeout: 15000 });
-  await expect(sheet(page).locator(".insert-list li")).toHaveCount(0);
+  await expect(sheet(page).locator(".insert-list li")).toHaveCount(1);
+  await expect(sheet(page).locator(".insert-list li")).toContainText("My review loop");
+  await canvasIsQuiet(page);
+  // The list of templates is the person's own, with the same said: not a screen that could not be fetched.
+  await page.goto("./#/templates");
+  await expect(page.getByRole("list", { name: "Your templates" }).locator(":scope > li")).toHaveCount(1, { timeout: 15000 });
+  await expect(page.getByRole("status").filter({ hasText: "The built-in templates could not be fetched." })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Built-in templates" })).toHaveCount(0);
+  await expect(page.locator(".notfound")).toHaveCount(0);
+  // The person's own opens; a built-in one cannot be drawn without them, and says so with a way on.
+  await page.goto("./#/templates/yours/my-review");
+  await page.reload();
+  await expect(node(page, "builder")).toBeVisible();
+  await canvasIsQuiet(page);
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(page.locator(".notfound")).toContainText("This screen could not be fetched. It needs a connection the first time.", { timeout: 15000 });
+  await expect(page.getByRole("link", { name: "Back to the library" })).toBeVisible();
   // The connection is back: the next screen asks again, and has them.
   refused = false;
   await page.goto("./#/templates");
-  await expect(page.locator(".template-row")).toHaveCount(patterns.length, { timeout: 15000 });
+  await expect(page.getByRole("list", { name: "Built-in templates" }).locator(":scope > li")).toHaveCount(patterns.length, { timeout: 15000 });
+  await expect(page.getByRole("list", { name: "Your templates" }).locator(":scope > li")).toHaveCount(1);
+  await expect(page.getByText("could not be fetched")).toHaveCount(0);
 });
 
 test("with the front page's own picture not to be had, the page stands without it and its tiles, and everything else on it works", async ({ page }) => {
@@ -247,6 +272,74 @@ test("reached from a graph, the front page has its picture: the piece was fetche
   await expect(page.locator(".land-picture svg")).toBeVisible();
   await expect(page.locator(".land-strip-list .land-tile")).toHaveCount(6);
   expect(fetched).toHaveLength(1);
+});
+
+test("the front page's picture held up does not hold the page: an empty device is shown the page without it and has the picture when it comes; a device with graphs is shown its library", async ({ page }) => {
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((done) => (release = done));
+  await page.route("**/assets/front-*.js", async (route) => {
+    await held;
+    await route.continue();
+  });
+  // An empty device: nothing for a moment, the word that it is opening for a moment more, then the page.
+  const began = Date.now();
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible({ timeout: 4000 });
+  expect(Date.now() - began).toBeLessThan(4000);
+  await expect(page.locator(".land-picture")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open the template" })).toBeVisible();
+  // A device with a graph: its library, which needs no picture, while the picture is still held.
+  await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: readFileSync(fixturePath) });
+  await expect(node(page, "builder")).toBeVisible();
+  await canvasIsQuiet(page);
+  await page.goto("about:blank");
+  const again = Date.now();
+  await page.goto("./");
+  await expect(page.locator(".graph-open").first()).toBeVisible({ timeout: 4000 });
+  expect(Date.now() - again).toBeLessThan(4000);
+  // And at `#/about`, when the picture comes at last it is put in.
+  await page.evaluate(() => (location.hash = "#/about"));
+  await expect(page.locator(".land-headline")).toBeVisible({ timeout: 4000 });
+  await expect(page.locator(".land-picture")).toHaveCount(0);
+  release();
+  await expect(page.locator(".land-picture svg")).toBeVisible();
+  await expect(page.locator(".land-strip-list .land-tile")).toHaveCount(6);
+});
+
+test("in a browser that does not know a module's preload, the page asks for the same pieces as a script's preload, and each is fetched once", async ({ page }) => {
+  // Safari before 17 and Firefox before 115 do nothing with `rel="modulepreload"`. Such a browser is played here by
+  // one that says it does not support it: the page's loader then writes the link every browser knows.
+  await page.addInitScript(() => {
+    const supports = DOMTokenList.prototype.supports;
+    DOMTokenList.prototype.supports = function (token: string): boolean {
+      return token === "modulepreload" ? false : supports.call(this, token);
+    };
+  });
+  const fetched: string[] = [];
+  // Asked for as scripts: by the page's own links and by the app's imports. (Vite's own stand-in for a module's
+  // preload asks again with `fetch` for what the app imports later, as it does on main; a server that lets a file
+  // be kept answers that from what the browser has. This test's server does not, so those are left out.)
+  page.on("request", (request) => (request.resourceType() === "script" && /\/assets\/[\w.-]+\.js$/.test(new URL(request.url()).pathname) ? fetched.push(new URL(request.url()).pathname.replace(/^.*\/assets\//, "")) : undefined));
+  const how = 'preload as=script crossorigin=""';
+  expect(await asked(page, "./")).toEqual({ front: true, templates: false, canvas: false, how });
+  await expect(page.locator(".land-picture svg")).toBeVisible();
+  await page.goto("about:blank");
+  expect(await asked(page, "./#/templates")).toEqual({ front: false, templates: true, canvas: false, how });
+  await expect(page.locator(".template-row")).toHaveCount(patterns.length);
+  await page.goto("about:blank");
+  expect(await asked(page, "./#/templates/built-in/review-gate")).toEqual({ front: false, templates: true, canvas: true, how });
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  // What the page preloaded is what the app then imports: none of the files it names is asked for a second time
+  // within a visit. Three visits were made. The app's chunks were fetched by each; the templates by the two that
+  // needed them at once and, once its first screen was up, by the other; the canvas's screens the same way.
+  // (The entry itself is not the page's to name. Vite's own loader preloads it again in such a browser, as on main.)
+  const times = (name: string): number => fetched.filter((file) => new RegExp(`^${name}-[\\w-]+\\.js$`).test(file)).length;
+  await expect.poll(() => times("builtins")).toBe(3);
+  await expect.poll(() => times("screens")).toBe(3);
+  expect(times("App")).toBe(3);
+  expect(times("share")).toBe(3);
+  expect(times("front")).toBeLessThanOrEqual(3);
 });
 
 test.describe("with the service worker running", () => {

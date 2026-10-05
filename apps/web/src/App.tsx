@@ -37,10 +37,18 @@ function needsScreens(hash: string): boolean {
 const LIGHT = new Set<Route["name"]>(["library", "about", "templates", "embed"]);
 
 /**
- * Whether a screen lists or opens the built-in templates, which are a piece of their own (slice 0093,
- * `doc/builtins.ts`): the list, and a built-in template's view and its Use form.
+ * Whether a screen cannot be drawn without the built-in templates, which are a piece of their own (slice 0093,
+ * `doc/builtins.ts`): a built-in template's view and its Use form. The list of templates waits for them itself,
+ * and without them lists a person's own (`ui/templates/TemplatesScreen.tsx`).
  */
-const listsBuiltIns = (route: Route): boolean => route.name === "templates" || (route.name === "template" && route.source === "built-in");
+const opensBuiltIn = (route: Route): boolean => route.name === "template" && route.source === "built-in";
+
+/**
+ * How long a first screen waits for the front page's picture before it is drawn without it. The picture comes in
+ * the round the app does, so this is not met unless that one request is held up; and then the library is not kept
+ * from a device that has graphs, nor the front page from saying it is opening, by a file that may not come.
+ */
+const FRONT_WAIT = 300;
 
 /**
  * What an address must have before its first screen is drawn: the canvas's screens, the built-in templates, the
@@ -50,12 +58,13 @@ const listsBuiltIns = (route: Route): boolean => route.name === "templates" || (
  *
  * The library's address waits for the front page's picture too, though a device with graphs will not draw it: what
  * is on the device is not known until the screen has read it, and the piece comes in the same round as the app.
+ * That wait has an end (`FRONT_WAIT`).
  */
 export function ready(hash: string): Promise<unknown> {
   const wanted: Promise<unknown>[] = [];
   if (needsScreens(hash)) wanted.push(loadScreens());
   if (new RegExp(BUILT_INS).test(hash)) wanted.push(loadBuiltIns());
-  if (new RegExp(FRONT).test(hash)) wanted.push(loadFront());
+  if (new RegExp(FRONT).test(hash)) wanted.push(Promise.race([loadFront(), new Promise((soon) => setTimeout(soon, FRONT_WAIT))]));
   return Promise.all(wanted.map((piece) => piece.catch(() => undefined)));
 }
 
@@ -177,7 +186,7 @@ export function App() {
     );
 
   if (route.name === "about") return <Landing />;
-  if (listsBuiltIns(route) && templates !== "yes") return waiting(templates);
+  if (opensBuiltIn(route) && templates !== "yes") return waiting(templates);
   if (route.name === "templates") return <TemplatesScreen />;
   if (route.name === "library") {
     return (
