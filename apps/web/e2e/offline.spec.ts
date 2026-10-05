@@ -52,7 +52,7 @@ test("once opened with a network, it opens with none: the library, the templates
   await page.getByRole("button", { name: "Outline" }).tap();
   await expect(page.locator(".outline-section").first()).toContainText("Review loop");
 
-  // The built-in templates are part of the app, so they are there too.
+  // The built-in templates are a piece of the app the page names, so the worker holds them and they are there too.
   await page.goto("./#/templates");
   await expect(page.locator(".template-row").first()).toBeVisible();
   await page.reload();
