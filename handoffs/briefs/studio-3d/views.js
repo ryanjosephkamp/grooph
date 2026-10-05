@@ -86,11 +86,27 @@
       // the middle of the frame as it is seen from there.
       const was = { ...view };
       Object.assign(view, start, { zoom: 1 });
-      const at = pts.map(turned);
-      const [x0, x1, y0, y1] = [Math.min(...at.map((t) => t[0])), Math.max(...at.map((t) => t[0])), Math.min(...at.map((t) => t[1])), Math.max(...at.map((t) => t[1]))];
-      shift = [(x0 + x1) / 2, (y0 + y1) / 2];
-      fitted = Math.min((w - 126) / Math.max(1, x1 - x0), (h - 96) / Math.max(1, y1 - y0), 1.5);
-      shift[1] += 14 / fitted;
+      // Each thing takes room round its point that does not shrink with the scene: a card its box, a block of
+      // words its lines. The scene is as large as leaves all of that inside the frame, and is centered on it.
+      const room = (p) => {
+        if (p.t === "card") return p.side ? [8, p.small ? 104 : 128, 20, 20] : p.stand ? [p.small ? 46 : 58, p.small ? 46 : 58, p.small ? 40 : 56, 8] : [58, 58, 22, 22];
+        if (p.t === "text") return [8, 8, p.up ? 16 * String(p.text).split("\n").length * 1.6 : 12, 12];
+        return [3, 3, 3, 3];
+      };
+      const each = prims.flatMap((p) => (p.pts || [p.at]).map((q) => [turned(q), room(p)]));
+      // As it will be seen: what is nearer is a little larger, and so reaches a little further.
+      const near = (t, f) => (f * 2600) / (2600 - t[2] * f);
+      const box = (f) => [Math.min(...each.map(([t, r]) => t[0] * near(t, f) - r[0])), Math.max(...each.map(([t, r]) => t[0] * near(t, f) + r[1])), Math.min(...each.map(([t, r]) => -t[1] * near(t, f) - r[2])), Math.max(...each.map(([t, r]) => -t[1] * near(t, f) + r[3]))];
+      let [lo2, hi2] = [0.05, 1.5];
+      for (let n = 0; n < 18; n += 1) {
+        const f = (lo2 + hi2) / 2;
+        const [x0, x1, y0, y1] = box(f);
+        if (x1 - x0 <= w - 16 && y1 - y0 <= h - 16) lo2 = f;
+        else hi2 = f;
+      }
+      fitted = lo2;
+      const [x0, x1, y0, y1] = box(fitted);
+      shift = [(x0 + x1) / 2 / fitted, -(y0 + y1) / 2 / fitted];
       Object.assign(view, was);
     }
     function inset(pts, head, tail) {
@@ -198,8 +214,9 @@
         } else if (p.t === "card") {
           const s = clamp(pts[0][3], 0.72, 1.15);
           const [cw, ch] = p.small ? [84 * s, 22 * s] : [106 * s, 36 * s];
-          // A card stands on its point, clear of it, or is centered on it.
-          const [x, y] = [pts[0][0] - cw / 2, p.stand ? pts[0][1] - ch - 5 : pts[0][1] - ch / 2];
+          // A card stands over its point, clear of it; or beside it, when edges come to the point from above and
+          // below; or is centered on it.
+          const [x, y] = [p.side ? pts[0][0] + 9 : pts[0][0] - cw / 2, p.stand && !p.side ? pts[0][1] - ch - 13 : pts[0][1] - ch / 2];
           g.beginPath();
           g.roundRect(x, y, cw, ch, 7 * s);
           g.fillStyle = color(on ? "accent-soft" : "card");
@@ -311,7 +328,7 @@
       const p = lerp(a, b, t);
       return [p[0], p[1] + lift * 4 * t * (1 - t), p[2]];
     });
-  const edgeLine = (m, e, pts, more = {}) => ({ t: "line", pts, stroke: e.back ? hue(m, e.back) : "ink-2", dash: e.back ? [6, 4] : undefined, w: e.back ? 1.8 : 1.4, arrow: true, key: `edge:${e.id}`, inset: [2, 5], ...more });
+  const edgeLine = (m, e, pts, more = {}) => ({ t: "line", pts, stroke: e.back ? hue(m, e.back) : "ink-2", dash: e.back ? [6, 4] : undefined, w: e.back ? 1.8 : 1.4, arrow: true, key: `edge:${e.id}`, inset: [2, 1], ...more });
   const along = (pts, t) => {
     const at = clamp(t, 0, 1) * (pts.length - 1);
     const k = Math.min(pts.length - 2, Math.floor(at));
@@ -392,7 +409,7 @@
     }
     let z = 0;
     for (const item of ground(m)) {
-      if (item.node) ((at[item.node] = [0, 0, z]), prims.push(card(by(m.nodes, item.node), at[item.node])), (z += 78));
+      if (item.node) ((at[item.node] = [0, 0, z]), prims.push(card(by(m.nodes, item.node), at[item.node], { stand: true, side: true })), prims.push({ t: "dot", at: at[item.node], r: 3, fill: "ink-2", lift: -3990 }), (z += 78));
       else {
         // A ring of its own at the first station stands where the way in arrives: room for it.
         const first = stations(m, item.loop)[0].loop;
@@ -460,12 +477,13 @@
       // over the lid it is said in words only.
       const words = [];
       if (loop.cap) {
-        prims.push({ t: "poly", pts: circle(c, t.r + 18, loop.cap * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, key: `loop:${loop.id}`, lift: 300 });
+        prims.push({ t: "poly", pts: circle(c, t.r + 18, loop.cap * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, lift: 300 });
         words.push(`max iterations: ${loop.cap} (the lid)`);
       } else words.push("no lid: no cap on rounds");
       if (loop.human) {
-        for (let u = loop.human; u <= top; u += loop.human) if (u !== loop.cap) prims.push({ t: "line", pts: circle(c, t.r + 18, u * H), stroke: "k-gate", w: 2.2 });
-        words.push(`a person is asked every ${loop.human} rounds (the amber ring${top >= loop.human * 2 && loop.cap !== loop.human * 2 ? "s" : ""})`);
+        // At the lid's own round too, where the person is asked before the cap is looked at: a ring inside the lid.
+        for (let u = loop.human; u <= top; u += loop.human) prims.push({ t: "line", pts: circle(c, t.r + (u === loop.cap ? 9 : 18), u * H), stroke: "k-gate", w: 2.2, lift: 320 });
+        words.push(`a person is asked every ${loop.human} rounds (the amber ring${top >= loop.human * 2 ? "s" : ""})`);
       }
       let over = top;
       if (loop.budget?.measure === "dispatches" && loop.perRound) {
@@ -508,10 +526,10 @@
         x += 2 * r + 56;
       } else if (n > firstLoop && n < lastLoop) ((at[item.node] = [x + 50, 0, 0]), (x += 130));
     });
-    order.slice(0, Math.max(0, firstLoop)).reverse().forEach((item, n) => (at[item.node] = [-64 - n * 30, 0, -130 - n * 88]));
-    order.slice(lastLoop + 1).forEach((item, n) => (at[item.node] = [x - 6 + n * 26, 0, 150 + n * 80]));
+    order.slice(0, Math.max(0, firstLoop)).reverse().forEach((item, n) => (at[item.node] = [-70 - n * 24, 0, -150 - n * 150]));
+    order.slice(lastLoop + 1).forEach((item, n) => (at[item.node] = [x - 6 + n * 24, 0, 170 + n * 150]));
     // What is in no loop is small here: this view is of the loops.
-    for (const item of order) if (item.node) prims.push(card(by(m.nodes, item.node), at[item.node], { stand: true, small: true }));
+    for (const item of order) if (item.node) (prims.push(card(by(m.nodes, item.node), at[item.node], { stand: true, side: true, small: true })), prims.push({ t: "dot", at: at[item.node], r: 3, fill: "ink-2", lift: -3990 }));
     // Where a node is in a given round: on its own loop's spiral, that many turns up.
     const spot = (id, round = 0) => {
       const loop = by(m.loops, by(m.nodes, id).loop);
@@ -652,7 +670,7 @@
   }
 
   /* ── the page: one switch of documents over five views, each with its own stage and its own slider ───────── */
-  const VIEWS = { stairs: [stairs, { yaw: -0.46, pitch: 0.46 }], rings: [rings, { yaw: -0.5, pitch: 0.86 }], spiral: [spiral, { yaw: -0.42, pitch: 0.26 }], panes: [panes, { yaw: -0.86, pitch: 0.16 }], columns: [columns, { yaw: -0.62, pitch: 0.44 }] };
+  const VIEWS = { stairs: [stairs, { yaw: -0.46, pitch: 0.46 }], rings: [rings, { yaw: -0.5, pitch: 0.86 }], spiral: [spiral, { yaw: -0.42, pitch: 0.3 }], panes: [panes, { yaw: -0.86, pitch: 0.16 }], columns: [columns, { yaw: -0.62, pitch: 0.44 }] };
   let doc = 0;
   let playing = null;
   const all = [...document.querySelectorAll("[data-view]")].map((root) => {
