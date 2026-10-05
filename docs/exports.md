@@ -56,6 +56,8 @@ Every canvas in the app (the read-only viewer, a template's page, a run's page a
 
 A tap on a card does what a tap on its node does on the canvas. The canvas keeps its place under the view, so going back to Picture finds it as it was; in the editor, editing stays in the picture.
 
+**The picture becomes the scene.** Chosen, 3D is not put in the picture's place: each node is seen to go to its card, tilting as it goes, while the canvas's edges fade and the sheets and arcs come, in about a third of a second; and back the same way. The browser does the moving, with its view transitions (`ui/become.ts`): a node and its card are given one name, and everything with no name fades from the one page to the other. The first time in a visit, the scene's piece is fetched before anything moves. While it moves the page takes no pointer. With reduced motion, or in a browser that has no view transitions, the view is changed in one paint, as an operation map's is.
+
 It costs an address that draws on the canvas the few lines that ask for the switch. The switch and the graph's reading are a piece of their own, fetched once a canvas is up; the scene is the map's piece, fetched when 3D is chosen; both are asked for through `piece()` and named by the page, so the service worker holds them.
 
 <a href="../handoffs/0092-a-graph-in-three-dimensions/shots/space-gauntlet-decomposed-desktop-light.jpg"><img src="../handoffs/0092-a-graph-in-three-dimensions/shots/space-gauntlet-decomposed-desktop-light.jpg" alt="The template Gauntlet, decomposed in three dimensions: three sheets, the first for what is in no loop and one for each of its two loops, ten cards, and twelve numbered arcs, the loops' back edges dashed" width="760"></a>

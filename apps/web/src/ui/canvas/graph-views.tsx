@@ -17,11 +17,17 @@
  * **A recorded run** is given the slider instead: its own notes, in the order it wrote them, each lighting what it
  * is about (a node's card, an edge's arc, a loop's sheet) and saying who did what and in which round, as the run's
  * replay says it (`replaySteps` in core). That order is the run's, and it happened.
+ *
+ * **The picture becomes the scene.** Chosen, 3D is not put in the picture's place: each node is seen to go to its
+ * card, tilting as it goes, while the canvas's edges fade and the sheets and arcs come; and back the same way
+ * (`ui/become.ts`). The scene it ends on is the scene as it was before there was any motion, and with reduced
+ * motion, or in a browser with no view transitions, the change is that scene in one paint.
  */
 import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { piece } from "../../piece.js";
+import { become } from "../become.js";
 import css from "./graph-views.css?inline";
 
 type Space = typeof import("../map/space.js");
@@ -149,9 +155,72 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     document.head.append(sheet);
     styled = true;
   }
+  // The nodes on the canvas, or their cards when the scene is up: what is seen to go from the one view to the other.
+  // Only those wholly in the frame that holds them, the stage and in it the canvas or the scene's own: the browser
+  // draws a moving part over everything that is not moving, uncut, so a node the canvas cuts off (on a phone, one that
+  // would be under a template's details) would be seen to cross what it was behind. And only the graph's nodes: a
+  // subgrooph's frame is drawn on the canvas as one more, larger than the stage as often as not. Measured, not asked
+  // of the page: while the browser waits for a change, every point of the page is the page's root.
+  const parts = (): [HTMLElement, string][] => {
+    const stage = host.current?.parentElement;
+    if (!stage) return [];
+    const cards = [...stage.querySelectorAll<HTMLElement>(".space-card")].map((card): [HTMLElement, string] => [card, card.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? ""]);
+    const [a, b] = [stage, stage.querySelector(cards.length ? ".space-scene" : ".react-flow") ?? stage].map((el) => el.getBoundingClientRect()) as [DOMRect, DOMRect];
+    return (cards.length ? cards : [...stage.querySelectorAll<HTMLElement>(".react-flow__node[data-id]")].map((node): [HTMLElement, string] => [node, node.dataset["id"]!])).filter(([el, id]) => {
+      const box = el.getBoundingClientRect();
+      return doc.nodes.some((n) => n.id === id) && box.left > Math.max(a.left, b.left) - 1 && box.right < Math.min(a.right, b.right) + 1 && box.top > Math.max(a.top, b.top) - 1 && box.bottom < Math.min(a.bottom, b.bottom) + 1;
+    });
+  };
+  // The view that was last asked for, which the page may not have yet; the view it has; and whether the scene's
+  // piece is on its way.
+  const asked = useRef<"picture" | "space">("picture");
+  const shown = useRef(view);
+  const fetching = useRef(false);
+  // What to call once the page has a change that was asked for. Each change is numbered and made with `again` set to
+  // its number, so that a commit follows it even when it changes nothing, and the layout effect below, which runs
+  // after the scene's own, calls those the commit has reached: the browser holds the page still until it is told, for
+  // seconds if it never is, and takes its picture of the page as it is when it is told.
+  const moved = useRef<[number, () => void][]>([]);
+  const count = useRef(0);
+  const [reached, again] = useState(0);
+  // `idle` is asked when the browser comes for the change, a frame after it was told of it: whether another press
+  // came between and nothing is left to change. No move is made of the page going to itself.
+  const go = (change: () => void, idle: () => boolean): void => {
+    // A view that has gone has nothing to move, now or by then.
+    if (!host.current) return change();
+    become(parts, (done, skip) => {
+      if (!host.current) return done();
+      if (idle()) skip();
+      moved.current.push([++count.current, done]);
+      change();
+      again(count.current);
+    });
+  };
   const choose = (next: "picture" | "space"): void => {
-    setView(next);
-    if (next === "space" && !three) piece("space", () => import("../map/space.js")).then((m) => setThree((space = m)), () => (setThree(null), setView("picture")));
+    if (next === asked.current) return;
+    asked.current = next;
+    if (next === "space" && !three) {
+      // The first press of a visit fetches the scene's piece, once, and nothing moves until it has come; nor then, if
+      // the picture was asked for again meanwhile.
+      setView(next);
+      if (fetching.current) return;
+      fetching.current = true;
+      piece("space", () => import("../map/space.js")).then(
+        (m) => {
+          const come = (): void => setThree((space = m));
+          if (asked.current === "space") go(come, () => asked.current !== "space");
+          else come();
+        },
+        () => ((fetching.current = false), (asked.current = "picture"), setThree(null), setView("picture")),
+      );
+    } else if (next === "space" || made)
+      // Another press may have come by the time the browser asks: the view the page is given is the one asked for last.
+      go(
+        () => setView(asked.current),
+        () => asked.current === shown.current,
+      );
+    // The picture, asked for while the scene was still on its way: the page is the picture already.
+    else setView(next);
   };
   const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
   // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
@@ -173,8 +242,15 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       el.setAttribute("role", "img");
       if (at) el.setAttribute("aria-label", `Step ${at.n}: ${name(at.from)} to ${name(at.to)}`);
     }
-    return three.attach(root, made, (kept.current ??= three.held()), () => setView("picture"));
+    return three.attach(root, made, (kept.current ??= three.held()), () => choose("picture"));
   }, [made]);
+  const told = (upTo: number): void => void (moved.current = moved.current.filter(([n, done]) => n > upTo || (done(), false)));
+  useLayoutEffect(() => {
+    shown.current = view;
+    told(reached);
+  });
+  // A view that goes while a change is on its way must not leave the browser waiting for it.
+  useEffect(() => () => told(Infinity), []);
   // Three cards in a row at a phone's width, and more where there is room, as a map's sheets have.
   useEffect(() => {
     const stage = host.current?.parentElement;
