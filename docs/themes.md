@@ -46,7 +46,7 @@ For early drafts and teaching. Hand lettering and lines that wobble say the grap
 
 ### What all six share
 
-In all six a gate is the card with the heavy outline and the words "Human gate", a loop's edge is dashed and labeled, and a stop has its own corners. A subgrooph's box takes a theme's colors and lettering and keeps its own corners, closed or open. Color repeats what shape and words already say. In Ink, where there is one color, a gate, a person and an edge a person must approve are heavier rules.
+In all six a gate is the card with the heavy outline and the words "Human gate", a loop's edge is dashed and labeled, and a stop has its own corners. Color repeats what shape and words already say. In Ink, where there is one color, a gate, a person and an edge a person must approve are heavier rules.
 
 ## Choosing one
 
@@ -111,7 +111,8 @@ Paper is today's picture and was not changed. A few of its pairs are a little un
 - **Corners** come from a style rule. A browser too old to know it draws the corners as Paper's.
 - **On a map, Transit keeps the handoffs' own line weights.** There, line style says what carries a handoff, and the lines run close together.
 - **On the canvas** the nodes and edges take a theme's colors, corners, line weights and lettering. The canvas keeps its own dotted ground, and nothing on it wobbles.
-- **The 3D view, of a map or of a graph, is Paper in every theme.** It is built from the page's own elements, not drawn as one picture, and no theme has rules for it. The flat views beside it are in the theme. On a graph's canvas the themes' dot steps aside while the 3D view is shown.
+- **A subgrooph's box takes a theme's colors, and little else.** No theme has rules of its own for the box yet. Its label is not set as a card's is (Blueprint's fixed-width capitals, the capitals of Ink, Phosphor and Transit), and its corners are Paper's in every theme but Phosphor, which squares them as it does a card's.
+- **The 3D view, of a map or of a graph, is Paper in every theme.** It is built from the page's own elements, not drawn as one picture, and no theme has rules for it. While it is shown, the screen that holds it is in Paper too, so its slider and its buttons are the site's own; the flat views are in the theme again when one is chosen. On a graph's canvas the themes' dot steps aside while the 3D view is shown.
 - **An embed in a theme draws the theme's ground** behind the picture and its bars. An embed in Paper lets the page around it show through, as before.
 - **If the themes' file cannot be fetched** (no network, on a visit before the service worker has it), every picture stays Paper, a control that offers the themes says so in words beside it, and Keep a copy says its files are in Paper. Pressing the control again with a network brings the list, and the theme.
 - **Two pictures of one theme set inline in one page**, each following the viewer and held by that page to different forms, share one ground: the second is drawn with the first one's grid or scan lines. The app never does this, and a picture written in light or in dark only has a ground of its own.
