@@ -1,0 +1,28 @@
+Usage statement                                       September 2026
+Northwind Robotics                                  Account NW-20418
+
+Charges                       Quantity  Unit            Amount (USD)
+--------------------------------------------------------------------
+Compute                         18,250  vCPU-hours          1,642.50
+Container registry                 412  GB-months              41.20
+Data transfer out                4,380  GB                    394.20
+Dedicated support                    1  plan                  500.00
+Key management                      36  keys                   36.00
+Load balancing                   1,440  hours                  36.00
+Machine learning inference           0  requests                0.00
+Managed database                   720  instance-hours      1,296.00
+Monitoring                           0  metrics                 0.00
+Object storage                   9,120  GB-months             209.76
+                                                        ------------
+Total charges                                               4,155.66
+
+Credits
+--------------------------------------------------------------------
+Service credit, 14 Sep outage                                -164.25
+Committed-use discount                                       -410.63
+                                                        ------------
+Total credits                                                -574.88
+
+====================================================================
+Total due (USD)                                             3,580.78
+====================================================================

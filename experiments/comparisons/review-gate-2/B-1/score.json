@@ -1,0 +1,63 @@
+{
+  "scored_at": "2026-10-04T21:22:17.146Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/layer-cases.test.mjs",
+    "cases": 55,
+    "passed": 55,
+    "failed": 0,
+    "skipped": 0,
+    "rate": 1,
+    "failing": [],
+    "exit": 0,
+    "suite": [
+      {
+        "path": "layer-cases.test.mjs",
+        "sha256": "9dc52036ea37c1eb6d8b9e2c8f985cf7c29a42f354f29b7d1cc4ed565c388e04",
+        "at_run": true
+      }
+    ],
+    "scored_from": "experiments/comparisons/review-gate-2/held-out",
+    "reviewers_copy_changed": []
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 17,
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "CHANGELOG.md",
+      "REVIEW.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "CHANGELOG.md",
+      "CHANGES.md",
+      "REVIEW.md",
+      "src/layer.mjs",
+      "tests/layer.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  }
+}

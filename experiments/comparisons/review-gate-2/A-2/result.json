@@ -1,0 +1,352 @@
+{
+  "template": "review-gate",
+  "template_version": "review-gate@1",
+  "slots": {
+    "values": {
+      "task": "Add `layer(base, over)` in a new file, src/layer.mjs: it returns the settings you get by laying `over` on top of `base`. Where both hold a plain object under the same key, the two are layered key by key, at any depth; otherwise a value given in `over` replaces the one in `base`, and a key only one of them has is kept. Both arguments must be plain objects, or it throws a TypeError. Tests go in tests/layer.test.mjs, and CHANGELOG.md gets a line.",
+      "test-command": "npm test",
+      "checklist": "docs/REVIEW-CHECKLIST.md and every case of the held-out suite /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6.harness/held-out/layer-cases.test.mjs (the suite is outside this project and settles what the task and the checklist leave open; the critic runs it from the project root with `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6.harness/held-out/layer-cases.test.mjs` and, for each case that fails, quotes the case and what it expected in REVIEW.md; it is the critic's alone, and the builder does not read or run it)"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6.harness/held-out",
+    "files": [
+      {
+        "path": "layer-cases.test.mjs",
+        "sha256": "9dc52036ea37c1eb6d8b9e2c8f985cf7c29a42f354f29b7d1cc4ed565c388e04",
+        "at_run": true
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "layer-settings",
+  "run_id": "20261004-212722",
+  "run_ids": [
+    "20261004-212722"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "lead": {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "tier_map": "frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+  "aliases": {
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+  },
+  "agent_models": {
+    "layer-settings--builder": "claude-sonnet-5-5",
+    "layer-settings--critic": "claude-sonnet-5-5"
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.8207966,
+      "output_tokens": 13359
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.4094253,
+      "output_tokens": 17689
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "layer-settings--builder": [
+      "claude-sonnet-5-5"
+    ],
+    "layer-settings--critic": [
+      "claude-sonnet-5-5"
+    ]
+  },
+  "models_never_used": [],
+  "cost_usd": 1.230222,
+  "harness_turns": 41,
+  "lead_turns": null,
+  "duration_s": 251,
+  "rounds": {
+    "loop_passes": 2,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at merge-gate"
+  ],
+  "subagents": {
+    "layer-settings--builder": 2,
+    "layer-settings--critic": 2
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cat >> tests/layer.test.mjs <<'EOF'\n\ntest(\"layer treats undefined in over as not given\", () => {\n  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });\n  const base = { output: { color: \"auto\" } };\n  const kept = layer(base, { output: undefined });\n  assert.deepEqual(kept, { output: { color: \"auto\" } });\n  assert.notEqual(kept.output, base.output);\n  assert.deepEqual(\n    layer({ output: { color: \"auto\", width: 80 } }, { output: { color: undefined, width: 100 } }),\n    { output: { color: \"auto\", width: 100 } },\n  );\n  assert.deepEqual(Object.keys(layer({ a: 1 }, { pager: undefined })), [\"a\"]);\n  assert.deepEqual(Object.keys(layer({}, { a: { b: undefined, c: 1 } }).a), [\"c\"]);\n});\n\ntest(\"layer refuses values that are not plain data\", () => {\n  class Point {\n    constructor(x, y) {\n      this.x = x;\n      this.y = y;\n    }\n  }\n  const bad = [() => 1, new Map([[\"a\", 1]]), new Set([\"a\"]), new Point(0, 0), /x/, new Error(\"e\")];\n  for (const value of bad) {\n    assert.throws(() => layer({}, { v: value }), TypeError);\n    assert.throws(() => layer({ v: value }, {}), TypeError);\n    assert.throws(() => layer({ v: 1 }, { v: value }), TypeError);\n    assert.throws(() => layer({ v: value }, { v: 1 }), TypeError);\n    assert.throws(() => layer({}, { a: { b: value } }), TypeError);\n    assert.throws(() => layer({ a: { b: value } }, {}), TypeError);\n    assert.throws(() => layer({ a: { b: 1 } }, { a: { c: [value] } }), TypeError);\n    assert.throws(() => layer({}, { hooks: [value] }), TypeError);\n  }\n});\n\ntest(\"layer copies a Date as a new Date\", () => {\n  const when = new Date(5);\n  const result = layer({ when }, {});\n  assert.ok(result.when instanceof Date);\n  assert.equal(result.when.getTime(), 5);\n  assert.notEqual(result.when, when);\n  const viaOver = layer({}, { list: [when] });\n  assert.equal(viaOver.list[0].getTime(), 5);\n  assert.notEqual(viaOver.list[0], when);\n});\nEOF"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 45,
+      "session_id": "89ff0d99-8d88-4def-925b-b1b72708159b",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.230222,
+      "reported_cost_usd": 1.2302219,
+      "max_budget_usd": 9,
+      "harness_turns": 41,
+      "duration_s": 251,
+      "wall_s": 252,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "ass, exit 0) and ran the held-out suite (55 of 55 pass).\n\nThe working copy of the graph wasn't amended. One flaw in the record: the `started` time on the first builder dispatch note (`n-0002`) reuses the run-start time instead of a fresh clock reading. It's in an append-only file, so I've left it.\n\nEverything for run `20261004-212722` is in `.grooph/layer-settings/runs/20261004-212722/`: PROGRESS.md, notes.jsonl, REVIEW.md, REVIEW-round-0.md, CHANGES.md and the diffs and `npm test` output from each round. If nobody answers, the run ends at this gate, and you can resume it with the same run id."
+    }
+  ],
+  "base_commit": "16e4cb7f8caf59ff4eaa90d55283f13a2fed9d74",
+  "source_sha256_before": "d16354b761284368e6fba505c0832f9aa840124ad88f9600480cad29599bbec3",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A src/layer.mjs",
+    "A tests/layer.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source",
+  "arm": "A",
+  "replicate": 2,
+  "project": "review-gate-2",
+  "wall_s": 252,
+  "conditions": {
+    "task": "experiments/comparisons/review-gate-2/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6.harness/held-out",
+      "files": [
+        {
+          "path": "layer-cases.test.mjs",
+          "sha256": "9dc52036ea37c1eb6d8b9e2c8f985cf7c29a42f354f29b7d1cc4ed565c388e04",
+          "at_run": true
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/review-gate-2/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "layer-settings--builder": "claude-sonnet-5-5",
+      "layer-settings--critic": "claude-sonnet-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": true
+    },
+    "tool_on_path": true,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "review-gate",
+    "template_version": "review-gate@1",
+    "graph_id": "layer-settings",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.8207966,
+        "output_tokens": 13359
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.4094253,
+        "output_tokens": 17689
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "layer-settings--builder": [
+        "claude-sonnet-5-5"
+      ],
+      "layer-settings--critic": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 1.230222,
+    "harness_turns": 41,
+    "duration_s": 251,
+    "wall_s": 252,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "cat >> tests/layer.test.mjs <<'EOF'\n\ntest(\"layer treats undefined in over as not given\", () => {\n  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });\n  const base = { output: { color: \"auto\" } };\n  const kept = layer(base, { output: undefined });\n  assert.deepEqual(kept, { output: { color: \"auto\" } });\n  assert.notEqual(kept.output, base.output);\n  assert.deepEqual(\n    layer({ output: { color: \"auto\", width: 80 } }, { output: { color: undefined, width: 100 } }),\n    { output: { color: \"auto\", width: 100 } },\n  );\n  assert.deepEqual(Object.keys(layer({ a: 1 }, { pager: undefined })), [\"a\"]);\n  assert.deepEqual(Object.keys(layer({}, { a: { b: undefined, c: 1 } }).a), [\"c\"]);\n});\n\ntest(\"layer refuses values that are not plain data\", () => {\n  class Point {\n    constructor(x, y) {\n      this.x = x;\n      this.y = y;\n    }\n  }\n  const bad = [() => 1, new Map([[\"a\", 1]]), new Set([\"a\"]), new Point(0, 0), /x/, new Error(\"e\")];\n  for (const value of bad) {\n    assert.throws(() => layer({}, { v: value }), TypeError);\n    assert.throws(() => layer({ v: value }, {}), TypeError);\n    assert.throws(() => layer({ v: 1 }, { v: value }), TypeError);\n    assert.throws(() => layer({ v: value }, { v: 1 }), TypeError);\n    assert.throws(() => layer({}, { a: { b: value } }), TypeError);\n    assert.throws(() => layer({ a: { b: value } }, {}), TypeError);\n    assert.throws(() => layer({ a: { b: 1 } }, { a: { c: [value] } }), TypeError);\n    assert.throws(() => layer({}, { hooks: [value] }), TypeError);\n  }\n});\n\ntest(\"layer copies a Date as a new Date\", () => {\n  const when = new Date(5);\n  const result = layer({ when }, {});\n  assert.ok(result.when instanceof Date);\n  assert.equal(result.when.getTime(), 5);\n  assert.notEqual(result.when, when);\n  const viaOver = layer({}, { list: [when] });\n  assert.equal(viaOver.list[0].getTime(), 5);\n  assert.notEqual(viaOver.list[0], when);\n});\nEOF"
+      }
+    ],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "layer-settings--builder",
+        "description": "Builder round 0: layer()"
+      },
+      {
+        "subagent_type": "layer-settings--critic",
+        "description": "Critic round 0: judge layer()"
+      },
+      {
+        "subagent_type": "layer-settings--builder",
+        "description": "Builder round 1: address review"
+      },
+      {
+        "subagent_type": "layer-settings--critic",
+        "description": "Critic round 1: judge layer()"
+      }
+    ],
+    "held_out_touched": {
+      "layer-settings--critic": 3
+    },
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 289,
+      "transcripts": 5,
+      "where": [
+        {
+          "who": "lead",
+          "mentions": 225
+        },
+        {
+          "who": "layer-settings--builder",
+          "mentions": 13
+        },
+        {
+          "who": "layer-settings--critic",
+          "mentions": 16
+        },
+        {
+          "who": "layer-settings--builder",
+          "mentions": 18
+        },
+        {
+          "who": "layer-settings--critic",
+          "mentions": 17
+        }
+      ]
+    },
+    "record": {
+      "rounds": {
+        "loop_passes": 2,
+        "rounds_recorded": 2,
+        "last_round": 1
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "halt at merge-gate"
+      ],
+      "back_edges": {
+        "later_rounds": 1,
+        "edge_notes": [],
+        "mentioned": [
+          "e-critic-fail"
+        ],
+        "caught_by": [
+          "critic (fail)"
+        ],
+        "taken": true
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0006",
+          "loop": "review",
+          "round": 0,
+          "recorded": 2,
+          "started": 2,
+          "off": 0
+        },
+        {
+          "note": "n-0011",
+          "loop": "review",
+          "round": 1,
+          "recorded": 4,
+          "started": 4,
+          "off": 0
+        }
+      ],
+      "amendments": [],
+      "halt_notes": [
+        "node:merge-gate"
+      ]
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20261004-212722: the clock form",
+      "REVIEW.md: critic Write .grooph/layer-settings/runs/20261004-212722/REVIEW.md; critic Write .grooph/layer-settings/runs/20261004-212722/REVIEW.md",
+      "per-round report copies in the run folder: REVIEW.md round 0",
+      "layer-settings--critic (Critic round 0: judge layer()) read docs/REVIEW-CHECKLIST.md, .grooph/layer-settings/runs/20261004-212722/diff-round-0.patch, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6.harness/held-out/layer-cases.test.mjs; ran `npm test`, `git status --short`",
+      "layer-settings--critic (Critic round 1: judge layer()) read docs/REVIEW-CHECKLIST.md, .grooph/layer-settings/runs/20261004-212722/diff-round-1.patch, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit-y240H6.harness/held-out/layer-cases.test.mjs; ran `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/gLnnla/settingskit…`, `npm test`, `git status --short`",
+      "the final note is at node:merge-gate, not at graph",
+      "ending as expected: halt at merge-gate",
+      "dispatch count: n-0006 review r0 recorded 2, started lines 2; n-0011 review r1 recorded 4, started lines 4 (exact)",
+      "back edge taken: e-critic-fail; 1 loop note(s) beyond round 0; caught by critic (fail)",
+      "verdicts in order: critic → fail, pass",
+      "held-out evidence (layer-cases.test.mjs): touched by critic ×2; named in 2 dispatch prompt(s)",
+      "timestamps: 12 given, 0 out of append order",
+      "permission denials: Bash `cat >> tests/layer.test.mjs <<'EOF'\n\ntest(\"layer treats undefined in over as not`"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "halt at merge-gate"
+  }
+}

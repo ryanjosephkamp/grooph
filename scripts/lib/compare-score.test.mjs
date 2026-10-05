@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, test } from "node:test";
 
-import { failedCases, parseTestSummary, scoreHeldOut, scoreScope, scoreTests, scoreTree } from "./compare-score.mjs";
+import { failedCases, parseTestSummary, scoreHeldOut, scoreScope, scoreTests, scoreTree, withExpected } from "./compare-score.mjs";
 
 let tree;
 let heldOut;
@@ -109,4 +109,16 @@ test("scoreTree carries the ending the runner recorded", () => {
   assert.deepEqual(score.ending, { kind: "cut-off", reason: "iteration limit" });
   assert.equal(score.held_out.ran, false);
   assert.deepEqual(score.scope.outside, []);
+});
+
+test("a suite that could not load the work is scored out of its own size, and says so", () => {
+  // node reports a file that fails at import as one failing test.
+  const oneFailure = { ran: true, cases: 1, passed: 0, failed: 1, rate: 0, failing: ["suite.test.mjs"] };
+  assert.deepEqual(withExpected(oneFailure, 55), { ...oneFailure, loaded: false, cases_reported: 1, cases: 55, passed: 0, failed: 55, rate: 0 });
+  // A suite that ran whole is left as it is, and so is a project that does not say how many cases it has.
+  const whole = { ran: true, cases: 55, passed: 40, failed: 15, rate: 0.727 };
+  assert.equal(withExpected(whole, 55), whole);
+  assert.equal(withExpected(whole, undefined), whole);
+  const notRun = { ran: false, reason: "the project has no held-out suite" };
+  assert.equal(withExpected(notRun, 55), notRun);
 });

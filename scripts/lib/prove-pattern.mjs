@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { closeSync, cpSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { checkRun, printCheck } from "./prove-check.mjs";
@@ -110,6 +110,33 @@ export function settingsFor(heldOut) {
   return { permissions: { allow: [...BASE_SETTINGS.permissions.allow, ...paths.map((path) => `Read(/${path}/**)`)] } };
 }
 
+/**
+ * Never Fable, never Astra: not a lead, not a subagent (the owner's rule, 2026-10-04). The Claude Code target gives
+ * the `frontier` tier to Fable, and before slice 0019 this runner left the lead to the harness's default model, so
+ * since then a run names both: the lead's model on the command line (`--model`, with `--effort`), and what each tier
+ * means in the environment (`GROOPH_MODELS`, which `grooph export` reads; slice 0079). A package that would put an
+ * agent on such a model is refused before any call, and a run that reports one is kept and flagged.
+ */
+export const NEVER = /fable|astra/i;
+
+/** The model each agent file of a built package names, from its frontmatter: { "<graph>--<node>": "<model>" }. */
+export function agentModels(scratch, graphId) {
+  const dir = join(scratch, ".claude", "agents");
+  const out = {};
+  if (!existsSync(dir)) return out;
+  for (const name of readdirSync(dir).filter((n) => n.startsWith(`${graphId}--`) && n.endsWith(".md")).sort()) {
+    const head = readFileSync(join(dir, name), "utf8").match(/^---\n([\s\S]*?)\n---/);
+    out[name.slice(0, -3)] = head?.[1].match(/^model:\s*(.+)$/m)?.[1].trim() ?? "(none: the harness's default)";
+  }
+  return out;
+}
+
+/** Every model a run reported, by the harness's count or by a transcript, that no run uses. Empty is the only good answer. */
+export function neverUsed(models, byAgent = {}) {
+  const seen = new Set([...Object.keys(models ?? {}), ...Object.values(byAgent ?? {}).flat()]);
+  return [...seen].filter((model) => NEVER.test(model)).sort();
+}
+
 export const say = (text) => console.log(`\n\x1b[1m${text}\x1b[0m`);
 export class Refusal extends Error {}
 export const fail = (text) => {
@@ -118,13 +145,15 @@ export const fail = (text) => {
 
 // ── arguments ────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const args = { template: undefined, dryRun: false, check: undefined, retry: undefined, status: false };
+  const args = { template: undefined, dryRun: false, check: undefined, retry: undefined, status: false, model: undefined, effort: undefined };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--dry-run") args.dryRun = true;
     else if (arg === "--check") args.check = argv[++i] ?? fail("--check needs the evidence folder of a run");
     else if (arg === "--retry") args.retry = argv[++i] ?? fail('--retry needs the reason: --retry "sign-in expired"');
     else if (arg === "--status") args.status = true;
+    else if (arg === "--model") args.model = argv[++i] ?? fail("--model needs the lead's model: --model claude-opus-5-5");
+    else if (arg === "--effort") args.effort = argv[++i] ?? fail("--effort needs a level: --effort high");
     else if (arg.startsWith("-")) fail(`unknown argument: ${arg}`);
     else if (!args.template) args.template = arg;
     else fail(`unexpected argument: ${arg}`);
@@ -148,7 +177,7 @@ export function run(command, args, options = {}) {
  * and ANTHROPIC_* variables, a messaging socket, an effort override) reaches it.
  * The CLI signs in with its own stored credentials.
  */
-export function cleanEnv(path) {
+export function cleanEnv(path, extra = {}) {
   const env = {
     HOME,
     PATH: path,
@@ -160,8 +189,22 @@ export function cleanEnv(path) {
     TERM: process.env.TERM ?? "dumb",
   };
   if (process.env.CLAUDE_CONFIG_DIR) env.CLAUDE_CONFIG_DIR = process.env.CLAUDE_CONFIG_DIR;
-  return env;
+  return { ...env, ...extra };
 }
+
+/**
+ * What each of the harness's model aliases means during a run (Claude Code's ANTHROPIC_DEFAULT_*_MODEL variables). An
+ * agent file names a full model id, but a lead may also pass `model` to the Agent tool, and that argument is an alias
+ * and wins over the file. With these in the run's environment a lead that asks for `fable` gets Opus 5.5, and `opus`,
+ * `sonnet` and `haiku` are the ids the record names whatever the harness's own defaults are that day. The record still
+ * keeps what ran (`models`, `models_by_agent`), and a run that reports Fable all the same is flagged.
+ */
+export const ALIAS_ENV = {
+  ANTHROPIC_DEFAULT_FABLE_MODEL: "claude-opus-5-5",
+  ANTHROPIC_DEFAULT_OPUS_MODEL: "claude-opus-5-5",
+  ANTHROPIC_DEFAULT_SONNET_MODEL: "claude-sonnet-5-5",
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: "claude-haiku-4-5-20251001",
+};
 
 function loadExperiment(template) {
   const dir = join(EXPERIMENTS, template);
@@ -206,8 +249,12 @@ export function substituteHeldOut(dir, path) {
 }
 
 // ── the scratch project ──────────────────────────────────────────────────
-export function buildScratch(template, experiment, prefix = `grooph-prove-${template}-`) {
-  const scratch = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), prefix));
+export function buildScratch(template, experiment, prefix = `grooph-prove-${template}-`, commit = {}) {
+  // Who made the scratch's one commit and what it says. A session is shown its repository's user and last commits, so
+  // a caller that must not tell a session what it is part of (a comparison, protocol version 2) names neutral ones.
+  const author = { name: commit.name ?? "grooph prove", email: commit.email ?? "prove@grooph.local", message: commit.message ?? `task and the grooph package for ${template}` };
+  // A caller may name the whole place (an absolute prefix); otherwise the scratch goes under the temp directory.
+  const scratch = mkdtempSync(isAbsolute(prefix) ? prefix : join(process.env.TMPDIR || tmpdir(), prefix));
   const harnessDir = `${scratch}.harness`;
   mkdirSync(harnessDir);
   cpSync(join(experiment.dir, "task"), scratch, { recursive: true });
@@ -226,8 +273,8 @@ export function buildScratch(template, experiment, prefix = `grooph-prove-${temp
   const fill = (values) => Object.fromEntries(Object.entries(values).map(([key, value]) => [key, heldOut ? String(value).replaceAll(HELD_OUT_TOKEN, heldOut.realDir) : String(value)]));
 
   run("git", ["-C", scratch, "init", "-q"]);
-  run("git", ["-C", scratch, "config", "user.email", "prove@grooph.local"]);
-  run("git", ["-C", scratch, "config", "user.name", "grooph prove"]);
+  run("git", ["-C", scratch, "config", "user.email", author.email]);
+  run("git", ["-C", scratch, "config", "user.name", author.name]);
 
   // Only this branch's built-in library may answer: no user templates, no remote.
   const groophHome = mkdtempSync(join(tmpdir(), "grooph-prove-home-"));
@@ -266,7 +313,7 @@ export function buildScratch(template, experiment, prefix = `grooph-prove-${temp
   rmSync(groophHome, { recursive: true, force: true });
 
   run("git", ["-C", scratch, "add", "-A"]);
-  run("git", ["-C", scratch, "commit", "-qm", `task and the grooph package for ${template}`]);
+  run("git", ["-C", scratch, "commit", "-qm", author.message]);
   const base = run("git", ["-C", scratch, "rev-parse", "HEAD"]).stdout.trim();
   const sourcePath = join(scratch, ".grooph", doc.id, "graph.grooph.json");
   return {
@@ -305,7 +352,7 @@ export function claudeSignedIn() {
 }
 
 // ── one model-calling invocation ─────────────────────────────────────────
-function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, prompt, resumeSession, suffix, note, settings }) {
+function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, prompt, resumeSession, suffix, note, settings, lead }) {
   const decision = gate(ledger, { template, kind, retry });
   if (!decision.ok) fail(`the ledger refuses this ${kind}: ${decision.reason}`);
   const entry = openEntry(ledger, { template, kind, maxBudget: decision.maxBudget, retry, sessionId: resumeSession, note });
@@ -320,11 +367,14 @@ function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, pr
   // connectors never reach a run (in the first batch a builder called one's instructions an injection).
   const settingsJson = JSON.stringify(settings);
   const args = ["-p", prompt, "--permission-mode", "acceptEdits", "--output-format", "json", "--settings", settingsJson, "--max-budget-usd", decision.maxBudget.toFixed(2), "--strict-mcp-config"];
+  // The lead's model and effort, pinned so the record can say what ran (since slice 0019; a resume names them again).
+  if (lead?.model) args.push("--model", lead.model);
+  if (lead?.effort) args.push("--effort", lead.effort);
   if (resumeSession) args.push("--resume", resumeSession);
   const out = openSync(outPath, "w");
   const err = openSync(errPath, "w");
   const started = Date.now();
-  const child = spawnSync("claude", args, { cwd: scratch, env: cleanEnv(`${binDir}:${process.env.PATH}`), stdio: ["ignore", out, err], timeout: RUN_TIMEOUT_MS });
+  const child = spawnSync("claude", args, { cwd: scratch, env: cleanEnv(`${binDir}:${process.env.PATH}`, lead?.model ? ALIAS_ENV : {}), stdio: ["ignore", out, err], timeout: RUN_TIMEOUT_MS });
   closeSync(out);
   closeSync(err);
   const wall = Math.round((Date.now() - started) / 1000);
@@ -354,7 +404,7 @@ function invoke({ ledger, template, kind, retry, scratch, harnessDir, binDir, pr
 }
 
 // ── evidence ─────────────────────────────────────────────────────────────
-export function collect({ template, experiment, built, invocations, prompts, evidenceDir, harnessVersion }) {
+export function collect({ template, experiment, built, invocations, prompts, evidenceDir, harnessVersion, lead }) {
   const { scratch, graphId } = built;
   mkdirSync(evidenceDir, { recursive: true });
   const runsDir = join(scratch, ".grooph", graphId, "runs");
@@ -412,8 +462,15 @@ export function collect({ template, experiment, built, invocations, prompts, evi
     run_ids: folders,
     harness: "claude-code",
     harness_version: harnessVersion,
+    // What was asked for (since slice 0019): the lead's model and effort as pinned, the tier map the package was
+    // exported under, and the model each agent file names. `models` and `models_by_agent` below are what ran.
+    lead: lead ?? null,
+    tier_map: process.env.GROOPH_MODELS ?? null,
+    aliases: lead?.model ? ALIAS_ENV : null,
+    agent_models: agentModels(scratch, graphId),
     models,
     models_by_agent: byAgent,
+    models_never_used: neverUsed(models, byAgent),
     cost_usd: Math.round(invocations.reduce((total, inv) => total + (inv.entry.cost_usd ?? 0), 0) * 1e6) / 1e6,
     harness_turns: sum("num_turns"),
     lead_turns: null,
@@ -497,7 +554,11 @@ async function main() {
   const evidenceDir = join(experiment.dir, "run");
   assertFreshBundle(args.template);
   if (experiment.fragment) assertFreshBundle(experiment.slots.host.template);
+  const lead = { model: args.model ?? null, effort: args.effort ?? null };
+  if (lead.model && NEVER.test(lead.model)) fail(`--model ${lead.model}: no run uses that model`);
   if (!args.dryRun) {
+    if (!lead.model || !lead.effort) fail("name the lead: --model <id> --effort <level> (for instance --model claude-opus-5-5 --effort high). Since slice 0019 no run starts on the harness's default model, which this runner cannot see and the record could not name.");
+    if (!process.env.GROOPH_MODELS) fail("name what each tier means: GROOPH_MODELS=frontier=…,strong=…,fast=… in the environment. The Claude Code target gives the frontier tier to Fable, which no run uses; `grooph export` reads the variable and the record keeps it.");
     if (existsSync(evidenceDir)) fail(`experiments/patterns/${args.template}/run already holds a run's evidence; it is never overwritten. To re-prove, move it aside first (run/ → run-1/) and pass --retry "<why>"`);
     if (spawnSync("claude", ["--version"], { encoding: "utf8" }).status !== 0) fail("claude is not on PATH; install Claude Code first");
     if (!claudeSignedIn()) fail("the claude CLI is not signed in, so a headless run would fail. Sign in with `claude auth login` and run this again.");
@@ -508,6 +569,10 @@ async function main() {
   const built = buildScratch(args.template, experiment);
   console.log(`scratch project: ${built.scratch}\ngraph: ${built.graphId} (${built.doc.lineage?.from}${built.fragment ? ` as host; ${built.fragment.steps.join("; ")}` : ""})\nbase commit: ${built.base}`);
   if (built.heldOut) console.log(`held-out: ${built.heldOut.realDir} (${built.heldOut.files.map((f) => f.path).join(", ")}); the token replaced in ${built.substituted.length > 0 ? built.substituted.join(", ") : "no task file"} and in the slot values; Read allowed there by rule`);
+  const named = agentModels(built.scratch, built.graphId);
+  console.log(`lead: ${lead.model ? `${lead.model} at effort ${lead.effort ?? "(the harness's default)"}` : "not named (a dry run may leave it out; a paid run may not)"}\ntier map: ${process.env.GROOPH_MODELS ?? "not named: the target's own"}\nagents: ${Object.entries(named).map(([agent, model]) => `${agent.split("--").pop()} ${model}`).join(", ") || "none"}`);
+  const never = Object.entries(named).filter(([, model]) => NEVER.test(model));
+  if (never.length > 0) fail(`this package would run ${never.map(([agent, model]) => `${agent.split("--").pop()} on ${model}`).join(", ")}, a model no run uses. Name the tier in GROOPH_MODELS (grooph help export).`);
 
   // `grooph` on PATH for the run, so the lead can validate an amended working copy. Outside the scratch project.
   const binDir = mkdtempSync(join(tmpdir(), "grooph-prove-bin-"));
@@ -526,7 +591,7 @@ async function main() {
       const decision = gate(ledger, { template: args.template, kind: "kickoff", retry: args.retry });
       console.log(describe(ledger));
       console.log(decision.ok ? `the ledger would allow a kickoff, capped at $${decision.maxBudget.toFixed(2)}` : `the ledger would refuse: ${decision.reason}`);
-      console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" --permission-mode acceptEdits --output-format json --settings '<${built.settings.permissions.allow.length} allow rules>' --max-budget-usd ${decision.ok ? decision.maxBudget.toFixed(2) : "–"} --strict-mcp-config`);
+      console.log(`would run in ${built.scratch}:\n  claude -p "$(cat .grooph/${built.graphId}/KICKOFF.md)" --permission-mode acceptEdits --output-format json --settings '<${built.settings.permissions.allow.length} allow rules>' --max-budget-usd ${decision.ok ? decision.maxBudget.toFixed(2) : "–"} --strict-mcp-config${lead.model ? ` --model ${lead.model}` : ""}${lead.effort ? ` --effort ${lead.effort}` : ""}`);
       if (built.fragment) console.log(built.fragment.insertOutput.trim().split("\n").map((line) => `  ${line}`).join("\n"));
       console.log(`slots as filled: ${JSON.stringify(built.slots)}`);
       if (experiment.expect.resume) console.log(`then, after a halt at ${experiment.expect.resume.gate}, once: claude -p "<scripted ${experiment.expect.resume.answer}>" --resume <session id> …`);
@@ -543,7 +608,7 @@ async function main() {
     const prompts = { "kickoff.md": kickoff };
 
     say("running the package headless (this spends money)");
-    const first = invoke({ ledger, template: args.template, kind: "kickoff", retry: args.retry, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt: kickoff, suffix: "", note: args.retry ? `retry: ${args.retry}` : "", settings: built.settings });
+    const first = invoke({ ledger, template: args.template, kind: "kickoff", retry: args.retry, scratch: built.scratch, harnessDir: built.harnessDir, binDir, prompt: kickoff, suffix: "", note: args.retry ? `retry: ${args.retry}` : "", settings: built.settings, lead });
     first.notesAfter = notesPath() ? readNotes(notesPath()).lines : 0;
     invocations.push(first);
     const runId = runFolders(join(built.scratch, ".grooph", built.graphId, "runs"))[0] ?? null;
@@ -578,6 +643,7 @@ async function main() {
           suffix: "-2",
           note: `scripted answer "${resume.answer}" at ${resume.gate}`,
           settings: built.settings,
+          lead,
         });
         second.notesAfter = notesPath() ? readNotes(notesPath()).lines : 0;
         second.entry.run_id = runId;
@@ -587,11 +653,15 @@ async function main() {
     }
 
     say(`copying the evidence into experiments/patterns/${args.template}/run/`);
-    collect({ template: args.template, experiment, built, invocations, prompts, evidenceDir, harnessVersion });
+    const collected = collect({ template: args.template, experiment, built, invocations, prompts, evidenceDir, harnessVersion, lead });
     const checked = await finishResult(evidenceDir, core, args.template);
     printCheck(checked);
     say(checked.problems.length === 0 ? "PASS" : "FAIL (the evidence is kept either way)");
-    console.log(`evidence  experiments/patterns/${args.template}/run/\nscratch   ${built.scratch}`);
+    console.log(`evidence  experiments/patterns/${args.template}/run/\nscratch   ${built.scratch}\nmodels    ${Object.keys(collected.models).join(", ") || "none reported"}`);
+    if (collected.models_never_used.length > 0) {
+      console.error(`\n\x1b[31mNEVER\x1b[0m this run reported ${collected.models_never_used.join(", ")}, a model no run uses. The evidence is kept as it is. Stop here and tell the driver before any other run.`);
+      return 3;
+    }
     return checked.problems.length === 0 ? 0 : 1;
   } finally {
     rmSync(binDir, { recursive: true, force: true });
