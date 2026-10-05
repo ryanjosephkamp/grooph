@@ -1,6 +1,6 @@
 # Community loops
 
-Loop graphs, templates and operation maps that people sent in by pull request ([how to send one](../community/README.md)). Each is checked by grooph's own validator before it is listed, so each is a sound document: its loops have stops, its judgment loops have a bar, and nothing irreversible runs without a person. **That is all a listing says.** A community graph has no proving run unless one is linked in its entry; being listed does not mean it works, and grooph does not endorse it.
+Loop graphs, templates and operation maps that people sent in by pull request ([how to send one](../community/README.md)). Each is checked by grooph's own validator before it is listed, so each is a sound document: its loops name a stop, its judgment loops have a bar, and no step marked irreversible is reached without a person. **That is all a listing says.** A community graph has no proving run unless one is linked in its entry; being listed does not mean it works, and grooph does not endorse it.
 
 There is no backend and nothing is uploaded: the documents live in this repository under `community/<handle>/`, CI checks and draws every pull request, and this page is generated from what the owner has merged. Have a shape but no document? [Suggest a loop](https://github.com/ryanjosephkamp/grooph/issues/new?template=loop.yml). 3 documents from 1 author.
 
