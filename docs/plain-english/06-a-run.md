@@ -131,7 +131,7 @@ The record above stops at the gate, so here is another kept one that did not: th
 ```text
   n-0001  graph                   run started
   n-0002  node:planner            started · dispatching planner
-  n-0003  node:planner            pass · ACCEPTANCE.md written: 5 shape checks, 7 behaviour checks, out-of-scope list
+…
   n-0004  node:spec-gate          halt · human gate spec-gate: asking whether ACCEPTANCE.md is the right definition of done
   n-0005  node:spec-gate          pass (approve) · human approved ACCEPTANCE.md; taking e-spec-gate-builder
   n-0006  loop:build              r0 · stops checked before round 0: bar-passed no (nothing built), max-iterations 0<4, budget 0…
@@ -141,7 +141,7 @@ The record above stops at the gate, so here is another kept one that did not: th
   n-0014  graph                   r0 · pass · run ended at stop node done, outcome success; no amendment to the working copy
 ```
 
-Notes 4 and 5 are the pause and the answer. The run halted, an "approve" came, and it carried on to the end.
+(The planner's finishing note, n-0003, is cut.) Notes 4 and 5 are the pause and the answer. The run halted, an "approve" came, and it carried on to the end.
 
 Be clear about what that shows. In these recorded runs nobody was sitting at the keyboard. The answer was supplied by the experiment's own script, as agreed with the owner beforehand, when it resumed the session. So the record shows a run pausing at a gate and carrying on from where it stopped. It does not show a person weighing a decision.
 
