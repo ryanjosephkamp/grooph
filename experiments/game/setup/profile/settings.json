@@ -2,7 +2,24 @@
   "permissions": {
     "defaultMode": "dontAsk",
     "blockReadsOutsideWorkingDirectories": true,
-    "deny": ["WebFetch", "WebSearch", "AskUserQuestion", "Bash(git push)", "Bash(git push *)"]
+    "deny": [
+      "WebFetch",
+      "WebSearch",
+      "AskUserQuestion",
+      "ListAgents",
+      "SendMessage",
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(mdfind *)",
+      "Bash(mdls *)",
+      "Bash(security *)",
+      "Bash(launchctl *)",
+      "Bash(osascript *)",
+      "Bash(open *)",
+      "Bash(pbpaste)",
+      "Bash(pbpaste *)",
+      "Bash(screencapture *)"
+    ]
   },
   "sandbox": {
     "enabled": true,
@@ -11,7 +28,8 @@
     "allowUnsandboxedCommands": false,
     "filesystem": {
       "allowWrite": ["__NPM_CACHE__"],
-      "allowRead": ["__NPM_CACHE__", "~/Library/Caches/ms-playwright"]
+      "allowRead": ["__NPM_CACHE__", "~/Library/Caches/ms-playwright"],
+      "denyRead": ["/tmp", "/private/tmp", "__USER_TEMP__", "/private__USER_TEMP__"]
     },
     "network": {
       "allowedDomains": ["registry.npmjs.org"],
@@ -27,5 +45,11 @@
   },
   "autoMemoryEnabled": false,
   "disableClaudeAiConnectors": true,
+  "syncClaudeAiSkills": false,
+  "syncClaudeAiPlugins": false,
+  "crossSessionInbound": "refuse",
+  "disableRemoteControl": true,
+  "enableArtifact": false,
+  "respondToBashCommands": false,
   "cleanupPeriodDays": 3650
 }
