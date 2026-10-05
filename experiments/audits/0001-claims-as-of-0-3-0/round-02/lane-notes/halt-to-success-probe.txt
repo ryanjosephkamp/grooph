@@ -1,0 +1,16 @@
+A stop that a check's failing verdict leads to, changed from a halt to success.
+Run by the audit lane on 2026-10-05 at main as it stood behind pull request #124, merged into this branch, packages built there: before the check kind (pull request #132).
+Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/halt-to-success-probe.mjs   (pure; writes nothing, calls no model)
+The comparison case is adopted here because main does not hold a check yet; with #132 it should be held, and the first case, by the driver's reader, still is not.
+
+the source: builder -> tests; pass -> done (success); fail -> failed (halt). validator errors: none
+
+== the stop that failing tests lead to, changed from a halt to success
+   validator errors: none
+   changes: node:failed.outcome
+   refused: nothing
+
+== for comparison, the failing edge re-pointed at the success stop
+   validator errors: none
+   changes: edge:e-tests-fail.to
+   refused: nothing
