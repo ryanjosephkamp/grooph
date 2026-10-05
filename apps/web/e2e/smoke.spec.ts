@@ -115,14 +115,29 @@ test("a template opens from the list on the canvas, read-only, every node inside
 test("a graph is seen in three dimensions and as its picture again, whichever way this engine changes the view", async ({ page }, testInfo) => {
   // Handoff 0092: where an engine has view transitions each node is seen to go to its card, and back (`ui/become.ts`);
   // where it has none the view is changed in one paint. Either way it ends on the scene, and then on the canvas as
-  // it was. Which of the two this engine took is printed, so that a run's log says what was tried in it.
+  // it was. Which of the two this engine took is printed, so that a run's log says what was tried in it, with how
+  // long each move took from being asked for to its end: an engine left waiting for the change holds the page for
+  // seconds, and that would be seen here and nowhere else before a person saw it. Only the end of a move is listened
+  // to, which never fails: a move given up that nobody had read is still the page's own error.
+  await page.addInitScript(() => {
+    const real = document.startViewTransition?.bind(document);
+    if (!real) return;
+    const took: number[] = [];
+    Object.assign(window, { __took: took });
+    document.startViewTransition = (update?: unknown) => {
+      const from = performance.now();
+      const move = real(update as ViewTransitionUpdateCallback);
+      const at = took.push(-1) - 1;
+      void move.finished.then(() => (took[at] = Math.round(performance.now() - from)));
+      return move;
+    };
+  });
   await page.goto("./#/templates/built-in/review-gate");
   const ids = ["builder", "critic", "merge-gate", "done"];
   for (const id of ids) await expect(node(page, id)).toBeVisible();
   const views = page.getByRole("radiogroup", { name: "View of the graph" });
   await expect(views).toBeVisible();
   const moves = await page.evaluate(() => typeof document.startViewTransition === "function");
-  console.log(`SWITCH ${testInfo.project.name} | view transitions: ${moves ? "yes" : "no"}`);
   const under = (id: string) =>
     node(page, id).evaluate((el) => {
       const box = el.getBoundingClientRect();
@@ -148,6 +163,12 @@ test("a graph is seen in three dimensions and as its picture again, whichever wa
   for (const id of ids) await expect(node(page, id)).toBeVisible();
   // The canvas is the page's again: a node is what is under its own middle.
   expect(await under("builder")).toBe(true);
+  const took = await page.evaluate(() => (window as unknown as { __took?: number[] }).__took ?? []);
+  console.log(`SWITCH ${testInfo.project.name} | view transitions: ${moves ? "yes" : "no"} | each move, asked for to ended, ms: ${took.join(", ") || "none"}`);
+  // Where the engine moves the view there were two moves, and neither held the page.
+  expect(took.length).toBe(moves ? 2 : 0);
+  for (const ms of took) expect(ms).toBeGreaterThanOrEqual(0);
+  for (const ms of took) expect(ms).toBeLessThan(2500);
 });
 
 test("a graph is imported and its export panel gives the golden package, byte for byte", async ({ page }) => {
