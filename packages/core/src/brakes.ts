@@ -215,9 +215,12 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
       const free = waysRoundUncounted(before, loop, persons);
       const bounded = [...new Set([...loop.members.filter((member) => still.has(member)), ...kept.members])];
       let named = 0;
-      // (The same way under another id, an edge renamed, is the same way.)
-      const ends = new Set([...free.values()].map((way) => `${way.from} → ${way.to}`));
-      const fresh = [...waysRoundUncounted(after, { id: loop.id, members: bounded, back: kept.back }, persons)].filter(([name, way]) => !free.has(name) && !ends.has(`${way.from} → ${way.to}`));
+      // (An edge renamed is the same way: one that is gone, and a new edge between the same two nodes. Only that: a
+      // stop that comes to lead where an edge already led, or a second edge beside one that stays, is a way more.)
+      const renamed = new Set([...free.values()].filter((way) => way.edge !== undefined && !edgeNow.has(way.edge)).map((way) => `${way.from} → ${way.to}`));
+      const fresh = [...waysRoundUncounted(after, { id: loop.id, members: bounded, back: kept.back }, persons)].filter(
+        ([name, way]) => !free.has(name) && !(way.edge !== undefined && !edgeWas.has(way.edge) && renamed.has(`${way.from} → ${way.to}`)),
+      );
       for (const [, way] of fresh) {
         const old = way.edge === undefined ? undefined : edgeWas.get(way.edge);
         const counting = way.edge === undefined ? [] : after.loops.filter((other) => other.back.includes(way.edge!));
