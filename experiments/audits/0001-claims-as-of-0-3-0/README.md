@@ -5,7 +5,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 - **Commit under audit:** `dbc7a281f977dddf7acc7948a0221e2aba93c5e4` (`main` on 2026-10-04). It is eleven commits after the tag `v0.3.0`; those commits changed spelling in the audited files and no claim. It was chosen over the tag because it is what the site serves, and corrections are made against it.
 - **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0/`, a detached worktree at that commit, installed and built.
 - **Audit lane:** a Claude Code session on Opus 5.5 (slice 0075). **Auditor:** Codex with GPT-6.1 Sol, opened by the owner on `/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/`.
-- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. Its corrections are made on this branch, one commit each, in a pull request that waits for the owner. Round 2 is drafted and not sent ([`round-02/HANDOFF.draft.md`](round-02/HANDOFF.draft.md)): the corrected words, and comparison study two. Not ended.
+- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. Its corrections are made on this branch, one commit each, in a pull request that waits for the owner. Round 2 is drafted and not sent ([`round-02/HANDOFF.draft.md`](round-02/HANDOFF.draft.md)): the corrected words, comparison study two, and the comparison of brakes that `grooph adopt` was put on in answer to finding F6. Not ended.
 
 ## What is here
 
@@ -16,6 +16,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 | [`round-01/HANDOFF.md`](round-01/HANDOFF.md) | What the lane asked Codex to read and attack |
 | [`round-01/HANDBACK.md`](round-01/HANDBACK.md) | What Codex found: 21 findings, what it checked and found sound, what it could not check, and a design for the one experiment it says is needed. Its main receipts are in `round-01/notes/`; the rest of its working notes stay in the exchange folder |
 | [`round-01/RECONCILE.md`](round-01/RECONCILE.md) | The lane's answer to each finding, one reading for each of the 52 claims, and 26 numbered corrections for the owner to accept or decline |
+| [`round-02/lane-notes/`](round-02/lane-notes/) | What the lane ran itself for round two. So far: the adoption probe again, after pull request #114 |
 | [`designs/a-brake-that-binds.md`](designs/a-brake-that-binds.md) | The experiment both sides say is needed before "bound" can be claimed: designed, not run, passed to the driver |
 
 The public register of claims is [`docs/claims.md`](../../../docs/claims.md).
@@ -51,6 +52,8 @@ Codex agreed with most of the lane's narrowing and corrected the lane three time
 - **One suite was not at its ceiling** (F5): every `grind-loop` run scored 61 of 62.
 
 The lane added one observation to a point Codex could only reason about: `grooph adopt --write` accepts a working copy whose round cap and budget were raised (`tools/adopt-probe.sh`).
+
+*Note, 2026-10-05, after the round:* pull request #114 answered that observation in code. The same probe at the merged code is refused, and the copy is written only when the change is asked for by name ([`round-02/lane-notes/adopt-probe-after-114.txt`](round-02/lane-notes/adopt-probe-after-114.txt)). The round's reading of 0.3.0 stands as it was agreed. The refusal is a new claim, read inside Claude Code only, and is part E of round two's draft. Four sentences that said "nothing refuses" were changed so as not to be untrue on `main`: the graph document page's (in the merge), the claims page's row for C45, the report's row for adaptation, and the proposed decision 0029.
 
 After the round: 12 claims carried, 33 carried with other words, 7 not carried as worded. The owner did not carry Codex's prompt back; the lane found the handback on disk on 2026-10-05. One carry out, none back.
 
