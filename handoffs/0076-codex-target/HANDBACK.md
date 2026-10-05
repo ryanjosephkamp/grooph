@@ -1,5 +1,142 @@
 # Handback 0076 · The Codex compile target — review fix pass
 
+## Second fix pass, 2026-10-05: who did what
+
+**This section is by a Claude Code lane (Opus 5.5), not by Codex.** The driver gave the second fix pass to a lane of its own on the owner's word. Everything below this section is Codex's handback of 2026-10-04, left as Codex wrote it; where a sentence there is no longer true, this section says so.
+
+**Branch:** `slice/0076-codex-target-second-pass`, made from Codex's `slice/0076-codex-target` at `68c1dfe`. Codex's eight commits are carried unchanged (`03018a5`, `a92cc7d`, `1f6fdbb`, `eae6813`, `3de4a92`, `ff23613`, `be9f55b`, `68c1dfe`); nothing was pushed to Codex's branch, and `~/Documents/grooph-codex` was not opened. On top of them: two merges of `main` (`48ac54e` at `1574c53`, `6e431cb` at `7c0a6df`: main moved again while the pass was open) and the lane's commits `ea09a0e` (item 2), `db2e74c` (item 1), `6f4e98f` (the transcript files), `d4a0b2a` (item 3), `f10ca4f` and `6a47120` (what the second merge and my own CI step needed), `862a081` (what my reader found), and this section. The pull request supersedes #70.
+
+**Status:** `done` for the review's second read; `blocked` as before on criterion 5, the one proving run in Codex, which is the owner's to start in Codex. No model session was started and no proving run was made in this pass.
+
+### Item 1. A package is one harness's files
+
+**The decision: refused, not warned, the same way for both targets.** `compile()` refuses a document that names one harness when the export is for the other, under `E_NO_TARGET`, with one sentence for both directions:
+
+```text
+error  E_NO_TARGET  the document names the harness "codex" and the export is for "claude-code": export it for codex, or name claude-code in the document first (grooph apply <file> --ops - --write, given [{"op":"setTarget","harness":"claude-code"}])  [at: review-loop]
+```
+
+Why refused:
+
+- The document already says which harness it is for. The app exports for it and offers no second choice; `grooph pick` and `grooph adopt` print `--target` from it. On the command line the two are said in two places, and when they disagree one of them is a mistake that grooph cannot settle.
+- A package for another harness would carry a copy of the graph that names a harness the package is not for, and the outline's "Runs in", the picture's caption and the next run's `grooph adopt` line would say the same wrong thing.
+- It is what `main` did with the case in the review (refused, `E_NO_TARGET`), so no brake is looser than it was.
+- Refusing now can be loosened to a warning later without breaking anyone. The reverse cannot.
+
+And, separately, the Claude Code writer uses the Claude Code profile whatever harness the document names (`packages/core/src/compile/claude-code/context.ts`), as the Codex writer already used its own. Either change alone closes the case; both are in, and each is tested without the other (`compileClaudeCode` and `compileCodex` called directly, as `compile.test.ts` calls them).
+
+**The test that fails on `68c1dfe`:** `packages/core/test/compile-target.test.ts`, 13 tests. Copied onto `68c1dfe` and run there, 11 fail and 2 pass (the two that hold there: the fixture names Claude Code, and the Codex writer already used its own profile). The case itself, by command, at both heads:
+
+| | `68c1dfe` | this head |
+|---|---|---|
+| `review-loop` naming `codex`, `grooph export --target claude-code` | exit 0; two agent files with `model: gpt-6-luna` and no `tools:` line | exit 1; the line above; nothing written |
+
+**What follows from refusing, said plainly:**
+
+- **A graph made from a built-in template names Claude Code, and needs one op before it is exported for Codex** (`setTarget`; or the graph inspector's harness choice in the app). `grooph template use` has no `--target`. That is a step more for an agent building a Codex package from a template by name. I did not add the option: it is outside the review's three items. It would be a small slice. The design skill's last step (`plugins/grooph/skills/grooph-design/SKILL.md`, step 7) exported "for this harness" without saying so; it has one sentence more now.
+- **The handoff's own verification command is refused now.** `HANDOFF.md`, "How to verify", exports `fixtures/valid/review-loop.grooph.json --target codex`; the fixture names Claude Code. The handoff is left as written; CI's golden step is the command that holds now.
+- **A mismatch is not seen until export.** `grooph validate --for-export`, the MCP validate tool and `grooph pick` are not told which export is asked for, so each passes a document that `grooph export --target <the other>` then refuses. `pick` and `adopt` print the right `--target`, so a person who follows them does not meet it.
+- **The game experiment.** Its protocol compiles `arena.grooph.json` once for each harness and says: "If the Codex compiler needs the document to name its harness, that one line differs and the difference is in the record" (`experiments/game/PROTOCOL.md`, section 2). It does need it now, so the Codex run's graph differs from the Claude Code run's by that one line. The Claude Code run's starting contents are untouched: `experiments/game/setup/make-repo.sh --out <a scratch folder outside the clone>` prints the tree `3238a9052ce7765c79990029bbff6bccd88628bf` at this head.
+- **The rule's row in `docs/graph-ir.md` changed** (the handoff allows it "where a rule's text names targets"): `E_NO_TARGET` now also covers an export asked for a harness the document does not name, reported by the compiler, since the validator is not told which export is asked for. No new code, no new fixture folder: a fixture cannot say which export is asked for, so the case is held by tests. `docs/rules.md` and `docs/cli.md` are generated from it and from the export's help, and both are pages on the site.
+
+### Item 2. Main has moved
+
+- `packages/core/test/graph-units.test.ts` now does what `compile.test.ts` does: it asserts that `compile()` refuses the document made in code (`E_SCHEMA` at `/groups/0/from`), then calls the writer behind it without the check, for both targets. The guard in `compile()` is untouched.
+- The "Units" table is one function in a file of its own, `packages/core/src/compile/units.ts`, which both lead briefs end their section on the nodes with. Neither target has a copy of the words. A test compares the Codex table with the Claude Code one for the subgrooph fixture and the composed graph.
+- **What else the two merges broke, and what was done:**
+  - CI's golden step exported the fixtures (which name Claude Code) for Codex: it now names Codex in a copy first, by the op. My first version of it left that copy where the next step's `grooph new` writes; found by running the build job's steps in order before pushing, and fixed (`6a47120`).
+  - Main reworded a validator warning (#108, "tends to catch" is now "may catch"). The lead's brief quotes it, so the Codex `review-loop` `LEAD.md` golden moved by those two words (`f10ca4f`), as the Claude Code one did on main.
+  - Nothing in `grooph adopt`'s refusal (#114, #117) needed a change here: it prints `--target` from the adopted document's own harness, which is what the refusal expects.
+
+### Item 3. Which approval policy applies is unknown until a run shows it
+
+"Inherits the owner's approval policy" is gone from `MAPPING.md`, from every agent file and from `docs/targets/codex.md`. What is true by construction is said as that (the package sets no approval policy: no `approval_policy` key, no approval option in the command); what nobody has seen is said as unknown (which policy then applies, to the lead under `codex exec` and to the agents it spawns). The document's row marks its three parts apart, says what it said until today, and lists the question among what the proving run must establish. `PROVING-COMMAND.md` has the one sentence corrected and dated, and nothing else changed on that page. `experiments/patterns-codex/review-gate/README.md` said "the owner's policy applies" too, and no longer does.
+
+**Sentences in Codex's handback below that this supersedes:** "Mapping/docs explain owner policy" (the table, item 1), "Owner settings apply" (decision 2) and "The runner inherits approvals" (what changed). Read each as: the package sets none, and which applies is unknown until a run shows it.
+
+One sentence is new and is an instruction, not only a correction. An agent file now says: "This file sets no approval policy, and this package does not know which one applies. Assume no person is asked before a command of yours runs: run only what your capabilities allow." My first wording ("do not count on being asked") had the wrong subject, as my reader said: the worker is never the one asked, and it could be read as leave to proceed. If you would rather the file said only that it does not know, the second sentence is the one to remove.
+
+**What "unknown" rests on, and does not.** No run on grooph's record shows which policy applies. I did not read OpenAI's documentation for what `codex exec` uses when no policy is given, and the document says so in the row. And the proving runner starts Codex with a command of its own (`scripts/prove-codex.mjs`: the prompt as an argument, `--json`, `--model`, a thread cap), not the one `MAPPING.md` suggests (the kickoff on stdin): the proving run will show what applies to the runner's command, and to the package's only as far as the two agree. That was so before this pass; nobody had said it.
+
+### The transcript files
+
+`scripts/prove-codex.mjs` writes `codex-output.jsonl` and `codex-stderr.txt` under `run/local/`, and `.gitignore` keeps `experiments/patterns-codex/**/local/` out, as it keeps the raw transcripts beside the other experiment records. (My first line named a folder called exactly `run`; the runner refuses to write over `run/`, so a failed record gets moved aside, and `run-1/local/` was not ignored. My reader found it.) The ledger keeps the two checksums, so a kept record can be matched to the file on the machine. `--check` reads the output from `local/`, or beside the record once a person has read it and moved it there, and says where it is kept when it is not here. A test asks `git check-ignore` about both paths, and about a run's folder moved aside.
+
+**Not asked for, and not done:** the runner also keeps, where git takes them, files that hold what a session wrote and nobody has read yet: `project.diff` (every untracked file of the scratch project, whole) and the lead's `runs/` folder. They are the run's products, not its transcript, and the review named two files. A person should read them before the record is committed, as with the transcript. And `--check` on a clone without `local/` stops with a message and a stack trace: only the machine that ran it can check a committed record until the output is moved beside it.
+
+### The golden packages
+
+**Claude Code: unchanged by a byte.** `git diff origin/main -- fixtures/golden/claude-code` is empty at this head, and `pnpm --filter @grooph/core run golden:write` leaves the tree clean.
+
+**Codex: both regenerated**, by the golden writer, which now writes them (they were made by hand through the CLI before). What moved, against `68c1dfe`:
+
+| File | What moved |
+|---|---|
+| `review-loop/…/graph.grooph.json`, `fix-until-green/…/graph.grooph.json` | one line each: `"harness": "codex"` (item 1) |
+| the three agent files (`review-loop--builder.toml`, `review-loop--critic.toml`, `fix-until-green--fixer.toml`) | two sentences each, on the approval policy (item 3) |
+| the two `MAPPING.md` | three sentences each, on the approval policy (item 3) |
+| `review-loop/…/LEAD.md` | two words, main's rewording of the warning it quotes |
+| both `KICKOFF.md`, `fix-until-green/…/LEAD.md` | nothing |
+
+Neither golden graph has a subgrooph, so the Units table is in neither golden `LEAD.md`; the test named under item 2 holds it. A third Codex golden, of the composed graph, would put the table in front of a reviewer; I did not add one unasked.
+
+### Outside the handoff's list of allowed changes, each for a reason
+
+- `plugins/grooph/skills/grooph-design/SKILL.md`: the one sentence in step 7 (item 1). The skill is linked into this Mac's `~/.claude/skills`, so it is live on merge.
+- `packages/core/src/compile/claude-code/context.ts` and `lead.ts`: the review names the first; the second is the Units table moving to the file both briefs read. The Claude Code output is unchanged by a byte.
+- `packages/core/src/compile/units.ts` (new), `packages/core/src/dev/write-golden.ts` (it writes the Codex goldens now).
+- `.gitignore`: the line for the transcript files.
+- `.github/workflows/ci.yml`: beside the golden step (allowed), **a new step that runs `scripts/prove-codex.test.mjs`**. Nothing ran the runner's tests before: Codex's "runner tests 6/6" were run by hand. The step starts no Codex and no model. Strike it if a workflow change is not wanted here; the test of where the transcript goes is then run by hand too.
+
+### Found beside the task
+
+- **`GROOPH_MODELS` crosses harnesses.** Not in this diff, and not changed. The variable names the tiers for every export on a machine. With `GROOPH_MODELS=frontier=opus,strong=sonnet,fast=haiku`, a Codex-named review loop exported for Codex gets `model = "sonnet"` in both agent files and `-m 'opus'` in the suggested command (my reader ran it). The export does print "Named by GROOPH_MODELS", the proving runner deletes the variable, and `make-repo.sh` unsets it; a hand export for Codex on a machine that sets it for Claude Code is not protected. It wants a decision (one map per target, or a refusal), not a patch from this pass.
+- **`hasProfile()` answered true for `constructor`** and every other word an object answers to (`harness in PROFILES`). A document naming one passed the validator and crashed the compiler (exit 2, on `main` too). It reads its own entries only now, and such a document is refused as one whose harness has no profile. Tested.
+- **`scripts/prove-codex.test.mjs` was in no CI step** (above).
+
+### A mistake of mine in this pass
+
+To check `ci.yml`'s build job step by step I ran a script that executes its `run:` lines. Its cut-off was wrong and it ran on into the browser job: `pnpm --filter @grooph/web test:e2e` with no `GROOPH_E2E_PORT`, whose default is **4173**, the port I am told never to use. The suite served there for about three minutes around 15:00 ET. It passed, and its server starts with `--strictPort`, so nothing else was listening there then; I stopped nothing; nothing is listening there now. No browser was downloaded. The driver was told at once.
+
+### A fresh reader
+
+An Opus 5.5 subagent, given the diff of the lane's commits and the review's text, told not to read the commit messages or this file first, working in a clone of its own at `d4a0b2a`. It started no model and no server.
+
+- **Item 1: it could not break it.** Eighteen harness values against both targets (absent, null, empty, whitespace, `Codex`, `codex ` with a trailing space, `constructor`, `__proto__`, numbers, arrays, a getter that changes its answer): each is refused or exports with the target's own models. Only `export.ts` compiles in the CLI; the MCP server has no export; the app takes the target from the document. It copied the new test onto `68c1dfe`: 11 of 13 fail, for the reasons the test names. Reverting the profile line, the refusal, the own-entry check, the Units call or the agent-file sentence each fails tests.
+- **What it found**, all acted on in `862a081` or said above: main had moved again (merged, `f10ca4f`); the ignore line; the message's op not in the form the command takes; the help exporting one file for both harnesses; the skill's step 7; the agent-file sentence's subject; "this command has not been run" in `MAPPING.md`; the handback not yet written; a mismatch not seen until export; `GROOPH_MODELS`; the other kept files; a refusal asserted without its code.
+- **What it did not check**: the browser tests, `first-run.sh`, the pages the mapping cites, whether `codex` is on PATH where the proving command would run, `grooph adopt` on a run whose working copy changed its harness (from reading, adoption does not look at `target`), and GitHub's CI.
+
+### Verified, and how (this head)
+
+| What | Command | Result |
+|---|---|---|
+| Build and tests | `pnpm -r build && pnpm -r test` | core 508, CLI 139, web 111, all pass |
+| The runner's tests | `node --test scripts/prove-codex.test.mjs` | 8 of 8 |
+| Browser tests | `GROOPH_E2E_PORT=4367 pnpm --filter @grooph/web test:e2e` | 295 passed, 164 skipped (the other engines' share). One earlier run timed out six theme tests while the machine's load average was 160; the run before it and the two after it passed whole. Safari's and Firefox's engines run in CI. |
+| The Claude Code goldens | `git diff origin/main -- fixtures/golden/claude-code`; `golden:write` | empty; tree clean |
+| The game's starting contents | `experiments/game/setup/make-repo.sh --out <scratch>` | `the tree:    3238a9052ce7765c79990029bbff6bccd88628bf` |
+| CI's build job, step by step | every `run:` step of the job in order, in one `RUNNER_TEMP`, by a script of mine (the one whose overrun is told above) | every step of the build job passes |
+| The proving runner, no model | `node scripts/prove-codex.mjs --dry-run` | instantiates, names Codex, exports; the command it would start is the one `PROVING-COMMAND.md` gives |
+| The budget, on this Mac | `node scripts/perf-budget.mjs --check` | first load 160.71 of 164 (main, built here at `7c0a6df`: 160.59); a template's address 279.10 of 280 (main: 279.04). CI's own lines are in the pull request and below once it has run. |
+
+**What the Codex target weighs in the app, on this Mac:** 0.12 KB on the first load and 0.06 KB on a template's address, which leaves 0.90 KB under that limit. Most of it is Codex's profile (`packages/core/targets/codex.profile.json`): every address carries the profiles, because the validator asks whether a harness has one and the harness choice shows its title. The compiler itself is fetched on export and is on no line. No budget line was raised or lowered.
+
+### Still open
+
+- **Criterion 5: the one proving run in Codex.** Not run. The owner starts it in Codex, from the final head, built, as the review's three conditions say.
+- **The reasons for refusing are in this section, the commit `db2e74c` and a comment in `compile/index.ts`.** If the driver judges the decision durable it wants a record in `docs/decisions/`; I did not take a number.
+- The Codex target's page is not among the site's pages (`scripts/site-pages.mjs` lists Claude Code's only). The rule's row, `docs/rules.md` and `docs/cli.md` are, so three paragraphs a visitor can read change with this merge.
+
+### Prompt to paste into the driver session
+
+```text
+The second fix pass of slice 0076 is on branch slice/0076-codex-target-second-pass: the code's head is 862a081, and the handback's new section (handoffs/0076-codex-target/HANDBACK.md, "Second fix pass, 2026-10-05") follows it in documentation-only commits. It carries Codex's commits unchanged and supersedes pull request #70. Status: done for the review's second read; criterion 5, the one proving run in Codex, is still the owner's to start. Please have your reader look at item 1 and reconcile with the grooph-reconcile skill.
+```
+
+---
+
+## Codex's handback of 2026-10-04, as written
+
 **Implementer:** GPT-6.1 Sol with three GPT-6 Luna workers · **Branch:** `slice/0076-codex-target` · **Head commit:** `be9f55b41312fb03504761e64aabe713a53e11c0` (pushed implementation; this handback follows in a documentation-only commit) · **Date:** 2026-10-04
 
 ## Status
