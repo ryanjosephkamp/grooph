@@ -110,19 +110,19 @@ Protocol version 2 adds a fourth arm with no roles at all, tasks built so a firs
 
 ### 6.1 Events
 
-A hook appends one JSON line to a file per session when a session, a turn or a subagent starts or stops, and optionally when a tool call finishes ([`docs/subagents.md`](../subagents.md)). It records ids, names and times. It prints nothing, exits 0 whatever happens, and returns nothing a harness reads: observation never steers. The same hook runs in Claude Code and in Codex.
+A hook appends one JSON line to a file per session when a session, a turn or a subagent starts or stops, and optionally when a tool call finishes ([`docs/subagents.md`](../subagents.md)). It records ids, names and times, and on the machine it runs on the working folder's path and where a subagent's transcript is kept; never a prompt, a tool's input or output, or anything an agent said. The script prints nothing, exits 0 and returns no decision to the harness; an agent can read what it recorded through grooph's own MCP tool. The same script has recorded runs in Claude Code and in Codex, where it needs a trusted folder and a reviewed hook.
 
 From those files `grooph sessions` and the live view report each session as working, waiting or ended, with its subagents. A record is only as fresh as its last line, so a session silent for half an hour reads "last seen", not "working".
 
 ### 6.2 Sending events elsewhere
 
-A second, optional hook sends the event files to a git branch that holds nothing else, so another machine can read them and no pull request carries them. It runs at a turn's start, at its end, and at most every ten minutes during a turn. Before it sends, it puts each line in a smaller form: a folder's name in place of its path, and no path to a transcript.
+A second, optional hook sends the event files to a git branch that holds nothing else, so another machine can read them and no pull request carries them. It runs at a turn's start and at its end, and during a turn when a tool call is recorded and ten minutes have passed. Before it sends, it shortens each line: a folder's name in place of its path, and no path to a transcript. It also sends a session's own notes and plans, written through the MCP server, with their text.
 
 Three properties were learned in use, with a second project's cloud sessions as the test ([`docs/HANDBACK-operator.md`](../HANDBACK-operator.md), sections 13 to 18):
 
-1. **A silent hook must still leave a trace.** The first cloud trial sent nothing and said nothing: a cloud session starts with no branch checked out, the sender had no name for its branch, and silence hid the failure. Every push now records how it went in a file beside the events.
-2. **Many sessions can share one branch.** A remote takes one push at a time. Ten pushes started in the same instant to one branch on GitHub all arrived, the last after 25 seconds on its tenth try ([record](../../experiments/hooks/2026-10-02/)).
-3. **A turn's end sends only its own session's files.** A cloud environment can keep a sandbox's ignored files between sessions; sent again, an old session's file would read as new.
+1. **A silent hook must still leave a trace.** The first cloud trial sent nothing and said nothing: a cloud session starts with no branch checked out, the sender had no name for its branch, and silence hid the failure. A push now keeps a local summary of how it went in a file beside the events; a missing events folder, a lock it gave up waiting for, or a summary it could not write leaves none.
+2. **Many sessions can share one branch.** A remote takes one push at a time. In one retained trial, ten pushes started in the same instant to one branch on GitHub all arrived; the longest took 25 seconds and the most tries was ten ([record](../../experiments/hooks/2026-10-02/)).
+3. **A turn's end leaves out files an earlier session left behind.** A cloud environment can keep a sandbox's ignored files between sessions; sent again, an old session's file would read as new.
 
 ### 6.3 Operation maps
 
