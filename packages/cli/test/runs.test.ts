@@ -393,6 +393,38 @@ test("adopt takes a working copy that tightens a brake, and says which", async (
   }
 });
 
+test("adopt names a new step marked irreversible, and an answer a gate did not give, without calling either a tightening", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    // A release gate behind the critic's pass, which is a brake gained; and behind its yes a step told to publish,
+    // which is a thing the run could not do before. Printed under "tightens a brake" until the export door's reader
+    // asked whether that label was true of it.
+    amend(run, (working) => {
+      working.nodes.push(
+        { id: "release-gate", kind: "human-gate", name: "Release", prompt: "Publish this version?", options: ["approve", "reject"] },
+        { id: "ship", kind: "agent", name: "Ship", role: "builder", brief: "Run `npm publish`, once.", outputs: ["SHIP.md"], allow: ["read-files", "run-commands", "write-outputs"], irreversible: ["publishes the package to npm"] },
+        { id: "held", kind: "stop", name: "Held", outcome: "halt" },
+      );
+      working.edges.find((edge) => edge.id === "e-critic-pass")!.to = "release-gate";
+      working.edges.push(
+        { id: "e-gate-ship", from: "release-gate", to: "ship", when: "pass" },
+        { id: "e-gate-held", from: "release-gate", to: "held", when: "fail" },
+        { id: "e-ship-done", from: "ship", to: "done" },
+      );
+    });
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 0, text(io.stdout) + text(io.stderr));
+    const out = text(io.stdout);
+    assert.match(out, /\ntightens a brake, and is adopted with the rest:\n(?: {2}[^\n]*\n)*? {2}node:release-gate +undoing it: removes a human gate/);
+    assert.match(out, /\nnot judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before\. It is named here and not called a tightening:\n {2}node:ship +undoing it: removes a node marked irreversible \(publishes the package to npm\)/);
+    assert.doesNotMatch(out, /tightens a brake[^\n]*\n(?: {2}[^\n]*\n)* {2}node:ship /);
+    assert.doesNotMatch(out, /loosens a brake/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("A-019: the audit lane's two check cases, and the two its reader got through the first cut, on the kept grind-loop record, through the command, are refused by name", async () => {
   // As experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh sets them up: the proving record's
   // package graph as the source, its run folder beside it, and the working copy changed by hand.

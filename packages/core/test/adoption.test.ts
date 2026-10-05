@@ -952,6 +952,7 @@ test("A-019, a check under another id: the removal's line shows the check that c
     w.loops[0]!.stops.unshift({ kind: "bar-passed" }, { kind: "budget", measure: "dispatches", limit: 1, then: "done" });
   }, { from: grind });
   assert.deepEqual(names(dressed), ["node:tests"]);
+  assert.equal(dressed.swapped, true);
   assert.deepEqual(dressed.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
   assert.deepEqual(Object.fromEntries(dressed.changes.filter((change) => change.unjudged !== undefined).map((change) => [change.name, change.unjudged])), {
     "node:test-suite": "removes a check",
@@ -1037,4 +1038,77 @@ test("A-019, the clause for every stop: a stop that halts, made to end in succes
   assert.deepEqual(halted.refused, []);
   assert.match(halted.changes.find((change) => change.name === "node:done.outcome")!.tightens!, /the stop "done" would end in success where it halted/);
   assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "failed")!.name = "Stopped"), { from: oneShot() }).refused, []);
+});
+
+// ─── what undoing would take away and is no tightening: an answer a gate did not give, a new irreversible step ──
+//
+// The reader of the export door (#60) saw "tightens a brake" printed for a step told to publish, marked
+// irreversible and put behind the gate's yes, and for a gate given the answer "skip". The label came from asking
+// the comparison the other way round: undoing either would take a mark or an answer away. Neither tightens
+// anything the graph had: the step is a thing a run could not do before, and the answer may be a way on.
+
+test("an answer a gate did not give and a step marked irreversible that the graph did not have are named, and not called tightenings", () => {
+  const gated = builtIn("review-gate");
+  const gate = (w: Graph): Extract<Node, { kind: "human-gate" }> => node(w, "merge-gate") as Extract<Node, { kind: "human-gate" }>;
+  const ship = { ...agent("ship", "builder"), irreversible: ["publishes the package to npm"] } as Node;
+  const behindTheGate = (w: Graph): void => {
+    w.nodes.push(structuredClone(ship));
+    edge(w, "e-merge-gate-done").to = "ship";
+    w.edges.push({ id: "e-ship-done", from: "ship", to: "done" } as Edge);
+  };
+  const said = (check: AdoptionCheck, key: "tightens" | "unjudged"): Record<string, string> =>
+    Object.fromEntries(check.changes.filter((change) => change[key] !== undefined).map((change) => [change.name, change[key]!]));
+
+  // The step behind the gate's yes. Adopted, as it was: the validator saw a person before it. But the person is
+  // asked about the merge, and nothing here holds a gate's prompt or where its yes leads.
+  const shipped = adopt(behindTheGate, { from: gated });
+  assert.deepEqual(shipped.refused, []);
+  assert.equal(shipped.swapped, false);
+  assert.deepEqual(said(shipped, "tightens"), {});
+  assert.deepEqual(said(shipped, "unjudged"), {
+    "node:ship": "removes a node marked irreversible (publishes the package to npm): what takes its place carries no such mark unless it is given one",
+  });
+
+  // A new answer: alone; led to a new stop that ends in success, which is the stated limit and is adopted; and led
+  // to a new stop that halts, which is a way to say no. A program does not tell the last two apart, and says so.
+  const offered = adopt((w) => void gate(w).options!.push("skip"), { from: gated });
+  assert.deepEqual([offered.refused, said(offered, "tightens"), said(offered, "unjudged")], [[], {}, { "node:merge-gate.options": 'the gate would no longer offer "skip"' }]);
+  for (const [answer, outcome] of [["skip", "success"], ["abandon", "halt"]] as const) {
+    const led = adopt((w) => {
+      gate(w).options!.push(answer);
+      w.nodes.push({ id: "other-end", kind: "stop", name: "Other end", outcome } as Node);
+      w.edges.push({ id: "e-gate-other", from: "merge-gate", to: "other-end", when: { verdict: answer } } as Edge);
+    }, { from: gated });
+    assert.deepEqual(led.refused, [], answer);
+    assert.deepEqual(said(led, "tightens"), {}, answer);
+    assert.deepEqual(said(led, "unjudged"), {
+      "node:merge-gate.options": `the gate would no longer offer "${answer}"`,
+      "node:other-end": `"${answer}" at the human gate "merge-gate" would lead nowhere`,
+      "edge:e-gate-other": `"${answer}" at the human gate "merge-gate" would lead nowhere`,
+    }, answer);
+  }
+  // Led to the stop only the gate's yes reached, the new answer is held as it was, and the option beside it is
+  // named without the label. (The edge carries both; the command and the app list it once, as what it loosens.)
+  const round = adopt((w) => {
+    gate(w).options!.push("skip");
+    w.edges.push({ id: "e-gate-skip", from: "merge-gate", to: "done", when: { verdict: "skip" } } as Edge);
+  }, { from: gated });
+  assert.deepEqual(refused(round), ['edge:e-gate-skip: adds a way into "done" that does not pass "pass" at the human gate "merge-gate"']);
+  assert.deepEqual([said(round, "tightens"), said(round, "unjudged")], [{}, {
+    "node:merge-gate.options": 'the gate would no longer offer "skip"',
+    "edge:e-gate-skip": '"skip" at the human gate "merge-gate" would lead nowhere',
+  }]);
+
+  // What is still a tightening, and said as one: a second mark on a step the graph already has, and an approval
+  // newly asked, in the same copy as a new answer.
+  const marked = parseGraphText(JSON.stringify((() => { const w = structuredClone(gated); behindTheGate(w); return w; })())).doc!;
+  const both = adopt((w) => {
+    (node(w, "ship") as { irreversible: string[] }).irreversible.push("also deletes the branch");
+    edge(w, "e-critic-pass").approval = true;
+    gate(w).options!.push("skip");
+  }, { from: marked });
+  assert.deepEqual(both.refused, []);
+  assert.deepEqual(Object.keys(said(both, "tightens")).sort(), ["edge:e-critic-pass.approval", "node:ship.irreversible"]);
+  assert.match(said(both, "tightens")["node:ship.irreversible"]!, /^removes the irreversible marker "also deletes the branch"/);
+  assert.deepEqual(said(both, "unjudged"), { "node:merge-gate.options": 'the gate would no longer offer "skip"' });
 });

@@ -52,6 +52,12 @@ export type Loss = {
   either?: true;
   /** a check goes while another comes in: it may be one check under two ids, so the arrival is no sign of a tightening */
   swap?: true;
+  /**
+   * Read the other way round, as what undoing a change would lose, this speaks of something the change brings in
+   * that lets a run or a person do what it could not before: an answer a gate did not give, a step marked
+   * irreversible that the graph did not have. Undoing it would take that away, and it tightens nothing.
+   */
+  gain?: true;
 };
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
@@ -331,12 +337,12 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
       else if (kept.kind !== "human-gate") losses.push({ why: "a human gate becomes another kind of node", at: [`node:${node.id}.kind`] });
       else {
         const lost = (node.options ?? []).filter((option) => !(kept.options ?? []).includes(option));
-        if (lost.length > 0) losses.push({ why: `the gate would no longer offer ${quote(lost)}`, at: [`node:${node.id}.options`] });
+        if (lost.length > 0) losses.push({ why: `the gate would no longer offer ${quote(lost)}`, at: [`node:${node.id}.options`], gain: true });
       }
     }
     if (markers(node).length > 0) {
       const lost = markers(node).filter((marker) => !markers(kept).includes(marker));
-      if (!kept) losses.push({ why: `removes a node marked irreversible (${markers(node).join(", ")}): what takes its place carries no such mark unless it is given one`, at: [`node:${node.id}`] });
+      if (!kept) losses.push({ why: `removes a node marked irreversible (${markers(node).join(", ")}): what takes its place carries no such mark unless it is given one`, at: [`node:${node.id}`], gain: true });
       else if (lost.length > 0) losses.push({ why: `removes the irreversible marker ${quote(lost)}`, at: [`node:${node.id}.irreversible`, `node:${node.id}.kind`] });
     }
     // A check (amendment A-019): the node, its kind, and its definition. A program cannot tell a stricter command
@@ -407,7 +413,7 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
     // An answer the gate gave that no edge takes any more.
     if (from?.kind === "human-gate" && nodeNow.get(edge.from)?.kind === "human-gate" && !after.edges.some((other) => other.from === edge.from && whenOf(other) === whenOf(edge))) {
       // Laid at the edge, or at the node it led to when it goes with that node.
-      losses.push({ why: `"${whenOf(edge)}" at the human gate "${edge.from}" would lead nowhere`, at: [`edge:${edge.id}`, `edge:${edge.id}.from`, `edge:${edge.id}.when`, `node:${edge.to}`] });
+      losses.push({ why: `"${whenOf(edge)}" at the human gate "${edge.from}" would lead nowhere`, at: [`edge:${edge.id}`, `edge:${edge.id}.from`, `edge:${edge.id}.when`, `node:${edge.to}`], gain: true });
     }
     if (!kept || whenOf(kept) === whenOf(edge)) continue;
     if (edge.approval === true || from?.kind === "human-gate") losses.push({ why: "changes what a person's answer leads to", at: [`edge:${edge.id}.when`] });

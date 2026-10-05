@@ -28,9 +28,12 @@ export type AdoptionChange = {
   /** set when undoing the change would remove or loosen a brake, which is to say it tightens one: what undoing it would do */
   tightens?: string;
   /**
-   * What undoing the change would do, where that is not called a tightening: in a working copy that removes a check
-   * while a check the graph has not comes in. It may be one check under two ids, and then a bar or a budget built
-   * round it under its new id would read as a brake gained. The change is still named; only the label is withheld.
+   * What undoing the change would do, where that is not called a tightening. Two cases. In a working copy that
+   * removes a check while a check the graph has not comes in (`swapped` on the result): it may be one check under
+   * two ids, and then a bar or a budget built round it under its new id would read as a brake gained. And, in any
+   * copy, a change that brings in an answer a gate did not give or a step marked irreversible that the graph did
+   * not have: undoing it would take an answer or a mark away, and it lets a run or a person do what it could not
+   * before. The change is still named; only the label is withheld.
    */
   unjudged?: string;
 };
@@ -44,6 +47,8 @@ export type AdoptionCheck = {
   unknown: string[];
   /** what is not refused and is still to be said: a loop whose cap would count the rounds between a person's decisions */
   notices: string[];
+  /** a check goes while a check the graph has not comes in: every change that undoing would lose by is unjudged, for that reason */
+  swapped: boolean;
 };
 
 const json = (value: unknown): string => JSON.stringify(value);
@@ -131,8 +136,16 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
   // (The check that comes in is named there by what undoing it would do, in the plain words: its own line, read
   // backwards, would speak of the check that went as the one coming in.)
   const undone = lost(adopted, source);
-  if (loosened.some((loss) => loss.swap)) lay(undone.map((loss) => (loss.swap ? { ...loss, why: "removes a check" } : loss)), "unjudged", false);
-  else lay(undone, "tightens", false);
+  const swapped = loosened.some((loss) => loss.swap);
+  if (swapped) lay(undone.map((loss) => (loss.swap ? { ...loss, why: "removes a check" } : loss)), "unjudged", false);
+  else {
+    lay(undone.filter((loss) => !loss.gain), "tightens", false);
+    // An answer a gate did not give, a step marked irreversible that the graph did not have: undoing either would
+    // take an answer or a mark away, which is how it comes to be named here, and neither tightens anything the
+    // graph had. A new answer may be a way to say no or a way on; a new irreversible step is a thing a run could
+    // not do before. A program cannot tell, so the change is named and not called a tightening.
+    lay(undone.filter((loss) => loss.gain), "unjudged", false);
+  }
   changes.sort((x, y) => Number(y.loosens !== undefined) - Number(x.loosens !== undefined));
   const allow = new Set(options.allow ?? []);
   return {
@@ -140,6 +153,7 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
     refused: changes.filter((change) => change.loosens !== undefined && !allow.has(change.name)),
     unknown: [...allow].filter((name) => !names.has(name)),
     notices: roundsLeftToAPerson(source, adopted),
+    swapped,
   };
 }
 
