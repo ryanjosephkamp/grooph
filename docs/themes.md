@@ -65,11 +65,13 @@ The names are `paper`, `blueprint`, `ink`, `phosphor`, `transit` and `chalk`. No
 
 The marks the app itself adds stay seen in every theme: a picked card, the keyboard's place, a selected edge, a run's states. They are in the theme's green, and a step heavier than the theme's own lines. Ink has one color, so there those marks keep the site's own colors: Ink is for the picture, and the app's marks are not part of it.
 
-**In an address.** A share link or an embed may name a theme: `…#/open?d=<payload>&theme=blueprint`, `…#/embed?d=<payload>&theme=chalk-dark`. A theme named in an address is shown and not kept. A name that is none of the six is Paper. An embed with no theme is Paper whatever the reader's own browser has chosen: it is somebody else's page.
+**In an address.** A share link or an embed may name a theme: `…#/open?d=<payload>&theme=blueprint`, `…#/embed?d=<payload>&theme=chalk-dark`. A theme named in an address is shown and not kept, and Paper by name is Paper even where another theme was kept. A name that is none of the six is Paper. An embed with no theme is Paper whatever the reader's own browser has chosen: it is somebody else's page.
 
 ## What a theme costs
 
-Nothing until one is wanted. Paper needs no file of its own, and an address in Paper runs no code of the themes: the screens draw Paper, as they always did. The other five, the list of six and everything that puts a screen into a theme are one file of about 6.5 KB. The app asks for it when a theme was kept in this browser, when an address names one, or when the list is opened. It then dresses what the screens have drawn. The page names that file, so the service worker holds it from the first visit, and a theme can be chosen later with no network.
+Nothing until one is wanted. Paper needs no file of its own. With none of the other five kept in this browser and none named in the address, the app looks once at what was kept and at the address, and no code of the themes runs: the screens draw Paper, as they always did. The other five, the list of six and everything that puts a screen into a theme are one file of about 6.6 KB. The app asks for it when one of the five was kept in this browser, when an address names one, or when the list is opened. It then dresses what the screens have drawn. The page names that file, so the service worker holds it from the first visit, and a theme can be chosen later with no network.
+
+A canvas, a map or an embed that is to be drawn in a theme is not shown in Paper first. Its picture is held back until the file is there, for at most 0.8 seconds; if the file has not come by then the picture is shown in Paper, and takes the theme when the file arrives. The front page's own picture is drawn before any of this, so with a theme kept it is Paper for an instant.
 
 ## The faces
 
@@ -110,5 +112,5 @@ Paper is today's picture and was not changed. A few of its pairs are a little un
 - **On a map, Transit keeps the handoffs' own line weights.** There, line style says what carries a handoff, and the lines run close together.
 - **On the canvas** the nodes and edges take a theme's colors, corners, line weights and lettering. The canvas keeps its own dotted ground, and nothing on it wobbles.
 - **An embed in a theme draws the theme's ground** behind the picture and its bars. An embed in Paper lets the page around it show through, as before.
-- **If the themes' file cannot be fetched** (no network, on a visit before the service worker has it), every picture stays Paper, a control that offers the themes says it needs a connection, and Keep a copy says its files are in Paper. Pressing the control again with a network brings the list, and the theme.
+- **If the themes' file cannot be fetched** (no network, on a visit before the service worker has it), every picture stays Paper, a control that offers the themes says so in words beside it, and Keep a copy says its files are in Paper. Pressing the control again with a network brings the list, and the theme.
 - **Two pictures of one theme set inline in one page**, each following the viewer and held by that page to different forms, share one ground: the second is drawn with the first one's grid or scan lines. The app never does this, and a picture written in light or in dark only has a ground of its own.
