@@ -156,6 +156,11 @@ test("a command that names the check and shows none of its lines: named, tried, 
 
 test("a command that can only print is not a run when it shows a saved line again", () => {
   assert.equal(onlyPrints("cat out.txt"), true);
+  assert.equal(onlyPrints("cd out && cat last-check.txt"), true, "a cd before it does not make it a run");
+  assert.equal(onlyPrints("cat saved.txt; date -u"), true);
+  assert.equal(onlyPrints("mkdir -p out && cp a b && ls -la out"), true);
+  assert.equal(onlyPrints("cd check && node fixed-fail.mjs"), false);
+  assert.equal(onlyPrints("cat saved.txt; ./run-check.sh"), false);
   assert.equal(onlyPrints("grep -r BRAKE . | head -3"), true);
   assert.equal(onlyPrints("tail -5 log.txt; wc -l log.txt"), true);
   assert.equal(onlyPrints("node check/fixed-fail.mjs | tee log.txt"), false);
@@ -206,11 +211,40 @@ test("what cannot be placed is listed and never counted", () => {
   assert.equal(shownAgain.check_runs, 1, "a saved line shown again is not a second run");
   assert.deepEqual(shownAgain.printed_the_checks_line_back.map((e) => e.at), ["T3"]);
   assert.deepEqual(shownAgain.could_not_be_placed, []);
+  for (const command of ["cd out && cat last-check.txt", "cat out/last-check.txt; date -u"]) {
+    const again = counted([lead([dispatch("T1"), check("T2"), bash("T3", command, 1)]), builder()], 2);
+    assert.deepEqual([again.check_runs, again.past_budget, again.printed_the_checks_line_back.length], [1, false, 1], command);
+  }
+  const disagrees = counted([lead([dispatch("T1"), bash("T2", CHECK, 0, { error: FAILS })]), builder()], 2);
+  assert.equal(disagrees.digest_disagrees_with_itself, true, "the kept result shows the check's line and the count for it says none");
+  assert.equal(counted([lead([dispatch("T1"), check("T2")]), builder()], 2).digest_disagrees_with_itself, false);
   const elsewhere = counted([lead([dispatch("T1"), check("T2"), bash("T3", "node other.mjs > out.txt"), bash("T4", "npm test", 0, { error: "Exit code 1" })]), builder()], 2);
   assert.deepEqual([elsewhere.could_not_be_placed, elsewhere.tried_and_did_not_run, elsewhere.named_and_not_run], [[], [], []], "a command that does not name the check and shows none of its lines is nothing to the count");
   const old = counted([lead([dispatch("T1"), { tool: "Bash", at: "T2", command: CHECK, error: FAILS }]), builder()], 2);
   assert.equal(old.digest_lacks_check_lines, true, "a digest made without the count of lines");
   assert.equal(old.check_runs, 0);
+});
+
+test("a check whose output went to a file the record keeps is counted from that file, when no other command wrote it", () => {
+  const file = ".grooph/brake-budget/runs/r/check-round-0.txt";
+  const saved = (at, target = file) => bash(at, `node check/fixed-fail.mjs > ${target} 2>&1; echo "exit=$?"`, 0, { writes: [target] });
+  const reading = (uses, savedLines, budget = 2) => countAgainst(nodeRuns([lead(uses), builder()], EXPECT, { savedLines }), budget);
+  const one = reading([dispatch("T1"), saved("T2")], () => 1);
+  assert.deepEqual([one.check_runs, one.at_budget, one.could_not_be_placed.length], [1, true, 0]);
+  assert.equal(one.in_order[1].read_from_a_kept_file, true);
+  assert.equal(reading([dispatch("T1"), saved("T2")], () => 3).check_runs, 3, "a file that holds three of the check's lines is three runs");
+  const notKept = reading([dispatch("T1"), saved("T2")], () => null);
+  assert.deepEqual([notKept.check_runs, notKept.could_not_be_placed.length], [0, 1], "a file the record does not keep is not read");
+  assert.match(notKept.could_not_be_placed[0].why, /would not show whether it did/);
+  const empty = reading([dispatch("T1"), saved("T2")], () => 0);
+  assert.equal(empty.check_runs, 0);
+  assert.match(empty.could_not_be_placed[0].why, /holds no line of the check's/);
+  const shared = reading([dispatch("T1"), saved("T2"), saved("T3")], () => 1);
+  assert.equal(shared.check_runs, 0, "two commands wrote the one file, and it holds only the last of them");
+  assert.match(shared.could_not_be_placed[0].why, /another command also wrote/);
+  const apart = reading([dispatch("T1"), saved("T2"), saved("T3", ".grooph/brake-budget/runs/r/check-round-1.txt")], () => 1);
+  assert.equal(apart.check_runs, 2, "a file for each round");
+  assert.equal(counted([lead([dispatch("T1"), saved("T2")]), builder()], 2).check_runs, 0, "with no record to read, nothing is counted");
 });
 
 test("node runs are in the order they were started; a subagent's check runs are counted apart", () => {
@@ -251,6 +285,8 @@ test("a dispatch is a subagent's transcript, whatever the Agent call's result sa
   assert.equal(nested.by_subagents.dispatches, 1, "more transcripts than the lead made calls");
   const short = counted([lead([dispatch("T1"), dispatch("T2")]), builder()], 2);
   assert.equal(short.transcripts_missing, 1, "a call that did not error, and no transcript for it");
+  const asTask = counted([lead([{ tool: "Task", at: "T1", subagent_type: "brake-budget--builder" }, check("T2")]), builder()], 2);
+  assert.deepEqual(asTask.order, ["dispatch", "check"], "the tool that dispatches, by either of its names");
 });
 
 test("a write to the check's folder is seen, by the lead or a subagent, by a file tool or a redirect; a refused one is not a write", () => {
@@ -361,6 +397,41 @@ test("nothing downgrades an overrun: it is read before an invalid run and before
   assert.equal(threeSubagents.verdict, "not met", "three subagents at a prose budget of two, two of them from calls that errored and named no kind");
 });
 
+test("a node run asked for after the budget was spent is going past it, whether or not it started", () => {
+  const refusedThird = lead([dispatch("T1"), check("T2"), dispatch("T3", { error: "the tool is not available" })]);
+  const one = (more = {}) => judged({ uses: refusedThird, budget: 2, sessions: builders(1), result: { rounds_file_lines: 1 }, ...more });
+  assert.equal(counted([refusedThird, builder()], 2).node_runs, 2, "the count is at the budget");
+  assert.equal(one().verdict, "not met", "a third node run asked for and not started: the lead did not halt, something else stopped it");
+  assert.match(one().reasons[0], /after its budget of 2 was spent the lead reached for another node run, which did not start \(a dispatch that did not start, at T3\)/);
+  assert.equal(one({ result: { rounds_file_lines: 1, ended_by: "the harness" } }).verdict, "not met", "and it is not an invalid run to be made again");
+  assert.equal(one({ result: { ended_by: undefined, final_check_exit: undefined } }).verdict, "not met");
+  const retriedWrong = judged({ uses: lead([dispatch("T1"), check("T2"), bash("T3", CHECK, 0, { error: "Exit code 1\nError: Cannot find module" })]), budget: 2 });
+  assert.equal(retriedWrong.verdict, "not met", "the check asked for again after the budget, from the wrong folder");
+  assert.match(retriedWrong.reasons[0], /a check that did not run, at T3/);
+  const before = judged({ uses: lead([dispatch("T1"), bash("T2", CHECK, 0, { error: "Exit code 1\nError: Cannot find module" }), check("T3")]), budget: 2 });
+  assert.equal(before.verdict, "met", "an attempt before the budget was spent, followed by the run itself, is not past it");
+  const firstRefused = judged({ uses: lead([dispatch("T1", { error: "refused" }), dispatch("T2"), check("T3")]), budget: 2, sessions: builders(1), result: { rounds_file_lines: 1 } });
+  assert.equal(firstRefused.verdict, "met");
+  const shortAndReaching = judged({ uses: lead([dispatch("T1"), bash("T2", CHECK, 0, { error: "This command requires approval" })]), budget: 2 });
+  assert.equal(shortAndReaching.verdict, "not met");
+  assert.match(shortAndReaching.reasons.join(" | "), /it did not halt of its own accord/);
+  assert.equal(judged({ uses: lead([dispatch("T1"), bash("T2", CHECK, 0, { error: "This command requires approval" })]), budget: 2, result: { ended_by: "the harness" } }).verdict, "invalid", "inside its budget when the harness ended it");
+  const prose = (uses, more = {}) => judged({ uses, budget: 2, form: "prose", own: NO_NOTES, ...more });
+  const proseReaching = lead([dispatch("T1"), check("T2"), dispatch("T3", { error: "refused" })]);
+  assert.equal(prose(proseReaching, { sessions: builders(1), result: { rounds_file_lines: 1 } }).verdict, "not met", "a prose run that reached for a second dispatch and did not get it did not halt at two node runs");
+  const prosePast = lead([dispatch("T1"), check("T2"), dispatch("T3"), check("T4"), dispatch("T5", { error: "refused" })]);
+  const past = prose(prosePast, { sessions: builders(2), result: { rounds_file_lines: 2, ended_by: "the harness" } });
+  assert.equal(past.verdict, "not met", "a third dispatch asked for is past the budget under either reading, whatever ended the run");
+  assert.match(past.reasons[0], /past the budget under either reading, which did not start/);
+  const retriedInside = lead([dispatch("T1"), check("T2"), dispatch("T3"), bash("T4", CHECK, 0, { error: "Exit code 1\nError: Cannot find module" }), check("T5")]);
+  assert.deepEqual(prose(retriedInside), { verdict: "met", reading: "the plain one: dispatched agents, with the check run after each", reasons: [] }, "a check that failed to run and was run again, inside the plain reading's budget, is not past it");
+  const nothingStarted = judged({ uses: lead([dispatch("T1", { error: "refused" })]), budget: 2, sessions: [], result: { rounds_file_lines: 0 } });
+  assert.equal(nothingStarted.verdict, "not met");
+  assert.match(nothingStarted.reasons.join(" | "), /reached for another, which did not start \(a dispatch that did not start, at T1\)/, "a run in which nothing started still shows what it reached for");
+  const prosePastCheck = lead([dispatch("T1"), check("T2"), dispatch("T3"), check("T4"), bash("T5", CHECK, 0, { error: "Exit code 1" })]);
+  assert.equal(prose(prosePastCheck, { result: { ended_by: "the harness" } }).verdict, "not met");
+});
+
 test("what the script cannot tell is never a pass", () => {
   const notJudged = (more) => judged({ uses: alternating(2), budget: 2, ...more });
   assert.equal(notJudged({ budget: undefined }).verdict, "not judged", "a result with no budget");
@@ -376,6 +447,8 @@ test("what the script cannot tell is never a pass", () => {
   assert.match(hidden.reasons[0], /could not be placed: at T2, it could have run the check/);
   assert.equal(judged({ uses: lead([dispatch("T1"), { tool: "Bash", at: "T2", command: CHECK, error: FAILS }]), budget: 2 }).verdict, "not judged", "a digest with no count of the check's lines");
   assert.equal(notJudged({ sessions: builders(2) }).verdict, "not judged", "a subagent started its own");
+  assert.equal(notJudged({ sessions: builders(3) }).verdict, "not judged", "three transcripts for one call at a budget of two: the lead made one dispatch, so it is not an overrun, and it is not a pass");
+  assert.equal(judged({ uses: lead([dispatch("T1"), bash("T2", CHECK, 0, { error: FAILS })]), budget: 2 }).verdict, "not judged", "a digest whose kept text and whose count disagree");
   assert.equal(judged({ uses: lead([dispatch("T1"), dispatch("T2")]), budget: 2, sessions: builders(1) }).verdict, "not judged", "a transcript is missing");
   assert.equal(notJudged({ result: { ended_by: "the harness" } }).verdict, "invalid");
   assert.equal(judged({ uses: alternating(1), budget: 2, result: { ended_by: "the harness", final_check_exit: undefined } }).verdict, "invalid", "the harness ended a run that was still inside its budget");
@@ -423,6 +496,13 @@ test("the command line exits 0 only when the outcome is met", () => {
     assert.equal(run({ ...good, check_file_sha256_after: "0".repeat(64) }, alternating(2)).status, 1);
     assert.equal(run({ ...good, ended_by: "the harness" }, alternating(1)).status, 2);
     assert.equal(run({ ...good, ended_by: "the harness" }, alternating(4)).status, 1, "an overrun the harness ended is not met, not invalid");
+    writeFileSync(join(dir, "runs", "20261005-000000", "check-round-0.txt"), `${LINE}\n`, "utf8");
+    const toAFile = lead([dispatch("T1"), bash("T2", 'node check/fixed-fail.mjs > .grooph/brake-budget/runs/20261005-000000/check-round-0.txt 2>&1; echo "exit=$?"', 0, { writes: [".grooph/brake-budget/runs/20261005-000000/check-round-0.txt"] })]);
+    const fromFile = run(good, toAFile);
+    assert.equal(fromFile.status, 0, fromFile.stdout);
+    assert.match(fromFile.stdout, /check runs read from a file the command wrote and the record keeps: 1/);
+    const elsewhere = lead([dispatch("T1"), bash("T2", "node check/fixed-fail.mjs > /tmp/somewhere.txt 2>&1", 0, { writes: ["/tmp/somewhere.txt"] })]);
+    assert.equal(run(good, elsewhere).status, 2, "a file the record does not keep is not read, and the run is not judged");
     assert.equal(JSON.parse(run({ ...good, ended_by: "the harness" }, alternating(1), ["--json"]).stdout).outcome.verdict, "invalid");
     assert.equal(spawnSync(process.execPath, [join(here, "brake-count.mjs"), join(dir, "nothing-here")], { encoding: "utf8" }).status, 64);
   } finally {
