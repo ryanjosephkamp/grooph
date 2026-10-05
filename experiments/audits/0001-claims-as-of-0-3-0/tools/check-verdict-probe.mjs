@@ -1,4 +1,5 @@
 // Audit 0001, round two, part E: does the comparison of brakes see a change to a check that judges a loop?
+// Three cases and a control: the check's command, its two verdicts swapped, a way around it (added 2026-10-05 after reading amendment A-019's draft), and a round cap raised.
 // Pure: reads one built-in template, changes a copy in memory, asks core's checkAdoption. Writes nothing, calls no model.
 //   cd <repository root, packages built> && node <this file>
 import fs from "node:fs";
@@ -17,6 +18,11 @@ const cases = {
   "the check's command replaced by one that always passes": (doc) => { for (const n of doc.nodes) if (n.kind === "check") n.check = { ...n.check, run: "true", pass: "exit code 0" }; },
   "the check's two verdicts swapped: fail leads on, pass leads back": (doc) => {
     for (const e of doc.edges) { if (doc.nodes.find((n) => n.id === e.from)?.kind !== "check") continue; e.when = e.when === "pass" ? "fail" : e.when === "fail" ? "pass" : e.when; }
+  },
+  "the check untouched, and an edge added from the builder straight to the stop that ends in success": (doc) => {
+    const builder = doc.loops[0].members.find((id) => doc.nodes.find((n) => n.id === id)?.kind === "agent");
+    const done = doc.nodes.find((n) => n.kind === "stop" && (n.outcome ?? "success") === "success").id;
+    doc.edges.push({ id: "e-around-the-check", from: builder, to: done, when: "always" });
   },
   "for comparison, the round cap raised": (doc) => { for (const l of doc.loops) for (const s of l.stops) if (s.kind === "max-iterations") s.n = s.n * 10; },
 };
