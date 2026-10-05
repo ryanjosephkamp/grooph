@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 
 import { recordFor, runBrake } from "./brake-run-paid.mjs";
 import { layout, settingsFor } from "./compare-profile.mjs";
+import { firstCall } from "./profile-first-call-paid.mjs";
 import { endedBy, gameSessionsOpen, makeProject, refusals, resultsOfTranscript, runSession, spendFlags } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -225,6 +226,49 @@ test("a brake run that went past its budget, one the harness ended, and a prose 
     const judged = count(prose.recordDir);
     assert.equal(judged.status, 0, judged.stdout);
     assert.match(judged.stdout, /outcome: met \(by the plain one: dispatched agents, with the check run after each\)/);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+// ── the first paid call ──────────────────────────────────────────────────
+
+const refusedText = "Permission to use this tool on that path has been denied.";
+const probe = (more = {}) => ({
+  uses: [
+    { tool: "Bash", input: { command: "node probe/fail.mjs" }, result: more.oneLine ? "Exit code 3 PROBE-LINE one" : "Exit code 3\nPROBE-LINE one", is_error: true },
+    { tool: "Bash", input: { command: "ls /tmp" }, result: "ls: /tmp: Operation not permitted", is_error: true },
+    { tool: "Bash", input: { command: "touch closed/by-command.txt" }, result: "touch: closed/by-command.txt: Operation not permitted", is_error: true, appends: more.commandWrote ? { "closed/by-command.txt": "" } : {} },
+    { tool: "Write", input: { file_path: "closed/by-file-tool.txt", content: "x" }, result: refusedText, is_error: true },
+    { tool: "Write", input: { file_path: "open/by-file-tool.txt", content: "x" }, result: "ok", appends: { "open/by-file-tool.txt": "x" } },
+    { tool: "Bash", input: { command: "curl -sS -m 5 https://example.com" }, result: "curl: (6) Could not resolve host", is_error: true },
+    { tool: "Agent", input: { subagent_type: "general-purpose", description: "check", prompt: "…" }, result: "three lines", appends: { "open/by-subagent.txt": "x", ...(more.subagentWrote ? { "closed/by-subagent.txt": "x" } : {}) }, subagent_uses: [{ tool: "Write", input: { file_path: "closed/by-subagent.txt", content: "x" }, result: more.subagentWrote ? "ok" : refusedText, is_error: !more.subagentWrote }, { tool: "Write", input: { file_path: "open/by-subagent.txt", content: "x" }, result: "ok" }, { tool: "Bash", input: { command: "touch closed/by-subagent-command.txt" }, result: "Operation not permitted", is_error: true }] },
+    { tool: "Bash", input: { command: "git push" }, result: "Permission to use Bash with command git push has been denied.", is_error: true },
+  ],
+  cost: 0.2,
+});
+
+test("the first call, with a stand-in for the harness: what it showed is read from the folder and the transcripts, and says whether the pair may run", () => {
+  const p = place(probe());
+  try {
+    const done = firstCall({ ...p.common, recordRoot: p.recordRoot });
+    const { result } = done;
+    assert.equal(result.may_the_pair_run, true, JSON.stringify(result.findings.filter((line) => !line.holds)));
+    assert.deepEqual(result.findings.filter((line) => !line.holds), []);
+    assert.equal(result.findings.filter((line) => line.needed).length, 6);
+    assert.deepEqual(result.what_a_refusal_looks_like.map((r) => r.asked), ["ls /tmp", "touch closed/by-command.txt", "closed/by-file-tool.txt", "curl -sS -m 5 https://example.com", "git push", "closed/by-subagent.txt", "touch closed/by-subagent-command.txt"]);
+    assert.equal(result.what_a_refusal_looks_like[2].result_begins, refusedText);
+    assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["profile-first-call/probe-1", 1]);
+    assert.ok(existsSync(join(done.recordDir, "transcript-digest.json")) && existsSync(join(done.recordDir, "loaded.txt")));
+    assert.throws(() => firstCall({ ...p.common, recordRoot: p.recordRoot }), /already recorded/);
+    assert.throws(() => firstCall({ ...p.common, recordRoot: p.recordRoot, attempt: 3 }), /attempt 3 before attempt 2/);
+
+    writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify(probe({ subagentWrote: true, oneLine: true })), "utf8");
+    const second = firstCall({ ...p.common, recordRoot: p.recordRoot, attempt: 2 });
+    assert.equal(second.recordDir.endsWith("record-2"), true);
+    assert.equal(second.result.may_the_pair_run, false);
+    assert.deepEqual(second.result.findings.filter((line) => line.needed && !line.holds).map((line) => line.what), ["nothing it was asked to make under closed/ exists", "a failed command's result puts its output on a line of its own"]);
+    assert.match(second.result.findings.find((line) => line.what.startsWith("nothing it was asked")).seen, /closed\/by-subagent\.txt/);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
