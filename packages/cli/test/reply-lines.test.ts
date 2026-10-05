@@ -499,6 +499,47 @@ test("a protocol error is one line, with what it was sent inside a JSON string",
     }
   }
 });
+test("a brake loosened over a package in place: the change's name and its reasons, whatever the loop is called and whatever is asked for", async () => {
+  // An export over a package compares the two graphs' brakes and says each change that loosens one, with reasons that
+  // core writes from the documents' own ids and words. Both are someone's text, in the refusal and after "allow".
+  const graph = json("fixtures", "valid", "review-loop.grooph.json") as Graph;
+  const renamed = JSON.parse(JSON.stringify(graph).split('"review-cycle"').join(`"${ID_PAYLOAD}"`).split('"merge-gate"').join(`"${ID_PAYLOAD}-gate"`)) as Graph;
+  const loosened = (doc: Graph, acceptance: string): Graph => ({
+    ...doc,
+    loops: doc.loops.map((loop) => ({ ...loop, ...(loop.bar ? { bar: { ...loop.bar, acceptance } } : {}), stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 99 } : stop.kind === "budget" ? { ...stop, limit: 9_999 } : stop)) })),
+  });
+  await contexts(async (ctx, mode) => {
+    if (mode !== "a session") return;
+    for (const [i, payload] of some(16).entries()) {
+      const base = i % 2 === 0 ? renamed : graph;
+      const worded = { ...base, loops: base.loops.map((loop) => ({ ...loop, name: payload, ...(loop.bar ? { bar: { ...loop.bar, name: payload, acceptance: payload } } : {}) })), nodes: base.nodes.map((node) => (node.kind === "human-gate" ? { ...node, name: payload, prompt: payload } : node)) } as Graph;
+      const into = `p${i}`;
+      const where: string = `${mode}, a package in place, payload ${i}`;
+      const placed = await call(ctx, "grooph_export", { graph: worded, into }, where);
+      assert.equal(placed.isError, undefined, `${where}: the first export was refused`);
+      const looser = loosened(worded, PAYLOADS[(i * 7) % PAYLOADS.length]!);
+      const refused = await call(ctx, "grooph_export", { graph: looser, into, replace: true }, where);
+      assert.equal(refused.isError, true, `${where}: a looser graph was placed`);
+      const names = (refused.structuredContent!["loosens"] as { name: string }[]).map((change) => change.name);
+      assert.ok(names.length > 0, where);
+      // What is asked for is someone's text too: a name that is no change, alone and beside the real ones.
+      await call(ctx, "grooph_export", { graph: looser, into, allow: [payload] }, where);
+      await call(ctx, "grooph_export", { graph: looser, into, allow: [...names, payload, ID_PAYLOAD] }, where);
+      await call(ctx, "grooph_export", { graph: looser, allow: [payload] }, where);
+      // "replace" beside it: a payload with half a character in it is written as a replacement character, so its own
+      // LEAD.md no longer reads as grooph's, and that is the other question (known, and it stops on the safe side).
+      const meant = await call(ctx, "grooph_export", { graph: looser, into, allow: names, replace: true }, where);
+      assert.equal(meant.isError, undefined, `${where}: asked for by name, and still refused: ${JSON.stringify(meant.content[0]!.text)}`);
+      // A gate taken out, with a way past where it stood: a brake lost under another kind of name.
+      const gate = worded.nodes.find((node) => node.kind === "human-gate")!.id;
+      const stop = worded.nodes.find((node) => node.kind === "stop")!.id;
+      const pass = worded.edges.find((edge) => edge.to === gate)!;
+      const gateless = { ...looser, nodes: looser.nodes.filter((node) => node.id !== gate), edges: [...looser.edges.filter((edge) => edge.from !== gate && edge.to !== gate), { ...pass, id: `${ID_PAYLOAD}-straight`, to: stop }], loops: looser.loops.map((loop) => ({ ...loop, members: loop.members.filter((id) => id !== gate), ...("back" in loop ? { back: (loop as unknown as { back: string[] }).back.filter((id) => looser.edges.some((edge) => edge.id === id && edge.from !== gate)) } : {}) })) } as Graph;
+      await call(ctx, "grooph_export", { graph: gateless, into }, where);
+    }
+  });
+});
+
 
 test("the property was asked of enough to mean something", (t) => {
   t.diagnostic(`${asked.toLocaleString("en")} calls, ${linesSeen.toLocaleString("en")} lines, ${PAYLOADS.length} payloads`);

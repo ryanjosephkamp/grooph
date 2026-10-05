@@ -6,7 +6,7 @@
  *   grooph_use_template   a graph from a template: id, name, slot values
  *   grooph_new            an empty graph
  *   grooph_apply          a graph and typed operations → the graph, or the failing operation
- *   grooph_explain        what bounds a graph, in plain words
+ *   grooph_explain        a graph's brakes, in plain words
  *   grooph_shape          counts and brakes
  *   grooph_share          a link the app opens, and the embed line
  *   grooph_picture        the picture, as SVG text and (asked for) a PNG
@@ -37,6 +37,7 @@ import {
   applyOps,
   buildShareEnvelope,
   canonicalize,
+  checkAdoption,
   closest,
   describeStop,
   encodeSharePayload,
@@ -60,6 +61,7 @@ import {
   tierLine,
   tryCompile,
   validate,
+  type AdoptionChange,
   type CompileOptions,
   type CompileTarget,
   type Graph,
@@ -196,7 +198,7 @@ const PATH_ARG = { type: "string", description: "Or a graph file to read (*.groo
 const OUT_ARG = { type: "string", description: "Also write the graph to this file, inside the project folder; the name ends in .grooph.json. The document comes back either way." };
 const REPLACE_ARG = { type: "boolean", description: "Replace a file that is already there and that this tool would otherwise leave alone. Use it only when the person said to." };
 /** The arguments that name a file. A chat is offered none of them, and a call that passes one there is refused. */
-export const FILE_ARGS = ["path", "out", "into", "replace"] as const;
+export const FILE_ARGS = ["path", "out", "into", "replace", "allow"] as const;
 
 /** The file a `path` argument names. Reading is not confined to the project: a session may check a fixture or another clone's graph. */
 const fileOf = (ctx: McpContext, given: string): string => (isAbsolute(given) ? given : resolve(ctx.project, given));
@@ -729,9 +731,9 @@ export const AUTHOR_TOOLS: Tool[] = [
     }),
   },  {
     name: "grooph_explain",
-    title: "Say what bounds a graph",
+    title: "Say what a graph's brakes are",
     description:
-      "What bounds a graph, in plain words to pass on to the person before anything runs: each loop's round cap and what each of its stops does when it fires, each place a person must say go, and the worst case. Read from the document; it judges nothing and adds no rule. Read-only.",
+      "A graph's brakes, in plain words to pass on to the person before anything runs: each loop's round cap and what each of its stops does when it fires, each place a person must say go, and the worst case. Read from the document; it judges nothing and adds no rule. Read-only.",
     inputSchema: { type: "object", properties: { graph: GRAPH_ARG, path: PATH_ARG } },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     run: refusing((args, ctx) => {
@@ -820,7 +822,7 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...(long ? [`warning: messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")} characters. Shorten the briefs or drop a candidate; or give the person the document itself to paste into the app (Paste a document, on its first screen).`] : []),
         "embed: two lines of HTML that show the same picture in any web page are the next block of this reply, as they are.",
       ];
-      const next = "give the person the link, whole and on its own line, without the quotes around it; say in a sentence what the graph does and what bounds it (grooph_explain). In the app they can save it, edit it and export the package.";
+      const next = "give the person the link, whole and on its own line, without the quotes around it; say in a sentence what the graph does and what its brakes are (grooph_explain). In the app they can save it, edit it and export the package.";
       return {
         text: reply(lines, next),
         data: { ok: true, kind: envelope.kind, link, length: link.length, long, embed: `${embed.frame}\n${embed.script}`, warnings },
@@ -907,8 +909,14 @@ export const AUTHOR_TOOLS: Tool[] = [
           additionalProperties: false,
           description: 'Which model a tier means in this package, for example {"frontier": "opus", "strong": "sonnet"}. A tier not named keeps the target\'s own; a pin on a node still wins; the graph does not change.',
         },
-        into: { type: "string", description: "Write the package into this folder inside the project folder ('.' for the project itself). Files of the package already there are replaced when they are still as grooph last wrote them; one that was changed by hand stops the export." },
+        into: { type: "string", description: "Write the package into this folder inside the project folder ('.' for the project itself). Files of the package already there are replaced when they are still as grooph last wrote them; one that was changed by hand stops the export, and so does a graph that has removed or loosened a brake the package there has (see \"allow\")." },
         replace: REPLACE_ARG,
+        allow: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            'With "into", over a package already in place: the changes that remove or loosen one of that package\'s brakes and that the person asked for, each by the name a refusal of this tool listed after "loosens" (for example "loop:review.stops"). "replace" does not answer this. Use it only when the person said so, change by change.',
+        },
       },
     },
     chatDescription: `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }, for the person to save into the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in; nothing is written here. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. Nothing is started: starting the run spends the person's money and waits for their word.`,
@@ -975,6 +983,18 @@ export const AUTHOR_TOOLS: Tool[] = [
       let folder: string | undefined;
       let theirs: string[] = [];
       let moved: ReturnType<typeof modelChanges> = [];
+      let meant: AdoptionChange[] = [];
+      let notices: string[] = [];
+      const loosensLine = (change: AdoptionChange): string => `  loosens ${q(change.name)}: ${q(change.loosens ?? "")}`;
+      const loosensData = (changes: readonly AdoptionChange[]): { name: string; why: string }[] => changes.map((change) => ({ name: change.name, why: change.loosens ?? "" }));
+      const asked = args["allow"];
+      if (asked !== undefined && !(Array.isArray(asked) && asked.every((name) => typeof name === "string"))) {
+        throw new Refusal('"allow" must be a list of names: the changes that loosen a brake and that the person asked for.', 'pass the names a refusal of this tool listed after "loosens", or leave "allow" out');
+      }
+      const allow = (asked as string[] | undefined) ?? [];
+      if (allow.length > 0 && str(args["into"]) === undefined) {
+        throw new Refusal('"allow" goes with "into": it answers for a package already in place, and this call places nothing.', 'pass "into" as well, or leave "allow" out');
+      }
       const movedLine = (change: (typeof moved)[number]): string => `  model of ${q(change.path)}: ${modelsSaid(change.was)} → ${modelsSaid(change.now)}`;
       const movedData = (): string[] => moved.map((change) => `${change.path}: model ${modelsSaid(change.was)} → ${modelsSaid(change.now)}`);
       if (into !== undefined) {
@@ -995,7 +1015,38 @@ export const AUTHOR_TOOLS: Tool[] = [
         // tier map, or with another, would otherwise change and say nothing.
         theirs = notAsGroophWroteThem(places, doc.id, target as CompileTarget, models);
         moved = modelChanges(places);
-        if ((theirs.length > 0 || moved.length > 0) && args["replace"] !== true) {
+        // A third question, which "replace" does not answer. The package in place keeps the graph it was compiled from,
+        // and a run works from that copy. Placing over it a graph that has lost or loosened one of its brakes is the
+        // change `grooph adopt` holds until each is asked for by its name (amendments A-008 and A-019), so it is held
+        // here by the same comparison: an export is one more way a kept graph is replaced.
+        const keptPlace = places.find((place) => place.path.endsWith(`/${doc.id}/graph.grooph.json`));
+        const before = keptPlace && existsSync(keptPlace.full) && statSync(keptPlace.full).isFile() ? parseGraph(safeJson(readFileSync(keptPlace.full, "utf8"))).doc : undefined;
+        const brakes = before === undefined ? undefined : checkAdoption(before, doc, { allow });
+        const unknown = brakes === undefined ? allow : brakes.unknown;
+        if (unknown.length > 0) {
+          throw new Refusal(
+            `Nothing was placed in ${q(shownIn(ctx, root))}: "allow" names ${unknown.map(q).join(", ")}, which ${unknown.length === 1 ? "is" : "are"} no change between ${before === undefined ? "a package in place (there is none with a graph that reads)" : "the graph the package in place keeps"} and this one.`,
+            'pass in "allow" only the names a refusal of this tool listed after "loosens", or leave it out',
+          );
+        }
+        const held = brakes?.refused ?? [];
+        meant = brakes === undefined ? [] : brakes.changes.filter((change) => change.loosens !== undefined && !held.includes(change));
+        notices = brakes?.notices ?? [];
+        const unanswered = (theirs.length > 0 || moved.length > 0) && args["replace"] !== true;
+        if (held.length > 0) {
+          const byBrake = `${plural(held.length, "change")} in this graph would remove or loosen a brake the package there has`;
+          const others = unanswered ? [theirs.length > 0 ? `${plural(theirs.length, "file")} there ${theirs.length === 1 ? "is" : "are"} not as grooph last wrote ${theirs.length === 1 ? "it" : "them"}` : undefined, moved.length > 0 ? `the model of ${plural(moved.length, "agent file")} would change` : undefined].filter((part) => part !== undefined) : [];
+          throw new Refusal(
+            [
+              `Nothing was placed in ${q(shownIn(ctx, root))}: ${[byBrake, ...others].join(", and ")}.`,
+              ...held.map(loosensLine),
+              ...(unanswered ? [...theirs.map((path) => `  file ${q(path)}: not as grooph last wrote it`), ...moved.map(movedLine), ...(moved.length > 0 ? tiers : [])] : []),
+            ],
+            `a brake is removed or loosened only when the person asks for that change by its name. Put each "loosens" line to them; for the ones they mean, pass those names in "allow" and export again; for the others, change the graph back with grooph_apply${unanswered ? '. The files and models listed are a separate question, which "replace": true answers when the person said to' : ""}`,
+            { loosens: loosensData(held), ...(unanswered ? { changed: theirs, modelChanges: movedData() } : {}) },
+          );
+        }
+        if (unanswered) {
           const byHand = theirs.length === 0 ? undefined : `${plural(theirs.length, "file")} of this package ${theirs.length === 1 ? "is" : "are"} there and not as grooph last wrote ${theirs.length === 1 ? "it" : "them"}`;
           const byModel = moved.length === 0 ? undefined : `this export would change the model of ${plural(moved.length, "agent file")} there`;
           const keep = `name the tiers the package was placed with (${ways}) and export again`;
@@ -1025,6 +1076,8 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...paths.map((path) => `  file ${q(path)} (${compiled.files[path]!.length.toLocaleString("en")} characters)`),
         ...(theirs.length > 0 ? [`replaced ${plural(theirs.length, "file")} that ${theirs.length === 1 ? "was" : "were"} not as grooph last wrote ${theirs.length === 1 ? "it" : "them"} ("replace"):`, ...theirs.map((path) => `  file ${q(path)}: was not as grooph last wrote it`)] : []),
         ...(moved.length > 0 ? [`changed the model of ${plural(moved.length, "agent file")} that ${moved.length === 1 ? "was" : "were"} already there ("replace"):`, ...moved.map(movedLine)] : []),
+        ...(meant.length > 0 ? [`loosened a brake the package there had, by ${plural(meant.length, "change")} asked for by name ("allow"):`, ...meant.map(loosensLine)] : []),
+        ...notices.map((notice) => `note: ${q(notice)}`),
         ...tiers,
         ...(compiled.warnings.length > 0 ? [`warnings: ${compiled.warnings.length}, carried into the lead's brief:`, ...issueLines(compiled.warnings)] : []),
         ...(note !== undefined ? [note] : []),
@@ -1048,6 +1101,7 @@ export const AUTHOR_TOOLS: Tool[] = [
           ...(models !== undefined ? { models, modelsFrom } : {}),
           ...(theirs.length > 0 ? { replaced: theirs } : {}),
           ...(moved.length > 0 ? { modelChanges: movedData() } : {}),
+          ...(meant.length > 0 ? { loosened: loosensData(meant) } : {}),
         },
         more: [{ type: "text" as const, text: compiled.kickoff.trimEnd() }, ...(folder === undefined ? [{ type: "text" as const, text: JSON.stringify(compiled.files, null, 2) }] : [])],
       };

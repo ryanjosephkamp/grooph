@@ -634,7 +634,7 @@ back as JSON, so no file has to exist; path reads a file and out writes one:
   grooph_new            an empty graph
   grooph_apply          a graph and typed operations: the graph, or the failing one by index
   grooph_validate       the issues by code, with what to do about each
-  grooph_explain        what bounds it: rounds, budgets, who must say go, the worst case
+  grooph_explain        its brakes: rounds, budgets, who must say go, the worst case
   grooph_shape          counts and brakes on one line
   grooph_share          a link the app opens on any device, and the embed line
   grooph_picture        the picture as SVG text, and a PNG when asked

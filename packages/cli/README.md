@@ -19,7 +19,7 @@ npx grooph image flaky.grooph.json --out flaky.svg
 npx grooph export flaky.grooph.json --target claude-code --into .
 ```
 
-`grooph template list` shows every template with when to use it. `grooph explain flaky.grooph.json` says in plain words what bounds the run. `grooph share flaky.grooph.json` prints a link that opens the graph in the [grooph app](https://ryanjosephkamp.github.io/grooph/) on any device; the graph travels after the `#`, which a browser sends to no server.
+`grooph template list` shows every template with when to use it. `grooph explain flaky.grooph.json` says in plain words what the graph's brakes are. `grooph share flaky.grooph.json` prints a link that opens the graph in the [grooph app](https://ryanjosephkamp.github.io/grooph/) on any device; the graph travels after the `#`, which a browser sends to no server.
 
 Install it once to drop the `npx`:
 

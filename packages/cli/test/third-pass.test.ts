@@ -806,3 +806,76 @@ test("fifth read: a pinned node's id is a JSON string in the tool's reply, and a
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("after the merge: an export over a package in place does not loosen a brake its kept graph has, until that change is asked for by name", async () => {
+  // `grooph adopt` holds a run's working copy to the graph's brakes (amendments A-008 and A-019). The graph a package
+  // keeps can also be replaced by an export, so the tool makes the same comparison there, and "replace" is no answer to it.
+  const graph = fixture("valid", "review-loop.grooph.json");
+  const stops = (doc: Graph): unknown => doc.loops.find((loop) => loop.id === "review-cycle")!.stops;
+  const withCap = (n: number): Graph => ({ ...graph, loops: graph.loops.map((loop) => (loop.id === "review-cycle" ? { ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n } : stop)) } : loop)) });
+  await withProject(async (ctx) => {
+    const keptFile = join(ctx.project, ".grooph", "review-loop", "graph.grooph.json");
+    const kept = (): Graph => JSON.parse(readFileSync(keptFile, "utf8")) as Graph;
+    const lead = (): string => readFileSync(join(ctx.project, ".grooph", "review-loop", "LEAD.md"), "utf8");
+    const first = await call(ctx, "grooph_export", { graph, into: "." });
+    assert.equal(first.isError, undefined, textOf(first));
+    assert.ok(!textOf(first).includes("loosen"), "a first export has nothing in place to compare with");
+    const leadBefore = lead();
+
+    // Looser: four rounds become nine. Nothing is placed, with or without "replace", and the change is named.
+    for (const args of [{}, { replace: true }]) {
+      const refused = await call(ctx, "grooph_export", { graph: withCap(9), into: ".", ...args });
+      assert.equal(refused.isError, true, textOf(refused));
+      const lines = ownNext(refused, "looser");
+      assert.match(lines[0]!, /^refused: Nothing was placed in ".+": 1 change in this graph would remove or loosen a brake the package there has\.$/);
+      assert.ok(lines.some((line) => /^ {2}loosens "loop:review-cycle\.stops": ".+"$/.test(line)), textOf(refused));
+      assert.match(lines.at(-1)!, /^next: a brake is removed or loosened only when the person asks for that change by its name\./);
+      assert.ok(!lines.at(-1)!.includes("review-cycle"), "the tool's own line holds no id");
+      assert.deepEqual((refused.structuredContent!["loosens"] as { name: string }[]).map((change) => change.name), ["loop:review-cycle.stops"]);
+      assert.deepEqual(stops(kept()), stops(graph));
+      assert.equal(lead(), leadBefore);
+    }
+
+    // A name that is no change is refused too, and a name with no "into" has nothing to answer for.
+    const wrong = await call(ctx, "grooph_export", { graph: withCap(9), into: ".", allow: ["loop:review-cycle.bar"] });
+    assert.equal(wrong.isError, true);
+    assert.match(textOf(wrong), /^refused: Nothing was placed in ".+": "allow" names "loop:review-cycle\.bar", which is no change between the graph the package in place keeps and this one\./);
+    assert.deepEqual(stops(kept()), stops(graph));
+    for (const [args, said] of [
+      [{ graph: withCap(9), allow: ["loop:review-cycle.stops"] }, /"allow" goes with "into"/],
+      [{ graph: withCap(9), into: ".", allow: "loop:review-cycle.stops" }, /"allow" must be a list of names/],
+      [{ graph: withCap(9), into: ".", allow: [7] }, /"allow" must be a list of names/],
+    ] as const) {
+      const r = await call(ctx, "grooph_export", args);
+      assert.equal(r.isError, true, textOf(r));
+      assert.match(textOf(r), said);
+      assert.deepEqual(stops(kept()), stops(graph));
+    }
+
+    // Tighter, and unchanged: placed without a question.
+    for (const n of [2, 2]) {
+      const tighter = await call(ctx, "grooph_export", { graph: withCap(n), into: "." });
+      assert.equal(tighter.isError, undefined, textOf(tighter));
+      assert.ok(!textOf(tighter).includes("loosen"), textOf(tighter));
+    }
+    assert.deepEqual(stops(kept()), stops(withCap(2)));
+
+    // Asked for by its name: placed, and the reply says which brake went.
+    const meant = await call(ctx, "grooph_export", { graph: withCap(9), into: ".", allow: ["loop:review-cycle.stops"] });
+    assert.equal(meant.isError, undefined, textOf(meant));
+    const said = ownNext(meant, "meant");
+    assert.ok(said.includes('loosened a brake the package there had, by 1 change asked for by name ("allow"):'), textOf(meant));
+    assert.ok(said.some((line) => /^ {2}loosens "loop:review-cycle\.stops": ".+"$/.test(line)), textOf(meant));
+    assert.deepEqual(stops(kept()), stops(withCap(9)));
+
+    // A gate taken out is a brake lost, under whatever name the change has; and a chat is offered no "allow".
+    const gateless = { ...graph, nodes: graph.nodes.filter((node) => node.id !== "merge-gate"), edges: graph.edges.filter((edge) => edge.from !== "merge-gate" && edge.to !== "merge-gate").concat([{ ...graph.edges.find((edge) => edge.id === "e-review-pass")!, id: "e-straight", to: "done" }]), loops: graph.loops.map((loop) => ({ ...loop, members: loop.members.filter((id) => id !== "merge-gate"), back: (loop as { back?: string[] }).back?.filter((id) => id !== "e-gate-reject") })) } as Graph;
+    const noGate = await call(ctx, "grooph_export", { graph: gateless, into: ".", replace: true });
+    if (noGate.isError === true && /cannot be exported/.test(textOf(noGate))) assert.fail(`the test's own graph does not export: ${textOf(noGate)}`);
+    assert.equal(noGate.isError, true, textOf(noGate));
+    assert.match(textOf(noGate), /would remove or loosen a brake the package there has/);
+    assert.ok(existsSync(keptFile) && kept().nodes.some((node) => node.id === "merge-gate"));
+    const offered = ((await handle({ jsonrpc: "2.0", id: 2, method: "tools/list" }, { ...ctx, chat: true })) as { result: { tools: { name: string; inputSchema: { properties: Record<string, unknown> } }[] } }).result.tools.find((tool) => tool.name === "grooph_export")!;
+    assert.ok(!("allow" in offered.inputSchema.properties) && !("into" in offered.inputSchema.properties));
+  });
+});

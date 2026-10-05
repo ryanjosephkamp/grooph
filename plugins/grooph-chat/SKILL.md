@@ -33,14 +33,14 @@ A graph is for work that needs a loop that turns (build, check, fix, check again
 3. **Make the graph.** `template use <id> --name "<a few words>" --set <slot>="<value>" … --out <id>.grooph.json`. A slot you have no value for comes back as a question: pass it to the person.
 4. **Adjust it** when the template is close but not right: write a list of operations to `ops.json` and run `apply <file> --ops ops.json --write`. `reference/agents.md` shows every operation by example. Keep the graph the smallest that works: if removing a node loses nothing the person asked for, remove it.
 5. **Check it.** `validate --for-export <file>` until no error is left. `reference/agents.md` says what to do about each code. Never loosen a brake to pass a rule (a gate, a budget, an `irreversible` marker, critic isolation), and never bend the graph to silence a warning: keep the warning and tell the person in plain words.
-6. **Say what bounds it.** `explain <file>` gives the words: rounds, budgets, who must say go, the worst case.
+6. **Say what its brakes are.** `explain <file>` gives the words: rounds, budgets, who must say go, the worst case.
 7. **Hand it over**, all three:
    - `share <file>` prints a link. Give it whole, on a line of its own. It opens the graph in the grooph app on any device, where they can read it, save it, edit it and export the package. The graph travels after the `#`, which a browser sends to no server.
    - `image <file> --out <id>.svg` draws it. Show the person the picture.
    - Give them the `.grooph.json` file itself. In the app, **Import** takes the file and **Paste a document** takes its text; that is the way in when a link is too long for a messenger.
 8. **Stop there.** The link, the picture and the file are the whole delivery. Export a package (`export <file> --target claude-code --into <folder>`) only when they ask for one; starting a run is their decision, in their own harness.
 
-Done when the person holds the link, the picture and the file, knows in a sentence what bounds the graph, and nothing has been started.
+Done when the person holds the link, the picture and the file, knows in a sentence what the graph's brakes are, and nothing has been started.
 
 To offer a choice, make two or three graphs that differ in shape (a lean one, a rigorous one), write a proposal set, and `share` the set: the link opens them side by side. `share --help` prints the set's format.
 
