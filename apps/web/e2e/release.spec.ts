@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 import { canvasIsQuiet, fixturePath, node } from "./support.js";
-import { builtApp, expectWhole, held, makeRelease, namedBy, removeReleases, seen, serveSite, settled, twoReleases, type Release, type Site, type WorkerOf } from "./support-release.js";
+import { builtApp, expectWhole, held, makeRelease, namedBy, removeReleases, seen, serveSite, settled, twoReleases, watchVisits, type Release, type Site, type WorkerOf } from "./support-release.js";
 
 /**
  * Handoff 0083: the service worker across a release.
@@ -32,6 +32,8 @@ const CHROMIUM = { tag: "@chromium" };
 // its page and scripts were, what the worker held, and what the page complained of.
 const complaints: string[] = [];
 test.beforeEach(({ context }) => {
+  // So that `settled` can tell when a page has nothing still arriving (support-release.ts).
+  watchVisits(context);
   complaints.length = 0;
   const began = Date.now();
   const at = (): string => `${String(Date.now() - began).padStart(5)} ms`;
