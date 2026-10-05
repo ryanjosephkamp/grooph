@@ -144,7 +144,7 @@ A handoff carried by a `person`, or started by one, is a true statement about an
 
 The same picture is what `grooph image` writes (`--theme light`, `dark` or `auto`) and what the app shows for a map opened from a link or a file, on a screen narrower than 1100 px. `light` and `dark` write the colors into the file; `auto` carries both and follows the viewer's color scheme. In the app a session or a handoff opens what the document says about it, and the map's issues are behind the status, as a graph's are.
 
-It is one column, 400 units wide, and every arc shares one margin. That is the right shape for a phone and the wrong one for a wide screen, and on a map with many handoffs the arcs cross often: 118 times on the nineteen-handoff map of §4d. Two more views draw the same document for those cases: the lanes side by side (§4c) and a sequence (§4d). A view never changes the document, and none of the three round-trips.
+It is one column, 400 units wide, and every arc shares one margin. That is the right shape for a phone and the wrong one for a wide screen, and on a map with many handoffs the arcs cross often: 118 times on the nineteen-handoff map of §4d. Two more views draw the same document for those cases: the lanes side by side (§4c) and a sequence (§4d). A view never changes the document, and none of the three round-trips. The app has a fourth, the map in three dimensions (§4e), which is not a picture: it is turned and stepped through, and exists only on the map screen.
 
 ## 4a. Where a map goes
 
@@ -224,6 +224,29 @@ The map of the first push, `handoffs/briefs/plan-2026-10-04/build.grooph-map.jso
 
 <a href="../handoffs/briefs/plan-2026-10-04/build-map.svg"><img src="../handoffs/briefs/plan-2026-10-04/build-map.svg" alt="The same map as the phone's picture: one tall column, with nineteen arcs sharing one margin" width="200"></a>
 
+## 4e. Three dimensions, and an order
+
+The map screen's switch has a third choice, **3D** (handoff 0087). It is for the questions a flat picture answers badly: which lanes are far apart, what happens in what order, and, when the hooks are watching, where the work is now. It is in the app only. `grooph image` stays flat: a picture is a still, and this is not one.
+
+**What is drawn.** Each lane is a sheet, and the sheets are stacked, the people's on top, each a step in front of the one above. A session is a card standing on its lane's sheet, with its name, its harness and model, and its count: a smaller card than the picture's, which says less. A handoff is an arc from its sender's card to its receiver's, with the carrier's color and line and the handoff's number, as in the flat views. How far one sheet is under the next says how far apart the two lanes are, and reads only what the document says: nearest when they are on one machine, further when they are on two, furthest when the map says one is `local` and the other `cloud` (a lane that does not say where it is is placed by its machine alone). Every sheet keeps the same room for its cards, so a tall card moves nothing: the step from one sheet to the next is that room and the gap. The people's sheet is one near step above the first lane's.
+
+**How it is moved.** A drag turns it, a pinch moves in and out, and **Starting view** puts it back. A wheel over the scene scrolls the page, as anywhere, until the scene has been picked; then it moves in and out. With the scene in focus the arrow keys turn it the way a drag does, plus and minus move in and out, and 0 or Home goes back; a key held with Control, Command or Alt is left to the browser. Only a mouse's main button drags. It turns only so far (the cards face the front, and the view never goes behind them or under the sheets). Every card and arc is a button with a name, reached by Tab, and opens what the map says about it, as in the flat views; the handoff list beside it on a wide screen is the same list, and a handoff picked in one view is picked in the others. On a phone, with details open under it, the scene takes the room left above them and is fitted again, so what was picked stays in view.
+
+**The slider.** It has a stop for all the handoffs together, then one for each **in the order the map lists them**. At a stop one handoff is lit with its two ends, those before it are dimmed and those after it more so, and what carries it and what is handed are said in words under the slider. Play steps through them, one every 2.4 seconds; nothing plays by itself. A handoff that is picked is the one the slider goes to; once the reader has moved the slider it stays where it was put. As under a sequence, it says that this is an order and not a clock: a map records no times.
+
+**Now.** Given what the hooks saw of the map's sessions (the same record §4b draws from), the slider has one more stop, its last: now. Every handoff is behind it, each card says what its session was last seen doing, and the sessions at work are picked out. In this version nothing passes that record in: the map screen has none, and the live screen (§4b) still draws the flat picture. The view takes it as an input and is tested against a record given to it in a test; offering 3D on the live screen is a later slice.
+
+**How it is drawn, and what it costs.** With CSS transforms on plain elements: the cards and the arcs are SVG drawn with the pictures' own parts (their shapes, their measure of text, their palette), and there is no canvas and no library. So the words are the page's own text and every part is an element a screen reader and a keyboard can reach. It is a piece of the app that a page fetches only when it is chosen (8.1 KB compressed, styles included; decision 0021), and it has a line of its own in `scripts/perf-budget.json`. No address's own load includes it. The page names it, so the service worker fetches it once in the background on a first visit, as it does every piece the page names, and holds it for a visit with no network.
+
+**Where it gives way.** With reduced motion nothing eases and nothing moves by itself. In a browser that cannot stand one element behind another, the choice says so and offers the picture and the sequence. On a device that draws it fewer than thirty times a second while it is turned, it says so, with the rate, and offers the same two; the view stays usable. The rate is the middle one of the last two dozen frames, so one long frame is not a slow device. When the piece cannot be fetched, the switch says so and goes back to the flat view it had; pressing 3D again asks again.
+
+| Good at | Loses |
+|---|---|
+| Which lanes are far apart: the gaps between sheets are the document's machines and places | Reading everything at once: cards in a back row stand behind the front row until the view is turned |
+| One handoff at a time, with its two ends, in the map's order | The role, lifetime and repository on a card, and the list of handoffs under the picture (on a phone it is one tap away, in the other views) |
+| Where the work is now, once it is given what the hooks saw | A still: it cannot be saved as a picture, and the CLI does not draw it |
+| A phone: it is fitted to its frame, and turned with one finger | A graph: one session has no lanes to stack |
+
 ## 5. Canonical form
 
 As a graph's (`graph-ir.md` §7): two-space indent, LF, one trailing newline, keys in the order the types above list them, arrays in document order, unknown keys kept and sorted after the known ones.
@@ -242,4 +265,4 @@ The first draft, [`owner-operation-2026-09-30.grooph-map.json`](../fixtures/maps
 
 ## 7. Deferred
 
-Named so nobody designs them twice: a saved `layout` for a map (every view is automatic in v0, and which view is drawn is the reader's choice, not a field of the document); a view in three dimensions; a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).
+Named so nobody designs them twice: a saved `layout` for a map (every view is automatic in v0, and which view is drawn is the reader's choice, not a field of the document); the view in three dimensions on the live screen (§4e: it takes what the hooks saw, and nothing passes it yet) and for a graph; a graph pointing at another graph; a binding from a map session to its events written in the map itself (today it is a name on the command line, §4b); maps stored in the app's library (a map opens from a link or a file); editing a map in the app (agents and hands edit the document).

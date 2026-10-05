@@ -52,6 +52,14 @@ const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + 
 // Since slice 0069 the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
 const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
 const canvas = js + css + html + sum(canvasFiles);
+// Since slice 0087 a map's view in three dimensions is a piece of its own, fetched only when it is chosen. No
+// address loads it, so it is in no line above; it has a line to itself. A build that does not say which files
+// it is cannot be weighed, and a piece with no files weighs nothing, which is not a pass.
+if (!Array.isArray(routes.space) || routes.space.length === 0) {
+  console.error("perf-budget: apps/web/dist/routes.json does not say which files draw a map in three dimensions (space). The build should have listed them (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const space = sum(routes.space);
 // The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
 const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
 const ICONS = "assets/site-icons.v1.svg";
@@ -64,7 +72,7 @@ for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
 const sent = (file) => statSync(join(dist, file)).size / 1024;
 const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
 const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
-const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css]);
+const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
@@ -85,6 +93,7 @@ const rows = [
   ["a first visit to the front page in all (first load, fonts, icons), KB", firstVisit, budget.firstVisitKB],
   ["the first load of an address that draws on the canvas, gzip KB", canvas, budget.canvasLoadKB],
   ["an embed's first load, gzip KB", embed, budget.embedLoadKB],
+  ["a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB", space, budget.mapSpaceKB],
   ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
 ];
 let over = 0;
