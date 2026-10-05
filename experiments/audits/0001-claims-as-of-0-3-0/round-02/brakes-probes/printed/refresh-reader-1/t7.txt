@@ -1,0 +1,77 @@
+guarded host: []
+
+=== 13a grind-loop placed --then release (irreversible, gated in the host)
+placed; schema ok: true | validate: ERR E_IRREVERSIBLE_NO_GATE
+  ways into release: [ 'e-ship-ok-release(ship-ok)', 'e-grind-tests-release(grind-tests)' ]
+
+=== 13b review-gate with cap 'then: done', placed --then release (irreversible)
+placed; schema ok: true | validate: ERR E_IRREVERSIBLE_NO_GATE, warn W_HOMOGENEOUS_CRITICS
+  stops: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4,"then":"release"},{"kind":"budget","measure":"dispatches","limit":10}] | ways into release: [
+  'e-ship-ok-release(ship-ok)',
+  'e-review-merge-gate-release(review-merge-gate)'
+]
+
+=== 13c template carries graph-scoped concurrency-cap max 50 and a custom policy
+placed; schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  policies: [{"id":"cap","kind":"concurrency-cap","scope":"graph","params":{"max":1}},{"id":"review-p-critic-isolation","kind":"critic-isolation","scope":"graph"},{"id":"review-p-no-self-grading","kind":"no-self-grading","scope":"graph"},{"id":"review-p-cap","kind":"concurrency-cap","scope":"graph","params":{"max":50}},{"id":"review-p-x","kind":{"custom":"human gates are advisory"},"scope":"graph"}]
+
+=== 13d template with a lead node, host has none
+THROWS: the template "review-gate" has a lead node ("boss"): a subgrooph has no lead of its own, and a graph has one
+
+=== 13e host has 'review-notes' and policy 'review-cap'; place --as review
+THROWS: "plan-review-release" already has "review-notes", and every id that begins with "review-" would be the subgrooph's own: give the subgrooph another id
+
+=== 13f host's own objects unchanged by placement: false
+
+=== 10a value with {{..}}: goal not carried; group.with: "do {{checklist}} and {{evil}}"
+
+=== 10a refresh with that value (same version)
+changes: []
+held: []
+schema ok: true | validate: ERR E_UNFILLED_SLOT, ERR E_UNFILLED_SLOT, warn W_HOMOGENEOUS_CRITICS
+
+=== 10a' newer version uses {{task}} in the builder brief
+changes: [ 'node:review-builder.brief' ]
+held: []
+schema ok: true | validate: ERR E_UNFILLED_SLOT, ERR E_UNFILLED_SLOT, warn W_HOMOGENEOUS_CRITICS
+  brief: do {{checklist}} and {{evil}} Do the task in the code, with 
+
+=== 10a'' refresh again
+changes: []
+held: []
+schema ok: true | validate: ERR E_UNFILLED_SLOT, ERR E_UNFILLED_SLOT, warn W_HOMOGENEOUS_CRITICS
+
+=== 10b newer version puts {{task}} in the bar's acceptance
+changes: [ "loop:review-review.bar [LOOSENS: changes the bar's acceptance]" ]
+held: [ 'loop:review-review.bar' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 10c same id, now a fragment
+changes: []
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 10d same id, no template block
+THROWS: "review-gate" is not a template: it has no template block
+
+=== 10e version goes DOWN to 0 with a brief change
+changes: [ 'node:review-builder.brief' ]
+held: []
+notes: [
+  'this is version 0 of "review-gate", older than the version 1 the subgrooph was placed from: the changes below lead back to it'
+]
+schema ok: false | validate: [
+  '/groups/0/from: expected <template id>@<version> matching ^[a-z][a-z0-9-]*@[1-9][0-9]*$, got "review-gate@0"'
+]
+  from: review-gate@0
+
+=== 10f group.with edited (test-command -> true), same version
+changes: [
+  'edge:e-review-builder-review-critic.evidence [LOOSENS: the critic would no longer be handed "output of pnpm test" by "review-builder"]',
+  "loop:review-review.bar [LOOSENS: changes the bar's acceptance]"
+]
+held: [
+  'edge:e-review-builder-review-critic.evidence',
+  'loop:review-review.bar'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS

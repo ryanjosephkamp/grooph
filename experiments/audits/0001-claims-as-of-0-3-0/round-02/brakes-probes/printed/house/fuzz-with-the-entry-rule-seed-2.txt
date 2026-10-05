@@ -1,0 +1,22 @@
+seed 2: 3833 refreshed, 0 refused with a TemplateError, 167 skipped; crashes/slow: 0
+
+BRAKE critic-verdict-undecided | held none  (x1)
+  review-gate before an approved deploy | sound template: false
+  newer version: repoint e-critic-pass.from critic->merge-gate ; removeEdge e-critic-fail
+  -> critic-verdict-undecided:s-critic
+  applied: edge:s-e-critic-fail, edge:s-e-critic-pass.from, loop:s-review.back
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none  (x31)
+  review-gate before an approved deploy | sound template: false
+  newer version: repoint e-critic-pass.from critic->merge-gate
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-e-critic-pass.from
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x4)
+  merge-queue | sound template: true
+  newer version: addEdge land-gate->done "always" ; kind land agent->agent
+  -> gate-answer-leads-elsewhere:s-land-gate
+  applied: node:s-land.model, node:s-land.effort, node:s-land.brief, node:s-land.inputs, node:s-land.outputs, node:s-land.allow, edge:e-s-land-gate-done
+  held: node:s-land.irreversible

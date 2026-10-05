@@ -1,0 +1,15 @@
+seed 5: 3816 refreshed, 0 refused with a TemplateError, 184 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none  (x24)
+  human-gated-irreversible | sound template: true
+  newer version: repoint e-act-done.from act->gate
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-act-done, edge:e-s-gate-done
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x3)
+  spec-then-loop | sound template: true
+  newer version: addEdge spec-gate->critic "pass" ; bar build
+  -> gate-answer-leads-elsewhere:s-spec-gate
+  applied: edge:s-x-spec-gate-critic
+  held: loop:s-build.bar

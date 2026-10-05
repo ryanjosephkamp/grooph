@@ -1,0 +1,258 @@
+
+### C1 critic role critic -> judge (still critic family)
+  changes: change node:review-critic.role
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C2 critic role -> {custom: 'critic'}
+  changes: change node:review-critic.role
+  refused: 
+    - node:review-critic.role: a critic is given another role
+
+### C3 critic permissions: edit-files allowed, deny dropped (stated limit)
+  changes: change node:review-critic.allow, change node:review-critic.deny
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C4 critic inputs: the builder's CHANGES.md claims added to inputs (not edge evidence)
+  changes: change node:review-critic.inputs
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C5 evidence on the builder->critic edge: an item ADDED (builder's claims)
+  changes: change edge:e-review-builder-review-critic.evidence
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + edge:e-review-builder-review-critic.evidence: the critic would no longer be handed "CHANGES.md", "the builder's full context" by "review-builder"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C6 evidence item dropped
+  changes: change edge:e-review-builder-review-critic.evidence
+  refused: 
+    - edge:e-review-builder-review-critic.evidence: the critic would no longer be handed "docs/checklist.md" by "review-builder"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C7 isolation policy re-scoped graph -> node:plan
+  changes: change policy:review-p-critic-isolation.scope
+  refused: 
+    - policy:review-p-critic-isolation.scope: removes critic isolation
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C8 isolation policy params added {required:false}
+  changes: change policy:review-p-critic-isolation.params
+  refused: 
+    - policy:review-p-critic-isolation.params: removes critic isolation
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C9 isolation policy removed and re-added under another id, same kind and scope (honest change)
+  changes: remove policy:review-p-critic-isolation, add policy:p-iso
+  refused: 
+    - policy:review-p-critic-isolation: removes critic isolation
+  tightens:
+    + policy:p-iso: removes critic isolation
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C10 no-self-grading policy removed
+  changes: remove policy:review-p-no-self-grading
+  refused: 
+    - policy:review-p-no-self-grading: lets a node grade its own work
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C11 critic bypass: builder -> gate on always
+  changes: add edge:e-builder-gate
+  refused: 
+    - edge:e-builder-gate: adds a way into "review-merge-gate" that does not pass the critic "review-critic"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C12 critic demoted to a check node
+  changes: change node:review-critic.kind, change node:review-critic.role, change node:review-critic.name, change node:review-critic.model, change node:review-critic.effort, change node:review-critic.brief, change node:review-critic.inputs, change node:review-critic.outputs, change node:review-critic.allow, change node:review-critic.deny, change node:review-critic.check
+  refused: 
+    - node:review-critic.kind: a critic becomes another kind of node
+    - node:review-critic.role: a critic becomes another kind of node
+
+### C13 second critic beside the first, shared context with builder, policy narrowed to node scope of first critic
+  changes: change policy:review-p-critic-isolation.scope
+  refused: 
+    - policy:review-p-critic-isolation.scope: removes critic isolation
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C14 critic's pass verdict given by the builder: builder --pass--> gate (builder is not a critic; edge when pass)
+  changes: add edge:e-builder-pass
+  refused: 
+    - edge:e-builder-pass: adds a way into "review-merge-gate" that does not pass the critic "review-critic"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C15 the lead node added with shared edge into critic? a new 'lead' agent builder->lead->critic shared
+  changes: remove policy:review-p-critic-isolation
+  refused: 
+    - policy:review-p-critic-isolation: removes critic isolation
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C16 critic model tier lowered (stated limit)
+  changes: change node:review-critic.model, change node:review-critic.effort
+  refused: NONE  <<<<<< adopted with no --allow
+
+### C17 critic brief gutted (stated limit)
+  changes: change node:review-critic.brief
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C18 critic's fail edge retry/label fields; pass edge `when` pass -> always
+  changes: change edge:review-e-critic-pass.when
+  refused: 
+    - edge:review-e-critic-pass.when: changes what the critic's verdict leads to; opens a way into "review-merge-gate" that does not pass "pass" from the critic "review-critic"
+  tightens:
+    + edge:review-e-critic-pass.when: opens a way into "review-merge-gate" that does not pass "always" from the critic "review-critic"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### C19 critic's fail edge when: fail -> {verdict:'fail'}
+  changes: change edge:review-e-critic-fail.when
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L1 fixed -> field removed
+  changes: change graph:adaptation
+  refused: 
+    - graph:adaptation: the adaptation level would go from "fixed" to "adaptive": the lead may change more of the graph during a run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L2 propose-by-policy -> policy removed
+  changes: remove policy:p-nolive
+  refused: 
+    - policy:p-nolive: lets a run rewrite the graph where it could only propose; the adaptation level would go from "propose" to "adaptive": the lead may change more of the graph during a run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L3 propose-by-policy -> policy re-scoped to a node
+  changes: change policy:p-nolive.scope
+  refused: 
+    - policy:p-nolive.scope: lets a run rewrite the graph where it could only propose; the adaptation level would go from "propose" to "adaptive": the lead may change more of the graph during a run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L4 propose-by-policy -> policy kind made custom
+  changes: change policy:p-nolive.kind
+  refused: 
+    - policy:p-nolive.kind: lets a run rewrite the graph where it could only propose; the adaptation level would go from "propose" to "adaptive": the lead may change more of the graph during a run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L5 both: field propose -> adaptive (policy still says propose): effective level unchanged
+  changes: change graph:adaptation
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L6 both: field removed AND policy removed
+  changes: remove policy:p-nolive, change graph:adaptation
+  refused: 
+    - policy:p-nolive: lets a run rewrite the graph where it could only propose
+    - graph:adaptation: the adaptation level would go from "propose" to "adaptive": the lead may change more of the graph during a run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L7 both: policy replaced under a new id, same kind/scope (honest)
+  changes: remove policy:p-nolive, add policy:p-nolive-2
+  refused: 
+    - policy:p-nolive: lets a run rewrite the graph where it could only propose
+  tightens:
+    + policy:p-nolive-2: lets a run rewrite the graph where it could only propose
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L8 fixed -> fixed with a policy added (tightening or none)
+  changes: add policy:p-nolive
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + policy:p-nolive: lets a run rewrite the graph where it could only propose
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### L9 fixed + policy -> field propose (policy keeps propose; fixed->propose is a loosening)
+  changes: change graph:adaptation
+  refused: 
+    - graph:adaptation: the adaptation level would go from "fixed" to "propose": the lead may change more of the graph during a run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### X1 working copy with another id, name, version+50, lineage
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: raises the round cap from 4 to 40
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### X2 constraints.budget loosened (free text)
+  changes: change graph:constraints
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### X3 goal rewritten to tell the lead to skip the gate
+  changes: change graph:goal
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### X4 target harness changed
+  NOT VALID (refused earlier): E_NO_TARGET: no compile profile for target harness "codex"
+
+### X5 working copy carries notes + layout
+  changes: (none)
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### X6 unknown key on a stop/loop that hides nothing: cap n kept, extra key 'N'
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS, W_UNKNOWN_KEY
+
+### GR1 group `from` changed
+  changes: change group:review.from
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### GR2 groups removed entirely
+  changes: remove group:review, remove group:delivery
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### GR3 group with changes + cap raised (with only)
+  changes: change group:review.with
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### GR4 nodes moved between groups, nested deeper
+  changes: add group:outer
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN1 nodes reordered, edges reordered, loops' members reordered, key order shuffled
+  changes: change loop:review-review.members
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN2 loop back list reordered
+  changes: change loop:review-review.back
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN3 stop keys reordered within the stop objects only
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN4 numbers as strings: n: '40'
+  SCHEMA REJECTS: [{"code":"E_SCHEMA","severity":"error","message":"/loops/0/stops/1/n: expected integer, got string","at":["review-review"]}]
+
+### EN5 cap n: 1e21
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: raises the round cap from 4 to 1e+21
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN6 budget limit 0 -> ... n/a; cap duplicated: [4, 40] (tightest stays 4)
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN7 two caps: the 4 one leads on to a halting stop (new), a 40 one halts
+  changes: add node:h, change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### EN8 human stop every:1 added then... source has none: nothing to lose
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:review-review.stops: removes the stop where a person is asked
+  warnings: W_HOMOGENEOUS_CRITICS

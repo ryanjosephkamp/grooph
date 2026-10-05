@@ -1,0 +1,51 @@
+before errors: []
+
+=== the builder is renamed; the graph's own loop stop, bar key, policy and layout name it
+applied: [
+  'node:review-builder',
+  'node:review-implementer',
+  'edge:e-review-builder-review-critic',
+  'edge:review-e-critic-fail.to',
+  'edge:review-e-merge-gate-reject.to',
+  'edge:e-review-implementer-review-critic',
+  'loop:review-review.members'
+]
+held:    []
+notes:   [
+  'edge "e-plan-review-builder" (plan → review-builder) is removed with the node it led to: reconnect what it joined',
+  'loop "redo" still names "review-builder", which the newer version no longer has: point it at what took its place',
+  'policy "p-own" still names "review-builder", which the newer version no longer has: point it at what took its place',
+  'the newer version starts at "review-implementer" too, and nothing in this graph leads to it: a run would begin there. Lead into it from where the subgrooph is entered'
+]
+schema: ok | errors before: [] after: [
+  'E_DANGLING_REF: loop "redo" takes its answer key from unknown node "review-builder"',
+  'E_DANGLING_REF: loop "redo" stop 1 (evidence-invalid) continues at unknown node "review-builder"',
+  'E_DANGLING_REF: policy "p-own" is scoped to unknown node "review-builder"',
+  'E_JUDGMENT_LOOP_NO_BAR: judgment loop "redo" has a bar with nothing inspectable; give it at least one file, url, metric, checklist, artifact, or an answer key from a node in the graph'
+]
+graph's own objects that differ: [ 'layout changed' ]
+redo: {"id":"redo","name":"Redo","members":["release","recheck"],"back":["e-recheck-release"],"mode":"judgment","bar":{"name":"Bar","inspects":[{"kind":"answer-key","ref":"CHANGES.md"}],"acceptance":"ok","answerKeyFrom":"review-builder"},"stops":[{"kind":"max-iterations","n":2},{"kind":"evidence-invalid","rounds":1,"then":"review-builder"}]}
+policy p-own: {"id":"p-own","kind":"owner-per-artifact","scope":"node:review-builder"} | layout: {"plan":{"x":0,"y":0}}
+after issues: [
+  'ERR E_DANGLING_REF',
+  'ERR E_DANGLING_REF',
+  'ERR E_DANGLING_REF',
+  'ERR E_JUDGMENT_LOOP_NO_BAR',
+  'warn W_HOMOGENEOUS_CRITICS'
+]
+
+before errors: []
+
+=== the test's own case: a host loop loses its only back edge
+applied: []
+held:    [
+  'node:review-builder [removes "review-builder", which the loop "redo" bounded, while "review-implementer" would come in on a round it does not count: it may be the same step under another name]',
+  'node:review-implementer (waits node:review-builder)',
+  'edge:e-review-builder-review-critic (waits node:review-builder)',
+  'edge:review-e-critic-fail.to (waits node:review-builder)',
+  'edge:review-e-merge-gate-reject.to (waits node:review-builder)',
+  'edge:e-review-implementer-review-critic (waits node:review-builder)',
+  'loop:review-review.members (waits node:review-builder)'
+]
+schema: ok | errors before: [] after: []
+redo: {"id":"redo","name":"Redo","members":["review-builder","review-critic","review-merge-gate","release","recheck"],"back":["e-recheck-review-builder"],"stops":[{"kind":"max-iterations","n":2}]} | after issues: [ 'warn W_HOMOGENEOUS_CRITICS', 'warn W_ONLY_MAX_ITERATIONS' ]

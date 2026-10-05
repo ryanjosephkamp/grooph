@@ -1,0 +1,72 @@
+
+### T1 a second cap of the SAME n (4) that leads on to the builder, placed before the cap that halts
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: the round cap of 4 that leads on to "review-builder" would fire as soon as the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### T2 the same, placed after it (the halting one comes first in document order)
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: the round cap of 4 that leads on to "review-builder" would fire as soon as the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): []
+
+### T3 a second cap of n 3 that leads on (lower: the comparison says it holds this)
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: the round cap of 3 that leads on to "review-builder" would fire before the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+  tightens:
+    + loop:review-review.stops: raises the round cap from 3 to 4
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### T4 a second dispatch budget of the same limit (10) that leads on, before the one that halts
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: the budget of 10 dispatches that leads on to "review-builder" would fire as soon as the one of 10 dispatches that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): []
+
+### T5 a human stop added FIRST that leads on to the builder (a person asked each round, then on: before the cap)
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:review-review.stops: removes the stop where a person is asked
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### T6 evidence-invalid rounds 1 then builder, first
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### T7 bar-passed given then: review-builder (when the bar passes, go round again?)
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### T8 budget minutes 0 that leads on to plan (outside the loop, upstream)
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: a stop of the loop "review-review" would lead back to "plan": a way round the nodes of "review-review" that its stops do not count
+  tightens:
+    + loop:review-review.stops: removes the budget (0 minutes)
+  warnings: W_HOMOGENEOUS_CRITICS, W_UNREACHABLE_NODE, W_NO_TERMINAL
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]
+
+### T9 budget minutes 0 that leads on to a NEW step which leads back to the builder
+  changes: add edge:e-regroup-builder, change loop:review-review.stops, add node:regroup
+  refused: 
+    - edge:e-regroup-builder: "e-regroup-builder" (regroup → review-builder) would make a way round the nodes of "review-review" that its stops do not count
+    - loop:review-review.stops: a stop of the loop "review-review" would lead back to "regroup": a way round the nodes of "review-review" that its stops do not count
+  tightens:
+    + loop:review-review.stops: removes the budget (0 minutes)
+    + node:regroup: removes the budget (0 minutes)
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle (worst-case dispatches): [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}]

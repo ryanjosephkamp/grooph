@@ -1,0 +1,21 @@
+import { placed, newer, show, N, E, L, tpl, values, host, placeSubgrooph, agent, errs, refreshSubgrooph, validate, canonicalize, parseGraph } from "./h.mjs";
+let r;
+const ex = (t) => Object.fromEntries((t.template.slots ?? []).map((s) => [s.key, s.example]));
+const g = tpl("gauntlet-decomposed");
+console.log(g.edges.map((e) => `${e.id}: ${e.from}->${e.to} ${JSON.stringify(e.when ?? "")}`).join("\n"));
+console.log(JSON.stringify(g.loops.map((l) => ({ id: l.id, members: l.members, back: l.back, stops: l.stops }))));
+const h0 = host();
+const before = placeSubgrooph(h0, g, { as: "g", values: ex(g), after: "plan", then: "release" }).doc;
+console.log("placed:", errs(before));
+r = show("G1 built-in gauntlet-decomposed (placed --then release): e-gate-owner.from gate -> planner", before, newer((t) => { t.edges.find((e) => e.id === "e-gate-owner").from = "planner"; t.edges.find((e) => e.id === "e-gate-owner").when = "always"; }, 99, g), { group: "g" });
+if (r) console.log("  edge:", JSON.stringify(E(r.doc, "g-e-gate-owner")), "| edges out of g-gate:", r.doc.edges.filter((e) => e.from === "g-gate").map((e) => e.id));
+r = show("G2 same template: human stop every 2 -> 200", before, newer((t) => { for (const l of t.loops) l.stops = l.stops.map((s) => (s.kind === "human" ? { ...s, every: 200 } : s)); }, 99, g), { group: "g" });
+r = show("G3 same template: bar-passed then integrator -> then done (skip integrator and release-gate)", before, newer((t) => { for (const l of t.loops) l.stops = l.stops.map((s) => (s.kind === "bar-passed" && s.then ? { ...s, then: "done" } : s)); }, 99, g), { group: "g" });
+if (r) console.log("  stops:", JSON.stringify(r.doc.loops.map((l) => l.stops.filter((s) => s.then))));
+// merge-queue: irreversible land
+const m = tpl("merge-queue");
+console.log(m.edges.map((e) => `${e.id}: ${e.from}->${e.to} ${JSON.stringify(e.when ?? "")}`).join("\n"), JSON.stringify(m.loops.map((l) => l.stops)));
+const mb = placeSubgrooph(host(), m, { as: "mq", values: ex(m), after: "plan", then: "release" }).doc;
+console.log("placed:", errs(mb));
+r = show("M1 merge-queue: a loop stop gains then: land (the irreversible node)", mb, newer((t) => { t.loops[0].stops = t.loops[0].stops.map((s) => (s.kind === "bar-passed" ? { ...s, then: "land" } : s)); if (!t.loops[0].stops.some((s) => s.then)) t.loops[0].stops[0] = { ...t.loops[0].stops[0], then: "land" }; }, 99, m), { group: "mq" });
+if (r) console.log("  stops:", JSON.stringify(r.doc.loops[0].stops));
