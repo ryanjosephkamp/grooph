@@ -1,9 +1,10 @@
-import type { Node as DocNode, NodeRunState, Severity } from "@grooph/core";
+import { glyph, type Node as DocNode, type NodeRunState, type Severity } from "@grooph/core";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { memo } from "react";
 
 import { KIND_LABEL } from "../../doc/catalog.js";
 import { StateIcon } from "../run/StateIcon.js";
+import { unitsNow } from "./boxes.js";
 
 export type GraphNodeData = {
   node: DocNode;
@@ -52,6 +53,9 @@ function subtitle(node: DocNode): string {
 
 export const GraphNode = memo(function GraphNode({ data }: NodeProps<GraphFlowNode>) {
   const { node } = data;
+  // A node that stands for a subgrooph's box (handoff 0085) is drawn by the piece that made it (`units.tsx`).
+  const Unit = "unit" in node && unitsNow()?.UnitNode;
+  if (Unit) return <Unit unit={node.unit as never} Handle={Handle} glyph={glyph} />;
   const classes = [
     "gnode",
     `gnode-${node.kind}`,
