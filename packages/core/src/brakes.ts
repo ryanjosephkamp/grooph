@@ -606,6 +606,8 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
  */
 function checkEdgeLosses(before: Graph, after: Graph): Loss[] {
   const losses: Loss[] = [];
+  // Said on every such line, so that nobody who tightened one thinks they did something wrong.
+  const either = "a program cannot tell which way this goes, so it is held either way, and a tightening (a gate put behind the check's pass) costs one --allow too, the price of a rule a program can apply";
   const stays = new Set(before.nodes.filter((node) => node.kind === "check" && after.nodes.some((other) => other.id === node.id && other.kind === "check")).map((node) => node.id));
   const still = new Set(after.nodes.map((node) => node.id));
   const edgeWas = new Map(before.edges.map((edge) => [edge.id, edge]));
@@ -614,18 +616,18 @@ function checkEdgeLosses(before: Graph, after: Graph): Loss[] {
     if (!stays.has(edge.from)) continue;
     const kept = edgeNow.get(edge.id) as Record<string, unknown> | undefined;
     if (!kept) {
-      losses.push({ why: `removes "${edge.id}", an edge that leaves the check "${edge.from}"`, at: [still.has(edge.to) ? `edge:${edge.id}` : `node:${edge.to}`] });
+      losses.push({ why: `removes "${edge.id}", an edge that leaves the check "${edge.from}": ${either}`, at: [still.has(edge.to) ? `edge:${edge.id}` : `node:${edge.to}`] });
       continue;
     }
     for (const field of new Set([...Object.keys(edge), ...Object.keys(kept)])) {
-      if (field !== "id" && !same((edge as Record<string, unknown>)[field], kept[field])) losses.push({ why: `changes "${edge.id}", an edge that leaves the check "${edge.from}" (${field})`, at: [`edge:${edge.id}.${field}`] });
+      if (field !== "id" && !same((edge as Record<string, unknown>)[field], kept[field])) losses.push({ why: `changes "${edge.id}", an edge that leaves the check "${edge.from}" (${field}): ${either}`, at: [`edge:${edge.id}.${field}`] });
     }
   }
   for (const edge of after.edges) {
     if (!stays.has(edge.from)) continue;
     const old = edgeWas.get(edge.id);
-    if (!old) losses.push({ why: `adds "${edge.id}", an edge that leaves the check "${edge.from}"`, at: [`edge:${edge.id}`] });
-    else if (old.from !== edge.from) losses.push({ why: `moves "${edge.id}" to leave the check "${edge.from}"`, at: [`edge:${edge.id}.from`] });
+    if (!old) losses.push({ why: `adds "${edge.id}", an edge that leaves the check "${edge.from}": ${either}`, at: [`edge:${edge.id}`] });
+    else if (old.from !== edge.from) losses.push({ why: `moves "${edge.id}" to leave the check "${edge.from}": ${either}`, at: [`edge:${edge.id}.from`] });
   }
   return losses;
 }
@@ -645,7 +647,10 @@ function checkLoopLosses(before: Graph, after: Graph): Loss[] {
     const old = loopWas.get(loop.id);
     const was = (id: Id): Node | undefined => nodeWas.get(id);
     const checks = loop.members.filter((member) => was(member)?.kind === "check" && after.nodes.some((node) => node.id === member && node.kind === "check"));
-    if (checks.length === 0 || loop.members.some((member) => was(member) !== undefined && isCriticFamily(was(member)!))) continue;
+    // Judged by a critic already: by one among the members the loop had, or, for a loop that is new, by one the
+    // graph had. A critic of the graph's put among a kept loop's members with the bar is not that loop's critic.
+    const had = (old ?? loop).members.some((member) => was(member) !== undefined && isCriticFamily(was(member)!));
+    if (checks.length === 0 || had) continue;
     const judged = `the loop "${loop.id}", which the check ${quote(checks)} judges with no critic`;
     if (loop.bar !== undefined && old?.bar === undefined) losses.push({ why: `gives ${judged}, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check`, at: old ? [`loop:${loop.id}.bar`] : [`loop:${loop.id}`] });
     if (passed(loop) && !passed(old)) losses.push({ why: `adds a stop on "bar passed" to ${judged}: a way out that does not pass the check`, at: old ? [`loop:${loop.id}.stops`] : [`loop:${loop.id}`] });
