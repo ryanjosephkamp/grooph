@@ -25,9 +25,8 @@
  * `edge:<id>.<field>`, `loop:<id>.stops`.
  */
 
-import { indexGraph } from "./graph-index.js";
-import { decisionName, decisionsShared, reachedWithout, shut, waysOf, whenOf, type Closed, type Way } from "./reach.js";
-import { edgeIsolation, entryNodeIds, isCriticFamily } from "./semantics.js";
+import { decisionName, decisionsShared, reachedWithout, shut, startsOf, waysOf, whenOf, type Closed, type Way } from "./reach.js";
+import { edgeIsolation, isCriticFamily } from "./semantics.js";
 import type { Edge, Graph, Id, Loop, Node, Stop } from "./types.js";
 
 export type Loss = {
@@ -262,7 +261,7 @@ function reachLosses(before: Graph, after: Graph): Loss[] {
   const edgeNow = new Map(after.edges.map((edge) => [edge.id, edge]));
   const loopWas = new Map(before.loops.map((loop) => [loop.id, loop]));
   const loopNow = new Map(after.loops.map((loop) => [loop.id, loop]));
-  const starts = new Set(entryNodeIds(indexGraph(after)));
+  const starts = new Set(startsOf(after));
   const backWas = new Set(before.loops.flatMap((loop) => loop.back));
   const ways = waysOf(after);
   const waysWas = waysOf(before);

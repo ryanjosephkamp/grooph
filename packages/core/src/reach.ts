@@ -7,8 +7,7 @@
  * Pure, and it reads the document only.
  */
 
-import { indexGraph } from "./graph-index.js";
-import { entryNodeIds, isCriticFamily } from "./semantics.js";
+import { isCriticFamily } from "./semantics.js";
 import type { Edge, Graph, Id } from "./types.js";
 
 /** One way a run can go from a node to another: along an edge, or by a loop's stop that names where it leads. */
@@ -66,7 +65,22 @@ export function shut(way: Way, closed: Closed): boolean {
 }
 
 /**
- * The nodes a run reaches without that decision: from the nodes it starts at (graph-ir §2), along every way that is
+ * Where this comparison takes a run to start: at every node no edge leads into, a loop's back edge aside.
+ *
+ * That is wider than graph-ir §2, on purpose. Since #88 a node that only a loop's stop continues at (`then`) is no
+ * entry node: the lead does not start it, and the package does not say to. Here it still counts as a start, as it
+ * did when this comparison was read and attacked, so a newer version that leaves a step with nothing but a stop
+ * leading to it is held ("a run would start there"). Too careful costs one `--allow`, and that is the side to err
+ * on until this file and `brakes.ts` have been read by a second harness; whether the narrower rule is safe here is
+ * the first thing that reading should rule on (slice 0085's handback).
+ */
+export function startsOf(doc: Graph): Id[] {
+  const back = new Set(doc.loops.flatMap((loop) => loop.back));
+  return doc.nodes.filter((node) => !doc.edges.some((edge) => edge.to === node.id && !back.has(edge.id))).map((node) => node.id);
+}
+
+/**
+ * The nodes a run reaches without that decision: from the nodes it starts at (`startsOf`), along every way that is
  * not shut. A human gate is itself reached; what lies beyond it is not, by that way. What is missing from the set is
  * what the decision stands before.
  */
@@ -77,7 +91,7 @@ export function reachedWithout(doc: Graph, closed: Closed): Set<Id> {
     if (shut(way, closed) || !known.has(way.from) || !known.has(way.to)) continue;
     (onward.get(way.from) ?? onward.set(way.from, []).get(way.from)!).push(way.to);
   }
-  const reached = new Set<Id>(entryNodeIds(indexGraph(doc)));
+  const reached = new Set<Id>(startsOf(doc));
   const queue = [...reached];
   for (let id = queue.pop(); id !== undefined; id = queue.pop()) {
     for (const next of onward.get(id) ?? []) {

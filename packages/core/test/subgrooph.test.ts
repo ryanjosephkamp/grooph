@@ -10,7 +10,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { canonicalize } from "../src/canonicalize.js";
+import { indexGraph } from "../src/graph-index.js";
 import { parseGraph, parseGraphText } from "../src/parse.js";
+import { entryNodeIds } from "../src/semantics.js";
 import { extractGroup, groupContents, listGroups, placeSubgrooph, refreshSubgrooph } from "../src/subgrooph.js";
 import { TemplateError } from "../src/template.js";
 import type { Edge, Graph, Loop, Node } from "../src/types.js";
@@ -968,6 +970,26 @@ test("an answer a gate gives does not come to lead nowhere; a note on a policy i
   // A key the comparison does not know, on a policy that is a brake: its kind, scope and params are what it is.
   const noted = refreshSubgrooph(placed(), "review", newer((t) => (void ((t.policies![0] as unknown as { note: string }).note = "see docs"), void ((t.nodes[0] as { brief: string }).brief += " Keep it small."))));
   assert.deepEqual(noted.held, []);
+});
+
+test("the refresh still takes a step only a loop's stop continues at for a start, which is wider than graph-ir §2 (#88): it is held", () => {
+  // The built-in decomposed gauntlet: `integrator` is where the pieces loop continues when its bar is passed, and
+  // also where a failed "next piece" check leads. A newer version drops that edge, so only the stop leads there.
+  // By graph-ir §2 no run starts there: the lead is not told to, and the loop is behind the decomposition gate.
+  // The comparison keeps its own, older rule (`startsOf` in reach.ts) until it has been read by a second harness,
+  // and holds the change. Whether it may apply is the first thing that reading should rule on.
+  const gauntlet = pattern("gauntlet-decomposed");
+  const before = placeSubgrooph(host(), gauntlet, { as: "g", values: examples(gauntlet), after: "plan", then: "release" }).doc;
+  const dropped = refreshSubgrooph(before, "g", newer((t) => void (t.edges = t.edges.filter((edge) => edge.id !== "e-next-piece-fail")), 2, gauntlet));
+  assert.deepEqual(refusedNames(dropped), ["edge:g-e-next-piece-fail"]);
+  assert.match(refused(dropped)[0]!, /nothing would lead to "g-integrator", so a run would start there/);
+  unchanged(before, dropped.doc);
+
+  // Asked for by name, it applies, and the graph it leaves starts where it did: the package would say the same.
+  const allowed = refreshSubgrooph(before, "g", newer((t) => void (t.edges = t.edges.filter((edge) => edge.id !== "e-next-piece-fail")), 2, gauntlet), { allow: ["edge:g-e-next-piece-fail"] });
+  assert.deepEqual(allowed.held, []);
+  assert.deepEqual(entryNodeIds(indexGraph(allowed.doc)), entryNodeIds(indexGraph(before)));
+  assert.deepEqual(errorsOf(allowed.doc), errorsOf(before));
 });
 
 test("allowing one change does not let another through: each way that opens is named", () => {
