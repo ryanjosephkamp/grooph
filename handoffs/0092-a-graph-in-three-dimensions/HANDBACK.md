@@ -1,6 +1,6 @@
 # Handback 0092 · A loop graph in three dimensions, and its other views
 
-**Implementer:** Opus 5.5 (the views lane) · **Branch:** `slice/0092-a-graph-in-three-dimensions` · **Pull request:** the one that names this file, not merged · **Head commit:** the one that added this file (the prompt in the lane's last reply names it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the views lane) · **Branches:** `slice/0092-a-graph-in-three-dimensions` (the first part, merged as #93) and `slice/0092-a-run-replayed` (the second) · **Pull request:** the one that names this file, not merged · **Head commit:** the one that added this file (the prompt in the lane's last reply names it) · **Date:** 2026-10-04, the second part 2026-10-05
 
 ## What a graph's sheets are, and why
 
@@ -16,9 +16,9 @@ The first sheet is drawn only when something stands on it; a graph with no loop 
 
 ## Status
 
-`needs fix pass`: **this is the first of two pull requests, as the driver allowed.** It has 3D for a graph with the first-pass slider, on every canvas. The second has what is left of the brief: the sequence for a graph, the slider through a recorded run's own notes (the replay in three dimensions), and a share link that names the view.
+`done`, **in two pull requests, as the driver allowed, with two items of the brief not built and put to the driver.** The first (merged as #93) has 3D for a graph with the first-pass slider, on every canvas. The second has the slider through a recorded run's own notes: the replay in three dimensions. The sequence for a graph and a share link that names the view are not built; the reasons, and what I recommend, are in "The second part" below.
 
-What is here is complete and verified for what it covers. Three things to read first:
+This page was written with the first part and is left as it was, with the second part added under its own heading. Three things to read first about the first part:
 
 1. **The budget is met.** On this Mac, against `main` built the same way: a template's address 277.79 to 277.92 KB (+0.13; the brief allows about 0.15), the first load 179.44 to 179.46 (+0.02, which is the page naming one more file). CI's own lines are in the pull request.
 2. **The map's views are byte for byte what they were.** The scene builder was split so a graph can use it; 22 cases of the map's output (five maps at four widths, a live record, an empty map) were hashed before and after and are identical, and the map's tests pass untouched.
@@ -76,9 +76,9 @@ Against the brief:
 | The picture of a graph byte for byte; the canvas as it was on Picture | `packages/**` untouched; the third browser test reads a node's place before and after 3D |
 | The map's views do not change | their tests untouched and passing; the hashes |
 | Degrades as the map's does; the keyboard; names for every card and arc | the scene's behavior is the map's own code; names and roles asserted for every card and arc |
-| **The slider through a recorded run's notes** | **not in this pull request** |
-| **A sequence for a graph** | **not in this pull request** |
-| **A share link may name the view** | **not in this pull request** |
+| **The slider through a recorded run's notes** | **the second pull request**: three unit tests and a browser test ("The second part") |
+| **A sequence for a graph** | **not built**: "The second part" says why |
+| **A share link may name the view** | **not built**: "The second part" says why |
 
 ## The budget's lines
 
@@ -115,7 +115,7 @@ In `shots/`: `space-<template>-<phone|desktop>-<light|dark>.jpg` for `review-gat
 5. **A card opens its node; an arc is named and lit by the slider, and opens nothing**, as an edge on the read-only canvas opens nothing.
 6. **Two pieces, not one.** The switch and the graph's reading are a new piece of 3.3 KB; the scene stays the map's piece. Putting the graph's reading into the map's 3D piece would have taken that piece over its line of 9 KB, which may not be raised.
 7. **The piece imports from core directly.** A map's views are handed core's parts as a list, because importing them once split the file every address loads. I tried the import here and looked at the build: the shared files keep their names and sizes. So it imports.
-8. **Picture and 3D only, for now**: the Sequence radio comes with the sequence.
+8. **Picture and 3D only**: there is no Sequence radio, because there is no sequence ("The second part").
 
 ## Deviations
 
@@ -125,13 +125,13 @@ In `shots/`: `space-<template>-<phone|desktop>-<light|dark>.jpg` for `review-gat
 
 ## Risks and leftovers
 
-1. **On a run's page at a phone's width the canvas is short** until "Bigger graph" is pressed, and the scene in it is then small (its least height, 180 px) with the slider below the fold of that stage. The second pull request, which is about the run's page, should size it there.
+1. **On a run's page at a phone's width the canvas is short** until "Bigger graph" is pressed, and the scene in it is then small (its least height, 180 px) with the slider below the fold of that stage. The second pull request sizes it there: in 3D the run's stage has a screen's room.
 2. **A template's page opens with its details over the foot of a phone**, so 3D is first seen half covered, as the canvas is.
 3. **A viewer's bar at the foot** lies over the last line of the view when the stage is short; the view scrolls clear of it.
 4. **Sheets are ordered by where a first pass first meets them**, so an inner loop can be drawn above the loop it is inside. Its label says which loop that is.
 5. **A graph with many loops is a tall stack.** Twenty templates fit a phone's frame (the unit test fits each); a graph with ten loops would be small in it, and is moved into with a pinch.
 6. **Not tried here: Safari's engine and Firefox** (CI runs the smoke and release sets there, which do not open this view), **and a real phone.**
-7. **The map's 3D piece is at 8.23 of 9 KB** on this Mac: the next thing that touches the scene has under a KB.
+7. **The map's 3D piece is at 8.23 of 9 KB** on this Mac (8.30 after the second part): the next thing that touches the scene has under a KB.
 
 ## The second part: a run replayed in three dimensions
 
