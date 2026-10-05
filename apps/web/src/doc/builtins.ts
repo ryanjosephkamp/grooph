@@ -2,11 +2,12 @@
  * The built-in pattern library (handoff 0007): the repository's `patterns/` folder, bundled at build time, so the
  * template screens need no network once the app has been visited.
  *
- * A piece of the app fetched when a screen first needs it (slice 0093; decision 0021), through `loadBuiltIns` in
- * `templates.ts`: the list of templates, a template's own screens, and the editor's Insert panel. The twenty
- * documents are 23 KB compressed, and they were part of every address's first load, read and checked before
- * anything was drawn. The front page draws one of them and shows six glyphs: it carries those as they are drawn
- * (`ui/landing/front.generated.ts`), and a graph or a share link needs none.
+ * A piece of the app (slice 0093; decision 0021), asked for through `loadBuiltIns` in `templates.ts`. An address
+ * that lists the templates or opens a built-in one asks for it beside the app; every other address fetches it
+ * once its first screen is up, so the list, a template's own screens and the editor's Insert panel find it here.
+ * The twenty documents are 21 KB compressed, and they were part of every address's first load, read and checked
+ * before anything was drawn. The front page draws one of them and shows six glyphs: it carries those as they
+ * were drawn ahead of time (`ui/landing/front.generated.ts`), and a graph or a share link needs none.
  */
 import { parseGraph, type Graph } from "@grooph/core";
 

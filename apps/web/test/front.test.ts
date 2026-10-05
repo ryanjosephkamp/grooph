@@ -9,16 +9,18 @@ import { BUILT_IN_TEMPLATES } from "../src/doc/builtins.js";
 import { BUILT_IN_CREDITS } from "../src/doc/credits.generated.js";
 import { builtIns, builtInTemplate, loadBuiltIns } from "../src/doc/templates.js";
 import { hasLongGlyph } from "../src/ui/Glyph.js";
-import { HERO, HERO_SVG, TILES } from "../src/ui/landing/front.js";
+import { HERO } from "../src/ui/landing/front.generated.js";
+import { HERO_SVG, TILES } from "../src/ui/landing/front.js";
 import { repoRoot } from "./helpers.js";
 
 const pattern = (id: string): Graph => parseGraphText(readFileSync(join(repoRoot, "patterns", `${id}.grooph.json`), "utf8")).doc!;
 const STALE = "run `node scripts/front-page.mjs` (after `pnpm -r build`) and commit what it writes";
 
 /**
- * Slice 0093: the twenty built-in templates are a piece of the app fetched when a screen needs them, and the front
- * page carries its one picture and six glyphs as they were drawn when the app was built. These hold the two files
- * that were written then to what the code draws now, and the templates out of the first load.
+ * Slice 0093: the twenty built-in templates are a piece of the app fetched for the screens that use them, and the
+ * front page carries its one picture and six glyphs as they were drawn ahead of time, by scripts/front-page.mjs,
+ * into files the repository keeps. Nothing draws them when the app is built: these tests are what holds the two
+ * files to what the code draws now, and the templates out of the first load.
  */
 describe("the front page without the templates (slice 0093)", () => {
   it("draws the picture the code draws from the review gate, byte for byte", () => {
@@ -47,10 +49,19 @@ describe("the front page without the templates (slice 0093)", () => {
     expect(BUILT_IN_CREDITS, STALE).toEqual(credited);
   });
 
-  it("is what the generator writes: neither file was edited by hand or left behind", () => {
-    // The generator's own check, when core is built for it to draw with (it is after `pnpm -r build`, as in CI).
-    if (!existsSync(join(repoRoot, "packages/core/dist/src/base.js"))) return;
+  // The generator's own check needs core built for it to draw with (it is after `pnpm -r build`, as in CI). Without
+  // that it is shown as skipped, not as passed; the three tests above hold what the files say either way.
+  it.skipIf(!existsSync(join(repoRoot, "packages/core/dist/src/base.js")))("is what the generator writes: neither file was edited by hand or left behind", () => {
     expect(execFileSync(process.execPath, [join(repoRoot, "scripts/front-page.mjs"), "--check"], { encoding: "utf8" })).toContain("both files are current");
+  });
+
+  it("reads a credit only from a template's own entry: a word every object answers to is no template", () => {
+    // A proposal set says what each candidate is based on in its author's own words (`basedOn` is any string).
+    // The compare view looks the word up here; `constructor` must find nothing, not a function it then tries to list.
+    const compare = readFileSync(join(repoRoot, "apps/web/src/ui/open/Compare.tsx"), "utf8");
+    expect(compare).toContain("Object.prototype.hasOwnProperty.call(BUILT_IN_CREDITS, c.basedOn)");
+    expect(compare.match(/BUILT_IN_CREDITS\[/g)).toHaveLength(1);
+    for (const word of ["constructor", "__proto__", "hasOwnProperty", "toString", "valueOf"]) expect(Object.prototype.hasOwnProperty.call(BUILT_IN_CREDITS, word), word).toBe(false);
   });
 
   it("the piece holds every pattern in patterns/, and the door hands them over once it has been asked", async () => {

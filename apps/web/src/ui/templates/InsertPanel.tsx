@@ -72,7 +72,15 @@ export function InsertPanel() {
     );
   }
 
-  if (yours === null || builtIn === undefined) return <div className="inspector" />;
+  if (yours === null) return <div className="inspector" />;
+  // Said, so that a panel still waiting is not taken for one with nothing in it.
+  if (builtIn === undefined) {
+    return (
+      <div className="inspector">
+        <p className="field-hint">Opening…</p>
+      </div>
+    );
+  }
   return (
     <div className="inspector">
       <p className="field-hint">Its nodes join this graph unconnected; ids that are taken here get a number. Connect them where they belong.</p>

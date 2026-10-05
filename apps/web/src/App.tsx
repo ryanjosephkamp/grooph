@@ -1,7 +1,8 @@
 import { sharePayloadFrom } from "@grooph/core";
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 
 import { builtIns, loadBuiltIns, type TemplateSource } from "./doc/templates.js";
+import { BUILT_INS, FRONT } from "./doors.js";
 import { piece } from "./piece.js";
 import "./store/persist.js";
 import { Landing, loadFront } from "./ui/landing/Landing.js";
@@ -30,7 +31,7 @@ export function loadScreens(): Promise<Screens> {
 }
 
 /** Whether an address opens on a screen that draws on the canvas. */
-export function needsScreens(hash: string): boolean {
+function needsScreens(hash: string): boolean {
   return !LIGHT.has(parse(hash).name);
 }
 const LIGHT = new Set<Route["name"]>(["library", "about", "templates", "embed"]);
@@ -42,18 +43,19 @@ const LIGHT = new Set<Route["name"]>(["library", "about", "templates", "embed"])
 const listsBuiltIns = (route: Route): boolean => route.name === "templates" || (route.name === "template" && route.source === "built-in");
 
 /**
- * What an address must have before its first screen is drawn: the canvas's screens, the built-in templates, both
- * or neither. They are asked for together, and index.html has already asked for them beside the app, so this
- * costs no round of its own. It never fails: a piece that could not be had is said by the screen that needed it.
+ * What an address must have before its first screen is drawn: the canvas's screens, the built-in templates, the
+ * front page's own picture, or none of them. They are asked for together, and index.html has already asked for
+ * them beside the app, by the same rules (`doors.ts`), so this costs no round of its own. It never fails: a piece
+ * that could not be had is said by the screen that needed it.
+ *
+ * The library's address waits for the front page's picture too, though a device with graphs will not draw it: what
+ * is on the device is not known until the screen has read it, and the piece comes in the same round as the app.
  */
 export function ready(hash: string): Promise<unknown> {
-  const route = parse(hash);
   const wanted: Promise<unknown>[] = [];
   if (needsScreens(hash)) wanted.push(loadScreens());
-  if (listsBuiltIns(route)) wanted.push(loadBuiltIns());
-  // The front page's picture and tiles (`ui/landing/front.ts`): at `#/about`, and at `#/`, which is the front page
-  // on a device with no graphs yet.
-  if (route.name === "about" || route.name === "library") wanted.push(loadFront());
+  if (new RegExp(BUILT_INS).test(hash)) wanted.push(loadBuiltIns());
+  if (new RegExp(FRONT).test(hash)) wanted.push(loadFront());
   return Promise.all(wanted.map((piece) => piece.catch(() => undefined)));
 }
 
@@ -116,21 +118,30 @@ function parse(hash: string): Route {
  */
 function useLater(here: () => boolean, load: () => Promise<unknown>, route: Route): "yes" | "no" | "failed" {
   const [got, setGot] = useState<"yes" | "no" | "failed">(() => (here() ? "yes" : "no"));
+  // The screen a failure was said on: the one that was open when the piece could not be had. On the next one it is
+  // not said again while the piece is asked for afresh.
+  const [failedAt, setFailedAt] = useState<Route | null>(null);
+  const open = useRef(route);
+  open.current = route;
   useEffect(() => {
     if (got !== "no") return;
     let gone = false;
     load().then(
       () => !gone && setGot("yes"),
-      () => !gone && setGot("failed"),
+      () => {
+        if (gone) return;
+        setFailedAt(open.current);
+        setGot("failed");
+      },
     );
     return () => {
       gone = true;
     };
   }, [got]);
   useEffect(() => {
-    if (got === "failed") setGot("no");
+    if (got === "failed" && failedAt !== route) setGot("no");
   }, [route]);
-  return got;
+  return got === "failed" && failedAt !== route ? "no" : got;
 }
 
 export function App() {

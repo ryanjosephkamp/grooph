@@ -14,9 +14,10 @@ if (location.hash === "#/embed" || location.hash.startsWith("#/embed?")) {
 } else {
   // The stylesheets in order (React Flow's base, then the app's, which overrides it), the app beside them.
   const css = import("@xyflow/react/dist/base.css").then(() => import("./styles.css"));
-  // An address that opens on a screen that draws on the canvas waits for those screens too (slice 0069), and one
-  // that lists or opens a built-in template for the templates (slice 0093); index.html has already asked for them
-  // beside the app, so this costs no round of its own. Any other address does not wait.
+  // An address that opens on a screen that draws on the canvas waits for those screens too (slice 0069); one that
+  // lists or opens a built-in template waits for the templates, and the front page's for its picture (slice 0093).
+  // index.html has already asked for each beside the app, by the same rules (`doors.ts`), so this costs no round of
+  // its own.
   const app = Promise.all([css, import("./App.js")]).then(async ([, loaded]) => {
     await loaded.ready(location.hash);
     render(<loaded.App />);

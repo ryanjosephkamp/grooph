@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { extname, join, normalize, sep } from "node:path";
@@ -289,19 +289,27 @@ test.describe("with the service worker running", () => {
       await page.goto(app.url);
       await frontPageIsUp(page);
       await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-      // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
-      await expect
-        .poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/screens-[^/]*\.js$/.test(r.url)).length))
-        .toBe(1);
+      // The worker has finished keeping what the page names, the screens that draw on the canvas among them; and
+      // the built-in templates and the front page's own picture, which are files of their own since slice 0093.
+      for (const piece of ["screens", "builtins", "front"]) {
+        await expect
+          .poll(() => page.evaluate(async (name) => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => new RegExp(`/assets/${name}-[^/]*\\.js$`).test(r.url)).length, piece), { message: piece })
+          .toBe(1);
+      }
     } finally {
       await app.stop();
     }
     // Gone: a request that does not pass through the worker is refused.
     await expect(page.request.get(app.url)).rejects.toThrow();
 
-    // The address typed again with no network, then an address the first visit never asked for.
+    // The address typed again with no network, then addresses the first visit never asked for: the list of
+    // templates, every one of them there, and a template on the canvas.
     await page.goto(app.url);
     await frontPageIsUp(page);
+    await expect(page.locator(".land-picture svg.grooph-picture")).toBeVisible();
+    await page.goto(`${app.url}#/templates`);
+    await page.reload();
+    await expect(page.locator(".template-row")).toHaveCount(readdirSync(join(repoRoot, "patterns")).filter((name) => name.endsWith(".grooph.json")).length);
     await page.goto(`${app.url}#/templates/built-in/review-gate`);
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();

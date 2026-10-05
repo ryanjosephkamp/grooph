@@ -223,8 +223,9 @@ function Card(props: {
         {props.row.why ? <p className="ccard-why">{props.row.why}</p> : null}
         {c.basedOn ? <span className="ccard-based muted">from the {c.basedOn} template</span> : null}
         {/* Inside the head, so the desktop subgrid keeps its row count whether or not the template owes a credit. */}
-        {/* From a list made when the app is built (scripts/front-page.mjs): this card does not wait for the templates. */}
-        {c.basedOn ? <Credits credits={BUILT_IN_CREDITS[c.basedOn]} /> : null}
+        {/* From a list made ahead of time (scripts/front-page.mjs), so this card does not wait for the templates. `basedOn`
+            is any word a set's author wrote: only a template's own entry is read, never what every object has. */}
+        {c.basedOn && Object.prototype.hasOwnProperty.call(BUILT_IN_CREDITS, c.basedOn) ? <Credits credits={BUILT_IN_CREDITS[c.basedOn]} /> : null}
       </div>
 
       <ProfileChips profile={c.profile} />
