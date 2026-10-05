@@ -4,15 +4,15 @@
 
 ## Summary
 
-grooph is an authoring and compilation surface for multi-agent loop graphs. A person or a model edits one small **graph document**. A **validator** enforces loop hygiene: every loop can end, every critic can see something the builder did not, every irreversible step waits for a person. A **compiler** emits a prompt package in the units of a coding harness; Claude Code is the target that exists. grooph runs no agent and calls no model. The harness is the runtime.
+grooph is an authoring and compilation surface for multi-agent loop graphs. A person or a model edits one small **graph document**. A **validator** enforces loop hygiene: every loop names a stop, a critic's bar names what it inspects, and a step marked irreversible has a person before it. A **compiler** emits a prompt package in the units of a coding harness; Claude Code is the target that exists. grooph runs no agent and calls no model. The harness is the runtime.
 
 What is shown so far:
 
-- A package holds a design as a runtime contract in Claude Code. Twenty of twenty templates have a recorded run.
-- A package bounds the work. In the one comparison run so far, the only run that went past its bounds was a prompt-only run.
-- A package leaves a record that a monitor reads and a run id resumes.
+- In Claude Code a session followed its package in 18 of the 20 kept records, by the project's own checks of selected parts of each record; two are published red. The package instructs; grooph does not enforce.
+- Recorded runs halted at human gates, and one at a periodic human check-in. No record shows a round cap or a budget firing. The first comparison's one run cut off by the dollar ceiling was inside the graph's own caps.
+- A package asks for a record that a monitor reads. Halted runs were continued by resuming the same session.
 
-What is not shown: better output than the same design given as a prompt, on small tasks. In four of four projects it was not better ([decision 0013](../decisions/0013-value-as-of-study-one.md)).
+What is not shown: better output than a prompt derived from the same package, on four small tasks. In none of the four was it better; that is not a test of equivalence ([what grooph claims, and on what evidence](../claims.md)).
 
 ## 1. The problem
 
