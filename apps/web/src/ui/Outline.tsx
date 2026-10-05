@@ -1,5 +1,7 @@
-import { outline, type Graph, type Id } from "@grooph/core";
+import { outline, type Graph, type Id, type OutlineSection } from "@grooph/core";
 import { useEffect, useMemo, useRef } from "react";
+
+import { unitsNow } from "./canvas/boxes.js";
 
 /**
  * The outline (core's `outline`): the whole graph to read from top to bottom,
@@ -17,44 +19,47 @@ export function Outline({ doc, onOpen, current }: { doc: Graph; onOpen?: (id: Id
   useEffect(() => {
     root.current?.querySelector(".is-current")?.scrollIntoView({ block: "nearest" });
   }, [current]);
+  const one = (section: OutlineSection, i: number) => (
+    <section
+      key={`${section.kind}-${section.id}`}
+      className={i > 0 && section.id === current ? "outline-section is-current" : "outline-section"}
+      data-outline-id={section.id}
+    >
+      <p className="outline-kind">{section.kind}</p>
+      <div className="outline-head">
+        <h3>{section.title}</h3>
+        {/* A policy and a subgrooph have no panel of their own to open. */}
+        {onOpen && i > 0 && section.kind !== "Policy" && section.kind !== "Subgrooph" ? (
+          <button type="button" className="chip chip-small" onClick={() => onOpen(section.id, section.kind)}>
+            Edit
+          </button>
+        ) : null}
+      </div>
+      <dl className="outline-items">
+        {section.items.map((item) => (
+          <div key={item.label} className="outline-item">
+            <dt>{item.label}</dt>
+            <dd>
+              {item.list ? (
+                <ul className="plain-list">
+                  {item.list.map((entry, k) => (
+                    <li key={k}>{entry}</li>
+                  ))}
+                </ul>
+              ) : (
+                item.text
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+  // A subgrooph's sections fold into one box (handoff 0085), drawn by the piece the canvas fetched for this document.
+  const Fold = unitsNow()?.OutlineFold;
   return (
     <div className="outline" ref={root}>
-      {sections.map((section, i) => (
-        <section
-          key={`${section.kind}-${section.id}`}
-          className={i > 0 && section.id === current ? "outline-section is-current" : "outline-section"}
-          data-outline-id={section.id}
-        >
-          <p className="outline-kind">{section.kind}</p>
-          <div className="outline-head">
-            <h3>{section.title}</h3>
-            {/* A policy and a subgrooph have no panel of their own to open. */}
-            {onOpen && i > 0 && section.kind !== "Policy" && section.kind !== "Subgrooph" ? (
-              <button type="button" className="chip chip-small" onClick={() => onOpen(section.id, section.kind)}>
-                Edit
-              </button>
-            ) : null}
-          </div>
-          <dl className="outline-items">
-            {section.items.map((item) => (
-              <div key={item.label} className="outline-item">
-                <dt>{item.label}</dt>
-                <dd>
-                  {item.list ? (
-                    <ul className="plain-list">
-                      {item.list.map((entry, k) => (
-                        <li key={k}>{entry}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    item.text
-                  )}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
-      ))}
+      {Fold ? <Fold sections={sections} current={current} one={one} /> : sections.map(one)}
     </div>
   );
 }

@@ -24,6 +24,8 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 
 This drawing is a piece of its own (`packages/core/src/picture/graph-units.ts`), like a map's other views: the web app fetches it only for a graph that has a subgrooph, and core's `picture` in Node has it already.
 
+**On the canvas** a subgrooph is one box too (`apps/web/src/ui/canvas/units.tsx`). Closed, which is how a graph opens, the box lies over the place its nodes have and says what the picture's card says, with the glyph of what it holds; an edge that crossed its boundary reaches the box. A tap, or Enter on it, opens it in place: the box becomes a frame around its nodes, with its name and a Close button, and no other node moves, because every node keeps the position the document gives it whether its box is open or shut. A closed box does not drag: its nodes are moved with the box open, where each can be seen. A node a panel is about, or an issue points at, opens the boxes around it; a run's canvas shows every node's state, so its boxes are open. The outline folds a subgrooph's nodes into one box as well, shut until it is opened. The box is fetched only for a document that has a subgrooph, and the page names it so that it is held for a visit with no network.
+
 An operation map's picture is described in [`operation-map.md`](operation-map.md) §4. A map has two more views, drawn by core from the same document and written by the same command:
 
 | View | What it is | Good at | Loses |
