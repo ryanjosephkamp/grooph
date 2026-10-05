@@ -19,6 +19,8 @@ import { parseMapText } from "../src/map.js";
 import { offlinePage } from "../src/offline.js";
 import { parseGraphText } from "../src/parse.js";
 import { picture } from "../src/picture/graph-picture.js";
+import { pictureWithUnits } from "../src/picture/graph-units.js";
+import { unitsKit } from "../src/picture/units-kit.js";
 import { mapPicture } from "../src/picture/map-picture.js";
 import { inkFor, textWidth, wrap, type Color, type PictureOptions, type PictureTheme } from "../src/picture/svg.js";
 import { PICTURE_THEMES, THEME_VALUES, isPictureTheme, readTheme, themeParts, themed, themedPage } from "../src/picture/themes.js";
@@ -54,6 +56,13 @@ const maps = (): [string, OperationMap][] => [
 /** Every picture core draws of every template, valid fixture and sample map: the drawing, by what it is of. */
 const everyPicture = (): [string, (options: PictureOptions) => string][] => [
   ...graphs().map(([name, doc]): [string, (o: PictureOptions) => string] => [name, (o) => picture(doc, o)]),
+  // A graph with a subgrooph has two more: each subgrooph one box, and each drawn open in a frame.
+  ...graphs()
+    .filter(([, doc]) => (doc.groups ?? []).some((group) => group.from !== undefined))
+    .flatMap(([name, doc]): [string, (o: PictureOptions) => string][] => [
+      [`${name}, its subgroophs as boxes`, (o) => pictureWithUnits(unitsKit, doc, o)],
+      [`${name}, its subgroophs open`, (o) => pictureWithUnits(unitsKit, doc, { ...o, open: "all" })],
+    ]),
   ...maps().flatMap(([name, map]): [string, (o: PictureOptions) => string][] => [
     [`${name}, the phone's`, (o) => mapPicture(map, o)],
     [`${name}, lanes side by side`, (o) => mapWide(map, o)],

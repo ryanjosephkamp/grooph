@@ -78,6 +78,28 @@ test("image draws a subgrooph as one box, and open when asked; --open names a su
     assert.equal(await grooph(["image", boxed, "--theme", "dark", ...open], io), 0);
     assert.equal(`${text(io.stdout)}\n`, readFileSync(join(pictures, "plan-review-release.open.dark.svg"), "utf8"));
   }
+  // In a theme it is the same box, or the same frame, with the theme added: a name, and a name with light or dark.
+  const held = parseGraphText(readFileSync(boxed, "utf8")).doc!;
+  for (const [more, options] of [[[], {}], [["--open", "all"], { open: "all" }]] as [string[], { open?: "all" }][]) {
+    for (const [asked, name, form] of [["blueprint", "blueprint", "auto"], ["chalk-dark", "chalk", "dark"]] as const) {
+      const io = capture();
+      assert.equal(await grooph(["image", boxed, "--theme", asked, ...more], io), 0, text(io.stderr));
+      assert.equal(`${text(io.stdout)}\n`, themed(picture(held, { theme: "auto", ...options }), name, form), `--theme ${asked} ${more.join(" ")}`);
+    }
+  }
+  // And its offline page, whose picture is the box: in the theme, and every other byte the page it was.
+  const dir = mkdtempSync(join(tmpdir(), "grooph-box-"));
+  try {
+    const page = join(dir, "boxed.html");
+    const io = capture();
+    assert.equal(await grooph(["page", boxed, "--out", page, "--theme", "ink"], io), 0, text(io.stderr));
+    const html = readFileSync(page, "utf8");
+    assert.equal(html, themedPage(offlinePage(held, { version: VERSION, picture: picture(held) }), "ink"));
+    assert.equal(html.match(/<svg [^>]*data-look="ink"/g)?.length, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
   // A plain group is no box, and a graph with none has nothing to open: said, and nothing drawn.
   const cases: [string[], RegExp][] = [
     [["image", boxed, "--open", "delivery"], /--open delivery: no such subgrooph; this graph's are review/],
