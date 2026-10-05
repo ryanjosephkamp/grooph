@@ -61,7 +61,7 @@ The same documents as pages: [ryanjosephkamp.github.io/grooph/docs/](https://rya
 - **Runs**, including run folders, notes back onto the graph, and the monitor: [`docs/runs.md`](docs/runs.md).
 - **Things to keep**: the picture, the outline and the one-file offline page. **Embedding**: one line of HTML that shows a live graph, or a recorded run that plays, on any page (`grooph embed`). See [`docs/exports.md`](docs/exports.md).
 - **Operation maps**, for work that spans sessions, harnesses and accounts. They are drawn and checked, never run: [`docs/operation-map.md`](docs/operation-map.md).
-- **The live view of subagents**, from a hook that records ids, names and times, never content, and cannot steer: [`docs/subagents.md`](docs/subagents.md).
+- **The live view of subagents**, from a hook that records ids, names, times and its own machine's paths, never content, and returns no decision to the harness: [`docs/subagents.md`](docs/subagents.md).
 - **Community**: loop graphs sent in by pull request, checked and drawn by CI: [`community/`](community/README.md), [`docs/community.md`](docs/community.md).
 - **The product contract**: [`spec/capability-spec.md`](spec/capability-spec.md) with [`spec/AMENDMENTS.md`](spec/AMENDMENTS.md).
 

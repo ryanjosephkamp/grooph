@@ -147,7 +147,7 @@ One line per event, in `.grooph/events/<session id>.jsonl`:
 | `model`, `cwd` | where the harness gives them |
 | `transcript` | on a subagent's stop: where the harness keeps its transcript, as a path on that machine |
 
-**It keeps ids, names and times. It never writes a prompt, a tool's input or result, or anything an agent said.** The events file says that something ran, when, and for how long. A test feeds the hook payloads full of text and checks that none of it reaches the file.
+**It keeps ids, names and times, and on the machine it runs on the working folder's path and where a subagent's transcript is kept. It never writes a prompt, a tool's input or result, or anything an agent said.** The events file says that something ran, when, and for how long. A test feeds the hook payloads full of text and checks that none of it reaches the file.
 
 It also writes only for its own project: the hook file knows the project it was installed in, and ignores a session working anywhere else. That is what keeps Codex's background memory session out of the file.
 
