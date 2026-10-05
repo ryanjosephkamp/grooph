@@ -150,17 +150,17 @@ This header is Claude Code's own format for defining a subagent. Three lines are
 
 - **`model: sonnet`.** The graph said tier `strong`. The compiler translated that into the name of a real model for this harness. (`opus` and `sonnet` are names of models Claude Code offers.) For Claude Code today, `frontier` becomes `opus`, and `strong` and `fast` both become `sonnet`. You can choose differently for one export with `--models`, without changing the graph.
 
-  That has a consequence worth knowing. Two tiers are one model, so a critic on `strong` reviewing a builder on `fast` is the same model reviewing its own kind. The validator's warning cannot see this, because it compares tier names, and those differ. The export says so in a line of its own when a graph has agents on both tiers. In our example the builder and the critic are both `strong`, so they are the same model, and the warning said so.
-- **`tools:`.** The graph's capabilities were translated into the harness's tool names. `read-files` became Read, Glob and Grep (reading and searching). `run-tests` became Bash, the tool that runs commands. `write-outputs` became Write, which creates a whole file.
-- **`disallowedTools: Edit`.** The graph said `deny: edit-files`, so Edit, the tool that changes part of an existing file, is withheld. The critic can still create its own report with Write, and the brief tells it to write only the files named in its outputs.
+  That has a consequence worth knowing. Two tiers are one model, so a critic on `strong` reviewing a builder on `fast` is the same model reviewing its own kind. The validator's warning cannot see this, because it compares tier names, and those differ. The export says so in a line of its own when a graph has agents on both tiers. In our example the builder and the critic are both `strong`, so they are the same model, and the warning said so. The `heterogeneous-critic` template avoids this by putting its critic on `frontier`.
+- **`tools:`.** The graph's capabilities were translated into the harness's tool names. `read-files` became Read, Glob and Grep (reading and searching). `run-tests` became Bash, the tool that runs commands. `write-outputs` became Write, which creates or replaces a whole file.
+- **`disallowedTools: Edit`.** The graph said `deny: edit-files`, so Edit, the tool that changes part of an existing file, is withheld. The critic can still create its own report with Write, and the brief tells it to write only the files named in its outputs. That last part is an instruction: Write itself could replace any file.
 
 Below the header, the file holds the brief, the inputs, the outputs, the rule about what evidence may be read, and the exact form the worker must report in. The lead decides where to go next from one line of that report, the **verdict**.
 
-A caution. The tool list is applied by the harness, and it is the one restriction with real force during a run (chapter 1's table). It narrows what a worker has. It is not a guarantee about what a worker does. A worker that needs Bash to run the tests has, in Bash, a tool that can also change files. The rule "you judge, you do not fix" is in the critic's brief, as an instruction.
+A caution. The tool list is applied by the harness, and it is one of the few things with real force during a run (chapter 1's table). It narrows what a worker has. It is not a guarantee about what a worker does. A worker that needs Bash to run the tests has, in Bash, a tool that can also change files, and Write can replace one. The rule "you judge, you do not fix" is in the critic's brief, as an instruction.
 
 ## Two ways to deliver a package
 
-grooph's contract names two.
+grooph's written specification names two.
 
 - **Files mode** is what we just did: the package is written as files into the project. It is what `grooph export` does.
 - **Paste-only mode** is one long prompt that tells a session to write those same files, for a situation where pasting is the only thing you can do, such as working from a phone. This guide did not use it.

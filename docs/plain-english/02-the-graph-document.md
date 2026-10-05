@@ -104,7 +104,7 @@ An **edge** joins two nodes. It is more than an arrow, because it also says *whe
 { "id": "e-critic-fail", "from": "critic", "to": "builder", "when": "fail", "evidence": ["REVIEW.md"] }
 ```
 
-- **`when`** is the condition: `always` (the default), `pass`, `fail`, or a named verdict. A check and a critic each end with a **verdict**, and the edges out of them say where each verdict leads. At a human gate, the person's yes is the `pass` and their no is the `fail`. Our critic can also answer `invalid-evidence`, meaning it could not read what it was handed. No arrow is drawn for that: the lead is told to fix the evidence and send the critic once more, and to treat a second such answer as a fail.
+- **`when`** is the condition: `always` (the default), `pass`, `fail`, or a named verdict. A check and a critic each end with a **verdict**, and the edges out of them say where each verdict leads. At a human gate, the person's yes is the `pass` and their no is the `fail`. A "no" at our gate travels back to the builder along an edge whose evidence is "the human's feedback", so what the person said is what the builder is handed. Our critic can also answer `invalid-evidence`, meaning it could not read what it was handed. No arrow is drawn for that: the lead is told to fix the evidence and send the critic once more, and to treat a second such answer as a fail.
 - **`evidence`** is the list of things the next worker may look at, on top of its own inputs. The critic is handed the change, the test output and the checklist, and is told to read nothing else. Here the list is wide: it includes the whole project as the change leaves it. What it leaves out is the builder's own conversation.
 - **`isolation`** is `fresh` unless it says otherwise. **Fresh** means the next worker starts with an empty context: its brief, its inputs, the evidence, and nothing more. The other value, `shared`, means no new subagent is started for the next step: a worker that has already been running carries on with everything it knows.
 - **`approval`**, when set, means a person must say yes before the run takes this edge.
@@ -159,14 +159,23 @@ A budget counts in **dispatches**. Chapter 1 said a dispatch is starting a subag
 
 ### How many times can the builder run?
 
-A fair question, and the answer has a soft edge.
+Here is the example, trip by trip. One trip is the builder and then the critic: two dispatches. The gate is a person and is not counted as a dispatch, though it is a member of the loop.
 
-- One trip through our loop is two dispatches: the builder, then the critic. The gate is a person, and is not counted.
-- The ready-made graphs set their budgets as if a cap of 4 means **four trips** in all (round 0 to round 3): four trips are 8 dispatches, and the budget of 10 leaves two spare, for a step that has to be sent twice in one round.
-- So in the ordinary case the cap is reached first, and the budget is there for the unusual one.
-- A person saying "no" at the gate uses up a round like any other. It is one of the loop's two back edges.
+| Trip | Round | Dispatches so far | When the trip ends, the lead checks the stops in order |
+|---|---|---|---|
+| 1 | 0 | 2 | Standard met? Then on to the gate. If not: round cap? budget? Neither yet, so go round |
+| 2 | 1 | 4 | the same |
+| 3 | 2 | 6 | the same |
+| 4 | 3 | 8 | Standard met? If not, the cap of 4 applies: stop the run and report |
 
-The soft edge: the instructions say "max iterations: 4" and leave the counting to the lead. Whether a particular lead stops after its fourth trip or allows a fifth depends on how it reads that. And since no recorded run has ever reached a cap (chapter 13), there is no record of how one is counted in practice.
+So **the builder runs at most four times.** That is how the project's own test sizes a budget: two dispatches a trip, times a cap of 4, is 8, and a budget may be set up to two above that.
+
+Two more things follow.
+
+- **A person's "no" at the gate uses a round.** It sends the work back to the builder along one of the loop's two back edges, and the next trip is the next round.
+- **In this example, by the rules as written, the budget of 10 cannot be reached before the cap.** Even if the critic had to be sent twice on every trip, that is 9 dispatches after three trips, and the cap ends things after the fourth. The budget here is a second line behind the cap. Budgets earn their keep in other graphs: where one loop sits inside another, the inner loop's round count starts again each time, and the outer budget is the limit that keeps counting across all of it.
+
+One soft edge remains. The instructions say "max iterations: 4" and leave the counting to the lead. A lead that read it as "four *returns*" would allow a fifth trip, and there the budget of 10 would stop it. In one recorded run the lead wrote its check down as "max-iterations 0<4" before the first trip, which is the four-trip reading. But no recorded run has ever reached a cap (chapter 13), so there is no record of one being applied.
 
 ## Policies: rules that apply everywhere
 
@@ -183,7 +192,7 @@ A **policy** is a rule attached to the whole graph or to part of it. These two s
 
 A graph may carry one more setting, `adaptation`, with three values:
 
-- **`adaptive`** (the default). During a run, the lead may change its own copy of the graph when the work shows the graph is wrong: add a step, rewrite a brief, add a loop. Every change must be written down as a note at once. Yes: by default, the AI running the plan may rewrite its copy of the plan. The project chose this on purpose, judging that a plan too rigid to bend is the bigger risk, as long as every change is visible. Your original file is never touched.
+- **`adaptive`** (the default). During a run, the lead may change its own copy of the graph when the work shows the graph is wrong: add a step, rewrite a brief, add a loop. Every change must be written down as a note at once. Yes: by default, the AI running the plan may rewrite its copy of the plan. The project chose this on purpose, judging that a plan too rigid to bend is the bigger risk, as long as every change is visible. The run is told to work on its own copy and to leave the file it started from alone.
 - **`propose`**. The lead changes nothing and writes down what it would change.
 - **`fixed`**. The lead follows the graph exactly, and stops to ask when it cannot.
 

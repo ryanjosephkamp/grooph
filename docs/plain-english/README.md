@@ -13,7 +13,7 @@ It does not run the agents. Another program does that. grooph's work ends when t
 Before you read on, here is the honest state of the evidence, in plain words:
 
 - grooph comes with twenty ready-made plans. For each, the project keeps the record of one run. Eighteen of the twenty records pass the project's check, which looks at selected parts of a record to see whether the agents did the steps the plan drew. Two fail it, and those two are shown as failures.
-- In those runs the agents stopped where their plan said to: when the work passed, or when a person had to be asked.
+- In those runs the agents stopped where their plan said to: when the work passed, at the plan's last step, or when a person had to be asked.
 - Every plan also carries limits for a run that will not stop by itself. **No recorded run has ever reached one of those limits.** So it is not shown that one works.
 - When the same four small jobs were given to grooph's instructions and to an ordinary well-written prompt, **the results were no better with grooph.**
 
@@ -47,10 +47,11 @@ One small example is carried through: a plan called **"Add a rounding helper"**.
 
 - **It is not on grooph's website.** The website is built from a list of pages (`scripts/site/pages.json`), and this guide is not on that list. It is kept with the project's other files.
 - **It has not been audited.** Every other statement grooph publishes about what it does to the quality, cost, speed or safety of work is first read by a second, independent AI system ([chapter 14](14-claims-and-the-audit.md)). This guide has not been through that. It must go through it before any part of it is published.
-- **It claims nothing new.** Where it says what grooph is shown to do, it says only what two of the project's own pages say, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. Where the honest answer is "this is not shown", it says so.
+- **It claims nothing new about what grooph achieves.** Where it says what grooph is shown to do, it says only what two of the project's own pages say, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. Where the honest answer is "this is not shown", it says so.
 - **Every `grooph` command in it was run**, in an empty test folder, on 5 October 2026, and the output under each is what was printed. Where the output held a long folder path from the author's computer, the path is shortened to `<grooph>`. Where output is cut for length, a line reading `…` says so. The one exception is the install commands at the foot of this page, which come from the project's [quickstart](../quickstart.md): the author's computer already had grooph installed that way.
 - **Which grooph.** The copy used was the project's newest on that day. It calls itself version 0.3.0, and it also contains changes made after 0.3.0 was first released. One of them, the check described in chapter 7, was added that same day.
-- **No AI agent was started to write it.** Starting one costs money, and a guide should not do that on your behalf. So chapters 6 and 7, which are about a run, do not run the rounding example. They read a real record the project keeps, of the same ready-made plan run on a very similar job.
+- **Who wrote it.** An AI session: the same one that carried out the audit described in chapter 14, at the owner's request. Two fresh AI readers, told that they knew nothing and could read only the guide, read drafts and reported where they got lost and what they came away believing. The guide was revised after each. No person has yet checked it line by line.
+- **No agent was started to run the examples.** Starting one costs money, and a guide should not do that on your behalf. So chapters 6 and 7, which are about a run, do not run the rounding example. They read real records the project keeps, of ready-made plans run on very similar jobs.
 
 Two words used throughout: **the project** means grooph and the people and AI sessions that build it, and **the owner** is the person the project belongs to, who makes its final decisions.
 

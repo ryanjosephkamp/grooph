@@ -23,7 +23,7 @@ Both kinds keep their evidence in the repository, under `experiments/`. One rule
 
 ## The proving runs
 
-Each of the twenty templates has one counted run, on a small task, with nobody watching. The harness's output, the run folder and the cost were kept. The twenty counted runs cost $41.12 in all, so about two dollars each. A few templates have an earlier run as well. Those records are kept too, beside the later ones, and are not among the twenty.
+Each of the twenty templates has one counted run, on a small task, with nobody watching. The harness's output, the run folder and the cost were kept. The twenty counted runs cost $41.12 in all, so about two dollars each. Six templates have earlier runs as well, seven in all. Those records are kept too, beside the later ones, and are not among the twenty. Six of the seven failed the check. Chapter 4 says more.
 
 Then a script, the **proving check**, looks at each record and asks a few fixed questions. Did the agents the graph names run as their own subagents? Did the run end where the graph said it would? Are the notes whole? It reads the lead's own notes for some of these and the harness's own log for others. It looks at selected parts of a record. It is not a full reconstruction of the run, and it does not judge whether the work was good.
 
@@ -51,14 +51,14 @@ It took four templates (`grind-loop`, `review-gate`, `red-team-loop`, `spec-then
 
 Each arm was run two or three times. That made 27 runs, costing $60.62. The results were scored by a script against **held-out** test cases, meaning tests the builder was never shown, and also ranked by a judge: a separate AI session that was not told which arm was which.
 
-Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It stops anyone from deciding afterwards that whatever happened was a success. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. A typical losing condition was the plain prompt matching the graph's result for less money.
+Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It stops anyone from deciding afterwards that whatever happened was a success. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. Each write-up set its own conditions. For `review-gate`, for example, the losing condition was the plain prompt matching the graph's result every time for less money.
 
 ### What came out
 
-- **No quality advantage was shown.** Within each project, every arm reached the same score on the held-out tests.
+- **No quality advantage was shown.** Within each task, every arm reached the same score on the held-out tests.
 - **None of the four met its test for the graph earning its cost.** Three met the condition they had written down for the graph *losing*. The fourth, `review-gate`, met neither condition: the results matched, but the prompt was not cheaper every time.
 - **The graph was not always the dearer one.** In `grind-loop` the package cost about twice what the prompt did. In `red-team-loop` the costs overlapped, and the dearest run of all was a prompt run.
-- **The judge never ranked a graph run first.** It was asked once for each project.
+- **The judge never ranked a graph run first.** It was asked once for each task.
 
 In plain terms: on these four small tasks, a plain prompt that said the same things scored the same as the package.
 
@@ -66,7 +66,7 @@ In plain terms: on these four small tasks, a plain prompt that said the same thi
 
 It would be just as wrong to overstate this result the other way.
 
-- **It is not shown that the two are equal.** In three of the four projects every run got full marks on the held-out tests, so the tests could not have told a better result from a worse one. In the fourth, every run missed the same single case of 62. A test everyone passes cannot rank anyone.
+- **It is not shown that the two are equal.** In three of the four tasks every run got full marks on the held-out tests, so the tests could not have told a better result from a worse one. In the fourth, every run missed the same single case of 62. A test everyone passes cannot rank anyone.
 - **The tasks were small**, and each arm was run only two or three times.
 - **The two sides differed in more than one way.** The prompt kept the roles, the order, the loop and each brief. It left out each agent's tool list, its ownership and evidence rules, and the record. So the comparison cannot say which of those differences mattered.
 - **In the prompt arms, the lead still split the work among subagents.** Told in prose that there was a builder and a reviewer, it started a builder and a reviewer. So this was never "a graph against one agent working alone". It was a graph against the same design described in a paragraph.
@@ -79,7 +79,7 @@ This is the most important gap, and it is easy to miss. It is about two of the b
 
 A round cap and a budget are there for the bad day: the run that would otherwise go round forever. To know that a cap works, you need a run that *reaches* it while there is still work it wants to do, and then stops.
 
-**No such run is on record.** When version 0.3.0 was published there were 33 recorded runs of a package: the twenty counted proving runs, four earlier ones, and the nine package runs of the comparison. In none of them did a round cap or a budget fire. Every run ended earlier, because the work passed or a person was asked. The runs added since have not changed that.
+**No such run is on record.** When version 0.3.0 was published there were 33 recorded runs of a package: the twenty counted proving runs, four earlier ones, and the nine package runs of the comparison. In none of them is a round cap or a budget on record as firing. Every run ended earlier, because the work passed or a person was asked. By its own account, the second comparison's runs did not reach one either. The wording "on record" is deliberate: half of the proving records did not keep the lead's own count, so this is a statement about what the records show.
 
 So it is **not shown that a cap or a budget holds a run that would otherwise go on.** That is why the project stopped saying that grooph "bounds" autonomous work. It may. Nothing recorded shows it.
 
@@ -93,7 +93,7 @@ An experiment designed to produce exactly the missing record, a run that hits a 
 
 Chapter 1's table said this, and it belongs in the list of what is not shown.
 
-The validator checks a document. The package instructs a session. While a session is running, nothing in grooph watches it or can stop it. What force there is during a run is the harness's: the tool list, and a spending limit if you set one. The one check of grooph's that refuses anything afterwards is the adoption check of chapter 7, which is new, narrow, and not yet audited.
+The validator checks a document. The package instructs a session. While a session is running, nothing in grooph watches it or can stop it. What force there is during a run is the harness's: each subagent's tool list and empty starting context, and a spending limit if you set one. The one check of grooph's that refuses anything afterwards is the adoption check of chapter 7, which is new, narrow, and not yet audited.
 
 ## The second comparison
 

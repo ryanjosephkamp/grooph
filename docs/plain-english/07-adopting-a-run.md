@@ -2,7 +2,7 @@
 
 [Start page](README.md) · previous: [a run](06-a-run.md) · next: [subgroophs](08-subgroophs.md)
 
-Chapter 2 said a graph is **adaptive** by default: when the work shows the plan is wrong, the lead may change its own copy of the plan, and must write down each change. Chapter 6 said every run works from a **working copy** and never touches the original.
+Chapter 2 said a graph is **adaptive** by default: when the work shows the plan is wrong, the lead may change its own copy of the plan, and must write down each change. Chapter 6 said every run works from a **working copy** and is told not to touch the file it started from.
 
 So after a run there may be two versions of the graph: the **source** you started with, and the working copy the run ended with. **Adopting** is the act of taking the working copy as the graph's next version. The other choice is to discard it. Either way, a person is meant to decide. Nothing a run learned is applied by itself.
 
@@ -17,7 +17,7 @@ By now there are several copies of a graph about, so here they are in one place:
 | The **working copy** | inside one run's folder | the lead, during that run |
 | The next version | `.grooph/graphs/<id>.grooph.json` | `grooph adopt`, if you say so |
 
-"The document is always right" from chapter 2 means: whichever of these a tool is reading, it believes that file and nothing else.
+"The document is always right" from chapter 2 means: whichever of these a tool is reading, it believes that file and nothing else. After an adoption, the next version is the graph to carry on with: edit that file, and compile from it for the next run.
 
 ## Looking at what a run changed
 
@@ -112,7 +112,7 @@ This is the one place in grooph that refuses anything about a brake after a grap
 - **A graph file is an ordinary file.** Nothing stops a hand, or a session, from copying a working copy over the source without using `grooph adopt` at all.
 - **It sees only the brakes it knows how to compare.** The project says plainly that the list has not been shown to be complete: by its author's account, five fresh AI sessions in turn were given the program and asked to get a loosened graph past it, each found a way, and each way was then closed.
 - **One kind is known to be missing as this is written.** A **check**, the step that runs your tests, is on the list of brakes, and this program does not look at checks yet. Today, a working copy in which the test command has been replaced with one that always passes is adopted with nothing refused. The project found this itself, in its audit (chapter 14), and has ruled that it is to be fixed.
-- **One thing is noted and not refused, on purpose.** Suppose a run adds a *new* way back into a loop, one the loop does not count as a round, and that way is opened each time by a person: a new answer at a gate, say. Then a person can send the loop round again and again, and the cap only limits the rounds between two of that person's decisions. The command prints a note naming the loop. It does not refuse, on the reasoning that the person is the brake. (This is not about our example as it stands. There, a "no" at the gate is one of the loop's own back edges and is counted like any other round.)
+- **One loosening is let through on purpose, and only reported.** It is a change that lets a person, each time they are asked, send a loop round again in a way the loop does not count as a round. The command prints a note about it and does not refuse. The reasoning is that a person who chooses to go round again is the brake. (Our example as it stands is not such a case: there a "no" at the gate is counted like any other round.)
 - **It has not been audited.** No second, independent AI system has read this check yet (chapter 14). Until one has, no page of grooph's claims it as something shown.
 
 So the fair summary is narrow: **`grooph adopt` does not write a working copy that loosens a brake its comparison sees, until that change is asked for by name.** That is a useful check at one door. It is not a wall around a run.

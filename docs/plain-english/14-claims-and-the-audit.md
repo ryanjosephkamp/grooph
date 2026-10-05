@@ -47,7 +47,7 @@ The largest finding concerned the sentence the whole project had been using to d
 - **"record"** is supported by something narrower: runs leave records, and some records are incomplete;
 - **"contract"** is supported by something narrower: most recorded sessions followed their packages, by a check of selected parts, and nothing enforces it.
 
-The sentence was replaced, everywhere it stood, by the paragraph you read on this guide's first page. The owner accepted the audit's corrections on 5 October 2026 and they were made that day, each as its own change so that any one of them could be taken back alone.
+The sentence was replaced, everywhere it stood, by the paragraph quoted at the top of chapter 13. The owner accepted the audit's corrections on 5 October 2026 and they were made that day, each as its own change so that any one of them could be taken back alone.
 
 The audit also turned up something that was not a wording problem. Checking the claim that a run "may tighten a brake and never loosen one", the audit lane tried it: it raised a round cap and a budget in a run's working copy and asked grooph to adopt it. grooph adopted it. Nothing had ever checked that rule. The adoption check of chapter 7 was written in answer. Later the same day, reading that new check, the audit lane found that it did not treat a test command as a brake, and the owner ruled that it should. That is the "one kind is known to be missing" of chapter 7.
 
@@ -58,7 +58,7 @@ A few things were deliberately left as they were, and the claims page lists them
 ## What has not been audited yet
 
 - **The second comparison** of chapter 13.
-- **The adoption check** of chapter 7 and the comparison it rests on.
+- **The adoption check** of chapter 7.
 - **This guide.**
 
 These are the subject of the audit's second round, which had not been sent when this was written.

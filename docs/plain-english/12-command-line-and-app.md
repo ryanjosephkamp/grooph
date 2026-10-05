@@ -107,9 +107,9 @@ Most people will never type the commands in chapter 4. Installing grooph also in
 /grooph-design fix the flaky checkout test, ten green runs in a row
 ```
 
-(That line was not run for this guide: it starts work in an agent session.) The session that does this is called the **executive**. It reads the templates, makes one to three candidate graphs, checks each with the validator, and puts them in a small file called a **proposal set**, with its reasons, the advantages and drawbacks of each, and one recommendation. It then gives you a **share link**.
+(That line was not run for this guide: it starts work in an agent session.) The session that does this is called the **executive**. It reads the templates, makes one to three candidate graphs, checks each with the validator, and puts them in a small file called a **proposal set**, with its reasons, the advantages and drawbacks of each, and one recommendation. It then gives you a **share link**, as a line in your conversation with it.
 
-You open the link on your phone and see the candidates side by side: the **compare view**. Each card has a one-word label such as "Lean" or "Rigorous", the shape line, the reasoning, and the graph's glyph. You pick one. Your phone cannot talk to the session, since nothing is uploaded anywhere. So the **Choose** button copies one short line, such as `I pick "Lean" …`, and you paste that line back into your conversation with the agent, or simply tell it the label. The session then writes out your pick (`grooph pick`) and compiles it (`grooph export`).
+You open the link on your phone, by reading that conversation there or by sending the link to yourself as you would any other, and see the candidates side by side: the **compare view**. Each card has a one-word label such as "Lean" or "Rigorous", the shape line, the reasoning, and the graph's glyph. You pick one. Your phone cannot talk to the session, since nothing is uploaded anywhere. So the **Choose** button copies one short line, such as `I pick "Lean" …`, and you paste that line back into your conversation with the agent, or simply tell it the label. The session then writes out your pick (`grooph pick`) and compiles it (`grooph export`).
 
 Then it waits. The skill tells the session not to start the run until you say so. As with everything a session is told, that is an instruction.
 
@@ -149,7 +149,7 @@ What it is for, in the order you are likely to meet it:
 | **The templates** | Browse the twenty, with search and filters, and start from one |
 | **The canvas** | See a graph as boxes and arrows, and edit it. This is the one place a graph is edited by hand. A subgrooph's box opens when you tap it |
 | **The outline** | Read a graph top to bottom, every brief in full |
-| **A run's page** | See a run: each node's state, the timeline of notes, what the run changed, its proposals, and the **Adopt** and **Discard** buttons of chapter 7. With `grooph watch` running on your computer, the page it serves updates live (chapter 11 says how to open it from a phone) |
+| **A run's page** | See a run: each node's state, the timeline of notes, what the run changed, its proposals, and two buttons. **Adopt** is chapter 7's check, and saves the next version among the graphs kept on that device. **Discard** leaves everything as it was. A run reaches the app as a link (`grooph share` on the run's folder), as a file you import, or live. With `grooph watch` running on your computer, the page it serves updates live (chapter 11 says how to open it from a phone) |
 | **A map's page** | Look at an operation map as a picture, a sequence, or in 3D |
 | **Export** | Keep a picture or the one-file offline page, download the graph, or download the package as a zip to unpack in your project |
 

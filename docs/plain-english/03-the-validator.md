@@ -22,7 +22,7 @@ warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same mod
 rounding.grooph.json: 0 errors, 1 warning
 ```
 
-No errors. One warning: the builder and the critic are on the same model tier. The warning says a reviewer on a different model *may* catch different mistakes. It does not say it will. Whether it does has not been measured. The `[at: …]` at the end names the pieces involved, so a picture can highlight them.
+No errors. One warning: the builder and the critic are on the same model tier. (A "pin", in the message, is a setting that fixes one worker to a particular named model.) The warning says a reviewer on a different model *may* catch different mistakes. It does not say it will. Whether it does has not been measured. The `[at: …]` at the end names the pieces involved, so a picture can highlight them.
 
 `--for-export` adds four checks that only matter when you are about to compile: that the graph has a goal, that it names a harness, that it is not still a template, and that no blank is left unfilled.
 
@@ -89,6 +89,8 @@ error  E_IRREVERSIBLE_NO_GATE  node "builder" performs irreversible actions (mer
 
 A step that is **marked** as doing something that cannot be undone must have a person on every way in. The message names the arrow from the critic, which no person stands on. (The other arrow into the builder comes from the human gate, and that one is acceptable.) The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
 
+One gap turned up while this guide was being written. The rule looks at the arrows *into* a marked step. A marked step that the run **starts at** was not refused once every arrow coming back into it passed a person, even though the run begins there with nobody asked. It has been reported to the project. Until it is fixed, do not rely on this rule for the first step of a graph.
+
 None of these four commands changed the file.
 
 ## Every rule, and what it protects against
@@ -112,7 +114,7 @@ None of these four commands changed the file.
 | `E_UNFILLED_SLOT` | A `{{blank}}` is still in the text | A worker told to run `{{test-command}}` |
 | `E_CRITIC_NOT_ISOLATED` | The graph carries the critic-isolation policy and an edge hands a critic the builder's context, or a writer hands a critic no evidence list | A reviewer who has already been talked round |
 | `E_OWNERSHIP_CONFLICT` | Two writers both own one file and nothing merges their work | Two workers overwriting each other |
-| `E_IRREVERSIBLE_NO_GATE` | A step marked irreversible can be reached without a person's decision | Merging, publishing, spending or deleting with nobody asked |
+| `E_IRREVERSIBLE_NO_GATE` | A step marked irreversible has an arrow into it that no person stands on, or has no arrow into it at all | Merging, publishing, spending or deleting with nobody asked |
 
 ### Warnings
 

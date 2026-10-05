@@ -22,7 +22,7 @@ The project has a rule for this, in four words: **observation never steers.** Wa
 - always finishes with "success", so it never blocks a step;
 - reads no file, calls no model, and opens no connection.
 
-It is one readable file, copied into your project where you can open it.
+The hook itself is one readable file, copied into your project where you can open it. Installing also copies a second script, the sender described further down, which does nothing unless you turn it on, and adds the hook's entry to the harness's settings file.
 
 Two careful qualifications, from the project's own audit:
 
@@ -85,7 +85,7 @@ It says: at this time, in this session, a subagent of this type started.
 | The subagent's type and, where given, the model | |
 | A tool's *name*, if you installed with `--tools` | |
 
-One more thing it holds, which the short description "ids, names and times" leaves out: **on the machine it runs on, a line can also hold the path of the working folder and the path where a subagent's transcript is kept.** A path is not content, but it can say something about you, such as a folder's name. The file is plain text. If you plan to send it anywhere, open it and look first.
+One more thing it holds, which the short description "ids, names and times" leaves out: **on the machine it runs on, a line can also hold the path of the working folder and the path where a subagent's transcript is kept.** A path is not content, but it can say something about you, such as a folder's name. When events are sent to another machine (below), the folder is sent as its name only and the transcript's path is not sent. The file is plain text, so you can open it and look.
 
 ## Reading what was recorded
 
@@ -140,7 +140,7 @@ One honesty rule is built into every such view: **a silent session is not called
 
 ## Sending events to another machine
 
-The events file lives on the machine where the session ran. `grooph events push` sends the events to a branch of their own in your repository, so someone on another machine can read them. A second, longer script, the **sender**, can do this at the end of every turn.
+The events file lives on the machine where the session ran. `grooph events push` copies the events to a branch of their own in the shared, online copy of your repository (sending changes there is called a **push**), so someone on another machine can read them. Whoever can read that repository can read that branch. A second, longer script, the **sender**, can do this at the end of every turn.
 
 Before you turn the sender on, know what the audit found about it: **it sends more than event lines.** Notes and plans that the session itself has recorded go too, with their text. The "never content" promise is about the event hook's lines. Read [subagents.md](../subagents.md) before using the sender on work you would not want copied to a branch.
 

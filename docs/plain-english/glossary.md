@@ -47,6 +47,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Role** | The sort of worker an agent node is: lead, planner, builder, critic, tester, researcher, red-team, judge, synthesizer | 2 |
 | **Critic family / writer family** | The roles the rules treat as judges (critic, judge, red-team) and as producers (builder, synthesizer, planner) | 2 |
 | **Tier** | A model's class, named without naming a product: frontier, strong or fast | 2 |
+| **Pin** | A setting that fixes one worker to a particular named model, whatever its tier | 3 |
 | **Effort** | How hard the model should think: low, medium, high or max | 2 |
 | **Brief** | What a worker may and may not do, and what it must leave behind | 2 |
 | **Capability** | A plain name for something a worker may do, such as `read-files` or `run-tests` | 2 |
@@ -106,7 +107,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Run** | One time a session follows a package | 6 |
 | **Run folder** | Where a run writes everything: its progress page, its notes and its working copy | 6 |
 | **Run note** | One structured line a run appends: what happened, where, when and how it came out. Never applied to the graph silently | 6 |
-| **Working copy** | The run's own copy of the graph. The original is never written by a run | 6, 7 |
+| **Working copy** | The run's own copy of the graph. A run is told to change this copy and no other | 6, 7 |
 | **Source** | The graph a run started from | 7 |
 | **Halted** | Waiting, usually for a person. Not the same as failed | 6 |
 | **Headless** | A session started by a script, with nobody watching | 6 |
@@ -137,6 +138,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Glyph** | The small wordless drawing of a graph's shape | 8, 10 |
 | **Canvas** | The app's boxes-and-arrows screen, where a graph is edited | 12 |
 | **Hook** | A command a harness runs when a named thing happens | 11 |
+| **Push** | Sending changes to the shared, online copy of a repository | 11 |
 | **Event hook** | grooph's hook. It appends one line and finishes. It returns no decision to the harness | 11 |
 | **Session event** | One line the event hook wrote: ids, names and times, and on its own machine two file paths. Never content | 11 |
 | **Live view** | What `grooph watch` shows: the run and the sessions, as they are now | 11 |

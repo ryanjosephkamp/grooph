@@ -50,7 +50,7 @@ RUN               GRAPH      STATE    ROUNDS   STOP
 20260920-172408   truncate   halted   0        bar passed
 ```
 
-One run. Its state is **halted**: it has stopped and is waiting for a person. Halted does not mean failed. Its loop made one trip and went back zero times ("ROUNDS 0"), and the stop that ended the loop was "bar passed": the work met the standard. So the loop finished well, and *then* the run halted, at the human gate that comes after it.
+One run. Its state is **halted**: it has stopped and is waiting for a person. Halted does not mean failed. Its loop made one trip and went back zero times ("ROUNDS 0"), and the stop that ended the loop was "bar passed": the work met the standard. So the standard was met, and *then* the run halted at the human gate. (The gate counts as part of the loop. Had the person said no, the work would have gone back to the builder and round 1 would have begun.)
 
 And one run in full:
 
@@ -122,7 +122,30 @@ Besides these, a note can be an **amendment** (the lead changed its working copy
 
 The word **halt** is used for three things, and all three mean "stopped, short of finished": a run waiting at a gate, a run that stopped itself at a cap or a budget and reported to you, and a stop box whose outcome is "halt" and not "success". Only the first is expected to carry on.
 
-A run that reaches a gate ends its turn there. If you are sitting in the session, you answer and it continues. If the session was started by a script with nobody watching (a **headless** run), it simply ends at the halt note. To carry on, the same session is resumed and told the run id. It reads `PROGRESS.md`, sees where it stopped, and keeps writing to the same `notes.jsonl`.
+A run that reaches a gate ends its turn there. If you are sitting in the session, you answer and it continues. If the session was started by a script with nobody watching (a **headless** run), it simply ends at the halt note. To carry on, you resume that same session, which is something the harness lets you do, and give it the run id: in Claude Code, by typing the package's command with the id after it. It reads `PROGRESS.md`, sees where it stopped, and keeps writing to the same `notes.jsonl`.
+
+## A run that went past its gate
+
+The record above stops at the gate, so here is another kept one that did not: the proving run of the `spec-then-loop` template, on a job called "word wrap". In that template a planner first writes down what "done" means, a person approves that, and only then does the building start. Copied into a folder the same way and shown with `grooph runs show`, its timeline reads:
+
+```text
+  n-0001  graph                   run started
+  n-0002  node:planner            started · dispatching planner
+  n-0003  node:planner            pass · ACCEPTANCE.md written: 5 shape checks, 7 behaviour checks, out-of-scope list
+  n-0004  node:spec-gate          halt · human gate spec-gate: asking whether ACCEPTANCE.md is the right definition of done
+  n-0005  node:spec-gate          pass (approve) · human approved ACCEPTANCE.md; taking e-spec-gate-builder
+  n-0006  loop:build              r0 · stops checked before round 0: bar-passed no (nothing built), max-iterations 0<4, budget 0…
+  n-0007  node:builder            r0 · started · dispatching builder, round 0 (dispatch 1/10)
+…
+  n-0013  node:done               pass · reached stop node done
+  n-0014  graph                   r0 · pass · run ended at stop node done, outcome success; no amendment to the working copy
+```
+
+Notes 4 and 5 are the pause and the answer. The run halted, an "approve" came, and it carried on to the end.
+
+Be clear about what that shows. In these recorded runs nobody was sitting at the keyboard. The answer was supplied by the experiment's own script, as agreed with the owner beforehand, when it resumed the session. So the record shows a run pausing at a gate and carrying on from where it stopped. It does not show a person weighing a decision.
+
+One more thing a careful reader will ask about our example: the gate says "Merge it?", and **no step in the graph does the merging.** If you approve, the run ends, and the merge is yours to do. A graph that is meant to merge for you needs a step that does it, marked irreversible, with a gate in front. The `human-gated-irreversible` fragment of chapter 4 is exactly that.
 
 ## Four honest things about this record
 
