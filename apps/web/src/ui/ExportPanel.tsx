@@ -1,4 +1,4 @@
-import { formatIssue, getProfile } from "@grooph/core";
+import { formatIssue, targetTitle } from "@grooph/core";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -127,7 +127,7 @@ export function ExportPanel() {
         {downloadGraph}
       </div>
       <p className="field-hint">
-        Unzip at the root of the project the run works in, then paste the kickoff prompt into a {getProfile(attempt.target).title} session opened there.
+        Unzip at the root of the project the run works in, then paste the kickoff prompt into a {targetTitle(attempt.target)} session opened there.
       </p>
 
       <Keep doc={doc} />

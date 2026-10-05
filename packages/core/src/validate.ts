@@ -22,7 +22,7 @@ import {
   reachableFrom,
 } from "./semantics.js";
 import { didYouMean } from "./suggest.js";
-import { hasProfile } from "./targets/index.js";
+import { hasProfile } from "./targets/names.js";
 import { findSlots } from "./template.js";
 import type { AgentNode, Edge, Graph, Group, Id, Node } from "./types.js";
 

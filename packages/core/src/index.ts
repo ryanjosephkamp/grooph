@@ -12,6 +12,8 @@ import type { Graph, OperationMap } from "./types.js";
 
 export * from "./base.js";
 export { compile, tryCompile, CompileError } from "./compile/index.js";
+// A target's whole profile: the compilers' and the CLI's, not on the web app's way in (`targets/names.ts`).
+export { getProfile } from "./targets/index.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
 export * from "./subgrooph.js";
 // Adoption held to the graph's brakes: it brings the same comparison, and is not on the web app's way in either.

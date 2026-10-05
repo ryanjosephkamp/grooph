@@ -1,12 +1,12 @@
 import {
   KNOWN_TARGETS,
-  getProfile,
   optText,
   setConstraint,
   setGraphField,
   setGraphName,
   setPositions,
   setTarget,
+  targetTitle,
   type Adaptation,
 } from "@grooph/core";
 import { useState, type ReactNode } from "react";
@@ -57,7 +57,7 @@ export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName
         value={other ? OTHER : (harness ?? "")}
         options={[
           { value: "", label: "(choose)" },
-          ...KNOWN_TARGETS.map((target) => ({ value: target, label: getProfile(target).title })),
+          ...KNOWN_TARGETS.map((target) => ({ value: target, label: targetTitle(target) ?? target })),
           { value: OTHER, label: "other…" },
         ]}
         hint="Export compiles a package for the selected harness."
