@@ -1,0 +1,31 @@
+source valid: true worst builder dispatches: 3
+
+### MB1 a dispatched step taken out of the loop's members (budget counts 2 a round, not 3)
+  changes: change loop:review-review.members, add edge:e-builder-critic-direct
+  refused: 
+    - loop:review-review.members: the loop "review-review" would no longer bound "review-tests", which is still in the graph
+  tightens:
+    + edge:e-builder-critic-direct: the critic would no longer be handed "diff of the change" by "review-builder"
+  warnings: W_HOMOGENEOUS_CRITICS
+  my oracle: [{"node":"review-builder","was":3,"now":5},{"node":"review-tests","was":3,"now":5},{"node":"review-critic","was":3,"now":5}]
+
+### MB2 a new step on the round's path that is not made a member (work the budget does not count; new node: adaptive leads may add one)
+  changes: add node:review-heavy, add edge:e-builder-heavy, add edge:e-heavy-tests
+  refused: 
+    - node:review-heavy: "review-heavy" would work on the rounds of the loop "review-review" and not be among its members: its budget of dispatches would not count it
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### MB3 the forward edge builder->critic called a back edge of the loop (critic becomes an entry node)
+  changes: change loop:review-review.back
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:review-review.back: the rounds that "e-review-builder-review-critic" starts would no longer be counted by any loop
+
+### MB4 the edge critic->gate called a back edge (the gate becomes an entry node)
+  changes: change loop:review-review.back
+  refused: 
+    - loop:review-review.back: nothing would lead to "review-merge-gate", so a run would start there, where every way to it passed the critic "review-critic"
+  tightens:
+    + loop:review-review.back: the rounds that "review-e-critic-pass" starts would no longer be counted by any loop
+  warnings: W_HOMOGENEOUS_CRITICS
+  entry nodes of base: plan | after MB3: plan,review-critic

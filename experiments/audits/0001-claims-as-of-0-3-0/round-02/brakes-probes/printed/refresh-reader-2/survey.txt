@@ -1,0 +1,21 @@
+exports: [ 'reachableFrom' ]
+contradiction-seeker [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+debate-then-build [graph] lead=- gates=plan-gate approvals= irr= thens=debate:max-iterations->judge human= groups= merges= loops=2
+dual-bar [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+fresh-grind-rare-judge [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=2
+gauntlet-decomposed [graph] lead=- gates=decomposition-gate,release-gate approvals= irr= thens=pieces:bar-passed->integrator human=pieces:human/2 groups= merges= loops=2
+grind-loop [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+heterogeneous-critic [graph] lead=- gates=merge-gate approvals= irr= thens= human= groups= merges= loops=1
+human-gated-irreversible [fragment] lead=- gates=gate approvals= irr=act thens= human= groups= merges= loops=0
+merge-queue [fragment] lead=- gates=land-gate approvals= irr=land thens= human= groups= merges= loops=1
+metric-sandwich [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+ownership-not-swarm [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+patrol-pulse [graph] lead=- gates=prioritize approvals= irr= thens= human= groups= merges= loops=0
+ralph-loop [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+red-team-loop [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=1
+retrospective-rewrite [graph] lead=- gates= approvals= irr= thens=grind:max-iterations->retro,grind:budget->retro human= groups= merges= loops=1
+review-gate [graph] lead=- gates=merge-gate approvals= irr= thens= human= groups= merges= loops=1
+spec-then-loop [graph] lead=- gates=spec-gate approvals= irr= thens= human= groups= merges= loops=1
+specialist-critic-bank [graph] lead=- gates=gate approvals= irr= thens= human= groups= merges= loops=1
+taste-polish [graph] lead=- gates= approvals= irr= thens= human=polish:human/2 groups= merges= loops=1
+tournament-then-judge [graph] lead=- gates= approvals= irr= thens= human= groups= merges= loops=0

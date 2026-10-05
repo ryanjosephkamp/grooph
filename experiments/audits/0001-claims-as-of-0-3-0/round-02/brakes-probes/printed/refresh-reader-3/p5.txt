@@ -1,0 +1,3 @@
+debate-then-build: lead-on stops: [{"loop":"debate","kind":"max-iterations","n":2,"then":"judge"}]
+gauntlet-decomposed: lead-on stops: [{"loop":"pieces","kind":"bar-passed","then":"integrator"}]
+retrospective-rewrite: lead-on stops: [{"loop":"grind","kind":"max-iterations","n":5,"then":"retro"},{"loop":"grind","kind":"budget","measure":"minutes","limit":30,"then":"retro"}]

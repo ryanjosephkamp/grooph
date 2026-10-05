@@ -1,0 +1,41 @@
+
+=== H2': edge into the critic re-added under another id with one token piece of evidence
+applied: []
+held:    [
+  'edge:e-review-builder-review-critic [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  'edge:review-to-critic (waits edge:e-review-builder-review-critic)'
+]
+schema: ok | errors before: [] after: []
+  -> {"id":"e-review-builder-review-critic","from":"review-builder","to":"review-critic","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]} | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== H3 step 1 (v2): cap and budget lead to a halting stop
+applied: [ 'node:review-halted', 'loop:review-review.stops' ]
+held:    []
+schema: ok | errors before: [] after: []
+
+=== H3 step 2 (v3): the halting stop becomes an agent that leads back to the builder
+applied: []
+held:    [
+  'node:review-halted.kind [the round cap (4) would no longer halt the run; the budget (10 dispatches) would no longer halt the run]',
+  'node:review-halted.outcome [the round cap (4) would no longer halt the run; the budget (10 dispatches) would no longer halt the run]',
+  'edge:e-review-halted-review-builder ["e-review-halted-review-builder" (review-halted → review-builder) would make a way round the nodes of "review-review" that its stops do not count]',
+  'node:review-halted.name (waits node:review-halted.outcome)',
+  'node:review-halted.role (waits node:review-halted.outcome)',
+  'node:review-halted.brief (waits node:review-halted.outcome)',
+  'node:review-halted.outputs (waits node:review-halted.outcome)',
+  'node:review-halted.allow (waits node:review-halted.outcome)'
+]
+schema: ok | errors before: [] after: []
+  stops: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4,"then":"review-halted"},{"kind":"budget","measure":"dispatches","limit":10,"then":"review-halted"}] 
+  review-halted is now: stop | out: [] | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== H3 step 2' (v3'): the halting stop's outcome becomes success
+applied: []
+held:    [
+  'node:review-halted.outcome [the round cap (4) would no longer halt the run; the budget (10 dispatches) would no longer halt the run; a run could end in success at "review-halted", a way that does not pass a person; a run could end in success at "review-halted", a way that does not pass the critic "review-critic"]'
+]
+schema: ok | errors before: [] after: []
+  review-halted: {"id":"review-halted","kind":"stop","name":"Halted","outcome":"halt"} | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+debate-then-build loops: [{"id":"debate","members":["planner-a","planner-b","judge"],"stops":[{"kind":"bar-passed"},{"kind":"max-iterations","n":2,"then":"judge"},{"kind":"budget","measure":"dispatches","limit":8}]},{"id":"build","members":["builder","tests"],"stops":[{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]}]
+retrospective-rewrite loops: [{"id":"grind","members":["builder","tests"],"stops":[{"kind":"max-iterations","n":5,"then":"retro"},{"kind":"budget","measure":"minutes","limit":30,"then":"retro"}]}] nodes: [ 'builder:agent', 'tests:check', 'retro:agent', 'done:stop' ]

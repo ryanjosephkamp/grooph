@@ -1,0 +1,44 @@
+alone nodes: plan:agent release:agent done:stop/success review-builder:agent review-critic:agent review-merge-gate:human-gate review-done:stop/success | edges: e-release-done:release->done e-review-builder-review-critic:review-builder->review-critic review-e-critic-fail:review-critic->review-builder review-e-critic-pass:review-critic->review-merge-gate e-review-merge-gate-review-done:review-merge-gate->review-done review-e-merge-gate-reject:review-merge-gate->review-builder e-plan-review-builder:plan->review-builder | errors: []
+alone reached with no person: plan release done review-builder review-critic review-merge-gate
+
+=== P1' parallel back edge in a new loop, cap 100, with a bar
+applied: []
+held:    [
+  'edge:review-e-critic-retry [a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-retry" and not against its stops; "review-e-critic-retry" (review-critic → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-retry" would count it, and each time round "review-review" starts afresh]',
+  'loop:review-retry [a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-retry" and not against its stops; "review-e-critic-retry" (review-critic → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-retry" would count it, and each time round "review-review" starts afresh]'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): [] | reached with no person: plan review-builder review-critic review-merge-gate
+
+=== P9 alone: adds stop done2 (success) and edge builder->done2
+applied: []
+held:    [
+  'edge:e-review-builder-review-done2 [adds a way from "review-builder" to end in success that does not pass a person]',
+  'node:review-done2 (waits edge:e-review-builder-review-done2)'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): [] | reached with no person: plan release done review-builder review-critic review-merge-gate
+
+=== P8a alone: critic pass re-pointed to a new success stop
+applied: []
+held:    [
+  'edge:review-e-critic-pass.to [adds a way from "review-critic" to end in success that does not pass a person; nothing would lead to "review-merge-gate", so a run would start there, where every way to it passed the critic "review-critic"]',
+  'node:review-done2 (waits edge:review-e-critic-pass.to)'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): [] | reached with no person: plan release done review-builder review-critic review-merge-gate
+
+=== P8b then: critic pass re-pointed to a new agent 'ship'
+applied: []
+held:    [
+  'edge:review-e-critic-pass.to [nothing would lead to "review-merge-gate", so a run would start there, where every way to it passed the critic "review-critic"]',
+  'node:review-ship (waits edge:review-e-critic-pass.to)'
+]
+schema: ok | errors before: [] after: []
+brakesLost(before, result): [] | reached with no person: plan review-builder review-critic review-merge-gate
+
+=== P8c then: adds agent 'ship' fed straight by the builder
+applied: [ 'node:review-ship', 'edge:e-review-builder-review-ship' ]
+held:    []
+schema: ok | errors before: [] after: []
+brakesLost(before, result): [] | reached with no person: plan review-builder review-critic review-ship review-merge-gate
