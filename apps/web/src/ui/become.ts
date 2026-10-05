@@ -20,12 +20,12 @@ let turn = 0;
 /**
  * Make a change with its parts seen to move. `parts` is asked twice, before the change and after it, for the
  * elements on the page then and the key of each: one before and one after with the same key are one thing to the
- * eye. `change` makes the change and calls what it is handed once the page has it, and must call it whatever
- * happens: until then the browser shows the page as it was, and takes nothing. The names are taken off again when
- * the move has ended.
+ * eye. `change` makes the change and calls `done` once the page has it, and must call it whatever happens: until
+ * then the browser shows the page as it was, and takes nothing. It may call `skip` when, by the time it is asked,
+ * there is nothing left to change: the move is then not made. The names are taken off again when the move has ended.
  */
-export function become(parts: () => Iterable<readonly [HTMLElement, string]>, change: (done: () => void) => void): void {
-  if (still()) return change(() => {});
+export function become(parts: () => Iterable<readonly [HTMLElement, string]>, change: (done: () => void, skip: () => void) => void): void {
+  if (still()) return change(() => {}, () => {});
   const keys: string[] = [];
   const mine = ++turn;
   const name = (now: Iterable<readonly [HTMLElement, string]>): void => {
@@ -40,7 +40,15 @@ export function become(parts: () => Iterable<readonly [HTMLElement, string]>, ch
     }
   };
   name(parts());
-  const move = document.startViewTransition(() => new Promise<void>((done) => change(() => (name(parts()), done()))));
+  const move = document.startViewTransition(
+    () =>
+      new Promise<void>((done) =>
+        change(
+          () => (name(parts()), done()),
+          () => move.skipTransition(),
+        ),
+      ),
+  );
   // A move the browser gives up (another began, the page is out of sight) rejects this, and nobody else reads it.
   move.ready.catch(() => {});
   const ended = (): void => name([]);

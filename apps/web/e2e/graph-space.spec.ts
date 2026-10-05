@@ -367,9 +367,12 @@ async function noteMoves(page: Page, held = false): Promise<() => Promise<Move[]
         .map((a) => (a.effect as KeyframeEffect).pseudoElement!)
         .filter((part) => part.startsWith(`::view-transition-${side}(gv`))
         .map((part) => part.slice(part.indexOf("(")));
-    Object.assign(window, { __moves: log, __took: took, letGo: () => its().forEach((a) => a.finish()) });
+    // What carried a name when each move was asked for: the parts of the page as it was.
+    const named: string[][] = [];
+    Object.assign(window, { __moves: log, __took: took, __named: named, letGo: () => its().forEach((a) => a.finish()) });
     document.startViewTransition = (update?: unknown) => {
       const from = performance.now();
+      named.push([...document.querySelectorAll<HTMLElement>(".react-flow__node, .space-card")].filter((el) => el.style.getPropertyValue("view-transition-name")).map((el) => el.dataset["id"] ?? el.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? "?"));
       const move = real(update as ViewTransitionUpdateCallback);
       const seen = { pairs: -1, ended: false };
       const at = log.push(seen) - 1;
@@ -387,6 +390,7 @@ async function noteMoves(page: Page, held = false): Promise<() => Promise<Move[]
   }, held);
   return () => page.evaluate(() => (window as unknown as { __moves?: Move[] }).__moves ?? []);
 }
+const namedFirst = (page: Page): Promise<string[][]> => page.evaluate(() => (window as unknown as { __named?: string[][] }).__named ?? []);
 const slowest = (page: Page): Promise<number> => page.evaluate(() => Math.max(0, ...((window as unknown as { __took?: number[] }).__took ?? [])));
 
 /** Where everything of the scene stands on the screen: its cards, sheets and arcs, and how its world is turned. */
@@ -660,6 +664,41 @@ test("two presses in one breath: the page ends on the view asked for last, and a
   expect(errors).toEqual([]);
 });
 
+test("no move is made of the page going to itself, and a subgrooph's frame is not a part that moves", async ({ page }) => {
+  const moves = await noteMoves(page);
+  const doc = parseGraphText(readFileSync(join(repoRoot, "fixtures/valid/subgrooph-in-a-graph.grooph.json"), "utf8")).doc!;
+  await page.goto(linkFor(doc));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await expect(view(page, "3D")).toBeVisible();
+  // The canvas draws more than the graph's nodes: a subgrooph has a frame there, or stands as one box.
+  await expect.poll(() => page.locator(".react-flow__node").evaluateAll((els, known) => els.some((el) => !known.includes((el as HTMLElement).dataset["id"]!)), doc.nodes.map((n) => n.id))).toBe(true);
+  const drawn = await page.locator(".react-flow__node").evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset["id"]!));
+  const ids = doc.nodes.map((n) => n.id);
+  expect(drawn.some((id) => !ids.includes(id))).toBe(true);
+
+  await threeD(page);
+  await view(page, "Picture").click();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await viewIsStill(page);
+  // Every part that was named, either way, is a node of the graph.
+  const named = (await namedFirst(page)).flat();
+  expect(named.length).toBeGreaterThan(0);
+  expect(named.filter((id) => !ids.includes(id))).toEqual([]);
+
+  // 3D and Picture again with nothing drawn between: by the time the browser asks, there is nothing to change. The
+  // move is given up, with no part carried anywhere, and the page is the page at once.
+  const before = (await moves()).length;
+  await page.evaluate(() => {
+    const radios = document.querySelectorAll<HTMLElement>('[role="radiogroup"][aria-label="View of the graph"] [role="radio"]');
+    radios[1]!.click();
+    radios[0]!.click();
+  });
+  await expect.poll(async () => (await moves()).slice(before)).toEqual([{ pairs: 0, ended: true }]);
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space")).toHaveCount(0);
+  expect(await namedStill(page)).toBe(0);
+});
+
 test("with a template's details over the foot of a phone, only the nodes in sight are seen to go: nothing crosses what it was behind", async ({ page }) => {
   const moves = await noteMoves(page);
   await page.goto("./#/templates/built-in/gauntlet-decomposed");
@@ -668,13 +707,12 @@ test("with a template's details over the foot of a phone, only the nodes in sigh
   const all = page.locator(".react-flow__node");
   const where = async () => JSON.stringify(await node(page, "planner").boundingBox());
   await expect.poll(async () => (await where()) === (await where())).toBe(true);
-  // In sight: a node whose middle the stage holds. The stage ends where the details begin, and cuts the canvas there.
+  // In sight: a node the canvas holds whole. The stage ends where the details begin, and the canvas is cut there.
   const inSight = await all.evaluateAll((els) => {
-    const room = document.querySelector("main.stage")!.getBoundingClientRect();
+    const room = document.querySelector("main.stage .react-flow")!.getBoundingClientRect();
     return els.filter((el) => {
       const box = el.getBoundingClientRect();
-      const y = box.y + box.height / 2;
-      return y > room.top && y < room.bottom;
+      return box.top > room.top - 1 && box.bottom < room.bottom + 1 && box.left > room.left - 1 && box.right < room.right + 1;
     }).length;
   });
   // The details begin where the stage ends, and no part of the stage is under them: what the stage holds is in sight.
