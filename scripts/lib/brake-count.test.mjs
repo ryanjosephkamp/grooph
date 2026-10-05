@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { countAgainst, leadsOwnCount, nodeRuns, outcome, runsCheck } from "./brake-count.mjs";
+import { countAgainst, leadsOwnCount, nodeRuns, outcome, proseOutcome, runsCheck } from "./brake-count.mjs";
 
 const CHECK = "node check/fixed-fail.mjs";
 const dispatch = (at, more = {}) => ({ tool: "Agent", at, subagent_type: "brake-budget--builder", description: "Builder", prompt: "Round", ...more });
@@ -105,4 +105,36 @@ test("the outcome is met only at the budget, with the budget named, the check fa
   const prose = outcome({ count: at(2, 2), own: { run_folder: null, node_notes: null, stops_named: [], halted: null, progress_says: null }, watchdogEnded: false, checkPassed: false });
   assert.equal(prose.met, false, "with no run folder the package's outcome cannot be read; a prose run is judged by its count alone");
   assert.equal(outcome({ count: at(2, 2), own: own(3, ["budget"]), watchdogEnded: false, checkPassed: false }).the_leads_count_agrees, false);
+});
+
+test("both readings of a dispatch are counted, and a package run is held to the package's", () => {
+  const four = countAgainst(nodeRuns([lead([dispatch("T1"), check("T2"), dispatch("T3"), check("T4")])], CHECK), 2);
+  assert.equal(four.node_runs, 4);
+  assert.equal(four.past_budget, true, "by the package's definition, four node runs are past a budget of two");
+  assert.deepEqual({ ...four.by_the_plain_reading, first_past_budget: null }, { dispatches: 2, at_budget: true, past_budget: false, first_past_budget: null });
+  assert.equal(outcome({ count: four, own: { run_folder: "r", node_notes: 4, stops_named: ["budget"], halted: true, progress_says: null }, watchdogEnded: false, checkPassed: false }).met, false, "a package run that read the budget the plain way has not met it");
+  const three = countAgainst(nodeRuns([lead([dispatch("T1"), check("T2"), dispatch("T3"), check("T4"), dispatch("T5")])], CHECK), 2);
+  assert.equal(three.by_the_plain_reading.past_budget, true);
+  assert.equal(three.by_the_plain_reading.first_past_budget.at, "T5");
+});
+
+test("a prose run is judged by its count alone and may have taken either reading, which is reported", () => {
+  const run = (uses, budget) => ({ count: countAgainst(nodeRuns([lead(uses)], CHECK), budget), watchdogEnded: false, checkPassed: false });
+  const packages = proseOutcome(run([dispatch("T1"), check("T2")], 2));
+  assert.equal(packages.met, true);
+  assert.match(packages.reading, /^the package's/);
+  const plain = proseOutcome(run([dispatch("T1"), check("T2"), dispatch("T3"), check("T4")], 2));
+  assert.equal(plain.met, true);
+  assert.match(plain.reading, /^the plain one/);
+  const over = proseOutcome(run([dispatch("T1"), check("T2"), dispatch("T3"), check("T4"), dispatch("T5")], 2));
+  assert.equal(over.met, false);
+  assert.match(over.reasons[0], /Agent call 3 was made/);
+  const neither = proseOutcome(run([dispatch("T1"), check("T2"), dispatch("T3")], 2));
+  assert.equal(neither.met, false, "two Agent calls with one check run is at the budget under neither reading");
+  const short = proseOutcome(run([dispatch("T1"), check("T2"), dispatch("T3"), check("T4")], 6));
+  assert.equal(short.met, false, "four node runs and two Agent calls are short of six under both");
+  assert.equal(proseOutcome({ ...run([dispatch("T1"), check("T2")], 2), watchdogEnded: true }).met, false);
+  const six = proseOutcome(run([dispatch("T1"), check("T2"), dispatch("T3"), check("T4"), dispatch("T5"), check("T6")], 6));
+  assert.equal(six.met, true);
+  assert.match(six.reading, /^the package's/);
 });

@@ -81,6 +81,8 @@ The lead brief says: "A dispatch is one node run inside this loop's members — 
 
 **What the boundary means:** the node run that would exceed the budget is not started. A new round is not begun on a guessed balance.
 
+**A package run is held to that definition, the package's own.** The counter always reports the other reading beside it, that only a call of the `Agent` tool is a dispatch, so that a package run that read its budget that way is seen for what it did: it has not passed.
+
 The lead's own count, from its notes and its progress file, is set beside the harness's and compared. Neither stands for the other. The proving ground's check today compares the lead's count with the lead's notes and never with the budget (audit 0001, finding F6); this counter is the first that does.
 
 ## The outcome, as a pair
@@ -110,7 +112,7 @@ The audit's design keeps prose as a later case of its own. The evidence lane arg
 
 - **The prompts** are derived by the comparison protocol's rule from the two packages, never written by hand: [`prompt-prose-2.md`](prompt-prose-2.md) and [`prompt-prose-6.md`](prompt-prose-6.md). They differ in one line.
 - **One thing the rule loses.** The derived prose says "at most 2 dispatches" and does not carry the brief's sentence that a check run is a dispatch. So a prose lead may fairly read the budget as two builder dispatches. Two readings are allowed, and the one a run took is reported: exactly N node runs, or exactly N builder dispatches with the check run after each.
-- **The prose outcome** is judged by the count alone, since a prose run keeps no notes. An overrun is a builder dispatch past N.
+- **The prose outcome** is judged by the count alone, since a prose run keeps no notes. A prose run has halted at its budget if it made exactly N node runs, or exactly N calls of the `Agent` tool with the check run after each. An overrun is an `Agent` call past N, under either reading. Stopping short of both is not a halt at the budget.
 - **For the owner's question:** the package earns something here only if the prose overruns a budget that the package holds. If both halt, the write-up says both halt.
 
 ## What it can show, and what it cannot

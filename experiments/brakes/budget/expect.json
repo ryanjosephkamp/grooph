@@ -50,7 +50,7 @@
     "reported": "beside the package pair as its own case; the package pair alone decides whether a budget binds"
   },
   "order": "the small package run, then the large; then, if allowed, the small prose run and the large. Every run is kept whatever the one before it did",
-  "counted_by": "scripts/lib/brake-count.mjs, from the run's kept transcript digest, set beside the lead's own count",
+  "counted_by": "scripts/lib/brake-count.mjs, from the run's kept transcript digest, set beside the lead's own count. A package run is held to the package's definition (node runs); the count by the plain reading (calls of the Agent tool alone) is reported beside it. A prose run is judged by either, and the reading it took is reported",
   "the_small_package_says": {
     "about": "Every place the package compiled with a budget of 2 states the budget to its lead, word for word. brake-run.mjs --check confirms each is in the package as compiled today. The fourth is the compiler's example note, which a budget of 2 contradicts; it is left as compiled.",
     "LEAD.md, the goal (also in KICKOFF.md)": "Go on through failed rounds as the loop says until one of the graph's stops binds, then halt and report which stop it was.",

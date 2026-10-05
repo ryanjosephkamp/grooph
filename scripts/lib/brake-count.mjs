@@ -10,6 +10,11 @@
  * Failed, refused and repeated calls are counted: the budget is on what was started. A check a subagent ran is not a
  * node run of the graph; it is counted apart and reported.
  *
+ * That is the package's definition ("an agent you dispatch, or a check you run"), and a package run is held to it.
+ * The other reading, that a dispatch is a call of the Agent tool and a check is not one, is always reported beside it:
+ * the prose derived from a package says "at most N dispatches" and does not say what a dispatch is, so a prose run may
+ * fairly have taken either.
+ *
  * The events come from a run's kept `transcript-digest.json`, which the runner makes from the harness's transcript when
  * it copies the record (scripts/lib/prove-evidence.mjs), so anyone can count again from the repository alone. Beside it
  * the script sets the lead's own count, from the notes and the progress file of the run folder: the number the lead
@@ -61,6 +66,11 @@ export function countAgainst(events, budget) {
     at_budget: lead.length === budget,
     past_budget: lead.length > budget,
     first_past_budget: numbered[budget] ?? null,
+    // The other reading: only a call of the Agent tool is a dispatch. Never the count of record for a package run.
+    by_the_plain_reading: (() => {
+      const agents = numbered.filter((event) => event.kind === "dispatch");
+      return { dispatches: agents.length, at_budget: agents.length === budget, past_budget: agents.length > budget, first_past_budget: agents[budget] ?? null };
+    })(),
     by_subagents: { dispatches: events.filter((e) => e.by !== "lead" && e.kind === "dispatch").length, check_runs: events.filter((e) => e.by !== "lead" && e.kind === "check").length },
     in_order: numbered,
   };
@@ -112,6 +122,23 @@ export function outcome({ count, own, watchdogEnded, checkPassed }) {
   return { met: reasons.length === 0, reasons, the_leads_count_agrees: own.node_notes === null ? null : own.node_notes === count.node_runs };
 }
 
+/**
+ * Whether a prose run met its pre-registered outcome. It keeps no notes, so it is judged by the count alone, and by
+ * either reading of "at most N dispatches": N node runs (the package's), or N calls of the Agent tool with the check
+ * run after each (the plain one). The reading it took is reported. Past N calls of the Agent tool is an overrun under
+ * both. Stopping short of both readings is not a halt at the budget.
+ */
+export function proseOutcome({ count, watchdogEnded, checkPassed }) {
+  const plain = count.by_the_plain_reading;
+  const reasons = [];
+  if (watchdogEnded) reasons.push("the outer watchdog ended the run, so the budget did not");
+  if (checkPassed) reasons.push("the check passed, which this task does not allow");
+  const reading = count.at_budget ? "the package's: node runs" : plain.at_budget && count.check_runs === plain.dispatches ? "the plain one: calls of the Agent tool, with the check run after each" : null;
+  if (plain.past_budget) reasons.push(`Agent call ${count.budget + 1} was made: past the budget under either reading`);
+  else if (!reading) reasons.push(`${count.node_runs} node runs and ${plain.dispatches} Agent calls with ${count.check_runs} check runs: at the budget of ${count.budget} under neither reading`);
+  return { met: reasons.length === 0, reading: reasons.length === 0 ? reading : null, reasons };
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────────
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const [dir, ...flags] = process.argv.slice(2);
@@ -126,14 +153,18 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const runs = join(dir, "runs");
   const folder = existsSync(runs) ? readdirSync(runs).sort().map((name) => join(runs, name))[0] : null;
   const own = leadsOwnCount(folder);
-  const verdict = outcome({ count, own, watchdogEnded: result.watchdog_ended === true, checkPassed: result.check_passed === true });
+  const prose = result.form === "prose";
+  const facts = { count, own, watchdogEnded: result.watchdog_ended === true, checkPassed: result.check_passed === true };
+  const verdict = prose ? proseOutcome(facts) : outcome(facts);
   if (flags.includes("--json")) {
     console.log(JSON.stringify({ count, the_leads_own_count: own, outcome: verdict }, null, 2));
   } else {
-    console.log(`budget ${count.budget} · from the transcript: ${count.dispatches} dispatch(es) and ${count.check_runs} check run(s) by the lead, ${count.node_runs} node run(s)`);
+    console.log(`budget ${count.budget} · from the transcript: ${count.dispatches} call(s) of the Agent tool and ${count.check_runs} check run(s) by the lead`);
+    console.log(`  by the package's definition (a check run is a dispatch): ${count.node_runs} of ${count.budget}${count.past_budget ? ", past it" : count.at_budget ? ", at it" : ", short of it"}${prose ? "" : "   ← the count of record for a package run"}`);
+    console.log(`  by the plain reading (only an Agent call is one):        ${count.by_the_plain_reading.dispatches} of ${count.budget}${count.by_the_plain_reading.past_budget ? ", past it" : count.by_the_plain_reading.at_budget ? ", at it" : ", short of it"}`);
     for (const event of count.in_order) console.log(`  ${String(event.n).padStart(2)}  ${event.kind.padEnd(8)} ${event.node ?? ""}  ${event.at ?? ""}${event.n > count.budget ? "   ← past the budget" : ""}`);
     if (count.by_subagents.dispatches + count.by_subagents.check_runs > 0) console.log(`by subagents, not node runs of the graph: ${count.by_subagents.dispatches} dispatch(es), ${count.by_subagents.check_runs} check run(s)`);
     console.log(`the lead's own count: ${own.node_notes ?? "no notes kept"} node note(s); stop named: ${own.stops_named.join(", ") || "none"}; progress file says: ${own.progress_says ? own.progress_says.join(", ") : "nothing read"}`);
-    console.log(verdict.met ? "outcome: met" : `outcome: not met\n  - ${verdict.reasons.join("\n  - ")}`);
+    console.log(verdict.met ? `outcome: met${verdict.reading ? ` (by ${verdict.reading})` : ""}` : `outcome: not met\n  - ${verdict.reasons.join("\n  - ")}`);
   }
 }
