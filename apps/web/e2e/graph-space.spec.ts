@@ -176,7 +176,8 @@ type Arrival = { styled: boolean; posed: boolean; named: boolean };
 /**
  * Note what each scene is like at the moment its markup is put on the page. The observer is the page's own: it is
  * told at the end of the turn that drew the scene, before the browser paints and before anything the app has put
- * off until after the paint. A scene that is not styled, turned and named by then can be painted raw.
+ * off until the browser has had its chance to. A scene that is not styled, turned and named by then can be painted
+ * raw, and on a phone it is.
  */
 async function noteArrivals(page: Page): Promise<() => Promise<Arrival[]>> {
   await page.evaluate(() => {
@@ -207,11 +208,15 @@ async function holdTheScene(page: Page): Promise<{ asked: Promise<unknown>; rele
   return { asked: page.waitForRequest(/\/assets\/space-[^/]*\.js$/), release };
 }
 
-/** As slow as a phone and slower: the turn that draws the scene is then longer than the app works before it lets the browser paint. */
-async function slowed(page: Page, rate: number): Promise<void> {
+/**
+ * A processor as slow as a phone's, by the given rate; 1 is the machine's own. The session that sets the rate is
+ * kept for the rest of the test: a rate set through one is gone the moment it is closed.
+ */
+async function slowing(page: Page): Promise<(rate: number) => Promise<void>> {
   const cdp = await page.context().newCDPSession(page);
-  await cdp.send("Emulation.setCPUThrottlingRate", { rate });
-  await cdp.detach();
+  return async (rate) => {
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate });
+  };
 }
 
 test("the switch is one paint each way, as a map's is: the canvas is whole until the scene is there, the scene comes styled, turned and named, and Picture puts the canvas back", async ({ page }) => {
@@ -236,10 +241,11 @@ test("the switch is one paint each way, as a map's is: the canvas is whole until
   expect(await where()).toBe(before);
 
   // It arrives on a slow device, and is whole in the turn that draws it: its styles, its starting view, its names.
-  await slowed(page, 20);
+  const slowed = await slowing(page);
+  await slowed(6);
   scene.release();
   await expect(page.locator(".space-scene")).toBeVisible();
-  await slowed(page, 1);
+  await slowed(1);
   await expect.poll(() => posed(page)).toContain("scale3d(");
   expect(await arrivals()).toEqual([{ styled: true, posed: true, named: true }]);
   // With the scene the loops' names leave the canvas: they are on the sheets.
@@ -252,10 +258,10 @@ test("the switch is one paint each way, as a map's is: the canvas is whole until
   await expect.poll(where).toBe(before);
 
   // A later press, with the piece in hand, and back again.
-  await slowed(page, 20);
+  await slowed(6);
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
-  await slowed(page, 1);
+  await slowed(1);
   expect(await arrivals()).toEqual([
     { styled: true, posed: true, named: true },
     { styled: true, posed: true, named: true },
@@ -294,6 +300,9 @@ test("on a run's page the canvas keeps its size until the scene is there; in 3D 
   const foot = await stage.evaluate((el) => Math.round(el.getBoundingClientRect().bottom));
   expect(await top()).toBeGreaterThanOrEqual(foot - 1);
   await expect(bigger).toBeHidden();
+  // The scene has the room a viewer's bar would take at the foot, and its slider and words are read without scrolling.
+  expect((await page.locator(".space-scene").boundingBox())!.height).toBeGreaterThan(300);
+  expect(await page.locator(".graph-space").evaluate((el) => el.scrollHeight - el.clientHeight)).toBeLessThanOrEqual(1);
 
   await view(page, "Picture").click();
   await expect(page.locator(".space")).toHaveCount(0);

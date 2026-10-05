@@ -67,6 +67,10 @@
     grid-template-rows: auto minmax(220px, 76dvh) minmax(0, 1fr);
   }
 }
+/* No bar stands at the foot of a run's canvas: the room kept for one is the scene's. */
+.run-stage .graph-space {
+  padding-bottom: 16px;
+}
 /* The button that makes a run's canvas taller is the canvas's; the view has its room already. */
 .run-stage:has(> .graph-views.is-space) > .canvas-size {
   display: none;

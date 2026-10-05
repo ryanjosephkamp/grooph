@@ -156,8 +156,8 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
   // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
   // cards and arcs their names. Before the browser paints, as a map's is: the first press of a visit is drawn by a
-  // fetch that has arrived and not by the press, and what is put off until after the paint is then seen without it,
-  // raw text and arcs drawn black across the canvas for a frame or more on a phone.
+  // fetch that has arrived and not by the press, and React then gives the browser its chance to paint before it
+  // does what was put off. A phone takes it: raw text and arcs drawn black across the canvas, for a frame or more.
   useLayoutEffect(() => {
     const root = host.current?.querySelector<HTMLElement>(".space");
     if (!root || !three || !made) return;
@@ -205,8 +205,9 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       ) : null}
       {made ? (
         // `data-keep`: the room the switch, the bar, the slider and a viewer's own bar at the foot take, so that the
-        // scene is as tall as what is left and the slider's words are read without scrolling where that can be.
-        <div className="graph-space map-stage" data-keep="300">
+        // scene is as tall as what is left and the slider's words are read without scrolling where that can be. A
+        // run's page has no bar at its foot, and its scene has that room too.
+        <div className="graph-space map-stage" data-keep={of.notes ? 280 : 300}>
           <div
             className="map-picture"
             onClick={(e) => void tap(e.target)}
