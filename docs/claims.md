@@ -117,7 +117,7 @@ Of the 52: 12 carried, 33 other words, 7 not carried.
 
 | # | Claim | Where | Evidence | The reading after round 1 | Audit |
 |---|---|---|---|---|---|
-| C45 | A run "may tighten a brake and never loosen one" | Report, [graph document](graph-ir.md) | The lead's brief; the proving check; a probe of `grooph adopt` | **Other words.** A rule the brief states. Nothing refuses a loosened brake; a person sees the change when adopting a run's working copy | Round 1, agreed |
+| C45 | A run "may tighten a brake and never loosen one" | Report, [graph document](graph-ir.md) | The lead's brief; the proving check; a probe of `grooph adopt`, at 0.3.0 and again on 2026-10-05 | **Other words.** A rule the brief states; nothing checks it while a run goes on. At 0.3.0 nothing refused a loosened brake: a working copy with its round cap and budget raised was adopted. Since 2026-10-05 the `grooph adopt` command does not write such a copy until the change is asked for by name; the web app's Adopt button does not make that check yet | Round 1, agreed, for 0.3.0. The command's refusal is newer and waits for round 2 |
 | C46 | "everything else is hidden" from a node | [Graph document](graph-ir.md), field guide, [community](community.md), blog draft | [The proving records](../experiments/patterns/README.md) | **Other words.** An instruction, which failed once on record | Round 1, agreed |
 | C47 | "the same run id resumes it" | [Graph document](graph-ir.md) | The proving records | **Other words.** As C2 | Round 1, agreed |
 | C48 | A record with no ending line "is read as interrupted" | [Graph document](graph-ir.md) | The code | **Other words.** Flagged by the proving check; the monitor has no such state | Round 1, agreed |
