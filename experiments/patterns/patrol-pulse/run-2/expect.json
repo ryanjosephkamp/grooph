@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the investigator and the ticket writer ran as their own subagents; the investigator wrote PULSE.md itself and the writer FILED.md; the writer wrote only TICKETS.md (and its report) and nobody else wrote there; TICKETS.md gained exactly one ticket heading; the run halted at the prioritize gate with a halt note (no scripted answer). The design bet (write-up): the investigator names both faults, the writer files the pool exhaustion as T-0008 and references T-0007 instead of filing it again, no code is touched. These are the expectations for the re-proof of version 3 (slice 0019): the investigator's file is PULSE.md since that version, and the gate's id is `prioritize` since version 2. The first run, of version 1, is in run-1/ with the expectations it was checked against (FINDINGS.md, `prioritise`).",
+  "agents": ["investigator", "ticket-writer"],
+  "reports": { "investigator": ["PULSE.md"], "ticket-writer": ["FILED.md"] },
+  "ownership": { "ticket-writer": ["TICKETS.md"] },
+  "added": { "TICKETS.md": { "pattern": "^## T-", "count": 1 } },
+  "ending": ["halt at prioritize"]
+}

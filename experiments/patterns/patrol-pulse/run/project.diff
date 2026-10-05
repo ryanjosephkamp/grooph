@@ -1,0 +1,15 @@
+diff --git a/TICKETS.md b/TICKETS.md
+index 6fa75b5..0baa80c 100644
+--- a/TICKETS.md
++++ b/TICKETS.md
+@@ -23,3 +23,10 @@ is already here is referenced by its number, never filed again.
+ - signal: a few events per hour fail verification in `src/payments.mjs` and are dropped; the provider resends them and the resend also fails
+ - suspected cause: the provider rotated to a second signing secret on 2026-09-17 and we verify against the old one only
+ - next: verify against both secrets during the rotation window; confirm with the provider's dashboard
++
++## T-0008 · DB connection pool exhausted during flash sale, users get 503s (open)
++
++- first seen: 2026-09-21, log line `ERROR db pool exhausted: 20/20 connections busy, waited 5000ms`
++- signal: at 12:00 after the flash-sale notification, latency climbed 210 to 880 ms, then four pool-exhausted errors produced 503s on `/orders` (two were order creations: `POST /orders`); recovered by 12:00:44 (`logs/app.log:46-64`)
++- suspected cause: fixed pool of 20 with a 5000 ms wait (`src/db.mjs:5-6`) cannot absorb the campaign burst; waiters are rejected with 503 (`src/db.mjs:27`); a capacity problem, not a leak, since `release()` returns connections and the pool drained
++- next: size the pool or queue for campaign bursts, and consider notifying large accounts in batches; confirm against the next campaign

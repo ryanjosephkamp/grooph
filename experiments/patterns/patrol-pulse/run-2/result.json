@@ -9,9 +9,9 @@
     }
   },
   "graph_id": "orders-api-patrol",
-  "run_id": "20261005-042756",
+  "run_id": "20261004-225445",
   "run_ids": [
-    "20261005-042756"
+    "20261004-225445"
   ],
   "harness": "claude-code",
   "harness_version": "2.1.289 (Claude Code)",
@@ -32,30 +32,20 @@
   },
   "models": {
     "claude-opus-5-5": {
-      "cost_usd": 0.6074620000000001,
-      "output_tokens": 9072
-    },
-    "claude-sonnet-5-5": {
-      "cost_usd": 0.1274628,
-      "output_tokens": 5230
+      "cost_usd": 0.7914883999999999,
+      "output_tokens": 12697
     }
   },
   "models_by_agent": {
     "lead": [
       "claude-opus-5-5"
-    ],
-    "orders-api-patrol--ticket-writer": [
-      "claude-sonnet-5-5"
-    ],
-    "orders-api-patrol--investigator": [
-      "claude-sonnet-5-5"
     ]
   },
   "models_never_used": [],
-  "cost_usd": 0.734925,
-  "harness_turns": 35,
+  "cost_usd": 0.791488,
+  "harness_turns": 41,
   "lead_turns": null,
-  "duration_s": 131,
+  "duration_s": 121,
   "rounds": {
     "loop_passes": 0,
     "rounds_recorded": 0,
@@ -63,32 +53,35 @@
   },
   "stop_fired": [],
   "ending": [
-    "halt at prioritize"
+    "halt at prioritize",
+    "stop node clean",
+    "stop node no-log"
   ],
-  "subagents": {
-    "orders-api-patrol--ticket-writer": 1,
-    "orders-api-patrol--investigator": 1
-  },
+  "subagents": {},
   "permission_denials": [
     {
-      "tool": "Write",
-      "command": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/.grooph-placeholder-ignore"
+      "tool": "Bash",
+      "command": "find / -name app.log -path '*logs*' -maxdepth 6 2>/dev/null"
+    },
+    {
+      "tool": "Bash",
+      "command": "grooph apply --help"
     }
   ],
   "invocations": [
     {
       "kind": "kickoff",
-      "ledger_n": 35,
-      "session_id": "4caee222-5e18-4010-8324-c6aaa430e2d4",
+      "ledger_n": 34,
+      "session_id": "049c8b65-7b74-4e07-ad0a-2577aa471645",
       "result": "success",
       "is_error": false,
-      "cost_usd": 0.734925,
-      "reported_cost_usd": 0.7349248,
+      "cost_usd": 0.791488,
+      "reported_cost_usd": 0.7914883999999999,
       "max_budget_usd": 9,
-      "harness_turns": 35,
-      "duration_s": 131,
-      "wall_s": 132,
-      "notes_after": 9,
+      "harness_turns": 41,
+      "duration_s": 121,
+      "wall_s": 121,
+      "notes_after": 8,
       "command": [
         "claude",
         "-p",
@@ -110,14 +103,20 @@
       "output": "claude-output.json"
     }
   ],
-  "base_commit": "bb34f2e7c0d45d860b015562a3adc93d399d0c28",
+  "base_commit": "1ed4a66e80e493c05dddc8eeda21912606d30ff7",
   "source_sha256_before": "3a3176439da23c394970e8fb95a846bc5df25cfa3208229e651f4b53bdb46551",
-  "project_files_changed": [
-    "M TICKETS.md"
-  ],
-  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-patrol-pulse-YhZ0QQ",
+  "project_files_changed": [],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-patrol-pulse-PGe1Ry",
   "home_redactions": 0,
-  "amendments": [],
+  "amendments": [
+    "Added precondition check log-present (test -s logs/app.log) ahead of scan, with e-log-present-scan (pass) and e-log-present-no-log (fail) to a new stop node no-log (outcome halt); clarified scan's pass text so exit 1 is the clean fail and exit 2 is invalid-evidence."
+  ],
   "proposals": [],
-  "working_copy": "identical to the source"
+  "working_copy": [
+    "node added: log-present",
+    "node added: no-log",
+    "node scan changed: check",
+    "edge added: e-log-present-scan",
+    "edge added: e-log-present-no-log"
+  ]
 }
