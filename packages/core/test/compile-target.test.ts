@@ -51,7 +51,7 @@ const refusal = (doc: Graph, target: CompileTarget): Issue[] => {
   return assert.fail(`compile(${doc.id} naming ${doc.target?.harness ?? "nothing"}, ${target}) wrote a package`);
 };
 const mismatch = (named: string, target: string): string =>
-  `the document names the harness "${named}" and the export is for "${target}": export it for ${named}, or name ${target} in the document first (grooph apply <file> --ops - --write, given [{"op":"setTarget","harness":"${target}"}])`;
+  `the document names the harness "${named}" and the export is for "${target}": export it for ${named}, or name ${target} in the document first (grooph apply <file> --ops - --write, given [{"op":"setTarget","harness":"${target}"}]) and export into a project that does not hold this graph's ${named} package`;
 
 test("there are two targets, and the fixture these tests start from names Claude Code", () => {
   assert.deepEqual([...KNOWN_TARGETS].sort(), [...TARGETS].sort());
@@ -167,6 +167,39 @@ test("a pin is read by the name of the target the package is for, not the harnes
     assert.match(compileClaudeCode(pinned(named), []).files[".claude/agents/review-loop--critic.md"]!, /^model: pinned-for-claude-code$/m, named);
     assert.match(compileCodex(pinned(named), []).files[".codex/agents/review-loop--critic.toml"]!, /^model = "pinned-for-codex"$/m, named);
   }
+});
+
+// ─── a critic and its builder, in the harness the document names ────────────────────────────────────────────
+
+test("a critic told apart from its builder only by a pin for the other harness is warned about; its own harness's pin is read", () => {
+  // The driver's reader, on slice 0076: the review loop with its critic pinned for Claude Code only, naming Codex,
+  // validated with no issues, and the export wrote both on gpt-6-luna.
+  const homogeneous = (doc: Graph): boolean => validate(doc, { forExport: true }).some((issue) => issue.code === "W_HOMOGENEOUS_CRITICS");
+  const withPin = (named: string | undefined, pin: Record<string, string> | undefined): Graph => {
+    const doc = named === undefined ? (() => { const bare = { ...reviewLoop() }; delete bare.target; return bare; })() : setTarget(reviewLoop(), named);
+    return { ...doc, nodes: doc.nodes.map((node) => (node.kind === "agent" && node.id === "critic" ? { ...node, model: { tier: "strong" as const, ...(pin ? { pin } : {}) } } : node)) };
+  };
+  // Builder and critic are both `strong` in the fixture: warned about, whatever it names.
+  for (const named of [...TARGETS, undefined]) assert.equal(homogeneous(withPin(named, undefined)), true, String(named));
+  for (const named of TARGETS) {
+    // The other harness's pin is not read in this document's package: still one model.
+    assert.equal(homogeneous(withPin(named, { [other(named)]: "another-model" })), true, `${named}, pinned for ${other(named)} only`);
+    // Its own harness's pin is.
+    assert.equal(homogeneous(withPin(named, { [named]: "another-model" })), false, `${named}, pinned for ${named}`);
+    assert.equal(homogeneous(withPin(named, { [named]: "another-model", [other(named)]: "x" })), false, `${named}, pinned for both`);
+    // And the package agrees with the warning: with the other harness's pin only, both agents are on one model.
+    const files = compile(withPin(named, { [other(named)]: "another-model" }), named).files;
+    const models = Object.entries(files).filter(([path]) => /\/agents\//.test(path)).map(([, text]) => /^model(?:: | = ")([^"\n]+)/m.exec(text)![1]);
+    assert.equal(models.length, 2, named);
+    assert.equal(models[0], models[1], named);
+    assert.doesNotMatch(Object.values(files).filter((_, i) => !Object.keys(files)[i]!.endsWith("graph.grooph.json")).join("\n"), /another-model/, named);
+  }
+  // The message names what was compared: the tier, and no pin of another harness.
+  const said = validate(withPin("codex", { "claude-code": "opus" }), { forExport: true }).find((issue) => issue.code === "W_HOMOGENEOUS_CRITICS")!.message;
+  assert.match(said, /on the same model \(tier strong\)/);
+  // A document that names no harness yet is read by every pin, as it was.
+  assert.equal(homogeneous(withPin(undefined, { codex: "another-model" })), false);
+  assert.equal(homogeneous(withPin(undefined, { "claude-code": "another-model" })), false);
 });
 
 // ─── the library ────────────────────────────────────────────────────────────────────────────────────────────

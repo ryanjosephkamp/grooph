@@ -11,6 +11,13 @@ const TIERS = ["frontier", "strong", "fast"] as const;
 const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
 
 /**
+ * The variable a machine names its tiers in, for each target. One for each harness, because a model's name is one
+ * harness's: a map of Claude Code's models would otherwise be written into a Codex package, and the reverse
+ * (decision 0030). `GROOPH_MODELS` is Claude Code's, as it was before there was a second target.
+ */
+export const MODELS_ENV: Record<CompileTarget, string> = { "claude-code": "GROOPH_MODELS", codex: "GROOPH_MODELS_CODEX" };
+
+/**
  * What the tiers mean in this package, all three, and which the one exporting named, when they named any; then,
  * when two tiers a graph's agents use are one model, a line saying so. The validator's check that a critic differs
  * from the builder it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers that are the same model.
@@ -26,7 +33,7 @@ function tiersSaid(doc: Graph, target: CompileTarget, models: CompileOptions["mo
   const same = TIERS.flatMap((a, i) => TIERS.slice(i + 1).filter((b) => used.has(a) && used.has(b) && means(a) === means(b)).map((b) => `${a} and ${b} are both ${means(a)}`));
   if (same.length > 0) {
     lines.push(
-      `note: ${same.join("; ")} in this package${models ? "" : ", by the target's own map"}, and this graph has agents on each. A critic and the builder it checks may ${models ? "now " : ""}share a model; the validator's check for that reads tiers and does not see it.${models ? "" : " To keep them apart, name the tiers: --models, or GROOPH_MODELS."}`,
+      `note: ${same.join("; ")} in this package${models ? "" : ", by the target's own map"}, and this graph has agents on each. A critic and the builder it checks may ${models ? "now " : ""}share a model; the validator's check for that reads tiers and does not see it.${models ? "" : ` To keep them apart, name the tiers: --models, or ${MODELS_ENV[target]}.`}`,
     );
   }
   return lines;

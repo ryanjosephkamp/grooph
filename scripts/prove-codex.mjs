@@ -231,6 +231,7 @@ function makeScratch() {
   const templateEnv = { ...process.env, GROOPH_HOME: home, GROOPH_REGISTRY: "http://127.0.0.1:9/unreachable/index.json" };
   // Prove the committed target defaults, without a machine-local tier override.
   delete templateEnv.GROOPH_MODELS;
+  delete templateEnv.GROOPH_MODELS_CODEX;
   command(process.execPath, [CLI, ...fillSlots(slots), "--out", join(scratch, "graph.grooph.json")], { cwd: scratch, env: templateEnv });
   const sourcePath = join(scratch, "graph.grooph.json");
   // The template names Claude Code, and an export for another harness than the document names is refused: the

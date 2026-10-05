@@ -258,7 +258,9 @@ and a document that names another is refused (E_NO_TARGET) until it names this o
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
-                                on a machine; the flag wins over it. The graph does not change.
+                                for claude-code on a machine, and GROOPH_MODELS_CODEX for every
+                                export for codex: a model's name is one harness's, so neither is
+                                read for the other target. The flag wins. The graph does not change.
 
 The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
 on one over a builder on the other is the same model: the export says so when a graph has agents on both.
