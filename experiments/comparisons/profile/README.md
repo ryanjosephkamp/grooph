@@ -34,7 +34,7 @@ This is the first paid step, and it is not taken here. One call that asks for on
 - that it lists no skill, no server and no subagent kind beyond the harness's own, read afterwards from its transcript;
 - that a command cannot write a path the run closed, and cannot read `/tmp` or the account's temp folder;
 - that the file tools refuse a path closed on the command line, for the session and for a subagent it starts;
-- how a refusal is worded in this mode, which the brake experiment's counter relies on;
+- what a session is told when a call is refused in this mode;
 - that npm, given its cache folder, does not look under `/Users`;
 - what a refused call costs a headless session in this mode: a turn, or the run.
 

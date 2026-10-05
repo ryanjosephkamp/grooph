@@ -179,7 +179,7 @@ export const NOT_KNOWN_UNTIL_A_SESSION = [
   "that the session lists no skill, no server and no subagent kind beyond the harness's own (read afterwards from its transcript)",
   "that a command cannot write a path named in denyWrite, and cannot read /tmp or the account's temp folder",
   "that the file tools refuse a path closed on the command line, for the session and for a subagent it starts (the builder has Edit and Write and no shell)",
-  "how a refusal is worded in this mode: the counter tells a refused check from one that ran by its result beginning 'Exit code'",
+  "what a session is told when a call is refused in this mode",
   "that npm, given its cache folder, does not look under /Users",
   "what a refused call costs a headless session in this mode: a turn, or the run",
 ];
@@ -199,8 +199,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(`made ${where.profile} with its settings, and ${where.temp}, ${where.cache}, ${where.work}\nnot signed in: that is the owner's, once, in a terminal:\n  CLAUDE_CONFIG_DIR=${where.profile} claude auth login`);
   } else if (flags.includes("--print")) {
     console.log(`the profile's home: ${home}\n${JSON.stringify(where, null, 2)}\n\nits settings:\n${JSON.stringify(settingsFor({ home }), null, 2)}`);
-    const sample = commandFor({ home, claude: found("claude") ?? "claude", cwd: join(where.work, "<a folder made for the run>"), prompt: "<the prompt>", model: "claude-opus-5-5", effort: "high", sessionId: "<a new id>", maxBudgetUsd: 3 });
-    console.log(`\na session would be started in ${sample.cwd} with:\n  env -i ${Object.entries(sample.env).map(([k, v]) => `${k}=${v}`).join(" ")} \\\n  ${sample.argv.map((arg) => (/[\s(*]/.test(arg) ? `'${arg}'` : arg)).join(" ")}\n\nits transcript would be ${sample.transcript}`);
+    const folder = join(where.work, "<a folder made for the run>");
+    const sample = commandFor({ home, claude: found("claude") ?? "claude", cwd: folder, prompt: "<the prompt>", model: "claude-opus-5-5", effort: "high", sessionId: "<a new id>", maxBudgetUsd: 3, closed: [join(folder, "<a path the run closes>")] });
+    console.log(`\na session would be started in ${sample.cwd} with:\n  env -i ${Object.entries(sample.env).map(([k, v]) => `${k}=${v}`).join(" ")} \\\n  ${sample.argv.map((arg) => (/[\s(*]/.test(arg) ? `'${arg}'` : arg)).join(" ")}\n\nits transcript would be ${sample.transcript}\n\nA run that closes a path closes it twice: to the file tools by the --disallowedTools rules above, and to commands by a denyWrite line the runner adds to the settings before that run. A run that closes nothing gets neither.`);
   } else if (flags.includes("--check")) {
     const lines = check({ home });
     for (const line of lines) console.log(`${line.ok ? "ok " : "NO "} ${line.what}: ${line.how}`);
