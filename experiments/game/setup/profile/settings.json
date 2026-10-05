@@ -2,7 +2,7 @@
   "permissions": {
     "defaultMode": "dontAsk",
     "blockReadsOutsideWorkingDirectories": true,
-    "deny": ["WebFetch", "WebSearch", "Bash(git push)", "Bash(git push *)"]
+    "deny": ["WebFetch", "WebSearch", "AskUserQuestion", "Bash(git push)", "Bash(git push *)"]
   },
   "sandbox": {
     "enabled": true,
