@@ -12,6 +12,7 @@ import { recordFor, runBrake } from "./brake-run-paid.mjs";
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
 import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
+import { build as buildArm, expectation as rolesExpectation, nextRun, order, readings, runOne } from "./roles-or-information-paid.mjs";
 import { endedBy, gameSessionsOpen, makeProject, refusals, resultsOfTranscript, runSession, spendFlags } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -341,5 +342,110 @@ test("the resume step, with a stand-in for the harness: a run picked up, one sta
     assert.throws(() => resumeStep({ ...r.common, recordRoot: r.recordRoot, rerun: true }), /already run again once/);
   } finally {
     rmSync(r.top, { recursive: true, force: true });
+  }
+});
+
+// ── roles or information ─────────────────────────────────────────────────
+
+test("the twelve runs of roles or information, in the order they were pre-registered", () => {
+  const expect = rolesExpectation();
+  const names = order(expect).map((run) => run.name);
+  assert.equal(names.length, 12);
+  assert.deepEqual(names.slice(0, 5), ["review-gate-2/E-1", "review-gate-2/F-1", "review-gate-2/E-2", "review-gate-2/F-2", "heterogeneous-critic/E-1"]);
+  assert.equal(names.at(-1), "taste-polish/F-2");
+  const empty = mkdtempSync(join(tmpdir(), "roles-"));
+  try {
+    assert.equal(nextRun(expect, empty).name, "review-gate-2/E-1");
+  } finally {
+    rmSync(empty, { recursive: true, force: true });
+  }
+  for (const [task, two] of Object.entries(expect.from_study_two)) {
+    const kept = JSON.parse(readFileSync(join(root, "experiments", "comparisons", task, "expect.json"), "utf8"));
+    assert.equal(two.held_out_cases, kept.held_out_cases, task);
+    for (const run of ["D-1", "D-2"]) assert.equal(JSON.parse(readFileSync(join(root, "experiments", "comparisons", task, run, "score.json"), "utf8")).held_out.passed, two.the_task_alone, `${task}/${run}: the number the pre-registration quotes is study two's`);
+    for (const run of ["A-1", "A-2", "B-1", "B-2", "C-1", "C-2"]) assert.equal(JSON.parse(readFileSync(join(root, "experiments", "comparisons", task, run, "score.json"), "utf8")).held_out.passed, two.with_the_design, `${task}/${run}`);
+  }
+});
+
+test("arm E is given the held-out material inside its folder, closed; arm F is given none", () => {
+  const p = place({});
+  try {
+    const e = buildArm({ run: { task: "review-gate-2", arm: "E", replicate: 1, name: "review-gate-2/E-1" }, home: p.home });
+    assert.ok(existsSync(join(e.cwd, "held-out", "layer-cases.test.mjs")));
+    assert.deepEqual(e.closed, [join(e.cwd, "held-out")]);
+    assert.match(e.prompt, /`node --test held-out\/layer-cases\.test\.mjs`/);
+    assert.ok(!e.prompt.includes("<held-out>"));
+    const taste = buildArm({ run: { task: "taste-polish", arm: "E", replicate: 1, name: "taste-polish/E-1" }, home: p.home });
+    assert.deepEqual(readdirSync(join(taste.cwd, "held-out")).sort(), ["REFERENCE.md", "reference.txt"], "the scorer's own suite is not given");
+    const f = buildArm({ run: { task: "review-gate-2", arm: "F", replicate: 1, name: "review-gate-2/F-1" }, home: p.home });
+    assert.ok(!existsSync(join(f.cwd, "held-out")));
+    assert.deepEqual(f.closed, []);
+    assert.ok(!/held-out/i.test(f.prompt));
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("the two statements are read from the recorded scores, and neither is decided before its runs are in", () => {
+  const expect = rolesExpectation();
+  const top = mkdtempSync(join(tmpdir(), "readings-"));
+  const put = (name, passed, endedBy = "the session") => {
+    mkdirSync(join(top, name), { recursive: true });
+    writeFileSync(join(top, name, "score.json"), JSON.stringify({ held_out: { ran: true, passed } }), "utf8");
+    writeFileSync(join(top, name, "result.json"), JSON.stringify({ ended_by: endedBy }), "utf8");
+  };
+  const all = (e, f) => {
+    for (const [task, [e1, e2, f1, f2]] of Object.entries({ "review-gate-2": [e[0], e[0], f[0], f[0]], "heterogeneous-critic": [e[1], e[1], f[1], f[1]], "taste-polish": [e[2], e[2], f[2], f[2]] })) {
+      put(`${task}/E-1`, e1);
+      put(`${task}/E-2`, e2);
+      put(`${task}/F-1`, f1);
+      put(`${task}/F-2`, f2);
+    }
+  };
+  try {
+    assert.deepEqual([readings(expect, top).the_information_did_it, readings(expect, top).the_roles_did_some_of_it], [null, null]);
+    all([55, 70, 24], [51, 52, 15]);
+    assert.deepEqual([readings(expect, top).the_information_did_it, readings(expect, top).the_roles_did_some_of_it], [true, false], "E passes everything and F stays at the task alone");
+    all([55, 70, 24], [55, 70, 15]);
+    assert.deepEqual([readings(expect, top).the_information_did_it, readings(expect, top).the_roles_did_some_of_it], [false, true], "F above the task alone on two tasks");
+    assert.deepEqual(readings(expect, top).tasks_where_both_runs_of_F_are_above_the_task_alone, ["review-gate-2", "heterogeneous-critic"]);
+    all([55, 70, 24], [52, 52, 15]);
+    put("review-gate-2/F-2", 51);
+    assert.deepEqual([readings(expect, top).the_information_did_it, readings(expect, top).the_roles_did_some_of_it], [false, false], "one run of F a case above on one task: neither statement holds");
+    all([54, 70, 24], [51, 52, 15]);
+    assert.equal(readings(expect, top).the_information_did_it, false, "E short of every case on one task");
+    all([55, 70, 24], [51, 52, 15]);
+    put("taste-polish/F-2", 15, "the harness");
+    assert.deepEqual([readings(expect, top).every_run_scored, readings(expect, top).the_information_did_it], [false, null], "an invalid run is not a score");
+  } finally {
+    rmSync(top, { recursive: true, force: true });
+  }
+});
+
+test("a run of roles or information, with a stand-in for the harness: built, started, recorded, scored by study two's suite", () => {
+  const solution = readFileSync(join(root, "experiments", "comparisons", "review-gate-2", "reference", "solution", "src", "layer.mjs"), "utf8");
+  const p = place({ uses: [{ tool: "Write", input: { file_path: "src/layer.mjs", content: "…" }, result: "ok", appends: { "src/layer.mjs": solution } }], cost: 0.3 });
+  try {
+    const first = runOne({ ...p.common, recordRoot: p.recordRoot });
+    assert.equal(first.run.name, "review-gate-2/E-1");
+    assert.deepEqual([first.score.held_out.passed, first.score.held_out.cases], [55, 55], "the reference solution, scored from the repository's suite");
+    assert.equal(first.score.held_out.scored_from, "experiments/comparisons/review-gate-2/held-out");
+    assert.deepEqual(first.score.held_out.the_sessions_copy_changed, []);
+    assert.deepEqual(first.result.held_out_given, ["layer-cases.test.mjs"]);
+    assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["roles-or-information/review-gate-2/E-1", 2]);
+    assert.ok(existsSync(join(first.recordDir, "score.json")) && existsSync(join(first.recordDir, "result.json")));
+    assert.equal(first.next.name, "review-gate-2/F-1");
+
+    writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [], cost: 0.7 }), "utf8");
+    const second = runOne({ ...p.common, recordRoot: p.recordRoot });
+    assert.equal(second.run.name, "review-gate-2/F-1", "the next in the order, and only that one");
+    assert.deepEqual(second.result.held_out_given, []);
+    assert.equal(p.ledger().invocations[1].max_budget_usd, 4);
+    assert.notEqual(second.score.held_out.passed, 55, "a tree with no work in it does not pass the suite");
+    assert.equal(second.next.name, "review-gate-2/E-2");
+    assert.throws(() => runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "review-gate-2/F-1" }), /no invalid record to run again/);
+    assert.throws(() => runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "nothing/Z-9" }), /not a run of this question/);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
   }
 });

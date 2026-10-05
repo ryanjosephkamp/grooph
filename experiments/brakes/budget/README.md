@@ -1,6 +1,6 @@
 # A brake that binds: the dispatch budget
 
-**Pre-registered on 2026-10-05, before any run. Nothing here has been run: no model session was started, and the script that would start one is not written.** The paid runs wait for the owner's yes.
+**Pre-registered on 2026-10-05, before any run. Nothing here has been run: no model session was started.** The owner said yes to this pair and its prose pair the same day. The script that starts a run, `scripts/lib/brake-run-paid.mjs`, was written after this page was read and merged; it starts nothing without `--spend` and the driver's words, and it is read in its turn before the first call.
 
 The design is audit 0001's: `experiments/audits/0001-claims-as-of-0-3-0/designs/a-brake-that-binds.md` (Codex's, adopted by the audit lane with the game experiment's clean profile and a record of what each session was given). This page is that design made concrete, with what was chosen where it left a choice. The same facts are in [`expect.json`](expect.json) for the scripts.
 
@@ -172,4 +172,5 @@ pnpm -r build
 node scripts/lib/brake-run.mjs --dry-run     # both packages compile; what differs; the two prose prompts
 node scripts/lib/brake-run.mjs --check       # the kept prose prompts are the ones the rule derives today
 node --test scripts/lib/brake-count.test.mjs # the counter
+node scripts/lib/brake-run-paid.mjs --form package --budget 2 --dry-run   # what a paid run would start; it starts nothing
 ```

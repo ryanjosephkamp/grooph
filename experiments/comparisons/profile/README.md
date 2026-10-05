@@ -47,6 +47,20 @@ Study two's runner was built for its own five measures. From this profile four t
 3. **The sandbox and the `dontAsk` mode stand in for study two's allowlist.** A command inside the sandbox needs no rule.
 4. **The transcripts are under the profile's own `projects/` folder.** The digest and the lead-cost script already read `CLAUDE_CONFIG_DIR`, so they are pointed there.
 
+## The paid path
+
+[`scripts/lib/study-three-paid.mjs`](../../../scripts/lib/study-three-paid.mjs) is what starts a session from this profile, and the only thing that does. Four scripts use it, each with "paid" in its name, each refusing without `--spend` and `--go "<the driver's words>"`: the first call ([`first-call/`](first-call/)), the brake runs, the resume step and the runs of roles or information. In order, for every session:
+
+1. **The gates.** The two flags. No session of the game experiment open on this machine, since they draw on one allowance. This profile made, clean and signed in. The comparisons ledger willing.
+2. **The settings for the run** written to the profile, with the paths the run closes, and read back.
+3. **A ledger line opened before the call**, with the session's id, which is chosen beforehand.
+4. **The call**, under a watchdog of dollars and minutes that is recorded apart and is never a graph's brake.
+5. **The ledger line settled** with what the harness reported; a call with no reported cost counts at its ceiling.
+6. **The record copied** before anything is read from it: the harness's output, the prompt, the settings, the digest of the transcripts, what the session was given at its start, the project's change. The transcripts stay on the machine and are named with their checksums.
+7. **The session's folder and its temp files moved aside**, under `~/grooph-compare/kept/`, so the next session starts with both empty. Nothing is deleted.
+
+Its tests run all of this against a stand-in for the harness that calls no model ([`scripts/lib/fixtures/stand-in-harness.mjs`](../../../scripts/lib/fixtures/stand-in-harness.mjs)).
+
 ## The files
 
 - [`settings.json`](settings.json): the settings, with two placeholders the script fills (the npm cache folder and the account's temp folder).

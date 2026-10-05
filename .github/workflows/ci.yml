@@ -100,11 +100,12 @@ jobs:
 
       # Study three's unpaid builds (slice 0095): the counter and the judge a brake experiment's result is read from,
       # the two packages it compiles from one graph, the two derived arms, and the clean profile's command. None of
-      # these starts a model session. The two --check modes fail when a kept prompt, or a line the pre-registration
-      # quotes from a package, is no longer what the compiler and the derivation rule give.
+      # these starts a model session: the last file tests the paid path against a stand-in for the harness, which
+      # calls no model. The two --check modes fail when a kept prompt, or a line the pre-registration quotes from a
+      # package, is no longer what the compiler and the derivation rule give.
       - name: the brake experiment's counter and packages, the derived arms and the comparison profile hold
         run: |
-          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs
+          node --test scripts/lib/brake-count.test.mjs scripts/lib/brake-run.test.mjs scripts/lib/compare-arms-ef.test.mjs scripts/lib/compare-profile.test.mjs scripts/lib/study-three-paid.test.mjs
           node scripts/lib/brake-run.mjs --check
           node scripts/lib/compare-arms-ef.mjs --check
 
