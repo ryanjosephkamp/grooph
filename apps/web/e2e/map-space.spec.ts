@@ -147,8 +147,11 @@ test("a handoff picked in three dimensions is picked in the other views, and the
   await expect(slider(page)).toHaveValue("3");
   await expect(says(page)).toHaveText(/^Handoff 3 of 19/);
 
+  // (The view is put where a key or a drag took it on the next frame: a test waits for that, and does not read at once.)
+  const unturned = await posed(page);
   await page.locator(".space-scene").focus();
   await page.keyboard.press("ArrowRight");
+  await expect.poll(() => posed(page)).not.toBe(unturned);
   const turned = await posed(page);
 
   await view(page, "Sequence").click();
@@ -157,7 +160,7 @@ test("a handoff picked in three dimensions is picked in the other views, and the
   await view(page, "3D").click();
   await expect(page.locator(`.space [data-handoff="${id}"]`)).toHaveClass(/is-on/);
   await expect(slider(page)).toHaveValue("3");
-  expect(await posed(page)).toBe(turned);
+  await expect.poll(() => posed(page)).toBe(turned);
 
   // The slider is the reader's once it has been moved: an open handoff does not take it back, not when its mark
   // is put on again in markup drawn anew, and not when another line of the list is pointed at.
@@ -225,9 +228,9 @@ test("a drag turns it and is not a tap; pinch, the buttons and the keyboard move
 
   // It turns only so far: the cards face the front, and the view never goes behind them or under the sheets.
   await drag(page, 2000, -2000, 20);
-  const far = await posed(page);
-  expect(Number(/rotateY\(([-\d.]+)rad\)/.exec(far)![1])).toBeCloseTo(0.96, 5);
-  expect(Number(/rotateX\(([-\d.]+)rad\)/.exec(far)![1])).toBeCloseTo(-0.1, 5);
+  const angle = (axis: "X" | "Y") => posed(page).then((at) => Number(new RegExp(`rotate${axis}\\(([-\\d.]+)rad\\)`).exec(at)![1]));
+  await expect.poll(() => angle("Y")).toBeCloseTo(0.96, 5);
+  await expect.poll(() => angle("X")).toBeCloseTo(-0.1, 5);
 
   // The keyboard, with the scene in focus: arrows turn, plus and minus move in and out, 0 goes back.
   await page.locator(".space-scene").focus();
@@ -252,6 +255,7 @@ test("a drag turns it and is not a tap; pinch, the buttons and the keyboard move
   expect(await taken({ key: "=", ctrlKey: true })).toBe(false);
   expect(await taken({ key: "0", metaKey: true })).toBe(false);
   expect(await taken({ key: "ArrowLeft", altKey: true })).toBe(false);
+  await page.waitForTimeout(150);
   expect(await posed(page)).toBe(start);
   expect(await taken({ key: "=" })).toBe(true);
   await page.keyboard.press("0");
@@ -522,15 +526,16 @@ test.describe("from 1100 px", () => {
 
   test("a scene drawn again for a new room gives the keyboard back to the scene, the slider or the button that had it", async ({ page }) => {
     await open(page);
-    const drawn = () => page.locator(".space").evaluate((el) => ((el as unknown as { seen?: number }).seen ??= Math.random()));
+    // A sheet is as wide as its cards in a row: six where there is room, four in a narrower one. Each time the room
+    // changes the scene is new markup, and the test waits to see it drawn before it goes on.
+    const sheet = () => page.locator(".space-sheet").first().evaluate((el) => (el as HTMLElement).style.width);
     for (const part of [".space-scene", ".space input", '.space [data-do="next"]']) {
       await page.setViewportSize({ width: 1440, height: 900 });
-      await expect(page.locator(".space-card").first()).toBeVisible();
-      const before = await drawn();
+      await expect.poll(sheet).toBe("886px");
       await page.locator(part).focus();
-      // A narrower room holds four cards in a row and not six: the scene is new markup.
+      await expect(page.locator(part)).toBeFocused();
       await page.setViewportSize({ width: 1150, height: 900 });
-      await expect.poll(drawn).not.toBe(before);
+      await expect.poll(sheet).toBe("602px");
       await expect(page.locator(part)).toBeFocused();
     }
   });
