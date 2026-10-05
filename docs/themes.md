@@ -111,6 +111,7 @@ Paper is today's picture and was not changed. A few of its pairs are a little un
 - **Corners** come from a style rule. A browser too old to know it draws the corners as Paper's.
 - **On a map, Transit keeps the handoffs' own line weights.** There, line style says what carries a handoff, and the lines run close together.
 - **On the canvas** the nodes and edges take a theme's colors, corners, line weights and lettering. The canvas keeps its own dotted ground, and nothing on it wobbles.
+- **A map's 3D view is Paper in every theme.** It is built from the page's own elements, not drawn as one picture, and no theme has rules for it. The picture and the sequence beside it are in the theme.
 - **An embed in a theme draws the theme's ground** behind the picture and its bars. An embed in Paper lets the page around it show through, as before.
 - **If the themes' file cannot be fetched** (no network, on a visit before the service worker has it), every picture stays Paper, a control that offers the themes says so in words beside it, and Keep a copy says its files are in Paper. Pressing the control again with a network brings the list, and the theme.
 - **Two pictures of one theme set inline in one page**, each following the viewer and held by that page to different forms, share one ground: the second is drawn with the first one's grid or scan lines. The app never does this, and a picture written in light or in dark only has a ground of its own.

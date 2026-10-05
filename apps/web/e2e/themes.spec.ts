@@ -463,6 +463,26 @@ test("a map drawn again, when the screen turns wide and its lanes go side by sid
   await expect(shown).toHaveAttribute("data-look", "blueprint");
 });
 
+test("a map in three dimensions is Paper in every theme, and whole; the flat views beside it are in the theme", async ({ page }) => {
+  // The 3D view (handoff 0087) is built from the page's own elements, not drawn as one picture: no theme has rules
+  // for it. It must not be half dressed, and going back to a flat view must find that view in the theme.
+  await keep(page, "phosphor");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto(`./#/open?d=${payload(map())}`);
+  await expect(page.locator('.map-picture svg[data-picture="map"]')).toHaveAttribute("data-look", "phosphor");
+  await page.getByRole("radio", { name: "3D" }).tap();
+  const space = page.locator(".map-picture .space");
+  await expect(space).toBeVisible();
+  await expect(space).not.toHaveAttribute("data-look", /.+/);
+  await expect(space.locator("[data-of-look]")).toHaveCount(0);
+  // Paper's own colors, in light as the device is, and not the dark screen the flat picture has in this theme.
+  const papers = /--gp-surface:(#[0-9a-f]+);[^}]*--gp-ink:(#[0-9a-f]+)/.exec(picture(reviewLoop()))!;
+  const its = await space.locator(".space-card").first().evaluate((el) => [getComputedStyle(el).getPropertyValue("--gp-surface").trim(), getComputedStyle(el).getPropertyValue("--gp-ink").trim()]);
+  expect(its).toEqual([papers[1], papers[2]]);
+  await page.getByRole("radio", { name: "Picture" }).tap();
+  await expect(page.locator('.map-picture svg[data-picture="map"]')).toHaveAttribute("data-look", "phosphor");
+});
+
 test("every rule of every theme finds something to style in a real picture, in a browser", async ({ page }) => {
   // The rules are written for hooks the drawing code writes: a card's mark, an edge's dash, a label's size. A hook
   // that the code no longer writes would leave its rule selecting nothing, and the theme would quietly lose a part.
