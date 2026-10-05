@@ -23,6 +23,9 @@ const themesSource = fileURLToPath(new URL("../../packages/core/src/picture/them
 // And adoption held to a graph's brakes (slice 0085's follow-up): the comparison a refresh shares. The run page's
 // piece for it (src/ui/run/brakes.tsx) is fetched when Adopt is pressed, and named in the page too.
 const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.ts", import.meta.url));
+// And the one-file offline page (slice 0093's second part): made when a person presses "Offline page" under Keep a
+// copy, and by nothing an address shows. src/doc/keep.ts fetches it then, and it is named in the page too.
+const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -49,7 +52,7 @@ const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.t
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; offline?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -134,6 +137,13 @@ function routes(): Plugin {
         if (!frontPage) throw new Error("grooph-routes: no chunk of its own for the front page's picture (src/ui/landing/front.ts). The build no longer splits where vite.config.ts expects.");
         found.front = [...closure(frontPage)].filter((f) => !inEntry.has(f) && !inApp.has(f));
         found.later = [...new Set([...found.later, ...found.templates, ...found.front])];
+        // And the offline page's maker (packages/core/src/offline.ts): fetched when "Offline page" is pressed, held by
+        // the worker from its install, so that a copy can be kept with no network. No address loads it first.
+        const offlinePage = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/offline.ts"));
+        if (!offlinePage) throw new Error("grooph-routes: no chunk of its own for the offline page's maker (packages/core/src/offline.ts). The build no longer splits where vite.config.ts expects.");
+        const inCanvas = closure(screens);
+        found.offline = [...closure(offlinePage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.offline])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
@@ -165,6 +175,7 @@ export default defineConfig({
       { find: "@grooph/core/units", replacement: unitsSource },
       { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core/adoption", replacement: adoptionSource },
+      { find: "@grooph/core/offline", replacement: offlineSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

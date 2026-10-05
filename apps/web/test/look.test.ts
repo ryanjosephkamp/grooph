@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 import { PICTURE_THEMES, THEME_VALUES, themed, themedPage } from "@grooph/core/themes";
-import { offlinePage, picture } from "@grooph/core";
+import { offlineKit, picture } from "@grooph/core";
+import { offlinePageWith } from "@grooph/core/offline";
 import { describe, expect, it } from "vitest";
 
 import { openInAppHref, parseEmbedHash } from "../src/ui/embed/link.js";
@@ -20,7 +21,7 @@ describe("the pictures' themes in the app (handoff 0086)", () => {
     expect(lookNow("#/open?d=abc&theme=chalk")).toBe("chalk");
     // What Keep a copy is handed in a theme is `themed` and `themedPage`, and nothing of its own.
     const doc = reviewLoop();
-    const html = offlinePage(doc, { version: "0.0.0" });
+    const html = offlinePageWith(offlineKit, doc, { version: "0.0.0" });
     expect(themed(picture(doc), "chalk", "dark")).toContain('data-look="chalk"');
     expect(themedPage(html, "chalk")).not.toBe(html);
   });

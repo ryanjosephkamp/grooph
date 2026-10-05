@@ -9,15 +9,22 @@ import { mapKit } from "./picture/map-kit.js";
 import { mapSequenceWith, mapWideWith } from "./picture/map-views.js";
 import type { MapPictureOptions, PictureOptions } from "./picture/svg.js";
 import type { Graph, OperationMap } from "./types.js";
+import { offlineKit } from "./offline-kit.js";
+import { offlinePageWith, type OfflinePageOptions } from "./offline.js";
 
 export * from "./base.js";
 export { compile, tryCompile, CompileError } from "./compile/index.js";
+// The one-file offline page: here it is simply there (`base.ts` says why it is not on the web app's way in).
+export { offlinePageWith } from "./offline.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
 export * from "./subgrooph.js";
 // Adoption held to the graph's brakes: it brings the same comparison, and is not on the web app's way in either.
 export * from "./adoption.js";
 export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
 export type { UnitsKit } from "./picture/units-kit.js";
+
+/** A graph or an operation map as one self-contained HTML page (`offline.ts`), with core's parts already in hand. */
+export const offlinePage = (doc: Graph | OperationMap, options: OfflinePageOptions = {}): string => offlinePageWith(offlineKit, doc, options);
 
 /**
  * A graph's picture (docs/exports.md). A subgrooph is one box, closed unless `open` names it; a graph with none is

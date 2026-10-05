@@ -2,7 +2,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
-import { buildRunBundle, buildShareEnvelope, encodeSharePayload, mapKit, mapPicture, offlinePage, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
+import { buildRunBundle, buildShareEnvelope, encodeSharePayload, mapKit, mapPicture, offlineKit, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
+import { offlinePageWith } from "@grooph/core/offline";
 import { mapSequenceWith, mapWideWith } from "@grooph/core/map-views";
 import { PICTURE_THEMES, THEME_VALUES, themed, themedPage } from "@grooph/core/themes";
 import { pictureWithUnits } from "@grooph/core/units";
@@ -10,6 +11,9 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { unitsKit } from "../../../packages/core/src/picture/units-kit.js";
 import { canvasIsQuiet, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, requestsOut, reviewLoop, runBundle, sheet, visitIsOver } from "./support.js";
+
+/** The offline page as the CLI makes it: the maker, handed core's parts (it is a piece of the app, fetched on demand). */
+const offlinePage = (doc: Graph, options: { version: string }): string => offlinePageWith(offlineKit, doc, options);
 
 /**
  * The picture's themes in the app (handoff 0086; docs/themes.md): six looks for the same picture. Paper is the

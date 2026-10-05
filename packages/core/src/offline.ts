@@ -8,18 +8,17 @@
  * It is a page to read, send and keep, not the app: nothing in it edits.
  * Save the document from it and import that into the app to change it.
  * Pure and deterministic: the same document gives the same bytes.
+ *
+ * This file imports nothing but types. What it draws and lists with is handed to it (`offline-kit.ts` says why):
+ * the web app fetches it as a piece of its own, and a piece that imports nothing moves nothing else. In Node there
+ * is no door: `index.ts` binds the kit, and `offlinePage(doc)` is called as it always was.
  */
 
-import { canonicalize } from "./canonicalize.js";
-import { mapLiveLine, type MapSessionLive } from "./events.js";
-import { formatIssue, type IssueLike } from "./issues.js";
-import { canonicalizeMap, isMapLike, validateMap } from "./map.js";
-import { mapOutline, outline, type OutlineSection } from "./outline.js";
-import { picture } from "./picture/graph-picture.js";
-import { mapPicture } from "./picture/map-picture.js";
-import { esc } from "./picture/svg.js";
+import type { MapSessionLive } from "./events.js";
+import type { IssueLike } from "./issues.js";
+import type { OfflineKit } from "./offline-kit.js";
+import type { OutlineSection } from "./outline.js";
 import type { Graph, OperationMap } from "./types.js";
-import { validate } from "./validate.js";
 
 export type OfflinePageOptions = {
   /** Shown in the footer: the grooph that made the page. */
@@ -85,7 +84,7 @@ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{ty
 })();
 `;
 
-function sectionHtml(section: OutlineSection, first: boolean): string {
+function sectionHtml(esc: OfflineKit[2], section: OutlineSection, first: boolean): string {
   const items = section.items
     .map((it) => `<dt>${esc(it.label)}</dt><dd>${it.list ? `<ul>${it.list.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : esc(it.text ?? "")}</dd>`)
     .join("");
@@ -100,7 +99,9 @@ function sectionHtml(section: OutlineSection, first: boolean): string {
  * that does not match its schema cannot be drawn, so the caller parses first;
  * rule errors are fine, and are listed on the page.
  */
-export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptions = {}): string {
+export function offlinePageWith(kit: OfflineKit, doc: Graph | OperationMap, options: OfflinePageOptions = {}): string {
+  // The kit's parts by their names, in the kit's own order.
+  const [canonicalize, canonicalizeMap, esc, formatIssue, isMapLike, mapLiveLine, mapOutline, mapPicture, outline, picture, validate, validateMap] = kit;
   const map = isMapLike(doc) ? (doc as OperationMap) : undefined;
   const graph = map ? undefined : (doc as Graph);
   const svg = (map ? mapPicture(map, options.live ? { live: options.live, ...(options.at ? { at: options.at } : {}) } : {}) : (options.picture ?? picture(graph!))).trimEnd();
@@ -146,7 +147,7 @@ export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptio
     `<section id="s-validation"><p class="kind">Validation</p><h2>${esc(verdict)}</h2>${
       issues.length > 0 ? `<ul class="issues">${issues.map((i) => `<li class="${i.severity}">${esc(formatIssue(i))}</li>`).join("")}</ul>` : ""
     }</section>`,
-    ...sections.map((section, i) => sectionHtml(section, i === 0)),
+    ...sections.map((section, i) => sectionHtml(esc, section, i === 0)),
     `<footer>Made with grooph${options.version ? ` ${esc(options.version)}` : ""}. The picture, the text and the document are all inside this file; Save document writes <code>${esc(file)}</code>, which the grooph app imports.${
       options.link ? ` With a network, <a href="${esc(options.link)}">open it in the app</a>.` : ""
     }</footer>`,

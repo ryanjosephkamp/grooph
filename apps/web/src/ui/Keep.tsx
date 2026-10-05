@@ -24,6 +24,7 @@ const lookNow = async () => {
   }
 };
 const NO_THEMES = "The picture themes could not be fetched (they need a connection the first time), so this copy is in Paper.";
+const NO_PAGE = "The offline page could not be made: its maker could not be fetched. It needs a connection the first time. The pictures above are made without it.";
 
 /**
  * Keep a copy (review 2026-10, exports): the whole graph, or map, as a
@@ -56,7 +57,16 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
   const page = async () => {
     const look = await lookNow();
     setProblem(look === null ? NO_THEMES : null);
-    download(pageName(doc), look ? look.page(pageHtml(doc)) : pageHtml(doc), "text/html");
+    // The page's maker is fetched at the first press (`doc/keep.ts`). When it cannot be had nothing is downloaded,
+    // and that is said here, in place of a file that never comes.
+    let html: string;
+    try {
+      html = await pageHtml(doc);
+    } catch {
+      setProblem(NO_PAGE);
+      return;
+    }
+    download(pageName(doc), look ? look.page(html) : html, "text/html");
   };
   return (
     <div className="keep" role="group" aria-label="Keep a copy">

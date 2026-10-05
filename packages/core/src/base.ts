@@ -38,5 +38,9 @@ export { mapKit, type MapKit } from "./picture/map-kit.js";
 export { picture, type Face, type PictureView } from "./picture/graph-picture.js";
 export { PICTURE_WIDTH, type MapPictureOptions, type PictureOptions, type PictureTheme } from "./picture/svg.js";
 export * from "./outline.js";
-export { offlinePage, type OfflinePageOptions } from "./offline.js";
+// The one-file offline page (`offline.ts`) is made when a person asks to keep a copy, and by the CLI: it is not
+// on the web app's way in. The app fetches it, a piece of its own, when "Offline page" is pressed (slice 0093).
+// What it is handed when it is called is on the way in, since it is only names for what every address has.
+export { offlineKit, type OfflineKit } from "./offline-kit.js";
+export type { OfflinePageOptions } from "./offline.js";
 export * from "./events.js";

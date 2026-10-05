@@ -2,10 +2,16 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { canonicalize, offlinePage, outline, picture } from "@grooph/core";
+import { canonicalize, offlineKit, outline, picture, type Graph } from "@grooph/core";
+import { offlinePageWith } from "@grooph/core/offline";
 import { expect, test } from "@playwright/test";
 
 import { downloadBytes, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, sheet } from "./support.js";
+
+/** The offline page as the CLI makes it: the maker, handed core's parts (it is a piece of the app, fetched on demand). */
+const offlinePage = (doc: Graph, options: { version: string }): string => offlinePageWith(offlineKit, doc, options);
+/** The review loop's page at the app's version: said once, where scripts/version.mjs reads it. */
+const madeByCore = (): string => offlinePage(reviewLoop(), { version: "0.3.0" });
 
 /**
  * Slice 0025: things to keep, and the outline. The picture as SVG and PNG in
@@ -47,7 +53,7 @@ test("the offline page downloads as one file, opens with the network off, and gi
   expect(file.suggestedFilename()).toBe("review-loop.html");
   const html = await downloadText(file);
   // The app and the CLI make the same page for the same document and version.
-  expect(html).toBe(offlinePage(reviewLoop(), { version: "0.3.0" }));
+  expect(html).toBe(madeByCore());
 
   const path = join(tmpdir(), `grooph-offline-${Date.now()}.html`);
   writeFileSync(path, html);
@@ -83,6 +89,38 @@ test("the offline page downloads as one file, opens with the network off, and gi
   expect(requests).toEqual([`file://${path}`]);
   expect(errors).toEqual([]);
   await context.close();
+});
+
+test("when the offline page's maker cannot be fetched, the panel says so and no file comes; once it can, the next press makes the page", async ({ page }) => {
+  // The maker is a piece of the app fetched at this press (slice 0093): it must fail where the person is looking.
+  let refuse = true;
+  const asked: string[] = [];
+  await page.route("**/assets/offline-*.js*", (route) => {
+    asked.push(route.request().url());
+    return refuse ? route.abort() : route.continue();
+  });
+  await open(page);
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const keep = sheet(page).getByRole("group", { name: "Keep a copy" });
+  // Opening the panel asks for nothing: the piece is fetched when the page is asked for, not before.
+  expect(asked).toEqual([]);
+  let downloads = 0;
+  page.on("download", () => (downloads += 1));
+  await keep.getByRole("button", { name: "Offline page (.html)" }).tap();
+  await expect(keep.getByRole("alert")).toHaveText("The offline page could not be made: its maker could not be fetched. It needs a connection the first time. The pictures above are made without it.");
+  await expect(keep.getByRole("alert")).toBeVisible();
+  expect(asked.length).toBeGreaterThan(0);
+  expect(downloads).toBe(0);
+  // The pictures need no piece: they are made as before, beside the notice.
+  const [svg] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Picture (SVG)" }).tap()]);
+  expect(svg.suggestedFilename()).toBe("review-loop.light.svg");
+
+  // The connection is back: the same button, with nothing reloaded, makes the page, and the notice goes.
+  refuse = false;
+  const [file] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Offline page (.html)" }).tap()]);
+  expect(file.suggestedFilename()).toBe("review-loop.html");
+  expect(await downloadText(file)).toBe(madeByCore());
+  await expect(keep.getByRole("alert")).toHaveCount(0);
 });
 
 test("the outline: the whole graph to read, at full height; in the editor a section opens its inspector", async ({ page }) => {
