@@ -111,17 +111,18 @@ export const spiral: View = (m, shown) => {
     });
     // A run's dispatches so far, each a bead where it happened: the round it was in, and how it ended. A loop that
     // started afresh has been at a place before: the later bead is set beside the earlier, toward the middle.
-    // However many there are at a place, they stop short of the middle.
+    // However many there are at a place in the whole run, they stop short of the middle; and a bead stays where it
+    // is as the slider brings on the ones after it.
     const here = (m.run?.dispatches ?? []).flatMap((d, n) => {
       const i = stops.findIndex((stop) => stop.node === d.node);
-      return i < 0 || d.round === null || (shown.dispatches !== undefined && n >= shown.dispatches) ? [] : [{ d, i, round: d.round }];
+      return i < 0 || d.round === null ? [] : [{ d, i, round: d.round, shown: shown.dispatches === undefined || n < shown.dispatches }];
     });
     const there: Record<string, number> = {};
-    for (const { d, i, round } of here) {
+    for (const { d, i, round, shown: yet } of here) {
       const place = `${round}:${i}`;
       const before = (there[place] = (there[place] ?? -1) + 1);
       const step = Math.min(13, (t.r - 10) / Math.max(1, here.filter((x) => `${x.round}:${x.i}` === place).length - 1));
-      prims.push({ t: "dot", at: on(t, round + i / k, -step * before), r: 6, fill: beadFill(d.outcome), stroke: "card" });
+      if (yet) prims.push({ t: "dot", at: on(t, round + i / k, -step * before), r: 6, fill: beadFill(d.outcome), stroke: "card" });
     }
   }
   // The ground: what comes before the loops recedes behind the first spiral, the spirals stand side by side (one
@@ -165,10 +166,15 @@ export const spiral: View = (m, shown) => {
     if (loop) {
       const t = tower[loop.id]!;
       const [i, j] = [t.stops.findIndex((stop) => stop.node === e.from), t.stops.findIndex((stop) => stop.node === e.to)];
-      // Onward round the spiral when that is where the edge goes. A way back from the middle of a round still
-      // arrives one turn up, by the short way across.
-      if ((!e.back && j === i + 1) || (e.back && i === t.k - 1 && j === 0)) return helix(t, r0 + i / t.k, (e.back ? r0 + 1 : r1) + j / t.k);
-      return arch(on(t, r0 + i / t.k), on(t, r1 + j / t.k), 26, 18);
+      // Onward round the spiral when that is where the edge goes: to the next station, or by this loop's own way
+      // back from the last station to the first, a turn on. This loop's way back from the middle of a round still
+      // arrives one turn up, by the short way across. A way back that is another loop's does not move this one: it
+      // arrives in the round this loop is in (on a template, the one it left), or at round 0 where this loop is
+      // inside the one whose way back it is, and so starts afresh.
+      const own = e.back === loop.id;
+      if ((!e.back && j === i + 1) || (own && i === t.k - 1 && j === 0)) return helix(t, r0 + i / t.k, (own ? r0 + 1 : r1) + j / t.k);
+      const lands = !e.back || own ? r1 : under(m.loops, loop.id, e.back) ? 0 : m.run ? r1 : r0;
+      return arch(on(t, r0 + i / t.k), on(t, lands + j / t.k), 26, 18);
     }
     // Between a loop and what is outside it, or between two loops: from where each is in its round. A way back
     // into a loop inside the one whose way back it is arrives at that loop's round 0: its rounds start afresh. A way
@@ -178,10 +184,11 @@ export const spiral: View = (m, shown) => {
     const rise = (node: Id, r: number): number => (by(m.nodes, node).loop ? r : 0);
     const landing = by(m.nodes, e.to).loop;
     const arrives = !e.back ? rise(e.to, r1) : landing && under(m.loops, landing, e.back) ? 0 : landing === e.back || m.run ? rise(e.to, r1) : 0;
-    // Between two nodes on the ground that are not next to each other, over the ones between: a straight line
-    // through them would read as a chain.
-    const apart = Math.abs(order.findIndex((item) => item.node === e.from) - order.findIndex((item) => item.node === e.to));
-    const over = by(m.nodes, e.from).loop || landing ? 0 : 26 * Math.max(0, apart - 1);
+    // From or to a node on the ground, over the nodes on the ground that stand between: a straight line through
+    // them would read as a chain. A node on a spiral is where its spiral is in that order.
+    const place = (id: Id): number => order.findIndex((item) => item.node === id || !!item.loop?.own.includes(id));
+    const [a, b] = [place(e.from), place(e.to)].sort((x, y) => x - y) as [number, number];
+    const over = by(m.nodes, e.from).loop && landing ? 0 : 26 * order.slice(a + 1, b).filter((item) => item.node).length;
     return arch(spot(e.from, rise(e.from, r0)), spot(e.to, arrives), e.back ? 40 : over, 18);
   };
   // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between
