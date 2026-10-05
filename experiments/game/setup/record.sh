@@ -19,11 +19,15 @@ id="$(field 'session id')"
 folder="$(field 'the folder')"
 transcript="$(field 'its transcript' | sed 's/ (stays on this machine)$//')"
 out="$record/after"
+# A second run after the folder was moved would empty what the first one wrote. The record is left as it was.
+[ -d "$folder/.git" ] || { echo "record: $folder is not there (moved by clear-rehearsal.sh?). The record at $out is left as it was." >&2; exit 1; }
 mkdir -p "$out"
+echo "reading $folder and the transcript; a long session's transcript takes a minute or two ..."
 
 # The run folder (notes, progress, the working copy of the graph), and what the hook wrote.
-[ -d "$folder/.grooph/arena/runs" ] && cp -R "$folder/.grooph/arena/runs" "$out/run-folder"
-[ -d "$folder/.grooph/events" ] && cp -R "$folder/.grooph/events" "$out/events"
+# The contents are copied, not the folder, so that running this twice writes the same record and nests nothing.
+if [ -d "$folder/.grooph/arena/runs" ]; then mkdir -p "$out/run-folder" && cp -R "$folder/.grooph/arena/runs/." "$out/run-folder/"; fi
+if [ -d "$folder/.grooph/events" ]; then mkdir -p "$out/events" && cp -R "$folder/.grooph/events/." "$out/events/"; fi
 git -C "$folder" log --format='%H %cI %s' >"$out/commits.txt"
 git -C "$folder" status --porcelain >"$out/uncommitted.txt"
 git -C "$folder" tag --list >"$out/tags.txt"
@@ -62,7 +66,10 @@ if [ -n "$files" ]; then
   # Was anything of the held-out checks seen? Their folder's path and their file names, looked for in every transcript.
   {
     echo "Looked for in $(echo "$files" | wc -l | tr -d ' ') transcript file(s). A count above 0 is a hit to be read by a person:"
-    for needle in "experiments/game/acceptance" "game/acceptance" "acceptance/check.mjs" "acceptance/LIST.md" "prove.mjs" "stand-ins/" "one-at-a-time" "Documents/grooph/" "/tmp/claude-" "/var/folders/" "grooph-game-kept" "rehearsal-claude"; do
+    # The last one is the other session's folder: in the run, the rehearsal's; in the rehearsal, the run's. A
+    # session's own folder is on every line of its own transcript.
+    other="rehearsal-claude"; [ "$which" = "rehearsal" ] && other="grooph-game-experiment-claude"
+    for needle in "experiments/game/acceptance" "game/acceptance" "acceptance/check.mjs" "acceptance/LIST.md" "prove.mjs" "stand-ins/" "one-at-a-time" "Documents/grooph/" "/tmp/claude-" "/var/folders/" "grooph-game-kept" "$other"; do
       # shellcheck disable=SC2086
       echo "  $(cat $files | grep -c -F "$needle" || true)  $needle"
     done
@@ -92,6 +99,7 @@ echo "commits:           $commits (the first is the starting contents), $(wc -l 
 echo "tags:              $(tr '\n' ' ' <"$out/tags.txt")"
 echo "run folder copied: $([ -d "$out/run-folder" ] && echo yes || echo 'no: the session made none')"
 echo "events copied:     $([ -d "$out/events" ] && ls "$out/events" | wc -l | tr -d ' ' || echo 0) file(s)"
+[ -f "$transcript" ] || echo "THE TRANSCRIPT WAS NOT FOUND at $transcript: nothing below was looked for in it, and no checksum was taken. Tell the driver before anything else."
 [ -f "$out/models.txt" ] && { echo "models that answered:"; sed 's/^/  /' "$out/models.txt"; }
 [ -f "$out/held-out-checks-seen.txt" ] && cat "$out/held-out-checks-seen.txt"
 [ -f "$out/system-services-used.txt" ] && cat "$out/system-services-used.txt"

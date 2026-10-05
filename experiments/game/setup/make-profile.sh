@@ -34,7 +34,7 @@ if [ "${1:-}" = "--check" ]; then
   for file in CLAUDE.md CLAUDE.local.md; do [ -e "$profile/$file" ] && no "$profile/$file is there. A clean profile has no instructions."; done
   for folder in rules skills agents commands workflows output-styles; do
     [ -d "$profile/$folder" ] || continue
-    found="$(find "$profile/$folder" -type f ! -name '.DS_Store' ! -path '*/.trash/*' | head -3)"
+    found="$(find "$profile/$folder" -type f ! -name '.DS_Store' ! -path '*/.trash/*' | head -3 || true)"
     [ -z "$found" ] || no "$profile/$folder holds something a session would load: $(echo "$found" | tr '\n' ' '). A clean profile has none. Tell the driver."
   done
   for synced in "$profile/skills/synced" "$profile/plugins/synced"; do
@@ -44,8 +44,10 @@ if [ "${1:-}" = "--check" ]; then
   claude_bin="$(command -v claude || true)"
   if [ -x "$claude_bin" ]; then
     scratch="$(mktemp -d "${TMPDIR:-/tmp}/make-profile-check.XXXXXX")"
-    plugins="$(cd "$scratch" && CLAUDE_CONFIG_DIR="$profile" "$claude_bin" plugin list 2>&1 || true)"
-    servers="$(cd "$scratch" && CLAUDE_CONFIG_DIR="$profile" ENABLE_CLAUDEAI_MCP_SERVERS=false "$claude_bin" mcp list 2>&1 || true)"
+    # env -i: run from inside a Claude session, these would carry that session's account into the profile's own
+    # file. Nothing of the caller's environment goes in.
+    plugins="$(cd "$scratch" && env -i HOME="$HOME" PATH="$PATH" CLAUDE_CONFIG_DIR="$profile" "$claude_bin" plugin list 2>&1 || true)"
+    servers="$(cd "$scratch" && env -i HOME="$HOME" PATH="$PATH" CLAUDE_CONFIG_DIR="$profile" ENABLE_CLAUDEAI_MCP_SERVERS=false "$claude_bin" mcp list 2>&1 || true)"
     rmdir "$scratch" 2>/dev/null || true
     echo "$plugins" | grep -q "No plugins installed" || no "the profile has a plugin: $(echo "$plugins" | head -3 | tr '\n' ' '). Tell the driver."
     echo "$servers" | grep -q "No MCP servers configured" || no "the profile has a connected server: $(echo "$servers" | head -3 | tr '\n' ' '). Tell the driver."

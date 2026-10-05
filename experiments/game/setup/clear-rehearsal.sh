@@ -23,10 +23,16 @@ print=0; [ "${1:-}" = "--print" ] && print=1
 
 [ -f "$record/setup.txt" ] || stop "no rehearsal was started by start-claude.sh ($record/setup.txt is not there). Nothing to clear."
 [ -f "$record/after/transcript.txt" ] || stop "the rehearsal has not been recorded yet. Run experiments/game/setup/record.sh rehearsal first: it takes the transcript's checksum where the transcript is now."
+grep -q '^sha256: ' "$record/after/transcript.txt" || stop "record.sh did not find the rehearsal's transcript, so no checksum of it was taken ($record/after/transcript.txt). Tell the driver before anything is moved."
 # start-claude.sh names every session it starts, and the name is on the process's command line.
 if pgrep -f -- "--name arena-claude-" >/dev/null 2>&1; then
   stop "a session of this profile is still open. /exit it first."
 fi
+# A dev server or a browser the rehearsal started can outlive the session, and the run's commands can reach any
+# local port. Whatever still has the rehearsal's folder as its own is ended by a person first.
+alive="$(lsof -a -d cwd -Fpn 2>/dev/null | awk -v dir="n$home/rehearsal-claude" '/^p/{pid=substr($0,2)} /^n/{ if (index($0,dir)==1) print pid }' | sort -un | head -5 | tr '\n' ' ' || true)"
+[ -z "$alive" ] || stop "something the rehearsal started is still running in $home/rehearsal-claude: process $alive
+End each one first (kill <its number>), then run this again."
 
 kept="${GROOPH_GAME_KEPT:-$HOME/grooph-game-kept}/rehearsal-claude-$(date -u +%Y%m%dT%H%M%SZ)"
 case "$kept/" in "$home"/*) stop "$kept is inside $home, where the run could look. Name another folder with GROOPH_GAME_KEPT." ;; esac

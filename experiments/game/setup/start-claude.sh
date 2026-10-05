@@ -14,7 +14,8 @@
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 root="$(git -C "$here" rev-parse --show-toplevel)"
-clone="$(cd "$(git -C "$here" rev-parse --git-common-dir)/.." && pwd -P)"
+# --path-format=absolute: in a main clone git answers with a path relative to $here, in a worktree with a whole one.
+clone="$(cd "$(git -C "$here" rev-parse --path-format=absolute --git-common-dir)/.." && pwd -P)"
 home="${GROOPH_GAME_HOME:-$HOME/grooph-game}"
 profile="$home/profile-claude"
 cache="$home/npm-cache-claude"
@@ -22,7 +23,8 @@ temp="$home/t" # the session's own temp folder (make-profile.sh makes it; setup/
 MODEL="claude-opus-5-5" # the lead is on the frontier tier, which the owner answered is Opus 5.5 (ANSWERS.md, 1)
 stop() { echo "start-claude: $*" >&2; exit 1; }
 
-which="${1:-}"; print=0; [ "${2:-}" = "--print" ] && print=1
+which="${1:-}"; print=0
+case "${2:-}" in "") ;; --print) print=1 ;; *) stop "unknown second word '$2': it is --print or nothing. Nothing was started." ;; esac
 case "$which" in
   rehearsal) folder="$home/rehearsal-claude" ;;
   run) folder="$home/grooph-game-experiment-claude" ;;
@@ -34,7 +36,11 @@ esac
 # on this machine that command is a link into the clone that holds the checks.
 claude="$(command -v claude || true)"; [ -x "$claude" ] || stop "claude is not on this terminal's PATH."
 node_dir="$(dirname "$(command -v node)")"
-session_path="$node_dir:/usr/bin:/bin:/usr/sbin:/sbin"
+# /usr/bin/git is a shim that finds the real git through a cache it keeps in the account's temp folder, which the
+# profile closes to commands: it would print two "error:" lines at every call. The real one goes before it.
+dev_bin="$(dirname "$(xcrun -f git 2>/dev/null || echo /nowhere/git)")"
+[ -x "$dev_bin/git" ] || stop "the developer tools' own git was not found (xcrun -f git). Tell the driver."
+session_path="$node_dir:$dev_bin:/usr/bin:/bin:/usr/sbin:/sbin"
 found() { PATH="$session_path" command -v "$1" 2>/dev/null || true; }
 [ -z "$(found grooph)" ] || stop "the grooph command is on the session's path ($(found grooph)). It must not be."
 for tool in node npm git; do [ -n "$(found $tool)" ] || stop "$tool is not on the session's path ($session_path)."; done
@@ -49,7 +55,8 @@ else
   # A session's commands can reach every port on this machine's localhost (setup/PROFILE.md). The checks are served
   # on 4361 when they are run or proved, and their stand-in pages are not for a builder to see. So no session starts
   # while that port is open or anything of the checks' folder is running, on this machine, in any session.
-  serving="$(lsof -nP -iTCP:4361 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1" (pid "$2")"}' | sort -u | tr '\n' ' ')"
+  # lsof answers 1 when nothing listens, which is the usual case: without "|| true" that would end this script.
+  serving="$(lsof -nP -iTCP:4361 -sTCP:LISTEN 2>/dev/null | awk 'NR>1{print $1" (pid "$2")"}' | sort -u | tr '\n' ' ' || true)"
   [ -z "$serving" ] || stop "port 4361, where the held-out checks are served, is open on this machine: $serving. Whoever is running them must stop first (another lane's dry run counts). Tell the driver."
   running="$(pgrep -fl 'experiments/game/acceptance/' 2>/dev/null | head -3 | cut -c1-160 || true)"
   [ -z "$running" ] || stop "something of the held-out checks' folder is running on this machine: $running. It must stop first. Tell the driver."

@@ -63,6 +63,12 @@ The sign-in, in your browser. Use the subscription this run is to be paid from.
 That account, and the model `claude-opus-5-5`.
 
 ```text
+/usage
+```
+
+What is left of the account's weekly allowance and when it resets. Write it down for the driver: a run started when little is left ends at its first pause (part 5). Look now, not later: after the rehearsal has been cleared, opening this sign-in session again leaves files the run would refuse to start beside.
+
+```text
 /mcp
 ```
 
@@ -207,7 +213,7 @@ start
 and, in the second window, write the time down. This is when the clock starts:
 
 ```bash
-cd ~/Documents/grooph && echo "$(date -u +%FT%TZ) start answered; the wall is at $(date -u -v+6H -v+15M +%FT%TZ)" | tee -a experiments/game/runs/claude-code/run/owner-notes.txt
+echo "$(date -u +%FT%TZ) start answered; the wall is at $(date -u -v+6H -v+15M +%FT%TZ)" | tee -a ~/Documents/grooph/experiments/game/runs/claude-code/run/owner-notes.txt
 ```
 
 **Then leave it.** Say nothing to it: no hint, no correction, no "go on".
@@ -221,13 +227,13 @@ Go on as the lead brief says. Nobody is here until the end.
 and write it down, with what it asked:
 
 ```bash
-echo "$(date -u +%FT%TZ) interruption: it asked <what>; given the one line" >> experiments/game/runs/claude-code/run/owner-notes.txt
+echo "$(date -u +%FT%TZ) interruption: it asked <what>; given the one line" >> ~/Documents/grooph/experiments/game/runs/claude-code/run/owner-notes.txt
 ```
 
 **If Claude Code says the account has reached its usage limit**, the bottom of the session shows two lines: `Usage limit reached · limit resets <time>` and, when it will go on by itself, `Continuing automatically at <time> · esc to cancel`. The clock goes on either way (`PROTOCOL.md` sections 2 and 10). Do not press Esc, do not switch the account or the model, do not type `/usage-credits`. Write down when it stopped:
 
 ```bash
-echo "$(date -u +%FT%TZ) usage limit: paused; it says: <the two lines>" >> experiments/game/runs/claude-code/run/owner-notes.txt
+echo "$(date -u +%FT%TZ) usage limit: paused; it says: <the two lines>" >> ~/Documents/grooph/experiments/game/runs/claude-code/run/owner-notes.txt
 ```
 
 Then one of three things, the same in both runs:
@@ -235,18 +241,18 @@ Then one of three things, the same in both runs:
 - **It goes on by itself at the reset** (`Usage limit reset · continuing automatically`). This is what a five-hour limit does. Do nothing but write the time:
 
   ```bash
-  echo "$(date -u +%FT%TZ) usage limit: went on again by itself" >> experiments/game/runs/claude-code/run/owner-notes.txt
+  echo "$(date -u +%FT%TZ) usage limit: went on again by itself" >> ~/Documents/grooph/experiments/game/runs/claude-code/run/owner-notes.txt
   ```
 
 - **It shows `Press enter to continue`**, or the reset time has passed by five minutes and nothing has moved: press Return once, and nothing else. If it is then at a prompt and still not working, paste the one line above. Either is written down as an interruption:
 
   ```bash
-  echo "$(date -u +%FT%TZ) usage limit: did not go on by itself; given <Return | the one line>" >> experiments/game/runs/claude-code/run/owner-notes.txt
+  echo "$(date -u +%FT%TZ) usage limit: did not go on by itself; given <Return | the one line>" >> ~/Documents/grooph/experiments/game/runs/claude-code/run/owner-notes.txt
   ```
 
 - **The reset is after the wall, there is no `Continuing automatically` line, or it says `Automatic continue stopped after repeated usage-limit hits`.** The first two are what the weekly limit does: Claude Code does not wait for a reset more than a day away. The third is what it says after stopping at the limit three times running. Then the run is over where it stands. Leave the session as it is until the wall, in case it does go on; at the wall end it as below. The result is the last commit that builds, as for any run the wall ends.
 
-(The other lanes spend from the same weekly allowance, which resets on Monday at about 11 a.m. Eastern. Before starting the run, type `/usage` in the sign-in session, or ask the driver, to see what is left: a run started when little is left ends at its first pause.)
+(The other lanes spend from the same weekly allowance, which resets on Monday at about 11 a.m. Eastern. You wrote down what was left at the sign-in, in part 2; ask the driver whether it is enough before starting the run.)
 
 **At the end gate** the session says it is done and asks. Read `FINAL.md` in the game's folder, then answer:
 
@@ -257,7 +263,7 @@ close
 **At the wall**, 6 hours 15 minutes after "start", if it is still working: press Esc, and write that the wall came:
 
 ```bash
-echo "$(date -u +%FT%TZ) the wall: the session was ended still working" >> experiments/game/runs/claude-code/run/owner-notes.txt
+echo "$(date -u +%FT%TZ) the wall: the session was ended still working" >> ~/Documents/grooph/experiments/game/runs/claude-code/run/owner-notes.txt
 ```
 
 Either way, before leaving the session type `/cost`, copy what it prints into `owner-notes.txt`, then `/exit`. Then:
