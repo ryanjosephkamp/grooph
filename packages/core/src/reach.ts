@@ -21,6 +21,8 @@ export type Way = {
   when?: string;
   /** the loop whose stop leads on (`then`), when the way is that */
   loop?: Id;
+  /** the way is a brake firing: a round cap, a budget or the stop where a person is asked, wherever it leads on to */
+  fires?: true;
   /** the way is a brake firing into a stop that halts: a round cap, a budget or the stop where a person is asked. It ends the run, so it is no way around a critic. */
   escalates?: true;
   /** the way is a loop's bar being passed (`bar-passed` with a `then`): the verdict of the critics among the loop's members, who are named */
@@ -39,12 +41,13 @@ export function waysOf(doc: Graph): Way[] {
   for (const loop of doc.loops) {
     for (const stop of loop.stops) {
       if (stop.then === undefined) continue;
-      const escalates = (stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human") && halts.has(stop.then);
+      const fires = stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human";
+      const escalates = fires && halts.has(stop.then);
       // The bar passed is the verdict of the loop's critics. It is nobody's where the loop has none: not a check's
       // (amendment A-019), whose verdict is the edges that leave it, so a stop that leads on from a loop a check
       // judges is a way that does not pass the check.
       const judges = stop.kind === "bar-passed" ? loop.members.filter((member) => critics.has(member)) : [];
-      for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(escalates ? { escalates } : {}), ...(judges.length > 0 ? { verdictOf: judges } : {}) });
+      for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(fires ? { fires } : {}), ...(escalates ? { escalates } : {}), ...(judges.length > 0 ? { verdictOf: judges } : {}) });
     }
   }
   return ways;
@@ -53,15 +56,19 @@ export function waysOf(doc: Graph): Way[] {
 /**
  * A decision taken as never given: every person's at once; one human gate's, or one answer at it; one approval; one
  * critic's verdict, or one verdict of it. A check's verdict is a decision as a critic's is (amendment A-019): the same
- * shape, with `check` set, which changes the words and nothing else.
+ * shape, with `check` set, which changes the words. It is asked a second time with `stops` set: without the verdict
+ * and with no brake of a loop firing either. Where a round cap already leads on to what the check's pass led to (a
+ * loop that ends, pass or fail, in a wrap-up), a run reaches that without the verdict anyway, and a new edge
+ * straight there would show nothing; asked this way, what it reached only by the verdict or by spending the cap is
+ * held behind both.
  */
-export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string; check?: true };
+export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string; check?: true; stops?: true };
 
 /** Whether a way is shut by that. An edge out of a gate is the gate's decision, and an edge out of a critic the critic's. */
 export function shut(way: Way, closed: Closed): boolean {
   if (closed === "every") return way.person;
   if ("approval" in closed) return way.edge === closed.approval;
-  if ("critic" in closed && way.escalates) return true;
+  if ("critic" in closed && (way.escalates || (closed.stops && way.fires))) return true;
   // The bar passed is the critic's "pass": shut with the critic, and with that verdict of it.
   if ("critic" in closed && way.verdictOf?.includes(closed.critic) && (closed.when === undefined || closed.when === "pass")) return true;
   const node = "gate" in closed ? closed.gate : closed.critic;
@@ -133,7 +140,12 @@ export function decisionsShared(before: Graph, after: Graph): Closed[] {
     const kept = now.get(node.id);
     if (isCriticFamily(node) && kept && isCriticFamily(kept)) closed.push({ critic: node.id }, ...answers(node.id).map((when) => ({ critic: node.id, when })));
     // A check's verdict, as a critic's (amendment A-019): every check, in a loop or in none.
-    if (node.kind === "check" && kept?.kind === "check") closed.push({ critic: node.id, check: true }, ...answers(node.id).map((when) => ({ critic: node.id, when, check: true as const })));
+    if (node.kind === "check" && kept?.kind === "check") {
+      for (const stops of [false, true]) {
+        const more = stops ? { check: true as const, stops: true as const } : { check: true as const };
+        closed.push({ critic: node.id, ...more }, ...answers(node.id).map((when) => ({ critic: node.id, when, ...more })));
+      }
+    }
   }
   return closed;
 }

@@ -519,6 +519,7 @@ test("A-019: every built-in template whose loop is judged by a check alone, and 
   const alone: string[] = [];
   const outside: string[] = [];
   const probed: string[] = [];
+  const third: string[] = [];
   for (const id of files) {
     // As a graph: a fragment, which is not one by itself, is put into a graph that holds nothing else.
     const shipped = parseGraphText(read(join(repoRoot, "patterns", `${id}.grooph.json`))).doc!;
@@ -543,7 +544,25 @@ test("A-019: every built-in template whose loop is judged by a check alone, and 
       const held = checkAdoption(doc, swapped.doc).refused.map((change) => change.name);
       for (const e of leaving) assert.ok(held.includes(`edge:${e.id}.when`), `${id}: ${e.id} is held when the verdicts of ${check.id} are swapped; held are ${held.join(", ")}`);
     }
+    // The audit's third probe, on every template and not only on the grind loop: the checks untouched, and one edge
+    // from a step that leads into a check straight to a stop that ends in success. Held, and for a check, also where
+    // a round cap of the loop already leads on to that stop (the retrospective: its loop ends, pass or fail, there).
+    const checks = new Set(doc.nodes.filter((n) => n.kind === "check").map((n) => n.id));
+    const good = doc.nodes.filter((n) => n.kind === "stop" && (n.outcome ?? "success") === "success").map((n) => n.id);
+    for (const into of doc.edges.filter((e) => checks.has(e.to) && !checks.has(e.from) && kind(e.from) === "agent")) {
+      for (const stop of good.filter((end) => !doc.edges.some((e) => e.from === into.from && e.to === end))) {
+        const around = adoptWorkingCopy(doc, { ...structuredClone(doc), edges: [...doc.edges, { id: "e-straight-to-the-end", from: into.from, to: stop }] } as Graph, { run: "r" });
+        if (!around.ok) continue;
+        const said = checkAdoption(doc, around.doc).refused.filter((change) => change.name === "edge:e-straight-to-the-end").map((change) => change.loosens).join("; ");
+        assert.notEqual(said, "", `${id}: ${into.from} → ${stop} goes round ${into.to} and is held`);
+        // Where a check alone judges the loop, the line names the check. (Where a critic's bar stands between the
+        // check and the end, the same edge is held for the critic and the people it goes round.)
+        if (judged.length > 0) assert.match(said, new RegExp(`that does not pass (the|"pass" from the) check "${into.to}"`), `${id}: ${into.from} → ${stop} goes round ${into.to}; said: ${said}`);
+        third.push(`${id}:${into.from}`);
+      }
+    }
   }
+  for (const id of alone) assert.ok(third.some((tried) => tried.startsWith(`${id}:`)), `the third probe was tried on ${id}`);
   assert.equal(alone.length, 7, `the templates with a loop judged by a check alone: ${alone.join(", ")}`);
   assert.deepEqual(probed, alone, "each of the seven was tried");
   assert.equal(outside.length, 2, `the checks in no loop: ${outside.join(", ")}`);
@@ -652,4 +671,71 @@ test("A-019: the keys of a check written in another order are no change; a key t
   assert.deepEqual(reordered.refused, []);
   const unknown = adopt((w) => void Object.assign(checkOf(w, "tests").check, { allowFailure: true }), { from: grind });
   assert.match(refused(unknown)[0] ?? "", /^node:tests\.check: changes the check's definition \(allowFailure\)/);
+});
+
+// What the second reader of A-019 got through the narrowed rule, each on a built-in template and each a test now.
+
+test("A-019, the second reader's first: a critic of the graph's own, named among the loop's members with the bar, is not that loop's critic; nor is one in a new loop", () => {
+  const debate = builtIn("debate-then-build");
+  const bar = { name: "Looks done", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." } as Loop["bar"];
+  const borrowed = adopt((w) => {
+    const build = w.loops.find((l) => l.id === "build")!;
+    build.members.push("judge");
+    build.bar = structuredClone(bar);
+    build.stops.unshift({ kind: "bar-passed" });
+  }, { from: debate });
+  assert.deepEqual(names(borrowed).sort(), ["loop:build.bar", "loop:build.stops"]);
+  // The bar alone, with the judge borrowed.
+  assert.deepEqual(names(adopt((w) => {
+    const build = w.loops.find((l) => l.id === "build")!;
+    build.members.push("judge");
+    build.bar = structuredClone(bar);
+  }, { from: debate })), ["loop:build.bar"]);
+  // A new loop over the same round, with the judge among its members: nothing was said of it at all.
+  const beside = adopt((w) => void w.loops.push({ id: "build-2", name: "Build again", members: ["builder", "tests", "judge"], back: ["e-tests-fail"], bar: structuredClone(bar), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 3 }] } as Loop), { from: debate });
+  assert.deepEqual(names(beside), ["loop:build-2"]);
+  assert.match(refused(beside)[0]!, /gives the new loop "build-2", around the check "tests", a bar of its own/);
+});
+
+test("A-019, the second reader's second: evidence replaced is not evidence added, whatever the edge's target is made in the same change", () => {
+  const grind = builtIn("grind-loop");
+  const replaced = adopt((w) => {
+    (w.nodes.find((n) => n.id === "builder") as { role: string }).role = "critic";
+    w.edges.find((e) => e.id === "e-tests-fail")!.evidence = ["a note that the build went well"];
+  }, { from: grind });
+  assert.deepEqual(names(replaced), ["edge:e-tests-fail.evidence"]);
+  // More handed to a critic the graph had, with nothing taken away, still passes; one piece swapped for another does not.
+  const rare = builtIn("fresh-grind-rare-judge");
+  const handed = rare.edges.find((e) => e.id === "e-tests-judge")!.evidence!;
+  assert.deepEqual(adopt((w) => void (w.edges.find((e) => e.id === "e-tests-judge")!.evidence = [...handed, "the full log"]), { from: rare }).refused, []);
+  assert.ok(names(adopt((w) => void (w.edges.find((e) => e.id === "e-tests-judge")!.evidence = [...handed.slice(1), "the full log"]), { from: rare })).includes("edge:e-tests-judge.evidence"));
+});
+
+test("A-019, the second reader's third: where a round cap already leads on to what the check's pass led to, a new way there is still held", () => {
+  // The built-in retrospective: its cap and its budget both lead on to the retrospective step, and that to the end.
+  const retro = builtIn("retrospective-rewrite");
+  const cases: [string, (w: Graph) => void, string, RegExp][] = [
+    ["the builder straight to the end", (w) => void w.edges.push({ id: "e-builder-done", from: "builder", to: "done" }), "edge:e-builder-done", /adds a way into "done" that does not pass the check "tests"/],
+    ["the builder straight to the retrospective", (w) => void w.edges.push({ id: "e-builder-retro", from: "builder", to: "retro" }), "edge:e-builder-retro", /adds a way into "retro" that does not pass the check "tests"/],
+    ["the builder to a stop of its own that ends in success", (w) => {
+      w.nodes.push({ id: "done-too", kind: "stop", name: "Done too", outcome: "success" } as Node);
+      w.edges.push({ id: "e-builder-done-too", from: "builder", to: "done-too", when: { verdict: "good-enough" } });
+    }, "edge:e-builder-done-too", /adds a way from "builder" to end in success that does not pass the check "tests"/],
+    ["a stop on diminishing returns that leads to the end", (w) => void w.loops[0]!.stops.unshift({ kind: "diminishing-returns", rounds: 1, then: "done" }), "loop:grind.stops", /a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
+  ];
+  for (const [what, change, name, why] of cases) {
+    const check = adopt(change, { from: retro });
+    assert.deepEqual(names(check), [name], what);
+    assert.match(refused(check)[0]!, why, what);
+  }
+  // What the template is: its cap lowered is still a tightening, and nothing about the stops as they stand is held.
+  assert.deepEqual(adopt((w) => void ((w.loops[0]!.stops[0] as { n: number }).n = 3), { from: retro }).refused, []);
+  assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "retro")!.name = "Look back"), { from: retro }).refused, []);
+});
+
+test("A-019: a condition written two ways is one condition; and a tightening's line does not carry the words of a line held either way", () => {
+  const grind = builtIn("grind-loop");
+  assert.deepEqual(adopt((w) => void (w.edges.find((e) => e.id === "e-tests-pass")!.when = { verdict: "pass" }), { from: grind }).refused, []);
+  const asked = adopt((w) => void (w.edges.find((e) => e.id === "e-tests-pass")!.approval = true), { from: grind });
+  assert.doesNotMatch(asked.changes.find((change) => change.name === "edge:e-tests-pass.approval")!.tightens!, /an edge that leaves the check/);
 });
