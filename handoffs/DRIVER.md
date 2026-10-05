@@ -2,7 +2,7 @@
 
 For the session that drives grooph next. The driver's memory is this file, `docs/PROGRESS.md`, the review desk, and the memory folder the harness loads (`~/.claude/projects/-Users-noir-Documents-grooph/memory/`). A session that has grown long hands the seat over by bringing this file up to date and saying so to the owner; the owner opens a fresh session in this folder and tells it to read this file.
 
-**Last brought up to date:** 2026-10-04, about 10:30 p.m. Eastern, by the session titled "grooph opus operator".
+**Last brought up to date:** 2026-10-05, about 12:45 a.m. Eastern, by the session titled "grooph opus operator".
 
 ## Who you are
 
@@ -19,8 +19,10 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 
 ## The rules that bite
 
-- **Never Fable. Never Astra.** Local sessions. Opus 5.5 by default, Sonnet 5.5 for checklists. In Codex: GPT-6.1 Sol leads, GPT-6 Luna works. The Claude Code target's own map still gives the `frontier` tier to Fable, so every export the owner runs names its tiers: `grooph export --models frontier=…,strong=…,fast=…`, or `GROOPH_MODELS` for a whole shell. `scripts/lib/compare-run.mjs` still names Opus 5 as the lead and Fable 5.1 as the judge; the evidence lane changes both to Opus 5.5 before any paid run.
-- **Touch only this repository**, and `/Users/noir/Documents/grooph-exchange/`. The owner has other projects on this Mac and their sessions appear in the session list: never message them, never open their folders. Port 4173 belongs to one of them; browser tests use `GROOPH_E2E_PORT`.
+- **Never Fable. Never Astra.** Local sessions. Opus 5.5 by default, Sonnet 5.5 for checklists. In Codex: GPT-6.1 Sol leads, GPT-6 Luna works. Since #71 the Claude Code target's own map names no Fable (`frontier` Opus, `strong` Sonnet, `fast` Sonnet); the game experiment still names its tiers in full (`experiments/game/setup/make-repo.sh`). On `main`, `scripts/lib/compare-run.mjs` still names Opus 5 as the lead and Fable 5.1 as the judge; the evidence lane's branch changes both to Opus 5.5 and its pull request carries that.
+- **Touch only this repository**, `/Users/noir/Documents/grooph-exchange/`, and `~/grooph-game/` (the game experiment's folders, which grooph's own scripts make). The owner has other projects on this Mac and their sessions appear in the session list: never message them, never open their folders. Port 4173 belongs to one of them; browser tests use `GROOPH_E2E_PORT`.
+- **Do not switch branches in `~/Documents/grooph`.** The owner runs the game experiment's runbook from that clone, on `main` and clean. Driver documents are written in a worktree (`git worktree add -b docs/<name> .claude/worktrees/<name> origin/main`); a fast-forward pull of `main` there is fine.
+- **Nobody runs or serves anything under `experiments/game/acceptance/`** (port 4361) while a game session may be open. The checks are held out from the builders, and `start-claude.sh` refuses to start while that port is open. The site lane's briefs gave it 4361 for its browser tests; it was told on 2026-10-05 to use 4367. Give no lane 4361.
 - **The public repository does not name his other private projects.** The sample map names what he has confirmed.
 - **Merging**: decision 0023. Merge commits. Watch CI on `main` after each. "Green" is every job on the head, read line by line.
 - **Claims** go through the audit loop before they are published (decision 0024). The ceiling until then is decision 0013's wording.
@@ -40,68 +42,66 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 - **Pull requests**: `gh`. After opening one, `mcp__ccd_pr__get_status`.
 - **Codex** by command, for a small check only: `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex exec … < /dev/null`. An audit or a slice goes to a Codex session the owner opens.
 
-## Tonight (written 2026-10-04, about 9 p.m. Eastern; read this first)
+## Now (written 2026-10-05, about 12:45 a.m. Eastern; read this first)
 
-The owner answered the desk at about 8:20 p.m. and said in the chat: "Artifact has been updated. Please proceed accordingly. Can we do the Claude Code game experiment first?" and then "Run it tonight. I'll let you know if we need to throttle the other lanes down. I'll open a fresh session soon."
+The order changed late on 2026-10-04. The owner saw the map's 3D view on the site and asked for the same on any loop graph: "implement the 3D for regular graphs… and then I can review that after we've put it on the site… once everything looks good I can have you merge all the things and I will have you maybe check to make sure that we're good for the game test for Claude and then I will go ahead and run it". He also said: "you can merge whatever in the right order… I approve pretty much everything".
 
-1. **The game experiment's Claude Code run is tonight's first job.** Slice 0089 (`handoffs/0089-the-claude-code-arm-made-ready/HANDOFF.md`) makes the arm ready: the freeze, the game repository's first commit built and not pushed, a clean profile, `experiments/game/RUNBOOK.md`. The views lane has it, told to put the runbook and the profile first and to say the moment they exist. Then walk the owner through, one step at a time, each on his word: sign in to the clean profile; the twenty-minute rehearsal; the push of the first commit to `ryanjosephkamp/grooph-game-experiment-claude` (his repository, made for this; the only other repository grooph's sessions may write to, and only that first commit); the six-hour run, which he starts from a terminal and answers "start" to. A pause for a usage limit is written down and the clock goes on. The weekly allowance was 60% used at 8:25 p.m. and resets Monday at about 11 a.m. Eastern; he chose tonight knowing that.
-2. **Merges he approved on the desk, to finish in this order, one at a time**: #83, #71, #72 (a chain was running at 8:30 p.m.); then #77, #78, #80 as each is green and mergeable on the new main (their lane merges main in when asked); #79 once its glue is slimmed; #74 once the views lane has resolved its conflict with main; #76 once its switch is behind the door. Each head must be the one that was read: `scripts/driver/merge-when-green.sh <n> <head>`.
-3. **#60 conflicts with main** since #71: the agents lane merges main in as part of its fourth fix pass. Then the release branch, then **walk the owner through npm**: he has never published. One command at a time: an npm account and `npm login`; `pnpm install --frozen-lockfile && pnpm -r build && scripts/pack-check.sh`; `npm pack --dry-run` in `packages/cli/dist/npm` so he sees exactly what would upload; `npm publish`. Never run publish or login for him.
-4. **Codex has two things of his**: the audit's round one, and the fix pass for the Codex target (#70). He brings each closing prompt back: the audit's to the session "grooph lane: audit", the target's to the driver.
+1. **3D for any loop graph is on the site, and he is looking at it** (#93, #94, #95; slice 0092). At 12:25 a.m. he answered the desk card `q41-graph-3d` with "Close, with changes: see my note", and **the note arrived empty**. The driver asked him for it in the chat. When it comes: a small pull request by the views lane, on the site, and his look again. Two things were left unbuilt on purpose and are on that card: a sequence view for a graph (for a run it would repeat the timeline), and a link that names the view (it would spend from the first-load line).
+2. **Then the game experiment's Claude Code run**, which he starts. It is ready, checked at 12:35 a.m. on `main` at `997ecf7`: his clone is on `main` and clean; `shasum -a 256 -c experiments/game/setup/frozen.sha256` gives fourteen OK; port 4361 is closed; and `make-repo.sh --out <a scratch folder>` with today's compiler makes the same seventeen files, the tree `3238a9052ce7765c79990029bbff6bccd88628bf` and the commit `8c4aceb29e1534cfdf5ffdebd7d77fe9befbcc17`. Walk him through `experiments/game/RUNBOOK.md` one step at a time, each on his word: parts 1 to 3 (the machine; the clean profile and its sign-in; the twenty-minute rehearsal), then he sends what `record.sh rehearsal` prints and the driver, the views lane and the audit lane read it; part 4 (he pushes the first commit to `ryanjosephkamp/grooph-game-experiment-claude`); part 5 (six hours, a wall at 6 hours 15 minutes; his one line for an interruption is in the runbook); part 6 (scoring). A pause for a usage limit is written down and the clock goes on. The weekly allowance was 60% used at 8:25 p.m. on 2026-10-04 and resets Monday 2026-10-05 at about 11 a.m. Eastern; recommend the six-hour run after the reset.
+3. **#60 (the agents work) is ready and held** until the game's first commit is pushed, because it changes how `export` places files. Then the release and npm (below).
+4. **Study two is finished and says no** (the evidence lane, reported in its session, pull request not open yet): the graph did not earn its cost in any of the three projects; the prompt arm matched the package on held-out passes in both replicates at lower cost; in each of the 18 runs that had a reviewer the loop turned once, and it changed the result (the task alone scored 51 of 55, 52 of 70 and 15 of 24, every arm with a reviewer the full mark). Study two's comparison runs cost about $22; the comparisons ledger, which holds study one's $60.62, would stand at $82.66 of its $100 cap. This is the owner's to read first. `docs/PROGRESS.md` (Known risks) says what follows a second no: the plan repositions around bounded autonomy and the record. A successor to decision 0013 is his.
 
 ## Where things stand
 
-The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above, at about 10:30 p.m. Eastern:
+The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above:
 
-The owner came home at about 5 p.m. and approved, in the chat: #63 (the compiler's frontmatter fix), #58 (the site, in green; live), #57 (amendment A-018, subgroophs), #65 (two more views of a map), study two's tiers, the game experiment as written, the default tiers "the same as the study", and the whole design studio page. All four pull requests are merged. He raised the canvas budget from 276 to 280 KB and asked that the check compare to the byte (decision 0027). He is carrying prompts to Codex himself and has not answered since about 6 p.m.
+**Merged on the owner's word on 2026-10-04**: #63, #58, #57, #65 (afternoon); #83, #71, #72, #77, #78, #80, #79, #74 (evening, from the desk); #88 (late, on "merge whatever in the right order"). **On 2026-10-05, on the same word**: #93 and #94, just after midnight. **Merged by the driver under decision 0023**, each on the desk's list with its reason: #47 to #53, #55, #56, #59, #61, #62, #64, #66 to #69, #73, #75, #81, #82, #84 to #87, #89 to #92, #95. So on `main` and live: the site in his style; subgroophs, all but their MCP tools; a map in three views; 3D for any loop graph and a recorded run replayed in it; default tiers without Fable; the compiler's frontmatter fix; the game experiment on paper and its Claude Code arm made ready. None of it is released: the version is still 0.3.0.
 
-Merged by the driver under decision 0023 since noon, each read first and each on the desk's list: #47 to #53, #55, #56, #59, #61, #62, #64, #66, #67, #68, #69, #73, #75.
-
-**Open pull requests. Every one below is the owner's to merge and has a card on the desk with the driver's read.**
+**Open pull requests.**
 
 | Pull request | What | State |
 |---|---|---|
-| #71 | The default tiers without Fable (0084) | green, read: ready for his word |
-| #72 | Subgroophs 1: the fields and three rules (0085) | green, read: ready for his word. It unblocks the stack below |
-| #77 | Subgroophs 2: place, list, refresh, extract; a refresh never loosens a brake unasked | stacked on #72. Three fresh readers of the lane's attacked it; read in its account by the driver, not line by line. An audit of `packages/core/src/brakes.ts` by Codex is offered to the owner as something that can follow the merge |
-| #78 | Subgroophs 3a: one box in the picture, a section in the outline, a "Units" table in the lead's brief | stacked on #77. The brief's change is read line by line. Wait for its CI |
-| #79 | Subgroophs 3b: the box on the canvas | stacked on #78. Sent back once: the glue every canvas carries is 1.39 KB and must come down to about 0.3 |
-| #80 | Subgroophs 5: the proof, `debate-then-build` rebuilt as two subgroophs, a third golden package | stacked on #78. No model session; the recorded run is the driver's to arrange after the owner has seen 1 to 3 |
-| #74 | A map in three dimensions (0087) | green in all three engines, pictures on the desk: ready for his word |
-| #76 | Six themes for a picture and a switch (0086) | sent back once: the switch put 1.19 KB on the first load; it goes behind the themes' door |
-| #60 | The agents work (0078) | four independent reviews; the fourth's one blocking finding (a forged `next:` line) is being fixed by structure, with five small items. After that: the release branch, the owner publishes 0.4.0 to npm, then merge and tag |
-| #70 | The Codex compile target (0076), a draft by Codex | reviewed (`handoffs/0076-codex-target/REVIEW.md`): a fix pass of five items, then one proving run. The prompt for Codex is on the desk; the owner carries it |
-| #54 | The FAQ | held for the audit, on the owner's word |
+| #60 | The agents work (0078): authoring over MCP, a package for npm, a way in from a chat | Head `383d70f`, five independent reviews, ready. It conflicts with `main` again (the lane merges `main` in before the release). **Held until the game's first commit is pushed.** Then `release/0.4.0` on its head, the owner publishes to npm, his word, merge, tag |
+| #70 | The Codex compile target (0076), a draft by Codex | Reviewed, and its fix pass (head `68c1dfe`) read by a fresh reader: all five items fixed (`handoffs/0076-codex-target/REVIEW.md`, both reads). A second pass, of three items, is on desk card `q39-codex-target-round2` for the owner to paste into Codex. Then one proving run, which needs his yes |
+| #76 | Six themes for a picture and a switch (0086) | Approved to merge when ready. Remade at 9:15 p.m. on 2026-10-04: the switch is behind the themes' door, and on CI the first load grew 0.07 KB and the canvas line 1.12 KB (on today's `main` that would be about 279.5 of 280). Owed by the site lane, asked at 1 a.m.: merge `main` (it conflicts, and `main` gained 3D for graphs), CI's lines again. Then the driver reads it and merges |
+| #54 | The FAQ | Held for the audit, on the owner's word |
+
+**The size budget, from CI on `main` at `997ecf7`** (decisions 0021, 0027): the first load 179.72 of 180 KB (scripts 158.28 of 162, styles 19.89 of 20); a first visit to the front page 221.74 of 224; an address that draws on the canvas 278.41 of 280; an embed 127.60 of 132; the 3D piece 8.33 of 9. **The first-load line is nearly full, and the canvas line will be.** #76 adds 0.07 KB to the first load and 1.12 to the canvas line; #70 about 0.10 to the first load. Put the choice to the owner with exact figures (raise the line, or hold it and move something behind a door) before a check fails on `main`.
 
 **The lanes, by session title:**
 
 | Lane | Slice | Where it is | What it waits on |
 |---|---|---|---|
-| grooph lane: audit | 0075 | Round one out; told of two later findings (the event file's fields; study one's prompt arms could see the tool's name) | The owner, to carry its prompt to Codex (desk card `q22-codex-audit`) |
-| grooph lane: site | 0084, 0086 | #71 ready. #76 in its fix | The owner on #71; nothing on #76 |
-| grooph lane: agents | 0078 | The fourth fix pass on #60 | Nothing. When it reports a head: read CI's budget lines, have a fresh reviewer check the structural fix, then prepare the release |
-| grooph lane: evidence | 0019 | Study two running: two of three projects judged, the third in flight; about $14 spent of the study's tripwires ($50, $60) | Nothing. Its pull request will be the owner's |
-| grooph lane: views | 0087, 0088 | #74 ready; #75 merged | The owner on #74. Free otherwise |
-| grooph lane: house | 0085 | Five pull requests up (#72, #77, #78, #79, #80). Asked for one more small one: `E_IRREVERSIBLE_NO_GATE` should follow a stop's `then` | The owner on #72; its own fix on #79. Item 4 (MCP tools) waits for #60 |
-| Codex target | 0076 | Draft #70, reviewed | The owner, to paste the fix-pass prompt, and later to say yes or no to the proving run |
+| grooph lane: views | 0087, 0089, 0092 | All merged. Free | The owner's note on the 3D views; then the rehearsal's output, which it reads |
+| grooph lane: evidence | 0019 | Study two run and written up on its branch (`ef8ccfc` and later). At 12:40 a.m. the driver allowed one more `patrol-pulse` re-proof (the first ran without the task's log, which `.gitignore` kept out of the worktree), to be recorded by the lane in the proving ledger as the driver's decision on the owner's standing word | Nothing. Its pull request is the owner's to merge |
+| grooph lane: agents | 0078 | #60 ready | The hold above |
+| grooph lane: house | 0085 | Five pull requests and three small ones merged. Item 4, subgroophs as MCP tools, uses `reply()` from #60 | #60 on `main` |
+| grooph lane: site | 0084, 0086 | #71 merged. #76 remade and reported at 9:15 p.m.; the driver read the report at 1 a.m. and asked for `main` merged in | Nothing |
+| grooph lane: audit | 0075 | Round one with Codex. It also hardened the game's clean profile (#89) and reads the rehearsal's output | The owner, to bring Codex's reply back to that session |
+| Codex target | 0076 | Draft #70 | The owner, to paste the second fix pass |
 
-**Things learned today that change how the seat is driven:**
+**Things learned that change how the seat is driven:**
 
-- **A message to a lane in a long turn is queued until the turn ends.** The house lane asked the same question twice and worked on for an hour before either answer arrived. Say so in the reply when it happens, and do not assume a lane has read you.
+- **Read every lane's last message at the start of every turn.** The evidence lane finished and asked a question at 7 p.m., and the site lane reported #76 remade at 9:15 p.m.; the driver, busy merging, read neither until after midnight, and a fresh reader of this page's pull request is who noticed the second. A lane that is idle is not a lane with nothing to say.
+- **A message to a lane in a long turn is queued until the turn ends.** Say so in the reply when it happens, and do not assume a lane has read you.
 - **Budget figures are CI's.** This Mac's Node compresses 0.2 to 0.45 KB lighter than CI's. Read the lines from the job's log (`gh run view <id> --log | grep -E "ok +[0-9.]+ of|OVER"`).
-- **The first-load line is the tight one**: 178.54 of 180 on `main`; #72 adds 0.52, #78 about 0.35, #76 must add almost nothing. The canvas line is 276.70 of 280; #79's glue is the risk there. Anything new goes behind a door; raising a line is the owner's.
-- **Merge one pull request at a time.** Two merge scripts at once made GitHub refuse the second.
-- **Each fresh reader finds what the last did not.** #60 has had four, #77 three. The pattern that ended it each time was a structural fix (compare the whole graph before and after; let no reply line begin with a document's text), not a longer list.
+- **Merge one pull request at a time**, and pin each to the head that was read. When a queued pull request gains a commit, stop the queued step and start a new one at the new head; a step that ends with exit 144 after that is the stop, not a failure.
+- **A change behind a door can still break a test elsewhere.** #93 made a reload land in the middle of a piece's fetch in Firefox; the test now waits for the canvas to be quiet (`apps/web/e2e/support.ts`).
+- **Each fresh reader finds what the last did not.** #60 has had five, #77 three. What ended it each time was a structural fix, not a longer list. Do not remove a reader's worktree while it may be asked a second question.
+- **Stacked pull requests conflict after the one below merges** with a merge commit. Ask the lane to merge `main` into the next, then pin the new head.
 
 ## What the driver owes
 
-- **On the owner's word for #71, #72, #74**: merge each, one at a time, with `scripts/driver/merge-when-green.sh <n> <head>`; tell the next lane in a stack to merge main. After #72: #77, #78, #79, #80 in that order, each on his word.
-- **#60, then the release.** When the agents lane reports its head: CI's budget lines; one fresh reviewer on the structural fix (the property: no reply line begins with text from outside); then a branch `release/0.4.0` on top of #60's head (`node scripts/version.mjs 0.4.0`, a section in `docs/releases.md`); give the owner the three commands to publish from that build (`pnpm install --frozen-lockfile && pnpm -r build && scripts/pack-check.sh`, `npm login`, `npm publish packages/cli/dist/npm`); when the name is his, merge #60 and the release on his word, and tag `v0.4.0`. Publishing is his; never run it.
-- **#70.** When Codex's fix pass is pushed and the owner brings its closing prompt: a fresh reviewer re-runs the review's five items; the proving run needs his yes to Codex.
-- **The game experiment.** His answers are in `experiments/game/ANSWERS.md`; one is open (how the sessions are paid for). It needs #70 merged and one template run in Codex. He made the two repositories himself.
-- **The audit.** When Codex's round one comes back to the audit lane, the lane reconciles; the corrections pull request carries the FAQ's wording and the places the event file is described. A superseding decision for 0013 is the owner's.
-- **A Codex audit of `brakes.ts`** (#77), if he says yes: write its handoff from `handoffs/TEMPLATE-AUDIT-HANDOFF.md`.
-- **The 3D view in the live screen**, the README's version sentence as a ninth place for `scripts/version.mjs`, `docs/releases.md` named in that script's `next:` line, the two probe branches to delete on his word, `docs/ARCHITECTURE.md`'s sentence on what is fetched on demand: small, and none urgent.
+- **The owner's note on the 3D views**, then the change, as above.
+- **The game run**, as above. Afterwards the Codex arm needs #70 merged and one template run in Codex.
+- **#60, then the release.** After the game's first commit is pushed: the agents lane merges `main`; read CI's budget lines; a branch `release/0.4.0` on its head (`node scripts/version.mjs 0.4.0`, a section in `docs/releases.md`). **Walk the owner through npm one command at a time; he has never published**: an npm account and `npm login`; `pnpm install --frozen-lockfile && pnpm -r build && scripts/pack-check.sh`; `npm pack --dry-run` in `packages/cli/dist/npm` so he sees what would upload; `npm publish packages/cli/dist/npm`. Never run login or publish for him. When the name is his: merge #60 and the release on his word, tag `v0.4.0`, tell the house lane to start item 4.
+- **Study two's pull request**: read it, a card on the desk with the two answers first, and the question of what replaces decision 0013. No public sentence about what grooph is shown to do changes before that and the audit.
+- **#70**: when Codex's closing prompt comes back, a fresh reader on the three items; the proving run needs his yes.
+- **The first-load line**: the choice above, on the desk.
+- **The audit**: when Codex's round one comes back to the audit lane, the lane reconciles; its corrections pull request carries the FAQ's wording.
+- **Reviews not yet written**: `REVIEW.md` for 0077, 0080, 0082, 0083, 0084, 0085, 0087, 0089 and 0092 (their handbacks are on `main`; the grooph-reconcile skill), and 0086 when it merges.
+- **A fault the site lane's second reader found on `main`**: the time to draw a picture grows with the square of a field's length (over 100 seconds for a map with 15,000-character fields). It needs a small slice: a test that times it, then the fix.
+- **Small, none urgent**: a closed subgrooph's box no longer drags on the canvas (about 0.1 KB to restore; his call); the 3D view in the live screen; the README's version sentence as a ninth place for `scripts/version.mjs`; `docs/ARCHITECTURE.md`'s sentence on what is fetched on demand; a Codex audit of `packages/core/src/brakes.ts` if he says yes; the probe branches to delete on his word.
 
 ## Handing the seat over
 
