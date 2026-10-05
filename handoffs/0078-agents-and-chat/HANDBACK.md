@@ -57,22 +57,22 @@ export of review-loop and fix-until-green                    the same as the gol
 a line break in a pin, and in a skill name, through grooph_export (with into, and returned)      each refused by E_SCHEMA; nothing written
 ```
 
-`node scripts/perf-budget.mjs --check`, as **CI printed it** for `22e81aa` (the push run 37251095732; Node 22 and Node 24 print the same sizes), every line inside:
+`node scripts/perf-budget.mjs --check`, as **CI printed it** for `f442e21` (the push run 37252319944, the Node 24 job; the two jobs have printed the same sizes every time), every line inside:
 
 ```text
-ok     179.58 of   180  the app's first load (HTML, scripts and styles), gzip KB
-ok     158.17 of   162    of which scripts
+ok     179.62 of   180  the app's first load (HTML, scripts and styles), gzip KB
+ok     158.18 of   162    of which scripts
 ok      19.89 of    20    of which styles
 ok      40.69 of    42  the fonts a first visit to the front page fetches, KB as sent
-ok     221.59 of   224  a first visit to the front page in all (first load, fonts, icons), KB
-ok     277.80 of   280  the first load of an address that draws on the canvas, gzip KB
-ok     127.51 of   132  an embed's first load, gzip KB
+ok     221.63 of   224  a first visit to the front page in all (first load, fonts, icons), KB
+ok     278.26 of   280  the first load of an address that draws on the canvas, gzip KB
+ok     127.54 of   132  an embed's first load, gzip KB
 ok       8.13 of     9  a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB
-ok     107.35 of   400  the CLI's cold start, ms (middle of five)
-         2.25            loaded later: Import-C-CZXdZJ.js
+ok      85.28 of   400  the CLI's cold start, ms (middle of five)
+         2.24            loaded later: Import-ByQ5nBUu.js
 ```
 
-CI printed for `main` at `dec4b67`, the commit merged in (run 37250821785): first load 179.61, scripts 158.21, a canvas address 277.77, an embed 127.50. So this branch's first load is **0.03 KB under `main`'s** on CI; a canvas address is 0.03 over (the Export panel's sentence for the five ids) and an embed 0.01 over (the page names one more file). `main` itself has come within 0.4 KB of the first-load line since the door was built: subgroophs and the pieces' retry are in it now. Before the door, CI printed 179.50 for this branch against a `main` of 178.31, and with the door 178.25. On this Mac the same build reads 179.39; a Mac's gzip is not CI's, so only CI's lines are the ones to hold a budget to. CI also printed `pack check: ok (grooph-0.3.0.tgz, 817 KB, 79 files)`, core 436, cli 186, web 92, and the property test's `29,622 calls, 291,623 lines, 104 payloads`.
+CI printed for `main` at `6e6dc6b`, the commit merged in (run 37251776169): first load 179.65, scripts 158.22, a canvas address 278.22, an embed 127.52. So this branch's first load is **0.03 KB under `main`'s** on CI; a canvas address is 0.04 over (the Export panel's sentence for the five ids) and an embed 0.02 over (the page names one more file). `main` itself is 0.35 KB from the first-load line: subgroophs and the pieces' retry are in it now, and that is not this branch's to mend. Before the door, CI printed 179.50 for this branch against a `main` of 178.31, and with the door 178.25. On this Mac the same build reads 179.42; a Mac's gzip is not CI's, so only CI's lines are the ones to hold a budget to. CI also printed `pack check: ok (grooph-0.3.0.tgz, 822 KB, 81 files)`, core 441, cli 186, and the property test's `29,622 calls, 291,623 lines, 104 payloads`.
 
 **The door.** The paste reader, the box it is pasted into and `main`'s own file-import path are one piece, `apps/web/src/ui/Import.tsx`, 2.25 KB (2.04 before the fourth pass gave Paste its limits), fetched when a person picks a file or opens **Paste a document**, and never with the page. `Library.tsx` keeps only the door: the button, the fetch, the sentence said when the piece cannot be fetched, and the listener for a paste on the screen itself. On this Mac the door alone, with the file-import path left where `main` has it, cost about 0.33 KB of the first load, which was over the 0.1 KB asked for; moving the file-import path behind the same door gives about 0.4 KB back, which is how the first load ends under `main`'s. `openRouteFor` is handed through the door and not imported by the piece: imported there, `doc/share.ts` left the file every address loads for a file of its own, and an embed fetched one file more. As built, no address's set of files changes; `routes.json` gains the piece under `later`, which `index.html` names for the service worker (`apps/web/vite.config.ts`, a commit of its own). The door adds no stylesheet, and this branch does not touch `styles.css`.
 
