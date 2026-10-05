@@ -21,7 +21,7 @@ A second comparison ran on 2026-10-04 and is in the repository. Its claims have 
 ## What is not shown
 
 - **That a round cap or a budget holds a run that would otherwise go on.** None is on record as firing: not in the 33 package runs at 0.3.0, and, by its own handback, not in the 24 runs of the second comparison. The first comparison's one run that was cut off was a prompt run inside the same caps the graph has, ended by the runner's dollar ceiling.
-- **That grooph enforces anything while a session runs.** The validator checks a document. The package instructs a session. Adopting a run's working copy shows a person what changed and refuses nothing.
+- **That grooph enforces anything while a session runs.** The validator checks a document. The package instructs a session. At 0.3.0, adopting a run's working copy showed a person what changed and refused nothing. Since 2026-10-05 the `grooph adopt` command does not write a working copy that loosens a brake its comparison sees, until the change is asked for by name: a check at one door, after a run and not during it, not made by the web app's button, and not yet read by a second harness.
 - **That the package and a prompt are equal in quality.** Three of the four test suites were saturated and replicates were two or three.
 - **What a correction or a brake is worth.**
 
@@ -35,6 +35,7 @@ A second comparison ran on 2026-10-04 and is in the repository. Its claims have 
    - "The only run in study one that went past its bounds was a prompt arm running to the dollar ceiling": that run was inside the graph's caps, and the ceiling was the runner's.
    - "Back edges fired in six templates once tasks carried held-out evidence": six records show a returning edge; two of them are a critic's correction on held-out evidence.
 5. **Every public claim is listed** in [`docs/claims.md`](../claims.md), with where it is made, its evidence, and where its audit stands.
+6. **What `grooph adopt` refuses is described where the command is documented, and is claimed nowhere as shown** until a second harness has read the comparison it rests on (`packages/core/src/brakes.ts`). By its author's account, five readers in turn have each found a loosened graph that comparison let through; each is closed, and the list of what a brake is has not been shown complete.
 
 ## Consequences
 
