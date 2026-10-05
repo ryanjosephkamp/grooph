@@ -6,6 +6,7 @@
  */
 
 import { hasErrors, type Issue } from "../issues.js";
+import { parseGraph } from "../parse.js";
 import { KNOWN_TARGETS } from "../targets/index.js";
 import { validate } from "../validate.js";
 import type { Graph, Tier } from "../types.js";
@@ -48,18 +49,21 @@ export class CompileError extends Error {
 }
 
 export function compile(doc: Graph, target: CompileTarget, options: CompileOptions = {}): CompileResult {
-  const issues = validate(doc, { forExport: true });
+  const parsed = parseGraph(doc);
+  if (!parsed.doc) throw new CompileError(parsed.issues);
+
+  const issues = validate(parsed.doc, { forExport: true });
   if (hasErrors(issues)) throw new CompileError(issues);
 
   const warnings = issues.filter((issue) => issue.severity === "warning");
 
   switch (target) {
     case "codex": {
-      const pkg = compileCodex(doc, warnings, options);
+      const pkg = compileCodex(parsed.doc, warnings, options);
       return { files: pkg.files, kickoff: pkg.kickoff, warnings };
     }
     case "claude-code": {
-      const pkg = compileClaudeCode(doc, warnings, options);
+      const pkg = compileClaudeCode(parsed.doc, warnings, options);
       return { files: pkg.files, kickoff: pkg.kickoff, warnings };
     }
     default: {

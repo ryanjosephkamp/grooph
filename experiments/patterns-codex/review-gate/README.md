@@ -10,7 +10,7 @@ The runner uses the existing [`review-gate` task](../../patterns/review-gate/tas
 
 ## Blocking boundary
 
-The [handoff](../../../handoffs/0076-codex-target/HANDOFF.md) forbids access to `~/.codex` without the owner's yes. A normal authenticated `codex exec` uses that home and writes session state. [Decision 0015](../../../docs/decisions/0015-working-rules-for-the-operator-round.md) also requires the actual session transcript's path and checksum. Permission for one run's runtime state and only its transcript was requested in the lane; no answer was received before this handback. No trust, configuration, hook approval, authentication, or runtime transcript was accessed or changed for the proving task.
+The owner explicitly directed the review fix pass to start no model session. The [review](../../../handoffs/0076-codex-target/REVIEW.md) puts a fresh review of the fixed package before the proving invocation. The [handoff](../../../handoffs/0076-codex-target/HANDOFF.md) also forbids access to `~/.codex` without the owner's yes. A normal authenticated `codex exec` uses that home and writes session state; [decision 0015](../../../docs/decisions/0015-working-rules-for-the-operator-round.md) requires the actual session transcript's path and checksum. No proving invocation or runtime transcript access occurred. The exact proposed command and its external reads/writes are recorded in [`PROVING-COMMAND.md`](../../../handoffs/0076-codex-target/PROVING-COMMAND.md).
 
 | Required run fact | Record |
 |---|---|
@@ -30,6 +30,8 @@ After the owner authorizes this one runtime invocation and its transcript receip
 pnpm -r build
 node scripts/prove-codex.mjs --run
 ```
+
+The fixed runner proves the profile's defaults without a machine-local `GROOPH_MODELS` override. It keeps temporary grooph state in a separate `GROOPH_HOME`, inherited by the Codex invocation. It sets no approval policy and changes no saved Codex settings: the owner's policy applies, and refusal is not a native graph halt. The graph's gate behavior is still to be observed.
 
 The runner opens `run/ledger.json` before spawning `codex exec`, streams stdout and stderr to durable files, updates the session id and exact reported token usage, and preserves the package, task diff, run folder and test output. It refuses to overwrite an existing `run/`. Failure is retained as a result; do not delete the first record to retry. USD remains `null` unless the harness reports a cost.
 

@@ -124,7 +124,6 @@ export function buildCodexCommand(prompt) {
   return [
     "exec", "--json", "--sandbox", "workspace-write",
     "--model", "gpt-6.1-sol",
-    "-c", 'approval_policy="never"',
     "-c", 'web_search="disabled"',
     "-c", "model_reasoning_effort=high",
     "-c", "agents.default_subagent_model=gpt-6-luna",
@@ -213,11 +212,13 @@ function makeScratch() {
   const home = mkdtempSync(join(tmpdir(), "grooph-prove-codex-grooph-home-"));
   cpSync(join(EXPERIMENT, "task"), scratch, { recursive: true });
   const templateEnv = { ...process.env, GROOPH_HOME: home, GROOPH_REGISTRY: "http://127.0.0.1:9/unreachable/index.json" };
+  // Prove the committed target defaults, without a machine-local tier override.
+  delete templateEnv.GROOPH_MODELS;
   command(process.execPath, [CLI, ...fillSlots(slots), "--out", join(scratch, "graph.grooph.json")], { cwd: scratch, env: templateEnv });
   const sourcePath = join(scratch, "graph.grooph.json");
   const doc = JSON.parse(readFileSync(sourcePath, "utf8"));
   command(process.execPath, [CLI, "validate", "--for-export", sourcePath], { env: templateEnv });
-  command(process.execPath, [CLI, "export", sourcePath, "--target", "codex", "--into", scratch, "--models", "frontier=gpt-6.1-sol,strong=gpt-6-luna,fast=gpt-6-luna"], { cwd: scratch, env: templateEnv });
+  command(process.execPath, [CLI, "export", sourcePath, "--target", "codex", "--into", scratch], { cwd: scratch, env: templateEnv });
   command("git", ["init", "-q"], { cwd: scratch });
   command("git", ["config", "user.email", "prove@grooph.local"], { cwd: scratch });
   command("git", ["config", "user.name", "grooph prove"], { cwd: scratch });
@@ -288,12 +289,12 @@ function createLedger(evidenceDir, prompt, { codexVersion, sourceCommit, baseCom
   return { ledger, ledgerPath, entry: ledger.invocations[0] };
 }
 
-function pumpCodex({ prompt, scratch, evidenceDir, ledger, entry, ledgerPath }) {
+function pumpCodex({ prompt, scratch, templateEnv, evidenceDir, ledger, entry, ledgerPath }) {
   const outPath = join(evidenceDir, "codex-output.jsonl");
   const errPath = join(evidenceDir, "codex-stderr.txt");
   const out = createWriteStream(outPath, { flags: "wx" });
   const err = createWriteStream(errPath, { flags: "wx" });
-  const child = spawn("codex", buildCodexCommand(prompt), { cwd: scratch, stdio: ["inherit", "pipe", "pipe"] });
+  const child = spawn("codex", buildCodexCommand(prompt), { cwd: scratch, env: templateEnv, stdio: ["inherit", "pipe", "pipe"] });
   let buffer = "";
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -453,7 +454,7 @@ async function main() {
   cpSync(join(EXPERIMENT, "expect.json"), join(evidenceDir, "expect.json"));
   const { ledger, ledgerPath, entry } = createLedger(evidenceDir, prompt, { codexVersion: built.codexVersion, sourceCommit: built.sourceCommit, baseCommit: built.base });
   say("ledger row opened; starting one Codex session now.");
-  const run = await pumpCodex({ prompt, scratch: built.scratch, evidenceDir, ledger, entry, ledgerPath });
+  const run = await pumpCodex({ prompt, scratch: built.scratch, templateEnv: built.templateEnv, evidenceDir, ledger, entry, ledgerPath });
   const taskTests = recordTaskTests(built.scratch, evidenceDir);
   await captureEvidence({ built, evidenceDir, prompt, stream: run.stream, taskTests });
   console.log(`Codex exited ${run.code ?? run.signal ?? "?"}; evidence kept at ${evidenceDir}`);

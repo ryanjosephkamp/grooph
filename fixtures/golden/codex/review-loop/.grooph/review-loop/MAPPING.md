@@ -1,6 +1,6 @@
 # Mapping notes · Review loop
 
-Codex profile verified against CLI `0.160.0` on 2026-10-04. The graph is the source of truth; re-exporting overwrites these generated files.
+CLI `0.160.0` help was read on 2026-10-04; the package has not been run in Codex. The graph is the source of truth; re-exporting overwrites these generated files.
 
 ## Graph piece → file
 
@@ -13,26 +13,28 @@ Codex profile verified against CLI `0.160.0` on 2026-10-04. The graph is the sou
 | working copy | `.grooph/review-loop/runs/<run-id>/graph.grooph.json` | created at kickoff; adaptation: adaptive |
 | progress | `.grooph/review-loop/runs/<run-id>/PROGRESS.md` | rewritten after every node and halt |
 | notes | `.grooph/review-loop/runs/<run-id>/notes.jsonl` | append-only JSONL, unchanged run contract for grooph watch |
-| `builder` | `.codex/agents/review-loop--builder.toml` | builder; model gpt-6.1-sol; effort high; sandbox workspace-write |
-| `critic` | `.codex/agents/review-loop--critic.toml` | critic; model gpt-6.1-sol; effort high; sandbox workspace-write |
+| `builder` | `.codex/agents/review-loop--builder.toml` | builder; model gpt-6-luna; effort high; sandbox workspace-write |
+| `critic` | `.codex/agents/review-loop--critic.toml` | critic; model gpt-6-luna; effort high; sandbox workspace-write |
 
 ## Start or resume
 
-Place the package in the project before starting Codex. Custom agent names are the agent_type values given to spawn_agent; use fork_turns: none on fresh edges. This kickoff explicitly requests subagents. No root AGENTS.md, shared config.toml, hooks, or skills are installed or overwritten.
+Place the package in the project before starting Codex. Custom agent names are the agent_type values given to spawn_agent; use fork_turns: none on fresh edges. This kickoff explicitly requests subagents. It sets the lead model when the graph supplies one (or when the graph has no lead node) and the default spawned-agent model for this invocation only. It does not change owner configuration, approval policy, hooks or skills.
 
 ```sh
-codex exec --sandbox workspace-write -c approval_policy='"never"' -c web_search='"disabled"' -m 'gpt-6.1-sol' -c model_reasoning_effort='"high"' - < .grooph/review-loop/KICKOFF.md
+codex exec --sandbox workspace-write -c agents.default_subagent_model='"gpt-6-luna"' -c web_search='"disabled"' -m 'gpt-6.1-sol' -c model_reasoning_effort='"high"' - < '.grooph/review-loop/KICKOFF.md'
 ```
 
-The owner chooses startup settings, project trust and hook approvals. Do not bypass them. In an interactive session, paste KICKOFF.md. At a human gate the lead records outcome: halt before asking, then ends its turn. A headless run ends there. Resume with codex exec resume <session-id> and an explicit prompt naming the same grooph run id and the human's actual answer, or start a fresh session with that run id and answer. A session id is separate from the grooph run id. Silence never approves a gate.
+The owner chooses project trust and hook approvals. Approval settings are inherited from the owner's configured policy; the package does not set or weaken that policy. An unattended operation requiring owner approval may be refused when nobody can respond; that refusal is not a native graph halt. Graph gates and stops remain instructions the lead must follow. In an interactive session, paste KICKOFF.md. At a human gate the lead records outcome: halt before asking, then ends its turn. A headless run ends there. Resume with codex exec resume <session-id> and an explicit prompt naming the same grooph run id and the human's actual answer, or start a fresh session with that run id and answer. A session id is separate from the grooph run id. Silence never approves a gate.
 
 ## Hand-adjusting the package
 
-# profile: frontier → gpt-6.1-sol, strong → gpt-6.1-sol, fast → gpt-6-luna
+# profile: frontier → gpt-6.1-sol, strong → gpt-6-luna, fast → gpt-6-luna
 
-A node's TOML model and model_reasoning_effort are its tier or harness-specific pin and effort. A pin wins over export model overrides. Unset fields inherit subagent defaults; the lead's settings belong to the main session at startup. Both frontier and strong currently map to GPT-6.1 Sol; different tiers do not guarantee different underlying models. Model and effort availability depends on the account and client; halt on an unavailable selection.
+Model collapse: strong and fast resolve to gpt-6-luna; tier names do not guarantee distinct underlying models.
 
-sandbox_mode is read-only unless edit-files or write-outputs is allowed and not denied. Then it is workspace-write. approval_policy is never: a blocked action halts rather than escalating. web_search is disabled unless web is explicitly allowed and not denied. Parent live sandbox and approval overrides can supersede custom settings. There is no per-node native tool allowlist in this package: declared output paths, ownership, test-only commands, evidence limits and delegation limits are instructions, not filesystem or tool guarantees. read-files includes non-mutating shell reads where there is no native file-read tool; this does not grant general command execution. write-outputs can write its own named outputs while edit-files stays denied.
+A node's TOML model and model_reasoning_effort are its tier or harness-specific pin and effort. A pin wins over export model overrides. Nodes with no model inherit the invocation's spawned-agent default, gpt-6-luna (strong); explicit node models take precedence. The lead's settings belong to the main session at startup. Model and effort availability depends on the account and client; halt on an unavailable selection.
+
+sandbox_mode is read-only unless edit-files or write-outputs is allowed and not denied. Then it is workspace-write. The package does not set approval_policy: Codex inherits the owner's configured approval policy. An unattended operation requiring owner approval may be refused when nobody can respond; that refusal is not a native graph halt. Graph gates and stops remain instructions the lead must follow. web_search is disabled unless web is explicitly allowed and not denied. Parent live sandbox and approval settings can supersede custom settings. There is no per-node native tool allowlist in this package: declared output paths, ownership, test-only commands, evidence limits and delegation limits are instructions, not filesystem or tool guarantees. read-files includes non-mutating shell reads where there is no native file-read tool; this does not grant general command execution. write-outputs can write its own named outputs while edit-files stays denied.
 
 Node skills are explicitly requested in developer_instructions; Codex has no Claude-style skills preload field. The session must load applicable installed skills; a missing required skill halts the node. Custom capabilities are stated in the brief and require an available meaning and implementation.
 

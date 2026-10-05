@@ -83,11 +83,11 @@ test("Codex stream parser records thread, exact usage, and custom-role dispatche
   assert.deepEqual(parsed.issues, [5]);
 });
 
-test("launch command keeps workspace-write approvals and explicit model and worker caps", () => {
+test("launch command inherits approvals and keeps explicit model and worker caps", () => {
   const args = buildCodexCommand("prompt");
   assert.deepEqual(args.slice(0, 4), ["exec", "--json", "--sandbox", "workspace-write"]);
   assert.ok(args.includes("gpt-6.1-sol"));
-  assert.ok(args.includes('approval_policy="never"'));
+  assert.ok(!args.some((arg) => /approval_policy|ask-for-approval/.test(arg)), "the run must not override the owner's approval policy");
   assert.ok(args.includes('web_search="disabled"'));
   assert.ok(args.includes("agents.default_subagent_model=gpt-6-luna"));
   assert.ok(args.includes("agents.max_concurrent_threads_per_session=2"));

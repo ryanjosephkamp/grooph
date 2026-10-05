@@ -103,7 +103,9 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
 
   io.out(`wrote ${plural(paths.length, "file")} into ${flags.into}`);
   for (const path of paths) io.out(`  ${path}`);
-  if (flags.models) for (const line of tiersSaid(parsed.doc, flags.target, flags.models, flags.modelsFrom ?? "--models")) io.out(line);
+  const tierLines = tiersSaid(parsed.doc, flags.target, flags.models ?? {}, flags.modelsFrom ?? "--models");
+  // The collapse note also applies to the target's own defaults; the override summary is still opt-in.
+  for (const line of flags.models ? tierLines : tierLines.slice(1)) io.out(line);
 
   if (compiled.warnings.length > 0) {
     io.out("");

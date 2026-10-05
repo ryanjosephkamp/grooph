@@ -5,7 +5,7 @@
   "verifiedOn": "2026-10-04",
   "models": {
     "frontier": "gpt-6.1-sol",
-    "strong": "gpt-6.1-sol",
+    "strong": "gpt-6-luna",
     "fast": "gpt-6-luna"
   },
   "defaultTier": "strong",

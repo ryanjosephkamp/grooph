@@ -51,7 +51,7 @@ test("Codex packages preserve the source and do not overwrite shared project ins
   assert.equal(Object.keys(pkg.files).filter((p) => p.endsWith(".toml")).length, 2);
   const critic = settings(pkg.files[".codex/agents/review-loop--critic.toml"]!);
   assert.equal(critic.name, "review-loop--critic");
-  assert.equal(critic.approval_policy, "never");
+  assert.ok(!("approval_policy" in critic), "agent files inherit the owner's approval policy");
   assert.equal(critic.sandbox_mode, "workspace-write", "a critic must be able to write its declared report");
   assert.equal(critic.web_search, "disabled");
   assert.match(critic.developer_instructions!, /only the files you declare in these outputs/);
@@ -83,9 +83,9 @@ test("Codex TOML safely contains quotes, multiline briefs and settings-like text
   const worker = doc.nodes.find((n): n is AgentNode => n.kind === "agent")!;
   const cfg = settings(compile({ ...doc, nodes: doc.nodes.map((n) => n.id === worker.id ? { ...worker, brief: poison } : n) }, "codex", { models: { strong: poison } }).files[`.codex/agents/${doc.id}--${worker.id}.toml`]!);
   assert.equal(cfg.model, poison);
-  assert.equal(cfg.approval_policy, "never");
+  assert.ok(!("approval_policy" in cfg));
   assert.ok(cfg.developer_instructions!.includes(poison));
-  assert.deepEqual(Object.keys(cfg), ["name", "description", "model", "model_reasoning_effort", "sandbox_mode", "approval_policy", "web_search", "developer_instructions"]);
+  assert.deepEqual(Object.keys(cfg), ["name", "description", "model", "model_reasoning_effort", "sandbox_mode", "web_search", "developer_instructions"]);
 });
 
 test("an explicit lead stays the main session and allowed web is carried to startup and worker settings", () => {

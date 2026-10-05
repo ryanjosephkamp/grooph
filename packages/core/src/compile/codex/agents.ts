@@ -9,8 +9,22 @@ import type { Edge } from "../../types.js";
 import { bullet, code, doc, fence, firstSentence, lines } from "../markdown.js";
 import type { PackageContext, ResolvedAgent } from "./context.js";
 
-/** JSON basic strings use the same escapes as TOML basic strings; newlines never create a setting. */
-export const tomlString = (value: string): string => JSON.stringify(value);
+/** TOML basic strings require Unicode scalars and an escaped DEL (toml.io/en/v1.0.0#string). */
+export function tomlString(value: string): string {
+  let wellFormed = "";
+  for (let i = 0; i < value.length; i += 1) {
+    const unit = value.charCodeAt(i);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(i + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) wellFormed += value[i]! + value[++i]!;
+      else wellFormed += "\ufffd";
+    } else {
+      wellFormed += unit >= 0xdc00 && unit <= 0xdfff ? "\ufffd" : value[i]!;
+    }
+  }
+  // JSON covers quotes, backslashes and U+0000–U+001F; TOML also forbids a bare U+007F.
+  return JSON.stringify(wellFormed).replace(/\u007f/g, "\\u007f");
+}
 
 export function agentFile(ctx: PackageContext, agent: ResolvedAgent): string {
   const instructions = doc(...body(ctx, agent));
@@ -20,7 +34,6 @@ export function agentFile(ctx: PackageContext, agent: ResolvedAgent): string {
     ...(agent.model ? [`model = ${tomlString(agent.model)}`] : []),
     ...(agent.effort ? [`model_reasoning_effort = ${tomlString(agent.effort)}`] : []),
     `sandbox_mode = ${tomlString(agent.sandbox)}`,
-    'approval_policy = "never"',
     `web_search = ${tomlString(agent.web)}`,
     `developer_instructions = ${tomlString(instructions)}`,
     "",
@@ -140,7 +153,7 @@ function capabilities(ctx: PackageContext, agent: ResolvedAgent): string {
     "",
     bullet(`Allowed: ${allow.map(code).join(", ") || "none"}. Use only these capabilities; the presence of a tool does not grant permission to use it.`),
     bullet(`Denied: ${deny.map(code).join(", ") || "none"}. A denied capability stays denied; write-outputs, when explicitly allowed, permits only your declared output files even when edit-files is denied.`),
-    bullet(`Requested sandbox: ${code(agent.sandbox)}; approval policy: ${code("never")}; web search: ${code(agent.web)}. Parent sandbox and approval overrides may supersede this agent's settings. These coarse controls do not enforce file-by-file ownership, declared-output scope, shell command scope, or no delegation: those remain instructions.`),
+    bullet(`Requested sandbox: ${code(agent.sandbox)}; web search: ${code(agent.web)}. The owner's approval policy is inherited; this file does not override it. Parent sandbox settings may supersede this agent's settings. A refused command returns a failure to the model, not a native graph halt: report the refusal and stop if required approval is unavailable. These coarse controls do not enforce file-by-file ownership, declared-output scope, shell command scope, or no delegation: those remain instructions.`),
     bullet("Do not use commands to bypass a capability limit. read-files permits non-mutating read, list and search commands when Codex exposes file reading through a shell; use them only for declared inputs and evidence. write-outputs permits writing only the declared output files. run-tests permits only the declared test command. All other command execution requires run-commands. Do not execute commands outside those allowed purposes. Do not spawn other agents unless spawn-agents is expressly allowed and the lead has delegated that decomposition; report every child dispatch to the lead so it can count it."),
     ...((agent.node.skills ?? []).length > 0 ? ["", `Skills required by the graph: ${agent.node.skills!.map(code).join(", ")}. Explicitly invoke each applicable installed skill and read it before using it. There is no emitted skills preload field. If a required skill is unavailable, report the missing skill and stop; never pretend it was loaded.`] : []),
     ...(agent.unmappedAllow.length > 0 || agent.unmappedDeny.length > 0 ? ["", `Custom capabilities have no native mapping: ${[...agent.unmappedAllow.map((c) => `allow ${c}`), ...agent.unmappedDeny.map((c) => `deny ${c}`)].join(", ")}. If the task depends on one whose meaning or enforcement is unavailable, report that limit and stop.`] : []),
