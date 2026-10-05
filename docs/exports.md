@@ -4,7 +4,7 @@ Three projections of a document, for reading and sending rather than editing. Ea
 
 | | What it is | From the CLI | In the app |
 |---|---|---|---|
-| **Picture** | The whole document with its words on it, as SVG or PNG, light or dark, laid out for a phone | `grooph image <file> [--out x.svg \| x.png] [--theme light \| dark \| auto]` | Export → Keep a copy → Picture (PNG), Picture (SVG) |
+| **Picture** | The whole document with its words on it, as SVG or PNG, light or dark, laid out for a phone. An operation map has two more views: its lanes side by side, and a sequence | `grooph image <file> [--out x.svg \| x.png] [--theme light \| dark \| auto]`; for a map also `--layout wide` or `--view sequence` | Export → Keep a copy → Picture (PNG), Picture (SVG); a map's other views are on its screen |
 | **Outline** | The whole document to read top to bottom: every brief in full, each edge as a sentence, each loop with its bar and stops | `grooph outline <file> [--out x.md]` | the list button in the top bar |
 | **Offline page** | One HTML file holding the picture, the outline, the validator's list and the document itself, with no network needed | `grooph page <file> --out x.html` | Export → Keep a copy → Offline page (.html) |
 
@@ -20,11 +20,19 @@ The read-only viewers (a link, a template, an operation map) have the same Keep 
 - nodes of one rank in a tinted band, marked "side by side";
 - below the cards, each loop: its kind and members, its bar, and its stops in order with what each does.
 
-An operation map's picture is described in [`operation-map.md`](operation-map.md) §4.
+An operation map's picture is described in [`operation-map.md`](operation-map.md) §4. A map has two more views, drawn by core from the same document and written by the same command:
+
+| View | What it is | Good at | Loses |
+|---|---|---|---|
+| The picture (`grooph image <map>`) | Lanes top to bottom, 400 units wide, every arc in one margin | A phone; the cards in full; the live marks | A wide screen, where it is one narrow column; a long map, whose arcs cross often |
+| Lanes side by side (`--layout wide`, §4c) | Each lane a column, the people across the top, arcs in the gutters between lanes | The shape of the operation across a wide screen, with few crossings and no line over a card | A phone: about 900 units for three lanes. The order of the handoffs. It is still tall when one lane is full |
+| The sequence (`--view sequence`, §4d) | A column for each person and session, a row for each handoff in the map's order | Reading the handoffs one at a time, with what carries each and what is handed | The cards, the lanes' machines and accounts, the live marks; and it looks like a timeline, though the order is not a clock |
+
+In the app a map's screen has a switch, Picture and Sequence, at every width, and from 1100 px the picture is drawn with its lanes side by side. Keep a copy still saves the phone's picture; the other two come from `grooph image`. In core the two are `mapWide(map)` and `mapSequence(map)`, behind a door of their own (`packages/core/src/picture/map-views.ts`): the web app fetches them when it first draws a map, and no other address carries them.
 
 Themes: `light` and `dark` write the colors into the file, so it looks the same anywhere. `auto` (SVG only, and the SVG default) carries both palettes and follows the viewer's color scheme. A PNG is one theme: light unless told dark, three pixels to the unit (1,200 px wide; `--scale` changes that).
 
-The SVG is deterministic: the same document and theme give the same bytes, and golden copies of two graphs and the sample map are under `fixtures/pictures/` and `fixtures/maps/pictures/`. The PNG is drawn with the machine's own fonts (by the browser in the app; by `@resvg/resvg-js`, an optional dependency, in the CLI), so it can differ by a pixel between machines. Text width is estimated without a browser, a little wide on purpose, so a long name is cut with an ellipsis rather than overflowing. Text is measured without a browser, for the widest font a picture is likely to be drawn with (about as wide as DejaVu Sans, which is what a Linux machine with nothing else uses): on a Mac or a phone a line ends a little short of its box, and on Linux it does not run past it, which it did in 0.1.0.
+The SVG is deterministic: the same document and theme give the same bytes, and golden copies of two graphs and the sample map are under `fixtures/pictures/` and `fixtures/maps/pictures/`, with both other views of two maps beside them (`<id>.wide.<theme>.svg`, `<id>.sequence.<theme>.svg`). The PNG is drawn with the machine's own fonts (by the browser in the app; by `@resvg/resvg-js`, an optional dependency, in the CLI), so it can differ by a pixel between machines. Text width is estimated without a browser, a little wide on purpose, so a long name is cut with an ellipsis rather than overflowing. Text is measured without a browser, for the widest font a picture is likely to be drawn with (about as wide as DejaVu Sans, which is what a Linux machine with nothing else uses): on a Mac or a phone a line ends a little short of its box, and on Linux it does not run past it, which it did in 0.1.0.
 
 The glyph (`grooph glyph`) is still the wordless shape for a list row, and the canvas is still where a graph is edited. The picture is the one to keep.
 
@@ -52,6 +60,8 @@ The other half (stage 8, slice 0030). The app at https://ryanjosephkamp.github.i
 - The page is fetched from the network whenever there is one, so a new version is picked up on the next visit; the cached copy is for when there is none.
 - Only grooph's own files are cached. `grooph watch`'s live endpoints are never cached, and nothing is sent anywhere.
 - A share link opened for the first time with no network still opens: the document rides in the link, and the app that reads it is on the device.
+- The app is six pieces, and an address loads the ones it shows: a small entry, the app (front page, library, template list), the screens that draw on the canvas, the compiler (fetched when a person exports), the embed, and an operation map's other views (fetched when a map is drawn, since slice 0080). Decision 0021, which set this out, counts five and names two doors into core; the map's views are the sixth piece and the third door. The page names every piece, so the service worker holds them all from the first visit: the embed's own script and styles among them since slice 0088, so the front page's recorded run plays with no network whether or not it was ever watched with one. A piece that could not be fetched is asked for again the next time it is needed, and in a way every engine honors (`apps/web/src/piece.ts`): a browser left to itself does not ask twice for a script that failed.
+- What each kind of address may weigh is in `scripts/perf-budget.json`, and `scripts/perf-budget.mjs --check` compares to the byte. An address that draws on the canvas may load 280 KB compressed: the owner raised that line from 276 on 2026-10-04, because the site's new look (pull request #58, at his request) used 5.2 of the 6 KB of room there was. 280 is the hard line, and what is new still goes behind a door of its own.
 
 Tested in Chromium with the network switched off (`apps/web/e2e/offline.spec.ts`). Not tried: installing on a real phone, and Safari.
 

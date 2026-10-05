@@ -10,9 +10,15 @@
  * an address that draws on the canvas (a graph, a template, a link, a run) loads the canvas screens as well; an embed's
  * is what an `#/embed` address loads, which is much less (the build lists the sets in dist/routes.json). Budgets are in
  * scripts/perf-budget.json; raising one is a decision, made in a pull request that says why.
+ *
+ * Since handoff 0077 the site's fonts are its own files, and they have a line of their own: the two a first visit to the
+ * front page fetches (the upright face and the mono one; the italic is fetched by a page that has italics), as they are
+ * sent, since woff2 is already compressed. They are asked for once the page is up, so they are not in the first load; the
+ * last line is what a first visit to the front page fetches in all: the first load, those fonts and the footer's icons.
+ * apps/web/e2e/landing.spec.ts checks that the front page asks for exactly these fonts.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
@@ -21,7 +27,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "apps", "web", "dist");
 const budget = JSON.parse(readFileSync(join(root, "scripts", "perf-budget.json"), "utf8"));
 const kb = (file) => gzipSync(readFileSync(file)).length / 1024;
-const one = (n) => Math.round(n * 10) / 10;
+// A figure is compared with its budget as it is, and printed to two places so a reader sees what was compared.
+// It was once rounded to one place first, and a template's address at 276.04 read "ok 276 of 276".
+const two = (n) => n.toFixed(2);
 
 if (!existsSync(join(dist, "index.html"))) {
   console.error("perf-budget: apps/web/dist/index.html is not there. Run pnpm -r build first.");
@@ -44,6 +52,18 @@ const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + 
 // Since slice 0069 the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
 const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
 const canvas = js + css + html + sum(canvasFiles);
+// The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
+const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
+const ICONS = "assets/site-icons.v1.svg";
+for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
+  if (!existsSync(join(dist, f))) {
+    console.error(`perf-budget: apps/web/dist/${f} is not there. The front page asks for it (apps/web/src/styles.css, ui/landing/Chrome.tsx).`);
+    process.exit(1);
+  }
+}
+const sent = (file) => statSync(join(dist, file)).size / 1024;
+const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
+const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
 const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
@@ -58,20 +78,25 @@ for (let i = 0; i < 5; i += 1) {
 const cli = times.sort((a, b) => a - b)[2];
 
 const rows = [
-  ["the app's first load (HTML, scripts and styles), gzip KB", one(js + css + html), budget.firstLoadKB],
-  ["  of which scripts", one(js), budget.entryJsKB],
-  ["  of which styles", one(css), budget.cssKB],
-  ["the first load of an address that draws on the canvas, gzip KB", one(canvas), budget.canvasLoadKB],
-  ["an embed's first load, gzip KB", one(embed), budget.embedLoadKB],
-  ["the CLI's cold start, ms (middle of five)", Math.round(cli), budget.cliColdMs],
+  ["the app's first load (HTML, scripts and styles), gzip KB", js + css + html, budget.firstLoadKB],
+  ["  of which scripts", js, budget.entryJsKB],
+  ["  of which styles", css, budget.cssKB],
+  ["the fonts a first visit to the front page fetches, KB as sent", fonts, budget.fontsKB],
+  ["a first visit to the front page in all (first load, fonts, icons), KB", firstVisit, budget.firstVisitKB],
+  ["the first load of an address that draws on the canvas, gzip KB", canvas, budget.canvasLoadKB],
+  ["an embed's first load, gzip KB", embed, budget.embedLoadKB],
+  ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
 ];
 let over = 0;
 for (const [what, value, limit] of rows) {
   const bad = value > limit;
   if (bad) over += 1;
-  console.log(`${bad ? "OVER " : "ok   "} ${String(value).padStart(7)} of ${String(limit).padStart(5)}  ${what}`);
+  console.log(`${bad ? "OVER " : "ok   "} ${two(value).padStart(7)} of ${String(limit).padStart(5)}  ${what}`);
 }
-for (const f of others) console.log(`      ${String(one(kb(join(dist, "assets", f)))).padStart(7)}            loaded later: ${f}`);
+for (const f of others) console.log(`      ${two(kb(join(dist, "assets", f))).padStart(7)}            loaded later: ${f}`);
+for (const f of readdirSync(join(dist, "assets", "fonts")).filter((name) => name.endsWith(".woff2") && !FIRST_VISIT_FONTS.includes(`assets/fonts/${name}`))) {
+  console.log(`      ${two(sent(`assets/fonts/${f}`)).padStart(7)}            a font fetched by a page that uses it: ${f}`);
+}
 if (process.argv.includes("--check") && over > 0) {
   console.error(`perf-budget: ${over} over budget. Make it lighter, or raise the budget in scripts/perf-budget.json in a pull request that says why.`);
   process.exit(1);
