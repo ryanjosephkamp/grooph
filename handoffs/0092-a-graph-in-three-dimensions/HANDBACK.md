@@ -39,7 +39,7 @@ This page was written with the first part and is left as it was, with the second
 
 **`docs/exports.md`**: "A graph in three dimensions", with two pictures, and a sentence where the app's pieces are counted.
 
-**`handoffs/0092-a-graph-in-three-dimensions/`**: this file and `shots/` (eighteen pictures, the largest 103 KB).
+**`handoffs/0092-a-graph-in-three-dimensions/`**: this file and `shots/` (the views' pictures and the frames of the switch, the largest 103 KB).
 
 `packages/**` is untouched: nothing in core had to change. The piece imports what it needs from core's first door (`layerNodes`, `mapKit`, `describeStop`, `edgeWhen`, `roleName`), which every canvas address has already; the build's shared files keep their names, so nothing moved.
 
@@ -168,8 +168,48 @@ So I recommend **not building it**, and spending the room on the run's replay, w
 
 The brief says a share link may name the view, "as a map's can". A map's link cannot today: no address in the app carries a view, for a map or a graph. Adding it means the address is read where every address is read, which is the file every first load carries, at 179.73 of 180 KB on CI. I left it out rather than spend from that line without being asked. It is a few lines when the room is there, and it should be done for maps and graphs together.
 
+## After the owner looked: the switch between Picture and 3D
+
+His note, 2026-10-05, whole: "2d to 3d and vice versa should feel as seamless as it does for the maps; currently, the view doesn't shift as nicely. That's it." A fourth pull request, on `slice/0092-the-switch-eased`.
+
+**What a map does that a graph did not.** I recorded every frame the browser paints while the switch is pressed, on a map and on a graph (a template, a link, a run's page), at 390 px and at 1440, with the processor slowed four times so that a laptop paints what a phone does. A map changes one thing in one paint: its frame holds the scene, already styled and already turned to its starting view, and the switch, the page round it and what is under it stay where they were; Picture puts the picture back the same way. Neither has any motion: the difference was in what was painted on the way. On a graph there were three things:
+
+1. **The first press of a visit painted the scene before it had its styles or its starting view.** For one or two frames (longer on a phone) the canvas was replaced by raw text, plain buttons, and the arcs and the rings of their numbers drawn black at full size, and then by the scene (`shots/switch-graph-phone-before-the-fix-2-3d.jpg`). The scene was given its styles, its view and its names after the browser had painted. A map's scene is given them before, because its markup goes through the screen in a way React finishes before it lets the browser paint; a graph's was drawn by the fetch that brought the piece, whose after-work React leaves until after the paint once the drawing has taken more than a few milliseconds.
+2. **The canvas changed at the press, before the scene was there.** The loops' names left it at once, and on a run's page the canvas also grew and its "Bigger graph" button went: the page changed twice, once at the press and again when the scene came (`shots/switch-run-phone-before-the-fix-2-3d.jpg`).
+3. **On a run's page at a phone's width the grown stage lay over the run's summary and its tabs** and did not move them: the scene stood on top of "Ended at Done" (`shots/switch-run-phone-before-the-fix-5-3d.jpg`). That one is mine from the second part: I had asked for a taller stage in a row of the page that does not grow.
+
+Later presses and the way back were one paint already, as a map's are.
+
+**What changed**, all in the graph's piece (`ui/canvas/graph-views.tsx` and `.css`), so nothing on any first load and nothing on a canvas address beyond the piece's new name:
+
+- the scene is given its styles, its starting view, its behavior and its names before the browser paints (a layout effect where there was an effect);
+- the canvas is whole until the scene is on the page: the loops' names, a run's canvas size and its button change with the scene and not with the press;
+- on a run's page at a phone's width the page gives the scene the room "Bigger graph" gives the canvas: the row grows and what is under it moves down.
+
+The map's files are not touched. No motion was added, so there is none to turn off for reduced motion; the scene's own (the glide back to the starting view, Play) is the map's and respects it as before.
+
+**The frames, at a phone's width**, each the next thing the browser painted (`shots/switch-<page>-phone-<n>-<when>.jpg`, made by `GROOPH_SHOTS=0092-switch`):
+
+| | 1, before | 2, pressed, the piece on its way | 3, the scene | 4, Picture again |
+|---|---|---|---|---|
+| a map | `switch-map-phone-1-start` | `-2-3d`: the switch has moved, the picture is whole | `-3-3d` | `-4-picture` |
+| a graph (a template) | `switch-graph-phone-1-start` | `-2-3d`: the switch has moved, the canvas is whole | `-3-3d` | `-4-picture` |
+| a run | `switch-run-phone-1-start` | `-2-3d`: the same | `-3-3d`: the summary is under the scene, not behind it | `-4-picture` |
+
+Four frames each, and the same four. Before the change a graph had five or six.
+
+**Timing**, from the press to the scene, slowed four times, in milliseconds: a map 190 the first time and 100 after; a template 225 and 115; a link 155 and 90; a run 315 and 75. They are single readings on a busy laptop, and say only that the two are of one order: each is as long as the device takes to draw the scene, and neither waits on anything else.
+
+**Verified.** Two browser tests in `graph-space.spec.ts`. One holds the scene's piece on its way, as a slow connection does, and reads that only the switch has changed; then lets it through on a processor slowed twenty times and reads, from an observer of the page's own that is told before the browser paints, that the scene was styled, turned and named in the turn that drew it; then Picture, a later press, and Picture again, with a node's place read before and after. The other does the same for a run's page: its size and what is under it before, while the piece is on its way, with the scene, and back. Against `main` both fail; with the layout effect alone taken back out the first fails ten times of ten. Each ten times on one worker and on fourteen: 20 of 20 and 20 of 20. The whole browser suite: 241 passed, 164 skipped, none failed; the graph's and the map's 3D tests five times each under fourteen workers, 135 of 135. Core 444, CLI 129, web 90. The budget's check passes; CI's lines are in the pull request.
+
+**Looked at and left**, in case one of these is what he meant, since the note does not say:
+
+- **A graph's cards do not stand where its nodes did.** A map's sheets are its lanes in the picture's own order, so its scene reads as the picture tilted back. A graph's canvas runs down the page and its sheets are its loops, so the cards are in other places than the nodes were; on `review-gate` Done, the last node, is on the top sheet. That is what a graph's sheets are, which he accepted, and I did not change it for a note about the switch.
+- **On a template's page at a phone's width the scene opens small**, in the room the canvas has above the template's details, with its slider under them; closing the details gives it the screen. It was in this page's leftovers already.
+- **Neither view moves into the other.** A turn from flat to tilted as the scene opens would be new for both, and the map's 3D piece has 0.67 KB of its 9 left.
+
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0092 is at handoffs/0092-a-graph-in-three-dimensions/HANDBACK.md, in two pull requests: the first on branch slice/0092-a-graph-in-three-dimensions (3D for a loop graph with the first-pass slider, on every canvas), the second on slice/0092-a-run-replayed, stacked on it (a recorded run's own notes on the slider). Status: done, with two items of the brief not built, as you decided on 2026-10-05 pending the owner: the sequence (it repeats the picture for a graph, and the timeline for a run) and a link that names the view (a map's cannot either, and it would spend from the first-load line). A third pull request, slice/0092-quiet-canvas, makes three browser tests wait for the canvas's last fetch before they reload (a test from the first part was flaky in Firefox on CI). No budget line raised, packages untouched, the map's views byte for byte. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0092 is at handoffs/0092-a-graph-in-three-dimensions/HANDBACK.md, in two pull requests: the first on branch slice/0092-a-graph-in-three-dimensions (3D for a loop graph with the first-pass slider, on every canvas), the second on slice/0092-a-run-replayed, stacked on it (a recorded run's own notes on the slider). Status: done, with two items of the brief not built, as you decided on 2026-10-05 pending the owner: the sequence (it repeats the picture for a graph, and the timeline for a run) and a link that names the view (a map's cannot either, and it would spend from the first-load line). A third pull request, slice/0092-quiet-canvas, makes three browser tests wait for the canvas's last fetch before they reload (a test from the first part was flaky in Firefox on CI). A fourth, slice/0092-the-switch-eased, is the owner's note of 2026-10-05 on the switch: a graph's scene is whole in the paint that first shows it and the canvas is whole until then, as a map's are ("After the owner looked" in the handback says what it was). No budget line raised, packages untouched, the map's views byte for byte. Please reconcile with the grooph-reconcile skill.
 ```
