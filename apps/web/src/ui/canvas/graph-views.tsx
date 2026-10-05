@@ -19,7 +19,7 @@
  * replay says it (`replaySteps` in core). That order is the run's, and it happened.
  */
 import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { piece } from "../../piece.js";
 import css from "./graph-views.css?inline";
@@ -154,8 +154,11 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (next === "space" && !three) piece("space", () => import("../map/space.js")).then((m) => setThree((space = m)), () => (setThree(null), setView("picture")));
   };
   const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
-  // The scene is markup; once it is on the page it is given its behavior, and its cards and arcs their names.
-  useEffect(() => {
+  // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
+  // cards and arcs their names. Before the browser paints, as a map's is: the first press of a visit is drawn by a
+  // fetch that has arrived and not by the press, and React then gives the browser its chance to paint before it
+  // does what was put off. A phone takes it: raw text and arcs drawn black across the canvas, for a frame or more.
+  useLayoutEffect(() => {
     const root = host.current?.querySelector<HTMLElement>(".space");
     if (!root || !three || !made) return;
     const name = (id: Id): string => doc.nodes.find((n) => n.id === id)?.name || id;
@@ -186,7 +189,8 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     return !!node;
   };
   return (
-    <div ref={host} className={`graph-views${view === "space" ? " is-space" : ""}`}>
+    // `is-space` when the scene is on the page, not when it is asked for: until then the canvas is whole.
+    <div ref={host} className={`graph-views${made ? " is-space" : ""}`}>
       <div className="segmented graph-switch" role="radiogroup" aria-label="View of the graph">
         {(["picture", "space"] as const).map((name) => (
           <button key={name} type="button" role="radio" aria-checked={view === name} className={view === name ? "seg seg-on" : "seg"} onClick={() => choose(name)}>
@@ -201,8 +205,9 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       ) : null}
       {made ? (
         // `data-keep`: the room the switch, the bar, the slider and a viewer's own bar at the foot take, so that the
-        // scene is as tall as what is left and the slider's words are read without scrolling where that can be.
-        <div className="graph-space map-stage" data-keep="300">
+        // scene is as tall as what is left and the slider's words are read without scrolling where that can be. A
+        // run's page has no bar at its foot, and its scene has that room too.
+        <div className="graph-space map-stage" data-keep={of.notes ? 280 : 300}>
           <div
             className="map-picture"
             onClick={(e) => void tap(e.target)}
