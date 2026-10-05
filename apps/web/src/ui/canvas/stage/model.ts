@@ -26,7 +26,7 @@ export type MLoop = { id: Id; name: string; inside: Id | null; members: Id[]; ow
 /** A group: the nodes it holds, its own and those of the groups in it, and the group it is in. */
 export type MGroup = { id: Id; name: string; from: string | null; nodes: Id[]; inside: Id | null };
 /** A dispatch of a run: its node's own loop and the round of that loop it was in, or neither for a node in no loop. */
-export type Dispatch = { node: Id; loop: Id | null; round: number | null; outcome: string | null; minutes: number };
+export type Dispatch = { node: Id; loop: Id | null; round: number | null; outcome: string | null; /** by the notes' stamps; none where a note has no stamp */ minutes: number | null };
 export type Model = {
   id: Id;
   name: string;
@@ -36,10 +36,10 @@ export type Model = {
   loops: MLoop[];
   groups: MGroup[];
   pass: { edge: Id; loop: Id | null; says: string }[];
-  run?: { end: string; dispatches: Dispatch[]; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
+  run?: { end: string; /** the node the run ended or halted at, where the notes show one */ at: Id | null; dispatches: Dispatch[]; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** the short line before a dispatch: the next note at the same node is the same visit */ open: boolean; /** a loop's note that names the stop that fired */ stop: boolean; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
 };
 /** One stop of the slider: what it says, what it lights, and where what is at it came from. */
-export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; about?: boolean; dispatch?: number };
+export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; /** the other edges taken to reach this step's node, with the round each was taken from */ also?: { edge: Id; r0: number }[]; about?: boolean; dispatch?: number };
 
 const KIND = { agent: ["agent", "Agent"], check: ["check", "Check"], "human-gate": ["gate", "Human gate"], merge: ["gate", "Merge"], stop: ["stop", "Stop"] } as const;
 
@@ -134,7 +134,8 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     pass: [...forward.map((e) => ({ e, loop: null as Id | null })), ...turns].map(({ e, loop }) => ({
       edge: e.id,
       loop,
-      says: `${name(e.from)} to ${name(e.to)}${edgeWhen(e) ? ` · ${edgeWhenLabel(e)}` : ""}${loop ? ` · back into ${loops.find((l) => l.id === loop)!.name}: another round` : ""}`,
+      // As the stairs say a step (`graphScene` in `graph-views.tsx`): the two views speak alike.
+      says: `${e.from === e.to ? `${name(e.from)} to itself` : `${name(e.from)} to ${name(e.to)}`}${edgeWhen(e) === "always" ? "" : ` · when ${edgeWhenLabel(e)}`}${loop ? ` · back into ${loops.find((l) => l.id === loop)!.name}: another round, until ${loops.find((l) => l.id === loop)!.stops.join("; ")}` : ""}`,
     })),
   };
   if (notes?.length) {
@@ -165,18 +166,72 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
         outcome: note.outcome ?? null,
         verdict: note.verdict ?? null,
         what: note.proposal ? "proposal" : note.amendment ? "amendment" : null,
+        open: note.outcome === "started",
+        stop: focus.kind === "loop" && note.stop !== undefined,
         // The note's own words, cut at a word: a note about the run or about an edge is not a move.
         words: own.length > 150 ? `${own.slice(0, own.lastIndexOf(" ", 150))} …` : own,
       };
-      if (node && (node.kind === "agent" || node.kind === "check") && note.ended) {
-        out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) }) - 1;
-        last = note.ended;
+      // A dispatch is a result at an agent or a check: not the line before it. Its minutes are by the stamps, which
+      // a note may leave out (graph-ir section 6: read from the clock or omitted, never estimated): then it has none.
+      if (node && (node.kind === "agent" || node.kind === "check") && note.outcome !== "started") {
+        out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: note.ended ? Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) : null }) - 1;
+        last = note.ended ?? last;
       }
       return out;
     });
-    model.run = { end: replay.end.line, dispatches, notes: steps, rounds: Object.fromEntries(replay.end.loops.map((l) => [l.loop, l.round ?? -1])) };
+    model.run = { end: replay.end.line, at: replay.end.at && is(replay.end.at.id) ? replay.end.at.id : null, dispatches, notes: steps, rounds: Object.fromEntries(replay.end.loops.map((l) => [l.loop, l.round ?? -1])) };
   }
   return model;
+}
+
+/** What a node last reported. `open` is the short line before a dispatch (`"outcome":"started"`): nothing has ended. */
+type Said = { round: number | null; outcome: string | null; verdict: string | null; open: boolean };
+
+/**
+ * Which edges a run took, read from its notes in order (graph-ir section 3). Every outgoing edge whose condition
+ * matches is taken, and several can be taken at once, so a node that fans out reaches each of its targets and a node
+ * that fans in is reached by each of its sources. `into` is asked at a note at a node, before `at` is told of it: the
+ * edges taken to get there, one from each node that has reported, with a result and not the line before a dispatch,
+ * since this node was last reached; that edge being the one whose condition is what the node reported (its verdict,
+ * else its outcome), else one with no condition. The edge from the node of the note before comes first, if it is one
+ * of them: it is the one the eye follows. A node whose report none of its edges is for gives none: no edge is said to
+ * have been taken that the notes do not support.
+ *
+ * Three rules of the contract are kept. Two notes running at one node, the first the line before its dispatch, are
+ * one visit, and nothing was taken between them, though the node may have an edge to itself. A stop is looked at
+ * before any way back is taken: where a loop's note names the stop that fired, no way back of that loop was taken
+ * on what its nodes had reported by then (`stopped`). And a second `invalid-evidence` from a node in a row routes as
+ * a fail.
+ */
+export function walk(edges: MEdge[]): { into(to: Id): (MEdge & { r0: number })[]; at(node: Id, said: Said): void; stopped(loop: Id): void } {
+  const said = new Map<Id, Said & { k: number; routes: string | null; not: Set<Id> }>();
+  const reached = new Map<Id, number>();
+  let [k, last, open]: [number, Id | null, Id | null] = [0, null, null];
+  return {
+    into(to) {
+      if (open === to) return [];
+      const since = reached.get(to) ?? -1;
+      return [...said]
+        .filter(([from, was]) => !was.open && (from === to || was.k > since))
+        .sort(([a, x], [b, y]) => Number(b === last) - Number(a === last) || y.k - x.k)
+        .flatMap(([from, was]) => {
+          const between = edges.filter((e) => e.from === from && e.to === to && !(e.back && was.not.has(e.back)));
+          const took = between.find((e) => typeof e.on === "object" && e.on.verdict === was.verdict) ?? between.find((e) => typeof e.on === "string" && e.on === was.routes) ?? between.find((e) => e.on === undefined || e.on === "always");
+          return took ? [{ ...took, r0: was.round ?? 0 }] : [];
+        });
+    },
+    at(node, now) {
+      k += 1;
+      const was = said.get(node);
+      // A node that has ended is not un-ended by a later line of the same visit; one still running has said nothing yet.
+      if (!now.open || !was || was.open) said.set(node, { ...now, k, routes: now.outcome === "invalid-evidence" && was?.outcome === "invalid-evidence" && !was.open ? "fail" : now.outcome, not: new Set() });
+      reached.set(node, k);
+      [last, open] = [node, now.open ? node : null];
+    },
+    stopped(loop) {
+      for (const was of said.values()) was.not.add(loop);
+    },
+  };
 }
 
 /**
@@ -186,9 +241,9 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
 export function stepsOf(m: Model): Step[] {
   const by = (id: Id) => m.edges.find((e) => e.id === id)!;
   if (!m.run) {
-    if (!m.pass.length) return [{ says: "This graph has no edges to follow." }];
+    if (!m.pass.length) return [{ says: "This graph has no edges to step through." }];
     return [
-      { says: `All ${m.pass.length} edges are lit. Move the slider or press Play to follow a first pass, one edge at a time, and then each way back into a loop.` },
+      { says: m.pass.length === 1 ? "The graph's one edge is lit." : `All ${m.pass.length} steps are lit. Move the slider or press Play to follow a first pass, one edge at a time.` },
       ...m.pass.map((p, k) => {
         const e = by(p.edge);
         return { says: `Step ${k + 1} of ${m.pass.length}: ${p.says}`, edge: e.id, nodes: [e.from, e.to], from: e.from, to: e.to, r0: 0, r1: p.loop ? 1 : 0, ...(p.loop ? { loops: [] as Id[] } : {}) };
@@ -202,27 +257,41 @@ export function stepsOf(m: Model): Step[] {
     return own.length ? [`round${own.length === 1 ? "" : "s"} ${own.length > 2 ? `${own.slice(0, -1).join(", ")} and ${own[own.length - 1]}` : own.join(" and ")} of ${l.name}`] : [];
   });
   const out: Step[] = [{ says: `The whole run: ${dispatches.length} dispatch${dispatches.length === 1 ? "" : "es"}${rounds.length ? `, in ${rounds.join("; ")}` : ""}. ${end} Move the slider or press Play to follow its ${notes.length} notes.` }];
-  let at: { node: Id; round: number; outcome: string | null; verdict: string | null } | null = null;
+  const ways = walk(m.edges);
+  let stood = 0;
+  let here: Id | null = null;
   notes.forEach((s, k) => {
     const of = `Note ${k + 1} of ${notes.length}`;
     const step: Step = { says: "", ...(s.dispatch !== undefined ? { dispatch: s.dispatch } : {}) };
     if (s.about === "node" && s.id) {
       const round = s.round ?? 0;
-      const was = at;
-      // The edge the run took to get here, of those from where it was: the one whose condition is what the note
-      // there reported (its verdict, else its outcome), else one with no condition. If none of them fits what was
-      // reported, no edge is shown as taken: the node is lit, and that is all the notes say.
-      const ways = was ? m.edges.filter((e) => e.from === was.node && e.to === s.id) : [];
-      const took = ways.find((e) => typeof e.on === "object" && e.on.verdict === was?.verdict) ?? ways.find((e) => typeof e.on === "string" && e.on === was?.outcome) ?? ways.find((e) => e.on === undefined || e.on === "always");
-      Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round }, took && was ? { edge: took.id, from: was.node, r0: was.round } : {});
-      at = { node: s.id, round, outcome: s.outcome, verdict: s.verdict };
-    } else if (s.about === "loop" && s.id) Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
+      // The edges the run took to get here: the first is the one the step follows, and the others were taken with
+      // it. If none fits what was reported, no edge is shown as taken: the node is lit, and that is all the notes say.
+      const [took, ...also] = ways.into(s.id);
+      Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round }, took ? { edge: took.id, from: took.from, r0: took.r0 } : {}, also.length ? { also: also.map((e) => ({ edge: e.id, r0: e.r0 })) } : {});
+      ways.at(s.id, { round: s.round, outcome: s.outcome, verdict: s.verdict, open: s.open });
+      [stood, here] = [round, s.id];
+    } else if (s.about === "loop" && s.id) {
+      Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
+      if (s.stop) ways.stopped(s.id);
+    }
     else if (s.about === "edge" && s.id) {
-      // A note about an edge is not a move along it.
+      // A proposal or an amendment about an edge is not a move along it, and is said not to be. A plain note at an
+      // edge is the lead's own word that the run is on it; where it leads is the next note's to say, so the step
+      // lights the edge and its two ends, and counts no move of its own.
       const e = m.edges.find((x) => x.id === s.id);
-      Object.assign(step, { says: `${of}, ${s.what ? `a ${s.what}` : "a note"} about the edge ${s.says}, not a move along it: ${s.words}` }, e ? { edge: e.id, nodes: [e.from, e.to], about: true, r0: at?.round ?? 0 } : {});
+      Object.assign(step, { says: s.what ? `${of}, a ${s.what} about the edge ${s.says}, not a move along it: ${s.words}` : `${of}, at the edge ${s.says}: ${s.words}` }, e ? { edge: e.id, nodes: [e.from, e.to], about: true, r0: stood } : {});
     } else step.says = `${of}, ${s.what ? `an ${s.what}` : "about the run"}: ${s.words}`;
     out.push(step);
   });
+  // A lead may write the run's end as a note about the run, and none at the node it ended at: the run got there all
+  // the same, as core reads the end (from a note at the edge into it), by the edges its last reports took. They
+  // are the end note's: the last note about the run that carries an outcome.
+  const final = out[notes.findLastIndex((n) => n.about === "graph" && n.outcome !== null) + 1]!;
+  const last = m.run.at;
+  if (last && last !== here && final !== out[0] && !final.nodes && !final.edge && !final.loops) {
+    const [took, ...also] = ways.into(last);
+    if (took) Object.assign(final, { nodes: [last], to: last, edge: took.id, from: took.from, r0: took.r0, r1: 0 }, also.length ? { also: also.map((e) => ({ edge: e.id, r0: e.r0 })) } : {});
+  }
   return out;
 }

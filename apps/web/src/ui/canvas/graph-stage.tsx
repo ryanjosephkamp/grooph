@@ -20,14 +20,15 @@ import { along, type Shown, type View } from "./stage/shapes.js";
 
 /** Each kind: how it places the graph, where it is first seen from, and what it is, in a sentence. */
 const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
 };
 
 let styled = false;
 const still = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** `wide` is how wide the window was when the canvas under this was drawn: its rows wrap as the canvas's do. */
-export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] } }) {
+/** `drawn` is told once the view has been drawn for the first time: a browser that cannot draw it throws before. */
+export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] }; drawn?: () => void }) {
   if (!styled) {
     const sheet = document.createElement("style");
     sheet.textContent = css;
@@ -42,7 +43,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     [...model.loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length).map((l) => `in the loop ${l.name}`), ...model.groups.filter((g) => g.nodes.includes(id)).sort((a, b) => a.nodes.length - b.nodes.length).map((g) => `in the ${g.from ? "subgrooph" : "group"} ${g.name}`)].join(", ");
   const steps = useMemo(() => stepsOf(model), [model]);
   // The edges a run took, each with the rounds it was taken between and the step it was taken at.
-  const took = useMemo(() => (model.run ? steps.flatMap((step, n) => (step.edge && !step.about ? [{ edge: step.edge, r0: step.r0 ?? 0, r1: step.r1 ?? 0, step: n }] : [])) : []), [model, steps]);
+  const took = useMemo(() => (model.run ? steps.flatMap((step, n) => (step.edge && !step.about ? [{ edge: step.edge, r0: step.r0 ?? 0 }, ...(step.also ?? [])].map((e) => ({ ...e, r1: step.r1 ?? 0, step: n })) : [])) : []), [model, steps]);
   const [at, setAt] = useState(0);
   const [playing, setPlaying] = useState(false);
   const k = Math.min(at, steps.length - 1);
@@ -52,6 +53,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   const cards = useRef<HTMLDivElement>(null);
   const stage = useRef<Stage>(undefined);
   const glide = useRef(0);
+  const once = useRef(false);
   const was = useRef(0);
 
   useLayoutEffect(() => {
@@ -64,7 +66,8 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     const on = stage.current!;
     // What the step is about: its nodes, its edge (by its name, and by its name and the round it is taken in, for a
     // view that draws an edge once a round), its loops. A note about the run as a whole picks nothing out.
-    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
+    // A node that fans in is reached by several edges at once: each is lit.
+    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}`] : []), ...(step.about ? [] : (step.also ?? []).map((e) => `edge:${e.edge}`)), ...(step.loops ?? []).map((id) => `loop:${id}`)];
     const shown: Shown = { k, took, lit: about.length ? new Set(about) : null };
     if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
     // A run is drawn as far as the note it is at; step 0 is all of it.
@@ -91,6 +94,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     } else on.set(built.prims);
     was.current = k;
     on.draw();
+    if (!once.current) ((once.current = true), drawn?.());
   }, [model, kind, k]);
   useEffect(() => {
     if (!playing) return;
@@ -104,6 +108,8 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     <div className="s3" data-picture="space" data-kind={kind}>
       <div className="s3-bar">
         <span>Drag to turn. Pinch to move in and out.</span>
+        {/* Shown in its place where the frame is as tall as it may be and cards still touch (`stage/draw.ts`). */}
+        <span className="s3-tight">Not every card has room here. Close the details under this view, or move in, to read them.</span>
         <button type="button" aria-label="Move out" onClick={() => stage.current?.zoom(0.8)}>
           −
         </button>
@@ -114,7 +120,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
           Starting view
         </button>
       </div>
-      <div ref={frame} className="s3-frame" tabIndex={0} role="group" aria-label={`${model.name} as ${the.as}: ${model.nodes.length} cards, ${model.edges.length} edges${model.loops.length ? `, and ${model.loops.length === 1 ? "the loop" : "the loops"} ${model.loops.map((l) => l.name).join(", ")}` : ""}. Drag to turn it; the arrow keys turn it too, and plus and minus move in and out.`}>
+      <div ref={frame} className="s3-frame" tabIndex={0} role="group" aria-label={`${model.name} as ${the.as}: ${model.nodes.length} card${model.nodes.length === 1 ? "" : "s"}, ${model.edges.length} edge${model.edges.length === 1 ? "" : "s"}${model.loops.length ? `, and ${model.loops.length === 1 ? "the loop" : "the loops"} ${model.loops.map((l) => l.name).join(", ")}` : ""}. Drag to turn it; the arrow keys turn it too, and plus and minus move in and out.`}>
         <canvas ref={canvas} aria-hidden="true" />
         <div ref={cards}>
           {model.nodes.map((n) => (
@@ -141,7 +147,10 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
       <output className="s3-says" aria-live="polite">
         {step.says}
       </output>
-      <p className="s3-note">{the.says}</p>
+      <p className="s3-note">
+        {the.says}
+        {kind === "panes" && !model.loops.length && !model.groups.some((g) => g.from) ? " This graph has no loop and no subgrooph, so nothing is lifted." : ""}
+      </p>
     </div>
   );
 }

@@ -33,7 +33,7 @@ export const arch = (a: V, b: V, lift: number, n = 16): V[] =>
     return [p[0], p[1] + lift * 4 * (k / n) * (1 - k / n), p[2]];
   });
 /** An edge: solid and gray when it goes on, dashed in its loop's color when it is a way back into that loop. */
-export const edgeLine = (m: Model, e: MEdge, pts: V[], more: Partial<Extract<Prim, { t: "line" }>> = {}): Prim => ({ t: "line", pts, stroke: e.back ? hue(m, e.back) : "ink-2", ...(e.back ? { dash: [6, 4] } : {}), w: e.back ? 1.8 : 1.4, arrow: true, key: `edge:${e.id}`, inset: [2, 1], ...more });
+export const edgeLine = (m: Model, e: MEdge, pts: V[], more: Partial<Extract<Prim, { t: "line" }>> = {}): Prim => ({ t: "line", pts, stroke: e.back ? hue(m, e.back) : "ink-2", ...(e.back ? { dash: [6, 4] } : {}), w: e.back ? 1.8 : 1.4, arrow: true, key: `edge:${e.id}`, inset: [2, 1], from: e.from, to: e.to, ...more });
 /** The point so far along a line, from 0 to 1. */
 export const along = (pts: V[], t: number): V => {
   const at = Math.max(0, Math.min(1, t)) * (pts.length - 1);

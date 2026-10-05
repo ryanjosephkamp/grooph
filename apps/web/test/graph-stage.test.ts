@@ -162,6 +162,84 @@ describe("a recorded run", () => {
 
 afterEach(() => vi.unstubAllGlobals());
 
+describe("which edges a run took", () => {
+  /** Notes written for a graph: `[node or loop:id, outcome, round or none, verdict or stop]`, with stamps a minute apart unless `bare`. */
+  const notes = (list: [string, string, number?, string?][], bare = false): RunNote[] =>
+    list.map(([at, outcome, round, more], k) => ({ id: `n-${String(k + 1).padStart(4, "0")}`, run: "r", at: at.includes(":") ? at : `node:${at}`, ...(bare ? {} : { ended: `2026-09-19T13:${String(k).padStart(2, "0")}:00Z` }), outcome, ...(round === undefined ? {} : { round }), ...(more ? (at.startsWith("loop:") ? { stop: more } : { verdict: more }) : {}) }) as RunNote);
+  const BANK = graph("patterns/specialist-critic-bank.grooph.json");
+  const taken = (doc: Graph, list: RunNote[]) => stepsOf(modelAt(doc, places(doc), list)).map((s) => (s.about ? [] : [s.edge, ...(s.also ?? []).map((x) => x.edge)].filter(Boolean).sort()));
+
+  it("a node that fans out reaches each of its targets, and one that fans in is reached by each of its sources", () => {
+    const critics = BANK.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    expect(critics).toHaveLength(4);
+    const judge = BANK.edges.find((e) => e.from === critics[0])!.to;
+    const steps = stepsOf(modelAt(BANK, places(BANK), notes([["builder", "pass", 0], ...critics.map((id): [string, string, number] => [id, "pass", 0]), [judge, "pass", 0]])));
+    // Each critic's note is a move from the builder, whichever critic's note came before it.
+    for (const [n, id] of critics.entries()) expect(steps[2 + n], id).toMatchObject({ to: id, from: "builder", edge: BANK.edges.find((e) => e.from === "builder" && e.to === id)!.id });
+    // The judge's note: the edge from the critic whose note came last is the one followed, and the other three were taken with it.
+    expect(steps[6]).toMatchObject({ to: judge, from: critics[3] });
+    expect([steps[6]!.edge, ...steps[6]!.also!.map((x) => x.edge)].sort()).toEqual(BANK.edges.filter((e) => e.to === judge && critics.includes(e.from)).map((e) => e.id).sort());
+  });
+
+  it("an edge with a condition is taken only by a report that meets it, and only from a node that has reported since its target was last reached", () => {
+    const critics = BANK.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    const judge = BANK.edges.find((e) => e.from === critics[0])!.to;
+    // The judge passed and the gate rejected: back at the builder, the gate's way back was taken and the judge's,
+    // which is for a fail, was not, though the judge has reported since the builder was last reached.
+    const back = taken(BANK, notes([["builder", "pass", 0], ...critics.map((id): [string, string, number] => [id, "pass", 0]), [judge, "pass", 0], ["gate", "fail", 0], ["builder", "pass", 1]]));
+    expect(back[8]).toEqual(["e-gate-reject"]);
+    // A second note at the judge with no critic between takes nothing.
+    expect(taken(BANK, notes([["builder", "pass", 0], [critics[0]!, "pass", 0], [judge, "pass", 0], [judge, "pass", 0]]))[4]).toEqual([]);
+  });
+
+  it("a run whose notes carry no stamps takes the same edges: a note is open by being the line before a dispatch, not by having no end", () => {
+    const [doc, written] = runAt("run-nested");
+    const bare = written.map(({ started: _started, ended: _ended, ...rest }) => rest as RunNote);
+    expect(taken(doc, bare)).toEqual(taken(doc, written));
+    expect(taken(doc, bare).filter((t) => t.length)).toHaveLength(7);
+    // And its dispatches are still dispatches, with no minutes to their name.
+    const model = modelAt(doc, places(doc), bare);
+    expect(model.run!.dispatches.map((d) => [d.node, d.minutes])).toEqual(["builder", "tests", "builder", "tests", "judge", "builder", "tests"].map((id) => [id, null]));
+    // The line before a dispatch and the result after it are one visit: nothing was taken between them.
+    const solo: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-again", from: "builder", to: "builder" }] } as Graph;
+    expect(taken(solo, notes([["builder", "started", 0], ["builder", "pass", 0]]))).toEqual([[], [], []]);
+    expect(taken(solo, notes([["builder", "pass", 0], ["builder", "pass", 0]]))[2]).toEqual(["e-again"]);
+  });
+
+  it("a stop is looked at before a way back is taken: where a loop's note names the stop that fired, its way back was not taken", () => {
+    // Grind stops on its cap and the run goes on to the judge, who sends it back to the builder. The tests' fail,
+    // reported before the stop, did not take the tests' way back.
+    const [doc] = runAt("run-nested");
+    const stopped = taken(doc, notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "halt", 0, "max-iterations"], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0]]));
+    expect(stopped[5]).toEqual(["e-judge-next-phase"]);
+    // With no stop named, the round ended and the way back was taken.
+    const on = taken(doc, notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 0], ["builder", "pass", 1]]));
+    expect(on[4]).toEqual(["e-tests-fail"]);
+  });
+
+  it("a second invalid-evidence in a row routes as a fail; and a run that ends at a stop node with no note there still got there", () => {
+    // The critic cannot read its evidence, twice: the builder is next, by the critic's way back for a fail.
+    const twice = taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1]]));
+    expect(twice[5]).toEqual(["e-critic-fail"]);
+    // Once is not a fail: the lead dispatches the critic again, and nothing has been taken to the builder.
+    expect(taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1]]))[4]).toEqual([]);
+    // The recorded run's notes, with the one at Done written as leads often write it: a plain note at the edge
+    // into Done. Core reads the run as ended at Done; the critic's pass took its edge there, and the run's end
+    // note, the last about the run with an outcome, is where that is shown. The edge's own note is not a move.
+    const without = NOTES.map((n) => (n.at === "node:done" ? ({ id: n.id, run: n.run, at: "edge:e-critic-pass", text: "critic -> done" } as RunNote) : n));
+    const model = modelAt(RUN, places(RUN), without);
+    expect(model.run!.at).toBe("done");
+    const steps = stepsOf(model);
+    expect(steps[13]!.says).toMatch(/^Note 13 of 15, at the edge .+: critic -> done$/);
+    expect([steps[13]!.about, steps[13]!.to]).toEqual([true, undefined]);
+    expect(without[13]!.outcome).toBe("pass");
+    expect([steps[14]!.to, steps[14]!.edge, steps[14]!.says.startsWith("Note 14 of 15, about the run")]).toEqual(["done", "e-critic-pass", true]);
+    expect(steps[15]!.edge).toBeUndefined();
+    // With its own note at Done, the last notes pick nothing out, as before.
+    expect(stepsOf(modelAt(RUN, places(RUN), NOTES)).at(-1)!.edge).toBeUndefined();
+  });
+});
+
 describe("panes", () => {
   const shown = { k: 0, lit: null, took: [] };
   const place = (doc: Graph) => {
@@ -230,6 +308,21 @@ describe("panes", () => {
     const through: Graph = { ...NESTED, groups: [{ ...NESTED.groups![0]! }, { ...NESTED.groups![1]! }, { id: "all", name: "All", from: "all@1", members: ["delivery", "plan"] }] };
     const deep = boxesOf(modelOf(through).loops, modelOf(through).groups);
     expect(Object.fromEntries(deep.map((b) => [b.name, b.depth]))).toEqual({ Review: 3, "Review gate": 2, All: 1 });
+  });
+
+  it("two edges between the same two nodes are drawn apart, and a pane's name has other places to stand than its own", () => {
+    const [doc] = runAt("run-nested");
+    const built = panes(modelAt(doc, places(doc)), shown);
+    const [a, b] = [built.path("e-judge-fail"), built.path("e-judge-next-phase")];
+    expect([a.length, b.length]).toEqual([19, 19]);
+    expect(Math.abs(a[9]![0] - b[9]![0])).toBe(22);
+    expect([a[0], a[18]]).toEqual([b[0], b[18]]);
+    // A forward edge with a twin the other way (builder to tests, tests back to builder) is still a straight line.
+    expect(built.path("e-builder-tests")).toHaveLength(2);
+    // Each pane's name may stand at any of six places round its pane: the stage takes the first no card is over.
+    const names = built.prims.flatMap((p) => (p.t === "text" && / · (loop|subgrooph)/.test(p.text) ? [p] : []));
+    expect(names.map((p) => p.text).sort()).toEqual(["Grind · loop", "Phases · loop"]);
+    for (const p of names) expect(p.or).toHaveLength(5);
   });
 
   it("every node is where the canvas has it, on a phone and on a wide screen, and every node and edge is drawn once", () => {
