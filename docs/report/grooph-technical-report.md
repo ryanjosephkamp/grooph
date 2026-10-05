@@ -94,13 +94,13 @@ A held-out suite scored each run; one blind judge ranked all runs of a project. 
 | review-gate | 41 of 41 | $1.02 to $1.40 | $1.05 to $1.08 | 4, 6 of 6 |
 | spec-then-loop | 88 of 88 | $2.43 to $2.56 | $2.26 to $2.66 | 6, 7, 9 of 9 |
 
-**Result.** The graph did not earn its cost in any of the four projects, by each project's own pre-registered test. Every arm reached the same held-out score in every replicate. The judge never placed a graph run first.
+**Result.** None of the four projects met its pre-registered test for the graph earning its cost. Three met their losing condition; `review-gate` met neither. Every arm reached the same held-out score within a project; three suites were saturated, and every `grind-loop` run missed the same one case of 62. No graph run was ranked first, in one judge call per project. This is not a test of equivalence.
 
-**Why.** The flattening rule removed grooph's mechanics and kept the design: the roles, the routing, the loop sentence, the gate sentence and every brief. In all 27 runs the prompt-arm lead dispatched the roles as separate subagents. The study compared a design with its record against the same design without one.
+**Why.** The study set a compiled package against a prompt derived from it by rule. The prompt kept the roles, the routing, the loop sentence, the gate sentence and each brief; it dropped each agent's tool list, ownership and evidence rules, and the record. In all 18 prompt-arm runs the lead dispatched subagents for the roles. The prompt arms could also see grooph's name, in their repository's history and their list of skills; a scan of their transcripts found no use of either.
 
-**Where the arms differed.** One prompt run went on to the $9.00 ceiling ($9.02, 24 minutes 51 seconds) while both graph runs of that project stopped by the graph's own edge. Bounding is the one place structure showed.
+**Where the arms differed.** One prompt run was cut off at the $9.00 ceiling ($9.02, 24 minutes 51 seconds), in its second attack round, inside the caps the graph also has. Its first red team had reported a failure the written contract covers, and its builder had revised the parser. Both graph runs ended at round 0 on a passed bar. No graph-arm back edge and no outer retry of the loop arm fired, and no cap or budget did.
 
-**Limits of the study.** Two replicates per arm (three for one project); one harness version; one model family; tasks a strong builder finishes in one pass, so no loop turned. It measured the structure's overhead and its bounding, not its correction.
+**Limits of the study.** Two replicates per arm (three for one project); one harness version; one model family; the loop arm ran one iteration in every run; the package and the prompt differed in more than the record. It measured what the package cost on these tasks, not what a brake or a correction is worth.
 
 ### 5.3 Study two, designed and not yet run
 
@@ -134,7 +134,7 @@ The validator counts how many handoffs move only when a person moves them. For t
 
 - **Not a runtime.** It starts nothing and supervises nothing. A package is a set of files the harness reads.
 - **Not a hosted service.** The app is static files; graphs stay in the browser that opened them.
-- **Not evidence of better output.** Section 5.2 is the measurement, and it says no on small tasks.
+- **Not evidence of better output.** Section 5.2 is the measurement: no advantage was shown on four small tasks.
 
 ## 8. Limitations
 
