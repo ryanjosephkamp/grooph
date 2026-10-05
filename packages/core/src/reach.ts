@@ -57,18 +57,23 @@ export function waysOf(doc: Graph): Way[] {
  * A decision taken as never given: every person's at once; one human gate's, or one answer at it; one approval; one
  * critic's verdict, or one verdict of it. A check's verdict is a decision as a critic's is (amendment A-019): the same
  * shape, with `check` set, which changes the words. It is asked a second time with `stops` set: without the verdict
- * and with no brake of a loop firing either. Where a round cap already leads on to what the check's pass led to (a
- * loop that ends, pass or fail, in a wrap-up), a run reaches that without the verdict anyway, and a new edge
- * straight there would show nothing; asked this way, what it reached only by the verdict or by spending the cap is
- * held behind both.
+ * and without the brakes that fired into the places they led on to before (`firingKey`, of the first of the two
+ * graphs compared). Where a round cap already leads on to what the check's pass led to (a loop that ends, pass or
+ * fail, in a wrap-up), a run reaches that without the verdict anyway, and a new edge straight there would show
+ * nothing; asked this way, what it reached only by the verdict or by spending the cap is held behind both. A stop
+ * that fires and is new to the second graph (a budget of one dispatch that leads to the end, a second loop on the
+ * same round with a cap of its own) is none of those and is a way like any other.
  */
-export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string; check?: true; stops?: true };
+export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string; check?: true; stops?: ReadonlySet<string> };
+
+/** A brake firing, by the loop it is a stop of and where it leads on to: from which member, and at what count, is not part of it. */
+export const firingKey = (way: Way): string => `${way.loop}\n${way.to}`;
 
 /** Whether a way is shut by that. An edge out of a gate is the gate's decision, and an edge out of a critic the critic's. */
 export function shut(way: Way, closed: Closed): boolean {
   if (closed === "every") return way.person;
   if ("approval" in closed) return way.edge === closed.approval;
-  if ("critic" in closed && (way.escalates || (closed.stops && way.fires))) return true;
+  if ("critic" in closed && (way.escalates || (way.fires && closed.stops?.has(firingKey(way))))) return true;
   // The bar passed is the critic's "pass": shut with the critic, and with that verdict of it.
   if ("critic" in closed && way.verdictOf?.includes(closed.critic) && (closed.when === undefined || closed.when === "pass")) return true;
   const node = "gate" in closed ? closed.gate : closed.critic;
@@ -132,6 +137,7 @@ export function decisionsShared(before: Graph, after: Graph): Closed[] {
   const answers = (id: Id): string[] => [...new Set(before.edges.filter((edge) => edge.from === id).map(whenOf))];
   // People first, the widest question first: a loss is said once, in the widest terms that are true of it.
   const closed: Closed[] = ["every"];
+  const fired = new Set(waysOf(before).filter((way) => way.fires).map(firingKey));
   for (const node of before.nodes) {
     if (node.kind === "human-gate" && now.get(node.id)?.kind === "human-gate") closed.push({ gate: node.id }, ...answers(node.id).map((when) => ({ gate: node.id, when })));
   }
@@ -141,8 +147,7 @@ export function decisionsShared(before: Graph, after: Graph): Closed[] {
     if (isCriticFamily(node) && kept && isCriticFamily(kept)) closed.push({ critic: node.id }, ...answers(node.id).map((when) => ({ critic: node.id, when })));
     // A check's verdict, as a critic's (amendment A-019): every check, in a loop or in none.
     if (node.kind === "check" && kept?.kind === "check") {
-      for (const stops of [false, true]) {
-        const more = stops ? { check: true as const, stops: true as const } : { check: true as const };
+      for (const more of [{ check: true as const }, { check: true as const, stops: fired }]) {
         closed.push({ critic: node.id, ...more }, ...answers(node.id).map((when) => ({ critic: node.id, when, ...more })));
       }
     }

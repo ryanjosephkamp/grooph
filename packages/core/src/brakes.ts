@@ -26,13 +26,13 @@
  *   how it ends without its verdict, as for a critic. Any change to the definition is a loss: a program cannot tell
  *   which way it goes. So is any change to an edge that leaves it, but for the two that can only tighten: an
  *   approval newly asked on the edge, and more evidence handed along it to a critic the graph had there. Its verdict
- *   is asked a second time with no brake of a loop firing either, so that a cap which already leads on to what the
- *   pass led to does not hide a new way there. And a loop that a check judges, with no critic among the members it
+ *   is asked a second time without the brakes that already fired into where they led, so that a cap which already
+ *   leads on to what the pass led to does not hide a new way there. And a loop that a check judges, with no critic among the members it
  *   had, is given no bar and no "bar passed" stop, nor is a new loop around a check: either is a way out that does
  *   not pass the check.
  *
- * Three readers were asked, one after another, to break this as a refresh, two more as an adoption, and two more on
- * a check, and each found what the one before had not: this list is what a brake has been found to be, not a proof that nothing is
+ * Three readers were asked, one after another, to break this as a refresh, two more as an adoption, and three more
+ * on a check, and each found what the one before had not: this list is what a brake has been found to be, not a proof that nothing is
  * missing from it.
  *
  * Pure. Each loss names the changes it may be laid at, as `refreshSubgrooph` names a change: `node:<id>`,
@@ -653,9 +653,11 @@ function checkLoopLosses(before: Graph, after: Graph): Loss[] {
     const old = loopWas.get(loop.id);
     const was = (id: Id): Node | undefined => nodeWas.get(id);
     const checks = loop.members.filter((member) => was(member)?.kind === "check" && after.nodes.some((node) => node.id === member && node.kind === "check"));
-    // Judged by a critic already: by one among the members the loop had. A critic of the graph's own named among
-    // the members now, of a kept loop or of a new one, is not that: it was never this loop's.
-    const had = old?.members.some((member) => was(member) !== undefined && isCriticFamily(was(member)!)) ?? false;
+    // Judged by a critic already: by one among the members the loop had, who is a critic still. A critic of the
+    // graph's own named among the members now, of a kept loop or of a new one, is not that: it was never this
+    // loop's. Nor is one the same change gives another role: allowing that would let the bar ride through unnamed.
+    const critic = (id: Id): boolean => was(id) !== undefined && isCriticFamily(was(id)!) && after.nodes.some((node) => node.id === id && isCriticFamily(node));
+    const had = old?.members.some(critic) ?? false;
     if (checks.length === 0 || had) continue;
     const judged = old ? `the loop "${loop.id}", which the check ${quote(checks)} judges with no critic` : `the new loop "${loop.id}", around the check ${quote(checks)}`;
     if (loop.bar !== undefined && old?.bar === undefined) losses.push({ why: `gives ${judged}, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check`, at: old ? [`loop:${loop.id}.bar`] : [`loop:${loop.id}`] });

@@ -731,6 +731,55 @@ test("A-019, the second reader's third: where a round cap already leads on to wh
   // What the template is: its cap lowered is still a tightening, and nothing about the stops as they stand is held.
   assert.deepEqual(adopt((w) => void ((w.loops[0]!.stops[0] as { n: number }).n = 3), { from: retro }).refused, []);
   assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "retro")!.name = "Look back"), { from: retro }).refused, []);
+  // Nor is a step given to the loop: the cap leads on from it as from the others, to where it led.
+  assert.deepEqual(adopt((w) => {
+    w.nodes.push(agent("notes", "builder"));
+    w.edges.find((e) => e.id === "e-builder-tests")!.to = "notes";
+    w.edges.push({ id: "e-notes-tests", from: "notes", to: "tests" });
+    w.loops[0]!.members.push("notes");
+  }, { from: retro }).refused, []);
+});
+
+test("A-019, the third reader's: a brake that fires and is new is a way like any other, when it leads past what the old ones led to", () => {
+  // Only the brakes the loop had, leading where they led, are taken as no way round the check. The retrospective's
+  // cap and budget lead to the wrap-up; a budget of another measure, a stop that asks a person, or a second loop on
+  // the same round with a cap of its own, each leading straight to the end, were adopted and printed as tightenings.
+  const retro = builtIn("retrospective-rewrite");
+  const cases: [string, (w: Graph) => void, string][] = [
+    ["a budget of one dispatch that leads to the end", (w) => void w.loops[0]!.stops.unshift({ kind: "budget", measure: "dispatches", limit: 1, then: "done" }), "loop:grind.stops"],
+    ["a budget of tokens that leads to the end", (w) => void w.loops[0]!.stops.unshift({ kind: "budget", measure: "tokens", limit: 1000, then: "done" }), "loop:grind.stops"],
+    ["a stop that asks a person and leads to the end", (w) => void w.loops[0]!.stops.unshift({ kind: "human", every: 1, then: "done" }), "loop:grind.stops"],
+    ["a second loop on the same round, its cap of one leading to the end", (w) => void w.loops.push({ id: "quick", name: "Quick", members: ["builder", "tests"], back: ["e-tests-fail"], stops: [{ kind: "max-iterations", n: 1, then: "done" }] } as Loop), "loop:quick"],
+  ];
+  for (const [what, change, name] of cases) {
+    const check = adopt(change, { from: retro });
+    assert.deepEqual(names(check), [name], what);
+    assert.match(refused(check)[0]!, /a stop of the loop would lead on to "done", a way that does not pass the check "tests"/, what);
+  }
+  // The stated limit beside it, kept as it was: another brake that leads where the cap already leads is a tightening.
+  assert.deepEqual(adopt((w) => void w.loops[0]!.stops.unshift({ kind: "budget", measure: "dispatches", limit: 8, then: "retro" }), { from: retro }).refused, []);
+
+  // And the bar rule: a loop's critic given another role in the same change is no critic for the bar that comes with
+  // it, so allowing the role does not carry the bar and its stop through unnamed.
+  const grind = builtIn("grind-loop");
+  const reviewed = adoptWorkingCopy(grind, (() => {
+    const w = structuredClone(grind);
+    w.nodes.push({ ...agent("rev", "critic"), role: "critic" } as Node);
+    const pass = w.edges.find((e) => e.id === "e-tests-pass")!;
+    w.edges.push({ id: "e-rev-pass", from: "rev", to: pass.to, when: "pass" }, { id: "e-rev-fail", from: "rev", to: "builder", when: "fail" });
+    pass.to = "rev";
+    pass.evidence = ["diff of the change"];
+    w.loops[0]!.members.push("rev");
+    w.loops[0]!.back.push("e-rev-fail");
+    return w;
+  })(), { run: "r" });
+  assert.ok(reviewed.ok, reviewed.ok ? "" : reviewed.message);
+  const demoted = adopt((w) => {
+    (w.nodes.find((n) => n.id === "rev") as { role: string }).role = "builder";
+    w.loops[0]!.bar = { name: "Looks done", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." } as Loop["bar"];
+    w.loops[0]!.stops.unshift({ kind: "bar-passed" });
+  }, { from: reviewed.doc, allow: ["node:rev.role"] });
+  assert.ok(names(demoted).includes("loop:grind.bar") && names(demoted).includes("loop:grind.stops"), `held are ${names(demoted).join(", ")}`);
 });
 
 test("A-019: a condition written two ways is one condition; and a tightening's line does not carry the words of a line held either way", () => {
