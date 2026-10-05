@@ -105,6 +105,8 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
       if (named.size === 0 && !unnamed) continue;
       changes = changes.map((change) => {
         if ((named.size > 0 && !named.has(change.name)) || (change[key] ?? "").split("; ").includes(loss.why)) return change;
+        // A change that reads the same both ways (an acceptance reworded) is said once, as what it may loosen.
+        if (key === "tightens" && (change.loosens ?? "").split("; ").includes(loss.why)) return change;
         return { ...change, [key]: change[key] === undefined ? loss.why : `${change[key]}; ${loss.why}` };
       });
     }

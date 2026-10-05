@@ -182,3 +182,114 @@ test("a tightened brake is adopted and said: a lower cap, a new approval, a stri
   assert.deepEqual(refused(mixed), ["loop:review-review.stops: raises the budget from 10 to 400 dispatches"]);
   assert.equal(mixed.refused[0]!.tightens, "raises the round cap from 2 to 4");
 });
+
+// ─── what a reader got through the first version of this, and no longer does ──────────────────────────────────
+//
+// Asked to break adoption with the diff in hand, a fresh reader had five kinds of working copy adopted with nothing
+// refused. Each is a way the comparison in `brakes.ts` did not see, so each was open to a subgrooph's refresh too.
+
+const edge = (doc: Graph, id: string): Graph["edges"][number] => doc.edges.find((e) => e.id === id)!;
+
+test("a way round a loop's nodes that its stops do not count: a loop put around it, a second way back through a new step", () => {
+  // Around: the critic may send the run back to the planner, and a loop with a cap of 1000 counts that. Each time
+  // the review loop is entered again its own cap of 4 starts afresh (graph-ir §2, "Nested loops").
+  const around = adopt((w) => {
+    w.edges.push({ id: "e-replan", from: "review-critic", to: "plan", when: { verdict: "replan" } });
+    w.loops.push({ id: "replan", name: "Replan", members: ["plan", "review-builder", "review-critic", "review-merge-gate"], back: ["e-replan"], mode: "judgment", bar: structuredClone(loop(w).bar!), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 1000 }] });
+  });
+  assert.deepEqual(names(around).sort(), ["edge:e-replan", "loop:replan"]);
+  assert.match(refused(around)[0]!, /"e-replan" \(review-critic → plan\) would make a way round the nodes of "review-review" that its stops do not count: "replan" would count it, and each time round "review-review" starts afresh/);
+  // A loop that is new is not said to tighten anything when it is what loosens.
+  assert.equal(around.changes.find((change) => change.name === "edge:e-replan")!.tightens, undefined);
+
+  // Through a new step: critic → fixer → builder, counted by a second loop.
+  const through = adopt((w) => {
+    w.nodes.push(agent("fixer", "builder"));
+    w.edges.push({ id: "e-critic-fixer", from: "review-critic", to: "fixer", when: { verdict: "revise" } }, { id: "e-fixer-builder", from: "fixer", to: "review-builder", evidence: ["REVIEW.md"] });
+    w.loops.push({ id: "revise", name: "Revise", members: ["review-builder", "review-critic", "fixer"], back: ["e-fixer-builder"], mode: "judgment", bar: structuredClone(loop(w).bar!), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 1000 }] });
+  });
+  for (const name of ["edge:e-critic-fixer", "edge:e-fixer-builder"]) assert.ok(names(through).includes(name), `${name}: ${names(through).join(", ")}`);
+});
+
+test("a stop that leads back into its own loop, set to fire no later than the stops that halt", () => {
+  const cases: [string, (w: Graph) => void, RegExp][] = [
+    ["a stop of another measure, first in the list", (w) => void loop(w).stops.splice(1, 0, { kind: "budget", measure: "minutes", limit: 0, then: "review-builder" }), /a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count/],
+    ["a stop of a kind that is no brake", (w) => void loop(w).stops.splice(1, 0, { kind: "diminishing-returns", rounds: 1, then: "review-builder" }), /would lead back to "review-builder"/],
+    ["a second cap of the same count, before the one that halts", (w) => void loop(w).stops.splice(1, 0, { kind: "max-iterations", n: 4, then: "review-builder" }), /the round cap of 4 that leads on to "review-builder" would fire as soon as the one of 4 that halts the run/],
+  ];
+  for (const [what, change, why] of cases) {
+    const check = adopt(change);
+    assert.deepEqual(names(check), ["loop:review-review.stops"], what);
+    assert.match(refused(check)[0]!, why, what);
+  }
+  // Where a cap already led on before the one that halts: where it leads is what it does.
+  const twoCaps = source((doc) => {
+    doc.nodes.push(agent("wrap-up", "builder"));
+    loop(doc).stops.splice(1, 0, { kind: "max-iterations", n: 3, then: "wrap-up" });
+  });
+  const repointed = adopt((w) => void ((loop(w).stops[1] as { then?: string }).then = "review-builder"), { from: twoCaps });
+  assert.deepEqual(names(repointed), ["loop:review-review.stops"]);
+  assert.match(refused(repointed)[0]!, /the round cap would lead on to "review-builder", not to "wrap-up"/);
+});
+
+test("a second edge beside a decision, to a node the run reaches anyway", () => {
+  // Beside an approval: the same two nodes, the same condition, nobody asked.
+  const approved = source((doc) => void (edge(doc, "review-e-critic-fail").approval = true));
+  const twin = adopt((w) => {
+    w.edges.push({ id: "e-critic-fail-again", from: "review-critic", to: "review-builder", when: "fail", evidence: ["REVIEW.md"] });
+    loop(w).back.push("e-critic-fail-again");
+  }, { from: approved });
+  assert.deepEqual(names(twin), ["edge:e-critic-fail-again"]);
+  assert.match(refused(twin)[0]!, /"e-critic-fail-again" would lead from "review-critic" to "review-builder" beside "review-e-critic-fail", which needs a person's approval, and need none/);
+
+  // Around a gate that stood on every way back: the critic's "fail" went to the gate, and only the gate sent the
+  // run back to the builder. A new verdict leads straight back.
+  const gated = source((doc) => {
+    edge(doc, "review-e-critic-fail").to = "review-merge-gate";
+    delete edge(doc, "review-e-critic-fail").evidence;
+    loop(doc).back = ["review-e-merge-gate-reject"];
+  });
+  const minor = adopt((w) => {
+    w.edges.push({ id: "e-critic-minor", from: "review-critic", to: "review-builder", when: { verdict: "minor" }, evidence: ["REVIEW.md"] });
+    loop(w).back.push("e-critic-minor");
+  }, { from: gated });
+  assert.deepEqual(names(minor), ["edge:e-critic-minor"]);
+  assert.match(refused(minor)[0]!, /adds a way from "review-critic" to "review-builder" that does not pass a person/);
+});
+
+test("a step taken out of the loop's nodes while it stays in the graph is counted against nothing", () => {
+  const three = source((doc) => {
+    doc.nodes.push({ id: "review-tests", kind: "check", name: "Tests", check: { kind: "tests", run: "pnpm test", pass: "exit 0" } } as Node);
+    edge(doc, "e-review-builder-review-critic").from = "review-tests";
+    doc.edges.push({ id: "e-builder-tests", from: "review-builder", to: "review-tests" });
+    loop(doc).members = ["review-builder", "review-tests", "review-critic", "review-merge-gate"];
+    doc.groups!.find((g) => g.id === "review")!.members.push("review-tests");
+  });
+  // (An edge that is never taken keeps a path inside the loop's nodes, so that the document still validates.)
+  const out = adopt((w) => {
+    loop(w).members = ["review-builder", "review-critic", "review-merge-gate"];
+    w.edges.push({ id: "e-builder-critic-direct", from: "review-builder", to: "review-critic", when: { verdict: "never" }, evidence: ["diff of the change"] });
+  }, { from: three });
+  assert.ok(refused(out).includes('loop:review-review.members: the loop "review-review" would no longer bound "review-tests", which is still in the graph'), refused(out).join("\n"));
+});
+
+test("what is not refused, and is said to be a limit: a way round that a person newly opens each time; the same edge under another id", () => {
+  // A new answer at the gate that leads back through a new step, and a stop where a person is asked that leads back.
+  // Each is a way round the loop's cap does not count, and each is opened by a person, every time: the cap then
+  // bounds the rounds between two of that person's decisions (docs/templates.md, "Refreshing").
+  const redo = adopt((w) => {
+    w.nodes.push(agent("redo", "builder"));
+    w.edges.push({ id: "e-gate-redo", from: "review-merge-gate", to: "redo", when: { verdict: "redo" } }, { id: "e-redo-builder", from: "redo", to: "review-builder" });
+    w.loops.push({ id: "redo-round", name: "Redo", members: ["review-builder", "review-critic", "review-merge-gate", "redo"], back: ["e-redo-builder"], mode: "judgment", bar: structuredClone(loop(w).bar!), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 1000 }] });
+  });
+  assert.deepEqual(redo.refused, []);
+  assert.deepEqual(adopt((w) => void loop(w).stops.push({ kind: "human", every: 2, then: "review-builder" })).refused, []);
+
+  // An edge under another id, nothing else changed, on a way round that was there before: the same way.
+  const nested = source((doc) => {
+    doc.edges.push({ id: "e-release-plan", from: "release", to: "plan", when: "fail" });
+    doc.loops.push({ id: "again", name: "Again", members: ["plan", "review-builder", "review-critic", "review-merge-gate", "release"], back: ["e-release-plan"], mode: "grind", stops: [{ kind: "max-iterations", n: 2 }, { kind: "budget", measure: "dispatches", limit: 30 }] });
+  });
+  const renamed = adopt((w) => void (edge(w, "e-plan-review-builder").id = "e-plan-to-builder"), { from: nested });
+  assert.deepEqual(renamed.refused, []);
+});

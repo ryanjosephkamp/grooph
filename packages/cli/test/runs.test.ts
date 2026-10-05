@@ -294,6 +294,44 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
   }
 });
 
+test("adopt never writes the source or the run's working copy, even when --into names one", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    const sourcePath = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
+    const before = tree(dir);
+    for (const [path, what] of [[sourcePath, "the source this run started from"], [join(run, "graph.grooph.json"), "the run's working copy"]] as const) {
+      const io = capture();
+      assert.equal(await grooph(["adopt", run, "--write", "--into", path], io), 1);
+      assert.match(text(io.stderr), new RegExp(`--into names ${what} .*which adopt never writes`));
+    }
+    assert.deepEqual(tree(dir), before);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a refused adoption does not say that what tightens is adopted, and lists a change that does both under what it loosens", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    amend(run, (working) => {
+      // The cap lowered and the budget raised in the same field; and an approval added elsewhere.
+      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 2 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
+      working.edges.find((edge) => edge.id === "e-critic-pass")!.approval = true;
+    });
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 1);
+    const out = text(io.stdout);
+    assert.match(out, /loosens a brake[^\n]*\n {2}loop:sandwich\.stops +raises the budget from 80 to 800 turns/);
+    assert.match(out, /\ntightens a brake:\n {2}edge:e-critic-pass\.approval/);
+    assert.doesNotMatch(out, /adopted with the rest/);
+    assert.doesNotMatch(out, /tightens a brake:\n(?: {2}[^\n]*\n)* {2}loop:sandwich\.stops/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("adopt takes a working copy that tightens a brake, and says which", async () => {
   const dir = project("slice-0007-sandwich");
   try {

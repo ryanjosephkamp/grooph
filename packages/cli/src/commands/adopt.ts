@@ -43,6 +43,13 @@ const sameVersion = (a: Graph, b: Graph): boolean => {
 export function adoptCommand(io: Output, dir: string, flags: { into?: string; allow?: string[]; write: boolean }): number {
   const run = readRun(dir);
   const target = resolve(flags.into ?? join(dirname(run.graphDir), "graphs", `${run.source.id}.grooph.json`));
+  // The source the package placed, and the run's own working copy, are never written: not even when named.
+  for (const [kept, what] of [[join(run.graphDir, "graph.grooph.json"), "the source this run started from"], [join(run.runDir, "graph.grooph.json"), "the run's working copy"]] as const) {
+    if (resolve(kept) === target) {
+      io.err(`grooph: --into names ${what} (${shown(target)}), which adopt never writes; name another file`);
+      return 1;
+    }
+  }
 
   io.out(`Run ${run.runId} · ${run.working.name}: what it changed in its working copy`);
   printChanges(io, run);
@@ -74,7 +81,8 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   const check = checkAdoption(run.source, adopted.doc, { allow: flags.allow ?? [] });
   const width = Math.max(0, ...check.changes.map((change) => change.name.length)) + 2;
   const meant = check.changes.filter((change) => change.loosens !== undefined && !check.refused.includes(change));
-  const tighter = check.changes.filter((change) => change.tightens !== undefined);
+  // A change that loosens is listed as that, whatever else it does.
+  const tighter = check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined);
   if (check.refused.length > 0) {
     io.out("");
     io.out(`loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow ${check.refused[0]!.name}`);
@@ -87,7 +95,7 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   }
   if (tighter.length > 0) {
     io.out("");
-    io.out("tightens a brake, and is adopted with the rest:");
+    io.out(check.refused.length > 0 ? "tightens a brake:" : "tightens a brake, and is adopted with the rest:");
     for (const change of tighter) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.tightens}`);
   }
   if (check.unknown.length > 0) {
