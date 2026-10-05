@@ -1,0 +1,115 @@
+
+### B1 builder+tests named among debate's members (a loop that had a critic and a bar)  [debate-then-build]
+  changes: loop:debate.members
+  refused: 
+    - loop:debate.members: there would be a way round the nodes of "debate" that its stops do not count; there would be a way round the nodes of "build" that its stops do not count
+    + tightens loop:debate.members: the loop "debate" would no longer bound "builder", "tests", which are still in the graph
+
+### B1b and the fail edge among its back edges too  [debate-then-build]
+  changes: loop:debate.members, loop:debate.back
+  refused: 
+    - loop:debate.members: there would be a way round the nodes of "build" that its stops do not count
+    - loop:debate.back: there would be a way round the nodes of "build" that its stops do not count
+    + tightens loop:debate.members: the loop "debate" would no longer bound "builder", "tests", which are still in the graph; there would be a way round the nodes of "debate" that its stops do not count
+    + tightens loop:debate.back: the rounds that "e-tests-fail" starts would be counted by "build", not against the stops of "debate"; there would be a way round the nodes of "debate" that its stops do not count
+
+### B1c tests alone named among debate's members  [debate-then-build]
+  changes: loop:debate.members
+  refused: 
+    - loop:debate.members: there would be a way round the nodes of "debate" that its stops do not count; there would be a way round the nodes of "build" that its stops do not count
+    + tightens loop:debate.members: the loop "debate" would no longer bound "tests", which is still in the graph
+
+### B1d plan-gate, builder, tests named; debate's bar-passed given then done  [debate-then-build]
+  changes: loop:debate.members, loop:debate.stops
+  refused: 
+    - loop:debate.members: there would be a way round the nodes of "debate" that its stops do not count; a stop of the loop would lead on to "done", a way that does not pass a person; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    - loop:debate.stops: a stop of the loop "debate" would lead back to "judge": a way round the nodes of "build" that its stops do not count; a stop of the loop would lead on to "done", a way that does not pass a person; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:debate.members: the loop "debate" would no longer bound "plan-gate", "builder", "tests", which are still in the graph
+
+### B1e debate's bar-passed given then: builder (no members change)  [debate-then-build]
+  changes: loop:debate.stops
+  refused: 
+    - loop:debate.stops: a stop of the loop would lead on to "builder", a way that does not pass a person
+
+### B1f debate's bar-passed given then: done  [debate-then-build]
+  changes: loop:debate.stops
+  refused: 
+    - loop:debate.stops: a stop of the loop would lead on to "done", a way that does not pass a person; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### B2 phases' bar-passed then done (judge's verdict; around tests?)  [fresh-grind-rare-judge]
+  changes: loop:phases.stops
+  refused: 
+    - loop:phases.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### B2b grind given mode judgment + nothing  [fresh-grind-rare-judge]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### B2c grind-loop: mode judgment and bar  [grind-loop]
+  changes: loop:grind.bar, loop:grind.mode
+  refused: 
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+
+### B2d phases: mode grind  [fresh-grind-rare-judge]
+  changes: loop:phases.mode
+  refused: NONE   <<<<<< THROUGH
+
+### B3 sandwich: critic made a builder, bar's other fields changed  [metric-sandwich] allow=node:critic.role
+  changes: node:critic.role, loop:sandwich.bar
+  refused: NONE   <<<<<< THROUGH
+
+### B3b sandwich: bar acceptance (control, held)  [metric-sandwich]
+  changes: loop:sandwich.bar
+  refused: 
+    - loop:sandwich.bar: changes the bar's acceptance
+
+(own source: grind holds builder, pre(critic), tests; errors: E_CYCLE_NO_STOP:cycle with no stop: builder → pre. Cover it with a loop that has at least one stop. | E_CRITIC_NOT_ISOLATED:edge "e-builder-tests" runs from writer "builder" to critic "pre" with no evidence list, but policy "p-critic-isolation" )
+
+(own source: grind-loop + bar-passed stop, no bar; errors: none)
+
+### B5 give the missing half  [grind-loop + bar-passed stop, no bar]
+  changes: loop:grind.bar
+  refused: 
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+
+### B5b existing bar-passed given then: done  [grind-loop + bar-passed stop, no bar]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### B5c bar's inspects/name/aspiration changed  [grind-loop + bar-passed stop, no bar]
+  (not applicable)
+
+### B5d mode judgment  [grind-loop + bar-passed stop, no bar]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+(own source: grind-loop + bar, no bar-passed stop; errors: none)
+
+### B5 give the missing half  [grind-loop + bar, no bar-passed stop]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+
+### B5b existing bar-passed given then: done  [grind-loop + bar, no bar-passed stop]
+  (not applicable)
+
+### B5c bar's inspects/name/aspiration changed  [grind-loop + bar, no bar-passed stop]
+  changes: loop:grind.bar
+  refused: NONE   <<<<<< THROUGH
+
+### B5d mode judgment  [grind-loop + bar, no bar-passed stop]
+  changes: loop:grind.mode
+  refused: NONE   <<<<<< THROUGH
+
+### B6 grind re-identified  [grind-loop]
+  changes: loop:grind, loop:grind2
+  refused: 
+    - loop:grind: removes a loop with its stops and its bar; the rounds that "e-tests-fail" starts would be counted by "grind2", not against the stops of "grind"
+    - loop:grind2: the rounds that "e-tests-fail" starts would be counted by "grind2", not against the stops of "grind"; a round between "tests" and "builder", which the loop "grind" bounds, would be counted by "grind2" and not against its stops
+    + tightens loop:grind: the rounds that "e-tests-fail" starts would be counted by "grind", not against the stops of "grind2"; a round between "tests" and "builder", which the loop "grind2" bounds, would be counte
+
+### B7 ralph: tests moved to a new loop w/o bar  [ralph-loop]
+  NOT VALID: invalid: E_LOOP_BACK_EDGE,E_LOOP_BACK_EDGE
+
+== 17 valid cases, 4 through

@@ -103,6 +103,8 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
   const names = new Set(changes.map((change) => change.name));
   const lay = (losses: readonly Loss[], key: "loosens" | "tightens", unnamed: boolean): void => {
     for (const loss of losses) {
+      // A line that is held whichever way the change goes says nothing about what undoing it would lose.
+      if (key === "tightens" && loss.either) continue;
       const named = new Set(loss.at.filter((name) => names.has(name)));
       if (named.size === 0 && !unnamed) continue;
       changes = changes.map((change) => {

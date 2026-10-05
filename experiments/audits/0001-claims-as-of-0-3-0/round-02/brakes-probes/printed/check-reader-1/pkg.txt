@@ -1,0 +1,13 @@
+node:fs:620
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open '<tmp>/grooph-brakes-probes/check-reader-1/cli/c1/adopted.grooph.json'
+    at readFileSync (node:fs:620:20)
+    at file://<repo>/experiments/audits/0001-claims-as-of-0-3-0/round-02/brakes-probes/check-reader-1/pkg.mjs:5:35 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '<tmp>/grooph-brakes-probes/check-reader-1/cli/c1/adopted.grooph.json'
+}
+
