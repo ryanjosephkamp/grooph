@@ -67,6 +67,39 @@ test("image draws a graph: the SVG core draws, byte for byte, in each theme", as
   });
 });
 
+test("image draws a subgrooph as one box, and open when asked; --open names a subgrooph of the graph", async () => {
+  const boxed = join(repoRoot, "fixtures", "valid", "subgrooph-in-a-graph.grooph.json");
+  const pictures = join(repoRoot, "fixtures", "pictures");
+  const closed = capture();
+  assert.equal(await grooph(["image", boxed, "--theme", "light"], closed), 0);
+  assert.equal(`${text(closed.stdout)}\n`, readFileSync(join(pictures, "plan-review-release.light.svg"), "utf8"));
+  for (const open of [["--open", "review"], ["--open", "all"]]) {
+    const io = capture();
+    assert.equal(await grooph(["image", boxed, "--theme", "dark", ...open], io), 0);
+    assert.equal(`${text(io.stdout)}\n`, readFileSync(join(pictures, "plan-review-release.open.dark.svg"), "utf8"));
+  }
+  // A plain group is no box, and a graph with none has nothing to open: said, and nothing drawn.
+  const cases: [string[], RegExp][] = [
+    [["image", boxed, "--open", "delivery"], /--open delivery: no such subgrooph; this graph's are review/],
+    [["image", reviewLoop, "--open", "review"], /--open review: no such subgrooph; this graph has none/],
+    [["image", sampleMap, "--open", "all"], /--open opens a subgrooph of a graph; this file is an operation map/],
+  ];
+  for (const [argv, message] of cases) {
+    const io = capture();
+    assert.equal(await grooph(argv, io), 1, argv.join(" "));
+    assert.match(text(io.stderr), message);
+    assert.deepEqual(io.stdout, []);
+  }
+  // The offline page shows the same picture: the box, not its nodes.
+  await withScratch(async (dir) => {
+    const out = join(dir, "page.html");
+    assert.equal(await grooph(["page", boxed, "--out", out]), 0);
+    const page = readFileSync(out, "utf8");
+    assert.match(page, /<g data-group="review">/);
+    assert.doesNotMatch(page, /<g data-node="review-builder">/);
+  });
+});
+
 test("image writes a PNG three pixels to the unit, light unless told dark, and --scale changes the size", async () => {
   await withScratch(async (dir) => {
     const height = Number(/viewBox="0 0 400 ([\d.]+)"/.exec(picture(doc, { theme: "light" }))![1]);

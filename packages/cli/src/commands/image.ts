@@ -23,7 +23,7 @@ import { readLive, sourceExists, type EventSource } from "../events-io.js";
 import { readText, writeBytes, writeText } from "../io.js";
 import type { Output } from "../print.js";
 
-export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
+export const IMAGE_HELP = `grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--open <group> | all]... [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -32,6 +32,14 @@ A graph is drawn as one column in the order work reaches each node: a card per n
 (kind, name, role and tier), an arrow to the next card, every other edge in the left
 margin, every loop's back edge in the right, and below the cards each loop with its
 bar and its stops in order.
+
+A subgrooph (a template placed as a unit, grooph sub) is one box: its name, the template
+and version it came from, how many nodes it holds, which brakes are among them, and the
+glyph of what is inside. What crosses its edge starts or ends at the box.
+
+  --open <group>         draw that subgrooph open: its nodes as cards of their own, kept
+                         together inside a frame under its name. As often as wanted.
+  --open all             every subgrooph open. One inside a closed one stays out of sight.
 
 An operation map (*.grooph-map.json, docs/operation-map.md) is drawn as its lanes top to
 bottom, each session a card in its lane, each handoff a numbered arc in the margin, and
@@ -112,7 +120,7 @@ function load(io: Output, file: string): Loaded | undefined {
   return undefined;
 }
 
-type ImageFlags = { out?: string; theme?: string; scale?: number; events?: EventSource[]; layout?: string; view?: string };
+type ImageFlags = { out?: string; theme?: string; scale?: number; events?: EventSource[]; layout?: string; view?: string; open?: string[] };
 
 /**
  * What the hooks saw of a map's sessions, read now from the sources given.
@@ -182,9 +190,18 @@ export async function imageCommand(io: Output, file: string, flags: ImageFlags =
   if (!view) return 1;
   const now = liveFor(io, loaded, flags.events);
   if (now === "refused") return 1;
+  const open = flags.open ?? [];
+  if (open.length > 0) {
+    const boxes = loaded.kind === "map" ? [] : (loaded.doc.groups ?? []).filter((group) => group.from !== undefined).map((group) => group.id);
+    const unknown = open.filter((id) => id !== "all" && !boxes.includes(id));
+    if (loaded.kind === "map" || unknown.length > 0) {
+      io.err(loaded.kind === "map" ? "grooph: --open opens a subgrooph of a graph; this file is an operation map" : `grooph: --open ${unknown[0]}: no such subgrooph; ${boxes.length > 0 ? `this graph's are ${boxes.join(", ")}` : "this graph has none"}`);
+      return 1;
+    }
+  }
   const svg =
     loaded.kind !== "map"
-      ? picture(loaded.doc, { theme: theme as PictureTheme })
+      ? picture(loaded.doc, { theme: theme as PictureTheme, ...(open.length > 0 ? { open: open.includes("all") ? ("all" as const) : open } : {}) })
       : view.sequence
         ? mapSequence(loaded.doc, { theme: theme as PictureTheme })
         : (view.wide ? mapWide : mapPicture)(loaded.doc, { theme: theme as PictureTheme, ...(now ? now : {}) });
@@ -254,7 +271,8 @@ export function pageCommand(io: Output, file: string, flags: { out: string; vers
   if (!loaded) return 1;
   const now = liveFor(io, loaded, flags.events);
   if (now === "refused") return 1;
-  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}) });
+  // The page's picture is the one `grooph image` draws: a subgrooph is a box.
+  const html = offlinePage(loaded.doc, { version: flags.version, ...(flags.link ? { link: flags.link } : {}), ...(now ? now : {}), ...(loaded.kind !== "map" ? { picture: picture(loaded.doc) } : {}) });
   writeText(flags.out, html);
   io.out(`wrote ${flags.out} (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB, one file, no network needed)`);
   return 0;

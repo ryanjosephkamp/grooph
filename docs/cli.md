@@ -289,7 +289,7 @@ then would undo someone's change. Re-export the new version to place it for the 
 A picture of a graph or map, SVG or PNG.
 
 ```text
-grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--layout wide] [--view sequence] [--events <id>=<source>]...
+grooph image <graph | operation map> [--out <file.svg | file.png>] [--theme light | dark | auto] [--scale <n>] [--open <group> | all]... [--layout wide] [--view sequence] [--events <id>=<source>]...
 
 The picture of a document with its words on it, laid out for a phone: 400 units wide,
 so it reads at a phone's width without zooming.
@@ -298,6 +298,14 @@ A graph is drawn as one column in the order work reaches each node: a card per n
 (kind, name, role and tier), an arrow to the next card, every other edge in the left
 margin, every loop's back edge in the right, and below the cards each loop with its
 bar and its stops in order.
+
+A subgrooph (a template placed as a unit, grooph sub) is one box: its name, the template
+and version it came from, how many nodes it holds, which brakes are among them, and the
+glyph of what is inside. What crosses its edge starts or ends at the box.
+
+  --open <group>         draw that subgrooph open: its nodes as cards of their own, kept
+                         together inside a frame under its name. As often as wanted.
+  --open all             every subgrooph open. One inside a closed one stays out of sight.
 
 An operation map (*.grooph-map.json, docs/operation-map.md) is drawn as its lanes top to
 bottom, each session a card in its lane, each handoff a numbered arc in the margin, and

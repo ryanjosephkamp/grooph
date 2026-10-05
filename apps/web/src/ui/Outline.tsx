@@ -28,7 +28,8 @@ export function Outline({ doc, onOpen, current }: { doc: Graph; onOpen?: (id: Id
           <p className="outline-kind">{section.kind}</p>
           <div className="outline-head">
             <h3>{section.title}</h3>
-            {onOpen && i > 0 && section.kind !== "Policy" ? (
+            {/* A policy and a subgrooph have no panel of their own to open. */}
+            {onOpen && i > 0 && section.kind !== "Policy" && section.kind !== "Subgrooph" ? (
               <button type="button" className="chip chip-small" onClick={() => onOpen(section.id, section.kind)}>
                 Edit
               </button>
