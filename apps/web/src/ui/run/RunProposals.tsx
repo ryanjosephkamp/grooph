@@ -22,20 +22,28 @@ type Applied = { ok: true; key: string; version: number; errors: number; warning
  * never guessed at. Nothing is applied automatically (spec §11).
  */
 export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle; proposals: RunNote[]; onNote: (id: Id) => void }) {
-  const [applied, setApplied] = useState<Record<Id, Applied>>({});
+  // By place in the list, not by a note's id: two notes of one run can carry the same id.
+  const [applied, setApplied] = useState<Record<number, Applied>>({});
+  const [busy, setBusy] = useState(false);
 
-  const apply = async (note: RunNote) => {
+  const apply = async (note: RunNote, at: number) => {
     const copy = proposalCopy(bundle, note);
     if (!copy.ok) {
-      setApplied((a) => ({ ...a, [note.id]: { ok: false, message: copy.message } }));
+      setApplied((a) => ({ ...a, [at]: { ok: false, message: copy.message } }));
       return;
     }
+    setBusy(true);
     const record = await saveVersion(copy.doc);
-    // What the copy loosens that the graph has, said beside it (the piece Adopt fetches; nothing is held here).
-    const brakes = await piece("brakes", () => import("./brakes.js")).then((b) => b.loosened(bundle.source, copy.doc), () => "Its brakes could not be compared with the graph's here.");
+    // What the copy loosens that the graph has, said with it (the piece Adopt fetches; nothing is held here). The
+    // piece says so when the copy is no valid graph and is not compared; this line is for a piece that did not
+    // come, or a comparison that failed.
+    const brakes = await piece("brakes", () => import("./brakes.js"))
+      .then((b) => b.loosened(bundle.source, copy.doc, copy.graph))
+      .catch(() => <p className="field-hint">Its brakes could not be compared with the graph's: the piece that compares them did not load. Open the copy and read its limits before you use it.</p>);
+    setBusy(false);
     setApplied((a) => ({
       ...a,
-      [note.id]: {
+      [at]: {
         ok: true,
         key: record.key,
         brakes,
@@ -51,11 +59,11 @@ export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle;
     <div className="run-proposals">
       <p className="run-intro">Changes the run proposed and did not make. Nothing is applied without you.</p>
       <ol className="proposal-list">
-        {proposals.map((note) => {
+        {proposals.map((note, at) => {
           const patch = describePatch(note.proposal!.patch);
-          const done = applied[note.id];
+          const done = applied[at];
           return (
-            <li key={note.id} className="proposal" data-proposal={note.id}>
+            <li key={at} className="proposal" data-proposal={note.id}>
               <p className="proposal-summary">{note.proposal!.summary}</p>
               <p className="proposal-meta">
                 <button type="button" className="link mono" onClick={() => onNote(note.id)}>
@@ -87,20 +95,20 @@ export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle;
                 <p className="field-hint">No patch: the summary is the whole proposal.</p>
               )}
               {done?.ok ? (
-                <>
-                <p className="adopt-done" role="status">
+                <div role="status">
+                {done.brakes}
+                <p className="adopt-done">
                   Saved a copy of the working copy with {note.id} applied, as version {done.version}, for you to inspect
                   {done.errors > 0 ? `; it has ${done.errors} error${done.errors === 1 ? "" : "s"}, which the editor lists` : done.warnings > 0 ? `; ${done.warnings} warning${done.warnings === 1 ? "" : "s"}` : "; it validates"}. Nothing
                   else changed. <a href={editorHref(done.key)}>Open the copy</a>
                 </p>
-                {done.brakes}
-                </>
+                </div>
               ) : done ? (
                 <p className="refusal-hint" role="status">
                   {done.message}
                 </p>
               ) : patch.kind === "ops" ? (
-                <button type="button" className="btn" onClick={() => void apply(note)}>
+                <button type="button" className="btn" disabled={busy} onClick={() => void apply(note, at)}>
                   Apply to a copy
                 </button>
               ) : null}

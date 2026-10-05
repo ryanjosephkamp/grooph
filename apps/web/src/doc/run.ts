@@ -7,10 +7,12 @@
 import {
   adoptWorkingCopy,
   applyOps,
+  canonicalize,
   describePatch,
   diffGraphs,
   explainChanges,
   formatOpError,
+  parseGraph,
   summarizeRun,
   validate,
   type Adoption,
@@ -115,7 +117,8 @@ export function listChange(before: unknown, after: unknown): { removed: string[]
   return { removed, added, kept, reordered: removed.length === 0 && added.length === 0 };
 }
 
-export type ProposalCopy = { ok: true; doc: Graph; issues: Issue[] } | { ok: false; message: string };
+/** `graph`: the copy matches the schema. Only then is it a thing a comparison or a compiler can be asked about. */
+export type ProposalCopy = { ok: true; doc: Graph; issues: Issue[]; graph: boolean } | { ok: false; message: string };
 
 /**
  * "Apply to a copy": the proposal's ops applied to the working copy the run
@@ -139,7 +142,10 @@ export function proposalCopy(bundle: RunBundle, note: RunNote): ProposalCopy {
     lineage: { ...applied.doc.lineage, from: `${source.id}@${source.version}` },
     ...(source.notes && source.notes.length > 0 ? { notes: source.notes } : {}),
   };
-  return { ok: true, doc, issues: validate(doc, { forExport: true }) };
+  // Ops check their own arguments, not what a `set` holds: a patch can leave a cap of `null` or evidence that is
+  // one string. So the copy is read back through the schema, as `grooph apply` reads its own before it writes.
+  const read = parseGraph(JSON.parse(canonicalize(doc)));
+  return { ok: true, doc, issues: read.doc ? validate(read.doc, { forExport: true }) : read.issues, graph: read.doc !== undefined };
 }
 
 /** Timeline order: oldest first, or newest first while the run is live and running. */

@@ -23,26 +23,45 @@ export type Judged = {
 
 const copy = (text: string) => () => void navigator.clipboard?.writeText(text).catch(() => undefined);
 
+/** A line a person must see is brought to where they are looking: on a phone the run's panel is a few lines tall. */
+const shown = (el: HTMLElement | null) => el?.scrollIntoView({ block: "start" });
+
 /**
- * A proposal applied to a copy: what the copy loosens that the graph has, by name, or nothing. The copy is saved
- * either way. A proposal is how a run asks for a brake to be loosened (graph-ir §2), so this is a thing to be told
- * and not a thing to refuse: the person reads each line before using the copy.
+ * A proposal applied to a copy: what the copy loosens that the graph has, by name, and what is noted, or nothing.
+ * The copy is saved either way. A proposal is how a run asks for a brake to be loosened (graph-ir §2), so this is a
+ * thing to be told and not a thing to refuse. The copy is the run's working copy with the proposal applied, so what
+ * it loosens may be the run's own amendment and not the proposal's: the words lay it at neither.
  */
-export function loosened(source: Graph, proposed: Graph): ReactNode {
-  const refused = checkAdoption(source, proposed).refused;
-  if (refused.length === 0) return null;
+export function loosened(source: Graph, proposed: Graph, graph: boolean): ReactNode {
+  // A copy that does not match the schema is not a thing the comparison was written for: it is not asked, and said.
+  if (!graph) {
+    return (
+      <p className="field-hint" data-brakes="not-compared" ref={shown}>
+        Its brakes were not compared with the graph's: the copy is not a valid graph. Open the copy to see why before you use it.
+      </p>
+    );
+  }
+  const check = checkAdoption(source, proposed);
+  if (check.refused.length + check.notices.length === 0) return null;
+  const notes = check.notices.map((notice) => (
+    <p key={notice} data-brakes="note">
+      Note: {notice}
+    </p>
+  ));
+  if (check.refused.length === 0) return <div className="field-hint" data-brakes="said" ref={shown}>{notes}</div>;
   return (
-    <div className="refusal-hint" data-brakes="proposed">
+    <div className="refusal-hint" data-brakes="proposed" ref={shown}>
       <p>
-        <strong>This copy loosens a brake the graph has.</strong> A proposal is how a run asks for that, and it is yours to grant or not: read each before you use the copy.
+        <strong>This copy loosens a brake the graph has.</strong> It is the run's working copy with this proposal applied; either may have done it, and it is yours to allow or not: read each line before you use the copy.
       </p>
       <ul className="brakes-list" data-brakes="loosens">
-        {refused.map((change) => (
+        {check.refused.map((change) => (
           <li key={change.name} data-change-name={change.name}>
             <span className="mono">{change.name}</span> {change.loosens}
           </li>
         ))}
       </ul>
+      {notes}
     </div>
   );
 }
