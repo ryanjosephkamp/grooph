@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { extractTemplate, findSlots, insertFragment, instantiate, validate } from "@grooph/core";
 import { describe, expect, test } from "vitest";
 
-import { BUILT_IN_TEMPLATES, filledValues, graphIdFor, slotsOf, templateRefusal } from "../src/doc/templates.js";
+import { BUILT_IN_TEMPLATES } from "../src/doc/builtins.js";
+import { filledValues, graphIdFor, slotsOf, templateRefusal } from "../src/doc/templates.js";
 import { repoRoot, reviewLoop } from "./helpers.js";
 
 describe("the bundled pattern library (handoff 0007, criterion 2)", () => {
