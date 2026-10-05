@@ -14,13 +14,13 @@ import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { edgeBends, labelSpots, type Box } from "./bends.js";
-import { UnitNode, useBoxes, type UnitFlowNode } from "./boxes.js";
+import { boxed, type UseBoxes } from "./boxes.js";
 import { EDITOR_PAD, FIT } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
 import { GraphNode, nodeLabel, onNodeKey, type GraphFlowNode } from "./GraphNode.js";
 
-const nodeTypes: NodeTypes = { graph: GraphNode, unit: UnitNode };
+const nodeTypes: NodeTypes = { graph: GraphNode };
 const edgeTypes: EdgeTypes = { graph: GraphEdge };
 
 type Size = { width: number; height: number };
@@ -30,9 +30,13 @@ type Size = { width: number; height: number };
  * from automatic layout when the document has none (amendment A-005); a drag
  * writes positions back, and nothing else does.
  */
-export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id: Id) => void }) {
+type Props = { issues: Issue[]; onNodeTap: (id: Id) => void };
+
+export const Canvas = boxed<Props>(Drawn, () => useDoc(useEditor().store));
+
+function Drawn({ issues, onNodeTap, useBoxes }: Props & { useBoxes: UseBoxes }) {
   const editor = useEditor();
-  const doc = useDoc(editor.store);
+  const stored = useDoc(editor.store);
   const [drag, setDragState] = useState<Record<Id, Position>>({});
   const dragRef = useRef(drag);
   const setDrag = (next: Record<Id, Position>) => {
@@ -41,32 +45,30 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
   };
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
 
-  const { positions } = useMemo(() => resolvePositions(doc), [doc]);
+  const own = useMemo(() => resolvePositions(stored).positions, [stored]);
   const severity = useMemo(() => severityById(issues), [issues]);
 
   const { panel, mode, highlight } = editor;
   const selectedNode = panel?.type === "node" ? panel.id : undefined;
+  // A subgrooph is one box (handoff 0085): the document is drawn with each closed box as one node, placed over the
+  // room its nodes take. The node a panel is about, and the ones an issue points at, open the boxes around them.
+  const boxes = useBoxes(stored, own, measured, severity, highlight.nodes, selectedNode);
+  const doc = boxes?.doc ?? stored;
+  const positions = boxes?.positions ?? own;
   const selectedEdge = panel?.type === "edge" ? panel.id : undefined;
   const focusLoop =
     mode.type === "pick" ? doc.loops.find((l) => l.id === mode.loopId) : panel?.type === "loop" ? doc.loops.find((l) => l.id === panel.id) : undefined;
   const focusLoopColor = focusLoop ? doc.loops.indexOf(focusLoop) : undefined;
   const picking = mode.type === "pick" ? focusLoop : undefined;
 
-  // A subgrooph is one box (handoff 0085): `shown` is the document with each closed box as one node. The node a
-  // panel is about, and the ones an issue points at, open the boxes around them.
-  const reveal = useMemo(() => [...(selectedNode ? [selectedNode] : []), ...highlight.nodes], [selectedNode, highlight]);
-  const boxes = useBoxes(doc, positions, measured, { reveal, drag, severity });
-  const shown = boxes.shown;
-
   const nodes: GraphFlowNode[] = useMemo(
     () =>
-      shown.nodes.flatMap((node): GraphFlowNode[] => {
-        if (boxes.rect(node.id)) return [];
+      doc.nodes.map((node) => {
         const loops = doc.loops
           .map((l, i) => ({ id: l.id, name: l.name, color: i, members: l.members }))
           .filter((l) => l.members.includes(node.id))
           .map(({ members: _m, ...l }) => l);
-        return [{
+        return {
           id: node.id,
           type: "graph" as const,
           position: drag[node.id] ?? positions[node.id] ?? { x: 0, y: 0 },
@@ -82,27 +84,25 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
             picked: picking ? picking.members.includes(node.id) : undefined,
             loopColor: focusLoop?.members.includes(node.id) ? focusLoopColor : undefined,
           },
-        }];
+        };
       }),
-    [doc, shown, boxes, positions, drag, measured, severity, selectedNode, highlight, mode, picking, focusLoop, focusLoopColor],
+    [doc, positions, drag, measured, severity, selectedNode, highlight, mode, picking, focusLoop, focusLoopColor],
   );
-  const drawn = useMemo((): (GraphFlowNode | UnitFlowNode)[] => [...boxes.nodes, ...nodes], [boxes, nodes]);
 
   const curves = useMemo(() => {
-    const room: Record<Id, Box> = {};
-    for (const n of shown.nodes) {
+    const boxes: Record<Id, Box> = {};
+    for (const n of doc.nodes) {
       const p = drag[n.id] ?? positions[n.id] ?? { x: 0, y: 0 };
       const size = measured[n.id];
-      const rect = boxes.rect(n.id);
-      room[n.id] = rect ? { ...rect, ...(drag[n.id] ?? {}) } : { x: p.x, y: p.y, w: size?.width ?? NODE_WIDTH, h: size?.height ?? NODE_HEIGHT };
+      boxes[n.id] = { x: p.x, y: p.y, w: size?.width ?? NODE_WIDTH, h: size?.height ?? NODE_HEIGHT };
     }
-    const bends = edgeBends(shown, room);
-    return { bends, spots: labelSpots(shown, room, bends) };
-  }, [shown, boxes, positions, drag, measured]);
+    const bends = edgeBends(doc, boxes);
+    return { bends, spots: labelSpots(doc, boxes, bends) };
+  }, [doc, positions, drag, measured]);
 
   const edges: GraphFlowEdge[] = useMemo(() => {
-    const known = new Set(shown.nodes.map((n) => n.id));
-    return shown.edges
+    const known = new Set(doc.nodes.map((n) => n.id));
+    return doc.edges
       .filter((e) => known.has(e.from) && known.has(e.to))
       .map((edge) => {
         const loopIndex = doc.loops.findIndex((l) => l.back.includes(edge.id));
@@ -124,10 +124,10 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
           },
         };
       });
-  }, [doc, shown, curves, severity, selectedEdge, highlight, picking]);
+  }, [doc, curves, severity, selectedEdge, highlight, picking]);
 
   const onNodesChange = useCallback(
-    (changes: NodeChange<GraphFlowNode | UnitFlowNode>[]) => {
+    (changes: NodeChange<GraphFlowNode>[]) => {
       const sizes: Record<Id, Size> = {};
       const moving: Record<Id, Position> = {};
       const dropped: Id[] = [];
@@ -144,11 +144,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
         const moved: Record<Id, Position> = {};
         const rest = { ...dragRef.current };
         for (const id of dropped) {
-          // A closed box moved: each of its nodes moves as far, so that it opens where it was put.
-          const held = boxes.nodesOf(id);
-          const from = boxes.rect(id);
-          if (rest[id] && held && from) for (const node of held) moved[node] = { x: (positions[node]?.x ?? 0) + rest[id]!.x - from.x, y: (positions[node]?.y ?? 0) + rest[id]!.y - from.y };
-          else if (rest[id]) moved[id] = rest[id]!;
+          if (rest[id]) moved[id] = rest[id]!;
           delete rest[id];
         }
         if (Object.keys(moved).length > 0) {
@@ -162,21 +158,18 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
         setDrag(rest);
       }
     },
-    [editor.store, boxes, positions],
+    [editor.store],
   );
 
-  /** A tap on a closed box opens it; on a node, it is the node's. */
-  const tap = (id: Id): void => (boxes.nodesOf(id) ? boxes.toggle(id) : boxes.rect(id) ? undefined : onNodeTap(id));
-  if (!boxes.ready) return null;
   return (
-    <ReactFlow<GraphFlowNode | UnitFlowNode, GraphFlowEdge>
-      nodes={drawn}
+    <ReactFlow<GraphFlowNode, GraphFlowEdge>
+      nodes={boxes?.with(nodes) ?? nodes}
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onNodesChange={onNodesChange}
-      onNodeClick={(_, node) => tap(node.id)}
-      onKeyDown={onNodeKey(tap)}
+      onNodeClick={(_, node) => onNodeTap(node.id)}
+      onKeyDown={onNodeKey(onNodeTap)}
       onEdgeClick={(_, edge) => editor.onEdgeTap(edge.id)}
       onMove={(event) => {
         // A move with an event behind it is a hand on the canvas; a fit or a pan the app makes has none.

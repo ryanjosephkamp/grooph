@@ -36,7 +36,8 @@ test("a shared graph with a subgrooph: one closed box that says what it holds, a
   for (const id of OUTSIDE) await expect(node(page, id)).toBeVisible();
   // What crossed its edge reaches the box; what is inside is not drawn.
   await expect(page.locator(".react-flow__edge")).toHaveCount(3);
-  await expect(node(page, "review")).toHaveAttribute("aria-label", /^Subgrooph: Review gate, 3 nodes, 1 human gate, 1 loop\. Closed: Enter opens it$/);
+  await expect(box(page)).toHaveAttribute("aria-label", /^Subgrooph: Review gate, 3 nodes, 1 human gate, 1 loop\. Closed: Enter opens it$/);
+  await expect(box(page)).toHaveAttribute("aria-expanded", "false");
 
   await page.waitForTimeout(400);
   const before = Object.fromEntries(await Promise.all(OUTSIDE.map(async (id) => [id, await place(page, id)] as const)));
@@ -54,7 +55,9 @@ test("a shared graph with a subgrooph: one closed box that says what it holds, a
     const at = (await node(page, id).boundingBox())!;
     expect(at.x >= open.x && at.y >= open.y && at.x + at.width <= open.x + open.width && at.y + at.height <= open.y + open.height, id).toBe(true);
   }
-  // A node inside is a node: a tap opens its details, as it does for any other.
+  // A node inside is a node: a tap opens its details, as it does for any other. (At a person's pace: a second tap
+  // a few hundredths of a second after the first is a double tap to the browser, and is given no click.)
+  await page.waitForTimeout(400);
   await node(page, "review-critic").tap();
   await expect(page.locator("aside.sheet")).toContainText("Critic");
   await page.getByRole("button", { name: "Close panel" }).tap();
@@ -68,12 +71,15 @@ test("a shared graph with a subgrooph: one closed box that says what it holds, a
   for (const id of [...OUTSIDE, "review"]) expect(await place(page, id), id).toEqual(opened[id]);
 });
 
-test.describe("with a keyboard", () => {
+test.describe("with a keyboard and a mouse", () => {
   test.use(desktop);
   test("Tab reaches the box and Enter opens it; its Close is a button", async ({ page }) => {
     await page.goto(linkFor(boxed()));
     await expect(box(page)).toBeVisible();
-    await node(page, "review").focus();
+    // The box is one stop for Tab, a button by its role; the node of the canvas it sits in is not a second one.
+    await expect(box(page)).toHaveAttribute("role", "button");
+    await expect(node(page, "review")).not.toHaveAttribute("tabindex", "0");
+    await box(page).focus();
     await page.keyboard.press("Enter");
     await expect(page.locator('[data-unit-id="review"][data-open]')).toBeVisible();
     const close = page.getByRole("button", { name: "Close Review gate" });
@@ -81,31 +87,36 @@ test.describe("with a keyboard", () => {
     await close.focus();
     await page.keyboard.press("Enter");
     await expect(node(page, "review-builder")).toHaveCount(0);
+    await box(page).focus();
+    await page.keyboard.press(" ");
+    await expect(node(page, "review-builder")).toBeVisible();
   });
 
-  test("in the editor a closed box moves with everything in it, and opens where it was put", async ({ page }) => {
+  test("in the editor a closed box stays where its nodes are, and open, its nodes are the editor's", async ({ page }) => {
     await importDocument(page, "boxed.grooph.json", readFileSync(boxedPath, "utf8"));
     await expect(box(page)).toBeVisible();
     await page.waitForTimeout(400);
-    const plan = await place(page, "plan");
+    // A closed box does not drag: a node's place is the document's, and it is moved where it can be seen. A drag
+    // that starts on the box moves the view, as one on the background does, and the box keeps its place among the nodes.
+    const apart = async () => {
+      const [a, b] = [await place(page, "review"), await place(page, "plan")];
+      return [a.x - b.x, a.y - b.y];
+    };
+    const before = await apart();
     const from = (await node(page, "review").boundingBox())!;
-    await page.mouse.move(from.x + from.width / 2, from.y + 20);
+    await page.mouse.move(from.x + from.width / 2, from.y + 60);
     await page.mouse.down();
-    await page.mouse.move(from.x + from.width / 2 + 60, from.y + 20 + 10, { steps: 6 });
-    await page.mouse.move(from.x + from.width / 2 + 120, from.y + 20 + 30, { steps: 6 });
+    await page.mouse.move(from.x + from.width / 2 + 120, from.y + 90, { steps: 8 });
     await page.mouse.up();
-    const to = (await node(page, "review").boundingBox())!;
-    expect(Math.round(to.x - from.x)).toBeGreaterThan(60);
-    expect(await place(page, "plan")).toEqual(plan);
-    await box(page).click();
+    expect(await apart()).toEqual(before);
+    await expect(box(page)).toBeVisible();
+    // Open, a node inside is a node of the editor: a tap opens its panel, and a drag moves it and the frame with it.
+    if (!(await page.locator('[data-unit-id="review"][data-open]').isVisible())) await box(page).click();
     await expect(page.locator('[data-unit-id="review"][data-open]')).toBeVisible();
-    // The frame is where the box was dropped, and its nodes are in it.
-    const open = (await node(page, "review").boundingBox())!;
-    expect(Math.abs(open.x - to.x) < 2 && Math.abs(open.y - to.y) < 2).toBe(true);
-    for (const id of INSIDE) {
-      const at = (await node(page, id).boundingBox())!;
-      expect(at.x >= open.x && at.x + at.width <= open.x + open.width, id).toBe(true);
-    }
+    await node(page, "review-critic").click();
+    await expect(page.locator("aside.sheet")).toContainText("review-critic");
+    // The node the panel is about stays in sight: closing its box is undone while the panel is on it.
+    await expect(node(page, "review-critic")).toBeVisible();
   });
 });
 
