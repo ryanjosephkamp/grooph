@@ -41,7 +41,7 @@ export type Model = {
   run?: { end: string; dispatches: Dispatch[]; /** the highest round each loop was in at any time; `rounds` is the last */ most: Record<Id, number>; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** not yet ended: the next note at the same node is the same visit */ open: boolean; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
 };
 /** One stop of the slider: what it says, what it lights, and where what is at it came from. */
-export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; about?: boolean; dispatch?: number };
+export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; /** the other edges taken to reach this step's node, with the round each was taken from */ also?: { edge: Id; r0: number }[]; about?: boolean; dispatch?: number };
 
 const KIND = { agent: ["agent", "Agent"], check: ["check", "Check"], "human-gate": ["gate", "Human gate"], merge: ["gate", "Merge"], stop: ["stop", "Stop"] } as const;
 
@@ -163,8 +163,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     // second is not a move, though the node may have an edge to itself.
     const seen: Record<Id, number> = {};
     const most: Record<Id, number> = {};
-    let was: { node: Id; outcome: string | null; verdict: string | null } | null = null;
-    let open: Id | null = null;
+    const ways = walk(model.edges);
     const steps = replay.steps.slice(1).map((step) => {
       const note = step.note!;
       const at = step.focus ?? { kind: "graph" as const };
@@ -175,15 +174,14 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const node = focus.kind === "node" ? doc.nodes.find((n) => n.id === focus.id) : undefined;
       const loop = node ? innermost(node.id) : focus.kind === "loop" ? focus.id : null;
       if (node) {
-        const turned = open === node.id ? null : (wayTaken(model.edges, was, node.id)?.back ?? null);
-        if (turned) {
+        // Each loop one of whose ways back was taken to get here, once.
+        for (const turned of new Set(ways.into(node.id).flatMap((e) => (e.back ? [e.back] : [])))) {
           if (turned !== loop || note.round === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
           for (const inner of loops) if (under(loops, inner.id, turned)) seen[inner.id] = 0;
         }
-        was = { node: node.id, outcome: note.outcome ?? null, verdict: note.verdict ?? null };
-        open = note.ended ? null : node.id;
       }
       const round = loop ? (seen[loop] = note.round ?? seen[loop] ?? 0) : null;
+      if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: !note.ended });
       for (const id in seen) most[id] = Math.max(most[id] ?? 0, seen[id]!);
       const out: NonNullable<Model["run"]>["notes"][number] = {
         says: step.caption,
@@ -214,14 +212,45 @@ export function under(loops: MLoop[], inner: Id, outer: Id): boolean {
   return false;
 }
 
+/** What a node last reported. */
+type Said = { round: number | null; outcome: string | null; verdict: string | null; open: boolean };
+
 /**
- * The edge a run took from the node of one note to the node of the next, of those between the two: the one whose
- * condition is what the first note reported (its verdict, else its outcome), else one with no condition. If none of
- * them fits what was reported there is no answer: no edge is said to have been taken that the notes do not support.
+ * Which edges a run took, read from its notes in order (graph-ir section 3: every outgoing edge whose condition
+ * matches is taken, and several can be taken at once, so a node that fans out reaches each of its targets and a
+ * node that fans in is reached by each of its sources). `into` is asked at a note at a node, before `at` is told of
+ * it: the edges taken to get there, one from each node that has reported, with a note that has ended, since this
+ * node was last reached, that edge being the one whose condition is what the node reported (its verdict, else its
+ * outcome), else one with no condition. The edge from the node of the note before comes first, if it is one of
+ * them: it is the one the eye follows. A node whose condition none of its edges fits gives none: no edge is said to
+ * have been taken that the notes do not support. Two notes running at one node, the first not yet ended, are one
+ * visit, and nothing was taken between them, though the node may have an edge to itself.
  */
-export function wayTaken(edges: MEdge[], was: { node: Id; outcome: string | null; verdict: string | null } | null, to: Id): MEdge | undefined {
-  const ways = was ? edges.filter((e) => e.from === was.node && e.to === to) : [];
-  return ways.find((e) => typeof e.on === "object" && e.on.verdict === was?.verdict) ?? ways.find((e) => typeof e.on === "string" && e.on === was?.outcome) ?? ways.find((e) => e.on === undefined || e.on === "always");
+export function walk(edges: MEdge[]): { into(to: Id): (MEdge & { r0: number })[]; at(node: Id, said: Said): void } {
+  const said = new Map<Id, Said & { k: number }>();
+  const reached = new Map<Id, number>();
+  let [k, last, open]: [number, Id | null, Id | null] = [0, null, null];
+  return {
+    into(to) {
+      if (open === to) return [];
+      const since = reached.get(to) ?? -1;
+      return [...said]
+        .filter(([from, was]) => !was.open && (from === to || was.k > since))
+        .sort(([a, x], [b, y]) => Number(b === last) - Number(a === last) || y.k - x.k)
+        .flatMap(([from, was]) => {
+          const between = edges.filter((e) => e.from === from && e.to === to);
+          const took = between.find((e) => typeof e.on === "object" && e.on.verdict === was.verdict) ?? between.find((e) => typeof e.on === "string" && e.on === was.outcome) ?? between.find((e) => e.on === undefined || e.on === "always");
+          return took ? [{ ...took, r0: was.round ?? 0 }] : [];
+        });
+    },
+    at(node, now) {
+      k += 1;
+      // A node that has ended is not un-ended by a later note of the same visit; one still running has said nothing yet.
+      if (!now.open || !said.has(node) || said.get(node)!.open) said.set(node, { ...now, k });
+      reached.set(node, k);
+      [last, open] = [node, now.open ? node : null];
+    },
+  };
 }
 
 /**
@@ -247,23 +276,24 @@ export function stepsOf(m: Model): Step[] {
     return own.length ? [`round${own.length === 1 ? "" : "s"} ${own.length > 2 ? `${own.slice(0, -1).join(", ")} and ${own[own.length - 1]}` : own.join(" and ")} of ${l.name}`] : [];
   });
   const out: Step[] = [{ says: `The whole run: ${dispatches.length} dispatch${dispatches.length === 1 ? "" : "es"}${rounds.length ? `, in ${rounds.join("; ")}` : ""}. ${end} Move the slider or press Play to follow its ${notes.length} notes.` }];
-  let at: { node: Id; round: number; outcome: string | null; verdict: string | null; open: boolean } | null = null;
+  const ways = walk(m.edges);
+  let stood = 0;
   notes.forEach((s, k) => {
     const of = `Note ${k + 1} of ${notes.length}`;
     const step: Step = { says: "", ...(s.dispatch !== undefined ? { dispatch: s.dispatch } : {}) };
     if (s.about === "node" && s.id) {
       const round = s.round ?? 0;
-      const was = at;
-      // The edge the run took to get here. If none fits what was reported, no edge is shown as taken: the node is
-      // lit, and that is all the notes say.
-      const took = was?.open && was.node === s.id ? undefined : wayTaken(m.edges, was, s.id);
-      Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round }, took && was ? { edge: took.id, from: was.node, r0: was.round } : {});
-      at = { node: s.id, round, outcome: s.outcome, verdict: s.verdict, open: s.open };
+      // The edges the run took to get here: the first is the one the step follows, and the others were taken with
+      // it. If none fits what was reported, no edge is shown as taken: the node is lit, and that is all the notes say.
+      const [took, ...also] = ways.into(s.id);
+      Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round }, took ? { edge: took.id, from: took.from, r0: took.r0 } : {}, also.length ? { also: also.map((e) => ({ edge: e.id, r0: e.r0 })) } : {});
+      ways.at(s.id, { round: s.round, outcome: s.outcome, verdict: s.verdict, open: s.open });
+      stood = round;
     } else if (s.about === "loop" && s.id) Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
     else if (s.about === "edge" && s.id) {
       // A note about an edge is not a move along it.
       const e = m.edges.find((x) => x.id === s.id);
-      Object.assign(step, { says: `${of}, ${s.what ? `a ${s.what}` : "a note"} about the edge ${s.says}, not a move along it: ${s.words}` }, e ? { edge: e.id, nodes: [e.from, e.to], about: true, r0: at?.round ?? 0 } : {});
+      Object.assign(step, { says: `${of}, ${s.what ? `a ${s.what}` : "a note"} about the edge ${s.says}, not a move along it: ${s.words}` }, e ? { edge: e.id, nodes: [e.from, e.to], about: true, r0: stood } : {});
     } else step.says = `${of}, ${s.what ? `an ${s.what}` : "about the run"}: ${s.words}`;
     out.push(step);
   });

@@ -98,8 +98,11 @@ export function reach(m: Model, steps: Step[], k: number): Record<Id, { now: num
  */
 export function shownAt(m: Model, steps: Step[], k: number): Shown {
   const step = steps[k]!;
-  const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}>${step.r1 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
-  const shown: Shown = { k, lit: about.length ? new Set(about) : null, took: m.run ? steps.flatMap((s, n) => (s.edge && !s.about ? [{ edge: s.edge, r0: s.r0 ?? 0, r1: s.r1 ?? 0, step: n }] : [])) : [] };
+  // Every edge taken to reach the step's node: the one the step follows, and any taken with it.
+  const ways = (s: Step): { edge: Id; r0: number; r1: number }[] => (s.edge && !s.about ? [{ edge: s.edge, r0: s.r0 ?? 0 }, ...(s.also ?? [])].map((e) => ({ ...e, r1: s.r1 ?? 0 })) : []);
+  const edges = step.about && step.edge ? [`edge:${step.edge}`] : ways(step).flatMap((e) => [`edge:${e.edge}`, `edge:${e.edge}@${e.r0}>${e.r1}`]);
+  const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...edges, ...(step.loops ?? []).map((id) => `loop:${id}`)];
+  const shown: Shown = { k, lit: about.length ? new Set(about) : null, took: m.run ? steps.flatMap((s, n) => ways(s).map((e) => ({ ...e, step: n }))) : [] };
   if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
   // A run is drawn as far as the note it is at; step 0 is all of it.
   if (m.run && k > 0) shown.dispatches = steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length;
