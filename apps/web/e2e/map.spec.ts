@@ -5,7 +5,7 @@ import { deflateRawSync } from "node:zlib";
 import { buildShareEnvelope, encodeSharePayload, parseMapText, type OperationMap } from "@grooph/core";
 import { expect, test } from "@playwright/test";
 
-import { repoRoot } from "./support.js";
+import { repoRoot, requestsOut, visitIsOver } from "./support.js";
 
 /**
  * Operation maps (docs/operation-map.md; amendment A-011) in the app: a map
@@ -391,10 +391,13 @@ test.describe("with the service worker running", () => {
 
   test("a first visit that saw only the front page opens a map in both views with no network", async ({ page, context }) => {
     // The page names the views' file in a list the browser does nothing with; the worker reads it as it installs.
+    const out = requestsOut(page);
     await page.goto("./");
     await expect(page.locator(".land-headline")).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/views-[^/]*\.js$/.test(r.url)).length)).toBe(1);
+    // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`), the
+    // views' among them.
+    await visitIsOver(page, out);
+    expect(await page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/views-[^/]*\.js$/.test(r.url)).length)).toBe(1);
 
     await context.setOffline(true);
     const failed: string[] = [];
