@@ -18,6 +18,8 @@ One folder per harness, and in it one folder per session: `claude-code/rehearsal
 | `after/starting-contents.txt` | after | `setup/record.sh` | whether the hook's files, the package and the spec are as the first commit had them |
 | `after/system-services-used.txt` | after | `setup/record.sh` | commands that reached for one of the system's own services, or for another session, by name |
 | `after/moved.txt` | before the run | `setup/clear-rehearsal.sh` | the rehearsal only: where its folder, its transcript, npm's cache and its temp files were moved, so that the run starts without them |
-| the checks' three outputs, the result commit | after | `setup/score.sh`, a later slice | |
+| `after/result-commit.txt` | after | `setup/score.mjs` | the result commit and how it was found, with every commit that was tried and how far each got |
+| `after/checks-1.txt` to `-3.txt`, and their `.json` | after | `setup/score.mjs` | what the held-out checks printed, each of the three times |
+| `after/score.md` | after | `setup/score.mjs` | each check's verdict: pass (all three), unsteady (some), fail (none), with the three results |
 
 Nothing has been run: no folder is here yet.

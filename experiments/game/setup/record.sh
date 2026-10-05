@@ -6,7 +6,7 @@
 #   experiments/game/setup/record.sh rehearsal
 #   experiments/game/setup/record.sh run
 #
-# It does not score: finding the result commit and running the checks three times is setup/score.sh (a later slice).
+# It does not score: finding the result commit and running the checks three times is setup/score.mjs.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 root="$(git -C "$here" rev-parse --show-toplevel)"
