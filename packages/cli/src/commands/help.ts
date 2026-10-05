@@ -3,7 +3,12 @@
  * "did you mean" for a mistyped command. The longer pages live beside their commands.
  */
 
-import { KNOWN_TARGETS } from "@grooph/core";
+import { KNOWN_TARGETS, getProfile } from "@grooph/core";
+
+/** The Claude Code target's own tier map, as its profile has it, for the export's help. */
+const OWN_TIERS = Object.entries(getProfile("claude-code").models)
+  .map(([tier, model]) => `${tier} → ${model}`)
+  .join(", ");
 
 export const overview = (version: string): string => `grooph ${version}: author, check and compile multi-agent loop graphs. It never runs them.
 
@@ -126,6 +131,9 @@ Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGET
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
                                 on a machine; the flag wins over it. The graph does not change.
+
+The target's own tiers, for claude-code: ${OWN_TIERS}. Two of them are one model, so a critic
+on one over a builder on the other is the same model: the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .

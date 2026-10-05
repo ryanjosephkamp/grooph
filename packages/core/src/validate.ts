@@ -427,9 +427,11 @@ function ownershipConflicts(index: GraphIndex): Issue[] {
 
 /**
  * `E_IRREVERSIBLE_NO_GATE` — a node with irreversible actions is reachable
- * without a human decision: it has no inbound edge, or an inbound edge that
- * neither carries `approval: true` nor starts at a human-gate node. Every way
- * in must pass a human.
+ * without a human decision. A way in is an inbound edge, or a loop's stop that
+ * continues at the node (`then`). An edge passes a human when it carries
+ * `approval: true` or starts at a human-gate node; a stop does when it is the
+ * stop where a person is asked (`human`). Every way in must pass a human, and
+ * there must be one.
  */
 function irreversibleWithoutGate(index: GraphIndex): Issue[] {
   const issues: Issue[] = [];
@@ -439,16 +441,19 @@ function irreversibleWithoutGate(index: GraphIndex): Issue[] {
     if (actions.length === 0) continue;
     const inbound = index.incoming.get(node.id) ?? [];
     const open = inbound.filter((edge) => !passesHuman(edge));
-    if (inbound.length > 0 && open.length === 0) continue;
+    // The lead arrives by a stop's `then` as surely as by an edge: "continue at node …" is in its brief.
+    const led = (index.doc.loops ?? []).flatMap((loop) => (loop.stops ?? []).flatMap((stop, i) => (stop.then === node.id ? [{ loop, stop, i }] : [])));
+    const openStops = led.filter(({ stop }) => stop.kind !== "human");
+    if (inbound.length + led.length > 0 && open.length === 0 && openStops.length === 0) continue;
+    const through = [...(open.length > 0 ? [quoted(open.map((edge) => edge.id))] : []), ...openStops.map(({ loop, stop, i }) => `loop "${loop.id}" stop ${i} (${stop.kind}), which continues there`)];
+    const fix = [...(open.length > 0 ? ["set approval: true on those edges, or start them at a human-gate node"] : []), ...(openStops.length > 0 ? ["have the stop continue at a human-gate node that leads to it"] : [])];
     issues.push(
       error(
         "E_IRREVERSIBLE_NO_GATE",
-        inbound.length === 0
+        inbound.length + led.length === 0
           ? `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and nothing leads to it, so no human decides before it runs; put a human-gate node before it`
-          : `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and can be reached without a human decision through ${quoted(
-              open.map((edge) => edge.id),
-            )}; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node`,
-        [node.id, ...open.map((edge) => edge.id)],
+          : `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and can be reached without a human decision through ${through.join(" and ")}; every way in must pass a human: ${fix.join(", and ")}`,
+        [node.id, ...open.map((edge) => edge.id), ...new Set(openStops.map(({ loop }) => loop.id))],
       ),
     );
   }
