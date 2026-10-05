@@ -1,25 +1,29 @@
 /**
  * The spiral and its lid (handoff 0096; D2 of the studio): each loop is a spiral, a round is one turn upward, and a
- * brake is a place on the way up. The lid is the round at which max iterations stops the loop; a person asked every
- * so many rounds is an amber ring at each of those rounds; a budget in dispatches is a dashed ring where it would
- * run out if every round cost what a full round costs at the least, and is called a reading. On a run's page the
- * spiral is solid as far as the run came, with a bead for each dispatch in the round it was in.
+ * brake that counts rounds is a place on the way up. The lid stands where max iterations stops the loop: over the
+ * last round it allows (rounds number from 0, so a cap of 5 is a lid over round 4). A person asked every so many
+ * rounds is an amber ring after each of those rounds. A budget in dispatches is a dashed ring where it runs out if
+ * every round is a full one; a round cut short costs less and one with a second dispatch more, so it is called a
+ * reading. On a run's page the spiral is solid as far up as the run has been, with a bead for each dispatch in the
+ * round it was in.
  *
- * As the studio's second reader held it: the lid is never lit with its loop, since no cap fired by being looked at;
- * a run's edges are drawn in the round the run took them, and one it never took is faint; a round is a loop's own,
- * and a loop inside another starts its rounds afresh, which is why it is a spiral of its own beside the outer one.
+ * As the studio's second reader held it, and this one's: the lid is never lit with its loop, since no cap fired by
+ * being looked at; a run's edges are drawn in the round the run took them, and one it never took is faint; a round
+ * is a loop's own, and a loop inside another starts its rounds afresh, which is why it is a spiral of its own beside
+ * the outer one, and why two dispatches there can be at one place: they are set side by side, not one on the other.
  */
 import type { Prim } from "./draw.js";
 import type { Id, MEdge, MLoop, Model, Step, V } from "./model.js";
-import { arch, by, card, circle, edgeLine, ground, hue, stations, TAU, type Shown, type Stop, type View } from "./shapes.js";
+import { arch, by, card, circle, edgeLine, ground, hue, stationOf, stations, TAU, type Shown, type Stop, type View } from "./shapes.js";
 
 const H = 54;
 
 /**
  * Where a run is on each loop's spiral by a step, in rounds and parts of a round: where it is now, or was last, and
  * the farthest up it has been (a loop inside another starts afresh each time the outer one comes round, so the two
- * differ). A loop the run has not entered is not in the answer. A node of a loop inside this one is at that loop's
- * stop; the outer loop's round goes on by one when the run comes back into it by one of its own ways back.
+ * differ). A loop the run has not entered is not in the answer. A node that is not the loop's own (one of a loop
+ * inside it, or one it shares with another loop) is at its stop there, in the round this loop was last in; the
+ * loop's round goes on by one when the run comes back into it by one of its own ways back.
  */
 export function reach(m: Model, steps: Step[], k: number): Record<Id, { now: number; most: number }> {
   const [out, round]: [Record<Id, { now: number; most: number }>, Record<Id, number>] = [{}, {}];
@@ -32,33 +36,45 @@ export function reach(m: Model, steps: Step[], k: number): Record<Id, { now: num
       if (loop.own.includes(to)) round[loop.id] = step.r1 ?? 0;
       else round[loop.id] = (round[loop.id] ?? 0) + (edge?.back === loop.id ? 1 : 0);
       const stops = stations(m, loop);
-      const now = round[loop.id]! + Math.max(0, stops.findIndex((s) => s.node === to || s.loop?.members.includes(to))) / stops.length;
+      const now = round[loop.id]! + Math.max(0, stationOf(stops, to)) / stops.length;
       out[loop.id] = { now, most: Math.max(now, out[loop.id]?.most ?? 0) };
     }
   }
   return out;
 }
 
-/** How many rounds tall a loop's spiral is: as tall as its lid; with no lid, two rounds over what the whole run took. */
-export const topOf = (m: Model, loop: MLoop): number => loop.cap ?? Math.max(m.run ? (m.run.rounds[loop.id] ?? -1) + 1 : 1, 1) + 2;
+/** How many rounds tall a loop's spiral is: as tall as its lid; with no lid, two rounds over the highest the run was in. */
+export const topOf = (m: Model, loop: MLoop): number => loop.cap ?? Math.max(m.run ? (m.run.most[loop.id] ?? -1) + 1 : 1, 1) + 2;
 
-/** A loop's brakes in words, and where each is on the way up, in rounds: what the spiral draws and what is said under it. */
+/**
+ * A loop's brakes: every one in words, in the document's order, and where the ones that count rounds are on the way
+ * up, in rounds: what the spiral draws and what is said under it. A brake with no place (a budget in minutes, a
+ * person who is not asked by the round) is said to have none.
+ */
 export function brakes(loop: MLoop, top: number): { words: string[]; lid: number | null; asked: number[]; budget: number | null } {
-  const words: string[] = [loop.cap ? `max iterations: ${loop.cap} (the lid)` : "no lid: no cap on rounds"];
+  const lid = loop.cap;
+  const every = loop.brakes.find((b) => b.kind === "human" && b.every !== null);
+  // When a round ends the stops are looked at in the document's order and the first that fires wins: at the lid's
+  // own round a person is asked only if their stop comes before the cap.
+  const before = loop.brakes.findIndex((b) => b === every) < loop.brakes.findIndex((b) => b.kind === "max-iterations" && b.n === lid);
   const asked: number[] = [];
-  if (loop.human) {
-    for (let u = loop.human; u <= top; u += loop.human) asked.push(u);
-    words.push(`a person is asked every ${loop.human === 1 ? "round" : `${loop.human} rounds`} (the amber ring${asked.length === 1 ? "" : "s"})`);
-  }
-  let budget: number | null = null;
-  if (loop.budget?.measure === "dispatches" && loop.perRound) {
-    const [full, more] = [Math.floor(loop.budget.limit / loop.perRound), loop.budget.limit % loop.perRound];
-    // Drawn only where it is near enough the lid to be read against it.
-    if (loop.budget.limit / loop.perRound <= top + 1.5) budget = loop.budget.limit / loop.perRound;
-    words.push(`budget: ${loop.budget.limit} dispatches, at most ${full} full round${full === 1 ? "" : "s"}${more ? ` and ${more} more` : ""} (${budget === null ? "above the lid, not drawn" : "the dashed ring, a reading"})`);
-  } else if (loop.budget) words.push(`budget: ${loop.budget.limit} ${loop.budget.measure}`);
-  return { words, lid: loop.cap, asked, budget };
+  if (every?.kind === "human" && every.every) for (let u = every.every; u <= top; u += every.every) if (lid === null || u < lid || (u === lid && before)) asked.push(u);
+  const least = loop.dispatches !== null && loop.perRound ? loop.dispatches / loop.perRound : null;
+  // Drawn only where it is within a round and a half of the top of the drawing, so that it can be read against it.
+  const budget = least !== null && least <= top + 1.5 ? least : null;
+  const words = loop.brakes.map((b) => {
+    if (b.kind === "max-iterations") return `max iterations: ${b.n}${b.n === lid ? ` (the lid, over round ${b.n - 1})` : " (a looser cap: the lid stops the loop first)"}`;
+    if (b.kind === "human") return b.every === null ? "human halt (no place on the way up)" : `a person is asked every ${b.every === 1 ? "round" : `${b.every} rounds`}${b !== every ? "" : asked.length ? ` (the amber ring${asked.length === 1 ? "" : "s"})` : " (not within the rounds drawn)"}`;
+    if (b.measure !== "dispatches" || !loop.perRound) return `budget: ${b.limit} ${b.measure} (no place on the way up)`;
+    const [full, more] = [Math.floor(b.limit / loop.perRound), b.limit % loop.perRound];
+    return `budget: ${b.limit} dispatches, at most ${full} full round${full === 1 ? "" : "s"}${more ? ` and ${more} more` : ""}${b.limit !== loop.dispatches ? " (a looser budget)" : budget === null ? " (not drawn: above the rounds shown)" : " (the dashed ring, a reading)"}`;
+  });
+  if (lid === null) words.unshift("no lid: no cap on rounds");
+  return { words, lid, asked, budget };
 }
+
+/** A bead's color: green for a pass, amber for a fail, gray for anything else a dispatch reported. */
+const beadFill = (outcome: string | null): string => (outcome === "pass" ? "ok" : outcome === "fail" ? "bad" : "ink-3");
 
 export const spiral: View = (m, shown) => {
   const prims: Prim[] = [];
@@ -89,14 +105,14 @@ export const spiral: View = (m, shown) => {
     if (came !== null && came > 0) prims.push({ t: "line", pts: helix(t, 0, Math.min(came, top)), stroke: color, w: 3.2, key: `loop:${loop.id}` });
     // The brakes, each where it is on the way up. The lid has no key: it is not lit when its loop is.
     const brake = brakes(loop, top);
-    if (brake.lid) prims.push({ t: "poly", pts: circle(c, t.r + 18, brake.lid * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, lift: 300 });
-    // At the lid's own round too, where the person is asked before the cap is looked at: a ring inside the lid.
+    if (brake.lid !== null) prims.push({ t: "poly", pts: circle(c, t.r + 18, brake.lid * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, lift: 300 });
+    // At the lid's own round too, where the person's stop is looked at before the cap: a ring inside the lid.
     for (const u of brake.asked) prims.push({ t: "line", pts: circle(c, t.r + (u === brake.lid ? 9 : 18), u * H), stroke: "k-gate", w: 2.2, lift: 320 });
     if (brake.budget !== null) prims.push({ t: "line", pts: circle(c, t.r + 18, brake.budget * H), stroke: "brake", w: 1.2, dash: [4, 4], alpha: 0.85 });
     const over = Math.max(top, brake.budget ?? 0);
     // The loop's name over its spiral, and on a run's page the round the run is in there, or was last in. Its
     // brakes are said in words under the view (`graph-stage.tsx`), where they are not written over anything.
-    const where = !m.run ? "" : run === null ? "\nnot entered" : `\nround ${Math.floor(run.now)}${loop.cap ? `, lid at ${loop.cap}` : ""}`;
+    const where = !m.run ? "" : run === null ? "\nnot entered" : `\nround ${Math.floor(run.now)}${loop.cap ? `, lid over round ${loop.cap - 1}` : ""}`;
     prims.push({ t: "text", at: [c[0], over * H + 46, c[2]], text: `${loop.name}${where}`, align: "center", up: true, fill: color, size: 11, bold: true, max: Math.max(120, 2 * t.r + 30) });
     stops.forEach((stop, i) => {
       if (stop.node) {
@@ -104,12 +120,17 @@ export const spiral: View = (m, shown) => {
         at[stop.node] = [p[0], p[1] - 30, p[2]];
         prims.push(card(by(m.nodes, stop.node), at[stop.node]!), { t: "line", pts: [on(t, i / k), on(t, i / k, 30)], stroke: color, w: 1, alpha: 0.7 });
       } else if (stop.loop) prims.push({ t: "text", at: on(t, i / k, 34), text: `${stop.loop.name}: the spiral beside`, align: "center", fill: hue(m, stop.loop.id), size: 10.5, bold: true, max: 96 });
+      // A node this loop shares with another, which stands on the other's spiral: said here, and drawn there once.
+      else if (stop.away) prims.push({ t: "text", at: on(t, i / k, 34), text: `${by(m.nodes, stop.away).name}: on ${by(m.loops, by(m.nodes, stop.away).loop!).name}`, align: "center", fill: "ink-3", size: 10.5, max: 96 });
     });
-    // A run's dispatches so far, each a bead where it happened: the round it was in, and whether it passed.
+    // A run's dispatches so far, each a bead where it happened: the round it was in, and how it ended. A loop that
+    // started afresh has been at a place before: the later bead is set beside the earlier, toward the middle.
+    const there: Record<string, number> = {};
     m.run?.dispatches.forEach((d, n) => {
       const i = stops.findIndex((stop) => stop.node === d.node);
       if (i < 0 || d.round === null || (shown.dispatches !== undefined && n >= shown.dispatches)) return;
-      prims.push({ t: "dot", at: on(t, d.round + i / k), r: 6, fill: d.outcome === "fail" ? "bad" : "ok", stroke: "card" });
+      const before = (there[`${d.round}:${i}`] = (there[`${d.round}:${i}`] ?? -1) + 1);
+      prims.push({ t: "dot", at: on(t, d.round + i / k, -13 * before), r: 6, fill: beadFill(d.outcome), stroke: "card" });
     });
   }
   // The ground: what comes before the loops recedes behind the first spiral, the spirals stand side by side (one
@@ -159,16 +180,19 @@ export const spiral: View = (m, shown) => {
     const rise = (node: Id, r: number): number => (by(m.nodes, node).loop ? r : 0);
     return arch(spot(e.from, rise(e.from, r0)), spot(e.to, e.back ? 0 : rise(e.to, r1)), e.back ? 40 : 0, 18);
   };
-  // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, in the
-  // round it took them, as far as the slider has come; one it never took is faint, at round 0. An edge that is the
-  // spiral itself is not drawn twice: it is shown when it is the one a step is about.
+  // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between
+  // the rounds it took them, as far as the slider has come; one it never took is faint, at round 0. An edge that is
+  // the spiral itself, from one station on to the next, is not drawn twice: it is shown when a step is about it.
+  // Any other edge between two of a loop's nodes (a fan out, a fan in) is drawn.
   const drawn = new Set<string>();
   const line = (e: MEdge, r0: number, r1: number, more: Partial<Extract<Prim, { t: "line" }>> = {}): void => {
-    const key = `edge:${e.id}@${r0}`;
+    const key = `edge:${e.id}@${r0}>${r1}`;
     if (drawn.has(key)) return;
     drawn.add(key);
     const loop = e.back ? undefined : round(e);
-    prims.push(edgeLine(m, e, path(e.id, r0, r1), { key, ...(loop ? { hide: !shown.lit?.has(key), stroke: hue(m, loop.id), w: 3.2 } : {}), ...more }));
+    const t = loop && tower[loop.id];
+    const onward = !!t && t.stops.findIndex((stop) => stop.node === e.to) === t.stops.findIndex((stop) => stop.node === e.from) + 1;
+    prims.push(edgeLine(m, e, path(e.id, r0, r1), { key, ...(onward && loop ? { hide: !shown.lit?.has(key), stroke: hue(m, loop.id), w: 3.2 } : {}), ...more }));
   };
   for (const e of m.edges) {
     const took = shown.took.filter((x) => x.edge === e.id && (shown.k === 0 || x.step <= shown.k));
@@ -176,8 +200,13 @@ export const spiral: View = (m, shown) => {
     else if (took.length) for (const x of took) line(e, x.r0, x.r1);
     else if (!shown.took.some((x) => x.edge === e.id)) line(e, 0, e.back ? 1 : 0, { alpha: 0.3 });
   }
-  // A note about an edge the run has not walked by then is shown where the run stood.
-  if (shown.about) line(by(m.edges, shown.about.edge), shown.about.r0, shown.about.r0);
+  // A note about an edge is not a move along it: the edge is lit wherever it is drawn already, as taken or as never
+  // taken. One the run has not come to by then is drawn as a never-taken one is, faint at round 0, and lit.
+  if (shown.about) {
+    const e = by(m.edges, shown.about.edge);
+    if (!prims.some((p) => p.key?.startsWith(`edge:${e.id}@`))) line(e, 0, e.back ? 1 : 0, { alpha: 0.3 });
+    for (const p of prims) if (p.key?.startsWith(`edge:${e.id}@`)) ((p.hide = false), shown.lit?.add(p.key));
+  }
   // All of this but the cards is grown once the cards have landed.
   for (const p of prims) if (p.t !== "card") p.grow = true;
   return { prims, node: spot, path };

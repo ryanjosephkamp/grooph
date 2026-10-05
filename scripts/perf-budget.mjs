@@ -82,6 +82,22 @@ if (!Array.isArray(routes.space) || routes.space.length === 0) {
   process.exit(1);
 }
 const space = sum(routes.space);
+// Since slice 0096 a graph has other kinds of view in three dimensions, all in one piece that choosing any of them
+// fetches; and since slice 0092 every address that draws on the canvas fetches, once the canvas is drawn, the piece
+// that holds the switch and the graph's reading. Neither is in an address's first load, so neither is in a line
+// above, and each has a line to itself: a piece nothing measures grows. As with the map's, a build that does not
+// say which files they are cannot be weighed.
+for (const [key, what] of [
+  ["stage", "draw a graph's other kinds of view in three dimensions (stage)"],
+  ["views", "hold the switch between a graph's views (views)"],
+]) {
+  if (!Array.isArray(routes[key]) || routes[key].length === 0) {
+    console.error(`perf-budget: apps/web/dist/routes.json does not say which files ${what}. The build should have listed them (apps/web/vite.config.ts).`);
+    process.exit(1);
+  }
+}
+const stage = sum(routes.stage);
+const views = sum(routes.views);
 // The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
 const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
 const ICONS = "assets/site-icons.v1.svg";
@@ -94,7 +110,7 @@ for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
 const sent = (file) => statSync(join(dist, file)).size / 1024;
 const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
 const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
-const counted = new Set([...appJs, ...routes.front, ...routes.templates, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space]);
+const counted = new Set([...appJs, ...routes.front, ...routes.templates, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space, ...routes.stage, ...routes.views]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
@@ -117,6 +133,8 @@ const rows = [
   ["the first load of a template's own address (the canvas's, and the built-in templates), gzip KB", template, budget.templateLoadKB],
   ["an embed's first load, gzip KB", embed, budget.embedLoadKB],
   ["a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB", space, budget.mapSpaceKB],
+  ["a graph's other kinds of 3D: what choosing one fetches, on no address's first load, gzip KB", stage, budget.graphStageKB],
+  ["the switch and the graph's reading: what every canvas fetches once it is drawn, gzip KB", views, budget.graphViewsKB],
   ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
 ];
 // A line with no limit is not held to anything: `value > undefined` is false, and it would read "ok". A budget

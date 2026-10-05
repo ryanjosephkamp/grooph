@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseGraphText, resolvePositions, type Graph } from "@grooph/core";
@@ -651,9 +651,15 @@ test("the spiral: every node a card, the loops' brakes said in words under it, a
   // The brakes, loop by loop, in words: the lid, the rounds a person is asked after, the budget as a reading.
   const key = page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem");
   await expect(key).toHaveText([
-    "Polish a piece max iterations: 3 (the lid); budget: 10 dispatches, at most 3 full rounds and 1 more (the dashed ring, a reading)",
-    "Pieces max iterations: 4 (the lid); a person is asked every 2 rounds (the amber rings); budget: 42 dispatches, at most 10 full rounds and 2 more (above the lid, not drawn)",
+    "Polish a piece max iterations: 3 (the lid, over round 2); budget: 10 dispatches, at most 3 full rounds and 1 more (the dashed ring, a reading)",
+    "Pieces a person is asked every 2 rounds (the amber rings); max iterations: 4 (the lid, over round 3); budget: 42 dispatches, at most 10 full rounds and 2 more (not drawn: above the rounds shown)",
   ]);
+  // The last of the words under the view can be scrolled clear of the bar at the page's foot: the room the page
+  // keeps for that bar comes after them.
+  await page.locator(".graph-space").evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  const [last, bar] = [(await page.locator(".s3-note").boundingBox())!, (await page.locator(".viewer-bar").boundingBox())!];
+  expect(last.y + last.height).toBeLessThanOrEqual(bar.y);
+  await page.locator(".graph-space").evaluate((el) => el.scrollTo(0, 0));
   // The cards are whole in the frame.
   const frame = (await page.locator(".s3-frame").boundingBox())!;
   for (const box of await cards(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as { left: number; right: number; top: number; bottom: number }))) {
@@ -690,7 +696,7 @@ test("the spiral on a run's page walks the run's notes, and a graph with no loop
   // The words under the view are each in a row of their own, however long: none is written over the next.
   const rows = await page.locator(".s3 > *").evaluateAll((els) => els.map((el) => [el.getBoundingClientRect().top, el.getBoundingClientRect().top + Math.max(el.scrollHeight, el.getBoundingClientRect().height)] as const));
   for (let n = 1; n < rows.length; n += 1) expect(rows[n]![0], `row ${n}`).toBeGreaterThanOrEqual(rows[n - 1]![1] - 0.5);
-  await expect(page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem")).toHaveText(["Grind max iterations: 5 (the lid); budget: 20 minutes", "Phases max iterations: 5 (the lid); budget: 60 turns"]);
+  await expect(page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem")).toHaveText(["Grind max iterations: 5 (the lid, over round 4); budget: 20 minutes (no place on the way up)", "Phases max iterations: 5 (the lid, over round 4); budget: 60 turns (no place on the way up)"]);
   await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("10");
   await expect(says(page)).toHaveText("Note 10 of 13: Builder: pass · round 0");
   await expect(page.locator(".s3-card.is-lit")).toHaveAttribute("data-node", "builder");
@@ -751,5 +757,93 @@ test("the picture becomes the spiral and the panes become the spiral: every node
   await expect(page.locator('.s3[data-kind="spiral"]')).toBeVisible();
   await viewIsStill(page);
   await expect.poll(async () => (await moves()).slice(before)).toEqual([whole, whole, whole]);
+  expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
+});
+
+/** Each pair of cards whose boxes lie over each other at all, as the page has them now. */
+const overlaps = (page: Page) =>
+  cards(page).evaluateAll((els) => {
+    const boxes = els.map((el) => [(el as HTMLElement).dataset["node"]!, el.getBoundingClientRect()] as const);
+    return boxes.flatMap(([a, p], i) => boxes.slice(i + 1).flatMap(([b, q]) => (p.left < q.right && q.left < p.right && p.top < q.bottom && q.top < p.bottom ? [`${a} over ${b}`] : [])));
+  });
+
+test("on a phone no card of any built-in template lies over another in Panes at rest: the frame is as tall as its cards need, to four fifths of the window, and the page scrolls", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  const ids = readdirSync(join(repoRoot, "patterns")).filter((f) => f.endsWith(".grooph.json")).map((f) => f.replace(".grooph.json", ""));
+  expect(ids.length).toBeGreaterThanOrEqual(20);
+  const found: Record<string, string[]> = {};
+  const taller: string[] = [];
+  for (const id of ids) {
+    await page.goto("about:blank");
+    await page.goto(`./#/templates/built-in/${id}`);
+    await canvasIsQuiet(page);
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await view(page, "3D").click();
+    await expect(page.locator(".s3-frame")).toBeVisible();
+    await viewIsStill(page);
+    await expect(cards(page)).toHaveCount(pattern(id).nodes.length);
+    const hits = await overlaps(page);
+    if (hits.length) found[id] = hits;
+    const frame = (await page.locator(".s3-frame").boundingBox())!;
+    // Never taller than four fifths of the window: the page is scrolled from outside the frame.
+    expect(frame.height, id).toBeLessThanOrEqual(Math.round(844 * 0.8) + 1);
+    const asked = await page.locator(".s3").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--s3-tall"));
+    if (asked) taller.push(id);
+    // Every card is whole in its frame, and what is under the frame can be scrolled to.
+    for (const box of await cards(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as { top: number; bottom: number; left: number; right: number }))) {
+      expect(box.left, id).toBeGreaterThanOrEqual(frame.x - 1);
+      expect(box.right, id).toBeLessThanOrEqual(frame.x + frame.width + 1);
+      expect(box.top, id).toBeGreaterThanOrEqual(frame.y - 1);
+      expect(box.bottom, id).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    }
+    await page.locator(".s3-note").scrollIntoViewIfNeeded();
+    await expect(page.locator(".s3-note")).toBeInViewport();
+  }
+  // Said by name, so that a template that still has cards over each other at the cap is known, not hidden.
+  expect(found).toEqual({});
+  // The tall ones are given the room, and the short ones are left as they were.
+  expect(taller).toContain("gauntlet-decomposed");
+  expect(taller).not.toContain("review-gate");
+});
+
+test("a frame made taller for its cards does not break the move: the picture becomes the panes and back, and each card stays where the move left it", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const moves = await noteMoves(page);
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await expect(node(page, "planner")).toBeVisible();
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await open(page);
+  const tall = await page.locator(".s3").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--s3-tall"));
+  expect(Number.parseInt(tall, 10)).toBeGreaterThan(340);
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  const before = (await moves()).length;
+  // The stage is here already, so this move is the move alone. Where each card is when the browser is told the
+  // page has changed is where it is at rest: the frame was given its height before then, and nothing jumps after.
+  await page.evaluate(() => {
+    const log: string[] = ((window as unknown as { cardsAtFirst: string[] }).cardsAtFirst = []);
+    new MutationObserver(() => {
+      const first = document.querySelector<HTMLElement>(".s3-card");
+      if (first && !first.dataset["seen"]) ((first.dataset["seen"] = "1"), log.push(JSON.stringify([...document.querySelectorAll<HTMLElement>(".s3-card")].map((el) => [el.dataset["node"], Math.round(el.getBoundingClientRect().left), Math.round(el.getBoundingClientRect().top)]))));
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const atRest = JSON.stringify(await cards(page).evaluateAll((els) => els.map((el) => [(el as HTMLElement).dataset["node"], Math.round(el.getBoundingClientRect().left), Math.round(el.getBoundingClientRect().top)])));
+  expect(await page.evaluate(() => (window as unknown as { cardsAtFirst: string[] }).cardsAtFirst)).toEqual([atRest]);
+  expect(await overlaps(page)).toEqual([]);
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  for (const id of ["planner", "owner", "done"]) await expect(node(page, id)).toBeVisible();
+  // Both moves were made and ended, each carrying the nodes that were wholly on the screen at both ends.
+  const made = (await moves()).slice(before);
+  expect(made.map((m) => m.ended)).toEqual([true, true]);
+  for (const m of made) expect(m.pairs).toBeGreaterThan(0);
   expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
 });

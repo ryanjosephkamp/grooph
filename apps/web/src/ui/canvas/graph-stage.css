@@ -3,11 +3,14 @@
    so Paper's: what holds a view in three dimensions is not dressed by a picture theme while it holds one. */
 .s3 {
   display: grid;
-  grid-template-rows: auto minmax(180px, 1fr);
+  /* The frame has the room that is left, and more where its cards need it (`stage/draw.ts`): the page then scrolls. */
+  grid-template-rows: auto minmax(var(--s3-tall, 180px), 1fr);
   /* As tall as their words, whatever room is left: a row that could give way would be written over by the next. */
   grid-auto-rows: min-content;
   gap: 10px;
-  height: 100%;
+  /* As tall as the room it has, and taller when its rows need it: then it is the page that grows, and the room the
+     page keeps at its foot (for a viewer's bar) comes after the last of the words, not over them. */
+  min-height: 100%;
   padding: 0 12px;
   font: 13px/1.4 var(--font);
   color: var(--ink);

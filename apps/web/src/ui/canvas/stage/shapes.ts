@@ -28,17 +28,22 @@ export const hue = (m: Model, loop: Id): string => `loop-${m.loops.findIndex((l)
 export const card = (n: MNode, at: V, more: { stand?: boolean; side?: boolean; small?: boolean } = { stand: true }): Prim => ({ t: "card", at, id: n.id, key: `node:${n.id}`, ...more });
 /** A circle lying flat at a height, or an arc of one. */
 export const circle = (c: V, r: number, y: number, n = 40, from = 0, to = TAU): V[] => Array.from({ length: n + 1 }, (_, k) => [c[0] + r * Math.cos(from + ((to - from) * k) / n), y, c[2] + r * Math.sin(from + ((to - from) * k) / n)]);
-/** A stop on the way round: a node, or a loop taken as one stop. */
-export type Stop = { node?: Id; loop?: MLoop; first: number };
+/** A stop on the way round: a node, a loop taken as one stop, or a node of this loop that stands on another loop's
+ *  spiral or ring because the two loops share it and it is the other's (`own` in `model.ts`). */
+export type Stop = { node?: Id; loop?: MLoop; away?: Id; first: number };
 const firstOf = (m: Model): ((id: Id) => number) => {
   const rank = new Map(m.rows.flat().map((id, k) => [id, k]));
   return (id) => rank.get(id) ?? m.rows.flat().length;
 };
-/** The stations of a loop, in the order of a round: its own nodes, and a loop inside it as one stop. */
+/** The stations of a loop, in the order of a round: its own nodes, a loop inside it as one stop, and a node it shares with a loop that is not inside it, where that node is the other's. */
 export function stations(m: Model, loop: MLoop): Stop[] {
   const first = firstOf(m);
-  return [...loop.own.map((id) => ({ node: id, first: first(id) })), ...m.loops.filter((l) => l.inside === loop.id).map((l) => ({ loop: l, first: Math.min(...l.members.map(first)) }))].sort((a, b) => a.first - b.first);
+  const inner = m.loops.filter((l) => l.inside === loop.id);
+  const away = loop.members.filter((id) => !loop.own.includes(id) && !inner.some((l) => l.members.includes(id)));
+  return [...loop.own.map((id) => ({ node: id, first: first(id) })), ...inner.map((l) => ({ loop: l, first: Math.min(...l.members.map(first)) })), ...away.map((id) => ({ away: id, first: first(id) }))].sort((a, b) => a.first - b.first);
 }
+/** Which of a loop's stations a node is at: its own, the stop of the loop inside that holds it, or where it is marked as standing elsewhere. */
+export const stationOf = (stops: Stop[], id: Id): number => stops.findIndex((s) => s.node === id || s.away === id || !!s.loop?.members.includes(id));
 /** The top of the graph, in the order of a first pass: the nodes in no loop, and the loops in no other. */
 export function ground(m: Model): Stop[] {
   const first = firstOf(m);

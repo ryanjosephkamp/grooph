@@ -279,7 +279,7 @@ test("a graph's other kinds of view in three dimensions: Panes and the spiral in
   await viewIsStill(page);
   expect((await frame.locator(".s3-card").evaluateAll((els) => els.map((el) => (el as HTMLElement).dataset["node"]))).sort()).toEqual([...ids].sort());
   await expect.poll(() => frame.locator("canvas").evaluate((el) => (el as HTMLCanvasElement).getContext("2d")!.getImageData(0, 0, (el as HTMLCanvasElement).width, (el as HTMLCanvasElement).height).data.some((v) => v !== 0))).toBe(true);
-  await expect(page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem")).toHaveText(["Review max iterations: 4 (the lid); budget: 10 dispatches, at most 5 full rounds (the dashed ring, a reading)"]);
+  await expect(page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem")).toHaveText(["Review max iterations: 4 (the lid, over round 3); budget: 10 dispatches, at most 5 full rounds (the dashed ring, a reading)"]);
 
   await kinds.getByRole("radio", { name: "Stairs" }).tap();
   await expect(page.locator(".space-scene")).toBeVisible();

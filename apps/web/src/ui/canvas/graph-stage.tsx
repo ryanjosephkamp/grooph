@@ -19,10 +19,10 @@ import { panes } from "./stage/panes.js";
 import { along, type Shown, type View } from "./stage/shapes.js";
 import { brakes, reach, spiral, topOf } from "./stage/spiral.js";
 
-/** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, and whether each loop's brakes are said under it. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; brakes?: boolean }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
-  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", says: "A round of a loop is one turn upward, and a brake is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh.", brakes: true },
+/** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean }> = {
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
+  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
 };
 
 let styled = false;
@@ -57,7 +57,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   const was = useRef(0);
 
   useLayoutEffect(() => {
-    const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start));
+    const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start, the.apart));
     // What a view grows (a spiral, its lid) is not there when the view comes: the cards land first, and then it is
     // grown. For a reader who asked for less motion it is all drawn at once.
     let frames = 0;
@@ -82,7 +82,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     const on = stage.current!;
     // What the step is about: its nodes, its edge (by its name, and by its name and the round it is taken in, for a
     // view that draws an edge once a round), its loops. A note about the run as a whole picks nothing out.
-    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
+    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}>${step.r1 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
     const shown: Shown = { k, took, lit: about.length ? new Set(about) : null };
     if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
     // A run is drawn as far as the note it is at; step 0 is all of it.

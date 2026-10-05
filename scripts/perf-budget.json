@@ -8,5 +8,7 @@
   "templateLoadKB": 280,
   "embedLoadKB": 132,
   "mapSpaceKB": 9,
+  "graphStageKB": 17,
+  "graphViewsKB": 6,
   "cliColdMs": 400
 }
