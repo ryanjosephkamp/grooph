@@ -124,6 +124,19 @@ Arm C ran one iteration in all six of its runs. The blind judge ranked both D ru
   - Whether "all of it is the lead" holds by project and not only on the mean: the subagents' difference is −$0.008, +$0.055 and −$0.071.
   - Its section on what a planned change would remove ("about a sixth, not a half"): arithmetic on twelve runs about work not yet built.
 
+### S8 · The derivation rule drops what a dispatch is
+
+- **Where:** `docs/comparisons.md`, section 3, rule 3 ("the loop and its stops restated in one sentence of prose"), and `scripts/lib/compare-prompt.mjs`, which applies it; every `prompt-B.md` of both studies.
+- **The fault, found by the lane building the brake experiment (pull request #112, slice 0095):** the package's lead brief says what a dispatch is: "A dispatch is one node run inside this loop's members — an agent you dispatch, or a check you run" (for example `experiments/comparisons/review-gate-2/A-1/package/LEAD.md:89`). The prose derived from it says only "at most N dispatches". We checked: `review-gate-2/prompt-B.md` has no sentence saying a check run counts. A prose lead may fairly count agent dispatches only.
+- **What we believe, and how sure we are:** Sure of the fact. It changed no result of either study: no budget came near in any run (S4). It does bear on three things: on any sentence that says the prose arms ran under "the same caps" as the graph (round one, C1 and the corrected report: the cut-off run was at its fourth dispatch of twelve under either reading); on S7's count of dispatches, which is the same in both arms only because no check ran as its own node in those projects, which we have not confirmed for all three; and on the brake experiment's prose control, whose pre-registration allows both readings and reports which a run took.
+- **What we most want attacked:** Whether this is one more way the two arms of both studies were not the same design (round one, F4), and whether any published sentence leans on the prose arm's budget being the graph's.
+
+### S9 · A package that contradicts itself about a small budget
+
+- **Where:** `packages/core/src/compile/claude-code/lead.ts:497`. The lead brief gives an example note for a stop that fires, and its text is fixed: "<the stop> fired at round 3". For a budget of two dispatches that cannot happen. The brief states the budget in four places, by the building lane's count, and this one is wrong for a small budget.
+- **What we believe:** A product fault, small, and left unchanged on purpose in the brake experiment, whose design changes only the budget and the one sentence that states it; its pre-registration names the example. It is listed for correction after the game experiment's first commits, since nothing under `packages/` changes before them.
+- **What we most want attacked:** Whether a lead reading that example could take a budget of two for a round count, and so whether the brake experiment, as designed, tests the budget or the lead's reading of a contradictory brief.
+
 ### The one sentence we would publish, if these hold
 
 "In a second comparison, on three tasks built so that a first pass fails, a design with a reviewer who holds evidence the builder has not seen ended above the task alone in every project. Said as a package or as prose it scored the same, and the package cost more. No brake fired."
@@ -150,7 +163,7 @@ The owner first read the result as "only certain graphs appear to be worth that 
 
 ## What to hand back
 
-`round-02/HANDBACK.md`, from the template beside this file. Number findings F1, F2, … afresh. For part A name the correction by its number; for part B name the claim S1 to S7. Say what you checked and found sound, and what you could not check. End your reply with the prompt the owner should carry back.
+`round-02/HANDBACK.md`, from the template beside this file. Number findings F1, F2, … afresh. For part A name the correction by its number; for part B name the claim S1 to S9. Say what you checked and found sound, and what you could not check. End your reply with the prompt the owner should carry back.
 
 ## The prompt for Codex (a draft)
 
