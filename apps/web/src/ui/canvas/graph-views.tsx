@@ -54,7 +54,7 @@ type On = "picture" | Kind;
 /** The piece a kind is in: the map's scene for the stairs, the stage for the rest. */
 const pieceOf = (kind: Kind): "space" | "stage" => (kind === "stairs" ? "space" : "stage");
 
-// The kind last chosen, for the visit: the tab's own storage, and memory where a browser refuses that.
+// The kind last drawn, for the visit: the tab's own storage, and memory where a browser refuses that.
 let last: Kind | undefined;
 const kept = (): Kind => {
   if (last) return last;
@@ -187,13 +187,18 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   const [view, setView] = useState<"picture" | "space">("picture");
   const [kind, setKind] = useState<Kind>(kept);
   const [on, setOn] = useState<On>("picture");
-  // `undefined` until a piece has come, `null` when it could not be fetched.
-  const [three, setThree] = useState<Space | null | undefined>(space);
-  const [more, setMore] = useState<Stage3 | null | undefined>(stage3);
+  // The two pieces, `undefined` until each has come.
+  const [three, setThree] = useState<Space | undefined>(space);
+  const [more, setMore] = useState<Stage3 | undefined>(stage3);
+  // What is said when a piece could not be fetched, until the next press; and which piece was last asked for in vain.
+  const [note, setNote] = useState<string>();
+  const failed = useRef<{ space?: boolean; stage?: boolean }>({});
   const [per, setPer] = useState(3);
-  // How wide the window was when this came, which is when the canvas under it was drawn: a view that keeps the
-  // picture's places wraps its rows where the canvas did, though the window has been turned since.
-  const wide = useRef(innerWidth);
+  // How wide the window was when the canvas under this last laid the document out, which it does when it is handed
+  // one (`Canvas.tsx`, `ViewCanvas.tsx`): a view that keeps the picture's places wraps its rows where the canvas
+  // did, though the window has been turned since.
+  const wide = useRef({ doc, at: innerWidth });
+  if (wide.current.doc !== doc) wide.current = { doc, at: innerWidth };
   const host = useRef<HTMLDivElement>(null);
   const held = useRef<ReturnType<Space["held"]>>(undefined);
   if (!styled) {
@@ -247,17 +252,17 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   // what it has (the piece's arrival draws it).
   const show = (): void => {
     const now = asked.current;
-    if (now === "picture" || (pieceOf(now) === "space" ? space : stage3)) setOn(now);
+    if (now === "picture") setOn(now);
+    // What the visit remembers is the kind last drawn: not one that was asked for and has not come.
+    else if (pieceOf(now) === "space" ? space : stage3) (setOn(now), keep(now));
     setView(now === "picture" ? "picture" : "space");
     if (now !== "picture") setKind(now);
   };
   const choose = (next: On): void => {
     // A press puts away the note that an earlier choice could not be fetched; asking for it again is a new try.
-    if (three === null) setThree(undefined);
-    if (more === null) setMore(undefined);
+    setNote(undefined);
     if (next === asked.current) return;
     asked.current = next;
-    if (next !== "picture") keep(next);
     const slot = next === "picture" ? undefined : pieceOf(next);
     if (slot && !(slot === "space" ? three : more)) {
       // The first press of a kind fetches its piece, once, and nothing moves until it has come; nor then, if
@@ -269,23 +274,24 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       const mine = (): boolean => asked.current !== "picture" && pieceOf(asked.current) === slot;
       (slot === "space" ? piece("space", () => import("../map/space.js")).then((m) => () => setThree((space = m))) : piece("graph-stage", () => import("./graph-stage.js")).then((m) => () => setMore((stage3 = m)))).then(
         (come) => {
+          failed.current[slot] = false;
           const arrive = (): void => (come(), mine() ? show() : undefined);
           if (mine()) go(arrive, () => !mine());
           else arrive();
         },
         () => {
           fetching.current[slot] = false;
-          (slot === "space" ? setThree : setMore)(null);
-          // The kind that could not be had is not the one 3D opens next on this page: the one that is drawn is,
-          // or from the picture a kind of the other piece. What the visit remembers is changed only to a view
-          // that is drawn: a fetch that failed once may not fail after a reload, and is tried again then.
-          const drawn = shown.current;
-          if (drawn !== "picture" && pieceOf(kept()) === slot) keep(drawn);
+          failed.current[slot] = true;
           // Back to what is drawn, if this is still what was being waited for.
-          if (!mine()) return;
-          asked.current = drawn;
-          setKind(drawn !== "picture" ? drawn : slot === "space" ? "panes" : "stairs");
-          show();
+          const waited = mine();
+          if (waited) asked.current = shown.current;
+          if (asked.current === "picture") {
+            // From the picture, the kind that could not be had is not the one 3D opens next on this page: a kind of
+            // the other piece is, whether the reader waited for this one or had gone back to the picture.
+            setKind(slot === "space" ? "panes" : "stairs");
+            setNote(slot === "stage" && !failed.current.space ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "The view in three dimensions could not be fetched. The picture shows the same graph.");
+          } else setNote("That view could not be fetched. This one shows the same graph.");
+          if (waited) show();
         },
       );
     } else if (next !== "picture" || shown.current !== "picture")
@@ -358,9 +364,9 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
           ))}
         </div>
       ) : null}
-      {three === null || more === null ? (
+      {note ? (
         <p className="graph-views-note" role="status">
-          {on !== "picture" ? "That view could not be fetched. This one shows the same graph." : more === null && three !== null ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "The view in three dimensions could not be fetched. The picture shows the same graph."}
+          {note}
         </p>
       ) : null}
       {made ? (
@@ -379,7 +385,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
         </div>
       ) : staged && more ? (
         <div className="graph-space">
-          <more.Stage3 key={staged} doc={doc} kind={staged} wide={wide.current} of={of} />
+          <more.Stage3 key={staged} doc={doc} kind={staged} wide={wide.current.at} of={of} />
         </div>
       ) : null}
     </div>

@@ -199,7 +199,7 @@ describe("panes", () => {
 
   it("a node listed by a group and by one inside it is the inner one's, as core reads it, and has a pane of its own for each", () => {
     // Nesting said twice (graph-ir, W_GROUP_OVERLAP): the outer group lists the inner one and the inner one's node.
-    const twice: Graph = { ...NESTED, groups: [{ id: "outer", name: "Outer", members: ["inner", "review-builder", "release"] }, { id: "inner", name: "Inner", members: ["review-builder"] }], loops: [] };
+    const twice: Graph = { ...NESTED, groups: [{ id: "outer", name: "Outer", from: "outer@1", members: ["inner", "review-builder", "release"] }, { id: "inner", name: "Inner", from: "inner@1", members: ["review-builder"] }], loops: [] };
     const model = modelAt(twice, places(twice));
     expect(model.groups.map((g) => [g.id, g.nodes, g.inside])).toEqual([["outer", ["release", "review-builder"], null], ["inner", ["review-builder"], "outer"]]);
     expect(Object.fromEntries(boxesOf(model.loops, model.groups).map((b) => [b.name, b.depth]))).toEqual({ Outer: 1, Inner: 2 });
@@ -219,11 +219,17 @@ describe("panes", () => {
     }
   });
 
-  it("a loop with the very nodes of a subgrooph is inside it, and the subgrooph inside the group that holds it", () => {
+  it("a loop with the very nodes of a subgrooph is inside it; a group that is no subgrooph is not a box on the picture, and has no pane", () => {
+    // The document nests the subgrooph in a plain group, "Review and release", which also holds Release.
+    expect(modelOf(NESTED).groups.map((g) => [g.name, g.from, g.inside])).toEqual([["Review gate", "review-gate@1", "delivery"], ["Review and release", null, null]]);
     const boxes = Object.fromEntries(boxesOf(modelOf(NESTED).loops, modelOf(NESTED).groups).map((b) => [b.name + " · " + b.sub, b.depth]));
-    expect(boxes).toEqual({ "Review · loop": 3, "Review gate · subgrooph, from review-gate@1": 2, "Review and release · group": 1 });
+    expect(boxes).toEqual({ "Review · loop": 2, "Review gate · subgrooph, from review-gate@1": 1 });
     const nested = place(NESTED);
-    expect(["plan", "release", "review-builder", "review-critic", "review-merge-gate", "done"].map(nested.z)).toEqual([0, 84, 252, 252, 252, 0]);
+    expect(["plan", "release", "review-builder", "review-critic", "review-merge-gate", "done"].map(nested.z)).toEqual([0, 0, 168, 168, 168, 0]);
+    // A subgrooph inside a subgrooph is a pane out from it, through a plain group between them.
+    const through: Graph = { ...NESTED, groups: [{ ...NESTED.groups![0]! }, { ...NESTED.groups![1]! }, { id: "all", name: "All", from: "all@1", members: ["delivery", "plan"] }] };
+    const deep = boxesOf(modelOf(through).loops, modelOf(through).groups);
+    expect(Object.fromEntries(deep.map((b) => [b.name, b.depth]))).toEqual({ Review: 3, "Review gate": 2, All: 1 });
   });
 
   it("every node is where the canvas has it, on a phone and on a wide screen, and every node and edge is drawn once", () => {

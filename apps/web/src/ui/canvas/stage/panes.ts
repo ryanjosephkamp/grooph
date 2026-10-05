@@ -1,7 +1,8 @@
 /**
  * Panes (handoff 0096; D3 of the studio): the picture as it is, with each loop and each box lifted toward the eye
- * on a pane of its own. Every node is where the canvas has it, and as many panes forward as there are loops and
- * boxes round it, one inside another. Face on it is the picture; turned, what is inside what, and which edges pass
+ * on a pane of its own. A box is what the picture draws as one: a subgrooph. A group that was not placed from a
+ * template is not drawn on the picture, and has no pane here; a node's card still says it is in it. Every node is
+ * where the canvas has it, and as many panes forward as there are loops and boxes round it, one inside another. Face on it is the picture; turned, what is inside what, and which edges pass
  * from one pane to another: an edge that changes depth is entering or leaving a loop or a box.
  *
  * Two loops that share a node and are neither inside the other are two panes at the same depth, and the node is on
@@ -13,11 +14,11 @@ import { card, edgeLine, hue, lerp, type View } from "./shapes.js";
 
 const STEP = 84;
 
-/** The boxes a node can be in, each with how many others are round it: a loop, a group, a subgrooph. */
+/** The boxes a node can be in, each with how many others are round it: a loop, a subgrooph. */
 export function boxesOf(loops: MLoop[], groups: MGroup[]): { loop?: MLoop; group?: MGroup; name: string; sub: string; ids: Id[]; depth: number }[] {
   type Box = { loop?: MLoop; group?: MGroup; name: string; sub: string; ids: Id[]; depth: number };
-  const boxes: Box[] = [...loops.map((loop) => ({ loop, name: loop.name, ids: loop.members, sub: "loop", depth: 0 })), ...groups.map((group) => ({ group, name: group.name, ids: group.nodes, sub: group.from ? `subgrooph, from ${group.from}` : "group", depth: 0 }))].filter((box) => box.ids.length > 0);
-  // Up the document's own nesting: a loop inside a loop, a group inside the group that lists it.
+  const boxes: Box[] = [...loops.map((loop) => ({ loop, name: loop.name, ids: loop.members, sub: "loop", depth: 0 })), ...groups.filter((group) => group.from).map((group) => ({ group, name: group.name, ids: group.nodes, sub: `subgrooph, from ${group.from}`, depth: 0 }))].filter((box) => box.ids.length > 0);
+  // Up the document's own nesting: a loop inside a loop, a subgrooph inside one that holds it, through any group between.
   const up = <T extends { id: Id; inside: Id | null }>(list: T[], from: T, to: T): boolean => {
     for (let at = from.inside, n = 0; at && n <= list.length; at = list.find((x) => x.id === at)?.inside ?? null, n += 1) if (at === to.id) return true;
     return false;

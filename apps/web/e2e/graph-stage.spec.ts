@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { parseGraphText, resolvePositions, type Graph } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
-import { canvasIsQuiet, linkFor, node, repoRoot, reviewLoop, runBundle, sheet, viewIsStill } from "./support.js";
+import { canvasIsQuiet, closeSheet, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet, viewIsStill } from "./support.js";
 import { namedStill, noteMoves, slowest } from "./support-moves.js";
 
 /**
@@ -28,6 +28,27 @@ const noteIsClear = (page: Page) =>
   });
 /** Where a card is on the screen, to the pixel: the stage has drawn it, and is drawing it nowhere else. */
 const where = async (page: Page, id: string) => JSON.stringify(await page.locator(`.s3-card[data-node="${id}"]`).boundingBox().then((b) => (b ? [b.x, b.y, b.width, b.height].map(Math.round) : null)));
+
+const tops = (list: ReturnType<typeof cards>) => list.evaluateAll((els) => els.map((el) => [(el as HTMLElement).dataset["id"] ?? (el as HTMLElement).dataset["node"]!, Math.round(el.getBoundingClientRect().top)] as const));
+/** The canvas's rows, top to bottom: the nodes at each height. */
+const canvasRows = async (page: Page) => {
+  const at = await tops(page.locator(".react-flow__node"));
+  return [...new Set(at.map(([, top]) => top))].sort((a, b) => a - b).map((top) => at.filter(([, t]) => t === top).map(([id]) => id));
+};
+/**
+ * The panes have the rows the canvas has: each row is under the one before it by more than the cards of either differ
+ * among themselves. (A row seen from the side slopes a little, and a card on a nearer pane stands a little lower;
+ * rows wrapped elsewhere would put two of the canvas's rows on one such slope, or split one over two heights.)
+ */
+async function panesHaveRows(page: Page, rows: string[][]): Promise<void> {
+  const at = new Map(await tops(cards(page)));
+  expect(at.size).toBe(rows.flat().length);
+  const span = (row: string[]): [number, number] => [Math.min(...row.map((id) => at.get(id)!)), Math.max(...row.map((id) => at.get(id)!))];
+  for (let n = 1; n < rows.length; n += 1) {
+    const [above, under] = [span(rows[n - 1]!), span(rows[n]!)];
+    expect(under[0] - above[1], `row ${n}`).toBeGreaterThan(1.5 * Math.max(above[1] - above[0], under[1] - under[0], 4));
+  }
+}
 
 /** Choose 3D, then the kind, and wait until it is drawn and the move to it has ended. */
 async function open(page: Page, name = "Panes"): Promise<void> {
@@ -415,27 +436,17 @@ test("on a phone the panes wrap their rows where the canvas does, though the pho
   await page.goto("./#/templates/built-in/specialist-critic-bank");
   await canvasIsQuiet(page);
   await page.getByRole("button", { name: "Close panel" }).click();
-  const tops = (list: ReturnType<typeof cards>) => list.evaluateAll((els) => els.map((el) => [(el as HTMLElement).dataset["id"] ?? (el as HTMLElement).dataset["node"]!, Math.round(el.getBoundingClientRect().top)] as const));
-  // The canvas's rows, top to bottom: no more than two nodes in any, and more rows than a wide screen would have.
-  const rowsOf = (at: (readonly [string, number])[]) => [...new Set(at.map(([, top]) => top))].sort((a, b) => a - b).map((top) => at.filter(([, t]) => t === top).map(([id]) => id));
-  const onCanvas = rowsOf(await tops(page.locator(".react-flow__node")));
+  // The canvas's rows: no more than two nodes in any, and more rows than a wide screen would have.
+  const onCanvas = await canvasRows(page);
   expect(Math.max(...onCanvas.map((row) => row.length))).toBe(2);
   const wide = resolvePositions(pattern("specialist-critic-bank"), 4).positions;
   expect(onCanvas.length).toBeGreaterThan(new Set(Object.values(wide).map((at) => at.y)).size);
   // Turned on its side the window is wide enough for four to a row; the canvas keeps the rows it drew.
   await page.setViewportSize({ width: 780, height: 420 });
-  expect(rowsOf(await tops(page.locator(".react-flow__node")))).toEqual(onCanvas);
+  expect(await canvasRows(page)).toEqual(onCanvas);
   await open(page);
-  // And so do the panes: each row is under the one before it by more than the cards of either differ among
-  // themselves. (A row seen from the side slopes a little, and a card on a nearer pane stands a little lower; four
-  // to a row would put two of the canvas's rows on one such slope, no further apart than its own cards are.)
-  const at = new Map(await tops(cards(page)));
-  expect(at.size).toBe(onCanvas.flat().length);
-  const span = (row: string[]): [number, number] => [Math.min(...row.map((id) => at.get(id)!)), Math.max(...row.map((id) => at.get(id)!))];
-  for (let n = 1; n < onCanvas.length; n += 1) {
-    const [above, under] = [span(onCanvas[n - 1]!), span(onCanvas[n]!)];
-    expect(under[0] - above[1], `row ${n}`).toBeGreaterThan(1.5 * Math.max(above[1] - above[0], under[1] - under[0], 4));
-  }
+  // And so do the panes.
+  await panesHaveRows(page, onCanvas);
   await page.setViewportSize({ width: 390, height: 780 });
 
   // A node inside a loop, inside a subgrooph, inside a group: its card says all three, the nearest first.
@@ -449,6 +460,82 @@ test("on a phone the panes wrap their rows where the canvas does, though the pho
   await expect(page.locator('.s3-card[data-node="plan"]')).not.toHaveAttribute("aria-description");
 });
 
+test("in the editor the canvas lays a changed document out for the window as it is then, and the panes wrap their rows with it", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 780 });
+  // A document with more nodes in a rank than a phone puts side by side, and no layout of its own.
+  await importDocument(page, "glyph-vocabulary.grooph.json", readFileSync(join(repoRoot, "fixtures/valid/glyph-vocabulary.grooph.json"), "utf8"));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  const narrow = await canvasRows(page);
+  expect(Math.max(...narrow.map((row) => row.length))).toBe(2);
+  // The window is made wider, and then the document is changed: the canvas lays it out again, more to a row.
+  await page.setViewportSize({ width: 900, height: 700 });
+  await page.locator(".react-flow__node").first().click();
+  await sheet(page).getByLabel("Name", { exact: true }).fill("Renamed");
+  await closeSheet(page);
+  await expect.poll(async () => Math.max(...(await canvasRows(page)).map((row) => row.length))).toBeGreaterThan(2);
+  const wider = await canvasRows(page);
+  await open(page);
+  await panesHaveRows(page, wider);
+});
+
+test("when neither piece can be fetched the page says only what is so, press after press, and the visit remembers no kind that was never drawn", async ({ page }) => {
+  await page.route(STAIRS, (route) => route.abort());
+  await page.route(STAGE, (route) => route.abort());
+  await page.goto("./#/templates/built-in/grind-loop");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const note = page.locator(".graph-views-note");
+  for (const press of [1, 2, 3, 4]) {
+    await view(page, "3D").click();
+    // Never that the stairs show the graph: they could not be fetched either.
+    await expect(note, `press ${press}`).toHaveText("The view in three dimensions could not be fetched. The picture shows the same graph.");
+    await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+    expect(await page.evaluate(() => sessionStorage.getItem("groophSpace")), `press ${press}`).toBeNull();
+    // A press of the picture, which is what is drawn, puts the note away.
+    await view(page, "Picture").click();
+    await expect(note).toHaveCount(0);
+  }
+  // The network is back: the next press draws a view, and that kind is what the visit remembers.
+  await page.unroute(STAIRS);
+  await page.unroute(STAGE);
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene, .s3-frame")).toBeVisible();
+  const drawn = (await page.locator(".s3-frame").count()) ? "panes" : "stairs";
+  await expect(kind(page, drawn === "panes" ? "Panes" : "Stairs")).toHaveAttribute("aria-checked", "true");
+  expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe(drawn);
+});
+
+test("a kind that fails after the reader has gone back to the picture is said there, and 3D then opens the stairs they had", async ({ page }) => {
+  // The first request is held until the reader has left; it and every try after it (`piece.ts` asks again) fail.
+  let fail = (): void => {};
+  let held = false;
+  await page.route(STAGE, async (route) => {
+    if (!held) ((held = true), await new Promise<void>((done) => (fail = done)));
+    await route.abort();
+  });
+  await page.goto("./#/templates/built-in/grind-loop");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await viewIsStill(page);
+  const asked = page.waitForRequest(STAGE);
+  await kind(page, "Panes").click();
+  await asked;
+  await view(page, "Picture").click();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await viewIsStill(page);
+  fail();
+  await expect(page.locator(".graph-views-note")).toHaveText("That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs.");
+  // The visit remembers the stairs, which were drawn, and 3D opens them: not the kind that could not be had.
+  expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe("stairs");
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await expect(kind(page, "Stairs")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".graph-views-note")).toHaveCount(0);
+});
+
 test("when the kind the visit remembers cannot be fetched from the picture, the page says so and 3D opens the stairs", async ({ page }) => {
   await page.addInitScript(() => sessionStorage.setItem("groophSpace", "panes"));
   await page.route(STAGE, (route) => route.abort());
@@ -459,11 +546,15 @@ test("when the kind the visit remembers cannot be fetched from the picture, the 
   await expect(page.locator(".graph-views-note")).toHaveText("That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs.");
   await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
   await expect(node(page, "builder")).toBeVisible();
+  // What the visit remembers is not changed by a fetch that failed: a reload would try the panes again.
+  expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe("panes");
   // The next press is not the same failure again: it is the stairs, and the note has gone with the new choice.
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
   await expect(kind(page, "Stairs")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".graph-views-note")).toHaveCount(0);
+  // The stairs are drawn, and are now what the visit remembers.
+  expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe("stairs");
 });
 
 test("a kept picture theme leaves the panes in Paper, and the canvas is in the theme again after", async ({ page }) => {
