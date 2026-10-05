@@ -16,7 +16,7 @@ The first sheet is drawn only when something stands on it; a graph with no loop 
 
 ## Status
 
-`done`, **in two pull requests, as the driver allowed, with two items of the brief not built and put to the driver.** The first (merged as #93) has 3D for a graph with the first-pass slider, on every canvas. The second has the slider through a recorded run's own notes: the replay in three dimensions. The sequence for a graph and a share link that names the view are not built; the reasons, and what I recommend, are in "The second part" below.
+`done`, **in two pull requests, as the driver allowed, with two items of the brief not built and put to the driver.** The first (merged as #93) has 3D for a graph with the first-pass slider, on every canvas. The second has the slider through a recorded run's own notes: the replay in three dimensions. The sequence for a graph and a share link that names the view are not built: the driver decided both on 2026-10-05, pending the owner, and the reasons are in "The second part" below.
 
 This page was written with the first part and is left as it was, with the second part added under its own heading. Three things to read first about the first part:
 
@@ -135,7 +135,7 @@ In `shots/`: `space-<template>-<phone|desktop>-<light|dark>.jpg` for `review-gat
 
 ## The second part: a run replayed in three dimensions
 
-The second pull request, stacked on the first. **It has the run's own notes on the slider. It does not have a sequence, and it does not have a link that names the view: both are put to the driver below, with a recommendation.**
+The second pull request, stacked on the first (merged as #94). **It has the run's own notes on the slider. It does not have a sequence, and it does not have a link that names the view: both were put to the driver, whose decisions are under their headings below.**
 
 **What it adds.** On a run's page (a run folder, a bundle, a run's link) the slider in 3D is the run's notes, in the order the run wrote them, in place of the first pass. A note about a node lights its card; about an edge, its arc with the two cards it joins; about a loop, the loop's sheet; about the run as a whole, nothing. The sentence is the one the run's replay uses (`replaySteps` in core: who did what, in which round), and under the slider is how the run ended and which stop fired. Nothing else is dimmed, because the order is the run's and not the order the arcs are numbered in. A run with no notes yet has the graph's first pass.
 
@@ -149,7 +149,11 @@ The second pull request, stacked on the first. **It has the run's own notes on t
 
 **Verified at this part's head:** core 444, CLI 129, web 90; the browser suite 239 passed, 161 skipped, none failed; the graph's tests five times each under fourteen workers, 40 of 40; `perf-budget --check` passes. On this Mac against the first part: a template's address 277.99 to 277.98, the first load 179.53 to 179.51 (no change beyond the names of files); the map's 3D piece 8.23 to 8.30 of 9; the graph's piece 3.27 to 3.54. CI's lines are in the pull request.
 
-### The sequence: not built, and why; the driver's to rule
+**Found on CI after the first part was merged, and fixed in a third pull request (tests only).** A canvas now fetches the piece behind its switch some milliseconds after its nodes are drawn. Three tests that count failed requests reloaded a page with a canvas on it at once, and CI's Firefox reported the fetch the reload cut short (`release.spec.ts`, "the next visit shows the new version": failed once, passed on its retry, so the job was green with "1 flaky"). `canvasIsQuiet` in `e2e/support.ts` waits for the switch, and those tests wait for it before they reload or read the failures. A test that leaves a canvas page while it counts failures should do the same.
+
+### The sequence: not built, and why
+
+**Decided by the driver on 2026-10-05, pending the owner: do not build it now.** The driver is putting it to the owner in the words below, with "build it for a run" as his to say; if he says it, it is a third pull request.
 
 The brief says: "If a sequence of a graph with no run says nothing the picture does not, say so and offer it only for a run." I looked at both.
 
@@ -160,10 +164,12 @@ So I recommend **not building it**, and spending the room on the run's replay, w
 
 ### A link that names the view: not built
 
+**Decided by the driver on 2026-10-05, pending the owner: leave it.** It is to be done for maps and graphs together when the first-load line has room, and that line is the owner's to raise.
+
 The brief says a share link may name the view, "as a map's can". A map's link cannot today: no address in the app carries a view, for a map or a graph. Adding it means the address is read where every address is read, which is the file every first load carries, at 179.73 of 180 KB on CI. I left it out rather than spend from that line without being asked. It is a few lines when the room is there, and it should be done for maps and graphs together.
 
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0092 is at handoffs/0092-a-graph-in-three-dimensions/HANDBACK.md, in two pull requests: the first on branch slice/0092-a-graph-in-three-dimensions (3D for a loop graph with the first-pass slider, on every canvas), the second on slice/0092-a-run-replayed, stacked on it (a recorded run's own notes on the slider). Status: done, with two items of the brief not built and put to you with reasons: the sequence (it repeats the picture for a graph, and the timeline for a run) and a link that names the view (a map's cannot either, and it would spend from the first-load line). No budget line raised, packages untouched, the map's views byte for byte. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0092 is at handoffs/0092-a-graph-in-three-dimensions/HANDBACK.md, in two pull requests: the first on branch slice/0092-a-graph-in-three-dimensions (3D for a loop graph with the first-pass slider, on every canvas), the second on slice/0092-a-run-replayed, stacked on it (a recorded run's own notes on the slider). Status: done, with two items of the brief not built, as you decided on 2026-10-05 pending the owner: the sequence (it repeats the picture for a graph, and the timeline for a run) and a link that names the view (a map's cannot either, and it would spend from the first-load line). A third pull request, slice/0092-quiet-canvas, makes three browser tests wait for the canvas's last fetch before they reload (a test from the first part was flaky in Firefox on CI). No budget line raised, packages untouched, the map's views byte for byte. Please reconcile with the grooph-reconcile skill.
 ```
