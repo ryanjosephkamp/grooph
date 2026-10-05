@@ -252,11 +252,8 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   const moved = useRef<[number, () => void][]>([]);
   // The last of the picture and the stairs to be up: where a view that cannot be drawn falls back to.
   const safe = useRef<On>("picture");
-  const fold = (down: boolean): void => {
-    const editor = host.current?.closest<HTMLElement>(".editor");
-    if (down) editor?.setAttribute("data-space-folds", "");
-    else editor?.removeAttribute("data-space-folds");
-  };
+  // The sheet is down to its head while one of the stage's kinds is what is asked for or up, and for no other.
+  const fold = (kind?: On): void => void host.current?.closest(".editor")?.toggleAttribute("data-space-folds", !!kind && kind !== "picture" && pieceOf(kind) === "stage");
   const count = useRef(0);
   const [reached, again] = useState(0);
   // `idle` is asked when the browser comes for the change, a frame after it was told of it: whether another press
@@ -290,7 +287,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     // On a phone a panel's sheet goes down to its head when one of the stage's kinds is chosen, and comes back with
     // the picture. Not for the stairs: they are as they were, and what is seen to go into them is what was in
     // sight over the sheet (#101's test of that is unchanged).
-    fold(next !== "picture" && pieceOf(next) === "stage");
+    fold(next);
     if (next === asked.current) return;
     asked.current = next;
     const slot = next === "picture" ? undefined : pieceOf(next);
@@ -314,7 +311,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
           failed.current[slot] = true;
           // Back to what is drawn, if this is still what was being waited for.
           const waited = mine();
-          if (waited) asked.current = shown.current;
+          if (waited) fold((asked.current = shown.current));
           if (asked.current === "picture") {
             // From the picture, the kind that could not be had is not the one 3D opens next on this page: a kind of
             // the other piece is, whether the reader waited for this one or had gone back to the picture.
@@ -359,12 +356,13 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (on === "picture" || on === "stairs") safe.current = on;
     told(reached);
   });
-  // The sheet's head, pressed, brings it up again; and the mark goes with this.
+  // A press anywhere else on the page brings the sheet up again: on its head, or on what asks for another panel
+  // (Export, the outline, the title). And the mark goes with this.
   useEffect(() => {
-    const editor = host.current?.closest<HTMLElement>(".editor");
-    const up = (e: Event): void => void (e.target instanceof Element && e.target.closest(".sheet-head") && fold(false));
+    const editor = host.current?.closest(".editor");
+    const up = (e: Event): void => void (e.target instanceof Node && !host.current?.contains(e.target) && fold());
     editor?.addEventListener("click", up, true);
-    return () => (editor?.removeEventListener("click", up, true), fold(false));
+    return () => (editor?.removeEventListener("click", up, true), editor?.removeAttribute("data-space-folds"));
   }, []);
   // A view that goes while a change is on its way must not leave the browser waiting for it.
   useEffect(() => () => told(Infinity), []);
@@ -377,7 +375,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     return () => sized.disconnect();
   }, []);
   // A card that is pressed opens its node's sheet: the sheet comes up for it.
-  const open = (id: Id): void => (fold(false), of.onNodeTap?.(id));
+  const open = (id: Id): void => (fold(), of.onNodeTap?.(id));
   const tap = (target: EventTarget | null): boolean => {
     const node = target instanceof Element ? target.closest<SVGGElement>("[data-node]") : null;
     if (node) open(node.dataset["node"]!);
@@ -387,7 +385,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   // remembers, since it never drew.
   const lost = (): void => {
     const back = safe.current;
-    asked.current = back;
+    fold((asked.current = back));
     setOn(back);
     setView(back === "picture" ? "picture" : "space");
     setKind("stairs");

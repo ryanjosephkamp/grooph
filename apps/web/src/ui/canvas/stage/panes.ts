@@ -77,11 +77,14 @@ export const panes: View = (m) => {
   m.edges.forEach((e, k) => {
     const [p, q] = [at[e.from]!, at[e.to]!];
     // A way back bows out to the side, as it does on the flat picture; and a second edge between the same two
-    // nodes bows out past the first, so that neither lies under the other.
+    // nodes bows out past the first, so that neither lies under the other. To the side of the line it is: to the
+    // right of one that runs down the page, and under one that runs across it, as the picture has its ways back.
     const twin = m.edges.slice(0, k).filter((x) => (x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from)).length;
     const bow = (e.back ? 70 + Math.abs(p[1] - q[1]) * 0.2 : 0) + 22 * twin;
     const out = e.back ? 50 : 0;
-    paths[e.id] = bow ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] + bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp([p[0] + out, p[1], p[2]], [q[0] + out, q[1], q[2]], n / 18))) : [p, q];
+    const [dx, dy] = [q[1] - p[1], p[0] - q[0]];
+    const side = (dx < 0 || (!dx && dy > 0) ? -bow : bow) / (Math.hypot(dx, dy) || 1);
+    paths[e.id] = bow ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] + side * dx * 4 * (n / 18) * (1 - n / 18), v[1] + side * dy * 4 * (n / 18) * (1 - n / 18), v[2]])(lerp([p[0] + out, p[1], p[2]], [q[0] + out, q[1], q[2]], n / 18))) : [p, q];
     prims.push(edgeLine(m, e, paths[e.id]!, { inset: [4, 8] }));
   });
   return { prims, node: (id) => at[id]!, path: (e) => paths[e]! };

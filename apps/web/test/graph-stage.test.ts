@@ -94,6 +94,10 @@ describe("a recorded run", () => {
       ["critic", 1, "pass"],
     ]);
     expect(model.run!.rounds).toEqual({ sandwich: 1 });
+    // A note at an agent that reports nothing (a word, a proposal) is not a dispatch, with a stamp or without one.
+    const word = (k: number, more: Partial<RunNote> = {}): RunNote => ({ id: `w-${k}`, run: NOTES[0]!.run, at: "node:builder", text: "a word at the builder", ...more }) as RunNote;
+    const wordy = [...NOTES.slice(0, 3), word(1), word(2, { ended: "2026-09-19T13:00:00Z" }), ...NOTES.slice(3), word(3, { proposal: { summary: "s", reason: "r" } } as Partial<RunNote>)];
+    expect(modelOf(RUN, wordy).run!.dispatches.map((d) => [d.node, d.round, d.outcome])).toEqual(model.run!.dispatches.map((d) => [d.node, d.round, d.outcome]));
   });
 
   it("a dispatch's minutes are by the stamps of the ends: the first from its own start, each after from the end before it", () => {
@@ -215,6 +219,29 @@ describe("which edges a run took", () => {
     // With no stop named, the round ended and the way back was taken.
     const on = taken(doc, notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 0], ["builder", "pass", 1]]));
     expect(on[4]).toEqual(["e-tests-fail"]);
+    // A person's stop is lifted by their answer: Gauntlet asks a person every two rounds of Pieces, and when the
+    // run goes on, the way back was taken on what was reported before the halt. A cap there bars it.
+    const lifted = (stop: string) => taken(GAUNTLET, notes([["next-piece", "pass", 1], ["loop:pieces", "halt", 1, stop], ["owner", "started", 2], ["owner", "pass", 2]]));
+    expect(lifted("human")).toEqual([[], [], [], ["e-next-piece-pass"], []]);
+    expect(lifted("max-iterations")).toEqual([[], [], [], [], []]);
+  });
+
+  it("a line that reports nothing does not take back what a node reported: a word at the node, or the line before its next dispatch", () => {
+    const [doc] = runAt("run-nested");
+    const word = { id: "w-1", run: "r", at: "node:tests", text: "a word at the tests" } as RunNote;
+    const [first, last] = [notes([["builder", "pass", 0], ["tests", "pass", 0]]), notes([["judge", "pass", 0]])];
+    expect(taken(doc, [...first, word, ...last])[4]).toEqual(["e-tests-judge"]);
+    expect(taken(doc, [...first, ...notes([["tests", "started", 0]]), ...last])[4]).toEqual(["e-tests-judge"]);
+    // A second visit to a node with an edge to itself: the line before the dispatch is the arrival, and the result
+    // after it is the same visit, though the node had reported before.
+    const solo: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-again", from: "builder", to: "builder" }] } as Graph;
+    expect(taken(solo, notes([["builder", "pass", 0], ["builder", "started", 0], ["builder", "pass", 0]]))).toEqual([[], [], ["e-again"], []]);
+    // Of the edges taken into a node, the one from the node of the note before is the one followed, though another
+    // source reported later: here a word at the first critic comes between the second critic's pass and the judge.
+    const critics = BANK.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    const judge = BANK.edges.find((e) => e.from === critics[0])!.to;
+    const said = [...notes([["builder", "pass", 0], [critics[0]!, "pass", 0], [critics[1]!, "pass", 0]]), { ...word, at: `node:${critics[0]}` } as RunNote, ...notes([[judge, "pass", 0]])];
+    expect(stepsOf(modelAt(BANK, places(BANK), said))[5]).toMatchObject({ to: judge, from: critics[0] });
   });
 
   it("a second invalid-evidence in a row routes as a fail; and a run that ends at a stop node with no note there still got there", () => {
@@ -223,6 +250,8 @@ describe("which edges a run took", () => {
     expect(twice[5]).toEqual(["e-critic-fail"]);
     // Once is not a fail: the lead dispatches the critic again, and nothing has been taken to the builder.
     expect(taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1]]))[4]).toEqual([]);
+    // Nor is once in a later round, after twice in an earlier one: the second is the second in one round.
+    expect(taken(RUN, notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "invalid-evidence", 0], ["critic", "invalid-evidence", 0], ["builder", "pass", 1], ["checks", "pass", 1], ["critic", "invalid-evidence", 1], ["builder", "pass", 2]]))[8]).toEqual([]);
     // The recorded run's notes, with the one at Done written as leads often write it: a plain note at the edge
     // into Done. Core reads the run as ended at Done; the critic's pass took its edge there, and the run's end
     // note, the last about the run with an outcome, is where that is shown. The edge's own note is not a move.
@@ -317,8 +346,23 @@ describe("panes", () => {
     expect([a.length, b.length]).toEqual([19, 19]);
     expect(Math.abs(a[9]![0] - b[9]![0])).toBe(22);
     expect([a[0], a[18]]).toEqual([b[0], b[18]]);
-    // A forward edge with a twin the other way (builder to tests, tests back to builder) is still a straight line.
+    // The first of two in the document is drawn as it would be alone: here the forward edge (builder to tests,
+    // tests back to builder), a straight line. Listed after its twin it is the one that bows.
     expect(built.path("e-builder-tests")).toHaveLength(2);
+    const turned: Graph = { ...doc, edges: [...doc.edges.filter((e) => e.id !== "e-builder-tests"), doc.edges.find((e) => e.id === "e-builder-tests")!] };
+    expect(panes(modelAt(turned, places(turned)), shown).path("e-builder-tests")).toHaveLength(19);
+    // In a row, where the nodes are side by side, it is to the side of the line all the same: under it. The review
+    // loop's layout is one row; its way back, and a second edge beside the forward one, each leave the line.
+    const flat = graph("fixtures/valid/review-loop.grooph.json");
+    const twice: Graph = { ...flat, edges: [...flat.edges, { ...flat.edges.find((e) => e.id === "e-review-pass")!, id: "e-review-pass-too" }] };
+    const row = panes(modelAt(twice, places(twice, 4)), shown);
+    const [straight, back, second] = [row.path("e-build-review"), row.path("e-review-fail"), row.path("e-review-pass-too")];
+    expect(straight).toHaveLength(2);
+    expect(straight[0]![1]).toBe(straight[1]![1]);
+    // (A way back's 70, and 22 past the forward edge it is the twin of.)
+    expect([back[9]![1] - back[0]![1], back[18]![1] - back[0]![1]]).toEqual([-92, 0]);
+    expect([second[9]![1] - second[0]![1], second[9]![0]]).toEqual([-22, (second[0]![0] + second[18]![0]) / 2]);
+    expect(row.path("e-review-pass")).toHaveLength(2);
     // Each pane's name may stand at any of six places round its pane: the stage takes the first no card is over.
     const names = built.prims.flatMap((p) => (p.t === "text" && / · (loop|subgrooph)/.test(p.text) ? [p] : []));
     expect(names.map((p) => p.text).sort()).toEqual(["Grind · loop", "Phases · loop"]);
