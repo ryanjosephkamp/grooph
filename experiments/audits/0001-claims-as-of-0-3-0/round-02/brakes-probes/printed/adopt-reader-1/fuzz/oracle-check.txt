@@ -1,0 +1,14 @@
+source: builder 4 critic 4
+nothing                                        rounds: [] people: 
+cap 4 -> 6 (budget 10 still binds?)            rounds: [{"node":"review-builder","was":4,"now":5},{"node":"review-critic","was":4,"now":5}] people: 
+cap 4 -> 3                                     rounds: [] people: 
+budget 10 -> 5                                 rounds: [] people: 
+cap removed                                    rounds: [{"node":"review-builder","was":4,"now":5},{"node":"review-critic","was":4,"now":5}] people: 
+cap and budget removed                         rounds: [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}] people: 
+H1 outer loop critic->plan cap 1000            rounds: [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}] people: 
+H2 detour via fixer in loop 2                  rounds: [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}] people: 
+H5 budget tokens 0 then builder, before the cap rounds: [{"node":"review-builder","was":4,"now":"40+"},{"node":"review-critic","was":4,"now":"40+"}] people: review-merge-gate->review-builder review-merge-gate->review-critic review-merge-gate->review-merge-gate
+H5' same, appended after the cap and budget    rounds: [] people: review-merge-gate->review-builder review-merge-gate->review-critic review-merge-gate->review-merge-gate
+edge plan->release (around the gate)           rounds: [] people: plan->release plan->done
+honest: notes node after release               rounds: [] people: 
+approval twin:                                 rounds: [] people: review-builder->review-builder review-critic->review-builder review-critic->review-critic

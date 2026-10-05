@@ -1,0 +1,8 @@
+seed 7: 374 valid working copies through the command (205 refused, 169 written), 26 invalid ones; exit code or file disagrees with core: 0; written on a refusal: 0; dry run wrote: 0; thrown: 0
+
+--into <the source file>: exit 1; source is now version 1
+  
+
+false refusal on glyph-vocabulary: the back edge "e-tests-fail" given another id and nothing else
+  edge:e-tests-fail-b: a round between "tests" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops
+  loop:grind.back: a round between "tests" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops

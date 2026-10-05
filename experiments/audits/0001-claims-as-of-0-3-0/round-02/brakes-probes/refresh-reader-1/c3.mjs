@@ -1,0 +1,22 @@
+import { tmpdir } from "node:os";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { run } from "../../../../../../packages/cli/dist/src/index.js";
+const here = dirname(fileURLToPath(import.meta.url)); const root = join(here, "../../../../../..");
+const dir = mkdtempSync(join(tmpdir(), "grooph-brakes-probes-box-")); mkdirSync(join(dir, "work", ".git"), { recursive: true });
+const fixture = JSON.parse(readFileSync(join(root, "fixtures/valid/subgrooph-in-a-graph.grooph.json"), "utf8"));
+const own = (id) => !id.startsWith("review-"); const { policies, groups, ...rest } = fixture;
+const file = join(dir, "work", "plan.grooph.json");
+writeFileSync(file, JSON.stringify({ ...rest, nodes: fixture.nodes.filter((n) => own(n.id)), edges: fixture.edges.filter((e) => own(e.from) && own(e.to)), loops: [] }, null, 2));
+const env = { cwd: join(dir, "work"), userDir: join(dir, "home", "templates"), defaultRegistry: "http://127.0.0.1:9/unreachable/index.json" };
+const g = async (...argv) => { const out = [], err = []; const code = await run(argv, { out: (t) => out.push(t), err: (t) => err.push(t) }, () => "", env); return { code, out: out.filter((l) => !l.startsWith("warning") && !l.includes("box-")).join("\n"), err: err.join("\n") }; };
+const S = ["--set", "task=a", "--set", "test-command=pnpm test", "--set", "checklist=c.md"];
+await g("sub", "add", "review-gate", "--into", file, "--as", "review-two", "--after", "plan", "--then", "release", ...S, "--write");
+await g("sub", "add", "review-gate", "--into", file, "--as", "review", "--after", "release", "--then", "done", ...S, "--write");
+const t = JSON.parse(readFileSync(join(root, "patterns/review-gate.grooph.json"), "utf8")); t.policies = []; t.version = 2;
+mkdirSync(join(dir, "work", ".grooph", "templates"), { recursive: true }); writeFileSync(join(dir, "work", ".grooph", "templates", "review-gate.grooph.json"), JSON.stringify(t));
+const r = await g("sub", "update", file, "--allow", "policy:review-two-p-critic-isolation");
+console.log("exit", r.code, "\n" + r.out, r.err ? "\n[stderr] " + r.err : "");
+// ordinary pair: names disjoint?
+rmSync(dir, { recursive: true, force: true });

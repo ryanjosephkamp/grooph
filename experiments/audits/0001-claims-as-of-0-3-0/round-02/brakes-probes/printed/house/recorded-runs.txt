@@ -1,0 +1,8 @@
+  tightens: experiments/patterns/spec-then-loop/run-1/runs/20260919-1245-k7qz: edge:e-builder-critic.evidence (undoing it: the critic would no longer be handed "unchanged files ACCEPTANCE.md names as a reference (src/count.mjs)" by "builder")
+  no source beside it: fixtures/runs/run-broken
+  no source beside it: fixtures/runs/run-gate
+  no source beside it: fixtures/runs/run-live
+  no source beside it: fixtures/runs/run-malformed
+  no source beside it: fixtures/runs/run-nested
+  no source beside it: fixtures/runs/slice-0007-sandwich
+49 run folders; 6 with no source beside them; 0 unreadable; 0 refused by the validator; of the other 43: 9 changed their working copy, 1 tightened a brake, 0 would be refused for loosening one
