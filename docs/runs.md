@@ -12,7 +12,7 @@ Normative for slice 0008. A run leaves a folder behind; this page says how groop
   …                      whatever the lead materialized: round-<n>/, evidence files, amend-*.ops.json
 ```
 
-One addition to the package contract, so a monitor can show what is running and not only what finished: **the lead appends a note with `"outcome":"started"` when it dispatches a node** (`at: node:<id>`, `round` when inside a loop), and the usual note when the node completes. One short line per dispatch; no other cost. Lead-brief §8 says so; older runs simply have no started notes.
+One addition to the package contract, so a monitor can show what is running and not only what finished: **the lead appends a note with `"outcome":"started"` when it dispatches a node** (`at: node:<id>`, `round` when inside a loop), and the usual note when the node completes. One short line per dispatch. Lead-brief §8 says so; older runs simply have no started notes.
 
 ## 2. Core (pure)
 
