@@ -4,7 +4,7 @@ import { copyText } from "../../doc/exportPackage.js";
 import { piece } from "../../piece.js";
 import { GlyphDrawn } from "../Glyph.js";
 import { templateHref } from "../templates/TemplatesScreen.js";
-import { Check, DOCS, SOURCE, SiteFooter, SiteHeader } from "./Chrome.js";
+import { Check, DOCS, SiteFooter, SiteHeader } from "./Chrome.js";
 import { RunDemo } from "./RunDemo.js";
 
 /** The template the front page draws, and the one "Open a template" opens. */
@@ -95,7 +95,7 @@ export function Landing({ device }: { device?: ReactNode }) {
             </div>
             <div className="land-hero-text">
               <p className="land-lede">
-                Draw who builds, who checks, where a person decides and when the work stops. grooph checks that every loop can end, then compiles the graph
+                Draw who builds, who checks, where a person decides and when the work stops. grooph checks that every loop names a stop, then compiles the graph
                 into a package a Claude Code session runs. Your harness runs it; grooph never does.
               </p>
               <div className="land-cta">
@@ -132,15 +132,17 @@ export function Landing({ device }: { device?: ReactNode }) {
           <div className="site-wrap">
             <ul className="land-claims" aria-label="What grooph does">
               <li>
-                <strong>Every loop can end.</strong> The validator refuses a loop without a stop, a critic that shares the builder&rsquo;s context, and an
-                irreversible step without a human gate.
+                <strong>Every loop names its stop.</strong> The validator refuses a loop without one and warns when a loop has no cap. Where a graph asks
+                for it, it refuses a critic that shares the builder&rsquo;s context, and it refuses a step marked irreversible with no human gate before it.
               </li>
               <li>
-                <strong>The graph is the contract.</strong> The package drives the session as drawn: named subagents, stops checked in order, and gates that
-                halt before anything irreversible.
+                <strong>The graph is the contract.</strong> The package tells the session to run it as drawn: named subagents, stops in order, a halt at
+                every human gate. grooph does not enforce it while it runs; eighteen of twenty recorded runs pass the checks of it, and two say why they do
+                not.
               </li>
               <li>
-                <strong>Every run leaves a record.</strong> Notes, rounds, dispatch counts and why it stopped, in a folder a monitor reads and a run id resumes.
+                <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. A halted run goes on when a
+                person answers.
               </li>
             </ul>
           </div>
@@ -255,9 +257,10 @@ export function Landing({ device }: { device?: ReactNode }) {
               What is shown, <mark>and what is not</mark>
             </h2>
             <p>
-              In twenty proving runs and one paired comparison, grooph is shown to bound and record autonomous work and to hold a design as a runtime
-              contract. It is not shown to raise quality over the same instructions given as a prompt, on small tasks. It does not run agents, host anything,
-              or call a model. <a href={`${SOURCE}/blob/main/docs/decisions/0013-value-as-of-study-one.md`}>The evidence</a>.
+              In twenty recorded runs a session stopped where its graph said, at a passed bar or a human gate, and left a record; eighteen of the twenty
+              pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
+              no quality advantage over a prompt derived from it. grooph runs no agent, calls no model and needs no hosted service.{" "}
+              <a href={`${DOCS}claims/`}>Every claim and its evidence</a>.
             </p>
           </div>
         </section>
