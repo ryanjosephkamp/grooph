@@ -315,7 +315,7 @@ export function themed(svg: string, name: string | undefined, form: PictureTheme
   // The frame as core writes it: the root, a title, the palette, the background. A document's words are escaped,
   // so none of them can stand where these are looked for.
   const frame = /^(<svg [^>]* data-picture="[a-z]+")([^>]*>)(<title>[^<]*<\/title>)<style>[^<]*<\/style>(<rect [^>]*\/>)/;
-  if (!frame.test(svg)) throw new Error("themed() takes a picture as core draws it to follow the viewer: picture(doc), with no theme of its own");
+  if (!frame.test(svg) || /^<svg [^>]* data-look=/.test(svg)) throw new Error("themed() takes a picture as core draws it to follow the viewer: picture(doc), with no theme of its own");
   const out = svg.replace(frame, (_, root: string, rest: string, title: string, background: string) => `${root} data-look="${parts.name}"${rest}${title}<style>${parts.css}</style>${parts.defs ? `<defs>${parts.defs}</defs>` : ""}${background}${parts.ground}`);
   if (form === "auto") return out;
   // Only in a `style` attribute, which is where a picture's colors are; a word a document holds is never one.

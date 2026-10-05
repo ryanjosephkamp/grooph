@@ -76,6 +76,8 @@ test("Paper by name, and a name that is none of the six, is no theme at all; a p
     assert.equal(themeParts(name), undefined, `themeParts(${JSON.stringify(name)})`);
     for (const form of FORMS) assert.equal(themed(plainest, name, form), plainest, `themed(…, ${JSON.stringify(name)}, ${form})`);
   }
+  // Nor is one that is in a theme already: it is not given a second.
+  for (const first of FIVE) for (const second of FIVE) assert.throws(() => themed(themed(plainest, first), second), /as core draws it to follow the viewer/, `${first}, then ${second}`);
   // A picture that already has its colors written in is not one a theme can be added to, and that is said.
   assert.throws(() => themed(picture(parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!, { theme: "light" }), "chalk"), /as core draws it to follow the viewer/);
   assert.ok(isPictureTheme("paper") && isPictureTheme("chalk") && !isPictureTheme("constructor"));
