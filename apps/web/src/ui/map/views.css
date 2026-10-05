@@ -1,13 +1,20 @@
 /* A map's other views (handoff 0080). These rules ride in views.tsx and are added to the page when a map is drawn:
    map.css is asked for at every address, and an address that shows no map should not carry them. */
 
-/* The switch: the picture, or the sequence. The screen keeps its place before it arrives. */
+/* The switch: the picture, the sequence, or the map in three dimensions. The screen keeps its place before it arrives. */
 .map-views {
   width: fit-content;
   margin: 10px auto 12px;
 }
 .map-views .seg {
-  min-width: 104px;
+  min-width: min(104px, 27vw);
+}
+.map-views-note {
+  max-width: 44ch;
+  margin: -4px auto 12px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--ink-3);
 }
 
 /* The sequence is as wide as its columns make it: on a narrow screen it scrolls sideways inside its own frame,
