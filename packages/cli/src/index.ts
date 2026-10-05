@@ -26,6 +26,7 @@ import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { embedCommand, EMBED_HELP } from "./commands/embed.js";
 import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
+import { SUB_HELP, subCommand } from "./commands/sub.js";
 import { validateCommand } from "./commands/validate.js";
 import { watchCommand, WATCH_HELP } from "./commands/watch.js";
 import { parseSource } from "./events-io.js";
@@ -406,6 +407,11 @@ export async function run(
         return 1;
       }
 
+      case "sub": {
+        const outcome = await subCommand(io, rest, { ...defaultRegistryEnv(), ...env });
+        return typeof outcome === "number" ? outcome : usageError(io, outcome.usage);
+      }
+
       case "explain": {
         const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
         const file = positionals[0];
@@ -474,6 +480,7 @@ const COMMAND_HELP: Record<string, string> = {
   export: EXPORT_HELP,
   explain: EXPLAIN_HELP,
   template: TEMPLATE_USAGE,
+  sub: SUB_HELP,
   share: SHARE_HELP,
   embed: EMBED_HELP,
   runs: RUNS_HELP,
