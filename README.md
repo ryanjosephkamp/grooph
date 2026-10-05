@@ -46,7 +46,7 @@ It is not an automation canvas with connectors, and it is not a hosted studio th
 
 ## Status
 
-Early, version 0.3.0. Twenty templates have each been proven in a recorded run, and one paired comparison has been made. On that evidence, grooph is shown to bound and record autonomous work and to hold a design as a runtime contract. It is not shown to raise quality over the same instructions given as a prompt, on small tasks ([decision 0013](docs/decisions/0013-value-as-of-study-one.md)). [`docs/PROGRESS.md`](docs/PROGRESS.md) says where things stand, and [`docs/PLAN.md`](docs/PLAN.md) has the staged plan.
+Early, version 0.3.0. Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it. [`docs/claims.md`](docs/claims.md) lists every claim, its evidence and its audit. [`docs/PROGRESS.md`](docs/PROGRESS.md) says where things stand, and [`docs/PLAN.md`](docs/PLAN.md) has the staged plan.
 
 ## Docs
 
