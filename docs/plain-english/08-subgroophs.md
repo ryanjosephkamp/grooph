@@ -52,7 +52,7 @@ Three things happened. The template's nodes came in with the unit's name in fron
 
 ![The graph "Ship the helper": a Planner box, then one box labeled Subgrooph, Review gate, with a small diagram inside it, then a Released box.](ship.svg)
 
-The review gate is drawn as **one box**. It says where it came from (`review-gate@1`), how many nodes are inside, and which brakes are among them (one human gate, one loop). The small wordless diagram inside it is a **glyph**: a square for a worker that builds, a diamond for one that judges, an octagon for a human gate, and dashed lines for the arrows that send work back. In the app the box opens when you tap it. In a picture, `--open review` draws it opened.
+The review gate is drawn as **one box**. It says where it came from (`review-gate@1`), how many nodes are inside, and which brakes are among them (one human gate, one loop). The small wordless diagram inside it is a **glyph**: a square for a worker that writes, a diamond for one that judges, an octagon for a human gate, and the dashed arcs underneath for the arrows that send work back. In the app the box opens when you tap it. In a picture, `--open review` draws it opened.
 
 ## Nothing is hidden
 
