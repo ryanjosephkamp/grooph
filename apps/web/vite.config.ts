@@ -13,6 +13,8 @@ const compileSource = fileURLToPath(new URL("../../packages/core/src/compile/ind
 // An operation map's other views (slice 0080) are a third door into core. The map screen's piece (src/ui/map/views.tsx)
 // goes through it, is fetched when a map is drawn, and is named in the page as the compiler is.
 const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/map-views.ts", import.meta.url));
+// So is the fold of a subgrooph (slice 0085, `picture/graph-units.ts`): fetched with the box a canvas draws one as.
+const unitsSource = fileURLToPath(new URL("../../packages/core/src/picture/graph-units.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -126,6 +128,7 @@ export default defineConfig({
     alias: [
       { find: "@grooph/core/compile", replacement: compileSource },
       { find: "@grooph/core/map-views", replacement: mapViewsSource },
+      { find: "@grooph/core/units", replacement: unitsSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },
