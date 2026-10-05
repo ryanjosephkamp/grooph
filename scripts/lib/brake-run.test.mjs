@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { compileBoth, differingLines, withoutBudget } from "./brake-run.mjs";
+import { compileBoth, differingLines, notSaid, withoutBudget } from "./brake-run.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const expect = JSON.parse(readFileSync(join(root, "experiments", "brakes", "budget", "expect.json"), "utf8"));
@@ -50,6 +50,8 @@ test("the two compiled packages differ in the budget and in nothing else", { ski
     assert.ok(lines.length > 0);
     for (const [name, n, a, b] of lines) assert.equal(withoutBudget(a), withoutBudget(b), `${name}:${n}`);
     assert.ok(lines.some(([name]) => name.endsWith("graph.grooph.json")));
+    assert.deepEqual(notSaid(built.small, expect), [], "every line the pre-registration quotes from the small package is in it");
+    assert.equal(notSaid(built.large, expect).length, 4, "and the four that state the budget are not in the large one");
   } finally {
     rmSync(work, { recursive: true, force: true });
   }

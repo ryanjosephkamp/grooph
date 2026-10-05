@@ -69,6 +69,12 @@ export function differingLines(one, other) {
   return out;
 }
 
+/** The lines the pre-registration quotes from the small package that the package, as compiled, does not hold. */
+export function notSaid(dir, expect) {
+  const text = files(dir).map((name) => readFileSync(join(dir, name), "utf8")).join("\n");
+  return Object.entries(expect.the_small_package_says ?? {}).filter(([where, line]) => where !== "about" && !text.includes(line)).map(([where]) => where);
+}
+
 /** A line with every statement of the budget, and of the rounds it covers, taken out: two lines that differ only there are then the same. */
 export const withoutBudget = (line) =>
   line
@@ -100,7 +106,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
         if (!existsSync(kept(name)) || readFileSync(kept(name), "utf8") !== proseText(name)) fail(`${relative(root, kept(name))} is not what the rule derives from today's package. Run brake-run.mjs --dry-run --write.`);
       }
       if (stray.length + proseStray.length > 0) fail("the two packages, or the two prose prompts, differ in more than the budget");
-      console.log(`brake: both packages compile; they differ in ${lines.length} lines, all of them the budget; the kept prose prompts are current`);
+      const unsaid = notSaid(built.small, expect);
+      if (unsaid.length > 0) fail(`the pre-registration quotes the small package where it no longer says so: ${unsaid.join("; ")}`);
+      console.log(`brake: both packages compile; they differ in ${lines.length} lines, all of them the budget; the kept prose prompts are current; every line the pre-registration quotes from the small package is in it`);
       process.exit(0);
     }
 

@@ -50,5 +50,16 @@
     "reported": "beside the package pair as its own case; the package pair alone decides whether a budget binds"
   },
   "order": "the small package run, then the large; then, if allowed, the small prose run and the large. Every run is kept whatever the one before it did",
-  "counted_by": "scripts/lib/brake-count.mjs, from the run's kept transcript digest, set beside the lead's own count"
+  "counted_by": "scripts/lib/brake-count.mjs, from the run's kept transcript digest, set beside the lead's own count",
+  "the_small_package_says": {
+    "about": "Every place the package compiled with a budget of 2 states the budget to its lead, word for word. brake-run.mjs --check confirms each is in the package as compiled today. The fourth is the compiler's example note, which a budget of 2 contradicts; it is left as compiled.",
+    "LEAD.md, the goal (also in KICKOFF.md)": "Go on through failed rounds as the loop says until one of the graph's stops binds, then halt and report which stop it was.",
+    "LEAD.md, what this graph does": "The loop has a dispatch budget and a round cap set far above it, so the budget is the stop that must bind.",
+    "LEAD.md section 6, the stops, evaluated in this order before every round": "| 1 | budget: 2 dispatches | halt the run and report to the human |",
+    "LEAD.md section 6, what a dispatch is": "> A dispatch is one node run inside this loop's members — an agent you dispatch, or a check you run — counted from the loop's first pass; a nested loop's count restarts when the outer loop re-enters it. Keep the count in `PROGRESS.md` and evaluate the stop against it.",
+    "LEAD.md section 6, what a round costs": "> One full round of this loop costs **2 dispatches**: `builder`, `check`. The budget of 2 covers 1 full round. A node dispatched twice in one round (§5, invalid evidence) counts twice.",
+    "LEAD.md section 8, an example of a loop note on which a stop fired": "{\"id\":\"n-0012\",\"run\":\"20260917-093002\",\"at\":\"loop:rounds\",\"ended\":\"2026-09-17T09:51:10Z\",\"outcome\":\"halt\",\"round\":3,\"stop\":\"budget\",\"text\":\"budget: 2 dispatches fired at round 3\"}",
+    "MAPPING.md, the loop's stops": "- `rounds` (grind): `budget 2 dispatches`, `max-iterations n=20` — edit them in `.grooph/brake-budget/LEAD.md` §6 for this run, or in the graph document to keep them.",
+    "MAPPING.md, how a dispatch budget is kept": "- A `dispatches` budget is exact: the lead counts node dispatches in `PROGRESS.md`."
+  }
 }
