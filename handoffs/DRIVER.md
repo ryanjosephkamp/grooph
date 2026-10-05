@@ -68,7 +68,7 @@ The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROG
 | #70 | The Codex compile target (0076), by Codex | Marked ready on 2026-10-05, head still `68c1dfe`: the second fix pass (three items, `handoffs/0076-codex-target/REVIEW.md`, second read) is not pushed. The owner has said to merge it; not before those three are in and read. Then one proving run, his to say yes to in Codex |
 | #54 | The FAQ | Held for the audit, on the owner's word |
 
-**The size budget, from CI on `main` at `ab8a434`, against the limits of decision 0028**: the first load 160.73 of 164 KB (scripts 139.08 of 162, styles 19.89 of 20); a first visit to the front page 202.74 of 224; an address that draws on the canvas 258.14 of 262; a template's own address 279.12 of 280; an embed 128.09 of 132; the 3D piece 8.33 of 9. **The tight line is a template's own address**, with 0.88 KB: what is added to the canvas's screens counts there first. Raising any line is the owner's.
+**The size budget: CI's figures on `main` at `ab8a434`, set beside the limits of decision 0028** (that run itself was held to the old ones, 180 and 280): the first load 160.73 of 164 KB (scripts 139.08 of 162, styles 19.89 of 20); a first visit to the front page 202.74 of 224; an address that draws on the canvas 258.14 of 262; a template's own address 279.12 of 280; an embed 128.09 of 132; the 3D piece 8.33 of 9. **Of the lines that weigh what an address loads, the tight one is a template's own address**, with 0.88 KB: what is added to the canvas's screens counts there first. (The styles line has 0.11 KB and the 3D piece 0.67, as before.) Raising any line is the owner's.
 
 **The lanes, by session title:**
 

@@ -24,8 +24,8 @@ The other lines of `scripts/perf-budget.json` are unchanged. Two of them, the sc
 
 ## Consequences
 
-- There are 3.27 KB of room on the first load and 3.86 on the canvas line. The 19 KB that were won cannot be spent again without the owner raising a line.
-- The tight line is now a template's own address, with 0.88 KB of room: anything added to the canvas's screens counts there first.
+- There are 3.27 KB of room on the first load and 3.86 on the canvas line. Of the 19 KB won on the first load, 16 are now out of reach without the owner raising a line; of the 21 won on the canvas line, 18.
+- Of the lines that weigh what an address loads, the tight one is now a template's own address, with 0.88 KB of room: anything added to the canvas's screens counts there first. (Two narrower lines were tight before and still are: the styles within the first load, 19.89 of 20, and the 3D piece, 8.33 of 9.)
 - What is new still goes behind a door of its own, as decisions 0021 and 0027 say.
 - Three further ways to take weight out are written into pull request #102 with their figures and were not started: the two stylesheets only a canvas uses, splitting the app's one sheet by screen, and core's one door.
 - The slower path is known and accepted. If it is ever felt, the alternative above is still there.
