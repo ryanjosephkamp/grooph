@@ -1,7 +1,7 @@
 /**
- * Regenerate the golden packages under `fixtures/golden/<target>/<graph>/`,
+ * Regenerate the proof under `fixtures/composed/`, the golden packages under `fixtures/golden/<target>/<graph>/`,
  * the golden pictures of the sample operation map under `fixtures/maps/pictures/`,
- * and of two graphs under `fixtures/pictures/`.
+ * and of three graphs under `fixtures/pictures/`: two with no subgrooph, and one with its subgrooph closed and open.
  *
  *   pnpm --filter @grooph/core run golden:write
  *
@@ -14,11 +14,15 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { canonicalize } from "../canonicalize.js";
 import { compile } from "../compile/index.js";
 import { parseMapText } from "../map.js";
 import { parseGraphText } from "../parse.js";
 import { picture } from "../picture/graph-picture.js";
+import { pictureWithUnits } from "../picture/graph-units.js";
 import { mapPicture } from "../picture/map-picture.js";
+import { unitsKit } from "../picture/units-kit.js";
+import { COMPOSED, composedProof } from "./composed.js";
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -29,10 +33,32 @@ const repoRoot = (() => {
   throw new Error("workspace root not found");
 })();
 
-/** The review loop at the default level (`adaptive`), and a small graph at `fixed`, so both §9 texts are reviewable. */
+/**
+ * The proof that composing works (`composed.ts`): a built-in template cut into two templates and put together again
+ * as two subgroophs. Written first, because its graph is one of the golden packages below.
+ */
+{
+  const file = `patterns/${COMPOSED.template}.grooph.json`;
+  const parsed = parseGraphText(readFileSync(join(repoRoot, file), "utf8"));
+  if (!parsed.doc) throw new Error(`${file} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
+  const proof = composedProof(parsed.doc);
+  const outDir = join(repoRoot, "fixtures", "composed");
+  mkdirSync(outDir, { recursive: true });
+  for (const doc of [...proof.parts, proof.graph]) {
+    const out = join(outDir, `${doc.id}.grooph.json`);
+    writeFileSync(out, canonicalize(doc), "utf8");
+    process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+  }
+}
+
+/**
+ * The review loop at the default level (`adaptive`), and a small graph at `fixed`, so both §9 texts are reviewable;
+ * and the composed graph, whose lead's brief names its two subgroophs as units.
+ */
 const GOLDENS = [
   { graph: "fixtures/valid/review-loop.grooph.json", target: "claude-code" as const },
   { graph: "fixtures/valid/fix-until-green.grooph.json", target: "claude-code" as const },
+  { graph: `fixtures/composed/${COMPOSED.id}.grooph.json`, target: "claude-code" as const },
 ];
 
 for (const golden of GOLDENS) {
@@ -89,6 +115,20 @@ for (const file of GRAPH_PICTURES) {
     const out = join(outDir, `${parsed.doc.id}.${theme}.svg`);
     writeFileSync(out, picture(parsed.doc, { theme }), "utf8");
     process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+  }
+}
+
+/** A graph with a subgrooph (amendment A-018), as its picture with the box closed and with it open, light and dark. */
+{
+  const file = "fixtures/valid/subgrooph-in-a-graph.grooph.json";
+  const parsed = parseGraphText(readFileSync(join(repoRoot, file), "utf8"));
+  if (!parsed.doc) throw new Error(`${file} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
+  for (const theme of ["light", "dark"] as const) {
+    for (const open of [false, true]) {
+      const out = join(repoRoot, "fixtures", "pictures", `${parsed.doc.id}${open ? ".open" : ""}.${theme}.svg`);
+      writeFileSync(out, pictureWithUnits(unitsKit, parsed.doc, { theme, ...(open ? { open: "all" as const } : {}) }), "utf8");
+      process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
+    }
   }
 }
 

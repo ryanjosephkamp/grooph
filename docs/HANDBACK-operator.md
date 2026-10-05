@@ -148,7 +148,7 @@ It writes three things and says so: `.grooph/hooks/grooph-event.mjs` (the hook, 
 - **Codex**: commit the hook file too (`.codex/hooks.json`). The Codex app runs each chat in its own copy of the repository, which holds only what git tracks; an uncommitted hook file is not there, and that is why Ryan's first try recorded nothing. Then two things are Ryan's: the folder must be one Codex trusts, and each hook is reviewed once in `/hooks` (again if it changes) ([Codex hooks](https://learn.chatgpt.com/docs/hooks)). Without either, the hook is skipped and Codex says nothing.
 - Both need `node` on the path where the session runs.
 
-The hook prints nothing, always exits 0, and writes ids, names and times: never a prompt, a tool's input or output, or a reply. It cannot change what a session does.
+The hook prints nothing, always exits 0, and writes ids, names and times, and on the machine it runs on the working folder's path and where a subagent's transcript is kept: never a prompt, a tool's input or output, or a reply. It returns no decision to the harness.
 
 ### Where the events are, and how they reach you
 

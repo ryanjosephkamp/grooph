@@ -1,0 +1,23 @@
+$ npm test   (run by the lead from the project root after builder round 0; exit 0)
+
+> printkit@0.3.0 test
+> node --test tests/*.test.mjs
+
+✔ paperSize gives millimeters, portrait (2.111959ms)
+✔ paperSize refuses what it does not know (0.564083ms)
+✔ paperSize hands out a fresh object each time (2.129375ms)
+✔ parseRanges reads ranges and single pages (2.597166ms)
+✔ parseRanges ignores spaces and leading zeros (0.8335ms)
+✔ parseRanges gives ascending pages without repeats (0.252041ms)
+✔ parseRanges refuses a text that is not a string (0.547667ms)
+✔ parseRanges refuses a pageCount that is not a positive integer (0.168375ms)
+✔ parseRanges refuses pages outside the document (0.109625ms)
+✔ parseRanges refuses what is not pages (0.416958ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 277.86275

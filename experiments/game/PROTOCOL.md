@@ -137,3 +137,44 @@ That last part is the kind of thing grooph is already shown to do on small tasks
 | 6 | **The repositories' names**, and whether the run folder (notes and progress) is public with the game. | The run folder public: it is the record, and it holds nothing private. |
 | 7 | **The dates.** | After slice 0076 has merged and one template has run in Codex. |
 | 8 | **A run that ticks all seven milestones early ends early.** The other way is a last loop that polishes what the final play ranks, until hour five. | As written: it ends. Six hours is a ceiling, both runs are treated alike, and the extension is there if what came out is thin. |
+
+## 10. Notes after this was written
+
+Dated, and added to; nothing above is rewritten.
+
+**2026-10-04, before any run. The order is the owner's choice, not a coin.** Section 2 says a coin decides which harness runs first. The owner asked for the Claude Code run first, before the Codex target exists ("Can we do the Claude Code game experiment first?"; [`ANSWERS.md`](ANSWERS.md), 7), and then to run it that night. Nothing else in this protocol changes.
+
+What that costs, said before the run:
+
+- **A flaw the first run shows cannot be mended for the second without running the first again.** With both arms ready, a fault in the spec, the graph or the checks found in one rehearsal would have been fixed for both before either clock started. Now the Claude Code run will have happened under whatever it finds. If the Codex rehearsal or run shows such a fault, the choice is between running Codex under the same fault, or amending for both and running Claude Code again; an amendment for one arm alone is not allowed (section 3, and [`FROZEN.md`](FROZEN.md)).
+- **So the rehearsal matters more.** It is the one look at the package, the profile and the browser before six hours are spent, and for this arm there is no second arm's rehearsal behind it.
+- **The two runs will be further apart in time** than "two days at about the same hour": the Codex run waits on its compiler. The models, the harnesses and the npm packages a session installs may all have moved by then. Section 6 already says the result compares nothing; this is one more reason.
+- **The order was not drawn**, so "who ran first" in the record is a decision and not chance. If going second helps or hurts, this experiment cannot say.
+
+The spec, the graph and the checks were frozen the same day at one commit, with their checksums ([`FROZEN.md`](FROZEN.md)), so that the Codex run is given exactly what this one was.
+
+**2026-10-04, before any run. What a session may do, as it was in fact given to Claude Code.** Section 2 says a session may "run commands there (`npm`, `node`, `git` except `push`, the browser)" and reach "the npm registry" and "nothing outside its folder". The profile ([`setup/PROFILE.md`](setup/PROFILE.md)) does not hold a session to that list of commands, and this note says so before the run and not after.
+
+- **Any command runs, inside the sandbox.** A rule that names commands is not a wall in Claude Code: its own documentation says a rule for `git push` does not stop `git -C . push`, and `node` or `npx` will start whatever they are handed. And a builder that may run only three programs is refused `mkdir`, `ls` and `kill` all night, which is a different experiment. So the boundary is the operating system's: a command, whatever its name, can write in the session's folder, npm's cache and its own temp folder; can read those, the system's files and the browser Playwright installed; reaches `registry.npmjs.org` and no other host; and cannot be run again outside the sandbox when it fails inside.
+- **What that boundary leaves open, known now:** every port on this machine's `localhost`, and the lookup of the system's services by name, which the critic's browser needs and which is open wider than it should be until the rehearsal shows what it asks for. Both are in `setup/PROFILE.md` with what is done about each.
+- **What it closes that section 2 did not think of:** the temp folders. Claude Code keeps every session's scratch files in one folder under `/tmp`, and on the day this was written that folder held whole copies of the held-out checks, left by the sessions that wrote them. A session's commands could have read them. The profile now gives the session a temp folder of its own and closes `/tmp` and the account's temp folder to its commands. This was found by reading the profile against Claude Code's documentation before any session was started; none had been started under the earlier profile when it was found.
+- **No session tools, both ways.** A session cannot list or write to the other sessions on the machine, and they cannot write to it. One thing goes with that in Claude Code: the tool that writes to another session is also the one a lead uses to go on with a subagent it started earlier, so the lead dispatches afresh each time, as the graph's edges already say.
+- **While a rehearsal or a run is open, nobody on this machine runs or serves the held-out checks**, in any session: a session's commands can reach a local port. `start-claude.sh` refuses to start while the checks' port is open; after that it is a rule for the people and the lanes, written here.
+
+The Codex run is given the same intent in Codex's own terms: any command inside its sandbox; its own folder, npm's cache and a temp folder of its own; the npm registry only; no other session's files; no tool that reaches another session. Where one of these cannot be said in Codex, the difference is written here before that run.
+
+**2026-10-04, before any run. Usage limits, as the harness in fact behaves.** Section 2 says the wall clock goes on through a pause and the pause is written down. That stands. What the harness does at a limit decides what "pause" means, so it is fixed now, for both arms:
+
+- A limit that resets within the run (in Claude Code, the five-hour one) is waited out by the session itself, which then goes on without being told. That is a pause: its start and end are written down, and nothing is typed.
+- If the session has not gone on five minutes after the reset, or asks for a key to be pressed, the owner presses Return once; if that is not enough, he gives the one line of section 2. Either is written down as an interruption.
+- A limit that does not reset before the wall (in Claude Code, the weekly one, which the session does not wait for) ends the run where it stands. The session is left open until the wall in case it goes on, and is then ended. The result is found as for any run the wall ends.
+- Nothing is ever done to lift a limit: no other account, no other model, no bought credit.
+
+**2026-10-04, before any run. Neither arm keeps what its rehearsal left.** The rehearsal runs the same package from the same spec for twenty minutes. What it leaves behind (the folder it built in, its transcript, the packages npm cached, its temp files) would be a head start, or at least something to read, for a run that could reach it. So before a run they are moved to a folder outside the run's reach (`setup/clear-rehearsal.sh`; nothing is deleted, and the record says where they went), and `start-claude.sh run` refuses to start until they are. Both arms keep the same two things from before their clock: a profile that is signed in, and the browser Playwright installed. The Codex arm clears its rehearsal the same way.
+
+**2026-10-04, before any run. What an adaptive lead may change, in both arms** (the driver's ruling). Section 5 says a lead "may amend its working copy, a tier among other things, and may never loosen a brake". Made exact:
+
+- A lead may amend its working copy of the graph, with a note, as its brief says.
+- A lead may name a model when it dispatches a node. That is how a tier is changed in a run.
+- A lead may not change a node's tools. In Claude Code a node's tools are in its file under `.claude/agents/`, which the harness protects from a session in every mode but the one that would also let it write outside its folder; that mode is not used. The Codex arm is held to the same: no change to a node's tools, whatever Codex would allow.
+- An edit the harness refuses is written down and counted. It is not a fault of the run, and not one of the things section 6 says would count against the graph.

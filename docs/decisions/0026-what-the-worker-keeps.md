@@ -23,6 +23,7 @@ The front page promises that grooph opens offline after a first visit. Decision 
 - **The day this worker ships, the old one answers the first visit**, so 0.3.0's fault is there once more for every visitor who has 0.3.0. Nothing deployed now can change that.
 - **The embed's files are not named by the page**, so a recorded run plays offline only once it has been watched with a network. On `main` before this slice too; it needs `vite.config.ts`.
 - **WebKit never asks again for a script whose load failed once in a tab** (`loadScreens()` in `App.tsx`). The worker cannot undo it.
+- **A first visit that loses a request.** A first visit has no page to fall back on, so its page is kept with whatever came. A file the worker could not fetch is then missing until the page itself asks for it with a network, or until the next visit that reaches one, which fetches it without the person doing anything. Until then the app opens, and the one screen that needs that file says so or goes without it. The worker fetched each named file once; since 2026-10-05 it tries a file that failed a second time, a second later, which mends one lost request and nothing longer (see Consequences).
 
 ## The owner's open option
 
@@ -33,4 +34,5 @@ Answer every visit with the kept version until the new one is whole, and show th
 - `apps/web/public/sw.js` only; the built app is otherwise byte for byte what it was. No budget line moves.
 - `apps/web/e2e/release.spec.ts`: 26 tests, run in Chromium, WebKit and Firefox in CI. Six of them fail against the worker as it was.
 - The privacy page says what is kept: the version you have and the one before it.
+- **Later, 2026-10-05: a second try.** A named file whose fetch fails is tried once more a second later (`hold` in `sw.js`), then left as before. Point 1 is unchanged: a page still becomes the one to open with no network only once every hashed file it names is held, except on a first visit, where there is no other. Pages are still kept in the order they came, so a page that follows within that second is kept when the turn before it is over, up to a second later than it was; until then the page kept before is the offline copy. `release.spec.ts` gained a test in which the site loses one request for a piece no first screen asks for; it fails against the worker as it was.
 - **Every later change that adds a file the app can ask for must name it in the page**, or the test that holds the build to that fails. The open pull requests that add files (the site's fonts, the views' piece, the agents lane's paste reader) meet that test when they merge `main`.

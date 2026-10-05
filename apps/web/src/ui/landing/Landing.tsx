@@ -1,39 +1,63 @@
-import { instantiate, picture, type Graph } from "@grooph/core";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { copyText } from "../../doc/exportPackage.js";
-import { builtInTemplate } from "../../doc/templates.js";
-import { Glyph, hasLongGlyph } from "../Glyph.js";
+import { piece } from "../../piece.js";
+import { GlyphDrawn } from "../Glyph.js";
 import { templateHref } from "../templates/TemplatesScreen.js";
-import { Check, DOCS, SOURCE, SiteFooter, SiteHeader } from "./Chrome.js";
+import { Check, DOCS, SiteFooter, SiteHeader } from "./Chrome.js";
 import { RunDemo } from "./RunDemo.js";
 
 /** The template the front page draws, and the one "Open a template" opens. */
 const HERO = "review-gate";
 
-/** The strip: six whole graphs whose shapes differ at a glance. */
-const STRIP = ["grind-loop", "spec-then-loop", "metric-sandwich", "heterogeneous-critic", "tournament-then-judge", "patrol-pulse"];
-
 /** The line to paste into Claude Code; the skill proposes graphs for it. */
 const ASK = "/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
 
-/**
- * The hero: the review gate as a real graph, its slots filled with the
- * template's own examples, drawn by core's picture in the `auto` theme so it
- * follows the page's color scheme. Drawn once; the picture is deterministic.
+/*
+ * The hero is the review gate as a real graph, its slots filled with the template's own examples, drawn by core's
+ * picture in the `auto` theme so it follows the page's color scheme; the strip is six whole graphs whose shapes
+ * differ at a glance, each with its glyph. Both are drawn ahead of time and not when the page is opened
+ * (`front.generated.ts`, which scripts/front-page.mjs writes and test/front.test.ts holds to what the code draws):
+ * the page then needs no template to draw itself, and the built-in templates are fetched for the screens that use them.
+ *
+ * They are a piece of their own (`front.ts`), so that only the front page carries them. Its address has asked for
+ * the piece beside the app, and the app waits for it before the first screen there (`ready` in `App.tsx`), so the
+ * page is drawn with its picture in it. Reached from another screen it is nearly always here already, fetched once
+ * that screen was up; in the moment before it is, the page says it is opening and is not drawn in part. If the
+ * piece cannot be had, or is held up, the page is drawn without its picture and its tiles, and says nothing of
+ * them; a picture that comes late is put in then.
  */
-let heroSvg: string | undefined;
-function hero(): string {
-  if (heroSvg === undefined) {
-    const template = builtInTemplate(HERO)!;
-    const values = Object.fromEntries((template.template?.slots ?? []).map((slot) => [slot.key, slot.example ?? ""]).filter(([, v]) => v !== ""));
-    values.task = "Add a slugify(text) function to src/strings.ts.";
-    heroSvg = picture(instantiate(template, { name: "Add slugify, reviewed", values }), { theme: "auto" });
-  }
-  return heroSvg;
-}
+type Front = typeof import("./front.js");
+let front: Front | undefined;
+export const loadFront = (): Promise<Front> => piece("front", () => import("./front.js")).then((m) => (front = m));
 
-const strip = (): Graph[] => STRIP.map((id) => builtInTemplate(id)).filter((doc): doc is Graph => doc !== undefined);
+/**
+ * How long the page says it is opening while its picture is on its way, before it is drawn without it. Reached
+ * from another screen in the first moment of a first visit the picture is some tenths of a second behind (0.4 s
+ * on slow 4G, measured), and the page waits that out and is drawn whole. A request that is held up longer does
+ * not hold the page: it is drawn, and the picture is put in when it comes.
+ */
+const GRACE = 600;
+
+/** The piece: `undefined` while it is on its way and worth waiting for; `null` when the page is to be drawn without it. */
+function useFront(): Front | null | undefined {
+  const [got, setGot] = useState(front);
+  const [without, setWithout] = useState(false);
+  useEffect(() => {
+    if (got) return;
+    let live = true;
+    const tired = setTimeout(() => live && setWithout(true), GRACE);
+    loadFront().then(
+      (m) => live && setGot(m),
+      () => live && setWithout(true),
+    );
+    return () => {
+      live = false;
+      clearTimeout(tired);
+    };
+  }, []);
+  return got ?? (without ? null : undefined);
+}
 
 /** What the README says of the app, as the hero's short list. */
 const PROMISES = ["No account", "Works on a phone", "Opens offline after a first visit", "Graphs stay on your device"];
@@ -54,6 +78,8 @@ export function Landing({ device }: { device?: ReactNode }) {
   // The poster is a file of the documents, which the app's service worker does not keep: with no network it cannot be
   // fetched, and the card then stands without its picture rather than with a broken one.
   const [poster, setPoster] = useState(true);
+  const drawn = useFront();
+  if (drawn === undefined) return <div className="loading">Opening…</div>;
   return (
     <div className="land">
       <SiteHeader />
@@ -69,7 +95,7 @@ export function Landing({ device }: { device?: ReactNode }) {
             </div>
             <div className="land-hero-text">
               <p className="land-lede">
-                Draw who builds, who checks, where a person decides and when the work stops. grooph checks that every loop can end, then compiles the graph
+                Draw who builds, who checks, where a person decides and when the work stops. grooph checks that every loop names a stop, then compiles the graph
                 into a package a Claude Code session runs. Your harness runs it; grooph never does.
               </p>
               <div className="land-cta">
@@ -89,14 +115,16 @@ export function Landing({ device }: { device?: ReactNode }) {
                 ))}
               </ul>
             </div>
-            <figure className="land-figure">
-              <RunDemo>
-                <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: hero() }} />
-                <figcaption className="muted">
-                  The <a href={templateHref("built-in", HERO)}>review gate</a> template, drawn by grooph.
-                </figcaption>
-              </RunDemo>
-            </figure>
+            {drawn ? (
+              <figure className="land-figure">
+                <RunDemo>
+                  <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: drawn.HERO_SVG }} />
+                  <figcaption className="muted">
+                    The <a href={templateHref("built-in", HERO)}>review gate</a> template, drawn by grooph.
+                  </figcaption>
+                </RunDemo>
+              </figure>
+            ) : null}
           </div>
         </section>
 
@@ -104,15 +132,17 @@ export function Landing({ device }: { device?: ReactNode }) {
           <div className="site-wrap">
             <ul className="land-claims" aria-label="What grooph does">
               <li>
-                <strong>Every loop can end.</strong> The validator refuses a loop without a stop, a critic that shares the builder&rsquo;s context, and an
-                irreversible step without a human gate.
+                <strong>Every loop names its stop.</strong> The validator refuses a loop without one and warns when a loop has no cap. Where a graph asks
+                for it, it refuses a critic that shares the builder&rsquo;s context, and it refuses a step marked irreversible with no human gate before it.
               </li>
               <li>
-                <strong>The graph is the contract.</strong> The package drives the session as drawn: named subagents, stops checked in order, and gates that
-                halt before anything irreversible.
+                <strong>The graph is the contract.</strong> The package tells the session to run it as drawn: named subagents, stops in order, a halt at
+                every human gate. grooph does not enforce it while it runs; eighteen of twenty recorded runs pass the checks of it, and two say why they do
+                not.
               </li>
               <li>
-                <strong>Every run leaves a record.</strong> Notes, rounds, dispatch counts and why it stopped, in a folder a monitor reads and a run id resumes.
+                <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. A halted run goes on when a
+                person answers.
               </li>
             </ul>
           </div>
@@ -154,16 +184,18 @@ export function Landing({ device }: { device?: ReactNode }) {
             <h2 id="land-strip-title" className="land-h2">
               Loop shapes
             </h2>
-            <ul className="land-strip-list" aria-label="Templates">
-              {strip().map((doc) => (
-                <li key={doc.id}>
-                  <a className="land-tile" href={templateHref("built-in", doc.id)}>
-                    <Glyph doc={doc} className={`land-tile-glyph${hasLongGlyph(doc) ? " is-wide" : ""}`} decorative />
-                    <span className="land-tile-title">{doc.template!.title}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
+            {drawn ? (
+              <ul className="land-strip-list" aria-label="Templates">
+                {drawn.TILES.map((tile) => (
+                  <li key={tile.id}>
+                    <a className="land-tile" href={templateHref("built-in", tile.id)}>
+                      <GlyphDrawn svg={tile.glyph} long={tile.long} className={`land-tile-glyph${tile.long ? " is-wide" : ""}`} decorative />
+                      <span className="land-tile-title">{tile.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="land-poster">
               {poster ? (
                 <a href={POSTER} aria-label="Open the poster of the twenty loop shapes">
@@ -225,9 +257,10 @@ export function Landing({ device }: { device?: ReactNode }) {
               What is shown, <mark>and what is not</mark>
             </h2>
             <p>
-              In twenty proving runs and one paired comparison, grooph is shown to bound and record autonomous work and to hold a design as a runtime
-              contract. It is not shown to raise quality over the same instructions given as a prompt, on small tasks. It does not run agents, host anything,
-              or call a model. <a href={`${SOURCE}/blob/main/docs/decisions/0013-value-as-of-study-one.md`}>The evidence</a>.
+              In twenty recorded runs a session stopped where its graph said, at a passed bar or a human gate, and left a record; eighteen of the twenty
+              pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
+              no quality advantage over a prompt derived from it. grooph runs no agent, calls no model and needs no hosted service.{" "}
+              <a href={`${DOCS}claims/`}>Every claim and its evidence</a>.
             </p>
           </div>
         </section>

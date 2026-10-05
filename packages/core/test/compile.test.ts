@@ -59,6 +59,21 @@ for (const name of ["review-loop", "fix-until-green"]) {
   });
 }
 
+test("a step a round cap continues at is named where the stop sends the run, not as a place to start (graph-ir §2)", () => {
+  const doc = load("wrap-up-after-the-cap");
+  const result = compile(doc, "claude-code");
+  const lead = result.files[".grooph/fix-or-say-what-is-left/LEAD.md"]!;
+  assert.match(lead, /^Entry nodes \(start here\): `fixer`\.$/m, "the wrap-up step is not an entry node");
+  assert.match(lead, /\| max iterations: 5 \| continue at node `wrap` \|/, "it is named at the stop that leads to it");
+  assert.match(result.kickoff, /^3\. Start at `fixer`\.$/m);
+  assert.equal(result.warnings.length, 0, "and it is reached, so the brief carries no warning about it");
+
+  // The same graph with the stop halting instead: nothing leads to the step, and the document says a run starts there.
+  const plain = structuredClone(doc);
+  delete (plain.loops[0]!.stops[0] as { then?: string }).then;
+  assert.match(compile(plain, "claude-code").kickoff, /^3\. Start at `fixer`, `wrap`\.$/m);
+});
+
 test("compile is pure: two runs give the same bytes", () => {
   const a = compile(reviewLoop(), "claude-code");
   const b = compile(reviewLoop(), "claude-code");

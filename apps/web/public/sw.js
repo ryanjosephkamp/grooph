@@ -6,7 +6,8 @@
  * offline needs only the files. On install this caches the page and the
  * scripts and styles it names, in its tags and in the lists its first script
  * hands the browser (vite.config.ts): the app, and the screens it fetches
- * only when an address needs them. After that:
+ * only when an address needs them. A file that could not be fetched is tried
+ * once more, a second later (`hold`). After that:
  *
  *   the page and other unhashed files   network first, the cached copy when offline or when the host answers that it
  *                                       cannot (a 5xx; a redirect or a "not found" is an answer, and is passed on),
@@ -44,18 +45,37 @@ function named(html) {
     .filter((u) => u.origin === self.location.origin && u.href.startsWith(self.registration.scope));
 }
 
+/** How long after a file could not be fetched it is asked for the second time. */
+const AGAIN_AFTER = 1000;
+
 /**
- * Fetch and keep each named file that is not held yet. One that fails is left for the page to ask for.
+ * Fetch and keep each named file that is not held yet. One that fails is tried once more, a second later, and
+ * after that is left for the page to ask for, and for the next visit that reaches the network.
  * Says whether, after that, every hashed file the page names is held. A page that names none is not the app's
  * (a sign-in page a network puts in front of everything, say), and is never whole.
+ *
+ * The second try: a request lost on a poor link is not a file that cannot be had. A first visit has no page to
+ * fall back on, so its page is kept with whatever came; and the pieces no first screen asks for (the compiler, a
+ * map's views, the graph's, the themes) are fetched here and nowhere else in that visit. With one try, one lost
+ * request left such a piece out until the next visit with a network. A file that truly cannot be had yet (a deploy
+ * still arriving) costs the wait and is dropped as before; which page is kept does not change (decision 0026).
+ *
+ * The wait is inside the page's turn (`inTurn`), so that pages are still kept in the order they came: a visit that
+ * follows within that second has its page kept when the turn before it is over, up to a second later than it was.
+ * Until then the page kept before, whose files are all here, is the one that opens with no network.
  */
 async function hold(cache, html) {
   const files = named(html);
+  const fetched = async (u) => {
+    if (await cache.match(u.href, { ignoreVary: true })) return;
+    await cache.add(u.href);
+  };
   await Promise.all(
-    files.map(async (u) => {
-      if (await cache.match(u.href, { ignoreVary: true })) return;
-      await cache.add(u.href).catch(() => undefined);
-    }),
+    files.map((u) =>
+      fetched(u)
+        .catch(() => new Promise((later) => setTimeout(later, AGAIN_AFTER)).then(() => fetched(u)))
+        .catch(() => undefined),
+    ),
   );
   const hashed = files.filter((u) => u.pathname.includes("/assets/"));
   if (hashed.length === 0) return false;

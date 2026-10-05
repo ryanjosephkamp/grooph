@@ -1,7 +1,7 @@
 ---
 name: summary-card--integrator
 description: "builder for graph summary-card. Assemble the finished pieces into the whole without reworking any: resolve what shows only where they meet, then capture the whole with `npm run capture`."
-model: opus
+model: claude-sonnet-5-5
 effort: medium
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---

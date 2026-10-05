@@ -8,7 +8,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 
-import { KNOWN_TARGETS, TemplateError, type CompileTarget } from "@grooph/core";
+import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, readTheme, type CompileTarget } from "@grooph/core";
 
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
@@ -26,6 +26,7 @@ import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { embedCommand, EMBED_HELP } from "./commands/embed.js";
 import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
+import { SUB_HELP, subCommand } from "./commands/sub.js";
 import { validateCommand } from "./commands/validate.js";
 import { watchCommand, WATCH_HELP } from "./commands/watch.js";
 import { parseSource } from "./events-io.js";
@@ -209,7 +210,7 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, layout: { type: "string" }, view: { type: "string" }, events: { type: "string", multiple: true } },
+          options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, layout: { type: "string" }, view: { type: "string" }, events: { type: "string", multiple: true }, open: { type: "string", multiple: true } },
         });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "image needs a file: grooph image <graph | operation map> [--out <file.svg | file.png>]");
@@ -222,6 +223,7 @@ export async function run(
           ...(values["layout"] !== undefined ? { layout: values["layout"] } : {}),
           ...(values["view"] !== undefined ? { view: values["view"] } : {}),
           ...(values["events"] ? { events: values["events"].map(parseSource) } : {}),
+          ...(values["open"] ? { open: values["open"] } : {}),
         });
       }
 
@@ -233,11 +235,16 @@ export async function run(
       }
 
       case "page": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, events: { type: "string", multiple: true } } });
+        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, events: { type: "string", multiple: true } } });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "page needs a file: grooph page <graph | operation map> --out <file.html>");
         if (values["out"] === undefined) return usageError(io, "page needs --out <file.html>, the one file to write");
-        return pageCommand(io, file, { out: values["out"], version: VERSION, ...(values["events"] ? { events: values["events"].map(parseSource) } : {}) });
+        return pageCommand(io, file, {
+          out: values["out"],
+          version: VERSION,
+          ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}),
+          ...(values["events"] ? { events: values["events"].map(parseSource) } : {}),
+        });
       }
 
       case "embed": {
@@ -248,11 +255,14 @@ export async function run(
         });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "embed needs a file: grooph embed <graph | map | run> (grooph embed --help)");
-        if (values["theme"] !== undefined && values["theme"] !== "light" && values["theme"] !== "dark") {
-          return usageError(io, `--theme is light or dark; got "${values["theme"]}"`);
+        // What the frame's address says: a theme's name unless it is Paper, the default, and light or dark when asked.
+        const asked = values["theme"] === undefined ? undefined : readTheme(values["theme"]);
+        if (values["theme"] !== undefined && (!asked || asked.form === "auto")) {
+          return usageError(io, `--theme is one of ${PICTURE_THEMES.join(", ")}; or light or dark; or both, as chalk-dark. Got "${values["theme"]}"`);
         }
+        const theme = asked ? [asked.name === "paper" ? "" : asked.name, asked.form ?? ""].filter(Boolean).join("-") : "";
         return embedCommand(io, file, {
-          ...(values["theme"] !== undefined ? { theme: values["theme"] as "light" | "dark" } : {}),
+          ...(theme ? { theme } : {}),
           ...(values["height"] !== undefined ? { height: Number(values["height"]) } : {}),
           ...(values["base"] !== undefined ? { base: values["base"] } : {}),
           frame: values["frame"] === true,
@@ -322,10 +332,10 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { into: { type: "string" }, write: { type: "boolean" } },
+          options: { into: { type: "string" }, allow: { type: "string", multiple: true }, write: { type: "boolean" } },
         });
         if (positionals[0] === undefined) return usageError(io, "adopt needs a run folder: grooph adopt .grooph/<graph-id>/runs/<run-id> [--write]");
-        return adoptCommand(io, positionals[0], { ...(values["into"] !== undefined ? { into: values["into"] } : {}), write: values["write"] === true });
+        return adoptCommand(io, positionals[0], { ...(values["into"] !== undefined ? { into: values["into"] } : {}), allow: values["allow"] ?? [], write: values["write"] === true });
       }
 
       case "watch": {
@@ -398,6 +408,11 @@ export async function run(
         return 1;
       }
 
+      case "sub": {
+        const outcome = await subCommand(io, rest, { ...defaultRegistryEnv(), ...env });
+        return typeof outcome === "number" ? outcome : usageError(io, outcome.usage);
+      }
+
       case "explain": {
         const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
         const file = positionals[0];
@@ -466,6 +481,7 @@ const COMMAND_HELP: Record<string, string> = {
   export: EXPORT_HELP,
   explain: EXPLAIN_HELP,
   template: TEMPLATE_USAGE,
+  sub: SUB_HELP,
   share: SHARE_HELP,
   embed: EMBED_HELP,
   runs: RUNS_HELP,

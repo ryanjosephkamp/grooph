@@ -1,0 +1,235 @@
+{
+  "template": "review-gate",
+  "arm": "B",
+  "replicate": 2,
+  "project": "review-gate-2",
+  "graph_id": "layer-settings",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/review-gate-2/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/GmQql4/settingskit-4kdg8m.harness/held-out",
+      "files": [
+        {
+          "path": "layer-cases.test.mjs",
+          "sha256": "9dc52036ea37c1eb6d8b9e2c8f985cf7c29a42f354f29b7d1cc4ed565c388e04",
+          "at_run": true
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/review-gate-2/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "layer-settings--builder": "claude-sonnet-5-5",
+      "layer-settings--critic": "claude-sonnet-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "review-gate",
+    "template_version": "review-gate@1",
+    "graph_id": "layer-settings",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/GmQql4/settingskit-4kdg8m"
+  },
+  "derivation": {
+    "graph": "layer-settings",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 14,
+      "prompt": 12
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.26049,
+      "output_tokens": 5623
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.4319722000000001,
+      "output_tokens": 18607
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5-5"
+    ]
+  },
+  "cost_usd": 0.692462,
+  "harness_turns": 5,
+  "duration_s": 187,
+  "wall_s": 189,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.26049,
+        "output_tokens": 5623
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.4319722000000001,
+        "output_tokens": 18607
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 0.692462,
+    "harness_turns": 5,
+    "duration_s": 187,
+    "wall_s": 189,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "cat >> tests/layer.test.mjs <<'EOF'\n\ntest(\"layer treats an undefined value in over as not given\", () => {\n  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });\n  const kept = layer({ output: { color: \"auto\" } }, { output: undefined });\n  assert.deepEqual(kept, { output: { color: \"auto\" } });\n  assert.deepEqual(\n    layer({ output: { color: \"auto\", width: 80 } }, { output: { color: undefined, width: 100 } }),\n    { output: { color: \"auto\", width: 100 } },\n  );\n  const added = layer({ a: 1 }, { pager: undefined });\n  assert.deepEqual(Object.keys(added), [\"a\"]);\n  assert.equal(Object.hasOwn(added, \"pager\"), false);\n  assert.deepEqual(Object.keys(layer({ a: 1 }, { o: { x: undefined } }).o), []);\n});\n\ntest(\"layer leaves out undefined values from base too\", () => {\n  assert.deepEqual(Object.keys(layer({ a: undefined, b: 1 }, {})), [\"b\"]);\n  assert.deepEqual(Object.keys(layer({ a: { x: undefined } }, {}).a), []);\n});\n\nclass Point {\n  constructor(x, y) {\n    this.x = x;\n    this.y = y;\n  }\n}\n\ntest(\"layer refuses functions, Maps, Sets and class instances anywhere\", () => {\n  const cases = {\n    \"function in over\": () => layer({}, { onChange: () => 1 }),\n    \"Map in over\": () => layer({}, { lookup: new Map([[\"a\", 1]]) }),\n    \"Set in over\": () => layer({}, { tags: new Set([\"a\"]) }),\n    \"class instance in over\": () => layer({}, { origin: new Point(0, 0) }),\n    \"function in array\": () => layer({}, { hooks: [() => 1] }),\n    \"function in nested array\": () => layer({}, { hooks: [[{ f() {} }]] }),\n    \"function deep in base\": () => layer({ output: { format: (x) => x } }, {}),\n    \"class instance deep in over\": () => layer({ a: { b: 1 } }, { a: { b: new Point(1, 2) } }),\n    \"class instance in base array\": () => layer({ list: [new Point(1, 2)] }, {}),\n    \"Map in base\": () => layer({ m: new Map() }, {}),\n    \"base value that over replaces\": () => layer({ a: new Set() }, { a: 1 }),\n    \"over value that replaces nothing\": () => layer({ a: { b: 1 } }, { a: { c: () => 1 } }),\n  };\n  for (const [name, run] of Object.entries(cases)) {\n    assert.throws(run, TypeError, name);\n  }\n});\n\ntest(\"layer still accepts Dates, null and plain data values\", () => {\n  const when = new Date(5);\n  const result = layer({ a: null }, { when, list: [1, \"x\", null, { y: true }], n: Object.create(null) });\n  assert.equal(result.when.getTime(), 5);\n  assert.notEqual(result.when, when);\n  assert.equal(result.a, null);\n});\nEOF"
+      }
+    ],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement layer()",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: review layer() change",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder round 1: address REVIEW.md",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic round 1: review layer()",
+        "model_asked": "sonnet"
+      }
+    ],
+    "held_out_touched": {
+      "general-purpose (Critic: review layer() change)": 1,
+      "general-purpose (Critic round 1: review layer())": 1
+    },
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 5,
+      "where": []
+    }
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cat >> tests/layer.test.mjs <<'EOF'\n\ntest(\"layer treats an undefined value in over as not given\", () => {\n  assert.deepEqual(layer({ verbose: true }, { verbose: undefined }), { verbose: true });\n  const kept = layer({ output: { color: \"auto\" } }, { output: undefined });\n  assert.deepEqual(kept, { output: { color: \"auto\" } });\n  assert.deepEqual(\n    layer({ output: { color: \"auto\", width: 80 } }, { output: { color: undefined, width: 100 } }),\n    { output: { color: \"auto\", width: 100 } },\n  );\n  const added = layer({ a: 1 }, { pager: undefined });\n  assert.deepEqual(Object.keys(added), [\"a\"]);\n  assert.equal(Object.hasOwn(added, \"pager\"), false);\n  assert.deepEqual(Object.keys(layer({ a: 1 }, { o: { x: undefined } }).o), []);\n});\n\ntest(\"layer leaves out undefined values from base too\", () => {\n  assert.deepEqual(Object.keys(layer({ a: undefined, b: 1 }, {})), [\"b\"]);\n  assert.deepEqual(Object.keys(layer({ a: { x: undefined } }, {}).a), []);\n});\n\nclass Point {\n  constructor(x, y) {\n    this.x = x;\n    this.y = y;\n  }\n}\n\ntest(\"layer refuses functions, Maps, Sets and class instances anywhere\", () => {\n  const cases = {\n    \"function in over\": () => layer({}, { onChange: () => 1 }),\n    \"Map in over\": () => layer({}, { lookup: new Map([[\"a\", 1]]) }),\n    \"Set in over\": () => layer({}, { tags: new Set([\"a\"]) }),\n    \"class instance in over\": () => layer({}, { origin: new Point(0, 0) }),\n    \"function in array\": () => layer({}, { hooks: [() => 1] }),\n    \"function in nested array\": () => layer({}, { hooks: [[{ f() {} }]] }),\n    \"function deep in base\": () => layer({ output: { format: (x) => x } }, {}),\n    \"class instance deep in over\": () => layer({ a: { b: 1 } }, { a: { b: new Point(1, 2) } }),\n    \"class instance in base array\": () => layer({ list: [new Point(1, 2)] }, {}),\n    \"Map in base\": () => layer({ m: new Map() }, {}),\n    \"base value that over replaces\": () => layer({ a: new Set() }, { a: 1 }),\n    \"over value that replaces nothing\": () => layer({ a: { b: 1 } }, { a: { c: () => 1 } }),\n  };\n  for (const [name, run] of Object.entries(cases)) {\n    assert.throws(run, TypeError, name);\n  }\n});\n\ntest(\"layer still accepts Dates, null and plain data values\", () => {\n  const when = new Date(5);\n  const result = layer({ a: null }, { when, list: [1, \"x\", null, { y: true }], n: Object.create(null) });\n  assert.equal(result.when.getTime(), 5);\n  assert.notEqual(result.when, when);\n  assert.equal(result.a, null);\n});\nEOF"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 46,
+      "session_id": "7f0b56eb-8df4-4587-8370-525b20de8119",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.692462,
+      "reported_cost_usd": 0.6924622000000001,
+      "max_budget_usd": 9,
+      "harness_turns": 5,
+      "duration_s": 187,
+      "wall_s": 189,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "efined` value.\n- `Date` values are accepted and copied rather than rejected.\n\n**Files changed (not committed):**\n- `src/layer.mjs` (new)\n- `tests/layer.test.mjs` (new)\n- `CHANGELOG.md` (one line added)\n- `CHANGES.md` (new; the builder's notes for this round)\n- `REVIEW.md` (new; the critic's review)\n\nThe run used 4 of its 10 dispatches and 1 of its 4 rounds.\n\n**Do you approve the merge?** If you approve, the run ends successfully; tell me if you also want me to commit and whether to keep or drop `CHANGES.md` and `REVIEW.md`. If you reject, I'll send your feedback to a fresh builder for round 2."
+    }
+  ],
+  "base_commit": "feadd8db3b9c8bd90009df6041ad72533ec4d693",
+  "project_files_changed": [
+    "M CHANGELOG.md",
+    "A CHANGES.md",
+    "A REVIEW.md",
+    "A src/layer.mjs",
+    "A tests/layer.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/GmQql4/settingskit-4kdg8m",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

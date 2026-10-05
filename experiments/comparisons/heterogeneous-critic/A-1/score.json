@@ -1,0 +1,61 @@
+{
+  "scored_at": "2026-10-04T21:46:46.915Z",
+  "scorer": "scripts/lib/compare-score.mjs",
+  "held_out": {
+    "ran": true,
+    "command": "node --test <harness>/held-out/parse-ranges-cases.test.mjs",
+    "cases": 70,
+    "passed": 70,
+    "failed": 0,
+    "skipped": 0,
+    "rate": 1,
+    "failing": [],
+    "exit": 0,
+    "suite": [
+      {
+        "path": "parse-ranges-cases.test.mjs",
+        "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+        "at_run": true
+      }
+    ],
+    "scored_from": "experiments/comparisons/heterogeneous-critic/held-out",
+    "reviewers_copy_changed": []
+  },
+  "tests": {
+    "command": "npm test",
+    "exit": 0,
+    "pass": true,
+    "tests": 14,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0,
+    "todo": 0,
+    "failing": [],
+    "error": null
+  },
+  "scope": {
+    "allowed": [
+      "src/",
+      "tests/",
+      "README.md",
+      "REVIEW.md",
+      "CHANGES.md"
+    ],
+    "ignored": [
+      ".grooph/",
+      ".claude/"
+    ],
+    "changed": [
+      "README.md",
+      "src/parse-ranges.mjs",
+      "tests/parse-ranges.test.mjs"
+    ],
+    "outside": [],
+    "protected": [],
+    "protected_changed": []
+  },
+  "ending": {
+    "kind": "clean",
+    "reason": "halt at merge-gate"
+  }
+}

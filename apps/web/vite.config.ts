@@ -7,12 +7,19 @@ import react from "@vitejs/plugin-react";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
+import { BUILT_INS, FRONT } from "./src/doors.js";
+
 // Core without the compiler (packages/core/src/base.ts says why); the compiler is the next line.
 const coreSource = fileURLToPath(new URL("../../packages/core/src/base.ts", import.meta.url));
 const compileSource = fileURLToPath(new URL("../../packages/core/src/compile/index.ts", import.meta.url));
 // An operation map's other views (slice 0080) are a third door into core. The map screen's piece (src/ui/map/views.tsx)
 // goes through it, is fetched when a map is drawn, and is named in the page as the compiler is.
 const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/map-views.ts", import.meta.url));
+// So is the fold of a subgrooph (slice 0085, `picture/graph-units.ts`): fetched with the box a canvas draws one as.
+const unitsSource = fileURLToPath(new URL("../../packages/core/src/picture/graph-units.ts", import.meta.url));
+// And the picture's themes (slice 0086): the five that are not Paper. The app's piece for them
+// (src/ui/theme/themes.ts) is fetched when one is chosen or named in an address, and named in the page too.
+const themesSource = fileURLToPath(new URL("../../packages/core/src/picture/themes.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -32,11 +39,14 @@ const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/ma
  * page names it, in a list the browser does nothing with: the service worker reads a page for the files it names
  * and keeps them, so an export still works with no network.
  *
+ * Since slice 0085 the box a subgrooph is drawn as on the canvas is a piece of its own too (`src/ui/canvas/units.tsx`),
+ * fetched when a document has one. It is named in the same list, so it is held for a visit with no network.
+ *
  * `dist/routes.json` lists the sets; `scripts/perf-budget.mjs` weighs them.
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -70,9 +80,13 @@ function routes(): Plugin {
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
         const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
+        const mapSpace = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/space.ts"));
+        const units = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/units.tsx"));
+        const graphViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-views.tsx"));
+        const themes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/theme/themes.ts"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !graphViews || !themes) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, graphViews, themes }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -92,17 +106,39 @@ function routes(): Plugin {
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
           // What no address loads first and the page still names, so that the worker fetches it as it installs: the
-          // compiler, the map's views, and the embed's own script and styles. The front page plays its recorded run in a
-          // frame at `#/embed`, and a visit that never watched it should still have it with no network (handoff 0083).
-          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // compiler, the map's views, a map in three dimensions, a subgrooph's box, the pictures' themes, and the
+          // embed's own script and styles. The front page plays its recorded run in a frame at `#/embed`, and a visit
+          // that never watched it should still have it with no network (handoff 0083).
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(graphViews), ...closure(themes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // What choosing a map's view in three dimensions fetches, over what the map screen has already (handoff 0087).
+          space: [...closure(mapSpace)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(mapViews).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
+        // The built-in templates (slice 0093, src/doc/builtins.ts): the twenty pattern documents, a piece the template
+        // screens fetch. It was part of the app at every address. It is named in the page with the other pieces, so
+        // the worker holds it, and an address that lists the templates or opens a built-in one asks for it beside the
+        // app, in the round it always came in (one of a person's own does not need it, and does not ask). Which
+        // addresses those are is in src/doors.ts, which the app reads too, so the two cannot differ. Written apart
+        // from the lists above, which other slices are adding to.
+        const builtIns = chunks.find((c) => c.facadeModuleId?.endsWith("/src/doc/builtins.ts"));
+        if (!builtIns) throw new Error("grooph-routes: no chunk of its own for the built-in templates (src/doc/builtins.ts). The build no longer splits where vite.config.ts expects.");
+        found.templates = [...closure(builtIns)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
+        // And the front page's picture and tiles (src/ui/landing/front.ts), drawn ahead of time: a piece only
+        // the front page's address asks for beside the app. It is part of that address's first load, and
+        // scripts/perf-budget.mjs weighs it there; a graph, a share link and the template screens do not carry it.
+        const frontPage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/landing/front.ts"));
+        if (!frontPage) throw new Error("grooph-routes: no chunk of its own for the front page's picture (src/ui/landing/front.ts). The build no longer splits where vite.config.ts expects.");
+        found.front = [...closure(frontPage)].filter((f) => !inEntry.has(f) && !inApp.has(f));
+        found.later = [...new Set([...found.later, ...found.templates, ...found.front])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
-        // again, one after another.
-        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
-        return html.replace("</title>", `</title>\n    ${hint}`);
+        // again, one after another. The scripts go in as `modulepreload`, or, in a browser that does not know it
+        // (Safari before 17, Firefox before 115), as a preload of a script fetched as a module is: such a browser
+        // would otherwise ask for a piece only when the app imported it, a round after the app (slice 0093).
+        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}const r=document.createElement("link").relList,m=r&&r.supports&&r.supports("modulepreload");for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[],/${BUILT_INS}/.test(location.hash)?${list(found.templates)}:[],/${FRONT}/.test(location.hash)?${list(found.front)}:[])){const l=document.createElement("link");if(m)l.rel="modulepreload";else{l.rel="preload";l.as="script";l.crossOrigin=""}l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
+        // With a function: a replacement given as text is read for `$&` and its kind, and the rules are full of `$`.
+        return html.replace("</title>", () => `</title>\n    ${hint}`);
       },
     },
     closeBundle() {
@@ -122,6 +158,8 @@ export default defineConfig({
     alias: [
       { find: "@grooph/core/compile", replacement: compileSource },
       { find: "@grooph/core/map-views", replacement: mapViewsSource },
+      { find: "@grooph/core/units", replacement: unitsSource },
+      { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

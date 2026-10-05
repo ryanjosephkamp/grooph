@@ -1,0 +1,15 @@
+{
+  "audited_head": "dbc7a281f977dddf7acc7948a0221e2aba93c5e4",
+  "clean_git_status": true,
+  "fingerprinted_files": 2682,
+  "changed_files": [],
+  "added_files_in_fingerprinted_sets": [],
+  "removed_files": [],
+  "findings_count": 21,
+  "consecutive_findings": true,
+  "claims_count": 52,
+  "complete_claim_table": true,
+  "missing_template_fields": {},
+  "handback_sha256": "0febca0fbe173723a3caaca5652562667d5ed53243618d7493a7117fb1d0d35e",
+  "scope": "Only the audit folder was written. No harness/model/task/browser/sender experiment executed."
+}

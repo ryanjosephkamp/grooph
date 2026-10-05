@@ -106,7 +106,7 @@
     },
     {
       "id": "gauntlet-decomposed",
-      "version": 1,
+      "version": 2,
       "kind": "graph",
       "title": "Gauntlet, decomposed",
       "summary": "A planner cuts the work into pieces and a human approves the cut; one piece at a time an owner polishes while a fresh frontier critic compares captures blind against the reference; an integrator and a final blind comparison close it.",
@@ -313,7 +313,7 @@
     },
     {
       "id": "patrol-pulse",
-      "version": 2,
+      "version": 3,
       "kind": "graph",
       "title": "Patrol pulse",
       "summary": "A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.",

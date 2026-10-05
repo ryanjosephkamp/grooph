@@ -16,7 +16,10 @@
     "paths": {
       "@grooph/core": ["../../packages/core/src/base.ts"],
       "@grooph/core/compile": ["../../packages/core/src/compile/index.ts"],
-      "@grooph/core/map-views": ["../../packages/core/src/picture/map-views.ts"]
+      "@grooph/core/map-views": ["../../packages/core/src/picture/map-views.ts"],
+      "@grooph/core/units": ["../../packages/core/src/picture/graph-units.ts"],
+      // The picture's themes are another, fetched when one that is not Paper is chosen (slice 0086).
+      "@grooph/core/themes": ["../../packages/core/src/picture/themes.ts"]
     }
   },
   "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts"]

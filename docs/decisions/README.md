@@ -31,3 +31,5 @@ One file per decision, numbered, never edited after acceptance except to change 
 | 0025 | [Subgroophs: a group that remembers where it came from](0025-subgroophs.md) |
 | 0026 | [What the service worker keeps across a release](0026-what-the-worker-keeps.md) |
 | 0027 | [An address that draws on the canvas may load 280 KB, and the budget is compared to the byte](0027-the-canvas-budget.md) |
+| 0028 | [With the templates out of the first load, two limits come down to hold the gain](0028-the-limits-come-down.md) |
+| 0029 | [What grooph is shown to do, as of the first audit](0029-what-is-shown-as-of-the-first-audit.md) (**proposed**, not accepted) |

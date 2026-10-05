@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { extname, join, normalize, sep } from "node:path";
@@ -8,7 +8,7 @@ import { buildShareEnvelope, encodeSharePayload, parseMapText } from "@grooph/co
 import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
-import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, status } from "./support.js";
+import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, requestsOut, status, viewIsStill, visitIsOver } from "./support.js";
 
 /**
  * Handoff 0081, item 4: the smoke set. Five visits a stranger makes, short enough to run in Safari's engine
@@ -38,10 +38,66 @@ const outside = (address: string): boolean => {
   const url = new URL(address);
   return /^(https?|wss?):$/.test(url.protocol) && !THIS_MACHINE.has(url.hostname);
 };
-test.beforeEach(({ page, context }) => {
+/**
+ * One line a browser writes is not an error in the page, and is let through: "ResizeObserver loop completed with
+ * undelivered notifications."
+ *
+ * A ResizeObserver's callback changed the layout, and what that resized is told to its observers on the next frame
+ * and not on this one. Nothing is lost and nothing throws. Safari's engine writes the line to the page's console as
+ * an error, which Playwright hands on as a page error there and in no other engine; so the same event failed a
+ * visit in one engine and was never seen in the other two. It was seen in CI on 2026-10-05, twice in one job on a
+ * slow runner and in no other run: on a template's canvas with no network. The first of the two times the graph's
+ * own views had not arrived, so no observer of ours was on that screen at all: only the canvas library's. It has
+ * two (@xyflow/react 12): one on the pane, and one on every node, whose callback writes the nodes' sizes to the
+ * library's store (`updateNodeInternals`), which redraws them there and then. That is the pattern the line is
+ * written for. The other observers of ours are on screens these visits do not open: an embed, a map's views, a
+ * view in three dimensions.
+ *
+ * So the line is let through, and not silently. Each page says which elements were being told of a resize in the
+ * frame the line was written in (below). The visit prints that, so a run that passes still shows it. And if every
+ * one of those elements is ours and none the canvas library's, the loop is ours and the visit fails, naming them:
+ * an observer of ours that changes the layout it watches is a fault.
+ */
+const RESIZE_LOOP = "ResizeObserver loop completed with undelivered notifications.";
+type Loop = { at: string; library: string[]; ours: string[] };
+let loops: Loop[] = [];
+let out: () => string[] = () => [];
+
+test.beforeEach(async ({ page, context }) => {
   pageErrors = [];
   outsideRequests = [];
+  loops = [];
+  out = requestsOut(page);
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.exposeFunction("groophSizedLoop", (loop: Loop) => void loops.push(loop));
+  await page.addInitScript(() => {
+    // Every ResizeObserver of the page says, as it is called, which elements it was called for and in which frame.
+    const Native = window.ResizeObserver;
+    if (typeof Native !== "function") return;
+    let frame = 0;
+    const tick = (): void => {
+      frame += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const told: { frame: number; what: string; library: boolean }[] = [];
+    const name = (el: Element): string => `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className.trim() ? `.${el.className.trim().split(/\s+/).slice(0, 3).join(".")}` : ""}`;
+    window.ResizeObserver = class extends Native {
+      constructor(callback: ResizeObserverCallback) {
+        super((entries, observer) => {
+          for (const entry of entries) told.push({ frame, what: name(entry.target), library: entry.target.closest(".react-flow") !== null });
+          while (told.length > 600) told.shift();
+          callback(entries, observer);
+        });
+      }
+    };
+    addEventListener("error", (event) => {
+      if (!/ResizeObserver loop/.test(event.message ?? "")) return;
+      const now = told.filter((one) => one.frame >= frame - 1);
+      const list = (library: boolean): string[] => [...new Set(now.filter((one) => one.library === library).map((one) => one.what))];
+      void (window as unknown as { groophSizedLoop: (loop: unknown) => Promise<void> }).groophSizedLoop({ at: location.hash || "#/", library: list(true), ours: list(false) });
+    });
+  });
   // The context hears every page's requests, and in Chromium the service worker's own.
   context.on("request", (request) => {
     if (outside(request.url())) outsideRequests.push(request.url());
@@ -50,9 +106,18 @@ test.beforeEach(({ page, context }) => {
     if (outside(socket.url())) outsideRequests.push(socket.url());
   });
 });
-test.afterEach(() => {
-  expect(pageErrors, "uncaught errors in the page").toEqual([]);
+test.afterEach(({}, testInfo) => {
+  expect(pageErrors.filter((message) => message !== RESIZE_LOOP), "uncaught errors in the page").toEqual([]);
   expect(outsideRequests, "requests to another host").toEqual([]);
+  // The one line let through (above): said, so that it is not lost on a run that passes; and ours to answer for
+  // when no element of the canvas library's was being told of a resize in that frame.
+  const written = pageErrors.filter((message) => message === RESIZE_LOOP).length;
+  if (written > 0 || loops.length > 0) {
+    const said = loops.map((loop) => `at ${loop.at}: the canvas library's ${loop.library.join(", ") || "(none)"}; ours ${loop.ours.join(", ") || "(none)"}`);
+    console.log(`[${testInfo.project.name}] ${testInfo.title}: a ResizeObserver put off notifications to the next frame ${Math.max(written, loops.length)} time(s). ${said.join(" | ") || "The page did not say which elements."}`);
+    testInfo.annotations.push({ type: "resize-loop", description: said.join(" | ") || "not said by the page" });
+  }
+  expect(loops.filter((loop) => loop.ours.length > 0 && loop.library.length === 0).map((loop) => `at ${loop.at}: ${loop.ours.join(", ")}`), "a ResizeObserver of ours that changes the layout it watches").toEqual([]);
 });
 
 /**
@@ -112,6 +177,65 @@ test("a template opens from the list on the canvas, read-only, every node inside
   }
 });
 
+test("a graph is seen in three dimensions and as its picture again, whichever way this engine changes the view", async ({ page }, testInfo) => {
+  // Handoff 0092: where an engine has view transitions each node is seen to go to its card, and back (`ui/become.ts`);
+  // where it has none the view is changed in one paint. Either way it ends on the scene, and then on the canvas as
+  // it was. Which of the two this engine took is printed, so that a run's log says what was tried in it, with how
+  // long each move took from being asked for to its end: an engine left waiting for the change holds the page for
+  // seconds, and that would be seen here and nowhere else before a person saw it. Only the end of a move is listened
+  // to, which never fails: a move given up that nobody had read is still the page's own error.
+  await page.addInitScript(() => {
+    const real = document.startViewTransition?.bind(document);
+    if (!real) return;
+    const took: number[] = [];
+    Object.assign(window, { __took: took });
+    document.startViewTransition = (update?: unknown) => {
+      const from = performance.now();
+      const move = real(update as ViewTransitionUpdateCallback);
+      const at = took.push(-1) - 1;
+      void move.finished.then(() => (took[at] = Math.round(performance.now() - from)));
+      return move;
+    };
+  });
+  await page.goto("./#/templates/built-in/review-gate");
+  const ids = ["builder", "critic", "merge-gate", "done"];
+  for (const id of ids) await expect(node(page, id)).toBeVisible();
+  const views = page.getByRole("radiogroup", { name: "View of the graph" });
+  await expect(views).toBeVisible();
+  const moves = await page.evaluate(() => typeof document.startViewTransition === "function");
+  const under = (id: string) =>
+    node(page, id).evaluate((el) => {
+      const box = el.getBoundingClientRect();
+      return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)?.closest(".react-flow__node") === el;
+    });
+  expect(await under("builder")).toBe(true);
+
+  await views.getByRole("radio", { name: "3D" }).tap();
+  const scene = page.locator(".space-scene");
+  await expect(scene).toBeVisible();
+  await expect.poll(() => page.locator(".space-world").evaluate((el) => (el as HTMLElement).style.transform)).toContain("scale3d(");
+  await viewIsStill(page);
+  await expect(views.getByRole("radio", { name: "3D" })).toHaveAttribute("aria-checked", "true");
+  // Every node has its card, drawn with a size, and none is left carrying a name for a move that has ended.
+  const cards = await scene.locator(".space-card").evaluateAll((els) => els.map((el) => [el.querySelector("[data-node]")?.getAttribute("data-node"), Math.round(el.getBoundingClientRect().width), (el as HTMLElement).style.getPropertyValue("view-transition-name")] as const));
+  expect(cards.map(([id]) => id).sort()).toEqual([...ids].sort());
+  for (const [id, width, name] of cards) expect([id, width > 10, name]).toEqual([id, true, ""]);
+
+  await views.getByRole("radio", { name: "Picture" }).tap();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await viewIsStill(page);
+  await expect(views.getByRole("radio", { name: "Picture" })).toHaveAttribute("aria-checked", "true");
+  for (const id of ids) await expect(node(page, id)).toBeVisible();
+  // The canvas is the page's again: a node is what is under its own middle.
+  expect(await under("builder")).toBe(true);
+  const took = await page.evaluate(() => (window as unknown as { __took?: number[] }).__took ?? []);
+  console.log(`SWITCH ${testInfo.project.name} | view transitions: ${moves ? "yes" : "no"} | each move, asked for to ended, ms: ${took.join(", ") || "none"}`);
+  // Where the engine moves the view there were two moves, and neither held the page.
+  expect(took.length).toBe(moves ? 2 : 0);
+  for (const ms of took) expect(ms).toBeGreaterThanOrEqual(0);
+  for (const ms of took) expect(ms).toBeLessThan(2500);
+});
+
 test("a graph is imported and its export panel gives the golden package, byte for byte", async ({ page }) => {
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
   await expect(status(page)).toHaveText("1 warning");
@@ -164,14 +288,14 @@ const TYPES: Record<string, string> = {
  * away for real by closing it. Nothing it serves may be kept by the browser's own cache (`no-store`): whatever
  * answers once it is gone is the service worker.
  */
-async function serveBuiltApp(): Promise<{ url: string; stop: () => Promise<void> }> {
+async function serveBuiltApp({ without }: { without?: RegExp } = {}): Promise<{ url: string; stop: () => Promise<void> }> {
   const dist = join(repoRoot, "apps/web/dist");
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
     let file = normalize(join(dist, path.replace(/^\/grooph\//, "")));
     if (path.endsWith("/")) file = join(file, "index.html");
-    if (!path.startsWith("/grooph/") || !(file + sep).startsWith(dist + sep) || !existsSync(file) || !statSync(file).isFile()) {
+    if (!path.startsWith("/grooph/") || !(file + sep).startsWith(dist + sep) || !existsSync(file) || !statSync(file).isFile() || without?.test(path)) {
       response.writeHead(404).end();
       return;
     }
@@ -248,11 +372,14 @@ test("a screen that could not be fetched is asked for again when the next one is
     refused += 1;
     return route.abort();
   });
-  await page.goto("./#/templates");
-  await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
-  await page.evaluate(() => ((window as unknown as { sameTab: boolean }).sameTab = true));
-  await page.locator('.template-row[data-template="review-gate"]').tap();
+  // The address of a screen that needs them. The page asks before it draws and the app asks again as it opens, and
+  // only then does the screen say so: nothing is asking any more when it does, so the connection can be given back
+  // without a try that was already on its way using it. (This test once opened the screen from the list, where the
+  // words show for a moment before the next try starts; on a slow machine the connection came back in that moment,
+  // the try succeeded, and the test looked for a way out of a screen that had opened.)
+  await page.goto("./#/templates/built-in/review-gate");
   await expect(page.getByText("This screen could not be fetched.")).toBeVisible();
+  await page.evaluate(() => ((window as unknown as { sameTab: boolean }).sameTab = true));
   expect(refused).toBeGreaterThan(1);
 
   // The connection is back. The way out the screen offers, and the same template again: it opens, in the same page.
@@ -285,23 +412,52 @@ test.describe("with the service worker running", () => {
     try {
       await page.goto(app.url);
       await frontPageIsUp(page);
-      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-      // The worker has finished keeping what the page names, the screens that draw on the canvas among them.
-      await expect
-        .poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/screens-[^/]*\.js$/.test(r.url)).length))
-        .toBe(1);
+      // The visit is over before the network goes: the worker holds every file the page names, whole, and nothing
+      // the page asked for is still on its way (`visitIsOver`). Not three files by name, as it was: a template on
+      // the canvas, opened below with no network, also asks for the graph's views, and whatever is added next.
+      await visitIsOver(page, out);
     } finally {
       await app.stop();
     }
     // Gone: a request that does not pass through the worker is refused.
     await expect(page.request.get(app.url)).rejects.toThrow();
 
-    // The address typed again with no network, then an address the first visit never asked for.
+    // The address typed again with no network, then addresses the first visit never asked for: the list of
+    // templates, every one of them there, and a template on the canvas.
     await page.goto(app.url);
     await frontPageIsUp(page);
+    await expect(page.locator(".land-picture svg.grooph-picture")).toBeVisible();
+    await page.goto(`${app.url}#/templates`);
+    await page.reload();
+    await expect(page.locator(".template-row")).toHaveCount(readdirSync(join(repoRoot, "patterns")).filter((name) => name.endsWith(".grooph.json")).length);
     await page.goto(`${app.url}#/templates/built-in/review-gate`);
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
     await expect(page.locator(".react-flow__edge")).toHaveCount(5);
+  });
+
+  test("the wait for a visit to be over does not pass while a file the page names is not held: it says which", async ({ page }) => {
+    // What the offline visit above leans on, held to its word in each engine. One piece no first screen asks for
+    // cannot be had from this server; the worker keeps the rest, takes control, and the page is up.
+    const app = await serveBuiltApp({ without: /\/assets\/graph-views-[^/]*\.js$/ });
+    try {
+      await page.goto(app.url);
+      await frontPageIsUp(page);
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+      // Three files by name, as the wait once was, are all there: it would have let the network go.
+      for (const piece of ["screens", "builtins", "front"]) {
+        await expect.poll(() => page.evaluate(async (name) => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => new RegExp(`/assets/${name}-[^/]*\\.js$`).test(r.url)).length, piece), { message: piece }).toBe(1);
+      }
+      const waited = await visitIsOver(page, out, { within: 3000 }).then(
+        () => "the visit was called over",
+        (error: Error) => error.message,
+      );
+      expect(waited).toMatch(/files the page names that the worker does not hold whole/);
+      expect(waited).toMatch(/assets\/graph-views-[\w-]+\.js: not held/);
+      // Only that one: every other file the page names is held, whole.
+      expect(waited.match(/: not held|of \d+ bytes/g)).toHaveLength(1);
+    } finally {
+      await app.stop();
+    }
   });
 });

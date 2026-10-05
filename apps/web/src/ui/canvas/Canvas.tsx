@@ -14,6 +14,7 @@ import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../../doc/layout.js";
 import { useDoc } from "../../doc/store.js";
 import { useEditor } from "../editorContext.js";
 import { edgeBends, labelSpots, type Box } from "./bends.js";
+import { boxed, type UseBoxes } from "./boxes.js";
 import { EDITOR_PAD, FIT } from "./fit.js";
 import { OpeningView } from "./OpeningView.js";
 import { GraphEdge, type GraphFlowEdge } from "./GraphEdge.js";
@@ -29,9 +30,13 @@ type Size = { width: number; height: number };
  * from automatic layout when the document has none (amendment A-005); a drag
  * writes positions back, and nothing else does.
  */
-export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id: Id) => void }) {
+type Props = { issues: Issue[]; onNodeTap: (id: Id) => void };
+
+export const Canvas = boxed<Props>(Drawn, () => useDoc(useEditor().store));
+
+function Drawn({ issues, onNodeTap, useBoxes }: Props & { useBoxes: UseBoxes }) {
   const editor = useEditor();
-  const doc = useDoc(editor.store);
+  const stored = useDoc(editor.store);
   const [drag, setDragState] = useState<Record<Id, Position>>({});
   const dragRef = useRef(drag);
   const setDrag = (next: Record<Id, Position>) => {
@@ -40,11 +45,16 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
   };
   const [measured, setMeasured] = useState<Record<Id, Size>>({});
 
-  const { positions } = useMemo(() => resolvePositions(doc), [doc]);
+  const own = useMemo(() => resolvePositions(stored).positions, [stored]);
   const severity = useMemo(() => severityById(issues), [issues]);
 
   const { panel, mode, highlight } = editor;
   const selectedNode = panel?.type === "node" ? panel.id : undefined;
+  // A subgrooph is one box (handoff 0085): the document is drawn with each closed box as one node, placed over the
+  // room its nodes take. The node a panel is about, and the ones an issue points at, open the boxes around them.
+  const boxes = useBoxes(stored, own, measured, severity, highlight.nodes, selectedNode);
+  const doc = boxes?.doc ?? stored;
+  const positions = boxes?.positions ?? own;
   const selectedEdge = panel?.type === "edge" ? panel.id : undefined;
   const focusLoop =
     mode.type === "pick" ? doc.loops.find((l) => l.id === mode.loopId) : panel?.type === "loop" ? doc.loops.find((l) => l.id === panel.id) : undefined;
@@ -153,7 +163,7 @@ export function Canvas({ issues, onNodeTap }: { issues: Issue[]; onNodeTap: (id:
 
   return (
     <ReactFlow<GraphFlowNode, GraphFlowEdge>
-      nodes={nodes}
+      nodes={boxes?.with(nodes) ?? nodes}
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}

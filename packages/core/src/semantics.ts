@@ -95,16 +95,24 @@ export function stopAction(stop: Stop): string {
     : "halt the run and report to the human";
 }
 
-/** Entry nodes: no inbound edge other than a loop back-edge (graph-ir §2). */
+/**
+ * The nodes a loop's stops lead out to: where a stop continues (`then`), unless that is one of the loop's own
+ * members, which is the loop going round again as a back edge is.
+ */
+export const stopsLeadTo = (loop: Loop): Id[] =>
+  (loop.stops ?? []).flatMap((stop) => (stop.then === undefined || (loop.members ?? []).includes(stop.then) ? [] : [stop.then]));
+
+/**
+ * Entry nodes: nothing leads into them (graph-ir §2). A way in is an inbound edge that is not a loop's back edge, or
+ * a stop of a loop the node is not in that continues there (`then`).
+ */
 export function entryNodeIds(index: GraphIndex): Id[] {
-  const backEdgeIds = new Set<Id>();
-  for (const loop of index.doc.loops ?? []) for (const id of loop.back ?? []) backEdgeIds.add(id);
-  const entries: Id[] = [];
-  for (const node of index.doc.nodes ?? []) {
-    const inbound = (index.incoming.get(node.id) ?? []).filter((edge) => !backEdgeIds.has(edge.id));
-    if (inbound.length === 0) entries.push(node.id);
-  }
-  return entries;
+  const loops = index.doc.loops ?? [];
+  const back = new Set<Id>(loops.flatMap((loop) => loop.back ?? []));
+  const continued = new Set<Id>(loops.flatMap(stopsLeadTo));
+  return (index.doc.nodes ?? [])
+    .filter((node) => !continued.has(node.id) && (index.incoming.get(node.id) ?? []).every((edge) => back.has(edge.id)))
+    .map((node) => node.id);
 }
 
 /** Loops a node belongs to, in document order. */
@@ -112,16 +120,21 @@ export function loopsOfNode(index: GraphIndex, nodeId: Id): Loop[] {
   return (index.doc.loops ?? []).filter((loop) => (loop.members ?? []).includes(nodeId));
 }
 
-/** Every node reachable from `starts` along any edge, back edges included. */
+/**
+ * Every node reachable from `starts`: along any edge, back edges included, and from a loop's member to where the
+ * loop's stops continue (`then`).
+ */
 export function reachableFrom(index: GraphIndex, starts: readonly Id[]): Set<Id> {
   const seen = new Set<Id>(starts.filter((id) => index.nodes.has(id)));
   const queue = [...seen];
   while (queue.length > 0) {
     const current = queue.shift()!;
-    for (const edge of index.outgoing.get(current) ?? []) {
-      if (!index.nodes.has(edge.to) || seen.has(edge.to)) continue;
-      seen.add(edge.to);
-      queue.push(edge.to);
+    const onward = (index.outgoing.get(current) ?? []).map((edge) => edge.to);
+    for (const loop of index.doc.loops ?? []) if ((loop.members ?? []).includes(current)) onward.push(...stopsLeadTo(loop));
+    for (const next of onward) {
+      if (!index.nodes.has(next) || seen.has(next)) continue;
+      seen.add(next);
+      queue.push(next);
     }
   }
   return seen;

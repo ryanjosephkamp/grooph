@@ -1,0 +1,227 @@
+{
+  "template": "heterogeneous-critic",
+  "arm": "B",
+  "replicate": 1,
+  "project": "heterogeneous-critic",
+  "graph_id": "parse-page-ranges",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/heterogeneous-critic/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lsYnWg/printkit-vYfBsy.harness/held-out",
+      "files": [
+        {
+          "path": "parse-ranges-cases.test.mjs",
+          "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+          "at_run": true
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/heterogeneous-critic/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "parse-page-ranges--builder": "claude-sonnet-5-5",
+      "parse-page-ranges--critic": "claude-opus-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "heterogeneous-critic",
+    "template_version": "heterogeneous-critic@1",
+    "graph_id": "parse-page-ranges",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lsYnWg/printkit-vYfBsy"
+  },
+  "derivation": {
+    "graph": "parse-page-ranges",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 14,
+      "prompt": 12
+    },
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.8297566,
+      "output_tokens": 15478
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.21745600000000004,
+      "output_tokens": 11882
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5-5",
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 1.047213,
+  "harness_turns": 11,
+  "duration_s": 214,
+  "wall_s": 215,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.8297566,
+        "output_tokens": 15478
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.21745600000000004,
+        "output_tokens": 11882
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5-5",
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 1.047213,
+    "harness_turns": 11,
+    "duration_s": 214,
+    "wall_s": 215,
+    "permission_denials": [],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement parseRanges",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: review parseRanges change",
+        "model_asked": "opus"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder round 1: address REVIEW.md",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic round 1: re-review change",
+        "model_asked": "opus"
+      }
+    ],
+    "held_out_touched": {
+      "general-purpose (Critic: review parseRanges change)": 1,
+      "general-purpose (Critic round 1: re-review change)": 1
+    },
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 5,
+      "where": []
+    }
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 51,
+      "session_id": "04c08fbf-e363-4d57-bd63-514a86c8c651",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.047213,
+      "reported_cost_usd": 1.0472126,
+      "max_budget_usd": 9,
+      "harness_turns": 11,
+      "duration_s": 214,
+      "wall_s": 215,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "1,\"`, `\"1,,3\"`) throws a RangeError, although blank text as a whole means every page.\n\n**In the working tree, not committed:**\n- `src/parse-ranges.mjs`, new\n- `tests/parse-ranges.test.mjs`, new\n- `README.md`, a new section\n- `CHANGES.md`, new\n- `REVIEW.md`, new\n\nNothing is committed yet. CHANGES.md and REVIEW.md are records of the review loop, so you may not want them in the merge.\n\n**Merge it?** If you approve, I'll end the run as a success; I can also commit the change on a new branch if you want that. If you reject it, give me your feedback and I'll send it to the builder for another round."
+    }
+  ],
+  "base_commit": "3b47ef3e337b8b287a1454e98340870923ac7696",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/parse-ranges.mjs",
+    "A tests/parse-ranges.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lsYnWg/printkit-vYfBsy",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

@@ -1,0 +1,260 @@
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..edf8ce9
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,38 @@
++# Capture of the current revision
++
++- rendered at 2026-10-04T22:42:28.352Z from src/statement.mjs, sha256 47a165d2ba64
++- file: captures/statement.txt, 26 lines, the widest 59 characters
++- lines that end in a space or a tab: 0
++- tabs: none
++- characters outside plain ASCII: none
++
++## The statement, with line numbers and each line's length
++
++```text
++ 1 | 50 | Northwind Robotics usage statement, September 2026
++ 2 | 33 | Account NW-20418. Amounts in USD.
++ 3 |  0 | 
++ 4 |  7 | Charges
++ 5 | 59 | Service                     Quantity                 Amount
++ 6 | 59 | Compute                     18,250 vCPU-hours      1,642.50
++ 7 | 59 | Container registry             412 GB-months          41.20
++ 8 | 59 | Data transfer out            4,380 GB                394.20
++ 9 | 59 | Dedicated support                1 plan              500.00
++10 | 59 | Key management                  36 keys               36.00
++11 | 59 | Load balancing               1,440 hours              36.00
++12 | 59 | Machine learning inference       0 requests            0.00
++13 | 59 | Managed database               720 instance-hours  1,296.00
++14 | 59 | Monitoring                       0 metrics             0.00
++15 | 59 | Object storage               9,120 GB-months         209.76
++16 | 59 |                                                    --------
++17 | 59 | Total charges                                      4,155.66
++18 |  0 | 
++19 |  7 | Credits
++20 | 59 | Service credit, 14 Sep outage                       -164.25
++21 | 59 | Committed-use discount                              -410.63
++22 | 59 |                                                    --------
++23 | 59 | Total credits                                       -574.88
++24 |  0 | 
++25 | 59 |                                                    ========
++26 | 59 | Total due (USD)                                    3,580.78
++```
+diff --git a/captures/statement.txt b/captures/statement.txt
+new file mode 100644
+index 0000000..6a9714d
+--- /dev/null
++++ b/captures/statement.txt
+@@ -0,0 +1,26 @@
++Northwind Robotics usage statement, September 2026
++Account NW-20418. Amounts in USD.
++
++Charges
++Service                     Quantity                 Amount
++Compute                     18,250 vCPU-hours      1,642.50
++Container registry             412 GB-months          41.20
++Data transfer out            4,380 GB                394.20
++Dedicated support                1 plan              500.00
++Key management                  36 keys               36.00
++Load balancing               1,440 hours              36.00
++Machine learning inference       0 requests            0.00
++Managed database               720 instance-hours  1,296.00
++Monitoring                       0 metrics             0.00
++Object storage               9,120 GB-months         209.76
++                                                   --------
++Total charges                                      4,155.66
++
++Credits
++Service credit, 14 Sep outage                       -164.25
++Committed-use discount                              -410.63
++                                                   --------
++Total credits                                       -574.88
++
++                                                   ========
++Total due (USD)                                    3,580.78
+diff --git a/src/statement.mjs b/src/statement.mjs
+index 8bf919c..604b042 100644
+--- a/src/statement.mjs
++++ b/src/statement.mjs
+@@ -1,3 +1,52 @@
++const MAX_WIDTH = 72;
++const GAP = "  ";
++const MONTHS = [
++  "January", "February", "March", "April", "May", "June",
++  "July", "August", "September", "October", "November", "December",
++];
++
++/** "2026-09" -> "September 2026"; anything else is shown as given. */
++function formatPeriod(period) {
++  const match = /^(\d{4})-(\d{2})$/.exec(period);
++  if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) return period;
++  return `${MONTHS[Number(match[2]) - 1]} ${match[1]}`;
++}
++
++/** 18250 -> "18,250" */
++function groupDigits(digits) {
++  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++}
++
++function formatQuantity(quantity) {
++  const [whole, fraction] = String(Math.abs(quantity)).split(".");
++  const sign = quantity < 0 ? "-" : "";
++  return `${sign}${groupDigits(whole)}${fraction ? `.${fraction}` : ""}`;
++}
++
++/** Whole cents to dollars and cents, exactly: -16425 -> "-164.25" */
++function formatCents(cents) {
++  if (!Number.isInteger(cents)) throw new Error(`amount_cents must be whole cents, got ${cents}`);
++  const sign = cents < 0 ? "-" : "";
++  const abs = Math.abs(cents);
++  const dollars = Math.floor(abs / 100);
++  const rest = String(abs % 100).padStart(2, "0");
++  return `${sign}${groupDigits(String(dollars))}.${rest}`;
++}
++
++/** Splits text into pieces no wider than width, at spaces where possible. */
++function wrap(text, width) {
++  const pieces = [];
++  let rest = text;
++  while (rest.length > width) {
++    let cut = rest.lastIndexOf(" ", width);
++    if (cut <= 0) cut = width;
++    pieces.push(rest.slice(0, cut).trimEnd());
++    rest = rest.slice(cut).trimStart();
++  }
++  pieces.push(rest);
++  return pieces;
++}
++
+ /**
+  * The monthly usage statement as plain text.
+  * @param {{ customer: string, account: string, period: string, currency: string,
+@@ -6,17 +55,79 @@
+  * @returns {string}
+  */
+ export function renderStatement(data) {
++  const charges = data.lines.map((line) => ({
++    label: line.service,
++    quantity: formatQuantity(line.quantity),
++    unit: line.unit,
++    amount: formatCents(line.amount_cents),
++  }));
++  const credits = data.credits.map((credit) => ({
++    label: credit.reason,
++    amount: formatCents(credit.amount_cents),
++  }));
++  const chargesCents = data.lines.reduce((sum, line) => sum + line.amount_cents, 0);
++  const creditsCents = data.credits.reduce((sum, credit) => sum + credit.amount_cents, 0);
++  const totalLabel = `Total due (${data.currency})`;
++  const totals = {
++    charges: formatCents(chargesCents),
++    credits: formatCents(creditsCents),
++    due: formatCents(chargesCents + creditsCents),
++  };
++
++  // Columns: label, quantity (number right-aligned, then unit), amount (right-aligned).
++  const amountHeading = "Amount";
++  const quantityHeading = "Quantity";
++  const unitWidth = Math.max(0, ...charges.map((row) => row.unit.length));
++  const amountWidth = Math.max(amountHeading.length, ...[...charges, ...credits].map((row) => row.amount.length),
++    ...Object.values(totals).map((amount) => amount.length));
++  const numberWidth = Math.max(0, ...charges.map((row) => row.quantity.length));
++  const quantityWidth = Math.max(quantityHeading.length, numberWidth + 1 + unitWidth);
++  const quantityText = (charge) =>
++    `${charge.quantity.padStart(numberWidth)} ${charge.unit}`.padEnd(quantityWidth);
++  const labelWidth = Math.min(
++    Math.max("Service".length, ...charges.map((row) => row.label.length)),
++    MAX_WIDTH - quantityWidth - amountWidth - 2 * GAP.length,
++  );
++  const width = labelWidth + GAP.length + quantityWidth + GAP.length + amountWidth;
++  // Credits and totals have no quantity column, so their labels may use its room.
++  const wideLabelWidth = width - GAP.length - amountWidth;
++
++  const row = (label, quantity, amount) => {
++    const pieces = wrap(label, labelWidth);
++    const last = pieces.pop();
++    return [
++      ...pieces,
++      `${last.padEnd(labelWidth)}${GAP}${quantity.padStart(quantityWidth)}${GAP}${amount.padStart(amountWidth)}`,
++    ];
++  };
++  const wideRow = (label, amount) => {
++    const pieces = wrap(label, wideLabelWidth);
++    const last = pieces.pop();
++    return [...pieces, `${last.padEnd(wideLabelWidth)}${GAP}${amount.padStart(amountWidth)}`];
++  };
++  const rule = (ch) => `${" ".repeat(width - amountWidth)}${ch.repeat(amountWidth)}`;
++
+   const out = [];
+-  out.push(`Usage statement ${data.account} ${data.customer} ${data.period}`);
+-  let total = 0;
+-  for (const line of data.lines) {
+-    out.push(`${line.service} ${line.quantity} ${line.unit} ${line.amount_cents}`);
+-    total += line.amount_cents;
+-  }
+-  for (const credit of data.credits) {
+-    out.push(`${credit.reason} ${credit.amount_cents}`);
+-    total += credit.amount_cents;
++  out.push(...wrap(`${data.customer} usage statement, ${formatPeriod(data.period)}`, MAX_WIDTH));
++  out.push(...wrap(`Account ${data.account}. Amounts in ${data.currency}.`, MAX_WIDTH));
++  out.push("");
++  out.push("Charges");
++  out.push(...row("Service", quantityHeading.padEnd(quantityWidth), amountHeading));
++  for (const charge of charges) out.push(...row(charge.label, quantityText(charge), charge.amount));
++  out.push(rule("-"));
++  out.push(...wideRow("Total charges", totals.charges));
++
++  if (credits.length > 0) {
++    out.push("");
++    out.push("Credits");
++    for (const credit of credits) out.push(...wideRow(credit.label, credit.amount));
++    out.push(rule("-"));
++    out.push(...wideRow("Total credits", totals.credits));
+   }
+-  out.push(`Total ${total} ${data.currency} cents`);
+-  return `${out.join("\n")}\n`;
++
++  out.push("");
++  out.push(rule("="));
++  out.push(...wideRow(totalLabel, totals.due));
++
++  return `${out.map((line) => line.trimEnd()).join("\n")}\n`;
+ }
+diff --git a/tests/statement.test.mjs b/tests/statement.test.mjs
+index f5162c9..e1e3d1e 100644
+--- a/tests/statement.test.mjs
++++ b/tests/statement.test.mjs
+@@ -18,6 +18,31 @@ test("renderStatement names the customer and the account", () => {
+   assert.ok(text.includes(data.account));
+ });
+ 
++test("renderStatement keeps to plain text no wider than 72 characters", () => {
++  const lines = renderStatement(data).replace(/\n$/, "").split("\n");
++  for (const line of lines) {
++    assert.ok(line.length <= 72, line);
++    assert.ok(!/[ \t]$/.test(line), `trailing space: ${JSON.stringify(line)}`);
++    assert.ok(/^[ -~]*$/.test(line), `not plain ASCII: ${JSON.stringify(line)}`);
++  }
++});
++
++test("renderStatement shows the month, dollars and cents, and the exact total due", () => {
++  const text = renderStatement(data);
++  assert.ok(text.includes("September 2026"));
++  assert.match(text, /Compute +18,250 vCPU-hours +1,642\.50\n/);
++  assert.match(text, /Service credit, 14 Sep outage +-164\.25\n/);
++  assert.match(text, /Total charges +4,155\.66\n/);
++  assert.match(text, /Total credits +-574\.88\n/);
++  assert.match(text, /Total due \(USD\) +3,580\.78\n$/);
++});
++
++test("renderStatement wraps a long service name instead of widening the statement", () => {
++  const long = { ...data, lines: [{ ...data.lines[0], service: "A very long service name ".repeat(4).trim() }] };
++  const lines = renderStatement(long).split("\n");
++  assert.ok(lines.every((line) => line.length <= 72));
++});
++
+ test("renderStatement names every service and every credit", () => {
+   const text = renderStatement(data).replace(/\s+/g, " ");
+   for (const line of data.lines) assert.ok(text.includes(line.service), line.service);

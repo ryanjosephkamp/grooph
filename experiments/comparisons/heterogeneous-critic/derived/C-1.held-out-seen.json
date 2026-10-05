@@ -1,0 +1,39 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "heterogeneous-critic/C-1",
+  "sessions": [
+    "fcc49495-6f5c-4d81-9399-cb46549c4a98"
+  ],
+  "transcripts_found": 5,
+  "suite_runs": [
+    {
+      "who": "general-purpose (Critic: review parseRanges change)",
+      "at": "2026-10-04T21:51:35.886Z",
+      "command": "node --test <held-out>/parse-ranges-cases.test.mjs",
+      "tests": null,
+      "pass": 50,
+      "fail": null,
+      "fail_lines_kept": 22,
+      "read_from": "the lines the harness kept; the output was cut, so these are lower bounds",
+      "cut": true
+    },
+    {
+      "who": "general-purpose (Critic: review parseRanges change)",
+      "at": "2026-10-04T21:51:46.519Z",
+      "command": "node --test --test-reporter=dot <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 70,
+      "pass": 52,
+      "fail": 18,
+      "read_from": "the dot reporter's grid"
+    },
+    {
+      "who": "general-purpose (Critic: re-review parseRanges change)",
+      "at": "2026-10-04T21:53:40.897Z",
+      "command": "node --test <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 70,
+      "pass": 70,
+      "fail": 0,
+      "read_from": "node's summary"
+    }
+  ]
+}

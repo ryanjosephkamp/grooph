@@ -265,7 +265,7 @@ warning  W_ONLY_MAX_ITERATIONS  loop "fix-cycle" stops only on max-iterations, w
 
 ### `W_UNREACHABLE_NODE`
 
-A node is not reachable from any entry node. Under the entry rule this always accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`); it exists to name the stranded nodes so a view can highlight them.
+A node is not reachable from any entry node, along edges or from a loop's member to where the loop's stops continue (`then`). Under the entry rule this accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`) unless loops' stops continue only into one another, so that nothing starts; it exists to name the stranded nodes so a view can highlight them.
 
 **Fails:** [`fixtures/invalid/W_UNREACHABLE_NODE/cycle-with-no-way-in.grooph.json`](../fixtures/invalid/W_UNREACHABLE_NODE/cycle-with-no-way-in.grooph.json) prints
 
@@ -278,7 +278,7 @@ warning  W_UNREACHABLE_NODE  node "reviewer-b" is not reachable from any entry n
 
 ### `W_NO_TERMINAL`
 
-No `stop` node is reachable from an entry node. Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host).
+No `stop` node is reachable from an entry node, along edges or by a loop's stop that continues at one (`then`). Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host).
 
 **Fails:** [`fixtures/invalid/W_NO_TERMINAL/no-stop-node.grooph.json`](../fixtures/invalid/W_NO_TERMINAL/no-stop-node.grooph.json) prints
 

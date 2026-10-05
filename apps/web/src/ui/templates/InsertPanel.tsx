@@ -3,18 +3,19 @@ import { useEffect, useState } from "react";
 
 import { emptyHighlight } from "../../doc/issues.js";
 import { useDoc } from "../../doc/store.js";
-import { BUILT_IN_TEMPLATES, filledValues, slotsOf, type TemplateEntry } from "../../doc/templates.js";
+import { filledValues, slotsOf, type TemplateEntry } from "../../doc/templates.js";
 import { listUserTemplates } from "../../store/templates.js";
 import { useEditor } from "../editorContext.js";
 import { TextArea, TextInput } from "../fields.js";
+import { useBuiltIns } from "./TemplatesScreen.js";
 
 type Inserted = { title: string; ids: Record<Id, Id>; nodes: Id[]; edges: number; loops: number };
 
 /** Fragments first (they are made for inserting), then whole-graph templates; yours before the built-ins in each. */
-function insertable(yours: Graph[]): TemplateEntry[] {
+function insertable(yours: Graph[], builtIn: readonly Graph[]): TemplateEntry[] {
   const all: TemplateEntry[] = [
     ...yours.map((doc) => ({ source: "yours" as const, doc })),
-    ...BUILT_IN_TEMPLATES.map((doc) => ({ source: "built-in" as const, doc })),
+    ...builtIn.map((doc) => ({ source: "built-in" as const, doc })),
   ];
   const rank = (e: TemplateEntry): number => (e.doc.template?.kind === "fragment" ? 0 : 1);
   return all.sort((a, b) => rank(a) - rank(b));
@@ -29,6 +30,9 @@ function insertable(yours: Graph[]): TemplateEntry[] {
 export function InsertPanel() {
   const editor = useEditor();
   const [yours, setYours] = useState<Graph[] | null>(null);
+  // The built-in ones are a piece of the app (`doc/builtins.ts`). They are nearly always here already; if not,
+  // the list waits for them as it waits for this device's own.
+  const builtIn = useBuiltIns();
   const [chosen, setChosen] = useState<TemplateEntry | null>(null);
   const [inserted, setInserted] = useState<Inserted | null>(null);
 
@@ -69,11 +73,20 @@ export function InsertPanel() {
   }
 
   if (yours === null) return <div className="inspector" />;
+  // Said, so that a panel still waiting is not taken for one with nothing in it.
+  if (builtIn === undefined) {
+    return (
+      <div className="inspector">
+        <p className="field-hint">Opening…</p>
+      </div>
+    );
+  }
   return (
     <div className="inspector">
       <p className="field-hint">Its nodes join this graph unconnected; ids that are taken here get a number. Connect them where they belong.</p>
+      {builtIn === null ? <p className="field-hint">The built-in templates could not be fetched. They need a connection the first time; yours are below.</p> : null}
       <ul className="insert-list" aria-label="Templates to insert">
-        {insertable(yours).map((entry) => {
+        {insertable(yours, builtIn ?? []).map((entry) => {
           const t = entry.doc.template!;
           return (
             <li key={`${entry.source}/${entry.doc.id}`}>

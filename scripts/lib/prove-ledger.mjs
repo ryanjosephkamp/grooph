@@ -19,6 +19,11 @@
  *
  *   node scripts/lib/prove-ledger.mjs status
  *   node scripts/lib/prove-ledger.mjs record --kind probe --template - --cost 0.03 --note "…"
+ *   node scripts/lib/prove-ledger.mjs allow-retry --template <id> --by "<who decided it and why>"
+ *
+ * `allow-retry` (slice 0019) records one more retry for a template whose one retry was used up by a run that failed
+ * for a reason outside the package after it had reached a model (the rule counts only sign-in and network failures,
+ * which reach none). It is a line in `extra_retries`, with who decided it and why, and it is used once.
  */
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -101,8 +106,9 @@ export function gate(ledger, { template, kind, retry }) {
     // any model call) does not use up the one retry: only a retried kickoff that ran does.
     const reachedLead = (entry) => entry.status === "ok" || Boolean(entry.run_id);
     const retried = earlier.filter((entry) => entry.retry && reachedLead(entry));
-    if (retry && retried.length > 0) {
-      return refuse(`${template} was already retried once (invocation ${retried.map((e) => e.n).join(", ")})`);
+    const extra = (ledger.extra_retries ?? []).filter((line) => line.template === template).length;
+    if (retry && retried.length > extra) {
+      return refuse(`${template} was already retried once (invocation ${retried.map((e) => e.n).join(", ")}). One more needs a decision, recorded with \`prove-ledger.mjs allow-retry --template ${template} --by "<who and why>"\``);
     }
     if (retry && earlier.length === 0) return refuse(`--retry given, but ${template} has no earlier kickoff to retry`);
   }
@@ -165,6 +171,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     settleEntry(entry, { status: "ok", cost_usd: cost, reported_cost_usd: cost });
     saveLedger(ledger);
     console.log(describe(ledger));
+  } else if (command === "allow-retry") {
+    const opt = (name) => {
+      const at = rest.indexOf(`--${name}`);
+      return at >= 0 ? rest[at + 1] : undefined;
+    };
+    if (!opt("template") || !opt("by")) {
+      console.error('usage: prove-ledger.mjs allow-retry --template <id> --by "<who decided it and why>"');
+      process.exit(64);
+    }
+    ledger.extra_retries = [...(ledger.extra_retries ?? []), { template: opt("template"), on: new Date().toISOString().slice(0, 10), by: opt("by") }];
+    saveLedger(ledger);
+    console.log(describe(ledger).split("\n")[0]);
+    console.log(`one more retry of ${opt("template")} is recorded`);
   } else {
     console.error(`unknown command: ${command}`);
     process.exit(64);

@@ -44,3 +44,21 @@ Do the five numbered items under "What must change before it merges", each with 
 
 Do not start a model session in this pass. When it is pushed, update handoffs/0076-codex-target/HANDBACK.md, and end your reply with two things: the prompt I should carry back to the driver session in Claude Code, and the exact command you would run for the review-gate proving run, with what it reads and writes outside the repository, so I can say yes or no to it.
 ```
+
+## Second read, 2026-10-04: the fix pass at `68c1dfe`
+
+**Reader:** a fresh Opus 5.5 subagent of the driver's, which re-ran items 1 to 5 above on Codex's fix pass and read the command proposed for the proving run. Written here on 2026-10-05 from the review desk's card (`q39-codex-target-round2`), where it was first put to the owner; no model session was started.
+
+**All five items are fixed.** No approval setting is written or suggested. GPT-6.1 Sol leads and GPT-6 Luna works by default. 7,128 agent files made from hostile graphs all parse, and none gained a setting. The compiler itself now refuses names that are not names, for both targets. Nothing claims a run that did not happen. The Claude Code golden packages are byte for byte unchanged.
+
+**Three things to change before it merges:**
+
+1. **A brake loosened by this pull request.** `packages/core/src/compile/claude-code/context.ts` takes the profile from the document's own harness, and Codex now has a profile. So `fixtures/valid/review-loop.grooph.json` with `"harness": "codex"`, exported with `--target claude-code`, exits 0 with no warning and writes agent files with the model `gpt-6-luna` and no `tools` or `disallowedTools` lines, which in Claude Code means every tool. On `main` that document is refused (`E_NO_TARGET`). The Claude Code compiler must use the Claude Code profile whatever harness the document names; whether a document that names one harness and is exported for another is refused or warned is the author's to decide and say, the same way for both targets, with a test.
+2. **`main` has moved.** Merged with it, `packages/core/test/graph-units.test.ts` calls `compile()` on an unparsed document and the new guard throws: the test should call the compiler as `compile.test.ts` does, without weakening the guard. The Claude Code lead brief gained a "Units" table for subgroophs (`packages/core/src/compile/claude-code/lead.ts`); the Codex lead brief is a copy and lacks it, and should get it from the same function. Both Codex golden packages regenerated; the Claude Code ones unchanged by a byte.
+3. **A sentence nobody has checked.** "Inherits the owner's approval policy" (`packages/core/src/compile/codex/mapping.ts`, `agents.ts`, and `docs/targets/codex.md`, where it is marked seen) stands beside a `codex exec` command that nobody has run. It is unknown until a run shows it.
+
+Also asked for: CI's budget lines after the merge, in the handback (the first load is at 179.72 of 180 KB on `main` and this pull request adds about 0.10); and that `scripts/prove-codex.mjs` write `codex-output.jsonl` and the stderr file where git ignores them, because they are the whole transcript and the repository is public.
+
+**The proving run**, as put to the owner: one Codex session started by a script in his `grooph-codex` folder; a Sol lead at high effort and two Luna workers run `review-gate` on a small scratch project for fifteen minutes at most, with web search off. It uses his Codex sign-in and configuration as they are, so his connected servers and hooks are live in it. It turns no approval off and uses the ordinary workspace sandbox. There is no dollar cap; the tokens used are recorded. The reader saw no reason to refuse it, on three conditions the driver agrees with: after the three fixes, not before; the two transcript files out of git until a person has read them; run from the final head, built. The owner says yes or no after Codex shows him the command again at its new head.
+
+The prompt for this second pass is on the desk card, and the owner carries it to Codex.

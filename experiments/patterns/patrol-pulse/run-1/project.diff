@@ -1,0 +1,84 @@
+diff --git a/FILED.md b/FILED.md
+new file mode 100644
+index 0000000..4ec454d
+--- /dev/null
++++ b/FILED.md
+@@ -0,0 +1,9 @@
++# Filed — orders-api patrol, run 20260922-050527
++
++## Tickets filed
++
++- T-0008 · DB pool exhausted during flash sale, 503s on /orders (open) — new ticket for F-1 (DB pool exhausted during the flash sale; four requests failed with 503)
++
++## Findings already covered (not filed)
++
++- F-2 · Payment webhook signature mismatches, events dropped — already covered by T-0007 (open). This run's evidence (evt_9a0b77 incl. resend, evt_9a2e88, evt_9a4d02) is additional confirmation, not a new ticket.
+diff --git a/FINDINGS.md b/FINDINGS.md
+new file mode 100644
+index 0000000..11f67d3
+--- /dev/null
++++ b/FINDINGS.md
+@@ -0,0 +1,48 @@
++# Findings — orders-api patrol, run 20260922-050527
++
++Log under review: `logs/app.log` (2026-09-21). Scan: `.grooph/orders-api-patrol/runs/20260922-050527/scan-output.txt` (31 signals). `npm test` passes (2/2).
++
++## Genuine faults
++
++### F-1 · DB pool exhausted during the flash sale; four requests failed with 503 (NEW, no ticket)
++
++- Evidence (`logs/app.log`):
++  - line 46: `INFO campaign flash sale started (acc_311, acc_118, acc_204 notified)` at 12:00:00Z
++  - lines 47–52: burst of `/orders` traffic, latency climbing from 95ms to 880ms
++  - line 53: `WARN db pool busy 18/20 connections, 4 waiting`
++  - line 54: `WARN db pool busy 20/20 connections, 11 waiting`
++  - lines 55, 57, 59, 61: `ERROR db pool exhausted: 20/20 connections busy, waited 5000ms`
++  - line 56: `ERROR http 503 GET /orders account=acc_311 (db pool exhausted)`
++  - line 58: `ERROR http 503 POST /orders account=acc_118 (db pool exhausted)`
++  - line 60: `ERROR http 503 GET /orders/ord_77410 account=acc_204 (db pool exhausted)`
++  - line 62: `ERROR http 503 POST /orders account=acc_311 (db pool exhausted)`
++  - line 63: `WARN db pool busy 16/20 connections, 0 waiting` (recovered by 12:00:44Z)
++- User impact: four failed requests, two of them `POST /orders` (order creation) for the accounts that were just told about the sale. Users felt this.
++- Likely cause: the pool is a fixed 20 connections (`src/db.mjs:5` `POOL_SIZE = 20`) with a 5 s wait cap (`src/db.mjs:6` `WAIT_MS = 5000`) after which `acquire()` rejects with status 503 (`src/db.mjs:24-30`). Every `/orders` handler takes one connection per request (`src/server.mjs:25-35`), so a burst of concurrent orders traffic at 12:00 filled the pool and the 5 s wait expired for the waiters. The service behaved as designed but the design's capacity is below flash-sale load.
++- Ticket status: not covered. T-0005 is `/reports` 504s from a missing index; T-0006 is cold cache after deploy; T-0007 is webhook signatures. None is pool sizing or the `/orders` 503s. Recommend a new ticket (next free number T-0008).
++
++### F-2 · Payment webhook signature mismatches, events dropped (ALREADY COVERED: T-0007, open)
++
++- Evidence (`logs/app.log`):
++  - line 11: `ERROR payments webhook signature mismatch for event evt_9a0b77; dropped`
++  - line 13: same event, `(resend 1)` at line 12, dropped again
++  - line 40: `ERROR payments webhook signature mismatch for event evt_9a2e88; dropped`
++  - line 76: `ERROR payments webhook signature mismatch for event evt_9a4d02; dropped`
++  - Other webhooks verified fine (lines 7, 26, 67), so it is a subset, as T-0007 describes.
++- Likely cause: `src/payments.mjs:7` reads a single `SECRET` and `verifyWebhook` (`src/payments.mjs:13-18`) checks against that one secret only, matching T-0007's suspected cause (provider rotated to a second signing secret). `tests/server.test.mjs:14-19` asserts single-secret behaviour, so the test will need updating with the fix.
++- Ticket status: covered by **T-0007** (open). Not filed again; this run adds three more dropped events (evt_9a0b77 incl. resend, evt_9a2e88, evt_9a4d02) as continuing evidence.
++
++## Dismissed signals (routine noise)
++
++- `logs/app.log` lines 4, 37, 71 — `WARN auth token expiring soon`: informational per README.md:22.
++- `logs/app.log` lines 8, 27, 68 — `WARN http deprecated header X-Legacy-Client`: old mobile app, removal scheduled, per README.md:20-21.
++- `logs/app.log` lines 16, 43 — `WARN http retry 1/3 … succeeded on retry`: a retry that succeeded is not a fault, per README.md:19.
++- `logs/app.log` lines 19–22 — `WARN http slow request GET /reports` at 02:03–02:17Z: inside the nightly export window (started line 18 at 01:58Z, finished line 23 at 02:24Z), which README.md:16-17 marks as slow by design; T-0005 also notes nightly-export slowness is separate and expected. Requests completed (1.1–1.5 s, no 504).
++- `logs/app.log` lines 29–31 — `WARN cache miss … (cold start)` at 04:00:02–03Z: within the first minute after the deploy at line 28 (04:00:00Z), warm at line 32 (04:00:41Z); routine per README.md:18. T-0006 (closed) is the related past ticket and its fix appears to be holding (warm in 41 s).
++- `logs/app.log` line 34 — `ERROR health probe failed (1/3)`: single failure followed by `INFO health probe ok` at line 35 ten seconds later; a hiccup per README.md:23-24, not three in a row.
++
++## Verdict
++
++One new genuine fault (F-1, DB pool exhaustion / 503s on `/orders` during the flash sale) is not on file; one genuine fault (F-2) is already covered by T-0007.
++
++verdict: finding
+diff --git a/TICKETS.md b/TICKETS.md
+index 6fa75b5..bcb6edb 100644
+--- a/TICKETS.md
++++ b/TICKETS.md
+@@ -23,3 +23,10 @@ is already here is referenced by its number, never filed again.
+ - signal: a few events per hour fail verification in `src/payments.mjs` and are dropped; the provider resends them and the resend also fails
+ - suspected cause: the provider rotated to a second signing secret on 2026-09-17 and we verify against the old one only
+ - next: verify against both secrets during the rotation window; confirm with the provider's dashboard
++
++## T-0008 · DB pool exhausted during flash sale, 503s on /orders (open)
++
++- first seen: 2026-09-21, log line `ERROR db pool exhausted: 20/20 connections busy, waited 5000ms`
++- signal: burst of `/orders` traffic during a flash-sale notification (accounts acc_311, acc_118, acc_204) filled the fixed 20-connection pool; four requests (two `POST /orders`) failed with 503 after the 5 s wait cap expired; pool recovered in under a minute
++- cause: `src/db.mjs:5` fixes `POOL_SIZE = 20` and `src/db.mjs:6` caps waits at `WAIT_MS = 5000`; `acquire()` rejects with 503 once the cap is hit (`src/db.mjs:24-30`); every `/orders` handler holds one connection per request (`src/server.mjs:25-35`), so pool capacity is below flash-sale burst load
++- next: size the pool (or add backpressure/queueing) for flash-sale burst traffic on `/orders`; consider raising `POOL_SIZE` or `WAIT_MS`, or shedding load more gracefully than a hard 503

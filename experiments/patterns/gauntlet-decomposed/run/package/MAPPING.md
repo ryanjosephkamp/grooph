@@ -14,11 +14,11 @@ How this package's files correspond to the graph document, so a human can hand-a
 | progress | `.grooph/summary-card/runs/<run-id>/PROGRESS.md` | written at run time, after every node |
 | run notes | `.grooph/summary-card/runs/<run-id>/notes.jsonl` | written at run time, one JSON object per line (graph-ir §6) |
 | working copy | `.grooph/summary-card/runs/<run-id>/graph.grooph.json` | copied from the source at run setup; the lead amends it, with a note per amendment, when the work shows the graph is wrong |
-| node `planner` | `.claude/agents/summary-card--planner.md` | subagent `summary-card--planner` · planner · model fable · effort high |
-| node `owner` | `.claude/agents/summary-card--owner.md` | subagent `summary-card--owner` · builder · model opus · effort high |
-| node `critic` | `.claude/agents/summary-card--critic.md` | subagent `summary-card--critic` · critic · model fable · effort high |
-| node `integrator` | `.claude/agents/summary-card--integrator.md` | subagent `summary-card--integrator` · builder · model opus · effort medium |
-| node `final-critic` | `.claude/agents/summary-card--final-critic.md` | subagent `summary-card--final-critic` · critic · model fable · effort high |
+| node `planner` | `.claude/agents/summary-card--planner.md` | subagent `summary-card--planner` · planner · model claude-opus-5-5 · effort high |
+| node `owner` | `.claude/agents/summary-card--owner.md` | subagent `summary-card--owner` · builder · model claude-sonnet-5-5 · effort high |
+| node `critic` | `.claude/agents/summary-card--critic.md` | subagent `summary-card--critic` · critic · model claude-opus-5-5 · effort high |
+| node `integrator` | `.claude/agents/summary-card--integrator.md` | subagent `summary-card--integrator` · builder · model claude-sonnet-5-5 · effort medium |
+| node `final-critic` | `.claude/agents/summary-card--final-critic.md` | subagent `summary-card--final-critic` · critic · model claude-opus-5-5 · effort high |
 
 ## Pieces with no file of their own
 
@@ -38,7 +38,7 @@ Edges, loops and policies have no file: they are the routing, round and stop rul
 
 ```yaml
 # .claude/agents/summary-card--planner.md
-model: fable      # profile: frontier → fable, strong → opus, fast → sonnet
+model: claude-opus-5-5      # this export: frontier → claude-opus-5-5, strong → claude-sonnet-5-5, fast → claude-sonnet-5-5
 effort: high      # low | medium | high | max
 ```
 
