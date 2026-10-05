@@ -3,7 +3,8 @@
    so Paper's: what holds a view in three dimensions is not dressed by a picture theme while it holds one. */
 .s3 {
   display: grid;
-  grid-template-rows: auto minmax(180px, 1fr) auto auto auto;
+  /* The frame has the room that is left, and more where its cards need it (`stage/draw.ts`): the page then scrolls. */
+  grid-template-rows: auto minmax(var(--s3-tall, 180px), 1fr) auto auto auto;
   gap: 10px;
   height: 100%;
   padding: 0 12px;

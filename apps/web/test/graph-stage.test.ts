@@ -8,7 +8,7 @@ import { columnsForViewport } from "../src/doc/layout.js";
 
 import { firstPass } from "../src/ui/canvas/graph-views.js";
 import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
-import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
+import { ACROSS, boxesOf, DOWN, panes } from "../src/ui/canvas/stage/panes.js";
 
 /**
  * A graph's other views in three dimensions (handoff 0096): what every view draws from, held to the documents. The
@@ -246,7 +246,7 @@ describe("panes", () => {
       expect(prims.filter((p) => p.t === "line" && p.arrow).map((p) => p.key).sort(), path).toEqual(doc.edges.map((e) => `edge:${e.id}`).sort());
       // Left to right and top to bottom as on the canvas: its own x and y for this screen, scaled.
       const canvas = places(doc, columns);
-      for (const n of doc.nodes) expect([node(n.id)[0], node(n.id)[1]], `${path} ${n.id}`).toEqual([canvas[n.id]!.x * 0.62 + 62, -canvas[n.id]!.y * 0.4]);
+      for (const n of doc.nodes) expect([node(n.id)[0], node(n.id)[1]], `${path} ${n.id}`).toEqual([canvas[n.id]!.x * ACROSS + 62, -canvas[n.id]!.y * DOWN]);
       // A way back is dashed and in its loop's color; an edge that goes on is not.
       for (const e of model.edges) {
         const line = prims.find((p) => p.key === `edge:${e.id}`)!;

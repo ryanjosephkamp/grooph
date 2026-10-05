@@ -19,8 +19,8 @@ import { panes } from "./stage/panes.js";
 import { along, type Shown, type View } from "./stage/shapes.js";
 
 /** Each kind: how it places the graph, where it is first seen from, and what it is, in a sentence. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean }> = {
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
 };
 
 let styled = false;
@@ -55,7 +55,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   const was = useRef(0);
 
   useLayoutEffect(() => {
-    const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start));
+    const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start, the.apart));
     return () => (cancelAnimationFrame(glide.current), made.off());
   }, [kind]);
   // What the slider is at, drawn. Now, and not at the next frame: when the picture becomes this view the browser is

@@ -49,7 +49,7 @@ const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.t
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -140,6 +140,11 @@ function routes(): Plugin {
         if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
         const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
         found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
+        // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
+        // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every
+        // address that draws on the canvas fetches once the canvas is drawn. A piece nothing measures grows.
+        found.stage = stage;
+        found.views = [...closure(graphViews)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them

@@ -38,7 +38,16 @@ const clamp = (v: number, a: number, b: number): number => Math.max(a, Math.min(
 /** The app's own colors, by the short names the views use. A stage is Paper in every theme (docs/themes.md). */
 const TOKENS: Record<string, string> = { ink: "--ink", "ink-2": "--ink-2", "ink-3": "--ink-3", line: "--line", "line-strong": "--line-strong", card: "--surface", ground: "--bg", floor: "--surface-2", accent: "--accent", "accent-soft": "--accent-soft", "loop-0": "--loop-0", "loop-1": "--loop-1", "loop-2": "--loop-2", "loop-3": "--loop-3", "k-agent": "--kind-agent", "k-check": "--kind-check", "k-gate": "--kind-human-gate", "k-stop": "--kind-stop", ok: "--ok", bad: "--warning", brake: "--error" };
 
-export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look): Stage {
+/** How tall a frame may be made, of the window's height: a drag on the frame turns the view, so the page is scrolled
+ *  from outside it, and past this less than a row of controls is left on a phone's screen to scroll it from. */
+export const TALLEST = 0.8;
+
+/**
+ * `roomy`: the frame is made as tall as the scene needs for no two of its cards to lie over each other, up to
+ * `TALLEST` of the window, and the page scrolls. The height is asked of the frame's parent, whose row it is, as
+ * `--s3-tall`.
+ */
+export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = false): Stage {
   const g = canvas.getContext("2d")!;
   const view = { ...start, zoom: 1 };
   let prims: Prim[] = [];
@@ -51,6 +60,8 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
   let ratio = 0;
   let asked = 0;
   let moved = false;
+  // What the frame's height was last worked out for: its width, and where the cards are.
+  let tallFor = "";
   // What travels between cards is seen over them: an element, as they are, where the canvas is under them all.
   const token = frame.appendChild(document.createElement("i"));
   token.className = "s3-token";
@@ -75,6 +86,14 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     return alpha >= 1 ? c : `color-mix(in srgb, ${c} ${Math.round(alpha * 100)}%, transparent)`;
   };
 
+  const cardOf = (id: Id): HTMLElement | null => cards.querySelector<HTMLElement>(`[data-node="${CSS.escape(id)}"]`);
+  /** Where a card's box is, given where its point is seen and how large things are there: left, top, width, height, and its own scale. */
+  const boxOf = (p: Extract<Prim, { t: "card" }>, el: HTMLElement, x: number, y: number, k: number): [number, number, number, number, number] => {
+    const s = clamp(k, 0.72, 1.15);
+    const [cw, ch] = [el.offsetWidth * s, el.offsetHeight * s];
+    return [p.side ? x + 9 : x - cw / 2, p.stand && !p.side ? y - ch - 13 : y - ch / 2, cw, ch, s];
+  };
+
   /** The largest the scene can be and still be whole in the frame from where it starts, cards and words included. */
   function fit(): void {
     if (!prims.length || !w || !h) return;
@@ -95,14 +114,54 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
       Math.min(...each.map(([t, r]) => -t[1] * near(t[2], f) - r[2])),
       Math.max(...each.map(([t, r]) => -t[1] * near(t[2], f) + r[3])),
     ];
-    let [lo, hi] = [0.05, 1.5];
-    for (let n = 0; n < 18; n += 1) {
-      const f = (lo + hi) / 2;
-      const [x0, x1, y0, y1] = box(f);
-      if (x1 - x0 <= w - 16 && y1 - y0 <= h - 16) lo = f;
-      else hi = f;
+    const largest = (wide: number, tall: number): number => {
+      let [lo, hi] = [0.05, 1.5];
+      for (let n = 0; n < 18; n += 1) {
+        const f = (lo + hi) / 2;
+        const [x0, x1, y0, y1] = box(f);
+        if (x1 - x0 <= wide - 16 && y1 - y0 <= tall - 16) lo = f;
+        else hi = f;
+      }
+      return lo;
+    };
+    fitted = largest(w, h);
+    const host = frame.parentElement;
+    const placed = prims.flatMap((p) => (p.t === "card" && cardOf(p.id) ? [[p, cardOf(p.id)!, turned(p.at)] as const] : []));
+    const now = `${w}|${placed.map(([p, , t]) => `${p.id}:${t.map(Math.round).join(",")}`).join("|")}`;
+    if (roomy && host && now !== tallFor) {
+      tallFor = now;
+      // At a size, whether no two cards lie over each other: two pixels clear, so that their edges are not one line.
+      const clear = (f: number): boolean => {
+        const boxes = placed.map(([p, el, t]) => boxOf(p, el, t[0] * near(t[2], f), -t[1] * near(t[2], f), near(t[2], f)));
+        return boxes.every((a, i) => boxes.every((b, j) => j <= i || a[0] >= b[0] + b[2] + 2 || b[0] >= a[0] + a[2] + 2 || a[1] >= b[1] + b[3] + 2 || b[1] >= a[1] + a[3] + 2));
+      };
+      // The height the frame has when it is asked for nothing.
+      const measure = (): void => {
+        h = Math.round(canvas.getBoundingClientRect().height);
+        canvas.height = h * ratio;
+        fitted = largest(w, h);
+      };
+      host.style.removeProperty("--s3-tall");
+      measure();
+      if (h && !clear(fitted)) {
+        // The smallest size at which they are clear, of those the frame's width has room for; if none is, the largest.
+        const widest = largest(w, 1e6);
+        let f = widest;
+        for (let n = 1; n <= 24; n += 1) {
+          const at = fitted + ((widest - fitted) * n) / 24;
+          if (clear(at)) {
+            f = at;
+            break;
+          }
+        }
+        const [, , y0, y1] = box(f);
+        const tall = Math.min(Math.ceil(y1 - y0) + 18, Math.round(innerHeight * TALLEST));
+        if (tall > h) {
+          host.style.setProperty("--s3-tall", `${tall}px`);
+          measure();
+        }
+      }
     }
-    fitted = lo;
     const [x0, x1, y0, y1] = box(fitted);
     shift = [(x0 + x1) / 2 / fitted, -(y0 + y1) / 2 / fitted];
     Object.assign(view, was);
@@ -157,12 +216,10 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
       const on = !!(lit && p.key && lit.has(p.key));
       if (p.t === "card") {
         // A card is an element: it is put where its point is seen, as large as that depth makes it.
-        const el = cards.querySelector<HTMLElement>(`[data-node="${CSS.escape(p.id)}"]`);
+        const el = cardOf(p.id);
         if (!el) return;
         placed.add(p.id);
-        const s = clamp(at[0]![3], 0.72, 1.15);
-        const [cw, ch] = [el.offsetWidth * s, el.offsetHeight * s];
-        const [x, y] = [p.side ? at[0]![0] + 9 : at[0]![0] - cw / 2, p.stand && !p.side ? at[0]![1] - ch - 13 : at[0]![1] - ch / 2];
+        const [x, y, , , s] = boxOf(p, el, at[0]![0], at[0]![1], at[0]![3]);
         el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
         el.style.zIndex = String(order);
         el.hidden = false;
