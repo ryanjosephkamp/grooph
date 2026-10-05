@@ -31,6 +31,18 @@ describe("export", () => {
     expect(unzipped).toEqual(readTree(goldenDir));
   });
 
+  it("refuses a graph whose id is a folder grooph keeps under .grooph, in the compiler's own words", async () => {
+    const { keptFolder } = await loadCompiler();
+    for (const id of ["graphs", "proposals", "templates", "events", "hooks"]) {
+      const attempt = attemptExport({ ...reviewLoop(), id });
+      expect(attempt).toEqual({ ok: false, target: "claude-code", reason: "id", issues: [], said: keptFolder(id) });
+      expect(keptFolder(id)).toBe(`A graph with the id "${id}" is not exported: its package would be placed in .grooph/${id}/, the folder grooph keeps ${keptFolder(id)!.split(" keeps ")[1]}`);
+    }
+    // Any other id is exported as before.
+    expect(attemptExport({ ...reviewLoop(), id: "graphs-of-mine" })?.ok).toBe(true);
+    expect(keptFolder("constructor")).toBeUndefined();
+  });
+
   it("downloads the graph in canonical form", () => {
     expect(graphFileText(reviewLoop())).toBe(readTree(goldenDir)[".grooph/review-loop/graph.grooph.json"]);
   });

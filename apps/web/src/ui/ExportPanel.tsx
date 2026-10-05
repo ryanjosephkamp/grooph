@@ -74,6 +74,21 @@ export function ExportPanel() {
     );
   }
 
+  if (!attempt.ok && attempt.reason === "id") {
+    return (
+      <div className="inspector">
+        <div className="refusal" role="alert">
+          <p>
+            <strong>Cannot export for {attempt.target}.</strong>
+          </p>
+          <p className="field-hint">{attempt.said} Give the graph an id of its own, in the graph's panel, and export again.</p>
+        </div>
+        <div className="export-actions">{downloadGraph}</div>
+        <Keep doc={doc} />
+      </div>
+    );
+  }
+
   if (!attempt.ok) {
     const errors = attempt.issues.filter((i) => i.severity === "error");
     return (

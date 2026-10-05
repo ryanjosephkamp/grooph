@@ -50,8 +50,22 @@ const jsonOf = (text: string): unknown => {
   }
 };
 
+/** Said of a document that could not be read at all: its reader gave up before it could say why. */
+const UNREADABLE = "It could not be read: it is nested far deeper than a grooph document ever is.";
+
 /** Open a document from its text: a file's, or what was pasted. False when it was refused: the reason is then on screen. */
 export async function importText(text: string, file: { name: string }, host: ImportHost): Promise<boolean> {
+  try {
+    return await importRead(text, file, host);
+  } catch (err) {
+    // A reader that ran out of room (a document nested ten thousand deep) is said, not thrown where nobody sees it.
+    if (!(err instanceof RangeError)) throw err;
+    host.problem({ name: file.name, issues: [], what: UNREADABLE });
+    return false;
+  }
+}
+
+async function importRead(text: string, file: { name: string }, host: ImportHost): Promise<boolean> {
   const json = jsonOf(text);
   if (isRunBundleLike(json)) {
     // A run (grooph runs bundle, or share --out on a run folder) is kept beside the graphs and opens in the run view.
@@ -149,42 +163,50 @@ function balanced(text: string, start: number): string | undefined {
   return undefined;
 }
 
+/** How much pasted text is looked through. A grooph document is a few kilobytes; a megabyte of anything is not one. */
+export const PASTE_LIMIT = 1_000_000;
+
 /**
  * Read what was pasted the way a chat hands a document over: the JSON alone, or inside a
  * code fence, or with a sentence before and after it. A chat's reply often holds other JSON
  * too (slot values, an example of operations, a tool's reply around the graph), so the
- * object taken is the first that says it is a grooph document, not the first object.
- * A grooph link (`…#/open?d=…`) is recognized too. The document is not judged here;
- * whatever opens a file judges it.
+ * object taken is the first, by where it stands in the text, that says it is a grooph
+ * document: fenced or not, the earlier one. A grooph link (`…#/open?d=…`) is recognized too.
+ * The document is not judged here; whatever opens a file judges it. Text over `PASTE_LIMIT`
+ * is not looked through at all (`openPasted` says so).
  */
 export function readPasted(input: string): Pasted {
+  if (input.length > PASTE_LIMIT) return { kind: "nothing" };
   const text = input.trim();
   if (text === "") return { kind: "nothing" };
 
-  // Every JSON object in the text, in order: the whole text, what each fence holds, and each `{…}` in the prose.
-  // `inside` marks one found past a brace that never closes: part of a document cut short, or text after a stray brace.
-  const found: { text: string; json: Record<string, unknown>; inside: boolean }[] = [];
+  // Every JSON object in the text, with where it starts: the whole text, what each fence holds, and each `{…}` in the
+  // prose. `inside` marks one found past a brace that never closes: part of a document cut short, or text after a stray brace.
+  const found: { text: string; json: Record<string, unknown>; inside: boolean; at: number }[] = [];
   const whole = jsonObject(text);
-  if (whole) found.push({ text, json: whole, inside: false });
+  if (whole) found.push({ text, json: whole, inside: false, at: 0 });
   else {
     for (const fence of text.matchAll(/```[A-Za-z0-9-]*[ \t]*\r?\n([\s\S]*?)```/g)) {
       const held = fence[1]!.trim();
       const json = jsonObject(held);
-      if (json) found.push({ text: held, json, inside: false });
+      if (json) found.push({ text: held, json, inside: false, at: fence.index + fence[0].indexOf(held) });
     }
-    let unclosed = false;
+    let unclosed = 0;
     let from = text.indexOf("{");
-    for (let tries = 0; from !== -1 && tries < 64; tries += 1) {
+    // A brace that never closes costs a walk to the end of the text, so only a few of those are tried.
+    for (let tries = 0; from !== -1 && tries < 64 && unclosed < 8; tries += 1) {
       const candidate = balanced(text, from);
       if (candidate === undefined) {
-        unclosed = true;
+        unclosed += 1;
         from = text.indexOf("{", from + 1);
         continue;
       }
       const json = jsonObject(candidate);
-      if (json) found.push({ text: candidate, json, inside: unclosed });
+      // One a fence already gave, at the same place, is not taken twice (and keeps the fence's word that it stands whole).
+      if (json && !found.some((other) => other.at === from)) found.push({ text: candidate, json, inside: unclosed > 0, at: from });
       from = text.indexOf("{", from + candidate.length);
     }
+    found.sort((one, other) => one.at - other.at);
   }
 
   for (const candidate of found) {
@@ -205,25 +227,37 @@ export function readPasted(input: string): Pasted {
  * open: text that holds neither a document nor a link is then left alone, and nothing is said.
  */
 export async function openPasted(pasted: string, host: ImportHost, quiet = false): Promise<boolean> {
-  const read = readPasted(pasted);
-  if (read.kind === "link") {
-    host.close();
-    location.hash = `#/open?d=${read.payload}`;
-    return true;
-  }
-  if (read.kind === "nothing") {
-    if (!quiet) {
-      host.problem({
-        name: "what you pasted",
-        issues: [{ code: "E_SCHEMA", severity: "error", message: "no JSON document and no grooph link was found in the text", at: [] }],
-        what: "Paste the whole document, from its first { to its last }, or a link that ends in #/open?d=…",
-      });
-    }
+  const name = "what you pasted";
+  if (pasted.length > PASTE_LIMIT) {
+    if (!quiet) host.problem({ name, issues: [], what: "It is over a megabyte, and a grooph document is a few kilobytes. Paste the document alone." });
     return false;
   }
-  const opened = await importText(read.text, { name: "what you pasted" }, host);
-  if (opened) host.close();
-  return opened;
+  try {
+    const read = readPasted(pasted);
+    if (read.kind === "link") {
+      host.close();
+      location.hash = `#/open?d=${read.payload}`;
+      return true;
+    }
+    if (read.kind === "nothing") {
+      if (!quiet) {
+        host.problem({
+          name,
+          issues: [{ code: "E_SCHEMA", severity: "error", message: "no JSON document and no grooph link was found in the text", at: [] }],
+          what: "Paste the whole document, from its first { to its last }, or a link that ends in #/open?d=…",
+        });
+      }
+      return false;
+    }
+    const opened = await importText(read.text, { name }, host);
+    if (opened) host.close();
+    return opened;
+  } catch (err) {
+    // A reader that ran out of room (a document nested deeper than any reader goes) is said, not thrown where nobody sees it.
+    if (!(err instanceof RangeError)) throw err;
+    if (!quiet) host.problem({ name, issues: [], what: UNREADABLE });
+    return false;
+  }
 }
 
 /** On the front page the controls sit below the fold: bring the box into view. */

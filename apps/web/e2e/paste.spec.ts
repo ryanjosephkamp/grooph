@@ -165,3 +165,26 @@ test.describe("with the service worker running", () => {
     expect(failed.filter((url) => url.includes("/assets/"))).toEqual([]);
   });
 });
+
+test("a paste too large to be a document, and one nested too deep to read, are each answered in a plain sentence", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("./");
+  await paste(page, "{".repeat(1_100_000));
+  await expect(page.getByRole("alert")).toContainText("Could not import what you pasted. It is over a megabyte, and a grooph document is a few kilobytes. Paste the document alone.");
+
+  const deep = `${"[".repeat(10_000)}${"]".repeat(10_000)}`;
+  await page.getByLabel(/A graph's JSON/).fill(`{"graph": {"grooph": 0, "id": "deep", "name": "Deep", "version": 1, "nodes": ${deep}, "edges": [], "loops": []}}`);
+  await page.getByRole("button", { name: "Open it" }).tap();
+  await expect(page.getByRole("alert")).toContainText(/Could not import what you pasted\./);
+  await expect(page.getByRole("alert")).not.toContainText("over a megabyte");
+  expect(errors).toEqual([]);
+
+  // An earlier document wins over a later fenced one.
+  const first = JSON.stringify({ ...(JSON.parse(doc) as object), id: "the-first", name: "The first" });
+  await page.getByLabel(/A graph's JSON/).fill(`${first}\n\n\`\`\`json\n${doc}\`\`\``);
+  await page.getByRole("button", { name: "Open it" }).tap();
+  await expect(status(page)).toBeVisible();
+  await page.getByRole("button", { name: /^The first/ }).tap();
+  await expect(sheet(page).getByLabel("Id", { exact: true })).toHaveValue("the-first");
+});
