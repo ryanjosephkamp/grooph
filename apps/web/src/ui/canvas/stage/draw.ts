@@ -40,17 +40,14 @@ const TOKENS: Record<string, string> = { ink: "--ink", "ink-2": "--ink-2", "ink-
 
 /** How tall a frame may be made, of the height of what scrolls it (the stage over the canvas, which a panel or a
  *  sheet can make short): a drag on the frame turns the view, so the page is scrolled from outside the frame, and a
- *  fifth of that height is always outside it to scroll from. */
+ *  fifth of that height is left outside it to scroll from. (The frame's own floor, 180 px in its style sheet, is
+ *  more than that where the stage is under 225 px tall: a phone on its side with a sheet open.) */
 export const TALLEST = 0.8;
-/** The smallest a scene is made, for its cards to be clear of each other, in a frame that has room for it larger:
- *  under this the frame is made taller instead. */
-const SMALLEST = 0.85;
 
 /**
- * `roomy`: where the scene's cards would lie over each other in the room the frame has, the scene is made a little
- * smaller if that clears them, and otherwise the frame is made as tall as they need, up to `TALLEST` of what scrolls
- * it, and the page scrolls. The height is asked of the frame's parent, whose row it is, as `--s3-tall`; what
- * scrolls is that parent's parent.
+ * `roomy`: where the scene's cards would lie over each other in the room the frame has, the frame is made as tall as
+ * they need to be clear, up to `TALLEST` of what scrolls it, and the page scrolls. The height is asked of the
+ * frame's parent, whose row it is, as `--s3-tall`; what scrolls is that parent's parent.
  */
 export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = false): Stage {
   const g = canvas.getContext("2d")!;
@@ -65,11 +62,10 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
   let ratio = 0;
   let asked = 0;
   let moved = false;
-  // What the frame's height was last worked out for (its width, the room it is scrolled in, where the cards are),
-  // the largest the scene is drawn for that, a working out put off to the next frame, and whether this is the
-  // observer's own call: a size changed there is reported as a loop.
+  // What the frame's height was last worked out for (its width, the room it is scrolled in, its own height where
+  // nothing is asked of it, where the cards are), a working out put off to the next frame, and whether this is
+  // the observer's own call: a size changed there is reported as a loop.
   let tallFor = "";
-  let most = Infinity;
   let later = 0;
   let observing = false;
   // What travels between cards is seen over them: an element, as they are, where the canvas is under them all.
@@ -138,12 +134,12 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     const scroller = host?.parentElement;
     if (roomy && host && scroller) {
       const placed = prims.flatMap((p) => (p.t === "card" && cardOf(p.id) ? [[p, cardOf(p.id)!, turned(p.at)] as const] : []));
-      const now = `${w}|${scroller.clientHeight}|${placed.map(([p, , t]) => `${p.id}:${t.map(Math.round).join(",")}`).join("|")}`;
+      // A frame that is asked for nothing is as tall as the room and the words under it leave: its height is part
+      // of what it was worked out for. One held to a height is not made shorter by longer words.
+      const what = (): string => `${w}|${scroller.clientHeight}|${host.style.getPropertyValue("--s3-tall") ? "held" : h}|${placed.map(([p, , t]) => `${p.id}:${t.map(Math.round).join(",")}`).join("|")}`;
       // Put off when this is the observer's call: the working out changes the size the observer watches.
-      if (now !== tallFor && observing) later ||= requestAnimationFrame(() => ((later = 0), fit(), draw()));
-      else if (now !== tallFor) {
-        tallFor = now;
-        most = Infinity;
+      if (what() !== tallFor && observing) later ||= requestAnimationFrame(() => ((later = 0), fit(), draw()));
+      else if (what() !== tallFor) {
         // At a size, whether no two cards lie over each other, placed as they are drawn: two pixels clear, so that
         // their edges are not one line.
         const clear = (f: number): boolean => {
@@ -151,11 +147,6 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
           const [sx, sy] = [(x0 + x1) / 2 / f, -(y0 + y1) / 2 / f];
           const boxes = placed.map(([p, el, t]) => boxOf(p, el, (t[0] - sx) * near(t[2], f), -(t[1] - sy) * near(t[2], f), near(t[2], f)));
           return boxes.every((a, i) => boxes.every((b, j) => j <= i || a[0] >= b[0] + b[2] + 2 || b[0] >= a[0] + a[2] + 2 || a[1] >= b[1] + b[3] + 2 || b[1] >= a[1] + a[3] + 2));
-        };
-        // Between a size that is not clear and one that is, the one nearest the first that is clear.
-        const edge = (not: number, yes: number): number => {
-          for (let n = 0; n < 10; n += 1) clear((not + yes) / 2) ? (yes = (not + yes) / 2) : (not = (not + yes) / 2);
-          return yes;
         };
         const measure = (): number => {
           h = Math.round(canvas.getBoundingClientRect().height);
@@ -168,37 +159,30 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         host.style.removeProperty("--s3-tall");
         const fits = measure();
         if (h && !clear(fits)) {
-          // A little smaller in the same frame, if that clears them.
-          let found = 0;
-          for (let n = 1; n <= 16 && !found && fits > SMALLEST; n += 1) {
-            const at = fits - ((fits - SMALLEST) * n) / 16;
-            if (clear(at)) found = edge(at, fits - ((fits - SMALLEST) * (n - 1)) / 16);
+          // The smallest size at which they are clear, of those the frame's width has room for: the first clear one
+          // of twenty-four steps up, and then, by halving, the one nearest the last that was not. If none is, the
+          // largest. A frame that would pass the cap is at the cap.
+          const widest = largest(w, 1e6);
+          let f = widest;
+          for (let n = 1; n <= 24; n += 1) {
+            let [not, yes] = [fits + ((widest - fits) * (n - 1)) / 24, fits + ((widest - fits) * n) / 24];
+            if (!clear(yes)) continue;
+            for (let k = 0; k < 10; k += 1) clear((not + yes) / 2) ? (yes = (not + yes) / 2) : (not = (not + yes) / 2);
+            f = yes;
+            break;
           }
-          if (found) most = found;
-          else {
-            // Or larger, in a taller frame: the smallest size at which they are clear, of those the frame's width
-            // has room for; if none is, the largest. A frame that would pass the cap is at the cap.
-            const widest = largest(w, 1e6);
-            let f = widest;
-            for (let n = 1; n <= 24; n += 1) {
-              const at = fits + ((widest - fits) * n) / 24;
-              if (clear(at)) {
-                f = edge(fits + ((widest - fits) * (n - 1)) / 24, at);
-                break;
-              }
-            }
-            const [, , y0, y1] = box(f);
-            const tall = Math.min(Math.ceil(y1 - y0) + 18, Math.round(scroller.clientHeight * TALLEST));
-            if (tall > h) {
-              host.style.setProperty("--s3-tall", `${tall}px`);
-              measure();
-            }
+          const [, , y0, y1] = box(f);
+          const tall = Math.min(Math.ceil(y1 - y0) + 18, Math.round(scroller.clientHeight * TALLEST));
+          if (tall > h) {
+            host.style.setProperty("--s3-tall", `${tall}px`);
+            measure();
           }
         }
         scroller.scrollTop = scrolled;
+        tallFor = what();
       }
     }
-    fitted = Math.min(largest(w, h), most);
+    fitted = largest(w, h);
     const [x0, x1, y0, y1] = box(fitted);
     shift = [(x0 + x1) / 2 / fitted, -(y0 + y1) / 2 / fitted];
     Object.assign(view, was);

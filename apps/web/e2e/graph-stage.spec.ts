@@ -702,7 +702,7 @@ test("a frame made taller for its cards does not break the move: the picture bec
   expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
 });
 
-test("the frame is never taller than four fifths of what scrolls it: with the details sheet open on a phone it stops there, the page can still be scrolled from outside it, and the templates whose cards still touch are these", async ({ page }) => {
+test("the frame is never taller than four fifths of what scrolls it: with the details sheet open on a phone it stops there, a fifth of the stage is left outside it, and the templates whose cards still touch are these", async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
@@ -735,6 +735,12 @@ test("the frame's height is worked out again when its room changes, whichever ca
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => void (message.type() === "error" && errors.push(message.text())));
+  // An observer that changes what it watches is told so by an error event on the window, which is listened for
+  // there: whether or not the browser also hands it to the test as a page error.
+  await page.addInitScript(() => {
+    const seen: string[] = ((window as unknown as { errorsSeen: string[] }).errorsSeen = []);
+    window.addEventListener("error", (event) => seen.push(event.message));
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
   await page.goto("./#/templates/built-in/review-gate");
@@ -790,4 +796,5 @@ test("the frame's height is worked out again when its room changes, whichever ca
   expect(await scroller.evaluate((el) => el.scrollTop)).toBe(60);
   expect(await overlaps(page)).toEqual([]);
   expect(errors).toEqual([]);
+  expect(await page.evaluate(() => (window as unknown as { errorsSeen: string[] }).errorsSeen)).toEqual([]);
 });
