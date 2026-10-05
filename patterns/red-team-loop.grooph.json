@@ -10,7 +10,7 @@
   "template": {
     "kind": "graph",
     "title": "Red-team loop",
-    "summary": "A separate attacker records reproducible failing traces; the builder sees only the traces, until no new one appears.",
+    "summary": "A separate attacker records reproducible failing traces; the builder is given only the traces, until no new one appears.",
     "whenToUse": "A separate attacker should produce failing traces and the builder should see only those: hardening against inputs or abuse nobody has listed yet.",
     "notFor": "Work with a known list of cases to satisfy (use grind-loop against tests), or judging quality rather than breaking things.",
     "profile": {
