@@ -36,12 +36,13 @@ function scratch(t) {
   put("apps/web/dist/assets/EmbedApp-a.js", randomBytes(900));
   put("apps/web/dist/assets/compile-a.js", randomBytes(300));
   put("apps/web/dist/assets/space-a.js", randomBytes(200));
+  put("apps/web/dist/assets/front-a.js", randomBytes(250));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-next.v1.woff2", randomBytes(400));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", randomBytes(300));
   put("apps/web/dist/assets/site-icons.v1.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
   put(
     "apps/web/dist/routes.json",
-    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js"], space: ["assets/space-a.js"] }),
+    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"] }),
   );
   const gz = (path) => gzipSync(files[`apps/web/dist/${path}`]).length;
   /** What an address that draws on the canvas weighs in this build, in bytes, as the script weighs it. */
@@ -102,5 +103,30 @@ test("the piece that draws a map in three dimensions has a line of its own, and 
     const missing = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });
     assert.equal(missing.status, 1, missing.stdout);
     assert.match(missing.stderr, /does not say which files draw a map in three dimensions/);
+  }
+});
+
+test("the front page's picture is weighed in the first load, which is the front page's, and not in a canvas's; a build that does not name it is not weighed", (t) => {
+  const { canvas, run, dir } = scratch(t);
+  const done = run(canvas);
+  assert.equal(done.status, 0, done.stdout + done.stderr);
+  const figure = (what) => /^\S+\s+(\d+\.\d\d) of/.exec(done.stdout.split("\n").find((l) => l.includes(what)))[1];
+  const gz = (path) => gzipSync(readFileSync(join(dir, "apps/web/dist", path))).length;
+  const everywhere = gz("index.html") + gz("assets/index-a.js") + gz("assets/App-a.js") + gz("assets/styles-a.css");
+  // The front page fetches the piece beside the app, so its first load is the app and the piece.
+  assert.equal(figure("the app's first load"), ((everywhere + gz("assets/front-a.js")) / 1024).toFixed(2));
+  assert.equal(figure("a first visit to the front page in all"), ((everywhere + gz("assets/front-a.js") + 700 + gz("assets/site-icons.v1.svg")) / 1024).toFixed(2));
+  // A canvas does not: its line is the app and the canvas's screens, as `scratch` weighs it.
+  assert.equal(figure("an address that draws on the canvas"), (canvas / 1024).toFixed(2));
+  // It is in a line, so it is not listed again among what is loaded later.
+  assert.doesNotMatch(done.stdout, /loaded later: front-a\.js/);
+  // A build that lists no such piece, or an empty one, fails with or without --check: the first load would read light.
+  const routesFile = join(dir, "apps/web/dist/routes.json");
+  const routes = JSON.parse(readFileSync(routesFile, "utf8"));
+  for (const front of [undefined, []]) {
+    writeFileSync(routesFile, JSON.stringify({ ...routes, front }));
+    const missing = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });
+    assert.equal(missing.status, 1, missing.stdout);
+    assert.match(missing.stderr, /does not say which files hold the front page's picture/);
   }
 });

@@ -2,7 +2,7 @@ import type { Graph, Profile, TemplateKind } from "@grooph/core";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { EMPTY_BROWSE, SORT_LABEL, activeFilters, allTags, browse, isDefault, loadBrowse, saveBrowse, toggled, type Browse, type SortKey } from "../../doc/browse.js";
-import { BUILT_IN_TEMPLATES, PROFILE_LEVEL, PROFILE_OPTIONS, PROFILE_TEXT, type TemplateSource } from "../../doc/templates.js";
+import { PROFILE_LEVEL, PROFILE_OPTIONS, PROFILE_TEXT, builtIns, loadBuiltIns, type TemplateSource } from "../../doc/templates.js";
 import { listUserTemplates } from "../../store/templates.js";
 import { Glyph, hasLongGlyph } from "../Glyph.js";
 
@@ -18,6 +18,29 @@ export const templateHref = (source: TemplateSource, id: string, use = false): s
  * Each row shows the graph's glyph beside its title and when to use it;
  * tapping one opens it read-only.
  */
+const NONE: readonly Graph[] = [];
+
+/**
+ * The built-in templates, for a screen that does not wait for them: at once if they are here, as they nearly
+ * always are (the app fetches them once its first screen is up), and otherwise when they arrive. `null` when they
+ * could not be fetched.
+ */
+export function useBuiltIns(): readonly Graph[] | null | undefined {
+  const [docs, setDocs] = useState<readonly Graph[] | null | undefined>(builtIns);
+  useEffect(() => {
+    if (docs) return;
+    let live = true;
+    loadBuiltIns().then(
+      (got) => live && setDocs(got),
+      () => live && setDocs(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [docs]);
+  return docs;
+}
+
 export function TemplatesScreen() {
   const [yours, setYours] = useState<Graph[] | null>(null);
   const [state, setState] = useState<Browse>(loadBrowse);
@@ -30,10 +53,12 @@ export function TemplatesScreen() {
     };
   }, []);
 
-  const all = useMemo(() => [...(yours ?? []), ...BUILT_IN_TEMPLATES], [yours]);
+  // The built-in templates are here: the app fetches them before it draws this screen (`App.tsx`).
+  const builtIn = builtIns() ?? NONE;
+  const all = useMemo(() => [...(yours ?? []), ...builtIn], [yours, builtIn]);
   const tags = useMemo(() => allTags(all), [all]);
   const shownYours = useMemo(() => browse(yours ?? [], state), [yours, state]);
-  const shownBuiltIn = useMemo(() => browse(BUILT_IN_TEMPLATES, state), [state]);
+  const shownBuiltIn = useMemo(() => browse(builtIn, state), [builtIn, state]);
   const shown = shownYours.length + shownBuiltIn.length;
   const total = all.length;
   const filters = activeFilters(state);

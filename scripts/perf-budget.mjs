@@ -11,6 +11,10 @@
  * is what an `#/embed` address loads, which is much less (the build lists the sets in dist/routes.json). Budgets are in
  * scripts/perf-budget.json; raising one is a decision, made in a pull request that says why.
  *
+ * Since slice 0093 the front page's own picture is a file only the front page asks for: it is in the first load, which
+ * is the front page's, and not in a canvas's. The built-in templates are a file the template screens ask for: an address
+ * that lists or opens one loads it beside the app, and it is printed under "loaded later" with the other pieces.
+ *
  * Since handoff 0077 the site's fonts are its own files, and they have a line of their own: the two a first visit to the
  * front page fetches (the upright face and the mono one; the italic is fetched by a page that has italics), as they are
  * sent, since woff2 is already compressed. They are asked for once the page is up, so they are not in the first load; the
@@ -46,12 +50,21 @@ if (!existsSync(join(dist, "routes.json"))) {
 const routes = JSON.parse(readFileSync(join(dist, "routes.json"), "utf8"));
 const appJs = [...routes.entry, ...routes.app.js];
 const appCss = routes.app.css;
-const js = sum(appJs);
+// Since slice 0093 the front page's picture and tiles are a piece that only the front page's address asks for,
+// beside the app, in its first round. The first load is the front page's, so the piece is weighed in it; an
+// address that draws on the canvas does not fetch it. A build that does not say which files it is would let the
+// first load read lighter than the front page is, which is not a pass.
+if (!Array.isArray(routes.front) || routes.front.length === 0) {
+  console.error("perf-budget: apps/web/dist/routes.json does not say which files hold the front page's picture (front). The build should have listed them (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const everywhere = sum(appJs);
+const js = everywhere + sum(routes.front);
 const css = sum(appCss);
 const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + html;
 // Since slice 0069 the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
 const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
-const canvas = js + css + html + sum(canvasFiles);
+const canvas = everywhere + css + html + sum(canvasFiles);
 // Since slice 0087 a map's view in three dimensions is a piece of its own, fetched only when it is chosen. No
 // address loads it, so it is in no line above; it has a line to itself. A build that does not say which files
 // it is cannot be weighed, and a piece with no files weighs nothing, which is not a pass.
@@ -72,7 +85,7 @@ for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
 const sent = (file) => statSync(join(dist, file)).size / 1024;
 const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
 const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
-const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space]);
+const counted = new Set([...appJs, ...routes.front, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.

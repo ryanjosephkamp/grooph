@@ -44,7 +44,7 @@ const themesSource = fileURLToPath(new URL("../../packages/core/src/picture/them
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -112,11 +112,25 @@ function routes(): Plugin {
           space: [...closure(mapSpace)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(mapViews).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
+        // The built-in templates (slice 0093, src/doc/builtins.ts): the twenty pattern documents, a piece the template
+        // screens fetch. It was part of the app at every address. It is named in the page with the other pieces, so
+        // the worker holds it, and an address that lists or opens a template asks for it beside the app, in the round
+        // it always came in. Written apart from the lists above, which other slices are adding to.
+        const builtIns = chunks.find((c) => c.facadeModuleId?.endsWith("/src/doc/builtins.ts"));
+        if (!builtIns) throw new Error("grooph-routes: no chunk of its own for the built-in templates (src/doc/builtins.ts). The build no longer splits where vite.config.ts expects.");
+        found.templates = [...closure(builtIns)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
+        // And the front page's picture and tiles (src/ui/landing/front.ts), drawn when the app is built: a piece only
+        // the front page's address asks for beside the app. It is part of that address's first load, and
+        // scripts/perf-budget.mjs weighs it there; a graph, a share link and the template screens do not carry it.
+        const frontPage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/landing/front.ts"));
+        if (!frontPage) throw new Error("grooph-routes: no chunk of its own for the front page's picture (src/ui/landing/front.ts). The build no longer splits where vite.config.ts expects.");
+        found.front = [...closure(frontPage)].filter((f) => !inEntry.has(f) && !inApp.has(f));
+        found.later = [...new Set([...found.later, ...found.templates, ...found.front])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
         // again, one after another.
-        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
+        const hint = `<script>if(!/^#\\/embed(\\?|$)/.test(location.hash)){for(const h of ${list(found.app.css)}){const l=document.createElement("link");l.rel="stylesheet";l.href=h;document.head.appendChild(l)}for(const h of ${list(found.app.js)}.concat(/^#\\/(g\\/|open\\?|run|live|templates\\/)/.test(location.hash)?${list(found.canvas.js)}:[],/^#\\/templates/.test(location.hash)?${list(found.templates)}:[],/^(#\\/?(about)?)?$/.test(location.hash)?${list(found.front)}:[])){const l=document.createElement("link");l.rel="modulepreload";l.href=h;document.head.appendChild(l)}}void ${list(found.later)}</script>`;
         return html.replace("</title>", `</title>\n    ${hint}`);
       },
     },

@@ -1,9 +1,7 @@
-import { instantiate, picture, type Graph } from "@grooph/core";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { copyText } from "../../doc/exportPackage.js";
-import { builtInTemplate } from "../../doc/templates.js";
-import { Glyph, hasLongGlyph } from "../Glyph.js";
+import { piece } from "../../piece.js";
 import { templateHref } from "../templates/TemplatesScreen.js";
 import { Check, DOCS, SOURCE, SiteFooter, SiteHeader } from "./Chrome.js";
 import { RunDemo } from "./RunDemo.js";
@@ -11,29 +9,40 @@ import { RunDemo } from "./RunDemo.js";
 /** The template the front page draws, and the one "Open a template" opens. */
 const HERO = "review-gate";
 
-/** The strip: six whole graphs whose shapes differ at a glance. */
-const STRIP = ["grind-loop", "spec-then-loop", "metric-sandwich", "heterogeneous-critic", "tournament-then-judge", "patrol-pulse"];
-
 /** The line to paste into Claude Code; the skill proposes graphs for it. */
 const ASK = "/grooph-design a builder and a critic that loop until the checkout tests pass, and ask me before merging";
 
-/**
- * The hero: the review gate as a real graph, its slots filled with the
- * template's own examples, drawn by core's picture in the `auto` theme so it
- * follows the page's color scheme. Drawn once; the picture is deterministic.
+/*
+ * The hero is the review gate as a real graph, its slots filled with the template's own examples, drawn by core's
+ * picture in the `auto` theme so it follows the page's color scheme; the strip is six whole graphs whose shapes
+ * differ at a glance, each with its glyph. Both are drawn when the app is built and not when the page is opened
+ * (`front.generated.ts`, written by scripts/front-page.mjs and held to the code by test/front.test.ts): the page
+ * then needs no template to draw itself, and the built-in templates are fetched when a screen lists or opens one.
+ *
+ * They are a piece of their own (`front.ts`), so that only the front page carries them. Its address has asked for
+ * the piece beside the app, and the app waits for it before the first screen there (`App.tsx`), so the page is
+ * drawn with its picture in it. Reached from another screen it is here already, fetched once that screen was up.
+ * If it cannot be had the page stands without its picture and its tiles, as it does without its poster.
  */
-let heroSvg: string | undefined;
-function hero(): string {
-  if (heroSvg === undefined) {
-    const template = builtInTemplate(HERO)!;
-    const values = Object.fromEntries((template.template?.slots ?? []).map((slot) => [slot.key, slot.example ?? ""]).filter(([, v]) => v !== ""));
-    values.task = "Add a slugify(text) function to src/strings.ts.";
-    heroSvg = picture(instantiate(template, { name: "Add slugify, reviewed", values }), { theme: "auto" });
-  }
-  return heroSvg;
-}
+type Front = typeof import("./front.js");
+let front: Front | undefined;
+export const loadFront = (): Promise<Front> => piece("front", () => import("./front.js")).then((m) => (front = m));
 
-const strip = (): Graph[] => STRIP.map((id) => builtInTemplate(id)).filter((doc): doc is Graph => doc !== undefined);
+function useFront(): Front | undefined {
+  const [got, setGot] = useState(front);
+  useEffect(() => {
+    if (got) return;
+    let live = true;
+    loadFront().then(
+      (m) => live && setGot(m),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [got]);
+  return got;
+}
 
 /** What the README says of the app, as the hero's short list. */
 const PROMISES = ["No account", "Works on a phone", "Opens offline after a first visit", "Graphs stay on your device"];
@@ -54,6 +63,7 @@ export function Landing({ device }: { device?: ReactNode }) {
   // The poster is a file of the documents, which the app's service worker does not keep: with no network it cannot be
   // fetched, and the card then stands without its picture rather than with a broken one.
   const [poster, setPoster] = useState(true);
+  const drawn = useFront();
   return (
     <div className="land">
       <SiteHeader />
@@ -91,7 +101,7 @@ export function Landing({ device }: { device?: ReactNode }) {
             </div>
             <figure className="land-figure">
               <RunDemo>
-                <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: hero() }} />
+                <div className="land-picture" role="img" aria-label="The review gate template as a graph: a builder, a critic, a human merge approval and a stop, in one loop of at most four rounds" dangerouslySetInnerHTML={{ __html: drawn?.HERO_SVG ?? "" }} />
                 <figcaption className="muted">
                   The <a href={templateHref("built-in", HERO)}>review gate</a> template, drawn by grooph.
                 </figcaption>
@@ -155,11 +165,12 @@ export function Landing({ device }: { device?: ReactNode }) {
               Loop shapes
             </h2>
             <ul className="land-strip-list" aria-label="Templates">
-              {strip().map((doc) => (
-                <li key={doc.id}>
-                  <a className="land-tile" href={templateHref("built-in", doc.id)}>
-                    <Glyph doc={doc} className={`land-tile-glyph${hasLongGlyph(doc) ? " is-wide" : ""}`} decorative />
-                    <span className="land-tile-title">{doc.template!.title}</span>
+              {(drawn?.TILES ?? []).map((tile) => (
+                <li key={tile.id}>
+                  <a className="land-tile" href={templateHref("built-in", tile.id)}>
+                    {/* The glyph as `Glyph` (../Glyph.tsx) writes one, from a drawing already made. */}
+                    <span className={`glyph land-tile-glyph${tile.long ? " is-wide is-long" : ""}`} aria-hidden="true" dangerouslySetInnerHTML={{ __html: tile.glyph }} />
+                    <span className="land-tile-title">{tile.title}</span>
                   </a>
                 </li>
               ))}

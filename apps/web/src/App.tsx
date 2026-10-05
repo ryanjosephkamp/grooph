@@ -1,10 +1,10 @@
 import { sharePayloadFrom } from "@grooph/core";
 import { Suspense, lazy, useEffect, useState } from "react";
 
-import type { TemplateSource } from "./doc/templates.js";
+import { builtIns, loadBuiltIns, type TemplateSource } from "./doc/templates.js";
 import { piece } from "./piece.js";
 import "./store/persist.js";
-import { Landing } from "./ui/landing/Landing.js";
+import { Landing, loadFront } from "./ui/landing/Landing.js";
 import { Library } from "./ui/Library.js";
 import { TemplatesScreen } from "./ui/templates/TemplatesScreen.js";
 
@@ -34,6 +34,28 @@ export function needsScreens(hash: string): boolean {
   return !LIGHT.has(parse(hash).name);
 }
 const LIGHT = new Set<Route["name"]>(["library", "about", "templates", "embed"]);
+
+/**
+ * Whether a screen lists or opens the built-in templates, which are a piece of their own (slice 0093,
+ * `doc/builtins.ts`): the list, and a built-in template's view and its Use form.
+ */
+const listsBuiltIns = (route: Route): boolean => route.name === "templates" || (route.name === "template" && route.source === "built-in");
+
+/**
+ * What an address must have before its first screen is drawn: the canvas's screens, the built-in templates, both
+ * or neither. They are asked for together, and index.html has already asked for them beside the app, so this
+ * costs no round of its own. It never fails: a piece that could not be had is said by the screen that needed it.
+ */
+export function ready(hash: string): Promise<unknown> {
+  const route = parse(hash);
+  const wanted: Promise<unknown>[] = [];
+  if (needsScreens(hash)) wanted.push(loadScreens());
+  if (listsBuiltIns(route)) wanted.push(loadBuiltIns());
+  // The front page's picture and tiles (`ui/landing/front.ts`): at `#/about`, and at `#/`, which is the front page
+  // on a device with no graphs yet.
+  if (route.name === "about" || route.name === "library") wanted.push(loadFront());
+  return Promise.all(wanted.map((piece) => piece.catch(() => undefined)));
+}
 
 type Route =
   | { name: "library" }
@@ -88,6 +110,29 @@ function parse(hash: string): Route {
   return { name: "library" };
 }
 
+/**
+ * A piece of the app the first screen may not need: asked for once that screen is up. What could not be fetched is
+ * asked for again when the next screen is opened: the connection may be back.
+ */
+function useLater(here: () => boolean, load: () => Promise<unknown>, route: Route): "yes" | "no" | "failed" {
+  const [got, setGot] = useState<"yes" | "no" | "failed">(() => (here() ? "yes" : "no"));
+  useEffect(() => {
+    if (got !== "no") return;
+    let gone = false;
+    load().then(
+      () => !gone && setGot("yes"),
+      () => !gone && setGot("failed"),
+    );
+    return () => {
+      gone = true;
+    };
+  }, [got]);
+  useEffect(() => {
+    if (got === "failed") setGot("no");
+  }, [route]);
+  return got;
+}
+
 export function App() {
   const [route, setRoute] = useState<Route>(() => parse(location.hash));
   useEffect(() => {
@@ -98,25 +143,30 @@ export function App() {
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
-  // Once the first screen is up, fetch the canvas screens, so the next one opens at once.
-  const [fetched, setFetched] = useState<"yes" | "no" | "failed">(screens ? "yes" : "no");
-  useEffect(() => {
-    if (fetched !== "no") return;
-    let gone = false;
-    loadScreens().then(
-      () => !gone && setFetched("yes"),
-      () => !gone && setFetched("failed"),
+  // Once the first screen is up, fetch the canvas screens and the built-in templates, so the next one opens at
+  // once; and the front page's picture, for a visit that began somewhere else.
+  const fetched = useLater(() => screens !== undefined, loadScreens, route);
+  const templates = useLater(() => builtIns() !== undefined, loadBuiltIns, route);
+  useEffect(() => void loadFront().catch(() => undefined), []);
+
+  // Reached only in the moment before a piece lands, from a screen that did not need it.
+  const waiting = (piece: "yes" | "no" | "failed") =>
+    piece !== "failed" ? (
+      <div className="loading">Opening…</div>
+    ) : (
+      <div className="notfound">
+        <p>This screen could not be fetched. It needs a connection the first time.</p>
+        <button type="button" className="btn btn-primary" onClick={() => location.reload()}>
+          Load the page again
+        </button>
+        <a className="btn" href="#/">
+          Back to the library
+        </a>
+      </div>
     );
-    return () => {
-      gone = true;
-    };
-  }, [fetched]);
-  // What could not be fetched is asked for again when the next screen is opened: the connection may be back.
-  useEffect(() => {
-    if (fetched === "failed") setFetched("no");
-  }, [route]);
 
   if (route.name === "about") return <Landing />;
+  if (listsBuiltIns(route) && templates !== "yes") return waiting(templates);
   if (route.name === "templates") return <TemplatesScreen />;
   if (route.name === "library") {
     return (
@@ -136,21 +186,7 @@ export function App() {
       </Suspense>
     );
   }
-  if (!screens) {
-    // Reached only from a lighter screen, in the moment before the module lands.
-    if (fetched !== "failed") return <div className="loading">Opening…</div>;
-    return (
-      <div className="notfound">
-        <p>This screen could not be fetched. It needs a connection the first time.</p>
-        <button type="button" className="btn btn-primary" onClick={() => location.reload()}>
-          Load the page again
-        </button>
-        <a className="btn" href="#/">
-          Back to the library
-        </a>
-      </div>
-    );
-  }
+  if (!screens) return waiting(fetched);
   const { EditorScreen, LiveRun, LiveSessions, OpenScreen, StoredRun, TemplateView, UseTemplate } = screens;
   if (route.name === "graph") return <EditorScreen key={route.key} graphKey={route.key} fresh={route.fresh} />;
   if (route.name === "open") return <OpenScreen payload={route.payload} candidate={route.candidate} />;

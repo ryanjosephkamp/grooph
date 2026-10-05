@@ -12,9 +12,9 @@ import {
 } from "@grooph/core";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
+import { BUILT_IN_CREDITS } from "../../doc/credits.generated.js";
 import { copyText } from "../../doc/exportPackage.js";
 import { countBySeverity } from "../../doc/issues.js";
-import { builtInTemplate } from "../../doc/templates.js";
 import { Glyph } from "../Glyph.js";
 import { Credits } from "../templates/Credits.js";
 import { ProfileChips } from "../templates/ProfileChips.js";
@@ -223,7 +223,8 @@ function Card(props: {
         {props.row.why ? <p className="ccard-why">{props.row.why}</p> : null}
         {c.basedOn ? <span className="ccard-based muted">from the {c.basedOn} template</span> : null}
         {/* Inside the head, so the desktop subgrid keeps its row count whether or not the template owes a credit. */}
-        {c.basedOn ? <Credits credits={builtInTemplate(c.basedOn)?.template?.credits} /> : null}
+        {/* From a list made when the app is built (scripts/front-page.mjs): this card does not wait for the templates. */}
+        {c.basedOn ? <Credits credits={BUILT_IN_CREDITS[c.basedOn]} /> : null}
       </div>
 
       <ProfileChips profile={c.profile} />
