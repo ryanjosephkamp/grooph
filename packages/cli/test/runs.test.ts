@@ -276,6 +276,21 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
     assert.deepEqual(tree(dir), before);
     assert.equal(existsSync(target), false);
 
+    // The line it prints to adopt on purpose is one it takes, word for word (the app shows the same line).
+    const line = text(refused.stdout).match(/all of them, on purpose: (grooph adopt .*)$/m)![1]!;
+    assert.equal(line, `grooph adopt ${run} --write --allow loop:sandwich.stops`);
+    const again = project("slice-0007-sandwich");
+    try {
+      const other = runDir(again, "slice-0007-sandwich");
+      amend(other, (working) => {
+        working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
+      });
+      assert.equal(await grooph(line.replace(run, other).split(" ").slice(1), capture()), 0);
+      assert.equal(readGraph(join(again, ".grooph", "graphs", "slice-0007-sandwich.grooph.json")).version, 2);
+    } finally {
+      rmSync(again, { recursive: true, force: true });
+    }
+
     // A name that is no change of this run is refused, and says so.
     const wrong = capture();
     assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.bar"], wrong), 1);
