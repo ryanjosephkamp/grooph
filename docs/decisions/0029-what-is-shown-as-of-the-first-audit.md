@@ -1,6 +1,6 @@
 # 0029 · What grooph is shown to do, as of the first audit
 
-**Date:** 2026-10-05 · **Status:** proposed (drafted by the audit lane for the owner to change and sign; not accepted, and nothing rests on it until he does) · **Deciders:** owner
+**Date:** 2026-10-05 · **Status:** accepted (the owner, 2026-10-05: on the review desk, "Accept all seven as recommended"; in the driver's session, "The audit's corrections seem reasonable". Drafted by the audit lane; signed as drafted) · **Deciders:** owner
 
 ## Context
 
@@ -28,17 +28,17 @@ A second comparison ran on 2026-10-04 and is in the repository. Its claims have 
 ## Decision
 
 1. **The sentence, everywhere it stands** (the README's status, the front page, the field guide, the report, the design skill and the status skill): "Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it."
-2. **"Bound" is not said of grooph** until a record shows a brake binding and that record has been audited. The experiment that would make such a record is designed and not run ([`a-brake-that-binds.md`](../../experiments/audits/0001-claims-as-of-0-3-0/designs/a-brake-that-binds.md)).
+2. **"Bound" is not said of grooph** until a record shows a brake binding and that record has been audited. The experiment that would make such a record is pre-registered and built, and not run ([`experiments/brakes/budget/`](../../experiments/brakes/budget/README.md), from the design in [`a-brake-that-binds.md`](../../experiments/audits/0001-claims-as-of-0-3-0/designs/a-brake-that-binds.md)).
 3. **The second comparison exists and is not yet audited.** No page states its results as shown until a second harness has read them. When they are stated, one distinction is kept: no graph earned its cost over the same design said as prose; what ended above the task alone was the design, in either form.
 4. **Decisions 0012 and 0013 stay as they were written.** Three of their statements are corrected here and not there:
    - "No loop turned in 27 runs": one correction cycle did turn, in a prompt run.
    - "The only run in study one that went past its bounds was a prompt arm running to the dollar ceiling": that run was inside the graph's caps, and the ceiling was the runner's.
    - "Back edges fired in six templates once tasks carried held-out evidence": six records show a returning edge; two of them are a critic's correction on held-out evidence.
 5. **Every public claim is listed** in [`docs/claims.md`](../claims.md), with where it is made, its evidence, and where its audit stands.
-6. **What `grooph adopt` refuses is described where the command is documented, and is claimed nowhere as shown** until a second harness has read the comparison it rests on (`packages/core/src/brakes.ts`). By its author's account, five readers in turn have each found a loosened graph that comparison let through; each is closed, and the list of what a brake is has not been shown complete.
+6. **What `grooph adopt` refuses is described where the command is documented, and is claimed nowhere as shown** until a second harness has read the comparison it rests on (`packages/core/src/brakes.ts`). By its author's account, five readers in turn have each found a loosened graph that comparison let through; each is closed, and the list of what a brake is has not been shown complete. At this date the comparison does not hold a check's command or where its verdicts lead; amendment A-019 (2026-10-05) makes them brakes, and the code follows it.
 
 ## Consequences
 
-- The corrections of the audit's first round are made as the owner accepts them, by number.
+- The corrections of the audit's first round are made as the owner accepts them, by number. He accepted all seven of the audit's decisions on 2026-10-05, and the corrections were merged that day (pull request #105; the two that live in code and templates in #108).
 - Decision 0013's fifth point said that if a second study also found no quality advantage, grooph would be repositioned "around bounded autonomy and the record". Bounding is what is not yet shown. That point is the owner's to restate once the second comparison has been audited and the brake experiment has run or been declined.
 - The words of the design skill and of the status skill follow point 1; they are not in the audit lane's pull request.
