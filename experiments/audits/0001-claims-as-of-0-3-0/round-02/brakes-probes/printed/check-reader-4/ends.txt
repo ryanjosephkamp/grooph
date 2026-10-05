@@ -18,7 +18,7 @@ a gate: its "no" led to the stop that ends in success that only its "yes" reache
    head: REFUSED edge:e-gate-no.to [opens a way into "done" that does not pass "yes" at the human gate "gate"]
 
 a gate: the stop that halts that its "no" leads to, made to end in success (the tests' failure leads there too, with nobody asked)
-   head: REFUSED node:stopped.outcome [a run could end in success at "stopped", a way that does not pass a person; a run could end in success at "stopped", a way that does not pass "pass" from the check "tests]
+   head: REFUSED node:stopped.outcome [the stop "stopped" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "stopped", a way that does no]
 
 NOT HELD, a stated limit. A gate: its "no" led to a stop that ends in success that the run ADDS
    head: ADOPTED, nothing refused

@@ -1004,3 +1004,37 @@ test("A-019: a way that goes round a check and a critic names both", () => {
     'edge:e-builder-done-too: adds a way from "builder" to end in success that does not pass the check "checks"; adds a way from "builder" to end in success that does not pass the critic "critic"',
   ]);
 });
+
+// ─── a stop that halts, made to end in success, wherever it stands (the clause the owner is asked about) ──────────
+
+test("A-019, the clause for every stop: a stop that halts, made to end in success, is held wherever it stands", () => {
+  // Where a verdict leads to the stop, the rule above holds it already; this one says so of the stop itself.
+  const ended = adopt((w) => void (stopOutcome(w, "failed").outcome = "success"), { from: oneShot() });
+  assert.deepEqual(refused(ended), [
+    'node:failed.outcome: the stop "failed" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "failed", a way that does not pass "pass" from the check "tests"',
+  ]);
+  assert.deepEqual(adopt((w) => void (stopOutcome(w, "failed").outcome = "success"), { from: oneShot(), allow: ["node:failed.outcome"] }).refused, []);
+
+  // And where only this clause holds it: a stop that halts beside a way to the end, after a plain step, in a graph
+  // with no check, no critic and no person. The step could end in success already, so nothing comes to end in
+  // success that could not. Its outcome set so, or taken away.
+  const plain = parseGraphText(JSON.stringify({
+    grooph: 0, id: "plain", name: "Plain", version: 1, goal: "Look, do what is found, and stop the rest.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "scout", kind: "agent", name: "Scout", role: "researcher", brief: "Look for work.", outputs: ["FOUND.md"], allow: ["read-files", "write-outputs"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      { id: "stopped", kind: "stop", name: "Stopped", outcome: "halt" },
+    ],
+    edges: [{ id: "e-scout-done", from: "scout", to: "done" }, { id: "e-scout-stopped", from: "scout", to: "stopped" }],
+    loops: [],
+  })).doc!;
+  for (const change of [(w: Graph): void => void (stopOutcome(w, "stopped").outcome = "success"), (w: Graph): void => void delete stopOutcome(w, "stopped").outcome]) {
+    assert.deepEqual(refused(adopt(change, { from: plain })), ['node:stopped.outcome: the stop "stopped" would end in success where it halted: what led there to stop the run would now end it well']);
+  }
+
+  // The other way is a tightening and is said as one; a stop that halts given another name is nothing.
+  const halted = adopt((w) => void (stopOutcome(w, "done").outcome = "halt"), { from: oneShot() });
+  assert.deepEqual(halted.refused, []);
+  assert.match(halted.changes.find((change) => change.name === "node:done.outcome")!.tightens!, /the stop "done" would end in success where it halted/);
+  assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "failed")!.name = "Stopped"), { from: oneShot() }).refused, []);
+});

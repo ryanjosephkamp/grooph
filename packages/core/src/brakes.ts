@@ -341,6 +341,11 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
     }
     // A check (amendment A-019): the node, its kind, and its definition. A program cannot tell a stricter command
     // from a looser one, so any change to what it runs or what counts as a pass is one a person is asked about.
+    // A stop that halts, made to end in success (the dated clause of amendment A-019): what led there to stop the
+    // run, a failing verdict, a cap, an answer, would now end it well. Held wherever the stop stands.
+    if (node.kind === "stop" && node.outcome === "halt" && kept?.kind === "stop" && succeeds(kept)) {
+      losses.push({ why: `the stop "${node.id}" would end in success where it halted: what led there to stop the run would now end it well`, at: [`node:${node.id}.outcome`] });
+    }
     if (node.kind === "check") {
       // Removed while a check the graph has not comes in: it may be this check under another id, and the name that
       // allows the removal then allows whatever was done to it on the way. The line shows what comes in, and says so.
