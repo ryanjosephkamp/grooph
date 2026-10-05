@@ -30,9 +30,11 @@ So the two answer different questions. If you are building an application that c
 
 ## Which harnesses does it work with?
 
-**Claude Code** is the only compile target today. The Codex target is planned.
+Claude Code is the compile target the built-in templates have been run on. A second target, Codex, compiles and is tested against golden packages; no run of a package in Codex is on record yet.
 
-[The Claude Code target](targets/claude-code.md) says what a package holds and what each part of a graph becomes.
+A graph names the harness it is for, and a package is one harness's files: to export a graph for the other harness, name that one in the graph first.
+
+[The Claude Code target](targets/claude-code.md) and [the Codex target](targets/codex.md) say what a package holds, what each part of a graph becomes, and for Codex what is documented, seen or unknown.
 
 The **event hook** appends a line when a session, a turn or a subagent starts or stops, so you can watch them, and, installed with `--tools`, when a tool call finishes (the tool's name only). A line holds ids, names, times and its own machine's paths, never content. It runs in Claude Code and in Codex. In Codex it needs a trusted folder and a reviewed hook, and some events are missing ([claims C30 and C32](claims.md)). [How subagents and hooks work](subagents.md) says what was documented and what was seen in each.
 
@@ -40,11 +42,11 @@ The **event hook** appends a line when a session, a turn or a subagent starts or
 
 Partly. Everything up to the package needs no harness: drawing a graph in the app, the templates, the validator, the pictures in six themes, the app's view in three dimensions, the outline, share links, and [operation maps](operation-map.md), which are drawn and checked and never compiled.
 
-The package itself is written for Claude Code. It is plain text files (Markdown, and the graph itself as JSON), so you can read every word of it, but no other harness is a target yet.
+The package itself is written for one harness: Claude Code, or Codex. It is plain text files (Markdown, TOML for Codex's agents, and the graph itself as JSON), so you can read every word of it. No other harness is a target.
 
 ## Where do my graphs live?
 
-Where you made them. In the app, graphs live in your browser on that device, and nothing is sent anywhere ([claim C26](claims.md)): there is no account and no server of grooph's. From the command line, a graph is a file wherever you put it. A package is written into your project, under `.grooph/` and `.claude/`, and the records a run leaves go under `.grooph/` too.
+Where you made them. In the app, graphs live in your browser on that device, and nothing is sent anywhere ([claim C26](claims.md)): there is no account and no server of grooph's. From the command line, a graph is a file wherever you put it. A package is written into your project, under `.grooph/` and the harness's own folder (`.claude/`, or `.codex/`), and the records a run leaves go under `.grooph/` too.
 
 A share link carries the whole document inside the link, so whoever has the link has the document. [Privacy](privacy.md) has the rest.
 
