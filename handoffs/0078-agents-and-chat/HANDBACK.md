@@ -1,6 +1,6 @@
 # Handback 0078 · grooph for agents: authoring over MCP, a package on npm, and a way in from a chat
 
-**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** the commit before this handback's own (the work, after the driver's four fix passes, with `main` merged in at `e8e1971` and the paste reader behind a door) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** the commit before this handback's own (the work, after the driver's four fix passes, with `main` merged in at `260fc18`, slice 0084 in it, and the paste reader behind a door) · **Date:** 2026-10-04
 
 ## Status
 
@@ -41,15 +41,15 @@
 
 ## Verified, and how
 
-Run from a clean build after the fourth pass: the four fix passes, the door, and `main` merged in at `e8e1971`, which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
+Run from a clean build after the fourth pass: the four fix passes, the door, and `main` merged in at `260fc18` (the default tiers of slice 0084, subgroophs, a map in three dimensions), which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
 
 ```text
-pnpm -r build && pnpm -r test          core 364 pass · cli 177 pass · web 78 pass
-scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 779 KB, 78 files; installed and run in a fresh folder)
-scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 249 KB, grooph.mcpb 248 KB; …run with nothing installed beside them)
+pnpm -r build && pnpm -r test          core 425 pass · cli 185 pass · web 92 pass
+scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 808 KB, 79 files; installed and run in a fresh folder)
+scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 269 KB, grooph.mcpb 268 KB; …run with nothing installed beside them)
 scripts/first-run.sh                   first run: ok
-GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      218 passed, 125 skipped, none failed
-node scripts/american-english.mjs --check      nothing British in 585 public-facing files
+GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      235 passed, 141 skipped, none failed
+node scripts/american-english.mjs --check      nothing British in 608 public-facing files
 node scripts/site-pages.mjs --check    23 pages and an index, links and anchors resolve
 version · cli-reference · check-pictures · check-outside-addresses (--check)      all current; nothing is loaded from another host
 patterns-index · field-guide · rule-reference · community-index (--check), check-brake-values, test-install-local.sh      all pass
@@ -141,14 +141,14 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **798,697 bytes packed (779 KB), 2,225,511 unpacked, 78 files.** It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
+`grooph-0.3.0.tgz`: **827,978 bytes packed (808 KB), 2,327,229 unpacked, 79 files.** (It grew by about 30 KB with `main`: subgroophs in core, and a map in three dimensions in the app.) It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
 
 | In it | Files | Size |
 |---|---|---|
-| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 623 KB |
+| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 700 KB |
 | `dist/patterns/`, the templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
-| `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 31 | 1,297 KB |
+| `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 32 | 1,322 KB |
 | `hooks/`, the event hook and the push script | 2 | 56 KB |
 | `README.md`, `LICENSE`, `package.json` | 3 | 5 KB |
 
@@ -206,7 +206,8 @@ The second builds, assembles `packages/cli/dist/npm` and proves the tarball inst
 - **The plugin's `.mcp.json`** names `grooph`, which must be on `PATH`. After the publish it could be `npx -y grooph mcp`. That the plugin itself starts the server was not run; run F attached the same server by a config file.
 - **`.claude-plugin/marketplace.json`** at the root still describes the plugin without its server; not this lane's file.
 - **Independent review, six times**: three I asked for and three the driver's. The third and fourth are under "The third pass", the fifth and sixth under "The fourth pass". **The first two:** First a fresh Opus 5.5 read I asked for, of the write paths, the server loop, the packaging scripts and the paste reader: eleven findings, ten fixed. Then the driver's, which found more; what was done about each letter is under "The fix pass" below. Of the first review's ten fixes, eight had a test when I first wrote this and two did not (the walk that never ended on a missing Windows drive, and `--keep` with a relative path); both have one now: the walk is a function of its own, run over Windows paths with `path.win32`, and CI passes `--keep` a relative path and then looks for the files. Left as they are from the first review: a bundle copied by hand next to a folder named `hooks` would look there for the event hook.
-- **Slice 0084 (#71) will not merge cleanly with this branch.** Both change `tiersSaid` in `packages/cli/src/commands/export.ts`, the export's help, `docs/cli.md` and one test in `packages/cli/test/friction.test.ts`. `tiersSaid` here already takes 0084's signature and its note's words, so the resolution is small. One thing was a decision and not a merge, and the driver made it: 0084's test asserts that the CLI prints no tier line when no map is named, and the line is printed every time, as on this branch. When #71 lands (it lands first), `main` is merged in here, this branch's behavior is kept, and that one assertion of 0084's is changed to assert the line and 0084's note together; the pull request will say so.
+- **Slice 0084 (#71) is merged in**, with one assertion of its test changed on the driver's decision (under "The fourth pass").
+- **No operation edits a graph's groups.** Two of the three new rules' `fix` lines therefore tell an agent to correct `groups` in the document and pass it whole. An operation for groups would be the subgroophs lane's to add.
 - **A slot's key is free text in the schema: a note for the audit.** The tool's own `next:` line no longer carries one that is not a single word, and a key that is a sentence is still a valid template, said on the template's own lines. The driver's decision: the schema stays as it is, since a rule would change the contract for a small gain, and the guard belongs where the key is repeated.
 - **What a reply's layout does not cover**: the blocks after the first (a document as JSON, an SVG, a kickoff, the embed's HTML, a package's files) are those things as they are, and hold a document's words in the document's own layout. The first block says what each is, and the server's instructions say none of them is the tool speaking. A client that shows a model only the first block loses nothing it needs to act; one that runs the blocks together shows a kickoff's lines after the `next:` line, not before it.
 - **A reply's lines changed shape**, so anything that parsed the old ones by pattern would need to change. Nothing in the repository does: the recorded runs under `runs/` are history and are left as they were written.
@@ -293,10 +294,12 @@ As the driver asked, a fresh Opus 5.5 reader was set on item 1's property, with 
 
 With each guard taken out in turn, thirty-six ways, a test fails; files restored from copies, the whole set run again.
 
-**Main, merged at `e8e1971`.** It brought `piece` (slice 0088): a piece that could not be fetched is asked for again in a way every engine honors. The door to Import and Paste goes through it now, so the sentence says "try again when you have one" where it said to reload, and the test takes the next tap with no reload. One conflict, in `apps/web/vite.config.ts`: both lanes' pieces are named in the page.
+**Main, merged twice in this pass: at `e8e1971` and, once slice 0084 had landed, at `260fc18`.** The first brought `piece` (slice 0088): a piece that could not be fetched is asked for again in a way every engine honors. The door to Import and Paste goes through it now, so the sentence says "try again when you have one" where it said to reload, and the test takes the next tap with no reload. One conflict, in `apps/web/vite.config.ts`: both lanes' pieces are named in the page.
+
+The second merge had the three conflicts foreseen. `packages/cli/src/commands/export.ts`: this branch's `tiersSaid` is kept (the tier line every time, each pin named), with slice 0084's note in its words. `packages/cli/test/friction.test.ts`: slice 0084's models and expectations, with `--change-models` where a re-export changes a model in place, and **one assertion of slice 0084's changed, on the driver's decision**: it asserted that no `tiers in this package` line is printed when no map is named; the line is printed every time, so the test asserts the line there, and the line and 0084's note together further down. `apps/web/vite.config.ts` again: a map in three dimensions and what opens a handed-over document are both named. `main` also brought three rules (`E_GROUP_CYCLE`, `E_SECOND_LEAD`, `W_GROUP_OVERLAP`), and `packages/cli/src/fixes.ts` does not build without a line for each: they are written, in the code and in `docs/agents.md`. No operation edits groups, so two of the three say to correct `groups` in the document itself.
 
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (four fix passes, main merged in at e8e1971, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (four fix passes, main merged in at 260fc18 with slice 0084, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
 ```
