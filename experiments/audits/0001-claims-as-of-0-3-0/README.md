@@ -12,7 +12,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 | File | What it is |
 |---|---|
 | [`inventory.md`](inventory.md) | Every claim, with an id, its exact words, where it stands, its evidence, and the lane's own reading before Codex saw anything |
-| [`tools/`](tools/) | Thirteen small scripts written for this audit. They read the records and call no model. Each says at its top how to run it. Three read the studies' transcripts, which are kept only on the Mac that ran them (`prompt-arm-context.mjs`, `cost-by-file-second-route.py`, `study-two-context.mjs`) |
+| [`tools/`](tools/) | Fourteen small scripts written for this audit. They read the records and call no model. Each says at its top how to run it. Three read the studies' transcripts, which are kept only on the Mac that ran them (`prompt-arm-context.mjs`, `cost-by-file-second-route.py`, `study-two-context.mjs`) |
 | [`round-01/HANDOFF.md`](round-01/HANDOFF.md) | What the lane asked Codex to read and attack |
 | [`round-01/HANDBACK.md`](round-01/HANDBACK.md) | What Codex found: 21 findings, what it checked and found sound, what it could not check, and a design for the one experiment it says is needed. Its main receipts are in `round-01/notes/`; the rest of its working notes stay in the exchange folder |
 | [`round-01/RECONCILE.md`](round-01/RECONCILE.md) | The lane's answer to each finding, one reading for each of the 52 claims, and 26 numbered corrections for the owner to accept or decline |

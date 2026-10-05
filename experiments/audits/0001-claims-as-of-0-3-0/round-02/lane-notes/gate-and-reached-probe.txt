@@ -1,0 +1,27 @@
+What is held and what is not, for a critic's verdict and a gate's answer led to a stop that ends in success.
+Run by the audit lane on 2026-10-05 at main bcc54db merged into this branch, packages built at main before the check kind (pull request #132).
+Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/gate-and-reached-probe.mjs   (pure; writes nothing, calls no model)
+
+(a) source errors: none
+
+== (a) the critic's failing edge led to the success stop, which the run also reaches without the critic
+   validator errors: none
+   changes: edge:e-critic-fail.to
+   refused: nothing
+
+(b) source errors: none
+
+== (b1) the gate's "no" led to the success stop the graph had, reached before only by its "yes"
+   validator errors: none
+   changes: edge:e-gate-no.to  [loosens: opens a way into "done" that does not pass "pass" at the human gate "gate"]
+   refused: edge:e-gate-no.to
+
+== (b2) the gate's "no" led to a NEW stop that ends in success
+   validator errors: none
+   changes: node:shipped | edge:e-gate-no.to
+   refused: nothing
+
+== (b3) the halting stop the gate's "no" leads to, made a success
+   validator errors: none
+   changes: node:failed.outcome  [loosens: a run could end in success at "failed", a way that does not pass a person]
+   refused: node:failed.outcome
