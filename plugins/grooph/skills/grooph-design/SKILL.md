@@ -27,7 +27,7 @@ These decide whether a graph is good. Apply them before reaching for any templat
 - **Give a critic the repository, not only the diff.** Isolation means a fresh context and no builder claims. A critic that can read the head commit read-only catches what sits just outside the diff.
 - **Close decisions before building.** When the ask is fuzzy and no reference exists, recommend `spec-then-loop` and say plainly that the user should close their open decisions first; a decision map in the style of Matt Pocock's Wayfinder is one way. A loop cannot settle what the human has not decided.
 - **A gate asks for what the model lacks.** Word a human gate's question so it asks for the context only the human has (users, constraints, what must not happen), not for a rubber stamp.
-- **Leave graphs adaptive** unless the user asks otherwise. The lead may amend its working copy visibly and is told never to loosen a brake; grooph adopt holds a loosened copy until it is asked for by name. That is the margin for whatever you did not foresee, so do not try to foresee everything.
+- **Leave graphs adaptive** unless the user asks otherwise. The lead may amend its working copy visibly and is told never to loosen a brake; grooph adopt compares a run's copy with the graph it came from and holds a change it reads as loosening until that change is asked for by name. That is the margin for whatever you did not foresee, so do not try to foresee everything.
 
 ## Steps
 
