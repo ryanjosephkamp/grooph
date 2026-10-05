@@ -154,6 +154,8 @@ export type Site = {
   slow(link: { latencyMs: number; bytesPerSecond: number } | undefined): void;
   /** Answer a path that matches with a 503 until told otherwise, as a host does while a deploy is still arriving. */
   failing(match: RegExp | undefined): void;
+  /** Answer the next request for a path that matches with a 503, and the ones after it as they should be: one request lost. */
+  failingOnce(match: RegExp): void;
   /** Every request answered so far, in order. */
   asked: Asked[];
   stop(): Promise<void>;
@@ -163,6 +165,7 @@ export async function serveSite(first: Release): Promise<Site> {
   let release = first;
   let link: { latencyMs: number; bytesPerSecond: number } | undefined;
   let failing: RegExp | undefined;
+  let once: RegExp | undefined;
   const asked: Asked[] = [];
   const sockets = new Set<Socket>();
   const gzipped = new Map<string, Buffer>();
@@ -209,6 +212,10 @@ export async function serveSite(first: Release): Promise<Site> {
       else send();
     };
     if (failing?.test(path)) return answer(503, { "content-type": "text/plain" }, Buffer.from("the deploy is still arriving"));
+    if (once?.test(path)) {
+      once = undefined;
+      return answer(503, { "content-type": "text/plain" }, Buffer.from("this request was lost"));
+    }
     if (!path.startsWith(BASE) || !(file + sep).startsWith(serving.dir + sep) || !existsSync(file) || !statSync(file).isFile()) {
       return answer(404, { "content-type": "text/plain" }, Buffer.from("not here"));
     }
@@ -236,6 +243,9 @@ export async function serveSite(first: Release): Promise<Site> {
     },
     failing: (match) => {
       failing = match;
+    },
+    failingOnce: (match) => {
+      once = match;
     },
     stop: () =>
       new Promise((resolve) => {
@@ -289,6 +299,12 @@ export async function settled(page: Page, release: Release): Promise<void> {
       return release.named.filter((path) => !paths.includes(path));
     }, { message: `the worker holds every file the ${release.name} page names`, timeout: 20_000 })
     .toEqual([]);
+  // And has made this release's page the one to open with no network. Holding the files is not yet that: the worker
+  // keeps one page at a time, in the order they came, and a page before this one that was refused a file is given
+  // a second try at it a second later (`hold` in public/sw.js) before this one's turn comes.
+  await expect
+    .poll(() => page.evaluate(async (name) => /data-release="([^"]*)"/.exec((await (await (await caches.open(name)).match("./"))?.text()) ?? "")?.[1], CACHE), { message: `the worker has kept the ${release.name} page as the one to open with no network`, timeout: 20_000 })
+    .toBe(release.name);
   // The page's own fetch of the canvas screens has come in. (Playwright's "network idle" never comes with a worker in control.)
   await page.waitForFunction(() => performance.getEntriesByType("resource").some((entry) => /\/assets\/screens-[^/]*\.js$/.test(entry.name)));
   // And so has everything else the page asked for, whatever it is called: the templates, and the next piece someone
