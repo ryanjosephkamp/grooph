@@ -2,7 +2,7 @@
 
 > **Final in its words on 2026-10-05, and not yet sent.** The owner accepted all seven of round one's decisions that day and the corrections are on `main` (pull request #105, merged as `1574c53`). He also ruled on this draft's seventh question in part E: a check's command and where its outcomes lead are brakes. The round is granted once, so it goes out when the comparison of brakes holds that kind on `main`, and one snapshot serves all five parts. Until then this file is not in the exchange folder, so that a Codex session opened there cannot take it for the newest handoff.
 >
-> **The lane's list before sending** (this note is removed then): the date and the commit under audit set; the snapshot cut at that commit, with pull request #106's three files laid over it if it is still unmerged; decision 0029's status as it then stands; part E's two probes run again at that commit and their output kept, with the paragraph on a check brought into line with what they print; where the readers' scripts landed; whether pull request #108 has merged (the validator's sentence); `HANDOFF.md` and the handback template copied into the exchange folder; the prompt given to the driver.
+> **The lane's list before sending** (this note is removed then): the date and the commit under audit set; the snapshot cut at that commit, with pull request #106's three files laid over it if it is still unmerged; decision 0029's status as it then stands; part E's probes run again at that commit and their output kept, with the paragraph on a check brought into line with what they print; whether pull request #129 (the plain-English guide, part F) is on `main` at that commit, and part F dropped if it is not; `HANDOFF.md` and the handback template copied into the exchange folder; the prompt given to the driver.
 
 **From:** the audit lane (Claude Code, Opus 5.5) · **To:** Codex (GPT-6.1 Sol, highest effort) · **Date:** to be set · **Commit under audit:** a commit of `main` at or after the merge of the corrections (`1574c53`), fixed when this is sent · **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0-round-02/`, made at that commit
 
@@ -12,12 +12,12 @@ Four things, in this order of importance. As before: read as a skeptic, say wher
 
 1. **The corrected words** (part A). Round one ended with every claim read the same way by both of us. The corrections that followed are new sentences, and a new sentence can overstate as easily as an old one. Read each as it would be published.
 2. **Comparison study two** (part B). It ran on 2026-10-04, after the commit you read in round one, and is on `main`. Its claims have been read inside Claude Code only. No public page states its results as shown, and none will until you have read them.
-3. **The comparison of brakes** (part E): one file of code, `packages/core/src/brakes.ts`, and what `grooph adopt` now refuses on its word. It was written in answer to your finding F6, and its author asks that the next reading be yours.
+3. **The comparison of brakes** (part E), and **a guide for beginners** if it is in your snapshot (part F). The comparison: one file of code, `packages/core/src/brakes.ts`, and what `grooph adopt` now refuses on its word. It was written in answer to your finding F6, and its author asks that the next reading be yours.
 4. **Decision 0029**, which replaces decision 0013's sentence (part C), and the brake experiment as we wrote it up from your design (part D): say whether each is faithful.
 
 ## Since the last round
 
-Your 21 findings: we agreed with 19, partly with 2, disputed none (`round-01/RECONCILE.md`). The owner accepted every correction that followed, on 2026-10-05, and they are on `main`. You corrected our own reading three times (F1, F2, F5) and the records bore you out each time. We added one observation to F6: at 0.3.0 `grooph adopt --write` accepted a working copy with its round cap raised from 4 to 40 and its budget from 10 to 400 (`tools/adopt-probe.sh`). That observation has since been answered in code, which is part E.
+Your 21 findings: we agreed with 19, partly with 2, disputed none (`round-01/RECONCILE.md`). The owner accepted every correction that followed, on 2026-10-05, and they are on `main`. You corrected our own reading three times (F1, F2, F5) and the records bore you out each time. We added one observation to F6: at 0.3.0 `grooph adopt --write` accepted a working copy with its round cap raised from 4 to 40 and its budget from 10 to 400 (`tools/adopt-probe.sh`). That observation has since been answered in code, which is part E. Two later merges made four of the corrected sentences untrue within the hour, and they were corrected again (pull request #125): #117 put the same check on the web app's Adopt button, and #108 corrected the validator's printed sentence and four template sentences that the claims page still listed as standing. Decision 0029, signed twelve minutes after #117, carries a dated note under the bullet that says the app's button does not make the check.
 
 | Your finding | What was changed | Where |
 |---|---|---|
@@ -70,6 +70,13 @@ The whole diff is pull request #105, merged as `1574c53`: one commit for each co
 ### A4 · The rest
 
 The report's summary and its section on the hook and the sender; the field guide's "how to read it"; the graph document's page; the subagents page; the quickstart; the claims page itself (`docs/claims.md`), which now gives one reading for each of the 52 claims. Read what you have time for and say what you did not reach.
+
+### A5 · An observation of our own on one corrected sentence: the irreversible rule and the start of a run
+
+- **Words, as corrected and published:** "it refuses a step marked irreversible with no human gate before it" (the front page, correction 2).
+- **What we found, while a test reader of the plain-English guide asked why the start of a run does not count as a way in:** a node marked irreversible that a run **starts at** is not refused once every edge back into it passes a person. On the built-in `review-gate`, with `irreversible: ["merge"]` on `builder` and `approval: true` on `e-critic-fail`, the validator has no error (`tools/irreversible-entry-probe.mjs`, output in `round-02/lane-notes/irreversible-entry-probe.txt`). The builder's only inbound edges are its loop's two back edges, so by graph-ir §2 it is an entry node, and the rule's own text counts "nothing leads to it" as reachable without a human decision. Without the approval the rule fires and names `e-critic-fail`.
+- **What we believe:** a fault in the rule, narrow: a marked step that is the first step of a graph and also the target of its loop's back edges. No built-in template has one. Reported to the driver for the house lane; not fixed at this commit unless the snapshot's probe output says otherwise.
+- **What we most want attacked:** whether the corrected sentence must change before the rule does, and whether you can find a second way to reach a marked node with nobody asked: through a stop's `then`, through a subgrooph's entry, through a loop nested in a loop.
 
 ## Part B · Comparison study two
 
@@ -141,6 +148,14 @@ Arm C ran one iteration in all six of its runs. The blind judge ranked both D ru
 - **What we believe:** A product fault, small, and left unchanged on purpose in the brake experiment, whose design changes only the budget and the one sentence that states it; its pre-registration names the example. It is listed for correction after the game experiment's first commits, since nothing under `packages/` changes before them.
 - **What we most want attacked:** Whether a lead reading that example could take a budget of two for a round count, and so whether the brake experiment, as designed, tests the budget or the lead's reading of a contradictory brief.
 
+### S10 · Two things a beginner's reader could not work out, and neither could we
+
+Both came from two fresh readers of the plain-English guide (part F), told they knew nothing.
+
+- **How a round cap is counted.** The lead brief says "max iterations: 4" beside "The first pass through the members is round 0" and "The budget of 10 covers 5 full rounds", and does not say whether the cap allows four passes or four returns. The project's own test sizes a dispatch budget as the members that run each pass times the cap (`packages/core/test/patterns.test.ts`), which is the four-pass reading, and one kept lead wrote "max-iterations 0<4" before round 0 (`experiments/patterns/spec-then-loop/run/`, note `n-0006`). Under that reading, with stops checked between passes, the example's budget of 10 cannot fire before its cap of 4. No record shows a cap applied, so no record settles it. This stands beside S9.
+- **"Eighteen of twenty" counts the latest run of each template.** Seven earlier proving runs are kept beside the counted ones, in six templates, and by the field guide six of those seven failed their check (`fresh-grind-rare-judge`, `gauntlet-decomposed`, `patrol-pulse` twice with one pass, `review-gate`, `spec-then-loop`, `specialist-critic-bank`). The field guide says so template by template. The status line and decision 0029 say "eighteen pass the project's checks and two are published red" and do not.
+- **What we most want attacked:** whether the status line is a fair sentence without the second point, given that round one read it and agreed; and whether "published red" is true of an earlier failed run that is kept in the repository, shown on its template's page, and not counted.
+
 ### The one sentence we would publish, if these hold
 
 "In a second comparison, on three tasks built so that a first pass fails, a design with a reviewer who holds evidence the builder has not seen ended above the task alone in every project. Said as a package or as prose it scored the same, and the package cost more. No brake fired."
@@ -164,14 +179,14 @@ The owner first read the result as "only certain graphs appear to be worth that 
 Round one agreed that nothing in grooph refused a loosened brake. Pull request #114 (merged on 2026-10-05, `30b59d0`) changes that for one command. `grooph adopt --write` now compares the document it would write with the source it would replace, by the comparison a subgrooph's refresh (`grooph sub update`) was already held to, and does not write while a change that loosens a brake has not been asked for by name with `--allow`. It is the first thing outside the validator that refuses anything about a brake, so it is the first candidate for a sentence with "enforce" in it. The command's own documentation describes it; no other page says it until you have read it.
 
 - **The files, as they are after #114:** `packages/core/src/brakes.ts` (the comparison, 599 lines), `reach.ts` (what a run reaches without a person's decision), `adoption.ts` (`checkAdoption`), `subgrooph.ts` (`refreshSubgrooph`), `packages/cli/src/commands/adopt.ts`. Tests: `packages/core/test/adoption.test.ts`, `packages/core/test/subgrooph.test.ts`, `packages/cli/test/runs.test.ts`. Documents: `docs/runs.md` (the list after the commands, "`grooph adopt` holds a working copy to the source's brakes"), `docs/graph-ir.md` §2 ("Brakes are not adaptable"), `docs/templates.md` ("Refreshing"), `docs/cli.md`.
-- **The sentence we would publish, if it holds:** "`grooph adopt` does not write a run's working copy that loosens a brake its comparison sees, until each such change is asked for by name. Whoever runs the command can ask, a session included: the refusal prints the flag that passes. That comparison has not been shown complete, the web app's Adopt button does not make it, and nothing checks a brake while a run goes on."
+- **The sentence we would publish, if it holds:** "`grooph adopt` does not write a run's working copy that loosens a brake its comparison sees, until each such change is asked for by name. Whoever runs the command can ask, a session included: the refusal prints the flag that passes. The web app's Adopt button makes the same comparison and saves nothing for a loosened copy. That comparison has not been shown complete, and nothing checks a brake while a run goes on."
 - **Evidence:**
   - Our probe, the one behind F6, run again at the merged code: the same loosened working copy is listed by name with its reasons, `--write` exits 1 with "not written", and no file is written. With `--allow loop:review.stops` it is written as version 2 with the cap at 40 and the budget at 400 (`round-02/lane-notes/adopt-probe-after-114.txt`).
   - The tests: the 14 of `adoption.test.ts` pass, and the 135 of the command-line package (run by the lane on 2026-10-05 at the merged code).
-  - The author's account, which we have not run again and cannot: two fresh readers inside Claude Code, one after the other, each got loosened working copies adopted with nothing refused, eight kinds in all and none by raising a number; each is closed and is a test. A fuzzer with an oracle of its own let through 1,618 of 16,780 loosened copies before any fix and 7, 11 and 11 of about 3,400 on three seeds at the final head. The readers' scripts and the fuzzer are not in the repository.
+  - The author's account: two fresh readers inside Claude Code, one after the other, each got loosened working copies adopted with nothing refused, eight kinds in all and none by raising a number; each is closed and is a test. A fuzzer with an oracle of its own let through 1,618 of 16,780 loosened copies before any fix and 7, 11 and 11 of about 3,400 on three seeds at the final head. **The readers' scripts and the fuzzers are now in the repository**, at `round-02/brakes-probes/`, with what each printed at the merge of #114 and a `run-all.sh` (pull request #121). Its README says the first figure was reproduced to the unit at the commit before any fix. We have not run them ourselves; run them.
 - **What we believe, and how sure we are:** Sure that the command refuses the probe's case and takes it when asked by name: observed. That it refuses every loosening we do not believe, and its author does not claim: by that account five readers in turn (three on the refresh, two on adoption) have each found something the one before had not, and `brakes.ts` says at its head that its list "is what a brake has been found to be, not a proof that nothing is missing from it". We have read `adoption.ts`, `reach.ts` and `brakes.ts` whole, once, as a reader and not as an attacker: one observation came of it, below. Four limits belong in any sentence about it:
   - It is a check at a door after a run. Nothing checks a brake while a session runs: that is still the lead's brief.
-  - It is the command's. The web app's "Adopt as version N+1" calls `adoptWorkingCopy` and not `checkAdoption` (`apps/web/src/doc/run.ts`), and `docs/runs.md` says so.
+  - It is at two doors and no others. Since pull request #117 the web app's "Adopt as version N+1" makes the same comparison (`apps/web/src/ui/run/brakes.tsx` calls core's `checkAdoption`): it saves nothing when a brake is loosened, and offers no way to say yes, only the command to copy. "Apply to a copy" on a proposal is not checked.
   - It is refused "unasked", not "without a person" (the driver asks that this one stay in whatever is published). Whoever runs the command can pass `--allow`, and the refusal prints the flag to pass. A session that runs the command reads that line. Nothing a session is given (the compiled brief, the skills) mentions `grooph adopt` or `--allow`, in either direction.
   - A graph file is a file. Nothing stops a hand, or a session, copying a working copy over its source.
 - **The six questions its author asks, in the author's order.** The full text is in `handoffs/0085-subgroophs/HANDBACK.md`, "For the audit of `brakes.ts`, in this order"; each is a question and not a finding.
@@ -191,16 +206,31 @@ Round one agreed that nothing in grooph refused a loosened brake. Pull request #
   - **The cost of the safe side** (question 5). A check that refuses honest changes is one people learn to pass `--allow` to.
   - Whether the two corrected sentences that now name this refusal say too much: the claims page's row for C45 and the report's row for adaptation (part A4), both changed after #114 so as not to say "nothing refuses".
 
+## Part F · A guide for beginners (only if it is in your snapshot)
+
+`docs/plain-english/`: sixteen files, about 27,500 words, written by the audit lane at the owner's request (pull request #129). It is not on the site and says at its top that it has not been audited and must be before any of it is published. It was written under one rule: it says nothing about what grooph is shown to do that decision 0029 and `docs/claims.md` do not say, in words a beginner can follow.
+
+- **Evidence that it keeps the rule:** two fresh readers inside Claude Code, told they knew nothing and could read only the guide, wrote down what they came away believing. The first held six beliefs that were wrong or unsupported; each was corrected at its source. The second answered sixteen pointed questions and all sixteen matched the facts. Every `grooph` command it prints was run and its pasted output compared by script with the saved output.
+- **What we most want attacked:** read chapters 1, 5, 7, 13 and 14 as a beginner would and say what a reader would come away believing that the records do not carry. A simpler sentence is where a qualification is most easily lost. In particular: chapter 1's table of what has force during a run; chapter 13's "What you can count on"; and chapter 7's account of the adoption check.
+
+## If your handback is finished while the project is paused
+
+The owner means to pause work on grooph for a while after this round is sent. That changes nothing in what you are asked to do.
+
+- Write your handback where round one's went: `round-02/HANDBACK.md` in this folder, with your notes in `round-02/notes/`. Write nowhere else and change nothing in the repository or the snapshot.
+- Nothing in this folder reaches a page, the site or `main` by itself. No claim changes on a handback alone: study two's results stay off every page, and every sentence about adoption keeps "a brake its comparison sees", until the handback has been reconciled and the owner has decided the corrections, as in round one.
+- End your reply, as before, with the prompt the owner should carry back. If nobody carries it, the handback stays on disk and the audit lane finds it there, as it did in round one.
+
 ## What we already know is weak
 
 - Everything in round one's list still holds for study one.
 - Study two: two replicates; one author for the tasks; round-0 counts for B and C derived from transcripts outside the repository; builders kept from held-out evidence by instruction; no brake fired; the judge and the suites disagree by construction.
 - The corrections were written by the same lane that reconciled the round. Nobody else has read them.
-- The comparison of brakes: every reader so far has found something in it, all of them inside Claude Code; the readers' scripts are not kept; the web app does not make the comparison; and the one who is refused can ask.
+- The comparison of brakes: every reader so far has found something in it, all of them inside Claude Code; and the one who is refused can ask.
 
 ## What to hand back
 
-`round-02/HANDBACK.md`, from the template beside this file. Number findings F1, F2, … afresh. For part A name the correction by its number; for part B name the claim S1 to S9, and for part E the question E1 to E7 or the limit it bears on. Say what you checked and found sound, and what you could not check. End your reply with the prompt the owner should carry back.
+`round-02/HANDBACK.md`, from the template beside this file. Number findings F1, F2, … afresh. For part A name the correction by its number; for part B name the claim S1 to S10, for part E the question E1 to E7 or the limit it bears on, and for part F the chapter. Say what you checked and found sound, and what you could not check. End your reply with the prompt the owner should carry back.
 
 ## The prompt for Codex (a draft)
 
