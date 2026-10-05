@@ -16,6 +16,7 @@ import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
 import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
+import { rings } from "./stage/rings.js";
 import { along, shownAt, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
@@ -23,6 +24,7 @@ import { brakes, spiral, topOf } from "./stage/spiral.js";
 const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean }> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
   spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: true, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
+  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: true, says: "Each loop is a ring, with its own nodes round it in the order of a round. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. The way back from the last node is the rest of the ring." },
 };
 
 let styled = false;

@@ -73,7 +73,7 @@ test("the row of kinds is there only while a view in three dimensions is up; Pan
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
   // The row says which kind this is, and offers the others, each with what it is.
-  await expect(kinds(page).getByRole("radio")).toHaveText(["Stairs", "Panes", "Spiral"]);
+  await expect(kinds(page).getByRole("radio")).toHaveText(["Stairs", "Panes", "Spiral", "Rings"]);
   await expect(kind(page, "Stairs")).toHaveAttribute("aria-checked", "true");
   await expect(kind(page, "Panes")).toHaveAttribute("aria-description", /pane of its own/);
   await viewIsStill(page);
@@ -971,4 +971,95 @@ test("in the spiral on a phone the frame is given what its cards need where that
   // Said by name: these are held by the frame's width, with two spirals or a wide turn side by side, so a taller
   // frame does not clear them as it does in Panes. Moving in does.
   expect(touching).toEqual(["debate-then-build", "gauntlet-decomposed", "specialist-critic-bank"]);
+});
+
+test("rings: every node a card round its loop's ring or on the ground, no card over another on any built-in template at a phone's size, and all but the cards grown", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "rings"));
+  const ids = readdirSync(join(repoRoot, "patterns")).filter((f) => f.endsWith(".grooph.json")).map((f) => f.replace(".grooph.json", ""));
+  const touching: Record<string, string[]> = {};
+  for (const id of ids) {
+    await page.goto("about:blank");
+    await page.goto(`./#/templates/built-in/${id}`);
+    await canvasIsQuiet(page);
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await view(page, "3D").click();
+    await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
+    await viewIsStill(page);
+    await expect(cards(page)).toHaveCount(pattern(id).nodes.length);
+    const hits = await overlaps(page);
+    if (hits.length) touching[id] = hits;
+    const [frame, room] = [(await page.locator(".s3-frame").boundingBox())!, await page.locator(".graph-space").evaluate((el) => el.clientHeight)];
+    expect(frame.height, id).toBeLessThanOrEqual(Math.round(room * 0.8) + 1);
+    for (const box of await cards(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as { top: number; bottom: number; left: number; right: number }))) {
+      expect(box.left, id).toBeGreaterThanOrEqual(frame.x - 1);
+      expect(box.right, id).toBeLessThanOrEqual(frame.x + frame.width + 1);
+      expect(box.top, id).toBeGreaterThanOrEqual(frame.y - 1);
+      expect(box.bottom, id).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    }
+  }
+  expect(touching).toEqual({});
+
+  // One of them, looked at: its frame's name, a card that opens its node, no list of brakes, and the slider.
+  await page.goto("about:blank");
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await page.evaluate(() => {
+    const log: boolean[] = ((window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst = []);
+    new MutationObserver(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>(".s3-frame canvas");
+      if (canvas && !canvas.dataset["seen"]) ((canvas.dataset["seen"] = "1"), log.push(canvas.width > 0 && canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data.some((v) => v !== 0)));
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst)).toEqual([false]);
+  await viewIsStill(page);
+  await expect.poll(() => drawnOn(page)).toBe(true);
+  await expect(kind(page, "Rings")).toHaveAttribute("aria-checked", "true");
+  await expect(kind(page, "Rings")).toHaveAttribute("aria-description", /a ring standing on the outer one/);
+  await expect(page.locator(".s3-frame")).toHaveAttribute("aria-label", /^Gauntlet, decomposed as a ring for each loop: 10 cards, 12 edges, and the loops Polish a piece, Pieces\./);
+  await expect(page.getByRole("list", { name: "Each loop's brakes" })).toHaveCount(0);
+  await expect(page.locator('.s3-card[data-node="planner"]')).toHaveClass(/is-small/);
+  await expect(page.getByRole("button", { name: "Agent Piece owner" })).toHaveText(/^Piece owner.+/);
+  await page.getByRole("button", { name: "Agent Piece critic" }).click();
+  await expect(sheet(page).getByText("Piece critic").first()).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  await expect(says(page)).toHaveText(/^Step 1 of 12: Planner to /);
+  await expect(page.locator(".s3-card.is-lit")).toHaveCount(2);
+});
+
+test("the picture becomes the rings and the spiral becomes the rings; on a run's page the rings walk the run's notes", async ({ page }) => {
+  const moves = await noteMoves(page);
+  await page.goto("./#/templates/built-in/review-gate");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const whole = { pairs: 4, ended: true };
+  await open(page, "Spiral");
+  const before = (await moves()).length;
+  await kind(page, "Rings").click();
+  await expect(page.locator('.s3[data-kind="rings"]')).toBeVisible();
+  await viewIsStill(page);
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="rings"]')).toBeVisible();
+  await viewIsStill(page);
+  await expect.poll(async () => (await moves()).slice(before)).toEqual([whole, whole, whole]);
+  expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
+
+  const run = runBundle("run-nested");
+  await page.goto(linkFor(run));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("10");
+  await expect(says(page)).toHaveText("Note 10 of 13: Builder: pass · round 0");
+  await expect(page.locator(".s3-card.is-lit")).toHaveAttribute("data-node", "builder");
 });

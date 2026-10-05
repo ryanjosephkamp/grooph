@@ -48,6 +48,7 @@ const KINDS = [
   ["stairs", "Stairs", "Each loop is a floor with its own nodes standing on it; a loop inside it has a floor of its own."],
   ["panes", "Panes", "The picture as it is, with each loop and each box lifted toward you on a pane of its own."],
   ["spiral", "Spiral", "Each loop is a spiral: a round is one turn upward, and the brakes that count rounds are places on the way up, the lid where max iterations stops it."],
+  ["rings", "Rings", "Each loop is a ring, with its own nodes standing round it; a loop inside another is a ring standing on the outer one."],
 ] as const;
 type Kind = (typeof KINDS)[number][0];
 /** What is drawn over the canvas: nothing, which is the picture, or a kind of view in three dimensions. */

@@ -9,6 +9,7 @@ import { columnsForViewport } from "../src/doc/layout.js";
 import { firstPass } from "../src/ui/canvas/graph-views.js";
 import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
 import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
+import { rings } from "../src/ui/canvas/stage/rings.js";
 import { shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
 import { brakes, reach, spiral, topOf } from "../src/ui/canvas/stage/spiral.js";
 
@@ -584,5 +585,113 @@ describe("the spiral and its lid", () => {
     const same: Graph = { ...RUN, loops: [RUN.loops[0]!, { ...RUN.loops[0]!, id: "twin", name: "Twin" }] };
     const twin = spiral(modelAt(same, places(same)), whole);
     expect(twin.prims.filter((p) => p.t === "card")).toHaveLength(4);
+  });
+});
+
+describe("rings", () => {
+  const whole: Shown = { k: 0, lit: null, took: [] };
+  const at = (model: ReturnType<typeof modelAt>, k: number): Shown => shownAt(model, stepsOf(model), k);
+  /** A ring as drawn: its middle, its height and how far out it is, from its band. */
+  const ringOf = (prims: ReturnType<typeof rings>["prims"], id: string) => {
+    const band = prims.find((p) => p.key === `loop:${id}`)!;
+    if (band.t !== "poly") throw new Error("no band");
+    const outer = band.pts.slice(0, 49);
+    const c = [(Math.min(...outer.map((p) => p[0])) + Math.max(...outer.map((p) => p[0]))) / 2, outer[0]![1], (Math.min(...outer.map((p) => p[2])) + Math.max(...outer.map((p) => p[2]))) / 2] as const;
+    return { c, r: Math.hypot(outer[0]![0] - c[0], outer[0]![2] - c[2]) - 15 };
+  };
+  const far = (c: readonly number[], p: readonly number[]): number => Math.round(Math.hypot(p[0]! - c[0]!, p[2]! - c[2]!));
+
+  it("every node is one card on every template and every valid fixture, and all but the cards is grown", () => {
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    for (const path of [...ALL, ...valid]) {
+      const doc = graph(path);
+      const m = modelAt(doc, places(doc));
+      const { prims, node, path: way } = rings(m, whole);
+      expect(prims.filter((p) => p.t === "card").map((p) => (p.t === "card" ? p.id : "")).sort(), path).toEqual(doc.nodes.map((n) => n.id).sort());
+      expect(prims.every((p) => (p.t === "card") !== !!p.grow), path).toBe(true);
+      for (const n of doc.nodes) expect(node(n.id).every(Number.isFinite), `${path} ${n.id}`).toBe(true);
+      // Every edge is drawn, once, and none is hidden: a ring has no edge that is not there to be seen.
+      expect(prims.filter((p) => p.t === "line" && p.arrow && !p.hide).map((p) => p.key).sort(), path).toEqual(m.edges.map((e) => `edge:${e.id}`).sort());
+      for (const e of m.edges) expect(way(e.id).flat().every(Number.isFinite), `${path} ${e.id}`).toBe(true);
+      // A node in no loop is on the ground, by its name alone where there is a loop to look at.
+      for (const p of prims) if (p.t === "card") expect([!!p.small, p.at[1]], `${path} ${p.id}`).toEqual(m.nodes.find((n) => n.id === p.id)!.loop ? [false, p.at[1]] : [m.loops.length > 0, 0]);
+    }
+  });
+
+  it("a loop's own nodes stand round its ring in the order of a round; the edge to the next is the ring, and the way back from the last is the rest of it", () => {
+    const m = modelOf(REVIEW);
+    const built = rings(m, whole);
+    const { c, r } = ringOf(built.prims, "review");
+    const own = m.loops[0]!.own;
+    expect(own).toEqual(["builder", "critic", "merge-gate"]);
+    for (const id of own) expect(far(c, built.node(id))).toBe(Math.round(r));
+    // Builder to critic, and critic to the gate: every point of each is on the ring.
+    for (const id of ["builder", "critic"]) {
+      const e = m.edges.find((x) => x.from === id && !x.back && own.includes(x.to))!;
+      expect(new Set(built.path(e.id).map((p) => far(c, p)))).toEqual(new Set([Math.round(r)]));
+      expect(built.path(e.id).every((p) => p[1] === 0)).toBe(true);
+    }
+    // The gate's way back to the builder: on the ring all the way, from the last station to the first.
+    const back = m.edges.find((e) => e.back && e.from === "merge-gate")!;
+    expect(new Set(built.path(back.id).map((p) => far(c, p)))).toEqual(new Set([Math.round(r)]));
+    expect(built.path(back.id)[24]!.map((v) => Math.round(v) + 0)).toEqual(built.node("builder").map((v) => Math.round(v) + 0));
+    // The critic's way back cuts the round short: an arch across the ring, off the ground in the middle.
+    const short = m.edges.find((e) => e.back && e.from === "critic")!;
+    expect(Math.max(...built.path(short.id).map((p) => p[1]))).toBe(54);
+    // The way out, to a node on the ground: straight.
+    const out = m.edges.find((e) => e.to === "done")!;
+    expect(Math.max(...built.path(out.id).map((p) => p[1]))).toBe(0);
+  });
+
+  it("a loop inside another is a ring standing on the outer one, smaller than it, and a fan out is drawn across its ring", () => {
+    const m = modelOf(GAUNTLET);
+    const built = rings(m, whole);
+    const [inner, outer] = [ringOf(built.prims, "polish"), ringOf(built.prims, "pieces")];
+    expect([outer.c[1], inner.c[1]]).toEqual([0, 64]);
+    expect(outer.r).toBeGreaterThanOrEqual(inner.r + 30);
+    // Where the inner ring stands is a place on the outer ring.
+    expect(far(outer.c, inner.c)).toBe(Math.round(outer.r));
+    // The critic bank: its fan out and fan in are arches or lines across the ring, not the ring: they leave it.
+    const bank = graph("patterns/specialist-critic-bank.grooph.json");
+    const b = modelAt(bank, places(bank));
+    const drawn = rings(b, whole);
+    const ring = ringOf(drawn.prims, b.loops[0]!.id);
+    const own = b.loops[0]!.own;
+    const across = b.edges.filter((e) => !e.back && own.includes(e.from) && own.includes(e.to) && own.indexOf(e.to) !== own.indexOf(e.from) + 1);
+    expect(across.length).toBeGreaterThanOrEqual(6);
+    for (const e of across) expect(Math.min(...drawn.path(e.id).map((p) => far(ring.c, p))), e.id).toBeLessThan(Math.round(ring.r) - 4);
+  });
+
+  it("on a run a ring says the round the run is in, and an edge the run has not taken by the note is faint", () => {
+    const [doc, written] = runAt("run-nested");
+    const m = modelAt(doc, places(doc), written);
+    const words = (k: number) => rings(m, at(m, k)).prims.flatMap((p) => (p.t === "text" ? [p.text] : []));
+    expect(words(1)).toEqual(["Phases\nnot entered", "Grind\nnot entered"]);
+    expect(words(10)).toEqual(["Phases\nround 1", "Grind\nround 0"]);
+    // A template's ring says its name and no round.
+    expect(rings(modelAt(doc, places(doc)), whole).prims.flatMap((p) => (p.t === "text" ? [p.text] : []))).toEqual(["Phases", "Grind"]);
+    const faint = (k: number) => rings(m, at(m, k)).prims.flatMap((p) => (p.t === "line" && p.arrow && p.alpha === 0.3 ? [p.key!.slice(5)] : [])).sort();
+    // The whole run: the judge's fail and its pass were never taken.
+    expect(faint(0)).toEqual(["e-judge-fail", "e-judge-pass"]);
+    // At note 3 only builder to tests has been taken.
+    expect(faint(3)).toEqual(["e-judge-fail", "e-judge-next-phase", "e-judge-pass", "e-tests-fail", "e-tests-judge"]);
+    // And on a template no edge is faint.
+    expect(rings(modelAt(doc, places(doc)), whole).prims.some((p) => p.t === "line" && p.alpha === 0.3)).toBe(false);
+  });
+
+  it("a node two loops share stands on one ring and is said on the other; a graph with no loop is a line, with an edge that passes a node going over it", () => {
+    const [left, right] = [{ ...RUN.loops[0]!, id: "left", name: "Left", members: ["builder", "checks"], back: ["e-checks-fail"] }, { ...RUN.loops[0]!, id: "right", name: "Right", members: ["checks", "critic"], back: ["e-critic-fail"] }];
+    const cut: Graph = { ...RUN, loops: [left, right] };
+    const built = rings(modelAt(cut, places(cut)), whole);
+    expect(built.prims.filter((p) => p.t === "card").map((p) => (p.t === "card" ? p.id : "")).sort()).toEqual(["builder", "checks", "critic", "done"]);
+    expect(built.prims.some((p) => p.t === "text" && p.text === "Cheap checks: on Left")).toBe(true);
+    const line = graph("patterns/tournament-then-judge.grooph.json");
+    const m = modelAt(line, places(line));
+    const flat = rings(m, whole);
+    const order = m.rows.flat();
+    for (let n = 1; n < order.length; n += 1) expect(flat.node(order[n]!)[2] - flat.node(order[n - 1]!)[2]).toBe(78);
+    const into = m.edges.filter((e) => e.to === order[3]).sort((a, b) => order.indexOf(b.from) - order.indexOf(a.from));
+    expect(into.map((e) => Math.round(Math.max(...flat.path(e.id).map((p) => p[1]))))).toEqual([0, 26, 52]);
+    expect(flat.prims.every((p) => p.t !== "card" || !p.small)).toBe(true);
   });
 });
