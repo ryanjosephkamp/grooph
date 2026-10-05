@@ -6,9 +6,9 @@ import { tmpdir } from "node:os";
 import { basename, extname, join, normalize, sep } from "node:path";
 import { gzipSync } from "node:zlib";
 
-import { expect, type Page } from "@playwright/test";
+import { expect, type BrowserContext, type Page } from "@playwright/test";
 
-import { repoRoot } from "./support.js";
+import { repoRoot, requestsOut } from "./support.js";
 
 /**
  * Handoff 0083: what the tests of a release stand on.
@@ -154,6 +154,8 @@ export type Site = {
   slow(link: { latencyMs: number; bytesPerSecond: number } | undefined): void;
   /** Answer a path that matches with a 503 until told otherwise, as a host does while a deploy is still arriving. */
   failing(match: RegExp | undefined): void;
+  /** Answer the next request for a path that matches with a 503, and the ones after it as they should be: one request lost. */
+  failingOnce(match: RegExp): void;
   /** Every request answered so far, in order. */
   asked: Asked[];
   stop(): Promise<void>;
@@ -163,6 +165,7 @@ export async function serveSite(first: Release): Promise<Site> {
   let release = first;
   let link: { latencyMs: number; bytesPerSecond: number } | undefined;
   let failing: RegExp | undefined;
+  let once: RegExp | undefined;
   const asked: Asked[] = [];
   const sockets = new Set<Socket>();
   const gzipped = new Map<string, Buffer>();
@@ -209,6 +212,10 @@ export async function serveSite(first: Release): Promise<Site> {
       else send();
     };
     if (failing?.test(path)) return answer(503, { "content-type": "text/plain" }, Buffer.from("the deploy is still arriving"));
+    if (once?.test(path)) {
+      once = undefined;
+      return answer(503, { "content-type": "text/plain" }, Buffer.from("this request was lost"));
+    }
     if (!path.startsWith(BASE) || !(file + sep).startsWith(serving.dir + sep) || !existsSync(file) || !statSync(file).isFile()) {
       return answer(404, { "content-type": "text/plain" }, Buffer.from("not here"));
     }
@@ -237,6 +244,9 @@ export async function serveSite(first: Release): Promise<Site> {
     failing: (match) => {
       failing = match;
     },
+    failingOnce: (match) => {
+      once = match;
+    },
     stop: () =>
       new Promise((resolve) => {
         clearInterval(timer);
@@ -261,11 +271,25 @@ export async function held(page: Page): Promise<{ paths: string[]; bytes: number
   }, CACHE);
 }
 
+/** What each page of a visit has asked for and not had back yet (`requestsOut`), from the moment the page was made. */
+const out = new WeakMap<Page, () => string[]>();
+/** Watch every page a test's context makes, so that `settled` can tell when one has nothing still arriving. Before any page is. */
+export function watchVisits(context: BrowserContext): void {
+  const watch = (page: Page): void => void (out.has(page) || out.set(page, requestsOut(page)));
+  context.pages().forEach(watch);
+  context.on("page", watch);
+}
+
 /**
  * Wait for the visit to be over: the worker in control and holding every file the release's page names, and the
- * page itself with nothing still arriving. The page fetches the canvas screens for itself once its first screen is
- * up, beside the worker's own fetch of the same file; a test that takes the network away the moment the worker has
- * its copy cuts the page's off half-way, which is another event than "no network after a visit".
+ * page itself with nothing still arriving. The page fetches pieces for itself once its first screen is up (the
+ * canvas screens, and since slice 0093 the built-in templates), beside the worker's own fetch of the same files; a
+ * test that takes the network away the moment the worker has its copy cuts the page's off half-way, which is
+ * another event than "no network after a visit".
+ *
+ * The files are the ones this release's page names, and not the ones the page the worker has kept names
+ * (`visitIsOver` in support.ts reads those): after a deploy the kept page is still the one before until every
+ * file of the new one is here, and it is the new one's that these tests wait for.
  */
 export async function settled(page: Page, release: Release): Promise<void> {
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
@@ -275,8 +299,28 @@ export async function settled(page: Page, release: Release): Promise<void> {
       return release.named.filter((path) => !paths.includes(path));
     }, { message: `the worker holds every file the ${release.name} page names`, timeout: 20_000 })
     .toEqual([]);
+  // And has made this release's page the one to open with no network. Holding the files is not yet that: the worker
+  // keeps one page at a time, in the order they came, and a page before this one that was refused a file is given
+  // a second try at it a second later (`hold` in public/sw.js) before this one's turn comes.
+  await expect
+    .poll(() => page.evaluate(async (name) => /data-release="([^"]*)"/.exec((await (await (await caches.open(name)).match("./"))?.text()) ?? "")?.[1], CACHE), { message: `the worker has kept the ${release.name} page as the one to open with no network`, timeout: 20_000 })
+    .toBe(release.name);
   // The page's own fetch of the canvas screens has come in. (Playwright's "network idle" never comes with a worker in control.)
   await page.waitForFunction(() => performance.getEntriesByType("resource").some((entry) => /\/assets\/screens-[^/]*\.js$/.test(entry.name)));
+  // And so has everything else the page asked for, whatever it is called: the templates, and the next piece someone
+  // adds. Back, and still back a moment later.
+  const waiting = out.get(page);
+  if (!waiting) throw new Error("settled() was given a page nobody watched: call watchVisits(context) before the page is made");
+  await expect
+    .poll(
+      async () => {
+        if (waiting().length > 0) return waiting();
+        await page.waitForTimeout(300);
+        return waiting();
+      },
+      { message: "requests the page has sent that have not come back", timeout: 20_000 },
+    )
+    .toEqual([]);
 }
 
 /** Which release the page in the tab is, by its own stamp, by the stamps of the scripts it ran, and by the files it asked for. */

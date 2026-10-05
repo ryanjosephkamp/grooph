@@ -1,0 +1,27 @@
+The two check cases, through the grooph adopt command itself, on the kept proving record of grind-loop.
+Run by the audit lane on 2026-10-05 at this branch (main at 30b59d0 merged in), packages built there.
+Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh <scratch folder>. No model was called.
+
+  the check was: {"kind":"tests","run":"npm test","pass":"exit code 0 and no test skipped"}
+  the check is now: {"kind":"tests","run":"true","pass":"exit code 0"}
+== always-passes: grooph adopt --write
+Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  Changed the check of Tests (tests)  ← no amendment note explains this
+
+version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to adopted.grooph.json
+wrote adopted.grooph.json (version 2); the source .grooph/g/graph.grooph.json is unchanged
+place it for the next run with: grooph export adopted.grooph.json --target claude-code --into <project>
+   exit 0
+   written: adopted.grooph.json, version 2
+  edge e-tests-fail tests -> builder when fail => pass
+  edge e-tests-pass tests -> done when pass => fail
+== verdicts-swapped: grooph adopt --write
+Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  Changed the condition of edge Tests → Builder (e-tests-fail)  ← no amendment note explains this
+  Changed the condition of edge Tests → Done (e-tests-pass)  ← no amendment note explains this
+
+version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to adopted.grooph.json
+wrote adopted.grooph.json (version 2); the source .grooph/g/graph.grooph.json is unchanged
+place it for the next run with: grooph export adopted.grooph.json --target claude-code --into <project>
+   exit 0
+   written: adopted.grooph.json, version 2

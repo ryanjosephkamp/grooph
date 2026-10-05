@@ -80,18 +80,17 @@ export function startsOf(doc: Graph): Id[] {
 }
 
 /**
- * The nodes a run reaches without that decision: from the nodes it starts at (`startsOf`), along every way that is
- * not shut. A human gate is itself reached; what lies beyond it is not, by that way. What is missing from the set is
- * what the decision stands before.
+ * The nodes a run at one of `starts` can come to, along every way that `closed` does not shut, or along every way
+ * when no decision is named. The starts are among them.
  */
-export function reachedWithout(doc: Graph, closed: Closed): Set<Id> {
+export function reachedFrom(doc: Graph, starts: Iterable<Id>, closed?: Closed): Set<Id> {
   const known = new Set(doc.nodes.map((node) => node.id));
   const onward = new Map<Id, Id[]>();
   for (const way of waysOf(doc)) {
-    if (shut(way, closed) || !known.has(way.from) || !known.has(way.to)) continue;
+    if ((closed !== undefined && shut(way, closed)) || !known.has(way.from) || !known.has(way.to)) continue;
     (onward.get(way.from) ?? onward.set(way.from, []).get(way.from)!).push(way.to);
   }
-  const reached = new Set<Id>(startsOf(doc));
+  const reached = new Set<Id>(starts);
   const queue = [...reached];
   for (let id = queue.pop(); id !== undefined; id = queue.pop()) {
     for (const next of onward.get(id) ?? []) {
@@ -102,6 +101,13 @@ export function reachedWithout(doc: Graph, closed: Closed): Set<Id> {
   }
   return reached;
 }
+
+/**
+ * The nodes a run reaches without that decision: from the nodes it starts at (`startsOf`), along every way that is
+ * not shut. A human gate is itself reached; what lies beyond it is not, by that way. What is missing from the set is
+ * what the decision stands before.
+ */
+export const reachedWithout = (doc: Graph, closed: Closed): Set<Id> => reachedFrom(doc, startsOf(doc), closed);
 
 /**
  * Each decision two versions of a graph share: every person at once, then each human gate, each approval and each

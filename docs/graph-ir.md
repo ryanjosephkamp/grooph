@@ -89,7 +89,7 @@ type Edge = {
   isolation?: "fresh" | "shared";  // default "fresh": the downstream worker sees only brief + evidence
   concurrency?: { max: number };   // cap on simultaneous traversals of this edge
   retry?: { max: number };
-  evidence?: string[];             // artifacts the downstream node may inspect; everything else is hidden
+  evidence?: string[];             // artifacts the downstream node may inspect; it is told to read nothing else
   approval?: boolean;              // a human must approve before traversal
   label?: string;
 };
@@ -174,7 +174,7 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Evidence.** A worker may inspect what its inbound edge lists **plus its own declared inputs**; for a writer that includes the project it is changing. A critic that cannot read its evidence reports `invalid-evidence` rather than guessing. When no edge routes that verdict, the lead repairs the evidence and dispatches the same node once more in the same round; a second `invalid-evidence` routes as `fail`. Such rounds count toward an `evidence-invalid` stop only when the loop has one. "The repository as the change leaves it, read-only" is ordinary evidence for a critic: isolation means a fresh context and none of the builder's claims, not a hidden repository.
 - **Rounds.** The first pass through a loop's members is round 0; each traversal of a back edge starts the next round. Stops are evaluated at the end of every pass, before any back edge is taken, in document order; the first that fires wins. Every pass leaves one loop note (§6) carrying the round just finished and the stop evaluated, so a loop that passes first time still leaves a record.
 - **Nested loops.** When a loop sits inside another, the inner loop's round counter and its stops start afresh each time the outer loop re-enters it; the outer loop's counter and budget keep running. Budgets are therefore the brake that spans phases.
-- **Human gates and approvals.** One rule in every mode: on reaching a gate the lead first appends a note at the gate with `outcome: "halt"`, then asks, then ends its turn. It does not simulate an answer, batch several gates into one question, or proceed on silence. When the human answers, the lead appends a note with their decision and continues; a run nobody answers (a headless session) simply ends on that halt note, and the same run id resumes it. (Two of two headless gate runs in the first proving batch waited without the note when the rule depended on the lead judging whether it "could ask".)
+- **Human gates and approvals.** One rule in every mode: on reaching a gate the lead first appends a note at the gate with `outcome: "halt"`, then asks, then ends its turn. It does not simulate an answer, batch several gates into one question, or proceed on silence. When the human answers, the lead appends a note with their decision and continues; a run nobody answers (a headless session) simply ends on that halt note, and the same session is resumed and told the run id. (Two of two headless gate runs in the first proving batch waited without the note when the rule depended on the lead judging whether it "could ask".)
 - **Ownership.** A node that `owns` an artifact is the only node that writes it during the run. Others read it or hand it back with findings.
 - **Stop nodes.** Reaching a `stop` node ends the run with the given outcome. A run with no reachable stop node ends when the lead has no edges left to take; it reports which nodes ran and why it ended.
 - **Notes.** The run appends run notes (§6) at the path the package names.
@@ -185,7 +185,7 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
     Amending at kickoff is fine when reading the task already shows a gap (the first adaptive run added a file to a builder's `owns` before dispatching anyone). Redesigning the graph up front is not adaptation: a change to the graph's overall shape before any node has run is a `proposal`.
   - `propose`: the lead changes nothing and records `proposal` notes.
   - `fixed`: the lead follows the graph exactly; when it cannot, it halts and asks.
-- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. An adaptive lead may tighten any of them (tightening is an amendment, so `propose` and `fixed` runs do not tighten either). Loosening one is a `proposal` for the human. A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other.
+- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. An adaptive lead may tighten any of them (tightening is an amendment, so `propose` and `fixed` runs do not tighten either). Loosening one is a `proposal` for the human, and `grooph adopt` refuses a working copy that has loosened one until the person asks for that change by name (`runs.md` §5). A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other. While a run goes on this is the lead's brief, and nothing checks it; the check is made when the working copy is adopted with the command, on the brakes its comparison sees, and the web app's Adopt button does not make it yet.
 
 ## 3. Validation rules
 
@@ -295,7 +295,7 @@ type RunNote = {
 };
 ```
 
-Two marker lines bracket work so a monitor and the check can tell a crash from a completion: `"outcome":"started"` at `node:<id>` just before a dispatch, and `"outcome":"ending"` at `graph` just before the final note (slice 0014; Gas Town's done-intent, decision 0010). A record whose final note has no `ending` line before it, or whose `ending` line has no final note after it, is read as interrupted.
+Two marker lines bracket work so a monitor and the check can tell a crash from a completion: `"outcome":"started"` at `node:<id>` just before a dispatch, and `"outcome":"ending"` at `graph` just before the final note (slice 0014; Gas Town's done-intent, decision 0010). A record whose final note has no `ending` line before it, or whose `ending` line has no final note after it, is flagged by the proving check; the monitor shows such a run as running or ended.
 
 ## 7. Canonical form
 

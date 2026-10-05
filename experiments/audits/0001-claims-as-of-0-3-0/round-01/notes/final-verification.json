@@ -1,0 +1,9 @@
+{
+  "handback_findings": 21,
+  "claim_dispositions": 52,
+  "template_fields_present": true,
+  "return_prompt_present": true,
+  "snapshot_head": "dbc7a281f977dddf7acc7948a0221e2aba93c5e4",
+  "snapshot_git_status": "clean",
+  "no_new_experiment": "source/records audit only"
+}

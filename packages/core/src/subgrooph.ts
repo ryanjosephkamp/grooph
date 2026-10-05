@@ -12,7 +12,7 @@ import { contentsOf, parseGroupFrom, type GroupContents } from "./groups.js";
 import { edgeIdFor } from "./ops/edit.js";
 import { allIds, uniqueId } from "./ops/ids.js";
 import { ID_PATTERN, ONE_LINE_PATTERN } from "./schema/dsl.js";
-import { brakesLost, type Loss } from "./brakes.js";
+import { brakesLost, roundsLeftToAPerson, type Loss } from "./brakes.js";
 import { decisionName, decisionsShared, reachedWithout, type Closed } from "./reach.js";
 import { entryNodeIds } from "./semantics.js";
 import { didYouMean } from "./suggest.js";
@@ -547,6 +547,9 @@ export function refreshSubgrooph(doc: Graph, groupId: Id, template: Graph, optio
       built.notes.push(`with those held back, the rest would leave the graph with ${broken.join(", ")}, which it does not have now: nothing is applied until they are asked for`);
     }
   }
+
+  // No loss, and still to be said: a cap that would count the rounds between a person's decisions.
+  built.notes.push(...roundsLeftToAPerson(doc, built.doc));
 
   changes.sort((a, b) => Number(b.loosens !== undefined) - Number(a.loosens !== undefined));
   held = changes.flatMap((change) => held.filter((h) => h.name === change.name).map((h) => (h.waits !== undefined ? { ...change, waits: h.waits } : change)));

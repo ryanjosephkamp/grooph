@@ -4,7 +4,7 @@ import { gzipSync } from "node:zlib";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { fixturePath, importDocument, repoRoot } from "./support.js";
+import { fixturePath, importDocument, repoRoot, requestsOut, visitIsOver } from "./support.js";
 
 /**
  * Handoff 0055: the front door. On an empty device `#/` is the front page; with
@@ -94,11 +94,11 @@ test("an empty device opens on the front page, in the order the handoff gives", 
   await expect(page.locator('input[type="file"]')).toHaveCount(1);
 });
 
-test("the claims are decision 0013's and no more", async ({ page }) => {
+test("the claims are the audited ones and no more", async ({ page }) => {
   await page.goto("./");
   const honest = page.locator(".land-honest");
-  await expect(honest).toContainText("grooph is shown to bound and record autonomous work and to hold a design as a runtime contract.");
-  await expect(honest).toContainText("It is not shown to raise quality over the same instructions given as a prompt, on small tasks.");
+  await expect(honest).toContainText("No round cap or budget is on record as firing.");
+  await expect(honest).toContainText("the package showed no quality advantage over a prompt derived from it.");
   const text = (await page.locator(".land").innerText()).toLowerCase();
   for (const overclaim of ["better results", "smarter", "higher quality", "best", "10x", "faster agents"]) expect(text, overclaim).not.toContain(overclaim);
 });
@@ -366,9 +366,11 @@ test.describe("with the app installed (its service worker in control)", () => {
   test.use({ serviceWorkers: "allow" });
 
   test("a first visit keeps the fonts and the footer's icons, so the front page looks the same with no network", async ({ page, context }) => {
+    const out = requestsOut(page);
     await page.goto("./");
     await expect(page.locator(".land-headline")).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`).
+    await visitIsOver(page, out);
     const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.replace("/grooph/", "")));
     // The page names them, so the worker holds them when it installs, whether or not the page had finished fetching them
     // by then; the italic face too, which the front page never asks for and a document or a graph's notes may.

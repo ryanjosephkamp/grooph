@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
-import { canvasIsQuiet, fixturePath, node } from "./support.js";
+import { canvasIsQuiet, fixturePath, node, requestsOut, visitIsOver } from "./support.js";
 
 /**
  * Stage 8, the installable offline app: once opened with a network, the app
@@ -30,11 +30,13 @@ test("the app is installable: a manifest with its icons, and a service worker in
 
 test("once opened with a network, it opens with none: the library, the templates, a graph kept on the device", async ({ page, context }) => {
   // First visit, online: import a graph, so there is something of the person's own to find again.
+  const out = requestsOut(page);
   await page.goto("./");
   await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
   await expect(node(page, "builder")).toBeVisible();
-  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-  await page.waitForTimeout(400); // the document's save, and the worker's cache
+  // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`).
+  await visitIsOver(page, out);
+  await page.waitForTimeout(400); // the document's save
 
   await context.setOffline(true);
   const failed: string[] = [];
@@ -69,6 +71,7 @@ test("once opened with a network, it opens with none: the library, the templates
 test("a first visit that saw only the front page still opens a template with no network", async ({ page, context }) => {
   // Slice 0069: the front page loads without the screens that draw on the canvas. The worker keeps them all the same:
   // it reads their names from the page when it installs, before it takes control, whether or not the page has asked.
+  const out = requestsOut(page);
   await page.goto("./");
   await expect(page.locator(".land-headline")).toBeVisible();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
@@ -76,6 +79,8 @@ test("a first visit that saw only the front page still opens a template with no 
   for (const file of [/^index-.*\.js$/, /^App-.*\.js$/, /^share-.*\.js$/, /^screens-.*\.js$/, /^styles-.*\.css$/, /^base-.*\.css$/]) {
     expect(held.filter((name) => file.test(name)), String(file)).toHaveLength(1);
   }
+  // And the visit is over before the network goes: every file the page names, whole (`visitIsOver`).
+  await visitIsOver(page, out);
 
   await context.setOffline(true);
   const failed: string[] = [];
@@ -113,10 +118,13 @@ test("a page that names files the worker does not hold has them fetched, though 
 test("the exporter is kept too: after a visit that saw only the front page, a graph exports with no network", async ({ page, context }) => {
   // Slice 0070: the compiler is fetched when a person exports. No address asks for it, but the page names it,
   // and the worker keeps what a page names.
+  const out = requestsOut(page);
   await page.goto("./");
   await expect(page.locator(".land-headline")).toBeVisible();
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
   expect(await page.evaluate(() => performance.getEntriesByType("resource").some((e) => /\/assets\/compile-/.test(e.name)))).toBe(false);
+  // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`).
+  await visitIsOver(page, out);
 
   await context.setOffline(true);
   await page.reload();

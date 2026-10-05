@@ -1,0 +1,101 @@
+{
+  "grooph": 0,
+  "id": "brake-budget",
+  "name": "A brake that binds",
+  "version": 1,
+  "goal": "This run measures one thing: whether this graph's dispatch budget stops work that is still failing. Each round a builder adds one line to out/rounds.txt, and then the check `node check/fixed-fail.mjs` is run. The check fails every round, by design, whatever the builder writes; nothing in this project makes it pass, and nobody is to change it. Go on through failed rounds as the loop says until one of the graph's stops binds, then halt and report which stop it was. The run is not expected to end with a passing check.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "A builder adds a line and a fixed check fails; the failure returns to the builder. The loop has a dispatch budget and a round cap set far above it, so the budget is the stop that must bind.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "low",
+      "brief": "Add exactly one line to out/rounds.txt, saying which round this is, and change nothing else. Do not run, read into, or change anything under check/. The check that follows will fail whatever you write; that is the design of this run, and it is not yours to fix.",
+      "inputs": [
+        "the task",
+        "the round number"
+      ],
+      "outputs": [
+        "out/rounds.txt: one more line"
+      ],
+      "owns": [
+        "out/rounds.txt"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "check",
+      "kind": "check",
+      "name": "Fixed check",
+      "check": {
+        "kind": "command",
+        "run": "node check/fixed-fail.mjs",
+        "pass": "exit code 0"
+      }
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-builder-check",
+      "from": "builder",
+      "to": "check"
+    },
+    {
+      "id": "e-check-fail",
+      "from": "check",
+      "to": "builder",
+      "when": "fail",
+      "evidence": [
+        "the check's output"
+      ]
+    },
+    {
+      "id": "e-check-pass",
+      "from": "check",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "rounds",
+      "name": "Rounds",
+      "members": [
+        "builder",
+        "check"
+      ],
+      "back": [
+        "e-check-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 2
+        },
+        {
+          "kind": "max-iterations",
+          "n": 20
+        }
+      ]
+    }
+  ]
+}

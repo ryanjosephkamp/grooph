@@ -19,6 +19,11 @@
           "source": "docs/GLOSSARY.md",
           "slug": "glossary",
           "summary": "The words grooph uses, each in a line: graph document, loop, bar, stop, package, lead and the rest."
+        },
+        {
+          "source": "docs/claims.md",
+          "slug": "claims",
+          "summary": "Every claim grooph makes about itself, where it is made, the evidence for it, and where its audit by a second harness stands."
         }
       ]
     },

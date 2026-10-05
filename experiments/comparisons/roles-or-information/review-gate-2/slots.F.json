@@ -1,0 +1,9 @@
+{
+  "about": "Arm F of study three, question 5: the slots of study two with the one value that named the held-out material rewritten to name only what is inside the project. Every other value is study two's, byte for byte. Nothing here names a held-out file, so no folder is copied beside the project and the token is never used.",
+  "name": "Layer settings",
+  "values": {
+    "task": "Add `layer(base, over)` in a new file, src/layer.mjs: it returns the settings you get by laying `over` on top of `base`. Where both hold a plain object under the same key, the two are layered key by key, at any depth; otherwise a value given in `over` replaces the one in `base`, and a key only one of them has is kept. Both arguments must be plain objects, or it throws a TypeError. Tests go in tests/layer.test.mjs, and CHANGELOG.md gets a line.",
+    "test-command": "npm test",
+    "checklist": "docs/REVIEW-CHECKLIST.md"
+  }
+}
