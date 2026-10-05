@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { mapKit, parseGraphText, type Graph } from "@grooph/core";
+import { mapKit, parseGraphText, type Graph, type RunNote } from "@grooph/core";
 import { describe, expect, it } from "vitest";
 
 import { firstPass, graphScene } from "../src/ui/canvas/graph-views.js";
@@ -84,6 +84,47 @@ describe("the slider of a graph", () => {
     expect(made.links.map((l) => l.n)).toEqual([1, 2, 3, 4, 5]);
     // A graph with nothing to step through says so.
     expect(graphScene({ ...REVIEW, edges: [], loops: [] }, 3, CARD).stops).toEqual([{ short: "all steps", says: "This graph has no edges to step through." }]);
+  });
+});
+
+describe("the slider of a recorded run", () => {
+  const dir = join(root, "fixtures/runs/slice-0007-sandwich");
+  const run = join(dir, "runs", readdirSync(join(dir, "runs"))[0]!);
+  const doc = parseGraphText(readFileSync(join(run, "graph.grooph.json"), "utf8")).doc!;
+  const notes: RunNote[] = readFileSync(join(run, "notes.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line));
+
+  it("steps through the run's own notes in the order it wrote them, and says how the run ended", () => {
+    const made = graphScene(doc, 3, CARD, notes);
+    expect(made.stops).toHaveLength(notes.length + 1);
+    expect(made.stops[0]).toEqual({ short: "before the run", says: "Before the run: 15 notes to follow. Move the slider or press Play." });
+    expect(made.stops[4]).toMatchObject({ short: "note 4 of 15", alone: true });
+    expect(made.stops[4]!.says).toMatch(/^Note 4 of 15: /);
+    expect(made).toMatchObject({ step: "note", range: "Note, in the order the run wrote them" });
+    expect(made.note).toMatch(/^The run's own notes, in the order it wrote them\. \S/);
+    // The sheets, the cards and the arcs are the graph's, run or no run.
+    expect(made.sheets).toEqual(graphScene(doc, 3, CARD).sheets.map((s) => expect.objectContaining({ mark: s.mark })));
+    expect(made.links).toEqual(graphScene(doc, 3, CARD).links);
+  });
+
+  it("lights what each note is about: a node's card, an edge's arc with its ends, a loop's sheet; and dims nothing else", () => {
+    const made = graphScene(doc, 3, CARD, notes);
+    const about = (at: string): number => notes.findIndex((n) => n.at === at) + 1;
+    expect(made.stops[about("node:builder")]).toMatchObject({ ends: ["builder"] });
+    expect(made.stops[about("loop:sandwich")]).toMatchObject({ sheet: 'data-loop="sandwich"' });
+    expect(made.stops[about("edge:e-checks-critic")]).toMatchObject({ handoff: "e-checks-critic" });
+    expect(made.stops[about("graph")]).not.toHaveProperty("ends");
+    const drawn = scene(mapKit, made);
+    expect(lights(drawn, about("node:builder"))).toMatchObject({ ends: ["builder"], arcs: drawn.arcs.map(() => "") });
+    const edge = lights(drawn, about("edge:e-checks-critic"));
+    expect(edge.arcs.filter((a) => a === "lit")).toHaveLength(1);
+    expect(edge.arcs.filter((a) => a === "past" || a === "ahead")).toHaveLength(0);
+    expect(edge.ends).toEqual(["checks", "critic"]);
+    expect(drawn.html).toContain('aria-label="Next note"');
+    expect(drawn.html).toContain('aria-label="Note, in the order the run wrote them"');
+  });
+
+  it("a run with no notes yet is the graph's own first pass", () => {
+    expect(graphScene(doc, 3, CARD, [])).toEqual(expect.objectContaining({ range: "Step, in the order a first pass takes them" }));
   });
 });
 

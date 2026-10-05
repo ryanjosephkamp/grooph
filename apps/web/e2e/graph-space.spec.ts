@@ -130,6 +130,45 @@ test("the editor and a run's page have the switch too: 3D is for looking, and th
   await expect(page.locator(".space [data-node]")).toHaveCount(nodes);
 });
 
+test("a recorded run is replayed in three dimensions: the slider steps through the run's own notes, lighting what each is about", async ({ page }) => {
+  const run = runBundle("slice-0007-sandwich");
+  const about = (at: string): number => run.notes.findIndex((n) => n.at === at) + 1;
+  await page.goto(linkFor(run));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await threeD(page);
+  const notes = page.getByRole("slider", { name: "Note, in the order the run wrote them" });
+  await expect(notes).toHaveAttribute("max", String(run.notes.length));
+  await expect(says(page)).toHaveText(`Before the run: ${run.notes.length} notes to follow. Move the slider or press Play.`);
+  // Under the slider: that these are the run's notes, and how the run ended.
+  await expect(page.locator(".space-note")).toHaveText(/^The run's own notes, in the order it wrote them\. \S+/);
+
+  // A note about a node lights its card, and dims nothing: the order is the run's, not the arcs'.
+  await notes.fill(String(about("node:builder")));
+  await expect(says(page)).toHaveText(new RegExp(`^Note ${about("node:builder")} of ${run.notes.length}: `));
+  await expect(page.locator('.space [data-node="builder"]')).toHaveClass(/is-end/);
+  await expect(page.locator(".space .is-end")).toHaveCount(1);
+  await expect(page.locator(".space :is(.is-past, .is-ahead)")).toHaveCount(0);
+  // A note about a loop lights the loop's sheet.
+  await notes.fill(String(about("loop:sandwich")));
+  await expect(page.locator('.space-sheet[data-loop="sandwich"]')).toHaveClass(/is-end/);
+  await expect(page.locator('.space [data-node="builder"]')).not.toHaveClass(/is-end/);
+  // A note about an edge lights its arc and the two cards it joins.
+  await notes.fill(String(about("edge:e-checks-critic")));
+  await expect(page.locator(".space-arc.is-lit [data-edge]")).toHaveAttribute("data-edge", "e-checks-critic");
+  await expect(page.locator('.space [data-node="checks"]')).toHaveClass(/is-end/);
+  await expect(page.locator('.space [data-node="critic"]')).toHaveClass(/is-end/);
+  await expect(page.locator('.space-sheet[data-loop="sandwich"]')).not.toHaveClass(/is-end/);
+  // The buttons step by notes.
+  await page.getByRole("button", { name: "Next note" }).click();
+  await expect(says(page)).toHaveText(new RegExp(`^Note ${about("edge:e-checks-critic") + 1} of ${run.notes.length}: `));
+
+  // On a phone a run's canvas is short, for the timeline under it; in three dimensions it is given a screen's room.
+  expect((await page.locator(".space-scene").boundingBox())!.height).toBeGreaterThan(280);
+  await view(page, "Picture").click();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+});
+
 /* ─── behind doors (decision 0021): the switch comes with a canvas, the scene when 3D is chosen ─── */
 
 test("an address with no canvas fetches neither piece; a canvas fetches the switch, and only choosing 3D fetches the scene", async ({ page }) => {

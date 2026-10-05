@@ -1,6 +1,6 @@
 # Handback 0092 · A loop graph in three dimensions, and its other views
 
-**Implementer:** Opus 5.5 (the views lane) · **Branch:** `slice/0092-a-graph-in-three-dimensions` · **Pull request:** the one that names this file, not merged · **Head commit:** the one that added this file (the prompt in the lane's last reply names it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the views lane) · **Branches:** `slice/0092-a-graph-in-three-dimensions` (the first part, merged as #93) and `slice/0092-a-run-replayed` (the second) · **Pull request:** the one that names this file, not merged · **Head commit:** the one that added this file (the prompt in the lane's last reply names it) · **Date:** 2026-10-04, the second part 2026-10-05
 
 ## What a graph's sheets are, and why
 
@@ -16,9 +16,9 @@ The first sheet is drawn only when something stands on it; a graph with no loop 
 
 ## Status
 
-`needs fix pass`: **this is the first of two pull requests, as the driver allowed.** It has 3D for a graph with the first-pass slider, on every canvas. The second has what is left of the brief: the sequence for a graph, the slider through a recorded run's own notes (the replay in three dimensions), and a share link that names the view.
+`done`, **in two pull requests, as the driver allowed, with two items of the brief not built and put to the driver.** The first (merged as #93) has 3D for a graph with the first-pass slider, on every canvas. The second has the slider through a recorded run's own notes: the replay in three dimensions. The sequence for a graph and a share link that names the view are not built; the reasons, and what I recommend, are in "The second part" below.
 
-What is here is complete and verified for what it covers. Three things to read first:
+This page was written with the first part and is left as it was, with the second part added under its own heading. Three things to read first about the first part:
 
 1. **The budget is met.** On this Mac, against `main` built the same way: a template's address 277.79 to 277.92 KB (+0.13; the brief allows about 0.15), the first load 179.44 to 179.46 (+0.02, which is the page naming one more file). CI's own lines are in the pull request.
 2. **The map's views are byte for byte what they were.** The scene builder was split so a graph can use it; 22 cases of the map's output (five maps at four widths, a live record, an empty map) were hashed before and after and are identical, and the map's tests pass untouched.
@@ -76,9 +76,9 @@ Against the brief:
 | The picture of a graph byte for byte; the canvas as it was on Picture | `packages/**` untouched; the third browser test reads a node's place before and after 3D |
 | The map's views do not change | their tests untouched and passing; the hashes |
 | Degrades as the map's does; the keyboard; names for every card and arc | the scene's behavior is the map's own code; names and roles asserted for every card and arc |
-| **The slider through a recorded run's notes** | **not in this pull request** |
-| **A sequence for a graph** | **not in this pull request** |
-| **A share link may name the view** | **not in this pull request** |
+| **The slider through a recorded run's notes** | **the second pull request**: three unit tests and a browser test ("The second part") |
+| **A sequence for a graph** | **not built**: "The second part" says why |
+| **A share link may name the view** | **not built**: "The second part" says why |
 
 ## The budget's lines
 
@@ -115,7 +115,7 @@ In `shots/`: `space-<template>-<phone|desktop>-<light|dark>.jpg` for `review-gat
 5. **A card opens its node; an arc is named and lit by the slider, and opens nothing**, as an edge on the read-only canvas opens nothing.
 6. **Two pieces, not one.** The switch and the graph's reading are a new piece of 3.3 KB; the scene stays the map's piece. Putting the graph's reading into the map's 3D piece would have taken that piece over its line of 9 KB, which may not be raised.
 7. **The piece imports from core directly.** A map's views are handed core's parts as a list, because importing them once split the file every address loads. I tried the import here and looked at the build: the shared files keep their names and sizes. So it imports.
-8. **Picture and 3D only, for now**: the Sequence radio comes with the sequence.
+8. **Picture and 3D only**: there is no Sequence radio, because there is no sequence ("The second part").
 
 ## Deviations
 
@@ -125,16 +125,45 @@ In `shots/`: `space-<template>-<phone|desktop>-<light|dark>.jpg` for `review-gat
 
 ## Risks and leftovers
 
-1. **On a run's page at a phone's width the canvas is short** until "Bigger graph" is pressed, and the scene in it is then small (its least height, 180 px) with the slider below the fold of that stage. The second pull request, which is about the run's page, should size it there.
+1. **On a run's page at a phone's width the canvas is short** until "Bigger graph" is pressed, and the scene in it is then small (its least height, 180 px) with the slider below the fold of that stage. The second pull request sizes it there: in 3D the run's stage has a screen's room.
 2. **A template's page opens with its details over the foot of a phone**, so 3D is first seen half covered, as the canvas is.
 3. **A viewer's bar at the foot** lies over the last line of the view when the stage is short; the view scrolls clear of it.
 4. **Sheets are ordered by where a first pass first meets them**, so an inner loop can be drawn above the loop it is inside. Its label says which loop that is.
 5. **A graph with many loops is a tall stack.** Twenty templates fit a phone's frame (the unit test fits each); a graph with ten loops would be small in it, and is moved into with a pinch.
 6. **Not tried here: Safari's engine and Firefox** (CI runs the smoke and release sets there, which do not open this view), **and a real phone.**
-7. **The map's 3D piece is at 8.23 of 9 KB** on this Mac: the next thing that touches the scene has under a KB.
+7. **The map's 3D piece is at 8.23 of 9 KB** on this Mac (8.30 after the second part): the next thing that touches the scene has under a KB.
+
+## The second part: a run replayed in three dimensions
+
+The second pull request, stacked on the first. **It has the run's own notes on the slider. It does not have a sequence, and it does not have a link that names the view: both are put to the driver below, with a recommendation.**
+
+**What it adds.** On a run's page (a run folder, a bundle, a run's link) the slider in 3D is the run's notes, in the order the run wrote them, in place of the first pass. A note about a node lights its card; about an edge, its arc with the two cards it joins; about a loop, the loop's sheet; about the run as a whole, nothing. The sentence is the one the run's replay uses (`replaySteps` in core: who did what, in which round), and under the slider is how the run ended and which stop fired. Nothing else is dimmed, because the order is the run's and not the order the arcs are numbered in. A run with no notes yet has the graph's first pass.
+
+**What changed for it.**
+
+- `ui/canvas/graph-views.tsx`: `graphScene` takes the notes and makes the slider's stops from core's replay. `graph-views.css`: on a run's page the stage is given a screen's room in 3D, and the run page's own "Bigger graph" button, which is the canvas's, steps aside.
+- `ui/map/space.ts`: a stop of the slider may light cards or a sheet without a link, and may leave the other links undimmed; the Previous and Next buttons may be named for something other than the link ("note"). A map uses none of this, and its 22 cases are still the same bytes.
+- `ui/canvas/ViewCanvas.tsx` and `ui/run/RunView.tsx`: the run's page hands its notes to the canvas, which does not draw them and passes them on. That is the only line a canvas address gains.
+- Tests: three more unit tests (eleven in `graph-space.test.ts`) and one more browser test (eight in `graph-space.spec.ts`). Pictures: `space-run-note-8-*` beside `space-run-*`.
+- `docs/exports.md`: the paragraph on a run replayed.
+
+**Verified at this part's head:** core 444, CLI 129, web 90; the browser suite 239 passed, 161 skipped, none failed; the graph's tests five times each under fourteen workers, 40 of 40; `perf-budget --check` passes. On this Mac against the first part: a template's address 277.99 to 277.98, the first load 179.53 to 179.51 (no change beyond the names of files); the map's 3D piece 8.23 to 8.30 of 9; the graph's piece 3.27 to 3.54. CI's lines are in the pull request.
+
+### The sequence: not built, and why; the driver's to rule
+
+The brief says: "If a sequence of a graph with no run says nothing the picture does not, say so and offer it only for a run." I looked at both.
+
+- **For a graph with no run, it says nothing the picture does not.** A sequence of a first pass is the graph's edges in the order of its layers, one a row: the picture already lays the graph out by those layers, and the 3D slider already steps through those edges in that order with the words. A third way to read the same order would be a view for its own sake.
+- **For a recorded run, the run's page already has it.** Under the canvas is the timeline: the run's notes in the order it wrote them, one a row, each naming its node, and a tap on a row lights that node on the canvas. A sequence "whose rows are the run's notes" is that list with a column drawn for each node. What columns would add is seeing at a glance which node the run kept returning to; the 3D replay now shows that as a place.
+
+So I recommend **not building it**, and spending the room on the run's replay, which is here. If the owner wants the columns all the same, it is a drawing of about the size of the map's sequence, in the graph's piece, and nothing in this slice stands in its way. I did not want to add a third radio that repeats the second.
+
+### A link that names the view: not built
+
+The brief says a share link may name the view, "as a map's can". A map's link cannot today: no address in the app carries a view, for a map or a graph. Adding it means the address is read where every address is read, which is the file every first load carries, at 179.73 of 180 KB on CI. I left it out rather than spend from that line without being asked. It is a few lines when the room is there, and it should be done for maps and graphs together.
 
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0092 is at handoffs/0092-a-graph-in-three-dimensions/HANDBACK.md on branch slice/0092-a-graph-in-three-dimensions (its pull request names it). Status: needs fix pass, by design: this is the first of two pull requests. It has 3D for a loop graph with the first-pass slider, on every canvas (viewer, template, run, editor), behind the existing doors: a template's address +0.13 KB and the first load +0.02 on this Mac, no line raised, packages untouched, the map's views byte for byte. The second pull request has the sequence, the run's notes on the slider, and a share link that names the view. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0092 is at handoffs/0092-a-graph-in-three-dimensions/HANDBACK.md, in two pull requests: the first on branch slice/0092-a-graph-in-three-dimensions (3D for a loop graph with the first-pass slider, on every canvas), the second on slice/0092-a-run-replayed, stacked on it (a recorded run's own notes on the slider). Status: done, with two items of the brief not built and put to you with reasons: the sequence (it repeats the picture for a graph, and the timeline for a run) and a link that names the view (a map's cannot either, and it would spend from the first-load line). No budget line raised, packages untouched, the map's views byte for byte. Please reconcile with the grooph-reconcile skill.
 ```
