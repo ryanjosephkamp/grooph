@@ -32,12 +32,17 @@ jobs:
       # The packages a human reviews must still be the packages the compiler emits.
       - name: export matches the golden packages
         run: |
-          for target in claude-code codex; do
-            for graph in review-loop fix-until-green; do
-              pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
-                --target "$target" --into "$RUNNER_TEMP/grooph-pkg-$target-$graph" > /dev/null
-              diff -r "$RUNNER_TEMP/grooph-pkg-$target-$graph" "fixtures/golden/$target/$graph"
-            done
+          for graph in review-loop fix-until-green; do
+            pnpm exec grooph export "fixtures/valid/$graph.grooph.json" \
+              --target claude-code --into "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" "fixtures/golden/claude-code/$graph"
+            # The fixtures name Claude Code, and an export for a harness the document does not name is refused
+            # (E_NO_TARGET). The Codex package is of the same graph with Codex named in it, by the op.
+            cp "fixtures/valid/$graph.grooph.json" "$RUNNER_TEMP/$graph.grooph.json"
+            echo '[{"op":"setTarget","harness":"codex"}]' | pnpm exec grooph apply "$RUNNER_TEMP/$graph.grooph.json" --ops - --write > /dev/null
+            pnpm exec grooph export "$RUNNER_TEMP/$graph.grooph.json" \
+              --target codex --into "$RUNNER_TEMP/grooph-pkg-codex-$graph" > /dev/null
+            diff -r "$RUNNER_TEMP/grooph-pkg-codex-$graph" "fixtures/golden/codex/$graph"
           done
 
       # An agent's route from nothing to the review loop: new, then apply the example ops.

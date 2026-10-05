@@ -126,6 +126,9 @@ export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir>
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGETS.join(", ")}.
+A package is one harness's files: --target is the harness the document names (target.harness),
+and a document that names another is refused (E_NO_TARGET) until it names this one:
+  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply <file> --ops - --write
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.

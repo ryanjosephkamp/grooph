@@ -5,7 +5,7 @@
   "version": 1,
   "goal": "Implement the change described in TASK.md so that every item in the review checklist is satisfied and the test command passes.",
   "target": {
-    "harness": "claude-code"
+    "harness": "codex"
   },
   "constraints": {
     "budget": "about 40 lead turns",

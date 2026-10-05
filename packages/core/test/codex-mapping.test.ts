@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
 import { compile } from "../src/compile/index.js";
+import { setTarget } from "../src/ops/edit.js";
 import { getProfile } from "../src/targets/index.js";
 import type { Graph } from "../src/types.js";
 import { fixturesDir, read } from "./helpers.js";
 import { parseGraphText } from "../src/parse.js";
 
-const load = (id = "review-loop"): Graph => parseGraphText(read(join(fixturesDir, "valid", `${id}.grooph.json`))).doc!;
+const load = (id = "review-loop"): Graph => setTarget(parseGraphText(read(join(fixturesDir, "valid", `${id}.grooph.json`))).doc!, "codex");
 
 test("Codex defaults frontier to Sol and builder tiers to Luna", () => {
   const profile = getProfile("codex");

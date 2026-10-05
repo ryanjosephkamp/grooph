@@ -3,13 +3,16 @@ import { readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { test } from "node:test";
 import { compile, CompileError } from "../src/compile/index.js";
+import { setTarget } from "../src/ops/edit.js";
 import { parseGraphText } from "../src/parse.js";
 import { KNOWN_TARGETS, getProfile } from "../src/targets/index.js";
 import { validate } from "../src/validate.js";
 import type { AgentNode, Graph } from "../src/types.js";
 import { fixturesDir, read } from "./helpers.js";
 
-const load = (id = "review-loop"): Graph => parseGraphText(read(join(fixturesDir, "valid", `${id}.grooph.json`))).doc!;
+// The fixtures name Claude Code. A package is one harness's files, so each is read here as a document for Codex:
+// what the `setTarget` op makes of it, and what a person does before exporting one for Codex.
+const load = (id = "review-loop"): Graph => setTarget(parseGraphText(read(join(fixturesDir, "valid", `${id}.grooph.json`))).doc!, "codex");
 const walk = (dir: string): string[] => readdirSync(dir).sort().flatMap((name) => {
   const path = join(dir, name);
   return statSync(path).isDirectory() ? walk(path) : [path];

@@ -5,7 +5,7 @@
   "version": 1,
   "goal": "Make the failing test suite pass without changing what the tests assert.",
   "target": {
-    "harness": "claude-code"
+    "harness": "codex"
   },
   "constraints": {
     "time": "about 20 minutes"

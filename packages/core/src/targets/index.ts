@@ -38,10 +38,11 @@ export type TargetId = keyof typeof PROFILES & string;
 
 export const KNOWN_TARGETS: HarnessId[] = Object.keys(PROFILES);
 
-export const hasProfile = (harness: HarnessId): boolean => harness in PROFILES;
+/** Its own entry only: `constructor` is a word every object answers to, and no harness. */
+export const hasProfile = (harness: HarnessId): boolean => Object.prototype.hasOwnProperty.call(PROFILES, harness);
 
 export function getProfile(harness: HarnessId): TargetProfile {
-  const profile = PROFILES[harness];
+  const profile = hasProfile(harness) ? PROFILES[harness] : undefined;
   if (!profile) {
     throw new Error(
       `no compile profile for target harness "${harness}"; known targets: ${KNOWN_TARGETS.join(", ")}`,

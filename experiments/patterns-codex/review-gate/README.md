@@ -4,7 +4,7 @@
 
 ## Task and package
 
-The runner uses the existing [`review-gate` task](../../patterns/review-gate/task/), [`slots.json`](../../patterns/review-gate/slots.json), and [`expect.json`](../../patterns/review-gate/expect.json) without changing them. It instantiates the bundled template, validates it, exports the Codex package into a fresh temporary project, and retains the original graph in the package. The lead is GPT-6.1 Sol at high effort; both custom workers are GPT-6 Luna. The graph's iteration and dispatch stops remain unchanged. The harness has a 15-minute timeout and a two-worker concurrency cap.
+The runner uses the existing [`review-gate` task](../../patterns/review-gate/task/), [`slots.json`](../../patterns/review-gate/slots.json), and [`expect.json`](../../patterns/review-gate/expect.json) without changing them. It instantiates the bundled template, names Codex as the graph's harness (the template names Claude Code, and an export for a harness the document does not name is refused), validates it, exports the Codex package into a fresh temporary project, and retains the original graph in the package. The lead is GPT-6.1 Sol at high effort; both custom workers are GPT-6 Luna. The graph's iteration and dispatch stops remain unchanged. The harness has a 15-minute timeout and a two-worker concurrency cap.
 
 `node scripts/prove-codex.mjs --dry-run` passed: the task instantiated, validation passed, and the export wrote the lead brief, kickoff, mapping, canonical graph and two custom-agent TOML files. The dry run calls no model, creates no `run/` record here, and does not open Codex home files. Runner tests use synthetic JSONL and notes; they do not establish native custom-agent loading, isolation, gate behavior, or resume behavior.
 

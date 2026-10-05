@@ -216,6 +216,9 @@ function makeScratch() {
   delete templateEnv.GROOPH_MODELS;
   command(process.execPath, [CLI, ...fillSlots(slots), "--out", join(scratch, "graph.grooph.json")], { cwd: scratch, env: templateEnv });
   const sourcePath = join(scratch, "graph.grooph.json");
+  // The template names Claude Code, and an export for another harness than the document names is refused: the
+  // graph is made a Codex document first, by the op a person would use.
+  command(process.execPath, [CLI, "apply", sourcePath, "--ops", "-", "--write"], { cwd: scratch, env: templateEnv, input: JSON.stringify([{ op: "setTarget", harness: "codex" }]) });
   const doc = JSON.parse(readFileSync(sourcePath, "utf8"));
   command(process.execPath, [CLI, "validate", "--for-export", sourcePath], { env: templateEnv });
   command(process.execPath, [CLI, "export", sourcePath, "--target", "codex", "--into", scratch], { cwd: scratch, env: templateEnv });

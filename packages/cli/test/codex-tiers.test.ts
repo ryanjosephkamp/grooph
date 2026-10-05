@@ -14,6 +14,8 @@ function exportGraph({ sameTier = false, pin = false, models }: { sameTier?: boo
   const dir = mkdtempSync(join(tmpdir(), "grooph-codex-tiers-"));
   try {
     const doc = JSON.parse(readFileSync(join(root, "fixtures/valid/review-loop.grooph.json"), "utf8")) as Graph;
+    // The fixture names Claude Code; an export for Codex is of a document that names Codex.
+    doc.target = { harness: "codex" };
     const builder = doc.nodes.find((node): node is AgentNode => node.kind === "agent" && node.id === "builder")!;
     const critic = doc.nodes.find((node): node is AgentNode => node.kind === "agent" && node.id === "critic")!;
     builder.model = { tier: sameTier ? "strong" : "fast" };

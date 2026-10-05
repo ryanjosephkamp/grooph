@@ -121,7 +121,7 @@ error  E_STOP_NOT_INSPECTABLE  loop "polish-cycle" stops only when its bar passe
 
 ### `E_NO_TARGET`
 
-**No target harness.** Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together.
+**No target harness.** Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`; or the export is asked for a harness other than the one the document names. A package is one harness's files: the document says which, the compiler refuses to write another's (it reports this case, since the validator is not told which export is asked for), and each compiler uses its own target's profile whatever the document names. To export a graph for another harness, name that harness in it first (the `setTarget` op). A profile and its human companion `docs/targets/<harness>.md` are added together.
 
 **Fails:** [`fixtures/invalid/E_NO_TARGET/no-target-harness.grooph.json`](../fixtures/invalid/E_NO_TARGET/no-target-harness.grooph.json) prints
 

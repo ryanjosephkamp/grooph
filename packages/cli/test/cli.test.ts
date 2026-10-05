@@ -186,20 +186,56 @@ test("export writes the package and prints the kickoff", async () => {
   }
 });
 
+/** The review loop in a scratch folder, naming the harness asked for: by the op, through the command a person uses. */
+const reviewLoopNaming = async (dir: string, harness: string): Promise<string> => {
+  const path = join(dir, "review-loop.grooph.json");
+  copyFileSync(fixture("valid", "review-loop.grooph.json"), path);
+  const io = capture();
+  assert.equal(await run(["apply", path, "--ops", "-", "--write"], io, () => JSON.stringify([{ op: "setTarget", harness }])), 0, io.all());
+  assert.equal(JSON.parse(readFileSync(path, "utf8")).target.harness, harness);
+  return path;
+};
+
 test("export accepts Codex and names the selected harness in its kickoff", async () => {
   const dir = scratch();
   try {
     const io = capture();
-    const code = await run(
-      ["export", fixture("valid", "review-loop.grooph.json"), "--target", "codex", "--into", dir],
-      io,
-    );
+    const code = await run(["export", await reviewLoopNaming(dir, "codex"), "--target", "codex", "--into", dir], io);
     assert.equal(code, 0, io.stderr.join("\n"));
     assert.ok(existsSync(join(dir, ".codex/agents/review-loop--builder.toml")));
     assert.match(io.stdout.join("\n"), /Kickoff — paste this into a Codex session/);
     assert.match(readFileSync(join(dir, ".grooph/review-loop/KICKOFF.md"), "utf8"), /codex/i);
+    // The package's own copy of the graph names the harness the package is for.
+    assert.equal(JSON.parse(readFileSync(join(dir, ".grooph/review-loop/graph.grooph.json"), "utf8")).target.harness, "codex");
   } finally {
     rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("export refuses a document that names one harness when asked for the other's package, both ways, and writes nothing", async () => {
+  // Slice 0076, the review's second read, item 1: the review loop naming Codex, exported with --target claude-code,
+  // exited 0 and wrote Claude Code agent files with Codex's models and no tools lines (every tool).
+  for (const [named, asked] of [["codex", "claude-code"], ["claude-code", "codex"]] as const) {
+    const dir = scratch();
+    try {
+      const path = await reviewLoopNaming(dir, named);
+      const into = join(dir, "package");
+      const io = capture();
+      assert.equal(await run(["export", path, "--target", asked, "--into", into], io), 1, `${named} for ${asked}`);
+      assert.match(io.stderr.join("\n"), new RegExp(`cannot export .* for ${asked}: fix these first`));
+      assert.match(
+        io.stderr.join("\n"),
+        new RegExp(`error {2}E_NO_TARGET {2}the document names the harness "${named}" and the export is for "${asked}": export it for ${named}, or name ${asked} in the document first \\(grooph apply with \\{"op":"setTarget","harness":"${asked}"\\}\\)`),
+      );
+      assert.ok(!existsSync(into), "nothing was written");
+      assert.deepEqual(io.stdout.filter((line) => /Kickoff|wrote/.test(line)), []);
+      // The way out the message names: the same file for the harness it names.
+      assert.equal(await run(["export", path, "--target", named, "--into", into], capture()), 0);
+      assert.ok(existsSync(join(into, named === "codex" ? ".codex/agents/review-loop--builder.toml" : ".claude/agents/review-loop--builder.md")));
+      assert.ok(!existsSync(join(into, named === "codex" ? ".claude" : ".codex")), "one harness's files");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   }
 });
 
