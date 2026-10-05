@@ -344,6 +344,32 @@ test("a release that changes the worker too: the new worker takes over the open 
   await expectWhole(page, newer);
 });
 
+test("a first visit that loses one request still leaves everything a visit with no network needs: the worker tries a file again", async ({ page }) => {
+  // A first visit has no page to fall back on, so its page is kept with whatever came. The pieces no first screen
+  // asks for (the graph's views are one) are fetched by the worker alone, and it used to try each once: a request
+  // lost on the way left that piece out until the next visit with a network. It tries a second time now.
+  const release = makeRelease("only");
+  const lost = /\/assets\/graph-views-[^/]*\.js$/;
+  expect(release.named.filter((path) => lost.test(path))).toHaveLength(1);
+  const site = await serveSite(release);
+  try {
+    site.failingOnce(lost);
+    await page.goto(site.url);
+    await frontPageIsUp(page);
+    // The worker in control and holding every file the page names: the one it was refused among them.
+    await settled(page, release);
+    // Asked for twice, by the worker alone: refused, then answered. The front page itself never asks for it.
+    expect(site.asked.filter((asked) => lost.test(asked.path)).map((asked) => asked.status)).toEqual([503, 200]);
+    expect(await page.evaluate(() => performance.getEntriesByType("resource").some((entry) => /\/assets\/graph-views-/.test(entry.name)))).toBe(false);
+  } finally {
+    await site.stop();
+  }
+  // No network: a template on the canvas, with the switch between its views, which is that piece.
+  await openTemplate(page, site);
+  await expect(page.getByRole("radiogroup", { name: "View of the graph" })).toBeVisible();
+  await expectWhole(page, release);
+});
+
 test("the site answers with an error where the app was: the app opens from the copy the worker holds", async ({ page }) => {
   const release = makeRelease("only");
   const site = await visitorOf(release, page);
