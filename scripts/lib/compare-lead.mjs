@@ -74,6 +74,7 @@ export const KIND_NAMES = {
 export function apiCalls(file) {
   const calls = new Map();
   const refused = new Set();
+  const resultSize = new Map();
   for (const line of readFileSync(file, "utf8").split("\n")) {
     if (!line.trim()) continue;
     let record;
@@ -82,7 +83,13 @@ export function apiCalls(file) {
     } catch {
       continue;
     }
-    if (record.type === "user" && Array.isArray(record.message?.content)) for (const block of record.message.content) if (block.type === "tool_result" && block.is_error === true) refused.add(block.tool_use_id);
+    if (record.type === "user" && Array.isArray(record.message?.content)) {
+      for (const block of record.message.content) {
+        if (block.type !== "tool_result") continue;
+        if (block.is_error === true) refused.add(block.tool_use_id);
+        resultSize.set(block.tool_use_id, (typeof block.content === "string" ? block.content : JSON.stringify(block.content ?? "")).length);
+      }
+    }
     const message = record.type === "assistant" ? record.message : null;
     if (!message?.id || !message.usage || !RATES[message.model]) continue;
     const call = calls.get(message.id) ?? { model: message.model, tokens: { input: 0, cache_read: 0, cache_write_1h: 0, cache_write_5m: 0, output: 0 }, uses: [], text: false };
@@ -96,7 +103,12 @@ export function apiCalls(file) {
     }
     calls.set(message.id, call);
   }
-  for (const call of calls.values()) for (const use of call.uses) use.refused = refused.has(use.id);
+  for (const call of calls.values()) {
+    for (const use of call.uses) {
+      use.refused = refused.has(use.id);
+      use.result_characters = resultSize.get(use.id) ?? 0;
+    }
+  }
   return [...calls.values()];
 }
 
@@ -155,6 +167,15 @@ export function kindOfUse({ name, input = {} }) {
   return reads ? "check" : "other";
 }
 
+/** Which of the package's files a use of kind `brief` read: the lead brief, the graph document, an agent file, or a listing. */
+export function packageFile({ name, input = {} }) {
+  if (name === "Bash") return "listing";
+  const path = String(input.file_path ?? "");
+  if (path.endsWith("/graph.grooph.json")) return "graph";
+  if (/\.claude\/agents\/[^/]+\.md$/.test(path)) return "agent-file";
+  return "lead-brief";
+}
+
 /** The kind of a call: the first of ORDER among its tool uses. The last call with no tool use is the reply. */
 export function kindOfCall(kinds, isLast) {
   if (kinds.length === 0) return isLast ? "reply" : "text";
@@ -177,7 +198,7 @@ export function leadRows(calls) {
   const rows = [];
   if (calls.length === 0) return rows;
   const promptTokens = calls[0].tokens.cache_write_1h + calls[0].tokens.cache_write_5m;
-  rows.push({ n: 0, phase: "setup", kind: "prompt", uses: [], tools: [], refused: 0, characters_sent: [], context: null, tokens: { read: 0, added: promptTokens, output: 0 }, usd: { read: 0, added: round(usd(calls[0].tokens, rates(calls[0])).write), output: 0 } });
+  rows.push({ n: 0, phase: "setup", kind: "prompt", uses: [], tools: [], refused: 0, characters_sent: [], package_read: [], share_of_added: [], context: null, tokens: { read: 0, added: promptTokens, output: 0 }, usd: { read: 0, added: round(usd(calls[0].tokens, rates(calls[0])).write), output: 0 } });
   let cycle = 0;
   calls.forEach((call, i) => {
     if (kind[i] === "dispatch") cycle += 1;
@@ -192,6 +213,8 @@ export function leadRows(calls) {
       tools: call.uses.map((use) => use.name),
       refused: call.uses.filter((use) => use.refused).length,
       characters_sent: sizes[i],
+      package_read: call.uses.map((use, u) => (kinds[i][u] === "brief" ? packageFile(use) : null)),
+      share_of_added: call.uses.map((use, u) => sizes[i][u] + use.result_characters),
       context: call.tokens.input + call.tokens.cache_read + call.tokens.cache_write_1h + call.tokens.cache_write_5m,
       tokens: { read: call.tokens.cache_read + call.tokens.input, added: next ? next.tokens.cache_write_1h + next.tokens.cache_write_5m : 0, output: call.tokens.output },
       usd: { read: round(own.read), added: round(added), output: round(own.output) },
@@ -203,6 +226,8 @@ export function leadRows(calls) {
     row.usd.total = round(row.usd.read + row.usd.added + row.usd.output);
     const later = row.n === 0 ? calls.length - 1 : Math.max(0, calls.length - row.n - 1);
     row.read_back_later = { tokens: row.tokens.added * later, usd: round(row.tokens.added * later * readRate) };
+    const whole = row.share_of_added.reduce((a, b) => a + b, 0);
+    row.share_of_added = row.share_of_added.map((part) => (whole > 0 ? round(part / whole, 4) : 0));
   }
   return rows;
 }
@@ -228,6 +253,32 @@ function readBackByOrigin(rows, calls) {
     cell.tokens += row.read_back_later.tokens;
     cell.usd = round(cell.usd + row.read_back_later.usd);
   }
+  return out;
+}
+
+/**
+ * The reading of the package by file. A call's added tokens are shared among its tool uses by the characters each sent
+ * and got back, so a file's tokens are an estimate where a call read two things. `whole_calls` are calls that read
+ * nothing but that file (or those files): not making them also saves their own read-back and output.
+ */
+export function packageReading(rows, calls, writeRate) {
+  const out = {};
+  const rate = calls.length > 0 && calls[0].tokens.read > 0 ? calls[0].usd.read / calls[0].tokens.read : 0;
+  for (const row of rows) {
+    row.package_read.forEach((what, u) => {
+      if (!what) return;
+      const cell = (out[what] ??= { uses: 0, tokens: 0, written_usd: 0, read_back_later_usd: 0 });
+      const tokens = row.tokens.added * row.share_of_added[u];
+      const later = Math.max(0, calls.length - row.n - 1);
+      cell.uses += 1;
+      cell.tokens = round(cell.tokens + tokens, 0);
+      cell.written_usd = round(cell.written_usd + tokens * writeRate);
+      cell.read_back_later_usd = round(cell.read_back_later_usd + tokens * later * rate);
+    });
+  }
+  const unasked = (row) => row.package_read.length > 0 && row.package_read.every((what) => what === "graph" || what === "agent-file");
+  const only = rows.filter(unasked);
+  out.calls_that_read_only_the_graph_or_agent_files = { calls: only.length, own_usd: round(only.reduce((sum, row) => sum + row.usd.read + row.usd.output, 0)) };
   return out;
 }
 
@@ -293,6 +344,7 @@ export function leadOfRun(project, run, claudeDir = CLAUDE_DIR) {
     by_kind: sumBy(rows, "kind"),
     by_phase: sumBy(rows, "phase"),
     read_back_by_origin: readBackByOrigin(rows, calls),
+    package_reading: packageReading(rows, calls, RATES[result.lead?.model ?? "claude-opus-5-5"].cache_write_1h / 1e6),
     setup_by_kind: sumBy(rows.filter((row) => row.phase === "setup"), "kind"),
     rows,
   };
@@ -468,7 +520,22 @@ export function tables(data) {
     ),
   );
   const briefOwn = mean(A.map((run) => cellOf(run, "by_kind", "brief").usd.total));
+  const reading = (run, what) => run.package_reading[what] ?? { uses: 0, tokens: 0, written_usd: 0, read_back_later_usd: 0 };
+  const files = [["lead-brief", "the lead brief"], ["graph", "the graph document"], ["agent-file", "the agent files"], ["listing", "a listing of the package's folders"]];
+  const unasked = (run) => ["graph", "agent-file"].reduce((sum, what) => sum + reading(run, what).written_usd + reading(run, what).read_back_later_usd, 0) + run.package_reading.calls_that_read_only_the_graph_or_agent_files.own_usd;
+  const amended = (run) => (run.uses_by_kind.amendment ?? 0) > 0;
   out.push(`Reading the brief, the graph and the agent files therefore costs ${money(briefOwn)} in its own calls and ${money(origin(A, "brief"))} in every later call that reads it back: ${money(briefOwn + origin(A, "brief"))} a run, ${Math.round((100 * (briefOwn + origin(A, "brief"))) / allDiff((r) => r.lead.usd.total))}% of A less B.`);
+
+  out.push("**Table 10. The package's files, by what reading each one added: arm A, the mean of six runs.** Where a call read two things its added tokens are shared by the characters each read returned, so a file's tokens are an estimate. Nothing tells the lead to read the graph document or the agent files, though the brief asks its dispatch prompt to carry a node's declared inputs, and those are written only there.");
+  out.push(
+    table(
+      ["what was read", "runs that read it, of six", "tokens it added", "written once", "read back by later calls", "both"],
+      files.map(([what, name]) => [name, A.filter((run) => reading(run, what).uses > 0).length, thousands(mean(A.map((run) => reading(run, what).tokens))), money(mean(A.map((run) => reading(run, what).written_usd))), money(mean(A.map((run) => reading(run, what).read_back_later_usd))), money(mean(A.map((run) => reading(run, what).written_usd + reading(run, what).read_back_later_usd)))]),
+    ),
+  );
+  const onlyCalls = A.map((run) => run.package_reading.calls_that_read_only_the_graph_or_agent_files);
+  const kept = A.filter((run) => !amended(run));
+  out.push(`${num(mean(onlyCalls.map((c) => c.calls)))} calls a run read nothing but the graph document or the agent files, and cost ${money(mean(onlyCalls.map((c) => c.own_usd)))} more in their own read-back and output. So by this count a lead that read neither would have cost ${money(mean(A.map(unasked)))} less a run (${span(A.map(unasked), (v) => money(v))}), ${Math.round((100 * mean(A.map(unasked))) / allDiff((r) => r.lead.usd.total))}% of A less B. ${A.length - kept.length} of the six leads amended the working copy after that reading; in the ${kept.length} that did not, the figure is ${money(mean(kept.map(unasked)))}.`);
   return out.join("\n\n");
 }
 

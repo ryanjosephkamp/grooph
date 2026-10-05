@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { apiCalls, hookCalls, kindOfCall, kindOfUse, leadRows, onlyStarted, ORDER, RATES, tables, usd, written } from "./compare-lead.mjs";
+import { apiCalls, hookCalls, kindOfCall, kindOfUse, leadRows, onlyStarted, ORDER, packageFile, packageReading, RATES, tables, usd, written } from "./compare-lead.mjs";
 
 const run = ".grooph/layer-settings/runs/20261004-211444";
 const bash = (command) => ({ name: "Bash", input: { command } });
@@ -102,6 +102,30 @@ test("the lead's rows charge what a call added to the context to that call, and 
   assert.deepEqual(hookCalls({ rows }).map((row) => row.n), [2]);
 });
 
+test("the package's files are told apart, and a call's added tokens are shared by what each read returned", () => {
+  assert.equal(packageFile(file("Read", ".grooph/layer-settings/LEAD.md")), "lead-brief");
+  assert.equal(packageFile(file("Read", ".grooph/layer-settings/graph.grooph.json")), "graph");
+  assert.equal(packageFile(file("Read", ".claude/agents/layer-settings--critic.md")), "agent-file");
+  assert.equal(packageFile(bash("ls .grooph .claude/agents")), "listing");
+  // A read whose arguments and result together come to `size` characters.
+  const read = (path, size) => ({ ...file("Read", path), result_characters: size - written(file("Read", path)) });
+  const calls = [
+    call({ cache_read: 16000, cache_write_1h: 5000, output: 200 }, [read(".grooph/layer-settings/LEAD.md", 20000), read(".grooph/layer-settings/graph.grooph.json", 10000)]),
+    call({ cache_read: 21000, cache_write_1h: 9000, output: 100 }, [read(".claude/agents/layer-settings--critic.md", 4000)]),
+    call({ cache_read: 30000, cache_write_1h: 1200, output: 300 }),
+  ];
+  const rows = leadRows(calls);
+  assert.deepEqual(rows[1].package_read, ["lead-brief", "graph"]);
+  assert.deepEqual(rows[1].share_of_added, [0.6667, 0.3333]);
+  const lead = rows.filter((row) => row.kind !== "prompt");
+  const reading = packageReading(rows, lead, 8 / 1e6);
+  assert.equal(reading.graph.tokens, 3000);
+  assert.ok(Math.abs(reading.graph.written_usd - 0.024) < 1e-5);
+  assert.ok(Math.abs(reading.graph.read_back_later_usd - 3000 * 1 * (0.2 / 1e6)) < 1e-5, "read back by the one call after the call that wrote it");
+  assert.equal(reading["agent-file"].tokens, 1200);
+  assert.equal(reading.calls_that_read_only_the_graph_or_agent_files.calls, 1);
+});
+
 test("records of one request are one call, with the largest count each record gave", () => {
   const dir = mkdtempSync(join(tmpdir(), "lead-"));
   try {
@@ -138,9 +162,10 @@ test("the kept numbers hold counts and kinds and nothing a session said", { skip
   for (const kept of data.runs) {
     assert.equal(kept.rates_give_the_reported_cost_back, true, kept.run);
     for (const row of kept.rows) {
-      assert.deepEqual(Object.keys(row).sort(), ["characters_sent", "context", "kind", "n", "phase", "read_back_later", "refused", "tokens", "tools", "usd", "uses"]);
+      assert.deepEqual(Object.keys(row).sort(), ["characters_sent", "context", "kind", "n", "package_read", "phase", "read_back_later", "refused", "share_of_added", "tokens", "tools", "usd", "uses"]);
       for (const kind of row.uses) assert.ok([...ORDER, "other"].includes(kind), kind);
       for (const tool of row.tools) assert.match(tool, /^[A-Za-z]+$/);
+      for (const what of row.package_read) assert.ok([null, "lead-brief", "graph", "agent-file", "listing"].includes(what), String(what));
     }
     const byOrigin = Object.values(kept.read_back_by_origin).reduce((sum, cell) => sum + cell.tokens, 0);
     assert.equal(byOrigin, kept.rows.reduce((sum, row) => sum + row.tokens.read, 0), `${kept.run}: by origin, the read-back is the same tokens`);

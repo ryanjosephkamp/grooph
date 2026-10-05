@@ -385,6 +385,36 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "lead-brief": {
+     "uses": 1,
+     "tokens": 8508,
+     "written_usd": 0.068065,
+     "read_back_later_usd": 0.037522
+    },
+    "graph": {
+     "uses": 1,
+     "tokens": 3690,
+     "written_usd": 0.029519,
+     "read_back_later_usd": 0.016273
+    },
+    "listing": {
+     "uses": 1,
+     "tokens": 1269,
+     "written_usd": 0.010148,
+     "read_back_later_usd": 0.00534
+    },
+    "agent-file": {
+     "uses": 2,
+     "tokens": 3122,
+     "written_usd": 0.024976,
+     "read_back_later_usd": 0.012517
+    },
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 1,
+     "own_usd": 0.011481
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -494,6 +524,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -527,6 +559,14 @@
      "characters_sent": [
       116,
       126
+     ],
+     "package_read": [
+      "lead-brief",
+      "graph"
+     ],
+     "share_of_added": [
+      0.6975,
+      0.3025
      ],
      "context": 20671,
      "tokens": {
@@ -562,6 +602,14 @@
       44,
       83
      ],
+     "package_read": [
+      null,
+      "listing"
+     ],
+     "share_of_added": [
+      0.0462,
+      0.9538
+     ],
      "context": 32869,
      "tokens": {
       "read": 20671,
@@ -595,6 +643,14 @@
      "characters_sent": [
       127,
       126
+     ],
+     "package_read": [
+      "agent-file",
+      "agent-file"
+     ],
+     "share_of_added": [
+      0.3864,
+      0.6136
      ],
      "context": 34199,
      "tokens": {
@@ -630,6 +686,14 @@
       69,
       47
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5988,
+      0.4012
+     ],
      "context": 37321,
      "tokens": {
       "read": 34199,
@@ -660,6 +724,12 @@
      "refused": 0,
      "characters_sent": [
       137
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 37922,
      "tokens": {
@@ -692,6 +762,12 @@
      "characters_sent": [
       923
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 38146,
      "tokens": {
       "read": 37922,
@@ -723,6 +799,12 @@
      "characters_sent": [
       43
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 38912,
      "tokens": {
       "read": 38146,
@@ -753,6 +835,12 @@
      "refused": 0,
      "characters_sent": [
       119
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 39101,
      "tokens": {
@@ -788,6 +876,14 @@
       846,
       1072
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4528,
+      0.5472
+     ],
      "context": 39385,
      "tokens": {
       "read": 39101,
@@ -819,6 +915,12 @@
      "characters_sent": [
       366
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 40738,
      "tokens": {
       "read": 39385,
@@ -849,6 +951,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 41334,
      "tokens": {
@@ -884,6 +992,14 @@
       452,
       1216
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.1537,
+      0.8463
+     ],
      "context": 41549,
      "tokens": {
       "read": 41334,
@@ -917,6 +1033,14 @@
      "characters_sent": [
       48,
       41
+     ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7109,
+      0.2891
      ],
      "context": 43715,
      "tokens": {
@@ -952,6 +1076,14 @@
       833,
       665
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5422,
+      0.4578
+     ],
      "context": 44309,
      "tokens": {
       "read": 43715,
@@ -982,6 +1114,12 @@
      "refused": 0,
      "characters_sent": [
       1937
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 45561,
      "tokens": {
@@ -1017,6 +1155,14 @@
       96,
       41
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.6755,
+      0.3245
+     ],
      "context": 47244,
      "tokens": {
       "read": 45561,
@@ -1051,6 +1197,14 @@
       1268,
       1383
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4817,
+      0.5183
+     ],
      "context": 47738,
      "tokens": {
       "read": 47244,
@@ -1082,6 +1236,12 @@
      "characters_sent": [
       1487
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 49470,
      "tokens": {
       "read": 47738,
@@ -1112,6 +1272,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 51252,
      "tokens": {
@@ -1147,6 +1313,14 @@
       893,
       852
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5092,
+      0.4908
+     ],
      "context": 51420,
      "tokens": {
       "read": 51252,
@@ -1178,6 +1352,12 @@
      "characters_sent": [
       2011
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 52770,
      "tokens": {
       "read": 51420,
@@ -1208,6 +1388,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 54586,
      "tokens": {
@@ -1243,6 +1429,14 @@
       1163,
       1598
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4332,
+      0.5668
+     ],
      "context": 54921,
      "tokens": {
       "read": 54586,
@@ -1268,6 +1462,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 56690,
      "tokens": {
       "read": 54921,
@@ -1641,6 +1837,36 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "lead-brief": {
+     "uses": 1,
+     "tokens": 8470,
+     "written_usd": 0.067764,
+     "read_back_later_usd": 0.044148
+    },
+    "graph": {
+     "uses": 1,
+     "tokens": 3674,
+     "written_usd": 0.029388,
+     "read_back_later_usd": 0.019147
+    },
+    "listing": {
+     "uses": 1,
+     "tokens": 1005,
+     "written_usd": 0.008043,
+     "read_back_later_usd": 0.005039
+    },
+    "agent-file": {
+     "uses": 2,
+     "tokens": 3134,
+     "written_usd": 0.025072,
+     "read_back_later_usd": 0.015078
+    },
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 1,
+     "own_usd": 0.012128
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -1722,6 +1948,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -1755,6 +1983,14 @@
      "characters_sent": [
       116,
       126
+     ],
+     "package_read": [
+      "lead-brief",
+      "graph"
+     ],
+     "share_of_added": [
+      0.6975,
+      0.3025
      ],
      "context": 20660,
      "tokens": {
@@ -1790,6 +2026,14 @@
       44,
       83
      ],
+     "package_read": [
+      null,
+      "listing"
+     ],
+     "share_of_added": [
+      0.0461,
+      0.9539
+     ],
      "context": 32804,
      "tokens": {
       "read": 20660,
@@ -1823,6 +2067,14 @@
      "characters_sent": [
       127,
       126
+     ],
+     "package_read": [
+      "agent-file",
+      "agent-file"
+     ],
+     "share_of_added": [
+      0.3864,
+      0.6136
      ],
      "context": 33858,
      "tokens": {
@@ -1858,6 +2110,14 @@
       69,
       47
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5988,
+      0.4012
+     ],
      "context": 36992,
      "tokens": {
       "read": 33858,
@@ -1888,6 +2148,12 @@
      "refused": 0,
      "characters_sent": [
       137
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 37576,
      "tokens": {
@@ -1923,6 +2189,14 @@
       931,
       248
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7066,
+      0.2934
+     ],
      "context": 37797,
      "tokens": {
       "read": 37576,
@@ -1954,6 +2228,12 @@
      "characters_sent": [
       326
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 38869,
      "tokens": {
       "read": 37797,
@@ -1984,6 +2264,12 @@
      "refused": 0,
      "characters_sent": [
       1346
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 39674,
      "tokens": {
@@ -2019,6 +2305,14 @@
       48,
       53
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.6507,
+      0.3493
+     ],
      "context": 41176,
      "tokens": {
       "read": 39674,
@@ -2053,6 +2347,14 @@
       109,
       124
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5185,
+      0.4815
+     ],
      "context": 41678,
      "tokens": {
       "read": 41176,
@@ -2083,6 +2385,12 @@
      "refused": 0,
      "characters_sent": [
       133
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 42036,
      "tokens": {
@@ -2115,6 +2423,12 @@
      "characters_sent": [
       141
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 42315,
      "tokens": {
       "read": 42036,
@@ -2145,6 +2459,12 @@
      "refused": 0,
      "characters_sent": [
       222
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 42548,
      "tokens": {
@@ -2177,6 +2497,12 @@
      "characters_sent": [
       676
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 42883,
      "tokens": {
       "read": 42548,
@@ -2208,6 +2534,12 @@
      "characters_sent": [
       865
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 43346,
      "tokens": {
       "read": 42883,
@@ -2238,6 +2570,12 @@
      "refused": 0,
      "characters_sent": [
       1912
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 44028,
      "tokens": {
@@ -2273,6 +2611,14 @@
       141,
       52
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7049,
+      0.2951
+     ],
      "context": 45958,
      "tokens": {
       "read": 44028,
@@ -2307,6 +2653,14 @@
       1184,
       1148
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4655,
+      0.5345
+     ],
      "context": 46514,
      "tokens": {
       "read": 45958,
@@ -2337,6 +2691,12 @@
      "refused": 0,
      "characters_sent": [
       1434
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 48078,
      "tokens": {
@@ -2372,6 +2732,14 @@
       53,
       48
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.3493,
+      0.6507
+     ],
      "context": 49523,
      "tokens": {
       "read": 48078,
@@ -2406,6 +2774,14 @@
       107,
       124
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5149,
+      0.4851
+     ],
      "context": 49870,
      "tokens": {
       "read": 49523,
@@ -2437,6 +2813,12 @@
      "characters_sent": [
       133
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 50228,
      "tokens": {
       "read": 49870,
@@ -2467,6 +2849,12 @@
      "refused": 0,
      "characters_sent": [
       141
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 50450,
      "tokens": {
@@ -2502,6 +2890,14 @@
       701,
       1025
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.3653,
+      0.6347
+     ],
      "context": 50689,
      "tokens": {
       "read": 50450,
@@ -2533,6 +2929,12 @@
      "characters_sent": [
       1916
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 51902,
      "tokens": {
       "read": 50689,
@@ -2563,6 +2965,12 @@
      "refused": 0,
      "characters_sent": [
       52
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 53764,
      "tokens": {
@@ -2598,6 +3006,14 @@
       1033,
       1365
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.3976,
+      0.6024
+     ],
      "context": 54020,
      "tokens": {
       "read": 53764,
@@ -2623,6 +3039,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 55528,
      "tokens": {
       "read": 54020,
@@ -2856,6 +3274,12 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -2881,6 +3305,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -2911,6 +3337,12 @@
      "refused": 0,
      "characters_sent": [
       1851
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 23630,
      "tokens": {
@@ -2946,6 +3378,14 @@
       54,
       34
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.1971,
+      0.8029
+     ],
      "context": 25948,
      "tokens": {
       "read": 23630,
@@ -2976,6 +3416,12 @@
      "refused": 0,
      "characters_sent": [
       3136
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 26579,
      "tokens": {
@@ -3008,6 +3454,12 @@
      "characters_sent": [
       2282
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 28909,
      "tokens": {
       "read": 26579,
@@ -3039,6 +3491,12 @@
      "characters_sent": [
       3360
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 30918,
      "tokens": {
       "read": 28909,
@@ -3064,6 +3522,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 33071,
      "tokens": {
       "read": 30918,
@@ -3277,6 +3737,12 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -3302,6 +3768,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -3332,6 +3800,12 @@
      "refused": 0,
      "characters_sent": [
       1779
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 23658,
      "tokens": {
@@ -3364,6 +3838,12 @@
      "characters_sent": [
       2919
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 25529,
      "tokens": {
       "read": 23658,
@@ -3394,6 +3874,12 @@
      "refused": 0,
      "characters_sent": [
       2059
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 27647,
      "tokens": {
@@ -3426,6 +3912,12 @@
      "characters_sent": [
       3010
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 29623,
      "tokens": {
       "read": 27647,
@@ -3451,6 +3943,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 31421,
      "tokens": {
       "read": 29623,
@@ -3788,6 +4282,30 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "lead-brief": {
+     "uses": 1,
+     "tokens": 8366,
+     "written_usd": 0.066927,
+     "read_back_later_usd": 0.031864
+    },
+    "graph": {
+     "uses": 1,
+     "tokens": 4097,
+     "written_usd": 0.032775,
+     "read_back_later_usd": 0.014783
+    },
+    "agent-file": {
+     "uses": 2,
+     "tokens": 3520,
+     "written_usd": 0.028164,
+     "read_back_later_usd": 0.011997
+    },
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -3869,6 +4387,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -3903,6 +4423,14 @@
       116,
       48
      ],
+     "package_read": [
+      "lead-brief",
+      null
+     ],
+     "share_of_added": [
+      0.997,
+      0.003
+     ],
      "context": 20737,
      "tokens": {
       "read": 15983,
@@ -3936,6 +4464,14 @@
      "characters_sent": [
       72,
       126
+     ],
+     "package_read": [
+      null,
+      "graph"
+     ],
+     "share_of_added": [
+      0.0109,
+      0.9891
      ],
      "context": 29128,
      "tokens": {
@@ -3977,6 +4513,18 @@
       126,
       127
      ],
+     "package_read": [
+      null,
+      null,
+      "agent-file",
+      "agent-file"
+     ],
+     "share_of_added": [
+      0.0217,
+      0.0504,
+      0.5784,
+      0.3495
+     ],
      "context": 33270,
      "tokens": {
       "read": 29128,
@@ -4007,6 +4555,12 @@
      "refused": 0,
      "characters_sent": [
       56
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 37064,
      "tokens": {
@@ -4042,6 +4596,14 @@
       1006,
       248
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7193,
+      0.2807
+     ],
      "context": 37511,
      "tokens": {
       "read": 37064,
@@ -4073,6 +4635,12 @@
      "characters_sent": [
       329
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 38603,
      "tokens": {
       "read": 37511,
@@ -4103,6 +4671,12 @@
      "refused": 0,
      "characters_sent": [
       1645
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 39334,
      "tokens": {
@@ -4137,6 +4711,14 @@
      "characters_sent": [
       64,
       48
+     ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.359,
+      0.641
      ],
      "context": 41363,
      "tokens": {
@@ -4178,6 +4760,18 @@
       164,
       46
      ],
+     "package_read": [
+      null,
+      null,
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.1176,
+      0.1399,
+      0.1451,
+      0.5975
+     ],
      "context": 41868,
      "tokens": {
       "read": 41363,
@@ -4212,6 +4806,14 @@
       992,
       61
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.9386,
+      0.0614
+     ],
      "context": 42902,
      "tokens": {
       "read": 41868,
@@ -4243,6 +4845,12 @@
      "characters_sent": [
       705
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 43827,
      "tokens": {
       "read": 42902,
@@ -4273,6 +4881,12 @@
      "refused": 0,
      "characters_sent": [
       2170
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 44329,
      "tokens": {
@@ -4308,6 +4922,14 @@
       147,
       63
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.682,
+      0.318
+     ],
      "context": 46965,
      "tokens": {
       "read": 44329,
@@ -4342,6 +4964,14 @@
       1160,
       1204
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4508,
+      0.5492
+     ],
      "context": 47558,
      "tokens": {
       "read": 46965,
@@ -4372,6 +5002,12 @@
      "refused": 0,
      "characters_sent": [
       1692
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 49037,
      "tokens": {
@@ -4419,6 +5055,22 @@
       46,
       63
      ],
+     "package_read": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.0836,
+      0.1056,
+      0.1094,
+      0.0804,
+      0.5764,
+      0.0445
+     ],
      "context": 50895,
      "tokens": {
       "read": 49037,
@@ -4453,6 +5105,14 @@
       1264,
       719
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.6681,
+      0.3319
+     ],
      "context": 52348,
      "tokens": {
       "read": 50895,
@@ -4484,6 +5144,12 @@
      "characters_sent": [
       2199
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 53663,
      "tokens": {
       "read": 52348,
@@ -4514,6 +5180,12 @@
      "refused": 0,
      "characters_sent": [
       62
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 55730,
      "tokens": {
@@ -4549,6 +5221,14 @@
       1076,
       1455
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.3941,
+      0.6059
+     ],
      "context": 55995,
      "tokens": {
       "read": 55730,
@@ -4574,6 +5254,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 57578,
      "tokens": {
       "read": 55995,
@@ -4929,6 +5611,30 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "lead-brief": {
+     "uses": 1,
+     "tokens": 8350,
+     "written_usd": 0.066796,
+     "read_back_later_usd": 0.028454
+    },
+    "listing": {
+     "uses": 1,
+     "tokens": 345,
+     "written_usd": 0.00276,
+     "read_back_later_usd": 0.001107
+    },
+    "agent-file": {
+     "uses": 2,
+     "tokens": 3295,
+     "written_usd": 0.026364,
+     "read_back_later_usd": 0.009909
+    },
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -5010,6 +5716,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -5044,6 +5752,14 @@
       116,
       44
      ],
+     "package_read": [
+      "lead-brief",
+      null
+     ],
+     "share_of_added": [
+      0.9972,
+      0.0028
+     ],
      "context": 20737,
      "tokens": {
       "read": 15983,
@@ -5074,6 +5790,12 @@
      "refused": 1,
      "characters_sent": [
       124
+     ],
+     "package_read": [
+      "listing"
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 29110,
      "tokens": {
@@ -5112,6 +5834,16 @@
       127,
       126
      ],
+     "package_read": [
+      null,
+      "agent-file",
+      "agent-file"
+     ],
+     "share_of_added": [
+      0.0137,
+      0.3715,
+      0.6149
+     ],
      "context": 29455,
      "tokens": {
       "read": 29110,
@@ -5145,6 +5877,14 @@
      "characters_sent": [
       143,
       41
+     ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7404,
+      0.2596
      ],
      "context": 32796,
      "tokens": {
@@ -5180,6 +5920,14 @@
       782,
       248
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.6775,
+      0.3225
+     ],
      "context": 33260,
      "tokens": {
       "read": 32796,
@@ -5211,6 +5959,12 @@
      "characters_sent": [
       385
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 34262,
      "tokens": {
       "read": 33260,
@@ -5241,6 +5995,12 @@
      "refused": 0,
      "characters_sent": [
       1280
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 34855,
      "tokens": {
@@ -5276,6 +6036,14 @@
       48,
       41
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7289,
+      0.2711
+     ],
      "context": 36559,
      "tokens": {
       "read": 34855,
@@ -5310,6 +6078,14 @@
       871,
       937
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4857,
+      0.5143
+     ],
      "context": 37103,
      "tokens": {
       "read": 36559,
@@ -5340,6 +6116,12 @@
      "refused": 0,
      "characters_sent": [
       1885
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 38585,
      "tokens": {
@@ -5375,6 +6157,14 @@
       114,
       41
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7039,
+      0.2961
+     ],
      "context": 40491,
      "tokens": {
       "read": 38585,
@@ -5409,6 +6199,14 @@
       1300,
       965
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5607,
+      0.4393
+     ],
      "context": 41015,
      "tokens": {
       "read": 40491,
@@ -5440,6 +6238,12 @@
      "characters_sent": [
       1560
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 42652,
      "tokens": {
       "read": 41015,
@@ -5470,6 +6274,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 44266,
      "tokens": {
@@ -5505,6 +6315,14 @@
       805,
       932
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4715,
+      0.5285
+     ],
      "context": 44433,
      "tokens": {
       "read": 44266,
@@ -5536,6 +6354,12 @@
      "characters_sent": [
       1984
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 45747,
      "tokens": {
       "read": 44433,
@@ -5566,6 +6390,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 47596,
      "tokens": {
@@ -5601,6 +6431,14 @@
       1340,
       1110
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5391,
+      0.4609
+     ],
      "context": 47893,
      "tokens": {
       "read": 47596,
@@ -5626,6 +6464,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 49578,
      "tokens": {
       "read": 47893,
@@ -5859,6 +6699,12 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -5884,6 +6730,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -5915,6 +6763,12 @@
      "characters_sent": [
       2209
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 23709,
      "tokens": {
       "read": 15983,
@@ -5945,6 +6799,12 @@
      "refused": 0,
      "characters_sent": [
       54
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 26207,
      "tokens": {
@@ -5986,6 +6846,18 @@
       83,
       67
      ],
+     "package_read": [
+      null,
+      null,
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.1544,
+      0.2648,
+      0.4653,
+      0.1155
+     ],
      "context": 26564,
      "tokens": {
       "read": 26207,
@@ -6016,6 +6888,12 @@
      "refused": 0,
      "characters_sent": [
       34
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 30470,
      "tokens": {
@@ -6048,6 +6926,12 @@
      "characters_sent": [
       3079
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 31110,
      "tokens": {
       "read": 30470,
@@ -6078,6 +6962,12 @@
      "refused": 0,
      "characters_sent": [
       2360
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 33686,
      "tokens": {
@@ -6110,6 +7000,12 @@
      "characters_sent": [
       3317
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 36059,
      "tokens": {
       "read": 33686,
@@ -6135,6 +7031,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 38474,
      "tokens": {
       "read": 36059,
@@ -6368,6 +7266,12 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -6393,6 +7297,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -6423,6 +7329,12 @@
      "refused": 0,
      "characters_sent": [
       2038
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 23829,
      "tokens": {
@@ -6457,6 +7369,14 @@
      "characters_sent": [
       54,
       34
+     ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.1073,
+      0.8927
      ],
      "context": 25984,
      "tokens": {
@@ -6498,6 +7418,18 @@
       83,
       67
      ],
+     "package_read": [
+      null,
+      null,
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.1785,
+      0.2868,
+      0.4389,
+      0.0958
+     ],
      "context": 26942,
      "tokens": {
       "read": 25984,
@@ -6528,6 +7460,12 @@
      "refused": 0,
      "characters_sent": [
       3015
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 30417,
      "tokens": {
@@ -6560,6 +7498,12 @@
      "characters_sent": [
       2419
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 33630,
      "tokens": {
       "read": 30417,
@@ -6590,6 +7534,12 @@
      "refused": 0,
      "characters_sent": [
       54
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 35757,
      "tokens": {
@@ -6622,6 +7572,12 @@
      "characters_sent": [
       3129
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 36077,
      "tokens": {
       "read": 35757,
@@ -6647,6 +7603,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 38382,
      "tokens": {
       "read": 36077,
@@ -7002,6 +7960,36 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "lead-brief": {
+     "uses": 1,
+     "tokens": 8187,
+     "written_usd": 0.065492,
+     "read_back_later_usd": 0.047592
+    },
+    "listing": {
+     "uses": 1,
+     "tokens": 1133,
+     "written_usd": 0.009066,
+     "read_back_later_usd": 0.006361
+    },
+    "agent-file": {
+     "uses": 2,
+     "tokens": 3463,
+     "written_usd": 0.027702,
+     "read_back_later_usd": 0.018742
+    },
+    "graph": {
+     "uses": 1,
+     "tokens": 4295,
+     "written_usd": 0.034362,
+     "read_back_later_usd": 0.022387
+    },
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -7097,6 +8085,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -7131,6 +8121,14 @@
       128,
       48
      ],
+     "package_read": [
+      "lead-brief",
+      null
+     ],
+     "share_of_added": [
+      0.9969,
+      0.0031
+     ],
      "context": 20774,
      "tokens": {
       "read": 15983,
@@ -7164,6 +8162,14 @@
      "characters_sent": [
       77,
       90
+     ],
+     "package_read": [
+      null,
+      "listing"
+     ],
+     "share_of_added": [
+      0.0681,
+      0.9319
      ],
      "context": 28986,
      "tokens": {
@@ -7205,6 +8211,18 @@
       138,
       102
      ],
+     "package_read": [
+      null,
+      "agent-file",
+      "agent-file",
+      null
+     ],
+     "share_of_added": [
+      0.0231,
+      0.3461,
+      0.5845,
+      0.0463
+     ],
      "context": 30202,
      "tokens": {
       "read": 28986,
@@ -7239,6 +8257,14 @@
       159,
       109
      ],
+     "package_read": [
+      "graph",
+      null
+     ],
+     "share_of_added": [
+      0.7887,
+      0.2113
+     ],
      "context": 33923,
      "tokens": {
       "read": 30202,
@@ -7269,6 +8295,12 @@
      "refused": 0,
      "characters_sent": [
       76
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 39369,
      "tokens": {
@@ -7304,6 +8336,14 @@
       260,
       853
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.316,
+      0.684
+     ],
      "context": 40145,
      "tokens": {
       "read": 39369,
@@ -7335,6 +8375,12 @@
      "characters_sent": [
       34
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 41189,
      "tokens": {
       "read": 40145,
@@ -7365,6 +8411,12 @@
      "refused": 0,
      "characters_sent": [
       1101
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 41384,
      "tokens": {
@@ -7400,6 +8452,14 @@
       752,
       454
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5915,
+      0.4085
+     ],
      "context": 42172,
      "tokens": {
       "read": 41384,
@@ -7430,6 +8490,12 @@
      "refused": 0,
      "characters_sent": [
       131
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 43350,
      "tokens": {
@@ -7462,6 +8528,12 @@
      "characters_sent": [
       1481
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 43647,
      "tokens": {
       "read": 43350,
@@ -7492,6 +8564,12 @@
      "refused": 0,
      "characters_sent": [
       37
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 44442,
      "tokens": {
@@ -7524,6 +8602,12 @@
      "characters_sent": [
       1569
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 44715,
      "tokens": {
       "read": 44442,
@@ -7555,6 +8639,12 @@
      "characters_sent": [
       1066
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 45632,
      "tokens": {
       "read": 44715,
@@ -7585,6 +8675,12 @@
      "refused": 0,
      "characters_sent": [
       1381
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 46347,
      "tokens": {
@@ -7620,6 +8716,14 @@
       37,
       36
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.2327,
+      0.7673
+     ],
      "context": 48230,
      "tokens": {
       "read": 46347,
@@ -7654,6 +8758,14 @@
       109,
       85
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.9529,
+      0.0471
+     ],
      "context": 48604,
      "tokens": {
       "read": 48230,
@@ -7684,6 +8796,12 @@
      "refused": 0,
      "characters_sent": [
       37
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 49797,
      "tokens": {
@@ -7719,6 +8837,14 @@
       1315,
       580
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.6523,
+      0.3477
+     ],
      "context": 50060,
      "tokens": {
       "read": 49797,
@@ -7749,6 +8875,12 @@
      "refused": 0,
      "characters_sent": [
       1197
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 51522,
      "tokens": {
@@ -7784,6 +8916,14 @@
       114,
       37
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7178,
+      0.2822
+     ],
      "context": 53254,
      "tokens": {
       "read": 51522,
@@ -7814,6 +8954,12 @@
      "refused": 0,
      "characters_sent": [
       97
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 54073,
      "tokens": {
@@ -7849,6 +8995,14 @@
       1350,
       989
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5632,
+      0.4368
+     ],
      "context": 55940,
      "tokens": {
       "read": 54073,
@@ -7879,6 +9033,12 @@
      "refused": 0,
      "characters_sent": [
       1469
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 57667,
      "tokens": {
@@ -7914,6 +9074,14 @@
       37,
       36
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.2327,
+      0.7673
+     ],
      "context": 59662,
      "tokens": {
       "read": 57667,
@@ -7944,6 +9112,12 @@
      "refused": 0,
      "characters_sent": [
       109
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 60016,
      "tokens": {
@@ -7979,6 +9153,14 @@
       1325,
       651
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.6351,
+      0.3649
+     ],
      "context": 61001,
      "tokens": {
       "read": 60016,
@@ -8009,6 +9191,12 @@
      "refused": 0,
      "characters_sent": [
       1236
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 62586,
      "tokens": {
@@ -8044,6 +9232,14 @@
       114,
       37
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7178,
+      0.2822
+     ],
      "context": 64181,
      "tokens": {
       "read": 62586,
@@ -8078,6 +9274,14 @@
       1696,
       2322
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.431,
+      0.569
+     ],
      "context": 64690,
      "tokens": {
       "read": 64181,
@@ -8103,6 +9307,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 66946,
      "tokens": {
       "read": 64690,
@@ -8460,6 +9666,30 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "lead-brief": {
+     "uses": 1,
+     "tokens": 8190,
+     "written_usd": 0.065521,
+     "read_back_later_usd": 0.045971
+    },
+    "graph": {
+     "uses": 1,
+     "tokens": 4322,
+     "written_usd": 0.034574,
+     "read_back_later_usd": 0.023391
+    },
+    "agent-file": {
+     "uses": 2,
+     "tokens": 3566,
+     "written_usd": 0.028531,
+     "read_back_later_usd": 0.018588
+    },
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -8555,6 +9785,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -8588,6 +9820,14 @@
      "characters_sent": [
       128,
       44
+     ],
+     "package_read": [
+      "lead-brief",
+      null
+     ],
+     "share_of_added": [
+      0.9971,
+      0.0029
      ],
      "context": 20775,
      "tokens": {
@@ -8625,6 +9865,16 @@
       77,
       30,
       138
+     ],
+     "package_read": [
+      null,
+      null,
+      "graph"
+     ],
+     "share_of_added": [
+      0.0111,
+      0.0498,
+      0.9391
      ],
      "context": 28989,
      "tokens": {
@@ -8666,6 +9916,18 @@
       102,
       109
      ],
+     "package_read": [
+      "agent-file",
+      "agent-file",
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.2691,
+      0.4546,
+      0.036,
+      0.2402
+     ],
      "context": 33591,
      "tokens": {
       "read": 28989,
@@ -8703,6 +9965,16 @@
       41,
       32
      ],
+     "package_read": [
+      null,
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5287,
+      0.1753,
+      0.296
+     ],
      "context": 38519,
      "tokens": {
       "read": 33591,
@@ -8737,6 +10009,14 @@
       754,
       602
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5396,
+      0.4604
+     ],
      "context": 39595,
      "tokens": {
       "read": 38519,
@@ -8767,6 +10047,12 @@
      "refused": 0,
      "characters_sent": [
       127
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 40852,
      "tokens": {
@@ -8802,6 +10088,14 @@
       1033,
       1092
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4888,
+      0.5112
+     ],
      "context": 41290,
      "tokens": {
       "read": 40852,
@@ -8832,6 +10126,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 42616,
      "tokens": {
@@ -8864,6 +10164,12 @@
      "characters_sent": [
       220
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 42784,
      "tokens": {
       "read": 42616,
@@ -8895,6 +10201,12 @@
      "characters_sent": [
       1408
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 43606,
      "tokens": {
       "read": 42784,
@@ -8925,6 +10237,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 45297,
      "tokens": {
@@ -8960,6 +10278,14 @@
       467,
       32
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7302,
+      0.2698
+     ],
      "context": 45488,
      "tokens": {
       "read": 45297,
@@ -8990,6 +10316,12 @@
      "refused": 0,
      "characters_sent": [
       52
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 46026,
      "tokens": {
@@ -9025,6 +10357,14 @@
       82,
       109
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.0513,
+      0.9487
+     ],
      "context": 46279,
      "tokens": {
       "read": 46026,
@@ -9055,6 +10395,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 47347,
      "tokens": {
@@ -9087,6 +10433,12 @@
      "characters_sent": [
       610
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 47674,
      "tokens": {
       "read": 47347,
@@ -9117,6 +10469,12 @@
      "refused": 0,
      "characters_sent": [
       1424
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 48078,
      "tokens": {
@@ -9152,6 +10510,14 @@
       158,
       41
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.756,
+      0.244
+     ],
      "context": 50042,
      "tokens": {
       "read": 48078,
@@ -9186,6 +10552,14 @@
       1145,
       1353
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.4218,
+      0.5782
+     ],
      "context": 50704,
      "tokens": {
       "read": 50042,
@@ -9217,6 +10591,12 @@
      "characters_sent": [
       1405
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 52136,
      "tokens": {
       "read": 50704,
@@ -9247,6 +10627,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 53719,
      "tokens": {
@@ -9282,6 +10668,14 @@
       579,
       32
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.7683,
+      0.2317
+     ],
      "context": 53909,
      "tokens": {
       "read": 53719,
@@ -9312,6 +10706,12 @@
      "refused": 0,
      "characters_sent": [
       52
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 54479,
      "tokens": {
@@ -9347,6 +10747,14 @@
       82,
       109
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.0541,
+      0.9459
+     ],
      "context": 54650,
      "tokens": {
       "read": 54479,
@@ -9377,6 +10785,12 @@
      "refused": 0,
      "characters_sent": [
       41
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 55740,
      "tokens": {
@@ -9409,6 +10823,12 @@
      "characters_sent": [
       610
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 55929,
      "tokens": {
       "read": 55740,
@@ -9439,6 +10859,12 @@
      "refused": 0,
      "characters_sent": [
       1439
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 56334,
      "tokens": {
@@ -9477,6 +10903,16 @@
       41,
       43
      ],
+     "package_read": [
+      null,
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.5164,
+      0.1667,
+      0.3169
+     ],
      "context": 58249,
      "tokens": {
       "read": 56334,
@@ -9511,6 +10947,14 @@
       1244,
       2012
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.3596,
+      0.6404
+     ],
      "context": 58959,
      "tokens": {
       "read": 58249,
@@ -9536,6 +10980,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 60748,
      "tokens": {
       "read": 58959,
@@ -9769,6 +11215,12 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -9794,6 +11246,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -9824,6 +11278,12 @@
      "refused": 0,
      "characters_sent": [
       1702
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 23287,
      "tokens": {
@@ -9859,6 +11319,14 @@
       35,
       54
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.2904,
+      0.7096
+     ],
      "context": 25271,
      "tokens": {
       "read": 23287,
@@ -9889,6 +11357,12 @@
      "refused": 0,
      "characters_sent": [
       109
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 25866,
      "tokens": {
@@ -9921,6 +11395,12 @@
      "characters_sent": [
       2051
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 26856,
      "tokens": {
       "read": 25866,
@@ -9951,6 +11431,12 @@
      "refused": 0,
      "characters_sent": [
       1923
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 28868,
      "tokens": {
@@ -9986,6 +11472,14 @@
       35,
       54
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.2899,
+      0.7101
+     ],
      "context": 30712,
      "tokens": {
       "read": 28868,
@@ -10016,6 +11510,12 @@
      "refused": 0,
      "characters_sent": [
       109
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 31298,
      "tokens": {
@@ -10048,6 +11548,12 @@
      "characters_sent": [
       2120
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 32300,
      "tokens": {
       "read": 31298,
@@ -10073,6 +11579,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 34195,
      "tokens": {
       "read": 32300,
@@ -10306,6 +11814,12 @@
      "usd": 0
     }
    },
+   "package_reading": {
+    "calls_that_read_only_the_graph_or_agent_files": {
+     "calls": 0,
+     "own_usd": 0
+    }
+   },
    "setup_by_kind": {
     "prompt": {
      "calls": 0,
@@ -10331,6 +11845,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": null,
      "tokens": {
       "read": 0,
@@ -10361,6 +11877,12 @@
      "refused": 0,
      "characters_sent": [
       1679
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 23325,
      "tokens": {
@@ -10396,6 +11918,14 @@
       44,
       54
      ],
+     "package_read": [
+      null,
+      null
+     ],
+     "share_of_added": [
+      0.3002,
+      0.6998
+     ],
      "context": 25472,
      "tokens": {
       "read": 23325,
@@ -10426,6 +11956,12 @@
      "refused": 0,
      "characters_sent": [
       109
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 26083,
      "tokens": {
@@ -10458,6 +11994,12 @@
      "characters_sent": [
       2012
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 27078,
      "tokens": {
       "read": 26083,
@@ -10488,6 +12030,12 @@
      "refused": 0,
      "characters_sent": [
       2088
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 29035,
      "tokens": {
@@ -10520,6 +12068,12 @@
      "characters_sent": [
       44
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 31144,
      "tokens": {
       "read": 29035,
@@ -10550,6 +12104,12 @@
      "refused": 0,
      "characters_sent": [
       109
+     ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
      ],
      "context": 31345,
      "tokens": {
@@ -10582,6 +12142,12 @@
      "characters_sent": [
       2123
      ],
+     "package_read": [
+      null
+     ],
+     "share_of_added": [
+      1
+     ],
      "context": 32347,
      "tokens": {
       "read": 31345,
@@ -10607,6 +12173,8 @@
      "tools": [],
      "refused": 0,
      "characters_sent": [],
+     "package_read": [],
+     "share_of_added": [],
      "context": 34251,
      "tokens": {
       "read": 32347,

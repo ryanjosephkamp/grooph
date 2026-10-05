@@ -21,7 +21,7 @@ A mean call of the package's lead cost three cents. A call that only read the cl
 Table 3 files every call under one kind. In the order of what they add to the difference:
 
 - **A node's note, often with the progress file: +$0.222.** 5.7 calls a run. The lead sends about 5,300 characters a run to write the notes and 5,000 to write the progress file (Table 5; the kept notes files themselves average 4,300 characters).
-- **Reading the brief, the graph and the agent files: +$0.165, and $0.076 later.** 3.2 calls, all before the first dispatch. Counted from the kept packages: the lead brief is about 20,000 characters, the graph document 8,400 and the two agent files 6,700. Neither the kickoff nor the brief asks the lead to read the graph document or the agent files. The kickoff says to read the brief and copy the graph, and the brief says the agent files carry the subagents' briefs. All six leads read both agent files anyway, and five read the graph document.
+- **Reading the brief, the graph and the agent files: +$0.165, and $0.076 later.** 3.2 calls, all before the first dispatch. Counted from the kept packages: the lead brief is about 20,000 characters, the graph document 8,400 and the two agent files 6,700. Neither the kickoff nor the brief tells the lead to read the graph document or the agent files. The kickoff says to read the brief and copy the graph, and the brief says the agent files carry the subagents' briefs. The brief does ask the lead's dispatch prompt to carry a node's declared inputs, and those are written only in the agent file and the graph. All six leads read both agent files, and five read the graph document.
 - **Amending the working copy and validating it: +$0.042.** In three of the six runs, always before the first dispatch.
 - **A clock read and nothing else: +$0.037.** 2.5 calls. The lead read the clock 6 times a run. Most reads share a call with another tool use and cost almost nothing.
 - **Keeping a copy of a round's report: +$0.037.** 1.5 calls. The brief asks for it before a builder is sent again.
@@ -94,7 +94,15 @@ Table 7 removes calls from the package's lead and leaves every other call as it 
   - **If the script's nodes report to the script and not to the lead, the lead's cost would stop rising with each dispatch.** Nothing is built, so that is a reading of the target document and not a finding.
   - **Amendments.** A script cannot amend the working copy mid-run. None of these six leads did: the three that amended did so before the first dispatch. A human gate has to be reachable from the script.
 
-**Not in stage 16, and the largest item: the reading before the first dispatch, $0.241.** The leads read about 35,000 characters before they dispatched anything. About 15,000 of that is the graph document and the agent files, which nothing asks them to read. About 5,400 of the brief's 20,000 are the rules and operations for amending the graph, which three of six leads used. An instruction not to read the first, and a brief that left the second to be read when an amendment is wanted, would cut the largest cost paid once. I have not measured either.
+**Not in stage 16, and the largest item: the reading before the first dispatch, $0.241.** Table 10 splits it by file.
+
+- **The graph document and the agent files, which nothing tells the lead to read: $0.088 a run by this count**, 17% of the difference, and from $0.036 to $0.105 by run. That is more than hook-written notes would remove, for one sentence in the brief.
+- **What that reading did in these runs.** Three of the six leads amended the working copy after it, each for the same reason: the builder's declared inputs named the reviewer's held-out material, and the lead took it out. Those inputs are in the agent file and the graph, not in the brief. A lead told not to read them would not have seen it.
+- **What it did not do.** No run shows routing that depended on it. The one lead that did not read the graph document dispatched builder, reviewer, builder, reviewer, as the five that did, and was the cheapest package lead of the six.
+- **One thing a sentence would have to settle.** The brief asks the dispatch prompt to carry a node's declared inputs, which are written only in the files the sentence would tell the lead not to read. Either the brief lists them, or it says the agent file already gives the node its inputs.
+- **The brief itself: $0.106.** About 5,400 of its 20,000 characters are the rules and operations for amending the graph, which three of six leads used. A brief that left those to be read when an amendment is wanted would be shorter by a quarter.
+
+None of this is measured: it removes reading from runs that did read.
 
 ## What this cannot say
 
@@ -245,5 +253,16 @@ The same arithmetic from each project's four runs alone, to show how far two run
 | **all the read-back** | **$0.219** | **$0.040** | **+$0.179** |
 
 Reading the brief, the graph and the agent files therefore costs $0.165 in its own calls and $0.076 in every later call that reads it back: $0.241 a run, 46% of A less B.
+
+**Table 10. The package's files, by what reading each one added: arm A, the mean of six runs.** Where a call read two things its added tokens are shared by the characters each read returned, so a file's tokens are an estimate. Nothing tells the lead to read the graph document or the agent files, though the brief asks its dispatch prompt to carry a node's declared inputs, and those are written only there.
+
+| what was read | runs that read it, of six | tokens it added | written once | read back by later calls | both |
+|---|---:|---:|---:|---:|---:|
+| the lead brief | 6 | 8,345 | $0.067 | $0.039 | $0.106 |
+| the graph document | 5 | 3,346 | $0.027 | $0.016 | $0.043 |
+| the agent files | 6 | 3,350 | $0.027 | $0.014 | $0.041 |
+| a listing of the package's folders | 4 | 625 | $0.005 | $0.003 | $0.008 |
+
+0.3 calls a run read nothing but the graph document or the agent files, and cost $0.004 more in their own read-back and output. So by this count a lead that read neither would have cost $0.088 less a run ($0.036 to $0.105), 17% of A less B. 3 of the six leads amended the working copy after that reading; in the 3 that did not, the figure is $0.075.
 
 <!-- end of tables -->
