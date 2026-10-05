@@ -1,0 +1,28 @@
+
+1. a critic that says "approved" or "fail": a second edge on "fail", to a new stop that ends in success
+   head: REFUSED edge:e-j-bad-too [adds a way from "judge" to end in success that does not pass "approved" from the critic "judge"]
+
+1. a critic that says "clean" or "finding": a second edge on "finding", to a new stop that ends in success
+   head: REFUSED edge:e-j-bad-too [adds a way from "judge" to end in success that does not pass "clean" from the critic "judge"]
+
+1. a critic that says "pass" or "fail", the same
+   head: REFUSED edge:e-j-bad-too [adds a way from "judge" to end in success that does not pass "pass" from the critic "judge"]
+
+2. NOT HELD, a stated limit. A critic's "fail" leads to a gate: a second edge on "fail", straight to the end
+   head: ADOPTED, nothing refused
+
+2. NOT HELD, a stated limit. The same for a critic with words of its own
+   head: ADOPTED, nothing refused
+
+2. NOT HELD, a stated limit. The built-in patrol: the investigator's "finding" led to where its "clean" leads
+   head: ADOPTED, nothing refused
+
+2. held: the critic's "fail" edge itself led to the end, away from the gate
+   head: REFUSED edge:e-j-bad.to [nothing would lead to "waive", so a run would start there, where every way to it passed the critic "judge"]
+
+2. held: a check's "fail" leads to a gate, and a second edge on "fail" goes straight to the end
+   head: REFUSED edge:e-j-bad-too [adds "e-j-bad-too", an edge that leaves the check "judge": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one]
+
+3. the id "tests" kept by a step of another kind, a new check "test-suite" that runs `true` taking its edges, a bar given to the loop
+   head: REFUSED node:tests.kind [a check becomes another kind of node, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this change allows every cha] | node:tests.check [a check becomes another kind of node, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this change allows every cha]
+      not judged: node:test-suite [removes a check] | loop:grind.bar [removes the loop's bar]

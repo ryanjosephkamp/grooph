@@ -594,7 +594,11 @@ function reachLosses(before: Graph, after: Graph): { losses: Loss[]; later: Loss
     // end in success on another verdict has not passed. (Under the whole verdict every edge the judge has is shut,
     // so a failing verdict led to a stop that ends in success, one the run adds, one the graph had, or a step made
     // one, showed nothing.) A gate's answers are all the person's, and are not asked one by one.
-    const ends = whole || (typeof closed === "object" && "critic" in closed && closed.when === "pass");
+    // A judge with no verdict written "pass" and more than one word of its own (a critic that says "clean" or
+    // "finding") is asked of each word it has: a program cannot tell which of them is the good one.
+    const words = typeof closed === "object" && "critic" in closed && closed.when !== undefined ? new Set(before.edges.filter((edge) => edge.from === closed.critic).map(whenOf)) : new Set<string>();
+    const worded = words.size > 1 && !words.has("pass");
+    const ends = whole || worded || (typeof closed === "object" && "critic" in closed && closed.when === "pass");
     const endWas = ends ? endsFrom(before, waysWas, closed) : new Set<Id>();
     const endNow = ends ? endsFrom(after, ways, closed) : new Set<Id>();
     const freed = new Set(after.nodes.filter((node) => node.kind !== "stop" && known.has(node.id) && !endWas.has(node.id) && endNow.has(node.id)).map((node) => node.id));

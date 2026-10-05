@@ -38,7 +38,7 @@ checks() {
   for f in hand cli pkg refresh honest3 inv; do run "check-reader-1/$f" "check-reader-1/$f.mjs"; done
   for f in hand1 hand2 hand3 cli4 cli5 compileA twostep survey; do run "check-reader-2/$f" "check-reader-2/$f.mjs"; done
   for f in c4 c4b bar pass-honest cli6 survey; do run "check-reader-3/$f" "check-reader-3/$f.mjs"; done
-  for f in halt rename ends door; do run "check-reader-4/$f" "check-reader-4/$f.mjs"; done
+  for f in halt rename ends door words; do run "check-reader-4/$f" "check-reader-4/$f.mjs"; done
 }
 checks_long() {
   run check-reader-1/enum check-reader-1/enum.mjs

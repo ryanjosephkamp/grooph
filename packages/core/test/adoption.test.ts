@@ -1062,6 +1062,51 @@ test("A-019, the clause for every stop: a stop that halts, made to end in succes
   assert.deepEqual(adopt((w) => void (w.nodes.find((n) => n.id === "failed")!.name = "Stopped"), { from: oneShot() }).refused, []);
 });
 
+// ─── the reader of this change: a judge whose verdicts are words of its own, and two decisions at once ───────────
+
+test("A-019: a judge with no verdict written pass is asked of each word it has; a failing verdict that a person stood behind is a stated limit", () => {
+  const judged = (good: Edge["when"], bad: Edge["when"], more: { nodes?: unknown[]; edges?: unknown[] } = {}): Graph => parseGraphText(JSON.stringify({
+    grooph: 0, id: "judged", name: "Judged", version: 1, goal: "Build it and have it judged.", target: { harness: "claude-code" },
+    nodes: [
+      { id: "builder", kind: "agent", name: "Builder", role: "builder", brief: "Build it.", outputs: ["CHANGES.md"], allow: ["read-files", "edit-files"] },
+      { id: "critic", kind: "agent", name: "Critic", role: "critic", brief: "Judge it.", outputs: ["REVIEW.md"], allow: ["read-files", "write-outputs"] },
+      { id: "done", kind: "stop", name: "Done", outcome: "success" },
+      ...(more.nodes ?? []),
+    ],
+    edges: [{ id: "e-builder-critic", from: "builder", to: "critic", evidence: ["the diff"] }, { id: "e-critic-good", from: "critic", to: "done", when: good }, ...(more.edges ?? [{ id: "e-critic-bad", from: "critic", to: "builder", when: bad, evidence: ["REVIEW.md"] }])],
+    loops: more.edges ? [] : [{ id: "review", name: "Review", members: ["builder", "critic"], back: ["e-critic-bad"], mode: "judgment", bar: { name: "Bar", inspects: [{ kind: "file", ref: "REVIEW.md" }], acceptance: "Every item holds." }, stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 3 }] }],
+  })).doc!;
+  const fine = (w: Graph, when: Edge["when"]): void => {
+    w.nodes.push({ id: "fine", kind: "stop", name: "Fine", outcome: "success" } as Node);
+    w.edges.push({ id: "e-critic-bad-too", from: "critic", to: "fine", when } as Edge);
+  };
+  // The good verdict is "approved" and the other is "fail": a second edge on "fail", to a new stop that ends in
+  // success, was adopted with nothing said, because the rule looked for the word "pass".
+  assert.deepEqual(refused(adopt((w) => fine(w, "fail"), { from: judged({ verdict: "approved" }, "fail") })), [
+    'edge:e-critic-bad-too: adds a way from "critic" to end in success that does not pass "approved" from the critic "critic"',
+  ]);
+  assert.deepEqual(refused(adopt((w) => fine(w, { verdict: "finding" }), { from: judged({ verdict: "clean" }, { verdict: "finding" }) })), [
+    'edge:e-critic-bad-too: adds a way from "critic" to end in success that does not pass "clean" from the critic "critic"',
+  ]);
+  // A judge that says "pass" is asked of its pass, as it was.
+  assert.deepEqual(refused(adopt((w) => fine(w, "fail"), { from: judged("pass", "fail") })), [
+    'edge:e-critic-bad-too: adds a way from "critic" to end in success that does not pass "pass" from the critic "critic"',
+  ]);
+
+  // NOT HELD, a stated limit (docs/runs.md, "What adoption does not hold"): two decisions at once. The failing
+  // verdict led to a gate, and only the person's yes took it to the end; a second edge on that verdict goes straight
+  // there. Asked of the pass alone, a run on "fail" could already end in success, through the person; asked of the
+  // person alone, a run could already end with nobody asked, on a pass. The two are not asked together. (For a check
+  // any edge added where it leaves is held, so this is a critic's.) Pinned here so that a change to it is seen.
+  const waived = judged("pass", "fail", {
+    nodes: [{ id: "waive", kind: "human-gate", name: "Waive", prompt: "It failed. Ship anyway?", options: ["approve", "reject"] }, { id: "stopped", kind: "stop", name: "Stopped", outcome: "halt" }],
+    edges: [{ id: "e-critic-bad", from: "critic", to: "waive", when: "fail" }, { id: "e-waive-yes", from: "waive", to: "done", when: "pass" }, { id: "e-waive-no", from: "waive", to: "stopped", when: "fail" }],
+  });
+  assert.deepEqual(adopt((w) => void w.edges.push({ id: "e-critic-bad-too", from: "critic", to: "done", when: "fail" } as Edge), { from: waived }).refused, []);
+  // Led there instead of to the gate, it is held, as it was: the gate is left with nothing leading to it.
+  assert.deepEqual(names(adopt((w) => void (edge(w, "e-critic-bad").to = "done"), { from: waived })), ["edge:e-critic-bad.to"]);
+});
+
 // ─── what undoing would take away and is no tightening: an answer a gate did not give, a new irreversible step ──
 //
 // The reader of the export door (#60) saw "tightens a brake" printed for a step told to publish, marked
