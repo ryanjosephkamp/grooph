@@ -1,6 +1,6 @@
 # Handback 0078 · grooph for agents: authoring over MCP, a package on npm, and a way in from a chat
 
-**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** the commit before this handback's own (the work, after the driver's four fix passes, with `main` merged in at `6e6dc6b`, slice 0084 and all of subgroophs in it, and the paste reader behind a door) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (the agents lane) · **Branch:** `slice/0078-agents-and-chat` · **Head commit:** the commit before this handback's own (the work, after the driver's four fix passes, with `main` merged in at `4f1c11e`, slice 0084 and all of subgroophs in it, and the paste reader behind a door) · **Date:** 2026-10-04
 
 ## Status
 
@@ -17,7 +17,7 @@
 - `src/paths.ts` (new): where the CLI's own files are, in a clone, an npm install and a single bundled file. `registry.ts`, `commands/hooks.ts`, `commands/watch.ts` use it.
 - `src/main.ts` (new), `bin/grooph.js`: one entry; a closed pipe (`grooph template list | head`) ends quietly.
 - `src/index.ts`: the `mcp` command's `--chat` flag, the no-folder guard, its help page. `commands/explain.ts`, `embed.ts`, `image.ts`: small exports the tools reuse; CLI output unchanged.
-- Tests: `test/mcp-author.test.ts` (new, 27 tests), `test/third-pass.test.ts` (new, 16), `test/reply-lines.test.ts` (new, 11: the property), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 177.
+- Tests: `test/mcp-author.test.ts` (new, 27 tests), `test/third-pass.test.ts` (new, 17), `test/reply-lines.test.ts` (new, 11: the property), `test/agents-page.test.ts` (new, 4), `test/mcp.test.ts` (updated, one added). CLI total 187.
 - `src/reply.ts` (new): how a reply is laid out. `src/place.ts` (new): the write guard, for the tools and for `grooph export`.
 - `src/commands/export.ts`, `commands/help.ts`, `src/index.ts` (`case "export"`): the CLI's export says the tier line every time with each pin, stops before changing a model in place (`--change-models`), and refuses an id that is a folder grooph keeps. The tool shares all three.
 - `packages/core/src/compile/markdown.ts`, `claude-code/agents.ts`: one class of characters a header's line cannot hold (third pass, item 4), with a compiler test.
@@ -41,14 +41,14 @@
 
 ## Verified, and how
 
-Run from a clean build after the fourth pass: the four fix passes, the door, and `main` merged in at `6e6dc6b` (the default tiers of slice 0084, all of subgroophs, a map in three dimensions), which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
+Run from a clean build after the fourth pass: the four fix passes, the door, and `main` merged in at `4f1c11e` (the default tiers of slice 0084, all of subgroophs, a map in three dimensions), which has the frontmatter fix (#63), the site's new look (#58), the map views (#65) and the budget compared to the byte with the canvas line at 280 KB.
 
 ```text
-pnpm -r build && pnpm -r test          core 441 pass · cli 186 pass · web 92 pass
+pnpm -r build && pnpm -r test          core 441 pass · cli 187 pass · web 92 pass
 scripts/pack-check.sh                  pack check: ok (grooph-0.3.0.tgz, 820 KB, 81 files; installed and run in a fresh folder)
 scripts/kit-check.sh                   kit check: ok (grooph-chat.zip 276 KB, grooph.mcpb 274 KB; …run with nothing installed beside them)
 scripts/first-run.sh                   first run: ok
-GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      240 passed, 145 skipped, none failed
+GROOPH_E2E_PORT=4362 pnpm --filter @grooph/web test:e2e      240 passed, 145 skipped, none failed (second of two runs; see the note below the block)
 node scripts/american-english.mjs --check      nothing British in 631 public-facing files
 node scripts/site-pages.mjs --check    23 pages and an index, links and anchors resolve
 version · cli-reference · check-pictures · check-outside-addresses (--check)      all current; nothing is loaded from another host
@@ -83,6 +83,8 @@ What the door changes for a person, and its tests (`apps/web/e2e/paste.spec.ts`)
 - When the piece cannot be fetched, Paste says "Could not import what you paste. The part of grooph that opens it could not be fetched. It needs a connection the first time: reload this page when you have one.", Import says the same with the file's name, and a paste on the screen says nothing. It says to reload because Chromium does not ask again for a script it failed to fetch until the page is loaded again; the test showed that, and tests the reload.
 - That last case is new for **Import**: on `main` a file opens with no piece to fetch. It can only happen on a first visit that loses its connection before the worker has the files, the same window in which Export (slice 0070) and a map's other views (slice 0080) cannot be fetched.
 - `release.spec.ts`, "the page names every file the app can ask for", passes; with the `later` line taken out of `vite.config.ts` it fails, and so does the no-network test.
+
+The browser suite was run twice at this head. The first run had one failure, `apps/web/e2e/subgrooph.spec.ts:28` ("a shared graph with a subgrooph … opens in place"), with its retry; run alone with the default workers it failed three times of three, and with one worker it passed; the second full run passed, 240 of 240. It is the canvas slice's test and not this lane's; no file of the app or of core differs between this head and the one where it passed two hours earlier, and CI's browser job has passed it on this branch each time. The Mac's load average was over 13 with the other lanes running, and the test taps a node 400 ms after a box opens. Told to the driver.
 
 `(cd packages/cli && npm pack --dry-run)` from the handoff is answered under Deviations.
 
@@ -140,11 +142,11 @@ Read https://ryanjosephkamp.github.io/grooph/docs/agents/ and follow it. You hav
 
 ## The tarball
 
-`grooph-0.3.0.tgz`: **840,296 bytes packed (820 KB), 2,359,327 unpacked, 81 files.** (It grew by about 41 KB with `main`: subgroophs in core, and a map in three dimensions in the app.) It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
+`grooph-0.3.0.tgz`: **840,572 bytes packed (820 KB), 2,359,954 unpacked, 81 files.** (It grew by about 41 KB with `main`: subgroophs in core, and a map in three dimensions in the app.) It grew from about 635 KB when `main`'s new look arrived: the app `watch` serves now carries its fonts.
 
 | In it | Files | Size |
 |---|---|---|
-| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 717 KB |
+| `dist/bundle/grooph.js`, the command: the CLI and core as one file | 1 | 718 KB |
 | `dist/patterns/`, the templates and their index | 21 | 151 KB |
 | `dist/patterns/glyphs/` | 20 | 38 KB |
 | `dist/app/`, the built app `watch` serves (fonts included), without source maps or the site's pages | 34 | 1,336 KB |
@@ -293,7 +295,7 @@ As the driver asked, a fresh Opus 5.5 reader was set on item 1's property, with 
 
 With each guard taken out in turn, thirty-six ways, a test fails; files restored from copies, the whole set run again.
 
-**Main, merged four times in this pass: at `e8e1971`, at `260fc18` once slice 0084 had landed, at `dec4b67` (one line, in `packages/core/src/index.ts`: `keptFolder` beside main's exports), and at `6e6dc6b` once the rest of subgroophs was in (`apps/web/vite.config.ts` again: a subgrooph's box is named in the page beside the Import piece). The last is the one the driver asked to wait for.** The first brought `piece` (slice 0088): a piece that could not be fetched is asked for again in a way every engine honors. The door to Import and Paste goes through it now, so the sentence says "try again when you have one" where it said to reload, and the test takes the next tap with no reload. One conflict, in `apps/web/vite.config.ts`: both lanes' pieces are named in the page.
+**Main, merged four times in this pass: at `e8e1971`, at `260fc18` once slice 0084 had landed, at `dec4b67` (one line, in `packages/core/src/index.ts`: `keptFolder` beside main's exports), and at `6e6dc6b` once the rest of subgroophs was in (`apps/web/vite.config.ts` again: a subgrooph's box is named in the page beside the Import piece), which is the one the driver asked to wait for; and once more at `4f1c11e` after the driver's last reader, with no conflict (the experiment's files only).** The first brought `piece` (slice 0088): a piece that could not be fetched is asked for again in a way every engine honors. The door to Import and Paste goes through it now, so the sentence says "try again when you have one" where it said to reload, and the test takes the next tap with no reload. One conflict, in `apps/web/vite.config.ts`: both lanes' pieces are named in the page.
 
 The second merge had the three conflicts foreseen. `packages/cli/src/commands/export.ts`: this branch's `tiersSaid` is kept (the tier line every time, each pin named), with slice 0084's note in its words. `packages/cli/test/friction.test.ts`: slice 0084's models and expectations, with `--change-models` where a re-export changes a model in place, and **one assertion of slice 0084's changed, on the driver's decision**: it asserted that no `tiers in this package` line is printed when no map is named; the line is printed every time, so the test asserts the line there, and the line and 0084's note together further down. `apps/web/vite.config.ts` again: a map in three dimensions and what opens a handed-over document are both named. `main` also brought three rules (`E_GROUP_CYCLE`, `E_SECOND_LEAD`, `W_GROUP_OVERLAP`), and `packages/cli/src/fixes.ts` does not build without a line for each: they are written, in the code and in `docs/agents.md`. No operation edits groups, so two of the three say to correct `groups` in the document itself. After the last merge the line for `E_SECOND_LEAD` no longer says a placed template is the usual way a second lead arrives: `grooph sub add` refuses a template that has one. The four subgrooph operations as MCP tools are the house lane's to add, after this merges; when they are, their replies go through `reply()` and `packages/cli/test/reply-lines.test.ts` should be given their arguments.
 
@@ -314,5 +316,5 @@ Its read of `e95e5f4`: the structure holds (59 labels, closed, none built from i
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (four fix passes, main merged in at 6e6dc6b with slice 0084 and all of subgroophs, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (four fix passes and the driver's last reader, main merged in at 4f1c11e with slice 0084 and all of subgroophs, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
 ```
