@@ -57,12 +57,12 @@ Eighteen whole graphs, then two fragments: nodes that you insert into a graph yo
 - [Fresh grind, rare judge](#fresh-grind-rare-judge): A fast builder grinds each phase against the tests; an expensive judge runs only at phase boundaries, against a phase checklist.
 - [Gauntlet, decomposed](#gauntlet-decomposed): A planner cuts the work into pieces and a human approves the cut; one piece at a time an owner polishes while a fresh frontier critic compares captures blind against the reference; an integrator and a final blind comparison close it.
 - [Grind loop](#grind-loop): A fast builder works against the test suite until it passes, bounded by rounds and minutes.
-- [Heterogeneous critic](#heterogeneous-critic): The review gate with the critic on a different model tier from the builder, so it does not share the builder's blind spots.
+- [Heterogeneous critic](#heterogeneous-critic): The review gate with the critic on a different model tier from the builder, so it need not share the builder's blind spots.
 - [Metric sandwich](#metric-sandwich): Cheap deterministic checks run first; an expensive critic judges only what they cannot see, and either failure returns to the builder.
 - [Ownership, not swarm](#ownership-not-swarm): Coupled subsystems get one owner each, in sequence; only the independent pieces fan out to fast workers; an integrator joins them and the tests close it.
 - [Patrol pulse](#patrol-pulse): A scan lists candidate signals, a read-only investigator judges them against the project and the existing tickets, a writer files the new ones to the ticket store, and a human prioritizes; one pulse is one run.
 - [Ralph loop](#ralph-loop): A fresh builder takes the top unchecked item of a plan file each round, commits on green and appends what it learned to an agent file, until the plan is empty.
-- [Red-team loop](#red-team-loop): A separate attacker records reproducible failing traces; the builder sees only the traces, until no new one appears.
+- [Red-team loop](#red-team-loop): A separate attacker records reproducible failing traces; the builder is given only the traces, until no new one appears.
 - [Retrospective rewrite](#retrospective-rewrite): A grind loop that ends, pass or fail, with a researcher reading the run's notes and proposing graph changes for the human to adopt.
 - [Review gate](#review-gate): A builder works, an isolated critic checks the change against a written checklist, failures loop back, and a human approves the merge.
 - [Spec then loop](#spec-then-loop): A planner writes the answer key, a human approves it, then a builder and an isolated critic loop against it.
@@ -323,7 +323,7 @@ In a Claude Code session with the `grooph-design` skill:
 
 <img src="field-guide/heterogeneous-critic.svg" alt="The shape of Heterogeneous critic: 2 agents · 1 gate · 1 loop · up to 4 rounds · 10 dispatches">
 
-**Use when.** The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic keeps approving the mistakes the builder makes.
+**Use when.** The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic may keep approving the mistakes the builder makes.
 
 **Not for.** Cheap, routine changes where a same-tier review-gate is enough, or checks a test can make; a stronger critic costs more every round.
 
@@ -673,7 +673,7 @@ In a Claude Code session with the `grooph-design` skill:
 
 **Use when.** Multiple disjoint judges (correctness, security, performance, taste) should each look at the change, and their findings need merging by severity.
 
-**Not for.** Small or low-risk changes, where one review-gate critic is enough; four reviewers and a judge cost four times a round.
+**Not for.** Small or low-risk changes, where one review-gate critic is enough; four reviewers and a judge are each a dispatch, every round.
 
 **Cost, speed, rigor.** High cost, medium speed, high rigor.
 

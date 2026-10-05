@@ -1,0 +1,124 @@
+
+================ unlisted work inside a round (dispatch budget counts members)
+
+### A1 sub: builder -> helper -> critic beside the direct edge; helper not a member (budget 10 dispatches)
+  changes: add node:helper, add edge:e-b-helper, add edge:e-helper-critic
+  refused: 
+    - node:helper: "helper" would work on the rounds of the loop "review-review" and not be among its members: its budget of dispatches would not count it
+  tightens:
+    + node:helper: the critic would no longer be handed "helper.md" by "helper"
+    + edge:e-helper-critic: the critic would no longer be handed "helper.md" by "helper"
+
+### A2 sub: the direct builder->critic edge re-pointed through helper (not a member)
+  NOT VALID (refused earlier): E_LOOP_BACK_EDGE: loop "review-review": back edge "review-e-critic-fail" returns to review-builder, but no path inside the loop's members leads from there to review-critic | E_LOOP_BACK_EDGE: loop "review-review": back edge "review-e-merge-gate-reject" returns to review-builder, but no path inside the loop's members leads from there to review-merge-gate
+
+### A3 glyph: tests renamed tests2 everywhere, but not listed in review.members
+  NOT VALID (refused earlier): E_LOOP_BACK_EDGE: loop "review": back edge "e-critic-fail" returns to build, but no path inside the loop's members leads from there to critic | E_LOOP_BACK_EDGE: loop "review": back edge "e-critic-evidence" returns to build, but no path inside the loop's members leads from there to critic
+
+### A4 sub: a NEW inner loop inside the round: builder -> polish <-> polish-check (cap 1000) -> critic; none listed in review-review
+  NOT VALID (refused earlier): E_LOOP_BACK_EDGE: loop "review-review": back edge "review-e-critic-fail" returns to review-builder, but no path inside the loop's members leads from there to review-critic | E_LOOP_BACK_EDGE: loop "review-review": back edge "review-e-merge-gate-reject" returns to review-builder, but no path inside the loop's members leads from there to review-merge-gate
+
+### A5 glyph: 'build' work moved to a new step build2 between build and tests; build's brief hollowed
+  changes: add node:build2, change node:build.brief, add edge:e-build-build2, add edge:e-build2-tests
+  refused: 
+    - node:build2: "build2" would work on the rounds of the loop "grind" and not be among its members: its budget of dispatches would not count it; "build2" would work on the rounds of the loop "review" and not be among its members: its budget of dispatches would not count it
+
+================ honest changes (should not be refused)
+
+### H1 sub: a check step put into the loop between builder and critic, listed in members
+  changes: change edge:e-review-builder-review-critic.from, add node:lint, change edge:e-review-builder-review-critic.when, add edge:e-b-lint, add edge:e-lint-fail, change loop:review-review.members, change loop:review-review.back
+  refused: 
+    - edge:e-review-builder-review-critic.from: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"
+  tightens:
+    + edge:e-review-builder-review-critic.from: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "lint"
+    + node:lint: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "lint"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H2 sub: a second critic after the first (first pass -> second -> gate), listed, its fail a back edge
+  changes: add node:second-critic, change edge:review-e-critic-pass.to, add edge:e-c2-pass, add edge:e-c2-fail, change loop:review-review.members, change loop:review-review.back
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:second-critic: removes a critic
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H3 sub: an earlier cap (3) that leads on to a wrap-up step that ends in a halting stop
+  changes: change loop:review-review.stops, add node:wrap-up, add node:handed-over, add edge:e-wrap-halt
+  refused: 
+    - loop:review-review.stops: the round cap of 3 that leads on to "wrap-up" would fire before the one of 4 that halts the run
+  tightens:
+    + loop:review-review.stops: raises the round cap from 3 to 4
+    + node:wrap-up: raises the round cap from 3 to 4
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H3b sub: the cap of 4 itself now leads on to the wrap-up step (-> halting stop)
+  changes: change loop:review-review.stops, add node:wrap-up, add node:handed-over, add edge:e-wrap-halt
+  refused: 
+    - loop:review-review.stops: the round cap (4) would no longer halt the run
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H4 sub: the gate gains an answer 'hold' that leads to a new halting stop
+  changes: change node:review-merge-gate.options, add node:held, add edge:e-gate-hold
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:review-merge-gate.options: the gate would no longer offer "hold"
+    + node:held: "hold" at the human gate "review-merge-gate" would lead nowhere
+    + edge:e-gate-hold: "hold" at the human gate "review-merge-gate" would lead nowhere
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H5 sub: an edge renamed (review-e-critic-fail -> review-e-critic-redo), back list updated
+  changes: remove edge:review-e-critic-fail, add edge:review-e-critic-redo, change loop:review-review.back
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H6 sub: builder renamed with its edges and members
+  changes: remove node:review-builder, change edge:e-review-builder-review-critic.from, add node:review-author, change edge:e-plan-review-builder.to, change edge:review-e-critic-fail.to, change edge:review-e-merge-gate-reject.to, change loop:review-review.members, change group:review.members
+  refused: 
+    - node:review-builder: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"
+    - edge:e-review-builder-review-critic.from: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"
+  tightens:
+    + edge:e-review-builder-review-critic.from: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-author"
+    + node:review-author: the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-author"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H7 sub: loop given one more member (a notes step after the critic's fail, on the way back)
+  changes: add node:triage, change edge:review-e-critic-fail.to, add edge:e-triage-builder, change loop:review-review.members
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H7b same, and the new edge triage->builder listed as the back edge instead
+  changes: change loop:review-review.back, add node:triage, change edge:review-e-critic-fail.to, add edge:e-triage-builder, change loop:review-review.members
+  refused: 
+    - loop:review-review.back: the rounds that "review-e-critic-fail" starts would no longer be counted by any loop
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H8 wrap: suite's pass now goes through a new report step to green
+  changes: add node:report, change edge:e-suite-pass.to, add edge:e-report-green
+  refused: NONE  <<<<<< adopted with no --allow
+
+### H9 sub: the critic's verdict 'invalid-evidence' gets its own edge back to the builder, listed as back
+  changes: add edge:e-critic-invalid, change loop:review-review.back
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H10 sub: stops reordered, cap before bar-passed
+  changes: change loop:review-review.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H11 gaunt: a planner step added in front of the decomposition gate
+  changes: add node:scout, add edge:e-scout-planner
+  refused: NONE  <<<<<< adopted with no --allow
+
+### H12 sub: release step gets an approval and an irreversible marker
+  changes: change node:release.irreversible, change edge:e-review-merge-gate-release.approval
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:release.irreversible: removes the irreversible marker "publish"
+    + edge:e-review-merge-gate-release.approval: removes a person's approval from the edge
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### H13 debate: the build loop's cap lowered 5 -> 3 and a dispatch budget added
+  changes: change loop:build.stops
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + loop:build.stops: raises the round cap from 3 to 5; removes the budget (8 dispatches)

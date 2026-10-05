@@ -1,0 +1,23 @@
+source (approval on critic->merge, no success stop) valid: true warnings: 
+
+### S1 review's bar-passed gets then: merge (beside the approved critic -> merge)
+  changes: change loop:review.stops
+  refused: 
+    - loop:review.stops: a stop of the loop would lead on from "build" to "merge", a way that does not pass a person
+
+### S2 a diminishing-returns stop then: merge
+  changes: change loop:review.stops
+  refused: 
+    - loop:review.stops: a stop of the loop would lead on from "build" to "merge", a way that does not pass a person
+
+### S3 control: the same by an edge critic -> merge (pass), no approval
+  changes: add edge:e-critic-merge-2
+  refused: 
+    - edge:e-critic-merge-2: "e-critic-merge-2" would lead from "critic" to "merge" beside "e-critic-merge", which needs a person's approval, and need none
+
+### S4 a budget of another measure, limit 0, then: merge, first in the list
+  changes: change loop:review.stops
+  refused: 
+    - loop:review.stops: a stop of the loop would lead on from "build" to "merge", a way that does not pass a person
+  tightens:
+    + loop:review.stops: removes the budget (0 tokens)

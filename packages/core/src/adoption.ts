@@ -126,3 +126,12 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
     notices: roundsLeftToAPerson(source, adopted),
   };
 }
+
+/**
+ * The command that adopts a run with these changes asked for by name: what `grooph adopt` prints when it refuses,
+ * and what the app shows to copy. One function, so that the two cannot drift; a test runs what it returns.
+ */
+export function adoptCommandLine(run: string, allow: readonly string[], into?: string): string {
+  const word = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
+  return ["grooph", "adopt", word(run), ...(into === undefined ? [] : ["--into", word(into)]), "--write", ...allow.flatMap((name) => ["--allow", word(name)])].join(" ");
+}

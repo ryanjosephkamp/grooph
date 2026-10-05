@@ -1,0 +1,15 @@
+seed 6: 3825 refreshed, 0 refused with a TemplateError, 175 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none  (x18)
+  review-gate, then release | sound template: false
+  newer version: addEdge merge-gate->builder "always"
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-x-merge-gate-builder
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x5)
+  review-gate, then release | sound template: true
+  newer version: repoint e-merge-gate-reject.to builder->critic ; role critic "critic"->builder
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-e-merge-gate-reject.to
+  held: node:s-critic.role

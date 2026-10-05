@@ -1,0 +1,14 @@
+
+=== P3b the edge into the critic leaves a new node 'collector'; the builder leads to a new node 'ship'
+applied: []
+held:    [
+  'edge:e-review-builder-review-critic [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  'node:review-collector (waits edge:e-review-builder-review-critic)',
+  'node:review-ship (waits edge:e-review-builder-review-critic)',
+  'edge:review-e-builder-critic (waits edge:e-review-builder-review-critic)',
+  'edge:e-review-builder-review-ship (waits edge:e-review-builder-review-critic)'
+]
+schema: ok | errors before: [] after: []
+brakesLost: []
+edges after: release->done  review-builder->review-critic  review-critic->review-builder[fail]  review-critic->review-merge-gate[pass]  review-merge-gate->review-builder[fail]  review-merge-gate->release[pass]  plan->review-builder
+warnings after: [ 'W_HOMOGENEOUS_CRITICS' ]

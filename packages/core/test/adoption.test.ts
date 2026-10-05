@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { checkAdoption, type AdoptionCheck } from "../src/adoption.js";
+import { adoptCommandLine, checkAdoption, type AdoptionCheck } from "../src/adoption.js";
 import { parseGraphText } from "../src/parse.js";
 import { adoptWorkingCopy } from "../src/runs.js";
 import type { Graph, Loop, Node } from "../src/types.js";
@@ -400,4 +400,11 @@ test("a loop's back edge moved to join two nodes of the loop inside it; a step o
   }, { from: nested });
   assert.ok(names(unlisted).includes("node:format"), names(unlisted).join(", "));
   assert.match(refused(unlisted).join("\n"), /"format" would work on the rounds of the loop "grind" and not be among its members: its budget of dispatches would not count it/);
+});
+
+test("the command that adopts on purpose is one line a shell takes as it is", () => {
+  assert.equal(adoptCommandLine(".grooph/g/runs/r1", ["loop:review.stops", "edge:e-a-b.approval"]), "grooph adopt .grooph/g/runs/r1 --write --allow loop:review.stops --allow edge:e-a-b.approval");
+  assert.equal(adoptCommandLine("runs/r1", [], "next.grooph.json"), "grooph adopt runs/r1 --into next.grooph.json --write");
+  // A folder with a space, or a name with a quote, is one word to the shell.
+  assert.equal(adoptCommandLine("my project/.grooph/g/runs/r1", ["node:it's"]), "grooph adopt 'my project/.grooph/g/runs/r1' --write --allow 'node:it'\\''s'");
 });

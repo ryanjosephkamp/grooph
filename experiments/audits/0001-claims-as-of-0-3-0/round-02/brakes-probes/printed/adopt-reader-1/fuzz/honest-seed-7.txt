@@ -1,0 +1,20 @@
+seed 7, 4000 trials; thrown: 0 []
+family                                                         kind      counted refused  said-to-tighten   first reason given (count)
+budget lowered                                                 tightens     200       0      200          
+a human stop added (last)                                      tightens     195       0      195          
+an approval added                                              tightens     222       0      222          
+a marker added to a step already behind a person               tightens      11       0       11          
+level made stricter                                            tightens     166       0      166          
+a brief reworded                                               neutral      222       0        0          
+a notes step added after an agent that led nowhere or anywhere neutral      222       0      222          
+a loop under another id, nothing else changed                  neutral      192     192      192          removes a loop with its stops and its bar (179) | there would be a way round the nodes of "…" that its stops do not coun (13)
+an edge under another id, nothing else changed                 neutral      222       2        2          a round between "…" and "…", which the loop "…" bounds, would be count (2)
+nodes, edges and stops' keys reordered                         neutral      222       0        0          
+the cap's halt made a halting stop node                        neutral      162       0        0          
+cap lowered                                                    tightens     201       0      201          
+a policy under another id, same kind and scope                 neutral      133     130      130          removes critic isolation (68) | lets a node grade its own work (62)
+critic handed one more piece of evidence                       neutral      135       0      135          
+gate: an answer added (no edge)                                neutral       91       0       91          
+bar-passed moved after the cap (order only)                    neutral      111       0        0          
+a second gate put in front of a gate (on the edge into it)     tightens      88       0       88          
+wild pairs: 600 compared, 0 threw []
