@@ -1,8 +1,11 @@
 name: CI
 
+# A branch is checked once, by its pull request. Until 2026-10-05 a push to a slice/** branch started these jobs
+# too, so every push to a branch with a pull request ran all of them twice; with six lanes pushing, that doubled
+# the wait for a machine. A branch with no pull request gets none: open one, as a draft if it is not ready.
 on:
   push:
-    branches: ["main", "slice/**"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 

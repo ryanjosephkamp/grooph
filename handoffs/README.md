@@ -37,6 +37,7 @@ handoffs/
 - Decisions the implementer made inside the boundary are recorded in the handback, with reasons; the driver promotes durable ones to `docs/decisions/`.
 - A blocked slice ends early with an honest handback rather than a workaround outside the boundary.
 - **A picture in git is small.** One added under `handoffs/`, `docs/` or `apps/web/public/` is a JPEG under 150 KB (a GIF the README shows, under 1.5 MB), and `node scripts/check-pictures.mjs --check` holds every pull request to it. A set of before-and-after shots goes on a published page, with its address in the handback, not into git: a clone carries every picture ever committed. The pictures from before the rule are listed in `scripts/pictures-baseline.json` and left alone.
+- **Checks run on a pull request**, and on `main`. A push to a branch that has no pull request starts none (since 2026-10-05; before that every push to a `slice/**` branch ran them a second time). Open the pull request, as a draft if the slice is not ready, to get them.
 - **A pushed branch is never rewritten**: no rebase, amend or force-push once a commit is on the remote, even a branch a minute old that nobody else has fetched. To bring a slice up to date, merge. **Files are added by name**, never with `git add -A`: other sessions' working copies live under this clone (`.claude/worktrees/`).
 
 ## Lanes
