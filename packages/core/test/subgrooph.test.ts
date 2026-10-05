@@ -1020,6 +1020,12 @@ test("a fourth reader's cases, found through adoption and open to a refresh as w
     t.loops[0]!.back.push("x-critic-fail-again");
   }));
   assert.match(refused(twin).join("\n"), /"review-x-critic-fail-again" would lead from "review-critic" to "review-builder" beside "review-e-critic-fail", which needs a person's approval, and need none/);
+
+  // What is not held is said: a stop where a person is asked, that continues inside the loop. The person is the
+  // brake there, and the cap comes to count the rounds between two of their answers.
+  const asks = refreshSubgrooph(placed(), "review", newer((t) => void stopsOf(t).push({ kind: "human", every: 2, then: "builder" })));
+  assert.deepEqual(asks.held, []);
+  assert.match(asks.notes.join("\n"), /the loop "review-review": the round cap \(4\) and the budget \(10 dispatches\) would count the rounds between two of a person's decisions, and no longer the whole run\. A way round its nodes that they do not count is opened each time by the stop where a person is asked, which continues at "review-builder"/);
 });
 
 test("allowing one change does not let another through: each way that opens is named", () => {

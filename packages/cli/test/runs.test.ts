@@ -332,6 +332,20 @@ test("a refused adoption does not say that what tightens is adopted, and lists a
   }
 });
 
+test("adopt notes, without refusing, a loop whose cap would come to count the rounds between a person's decisions", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    amend(run, (working) => void working.loops[0]!.stops.push({ kind: "human", every: 2, then: "builder" }));
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
+    assert.match(text(io.stdout), /\nnote: the loop "sandwich": the round cap \(5\) and the budget \(80 turns\) would count the rounds between two of a person's decisions, and no longer the whole run\. A way round its nodes that they do not count is opened each time by the stop where a person is asked, which continues at "builder"/);
+    assert.doesNotMatch(text(io.stdout), /loosens a brake/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("adopt takes a working copy that tightens a brake, and says which", async () => {
   const dir = project("slice-0007-sandwich");
   try {

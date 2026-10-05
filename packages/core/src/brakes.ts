@@ -493,6 +493,36 @@ function reachLosses(before: Graph, after: Graph): Loss[] {
   return losses;
 }
 
+/**
+ * What is no loss and is still to be said: a way round a loop's nodes that its stops do not count, opened each time
+ * by a person who was not asked there before (a new answer at a gate, an approval newly needed, a stop where a
+ * person is asked that continues inside). The person is the brake on it, so nothing is held; but the loop's cap and
+ * budget then count the rounds between two of that person's decisions, and no longer the run. One line for each
+ * such loop, naming where the person is asked.
+ */
+export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
+  const notes: string[] = [];
+  const persons = new Set(waysOf(before).filter((way) => way.person).map(wayName));
+  const every = new Set(waysOf(after).filter((way) => way.person).map(wayName));
+  const still = new Set(after.nodes.map((node) => node.id));
+  const gates = new Set(after.nodes.filter((node) => node.kind === "human-gate").map((node) => node.id));
+  for (const loop of before.loops) {
+    const kept = after.loops.find((other) => other.id === loop.id);
+    if (!kept || !(loop.stops.some(isBrakeStop) || loop.bar !== undefined)) continue;
+    const bounded = { id: loop.id, members: [...new Set([...loop.members.filter((member) => still.has(member)), ...kept.members])], back: kept.back };
+    const free = waysRoundUncounted(before, loop, persons);
+    // With every way a person opens taken as part of the graph: the ways round that are there only by one newly opened.
+    const opened = [...waysRoundUncounted(after, bounded, every)].filter(([name, way]) => way.person && !persons.has(name) && !free.has(name));
+    if (opened.length === 0) continue;
+    const by = [...new Set(opened.map(([, way]) => (way.edge === undefined ? `the stop where a person is asked, which continues at "${way.to}"` : gates.has(way.from) ? `"${way.when}" at the human gate "${way.from}" (${way.edge})` : `the approval asked on "${way.edge}"`)))];
+    const counts = [...brakesOf(after, [kept])].filter(([key]) => key !== "human").map(([, brake]) => `${brake.name} (${brake.halt ?? brake.any}${brake.unit})`);
+    notes.push(
+      `the loop "${loop.id}": ${counts.length > 0 ? counts.join(" and ") : "its stops"} would count the rounds between two of a person's decisions, and no longer the whole run. A way round its nodes that they do not count is opened each time by ${by.join(", and by ")}`,
+    );
+  }
+  return notes;
+}
+
 /** Every brake `after` has lost or loosened that `before` had; empty when it has lost none. */
 export function brakesLost(before: Graph, after: Graph): Loss[] {
   const seen = new Set<string>();

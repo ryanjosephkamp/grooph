@@ -283,7 +283,25 @@ test("what is not refused, and is said to be a limit: a way round that a person 
     w.loops.push({ id: "redo-round", name: "Redo", members: ["review-builder", "review-critic", "review-merge-gate", "redo"], back: ["e-redo-builder"], mode: "judgment", bar: structuredClone(loop(w).bar!), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 1000 }] });
   });
   assert.deepEqual(redo.refused, []);
-  assert.deepEqual(adopt((w) => void loop(w).stops.push({ kind: "human", every: 2, then: "review-builder" })).refused, []);
+  // Not refused, and said by name: which loop, which of its stops, and where the person is asked.
+  assert.deepEqual(redo.notices, [
+    'the loop "review-review": the round cap (4) and the budget (10 dispatches) would count the rounds between two of a person\'s decisions, and no longer the whole run. A way round its nodes that they do not count is opened each time by "redo" at the human gate "review-merge-gate" (e-gate-redo)',
+  ]);
+  const asked = adopt((w) => void loop(w).stops.push({ kind: "human", every: 2, then: "review-builder" }));
+  assert.deepEqual(asked.refused, []);
+  assert.match(asked.notices[0]!, /^the loop "review-review": the round cap \(4\) and the budget \(10 dispatches\) would count the rounds between two of a person's decisions.* opened each time by the stop where a person is asked, which continues at "review-builder"$/);
+  // An approval newly asked on the lap of a new way round: the person is on every lap, and that is said too.
+  const lap = adopt((w) => {
+    w.nodes.push(agent("redo", "builder"));
+    w.edges.push({ id: "e-critic-redo", from: "review-critic", to: "redo", when: { verdict: "redo" } }, { id: "e-redo-builder", from: "redo", to: "review-builder" });
+    w.loops.push({ id: "redo-round", name: "Redo", members: ["review-builder", "review-critic", "redo"], back: ["e-redo-builder"], mode: "judgment", bar: structuredClone(loop(w).bar!), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 1000 }] });
+    edge(w, "e-review-builder-review-critic").approval = true;
+  });
+  assert.deepEqual(lap.refused, []);
+  assert.match(lap.notices.join("\n"), /opened each time by the approval asked on "e-review-builder-review-critic"/);
+  // And nothing is said where nothing of the kind happened.
+  assert.deepEqual(adopt((w) => void (edge(w, "e-review-builder-review-critic").approval = true)).notices, []);
+  assert.deepEqual(adopt((w) => stops(w, (stop) => (stop.kind === "max-iterations" ? { ...stop, n: 40 } : stop))).notices, []);
 
   // An edge under another id, nothing else changed, on a way round that was there before: the same way.
   const nested = source((doc) => {

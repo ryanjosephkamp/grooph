@@ -286,8 +286,10 @@ marker, a round cap, a budget, the stop where a person is asked, a bar's accepta
 isolation, the adaptation level. The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
-tightens is adopted with the rest, and said. What is compared and what is not:
-docs/templates.md, "Refreshing".
+tightens is adopted with the rest, and said. A way round a loop that a person newly opens
+each time (a gate's new answer, a stop that asks a person and continues inside) is not
+refused: it is noted, with the loop whose cap would then count the rounds between that
+person's decisions. What is compared and what is not: docs/templates.md, "Refreshing".
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting

@@ -15,7 +15,7 @@
  * Pure. Not on the web app's way in: it brings `brakes.ts` and `reach.ts` with it.
  */
 
-import { brakesLost, type Loss } from "./brakes.js";
+import { brakesLost, roundsLeftToAPerson, type Loss } from "./brakes.js";
 import { effectiveAdaptation } from "./semantics.js";
 import type { Graph, Id } from "./types.js";
 
@@ -36,6 +36,8 @@ export type AdoptionCheck = {
   refused: AdoptionChange[];
   /** names asked for that are no change this run made */
   unknown: string[];
+  /** what is not refused and is still to be said: a loop whose cap would count the rounds between a person's decisions */
+  notices: string[];
 };
 
 const json = (value: unknown): string => JSON.stringify(value);
@@ -120,5 +122,6 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
     changes,
     refused: changes.filter((change) => change.loosens !== undefined && !allow.has(change.name)),
     unknown: [...allow].filter((name) => !names.has(name)),
+    notices: roundsLeftToAPerson(source, adopted),
   };
 }

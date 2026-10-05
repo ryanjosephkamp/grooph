@@ -26,8 +26,10 @@ marker, a round cap, a budget, the stop where a person is asked, a bar's accepta
 isolation, the adaptation level. The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
-tightens is adopted with the rest, and said. What is compared and what is not:
-docs/templates.md, "Refreshing".
+tightens is adopted with the rest, and said. A way round a loop that a person newly opens
+each time (a gate's new answer, a stop that asks a person and continues inside) is not
+refused: it is noted, with the loop whose cap would then count the rounds between that
+person's decisions. What is compared and what is not: docs/templates.md, "Refreshing".
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting
@@ -97,6 +99,10 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     io.out("");
     io.out(check.refused.length > 0 ? "tightens a brake:" : "tightens a brake, and is adopted with the rest:");
     for (const change of tighter) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.tightens}`);
+  }
+  for (const notice of check.notices) {
+    io.out("");
+    io.out(`note: ${notice}`);
   }
   if (check.unknown.length > 0) {
     io.err(`grooph: no change named ${check.unknown.map((name) => `"${name}"`).join(", ")} in this run; ${check.changes.length > 0 ? `its changes are ${check.changes.map((change) => change.name).join(", ")}` : "it changed nothing"}`);
