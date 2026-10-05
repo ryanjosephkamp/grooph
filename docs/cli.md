@@ -23,7 +23,7 @@ Check
   canonicalize print or rewrite a document in canonical form
 
 Compile
-  export       write the prompt package for a harness (claude-code)
+  export       write the prompt package for a harness (claude-code, codex)
   adopt        take a run's working copy as the graph's next version
 
 See
@@ -245,21 +245,29 @@ Example
 
 ## `grooph export`
 
-Write the prompt package for a harness (claude-code)
+Write the prompt package for a harness (claude-code, codex)
 
 ```text
 grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
-Refuses, with the reasons, when the document has errors. Targets: claude-code.
+Refuses, with the reasons, when the document has errors. Targets: claude-code, codex.
+A package is one harness's files: --target is the harness the document names (target.harness),
+and a document that names another is refused (E_NO_TARGET) until it names this one:
+  echo '[{"op":"setTarget","harness":"codex"}]' | grooph apply flaky.grooph.json --ops - --write
+  grooph export flaky.grooph.json --target codex --into <a project that does not hold its claude-code package>
+Two packages of one graph in one folder are a mixed package: export does not yet notice the other's files.
 
   --models <tier>=<model>,...   which model a tier means in this package: frontier, strong, fast.
                                 A tier not named keeps the target's own; a pin on a node still wins.
                                 GROOPH_MODELS in the environment says the same for every export
-                                on a machine; the flag wins over it. The graph does not change.
+                                for claude-code on a machine, and GROOPH_MODELS_CODEX for every
+                                export for codex: a model's name is one harness's, so neither is
+                                read for the other target. The flag wins. The graph does not change.
 
-The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
-on one over a builder on the other is the same model: the export says so when a graph has agents on both.
+The targets' own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet; for codex: frontier → gpt-6.1-sol, strong → gpt-6-luna, fast → gpt-6-luna.
+In each, two of them are one model, so a critic on one over a builder on the other is the same model:
+the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .

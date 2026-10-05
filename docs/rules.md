@@ -121,7 +121,7 @@ error  E_STOP_NOT_INSPECTABLE  loop "polish-cycle" stops only when its bar passe
 
 ### `E_NO_TARGET`
 
-**No target harness.** Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`. A profile and its human companion `docs/targets/<harness>.md` are added together.
+**No target harness.** Export requested and `target.harness` is absent or has no profile in the registry at `packages/core/targets/<harness>.profile.json`; or the export is asked for a harness other than the one the document names. A package is one harness's files: the document says which, the compiler refuses to write another's (it reports this case, since the validator is not told which export is asked for), and each compiler uses its own target's profile whatever the document names. To export a graph for another harness, name that harness in it first (the `setTarget` op). This case has no fixture: a fixture is a document, and cannot say which export is asked for; `packages/core/test/compile-target.test.ts` holds it ([decision 0030](decisions/0030-a-package-is-one-harnesss.md)). A profile and its human companion `docs/targets/<harness>.md` are added together.
 
 **Fails:** [`fixtures/invalid/E_NO_TARGET/no-target-harness.grooph.json`](../fixtures/invalid/E_NO_TARGET/no-target-harness.grooph.json) prints
 
@@ -205,7 +205,7 @@ error  E_IRREVERSIBLE_NO_GATE  node "publisher" performs irreversible actions (p
 
 ### `W_HOMOGENEOUS_CRITICS`
 
-A critic-family node resolves to the same tier and pins as every one of its **nearest writers**: the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic.
+A critic-family node is on the same model as every one of its **nearest writers**, as far as the document says: the same pin for the harness the document names, or, where neither is pinned for it, the same tier (a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by its tier and every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic.
 
 **Fails:** [`fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json`](../fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json) prints
 
