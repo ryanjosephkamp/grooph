@@ -214,7 +214,7 @@ A node added mid-run needs its own TOML definition beside the others. Do not ass
 grooph raised these when compiling this package. They are not errors, and the human running this graph should see them:
 
 ```text
-warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: builder, critic]
+warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]
 ```
 
 ## 11. Ending
