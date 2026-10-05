@@ -102,9 +102,9 @@ A held-out suite scored each run; one blind judge ranked all runs of a project. 
 
 **Limits of the study.** Two replicates per arm (three for one project); one harness version; one model family; the loop arm ran one iteration in every run; the package and the prompt differed in more than the record. It measured what the package cost on these tasks, not what a brake or a correction is worth.
 
-### 5.3 Study two, designed and not yet run
+### 5.3 Study two
 
-Protocol version 2 adds a fourth arm with no roles at all, tasks built so a first pass fails, a held-out suite per project, and a pre-registered probability of passing at round zero ([handoff 0019](../../handoffs/0019-comparison-study-two/HANDOFF.md)). It answers what study one could not: structure against no structure, and what a loop is worth when it turns.
+Protocol version 2 adds a fourth arm with no roles at all, tasks built so a first pass fails, a held-out suite per project, and a pre-registered probability of passing at round zero ([handoff 0019](../../handoffs/0019-comparison-study-two/HANDOFF.md)). It was run on 2026-10-04, after this report was drafted, and its records are in [`experiments/comparisons/`](../../experiments/comparisons/README.md). Its results are not stated here: they have not yet been read by a second harness ([what grooph claims, and on what evidence](../claims.md)).
 
 ## 6. Observation
 
@@ -139,7 +139,7 @@ The validator counts how many handoffs move only when a person moves them. For t
 ## 8. Limitations
 
 - One compile target today. A Codex target is planned and not built.
-- The comparison evidence is one study of four small projects.
+- The comparison evidence stated here is one study of four small projects. A second has run and is not yet audited.
 - The turn-end sender has been seen working in Claude Code's cloud sessions by another session's report, not by this project's own records ([`docs/subagents.md`](../subagents.md) labels each fact as documented, seen, reported or unknown).
 - A session takes up hooks when it starts. Hooks that arrive mid-session are normally picked up and sometimes are not.
 - The app is built for a phone first. Its desktop layout is recent.
