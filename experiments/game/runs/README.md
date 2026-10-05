@@ -14,6 +14,8 @@ One folder per harness, and in it one folder per session: `claude-code/rehearsal
 | `after/models.txt` | after | `setup/record.sh` | which models answered, as the transcripts name them |
 | `after/held-out-checks-seen.txt` | after | `setup/record.sh` | whether the checks' path or file names appear in any transcript of the session |
 | `after/refusals.txt` | after | `setup/record.sh` | what was refused: a permission, a host, a read |
-| the checks' three outputs, the result commit | after | `setup/score.sh`, a later slice | |
+| `after/result-commit.txt` | after | `setup/score.mjs` | the result commit and how it was found, with every commit that was tried and how far each got |
+| `after/checks-1.txt` to `-3.txt`, and their `.json` | after | `setup/score.mjs` | what the held-out checks printed, each of the three times |
+| `after/score.md` | after | `setup/score.mjs` | each check's verdict: pass (all three), unsteady (some), fail (none), with the three results |
 
 Nothing has been run: no folder is here yet.

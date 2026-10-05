@@ -26,6 +26,12 @@ npm view playwright version && npx -y playwright@latest install chromium
 
 A version number (1.63.0 on 2026-10-04), then either nothing more or a download of about 150 MB. This is the browser the critic drives; a session cannot fetch it for itself, because it may reach the npm registry and nothing else.
 
+```bash
+pnpm --filter @grooph/web exec playwright install chromium
+```
+
+The browser with a window that the checks are run in after the run (part 6). Nothing more, or one more download.
+
 ## 2. Once: the clean profile, and signing in to it
 
 ```bash
@@ -209,7 +215,19 @@ experiments/game/setup/record.sh run
 git -C ~/grooph-game/grooph-game-experiment-claude push origin main --tags
 ```
 
-The first copies the record and prints what it found; the second puts the game on GitHub (a session cannot push). Send the first one's output to the driver. Scoring (finding the result commit, the checks three times with a window) is the next morning's, by `setup/score.sh`, which is a later slice.
+The first copies the record and prints what it found; the second puts the game on GitHub (a session cannot push). Send the first one's output to the driver.
+
+## 6. After the run: the result commit and the checks
+
+Not before the session has ended, and nothing it prints is shown to any session. It takes a few minutes for each commit it has to try, then about a quarter of an hour for the checks; three browser windows open and close by themselves, one after another. Leave the Mac alone while they do: the frame-rate check is watching.
+
+```bash
+node experiments/game/setup/score.mjs run
+```
+
+`the result commit: …` with how it was found (the commit tagged `final`, or with no such tag the newest commit that builds and whose own play scripts pass), then three lines `run 1: n of 21 pass`, and a last line with how many pass all three. The table is in `experiments/game/runs/claude-code/run/after/score.md`. If it says there is no result commit, that is a finding and not a fault of the script: send it to the driver as it is.
+
+After the rehearsal the same line with `rehearsal` in place of `run` shows the checks a real three.js page for the first time (`PROTOCOL.md` §7, 5). What a twenty-minute build passes is not a result; it is a look at the checks.
 
 ## If something is not as written
 

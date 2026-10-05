@@ -151,6 +151,21 @@ It is a terminal session. The desktop app's sessions are given tools that read o
 7. **What Claude Code reports as loaded at the start** is recorded only as far as the owner's four typed lines at sign-in and what `record.sh` reads from the transcript afterwards. A fuller list (every built-in skill and tool) is not captured.
 8. **Next, in a second pull request:** `setup/score.sh` and its dry run against the stand-ins; the windowed Chromium it needs comes with the runbook's install line.
 
+## After the handback: the scoring script
+
+The one item the status above held back, in a second pull request stacked on the first.
+
+- **`experiments/game/setup/score.mjs`** (new). For a session's record it finds the result commit as the protocol defines it (the commit tagged `final`; with no tag, the newest commit at which `npm ci` and `npm run build` succeed and `node playable/all.mjs` passes, looked for from the newest back and never the starting contents), builds it in a clean checkout under `~/grooph-game/scoring/`, serves its `dist/`, and runs `acceptance/check.mjs` three times with a window. It writes `after/result-commit.txt` (with every commit tried and how far each got), the three outputs, and `after/score.md`: pass (all three), unsteady (some, with all three results), fail (none). The ledger's row gets the result commit and the count.
+- **Dry runs, with no model and no game** (`--no-window`, because the windowed Chromium is not on this Mac; the runbook has the owner install it):
+  - `--stand-in good`: 21 of 21 pass all three. `--stand-in broken`: 21 of 21 fail all three.
+  - A made-up repository of three commits (the starting contents; a build that plays, made of the stand-in page; a commit whose own play scripts fail): it tried the newest, found its play scripts failing, took the one before as the result, and the checks passed 21 of 21 three times. With that commit tagged `final` it took the tag.
+  - The made-up record and ledger row were removed afterwards.
+- **A fault found by the first dry run, in my own script:** it ran the checks in a way that blocked the very process serving the page, so the first run never finished. It now runs each beside the server. Nothing of `acceptance/` was touched.
+- **The runbook** has a part 6 for it and one more install line; `runs/README.md` lists what it writes.
+- **Not known until a real game:** how long three runs take at full patience (the stand-ins are run with the waits shortened, as `prove.mjs` runs them), and whether a build made by a session installs and builds in a clean checkout as it did for the session.
+
+With this the brief's six items are all made and dry-run. **Status: `done`.**
+
 ## Prompt to paste into the driver session
 
 ```text

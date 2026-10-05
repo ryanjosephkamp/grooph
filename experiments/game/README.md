@@ -13,7 +13,7 @@ One browser game, built from one spec and one loop graph, once in Claude Code an
 | [`ANSWERS.md`](ANSWERS.md) | the owner's answers to the protocol's eight questions |
 | [`FROZEN.md`](FROZEN.md) | the one commit both runs take the spec, the graph and the checks from, with their checksums |
 | [`RUNBOOK.md`](RUNBOOK.md) | the Claude Code run, for the owner: each step a line to paste, and what he should then see |
-| [`setup/`](setup/) | what the runbook runs: the starting contents built outside this clone (`make-repo.sh`), the clean profile (`make-profile.sh`, `start-claude.sh`; [`PROFILE.md`](setup/PROFILE.md) says what each line is for), the record after a session (`record.sh`) |
+| [`setup/`](setup/) | what the runbook runs: the starting contents built outside this clone (`make-repo.sh`), the clean profile (`make-profile.sh`, `start-claude.sh`; [`PROFILE.md`](setup/PROFILE.md) says what each line is for), the record after a session (`record.sh`), and the result commit and the checks three times (`score.mjs`) |
 | [`runs/`](runs/) | each session's record, made before the session starts; [`ledger.json`](ledger.json) beside it, once there is a session |
 
 The page for the owner is [`handoffs/briefs/game-experiment.html`](../../handoffs/briefs/game-experiment.html).
