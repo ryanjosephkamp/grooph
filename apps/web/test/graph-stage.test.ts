@@ -9,6 +9,8 @@ import { columnsForViewport } from "../src/doc/layout.js";
 import { firstPass } from "../src/ui/canvas/graph-views.js";
 import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
 import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
+import type { Shown } from "../src/ui/canvas/stage/shapes.js";
+import { brakes, reach, spiral, topOf } from "../src/ui/canvas/stage/spiral.js";
 
 /**
  * A graph's other views in three dimensions (handoff 0096): what every view draws from, held to the documents. The
@@ -253,5 +255,118 @@ describe("panes", () => {
         expect(line.t === "line" && !!line.dash, `${path} ${e.id}`).toBe(!!e.back);
       }
     }
+  });
+});
+
+describe("the spiral and its lid", () => {
+  const whole: Shown = { k: 0, lit: null, took: [] };
+  const lids = (prims: ReturnType<typeof spiral>["prims"]) => prims.filter((p) => p.t === "poly" && p.fill === "brake");
+  const rings = (prims: ReturnType<typeof spiral>["prims"]) => prims.filter((p) => p.t === "line" && p.stroke === "k-gate");
+  const dashed = (prims: ReturnType<typeof spiral>["prims"]) => prims.filter((p) => p.t === "line" && p.stroke === "brake" && p.dash);
+  /** What the slider hands a view at a step of a run, as `graph-stage.tsx` works it out. */
+  const at = (model: ReturnType<typeof modelAt>, k: number): Shown => {
+    const steps = stepsOf(model);
+    const step = steps[k]!;
+    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
+    return {
+      k,
+      lit: about.length ? new Set(about) : null,
+      took: steps.flatMap((s, n) => (s.edge && !s.about ? [{ edge: s.edge, r0: s.r0 ?? 0, r1: s.r1 ?? 0, step: n }] : [])),
+      until: reach(model, steps, k || steps.length - 1),
+      ...(k > 0 ? { dispatches: steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length } : {}),
+    };
+  };
+
+  it("a loop's brakes are places on the way up: the lid at its cap, a ring after each round a person is asked, and a budget only as a reading near the lid", () => {
+    // Review: the cap is 4; 10 dispatches at two a full round is 5 rounds, within a round and a half of the lid.
+    expect(brakes(loop(REVIEW, "review"), 4)).toEqual({ lid: 4, asked: [], budget: 5, words: ["max iterations: 4 (the lid)", "budget: 10 dispatches, at most 5 full rounds (the dashed ring, a reading)"] });
+    // Pieces: a person every 2 rounds, so after rounds 2 and 4, the second at the lid's own round. 42 dispatches at
+    // four a full round is ten and a half rounds: far over the lid, said and not drawn. Never "two more than four
+    // rounds can use": a round can cost more than a full round's least.
+    const pieces = brakes(loop(GAUNTLET, "pieces"), 4);
+    expect(pieces).toMatchObject({ lid: 4, asked: [2, 4], budget: null });
+    expect(pieces.words).toEqual(["max iterations: 4 (the lid)", "a person is asked every 2 rounds (the amber rings)", "budget: 42 dispatches, at most 10 full rounds and 2 more (above the lid, not drawn)"]);
+    expect(brakes(loop(GAUNTLET, "polish"), 3)).toMatchObject({ lid: 3, asked: [], budget: 10 / 3 });
+    // A budget that is not in dispatches is no place on the way up: it is said, and nothing is drawn for it.
+    expect(brakes(loop(RUN, "sandwich"), 5)).toEqual({ lid: 5, asked: [], budget: null, words: ["max iterations: 5 (the lid)", "budget: 80 turns"] });
+    // No cap: no lid, and the spiral is two rounds taller than a first pass.
+    const open = { ...loop(REVIEW, "review"), cap: null };
+    expect(brakes(open, 3).words[0]).toBe("no lid: no cap on rounds");
+    expect(topOf(modelOf(REVIEW), open)).toBe(3);
+  });
+
+  it("draws each brake where it is, and never lights the lid with its loop", () => {
+    const m = modelOf(GAUNTLET);
+    const { prims } = spiral(m, { ...whole, k: 1, lit: new Set(["loop:pieces", "loop:polish"]) });
+    // One lid a loop, at its cap's height (54 a round), and no lid has a key: a step about the loop lights the
+    // rounds taken, not the lid.
+    expect(lids(prims).map((p) => (p.t === "poly" ? p.pts[0]![1] : 0)).sort()).toEqual([3 * 54, 4 * 54]);
+    expect(lids(prims).every((p) => p.key === undefined)).toBe(true);
+    expect(prims.filter((p) => p.key?.startsWith("loop:")).every((p) => p.t === "line" && p.stroke !== "brake")).toBe(true);
+    // Pieces' two amber rings, at rounds 2 and 4; the one at the lid's round is inside the lid.
+    const amber = rings(prims).map((p) => (p.t === "line" ? [p.pts[0]![1], Math.round(Math.hypot(p.pts[0]![0] - p.pts[20]![0], p.pts[0]![2] - p.pts[20]![2]) / 2)] : []));
+    expect(amber.map(([y]) => y)).toEqual([2 * 54, 4 * 54]);
+    expect(amber[1]![1]).toBeLessThan(amber[0]![1]!);
+    // One dashed ring: Polish's budget, a third of a round over its lid. Pieces' is not drawn.
+    expect(dashed(prims).map((p) => (p.t === "line" ? Math.round(p.pts[0]![1]) : 0))).toEqual([Math.round((10 / 3) * 54)]);
+  });
+
+  it("every node is one card on every template, with or without a loop, and all but the cards is grown", () => {
+    for (const path of ALL) {
+      const doc = graph(path);
+      const m = modelAt(doc, places(doc));
+      const { prims, node, path: way } = spiral(m, whole);
+      expect(prims.filter((p) => p.t === "card").map((p) => (p.t === "card" ? p.id : "")).sort(), path).toEqual(doc.nodes.map((n) => n.id).sort());
+      expect(prims.every((p) => (p.t === "card") !== !!p.grow), path).toBe(true);
+      for (const n of doc.nodes) expect(node(n.id).every(Number.isFinite), `${path} ${n.id}`).toBe(true);
+      for (const e of m.edges) expect(way(e.id, 0, e.back ? 1 : 0).flat().every(Number.isFinite), `${path} ${e.id}`).toBe(true);
+      // A node in no loop is a card with its name alone where there is a loop to look at.
+      for (const p of prims) if (p.t === "card") expect(!!p.small, `${path} ${p.id}`).toBe(m.loops.length > 0 && !m.nodes.find((n) => n.id === p.id)!.loop);
+      expect(prims.some((p) => p.t === "text" && p.text.startsWith("No loop in this graph")), path).toBe(m.loops.length === 0);
+    }
+  });
+
+  it("on a run it is solid as far up as the run has been, says the round the run is in, and has a bead for each dispatch so far in its round", () => {
+    const [doc, notes] = runAt("run-nested");
+    const m = modelAt(doc, places(doc), notes);
+    const steps = stepsOf(m);
+    // Note 8: the judge, in round 0 of Phases, after two rounds of Grind. Grind is where it was left.
+    expect(reach(m, steps, 8)).toEqual({ grind: { now: 1.5, most: 1.5 }, phases: { now: 0.5, most: 0.5 } });
+    // Note 10: the builder again, by the phases' way back. Phases is in round 1, at Grind's stop; Grind starts
+    // afresh in round 0, and has been as far up as round 1.
+    expect(reach(m, steps, 10)).toEqual({ grind: { now: 0, most: 1.5 }, phases: { now: 1, most: 1 } });
+    expect(reach(m, steps, 1)).toEqual({});
+    const solid = (k: number, id: string) => {
+      const line = spiral(m, at(m, k)).prims.find((p) => p.key === `loop:${id}`);
+      return line?.t === "line" ? line.pts[line.pts.length - 1]![1] / 54 : null;
+    };
+    expect([solid(2, "grind"), solid(2, "phases")]).toEqual([null, null]);
+    expect([solid(8, "grind"), solid(8, "phases")]).toEqual([1.5, 0.5]);
+    expect([solid(10, "grind"), solid(10, "phases")]).toEqual([1.5, 1]);
+    const words = (k: number) => spiral(m, at(m, k)).prims.flatMap((p) => (p.t === "text" && p.up ? [p.text] : []));
+    expect(words(1)).toEqual(["Grind\nnot entered", "Phases\nnot entered"]);
+    expect(words(10)).toEqual(["Grind\nround 0, lid at 5", "Phases\nround 1, lid at 5"]);
+    // Beads: one a dispatch so far, at its round's height or above it within the round.
+    const beads = (k: number) => spiral(m, at(m, k)).prims.filter((p) => p.t === "dot" && p.r === 6);
+    expect([beads(1).length, beads(3).length, beads(8).length, beads(0).length]).toEqual([0, 2, 5, 7]);
+    expect(beads(3).map((p) => (p.t === "dot" ? p.fill : ""))).toEqual(["ok", "bad"]);
+  });
+
+  it("a run's edges are in the round it took them, as far as the slider has come; one it never took is faint", () => {
+    const m = modelAt(RUN, places(RUN), NOTES);
+    const edges = (k: number) => Object.fromEntries(spiral(m, at(m, k)).prims.flatMap((p) => (p.t === "line" && p.key?.startsWith("edge:") && !p.hide ? [[p.key, p.alpha ?? 1]] : [])));
+    // The whole run: the critic's fail back to the builder from round 0, its pass out to Done from round 1, and
+    // the way back from the checks, never taken, faint at round 0. The edges that are the spiral are not drawn
+    // twice over it.
+    expect(edges(0)).toEqual({ "edge:e-critic-fail@0": 1, "edge:e-critic-pass@1": 1, "edge:e-checks-fail@0": 0.3 });
+    // At note 6, the critic's fail: no way back has been taken yet, and none is drawn as taken. The edge the note
+    // moved along, which is the spiral's own, is shown because the step is about it.
+    expect(edges(6)).toEqual({ "edge:e-checks-critic@0": 1, "edge:e-checks-fail@0": 0.3 });
+    expect(edges(9)).toMatchObject({ "edge:e-critic-fail@0": 1 });
+    // Note 8 is a proposal about an edge, not a move: the edge is shown where the run stood, and is not counted taken.
+    expect(edges(8)).toEqual({ "edge:e-checks-critic@0": 1, "edge:e-checks-fail@0": 0.3 });
+    // A way back arrives one turn up.
+    const back = spiral(m, at(m, 9)).path("e-critic-fail", 0, 1);
+    expect([back[0]![1], back[back.length - 1]![1]].map((y) => Math.round((y / 54) * 100) / 100)).toEqual([0.67, 1]);
   });
 });

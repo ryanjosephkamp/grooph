@@ -10,18 +10,20 @@
  */
 import type { Id, V } from "./model.js";
 
-type Common = { key?: string; alpha?: number; hide?: boolean; lift?: number };
+type Common = { key?: string; alpha?: number; hide?: boolean; lift?: number; /** not there when the view first comes: grown, or faded in, once the cards have landed */ grow?: boolean };
 export type Prim =
   | (Common & { t: "poly"; pts: V[]; fill?: string; fa?: number; stroke?: string; w?: number; dash?: number[] })
   | (Common & { t: "line"; pts: V[]; stroke?: string; w?: number; dash?: number[]; arrow?: boolean; inset?: [number, number] })
   | (Common & { t: "dot"; at: V; r?: number; fill?: string; stroke?: string; w?: number; /** over the cards, as an element: what travels from one card to another */ over?: boolean })
   | (Common & { t: "text"; at: V; text: string; size?: number; fill?: string; bold?: boolean; align?: "left" | "center" | "right"; max?: number; up?: boolean; heads?: number; headFill?: string })
-  | (Common & { t: "card"; at: V; id: Id; stand?: boolean; side?: boolean });
+  | (Common & { t: "card"; at: V; id: Id; stand?: boolean; side?: boolean; /** its name only: a node the view is not about */ small?: boolean });
 
 export type Look = { yaw: number; pitch: number };
 export type Stage = {
   /** what a step lights: the keys of the things it is about; null when nothing is picked out */
   lit: Set<string> | null;
+  /** how much of what grows is there, from 0 to 1: a line is drawn so far along, anything else so strongly */
+  grown: number;
   set(prims: Prim[]): void;
   /** draw now, and not at the next frame: a card must be in its place before the browser is told the page has changed */
   draw(): void;
@@ -84,7 +86,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     Object.assign(view, start, { zoom: 1 });
     // Each thing takes room round its point that does not shrink with the scene: a card its box, words their lines.
     const room = (p: Prim): [number, number, number, number] => {
-      if (p.t === "card") return p.side ? [8, 128, 22, 22] : p.stand ? [58, 58, 60, 8] : [58, 58, 24, 24];
+      if (p.t === "card") return p.side ? (p.small ? [8, 100, 14, 14] : [8, 128, 22, 22]) : p.stand ? [58, 58, 60, 8] : [58, 58, 24, 24];
       if (p.t === "text") return [8, 8, p.up ? 16 * p.text.split("\n").length * 1.6 : 12, 12];
       return [3, 3, 3, 3];
     };
@@ -143,8 +145,9 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     // At a step, what the step is about stands out: the other nodes, edges and loops step back. What belongs to
     // none of them (a lid, the faint rounds, a floor, a word) stays as it is.
     const dim = (p: Prim): number => (lit && p.key && !lit.has(p.key) ? 0.42 : 1);
+    const grown = stage.grown;
     const items = prims
-      .filter((p) => !p.hide)
+      .filter((p) => !p.hide && !(p.grow && grown <= 0))
       .map((p) => {
         const pts = points(p).map(seen);
         const depth = pts.reduce((a, q) => a + q[2], 0) / pts.length + (p.t === "poly" ? -90 : p.t === "line" ? -20 : p.t === "dot" ? 4000 : p.t === "text" ? 60 : 0) + (p.lift ?? 0);
@@ -160,6 +163,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         const el = cards.querySelector<HTMLElement>(`[data-node="${CSS.escape(p.id)}"]`);
         if (!el) return;
         placed.add(p.id);
+        el.classList.toggle("is-small", !!p.small);
         const s = clamp(at[0]![3], 0.72, 1.15);
         const [cw, ch] = [el.offsetWidth * s, el.offsetHeight * s];
         const [x, y] = [p.side ? at[0]![0] + 9 : at[0]![0] - cw / 2, p.stand && !p.side ? at[0]![1] - ch - 13 : at[0]![1] - ch / 2];
@@ -171,7 +175,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         return;
       }
       let pts: number[][] = at;
-      g.globalAlpha = dim(p) * (p.alpha ?? 1);
+      g.globalAlpha = dim(p) * (p.alpha ?? 1) * (p.grow && p.t !== "line" ? grown : 1);
       g.setLineDash("dash" in p && p.dash ? p.dash : []);
       g.lineJoin = g.lineCap = "round";
       if (p.t === "poly") {
@@ -181,11 +185,13 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         if (p.stroke) ((g.strokeStyle = color(on ? "accent" : p.stroke)), (g.lineWidth = (p.w ?? 1) * (on ? 2 : 1)), g.stroke());
       } else if (p.t === "line") {
         if (p.inset) pts = inset(pts, p.inset[0], p.inset[1]);
+        // A line that grows is drawn from its start, so far along.
+        if (p.grow && grown < 1) pts = pts.slice(0, Math.max(2, Math.ceil(pts.length * grown)));
         trace(pts);
         g.strokeStyle = color(p.stroke ?? "ink-2");
         g.lineWidth = (p.w ?? 1.4) * (on ? 2.1 : 1);
         g.stroke();
-        if (p.arrow && pts.length > 1) {
+        if (p.arrow && pts.length > 1 && !(p.grow && grown < 1)) {
           const [a, b] = [pts[pts.length - 2]!, pts[pts.length - 1]!];
           const ang = Math.atan2(b[1]! - a[1]!, b[0]! - a[0]!);
           g.setLineDash([]);
@@ -330,6 +336,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
 
   const stage: Stage = {
     lit: null,
+    grown: 1,
     set(list) {
       prims = list;
       size();

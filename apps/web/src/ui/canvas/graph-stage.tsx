@@ -17,10 +17,12 @@ import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
 import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
 import { along, type Shown, type View } from "./stage/shapes.js";
+import { brakes, reach, spiral, topOf } from "./stage/spiral.js";
 
-/** Each kind: how it places the graph, where it is first seen from, and what it is, in a sentence. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string }> = {
+/** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, and whether each loop's brakes are said under it. */
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; brakes?: boolean }> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
+  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", says: "A round of a loop is one turn upward, and a brake is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh.", brakes: true },
 };
 
 let styled = false;
@@ -56,7 +58,23 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
 
   useLayoutEffect(() => {
     const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start));
-    return () => (cancelAnimationFrame(glide.current), made.off());
+    // What a view grows (a spiral, its lid) is not there when the view comes: the cards land first, and then it is
+    // grown. For a reader who asked for less motion it is all drawn at once.
+    let frames = 0;
+    let wait: ReturnType<typeof setTimeout> | undefined;
+    if (!still()) {
+      made.grown = 0;
+      wait = setTimeout(() => {
+        const from = performance.now();
+        const grow = (now: number): void => {
+          made.grown = Math.min(1, (now - from) / 700);
+          made.draw();
+          if (made.grown < 1) frames = requestAnimationFrame(grow);
+        };
+        frames = requestAnimationFrame(grow);
+      }, 330);
+    }
+    return () => (clearTimeout(wait), cancelAnimationFrame(frames), cancelAnimationFrame(glide.current), made.off());
   }, [kind]);
   // What the slider is at, drawn. Now, and not at the next frame: when the picture becomes this view the browser is
   // told the page has changed as soon as this is done, and takes the cards from where they are then.
@@ -69,6 +87,8 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
     if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
     // A run is drawn as far as the note it is at; step 0 is all of it.
     if (model.run && k > 0) shown.dispatches = steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length;
+    // And each loop as far as the run has come round it by then.
+    if (model.run) shown.until = reach(model, steps, k || steps.length - 1);
     const built = the.view(model, shown);
     on.lit = shown.lit;
     cancelAnimationFrame(glide.current);
@@ -141,6 +161,16 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
       <output className="s3-says" aria-live="polite">
         {step.says}
       </output>
+      {the.brakes && model.loops.length ? (
+        // Each loop's brakes in words, with what stands for each in the drawing.
+        <ul className="s3-key" aria-label="Each loop's brakes">
+          {model.loops.map((loop, n) => (
+            <li key={loop.id}>
+              <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {brakes(loop, topOf(model, loop)).words.join("; ")}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <p className="s3-note">{the.says}</p>
     </div>
   );

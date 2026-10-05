@@ -73,7 +73,7 @@ test("the row of kinds is there only while a view in three dimensions is up; Pan
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
   // The row says which kind this is, and offers the others, each with what it is.
-  await expect(kinds(page).getByRole("radio")).toHaveText(["Stairs", "Panes"]);
+  await expect(kinds(page).getByRole("radio")).toHaveText(["Stairs", "Panes", "Spiral"]);
   await expect(kind(page, "Stairs")).toHaveAttribute("aria-checked", "true");
   await expect(kind(page, "Panes")).toHaveAttribute("aria-description", /pane of its own/);
   await viewIsStill(page);
@@ -609,4 +609,129 @@ test.describe("from 1100 px", () => {
     expect(await x("next-piece")).toBeLessThan(await x("planner"));
     await expect(sheet(page)).toBeVisible();
   });
+});
+
+/** Whether anything has been drawn on the stage's canvas: the cards are elements over it, and are not on it. */
+const drawnOn = (page: Page) => page.locator(".s3-frame canvas").evaluate((el) => (el as HTMLCanvasElement).getContext("2d")!.getImageData(0, 0, (el as HTMLCanvasElement).width, (el as HTMLCanvasElement).height).data.some((v) => v !== 0));
+
+test("the spiral: every node a card, the loops' brakes said in words under it, and all but the cards grown once the cards have landed", async ({ page }) => {
+  const doc = pattern("gauntlet-decomposed");
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await expect(node(page, "planner")).toBeVisible();
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(kinds(page)).toBeVisible();
+  await viewIsStill(page);
+  await expect(kind(page, "Spiral")).toHaveAttribute("aria-description", /a round is one turn upward/);
+  await kind(page, "Spiral").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  // When the view comes its cards are there and nothing else is: the spirals are grown after.
+  expect(await drawnOn(page)).toBe(false);
+  await expect(cards(page)).toHaveCount(doc.nodes.length);
+  await viewIsStill(page);
+  await expect.poll(() => drawnOn(page)).toBe(true);
+  await expect(kind(page, "Spiral")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space")).toHaveCount(0);
+  await expect(page.locator(".s3-frame")).toHaveAttribute("aria-label", /^Gauntlet, decomposed as a spiral for each loop: 10 cards, 12 edges, and the loops Polish a piece, Pieces\./);
+  // A node in a loop is a whole card; one in no loop is its name alone, and still a button that says what it is.
+  await expect(page.getByRole("button", { name: "Agent Piece owner" })).toHaveText(/^Piece owner.+/);
+  await expect(page.locator('.s3-card[data-node="planner"]')).toHaveClass(/is-small/);
+  await expect(page.locator('.s3-card[data-node="planner"] span')).toBeHidden();
+  await expect(page.getByRole("button", { name: "Agent Planner" })).toBeVisible();
+  // The brakes, loop by loop, in words: the lid, the rounds a person is asked after, the budget as a reading.
+  const key = page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem");
+  await expect(key).toHaveText([
+    "Polish a piece max iterations: 3 (the lid); budget: 10 dispatches, at most 3 full rounds and 1 more (the dashed ring, a reading)",
+    "Pieces max iterations: 4 (the lid); a person is asked every 2 rounds (the amber rings); budget: 42 dispatches, at most 10 full rounds and 2 more (above the lid, not drawn)",
+  ]);
+  // The cards are whole in the frame.
+  const frame = (await page.locator(".s3-frame").boundingBox())!;
+  for (const box of await cards(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as { left: number; right: number; top: number; bottom: number }))) {
+    expect(box.left).toBeGreaterThanOrEqual(frame.x - 1);
+    expect(box.right).toBeLessThanOrEqual(frame.x + frame.width + 1);
+    expect(box.top).toBeGreaterThanOrEqual(frame.y - 1);
+    expect(box.bottom).toBeLessThanOrEqual(frame.y + frame.height + 1);
+  }
+  // A card opens its node, as on the canvas; the slider walks the first pass and lights what each step is about.
+  await page.getByRole("button", { name: "Agent Piece critic" }).click();
+  await expect(sheet(page).getByText("Piece critic").first()).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await page.getByRole("button", { name: "Next step" }).click();
+  await expect(says(page)).toHaveText(/^Step 1 of 12: Planner to /);
+  await expect(page.locator(".s3-card.is-lit")).toHaveCount(2);
+  // Back to the panes and to the picture: the same cards, and then the canvas's nodes.
+  await kind(page, "Panes").click();
+  await expect(page.locator('.s3[data-kind="panes"]')).toBeVisible();
+  await expect(page.getByRole("list", { name: "Each loop's brakes" })).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await expect(node(page, "planner")).toBeVisible();
+});
+
+test("the spiral on a run's page walks the run's notes, and a graph with no loop says there is no spiral to draw", async ({ page }) => {
+  const run = runBundle("run-nested");
+  await page.goto(linkFor(run));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await open(page, "Spiral");
+  await expect(page.getByRole("slider", { name: "Note, in the order the run wrote them" })).toHaveAttribute("max", String(run.notes.length));
+  await expect(says(page)).toHaveText(/^The whole run: 7 dispatches, in rounds 0 and 1 of Grind; round 0 of Phases\. /);
+  // The words under the view are each in a row of their own, however long: none is written over the next.
+  const rows = await page.locator(".s3 > *").evaluateAll((els) => els.map((el) => [el.getBoundingClientRect().top, el.getBoundingClientRect().top + Math.max(el.scrollHeight, el.getBoundingClientRect().height)] as const));
+  for (let n = 1; n < rows.length; n += 1) expect(rows[n]![0], `row ${n}`).toBeGreaterThanOrEqual(rows[n - 1]![1] - 0.5);
+  await expect(page.getByRole("list", { name: "Each loop's brakes" }).getByRole("listitem")).toHaveText(["Grind max iterations: 5 (the lid); budget: 20 minutes", "Phases max iterations: 5 (the lid); budget: 60 turns"]);
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("10");
+  await expect(says(page)).toHaveText("Note 10 of 13: Builder: pass · round 0");
+  await expect(page.locator(".s3-card.is-lit")).toHaveAttribute("data-node", "builder");
+  // A note about a loop lights nothing among the cards: the others step back.
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("9");
+  await expect(says(page)).toHaveText(/^Note 9 of 13: Phases: /);
+  await expect(page.locator(".s3-card.is-lit")).toHaveCount(0);
+
+  // No loop: every node is a whole card on the ground, and the stage says why nothing turns.
+  await page.goto("./#/templates/built-in/tournament-then-judge");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="spiral"] .s3-frame')).toBeVisible();
+  await expect(cards(page)).toHaveCount(pattern("tournament-then-judge").nodes.length);
+  await expect(page.locator(".s3-card.is-small")).toHaveCount(0);
+  await expect(page.getByRole("list", { name: "Each loop's brakes" })).toHaveCount(0);
+});
+
+test.describe("the spiral with reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+  test("is drawn whole at once: nothing is grown", async ({ page }) => {
+    await page.goto("./#/templates/built-in/review-gate");
+    await canvasIsQuiet(page);
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await view(page, "3D").click();
+    await expect(kinds(page)).toBeVisible();
+    await kind(page, "Spiral").click();
+    await expect(page.locator(".s3-frame")).toBeVisible();
+    expect(await drawnOn(page)).toBe(true);
+  });
+});
+
+test("the picture becomes the spiral and the panes become the spiral: every node is seen to go to its card", async ({ page }) => {
+  const moves = await noteMoves(page);
+  await page.goto("./#/templates/built-in/review-gate");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const whole = { pairs: 4, ended: true };
+  await open(page, "Panes");
+  const before = (await moves()).length;
+  await kind(page, "Spiral").click();
+  await expect(page.locator('.s3[data-kind="spiral"]')).toBeVisible();
+  await viewIsStill(page);
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="spiral"]')).toBeVisible();
+  await viewIsStill(page);
+  await expect.poll(async () => (await moves()).slice(before)).toEqual([whole, whole, whole]);
+  expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
 });
