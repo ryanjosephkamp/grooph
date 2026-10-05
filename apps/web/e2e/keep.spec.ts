@@ -8,7 +8,7 @@ import { expect, test } from "@playwright/test";
 
 import { downloadBytes, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, sheet } from "./support.js";
 
-/** The offline page as the CLI makes it: the maker, handed core's parts (it is a piece of the app, fetched on demand). */
+/** The offline page as core makes it: the maker, handed core's parts, as the app calls it (it is a piece fetched on demand). */
 const offlinePage = (doc: Graph, options: { version: string }): string => offlinePageWith(offlineKit, doc, options);
 /** The review loop's page at the app's version: said once, where scripts/version.mjs reads it. */
 const madeByCore = (): string => offlinePage(reviewLoop(), { version: "0.3.0" });
@@ -111,16 +111,50 @@ test("when the offline page's maker cannot be fetched, the panel says so and no 
   await expect(keep.getByRole("alert")).toBeVisible();
   expect(asked.length).toBeGreaterThan(0);
   expect(downloads).toBe(0);
-  // The pictures need no piece: they are made as before, beside the notice.
+  // The button is not left busy by a fetch that failed.
+  const offline = keep.getByRole("button", { name: "Offline page (.html)" });
+  await expect(offline).toBeEnabled();
+  await expect(offline).not.toHaveAttribute("aria-busy", "true");
+  // The pictures need no piece: they are made as before. A picture that was made clears the notice, as it clears
+  // any other of this panel's.
   const [svg] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Picture (SVG)" }).tap()]);
   expect(svg.suggestedFilename()).toBe("review-loop.light.svg");
+  await expect(keep.getByRole("alert")).toHaveCount(0);
+  // Still refused: the notice is back at the next press, and still no page.
+  await offline.tap();
+  await expect(keep.getByRole("alert")).toHaveText(/The offline page could not be made: its maker could not be fetched\./);
+  expect(downloads).toBe(1);
 
-  // The connection is back: the same button, with nothing reloaded, makes the page, and the notice goes.
+  // The connection is back: the same button, with nothing reloaded, makes the page, and the notice goes with it.
   refuse = false;
-  const [file] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Offline page (.html)" }).tap()]);
+  const [file] = await Promise.all([page.waitForEvent("download"), offline.tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.html");
   expect(await downloadText(file)).toBe(madeByCore());
   await expect(keep.getByRole("alert")).toHaveCount(0);
+});
+
+test("while the offline page's maker is on its way the button is busy and takes no second press", async ({ page }) => {
+  let release: () => void = () => undefined;
+  const held = new Promise<void>((go) => (release = go));
+  await page.route("**/assets/offline-*.js*", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await open(page);
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const keep = sheet(page).getByRole("group", { name: "Keep a copy" });
+  const offline = keep.getByRole("button", { name: "Offline page (.html)" });
+  let downloads = 0;
+  page.on("download", () => (downloads += 1));
+  await offline.tap();
+  await expect(offline).toHaveAttribute("aria-busy", "true");
+  await expect(offline).toBeDisabled();
+  expect(downloads).toBe(0);
+  const [file] = await Promise.all([page.waitForEvent("download"), Promise.resolve(release())]);
+  expect(await downloadText(file)).toBe(madeByCore());
+  await expect(offline).toBeEnabled();
+  await expect(offline).not.toHaveAttribute("aria-busy", "true");
+  expect(downloads).toBe(1);
 });
 
 test("the outline: the whole graph to read, at full height; in the editor a section opens its inspector", async ({ page }) => {

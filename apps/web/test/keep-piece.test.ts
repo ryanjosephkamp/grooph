@@ -37,6 +37,8 @@ describe("the offline page's maker is fetched when it is asked for", () => {
     const keep = read("doc/keep.ts");
     expect(keep).toContain('piece("offline", () => import("@grooph/core/offline"))');
     expect(keep).toContain("offlinePageWith(offlineKit, doc, { version: APP_VERSION })");
+    // And it is asked for in the press, not when the panel or the file is loaded.
+    expect(keep).toMatch(/export const pageMaker = \(\): Promise<.+> =>\s+piece\("offline"/);
     const askers = reached.filter((file) => /@grooph\/core\/offline/.test(read(file)));
     expect(askers).toEqual(["doc/keep.ts"]);
   });
@@ -44,13 +46,18 @@ describe("the offline page's maker is fetched when it is asked for", () => {
   it("a press that cannot fetch it says so and downloads nothing", () => {
     const panel = read("ui/Keep.tsx");
     // The failure is caught where the button is, said in the panel's alert, and no file is made of nothing.
-    expect(panel).toMatch(/try \{\s*html = await pageHtml\(doc\);\s*\} catch \{\s*setProblem\(NO_PAGE\);\s*return;\s*\}/);
+    // (The browser test presses the button with the piece refused; this holds the words and where they are said.)
+    expect(panel).toMatch(/try \{\s*make = await pageMaker\(\);\s*\} catch \{\s*setProblem\(NO_PAGE\);\s*return;\s*\}/);
     expect(panel).toContain('<p className="refusal" role="alert">');
     expect(/const NO_PAGE = "([^"]+)";/.exec(panel)?.[1]).toBe("The offline page could not be made: its maker could not be fetched. It needs a connection the first time. The pictures above are made without it.");
   });
 
-  it("the page the app makes is the one core makes", () => {
-    const html = offlinePageWith(offlineKit, reviewLoop(), { version: "0.0.0" });
+  it("the page made through the app's two doors is the page core's whole entry makes", async () => {
+    // The app reaches the maker and its kit by two addresses of core; the CLI by one. The same bytes either way.
+    const whole = await import("../../../packages/core/src/index.js");
+    const doc = reviewLoop();
+    const html = offlinePageWith(offlineKit, doc, { version: "0.0.0" });
+    expect(html).toBe(whole.offlinePage(doc, { version: "0.0.0" }));
     expect(html.startsWith("<!doctype html>")).toBe(true);
     expect(html).toContain("Made with grooph 0.0.0");
   });

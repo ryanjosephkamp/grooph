@@ -10,6 +10,10 @@
  *
  * A list and not a record, so that it adds no names to the file every address loads. `offline.ts` gives the parts
  * their names back, in this order.
+ *
+ * What it does keep on every address: three functions the web app uses nowhere else (`mapOutline`, `validateMap`,
+ * `mapLiveLine`), about 0.45 KB compressed, which a bundler would otherwise drop. They live in files every address
+ * loads for other reasons, so the maker cannot own them without importing those files, which is the cut above.
  */
 import { canonicalize } from "./canonicalize.js";
 import { mapLiveLine } from "./events.js";

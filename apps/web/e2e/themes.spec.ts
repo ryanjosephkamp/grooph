@@ -12,7 +12,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { unitsKit } from "../../../packages/core/src/picture/units-kit.js";
 import { canvasIsQuiet, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, requestsOut, reviewLoop, runBundle, sheet, visitIsOver } from "./support.js";
 
-/** The offline page as the CLI makes it: the maker, handed core's parts (it is a piece of the app, fetched on demand). */
+/** The offline page as core makes it: the maker, handed core's parts, as the app calls it (it is a piece fetched on demand). */
 const offlinePage = (doc: Graph, options: { version: string }): string => offlinePageWith(offlineKit, doc, options);
 
 /**

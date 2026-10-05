@@ -26,8 +26,9 @@ import { validate } from "../src/validate.js";
 import { fixturesDir, read, repoRoot } from "./helpers.js";
 
 const src = join(repoRoot, "packages", "core", "src");
+// Every import that is not of types alone: `import { a } from`, `export * from`, and a bare `import "./x.js"`.
 const runtimeImports = (file: string): string[] =>
-  [...read(file).matchAll(/^(?:import|export)\s+(?!type\b)[^;]*?from\s+"(\.[^"]+)\.js"/gms)].map((m) => join(file, "..", `${m[1]}.ts`));
+  [...read(file).matchAll(/^(?:import|export)\s+(?!type\b)(?:[^;"]*?from\s+)?"(\.[^"]+)\.js"/gms)].map((m) => join(file, "..", `${m[1]}.ts`));
 const follow = (file: string, into: Set<string> = new Set()): Set<string> => {
   if (into.has(file)) return into;
   into.add(file);
@@ -64,16 +65,22 @@ test("the kit is these twelve, in the order the maker names them", () => {
   assert.deepEqual(listed, named, "offline-kit.ts lists its parts in another order than offline.ts names them");
 });
 
-test("the page is the same bytes with the kit bound, as the CLI asks for it, and handed, as the app does", () => {
+test("the committed pages of a graph and a map are what the maker makes, bound as the CLI has it and handed as the app does", () => {
+  // The two files under fixtures/pages/ were first written from the maker as it was before it was handed its parts
+  // (main at 77733bc gives the same bytes), so they hold the page to what it was. Regenerate, and read the diff,
+  // with `pnpm --filter @grooph/core run golden:write` when the page changes on purpose.
+  const options = { version: "0.0.0", link: "https://example.test/grooph/#/open?d=x" };
   const graph = parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
   const map = parseMapText(read(join(fixturesDir, "maps", "valid", "a-person-and-two-sessions.grooph-map.json"))).map!;
   for (const doc of [graph, map]) {
-    const bound = offlinePage(doc, { version: "0.0.0", link: "https://example.test/#/open?d=x" });
-    assert.equal(offlinePageWith(base.offlineKit, doc, { version: "0.0.0", link: "https://example.test/#/open?d=x" }), bound);
-    assert.match(bound, /^<!doctype html>/i);
-    assert.match(bound, /Made with grooph 0\.0\.0/);
-    assert.equal(offlinePage(doc, { version: "0.0.0", link: "https://example.test/#/open?d=x" }), bound, "not the same bytes twice");
+    const kept = read(join(fixturesDir, "pages", `${doc.id}.html`));
+    assert.equal(offlinePage(doc, options) === kept, true, `${doc.id}: core's whole entry does not make the committed page`);
+    assert.equal(offlinePageWith(base.offlineKit, doc, options) === kept, true, `${doc.id}: the maker handed base.ts's kit does not make the committed page`);
+    assert.match(kept, /^<!doctype html>/i);
+    assert.match(kept, /Made with grooph 0\.0\.0\./);
+    assert.match(kept, /open it in the app/);
   }
-  // A graph's page lists the validator's issues; the review loop has its one warning.
-  assert.match(offlinePage(graph), /W_HOMOGENEOUS_CRITICS/);
+  // A graph's page lists the validator's issues (the review loop has its one warning); a map's page has its own.
+  assert.match(read(join(fixturesDir, "pages", "review-loop.html")), /W_HOMOGENEOUS_CRITICS/);
+  assert.match(read(join(fixturesDir, "pages", `${map.id}.html`)), /operation map/);
 });

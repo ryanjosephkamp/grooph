@@ -17,12 +17,17 @@ import { fileURLToPath } from "node:url";
 import { canonicalize } from "../canonicalize.js";
 import { compile } from "../compile/index.js";
 import { parseMapText } from "../map.js";
+import { offlineKit } from "../offline-kit.js";
+import { offlinePageWith } from "../offline.js";
 import { parseGraphText } from "../parse.js";
 import { picture } from "../picture/graph-picture.js";
 import { pictureWithUnits } from "../picture/graph-units.js";
 import { mapPicture } from "../picture/map-picture.js";
 import { unitsKit } from "../picture/units-kit.js";
 import { COMPOSED, composedProof } from "./composed.js";
+
+/** What the golden offline pages are made with: a version that is no release's, and a link, so the footer's two forms are in them. */
+export const PAGE_OPTIONS = { version: "0.0.0", link: "https://example.test/grooph/#/open?d=x" };
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -129,6 +134,23 @@ for (const file of GRAPH_PICTURES) {
       writeFileSync(out, pictureWithUnits(unitsKit, parsed.doc, { theme, ...(open ? { open: "all" as const } : {}) }), "utf8");
       process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
     }
+  }
+}
+
+/**
+ * The offline page of one graph and one map (`offline.ts`), whole: the one file a person keeps. The maker is handed
+ * its parts and fetched by the web app as a piece, and the CLI binds them; these two files are what both must make.
+ */
+{
+  const outDir = join(repoRoot, "fixtures", "pages");
+  mkdirSync(outDir, { recursive: true });
+  const graph = parseGraphText(readFileSync(join(repoRoot, "fixtures/valid/review-loop.grooph.json"), "utf8")).doc;
+  const map = parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid/a-person-and-two-sessions.grooph-map.json"), "utf8")).map;
+  if (!graph || !map) throw new Error("the offline pages' documents do not parse");
+  for (const doc of [graph, map]) {
+    const out = join(outDir, `${doc.id}.html`);
+    writeFileSync(out, offlinePageWith(offlineKit, doc, PAGE_OPTIONS), "utf8");
+    process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
   }
 }
 

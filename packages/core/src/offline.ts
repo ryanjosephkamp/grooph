@@ -84,7 +84,7 @@ var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{ty
 })();
 `;
 
-function sectionHtml(esc: OfflineKit[2], section: OutlineSection, first: boolean): string {
+function sectionHtml(esc: (text: string) => string, section: OutlineSection, first: boolean): string {
   const items = section.items
     .map((it) => `<dt>${esc(it.label)}</dt><dd>${it.list ? `<ul>${it.list.map((entry) => `<li>${esc(entry)}</li>`).join("")}</ul>` : esc(it.text ?? "")}</dd>`)
     .join("");
