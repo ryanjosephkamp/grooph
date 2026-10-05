@@ -110,4 +110,4 @@ pnpm install && pnpm -r build
 node packages/cli/scripts/chat-kit.mjs      # writes packages/cli/dist/kit/
 ```
 
-Each is about 300 KB. They are not yet published anywhere to download; every CI run of the repository keeps both, with the npm tarball, as an artifact named `grooph-kit`, which a signed-in GitHub account can download from the run's page.
+Each is about 250 KB. They are not yet published anywhere to download; every CI run of the repository keeps both, with the npm tarball, as an artifact named `grooph-kit`, which a signed-in GitHub account can download from the run's page.

@@ -339,13 +339,22 @@ The driver lifted the hold on 2026-10-05 (the game run is put off, and its start
 
 **One more known issue, found by the property test:** a graph holding half a character (a lone surrogate) is written to disk as a replacement character, so its own `LEAD.md` reads as changed on the second export. It stops on the safe side.
 
-**Checked on the merged tree, from a clean build:** core 476, cli 196, web 123; the browser suite on port 4366, 303 passed and none failed; `pack-check.sh` (858 KB, 86 files), `kit-check.sh`, `first-run.sh`, the golden packages by export and diff, American English, the generators, the site's pages, the pictures, the outside addresses, the version. CI's own budget lines for the head are in the pull request's description.
+**Checked on the merged tree, from a clean build:** core 476, cli 196, web 123; the browser suite on port 4366, 303 passed and none failed; `pack-check.sh` (858 KB, 86 files; 816 KB after the driver's reader, below), `kit-check.sh`, `first-run.sh`, the golden packages by export and diff, American English, the generators, the site's pages, the pictures, the outside addresses, the version. CI's own budget lines for the head are in the pull request's description.
+
+### The driver's reader on the merge and on the package
+
+Its read of `a71aa6d`: the three merges redone mechanically and nothing lost, doubled or dead; on the installed package nothing written before any refusal, every spelling of `into` and `allow` it tried refused, `--chat` refusing every file argument; the tarball without tests, fixtures, sources or anything of a person's. To fix, and fixed in one commit:
+
+1. **A reply did not say when a comparison was made and found nothing**, so "compared, nothing loosened", "first export" and "a second package under a new id" read the same. Every reply that places files now has a line that opens `brakes:`: compared and none removed or loosened; placed with changes asked for by name; not compared; or nothing in place to compare with, **naming any other packages in the folder**, so a graph given a new id and a raised cap is not placed beside the first without a word. The data carries `brakesCompared` and `otherPackages`.
+2. **The comparison's edges are in the tool's own description**, which is what an agent is given, and no text of this slice says more than: over a package in place, for the same graph id, while the graph that package keeps reads.
+3. **Small.** A kept graph that lists a loop twice gives a change once. In a chat an unknown template is refused naming the built-in library alone. `grooph --help` ends with the quickstart's address, not a path the package does not carry. The packed `package.json` names its author as the LICENSE does. The packaged app's scripts and styles no longer end with a line naming a source map that is not shipped.
+4. **The bundle carries no comments** (one option of the bundler's). The package is 816 KB packed where it was 858, and each kit file about 250 KB.
 
 ## For the 0.4.0 notes
 
 **A package placed by 0.3.0 may stop its first export through the MCP tool.** If you placed a package with 0.3.0 and, after upgrading, export over it with `grooph_export` and `into`, the tool may stop and list files as "not as grooph last wrote it". Nothing is wrong with them: 0.4.0 words part of the lead's brief differently, and the tool cannot tell a file another version wrote from one changed by hand. **What to do:** if you have not edited the listed files yourself, export once more with `replace: true`; if you have, look at them first, because a replaced file loses your changes. The command line's `grooph export … --into` does not make this check and is not affected.
 
-**The export tool asks before a brake is loosened; the command does not yet.** Over a package already in place, `grooph_export` lists each change that may remove or loosen a brake of the graph that package keeps, and places it only when the change is named in `allow`. The plain command `grooph export` makes no such comparison in this release.
+**Over a package in place, the export tool asks before a brake may be loosened; the plain command does not yet.** Over a package already in place for the same graph id, while the graph that package keeps reads, `grooph_export` lists each change that may remove or loosen a brake of that graph, and places it only when the change is named in `allow`. Its reply says on a line that opens `brakes:` whether a comparison was made. A graph under a new id is a second package and is compared with nothing. The plain command `grooph export` makes no such comparison in this release.
 
 ## Prompt to paste into the driver session
 

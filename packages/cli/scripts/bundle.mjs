@@ -23,7 +23,8 @@ export async function bundleCli(outFile) {
   mkdirSync(dirname(outFile), { recursive: true });
   const bundle = await rolldown({ input: entry, platform: "node", external: [/^node:/, "@resvg/resvg-js"], logLevel: "warn" });
   try {
-    await bundle.write({ file: outFile, format: "esm", banner: "#!/usr/bin/env node", codeSplitting: false, sourcemap: false });
+    // Comments are for a reader of the source, which the repository has; the one file a person installs carries none.
+    await bundle.write({ file: outFile, format: "esm", banner: "#!/usr/bin/env node", codeSplitting: false, sourcemap: false, comments: false });
   } finally {
     await bundle.close();
   }

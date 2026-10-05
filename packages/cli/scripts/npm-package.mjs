@@ -46,6 +46,16 @@ cpSync(join(pkg, "hooks"), join(out, "hooks"), { recursive: true });
 // the browser tests leaves those in apps/web/dist, and none of them is the app.
 const SITE_ONLY = new Set(["docs", "patterns", "community"]);
 cpSync(app, join(out, "dist", "app"), { recursive: true, filter: (source) => !source.endsWith(".map") && !SITE_ONLY.has(relative(app, source).split(sep)[0]) });
+// A script or a style sheet ends with a line that names its source map. The maps are not here, so the line would only
+// make a browser ask `grooph watch` for a file it does not have.
+const assets = join(out, "dist", "app", "assets");
+for (const name of existsSync(assets) ? readdirSync(assets) : []) {
+  if (!/\.(?:js|css)$/.test(name)) continue;
+  const file = join(assets, name);
+  const text = readFileSync(file, "utf8");
+  const bare = text.replace(/\n?\/\/# sourceMappingURL=\S+\.map\s*$/, "\n").replace(/\n?\/\*# sourceMappingURL=\S+\.map \*\/\s*$/, "\n");
+  if (bare !== text) writeFileSync(file, bare);
+}
 // A mark that this folder is grooph's app, put there by this script: `grooph watch` serves the packaged copy only when it finds it.
 writeFileSync(join(out, "dist", "app", "grooph-app.json"), `${JSON.stringify({ app: "grooph", version: manifest.version })}\n`);
 cpSync(join(pkg, "README.md"), join(out, "README.md"));
@@ -59,6 +69,7 @@ writeFileSync(
       version: manifest.version,
       description: "Author, check and compile multi-agent loop graphs for a coding harness: templates, a validator with stable rule codes, a compiler to a prompt package, and an MCP server. It never runs agents.",
       license: manifest.license,
+      author: "Ryan Joseph Kamp",
       type: "module",
       bin: { grooph: "dist/bundle/grooph.js" },
       files: ["dist", "hooks"],

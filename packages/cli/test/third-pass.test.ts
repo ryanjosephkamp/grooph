@@ -218,7 +218,7 @@ test("third pass 2: a model is never changed or pinned without a word: the CLI s
     // Given the flag, both happen, and the reply says both.
     const done = await call(ctx, "grooph_export", { graph, into: ".", models: { [tier]: "mine" }, replace: true });
     assert.equal(done.isError, undefined, textOf(done));
-    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\ntiers in this package: /);
+    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: compared with the graph this package kept; none removed or loosened\ntiers in this package: /);
     assert.deepEqual(done.structuredContent!["replaced"], [".grooph/fix-until-green/LEAD.md"]);
     assert.equal((done.structuredContent!["modelChanges"] as string[]).length, 1);
     assert.match(fixer(ctx.project), /^model: mine$/m);
@@ -819,7 +819,8 @@ test("after the merge: an export over a package in place does not loosen a brake
     const lead = (): string => readFileSync(join(ctx.project, ".grooph", "review-loop", "LEAD.md"), "utf8");
     const first = await call(ctx, "grooph_export", { graph, into: "." });
     assert.equal(first.isError, undefined, textOf(first));
-    assert.ok(!textOf(first).includes("loosen"), "a first export has nothing in place to compare with");
+    assert.ok(ownNext(first, "first").includes("brakes: nothing in place to compare with. No package of this graph's id was there"), textOf(first));
+    assert.equal(first.structuredContent!["brakesCompared"], false);
     const leadBefore = lead();
 
     // Looser: four rounds become nine. Nothing is placed, with or without "replace", and the change is named.
@@ -856,7 +857,9 @@ test("after the merge: an export over a package in place does not loosen a brake
     for (const n of [2, 2]) {
       const tighter = await call(ctx, "grooph_export", { graph: withCap(n), into: "." });
       assert.equal(tighter.isError, undefined, textOf(tighter));
-      assert.ok(!textOf(tighter).includes("loosen"), textOf(tighter));
+      assert.ok(ownNext(tighter, "tighter").includes("brakes: compared with the graph this package kept; none removed or loosened"), textOf(tighter));
+      assert.ok(!textOf(tighter).includes("loosens "), textOf(tighter));
+      assert.equal(tighter.structuredContent!["brakesCompared"], true);
     }
     assert.deepEqual(stops(kept()), stops(withCap(2)));
 
@@ -903,7 +906,7 @@ test("after the merge, read again: what the comparison holds besides a loosening
     const reworded = { ...stricter, nodes: stricter.nodes.map((node) => (node.id === "builder" ? { ...node, brief: "Build it, and say what you ran." } : node)), loops: stricter.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "budget" ? { ...stop, limit: 20 } : stop)) })) } as Graph;
     const quiet = await call(ctx, "grooph_export", { graph: reworded, into: "." });
     assert.equal(quiet.isError, undefined, textOf(quiet));
-    assert.ok(!textOf(quiet).includes("brakes:") && !textOf(quiet).includes("loosens"), textOf(quiet));
+    assert.ok(textOf(quiet).includes("brakes: compared with the graph this package kept; none removed or loosened") && !textOf(quiet).includes("loosens "), textOf(quiet));
 
     // The kept graph gone, or not a graph: nothing can be compared, and the reply says so, refused and placed.
     const loose = { ...reworded, loops: reworded.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 99 } : stop)) })) } as Graph;
@@ -922,7 +925,27 @@ test("after the merge, read again: what the comparison holds besides a loosening
     // A first export into an empty folder has nothing to compare and says nothing of it.
     const fresh = await call(ctx, "grooph_export", { graph: withCap(99), into: "elsewhere" });
     assert.equal(fresh.isError, undefined, textOf(fresh));
-    assert.ok(!textOf(fresh).includes("brakes:"), textOf(fresh));
+    assert.ok(ownNext(fresh, "fresh").includes("brakes: nothing in place to compare with. No package of this graph's id was there"), textOf(fresh));
+
+    // A graph given a new id is a second package beside the first, compared with nothing: the reply says which
+    // packages are there, so a raised cap under a new name is not placed without a word. Returned and not placed
+    // (no "into", or a chat), there is nothing to say.
+    const moved = await call(ctx, "grooph_apply", { graph: loose, ops: [{ op: "renameId", from: "review-loop", to: "review-loop-two" }] });
+    assert.equal(moved.isError, undefined, textOf(moved));
+    const second = await call(ctx, "grooph_export", { graph: "review-loop-two", into: "." });
+    assert.equal(second.isError, undefined, textOf(second));
+    assert.ok(ownNext(second, "a second package").includes('brakes: nothing in place to compare with. No package of this graph\'s id was there; 1 other package is, and its graph was not compared with this one: "review-loop"'), textOf(second));
+    assert.deepEqual(second.structuredContent!["otherPackages"], ["review-loop"]);
+    for (const context of [ctx, { ...ctx, chat: true }]) assert.ok(!textOf(await call(context, "grooph_export", { graph: loose })).includes("brakes:"));
+
+    // A kept graph that lists the same loop twice says a change once, and counts it once.
+    const twice = JSON.parse(readFileSync(keptFile, "utf8")) as Graph;
+    writeFileSync(keptFile, JSON.stringify({ ...twice, loops: [...twice.loops, ...twice.loops] }));
+    const doubled = await call(ctx, "grooph_export", { graph: { ...loose, loops: loose.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 500 } : stop)) })) }, into: ".", replace: true });
+    assert.equal(doubled.isError, true, textOf(doubled));
+    assert.equal(textOf(doubled).split(LF).filter((line) => line.startsWith("  loosens ")).length, new Set(textOf(doubled).split(LF).filter((line) => line.startsWith("  loosens "))).size, textOf(doubled));
+    assert.match(textOf(doubled).split(LF)[0]!, new RegExp(`: ${new Set(textOf(doubled).split(LF).filter((line) => line.startsWith("  loosens "))).size} changes? in this graph may remove or loosen`));
+    writeFileSync(keptFile, JSON.stringify(twice));
 
     // A package another version wrote reads as changed by hand, and the tool's own line says that it may be either.
     const leadFile = join(ctx.project, ".grooph", "review-loop", "LEAD.md");

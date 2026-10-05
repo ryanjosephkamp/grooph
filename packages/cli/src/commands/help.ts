@@ -50,7 +50,7 @@ Share
   share        a link that opens a graph, set, run or map in the app
   embed        one line of HTML that shows a graph on any page
 
-First time? docs/quickstart.md.   grooph --version prints the version.`;
+First time? https://ryanjosephkamp.github.io/grooph/docs/quickstart/   grooph --version prints the version.`;
 
 /** Commands the overview lists, for the "did you mean" and the unknown-command check. */
 export const COMMANDS = [

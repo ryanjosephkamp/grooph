@@ -23,7 +23,7 @@
  * `next:` line: what to call, with what, to get past it.
  */
 
-import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
@@ -338,6 +338,17 @@ function graphName(ctx: McpContext, given: string): string {
   }
   return given;
 }
+/** The ids of the packages in `root` other than `id`'s: each folder under `.grooph` that keeps a graph and is not one grooph keeps for something else. */
+function otherPackages(root: string, id: string): string[] {
+  try {
+    return readdirSync(join(root, ".grooph"))
+      .filter((name) => name !== id && keptFolder(name) === undefined && existsSync(join(root, ".grooph", name, "graph.grooph.json")))
+      .sort()
+      .slice(0, 20);
+  } catch {
+    return [];
+  }
+}
 /** A path inside the project as it was written, relative to the project's real root: no link on the way resolved. */
 function written(ctx: McpContext, given: string): string {
   try {
@@ -414,7 +425,7 @@ function findTemplate(ctx: McpContext, id: string): Found {
   const hit = all.find((f) => f.doc.id === id);
   if (hit) return hit;
   const near = closest(id, all.map((f) => f.doc.id));
-  throw new Refusal(`No template ${q(id)} in the project's templates, the user's or the built-in library${near === undefined ? "" : `; did you mean ${q(near)}?`}`, "grooph_templates with no id lists every template with when to use it");
+  throw new Refusal(`No template ${q(id)} in ${ctx.chat === true ? "the built-in library" : "the project's templates, the user's or the built-in library"}${near === undefined ? "" : `; did you mean ${q(near)}?`}`, "grooph_templates with no id lists every template with when to use it");
 }
 
 /** The questions for slots still unfilled, as lines. */
@@ -896,7 +907,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     name: "grooph_export",
     title: "Compile a graph into a prompt package",
     description:
-      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. It also stops, and "replace" does not answer, when this graph may have removed or loosened a brake of the graph that package keeps: each such change is listed after "loosens", and is placed only when its name is passed in "allow". A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
+      `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }; with into, writes them into that folder of the project instead (the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in), all of them or none. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. An export over a package already in place stops, and asks for "replace", on two things, listed together: a file that is not as grooph last wrote it, and an agent file whose model would change. It also stops, and "replace" does not answer, when this graph may have removed or loosened a brake of the graph that package keeps: each such change is listed after "loosens", and is placed only when its name is passed in "allow". That comparison is made only over a package in place for the same graph id, while the graph that package keeps reads: a graph under a new id is a second package and is compared with nothing, with the kept graph gone "replace" places the graph and the reply says "brakes: not compared", and it does not see a check's command, a brief or a node's tools. Every reply that placed files says on a "brakes:" line which of these happened. A graph whose id is a folder grooph keeps under .grooph (graphs, proposals, templates, events, hooks) is not exported. It places files and starts nothing: starting the run spends the person's money and waits for their word.`,
     inputSchema: {
       type: "object",
       properties: {
@@ -909,7 +920,7 @@ export const AUTHOR_TOOLS: Tool[] = [
           additionalProperties: false,
           description: 'Which model a tier means in this package, for example {"frontier": "opus", "strong": "sonnet"}. A tier not named keeps the target\'s own; a pin on a node still wins; the graph does not change.',
         },
-        into: { type: "string", description: "Write the package into this folder inside the project folder ('.' for the project itself). Files of the package already there are replaced when they are still as grooph last wrote them; one that was changed by hand stops the export, and so does a graph that has removed or loosened a brake the package there has (see \"allow\")." },
+        into: { type: "string", description: "Write the package into this folder inside the project folder ('.' for the project itself). Files of the package already there are replaced when they are still as grooph last wrote them; one that was changed by hand stops the export, and so does a graph that may have removed or loosened a brake of the graph the package there keeps (see \"allow\")." },
         replace: REPLACE_ARG,
         allow: {
           type: "array",
@@ -985,6 +996,8 @@ export const AUTHOR_TOOLS: Tool[] = [
       let moved: ReturnType<typeof modelChanges> = [];
       let meant: AdoptionChange[] = [];
       let uncompared = false;
+      let compared = false;
+      let beside: string[] | undefined;
       let notices: string[] = [];
       const loosensLine = (change: AdoptionChange): string => `  loosens ${q(change.name)}: ${q(change.loosens ?? "")}`;
       const loosensData = (changes: readonly AdoptionChange[]): { name: string; why: string }[] => changes.map((change) => ({ name: change.name, why: change.loosens ?? "" }));
@@ -1034,10 +1047,16 @@ export const AUTHOR_TOOLS: Tool[] = [
             'pass in "allow" only the names a refusal of this tool listed after "loosens", or leave it out',
           );
         }
-        const held = brakes?.refused ?? [];
+        // A kept graph that lists the same loop twice gives the same change twice: it is one change, said once.
+        const once = (changes: readonly AdoptionChange[]): AdoptionChange[] => changes.filter((change, i) => changes.findIndex((other) => other.name === change.name && other.loosens === change.loosens) === i);
+        const held = once(brakes?.refused ?? []);
         // Files of this package are in place and the graph it kept is gone or does not read: no brake could be compared.
         uncompared = before === undefined && places.some((place) => existsSync(place.full));
-        meant = brakes === undefined ? [] : brakes.changes.filter((change) => change.loosens !== undefined && !held.includes(change));
+        meant = brakes === undefined ? [] : once(brakes.changes.filter((change) => change.loosens !== undefined && !(brakes.refused ?? []).includes(change)));
+        compared = before !== undefined;
+        // Nothing of this graph's package is there. Another graph's may be: a graph given a new id is a second package
+        // beside the first, and is compared with nothing, so the reply names what is there.
+        if (!compared && !uncompared) beside = otherPackages(root, doc.id);
         notices = brakes?.notices ?? [];
         const unanswered = (theirs.length > 0 || moved.length > 0) && args["replace"] !== true;
         if (held.length > 0) {
@@ -1085,6 +1104,10 @@ export const AUTHOR_TOOLS: Tool[] = [
         ...(moved.length > 0 ? [`changed the model of ${plural(moved.length, "agent file")} that ${moved.length === 1 ? "was" : "were"} already there ("replace"):`, ...moved.map(movedLine)] : []),
         ...(meant.length > 0 ? [`brakes: placed with ${plural(meant.length, "change")} that may remove or loosen a brake the package there had, each asked for by name ("allow"):`, ...meant.map(loosensLine)] : []),
         ...(uncompared ? ["brakes: not compared. The graph this package kept was gone or did not read."] : []),
+        ...(compared && meant.length === 0 ? ["brakes: compared with the graph this package kept; none removed or loosened"] : []),
+        ...(beside !== undefined
+          ? [`brakes: nothing in place to compare with. No package of this graph's id was there${beside.length > 0 ? `; ${plural(beside.length, "other package")} ${beside.length === 1 ? "is" : "are"}, and ${beside.length === 1 ? "its graph was" : "their graphs were"} not compared with this one: ${beside.map(q).join(", ")}` : ""}`]
+          : []),
         ...notices.map((notice) => `note: ${q(notice)}`),
         ...tiers,
         ...(compiled.warnings.length > 0 ? [`warnings: ${compiled.warnings.length}, carried into the lead's brief:`, ...issueLines(compiled.warnings)] : []),
@@ -1110,7 +1133,8 @@ export const AUTHOR_TOOLS: Tool[] = [
           ...(theirs.length > 0 ? { replaced: theirs } : {}),
           ...(moved.length > 0 ? { modelChanges: movedData() } : {}),
           ...(meant.length > 0 ? { allowed: loosensData(meant) } : {}),
-          ...(uncompared ? { brakesCompared: false } : {}),
+          ...(folder !== undefined ? { brakesCompared: compared } : {}),
+          ...(beside !== undefined && beside.length > 0 ? { otherPackages: beside } : {}),
         },
         more: [{ type: "text" as const, text: compiled.kickoff.trimEnd() }, ...(folder === undefined ? [{ type: "text" as const, text: JSON.stringify(compiled.files, null, 2) }] : [])],
       };
