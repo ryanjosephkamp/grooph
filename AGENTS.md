@@ -37,7 +37,7 @@ If your prompt names a slice folder, you are a lane: read that `HANDOFF.md` befo
 - **Observation never steers.** The event hook appends one line and exits 0: no output, no content, nothing a harness reads back. Anything that would change what an agent does is a change to a package, and goes through the lead's brief and a proving run.
 - **No LLM calls inside grooph.** The executive is the harness session, reaching grooph through the skill and the CLI (an MCP wrapper comes later).
 - **Agents author, humans review.** Most graphs are built by an agent from a template or from scratch; the web app is for review, editing and reuse (decision 0007).
-- **Human is the brake.** Spend, merge and publish are gated, and loops never default to "until perfect". Graphs are adaptive by default, but a run amends only its own working copy, visibly, and can tighten brakes, never loosen them (decision 0008).
+- **Human is the brake.** Spend, merge and publish are gated, and loops never default to "until perfect". Graphs are adaptive by default, but a run amends only its own working copy, visibly, and may tighten brakes, never loosen them (decision 0008). That is a rule the lead is given, and adoption holds a loosened copy at the doors `docs/runs.md` names; it is not a lock.
 - **Latitude over procedure.** Briefs state purpose, limits and outputs. The smallest graph that works beats a thorough one.
 - **Branch per slice:** `slice/NNNN-<slug>`. The driver merges. Commit messages: `<area>: <what changed>` (`core: add cycle detection`, `docs: reconcile handback 0001`).
 - **State lives in `docs/PROGRESS.md`, what was done in `docs/HISTORY.md`, reasons in `docs/decisions/`.** README stays a product description.
@@ -56,6 +56,7 @@ spec/        capability spec (frozen) + amendments
 docs/        PLAN, PROGRESS, HISTORY, ARCHITECTURE, GLOSSARY, graph-ir, targets/, decisions/
 handoffs/    protocol, templates, one folder per slice (HANDOFF, HANDBACK, REVIEW)
 handoffs/briefs/  sources of the gate briefs published as Artifacts, with their URLs
+handoffs/reviews/ the owner's own reviews of the site and of grooph, and how one is handed in
 packages/    core (schema, validate, compile, pictures, events) · cli (commands, the event hook, the MCP server)
 apps/web     installable local-first web app                     — created in slice 0002
 patterns/    built-in pattern library, one graph document each
