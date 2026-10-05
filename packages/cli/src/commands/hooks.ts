@@ -486,25 +486,45 @@ function agentLine(a: LiveAgent, now: string, quiet: boolean): string {
   return `${mark} ${a.type}  ${short(a.id)}  ${time}${a.stops > 1 ? ` · resumed ${a.stops - 1}×` : ""}${tools}${a.model ? ` · ${a.model}` : ""}`;
 }
 
-/** A session's subagents as an indented tree: a child under the agent that started it, where the harness said. */
-export function sessionLines(s: LiveSession, now: string): string[] {
+/**
+ * A session as the pieces its lines are made of: its own line, its subagents as a tree (a child under the agent that
+ * started it, where the harness said), and what its lead said through the MCP server. The command prints them as
+ * they are; the MCP server puts each after a label of its own, as a JSON string, since every piece holds words that
+ * another session chose (a subagent's type, a plan's title, a note).
+ */
+export function sessionParts(s: LiveSession, now: string): { head: string; agents: { depth: number; text: string }[]; plans: { title?: string; text: string }[]; notes: string[] } {
   const where = s.cwd ? ` · ${s.cwd.split("/").filter(Boolean).pop()}` : "";
   const quiet = isQuiet(s, now);
-  const lines = [`${s.source ? `[${s.source}] ` : ""}${sessionLine(s, now)} · session ${short(s.id)}${where}${s.model ? ` · ${s.model}` : ""}`];
+  const head = `${s.source ? `[${s.source}] ` : ""}${sessionLine(s, now)} · session ${short(s.id)}${where}${s.model ? ` · ${s.model}` : ""}`;
+  const agents: { depth: number; text: string }[] = [];
   const ids = new Set(s.agents.map((a) => a.id));
   const walk = (parent: string | undefined, depth: number): void => {
     for (const a of s.agents) {
       const top = a.parent === undefined || !ids.has(a.parent);
       if (parent === undefined ? !top : a.parent !== parent) continue;
-      lines.push(`${"  ".repeat(depth + 1)}${agentLine(a, now, quiet)}`);
+      agents.push({ depth, text: agentLine(a, now, quiet) });
       walk(a.id, depth + 1);
     }
   };
   walk(undefined, 0);
-  // What its lead said through the MCP server, beside what the hooks saw.
-  for (const plan of s.plans ?? []) lines.push(`  plan${plan.title ? ` "${plan.title}"` : ""}: ${planLine(plan, quiet)}`);
-  for (const note of s.notes ?? []) lines.push(`  note: ${note.text}`);
-  return lines;
+  return {
+    head,
+    agents,
+    plans: (s.plans ?? []).map((plan) => ({ ...(plan.title ? { title: plan.title } : {}), text: planLine(plan, quiet) })),
+    notes: (s.notes ?? []).map((note) => note.text),
+  };
+}
+
+/** A session's lines as `grooph sessions` prints them. */
+export function sessionLines(s: LiveSession, now: string): string[] {
+  const parts = sessionParts(s, now);
+  return [
+    parts.head,
+    ...parts.agents.map((a) => `${"  ".repeat(a.depth + 1)}${a.text}`),
+    // What its lead said through the MCP server, beside what the hooks saw.
+    ...parts.plans.map((plan) => `  plan${plan.title ? ` "${plan.title}"` : ""}: ${plan.text}`),
+    ...parts.notes.map((note) => `  note: ${note}`),
+  ];
 }
 
 /** `grooph sessions [<source>...] [--json]`. */

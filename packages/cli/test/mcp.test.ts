@@ -76,11 +76,11 @@ test("the handshake: the protocol version the client asked for, tools as the onl
 test("plan and note append to the session's own said- file, never to a hook's, and running reads both back", async () => {
   await withProject(async (ctx) => {
     // Nothing yet.
-    assert.match(textOf(await call(ctx, "grooph_running", {})), /Nothing recorded in this project yet.*grooph hooks install/);
+    assert.match(textOf(await call(ctx, "grooph_running", {})), /^sessions: none recorded in this project yet\..*grooph hooks install\.$/);
 
     const planned = await call(ctx, "grooph_plan", { title: "Round one", agents: [{ type: "review-loop--builder", purpose: "implement the task" }, { type: "Explore", count: 2 }, { purpose: "no type" }] });
     assert.equal(planned.result!["isError"], undefined);
-    assert.match(textOf(planned), /Plan recorded: 3 subagents \(1 × review-loop--builder, 2 × Explore\)/);
+    assert.match(textOf(planned), /^Plan recorded: 3 subagents \("review-loop--builder" x 1, "Explore" x 2\)\./);
     assert.equal(textOf(await call(ctx, "grooph_note", { text: "  Waiting on the review before round two.  " })), "Noted.");
     assert.equal(textOf(await call(ctx, "grooph_note", { text: "y".repeat(900) })), "Noted (cut to 600 characters).");
 
@@ -95,7 +95,10 @@ test("plan and note append to the session's own said- file, never to a hook's, a
     const running = await call(ctx, "grooph_running", {});
     const view = running.result!["structuredContent"] as LiveView;
     assert.equal(view.groophLive, 0);
-    assert.match(textOf(running), /● review-loop--critic/);
+    // Each piece of what was recorded is said after a label of the tool's, as a JSON string.
+    assert.match(textOf(running), /^sessions: 1\nsession: "[^\n]*"\n/);
+    assert.match(textOf(running), /\n {2}agent: "● review-loop--critic [^\n]*"\n/);
+    assert.match(textOf(running), /\n {2}plan: "Round one", "[^\n]*"\n {2}note: "Waiting on the review before round two\."\n/);
 
     // Bad arguments are an error result the model can read, not a protocol error.
     for (const [name, args, said] of [["grooph_plan", { agents: [] }, /needs "agents"/], ["grooph_plan", {}, /needs "agents"/], ["grooph_note", { text: "   " }, /needs "text"/]] as const) {
@@ -112,13 +115,13 @@ test("validate checks a graph or a map by path, relative to the project or absol
   await withProject(async (ctx) => {
     cpSync(join(repoRoot, "fixtures", "valid", "review-loop.grooph.json"), join(ctx.project, "review-loop.grooph.json"));
     const graph = await call(ctx, "grooph_validate", { path: "review-loop.grooph.json" });
-    assert.match(textOf(graph), /^graph review-loop\n0 errors, 1 warning\nwarning {2}W_HOMOGENEOUS_CRITICS/);
+    assert.match(textOf(graph), /^graph review-loop\nissues: 0 errors, 1 warning\nwarning W_HOMOGENEOUS_CRITICS "[^\n]*" at builder, critic\nfix {2}W_HOMOGENEOUS_CRITICS /);
     assert.equal((graph.result!["structuredContent"] as { ok: boolean }).ok, true);
 
     const map = await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json") });
-    assert.match(textOf(map), /^operation map two-sessions: 1 lane · 2 sessions · 2 handoffs\n1 error, 0 warnings\nerror {2}E_HANDOFF_NO_CARRIER/);
+    assert.match(textOf(map), /^map two-sessions: "1 lane · 2 sessions · 2 handoffs"\nissues: 1 error, 0 warnings\nerror E_HANDOFF_NO_CARRIER "/);
     assert.equal((map.result!["structuredContent"] as { ok: boolean }).ok, false);
-    assert.match(textOf(await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nno issues\nby hand {2}h-brief-grooph {2}operator → grooph: moves only when Ryan carries it\nby hand/);
+    assert.match(textOf(await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nissues: none\nby hand: handoff h-brief-grooph, operator to grooph, moves only when "Ryan" carries it\nby hand: /);
     assert.equal((await call(ctx, "grooph_validate", { path: "nope.json" })).result!["isError"], true);
   });
 });
@@ -144,7 +147,7 @@ test("as a process: one JSON-RPC message per line in, one per line out, nothing 
     const replies = out.trim().split("\n").map((l) => JSON.parse(l) as Reply);
     assert.deepEqual(replies.map((r) => r.id), [1, null, 2, 3]);
     assert.equal(replies[1]!.error!.code, -32700);
-    assert.match(textOf(replies[2]!), /Plan recorded: 1 subagent \(1 × explorer\)/);
+    assert.match(textOf(replies[2]!), /Plan recorded: 1 subagent \("explorer" x 1\)/);
     // With no hook installed and no session id from the harness, the plan still shows, under the server's own id.
     const view = replies[3]!.result!["structuredContent"] as LiveView;
     assert.equal(view.sessions.length, 1);
@@ -179,7 +182,7 @@ test("started where nobody chose (the file system's root) the server answers and
   assert.equal(root.err, "");
   assert.equal(((root.replies[0]!.result!["structuredContent"] as { graph: { id: string } }).graph).id, "from-the-root");
   assert.equal(root.replies[1]!.result!["isError"], true);
-  assert.match(textOf(root.replies[1]!), /^grooph was not given a project folder \(it started in \/\), so it writes no file\./);
+  assert.match(textOf(root.replies[1]!), /^refused: grooph was not given a project folder \(it started in "\/"\), so it writes no file\./);
   assert.equal(existsSync("/grooph-test-never-written.grooph.json"), false);
   assert.equal((root.replies[2]!.result!["tools"] as unknown[]).length, 13);
 

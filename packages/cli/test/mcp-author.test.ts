@@ -51,9 +51,11 @@ const graphOf = (r: Result): Graph => r.structuredContent!["graph"] as Graph;
 const fixture = (...path: string[]): Graph => JSON.parse(readFileSync(join(repoRoot, "fixtures", ...path), "utf8")) as Graph;
 
 /** What every refusal must carry: an error result whose last line says what to call next. */
+/** A refusal: its first line opens with `refused:`, and `said` is matched against what follows that word. */
 const refused = (r: Result, said: RegExp): void => {
   assert.equal(r.isError, true, textOf(r));
-  assert.match(textOf(r), said);
+  assert.match(textOf(r), /^refused: /);
+  assert.match(textOf(r).slice("refused: ".length), said);
   assert.match(textOf(r).split("\n").at(-1)!, /^next: \S/);
   assert.equal(r.structuredContent!["ok"], false);
   assert.equal(`next: ${String(r.structuredContent!["next"])}`, textOf(r).split("\n").at(-1));
@@ -66,13 +68,13 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
     const rows = list.structuredContent!["templates"] as { id: string; kind: string; whenToUse: string; shape: string; slots: string[]; source: string }[];
     assert.ok(rows.length >= 15 && rows.every((r) => r.source === "built-in" && r.whenToUse.length > 20 && /agent/.test(r.shape)));
     assert.deepEqual(rows.find((r) => r.id === "grind-loop")!.slots, ["task", "test-command"]);
-    assert.match(textOf(list), /^grind-loop · Grind loop · low · fast · light\n {2}when: .+\n(?: {2}not for: .+\n)? {2}shape: 1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes\n {2}slots: task, test-command$/m);
+    assert.match(textOf(list), /^template grind-loop: "Grind loop", cost low, speed fast, rigor light\n {2}when: ".+"\n(?: {2}not for: ".+"\n)? {2}shape: "1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes"\n {2}slots: "task", "test-command"$/m);
     assert.match(textOf(list), /next: grooph_templates with id .*the right answer is no graph: say so\.$/);
 
     // One in full: the questions its slots ask, and the document.
     const one = await call(ctx, "grooph_templates", { id: "grind-loop" });
-    assert.match(textOf(one), /^grind-loop · Grind loop \(graph, version \d+, built-in\)\n/);
-    assert.match(textOf(one), /\n {2}test-command: Which command runs the tests\? {2}\(e\.g\. pnpm test\)\n/);
+    assert.match(textOf(one), /^template grind-loop: "Grind loop" \(graph, version \d+, built-in\)\n/);
+    assert.match(textOf(one), /\n {2}slot "test-command": "Which command runs the tests\?" \(e\.g\. "pnpm test"\)\n/);
     assert.equal((one.structuredContent!["template"] as Graph).template!.kind, "graph");
     assert.equal(parseGraphText((one.content[1] as { text: string }).text).doc!.id, "grind-loop");
 
@@ -80,12 +82,12 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
     const half = await call(ctx, "grooph_use_template", { id: "grind-loop", name: "Fix the flaky test", values: { task: "make the checkout test pass ten times in a row" } });
     assert.equal(half.isError, undefined);
     assert.deepEqual(half.structuredContent!["unfilled"], ["test-command"]);
-    assert.match(textOf(half), /1 slot still unfilled.*\n {2}\{\{test-command\}\} {2}Which command runs the tests\?.*\[at: fix-the-flaky-test, tests\]\n/);
+    assert.match(textOf(half), /\nslots unfilled: 1; .*\n {2}slot "test-command": "Which command runs the tests\?" \(e\.g\. "pnpm test"\), at [a-z-]+(, [a-z-]+)*\n/);
     assert.match(textOf(half), /next: get the values for test-command from the person/);
     // Export refuses it, by the rule's code, with what to do.
     const early = await call(ctx, "grooph_validate", { graph: graphOf(half) });
     assert.equal(early.structuredContent!["ok"], false);
-    assert.match(textOf(early), /^graph fix-the-flaky-test\n1 error, 0 warnings\nerror {2}E_UNFILLED_SLOT .*\nfix {2}E_UNFILLED_SLOT {2}A \{\{slot\}\} is still in the text/);
+    assert.match(textOf(early), /^graph fix-the-flaky-test\nissues: 1 error, 0 warnings\nerror E_UNFILLED_SLOT ".*\nfix {2}E_UNFILLED_SLOT {2}A \{\{slot\}\} is still in the text/);
     assert.match(textOf(early), /\nnext: fix what is listed with grooph_apply .*then grooph_validate$/);
 
     // With every value.
@@ -96,7 +98,7 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
     assert.deepEqual(made.structuredContent!["unfilled"], []);
     // The document is also there as text, canonical, for a client that shows a model only text.
     assert.equal((made.content[1] as { text: string }).text, canonicalize(graph));
-    assert.match(textOf(made), /\nno issues\nnext: grooph_validate \(pass "graph": "fix-the-flaky-test"; the server remembers it\), which adds the rules a package must pass/);
+    assert.match(textOf(made), /\nissues: none\nnext: grooph_validate \(pass "graph": "fix-the-flaky-test"; the server remembers it\), which adds the rules a package must pass/);
 
     // Change it: a tighter round cap and a stronger builder. The ids an operation made come back.
     const changed = await call(ctx, "grooph_apply", {
@@ -110,26 +112,26 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
     });
     assert.equal(changed.isError, undefined);
     assert.deepEqual(changed.structuredContent!["ids"], [null, null, "ship-it"]);
-    assert.match(textOf(changed), /^applied 3 operations to "fix-the-flaky-test"; ids: ship-it\n/);
+    assert.match(textOf(changed), /^applied 3 operations to fix-the-flaky-test; ids: ship-it\n/);
     // A node nothing leads to is named, by code, and the graph still comes back: a graph is built in steps.
-    assert.match(textOf(changed), /warning {2}W_UNREACHABLE_NODE|no issues/);
+    assert.match(textOf(changed), /warning W_UNREACHABLE_NODE|issues: none/);
     graph = graphOf(changed);
     assert.equal(graph.loops[0]!.stops[0]!.kind === "max-iterations" && graph.loops[0]!.stops[0]!.n, 3);
     graph = graphOf(await call(ctx, "grooph_apply", { graph, ops: [{ op: "removeNode", id: "ship-it" }], forExport: true }));
 
     // Check it for export.
     const checked = await call(ctx, "grooph_validate", { graph });
-    assert.equal(textOf(checked), 'graph fix-the-flaky-test\nno issues\nnext: grooph_share (pass "graph": "fix-the-flaky-test"; the server remembers it) for a link the person opens, grooph_picture to show it here, grooph_export for the package');
+    assert.equal(textOf(checked), 'graph fix-the-flaky-test\nissues: none\nnext: grooph_share (pass "graph": "fix-the-flaky-test"; the server remembers it) for a link the person opens, grooph_picture to show it here, grooph_export for the package');
     // The data carries the same lines: a client that shows a model the data in place of the text loses nothing.
     assert.deepEqual(checked.structuredContent, { text: textOf(checked), ok: true, issues: [] });
 
     // What bounds it, and its shape.
     const explained = await call(ctx, "grooph_explain", { graph });
-    assert.match(textOf(explained), /^fix-the-flaky-test\n\nLoop "Grind": at most 3 rounds\.\n {2}stops after 3 rounds, the run halts and reports to a person\n/);
-    assert.match(textOf(explained), /\nWorst case: at most 3 rounds of looping in all/);
+    assert.match(textOf(explained), /^graph fix-the-flaky-test\nloop [a-z-]+ "Grind": at most 3 rounds\.\n {2}stop: "after 3 rounds, the run halts and reports to a person"\n/);
+    assert.match(textOf(explained), /\nworst case: "at most 3 rounds of looping in all/);
     assert.equal((explained.structuredContent as { worstCaseRounds: number }).worstCaseRounds, 3);
     const shape = await call(ctx, "grooph_shape", { graph });
-    assert.equal(textOf(shape), "fix-the-flaky-test: 1 agent · 1 check · 1 loop · up to 3 rounds · 30 minutes\ntiers: 1 strong");
+    assert.equal(textOf(shape), 'graph fix-the-flaky-test: "1 agent · 1 check · 1 loop · up to 3 rounds · 30 minutes"\ntiers: "1 strong"');
     assert.equal((shape.structuredContent as { agents: number }).agents, 1);
 
     // See it: SVG text every time, the same bytes for the same document; a PNG only when asked.
@@ -144,7 +146,7 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
     const shared = await call(ctx, "grooph_share", { graph });
     const link = shared.structuredContent!["link"] as string;
     assert.match(link, /^https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/open\?d=[A-Za-z0-9_-]+$/);
-    assert.ok(textOf(shared).split("\n").includes(link), "the link is on a line of its own");
+    assert.ok(textOf(shared).split("\n").includes(`link (${link.length.toLocaleString("en")} characters): ${JSON.stringify(link)}`), "the link is on a line of its own, as a JSON string");
     assert.match(shared.structuredContent!["embed"] as string, /^<iframe src="https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/embed\?d=.*data-grooph-embed><\/iframe>\n<script>/);
     const opened = decodeSharePayload(sharePayloadFrom(link)!, inflateRaw);
     assert.ok(opened.ok && opened.envelope.kind === "graph");
@@ -180,12 +182,12 @@ test("tools alone, no file: a template is named, filled, changed, checked, drawn
 test("from nothing: new, then apply builds the review loop the fixtures hold, byte for byte", async () => {
   await withProject(async (ctx) => {
     const empty = await call(ctx, "grooph_new", { name: "Review loop" });
-    assert.match(textOf(empty), /^graph "review-loop": empty\nnext: grooph_apply with "graph": "review-loop" and "ops", for example \[/);
+    assert.match(textOf(empty), /^graph review-loop: empty\nnext: grooph_apply with "graph": "review-loop" and "ops", for example \[/);
     const ops = JSON.parse(readFileSync(join(repoRoot, "fixtures", "ops", "review-loop.ops.json"), "utf8")) as unknown[];
     const built = await call(ctx, "grooph_apply", { graph: graphOf(empty), ops, forExport: true });
     assert.equal(canonicalize(graphOf(built)), readFileSync(join(repoRoot, "fixtures", "valid", "review-loop.grooph.json"), "utf8"));
     assert.equal(built.structuredContent!["ok"], true);
-    assert.match(textOf(built), /\n0 errors, 1 warning\nwarning {2}W_HOMOGENEOUS_CRITICS .*\nfix {2}W_HOMOGENEOUS_CRITICS {2}A critic runs on the same tier/);
+    assert.match(textOf(built), /\nissues: 0 errors, 1 warning\nwarning W_HOMOGENEOUS_CRITICS ".*\nfix {2}W_HOMOGENEOUS_CRITICS {2}A critic runs on the same tier/);
     // A goal and a target given at the start land in the document.
     const aimed = graphOf(await call(ctx, "grooph_new", { name: "Aimed", goal: "Ship it", target: "claude-code" }));
     assert.equal(aimed.goal, "Ship it");
@@ -199,16 +201,16 @@ test("an operation that cannot apply is named by its index, and nothing is appli
   await withProject(async (ctx) => {
     const graph = fixture("valid", "review-loop.grooph.json");
     const bad = await call(ctx, "grooph_apply", { graph, ops: [{ op: "setGraphName", name: "Renamed" }, { op: "updateNode", id: "critc", set: { effort: "high" } }] });
-    refused(bad, /^ops\[1\] updateNode: "id": no node "critc"; did you mean "critic"\?\nNo operation was applied; the graph is unchanged\.\nnext: correct ops\[1\] and send the whole list again$/);
+    refused(bad, /^Operation 1 \("updateNode"\) could not apply: "\\"id\\": no node \\"critc\\"; did you mean \\"critic\\"\?"\. No operation was applied; the graph is unchanged\.\nnext: correct ops\[1\] and send the whole list again$/);
     assert.deepEqual(bad.structuredContent!["error"], { index: 1, op: "updateNode", message: '"id": no node "critc"; did you mean "critic"?' });
     assert.equal(bad.content.length, 1, "no document comes back from a refused change");
 
-    refused(await call(ctx, "grooph_apply", { graph, ops: [{ op: "addNod", kind: "agent" }] }), /^ops\[0\] addNod: unknown op "addNod"; did you mean "addNode"\?/);
+    refused(await call(ctx, "grooph_apply", { graph, ops: [{ op: "addNod", kind: "agent" }] }), /^Operation 0 \("addNod"\) could not apply: "unknown op \\"addNod\\"; did you mean \\"addNode\\"\?"/);
     refused(await call(ctx, "grooph_apply", { graph, ops: [] }), /needs "ops"/);
     refused(await call(ctx, "grooph_apply", { graph }), /needs "ops"/);
     // A patch the schema does not take: the operations applied, the result is refused, by code.
     const unschematic = await call(ctx, "grooph_apply", { graph, ops: [{ op: "updateNode", id: "builder", set: { outputs: "src/" } }] });
-    refused(unschematic, /^The operations applied, but the result does not match the schema, so the graph is unchanged:\nerror {2}E_SCHEMA .*outputs/);
+    refused(unschematic, /^The operations applied, but the result does not match the schema, so the graph is unchanged:\nerror E_SCHEMA ".*outputs/);
     assert.match(textOf(unschematic), /\nfix {2}E_SCHEMA {2}/);
   });
 });
@@ -219,7 +221,7 @@ test("a refusal carries the rule's code, what to do about it, and a next: line",
     // A graph with errors is not shared, and not exported: each rule is named.
     for (const tool of ["grooph_share", "grooph_export"]) {
       const r = await call(ctx, tool, { graph: noStop });
-      refused(r, /\nerror {2}E_CYCLE_NO_STOP .*\n(?:.*\n)*fix {2}E_CYCLE_NO_STOP {2}A cycle no loop with a stop covers/);
+      refused(r, /\nerror E_CYCLE_NO_STOP ".*\n(?:.*\n)*fix {2}E_CYCLE_NO_STOP {2}A cycle no loop with a stop covers/);
       assert.ok((r.structuredContent!["issues"] as { code: string }[]).some((i) => i.code === "E_CYCLE_NO_STOP"), tool);
     }
     // It is still explained, counted and drawn: looking at a broken graph is how it gets fixed.
@@ -228,14 +230,14 @@ test("a refusal carries the rule's code, what to do about it, and a next: line",
 
     // No target, at export: the code, the operation that fixes it.
     const { target: _target, ...untargeted } = fixture("valid", "fix-until-green.grooph.json");
-    refused(await call(ctx, "grooph_export", { graph: untargeted }), /^error {2}E_NO_TARGET .*\nfix {2}E_NO_TARGET {2}Say which harness.*\{"op":"setTarget","harness":"claude-code"\}\.\nnext: grooph_apply with \{"op":"setTarget","harness":"claude-code"\}/);
+    refused(await call(ctx, "grooph_export", { graph: untargeted }), / cannot be exported:\nerror E_NO_TARGET "the graph names no target harness, and none was passed"\nfix {2}E_NO_TARGET {2}Say which harness.*\{"op":"setTarget","harness":"claude-code"\}\.\nnext: grooph_apply with \{"op":"setTarget","harness":"claude-code"\}/);
     refused(await call(ctx, "grooph_export", { graph: fixture("valid", "fix-until-green.grooph.json"), target: "cursor" }), /^Unknown target "cursor"; known targets: claude-code/);
 
     // Not a graph at all: every schema issue, by code.
-    refused(await call(ctx, "grooph_explain", { graph: { grooph: 0, id: "Wrong Id", name: "x", version: 1, nodes: [], edges: [], loops: [] } }), /is not a graph document grooph can read:\nerror {2}E_SCHEMA {2}\/id: /);
+    refused(await call(ctx, "grooph_explain", { graph: { grooph: 0, id: "Wrong Id", name: "x", version: 1, nodes: [], edges: [], loops: [] } }), /is not a graph document grooph can read:\nerror E_SCHEMA "\/id: /);
     // A template is not exported; the code says what to do instead.
     const template = JSON.parse(readFileSync(join(repoRoot, "patterns", "grind-loop.grooph.json"), "utf8")) as Graph;
-    refused(await call(ctx, "grooph_export", { graph: template }), /error {2}E_IS_TEMPLATE .*\n(?:.*\n)*fix {2}E_IS_TEMPLATE {2}This document is a template.*grooph_use_template/);
+    refused(await call(ctx, "grooph_export", { graph: template }), /error E_IS_TEMPLATE ".*\n(?:.*\n)*fix {2}E_IS_TEMPLATE {2}This document is a template.*grooph_use_template/);
 
     // The wrong kind of document, the wrong arguments.
     const map = JSON.parse(readFileSync(join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"), "utf8")) as unknown;
@@ -244,9 +246,9 @@ test("a refusal carries the rule's code, what to do about it, and a next: line",
     refused(await call(ctx, "grooph_shape", { graph: fixture("valid", "review-loop.grooph.json"), path: "x.grooph.json" }), /takes "graph" \(the document\) or "path" \(a file\), not both/);
     refused(await call(ctx, "grooph_shape", { graph: "{ not json" }), /"graph" is text that is neither a graph's id nor JSON/);
     refused(await call(ctx, "grooph_shape", { graph: [1] }), /"graph" must be a graph's id or the document as a JSON object, got a list/);
-    refused(await call(ctx, "grooph_shape", { path: "nope.grooph.json" }), /^No such file: nope\.grooph\.json/);
-    refused(await call(ctx, "grooph_templates", { id: "grind-lop" }), /^No template "grind-lop" .*did you mean "grind-loop"\?/);
-    refused(await call(ctx, "grooph_use_template", { id: "grind-loop", values: { tsk: "x" } }), /^template "grind-loop" has no slot "tsk"; did you mean "task"\?/);
+    refused(await call(ctx, "grooph_shape", { path: "nope.grooph.json" }), /^No such file: "nope\.grooph\.json"/);
+    refused(await call(ctx, "grooph_templates", { id: "grind-lop" }), /^No template "grind-lop" .*did you mean grind-loop\?/);
+    refused(await call(ctx, "grooph_use_template", { id: "grind-loop", values: { tsk: "x" } }), /^The template could not be used: "template \\"grind-loop\\" has no slot \\"tsk\\"; did you mean \\"task\\"\?/);
     refused(await call(ctx, "grooph_use_template", { id: "human-gated-irreversible" }), /is a fragment, not a whole graph/);
     refused(await call(ctx, "grooph_use_template", {}), /needs "id"/);
     refused(await call(ctx, "grooph_new", {}), /needs "name"/);
@@ -290,10 +292,10 @@ test("the file forms: path reads, out writes, and only inside the project folder
   await withProject(async (ctx, root) => {
     // new writes a file, and never over one.
     const made = await call(ctx, "grooph_new", { name: "Scratch", goal: "Try it.", target: "claude-code", out: "graphs/scratch.grooph.json" });
-    assert.match(textOf(made), /\nwrote graphs\/scratch\.grooph\.json\n/);
+    assert.match(textOf(made), /\nwrote "graphs\/scratch\.grooph\.json"\n/);
     const file = join(ctx.project, "graphs", "scratch.grooph.json");
     assert.equal(readFileSync(file, "utf8"), canonicalize(graphOf(made)));
-    refused(await call(ctx, "grooph_new", { name: "Scratch", out: "graphs/scratch.grooph.json" }), /^graphs\/scratch\.grooph\.json already exists, and it is not a file this tool read, so it was left as it is\.\nnext: give "out" another name, or pass "replace": true to replace it, when the person said to$/);
+    refused(await call(ctx, "grooph_new", { name: "Scratch", out: "graphs/scratch.grooph.json" }), /^"graphs\/scratch\.grooph\.json" already exists, and it is not a file this tool read, so it was left as it is\.\nnext: give "out" another name, or pass "replace": true to replace it, when the person said to$/);
     refused(await call(ctx, "grooph_use_template", { id: "ralph-loop", out: "graphs/scratch.grooph.json" }), /already exists/);
 
     // apply reads the file and may write the file it read; another existing file it will not replace.
@@ -303,35 +305,35 @@ test("the file forms: path reads, out writes, and only inside the project folder
       { op: "connect", from: "builder", to: "done" },
     ];
     writeFileSync(join(ctx.project, "graphs", "other.grooph.json"), "{}");
-    refused(await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/other.grooph.json", ops }), /graphs\/other\.grooph\.json already exists, and it is not the file this call read/);
+    refused(await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/other.grooph.json", ops }), /"graphs\/other\.grooph\.json" already exists, and it is not the file this call read/);
     assert.equal(readFileSync(join(ctx.project, "graphs", "other.grooph.json"), "utf8"), "{}");
     const applied = await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/scratch.grooph.json", ops, forExport: true });
-    assert.match(textOf(applied), /\nno issues\nwrote graphs\/scratch\.grooph\.json\n/);
+    assert.match(textOf(applied), /\nissues: none\nwrote "graphs\/scratch\.grooph\.json"\n/);
     assert.equal(parseGraphText(readFileSync(file, "utf8")).doc!.nodes.length, 2);
     // A failing operation leaves the file as it was.
     const before = readFileSync(file, "utf8");
-    refused(await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/scratch.grooph.json", ops: [{ op: "removeNode", id: "nobody" }] }), /^ops\[0\] removeNode/);
+    refused(await call(ctx, "grooph_apply", { path: "graphs/scratch.grooph.json", out: "graphs/scratch.grooph.json", ops: [{ op: "removeNode", id: "nobody" }] }), /^Operation 0 \("removeNode"\) could not apply/);
     assert.equal(readFileSync(file, "utf8"), before);
 
     // The readers take a path, relative to the project or absolute.
-    assert.match(textOf(await call(ctx, "grooph_shape", { path: "graphs/scratch.grooph.json" })), /^scratch: 1 agent · no loop/);
-    assert.match(textOf(await call(ctx, "grooph_explain", { path: file })), /^scratch\n\nLoops: none\./);
+    assert.match(textOf(await call(ctx, "grooph_shape", { path: "graphs/scratch.grooph.json" })), /^graph scratch: "1 agent · no loop/);
+    assert.match(textOf(await call(ctx, "grooph_explain", { path: file })), /^graph scratch\nloops: none\./);
     assert.match((await call(ctx, "grooph_share", { path: "graphs/scratch.grooph.json" })).structuredContent!["link"] as string, /#\/open\?d=/);
 
     // A proposal set on disk names its candidates by file; share reads them from beside it.
     const set = join(repoRoot, "fixtures", "proposals", "valid", "csv-export", "csv-export.grooph-proposals.json");
     const compared = await call(ctx, "grooph_share", { path: set });
     assert.equal(compared.structuredContent!["kind"], "proposals");
-    assert.match(textOf(compared), /^csv-export · .* · 3 candidates: /);
+    assert.match(textOf(compared), /^proposal set csv-export ".*": 3 candidates\n {2}candidate /);
 
     // The picture as a file: SVG, and PNG when the renderer is installed; a picture replaces a picture.
-    assert.match(textOf(await call(ctx, "grooph_picture", { path: "graphs/scratch.grooph.json", out: "pictures/scratch.svg" })), /\nwrote pictures\/scratch\.svg\n/);
+    assert.match(textOf(await call(ctx, "grooph_picture", { path: "graphs/scratch.grooph.json", out: "pictures/scratch.svg" })), /\nwrote "pictures\/scratch\.svg"\n/);
     assert.match(readFileSync(join(ctx.project, "pictures", "scratch.svg"), "utf8"), /^<svg /);
     assert.equal((await call(ctx, "grooph_picture", { path: "graphs/scratch.grooph.json", out: "pictures/scratch.svg", theme: "dark" })).isError, undefined);
     refused(await call(ctx, "grooph_picture", { path: "graphs/scratch.grooph.json", out: "pictures/scratch.pdf" }), /a picture is an SVG or a PNG/);
     refused(await call(ctx, "grooph_picture", { path: "graphs/scratch.grooph.json", out: "graphs/scratch.grooph.json" }), /a picture is an SVG or a PNG/);
     const png = await call(ctx, "grooph_picture", { path: "graphs/scratch.grooph.json", png: true, out: "pictures/scratch.png" });
-    if (png.isError) assert.match(textOf(png), /^Could not make a PNG: .*\nnext: the SVG is the same drawing/);
+    if (png.isError) assert.match(textOf(png), /^refused: Could not make a PNG: .*\nnext: the SVG is the same drawing/);
     else {
       assert.deepEqual([...readFileSync(join(ctx.project, "pictures", "scratch.png")).subarray(0, 4)], [0x89, 0x50, 0x4e, 0x47]);
       const image = png.content.find((c) => c.type === "image") as { data: string; mimeType: string };
@@ -341,9 +343,9 @@ test("the file forms: path reads, out writes, and only inside the project folder
 
     // export into the project: the files land, the reply lists them and does not repeat their contents.
     const placed = await call(ctx, "grooph_export", { path: "graphs/scratch.grooph.json", into: "." });
-    assert.match(textOf(placed), /^package for claude-code: 6 files, written into \.\n/);
+    assert.match(textOf(placed), /^package for claude-code: 6 files, written into "\."\n/);
     assert.equal(placed.content.length, 2, "the lines, and the kickoff in a block of its own; the files are on disk");
-    assert.match(textOf(placed), /\nkickoff: the prompt that starts the run is the next block of this reply, whole, and the file \.grooph\/scratch\/KICKOFF\.md in that folder\./);
+    assert.match(textOf(placed), /\nkickoff: the prompt that starts the run is the next block of this reply, whole, and the file "\.grooph\/scratch\/KICKOFF\.md" in that folder\./);
     assert.equal((placed.content[1] as { text: string }).text, readFileSync(join(ctx.project, ".grooph", "scratch", "KICKOFF.md"), "utf8").trimEnd());
     assert.ok(existsSync(join(ctx.project, ".grooph", "scratch", "LEAD.md")) && existsSync(join(ctx.project, ".claude", "agents", "scratch--builder.md")));
     assert.match(textOf(placed), /next: tell the person what was placed and give them the kickoff; do not start the run\./);
@@ -389,14 +391,14 @@ test("export takes the compiler's tier map, says what every tier then means, and
     assert.notDeepEqual(files, plain);
     assert.ok(Object.values(files).some((text) => /^model: a-model-of-my-own$/m.test(text)));
     // The same line the CLI prints: all three tiers, and which were named here.
-    assert.match(textOf(named), /\ntiers in this package: frontier → \S+ \(the target's own\), strong → a-model-of-my-own, fast → \S+ \(the target's own\)\. Named by "models"\. A pin on a node still wins\.\n/);
+    assert.match(textOf(named), /\ntiers in this package: frontier → \S+ \(the target's own\), strong → "a-model-of-my-own", fast → \S+ \(the target's own\)\. Named by "models"\. A pin on a node still wins\.\n/);
     // The graph is not changed by it.
     assert.equal(files[".grooph/review-loop/graph.grooph.json"], plain[".grooph/review-loop/graph.grooph.json"]);
 
     // A name goes into a file's frontmatter as written: anything that is not a name is refused before it gets there.
     for (const bad of ["so nnet", "opus\nallowed-tools: Bash", "opus; rm -rf", "", "-leading-dash", 7]) {
       const r = await call(ctx, "grooph_export", { graph, models: { strong: bad } });
-      refused(r, /^"models\.strong" must be a model's name \(letters, digits and \. _ - : \/ \[ \]\), got /);
+      refused(r, /^The model for the tier strong must be a model's name \(letters, digits and \. _ - : \/ \[ \]\), got "/);
     }
     refused(await call(ctx, "grooph_export", { graph, models: { huge: "x" } }), /names a tier grooph does not have: "huge"\. The tiers are frontier, strong, fast\./);
     refused(await call(ctx, "grooph_export", { graph, models: "strong=sonnet" }), /"models" must be an object/);
@@ -418,7 +420,7 @@ test("the project's own templates answer before the built-in ones, and nothing i
     writeFileSync(join(ctx.project, ".grooph", "templates", "grind-loop.grooph.json"), canonicalize(mine));
     const rows = (await call(ctx, "grooph_templates", {})).structuredContent!["templates"] as { id: string; title: string; source: string }[];
     assert.deepEqual(rows.filter((r) => r.id === "grind-loop"), [{ ...rows.find((r) => r.id === "grind-loop")!, title: "Our grind loop", source: "project" }]);
-    assert.match(textOf(await call(ctx, "grooph_use_template", { id: "grind-loop", values: { task: "t", "test-command": "c" } })), /from grind-loop@\d+ \(project\)/);
+    assert.match(textOf(await call(ctx, "grooph_use_template", { id: "grind-loop", values: { task: "t", "test-command": "c" } })), /from template grind-loop@\d+ \(project\)/);
     refused(await call(ctx, "grooph_use_template", { id: "a-template-only-the-network-has" }), /^No template/);
     assert.deepEqual(fetched, []);
   });
@@ -428,13 +430,13 @@ test("an operation map is checked, drawn and shared from JSON; a tool that throw
   await withProject(async (ctx) => {
     const map = JSON.parse(readFileSync(join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json"), "utf8")) as { id: string };
     const checked = await call(ctx, "grooph_validate", { graph: map });
-    assert.match(textOf(checked), /^operation map .*\nno issues\nby hand .*\n(?:by hand .*\n)*next: grooph_picture draws the map; grooph_share makes its link$/);
+    assert.match(textOf(checked), /^map .*\nissues: none\nby hand: .*\n(?:by hand: .*\n)*next: grooph_picture draws the map; grooph_share makes its link$/);
     const drawn = await call(ctx, "grooph_picture", { graph: map, theme: "light" });
     assert.match((drawn.content[1] as { text: string }).text, /data-picture="map"/);
     assert.equal((await call(ctx, "grooph_share", { graph: map })).structuredContent!["kind"], "map");
     const broken = JSON.parse(readFileSync(join(repoRoot, "fixtures", "maps", "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json"), "utf8")) as unknown;
     const said = await call(ctx, "grooph_validate", { graph: broken });
-    assert.match(textOf(said), /\n1 error, 0 warnings\nerror {2}E_HANDOFF_NO_CARRIER .*\nnext: correct what is listed in the map document, then grooph_validate$/);
+    assert.match(textOf(said), /\nissues: 1 error, 0 warnings\nerror E_HANDOFF_NO_CARRIER .*\nnext: correct what is listed in the map document, then grooph_validate$/);
   });
 });
 
@@ -475,7 +477,7 @@ test("the server remembers the graphs it returns, so a later call names one by i
     assert.equal(changed.isError, undefined, textOf(changed));
     assert.match(textOf(changed), /next: grooph_share \(pass "graph": "fix-the-flaky-test"; the server remembers it\)/);
     // The id now means the changed graph, not the one before.
-    assert.equal(textOf(await call(ctx, "grooph_shape", { graph: id })), "fix-the-flaky-test: 1 agent · 1 check · 1 loop · up to 2 rounds · 30 minutes\ntiers: 1 fast");
+    assert.equal(textOf(await call(ctx, "grooph_shape", { graph: id })), 'graph fix-the-flaky-test: "1 agent · 1 check · 1 loop · up to 2 rounds · 30 minutes"\ntiers: "1 fast"');
     assert.equal((await call(ctx, "grooph_validate", { graph: id })).structuredContent!["ok"], true);
     assert.match(textOf(await call(ctx, "grooph_explain", { graph: id })), /at most 2 rounds/);
     assert.match(((await call(ctx, "grooph_picture", { graph: id })).content[1] as { text: string }).text, /^<svg /);
@@ -492,12 +494,12 @@ test("the server remembers the graphs it returns, so a later call names one by i
     assert.equal((await call(ctx, "grooph_shape", { graph: renamed.id })).isError, undefined);
 
     // An id nobody made is refused, with the nearest one and what to do; a template is not a graph to name.
-    refused(await call(ctx, "grooph_shape", { graph: "fix-the-flaky-tset" }), /^No graph "fix-the-flaky-tset" has been made in this conversation; did you mean "fix-the-flaky-test"\? \(the server remembers the graphs its tools return, until it restarts\)\.\nnext: pass the whole document as "graph"/);
-    refused(await call(ctx, "grooph_shape", { graph: "grind-loop" }), /^No graph "grind-loop" has been made in this conversation/);
+    refused(await call(ctx, "grooph_shape", { graph: "fix-the-flaky-tset" }), /^No graph fix-the-flaky-tset has been made in this conversation; did you mean fix-the-flaky-test\? \(the server remembers the graphs its tools return, until it restarts\)\.\nnext: pass the whole document as "graph"/);
+    refused(await call(ctx, "grooph_shape", { graph: "grind-loop" }), /^No graph grind-loop has been made in this conversation/);
   });
   // Another server, another memory.
   await withProject(async (ctx) => {
-    refused(await call(ctx, "grooph_validate", { graph: "fix-the-flaky-test" }), /^No graph "fix-the-flaky-test" has been made in this conversation \(/);
+    refused(await call(ctx, "grooph_validate", { graph: "fix-the-flaky-test" }), /^No graph fix-the-flaky-test has been made in this conversation \(/);
   });
 });
 
@@ -508,7 +510,7 @@ test("the data a tool returns carries the reply's lines, next: included, and the
     assert.match(made.structuredContent!["text"] as string, /\nnext: get the values for test-command from the person/);
     // The library's rows are the data; its lines there are only the legend and what to do next, not the list twice.
     const list = await call(ctx, "grooph_templates", {});
-    assert.match(list.structuredContent!["text"] as string, /^\d+ templates; the three words after each title are cost · speed · rigor\.\nnext: /);
+    assert.match(list.structuredContent!["text"] as string, /^templates: \d+; each is said with its cost, speed and rigor\.\nnext: /);
     // The package's kickoff is in the data once.
     const exported = await call(ctx, "grooph_export", { graph: fixture("valid", "fix-until-green.grooph.json") });
     assert.ok(!(exported.structuredContent!["text"] as string).includes(exported.structuredContent!["kickoff"] as string));
@@ -540,7 +542,7 @@ test("a proposal set is shared from JSON, its candidates named by the ids of gra
     const shared = await call(ctx, "grooph_share", { graph: set });
     assert.equal(shared.isError, undefined, textOf(shared));
     assert.equal(shared.structuredContent!["kind"], "proposals");
-    assert.match(textOf(shared), /^slugify · slugify\(text\) · 2 candidates: Lean \(1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes\); Reviewed \(/);
+    assert.match(textOf(shared), /^proposal set slugify "slugify\(text\)": 2 candidates\n {2}candidate lean "Lean": "1 agent · 1 check · 1 loop · up to 5 rounds · 30 minutes"\n {2}candidate reviewed "Reviewed": "/);
     const opened = decodeSharePayload(sharePayloadFrom(shared.structuredContent!["link"] as string)!, inflateRaw);
     assert.ok(opened.ok && opened.envelope.kind === "proposals");
     assert.deepEqual((opened.envelope.doc as { candidates: { graph: Graph }[] }).candidates.map((c) => c.graph.id), [lean.id, gated.id]);
@@ -552,7 +554,7 @@ test("a proposal set is shared from JSON, its candidates named by the ids of gra
     // A candidate naming a graph nobody made, and a set with a field wrong: named, with the shape, and no graph repair offered.
     refused(await call(ctx, "grooph_share", { graph: { ...set, candidates: [candidate("lean", "Lean", "never-made")] } }), /^Candidate "lean" names the graph "never-made", and no graph with that id has been made in this conversation\./);
     const wrong = await call(ctx, "grooph_share", { graph: { ...set, recommendation: { candidate: "nobody", why: "?" } } });
-    refused(wrong, /cannot be shared: .*\nerror {2}E_DANGLING_REF .*nobody/);
+    refused(wrong, /cannot be shared: .*\nerror E_DANGLING_REF .*nobody/);
     assert.doesNotMatch(textOf(wrong), /\nfix {2}/);
     assert.match(textOf(wrong), /\nnext: correct the proposal set as the lines say, then grooph_share again\. Its shape: /);
     // The tool's description carries the shape, since a session with only tools has nowhere else to read it.
@@ -577,7 +579,7 @@ test("what an independent read found: links, hard links, a project reached throu
     // A link inside the project to another file inside it: the picture rule looks at what is there, and a link is not written through.
     writeFileSync(join(ctx.project, "notes.txt"), "mine");
     symlinkSync(join(ctx.project, "notes.txt"), join(ctx.project, "pic.svg"));
-    refused(await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "pic.svg" }), /^pic\.svg is a link to another file, and grooph writes files, not through links\./);
+    refused(await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "pic.svg" }), /^"pic\.svg" is a link to another file, and grooph writes files, not through links\./);
     assert.equal(readFileSync(join(ctx.project, "notes.txt"), "utf8"), "mine");
 
     // A package file that is a link: the export is refused before anything is written, so nothing of it lands.
@@ -594,7 +596,7 @@ test("what an independent read found: links, hard links, a project reached throu
     // A second name for a file outside the project (a hard link): the picture takes the name, and the file outside keeps what it had.
     writeFileSync(join(root, "outside.svg"), "<svg>outside</svg>");
     linkSync(join(root, "outside.svg"), join(ctx.project, "hard.svg"));
-    refused(await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg" }), /^hard\.svg already exists, and it is not a picture grooph drew/);
+    refused(await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg" }), /^"hard\.svg" already exists, and it is not a picture grooph drew/);
     assert.equal((await call(ctx, "grooph_picture", { path: "linked.grooph.json", out: "hard.svg", replace: true })).isError, undefined);
     assert.equal(readFileSync(join(root, "outside.svg"), "utf8"), "<svg>outside</svg>");
     assert.match(readFileSync(join(ctx.project, "hard.svg"), "utf8"), /^<svg xmlns/);
@@ -633,12 +635,12 @@ test("B: with no tier map of its own, grooph_export takes GROOPH_MODELS from the
       // Every agent file names a model the environment gave; none names the target's own for a tier that was mapped.
       const models = Object.entries(files).filter(([path]) => path.startsWith(".claude/agents/")).map(([, text]) => /^model: (.+)$/m.exec(text)![1]);
       assert.ok(models.length > 0 && models.every((model) => ["opus-of-mine", "sonnet-of-mine", "haiku-of-mine"].includes(model!)), models.join(", "));
-      assert.match(textOf(fromEnv), /\ntiers in this package: frontier → opus-of-mine, strong → sonnet-of-mine, fast → haiku-of-mine\. Named by GROOPH_MODELS\./);
+      assert.match(textOf(fromEnv), /\ntiers in this package: frontier → "opus-of-mine", strong → "sonnet-of-mine", fast → "haiku-of-mine"\. Named by GROOPH_MODELS\./);
       assert.equal(fromEnv.structuredContent!["modelsFrom"], "GROOPH_MODELS");
       // The call's own map is laid over the environment's, tier by tier: naming one tier does not send the others
       // back to the target's own.
       const own = await call(ctx, "grooph_export", { graph, models: { strong: "named-in-the-call" } });
-      assert.match(textOf(own), /\ntiers in this package: frontier → opus-of-mine, strong → named-in-the-call, fast → haiku-of-mine\. Named by "models", over GROOPH_MODELS\./);
+      assert.match(textOf(own), /\ntiers in this package: frontier → "opus-of-mine", strong → "named-in-the-call", fast → "haiku-of-mine"\. Named by "models", over GROOPH_MODELS\./);
       assert.equal(own.structuredContent!["modelsFrom"], '"models", over GROOPH_MODELS');
       assert.deepEqual(own.structuredContent!["models"], { frontier: "opus-of-mine", strong: "named-in-the-call", fast: "haiku-of-mine" });
       assert.doesNotMatch(textOf(own), /the target's own/);
@@ -646,7 +648,7 @@ test("B: with no tier map of its own, grooph_export takes GROOPH_MODELS from the
     { env: { GROOPH_MODELS: "frontier=opus-of-mine,strong=sonnet-of-mine,fast=haiku-of-mine" } },
   );
   // A map in the environment that is not one is said, with where it is.
-  await withProject(async (ctx) => refused(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json") }), /^GROOPH_MODELS, in the environment this server started in: "huge" is not a tier/), { env: { GROOPH_MODELS: "huge=x" } });
+  await withProject(async (ctx) => refused(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json") }), /^GROOPH_MODELS, in the environment this server started in, does not read: "\\"huge\\" is not a tier/), { env: { GROOPH_MODELS: "huge=x" } });
   // No environment map and none in the call: the target's own, and the reply still says what each tier means.
   await withProject(
     async (ctx) => {
@@ -654,12 +656,12 @@ test("B: with no tier map of its own, grooph_export takes GROOPH_MODELS from the
       assert.match(textOf(plain), /\ntiers in this package: frontier → \S+ \(the target's own\), strong → \S+ \(the target's own\), fast → \S+ \(the target's own\)\. No tier map was given \("models", or GROOPH_MODELS where the server starts\)\. A pin on a node still wins\.\n/);
       assert.equal(plain.structuredContent!["tiers"], textOf(plain).split("\n").find((line) => line.startsWith("tiers in this package")));
       // With only the call's map, the tiers it leaves out are said to be the target's own.
-      assert.match(textOf(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json"), models: { strong: "mine" } })), /frontier → \S+ \(the target's own\), strong → mine, .*Named by "models"\./);
+      assert.match(textOf(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json"), models: { strong: "mine" } })), /frontier → \S+ \(the target's own\), strong → "mine", .*Named by "models"\./);
     },
     { env: {} },
   );
   // A malformed map in the environment stops a call that names its own too: the call's is laid over it.
-  await withProject(async (ctx) => refused(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json"), models: { strong: "x" } }), /^GROOPH_MODELS, in the environment this server started in: /), { env: { GROOPH_MODELS: "strong" } });
+  await withProject(async (ctx) => refused(await call(ctx, "grooph_export", { graph: fixture("valid", "review-loop.grooph.json"), models: { strong: "x" } }), /^GROOPH_MODELS, in the environment this server started in, does not read: /), { env: { GROOPH_MODELS: "strong" } });
 });
 
 test("C: a graph is saved only under a name ending .grooph.json, and nothing is written under .git", async () => {
@@ -695,7 +697,7 @@ test("D: a file that is there is replaced only when it is grooph's own, or when 
     const graph = fixture("valid", "fix-until-green.grooph.json");
     // The project's own picture is not a picture grooph drew.
     writeFileSync(join(ctx.project, "logo.svg"), "<svg><!-- ours --></svg>");
-    refused(await call(ctx, "grooph_picture", { graph, out: "logo.svg" }), /^logo\.svg already exists, and it is not a picture grooph drew \(an SVG carries a mark that says so; a PNG carries none\), so it was left as it is\.\nnext: give "out" another name, or pass "replace": true/);
+    refused(await call(ctx, "grooph_picture", { graph, out: "logo.svg" }), /^"logo\.svg" already exists, and it is not a picture grooph drew \(an SVG carries a mark that says so; a PNG carries none\), so it was left as it is\.\nnext: give "out" another name, or pass "replace": true/);
     assert.equal(readFileSync(join(ctx.project, "logo.svg"), "utf8"), "<svg><!-- ours --></svg>");
     // A picture grooph drew is replaced by the next one; a PNG, which carries no mark, only when asked.
     assert.equal((await call(ctx, "grooph_picture", { graph, out: "graph.svg" })).isError, undefined);
@@ -718,13 +720,13 @@ test("D: a file that is there is replaced only when it is grooph's own, or when 
     assert.match(readFileSync(agent, "utf8"), /^effort: high$/m);
     // With a tier map this time the files are still grooph's, but an agent's model would change: that is asked for.
     const remapped = await call(ctx, "grooph_export", { graph: changed, into: ".", models: { strong: "mine" } });
-    refused(remapped, /^This export would change the model of 1 agent file already in \., so nothing was placed:\n {2}\.claude\/agents\/fix-until-green--fixer\.md: model \S+ → mine\ntiers in this package: /);
+    refused(remapped, /^Nothing was placed in "\.": this export would change the model of 1 agent file there\.\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\ntiers in this package: /);
     assert.doesNotMatch(readFileSync(agent, "utf8"), /^model: mine$/m);
     assert.equal((await call(ctx, "grooph_export", { graph: changed, into: ".", models: { strong: "mine" }, replace: true })).isError, undefined);
     assert.match(readFileSync(agent, "utf8"), /^model: mine$/m);
     // And back, by a server that was not told the map: the same question, not a silent return to the target's own.
     const back = await call(ctx, "grooph_export", { graph: changed, into: "." });
-    refused(back, /model mine → \S+\ntiers in this package: .*No tier map was given/);
+    refused(back, /: "mine" → "\S+"\ntiers in this package: .*No tier map was given/);
     assert.match(textOf(back), /\nnext: if the person means the models to change, pass "replace": true .*; if not, name the tiers the package was placed with/);
     assert.match(readFileSync(agent, "utf8"), /^model: mine$/m);
     // The same map again changes no model, and needs no asking.
@@ -738,7 +740,7 @@ test("D: a file that is there is replaced only when it is grooph's own, or when 
     const leadBefore = readFileSync(lead, "utf8");
     const again = graphOf(await call(ctx, "grooph_apply", { graph: changed, ops: [{ op: "setGraphField", key: "goal", value: "Another goal entirely." }] }));
     const stopped = await call(ctx, "grooph_export", { graph: again, into: "." });
-    refused(stopped, /^1 file of this package is already in \. and not as grooph last wrote it, so nothing was placed:\n {2}\.claude\/agents\/fix-until-green--fixer\.md\nnext: look at it: a change made by hand is lost when the file is replaced\. Then pass "replace": true/);
+    refused(stopped, /^Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it\.\n {2}file "\.claude\/agents\/fix-until-green--fixer\.md": not as grooph last wrote it\nnext: look at it: a change made by hand is lost when the file is replaced\. Then pass "replace": true/);
     assert.deepEqual(stopped.structuredContent!["changed"], [".claude/agents/fix-until-green--fixer.md"]);
     assert.equal(readFileSync(agent, "utf8"), edited);
     assert.equal(readFileSync(lead, "utf8"), leadBefore, "no other file of the package was replaced either");
@@ -750,7 +752,7 @@ test("D: a file that is there is replaced only when it is grooph's own, or when 
     // A file at a package's path that grooph never wrote (no package there before): the same refusal.
     mkdirSync(join(ctx.project, "fresh", ".claude", "agents"), { recursive: true });
     writeFileSync(join(ctx.project, "fresh", ".claude", "agents", "fix-until-green--fixer.md"), "an agent of our own");
-    refused(await call(ctx, "grooph_export", { graph, into: "fresh" }), /not as grooph last wrote it, so nothing was placed/);
+    refused(await call(ctx, "grooph_export", { graph, into: "fresh" }), /is there and not as grooph last wrote it/);
     assert.equal(existsSync(join(ctx.project, "fresh", ".grooph")), false);
   });
 });
@@ -828,7 +830,7 @@ test("F: an export is placed whole or not at all; a note is not written through 
     mkdirSync(join(root, "elsewhere"));
     mkdirSync(join(ctx.project, ".grooph"));
     symlinkSync(join(root, "elsewhere"), join(ctx.project, ".grooph", "events"));
-    refused(await call(ctx, "grooph_note", { text: "hello" }), /^\.grooph\/events in this project is a link, and grooph records nothing through a link\./);
+    refused(await call(ctx, "grooph_note", { text: "hello" }), /^"\.grooph\/events" in this project is a link, and grooph records nothing through a link\./);
     refused(await call(ctx, "grooph_plan", { agents: [{ type: "Explore" }] }), /records nothing through a link/);
     assert.deepEqual(readdirSync(join(root, "elsewhere")), []);
   });
@@ -862,7 +864,7 @@ test("second pass 1: a proposal set's candidate file is read only when it is a g
       [join(root, "outside.grooph.json"), /which is not relative to the set's folder/],
       ["linked-out.grooph.json", /which is outside the set's folder/],
       ["missing.grooph.json", /there is no such file beside the set/],
-      ["not-json.grooph.json", /not-json\.grooph\.json is not JSON$/m],
+      ["not-json.grooph.json", /not-json\.grooph\.json is not JSON"$/m],
     ] as const) {
       const r = await call(ctx, "grooph_share", { path: set(file) });
       refused(r, why);
@@ -895,7 +897,7 @@ test("second pass 3: the graph a package keeps is not a place to save a graph", 
     const ops = [{ op: "updateNode", id: "fixer", set: { brief: "A brief written to match a hand edit." } }];
     // Read it and write it back: the rule that lets a tool rewrite the file it read does not reach this file.
     const steered = await call(ctx, "grooph_apply", { path: kept, out: kept, ops });
-    refused(steered, /^\.grooph\/fix-until-green\/graph\.grooph\.json is the graph a package keeps: grooph_export writes it, and the next export reads it to tell its own files from yours\.\nnext: save the graph elsewhere \(for example \.grooph\/graphs\/fix-until-green\.grooph\.json\), then grooph_export with "into"/);
+    refused(steered, /^"\.grooph\/fix-until-green\/graph\.grooph\.json" is the graph a package keeps: grooph_export writes it, and the next export reads it to tell its own files from yours\.\nnext: save the graph elsewhere \(for example \.grooph\/graphs\/fix-until-green\.grooph\.json\), then grooph_export with "into"/);
     refused(await call(ctx, "grooph_apply", { graph, out: kept, ops, replace: true }), /is the graph a package keeps/);
     refused(await call(ctx, "grooph_new", { name: "N", out: kept, replace: true }), /is the graph a package keeps/);
     refused(await call(ctx, "grooph_use_template", { id: "ralph-loop", out: ".grooph/another-graph/graph.grooph.json" }), /is the graph a package keeps/);
@@ -905,7 +907,7 @@ test("second pass 3: the graph a package keeps is not a place to save a graph", 
     // So the next export still tells its own files from a hand edit.
     const agent = join(ctx.project, ".claude", "agents", "fix-until-green--fixer.md");
     writeFileSync(agent, readFileSync(agent, "utf8").replace(/## Brief\n\n.*\n/, "## Brief\n\nA brief written to match a hand edit.\n"));
-    refused(await call(ctx, "grooph_export", { graph, into: "." }), /not as grooph last wrote it, so nothing was placed/);
+    refused(await call(ctx, "grooph_export", { graph, into: "." }), /is there and not as grooph last wrote it/);
     // Where graphs are meant to be kept, and a run's own working copy, are places to save.
     for (const out of [".grooph/graphs/graph.grooph.json", ".grooph/graphs/fix-until-green.grooph.json", ".grooph/proposals/set/graph.grooph.json", ".grooph/fix-until-green/runs/20261004-120000/graph.grooph.json"]) {
       assert.equal((await call(ctx, "grooph_apply", { graph, out, ops })).isError, undefined, out);
@@ -947,7 +949,7 @@ test("second pass 6: a note is not appended to a file that has another name; a p
     mkdirSync(join(ctx.project, ".grooph", "events"), { recursive: true });
     writeFileSync(join(root, "outside.jsonl"), "");
     linkSync(join(root, "outside.jsonl"), join(ctx.project, ".grooph", "events", "said-sess-1.jsonl"));
-    refused(await call(ctx, "grooph_note", { text: "hello" }), /^\.grooph\/events\/said-sess-1\.jsonl has another name somewhere \(a hard link\), and grooph records nothing that would also be written elsewhere\./);
+    refused(await call(ctx, "grooph_note", { text: "hello" }), /^"\.grooph\/events\/said-sess-1\.jsonl" has another name somewhere \(a hard link\), and grooph records nothing that would also be written elsewhere\./);
     refused(await call(ctx, "grooph_plan", { agents: [{ type: "Explore" }] }), /has another name somewhere/);
     assert.equal(readFileSync(join(root, "outside.jsonl"), "utf8"), "");
 
@@ -997,9 +999,9 @@ test("a graph whose pin or skill name would add keys to an agent file's header i
     const base = fixture("valid", "fix-until-green.grooph.json");
     const withFixer = (change: Record<string, unknown>): unknown => ({ ...base, nodes: base.nodes.map((node) => (node.kind === "agent" ? { ...node, ...change } : node)) });
     const cases: [string, unknown, RegExp][] = [
-      ["a pin", withFixer({ model: { tier: "strong", pin: { "claude-code": "sonnet\npermissionMode: bypassPermissions" } } }), /error {2}E_SCHEMA {2}\/nodes\/0\/model\/pin\/claude-code: expected model name matching/],
-      ["a skill name", withFixer({ skills: ["review", "x\nhooks: evil"] }), /error {2}E_SCHEMA {2}\/nodes\/0\/skills\/1: expected skill name matching/],
-      ["the fixture that fires the rule", fixture("invalid", "E_SCHEMA", "wrong-with-a-line-break-in-a-name.grooph.json"), /error {2}E_SCHEMA {2}\/nodes\/0\/model\/pin\/claude-code/],
+      ["a pin", withFixer({ model: { tier: "strong", pin: { "claude-code": "sonnet\npermissionMode: bypassPermissions" } } }), /error E_SCHEMA "\/nodes\/0\/model\/pin\/claude-code: expected model name matching/],
+      ["a skill name", withFixer({ skills: ["review", "x\nhooks: evil"] }), /error E_SCHEMA "\/nodes\/0\/skills\/1: expected skill name matching/],
+      ["the fixture that fires the rule", fixture("invalid", "E_SCHEMA", "wrong-with-a-line-break-in-a-name.grooph.json"), /error E_SCHEMA "\/nodes\/0\/model\/pin\/claude-code/],
     ];
     for (const [what, graph, said] of cases) {
       for (const args of [{ graph, into: "." }, { graph }, { graph, into: ".", replace: true }]) {

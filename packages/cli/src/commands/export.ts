@@ -1,10 +1,12 @@
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { closeSync, existsSync, openSync, readSync, statSync } from "node:fs";
+import { resolve } from "node:path";
 
-import { CompileError, formatIssue, getProfile, isMapLike, parseGraphText, tryCompile, type CompileOptions, type CompileTarget, type Graph } from "@grooph/core";
+import { CompileError, formatIssue, getProfile, isMapLike, keptFolder, parseGraphText, tryCompile, type CompileOptions, type CompileTarget, type Graph } from "@grooph/core";
 
-import { readText, writeText } from "../io.js";
+import { readText } from "../io.js";
+import { putAll, within, type Place } from "../place.js";
 import { printIssues, printNext, plural, type Output } from "../print.js";
+import { Refusal } from "../reply.js";
 
 export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string; changeModels?: boolean };
 
@@ -19,13 +21,21 @@ export const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
  * the builder it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers that are the same model.
  * `ways` is how the one exporting names a tier map: the CLI's flags, or the MCP tool's argument.
  */
-export function tiersSaid(doc: Graph, target: CompileTarget, models: CompileOptions["models"], from: string, ways = "--models, or GROOPH_MODELS"): string[] {
+export function tiersSaid(
+  doc: Graph,
+  target: CompileTarget,
+  models: CompileOptions["models"],
+  from: string,
+  ways = "--models, or GROOPH_MODELS",
+  show: (model: string) => string = (model) => model,
+): string[] {
   const stock = getProfile(target).models;
   const named = models ?? {};
-  const means = (tier: (typeof TIERS)[number]): string => named[tier] ?? stock[tier];
+  const model = (tier: (typeof TIERS)[number]): string => named[tier] ?? stock[tier];
+  const means = (tier: (typeof TIERS)[number]): string => show(model(tier));
   const pins = (doc.nodes ?? []).flatMap((node) => {
     const pin = node.kind === "agent" ? node.model?.pin?.[target] : undefined;
-    return pin === undefined ? [] : [`a pin on ${node.id}: ${pin}`];
+    return pin === undefined ? [] : [`a pin on ${node.id}: ${show(pin)}`];
   });
   const lines = [
     `tiers in this package: ${TIERS.map((tier) => `${tier} → ${means(tier)}${tier in named ? "" : " (the target's own)"}`).join(", ")}. ` +
@@ -33,7 +43,7 @@ export function tiersSaid(doc: Graph, target: CompileTarget, models: CompileOpti
       (pins.length > 0 ? `A pin wins over its node's tier, and this graph has ${pins.length}: ${pins.join("; ")}.` : "A pin on a node still wins."),
   ];
   const used = new Set((doc.nodes ?? []).flatMap((node) => (node.kind === "agent" && node.model && !node.model.pin?.[target] ? [node.model.tier] : [])));
-  const same = TIERS.flatMap((a, i) => TIERS.slice(i + 1).filter((b) => used.has(a) && used.has(b) && means(a) === means(b)).map((b) => `${a} and ${b} are both ${means(a)}`));
+  const same = TIERS.flatMap((a, i) => TIERS.slice(i + 1).filter((b) => used.has(a) && used.has(b) && model(a) === model(b)).map((b) => `${a} and ${b} are both ${means(a)}`));
   if (same.length > 0) {
     lines.push(
       `note: ${same.join("; ")} in this package${models ? "" : ", by the target's own map"}, and this graph has agents on each. A critic and the builder it checks may ${models ? "now " : ""}share a model; the validator's check for that reads tiers and does not see it.${models ? "" : ` To keep them apart, name the tiers: ${ways}.`}`,
@@ -42,49 +52,61 @@ export function tiersSaid(doc: Graph, target: CompileTarget, models: CompileOpti
   return lines;
 }
 
-/**
- * The folders under `.grooph/` that grooph keeps for something else. A package lives in `.grooph/<graph id>/`, so a
- * graph with one of these ids would be placed among the saved graphs, the proposal sets, the templates, the events
- * or the hooks; and the graph a package keeps would sit where a saved graph may be written by anyone.
- */
-const KEPT_FOLDERS: Record<string, string> = {
-  graphs: "saved graphs",
-  proposals: "proposal sets",
-  templates: "the project's templates",
-  events: "what the event hook records",
-  hooks: "the event hook",
-};
+/** How much of a file is read for its header: a header is a few short lines, whatever follows it. */
+const HEADER_LINES = 200;
+const HEADER_LINE = 1000;
 
-/** Why a graph with this id cannot be exported, or undefined when it can: its package would be placed in a folder grooph uses for something else. */
-export function keptFolder(id: string): string | undefined {
-  return Object.hasOwn(KEPT_FOLDERS, id) ? `its package would be placed in .grooph/${id}/, the folder grooph keeps ${KEPT_FOLDERS[id]} in` : undefined;
-}
+const unquoted = (text: string): string => (text.length >= 2 && (text[0] === '"' || text[0] === "'") && text.at(-1) === text[0] ? text.slice(1, -1) : text);
 
 /**
  * Every `model:` a file's header names, read as loosely as a harness might read it: a byte order mark and carriage
- * returns set aside, the key in quotes or with space around it, the value with or without quotes. A header that
- * names the key twice gives both: which of them a reader takes is the reader's to say, so both count.
+ * returns set aside, space after the opening dashes, the key in quotes or with space around it, the value with or
+ * without quotes. A header that names the key twice gives both: which of them a reader takes is the reader's to
+ * say, so both count. Nothing here can take long over a hostile file: the text is cut to a header's size before it
+ * is looked at, and a key and its value are found by position, with no pattern that tries again.
  */
 export function headerModels(text: string): string[] {
-  const plain = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
-  if (!plain.startsWith("---\n")) return [];
-  const end = plain.indexOf("\n---", 3);
-  if (end < 0) return [];
-  return [...plain.slice(4, end + 1).matchAll(/^[ \t]*(?:"model"|'model'|model)[ \t]*:[ \t]*(.*?)[ \t]*$/gm)].map((found) => found[1]!.replace(/^(["'])(.*)\1$/, "$2"));
+  const plain = (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text).slice(0, HEADER_LINES * HEADER_LINE);
+  const lines = plain.split(/\r\n|\r|\n/, HEADER_LINES + 1);
+  if ((lines[0] ?? "").trimEnd() !== "---") return [];
+  const models: string[] = [];
+  for (const whole of lines.slice(1)) {
+    const line = whole.slice(0, HEADER_LINE);
+    const alone = line.trimEnd();
+    if (alone === "---" || alone === "...") break;
+    const colon = line.indexOf(":");
+    if (colon >= 0 && unquoted(line.slice(0, colon).trim()) === "model") models.push(unquoted(line.slice(colon + 1).trim()));
+  }
+  return models;
 }
 
+/** The start of a file, as far as a header can reach: a file of any size is not read whole to look at its first lines. */
+function headOf(file: string): string {
+  const fd = openSync(file, "r");
+  try {
+    const buffer = Buffer.alloc(HEADER_LINES * HEADER_LINE * 4);
+    return buffer.toString("utf8", 0, readSync(fd, buffer, 0, buffer.length, 0));
+  } finally {
+    closeSync(fd);
+  }
+}
+
+export type ModelChange = { path: string; was: string[]; now: string[] };
+
+/** The models of a header as a line says them, each a JSON string: a value read from a file is someone else's text. */
+export const modelsSaid = (models: readonly string[]): string => (models.length === 0 ? "(the session's)" : models.map((model) => JSON.stringify(model)).join(" and "));
+
 /**
- * The files already in place whose `model:` this export would change, one line each. A file grooph wrote is
- * replaced without asking, except in this: the model an agent runs on is what the run costs and how well it does,
- * and an export from a shell or a server with another tier map (or none) would otherwise change it and say nothing.
+ * The files already in place whose `model:` this export would change. A file grooph wrote is replaced without
+ * asking, except in this: the model an agent runs on is what the run costs and how well it does, and an export from
+ * a shell or a server with another tier map (or none) would otherwise change it and say nothing.
  */
-export function modelChanges(places: readonly { path: string; full: string; contents: string }[]): string[] {
-  const said = (models: string[]): string => (models.length === 0 ? "(the session's)" : models.join(" and "));
+export function modelChanges(places: readonly { path: string; full: string; contents: string }[]): ModelChange[] {
   return places.flatMap((place) => {
     if (!existsSync(place.full) || !statSync(place.full).isFile()) return [];
-    const was = said(headerModels(readFileSync(place.full, "utf8")));
-    const now = said(headerModels(place.contents));
-    return was === now ? [] : [`  ${place.path}: model ${was} → ${now}`];
+    const was = headerModels(headOf(place.full));
+    const now = headerModels(place.contents);
+    return was.length === now.length && was.every((model, i) => model === now[i]) ? [] : [{ path: place.path, was, now }];
   });
 }
 
@@ -142,7 +164,7 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
   // A package lives in .grooph/<id>/: an id that is a folder grooph uses for something else is refused before anything is compiled.
   const kept = keptFolder(parsed.doc.id);
   if (kept !== undefined) {
-    io.err(`grooph: cannot export ${file}: a graph with the id "${parsed.doc.id}" is not exported, because ${kept}.`);
+    io.err(`grooph: cannot export ${file}. ${kept}`);
     io.err(`Give the graph an id of its own: echo '[{"op":"renameId","from":"${parsed.doc.id}","to":"<kebab-case>"}]' | grooph apply ${file} --ops - --write`);
     return 1;
   }
@@ -167,22 +189,43 @@ export function exportCommand(io: Output, file: string, flags: ExportFlags): num
 
   const paths = Object.keys(compiled.files);
   const tiers = tiersSaid(parsed.doc, flags.target, flags.models, flags.modelsFrom ?? "--models");
+  // The guard the MCP tools write under (../place.ts): each file's place is inside --into by its real location, and
+  // is no link, so nothing is read or written through one; and the package is placed whole or not at all.
+  const place: Place = { project: flags.into };
+  const refused = (refusal: Refusal): number => {
+    io.err(`grooph: cannot export ${file} into ${flags.into}: ${refusal.lines.join(" ")}`);
+    return 1;
+  };
+  let places: { path: string; full: string; contents: string }[];
+  try {
+    // A folder that is not there yet has nothing in it to be a link.
+    places = paths.map((path) => ({ path, full: existsSync(flags.into) ? within(place, path) : resolve(flags.into, path), contents: compiled.files[path]! }));
+  } catch (err) {
+    if (err instanceof Refusal) return refused(err);
+    throw err;
+  }
   // The same stop the MCP tool has: an agent file already in place keeps its model unless the one exporting says otherwise.
-  const moved = modelChanges(paths.map((path) => ({ path, full: join(flags.into, path), contents: compiled.files[path]! })));
+  const moved = modelChanges(places);
+  const movedLines = moved.map((change) => `  ${change.path}: model ${modelsSaid(change.was)} → ${modelsSaid(change.now)}`);
   if (moved.length > 0 && flags.changeModels !== true) {
     io.err(`grooph: this export would change the model of ${plural(moved.length, "agent file")} already in ${flags.into}, so nothing was written:`);
-    for (const line of moved) io.err(line);
+    for (const line of movedLines) io.err(line);
     for (const line of tiers) io.err(line);
     io.err("If the models are meant to change, export again with --change-models. If not, name the tiers the package was placed with: --models, or GROOPH_MODELS.");
     return 1;
   }
-  for (const path of paths) writeText(join(flags.into, path), compiled.files[path]!);
+  try {
+    putAll(place, places);
+  } catch (err) {
+    if (err instanceof Refusal) return refused(err);
+    throw err;
+  }
 
   io.out(`wrote ${plural(paths.length, "file")} into ${flags.into}`);
   for (const path of paths) io.out(`  ${path}`);
   if (moved.length > 0) {
     io.out(`changed the model of ${plural(moved.length, "agent file")} that ${moved.length === 1 ? "was" : "were"} already there (--change-models):`);
-    for (const line of moved) io.out(line);
+    for (const line of movedLines) io.out(line);
   }
   for (const line of tiers) io.out(line);
 
