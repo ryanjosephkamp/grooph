@@ -70,7 +70,7 @@ A: held-out 70/70, cost $1.29–$1.60 (n = 2) · B: held-out 70/70, cost $1.03�
 | Run | The suite at round 0, as the critic saw it | After the turn |
 |---|---|---|
 | A-1, A-2 | 52/70 | 70/70 |
-| B-1 | cut: at least 50 pass, then two runs of some cases only | 70/70 |
+| B-1 | 52/70, as two runs of 35 cases each (23 and 29 pass) after a first run whose output was cut | 70/70 |
 | B-2 | 52/70 | 70/70 |
 | C-1, C-2 | 52/70 | 70/70 |
 | D-1, D-2 | nobody ran it; the scorer found 52/70 | |
