@@ -519,6 +519,23 @@
         },
         "coupled": {
           "type": "boolean"
+        },
+        "description": {
+          "type": "string",
+          "pattern": "^[^\\u0000-\\u001f\\u007f\\u0085\\u2028\\u2029]+$"
+        },
+        "from": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*@[1-9][0-9]*$"
+        },
+        "with": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "propertyNames": {
+            "pattern": "^[^{}\\s]+$"
+          }
         }
       },
       "required": [

@@ -24,7 +24,7 @@ import {
 import { didYouMean } from "./suggest.js";
 import { hasProfile } from "./targets/index.js";
 import { findSlots } from "./template.js";
-import type { AgentNode, Edge, Graph, Id, Node } from "./types.js";
+import type { AgentNode, Edge, Graph, Group, Id, Node } from "./types.js";
 
 export type ValidateOptions = {
   /** Apply the rules that only bite at export time: `E_NO_TARGET`, `E_NO_GOAL`, `E_IS_TEMPLATE`, `E_UNFILLED_SLOT`. */
@@ -40,6 +40,8 @@ export function validate(doc: Graph, opts: ValidateOptions = {}): Issue[] {
     ...duplicateIds(index),
     ...danglingRefs(index),
     ...loopBackEdges(index),
+    ...groupCycles(index),
+    ...secondLead(index),
     ...cyclesWithoutStop(index),
     ...judgmentLoopsWithoutBar(index),
     ...stopsNotInspectable(index),
@@ -55,6 +57,7 @@ export function validate(doc: Graph, opts: ValidateOptions = {}): Issue[] {
     ...unreachableNodes(index),
     ...noTerminal(index),
     ...outputsNotWritable(index),
+    ...groupOverlaps(index),
     ...unknownKeys(index),
     ...docTooLarge(index),
   ];
@@ -199,6 +202,65 @@ function loopBackEdges(index: GraphIndex): Issue[] {
  * `E_CYCLE_NO_STOP` — remove the back edges of every loop that has at least one
  * stop; any cycle that remains is uncovered.
  */
+/** The groups a group lists as members, in the order it lists them. */
+const groupsIn = (index: GraphIndex, group: Group): Group[] =>
+  (group.members ?? []).flatMap((member) => {
+    const inner = index.groups.get(member);
+    return inner ? [inner] : [];
+  });
+
+/**
+ * `E_GROUP_CYCLE` — groups form a tree (amendment A-018): a group that holds
+ * itself, directly or through another, is drawn inside itself by no view.
+ * One issue for each ring, named from the group the document lists first.
+ */
+function groupCycles(index: GraphIndex): Issue[] {
+  const issues: Issue[] = [];
+  const reported = new Set<string>();
+  for (const start of index.doc.groups ?? []) {
+    const walk = (group: Group, path: Id[]): void => {
+      for (const inner of groupsIn(index, group)) {
+        if (inner.id === start.id) {
+          const ring = [...path].sort().join(" ");
+          if (reported.has(ring)) continue;
+          reported.add(ring);
+          issues.push(
+            error(
+              "E_GROUP_CYCLE",
+              path.length === 1
+                ? `group "${start.id}" lists itself as a member; a group cannot hold itself`
+                : `group "${start.id}" holds itself: ${[...path, start.id].join(" → ")}; groups form a tree`,
+              path,
+            ),
+          );
+        } else if (!path.includes(inner.id)) {
+          walk(inner, [...path, inner.id]);
+        }
+      }
+    };
+    walk(start, [start.id]);
+  }
+  return issues;
+}
+
+/**
+ * `E_SECOND_LEAD` — a graph is one session, and the lead is that session
+ * (graph-ir §2). The compiler takes the first lead node it finds, so a second
+ * would be run as if it were not one. Placing a template inside a graph is the
+ * first operation that could add one (A-018).
+ */
+function secondLead(index: GraphIndex): Issue[] {
+  const leads = agentNodes(index).filter((node) => node.role === "lead");
+  if (leads.length < 2) return [];
+  return [
+    error(
+      "E_SECOND_LEAD",
+      `the graph has ${leads.length} lead nodes (${quoted(leads.map((node) => node.id))}); a graph is one session and has at most one lead`,
+      leads.map((node) => node.id),
+    ),
+  ];
+}
+
 function cyclesWithoutStop(index: GraphIndex): Issue[] {
   const covered = new Set<Id>();
   for (const loop of index.doc.loops ?? []) {
@@ -638,6 +700,44 @@ function outputsNotWritable(index: GraphIndex): Issue[] {
 }
 
 /** `W_UNKNOWN_KEY` — a key the schema does not know. It is kept; this makes a typo visible. */
+/**
+ * `W_GROUP_OVERLAP` — a node or a group listed by two groups, neither inside
+ * the other (A-018). A view can draw it in one box only, and draws it in the
+ * first. A warning: documents written before groups were drawn still validate.
+ */
+function groupOverlaps(index: GraphIndex): Issue[] {
+  const groups = index.doc.groups ?? [];
+  /** Whether `outer` holds `inner`, at any depth. A ring of groups is `E_GROUP_CYCLE`'s to report, and ends the walk here. */
+  const holds = (outer: Group, inner: Id, seen = new Set<Id>()): boolean => {
+    if (seen.has(outer.id)) return false;
+    seen.add(outer.id);
+    return groupsIn(index, outer).some((next) => next.id === inner || holds(next, inner, seen));
+  };
+  const listedBy = new Map<Id, Group[]>();
+  for (const group of groups) {
+    for (const member of new Set(group.members ?? [])) {
+      if (member === group.id) continue;
+      listedBy.set(member, [...(listedBy.get(member) ?? []), group]);
+    }
+  }
+  const issues: Issue[] = [];
+  for (const [member, holders] of listedBy) {
+    // A group that holds another holder holds the member through it: that is nesting said twice, not an overlap.
+    const innermost = holders.filter((group) => !holders.some((other) => other.id !== group.id && holds(group, other.id)));
+    if (innermost.length < 2) continue;
+    const what = index.groups.has(member) ? "group" : "node";
+    const ids = innermost.map((group) => `"${group.id}"`);
+    issues.push(
+      warning(
+        "W_GROUP_OVERLAP",
+        `${what} "${member}" is a member of groups ${ids.slice(0, -1).join(", ")} and ${ids.at(-1)}, and ${ids.length === 2 ? "neither holds the other" : "none of them holds another"}; views draw it in "${innermost[0]!.id}"`,
+        [member, ...innermost.map((group) => group.id)],
+      ),
+    );
+  }
+  return issues;
+}
+
 function unknownKeys(index: GraphIndex): Issue[] {
   const found: UnknownKey[] = [];
   graphSchema.unknownKeys(index.doc, "", found);

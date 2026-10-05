@@ -14,8 +14,8 @@ How this package's files correspond to the graph document, so a human can hand-a
 | progress | `.grooph/review-loop/runs/<run-id>/PROGRESS.md` | written at run time, after every node |
 | run notes | `.grooph/review-loop/runs/<run-id>/notes.jsonl` | written at run time, one JSON object per line (graph-ir §6) |
 | working copy | `.grooph/review-loop/runs/<run-id>/graph.grooph.json` | copied from the source at run setup; the lead amends it, with a note per amendment, when the work shows the graph is wrong |
-| node `builder` | `.claude/agents/review-loop--builder.md` | subagent `review-loop--builder` · builder · model opus · effort high |
-| node `critic` | `.claude/agents/review-loop--critic.md` | subagent `review-loop--critic` · critic · model opus · effort high |
+| node `builder` | `.claude/agents/review-loop--builder.md` | subagent `review-loop--builder` · builder · model sonnet · effort high |
+| node `critic` | `.claude/agents/review-loop--critic.md` | subagent `review-loop--critic` · critic · model sonnet · effort high |
 
 ## Pieces with no file of their own
 
@@ -32,7 +32,7 @@ Edges, loops and policies have no file: they are the routing, round and stop rul
 
 ```yaml
 # .claude/agents/review-loop--builder.md
-model: opus      # profile: frontier → fable, strong → opus, fast → sonnet
+model: sonnet      # profile: frontier → opus, strong → sonnet, fast → sonnet
 effort: high      # low | medium | high | max
 ```
 

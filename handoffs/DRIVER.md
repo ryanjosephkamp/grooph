@@ -40,6 +40,15 @@ The owner is Ryan. He often speaks his prompts and reads on a phone. He wants re
 - **Pull requests**: `gh`. After opening one, `mcp__ccd_pr__get_status`.
 - **Codex** by command, for a small check only: `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex exec … < /dev/null`. An audit or a slice goes to a Codex session the owner opens.
 
+## Tonight (written 2026-10-04, about 9 p.m. Eastern; read this first)
+
+The owner answered the desk at about 8:20 p.m. and said in the chat: "Artifact has been updated. Please proceed accordingly. Can we do the Claude Code game experiment first?" and then "Run it tonight. I'll let you know if we need to throttle the other lanes down. I'll open a fresh session soon."
+
+1. **The game experiment's Claude Code run is tonight's first job.** Slice 0089 (`handoffs/0089-the-claude-code-arm-made-ready/HANDOFF.md`) makes the arm ready: the freeze, the game repository's first commit built and not pushed, a clean profile, `experiments/game/RUNBOOK.md`. The views lane has it, told to put the runbook and the profile first and to say the moment they exist. Then walk the owner through, one step at a time, each on his word: sign in to the clean profile; the twenty-minute rehearsal; the push of the first commit to `ryanjosephkamp/grooph-game-experiment-claude` (his repository, made for this; the only other repository grooph's sessions may write to, and only that first commit); the six-hour run, which he starts from a terminal and answers "start" to. A pause for a usage limit is written down and the clock goes on. The weekly allowance was 60% used at 8:25 p.m. and resets Monday at about 11 a.m. Eastern; he chose tonight knowing that.
+2. **Merges he approved on the desk, to finish in this order, one at a time**: #83, #71, #72 (a chain was running at 8:30 p.m.); then #77, #78, #80 as each is green and mergeable on the new main (their lane merges main in when asked); #79 once its glue is slimmed; #74 once the views lane has resolved its conflict with main; #76 once its switch is behind the door. Each head must be the one that was read: `scripts/driver/merge-when-green.sh <n> <head>`.
+3. **#60 conflicts with main** since #71: the agents lane merges main in as part of its fourth fix pass. Then the release branch, then **walk the owner through npm**: he has never published. One command at a time: an npm account and `npm login`; `pnpm install --frozen-lockfile && pnpm -r build && scripts/pack-check.sh`; `npm pack --dry-run` in `packages/cli/dist/npm` so he sees exactly what would upload; `npm publish`. Never run publish or login for him.
+4. **Codex has two things of his**: the audit's round one, and the fix pass for the Codex target (#70). He brings each closing prompt back: the audit's to the session "grooph lane: audit", the target's to the driver.
+
 ## Where things stand
 
 The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above, at about 10:30 p.m. Eastern:
