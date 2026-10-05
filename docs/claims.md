@@ -60,7 +60,7 @@ Of the 52: 12 carried, 33 other words, 7 not carried.
 
 | # | Claim | Where | Evidence | The reading after round 1 | Audit |
 |---|---|---|---|---|---|
-| C12 | Four templates, three arms under equal conditions, 27 runs, $60.62 | README, front page, report, blog draft | [The comparison](../experiments/comparisons/README.md); [the protocol](comparisons.md) | **Other words.** The counts hold. The loop arm ran one iteration every time. The package and the prompt differed in more than the record. The prompt arms could see the tool's name; a scan found no use of it | Round 1, agreed |
+| C12 | Four templates, three arms under equal conditions, 27 runs, $60.62 | README, front page, report, blog draft | [The comparison](../experiments/comparisons/README.md); [the protocol](comparisons.md) | **Other words.** The counts hold, read so: $60.62 is the whole study's cost over 40 invocations, of which the 27 runs cost $56.62 and the four judge calls $4.01. The loop arm ran one iteration every time. The package and the prompt differed in more than the record. The prompt arms could see the tool's name; a scan found no use of it | Round 1, agreed |
 | C13 | The table of the four projects | Report | The comparison's records | **Carried** | Round 1, agreed |
 | C14 | "The graph did not earn its cost in any of the four projects" | Report, blog draft | The comparison's four write-ups | **Other words.** No project met its pre-registered test for the graph earning its cost. Three met their losing condition; one met neither | Round 1, agreed |
 | C15 | "In all 27 runs the prompt-arm lead dispatched the roles as separate subagents." | Report | The comparison's records | **Other words.** There are 18 prompt-arm runs, and in all 18 the lead dispatched subagents | Round 1, agreed |
@@ -74,7 +74,7 @@ Of the 52: 12 carried, 33 other words, 7 not carried.
 |---|---|---|---|---|---|
 | C19 | "grooph checks that every loop can end" | README, front page, report, blog draft | [The rules](rules.md) | **Other words.** Every loop must name a stop. A loop with no cap and no budget draws a warning and still exports | Round 1, agreed |
 | C20 | "The validator refuses … a critic that shares the builder's context" | Front page, README, report, blog draft | [The rules](rules.md) | **Other words.** Only where the graph asks for critic isolation. The templates with a critic do | Round 1, agreed |
-| C21 | "The validator refuses … an irreversible step without a human gate" | Front page, report, blog draft | [The rules](rules.md) | **Other words.** Only a step the author marked irreversible | Round 1, agreed |
+| C21 | "The validator refuses … an irreversible step without a human gate" | Front page, report, blog draft | [The rules](rules.md); a probe of the validator on 2026-10-05 | **Other words.** Only a step the author marked irreversible. Found on 2026-10-05: a marked step that a run starts at is not refused when every edge back into it passes a person, though the run begins there with nobody asked. No template, community graph or fixture that ships has such a step. A fix is to follow | Round 1, agreed. The finding of 2026-10-05 is for round 2 |
 | C22 | Thirty-five rules, each with a failing example | Report, blog draft | [The rules](rules.md) | **Carried** | Round 1, agreed |
 | C23 | The built-in templates validate clean, and CI checks it | Report | The tests | **Carried** | Round 1, agreed |
 | C24 | What `grooph explain` prints | Blog draft | The command | **Carried** | Round 1, agreed |
