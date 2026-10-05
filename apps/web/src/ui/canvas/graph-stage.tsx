@@ -22,7 +22,7 @@ import { brakes, spiral, topOf } from "./stage/spiral.js";
 /** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
 const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean }> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
-  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
+  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: true, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
 };
 
 let styled = false;

@@ -138,13 +138,17 @@ export const spiral: View = (m, shown) => {
       const r = R(item.loop) + 40;
       place(item.loop, [x + r, 0, 0]);
       x += 2 * r + 56;
-    } else if (firstLoop < 0 || (n > firstLoop && n < lastLoop)) ((at[item.node!] = [x + 50, 0, 0]), (x += 130));
+    } else if (firstLoop >= 0 && n > firstLoop && n < lastLoop) ((at[item.node!] = [x + 50, 0, 0]), (x += 130));
   });
   if (firstLoop >= 0) {
     // Far enough back, and far enough forward, to stand clear of the cards on the first and last spirals.
     order.slice(0, firstLoop).reverse().forEach((item, n) => (at[item.node!] = [-170 - n * 56, 0, -230 - n * 124]));
     order.slice(lastLoop + 1).forEach((item, n) => (at[item.node!] = [x - 6 + n * 20, 0, 130 + n * 124]));
-  } else prims.push({ t: "text", at: [x / 2, 70, 0], text: "No loop in this graph: nothing goes round, and there is no spiral to draw.", align: "center", fill: "ink-3", size: 11, max: 220 });
+  } else {
+    // No loop: the nodes in the order of a first pass, one behind the other, each clear of the next.
+    order.forEach((item, n) => (at[item.node!] = [n * 20, 0, (n - (order.length - 1) / 2) * 150]));
+    prims.push({ t: "text", at: [10 * order.length, 60, -75 * order.length], text: "No loop in this graph: nothing goes round, and there is no spiral to draw.", align: "center", up: true, fill: "ink-3", size: 11, max: 220 });
+  }
   // What is in no loop stands on the ground, by its name alone where there is a loop: this view is of the loops.
   for (const item of order) if (item.node) prims.push(card(by(m.nodes, item.node), at[item.node]!, { stand: true, side: true, small: firstLoop >= 0 }), { t: "dot", at: at[item.node]!, r: 3, fill: "ink-2", lift: -3990 });
   // Where a node is in a given round: on its own loop's spiral, that many turns up.
@@ -174,7 +178,11 @@ export const spiral: View = (m, shown) => {
     const rise = (node: Id, r: number): number => (by(m.nodes, node).loop ? r : 0);
     const landing = by(m.nodes, e.to).loop;
     const arrives = !e.back ? rise(e.to, r1) : landing && under(m.loops, landing, e.back) ? 0 : landing === e.back || m.run ? rise(e.to, r1) : 0;
-    return arch(spot(e.from, rise(e.from, r0)), spot(e.to, arrives), e.back ? 40 : 0, 18);
+    // Between two nodes on the ground that are not next to each other, over the ones between: a straight line
+    // through them would read as a chain.
+    const apart = Math.abs(order.findIndex((item) => item.node === e.from) - order.findIndex((item) => item.node === e.to));
+    const over = by(m.nodes, e.from).loop || landing ? 0 : 26 * Math.max(0, apart - 1);
+    return arch(spot(e.from, rise(e.from, r0)), spot(e.to, arrives), e.back ? 40 : over, 18);
   };
   // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between
   // the rounds it took them, as far as the slider has come; one it never took is faint, at round 0. An edge that is

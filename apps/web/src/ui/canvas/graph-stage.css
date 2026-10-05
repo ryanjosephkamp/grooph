@@ -156,7 +156,7 @@
 }
 /* A view of the loops is tall: on a phone it has the room, and the words under it are scrolled to. */
 .s3[data-kind="spiral"] {
-  grid-template-rows: auto minmax(330px, 1fr);
+  grid-template-rows: auto minmax(max(330px, var(--s3-tall, 0px)), 1fr);
 }
 .s3-key {
   display: grid;
