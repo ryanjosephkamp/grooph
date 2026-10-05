@@ -149,7 +149,7 @@ function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) 
   };
   const onListKey = (e: KeyboardEvent) => {
     const here = items.current.indexOf(document.activeElement as HTMLButtonElement);
-    const to = e.key === "ArrowDown" ? (here + 1) % THEMES.length : e.key === "ArrowUp" ? (here - 1 + THEMES.length) % THEMES.length : e.key === "Home" ? 0 : e.key === "End" ? THEMES.length - 1 : -1;
+    const to = e.key === "ArrowDown" ? (here + 1) % ENTRIES : e.key === "ArrowUp" ? (here - 1 + ENTRIES) % ENTRIES : e.key === "Home" ? 0 : e.key === "End" ? ENTRIES - 1 : -1;
     if (to >= 0) {
       e.preventDefault();
       items.current[to]?.focus();
@@ -190,10 +190,32 @@ function ThemeMenu({ theme, onTheme }: { theme: ThemeId; onTheme: (id: ThemeId) 
             </button>
           </li>
         ))}
+        {/* The pictures' themes (handoff 0086) are a piece fetched when this is pressed, and nothing of them is here
+            but this entry: `data-pictures` is what `doc/look.ts` listens for, and the list of six opens in this
+            one's place. That file comes a moment after the front page, so a press before it is left as a mark. */}
+        <li role="none">
+          <button
+            type="button"
+            role="menuitem"
+            aria-haspopup="menu"
+            tabIndex={-1}
+            data-pictures=""
+            ref={(el) => void (items.current[THEMES.length] = el)}
+            onClick={(e) => {
+              e.currentTarget.dataset["pressed"] = "";
+              setOpen(false);
+            }}
+          >
+            <span className="site-theme-dot" style={{ ["--dot" as string]: "#0000" }} aria-hidden="true" />
+            Picture theme
+          </button>
+        </li>
       </ul>
     </div>
   );
 }
+/** The menu's entries: the site's looks, and the way to the pictures' themes. */
+const ENTRIES = THEMES.length + 1;
 
 /** The footer's icons, one file of the site (public/assets/site-icons.v1.svg) that every page shares, fetched once the page is up. */
 const ICONS = `${import.meta.env.BASE_URL}assets/site-icons.v1.svg`;

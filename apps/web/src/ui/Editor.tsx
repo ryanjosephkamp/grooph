@@ -9,6 +9,7 @@ import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
 import { DocStore, useDoc, useHistory } from "../doc/store.js";
 import { openStore, type GraphRecord } from "../store/db.js";
 import { Canvas } from "./canvas/Canvas.js";
+import { LookMenu } from "./canvas/LookMenu.js";
 import { FIT, glide, isDesktop } from "./canvas/fit.js";
 import { EditorContext, type Editor, type Mode, type Panel } from "./editorContext.js";
 import { ExportPanel } from "./ExportPanel.js";
@@ -403,6 +404,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
 
         <main className="stage" ref={stageRef}>
           <Canvas issues={issues} onNodeTap={onNodeTap} />
+          <LookMenu />
 
           {doc.loops.length > 0 ? (
             <nav className="loop-legend" aria-label="Loops">

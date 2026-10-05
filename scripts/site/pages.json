@@ -57,6 +57,11 @@
           "summary": "The picture, the outline and the offline page: what grooph draws from a document."
         },
         {
+          "source": "docs/themes.md",
+          "slug": "themes",
+          "summary": "Six looks for one picture: Paper, Blueprint, Ink, Phosphor, Transit and Chalk, and how to choose one."
+        },
+        {
           "source": "docs/subagents.md",
           "slug": "subagents",
           "summary": "How subagents and hooks work in Claude Code and in Codex, what is documented and what was observed, and the live view built on them."

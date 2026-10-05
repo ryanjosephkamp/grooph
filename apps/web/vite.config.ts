@@ -15,6 +15,9 @@ const compileSource = fileURLToPath(new URL("../../packages/core/src/compile/ind
 const mapViewsSource = fileURLToPath(new URL("../../packages/core/src/picture/map-views.ts", import.meta.url));
 // So is the fold of a subgrooph (slice 0085, `picture/graph-units.ts`): fetched with the box a canvas draws one as.
 const unitsSource = fileURLToPath(new URL("../../packages/core/src/picture/graph-units.ts", import.meta.url));
+// And the picture's themes (slice 0086): the five that are not Paper. The app's piece for them
+// (src/ui/theme/themes.ts) is fetched when one is chosen or named in an address, and named in the page too.
+const themesSource = fileURLToPath(new URL("../../packages/core/src/picture/themes.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -78,9 +81,10 @@ function routes(): Plugin {
         const mapSpace = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/space.ts"));
         const units = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/units.tsx"));
         const graphViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-views.tsx"));
+        const themes = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/theme/themes.ts"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !graphViews) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, graphViews }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units || !graphViews || !themes) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units, graphViews, themes }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -100,10 +104,10 @@ function routes(): Plugin {
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
           // What no address loads first and the page still names, so that the worker fetches it as it installs: the
-          // compiler, the map's views, a map in three dimensions, a subgrooph's box, and the embed's own script and
-          // styles. The front page plays its recorded run in a frame at `#/embed`, and a visit that never watched it
-          // should still have it with no network (handoff 0083).
-          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(graphViews), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // compiler, the map's views, a map in three dimensions, a subgrooph's box, the pictures' themes, and the
+          // embed's own script and styles. The front page plays its recorded run in a frame at `#/embed`, and a visit
+          // that never watched it should still have it with no network (handoff 0083).
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(graphViews), ...closure(themes), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
           // What choosing a map's view in three dimensions fetches, over what the map screen has already (handoff 0087).
           space: [...closure(mapSpace)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(mapViews).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
@@ -134,6 +138,7 @@ export default defineConfig({
       { find: "@grooph/core/compile", replacement: compileSource },
       { find: "@grooph/core/map-views", replacement: mapViewsSource },
       { find: "@grooph/core/units", replacement: unitsSource },
+      { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

@@ -2,6 +2,7 @@ import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBund
 import { useCallback, useMemo, useState } from "react";
 
 import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
+import { LookMenu } from "../canvas/LookMenu.js";
 import { deleteRun, saveRun } from "../../store/runs.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
 import { RunChanges } from "./RunChanges.js";
@@ -185,6 +186,7 @@ export function RunView({
         {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
         {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
         <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} notes={bundle.notes} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
+        <LookMenu />
         {loopsIndexed.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">
             {loopsIndexed.map(({ loop, i, run }) => {
