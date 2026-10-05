@@ -72,13 +72,19 @@ test.afterEach(async ({ page }, testInfo) => {
         page: await stamp("./"),
         before: await stamp("./?the-page-before"),
         controlled: navigator.serviceWorker.controller !== null,
+        // Whose hands the tab is in, and whether another worker is on its way. A test that waits for a new worker to
+        // take the tab over and never sees it (once, under load, 2026-10-05) is told apart here: a worker still
+        // installing or waiting, one that never came, or one that is in control without the page having been told.
+        workers: await navigator.serviceWorker.getRegistration().then((registration) =>
+          registration ? { installing: registration.installing?.state ?? null, waiting: registration.waiting?.state ?? null, active: registration.active?.state ?? null, theActiveOneIsInControl: navigator.serviceWorker.controller === registration.active } : "no registration",
+        ),
         address: location.href,
         shows: document.body.innerText.replace(/\s+/g, " ").slice(0, 300),
         again,
       };
     })
     .catch((error: Error) => `(could not be read: ${error.message})`);
-  console.log(`DIAGNOSIS ${testInfo.project.name} | ${testInfo.title}\n  the tab: ${JSON.stringify(tab)}\n  the worker keeps: ${JSON.stringify(kept)}\n  its cache: ${JSON.stringify(cache)}\n  complaints: ${JSON.stringify(complaints)}`);
+  console.log(`DIAGNOSIS ${testInfo.project.name} | ${testInfo.title}\n  the tab: ${JSON.stringify(tab)}\n  workers this browser has made, where it says (Chromium): ${page.context().serviceWorkers().length}\n  the worker keeps: ${JSON.stringify(kept)}\n  its cache: ${JSON.stringify(cache)}\n  complaints: ${JSON.stringify(complaints)}`);
 });
 
 /** The documents are not the app's and the test's site does not serve them (`support-release.ts`). */
