@@ -1,7 +1,7 @@
 ---
 name: debate-then-build-composed--debate-planner-a
 description: planner for graph debate-then-build-composed. Argue for the simplest approach that could do the task, and answer the other side's strongest point when there is one.
-model: opus
+model: sonnet
 effort: high
 tools: Read, Write, Glob, Grep
 ---

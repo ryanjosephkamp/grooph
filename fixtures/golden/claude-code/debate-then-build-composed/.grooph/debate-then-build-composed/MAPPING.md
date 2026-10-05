@@ -14,9 +14,9 @@ How this package's files correspond to the graph document, so a human can hand-a
 | progress | `.grooph/debate-then-build-composed/runs/<run-id>/PROGRESS.md` | written at run time, after every node |
 | run notes | `.grooph/debate-then-build-composed/runs/<run-id>/notes.jsonl` | written at run time, one JSON object per line (graph-ir §6) |
 | working copy | `.grooph/debate-then-build-composed/runs/<run-id>/graph.grooph.json` | copied from the source at run setup; the lead amends it, with a note per amendment, when the work shows the graph is wrong |
-| node `debate-planner-a` | `.claude/agents/debate-then-build-composed--debate-planner-a.md` | subagent `debate-then-build-composed--debate-planner-a` · planner · model opus · effort high |
-| node `debate-planner-b` | `.claude/agents/debate-then-build-composed--debate-planner-b.md` | subagent `debate-then-build-composed--debate-planner-b` · planner · model opus · effort high |
-| node `debate-judge` | `.claude/agents/debate-then-build-composed--debate-judge.md` | subagent `debate-then-build-composed--debate-judge` · judge · model fable · effort high |
+| node `debate-planner-a` | `.claude/agents/debate-then-build-composed--debate-planner-a.md` | subagent `debate-then-build-composed--debate-planner-a` · planner · model sonnet · effort high |
+| node `debate-planner-b` | `.claude/agents/debate-then-build-composed--debate-planner-b.md` | subagent `debate-then-build-composed--debate-planner-b` · planner · model sonnet · effort high |
+| node `debate-judge` | `.claude/agents/debate-then-build-composed--debate-judge.md` | subagent `debate-then-build-composed--debate-judge` · judge · model opus · effort high |
 | node `build-builder` | `.claude/agents/debate-then-build-composed--build-builder.md` | subagent `debate-then-build-composed--build-builder` · builder · model sonnet · effort medium |
 
 ## Pieces with no file of their own
@@ -35,7 +35,7 @@ Edges, loops and policies have no file: they are the routing, round and stop rul
 
 ```yaml
 # .claude/agents/debate-then-build-composed--debate-planner-a.md
-model: opus      # profile: frontier → fable, strong → opus, fast → sonnet
+model: sonnet      # profile: frontier → opus, strong → sonnet, fast → sonnet
 effort: high      # low | medium | high | max
 ```
 

@@ -1,7 +1,7 @@
 ---
 name: debate-then-build-composed--debate-planner-b
 description: planner for graph debate-then-build-composed. Argue against the approach in CASE-A.md and for the strongest alternative, answering its best points directly.
-model: opus
+model: sonnet
 effort: high
 tools: Read, Write, Glob, Grep
 ---

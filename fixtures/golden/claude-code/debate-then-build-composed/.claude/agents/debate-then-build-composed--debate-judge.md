@@ -1,7 +1,7 @@
 ---
 name: debate-then-build-composed--debate-judge
 description: judge for graph debate-then-build-composed. Read both cases.
-model: fable
+model: opus
 effort: high
 tools: Read, Write, Glob, Grep
 disallowedTools: Edit
