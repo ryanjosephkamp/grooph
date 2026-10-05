@@ -29,7 +29,8 @@
     "filesystem": {
       "allowWrite": ["__NPM_CACHE__"],
       "allowRead": ["__NPM_CACHE__", "~/Library/Caches/ms-playwright"],
-      "denyRead": ["/tmp", "/private/tmp", "__USER_TEMP__", "/private__USER_TEMP__"]
+      "denyRead": ["/tmp", "/private/tmp", "__USER_TEMP__", "/private__USER_TEMP__"],
+      "denyWrite": ["__GAME_HOME__/rehearsal-claude/.grooph/hooks", "__GAME_HOME__/grooph-game-experiment-claude/.grooph/hooks"]
     },
     "network": {
       "allowedDomains": ["registry.npmjs.org"],

@@ -21,7 +21,7 @@ temp="$home/t"
 # The account's own temp folder on this machine (under /var/folders), which the profile closes to commands.
 user_temp="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null || true)"; user_temp="${user_temp%/}"
 case "$user_temp" in /var/folders/*) ;; *) echo "make-profile: this machine's temp folder is '$user_temp', not under /var/folders. Tell the driver." >&2; exit 1 ;; esac
-settings="$(sed -e "s|__NPM_CACHE__|$cache|g" -e "s|__USER_TEMP__|$user_temp|g" "$here/profile/settings.json")"
+settings="$(sed -e "s|__NPM_CACHE__|$cache|g" -e "s|__USER_TEMP__|$user_temp|g" -e "s|__GAME_HOME__|$home|g" "$here/profile/settings.json")"
 printf '%s' "$settings" | node -e 'JSON.parse(require("fs").readFileSync(0,"utf8"))' || { echo "make-profile: the settings are not JSON" >&2; exit 1; }
 
 if [ "${1:-}" = "--check" ]; then
