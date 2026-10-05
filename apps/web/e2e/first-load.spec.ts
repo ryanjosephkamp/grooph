@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { glyph, instantiate, parseGraphText, picture, type Graph } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
-import { canvasIsQuiet, closeSheet, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, sheet, toolbar } from "./support.js";
+import { canvasIsQuiet, closeSheet, fixturePath, importDocument, linkFor, node, repoRoot, requestsOut, reviewLoop, sheet, toolbar, visitIsOver } from "./support.js";
 
 /**
  * Slice 0093: weight out of the first load. The twenty built-in templates were part of every address's first load
@@ -346,11 +346,13 @@ test.describe("with the service worker running", () => {
   test.use({ serviceWorkers: "allow" });
 
   test("a first visit to the front page leaves the templates and the page's picture with the worker: both open with no network", async ({ page, context }) => {
+    const out = requestsOut(page);
     await page.goto("./");
     await expect(page.locator(".land-picture svg")).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    for (const piece of ["builtins", "front", "screens"]) {
-      await expect.poll(() => page.evaluate(async (name) => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => new RegExp(`/assets/${name}-[^/]*\\.js$`).test(r.url)).length, piece), piece).toBe(1);
+    // The visit is over: the worker holds every file the page names, whole, the two pieces among them.
+    await visitIsOver(page, out);
+    for (const piece of ["builtins", "front"]) {
+      expect(await page.evaluate(async (name) => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => new RegExp(`/assets/${name}-[^/]*\\.js$`).test(r.url)).length, piece), piece).toBe(1);
     }
     await context.setOffline(true);
     const failed: string[] = [];

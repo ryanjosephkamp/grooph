@@ -5,7 +5,7 @@ import { deflateRawSync } from "node:zlib";
 import { buildShareEnvelope, encodeSharePayload, parseMapText, type OperationMap } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
-import { repoRoot } from "./support.js";
+import { repoRoot, requestsOut, visitIsOver } from "./support.js";
 
 /**
  * A map in three dimensions (handoff 0087): the third choice on the map screen's switch. The same document and
@@ -479,10 +479,13 @@ test.describe("with the service worker running", () => {
   test.use({ serviceWorkers: "allow" });
 
   test("a first visit that saw only the front page opens a map in three dimensions with no network", async ({ page, context }) => {
+    const out = requestsOut(page);
     await page.goto("./");
     await expect(page.locator(".land-headline")).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/space-[^/]*\.js$/.test(r.url)).length)).toBe(1);
+    // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`), the
+    // piece that draws a map in three dimensions among them.
+    await visitIsOver(page, out);
+    expect(await page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/space-[^/]*\.js$/.test(r.url)).length)).toBe(1);
 
     await context.setOffline(true);
     const failed: string[] = [];

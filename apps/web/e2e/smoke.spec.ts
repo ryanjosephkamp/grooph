@@ -8,7 +8,7 @@ import { buildShareEnvelope, encodeSharePayload, parseMapText } from "@grooph/co
 import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
-import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, status, viewIsStill } from "./support.js";
+import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, requestsOut, status, viewIsStill, visitIsOver } from "./support.js";
 
 /**
  * Handoff 0081, item 4: the smoke set. Five visits a stranger makes, short enough to run in Safari's engine
@@ -38,10 +38,66 @@ const outside = (address: string): boolean => {
   const url = new URL(address);
   return /^(https?|wss?):$/.test(url.protocol) && !THIS_MACHINE.has(url.hostname);
 };
-test.beforeEach(({ page, context }) => {
+/**
+ * One line a browser writes is not an error in the page, and is let through: "ResizeObserver loop completed with
+ * undelivered notifications."
+ *
+ * A ResizeObserver's callback changed the layout, and what that resized is told to its observers on the next frame
+ * and not on this one. Nothing is lost and nothing throws. Safari's engine writes the line to the page's console as
+ * an error, which Playwright hands on as a page error there and in no other engine; so the same event failed a
+ * visit in one engine and was never seen in the other two. It was seen in CI on 2026-10-05, twice in one job on a
+ * slow runner and in no other run: on a template's canvas with no network. The first of the two times the graph's
+ * own views had not arrived, so no observer of ours was on that screen at all: only the canvas library's. It has
+ * two (@xyflow/react 12): one on the pane, and one on every node, whose callback writes the nodes' sizes to the
+ * library's store (`updateNodeInternals`), which redraws them there and then. That is the pattern the line is
+ * written for. The other observers of ours are on screens these visits do not open: an embed, a map's views, a
+ * view in three dimensions.
+ *
+ * So the line is let through, and not silently. Each page says which elements were being told of a resize in the
+ * frame the line was written in (below). The visit prints that, so a run that passes still shows it. And if every
+ * one of those elements is ours and none the canvas library's, the loop is ours and the visit fails, naming them:
+ * an observer of ours that changes the layout it watches is a fault.
+ */
+const RESIZE_LOOP = "ResizeObserver loop completed with undelivered notifications.";
+type Loop = { at: string; library: string[]; ours: string[] };
+let loops: Loop[] = [];
+let out: () => string[] = () => [];
+
+test.beforeEach(async ({ page, context }) => {
   pageErrors = [];
   outsideRequests = [];
+  loops = [];
+  out = requestsOut(page);
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.exposeFunction("groophSizedLoop", (loop: Loop) => void loops.push(loop));
+  await page.addInitScript(() => {
+    // Every ResizeObserver of the page says, as it is called, which elements it was called for and in which frame.
+    const Native = window.ResizeObserver;
+    if (typeof Native !== "function") return;
+    let frame = 0;
+    const tick = (): void => {
+      frame += 1;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    const told: { frame: number; what: string; library: boolean }[] = [];
+    const name = (el: Element): string => `${el.tagName.toLowerCase()}${typeof el.className === "string" && el.className.trim() ? `.${el.className.trim().split(/\s+/).slice(0, 3).join(".")}` : ""}`;
+    window.ResizeObserver = class extends Native {
+      constructor(callback: ResizeObserverCallback) {
+        super((entries, observer) => {
+          for (const entry of entries) told.push({ frame, what: name(entry.target), library: entry.target.closest(".react-flow") !== null });
+          while (told.length > 600) told.shift();
+          callback(entries, observer);
+        });
+      }
+    };
+    addEventListener("error", (event) => {
+      if (!/ResizeObserver loop/.test(event.message ?? "")) return;
+      const now = told.filter((one) => one.frame >= frame - 1);
+      const list = (library: boolean): string[] => [...new Set(now.filter((one) => one.library === library).map((one) => one.what))];
+      void (window as unknown as { groophSizedLoop: (loop: unknown) => Promise<void> }).groophSizedLoop({ at: location.hash || "#/", library: list(true), ours: list(false) });
+    });
+  });
   // The context hears every page's requests, and in Chromium the service worker's own.
   context.on("request", (request) => {
     if (outside(request.url())) outsideRequests.push(request.url());
@@ -50,9 +106,18 @@ test.beforeEach(({ page, context }) => {
     if (outside(socket.url())) outsideRequests.push(socket.url());
   });
 });
-test.afterEach(() => {
-  expect(pageErrors, "uncaught errors in the page").toEqual([]);
+test.afterEach(({}, testInfo) => {
+  expect(pageErrors.filter((message) => message !== RESIZE_LOOP), "uncaught errors in the page").toEqual([]);
   expect(outsideRequests, "requests to another host").toEqual([]);
+  // The one line let through (above): said, so that it is not lost on a run that passes; and ours to answer for
+  // when no element of the canvas library's was being told of a resize in that frame.
+  const written = pageErrors.filter((message) => message === RESIZE_LOOP).length;
+  if (written > 0 || loops.length > 0) {
+    const said = loops.map((loop) => `at ${loop.at}: the canvas library's ${loop.library.join(", ") || "(none)"}; ours ${loop.ours.join(", ") || "(none)"}`);
+    console.log(`[${testInfo.project.name}] ${testInfo.title}: a ResizeObserver put off notifications to the next frame ${Math.max(written, loops.length)} time(s). ${said.join(" | ") || "The page did not say which elements."}`);
+    testInfo.annotations.push({ type: "resize-loop", description: said.join(" | ") || "not said by the page" });
+  }
+  expect(loops.filter((loop) => loop.ours.length > 0 && loop.library.length === 0).map((loop) => `at ${loop.at}: ${loop.ours.join(", ")}`), "a ResizeObserver of ours that changes the layout it watches").toEqual([]);
 });
 
 /**
@@ -223,14 +288,14 @@ const TYPES: Record<string, string> = {
  * away for real by closing it. Nothing it serves may be kept by the browser's own cache (`no-store`): whatever
  * answers once it is gone is the service worker.
  */
-async function serveBuiltApp(): Promise<{ url: string; stop: () => Promise<void> }> {
+async function serveBuiltApp({ without }: { without?: RegExp } = {}): Promise<{ url: string; stop: () => Promise<void> }> {
   const dist = join(repoRoot, "apps/web/dist");
   const sockets = new Set<Socket>();
   const server = createServer((request, response) => {
     const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
     let file = normalize(join(dist, path.replace(/^\/grooph\//, "")));
     if (path.endsWith("/")) file = join(file, "index.html");
-    if (!path.startsWith("/grooph/") || !(file + sep).startsWith(dist + sep) || !existsSync(file) || !statSync(file).isFile()) {
+    if (!path.startsWith("/grooph/") || !(file + sep).startsWith(dist + sep) || !existsSync(file) || !statSync(file).isFile() || without?.test(path)) {
       response.writeHead(404).end();
       return;
     }
@@ -347,14 +412,10 @@ test.describe("with the service worker running", () => {
     try {
       await page.goto(app.url);
       await frontPageIsUp(page);
-      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-      // The worker has finished keeping what the page names, the screens that draw on the canvas among them; and
-      // the built-in templates and the front page's own picture, which are files of their own since slice 0093.
-      for (const piece of ["screens", "builtins", "front"]) {
-        await expect
-          .poll(() => page.evaluate(async (name) => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => new RegExp(`/assets/${name}-[^/]*\\.js$`).test(r.url)).length, piece), { message: piece })
-          .toBe(1);
-      }
+      // The visit is over before the network goes: the worker holds every file the page names, whole, and nothing
+      // the page asked for is still on its way (`visitIsOver`). Not three files by name, as it was: a template on
+      // the canvas, opened below with no network, also asks for the graph's views, and whatever is added next.
+      await visitIsOver(page, out);
     } finally {
       await app.stop();
     }
@@ -373,5 +434,30 @@ test.describe("with the service worker running", () => {
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
     await expect(page.locator(".react-flow__edge")).toHaveCount(5);
+  });
+
+  test("the wait for a visit to be over does not pass while a file the page names is not held: it says which", async ({ page }) => {
+    // What the offline visit above leans on, held to its word in each engine. One piece no first screen asks for
+    // cannot be had from this server; the worker keeps the rest, takes control, and the page is up.
+    const app = await serveBuiltApp({ without: /\/assets\/graph-views-[^/]*\.js$/ });
+    try {
+      await page.goto(app.url);
+      await frontPageIsUp(page);
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+      // Three files by name, as the wait once was, are all there: it would have let the network go.
+      for (const piece of ["screens", "builtins", "front"]) {
+        await expect.poll(() => page.evaluate(async (name) => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => new RegExp(`/assets/${name}-[^/]*\\.js$`).test(r.url)).length, piece), { message: piece }).toBe(1);
+      }
+      const waited = await visitIsOver(page, out, { within: 3000 }).then(
+        () => "the visit was called over",
+        (error: Error) => error.message,
+      );
+      expect(waited).toMatch(/files the page names that the worker does not hold whole/);
+      expect(waited).toMatch(/assets\/graph-views-[\w-]+\.js: not held/);
+      // Only that one: every other file the page names is held, whole.
+      expect(waited.match(/: not held|of \d+ bytes/g)).toHaveLength(1);
+    } finally {
+      await app.stop();
+    }
   });
 });

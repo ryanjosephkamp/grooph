@@ -9,7 +9,7 @@ import { pictureWithUnits } from "@grooph/core/units";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { unitsKit } from "../../../packages/core/src/picture/units-kit.js";
-import { canvasIsQuiet, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet } from "./support.js";
+import { canvasIsQuiet, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, requestsOut, reviewLoop, runBundle, sheet, visitIsOver } from "./support.js";
 
 /**
  * The picture's themes in the app (handoff 0086; docs/themes.md): six looks for the same picture. Paper is the
@@ -995,12 +995,13 @@ test.describe("with the service worker running", () => {
 
   test("a first visit in Paper asks for no theme itself, and afterwards a theme can be chosen with no network", async ({ page, context }) => {
     const asked = fetches(page);
+    const out = requestsOut(page);
     await page.goto("./");
     await expect(page.locator(".land-headline")).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
-    // The page names the themes' file in a list the browser does nothing with; the worker reads it and keeps the file.
-    await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/themes-[^/]*\.js$/.test(r.url)).length)).toBe(1);
-    await expect.poll(() => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/screens-[^/]*\.js$/.test(r.url)).length)).toBe(1);
+    // The visit is over: the worker holds every file the page names, whole (`visitIsOver`). The themes' file is one
+    // of them: the page names it in a list the browser does nothing with, and the worker reads it and keeps the file.
+    await visitIsOver(page, out);
+    expect(await page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).filter((r) => /\/assets\/themes-[^/]*\.js$/.test(r.url)).length)).toBe(1);
     expect(asked).toEqual([]);
 
     await context.setOffline(true);

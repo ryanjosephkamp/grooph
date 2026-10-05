@@ -4,7 +4,7 @@ import { gzipSync } from "node:zlib";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { fixturePath, importDocument, repoRoot } from "./support.js";
+import { fixturePath, importDocument, repoRoot, requestsOut, visitIsOver } from "./support.js";
 
 /**
  * Handoff 0055: the front door. On an empty device `#/` is the front page; with
@@ -366,9 +366,11 @@ test.describe("with the app installed (its service worker in control)", () => {
   test.use({ serviceWorkers: "allow" });
 
   test("a first visit keeps the fonts and the footer's icons, so the front page looks the same with no network", async ({ page, context }) => {
+    const out = requestsOut(page);
     await page.goto("./");
     await expect(page.locator(".land-headline")).toBeVisible();
-    await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+    // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`).
+    await visitIsOver(page, out);
     const held = () => page.evaluate(async () => (await (await caches.open("grooph-app-v1")).keys()).map((r) => new URL(r.url).pathname.replace("/grooph/", "")));
     // The page names them, so the worker holds them when it installs, whether or not the page had finished fetching them
     // by then; the italic face too, which the front page never asks for and a document or a graph's notes may.
