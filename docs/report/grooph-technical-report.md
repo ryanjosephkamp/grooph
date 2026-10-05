@@ -120,7 +120,7 @@ A second, optional hook sends the event files to a git branch that holds nothing
 
 Three properties were learned in use, with a second project's cloud sessions as the test ([`docs/HANDBACK-operator.md`](../HANDBACK-operator.md), sections 13 to 18):
 
-1. **A silent hook must still leave a trace.** The first cloud trial sent nothing and said nothing: a cloud session starts with no branch checked out, the sender had no name for its branch, and silence hid the failure. A push now keeps a local summary of how it went in a file beside the events; a missing events folder, a lock it gave up waiting for, or a summary it could not write leaves none.
+1. **A silent hook must still leave a trace.** The first cloud trial, as the session that ran it reported, sent nothing and said nothing: a cloud session starts with no branch checked out, the sender had no name for its branch, and silence hid the failure. A push now keeps a local summary of how it went in a file beside the events; a missing events folder, a lock it gave up waiting for, or a summary it could not write leaves none.
 2. **Many sessions can share one branch.** A remote takes one push at a time. In one retained trial, ten pushes started in the same instant to one branch on GitHub all arrived; the longest took 25 seconds and the most tries was ten ([record](../../experiments/hooks/2026-10-02/)).
 3. **A turn's end leaves out files an earlier session left behind.** A cloud environment can keep a sandbox's ignored files between sessions; sent again, an old session's file would read as new.
 
@@ -128,7 +128,7 @@ Three properties were learned in use, with a second project's cloud sessions as 
 
 An operation map names sessions (harness, account, machine, model, role), the people they work with, and the handoffs between them, each with a carrier: a branch, a pull request, a message, a scheduled message, a review page, a notification, a person ([`docs/operation-map.md`](../operation-map.md)). It is drawn and validated and never compiled. Read with events, each session's card shows what the hook saw.
 
-The validator counts how many handoffs move only when a person moves them. For the two-day push that produced this report the count was 9 of 19.
+The validator counts how many handoffs move only when a person moves them. In the plan drawn for the push that produced this report, 9 of 19 handoffs were ones only a person could move, seven of them starting a session.
 
 ## 7. What grooph is not
 
@@ -141,7 +141,7 @@ The validator counts how many handoffs move only when a person moves them. For t
 - One compile target today. A Codex target is planned and not built.
 - The comparison evidence stated here is one study of four small projects. A second has run and is not yet audited.
 - The turn-end sender has been seen working in Claude Code's cloud sessions by another session's report, not by this project's own records ([`docs/subagents.md`](../subagents.md) labels each fact as documented, seen, reported or unknown).
-- A session takes up hooks when it starts. Hooks that arrive mid-session are normally picked up and sometimes are not.
+- A session takes up hooks when it starts. Hooks that arrive mid-session are picked up, by Claude Code's documentation; in two reported trials three sessions of four did, then two of three.
 - The app is built for a phone first. Its desktop layout is recent.
 
 ## 9. Reproducing what is here
