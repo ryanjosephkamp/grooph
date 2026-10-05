@@ -22,6 +22,9 @@
  *   continues inside it.
  * - **Critics.** Each critic, what each node hands it and in what context, and what a run reaches or how it ends
  *   without its verdict; the policies that say so.
+ * - **Checks** (amendment A-019). Each check, its definition, every edge that leaves it, and what a run reaches or
+ *   how it ends without its verdict, as for a critic. Any change to the definition or to such an edge is a loss
+ *   unless the comparison, run both ways, shows it to be a tightening: a program cannot tell which way it goes.
  *
  * Three readers were asked, one after another, to break this as a refresh, and two more as an adoption, and each
  * found what the one before had not: this list is what a brake has been found to be, not a proof that nothing is
@@ -320,6 +323,16 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
       if (!kept) losses.push({ why: `removes a node marked irreversible (${markers(node).join(", ")}): what takes its place carries no such mark unless it is given one`, at: [`node:${node.id}`] });
       else if (lost.length > 0) losses.push({ why: `removes the irreversible marker ${quote(lost)}`, at: [`node:${node.id}.irreversible`, `node:${node.id}.kind`] });
     }
+    // A check (amendment A-019): the node, its kind, and its definition. A program cannot tell a stricter command
+    // from a looser one, so any change to what it runs or what counts as a pass is one a person is asked about.
+    if (node.kind === "check") {
+      if (!kept) losses.push({ why: "removes a check", at: [`node:${node.id}`] });
+      else if (kept.kind !== "check") losses.push({ why: "a check becomes another kind of node", at: [`node:${node.id}.kind`, `node:${node.id}.check`] });
+      else if (!same(node.check, kept.check)) {
+        const parts = (["kind", "run", "pass", "threshold"] as const).filter((part) => !same(node.check[part], kept.check[part]));
+        losses.push({ why: `changes the check's definition (${parts.join(", ")}): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is`, at: [`node:${node.id}.check`] });
+      }
+    }
     if (isCriticFamily(node)) {
       if (!kept) losses.push({ why: "removes a critic", at: [`node:${node.id}`] });
       else if (!isCriticFamily(kept)) losses.push({ why: kept.kind === "agent" ? "a critic is given another role" : "a critic becomes another kind of node", at: [`node:${node.id}.role`, `node:${node.id}.kind`] });
@@ -581,8 +594,51 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
   return notes;
 }
 
+/**
+ * The edges that leave a check, changed, added or removed (amendment A-019): where a check's verdicts lead is a brake,
+ * and a program cannot tell which way a change to it goes. One loss for each name, so that each can be judged, and
+ * asked for, by itself.
+ */
+function checkEdgeLosses(before: Graph, after: Graph): Loss[] {
+  const losses: Loss[] = [];
+  const stays = new Set(before.nodes.filter((node) => node.kind === "check" && after.nodes.some((other) => other.id === node.id && other.kind === "check")).map((node) => node.id));
+  const still = new Set(after.nodes.map((node) => node.id));
+  const edgeWas = new Map(before.edges.map((edge) => [edge.id, edge]));
+  const edgeNow = new Map(after.edges.map((edge) => [edge.id, edge]));
+  for (const edge of before.edges) {
+    if (!stays.has(edge.from)) continue;
+    const kept = edgeNow.get(edge.id) as Record<string, unknown> | undefined;
+    if (!kept) {
+      losses.push({ why: `removes "${edge.id}", an edge that leaves the check "${edge.from}"`, at: [still.has(edge.to) ? `edge:${edge.id}` : `node:${edge.to}`] });
+      continue;
+    }
+    for (const field of new Set([...Object.keys(edge), ...Object.keys(kept)])) {
+      if (field !== "id" && !same((edge as Record<string, unknown>)[field], kept[field])) losses.push({ why: `changes "${edge.id}", an edge that leaves the check "${edge.from}" (${field})`, at: [`edge:${edge.id}.${field}`] });
+    }
+  }
+  for (const edge of after.edges) {
+    if (!stays.has(edge.from)) continue;
+    const old = edgeWas.get(edge.id);
+    if (!old) losses.push({ why: `adds "${edge.id}", an edge that leaves the check "${edge.from}"`, at: [`edge:${edge.id}`] });
+    else if (old.from !== edge.from) losses.push({ why: `moves "${edge.id}" to leave the check "${edge.from}"`, at: [`edge:${edge.id}.from`] });
+  }
+  return losses;
+}
+
 /** Every brake `after` has lost or loosened that `before` had; empty when it has lost none. */
 export function brakesLost(before: Graph, after: Graph): Loss[] {
+  const made = comparison(before, after);
+  // A change to an edge that leaves a check is held, unless it is a tightening as every other is told: undoing it
+  // would loosen a brake, and making it loosens none (an approval asked on the edge, more evidence handed along it).
+  const leaving = checkEdgeLosses(before, after);
+  if (leaving.length === 0) return made;
+  const loosens = new Set(made.flatMap((loss) => loss.at));
+  const tightens = new Set(comparison(after, before).flatMap((loss) => loss.at));
+  return [...made, ...leaving.filter((loss) => !(tightens.has(loss.at[0]!) && !loosens.has(loss.at[0]!)))];
+}
+
+/** The comparison apart from the edges that leave a check, which are judged by running it both ways. */
+function comparison(before: Graph, after: Graph): Loss[] {
   const seen = new Set<string>();
   const reach = reachLosses(before, after);
   const first = [...ownLosses(before, after), ...loopLosses(before, after), ...reach.losses];

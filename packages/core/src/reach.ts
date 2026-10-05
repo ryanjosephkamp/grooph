@@ -35,12 +35,15 @@ export function waysOf(doc: Graph): Way[] {
   const kind = new Map(doc.nodes.map((node) => [node.id, node.kind]));
   const halts = new Set(doc.nodes.filter((node) => node.kind === "stop" && node.outcome === "halt").map((node) => node.id));
   const critics = new Set(doc.nodes.filter(isCriticFamily).map((node) => node.id));
+  const checks = new Set(doc.nodes.filter((node) => node.kind === "check").map((node) => node.id));
   const ways: Way[] = doc.edges.map((edge) => ({ from: edge.from, to: edge.to, person: edge.approval === true || kind.get(edge.from) === "human-gate", edge: edge.id, when: whenOf(edge) }));
   for (const loop of doc.loops) {
     for (const stop of loop.stops) {
       if (stop.then === undefined) continue;
       const escalates = (stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human") && halts.has(stop.then);
-      const judges = stop.kind === "bar-passed" ? loop.members.filter((member) => critics.has(member)) : [];
+      // The bar passed is the verdict of the loop's critics; of its checks, where it has no critic.
+      const among = (set: Set<Id>): Id[] => loop.members.filter((member) => set.has(member));
+      const judges = stop.kind !== "bar-passed" ? [] : among(critics).length > 0 ? among(critics) : among(checks);
       for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(escalates ? { escalates } : {}), ...(judges.length > 0 ? { verdictOf: judges } : {}) });
     }
   }
@@ -49,9 +52,10 @@ export function waysOf(doc: Graph): Way[] {
 
 /**
  * A decision taken as never given: every person's at once; one human gate's, or one answer at it; one approval; one
- * critic's verdict, or one verdict of it.
+ * critic's verdict, or one verdict of it. A check's verdict is a decision as a critic's is (amendment A-019): the same
+ * shape, with `check` set, which changes the words and nothing else.
  */
-export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string };
+export type Closed = "every" | { gate: Id; when?: string } | { approval: Id } | { critic: Id; when?: string; check?: true };
 
 /** Whether a way is shut by that. An edge out of a gate is the gate's decision, and an edge out of a critic the critic's. */
 export function shut(way: Way, closed: Closed): boolean {
@@ -128,6 +132,8 @@ export function decisionsShared(before: Graph, after: Graph): Closed[] {
   for (const node of before.nodes) {
     const kept = now.get(node.id);
     if (isCriticFamily(node) && kept && isCriticFamily(kept)) closed.push({ critic: node.id }, ...answers(node.id).map((when) => ({ critic: node.id, when })));
+    // A check's verdict, as a critic's (amendment A-019): every check, in a loop or in none.
+    if (node.kind === "check" && kept?.kind === "check") closed.push({ critic: node.id, check: true }, ...answers(node.id).map((when) => ({ critic: node.id, when, check: true as const })));
   }
   return closed;
 }
@@ -137,5 +143,6 @@ export function decisionName(closed: Closed): string {
   if (closed === "every") return "a person";
   if ("approval" in closed) return `the approval on "${closed.approval}"`;
   if ("gate" in closed) return closed.when === undefined ? `the human gate "${closed.gate}"` : `"${closed.when}" at the human gate "${closed.gate}"`;
-  return closed.when === undefined ? `the critic "${closed.critic}"` : `"${closed.when}" from the critic "${closed.critic}"`;
+  const judge = closed.check ? "check" : "critic";
+  return closed.when === undefined ? `the ${judge} "${closed.critic}"` : `"${closed.when}" from the ${judge} "${closed.critic}"`;
 }

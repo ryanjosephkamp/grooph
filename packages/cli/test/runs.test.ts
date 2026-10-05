@@ -393,6 +393,42 @@ test("adopt takes a working copy that tightens a brake, and says which", async (
   }
 });
 
+test("A-019: the audit lane's two check cases on the kept grind-loop record, through the command, are refused by name", async () => {
+  // As experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh sets them up: the proving record's
+  // package graph as the source, its run folder beside it, and the working copy changed by hand.
+  const record = join(repoRoot, "experiments", "patterns", "grind-loop", "run");
+  const cases: [string, (working: Graph) => void, string[], RegExp][] = [
+    ["the check made to pass always", (w) => {
+      const tests = w.nodes.find((n) => n.kind === "check")! as Extract<Graph["nodes"][number], { kind: "check" }>;
+      tests.check = { ...tests.check, run: "true", pass: "exit code 0" };
+    }, ["node:tests.check"], /node:tests\.check +changes the check's definition \(run, pass\)/],
+    ["its two verdicts swapped", (w) => {
+      for (const edge of w.edges) if (edge.from === "tests") edge.when = edge.when === "pass" ? "fail" : edge.when === "fail" ? "pass" : edge.when;
+    }, ["edge:e-tests-fail.when", "edge:e-tests-pass.when"], /a way into "done" that does not pass "pass" from the check "tests"/],
+  ];
+  for (const [what, change, allow, said] of cases) {
+    const dir = mkdtempSync(join(tmpdir(), "grooph-check-brake-"));
+    try {
+      mkdirSync(join(dir, ".grooph", "g", "runs"), { recursive: true });
+      copyFileSync(join(record, "package", "graph.grooph.json"), join(dir, ".grooph", "g", "graph.grooph.json"));
+      cpSync(join(record, "runs"), join(dir, ".grooph", "g", "runs"), { recursive: true });
+      const run = join(dir, ".grooph", "g", "runs", readdirSync(join(dir, ".grooph", "g", "runs"))[0]!);
+      amend(run, change);
+      const target = join(dir, "adopted.grooph.json");
+      const refused = capture();
+      assert.equal(await grooph(["adopt", run, "--write", "--into", target], refused), 1, what);
+      assert.match(text(refused.stdout), said, what);
+      assert.match(text(refused.stderr), /not written: the working copy loosens a brake/, what);
+      assert.equal(existsSync(target), false, what);
+      // Asked for by each name, it is written: the person who means it can say so.
+      assert.equal(await grooph(["adopt", run, "--write", "--into", target, ...allow.flatMap((name) => ["--allow", name])], capture()), 0, what);
+      assert.equal(readGraph(target).version, 2, what);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
+
 // ─── share <run dir> ──────────────────────────────────────────────────────
 
 test("share <run dir> prints a kind run link that decodes to the bundle; --out writes the bundle", async () => {

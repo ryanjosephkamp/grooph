@@ -9,12 +9,15 @@
  */
 
 import assert from "node:assert/strict";
+import { readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
 import { adoptCommandLine, checkAdoption, type AdoptionCheck } from "../src/adoption.js";
+import { canonicalize } from "../src/canonicalize.js";
 import { parseGraphText } from "../src/parse.js";
 import { adoptWorkingCopy } from "../src/runs.js";
+import { insertFragment, instantiate } from "../src/template.js";
 import type { Graph, Loop, Node } from "../src/types.js";
 import { read, repoRoot } from "./helpers.js";
 
@@ -407,4 +410,123 @@ test("the command that adopts on purpose is one line a shell takes as it is", ()
   assert.equal(adoptCommandLine("runs/r1", [], "next.grooph.json"), "grooph adopt runs/r1 --into next.grooph.json --write");
   // A folder with a space, or a name with a quote, is one word to the shell.
   assert.equal(adoptCommandLine("my project/.grooph/g/runs/r1", ["node:it's"]), "grooph adopt 'my project/.grooph/g/runs/r1' --write --allow 'node:it'\\''s'");
+});
+
+// ─── a check is a brake (amendment A-019) ─────────────────────────────────────────────────────────────────────
+//
+// The audit lane read the comparison whole and found that a check was nowhere in it: the check of a grind loop
+// changed to `true`, or its two verdicts swapped, was adopted with nothing refused. The owner ruled that a check's
+// definition and where its verdicts lead are brakes. Since a program cannot tell a stricter command from a looser
+// one, any change to them is held until asked for, unless the comparison shows it to be a tightening.
+
+/** A built-in template as a graph: its slots filled with their examples. */
+const builtIn = (id: string): Graph => {
+  const template = parseGraphText(read(join(repoRoot, "patterns", `${id}.grooph.json`))).doc!;
+  const filled = instantiate(template, { name: template.name, values: Object.fromEntries((template.template!.slots ?? []).map((slot) => [slot.key, slot.example ?? "x"])) });
+  return parseGraphText(canonicalize(filled)).doc!;
+};
+const checkOf = (doc: Graph, id: string): Extract<Node, { kind: "check" }> => doc.nodes.find((n) => n.id === id) as Extract<Node, { kind: "check" }>;
+
+test("A-019, the audit's three probes on the grind loop: the check made to pass always, its verdicts swapped, a way round it", () => {
+  const grind = builtIn("grind-loop");
+  const always = adopt((w) => void (checkOf(w, "tests").check = { ...checkOf(w, "tests").check, run: "true", pass: "exit code 0" }), { from: grind });
+  assert.deepEqual(refused(always), ["node:tests.check: changes the check's definition (run, pass): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is"]);
+
+  const swapped = adopt((w) => {
+    for (const e of w.edges) if (e.from === "tests") e.when = e.when === "pass" ? "fail" : "pass";
+  }, { from: grind });
+  assert.deepEqual(names(swapped).sort(), ["edge:e-tests-fail.when", "edge:e-tests-pass.when"]);
+  assert.match(refused(swapped).join("\n"), /a way into "done" that does not pass "pass" from the check "tests"/);
+
+  // The check untouched, and one edge from the builder straight to the stop that ends in success.
+  const around = adopt((w) => void w.edges.push({ id: "e-builder-done", from: "builder", to: "done" }), { from: grind });
+  assert.deepEqual(names(around), ["edge:e-builder-done"]);
+  assert.match(refused(around)[0]!, /adds a way into "done" that does not pass the check "tests"/);
+
+  // Each is one name to ask for, and asked for it is taken.
+  assert.deepEqual(adopt((w) => void (checkOf(w, "tests").check = { ...checkOf(w, "tests").check, run: "true" }), { from: grind, allow: ["node:tests.check"] }).refused, []);
+});
+
+test("A-019: a check removed, made another kind of node, or left by another edge is held; a tightening on an edge that leaves it is not", () => {
+  const grind = builtIn("grind-loop");
+  const gone = adopt((w) => {
+    w.nodes = w.nodes.filter((n) => n.id !== "tests");
+    w.edges = w.edges.filter((e) => e.from !== "tests" && e.to !== "tests");
+    w.nodes.push({ id: "verify", kind: "check", name: "Verify", check: { kind: "command", run: "true", pass: "exit code 0" } } as Node);
+    w.edges.push({ id: "e-builder-verify", from: "builder", to: "verify" }, { id: "e-verify-fail", from: "verify", to: "builder", when: "fail" }, { id: "e-verify-pass", from: "verify", to: "done", when: "pass" });
+    w.loops[0]!.members = ["builder", "verify"];
+    w.loops[0]!.back = ["e-verify-fail"];
+  }, { from: grind });
+  assert.ok(names(gone).includes("node:tests"), names(gone).join(", "));
+  assert.match(refused(gone).join("\n"), /node:tests: removes a check/);
+
+  // An edge added that leaves the check, on a verdict of its own.
+  const third = adopt((w) => {
+    w.nodes.push(agent("notes", "builder"));
+    w.edges.push({ id: "e-tests-notes", from: "tests", to: "notes", when: { verdict: "flaky" } });
+  }, { from: grind });
+  assert.deepEqual(refused(third), ['edge:e-tests-notes: adds "e-tests-notes", an edge that leaves the check "tests"']);
+
+  // A tightening is told as every other is: undoing it would loosen a brake, and making it loosens none.
+  const asked = adopt((w) => void (w.edges.find((e) => e.id === "e-tests-pass")!.approval = true), { from: grind });
+  assert.deepEqual(asked.refused, []);
+  assert.match(asked.changes.find((change) => change.name === "edge:e-tests-pass.approval")!.tightens!, /removes a person's approval from the edge/);
+
+  // A change to such an edge that is no tightening the comparison can show: held, by its own name.
+  const evidence = adopt((w) => void (w.edges.find((e) => e.id === "e-tests-fail")!.evidence = ["the last ten lines only"]), { from: grind });
+  assert.deepEqual(refused(evidence), ['edge:e-tests-fail.evidence: changes "e-tests-fail", an edge that leaves the check "tests" (evidence)']);
+});
+
+test("A-019, the honest edits it holds: each is one name, and says what it is", () => {
+  const grind = builtIn("grind-loop");
+  const flag = adopt((w) => void (checkOf(w, "tests").check = { ...checkOf(w, "tests").check, run: `${checkOf(w, "tests").check.run} --bail` }), { from: grind });
+  assert.deepEqual(names(flag), ["node:tests.check"]);
+  assert.match(refused(flag)[0]!, /changes the check's definition \(run\)/);
+  const stricter = adopt((w) => void (checkOf(w, "tests").check = { ...checkOf(w, "tests").check, pass: "exit code 0, no test skipped and no warning printed" }), { from: grind });
+  assert.deepEqual(names(stricter), ["node:tests.check"]);
+  assert.match(refused(stricter)[0]!, /changes the check's definition \(pass\)/);
+  // A new check is nobody's brake yet: adding one, with its own edges, is not held for being a check.
+  const added = adopt((w) => {
+    w.nodes.push({ id: "lint", kind: "check", name: "Lint", check: { kind: "command", run: "pnpm lint", pass: "exit code 0" } } as Node);
+    w.edges.find((e) => e.id === "e-builder-tests")!.from = "lint";
+    w.edges.push({ id: "e-builder-lint", from: "builder", to: "lint" }, { id: "e-lint-fail", from: "lint", to: "builder", when: "fail" });
+    w.loops[0]!.members.push("lint");
+    w.loops[0]!.back.push("e-lint-fail");
+  }, { from: grind });
+  assert.ok(!refused(added).some((line) => /check "lint"|node:lint/.test(line)), refused(added).join("\n"));
+});
+
+test("A-019: every built-in template whose loop is judged by a check alone, and every check in no loop", () => {
+  const files = readdirSync(join(repoRoot, "patterns")).filter((name) => name.endsWith(".grooph.json")).map((name) => name.replace(".grooph.json", ""));
+  const alone: string[] = [];
+  const outside: string[] = [];
+  const probed: string[] = [];
+  for (const id of files) {
+    // As a graph: a fragment, which is not one by itself, is put into a graph that holds nothing else.
+    const shipped = parseGraphText(read(join(repoRoot, "patterns", `${id}.grooph.json`))).doc!;
+    const values = Object.fromEntries((shipped.template!.slots ?? []).map((slot) => [slot.key, slot.example ?? "x"]));
+    const empty: Graph = { grooph: 0, id: "host", name: "Host", version: 1, goal: "Hold a fragment.", target: { harness: "claude-code" }, nodes: [], edges: [], loops: [] };
+    const doc = shipped.template?.kind === "fragment" ? parseGraphText(canonicalize(insertFragment(empty, shipped, { values }).doc)).doc! : builtIn(id);
+    const kind = (member: string): string => doc.nodes.find((n) => n.id === member)!.kind;
+    const critics = new Set(doc.nodes.filter((n) => n.kind === "agent" && ["critic", "judge", "red-team"].includes(n.role as string)).map((n) => n.id));
+    const judged = doc.loops.filter((l) => l.members.some((m) => kind(m) === "check") && !l.bar && !l.members.some((m) => critics.has(m) || kind(m) === "human-gate"));
+    if (judged.length > 0) alone.push(id);
+    const inLoops = new Set(doc.loops.flatMap((l) => l.members));
+    for (const check of doc.nodes.filter((n) => n.kind === "check")) {
+      if (!inLoops.has(check.id)) outside.push(`${id}:${check.id}`);
+      if (judged.length > 0 && !probed.includes(id)) probed.push(id);
+      // The check made to pass always: held, by the check's name, whichever template and wherever it stands.
+      const always = adopt((w) => void (checkOf(w, check.id).check = { ...checkOf(w, check.id).check, run: "true" }), { from: doc });
+      assert.deepEqual(names(always), [`node:${check.id}.check`], `${id}: ${check.id}`);
+      // Its verdicts swapped: every edge that leaves it on pass or fail is held.
+      const leaving = doc.edges.filter((e) => e.from === check.id && (e.when === "pass" || e.when === "fail"));
+      const swapped = adoptWorkingCopy(doc, { ...structuredClone(doc), edges: doc.edges.map((e) => (leaving.includes(e) ? { ...e, when: e.when === "pass" ? "fail" : "pass" } : e)) } as Graph, { run: "r" });
+      if (leaving.length < 2 || !swapped.ok) continue;
+      const held = checkAdoption(doc, swapped.doc).refused.map((change) => change.name);
+      for (const e of leaving) assert.ok(held.includes(`edge:${e.id}.when`), `${id}: ${e.id} is held when the verdicts of ${check.id} are swapped; held are ${held.join(", ")}`);
+    }
+  }
+  assert.equal(alone.length, 7, `the templates with a loop judged by a check alone: ${alone.join(", ")}`);
+  assert.deepEqual(probed, alone, "each of the seven was tried");
+  assert.equal(outside.length, 2, `the checks in no loop: ${outside.join(", ")}`);
 });
