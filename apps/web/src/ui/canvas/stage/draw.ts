@@ -14,7 +14,7 @@ type Common = { key?: string; alpha?: number; hide?: boolean; lift?: number };
 export type Prim =
   | (Common & { t: "poly"; pts: V[]; fill?: string; fa?: number; stroke?: string; w?: number; dash?: number[] })
   | (Common & { t: "line"; pts: V[]; stroke?: string; w?: number; dash?: number[]; arrow?: boolean; inset?: [number, number] })
-  | (Common & { t: "dot"; at: V; r?: number; fill?: string; stroke?: string; w?: number })
+  | (Common & { t: "dot"; at: V; r?: number; fill?: string; stroke?: string; w?: number; /** over the cards, as an element: what travels from one card to another */ over?: boolean })
   | (Common & { t: "text"; at: V; text: string; size?: number; fill?: string; bold?: boolean; align?: "left" | "center" | "right"; max?: number; up?: boolean; heads?: number; headFill?: string })
   | (Common & { t: "card"; at: V; id: Id; stand?: boolean; side?: boolean });
 
@@ -51,6 +51,10 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
   let ratio = 0;
   let asked = 0;
   let moved = false;
+  // What travels between cards is seen over them: an element, as they are, where the canvas is under them all.
+  const token = frame.appendChild(document.createElement("i"));
+  token.className = "s3-token";
+  token.hidden = true;
 
   const points = (p: Prim): V[] => ("pts" in p ? p.pts : [p.at]);
   const turned = (p: V): V => {
@@ -148,6 +152,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
       })
       .sort((a, b) => a.depth - b.depth);
     const placed = new Set<string>();
+    token.hidden = true;
     items.forEach(({ p, pts: at }, order) => {
       const on = !!(lit && p.key && lit.has(p.key));
       if (p.t === "card") {
@@ -192,6 +197,10 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
           g.fillStyle = color(p.stroke ?? "ink-2");
           g.fill();
         }
+      } else if (p.t === "dot" && p.over) {
+        const r = p.r ?? 5;
+        token.style.cssText = `width:${r * 2}px;height:${r * 2}px;transform:translate(${(pts[0]![0]! - r).toFixed(1)}px,${(pts[0]![1]! - r).toFixed(1)}px)`;
+        token.hidden = false;
       } else if (p.t === "dot") {
         g.beginPath();
         g.arc(pts[0]![0]!, pts[0]![1]!, p.r ?? 5, 0, TAU);
@@ -317,7 +326,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
   scheme.addEventListener("change", ask);
   const themed = new MutationObserver(ask);
   themed.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  off.push(() => scheme.removeEventListener("change", ask), () => themed.disconnect(), () => cancelAnimationFrame(asked));
+  off.push(() => scheme.removeEventListener("change", ask), () => themed.disconnect(), () => cancelAnimationFrame(asked), () => token.remove());
 
   const stage: Stage = {
     lit: null,

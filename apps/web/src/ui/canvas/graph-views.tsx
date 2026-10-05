@@ -191,6 +191,9 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   const [three, setThree] = useState<Space | null | undefined>(space);
   const [more, setMore] = useState<Stage3 | null | undefined>(stage3);
   const [per, setPer] = useState(3);
+  // How wide the window was when this came, which is when the canvas under it was drawn: a view that keeps the
+  // picture's places wraps its rows where the canvas did, though the window has been turned since.
+  const wide = useRef(innerWidth);
   const host = useRef<HTMLDivElement>(null);
   const held = useRef<ReturnType<Space["held"]>>(undefined);
   if (!styled) {
@@ -249,12 +252,12 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (now !== "picture") setKind(now);
   };
   const choose = (next: On): void => {
+    // A press puts away the note that an earlier choice could not be fetched; asking for it again is a new try.
+    if (three === null) setThree(undefined);
+    if (more === null) setMore(undefined);
     if (next === asked.current) return;
     asked.current = next;
     if (next !== "picture") keep(next);
-    // A new choice puts away the note that an earlier one could not be fetched; asking again is a new try.
-    if (three === null) setThree(undefined);
-    if (more === null) setMore(undefined);
     const slot = next === "picture" ? undefined : pieceOf(next);
     if (slot && !(slot === "space" ? three : more)) {
       // The first press of a kind fetches its piece, once, and nothing moves until it has come; nor then, if
@@ -273,12 +276,15 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
         () => {
           fetching.current[slot] = false;
           (slot === "space" ? setThree : setMore)(null);
-          // The kind that could not be had is not the one 3D opens next: the one that is drawn is, or the stairs.
-          if (kept() !== "stairs" && pieceOf(kept()) === slot) keep(shown.current === "picture" ? "stairs" : shown.current);
+          // The kind that could not be had is not the one 3D opens next on this page: the one that is drawn is,
+          // or from the picture a kind of the other piece. What the visit remembers is changed only to a view
+          // that is drawn: a fetch that failed once may not fail after a reload, and is tried again then.
+          const drawn = shown.current;
+          if (drawn !== "picture" && pieceOf(kept()) === slot) keep(drawn);
           // Back to what is drawn, if this is still what was being waited for.
           if (!mine()) return;
-          asked.current = shown.current;
-          setKind(kept());
+          asked.current = drawn;
+          setKind(drawn !== "picture" ? drawn : slot === "space" ? "panes" : "stairs");
           show();
         },
       );
@@ -354,7 +360,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       ) : null}
       {three === null || more === null ? (
         <p className="graph-views-note" role="status">
-          {more === null && three !== null ? (on === "picture" ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "That view could not be fetched. This one shows the same graph.") : "The view in three dimensions could not be fetched. The picture shows the same graph."}
+          {on !== "picture" ? "That view could not be fetched. This one shows the same graph." : more === null && three !== null ? "That view in three dimensions could not be fetched. The picture shows the same graph, and so do the stairs." : "The view in three dimensions could not be fetched. The picture shows the same graph."}
         </p>
       ) : null}
       {made ? (
@@ -373,7 +379,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
         </div>
       ) : staged && more ? (
         <div className="graph-space">
-          <more.Stage3 key={staged} doc={doc} kind={staged} of={of} />
+          <more.Stage3 key={staged} doc={doc} kind={staged} wide={wide.current} of={of} />
         </div>
       ) : null}
     </div>

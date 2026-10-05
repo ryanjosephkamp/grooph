@@ -94,11 +94,13 @@
   min-width: 62px;
   min-height: 36px;
 }
-/* Over a view in three dimensions the note is read and not in the way: what is under it can still be pressed, and
-   it goes with the next choice. */
+/* Over a view in three dimensions the note has a place of its own: the view moves down to give it room, and comes
+   back up when the next press puts the note away. */
 .graph-views.is-space .graph-views-note {
-  top: 122px;
-  pointer-events: none;
+  top: 118px;
+}
+.graph-views.is-space:has(> .graph-views-note) > .graph-space {
+  padding-top: 188px;
 }
 
 /* The picture becomes the scene (ui/become.ts). A node and its card are one thing on the way: it is the node's face

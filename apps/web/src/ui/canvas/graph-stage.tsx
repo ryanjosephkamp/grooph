@@ -14,19 +14,20 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
-import { modelOf, stepsOf } from "./stage/model.js";
+import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
 import { along, type Shown, type View } from "./stage/shapes.js";
 
 /** Each kind: how it places the graph, where it is first seen from, and what it is, in a sentence. */
 const KINDS: Record<string, { view: View; start: Look; as: string; says: string }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", says: "Every node is where the picture has it, as many panes toward you as there are loops and boxes round it. An edge that changes depth is entering or leaving one." },
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
 };
 
 let styled = false;
 const still = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function Stage3({ doc, kind, of }: { doc: Graph; kind: string; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] } }) {
+/** `wide` is how wide the window was when the canvas under this was drawn: its rows wrap as the canvas's do. */
+export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] } }) {
   if (!styled) {
     const sheet = document.createElement("style");
     sheet.textContent = css;
@@ -34,10 +35,11 @@ export function Stage3({ doc, kind, of }: { doc: Graph; kind: string; of: { onNo
     styled = true;
   }
   const the = KINDS[kind]!;
-  // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen,
-  // two to a row on a phone held upright and four on anything wider (`doc/layout.ts`, whose rule this is; it is not
-  // imported, because it is part of the canvas's screens and asking it for one more thing moves bytes onto them).
-  const model = useMemo(() => modelOf(doc, resolvePositions(doc, innerWidth < 640 ? 2 : 4, DEFAULT_LAYOUT_BOX).positions, of.notes), [doc, of.notes]);
+  // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen.
+  const model = useMemo(() => modelOf(doc, resolvePositions(doc, columnsAt(wide), DEFAULT_LAYOUT_BOX).positions, of.notes), [doc, wide, of.notes]);
+  // Every loop and box a node is in, the nearest first: what its card is said to be in.
+  const within = (id: Id): string =>
+    [...model.loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length).map((l) => `in the loop ${l.name}`), ...model.groups.filter((g) => g.nodes.includes(id)).sort((a, b) => a.nodes.length - b.nodes.length).map((g) => `in the ${g.from ? "subgrooph" : "group"} ${g.name}`)].join(", ");
   const steps = useMemo(() => stepsOf(model), [model]);
   // The edges a run took, each with the rounds it was taken between and the step it was taken at.
   const took = useMemo(() => (model.run ? steps.flatMap((step, n) => (step.edge && !step.about ? [{ edge: step.edge, r0: step.r0 ?? 0, r1: step.r1 ?? 0, step: n }] : [])) : []), [model, steps]);
@@ -70,23 +72,23 @@ export function Stage3({ doc, kind, of }: { doc: Graph; kind: string; of: { onNo
     const built = the.view(model, shown);
     on.lit = shown.lit;
     cancelAnimationFrame(glide.current);
-    // What is at this step travels to it along the edge it took, or is simply where the note is. A ring, so that
-    // what it stands on is seen through it.
-    const route = step.edge && !step.about ? built.path(step.edge, step.r0, step.r1) : step.to ? [built.node(step.to, step.r1)] : null;
-    const token: Extract<Prim, { t: "dot" }> | null = route ? { t: "dot", at: route[route.length - 1]!, r: 9.5, stroke: "accent", w: 3 } : null;
-    on.set(token ? [...built.prims, token] : built.prims);
-    // It is seen to travel when the slider has gone on by one, and not when it was dragged or went back.
-    if (token && route && route.length > 1 && k === was.current + 1 && !still()) {
-      token.at = route[0]!;
+    // Where a step is, is its card, lit. What got there is seen to travel to it along the edge it took, over the
+    // cards, when the slider has gone on by one: not when it was dragged or went back, and not for a reader who
+    // asked for less motion. Once there it is the lit card, and the ring is put away.
+    const route = step.edge && !step.about ? built.path(step.edge, step.r0, step.r1) : null;
+    if (route && route.length > 1 && k === was.current + 1 && !still()) {
+      const token: Extract<Prim, { t: "dot" }> = { t: "dot", at: route[0]!, r: 9.5, over: true };
+      on.set([...built.prims, token]);
       const from = performance.now();
       const go = (now: number): void => {
         const t = Math.min(1, (now - from) / 620);
         token.at = along(route, 1 - (1 - t) ** 3);
+        token.hide = t === 1;
         on.draw();
         if (t < 1) glide.current = requestAnimationFrame(go);
       };
       glide.current = requestAnimationFrame(go);
-    }
+    } else on.set(built.prims);
     was.current = k;
     on.draw();
   }, [model, kind, k]);
@@ -117,7 +119,7 @@ export function Stage3({ doc, kind, of }: { doc: Graph; kind: string; of: { onNo
         <div ref={cards}>
           {model.nodes.map((n) => (
             // A press that ended a drag turned the view and is not a tap; a key is always a tap (it has no clicks to count).
-            <button key={n.id} type="button" className="s3-card" data-node={n.id} data-kind={n.kind} aria-label={`${n.word} ${n.name}`} {...(n.loop ? { "aria-description": `in the loop ${model.loops.find((l) => l.id === n.loop)!.name}` } : {})} onClick={(e) => (e.detail === 0 || !stage.current?.dragged()) && of.onNodeTap?.(n.id)}>
+            <button key={n.id} type="button" className="s3-card" data-node={n.id} data-kind={n.kind} aria-label={`${n.word} ${n.name}`} {...(within(n.id) ? { "aria-description": within(n.id) } : {})} onClick={(e) => (e.detail === 0 || !stage.current?.dragged()) && of.onNodeTap?.(n.id)}>
               <b>{n.name}</b>
               <span>{n.line}</span>
             </button>

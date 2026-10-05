@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { parseGraphText, type Graph } from "@grooph/core";
+import { parseGraphText, resolvePositions, type Graph } from "@grooph/core";
 import { expect, test, type Page } from "@playwright/test";
 
 import { canvasIsQuiet, linkFor, node, repoRoot, reviewLoop, runBundle, sheet, viewIsStill } from "./support.js";
@@ -18,6 +18,14 @@ const kind = (page: Page, name: string) => kinds(page).getByRole("radio", { name
 const cards = (page: Page) => page.locator(".s3-card");
 const says = (page: Page) => page.locator(".s3-says");
 const STAGE = /\/assets\/graph-stage-[^/]*\.js$/;
+const STAIRS = /\/assets\/space-[^/]*\.js$/;
+/** Whether the note that a view could not be fetched lies over any of the view's bar, its picture or its words. */
+const noteIsClear = (page: Page) =>
+  page.evaluate(() => {
+    const note = document.querySelector(".graph-views-note")!.getBoundingClientRect();
+    const view = document.querySelector(".graph-space > *")!.getBoundingClientRect();
+    return note.height > 0 && view.height > 0 && note.bottom <= view.top;
+  });
 /** Where a card is on the screen, to the pixel: the stage has drawn it, and is drawing it nowhere else. */
 const where = async (page: Page, id: string) => JSON.stringify(await page.locator(`.s3-card[data-node="${id}"]`).boundingBox().then((b) => (b ? [b.x, b.y, b.width, b.height].map(Math.round) : null)));
 
@@ -58,6 +66,7 @@ test("the row of kinds is there only while a view in three dimensions is up; Pan
   // Every node a card: a button, with the name the canvas gives its node, and what the canvas says under it.
   await expect(cards(page)).toHaveCount(doc.nodes.length);
   await expect(page.getByRole("button", { name: "Agent Builder" })).toHaveText("Builderbuilder · strong · high");
+  await expect(page.getByRole("button", { name: "Agent Builder" })).toHaveAttribute("aria-description", "in the loop Review");
   await expect(page.getByRole("button", { name: "Human gate Merge approval" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Stop Done" })).toBeVisible();
   // Whole in the frame, and in the picture's order down the page.
@@ -73,7 +82,7 @@ test("the row of kinds is there only while a view in three dimensions is up; Pan
   // The three in the loop are one pane toward the reader, which from the starting view is to the left of what stays.
   expect(Math.max(...boxes.slice(0, 3).map((b) => b.x))).toBeLessThan(boxes[3]!.x);
   await expect(page.locator(".s3-frame")).toHaveAttribute("aria-label", /^Review gate as panes: 4 cards, 5 edges, and the loop Review\./);
-  await expect(page.locator(".s3-note")).toHaveText(/as many panes toward you as there are loops and boxes round it/);
+  await expect(page.locator(".s3-note")).toHaveText(/one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth/);
 
   // Back to the stairs by the row, and to the picture by the switch: the row goes with the view.
   await kind(page, "Stairs").click();
@@ -92,12 +101,16 @@ test("a card opens what its node does on the canvas; a drag turns the view and o
   await canvasIsQuiet(page);
   // The review loop is a row on this canvas, and a row on the panes, in the same order: the layout is the canvas's
   // own, not a column of this view's. (A row seen from the side runs away from the reader, so it is told by its order.)
-  const across = async (list: ReturnType<typeof cards>) => (await list.evaluateAll((els) => els.map((el) => [(el as HTMLElement).dataset["id"] ?? (el as HTMLElement).dataset["node"]!, el.getBoundingClientRect().left] as const))).sort((a, b) => a[1] - b[1]).map(([id]) => id);
+  const across = async (list: ReturnType<typeof cards>) => (await list.evaluateAll((els) => els.map((el) => [(el as HTMLElement).dataset["id"] ?? (el as HTMLElement).dataset["node"]!, el.getBoundingClientRect().left] as const))).sort((a, b) => a[1] - b[1]);
   const tops = await page.locator(".react-flow__node").evaluateAll((els) => new Set(els.map((el) => Math.round(el.getBoundingClientRect().top))).size);
   expect(tops).toBe(1);
   const onCanvas = await across(page.locator(".react-flow__node"));
   await open(page);
-  expect(await across(cards(page))).toEqual(onCanvas);
+  const onPanes = await across(cards(page));
+  expect(onPanes.map(([id]) => id)).toEqual(onCanvas.map(([id]) => id));
+  // Each card is to the right of the one before it by more than a hair: in a column they would share a left edge,
+  // and be in this order only because the document is.
+  for (let n = 1; n < onPanes.length; n += 1) expect(onPanes[n]![1] - onPanes[n - 1]![1], onPanes[n]![0]).toBeGreaterThan(20);
   const start = await where(page, "critic");
 
   await page.getByRole("button", { name: "Agent Critic" }).click();
@@ -146,8 +159,18 @@ test("the slider walks a first pass, lighting each edge's two ends; on a run's p
   await expect(steps).toHaveAttribute("max", "5");
   await expect(says(page)).toHaveText(/^All 5 edges are lit\./);
   await expect(page.locator(".s3-card.is-dim, .s3-card.is-lit")).toHaveCount(0);
+  // What goes along the edge is seen over the cards while it travels, and is put away when it is there: the lit
+  // card is where the step is.
+  await page.evaluate(() => {
+    const token = document.querySelector<HTMLElement>(".s3-token")!;
+    const seen: boolean[] = ((window as unknown as { tokenSeen: boolean[] }).tokenSeen = []);
+    new MutationObserver(() => seen.push(!token.hidden && token.getBoundingClientRect().width > 0)).observe(token, { attributes: true });
+  });
+  await expect(page.locator(".s3-token")).toBeHidden();
   await page.getByRole("button", { name: "Next step" }).click();
   await expect(says(page)).toHaveText("Step 1 of 5: Builder to Critic · always");
+  await expect.poll(() => page.evaluate(() => (window as unknown as { tokenSeen: boolean[] }).tokenSeen.includes(true))).toBe(true);
+  await expect(page.locator(".s3-token")).toBeHidden();
   await expect(page.locator(".s3-card.is-lit")).toHaveText(["Builderbuilder · strong · high", "Criticcritic · strong · high"]);
   await expect(page.locator(".s3-card.is-dim")).toHaveCount(2);
   // The last step is a way back: one turn of the loop.
@@ -167,7 +190,7 @@ test("the slider walks a first pass, lighting each edge's two ends; on a run's p
   await viewIsStill(page);
   const notes = page.getByRole("slider", { name: "Note, in the order the run wrote them" });
   await expect(notes).toHaveAttribute("max", String(run.notes.length));
-  await expect(says(page)).toHaveText(/^The whole run: 6 dispatches in rounds 0 and 1\. Sandwich stopped on bar passed in round 1\./);
+  await expect(says(page)).toHaveText(/^The whole run: 6 dispatches, in rounds 0 and 1 of Sandwich\. Sandwich stopped on bar passed in round 1\./);
   // Note 2 is about the run as a whole, an amendment: nothing is picked out, so nothing steps back.
   await notes.fill("2");
   await expect(says(page)).toHaveText(/^Note 2 of 15, an amendment: /);
@@ -275,9 +298,18 @@ test.describe("with reduced motion", () => {
     await view(page, "3D").click();
     await expect(page.locator(".s3-frame")).toBeVisible();
     expect(await moves()).toEqual([]);
-    // The slider's steps are taken at once: what travels is where it is going.
+    // The slider's steps are taken at once: nothing is seen to travel, and the lit cards are where the step is.
+    await page.evaluate(() => {
+      const token = document.querySelector<HTMLElement>(".s3-token")!;
+      const seen: boolean[] = ((window as unknown as { tokenSeen: boolean[] }).tokenSeen = []);
+      new MutationObserver(() => seen.push(!token.hidden)).observe(token, { attributes: true });
+    });
     await page.getByRole("button", { name: "Next step" }).click();
     await expect(says(page)).toHaveText(/^Step 1 of 5: /);
+    await expect(page.locator(".s3-card.is-lit")).toHaveCount(2);
+    await page.getByRole("button", { name: "Next step" }).click();
+    await expect(says(page)).toHaveText(/^Step 2 of 5: /);
+    expect(await page.evaluate(() => (window as unknown as { tokenSeen: boolean[] }).tokenSeen.includes(true))).toBe(false);
   });
 });
 
@@ -326,6 +358,95 @@ test("when the stage cannot be fetched the row says so, and the stairs stay", as
   await expect(kind(page, "Stairs")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".space-scene")).toBeVisible();
   await expect(page.locator(".s3")).toHaveCount(0);
+  // The note has a place of its own: the stairs and their bar are under it, not behind it.
+  expect(await noteIsClear(page)).toBe(true);
+  // A press of the kind that is drawn puts the note away.
+  await kind(page, "Stairs").click();
+  await expect(page.locator(".graph-views-note")).toHaveCount(0);
+  await expect(page.locator(".space-scene")).toBeVisible();
+});
+
+test("when the stairs cannot be fetched and the panes are up, the row says so and the panes stay; from the picture, 3D then opens the panes", async ({ page }) => {
+  await page.route(STAIRS, (route) => route.abort());
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  await page.goto("./#/templates/built-in/grind-loop");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  await kind(page, "Stairs").click();
+  // Under a view in three dimensions the note does not say that the picture is what is shown.
+  await expect(page.locator(".graph-views-note")).toHaveText("That view could not be fetched. This one shows the same graph.");
+  await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await expect(page.locator(".space")).toHaveCount(0);
+  expect(await noteIsClear(page)).toBe(true);
+  // The kind that failed is not the one the visit remembers: from the picture, 3D opens the panes.
+  expect(await page.evaluate(() => sessionStorage.getItem("groophSpace"))).toBe("panes");
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await expect(page.locator(".graph-views-note")).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
+});
+
+test("when the stairs cannot be fetched from the picture, the page says so, and 3D then opens another kind", async ({ page }) => {
+  await page.route(STAIRS, (route) => route.abort());
+  await page.goto("./#/templates/built-in/grind-loop");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator(".graph-views-note")).toHaveText("The view in three dimensions could not be fetched. The picture shows the same graph.");
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await expect(node(page, "builder")).toBeVisible();
+  // The stairs are not asked for again as if nothing had happened: the panes can be reached.
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await expect(kind(page, "Panes")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".graph-views-note")).toHaveCount(0);
+});
+
+test("on a phone the panes wrap their rows where the canvas does, though the phone has been turned since; and a card says every loop and box round its node", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 780 });
+  // A graph with more nodes in a rank than a phone's canvas puts side by side, and no layout of its own.
+  await page.goto("./#/templates/built-in/specialist-critic-bank");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const tops = (list: ReturnType<typeof cards>) => list.evaluateAll((els) => els.map((el) => [(el as HTMLElement).dataset["id"] ?? (el as HTMLElement).dataset["node"]!, Math.round(el.getBoundingClientRect().top)] as const));
+  // The canvas's rows, top to bottom: no more than two nodes in any, and more rows than a wide screen would have.
+  const rowsOf = (at: (readonly [string, number])[]) => [...new Set(at.map(([, top]) => top))].sort((a, b) => a - b).map((top) => at.filter(([, t]) => t === top).map(([id]) => id));
+  const onCanvas = rowsOf(await tops(page.locator(".react-flow__node")));
+  expect(Math.max(...onCanvas.map((row) => row.length))).toBe(2);
+  const wide = resolvePositions(pattern("specialist-critic-bank"), 4).positions;
+  expect(onCanvas.length).toBeGreaterThan(new Set(Object.values(wide).map((at) => at.y)).size);
+  // Turned on its side the window is wide enough for four to a row; the canvas keeps the rows it drew.
+  await page.setViewportSize({ width: 780, height: 420 });
+  expect(rowsOf(await tops(page.locator(".react-flow__node")))).toEqual(onCanvas);
+  await open(page);
+  // And so do the panes: each row is under the one before it by more than the cards of either differ among
+  // themselves. (A row seen from the side slopes a little, and a card on a nearer pane stands a little lower; four
+  // to a row would put two of the canvas's rows on one such slope, no further apart than its own cards are.)
+  const at = new Map(await tops(cards(page)));
+  expect(at.size).toBe(onCanvas.flat().length);
+  const span = (row: string[]): [number, number] => [Math.min(...row.map((id) => at.get(id)!)), Math.max(...row.map((id) => at.get(id)!))];
+  for (let n = 1; n < onCanvas.length; n += 1) {
+    const [above, under] = [span(onCanvas[n - 1]!), span(onCanvas[n]!)];
+    expect(under[0] - above[1], `row ${n}`).toBeGreaterThan(1.5 * Math.max(above[1] - above[0], under[1] - under[0], 4));
+  }
+  await page.setViewportSize({ width: 390, height: 780 });
+
+  // A node inside a loop, inside a subgrooph, inside a group: its card says all three, the nearest first.
+  await page.goto(linkFor(parseGraphText(readFileSync(join(repoRoot, "fixtures/valid/subgrooph-in-a-graph.grooph.json"), "utf8")).doc!));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await expect(page.locator('.s3-card[data-node="review-builder"]')).toHaveAttribute("aria-description", "in the loop Review, in the subgrooph Review gate, in the group Review and release");
+  await expect(page.locator('.s3-card[data-node="release"]')).toHaveAttribute("aria-description", "in the group Review and release");
+  await expect(page.locator('.s3-card[data-node="plan"]')).not.toHaveAttribute("aria-description");
 });
 
 test("when the kind the visit remembers cannot be fetched from the picture, the page says so and 3D opens the stairs", async ({ page }) => {

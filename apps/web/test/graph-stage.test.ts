@@ -2,10 +2,12 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { parseGraphText, parseRunNotes, resolvePositions, type Graph, type RunNote } from "@grooph/core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { columnsForViewport } from "../src/doc/layout.js";
 
 import { firstPass } from "../src/ui/canvas/graph-views.js";
-import { modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
+import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
 import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
 
 /**
@@ -103,7 +105,7 @@ describe("a recorded run", () => {
   it("its steps are its notes: a move is along the edge the run took, in the round it took it", () => {
     const steps = stepsOf(model);
     expect(steps).toHaveLength(NOTES.length + 1);
-    expect(steps[0]!.says).toMatch(/^The whole run: 6 dispatches in rounds 0 and 1\. Sandwich stopped on bar passed in round 1\./);
+    expect(steps[0]!.says).toMatch(/^The whole run: 6 dispatches, in rounds 0 and 1 of Sandwich\. Sandwich stopped on bar passed in round 1\./);
     // The builder again, after the critic's fail: by the way back, from round 0 to round 1.
     expect(steps[9]).toMatchObject({ to: "builder", edge: "e-critic-fail", from: "critic", r0: 0, r1: 1 });
     // Out to Done, from round 1, where the critic passed: not from round 0, where it failed.
@@ -122,6 +124,25 @@ describe("a recorded run", () => {
     expect(steps[5]).toMatchObject({ to: "builder", from: "tests", edge: "e-tests-fail", r0: 0, r1: 1 });
     // Phase 2's builder is in round 0 of the inner loop again.
     expect(nested.run!.dispatches.map((d) => [d.node, d.round])).toEqual([["builder", 0], ["tests", 0], ["builder", 1], ["tests", 1], ["judge", 0], ["builder", 0], ["tests", 0]]);
+    // A round is a loop's own: the rounds of the two loops are said apart, each by its loop's name.
+    expect(steps[0]!.says).toMatch(/^The whole run: 7 dispatches, in rounds 0 and 1 of Grind; round 0 of Phases\. /);
+    expect(nested.run!.dispatches.map((d) => d.loop)).toEqual(["grind", "grind", "grind", "grind", "phases", "grind", "grind"]);
+  });
+
+  it("a move that no edge's condition fits lights no edge, and a dispatch at a node in no loop is in no round", () => {
+    // The run's own notes, but the critic's first report is one that neither of its edges is for. The builder is
+    // next all the same, and the only edge from the critic to it is for a fail: it is not shown as taken.
+    const odd = NOTES.map((n) => (n.id === "n-0006" ? ({ ...n, outcome: "halt", verdict: "undecided" } as RunNote) : n));
+    const steps = stepsOf(modelAt(RUN, places(RUN), odd));
+    expect(steps[9]).toMatchObject({ to: "builder", nodes: ["builder"] });
+    expect([steps[9]!.edge, steps[9]!.from]).toEqual([undefined, undefined]);
+    // The other moves are as they were.
+    expect(steps[13]).toMatchObject({ to: "done", edge: "e-critic-pass", from: "critic" });
+    // The same notes over the same nodes with no loop round them: no dispatch has a loop or a round, and the run's
+    // first sentence gives it none.
+    const flat = modelAt({ ...RUN, loops: [] }, places(RUN), NOTES);
+    expect(flat.run!.dispatches.map((d) => [d.loop, d.round])).toEqual(Array.from({ length: 6 }, () => [null, null]));
+    expect(stepsOf(flat)[0]!.says).toMatch(/^The whole run: 6 dispatches\. /);
   });
 
   it("a note about the run, or about an edge, is said in the note's own words and is not a move", () => {
@@ -139,6 +160,8 @@ describe("a recorded run", () => {
   });
 });
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe("panes", () => {
   const shown = { k: 0, lit: null, took: [] };
   const place = (doc: Graph) => {
@@ -155,17 +178,45 @@ describe("panes", () => {
   });
 
   it("a document that is not sound is still drawn: what cannot be placed is left out, and a group that holds itself is held once", () => {
-    // A run whose working copy has an edge to a node that is gone, and a note at one.
-    const [broken, notes] = runAt("run-broken");
+    // A run whose working copy has an edge to a node that is gone; and, added here, notes at a node, an edge and a
+    // loop that are not in it: each is a note about the run, and picks nothing out.
+    const [broken, written] = runAt("run-broken");
+    const gone = ["node:nobody", "edge:e-nowhere", "loop:no-such-loop"].map((at, k) => ({ id: `n-90${k}`, run: written[0]!.run, at, ended: "2026-09-19T15:00:00Z", text: `a note at ${at}` }) as RunNote);
+    const notes = [...written, ...gone];
     const model = modelAt(broken, places(broken), notes);
+    expect(broken.edges.length).toBeGreaterThan(model.edges.length);
     expect(model.edges.every((e) => broken.nodes.some((n) => n.id === e.from) && broken.nodes.some((n) => n.id === e.to))).toBe(true);
     expect(() => [panes(model, shown), stepsOf(model)]).not.toThrow();
+    expect(model.run!.notes.slice(-3).map((n) => [n.about, n.id])).toEqual([["graph", null], ["graph", null], ["graph", null]]);
+    for (const step of stepsOf(model).slice(-3)) expect([step.nodes, step.edge, step.loops, step.to]).toEqual([undefined, undefined, undefined, undefined]);
     const cycle = JSON.parse(readFileSync(join(root, "fixtures/invalid/E_GROUP_CYCLE/group-holds-itself.grooph.json"), "utf8")) as Graph;
     expect(() => panes(modelAt(cycle, places(cycle)), shown)).not.toThrow();
-    // A node listed by two groups is the first one's (graph-ir section 2).
+    // A node listed by two groups, neither inside the other, is the first one's (graph-ir section 2).
     const overlap = JSON.parse(readFileSync(join(root, "fixtures/invalid/W_GROUP_OVERLAP/node-in-two-groups.grooph.json"), "utf8")) as Graph;
-    const owners = modelAt(overlap, places(overlap)).groups.map((g) => g.nodes);
-    expect(owners.flat().length).toBe(new Set(owners.flat()).size);
+    expect(overlap.groups!.map((g) => [g.id, g.members])).toEqual([["fix", ["builder", "writer"]], ["notes", ["writer"]]]);
+    expect(modelAt(overlap, places(overlap)).groups.map((g) => [g.id, g.nodes, g.inside])).toEqual([["fix", ["builder", "writer"], null], ["notes", [], null]]);
+  });
+
+  it("a node listed by a group and by one inside it is the inner one's, as core reads it, and has a pane of its own for each", () => {
+    // Nesting said twice (graph-ir, W_GROUP_OVERLAP): the outer group lists the inner one and the inner one's node.
+    const twice: Graph = { ...NESTED, groups: [{ id: "outer", name: "Outer", members: ["inner", "review-builder", "release"] }, { id: "inner", name: "Inner", members: ["review-builder"] }], loops: [] };
+    const model = modelAt(twice, places(twice));
+    expect(model.groups.map((g) => [g.id, g.nodes, g.inside])).toEqual([["outer", ["release", "review-builder"], null], ["inner", ["review-builder"], "outer"]]);
+    expect(Object.fromEntries(boxesOf(model.loops, model.groups).map((b) => [b.name, b.depth]))).toEqual({ Outer: 1, Inner: 2 });
+    const built = panes(model, shown);
+    expect([built.node("review-builder")[2], built.node("release")[2], built.node("plan")[2]]).toEqual([168, 84, 0]);
+    // A group listed by a group and by one inside that is the inner one's too; one listed by two that do not hold
+    // each other is the first one's, and its nodes are held once.
+    const deep: Graph = { ...twice, groups: [["a", ["b", "c"]], ["b", ["c"]], ["c", ["plan"]], ["d", ["c", "release"]]].map(([id, members]) => ({ id: id as string, name: id as string, members: members as string[] })) };
+    const groups = modelAt(deep, places(deep)).groups;
+    expect(groups.map((g) => [g.id, g.inside, g.nodes])).toEqual([["a", null, ["plan"]], ["b", "a", ["plan"]], ["c", "b", ["plan"]], ["d", null, ["release"]]]);
+  });
+
+  it("its rows wrap where the canvas's do: two nodes to a row under 640 pixels, four from there", () => {
+    for (const width of [320, 390, 639, 640, 1024, 1920]) {
+      vi.stubGlobal("window", { innerWidth: width });
+      expect(columnsAt(width), String(width)).toBe(columnsForViewport());
+    }
   });
 
   it("a loop with the very nodes of a subgrooph is inside it, and the subgrooph inside the group that holds it", () => {

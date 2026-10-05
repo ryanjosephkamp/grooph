@@ -25,7 +25,8 @@ export type MEdge = { id: Id; from: Id; to: Id; when: string; back: Id | null; o
 export type MLoop = { id: Id; name: string; inside: Id | null; members: Id[]; own: Id[]; back: Id[]; stops: string[]; cap: number | null; budget: { measure: string; limit: number } | null; human: number | null; perRound: number };
 /** A group: the nodes it holds, its own and those of the groups in it, and the group it is in. */
 export type MGroup = { id: Id; name: string; from: string | null; nodes: Id[]; inside: Id | null };
-export type Dispatch = { node: Id; round: number; outcome: string | null; minutes: number };
+/** A dispatch of a run: its node's own loop and the round of that loop it was in, or neither for a node in no loop. */
+export type Dispatch = { node: Id; loop: Id | null; round: number | null; outcome: string | null; minutes: number };
 export type Model = {
   id: Id;
   name: string;
@@ -43,22 +44,35 @@ export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?:
 const KIND = { agent: ["agent", "Agent"], check: ["check", "Check"], "human-gate": ["gate", "Human gate"], merge: ["gate", "Merge"], stop: ["stop", "Stop"] } as const;
 
 /**
- * The groups of a document as the document nests them: a group is inside the first group that lists it, and holds
- * its own nodes and those of the groups in it. A node listed by two groups is the first one's (graph-ir §2), and a
- * group that would hold itself is held once.
+ * The groups of a document as core reads their nesting (`groupOverlaps` in core's `validate.ts`; graph-ir section
+ * 2): a node or a group is in the group that lists it; listed by a group and by one inside it, it is the inner
+ * one's ("nesting said twice"); listed by two groups neither of which holds the other, it is the first one's. A
+ * group holds its own nodes and those of the groups in it, and one that would hold itself is held once.
  */
 function groupsOf(doc: Graph): MGroup[] {
   const groups = doc.groups ?? [];
-  const owned = new Set<Id>();
-  const own = new Map(groups.map((g) => [g.id, g.members.filter((id) => doc.nodes.some((n) => n.id === id) && !owned.has(id) && !!owned.add(id))]));
+  type Group = (typeof groups)[number];
+  const holds = (outer: Group, inner: Id, seen = new Set<Id>()): boolean => {
+    if (seen.has(outer.id)) return false;
+    seen.add(outer.id);
+    return groups.some((next) => next.id !== outer.id && outer.members.includes(next.id) && (next.id === inner || holds(next, inner, seen)));
+  };
+  const owner = (member: Id): Id | null => {
+    const lists = groups.filter((g) => g.id !== member && g.members.includes(member));
+    return (lists.find((g) => !lists.some((other) => other.id !== g.id && holds(g, other.id))) ?? lists[0])?.id ?? null;
+  };
   const nodes = (id: Id, seen: Set<Id>): Id[] => {
     if (seen.has(id)) return [];
     seen.add(id);
-    const group = groups.find((g) => g.id === id);
-    return group ? [...(own.get(id) ?? []), ...group.members.filter((m) => groups.some((g) => g.id === m)).flatMap((m) => nodes(m, seen))] : [];
+    return [...doc.nodes.filter((n) => owner(n.id) === id).map((n) => n.id), ...groups.filter((g) => owner(g.id) === id).flatMap((g) => nodes(g.id, seen))];
   };
-  return groups.map((g) => ({ id: g.id, name: g.name || g.id, from: g.from ?? null, nodes: nodes(g.id, new Set()), inside: groups.find((outer) => outer.id !== g.id && outer.members.includes(g.id))?.id ?? null }));
+  return groups.map((g) => ({ id: g.id, name: g.name || g.id, from: g.from ?? null, nodes: nodes(g.id, new Set()), inside: owner(g.id) }));
 }
+
+/** How many nodes the canvas puts side by side before a row wraps, where a document has no layout of its own: the
+ *  canvas's rule (`columnsForViewport` in `doc/layout.ts`), written here because that module is part of the canvas's
+ *  screens and asking it for one more thing moves bytes onto them. A test holds the two together. */
+export const columnsAt = (width: number): number => (width < 640 ? 2 : 4);
 
 export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>, notes?: readonly RunNote[]): Model {
   const rows = layerNodes(doc);
@@ -155,7 +169,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
         words: own.length > 150 ? `${own.slice(0, own.lastIndexOf(" ", 150))} …` : own,
       };
       if (node && (node.kind === "agent" || node.kind === "check") && note.ended) {
-        out.dispatch = dispatches.push({ node: node.id, round: round ?? 0, outcome: note.outcome ?? null, minutes: Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) }) - 1;
+        out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) }) - 1;
         last = note.ended;
       }
       return out;
@@ -182,8 +196,12 @@ export function stepsOf(m: Model): Step[] {
     ];
   }
   const { notes, dispatches, end } = m.run;
-  const rounds = [...new Set(dispatches.map((d) => d.round))];
-  const out: Step[] = [{ says: `The whole run: ${dispatches.length} dispatch${dispatches.length === 1 ? "" : "es"}${rounds.length ? ` in round${rounds.length === 1 ? "" : "s"} ${rounds.join(" and ")}` : ""}. ${end} Move the slider or press Play to follow its ${notes.length} notes.` }];
+  // The rounds the dispatches were in, loop by loop: a round is a loop's own, and a node in no loop is in none.
+  const rounds = m.loops.flatMap((l) => {
+    const own = [...new Set(dispatches.flatMap((d) => (d.loop === l.id && d.round !== null ? [d.round] : [])))];
+    return own.length ? [`round${own.length === 1 ? "" : "s"} ${own.length > 2 ? `${own.slice(0, -1).join(", ")} and ${own[own.length - 1]}` : own.join(" and ")} of ${l.name}`] : [];
+  });
+  const out: Step[] = [{ says: `The whole run: ${dispatches.length} dispatch${dispatches.length === 1 ? "" : "es"}${rounds.length ? `, in ${rounds.join("; ")}` : ""}. ${end} Move the slider or press Play to follow its ${notes.length} notes.` }];
   let at: { node: Id; round: number; outcome: string | null; verdict: string | null } | null = null;
   notes.forEach((s, k) => {
     const of = `Note ${k + 1} of ${notes.length}`;
@@ -192,9 +210,10 @@ export function stepsOf(m: Model): Step[] {
       const round = s.round ?? 0;
       const was = at;
       // The edge the run took to get here, of those from where it was: the one whose condition is what the note
-      // there reported (its verdict, else its outcome), else one with no condition, else whichever there is.
+      // there reported (its verdict, else its outcome), else one with no condition. If none of them fits what was
+      // reported, no edge is shown as taken: the node is lit, and that is all the notes say.
       const ways = was ? m.edges.filter((e) => e.from === was.node && e.to === s.id) : [];
-      const took = ways.find((e) => typeof e.on === "object" && e.on.verdict === was?.verdict) ?? ways.find((e) => typeof e.on === "string" && e.on === was?.outcome) ?? ways.find((e) => e.on === undefined || e.on === "always") ?? ways[0];
+      const took = ways.find((e) => typeof e.on === "object" && e.on.verdict === was?.verdict) ?? ways.find((e) => typeof e.on === "string" && e.on === was?.outcome) ?? ways.find((e) => e.on === undefined || e.on === "always");
       Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round }, took && was ? { edge: took.id, from: was.node, r0: was.round } : {});
       at = { node: s.id, round, outcome: s.outcome, verdict: s.verdict };
     } else if (s.about === "loop" && s.id) Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
