@@ -88,7 +88,7 @@ Resolution order by name (template id), first hit wins:
 
 1. **Project:** `.grooph/templates/` in the working tree.
 2. **User:** `~/.grooph/templates/`.
-3. **Built-in:** this repo's `patterns/`, bundled with the CLI and the web app at build time.
+3. **Built-in:** this repo's `patterns/`, bundled with the CLI and the web app at build time. In the app they are a file of their own, fetched when a screen first lists or opens a template and kept for use with no network like the rest of the app.
 4. **Remote:** any registry URL passed with `--registry`, and by default the published library at `https://ryanjosephkamp.github.io/grooph/patterns/index.json`. Remote is consulted only when the name is not found locally, or on `grooph template add`.
 
 `patterns/index.json` is generated (without a timestamp, so it is deterministic), committed, and checked in CI. A template document's `version` is the template's version, which is what `lineage.from` records. The Pages deploy publishes `patterns/` beside the app, so anyone can fetch a template by name with no clone.
