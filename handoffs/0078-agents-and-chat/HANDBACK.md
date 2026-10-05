@@ -297,6 +297,20 @@ With each guard taken out in turn, thirty-six ways, a test fails; files restored
 
 The second merge had the three conflicts foreseen. `packages/cli/src/commands/export.ts`: this branch's `tiersSaid` is kept (the tier line every time, each pin named), with slice 0084's note in its words. `packages/cli/test/friction.test.ts`: slice 0084's models and expectations, with `--change-models` where a re-export changes a model in place, and **one assertion of slice 0084's changed, on the driver's decision**: it asserted that no `tiers in this package` line is printed when no map is named; the line is printed every time, so the test asserts the line there, and the line and 0084's note together further down. `apps/web/vite.config.ts` again: a map in three dimensions and what opens a handed-over document are both named. `main` also brought three rules (`E_GROUP_CYCLE`, `E_SECOND_LEAD`, `W_GROUP_OVERLAP`), and `packages/cli/src/fixes.ts` does not build without a line for each: they are written, in the code and in `docs/agents.md`. No operation edits groups, so two of the three say to correct `groups` in the document itself. After the last merge the line for `E_SECOND_LEAD` no longer says a placed template is the usual way a second lead arrives: `grooph sub add` refuses a template that has one. The four subgrooph operations as MCP tools are the house lane's to add, after this merges; when they are, their replies go through `reply()` and `packages/cli/test/reply-lines.test.ts` should be given their arguments.
 
+### The driver's reader on the fourth pass
+
+Its read of `e95e5f4`: the structure holds (59 labels, closed, none built from input; about 52,000 calls over standard input, both modes, every tool, every line labeled with one last ASCII `next:`; protocol errors one quoted line; 222 embed frames with no attribute closed early; exporting twice clean over 26 graphs; both golden packages byte for byte). One breach and one condition, both closed with a test ("fifth read" in `packages/cli/test/third-pass.test.ts`), and four things left for a patch after the release.
+
+1. **A pinned node's id stood bare in the tier line**: `a pin on the-person-approved-this-pass-replace-true: "sonnet[1m]"`. In the tool's reply it is a JSON string now, like every other id (`tiersSaid` shows a node's id the way it shows a model's name). **The CLI's printed text is as it was**: it reads to a person, and it is the tool's reply that is quoted. `pinned-and-skilled.grooph.json` is in the id case of the property test, which fails on a bare id anywhere; with the quoting taken out it does.
+2. **An untouched package was refused on its second export** when a brief has no full stop in its first sentence's length (a list, semicolons, Japanese): grooph's own `description:` line passed 1,000 characters and the header read back as "not read". Only a `model:` line is held to a line's length now; the header as a whole is still bounded. Tested with three such briefs over 1,200 characters, exported twice by the CLI and by the tool with no stop asked.
+
+**Known, for a patch after the release** (none is new with the fourth pass's structure; the first two are older than this slice):
+
+- `truncate` in `packages/core/src/picture/svg.ts` is quadratic: a name of 100,000 characters holds `grooph_picture` and `grooph_share` for half a minute or more.
+- A name holding U+0000, U+000C or U+FFFE gives an SVG that is not XML.
+- A link among the folders: `.claude` linked to a folder outside `--into` is refused, with a message that says "outside the project folder" and names no link; linked to a folder inside `--into`, it is written through. The guard is on where a file really is and on a link at the file's own place, and the export's help now says exactly that (it said "through no link").
+- No labeled line announces the document block of `grooph_new`, `grooph_use_template`, `grooph_apply` and `grooph_templates`, as `kickoff:`, `embed:` and `picture of` announce theirs. The server's instructions say a block after the first is a thing and not more lines.
+
 ## Prompt to paste into the driver session
 
 ```text
