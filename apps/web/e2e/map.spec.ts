@@ -201,9 +201,10 @@ const sideways = (page: import("@playwright/test").Page, selector: string): Prom
 test("on a phone a switch turns the picture into a sequence, which scrolls sideways inside its own frame", async ({ page }) => {
   const map = LONG();
   await page.goto(linkFor(map));
-  // The switch is a pair of radios, named as the app's other switches are; the picture is the phone's, its lanes stacked.
+  // The switch is a set of radios, named as the app's other switches are (the third is handoff 0087's, in
+  // map-space.spec.ts); the picture is the phone's, its lanes stacked.
   const views = page.getByRole("radiogroup", { name: "View of the map" });
-  await expect(views.getByRole("radio")).toHaveText(["Picture", "Sequence"]);
+  await expect(views.getByRole("radio")).toHaveText(["Picture", "Sequence", "3D"]);
   await expect(views.getByRole("radio", { name: "Picture" })).toBeChecked();
   await expect(page.locator('.map-picture svg[data-picture="map"]')).toBeVisible();
   expect(await lanesAcross(page)).toBe(1);

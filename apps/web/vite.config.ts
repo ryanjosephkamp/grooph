@@ -41,7 +41,7 @@ const unitsSource = fileURLToPath(new URL("../../packages/core/src/picture/graph
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -75,10 +75,11 @@ function routes(): Plugin {
         const screens = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/screens.ts"));
         const compiler = chunks.find((c) => c.facadeModuleId?.endsWith("/core/src/compile/index.ts"));
         const mapViews = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/views.tsx"));
+        const mapSpace = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/map/space.ts"));
         const units = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/units.tsx"));
         // A page without these lists would still work, and load in more rounds than anyone measured. Say so instead.
-        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !units) {
-          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, units }).filter(([, c]) => !c).map(([name]) => name);
+        if (!entry || !app || !embed || !screens || !compiler || !mapViews || !mapSpace || !units) {
+          const missing = Object.entries({ entry, app, embed, screens, compiler, mapViews, mapSpace, units }).filter(([, c]) => !c).map(([name]) => name);
           throw new Error(`grooph-routes: no chunk of its own for ${missing.join(", ")}. The build no longer splits where vite.config.ts expects.`);
         }
         const inEntry = closure(entry);
@@ -98,9 +99,12 @@ function routes(): Plugin {
           app: { js: [...inApp].filter((f) => !inEntry.has(f)), css: appCss },
           canvas: { js: [...closure(screens)].filter((f) => !inEntry.has(f) && !inApp.has(f)), css: [] },
           // What no address loads first and the page still names, so that the worker fetches it as it installs: the
-          // compiler, the map's views, a subgrooph's box, and the embed's own script and styles. The front page plays its recorded run in a
-          // frame at `#/embed`, and a visit that never watched it should still have it with no network (handoff 0083).
-          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(units), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // compiler, the map's views, a map in three dimensions, a subgrooph's box, and the embed's own script and
+          // styles. The front page plays its recorded run in a frame at `#/embed`, and a visit that never watched it
+          // should still have it with no network (handoff 0083).
+          later: [...new Set([...closure(compiler), ...closure(mapViews), ...closure(mapSpace), ...closure(units), ...closure(embed), ...embedCss])].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f)),
+          // What choosing a map's view in three dimensions fetches, over what the map screen has already (handoff 0087).
+          space: [...closure(mapSpace)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(mapViews).has(f)),
           embed: { js: [...closure(embed)].filter((f) => !inEntry.has(f)), css: embedCss },
         };
         const base = ctx.server ? "/" : "/grooph/";
