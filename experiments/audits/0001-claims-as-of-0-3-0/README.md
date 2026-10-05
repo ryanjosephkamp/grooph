@@ -5,7 +5,7 @@ The first audit under decision 0024. Its subject is everything grooph says about
 - **Commit under audit:** `dbc7a281f977dddf7acc7948a0221e2aba93c5e4` (`main` on 2026-10-04). It is eleven commits after the tag `v0.3.0`; those commits changed spelling in the audited files and no claim. It was chosen over the tag because it is what the site serves, and corrections are made against it.
 - **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0/`, a detached worktree at that commit, installed and built.
 - **Audit lane:** a Claude Code session on Opus 5.5 (slice 0075). **Auditor:** Codex with GPT-6.1 Sol, opened by the owner on `/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/`.
-- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. The corrections wait for the owner; a second round is proposed for the corrected words and for comparison study two. Not ended.
+- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. Its corrections are made on this branch, one commit each, in a pull request that waits for the owner. Round 2 is drafted and not sent ([`round-02/HANDOFF.draft.md`](round-02/HANDOFF.draft.md)): the corrected words, and comparison study two. Not ended.
 
 ## What is here
 

@@ -14,7 +14,14 @@ Every round is kept: [`experiments/audits/`](../experiments/audits/README.md).
 
 **Audit 0001, round 1: reconciled, and the two sides agree.** Codex returned 21 findings on the 52 claims. The lane agreed with 19 and partly with 2, and disputed none. Three of Codex's findings corrected the lane's own reading, and the records bore Codex out each time. So every claim below has one reading, held by both harnesses.
 
-**No page has been corrected yet.** The corrections are proposed, by number, in [the round's reconciliation](../experiments/audits/0001-claims-as-of-0-3-0/round-01/RECONCILE.md), and wait for the owner. Until they are made, a claim marked "other words" or "not carried" below is still published in its old words where the second column says.
+**The corrections came with this page.** Round 1 proposed 26 corrections, by number, in [its reconciliation](../experiments/audits/0001-claims-as-of-0-3-0/round-01/RECONCILE.md). Those the owner accepted were made in the same change that added this page, so where a claim below reads "other words" or "not carried", the page it stood on now says what the evidence carries. The quotations in the first column are the words as they stood at 0.3.0.
+
+Four things still stand in their old words, each for a reason:
+
+- **The blog draft**, which its author is rewriting by hand.
+- **The comments at the top of the two hook scripts, and the `grooph hooks` help text** ("ids, names and times", C30). The hook's files are part of the frozen starting contents of an experiment in progress, and change after it.
+- **The validator's printed sentence** that a critic on another tier "tends to catch different mistakes", and four sentences in the built-in templates' descriptions (C49): code and templates, corrected by another change.
+- **Decision records and the write-ups of past experiments**, which are kept as they were written ([decision 0009](decisions/0009-proving-records-are-evidence.md)). What they got wrong is said in [decision 0029](decisions/0029-what-is-shown-as-of-the-first-audit.md).
 
 A reading is one of three:
 
