@@ -393,7 +393,7 @@ test("adopt takes a working copy that tightens a brake, and says which", async (
   }
 });
 
-test("A-019: the audit lane's two check cases on the kept grind-loop record, through the command, are refused by name", async () => {
+test("A-019: the audit lane's two check cases, and the two its reader got through the first cut, on the kept grind-loop record, through the command, are refused by name", async () => {
   // As experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh sets them up: the proving record's
   // package graph as the source, its run folder beside it, and the working copy changed by hand.
   const record = join(repoRoot, "experiments", "patterns", "grind-loop", "run");
@@ -405,6 +405,18 @@ test("A-019: the audit lane's two check cases on the kept grind-loop record, thr
     ["its two verdicts swapped", (w) => {
       for (const edge of w.edges) if (edge.from === "tests") edge.when = edge.when === "pass" ? "fail" : edge.when === "fail" ? "pass" : edge.when;
     }, ["edge:e-tests-fail.when", "edge:e-tests-pass.when"], /a way into "done" that does not pass "pass" from the check "tests"/],
+    // The reader of this change: a failure led to a second stop that ends in success, and passing to the first by a
+    // new edge that asks a person. The first cut printed all three under "tightens a brake" and wrote version 2.
+    ["a failure led to a stop of its own that ends in success", (w) => {
+      w.nodes.push({ id: "done-too", kind: "stop", name: "Done too", outcome: "success" });
+      Object.assign(w.edges.find((edge) => edge.id === "e-tests-pass")!, { when: "fail", to: "done-too" });
+      w.edges.push({ id: "e-tests-passed", from: "tests", to: "done", when: "pass", approval: true });
+    }, ["edge:e-tests-pass.to", "edge:e-tests-pass.when", "edge:e-tests-passed"], /edge:e-tests-pass\.when +changes "e-tests-pass", an edge that leaves the check "tests" \(when\)/],
+    // And a bar of the builder's own word, with a stop that leads on when it is passed.
+    ["the loop given a bar and a stop on it", (w) => {
+      w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+      w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
+    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
   ];
   for (const [what, change, allow, said] of cases) {
     const dir = mkdtempSync(join(tmpdir(), "grooph-check-brake-"));

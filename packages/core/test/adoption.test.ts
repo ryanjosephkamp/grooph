@@ -18,7 +18,7 @@ import { canonicalize } from "../src/canonicalize.js";
 import { parseGraphText } from "../src/parse.js";
 import { adoptWorkingCopy } from "../src/runs.js";
 import { insertFragment, instantiate } from "../src/template.js";
-import type { Graph, Loop, Node } from "../src/types.js";
+import type { Edge, Graph, Loop, Node } from "../src/types.js";
 import { read, repoRoot } from "./helpers.js";
 
 const source = (change: (doc: Graph) => void = () => {}): Graph => {
@@ -417,7 +417,9 @@ test("the command that adopts on purpose is one line a shell takes as it is", ()
 // The audit lane read the comparison whole and found that a check was nowhere in it: the check of a grind loop
 // changed to `true`, or its two verdicts swapped, was adopted with nothing refused. The owner ruled that a check's
 // definition and where its verdicts lead are brakes. Since a program cannot tell a stricter command from a looser
-// one, any change to them is held until asked for, unless the comparison shows it to be a tightening.
+// one, any change to them is held until asked for. The one exception is narrow: an approval newly asked on an edge
+// that leaves a check, and evidence the comparison counts. A reader got three loosened working copies through a
+// wider one ("whatever the comparison would call a tightening"); they are the tests at the end of this section.
 
 /** A built-in template as a graph: its slots filled with their examples. */
 const builtIn = (id: string): Graph => {
@@ -467,7 +469,7 @@ test("A-019: a check removed, made another kind of node, or left by another edge
   }, { from: grind });
   assert.deepEqual(refused(third), ['edge:e-tests-notes: adds "e-tests-notes", an edge that leaves the check "tests"']);
 
-  // A tightening is told as every other is: undoing it would loosen a brake, and making it loosens none.
+  // An approval newly asked on such an edge can only tighten, and the comparison marks it by a rule of its own.
   const asked = adopt((w) => void (w.edges.find((e) => e.id === "e-tests-pass")!.approval = true), { from: grind });
   assert.deepEqual(asked.refused, []);
   assert.match(asked.changes.find((change) => change.name === "edge:e-tests-pass.approval")!.tightens!, /removes a person's approval from the edge/);
@@ -529,4 +531,100 @@ test("A-019: every built-in template whose loop is judged by a check alone, and 
   assert.equal(alone.length, 7, `the templates with a loop judged by a check alone: ${alone.join(", ")}`);
   assert.deepEqual(probed, alone, "each of the seven was tried");
   assert.equal(outside.length, 2, `the checks in no loop: ${outside.join(", ")}`);
+});
+
+// What the reader of A-019 got through the first cut, each adopted with nothing refused and each a test now.
+
+test("A-019, the reader's first: a failure led to a second stop that ends in success, with an approval asked beside it, is no tightening", () => {
+  const grind = builtIn("grind-loop");
+  const second = { id: "done-too", kind: "stop", name: "Done too", outcome: "success" } as Node;
+  // The pass edge now taken on a failure and led to the new stop; passing leads to the old one by a new edge that
+  // asks a person. Read backwards, each of the three "opens a way that does not pass a person".
+  const swapped = adopt((w) => {
+    w.nodes.push(second);
+    Object.assign(w.edges.find((e) => e.id === "e-tests-pass")!, { when: "fail", to: "done-too" });
+    w.edges.push({ id: "e-tests-passed", from: "tests", to: "done", when: "pass", approval: true });
+  }, { from: grind });
+  assert.deepEqual(names(swapped).sort(), ["edge:e-tests-pass.to", "edge:e-tests-pass.when", "edge:e-tests-passed"]);
+
+  // The same with a person on it: a failure approved into a stop that ends in success is still a way round the check.
+  const approved = adopt((w) => {
+    w.nodes.push(second);
+    w.edges.push({ id: "e-tests-failed", from: "tests", to: "done-too", when: "fail", approval: true });
+  }, { from: grind });
+  assert.deepEqual(refused(approved), ['edge:e-tests-failed: adds "e-tests-failed", an edge that leaves the check "tests"']);
+
+  // And from the builder, the check untouched: the third probe with a stop of its own.
+  const around = adopt((w) => {
+    w.nodes.push(second);
+    w.edges.push({ id: "e-builder-done-too", from: "builder", to: "done-too" });
+  }, { from: grind });
+  assert.deepEqual(refused(around), ['edge:e-builder-done-too: adds a way from "builder" to end in success that does not pass the check "tests"']);
+});
+
+test("A-019: a change to an edge that leaves a check does not ride through on a tightening made beside it", () => {
+  const grind = builtIn("grind-loop");
+  const edge = (w: Graph, id: string): Edge => w.edges.find((e) => e.id === id)!;
+  // A failure led back to the check itself (run it again until it passes, the builder never asked).
+  const retry = (w: Graph): void => void (edge(w, "e-tests-fail").to = "tests");
+  assert.deepEqual(names(adopt(retry, { from: grind })), ["edge:e-tests-fail.to"]);
+  const beside = adopt((w) => {
+    retry(w);
+    edge(w, "e-tests-pass").approval = true;
+  }, { from: grind });
+  assert.deepEqual(names(beside), ["edge:e-tests-fail.to"], "the approval asked on the pass edge is taken; the failure re-pointed is still held");
+  // On the same edge: the condition changed and an approval asked. The approval passes and the condition does not.
+  for (const when of ["always", "pass"] as const) {
+    const same = adopt((w) => Object.assign(edge(w, "e-tests-fail"), { when, approval: true }), { from: grind });
+    assert.deepEqual(names(same), ["edge:e-tests-fail.when"], when);
+  }
+  // Alone, where what a run reaches shows nothing: a verdict's edge removed, and one taken on another verdict.
+  const patrol = builtIn("patrol-pulse");
+  assert.deepEqual(names(adopt((w) => void (w.edges = w.edges.filter((e) => e.id !== "e-scan-clean")), { from: patrol })), ["edge:e-scan-clean"]);
+  assert.deepEqual(names(adopt((w) => void (edge(w, "e-scan-clean").when = "pass"), { from: patrol })), ["edge:e-scan-clean.when"]);
+  // Evidence the comparison counts (more handed to a critic) passes; the same edge led elsewhere does not.
+  const rare = builtIn("fresh-grind-rare-judge");
+  assert.deepEqual(adopt((w) => void edge(w, "e-tests-judge").evidence!.push("the full log"), { from: rare }).refused, []);
+});
+
+test("A-019, the reader's second: a loop a check judges is given no bar and no stop on \"bar passed\" without being asked", () => {
+  const grind = builtIn("grind-loop");
+  const bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+  const both = adopt((w) => {
+    w.loops[0]!.bar = structuredClone(bar) as Loop["bar"];
+    w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
+  }, { from: grind });
+  assert.deepEqual(names(both).sort(), ["loop:grind.bar", "loop:grind.stops"]);
+  assert.match(refused(both).join("\n"), /a stop of the loop would lead on to "done", a way that does not pass the check "tests"/);
+  assert.match(refused(both).join("\n"), /gives the loop "grind", which the check "tests" judges with no critic, a bar of its own/);
+  // The stop alone, leading on; and the stop with nothing named, which follows the edges the check's pass takes.
+  assert.deepEqual(names(adopt((w) => void w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" }), { from: grind })), ["loop:grind.stops"]);
+  const follows = adopt((w) => {
+    w.loops[0]!.bar = structuredClone(bar) as Loop["bar"];
+    w.loops[0]!.stops.unshift({ kind: "bar-passed" });
+  }, { from: grind });
+  assert.deepEqual(names(follows).sort(), ["loop:grind.bar", "loop:grind.stops"]);
+  // A critic brought in by the same working copy does not make the bar one the graph's critic judged.
+  const withCritic = adopt((w) => {
+    w.nodes.push({ ...agent("stamp", "builder"), role: "critic" } as Node);
+    w.edges.push({ id: "e-tests-stamp", from: "builder", to: "stamp" });
+    w.loops[0]!.members.push("stamp");
+    w.loops[0]!.bar = structuredClone(bar) as Loop["bar"];
+    w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
+  }, { from: grind });
+  assert.ok(names(withCritic).includes("loop:grind.stops") && names(withCritic).includes("loop:grind.bar"), refused(withCritic).join("\n"));
+  // A loop a critic already judged keeps its bar's rules and gains nothing from this one.
+  const review = builtIn("review-gate");
+  assert.deepEqual(adopt((w) => void (w.loops[0]!.bar!.aspiration = "A reader would not ask a question."), { from: review }).refused, []);
+});
+
+test("A-019: the keys of a check written in another order are no change; a key the schema does not know is named", () => {
+  const grind = builtIn("grind-loop");
+  const reordered = adopt((w) => {
+    const { kind, run, pass } = checkOf(w, "tests").check;
+    checkOf(w, "tests").check = { pass, run, kind } as Extract<Node, { kind: "check" }>["check"];
+  }, { from: grind });
+  assert.deepEqual(reordered.refused, []);
+  const unknown = adopt((w) => void Object.assign(checkOf(w, "tests").check, { allowFailure: true }), { from: grind });
+  assert.match(refused(unknown)[0] ?? "", /^node:tests\.check: changes the check's definition \(allowFailure\)/);
 });

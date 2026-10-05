@@ -35,15 +35,15 @@ export function waysOf(doc: Graph): Way[] {
   const kind = new Map(doc.nodes.map((node) => [node.id, node.kind]));
   const halts = new Set(doc.nodes.filter((node) => node.kind === "stop" && node.outcome === "halt").map((node) => node.id));
   const critics = new Set(doc.nodes.filter(isCriticFamily).map((node) => node.id));
-  const checks = new Set(doc.nodes.filter((node) => node.kind === "check").map((node) => node.id));
   const ways: Way[] = doc.edges.map((edge) => ({ from: edge.from, to: edge.to, person: edge.approval === true || kind.get(edge.from) === "human-gate", edge: edge.id, when: whenOf(edge) }));
   for (const loop of doc.loops) {
     for (const stop of loop.stops) {
       if (stop.then === undefined) continue;
       const escalates = (stop.kind === "max-iterations" || stop.kind === "budget" || stop.kind === "human") && halts.has(stop.then);
-      // The bar passed is the verdict of the loop's critics; of its checks, where it has no critic.
-      const among = (set: Set<Id>): Id[] => loop.members.filter((member) => set.has(member));
-      const judges = stop.kind !== "bar-passed" ? [] : among(critics).length > 0 ? among(critics) : among(checks);
+      // The bar passed is the verdict of the loop's critics. It is nobody's where the loop has none: not a check's
+      // (amendment A-019), whose verdict is the edges that leave it, so a stop that leads on from a loop a check
+      // judges is a way that does not pass the check.
+      const judges = stop.kind === "bar-passed" ? loop.members.filter((member) => critics.has(member)) : [];
       for (const member of loop.members) ways.push({ from: member, to: stop.then, person: stop.kind === "human", loop: loop.id, ...(escalates ? { escalates } : {}), ...(judges.length > 0 ? { verdictOf: judges } : {}) });
     }
   }
