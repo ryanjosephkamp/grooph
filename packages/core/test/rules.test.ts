@@ -10,7 +10,7 @@ import { indexGraph } from "../src/graph-index.js";
 import type { Issue } from "../src/issues.js";
 import { parseGraph } from "../src/parse.js";
 import { effectiveAdaptation, loopMode } from "../src/semantics.js";
-import type { Graph, Node } from "../src/types.js";
+import type { Graph, Loop, Node } from "../src/types.js";
 import { validate } from "../src/validate.js";
 
 const codes = (issues: Issue[]): string[] => [...new Set(issues.map((issue) => issue.code))].sort();
@@ -356,6 +356,52 @@ test("E_IRREVERSIBLE_NO_GATE: an approval edge or a gate before every inbound ed
     [],
     "a gate on one way in and an approval on the other both pass a human",
   );
+});
+
+test("E_IRREVERSIBLE_NO_GATE: a loop's stop that continues at the node is a way in, and must pass a human too", () => {
+  // A writer and a check in a loop, then a gate, then the publisher. Every edge into the publisher starts at the gate.
+  const gate: Node = { id: "gate", kind: "human-gate", name: "Gate", prompt: "Publish?" };
+  const looped = (stops: Loop["stops"], edges: Graph["edges"] = []): Graph =>
+    base({
+      nodes: [agent("writer", "builder", writable), { id: "tests", kind: "check", name: "Tests", check: { kind: "tests", run: "npm test", pass: "exit code 0" } }, gate, agent("publisher", "builder", { ...writable, irreversible: ["publish"] }), stopNode],
+      edges: [
+        { id: "e-write-tests", from: "writer", to: "tests" },
+        { id: "e-tests-fail", from: "tests", to: "writer", when: "fail" },
+        { id: "e-tests-gate", from: "tests", to: "gate", when: "pass" },
+        { id: "e-pub", from: "gate", to: "publisher", when: "pass" },
+        { id: "e-done", from: "publisher", to: "done" },
+        ...edges,
+      ],
+      loops: [{ id: "fix", name: "Fix", members: ["writer", "tests"], back: ["e-tests-fail"], mode: "grind", stops }],
+    });
+  const cap = { kind: "max-iterations" as const, n: 3 };
+  assert.deepEqual(only(validate(looped([cap])), "E_IRREVERSIBLE_NO_GATE"), [], "gated by its one edge");
+
+  // The round cap continues at the publisher itself: a way in that passes nobody. It validated clean before.
+  const around = only(validate(looped([{ ...cap, then: "publisher" }])), "E_IRREVERSIBLE_NO_GATE");
+  assert.equal(around.length, 1);
+  assert.deepEqual(around[0]!.at, ["publisher", "fix"], "the loop whose stop is the open way in is named");
+  assert.match(around[0]!.message, /through loop "fix" stop 0 \(max-iterations\), which continues there; every way in must pass a human: have the stop continue at a human-gate node that leads to it$/);
+  for (const stop of [{ kind: "budget" as const, measure: "minutes" as const, limit: 10 }, { kind: "bar-passed" as const }, { kind: "diminishing-returns" as const, rounds: 2 }, { kind: "evidence-invalid" as const, rounds: 1 }]) {
+    assert.equal(only(validate(looped([cap, { ...stop, then: "publisher" }])), "E_IRREVERSIBLE_NO_GATE").length, 1, stop.kind);
+  }
+
+  // A stop that continues at the gate asks a person; and the stop where a person is asked is a person's decision.
+  assert.deepEqual(only(validate(looped([{ ...cap, then: "gate" }])), "E_IRREVERSIBLE_NO_GATE"), []);
+  assert.deepEqual(only(validate(looped([cap, { kind: "human", every: 2, then: "publisher" }])), "E_IRREVERSIBLE_NO_GATE"), []);
+
+  // An open edge and an open stop: both are named, each with what would close it.
+  const both = only(validate(looped([{ ...cap, then: "publisher" }], [{ id: "e-shortcut", from: "writer", to: "publisher" }])), "E_IRREVERSIBLE_NO_GATE");
+  assert.deepEqual(both[0]!.at, ["publisher", "e-shortcut", "fix"]);
+  assert.match(both[0]!.message, /through "e-shortcut" and loop "fix" stop 0 \(max-iterations\), which continues there; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node, and have the stop continue at a human-gate node that leads to it$/);
+
+  // Nothing but a stop leads to it: reached without a person, and said as that, not as "nothing leads to it".
+  const lone = base({
+    nodes: [agent("writer", "builder", writable), { id: "tests", kind: "check", name: "Tests", check: { kind: "tests", run: "npm test", pass: "exit code 0" } }, agent("publisher", "builder", { ...writable, irreversible: ["publish"] }), stopNode],
+    edges: [{ id: "e-write-tests", from: "writer", to: "tests" }, { id: "e-tests-fail", from: "tests", to: "writer", when: "fail" }, { id: "e-done", from: "publisher", to: "done" }],
+    loops: [{ id: "fix", name: "Fix", members: ["writer", "tests"], back: ["e-tests-fail"], mode: "grind", stops: [{ kind: "bar-passed", then: "publisher" }, cap] }],
+  });
+  assert.match(only(validate(lone), "E_IRREVERSIBLE_NO_GATE")[0]!.message, /through loop "fix" stop 0 \(bar-passed\), which continues there/);
 });
 
 test("E_IS_TEMPLATE and E_UNFILLED_SLOT bite at export only, and a template reports only the first", () => {
