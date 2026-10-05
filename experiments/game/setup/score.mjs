@@ -46,6 +46,11 @@ const fail = (message) => {
 if (!standIn && !which) fail("say which session: rehearsal or run; or --stand-in good|broken for the dry run");
 if (standIn && !["good", "broken"].includes(standIn)) fail("--stand-in takes good or broken");
 
+// Never while a session of the experiment is open, the dry run included: a session's commands can reach this
+// machine's localhost, and the checks are served there while they run. start-claude.sh names its sessions.
+const open = spawnSync("pgrep", ["-fl", "--", "--name arena-claude-"], { encoding: "utf8" }).stdout.trim();
+if (open) fail(`a session of the experiment is open on this machine (${open.split("\n")[0].slice(0, 80)}…). The checks are never run or served while one is: wait until it has ended.`);
+
 const sh = (command, argv, cwd, more = {}) => spawnSync(command, argv, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, ...more });
 const git = (cwd, ...argv) => sh("git", argv, cwd).stdout.trim();
 

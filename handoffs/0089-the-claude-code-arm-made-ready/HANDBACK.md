@@ -166,6 +166,8 @@ The one item the status above held back, in a second pull request stacked on the
 
 - **One fix to the first part, found by building again after `main` moved.** #78, #79 and #80 merged after the freeze and changed `packages/`. `make-repo.sh` on that `main` still made the frozen tree, `3238a905…`, file for file, and passed its own check; but the first commit came out different (`49cb587…`), because its message named today's compiler. The message now names the freeze's compiler, which the build has just been shown to equal, so the same contents are the same commit whichever later `main` builds them: `8c4aceb2…` again, as `FROZEN.md` says. The runbook has the owner check the tree, which was right throughout.
 
+- **After the audit lane's hardening (#89) merged**, `main` was merged into this branch. The two met in the runbook, `record.sh` and the two readmes; the hardening stands as it is, and the scoring step and the windowed browser's install line sit beside it. Two things were added for it: `score.mjs` refuses to run while a session of the experiment is open (a session's commands can reach this machine's `localhost`, where the checks are served while they run), and the runbook says the rehearsal is scored, if at all, after `record.sh` and before `clear-rehearsal.sh`. On that `main`, `make-repo.sh` gives tree `3238a905…` and commit `8c4aceb2…`. Nothing under `acceptance/` was run for this merge.
+
 With this the brief's six items are all made and dry-run. **Status: `done`.**
 
 ## Prompt to paste into the driver session

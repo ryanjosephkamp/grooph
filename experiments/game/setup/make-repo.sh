@@ -19,7 +19,8 @@ set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 root="$(git -C "$here" rev-parse --show-toplevel)"
 # In a worktree the clone is where the shared .git is: nothing may be built inside either.
-clone="$(cd "$(git -C "$here" rev-parse --git-common-dir)/.." && pwd -P)"
+# --path-format=absolute: in a main clone git answers with a path relative to $here, in a worktree with a whole one.
+clone="$(cd "$(git -C "$here" rev-parse --path-format=absolute --git-common-dir)/.." && pwd -P)"
 home="${GROOPH_GAME_HOME:-$HOME/grooph-game}"
 
 # The models the owner answered with (ANSWERS.md, 1): the lead, the planner and the critics on Opus 5.5, the builder
