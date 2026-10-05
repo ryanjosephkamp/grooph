@@ -197,7 +197,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `E_UNFILLED_SLOT` | — | Export requested and a `{{slot}}` remains in a string field of a document without a `template` block. `at` names the objects holding it. |
 | `E_CRITIC_NOT_ISOLATED` | critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list. |
 | `E_OWNERSHIP_CONFLICT` | two writers, one artifact, no merge | Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`. |
-| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human. |
+| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: nothing leads to it, or at least one inbound edge neither carries `approval: true` nor starts at a `human-gate` node, or a loop's stop other than `human` continues at it (`then`). Every way in must pass a human. |
 
 ### Spec §12 warnings
 
