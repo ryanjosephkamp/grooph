@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -94,6 +95,170 @@ const edge = (doc: Graph, id: string): Graph["edges"][number] => doc.edges.find(
 const loop = (doc: Graph, id: string): Loop => doc.loops.find((l) => l.id === id)!;
 const SUB = "subgrooph-in-a-graph.grooph.json";
 const review = (doc: Graph): Loop => loop(doc, "review-review");
+
+const CAP_STOPS = (n: number | null) => [{ kind: "bar-passed" }, { kind: "max-iterations", n }, { kind: "budget", measure: "turns", limit: 80 }];
+/** The real run with more proposals, each a grooph op list: `n-0016` raises the loop's round cap. */
+const proposing = (more: Record<string, object[]> = {}, change: (bundle: RunBundle) => void = () => undefined): RunBundle => {
+  const patches: Record<string, object[]> = { "n-0016": [{ op: "updateLoop", id: "sandwich", set: { stops: CAP_STOPS(9) } }], ...more };
+  const bundle = runBundle(SANDWICH, {
+    notes: (lines) => [
+      ...lines,
+      ...Object.entries(patches).map(([id, patch]) => JSON.stringify({ id, run: JSON.parse(lines[0]!).run, at: "loop:sandwich", proposal: { summary: `proposal ${id}`, patch }, text: "A proposal for the human." })),
+    ],
+  });
+  change(bundle);
+  return bundle;
+};
+const proposals = async (page: Page, bundle: RunBundle): Promise<void> => {
+  await page.goto("about:blank");
+  await page.goto(linkFor(bundle));
+  await runTab(page, "Proposals").tap();
+};
+const proposal = (page: Page, id: string) => page.locator(`.proposal[data-proposal="${id}"]`);
+const applyIt = (page: Page, id: string) => proposal(page, id).getByRole("button", { name: "Apply to a copy" }).tap();
+const SAID = "This copy loosens a brake the graph has. It is the run's working copy with this proposal applied; either may have done it, and it is yours to allow or not: read each line before you use the copy.";
+
+test("Apply to a copy says which brakes the copy loosens, where a person on a phone is looking, and saves it all the same", async ({ page }) => {
+  await proposals(page, proposing());
+  // The run's real proposal hands its critic more to read: nothing is loosened, and nothing is said of brakes.
+  await applyIt(page, "n-0008");
+  await expect(proposal(page, "n-0008").locator(".adopt-done")).toContainText("Saved a copy of the working copy with n-0008 applied, as version 2");
+  await expect(proposal(page, "n-0008").locator("[data-brakes]")).toHaveCount(0);
+  // The one that raises the cap: saved for the person to look at, and told by name what it loosens.
+  const cap = proposal(page, "n-0016");
+  await expect(cap.locator(".op-list li")).toHaveText(["updateLoop sandwich: stops"]);
+  await applyIt(page, "n-0016");
+  await expect(cap.locator(".adopt-done")).toContainText("Saved a copy of the working copy with n-0016 applied, as version 2");
+  const said = cap.locator('[data-brakes="proposed"]');
+  await expect(said).toContainText(SAID);
+  await expect(said.locator('[data-change-name="loop:sandwich.stops"]')).toContainText("raises the round cap from 5 to 9");
+  await expect(said.locator("[data-change-name]")).toHaveCount(1);
+  // In view, whole, without a scroll of the person's: the run's panel is a few lines tall on a phone, and the saved
+  // line alone would fill it. It comes before the saved line and both are one status for a screen reader.
+  await expect(said).toBeInViewport({ ratio: 0.99 });
+  await expect(cap.locator('[role="status"]')).toHaveCount(1);
+  expect(await cap.locator('[role="status"]').evaluate((el) => [...el.children].map((child) => child.getAttribute("data-brakes") ?? child.className))).toEqual(["proposed", "adopt-done"]);
+  const docs = await libraryDocs(page);
+  expect(docs.filter((doc) => doc.version === 2).map((doc) => (doc.loops[0]!.stops[1] as { n: number }).n).sort()).toEqual([5, 9]);
+
+  // Another run's link opened in the same tab, with no reload between (only the address after `#` changes): its
+  // proposal of the same id shows its own button, not this run's saved line.
+  const other = linkFor(proposing({}, (bundle) => void (bundle.run = "20260919-0100-aaaa")));
+  await page.evaluate((hash) => void (location.hash = hash), other.slice(other.indexOf("#")));
+  await expect(page.locator(".title-sub")).toContainText("Run 20260919-0100-aaaa");
+  await runTab(page, "Proposals").tap();
+  await expect(proposal(page, "n-0016").getByRole("button", { name: "Apply to a copy" })).toBeVisible();
+  await expect(proposal(page, "n-0016").locator('[role="status"]')).toHaveCount(0);
+});
+
+test("a link made by hand whose patch hides a field in \"__proto__\": the op is refused by name and nothing is saved", async ({ page }) => {
+  // The run's edge needs approval. The patch takes the approval away and, in the same `set`, puts one where every
+  // object inherits from: merged in by assignment, the document in memory still had an approval, was compared as
+  // unchanged ("it validates", no line about brakes), and its saved copy had none. A link grooph makes drops the
+  // key, so this one is made by hand: the honest link's text, with the key written into it.
+  const bundle = proposing({ "n-0020": [{ op: "updateEdge", id: "e-checks-critic", set: { approval: null, marker: "HIDE-HERE" } }] }, (b) => {
+    for (const doc of [b.source, b.working]) doc.edges.find((e) => e.id === "e-checks-critic")!.approval = true;
+  });
+  const honest = linkFor(bundle);
+  const text = inflateRawSync(Buffer.from(honest.slice(honest.indexOf("d=") + 2), "base64url")).toString("utf8");
+  expect(text).toContain('"marker":"HIDE-HERE"');
+  const forged = text.replace('"marker":"HIDE-HERE"', '"__proto__":{"approval":true}');
+  await page.goto("about:blank");
+  await page.goto(`./#/open?d=${deflateRawSync(Buffer.from(forged, "utf8"), { level: 9 }).toString("base64url")}`);
+  await runTab(page, "Proposals").tap();
+  await applyIt(page, "n-0020");
+  await expect(proposal(page, "n-0020").locator(".refusal-hint")).toHaveText('The patch does not apply to the run\'s working copy: ops[0] updateEdge: "set" cannot hold the key "__proto__". Nothing was saved.');
+  await expect(proposal(page, "n-0020").locator('[role="status"] .adopt-done')).toHaveCount(0);
+  // The honest twin beside it, to have something saved to read the library after: it is told that it removes the approval.
+  await applyIt(page, "n-0016");
+  await expect(proposal(page, "n-0016").locator(".adopt-done")).toContainText("as version 2");
+  const docs = await libraryDocs(page);
+  expect(docs.filter((doc) => doc.version === 2)).toHaveLength(1);
+  expect(docs.find((doc) => doc.version === 2)!.edges.find((e) => e.id === "e-checks-critic")!.approval).toBe(true);
+});
+
+test("Apply to a copy when the device will not keep the copy: said, and the buttons are given back", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await proposals(page, proposing());
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    (window as unknown as { restorePut: () => void }).restorePut = () => void (IDBObjectStore.prototype.put = put);
+    IDBObjectStore.prototype.put = () => {
+      throw new DOMException("no room", "QuotaExceededError");
+    };
+  });
+  const cap = proposal(page, "n-0016");
+  await applyIt(page, "n-0016");
+  await expect(cap.locator(".refusal-hint")).toHaveText("The copy could not be saved on this device. Press Apply to a copy to try again.");
+  await expect(cap.getByRole("button", { name: "Apply to a copy" })).toBeEnabled();
+  await expect(proposal(page, "n-0008").getByRole("button", { name: "Apply to a copy" })).toBeEnabled();
+  await page.evaluate(() => (window as unknown as { restorePut: () => void }).restorePut());
+  await applyIt(page, "n-0016");
+  await expect(cap.locator(".adopt-done")).toContainText("Saved a copy of the working copy with n-0016 applied, as version 2");
+  expect(errors).toEqual([]);
+});
+
+test("Apply to a copy compares the copy with the graph the run came from: a brake the run itself moved is listed, and laid at neither", async ({ page }) => {
+  // The run raised the cap in its own working copy; the proposal only hands the critic more to read. The copy is the
+  // working copy with the proposal applied, so it has the higher cap, and the page says so of the copy.
+  await proposals(page, proposing({}, (bundle) => void ((stopsOf(bundle.working)[1] as { n: number }).n = 7)));
+  await applyIt(page, "n-0008");
+  const said = proposal(page, "n-0008").locator('[data-brakes="proposed"]');
+  await expect(said).toContainText(SAID);
+  await expect(said.locator('[data-change-name="loop:sandwich.stops"]')).toContainText("raises the round cap from 5 to 7");
+});
+
+test("Apply to a copy says what is noted too: a way round that a person newly opens", async ({ page }) => {
+  await proposals(page, proposing({ "n-0017": [{ op: "updateLoop", id: "sandwich", set: { stops: [...CAP_STOPS(5), { kind: "human", every: 2, then: "builder" }] } }] }));
+  await applyIt(page, "n-0017");
+  const noted = proposal(page, "n-0017").locator('[data-brakes="said"] [data-brakes="note"]');
+  await expect(noted).toContainText('Note: the loop "sandwich"');
+  await expect(proposal(page, "n-0017").locator('[data-brakes="proposed"]')).toHaveCount(0);
+});
+
+test("a proposal whose patch leaves the copy outside the schema: the page says it has errors and that its brakes were not compared, and nothing throws", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await proposals(page, proposing({
+    // A cap of nothing: the op takes it, the rules count no error, and the comparison would have read it as no change.
+    "n-0018": [{ op: "setStop", loop: "sandwich", index: 1, stop: { kind: "max-iterations", n: null } }],
+    // Evidence that is one string where a list is meant: the comparison threw on it, after the copy was saved.
+    "n-0019": [{ op: "updateEdge", id: "e-checks-critic", set: { evidence: "diff of the change" } }],
+  }));
+  for (const id of ["n-0018", "n-0019"]) {
+    await applyIt(page, id);
+    const told = proposal(page, id).locator('[role="status"]');
+    await expect(told.locator(".adopt-done")).toContainText(new RegExp(`Saved a copy of the working copy with ${id} applied, as version 2, for you to inspect; it has \\d+ errors?, which the editor lists`));
+    await expect(told.locator(".adopt-done")).not.toContainText("it validates");
+    await expect(told.locator('[data-brakes="not-compared"]')).toHaveText("Its brakes were not compared with the graph's: the copy is not a valid graph. Open the copy to see why before you use it.");
+    await expect(told.locator('[data-brakes="not-compared"]')).toBeInViewport();
+    await expect(proposal(page, id).getByRole("button", { name: "Apply to a copy" })).toHaveCount(0);
+  }
+  expect(errors).toEqual([]);
+});
+
+test("Apply to a copy where the comparison cannot be fetched: the copy is saved once, and the page says its brakes were not compared and what to do", async ({ page }) => {
+  await proposals(page, proposing());
+  // Slow first, so that the button is seen to wait: a second press must not save a second copy.
+  let refuse = false;
+  await page.route(brakes, async (route) => {
+    if (refuse) return route.abort();
+    await new Promise((done) => setTimeout(done, 1200));
+    return route.abort();
+  });
+  const cap = proposal(page, "n-0016");
+  await applyIt(page, "n-0016");
+  await expect(cap.getByRole("button", { name: "Apply to a copy" })).toBeDisabled();
+  await expect(proposal(page, "n-0008").getByRole("button", { name: "Apply to a copy" })).toBeDisabled();
+  refuse = true;
+  await expect(cap.locator(".adopt-done")).toContainText("Saved a copy of the working copy with n-0016 applied, as version 2");
+  await expect(cap.locator('[role="status"] .field-hint')).toHaveText("Its brakes could not be compared with the graph's: the piece that compares them did not load. Open the copy and read its limits before you use it.");
+  await expect(cap.locator('[data-brakes="proposed"]')).toHaveCount(0);
+  await expect(proposal(page, "n-0008").getByRole("button", { name: "Apply to a copy" })).toBeEnabled();
+  const docs = await libraryDocs(page);
+  expect(docs.filter((doc) => doc.version === 2).map((doc) => (doc.loops[0]!.stops[1] as { n: number }).n)).toEqual([9]);
+});
 
 /**
  * Working copies the command and the app must agree on: the audit's probe, what two fresh readers got through the

@@ -71,7 +71,9 @@ add a roundTo(value, places) helper with tests Done when every item in docs/REVI
 
 **Runs in:** claude-code
 
-**If the graph turns out wrong:** adaptive: the lead may amend its working copy, visibly; brakes cannot be loosened
+**If the graph turns out wrong**
+
+adaptive: the lead may amend its working copy, visibly, and is told never to loosen a brake
 
 **Version:** add-a-rounding-helper@1
 
@@ -81,7 +83,7 @@ add a roundTo(value, places) helper with tests Done when every item in docs/REVI
 
 This is the view to use when you want to *review* a graph: it hides nothing and needs no knowledge of JSON.
 
-(The line "brakes cannot be loosened" is the outline restating the graph's rule. As chapter 7 explained, during a run that rule is an instruction to the lead.)
+(Notice the last of those: the lead "is told" never to loosen a brake. As chapter 7 explained, during a run that rule is an instruction to the lead.)
 
 ## The offline page
 

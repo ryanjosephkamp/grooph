@@ -49,7 +49,7 @@ The largest finding concerned the sentence the whole project had been using to d
 
 The sentence was replaced, on every page but a blog draft its author is rewriting by hand, by the paragraph quoted at the top of chapter 13. The owner accepted the audit's corrections on 5 October 2026 and they were made that day, each as its own change so that any one of them could be taken back alone.
 
-The audit also turned up something that was not a wording problem. Checking the claim that a run "may tighten a brake and never loosen one", the audit lane tried it: it raised a round cap and a budget in a run's working copy and asked grooph to adopt it. grooph adopted it. Nothing had ever checked that rule. The adoption check of chapter 7 was written in answer. Later the same day, reading that new check, the audit lane found that it did not treat a test command as a brake, and the owner ruled that it should. That is the "one kind is known to be missing" of chapter 7.
+The audit also turned up something that was not a wording problem. Checking the claim that a run "may tighten a brake and never loosen one", the audit lane tried it: it raised a round cap and a budget in a run's working copy and asked grooph to adopt it. grooph adopted it. Nothing had ever checked that rule. The adoption check of chapter 7 was written in answer. Later the same day, reading that new check, the audit lane found that it did not treat a test command as a brake. The owner ruled that it should, and the check was extended that evening. Chapter 7 shows it as it is now, with what it still lets through.
 
 ## What still stands in old words
 
