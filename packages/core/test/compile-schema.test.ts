@@ -7,7 +7,7 @@ import { fixturesDir, read } from "./helpers.js";
 
 const reviewLoop = (): Graph => parseGraphText(read(join(fixturesDir, "valid", "review-loop.grooph.json"))).doc!;
 
-type IdField = "graph" | "node" | "edge" | "loop" | "policy";
+type IdField = "graph" | "node" | "edge" | "loop" | "policy" | "group";
 
 const idPath: Record<IdField, string> = {
   graph: "/id",
@@ -15,6 +15,7 @@ const idPath: Record<IdField, string> = {
   edge: "/edges/0/id",
   loop: "/loops/0/id",
   policy: "/policies/0/id",
+  group: "/groups/0/id",
 };
 
 function withInvalidId(field: IdField, value: unknown): Graph {
@@ -37,6 +38,10 @@ function withInvalidId(field: IdField, value: unknown): Graph {
       doc.policies = [{ id: "evidence-rule", kind: "evidence-required", scope: "graph" }];
       owner = doc.policies[0]!;
       break;
+    case "group":
+      doc.groups = [{ id: "agent-group", name: "Agent group", members: [doc.nodes[0]!.id] }];
+      owner = doc.groups[0] as unknown as Record<string, unknown>;
+      break;
   }
   if (value === undefined) delete owner.id;
   else owner.id = value;
@@ -52,7 +57,7 @@ const malformedIds: { name: string; value: unknown }[] = [
 
 for (const target of ["claude-code", "codex"] as const satisfies readonly CompileTarget[]) {
   test(`compile rejects malformed IDs before emitting a ${target} package`, () => {
-    for (const field of ["graph", "node", "edge", "loop", "policy"] as const) {
+    for (const field of ["graph", "node", "edge", "loop", "policy", "group"] as const) {
       for (const bad of malformedIds) {
         const doc = withInvalidId(field, bad.value);
         assert.throws(
