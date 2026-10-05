@@ -431,11 +431,14 @@ function ownershipConflicts(index: GraphIndex): Issue[] {
  * continues at the node (`then`). An edge passes a human when it carries
  * `approval: true` or starts at a human-gate node; a stop does when it is the
  * stop where a person is asked (`human`). Every way in must pass a human, and
- * there must be one.
+ * there must be one. A node the run starts at (graph-ir §2: only a loop's back
+ * edges lead to it) is reached the first time with nobody asked, whatever
+ * those edges carry.
  */
 function irreversibleWithoutGate(index: GraphIndex): Issue[] {
   const issues: Issue[] = [];
   const passesHuman = (edge: Edge): boolean => edge.approval === true || index.nodes.get(edge.from)?.kind === "human-gate";
+  const entries = new Set(entryNodeIds(index));
   for (const node of agentNodes(index)) {
     const actions = node.irreversible ?? [];
     if (actions.length === 0) continue;
@@ -444,6 +447,18 @@ function irreversibleWithoutGate(index: GraphIndex): Issue[] {
     // The lead arrives by a stop's `then` as surely as by an edge: "continue at node …" is in its brief.
     const led = (index.doc.loops ?? []).flatMap((loop) => (loop.stops ?? []).flatMap((stop, i) => (stop.then === node.id ? [{ loop, stop, i }] : [])));
     const openStops = led.filter(({ stop }) => stop.kind !== "human");
+    // An entry node with a way back to it: the way back may pass a person, and the first time round nobody is asked.
+    const starts = entries.has(node.id) && inbound.length + led.length > 0;
+    if (starts) {
+      issues.push(
+        error(
+          "E_IRREVERSIBLE_NO_GATE",
+          `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and is where the run starts: only ${inbound.length > 0 ? `a loop's back edge (${quoted(inbound.map((edge) => edge.id))})` : "a stop of its own loop"} leads to it, so no human decides before it runs the first time; put a human-gate node before it`,
+          [node.id, ...inbound.map((edge) => edge.id)],
+        ),
+      );
+      continue;
+    }
     if (inbound.length + led.length > 0 && open.length === 0 && openStops.length === 0) continue;
     const through = [...(open.length > 0 ? [quoted(open.map((edge) => edge.id))] : []), ...openStops.map(({ loop, stop, i }) => `loop "${loop.id}" stop ${i} (${stop.kind}), which continues there`)];
     const fix = [...(open.length > 0 ? ["set approval: true on those edges, or start them at a human-gate node"] : []), ...(openStops.length > 0 ? ["have the stop continue at a human-gate node that leads to it"] : [])];
