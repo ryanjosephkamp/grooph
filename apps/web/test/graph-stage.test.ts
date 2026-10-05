@@ -351,6 +351,21 @@ describe("the spiral and its lid", () => {
     }
   });
 
+  it("a graph with no loop has its nodes one behind the other in the order of a first pass, and an edge that passes a node goes over it", () => {
+    const doc = graph("patterns/tournament-then-judge.grooph.json");
+    const m = modelAt(doc, places(doc));
+    const built = spiral(m, whole);
+    // Each node is farther forward than the one before it, by the same step: none is beside another.
+    const depth = m.rows.flat().map((id) => built.node(id)[2]);
+    for (let n = 1; n < depth.length; n += 1) expect(depth[n]! - depth[n - 1]!).toBe(150);
+    // Three candidates go to one filter. The nearest one's edge is straight; the others rise over the candidates
+    // between, the farthest highest: a straight line through them would read as a chain.
+    const rise = (id: string) => Math.max(...built.path(id).map((p) => p[1]));
+    const into = m.edges.filter((e) => e.to === m.rows.flat()[3]).sort((a, b) => m.rows.flat().indexOf(b.from) - m.rows.flat().indexOf(a.from));
+    expect(into).toHaveLength(3);
+    expect(into.map((e) => Math.round(rise(e.id)))).toEqual([0, 26, 52]);
+  });
+
   it("an edge between two of a loop's nodes that is not the next step of its round is drawn: only the spiral itself is not drawn twice", () => {
     // The critic bank: a builder fans out to four critics, which fan in to a judge. Its stations are in a row round
     // one turn, and of those edges only builder to the first critic and the last critic to the judge are the turn.
