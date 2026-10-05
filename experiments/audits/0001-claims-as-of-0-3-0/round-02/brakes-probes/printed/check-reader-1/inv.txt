@@ -1,0 +1,59 @@
+
+patterns/debate-then-build.grooph.json  loops: debate[planner-a,planner-b,judge] stops bar-passed|max-iterations->judge|budget BAR; build[builder,tests] stops max-iterations|budget
+  tests {tests: pnpm test} in: builder  out: fail->builder(agent:builder)*back  pass->done(stop:success)
+
+patterns/fresh-grind-rare-judge.grooph.json  loops: grind[builder,tests] stops max-iterations|budget; phases[builder,tests,judge] stops bar-passed|max-iterations|budget BAR
+  tests {tests: pnpm test} in: builder  out: fail->builder(agent:builder)*back  pass->judge(agent:judge)
+
+patterns/gauntlet-decomposed.grooph.json  loops: polish[owner,capture-check,critic] stops bar-passed|diminishing-returns|max-iterations|budget BAR; pieces[owner,capture-check,critic,next-piece] stops bar-passed->integrator|human|max-iterations|budget BAR
+  capture-check {evidence: npm run capture} in: owner  out: fail->owner(agent:builder)*back  pass->critic(agent:critic)
+  next-piece {command: grep -q '^- \[ \]' PIECES.md} in: critic  out: pass->owner(agent:builder)*back  fail->integrator(agent:builder)
+
+patterns/grind-loop.grooph.json  loops: grind[builder,tests] stops max-iterations|budget
+  tests {tests: pnpm test} in: builder  out: fail->builder(agent:builder)*back  pass->done(stop:success)
+
+patterns/merge-queue.grooph.json  loops: queue[integrate,bisect] stops max-iterations|budget
+  integrate {command: npm run integrate} in: bisect  out: fail->bisect(agent:builder)  pass->land-gate(human-gate)
+
+patterns/metric-sandwich.grooph.json  loops: sandwich[builder,checks,critic] stops bar-passed|max-iterations|budget BAR
+  checks {command: pnpm lint && pnpm test} in: builder  out: fail->builder(agent:builder)*back  pass->critic(agent:critic)
+
+patterns/ownership-not-swarm.grooph.json  loops: integrate[integrator,tests] stops max-iterations|budget
+  tests {tests: pnpm test} in: integrator  out: fail->integrator(agent:synthesizer)*back  pass->done(stop:success)
+
+patterns/patrol-pulse.grooph.json  loops: 
+  scan {command: grep -n -E ' (ERROR|WARN) ' logs/app.log} in:   out: fail->clean(stop:success)  pass->investigator(agent:critic)
+
+patterns/ralph-loop.grooph.json  loops: ralph[builder,tests,plan-check] stops diminishing-returns|max-iterations|budget
+  tests {tests: npm test} in: builder  out: fail->builder(agent:builder)*back  pass->plan-check(check)
+  plan-check {command: grep -c '^- \[ \]' PLAN.md} in: tests  out: fail->builder(agent:builder)*back  pass->done(stop:success)
+
+patterns/retrospective-rewrite.grooph.json  loops: grind[builder,tests] stops max-iterations->retro|budget->retro
+  tests {tests: pnpm test} in: builder  out: fail->builder(agent:builder)*back  pass->retro(agent:researcher)
+
+patterns/taste-polish.grooph.json  loops: polish[owner,capture-check,critic] stops bar-passed|diminishing-returns|human|max-iterations|budget BAR
+  capture-check {evidence: pnpm run capture -- --out captures/} in: owner  out: fail->owner(agent:builder)*back  pass->critic(agent:critic)
+
+patterns/tournament-then-judge.grooph.json  loops: 
+  filter {tests: pnpm test} in: candidate-a,candidate-b,candidate-c  out: pass->judge(agent:judge)
+
+fixtures/valid/audit-then-fix.grooph.json  loops: 
+  tests {tests: pnpm test} in: fix  out: pass->done(stop:success)
+
+fixtures/valid/fix-until-green.grooph.json  loops: fix-cycle[fixer,suite] stops max-iterations|budget
+  suite {tests: npm test} in: fixer  out: fail->fixer(agent:builder)*back  pass->green(stop:success)
+
+fixtures/valid/glyph-vocabulary.grooph.json  loops: grind[build,tests] stops max-iterations|budget; review[build,tests,critic] stops bar-passed|max-iterations|budget BAR
+  tests {tests: pnpm test} in: build  out: fail->build(agent:builder)*back  pass->critic(agent:critic)
+
+fixtures/valid/irreversible-after-a-stop-gated.grooph.json  loops: fix-cycle[fixer,suite] stops max-iterations->land-gate|budget
+  suite {tests: npm test} in: fixer  out: fail->fixer(agent:builder)*back  pass->land-gate(human-gate)
+
+fixtures/valid/pinned-and-skilled.grooph.json  loops: fix-cycle[fixer,suite] stops max-iterations|budget
+  suite {tests: npm test} in: fixer  out: fail->fixer(agent:builder)*back  pass->green(stop:success)
+
+fixtures/valid/skilled-fixer.grooph.json  loops: fix-cycle[fixer,suite] stops max-iterations|budget
+  suite {tests: npm test} in: fixer  out: fail->fixer(agent:builder)*back  pass->green(stop:success)
+
+fixtures/valid/wrap-up-after-the-cap.grooph.json  loops: fix-cycle[fixer,suite] stops max-iterations->wrap|budget
+  suite {tests: npm test} in: fixer  out: fail->fixer(agent:builder)*back  pass->green(stop:success)

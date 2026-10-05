@@ -1,0 +1,29 @@
+placed valid: true | nodes: plan,release,end,g-builder,g-tests | edges: e-release-end:release->end e-g-builder-g-tests:g-builder->g-tests g-e-tests-fail:g-tests->g-builder("fail") e-g-tests-release:g-tests->release("pass") e-plan-g-builder:plan->g-builder
+
+## control: {{test-command}} || true in the template
+  keys: doc,changes,held,from,notes
+  changes: node:g-tests.check
+  held: [{"name":"node:g-tests.check","kind":"change","object":"node","id":"g-tests","field":"check","summary":"node \"g-tests\": check changes from {\"kind\":\"tests\",\"run\":\"pnpm test\",\"pass\":\"exit code 0 and… to {\"kind\":\"tests\",\"run\":\"pnpm test || true\",\"pass\":\"exit co…","loosens":"changes the check's definition (run): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is"}]
+  result valid: true; edges from g-tests: g-e-tests-fail:"fail"->g-builder  e-g-tests-release:"pass"->release; stops: [{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]; bar: -; check: pnpm test
+
+## A: pass edge becomes fail -> NEW success stop; pass by a new edge with approval
+  keys: doc,changes,held,from,notes
+  changes: edge:e-g-tests-release-2, edge:e-g-tests-release.approval
+  held: [{"name":"edge:e-g-tests-release-2","kind":"add","object":"edge","id":"e-g-tests-release-2","summary":"adds edge \"e-g-tests-release-2\"","loosens":"adds a way into \"release\" that does not pass \"pass\" from the check \"g-tests\"; adds \"e-g-tests-release-2\", an edge that leaves the check \"g-tests\": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply"}]
+  result valid: true; edges from g-tests: g-e-tests-fail:"fail"->g-builder  e-g-tests-release:"pass"->release APPROVAL; stops: [{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]; bar: -; check: pnpm test
+
+## A3: tests -fail(approval)-> NEW success stop
+  keys: doc,changes,held,from,notes
+  changes: edge:e-g-tests-release-2
+  held: [{"name":"edge:e-g-tests-release-2","kind":"add","object":"edge","id":"e-g-tests-release-2","summary":"adds edge \"e-g-tests-release-2\"","loosens":"adds a way into \"release\" that does not pass \"pass\" from the check \"g-tests\"; adds \"e-g-tests-release-2\", an edge that leaves the check \"g-tests\": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply"}]
+  result valid: true; edges from g-tests: g-e-tests-fail:"fail"->g-builder  e-g-tests-release:"pass"->release; stops: [{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]; bar: -; check: pnpm test
+
+## B: a bar of the builder's word and bar-passed then done
+  keys: doc,changes,held,from,notes
+  changes: loop:g-grind.stops, loop:g-grind.bar
+  held: [{"name":"loop:g-grind.stops","kind":"change","object":"loop","id":"g-grind","field":"stops","summary":"loop \"g-grind\": stops changes from [{\"kind\":\"max-iterations\",\"n\":5},{\"kind\":\"budget\",\"measur… to [{\"kind\":\"bar-passed\",\"then\":\"release\"},{\"kind\":\"max-iter…","loosens":"a stop of the loop would lead on to \"release\", a way that does not pass the check \"g-tests\"; adds a stop on \"bar passed\" to the loop \"g-grind\", which the check \"g-tests\" judges with no critic: a way out that does not pass the check"},{"name":"loop:g-grind.bar","kind":"change","object":"loop","
+  result valid: true; edges from g-tests: g-e-tests-fail:"fail"->g-builder  e-g-tests-release:"pass"->release; stops: [{"kind":"max-iterations","n":5},{"kind":"budget","measure":"minutes","limit":30}]; bar: -; check: pnpm test
+
+group: {"id":"g","name":"Grind loop","members":["g-builder","g-tests"],"description":"A fast builder works against the test suite until it passes, bounded by rounds and minutes.","from":"grind-loop@1","with":{"task":"Add slugify.","test-command":"pnpm test"}}
+adopt group.with changed: refused [] changes [ 'group:g.with' ]
+then refresh from the same template: changes node:g-tests.check | refused: [{"name":"node:g-tests.check","kind":"change","object":"node","id":"g-tests","field":"check","summary":"node \"g-tests\": check changes from {\"kind\":\"tests\",\"run\":\"pnpm test\",\"pass\":\"exit code 0 and… to {\"kind\":\"tests\",\"run\":\"true\",\"pass\":\"exit code 0 and no t…","loosens":"changes the check's definition (run): what it runs and what counts as a pass may be tightened and not lo | check now: pnpm test

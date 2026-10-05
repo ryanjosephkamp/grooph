@@ -1,0 +1,51 @@
+
+## adopt: C1 builder -> a new success stop on its own word [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-130000 · Retrospective rewrite: what it changed in its working copy
+  |   Added stop node Done too (done-too)  ← no amendment note explains this
+  |   Added edge Builder → Done too (e-builder-done-too)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-130000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/c-adopt1/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-builder-done-too
+  |   edge:e-builder-done-too  adds a way from "builder" to end in success that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/c-adopt1/.grooph/retrospective-rewrite/runs/20261005-130000 --into <tmp>/grooph-brakes-p
+  | grooph: not written: the working copy loosens a brake the graph has (edge:e-builder-done-too, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt: C2 builder -> done, always (the audit's third probe) [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-130000 · Retrospective rewrite: what it changed in its working copy
+  |   Added edge Builder → Done (e-builder-done)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-130000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/c-adopt2/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-builder-done
+  |   edge:e-builder-done  adds a way into "done" that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/c-adopt2/.grooph/retrospective-rewrite/runs/20261005-130000 --into <tmp>/grooph-brakes-p
+  | grooph: not written: the working copy loosens a brake the graph has (edge:e-builder-done, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt: control: the same edge on grind-loop [grind-loop]
+  exit 1, written: false
+  | Run 20261005-130000 · Grind loop: what it changed in its working copy
+  |   Added edge Builder → Done (e-builder-done)  ← no amendment note explains this
+  | version 2 of grind-loop, from grind-loop@1 and run 20261005-130000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/c-adopt3/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-builder-done
+  |   edge:e-builder-done  adds a way into "done" that does not pass the check "tests"
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/c-adopt3/.grooph/grind-loop/runs/20261005-130000 --into <tmp>/grooph-brakes-probes/check
+  | grooph: not written: the working copy loosens a brake the graph has (edge:e-builder-done, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## refresh (core): C1 as a newer version: builder -> a new success stop [retrospective-rewrite]
+  placed valid: true; changes: edge:e-q-builder-release
+  held: edge:e-q-builder-release: adds a way into "release" that does not pass the check "q-tests"; result valid: true
+  command: exit 0; valid: true; edges from q-builder now: e-q-builder-q-tests->q-tests; stops: end:success
+  | q  retrospective-rewrite@1 → retrospective-rewrite@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-q-builder-release
+  |     edge:e-q-builder-release  adds a way into "release" that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+
+## refresh (core): C3 as a newer version: builder -> retro [retrospective-rewrite]
+  placed valid: true; changes: edge:e-q-builder-q-retro
+  held: edge:e-q-builder-q-retro: adds a way into "q-retro" that does not pass the check "q-tests"; result valid: true
+  command: exit 0; valid: true; edges from q-builder now: e-q-builder-q-tests->q-tests; stops: end:success
+  | q  retrospective-rewrite@1 → retrospective-rewrite@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-q-builder-q-retro
+  |     edge:e-q-builder-q-retro  adds a way into "q-retro" that does not pass the check "q-tests"
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
