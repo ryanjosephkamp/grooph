@@ -239,6 +239,81 @@ test("adopt refuses a working copy with export errors, naming them", async () =>
   }
 });
 
+/** The run's working copy, changed by `change` as a run might have left it. */
+const amend = (run: string, change: (working: Graph) => void): void => {
+  const path = join(run, "graph.grooph.json");
+  const working = readGraph(path);
+  change(working);
+  writeFileSync(path, canonicalize(working));
+};
+const stopsOf = (doc: Graph): Graph["loops"][number]["stops"] => doc.loops[0]!.stops;
+
+test("adopt refuses a working copy that loosens a brake, names each, and takes it when asked by name (the audit's probe)", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
+    // What the audit lane did by hand: the round cap from 5 to 50, the budget from 80 turns to 800.
+    amend(run, (working) => {
+      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop.kind === "budget" ? { ...stop, limit: 800 } : stop));
+    });
+    const before = tree(dir);
+
+    // Without --write: the same report, and nothing changed.
+    const dry = capture();
+    assert.equal(await grooph(["adopt", run], dry), 0);
+    assert.match(text(dry.stdout), /loosens a brake/);
+    assert.match(text(dry.stdout), /loop:sandwich\.stops {2}raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.match(text(dry.stdout), /--allow loop:sandwich\.stops/);
+    assert.match(text(dry.stdout), /--write would be refused/);
+    assert.deepEqual(tree(dir), before);
+
+    // With --write: refused, each one named with how to say yes, nothing written.
+    const refused = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
+    assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
+    assert.match(text(refused.stdout), /loop:sandwich\.stops {2}raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.deepEqual(tree(dir), before);
+    assert.equal(existsSync(target), false);
+
+    // A name that is no change of this run is refused, and says so.
+    const wrong = capture();
+    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.bar"], wrong), 1);
+    assert.match(text(wrong.stderr), /no change named "loop:sandwich\.bar"/);
+    assert.equal(existsSync(target), false);
+
+    // Asked for by name, it is adopted, and the report says what was allowed.
+    const allowed = capture();
+    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
+    assert.match(text(allowed.stdout), /loop:sandwich\.stops {2}raises the round cap from 5 to 50; raises the budget from 80 to 800 turns {3}\(asked for by name\)/);
+    const adopted = readGraph(target);
+    assert.equal(adopted.version, 2);
+    assert.deepEqual(stopsOf(adopted).map((stop) => (stop.kind === "max-iterations" ? stop.n : stop.kind === "budget" ? stop.limit : undefined)), [undefined, 50, 800]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("adopt takes a working copy that tightens a brake, and says which", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    amend(run, (working) => {
+      working.loops[0]!.stops = stopsOf(working).map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 3 } : stop));
+      working.edges.find((edge) => edge.id === "e-critic-pass")!.approval = true;
+    });
+    const io = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], io), 0);
+    assert.match(text(io.stdout), /tightens a brake, and is adopted with the rest/);
+    assert.match(text(io.stdout), /loop:sandwich\.stops/);
+    assert.match(text(io.stdout), /edge:e-critic-pass\.approval/);
+    assert.doesNotMatch(text(io.stdout), /loosens a brake/);
+    assert.equal(readGraph(join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json")).version, 2);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 // ─── share <run dir> ──────────────────────────────────────────────────────
 
 test("share <run dir> prints a kind run link that decodes to the bundle; --out writes the bundle", async () => {
