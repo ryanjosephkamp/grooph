@@ -37,12 +37,13 @@ function scratch(t) {
   put("apps/web/dist/assets/compile-a.js", randomBytes(300));
   put("apps/web/dist/assets/space-a.js", randomBytes(200));
   put("apps/web/dist/assets/front-a.js", randomBytes(250));
+  put("apps/web/dist/assets/builtins-a.js", randomBytes(350));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-next.v1.woff2", randomBytes(400));
   put("apps/web/dist/assets/fonts/atkinson-hyperlegible-mono.v1.woff2", randomBytes(300));
   put("apps/web/dist/assets/site-icons.v1.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>");
   put(
     "apps/web/dist/routes.json",
-    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"] }),
+    JSON.stringify({ entry: ["assets/index-a.js"], app: { js: ["assets/App-a.js"], css: ["assets/styles-a.css"] }, canvas: { js: ["assets/screens-a.js"], css: [] }, embed: { js: ["assets/EmbedApp-a.js"], css: [] }, later: ["assets/compile-a.js", "assets/space-a.js", "assets/front-a.js", "assets/builtins-a.js"], space: ["assets/space-a.js"], front: ["assets/front-a.js"], templates: ["assets/builtins-a.js"] }),
   );
   const gz = (path) => gzipSync(files[`apps/web/dist/${path}`]).length;
   /** What an address that draws on the canvas weighs in this build, in bytes, as the script weighs it. */
@@ -52,7 +53,7 @@ function scratch(t) {
   for (let more = 0; !(((weigh() / 1024) * 10) % 1 > 0.1 && ((weigh() / 1024) * 10) % 1 < 0.4); more += 10) put("apps/web/dist/assets/screens-a.js", randomBytes(5000 + more));
   const canvas = weigh();
   const run = (canvasLimitBytes) => {
-    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, cliColdMs: 60000 };
+    const roomy = { firstLoadKB: 1000, entryJsKB: 1000, cssKB: 1000, fontsKB: 1000, firstVisitKB: 1000, templateLoadKB: 1000, embedLoadKB: 1000, mapSpaceKB: 1000, cliColdMs: 60000 };
     writeFileSync(join(dir, "scripts", "perf-budget.json"), JSON.stringify({ ...roomy, canvasLoadKB: canvasLimitBytes / 1024 }));
     return spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" });
   };
@@ -128,5 +129,37 @@ test("the front page's picture is weighed in the first load, which is the front 
     const missing = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });
     assert.equal(missing.status, 1, missing.stdout);
     assert.match(missing.stderr, /does not say which files hold the front page's picture/);
+  }
+});
+
+test("a template's own address has a line: the canvas's and the built-in templates, with a limit of its own; a build that does not name the templates is not weighed", (t) => {
+  const { canvas, run, dir } = scratch(t);
+  const gz = (path) => gzipSync(readFileSync(join(dir, "apps/web/dist", path))).length;
+  const template = canvas + gz("assets/builtins-a.js");
+  const line = (out) => out.split("\n").find((l) => l.includes("a template's own address"));
+  const withBudget = (bytes) => {
+    assert.equal(run(canvas).status, 0);
+    const json = join(dir, "scripts", "perf-budget.json");
+    writeFileSync(json, JSON.stringify({ ...JSON.parse(readFileSync(json, "utf8")), templateLoadKB: bytes / 1024 }));
+    return spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" });
+  };
+  // What it weighs: what a graph's address does, and the templates; and the canvas's own line is without them.
+  const met = withBudget(template);
+  assert.equal(met.status, 0, met.stdout + met.stderr);
+  assert.equal(/^\S+\s+(\d+\.\d\d) of/.exec(line(met.stdout))[1], (template / 1024).toFixed(2));
+  assert.equal(/^\S+\s+(\d+\.\d\d) of/.exec(met.stdout.split("\n").find((l) => l.includes("an address that draws on the canvas")))[1], (canvas / 1024).toFixed(2));
+  assert.doesNotMatch(met.stdout, /loaded later: builtins-a\.js/);
+  // Three bytes over its own limit fails, whatever room the canvas's line has.
+  const over = withBudget(template - 3);
+  assert.equal(over.status, 1, over.stdout);
+  assert.match(line(over.stdout), /^OVER /);
+  // A build that lists no templates, or an empty list, fails with or without --check.
+  const routesFile = join(dir, "apps/web/dist/routes.json");
+  const routes = JSON.parse(readFileSync(routesFile, "utf8"));
+  for (const templates of [undefined, []]) {
+    writeFileSync(routesFile, JSON.stringify({ ...routes, templates }));
+    const missing = spawnSync(process.execPath, ["scripts/perf-budget.mjs"], { cwd: dir, encoding: "utf8" });
+    assert.equal(missing.status, 1, missing.stdout);
+    assert.match(missing.stderr, /does not say which files hold the built-in templates/);
   }
 });
