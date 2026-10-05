@@ -215,7 +215,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `E_UNFILLED_SLOT` | — | Export requested and a `{{slot}}` remains in a string field of a document without a `template` block. `at` names the objects holding it. |
 | `E_CRITIC_NOT_ISOLATED` | critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list. |
 | `E_OWNERSHIP_CONFLICT` | two writers, one artifact, no merge | Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`. |
-| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human. |
+| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: nothing leads to it, or at least one inbound edge neither carries `approval: true` nor starts at a `human-gate` node, or a loop's stop other than `human` continues at it (`then`). Every way in must pass a human. |
 
 ### Spec §12 warnings
 
@@ -249,6 +249,8 @@ Tiers are the harness-neutral vocabulary; profiles map them to current names.
 | `frontier` | The most capable model the harness offers; for leads, judges and hard synthesis. |
 | `strong` | The default builder and critic class. |
 | `fast` | Cheap and quick; for grind steps, fan-out and deterministic-adjacent work. |
+
+A profile need not give three different models. Claude Code's gives `strong` and `fast` the same one (`docs/targets/claude-code.md`, "The default map"); `W_HOMOGENEOUS_CRITICS` compares tiers and pins, so it does not see two tiers that a profile, or the one exporting, has made one model, and the export says so in a line of its own.
 
 `pin` overrides the tier for one harness with a literal model name. The one exporting may also say which model a tier means, for that export and without touching the document (`grooph export --models`, or `GROOPH_MODELS` for a whole machine): a project that does not use the model a profile gives a tier names its own. Effort is `low` · `medium` · `high` · `max`; a profile may map these onto a finer scale.
 
