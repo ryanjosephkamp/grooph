@@ -10,7 +10,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { canonicalize } from "../src/canonicalize.js";
+import { indexGraph } from "../src/graph-index.js";
 import { parseGraph, parseGraphText } from "../src/parse.js";
+import { entryNodeIds } from "../src/semantics.js";
 import { extractGroup, groupContents, listGroups, placeSubgrooph, refreshSubgrooph } from "../src/subgrooph.js";
 import { TemplateError } from "../src/template.js";
 import type { Edge, Graph, Loop, Node } from "../src/types.js";
@@ -968,6 +970,25 @@ test("an answer a gate gives does not come to lead nowhere; a note on a policy i
   // A key the comparison does not know, on a policy that is a brake: its kind, scope and params are what it is.
   const noted = refreshSubgrooph(placed(), "review", newer((t) => (void ((t.policies![0] as unknown as { note: string }).note = "see docs"), void ((t.nodes[0] as { brief: string }).brief += " Keep it small."))));
   assert.deepEqual(noted.held, []);
+});
+
+test("a step only a loop's stop continues at is no start: it is behind what its loop is behind (graph-ir §2)", () => {
+  // The built-in decomposed gauntlet: `integrator` is where the pieces loop continues when its bar is passed, and
+  // also where a failed "next piece" check leads. A newer version drops that edge. Only the stop leads there then,
+  // from a loop that is behind the decomposition gate: no run starts there, and nothing is lost.
+  const gauntlet = pattern("gauntlet-decomposed");
+  const before = placeSubgrooph(host(), gauntlet, { as: "g", values: examples(gauntlet), after: "plan", then: "release" }).doc;
+  const dropped = refreshSubgrooph(before, "g", newer((t) => void (t.edges = t.edges.filter((edge) => edge.id !== "e-next-piece-fail")), 2, gauntlet));
+  assert.deepEqual(dropped.held, []);
+  assert.deepEqual(entryNodeIds(indexGraph(dropped.doc)), entryNodeIds(indexGraph(before)));
+  assert.deepEqual(errorsOf(dropped.doc), errorsOf(before));
+
+  // With the stop gone as well, nothing leads there: a run would start at it, around the gate, and that is held.
+  const cut = refreshSubgrooph(before, "g", newer((t) => {
+    t.edges = t.edges.filter((edge) => edge.id !== "e-next-piece-fail");
+    t.loops[1]!.stops = t.loops[1]!.stops.map((stop) => (stop.kind === "bar-passed" ? { kind: "bar-passed" } : stop));
+  }, 2, gauntlet));
+  assert.ok(refused(cut).some((line) => /nothing would lead to "g-integrator", so a run would start there/.test(line)), refused(cut).join("\n"));
 });
 
 test("allowing one change does not let another through: each way that opens is named", () => {

@@ -308,7 +308,9 @@ function reachLosses(before: Graph, after: Graph): Loss[] {
       const old = loopWas.get(way.loop!);
       if (!old) return [`loop:${way.loop}`];
       const fields = (["stops", "members"] as const).filter((field) => !same(old[field], loopNow.get(way.loop!)![field]));
-      return fields.length > 0 ? fields.map((field) => `loop:${way.loop}.${field}`) : undefined;
+      if (fields.length > 0) return fields.map((field) => `loop:${way.loop}.${field}`);
+      // The same stop, unchanged, that the decision shut before: where it leads no longer halts the run.
+      return waysWas.some((other) => other.loop === way.loop && other.to === way.to && shut(other, closed)) ? [`node:${way.to}.kind`, `node:${way.to}.outcome`] : undefined;
     };
     const say = (about: Id, loss: Loss): void => {
       named += 1;

@@ -9,7 +9,7 @@ import { test } from "node:test";
 import { indexGraph } from "../src/graph-index.js";
 import type { Issue } from "../src/issues.js";
 import { parseGraph } from "../src/parse.js";
-import { effectiveAdaptation, loopMode } from "../src/semantics.js";
+import { effectiveAdaptation, entryNodeIds, loopMode } from "../src/semantics.js";
 import type { Graph, Loop, Node } from "../src/types.js";
 import { validate } from "../src/validate.js";
 
@@ -635,6 +635,66 @@ test("W_UNREACHABLE_NODE and W_NO_TERMINAL read reachability from the entry node
   assert.match(only(issues, "W_UNREACHABLE_NODE")[0]!.message, /no entry node/);
   assert.match(only(issues, "W_NO_TERMINAL")[0]!.message, /no stop node is reachable/);
   assert.deepEqual(validate(base()), [], "an empty graph has nothing to end");
+});
+
+test("a node a loop's stop continues at is led into: it is no entry node, and it is reached (graph-ir §2)", () => {
+  // The small grind with a wrap-up step the round cap continues at: nothing but the stop leads to `wrap`.
+  const grindThen = (stops: Graph["loops"][number]["stops"], more: Partial<Graph> = {}): Graph =>
+    base({
+      nodes: [agent("fixer", "builder", writable), { id: "suite", kind: "check", name: "Suite", check: { kind: "tests", run: "npm test", pass: "exit code 0" } }, agent("wrap", "builder", writable), stopNode, { id: "halted", kind: "stop", name: "Halted", outcome: "halt" }],
+      edges: [
+        { id: "e-fix", from: "fixer", to: "suite" },
+        { id: "e-fail", from: "suite", to: "fixer", when: "fail" },
+        { id: "e-pass", from: "suite", to: "done", when: "pass" },
+        { id: "e-wrap", from: "wrap", to: "halted" },
+      ],
+      loops: [{ id: "l", name: "L", members: ["fixer", "suite"], back: ["e-fail"], mode: "grind", stops }],
+      ...more,
+    });
+  const entries = (doc: Graph): string[] => entryNodeIds(indexGraph(doc));
+  const cap = { kind: "max-iterations", n: 3 } as const;
+  const budget = { kind: "budget", measure: "minutes", limit: 20 } as const;
+
+  const led = grindThen([{ ...cap, then: "wrap" }, budget]);
+  assert.deepEqual(entries(led), ["fixer"], "the stop is a way in");
+  assert.deepEqual(validate(led), [], "and the step is reached, so nothing is said");
+
+  // With no stop that leads there, the same step is where a run would start: that is what the document says.
+  assert.deepEqual(entries(grindThen([cap, budget])), ["fixer", "wrap"]);
+
+  // A stop that continues at a member of its own loop is the loop going round again, as a back edge is.
+  assert.deepEqual(entries(grindThen([{ ...cap, then: "fixer" }, budget])), ["fixer", "wrap"]);
+
+  // The only stop node is one a stop continues at: it is reached, and it is not where the run starts.
+  const ends = grindThen([{ ...cap, then: "halted" }, budget]);
+  ends.nodes = ends.nodes.filter((node) => node.id !== "wrap" && node.id !== "done");
+  ends.edges = ends.edges.filter((edge) => edge.id !== "e-wrap" && edge.id !== "e-pass");
+  assert.deepEqual(entries(ends), ["fixer"]);
+  assert.deepEqual(only(validate(ends), "W_NO_TERMINAL"), [], "a stop node a loop's stop continues at ends the run");
+
+  // What a step reached that way leads to is reached too, and what only an unreached loop continues at is not.
+  const stranded = grindThen([{ ...cap, then: "wrap" }, budget], {});
+  stranded.edges = stranded.edges.filter((edge) => edge.id !== "e-fix");
+  stranded.edges.push({ id: "e-suite-self", from: "suite", to: "suite", when: "fail" });
+  assert.deepEqual(entries(stranded), ["fixer"]);
+  assert.deepEqual(only(validate(stranded), "W_UNREACHABLE_NODE").map((i) => i.at[0]), ["suite", "done"], "fixer's loop is reached, so `wrap` and `halted` are; the suite is cut off");
+
+  // Two loops whose stops continue only into each other: something leads into every node, so nothing starts.
+  const ring = base({
+    nodes: [agent("a", "builder", writable), agent("b", "builder", writable)],
+    edges: [
+      { id: "e-aa", from: "a", to: "a" },
+      { id: "e-bb", from: "b", to: "b" },
+    ],
+    loops: [
+      { id: "la", name: "A", members: ["a"], back: ["e-aa"], mode: "grind", stops: [{ ...cap, then: "b" }, budget] },
+      { id: "lb", name: "B", members: ["b"], back: ["e-bb"], mode: "grind", stops: [{ ...cap, then: "a" }, budget] },
+    ],
+  });
+  assert.deepEqual(entries(ring), []);
+  const said = only(validate(ring), "W_UNREACHABLE_NODE");
+  assert.deepEqual(said.map((i) => i.at[0]), ["a", "b"]);
+  assert.match(said[0]!.message, /no entry node \(something leads into every node/);
 });
 
 test("W_OUTPUT_NOT_WRITABLE spares the lead, which is the main session", () => {
