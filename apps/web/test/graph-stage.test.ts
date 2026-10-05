@@ -538,6 +538,41 @@ describe("the spiral and its lid", () => {
     expect(edges(spiral(modelAt(lr, places(lr)), whole).prims)["e-critic-again@0>1"]).toEqual([1, 0.5, 0.5]);
   });
 
+  it("a node that fans out reaches each of its targets and one that fans in is reached by each of its sources: every such edge was taken", () => {
+    // The critic bank: the builder's pass goes to four critics at once, and each critic's pass to the judge.
+    const bank = graph("patterns/specialist-critic-bank.grooph.json");
+    const b = modelAt(bank, places(bank));
+    const critics = b.edges.filter((e) => e.from === "builder").map((e) => e.to);
+    expect(critics).toHaveLength(4);
+    const judge = b.edges.find((e) => e.from === critics[0])!.to;
+    const m = modelAt(bank, places(bank), notes([["builder", "pass", 0], ...critics.map((id): [string, string, number] => [id, "pass", 0]), [judge, "pass", 0]]));
+    const steps = stepsOf(m);
+    // Each critic's note is a move from the builder, whichever critic's note came before it.
+    for (const [n, id] of critics.entries()) expect(steps[2 + n], id).toMatchObject({ to: id, from: "builder", edge: b.edges.find((e) => e.from === "builder" && e.to === id)!.id });
+    // The judge's note: the edge from the critic whose note came last is the one followed, and the other three were taken with it.
+    const last = steps[6]!;
+    expect(last).toMatchObject({ to: judge, from: critics[3] });
+    expect([last.edge, ...last.also!.map((x) => x.edge)].sort()).toEqual(b.edges.filter((e) => e.to === judge && critics.includes(e.from)).map((e) => e.id).sort());
+    // So in the whole run none of the eight is drawn as never taken, and at the judge's step all four into it are lit.
+    const whole8 = b.edges.filter((e) => e.from === "builder" || (e.to === judge && critics.includes(e.from))).map((e) => `${e.id}@0>0`);
+    const drawn = spiral(m, at(m, 0)).prims.flatMap((p) => (p.t === "line" && p.key?.startsWith("edge:") ? [[p.key.slice(5), p.alpha ?? 1] as const] : []));
+    for (const key of whole8) expect(drawn.find(([k]) => k === key), key).toEqual([key, 1]);
+    for (const e of b.edges.filter((x) => x.to === judge && critics.includes(x.from))) expect(at(m, 6).lit!.has(`edge:${e.id}`), e.id).toBe(true);
+    // The critics' edges to the judge have no condition, so a critic that failed took its edge too.
+    const mixed = modelAt(bank, places(bank), notes([["builder", "pass", 0], [critics[0]!, "fail", 0], [critics[1]!, "pass", 0], [judge, "pass", 0]]));
+    const into = stepsOf(mixed)[4]!;
+    expect([into.edge, ...(into.also ?? []).map((x) => x.edge)].sort()).toEqual([critics[0], critics[1]].map((id) => b.edges.find((e) => e.from === id && e.to === judge)!.id).sort());
+    // An edge with a condition is taken only by a report that meets it. The judge passed and the gate rejected:
+    // back at the builder, the gate's way back was taken and the judge's, which is for a fail, was not, though the
+    // judge has reported since the builder was last reached.
+    const back = modelAt(bank, places(bank), notes([["builder", "pass", 0], ...critics.map((id): [string, string, number] => [id, "pass", 0]), [judge, "pass", 0], ["gate", "fail", 0], ["builder", "pass", 1]]));
+    const again = stepsOf(back)[8]!;
+    expect([again.to, again.edge, again.also]).toEqual(["builder", "e-gate-reject", undefined]);
+    // And a node that has not reported since takes nothing: a second note at the judge, with no critic between.
+    const twice = modelAt(bank, places(bank), notes([["builder", "pass", 0], [critics[0]!, "pass", 0], [judge, "pass", 0], [judge, "pass", 0]]));
+    expect(stepsOf(twice)[4]!.edge).toBeUndefined();
+  });
+
   it("a way back that is another loop's, between two nodes of one spiral, does not turn that spiral", () => {
     // Twins: the sandwich's loop listed twice, with one way back each. The critic's way back is B's; on A's spiral,
     // where builder and critic stand, it arrives in the round A is in, not a turn on.
