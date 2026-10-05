@@ -26,6 +26,7 @@ import { shapeCommand, SHAPE_HELP } from "./commands/shape.js";
 import { embedCommand, EMBED_HELP } from "./commands/embed.js";
 import { shareCommand, SHARE_HELP } from "./commands/share.js";
 import { templateCommand, TEMPLATE_USAGE } from "./commands/template-args.js";
+import { SUB_HELP, subCommand } from "./commands/sub.js";
 import { validateCommand } from "./commands/validate.js";
 import { watchCommand, WATCH_HELP } from "./commands/watch.js";
 import { parseSource } from "./events-io.js";
@@ -206,7 +207,11 @@ export async function run(
       }
 
       case "image": {
-        const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, events: { type: "string", multiple: true } } });
+        const { positionals, values } = parseArgs({
+          args: rest,
+          allowPositionals: true,
+          options: { out: { type: "string" }, theme: { type: "string" }, scale: { type: "string" }, layout: { type: "string" }, view: { type: "string" }, events: { type: "string", multiple: true }, open: { type: "string", multiple: true } },
+        });
         const file = positionals[0];
         if (file === undefined) return usageError(io, "image needs a file: grooph image <graph | operation map> [--out <file.svg | file.png>]");
         const scale = values["scale"] === undefined ? undefined : Number(values["scale"]);
@@ -215,7 +220,10 @@ export async function run(
           ...(values["out"] !== undefined ? { out: values["out"] } : {}),
           ...(values["theme"] !== undefined ? { theme: values["theme"] } : {}),
           ...(scale !== undefined ? { scale } : {}),
+          ...(values["layout"] !== undefined ? { layout: values["layout"] } : {}),
+          ...(values["view"] !== undefined ? { view: values["view"] } : {}),
           ...(values["events"] ? { events: values["events"].map(parseSource) } : {}),
+          ...(values["open"] ? { open: values["open"] } : {}),
         });
       }
 
@@ -392,6 +400,11 @@ export async function run(
         return 1;
       }
 
+      case "sub": {
+        const outcome = await subCommand(io, rest, { ...defaultRegistryEnv(), ...env });
+        return typeof outcome === "number" ? outcome : usageError(io, outcome.usage);
+      }
+
       case "explain": {
         const { positionals, values } = parseArgs({ args: rest, allowPositionals: true, options: { json: { type: "boolean" } } });
         const file = positionals[0];
@@ -460,6 +473,7 @@ const COMMAND_HELP: Record<string, string> = {
   export: EXPORT_HELP,
   explain: EXPLAIN_HELP,
   template: TEMPLATE_USAGE,
+  sub: SUB_HELP,
   share: SHARE_HELP,
   embed: EMBED_HELP,
   runs: RUNS_HELP,

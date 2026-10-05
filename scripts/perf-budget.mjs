@@ -27,7 +27,9 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "apps", "web", "dist");
 const budget = JSON.parse(readFileSync(join(root, "scripts", "perf-budget.json"), "utf8"));
 const kb = (file) => gzipSync(readFileSync(file)).length / 1024;
-const one = (n) => Math.round(n * 10) / 10;
+// A figure is compared with its budget as it is, and printed to two places so a reader sees what was compared.
+// It was once rounded to one place first, and a template's address at 276.04 read "ok 276 of 276".
+const two = (n) => n.toFixed(2);
 
 if (!existsSync(join(dist, "index.html"))) {
   console.error("perf-budget: apps/web/dist/index.html is not there. Run pnpm -r build first.");
@@ -50,6 +52,14 @@ const embed = sum([...routes.entry, ...routes.embed.js, ...routes.embed.css]) + 
 // Since slice 0069 the canvas screens are a set of their own, loaded by the addresses that draw on the canvas.
 const canvasFiles = [...routes.canvas.js, ...routes.canvas.css];
 const canvas = js + css + html + sum(canvasFiles);
+// Since slice 0087 a map's view in three dimensions is a piece of its own, fetched only when it is chosen. No
+// address loads it, so it is in no line above; it has a line to itself. A build that does not say which files
+// it is cannot be weighed, and a piece with no files weighs nothing, which is not a pass.
+if (!Array.isArray(routes.space) || routes.space.length === 0) {
+  console.error("perf-budget: apps/web/dist/routes.json does not say which files draw a map in three dimensions (space). The build should have listed them (apps/web/vite.config.ts).");
+  process.exit(1);
+}
+const space = sum(routes.space);
 // The fonts and the icons are files of public/, under names that carry a version, so they are named here and not found.
 const FIRST_VISIT_FONTS = ["assets/fonts/atkinson-hyperlegible-next.v1.woff2", "assets/fonts/atkinson-hyperlegible-mono.v1.woff2"];
 const ICONS = "assets/site-icons.v1.svg";
@@ -62,7 +72,7 @@ for (const f of [...FIRST_VISIT_FONTS, ICONS]) {
 const sent = (file) => statSync(join(dist, file)).size / 1024;
 const fonts = FIRST_VISIT_FONTS.reduce((n, f) => n + sent(f), 0);
 const firstVisit = js + css + html + fonts + kb(join(dist, ICONS));
-const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css]);
+const counted = new Set([...appJs, ...appCss, ...canvasFiles, ...routes.embed.js, ...routes.embed.css, ...routes.space]);
 const others = readdirSync(join(dist, "assets")).filter((f) => /\.(js|css)$/.test(f) && !counted.has(`assets/${f}`));
 
 // The CLI's cold start: the middle of five runs of the quickest command there is.
@@ -76,24 +86,25 @@ for (let i = 0; i < 5; i += 1) {
 const cli = times.sort((a, b) => a - b)[2];
 
 const rows = [
-  ["the app's first load (HTML, scripts and styles), gzip KB", one(js + css + html), budget.firstLoadKB],
-  ["  of which scripts", one(js), budget.entryJsKB],
-  ["  of which styles", one(css), budget.cssKB],
-  ["the fonts a first visit to the front page fetches, KB as sent", one(fonts), budget.fontsKB],
-  ["a first visit to the front page in all (first load, fonts, icons), KB", one(firstVisit), budget.firstVisitKB],
-  ["the first load of an address that draws on the canvas, gzip KB", one(canvas), budget.canvasLoadKB],
-  ["an embed's first load, gzip KB", one(embed), budget.embedLoadKB],
-  ["the CLI's cold start, ms (middle of five)", Math.round(cli), budget.cliColdMs],
+  ["the app's first load (HTML, scripts and styles), gzip KB", js + css + html, budget.firstLoadKB],
+  ["  of which scripts", js, budget.entryJsKB],
+  ["  of which styles", css, budget.cssKB],
+  ["the fonts a first visit to the front page fetches, KB as sent", fonts, budget.fontsKB],
+  ["a first visit to the front page in all (first load, fonts, icons), KB", firstVisit, budget.firstVisitKB],
+  ["the first load of an address that draws on the canvas, gzip KB", canvas, budget.canvasLoadKB],
+  ["an embed's first load, gzip KB", embed, budget.embedLoadKB],
+  ["a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB", space, budget.mapSpaceKB],
+  ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
 ];
 let over = 0;
 for (const [what, value, limit] of rows) {
   const bad = value > limit;
   if (bad) over += 1;
-  console.log(`${bad ? "OVER " : "ok   "} ${String(value).padStart(7)} of ${String(limit).padStart(5)}  ${what}`);
+  console.log(`${bad ? "OVER " : "ok   "} ${two(value).padStart(7)} of ${String(limit).padStart(5)}  ${what}`);
 }
-for (const f of others) console.log(`      ${String(one(kb(join(dist, "assets", f)))).padStart(7)}            loaded later: ${f}`);
+for (const f of others) console.log(`      ${two(kb(join(dist, "assets", f))).padStart(7)}            loaded later: ${f}`);
 for (const f of readdirSync(join(dist, "assets", "fonts")).filter((name) => name.endsWith(".woff2") && !FIRST_VISIT_FONTS.includes(`assets/fonts/${name}`))) {
-  console.log(`      ${String(one(sent(`assets/fonts/${f}`))).padStart(7)}            a font fetched by a page that uses it: ${f}`);
+  console.log(`      ${two(sent(`assets/fonts/${f}`)).padStart(7)}            a font fetched by a page that uses it: ${f}`);
 }
 if (process.argv.includes("--check") && over > 0) {
   console.error(`perf-budget: ${over} over budget. Make it lighter, or raise the budget in scripts/perf-budget.json in a pull request that says why.`);

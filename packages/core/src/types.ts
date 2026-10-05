@@ -249,7 +249,26 @@ export type Policy = {
   params?: Record<string, string | number | boolean>;
 };
 
-export type Group = { id: Id; name: string; members: Id[]; coupled?: boolean };
+/**
+ * A group of nodes and of groups. A group with a `from` is a **subgrooph**: a template placed inside the graph as a
+ * unit (amendment A-018, decision 0025). Its nodes are ordinary nodes of the one document, and nothing else is
+ * stored: an edge belongs to it when both its ends are inside, a loop when all its members are.
+ */
+export type Group = {
+  id: Id;
+  name: string;
+  /** node ids and group ids: groups form a tree (`E_GROUP_CYCLE`, `W_GROUP_OVERLAP`) */
+  members: Id[];
+  coupled?: boolean;
+  /** one line a person reads on the closed box */
+  description?: string;
+  /** `<template id>@<version>`: this group is a subgrooph placed from that template */
+  from?: GroupFrom;
+  /** the slot values it was filled with, so it can be refreshed */
+  with?: Record<string, string>;
+};
+
+export type GroupFrom = `${Id}@${number}`;
 
 export type RunNoteAt = "graph" | `node:${Id}` | `edge:${Id}` | `loop:${Id}`;
 

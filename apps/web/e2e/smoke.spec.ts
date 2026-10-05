@@ -192,6 +192,80 @@ async function serveBuiltApp(): Promise<{ url: string; stop: () => Promise<void>
   return { url: `http://127.0.0.1:${port}/grooph/`, stop };
 }
 
+/* ─── a piece that could not be fetched is asked for again (handback 0083, `src/piece.ts`) ─── */
+
+/**
+ * WebKit's fault as it was seen in CI, made to happen in any engine: a script's load fails, and goes on failing,
+ * until its file has been asked for with `fetch`. Says how often the file was asked for as a script and with fetch.
+ */
+async function failsUntilFetched(page: Page, file: RegExp): Promise<{ scripts: number; fetches: number }> {
+  const asked = { scripts: 0, fetches: 0 };
+  await page.route(file, (route) => {
+    if (route.request().resourceType() === "fetch") {
+      asked.fetches += 1;
+      return route.continue();
+    }
+    asked.scripts += 1;
+    return asked.fetches > 0 ? route.continue() : route.abort();
+  });
+  return asked;
+}
+
+test("a piece whose load fails until its file has been fetched still arrives: the canvas screens, a map's views, the compiler", async ({ page }) => {
+  // The canvas screens, at an address that opens on the canvas: without the second try this says "This screen could not be fetched".
+  const screens = await failsUntilFetched(page, /\/assets\/screens-[^/]*\.js$/);
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(node(page, "builder")).toBeVisible();
+  expect(screens.fetches).toBe(1);
+
+  // A map's views: without them a map has no switch.
+  const views = await failsUntilFetched(page, /\/assets\/views-[^/]*\.js$/);
+  const map = parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid/two-sessions.grooph-map.json"), "utf8")).map!;
+  await page.goto(`./#/open?d=${encodeSharePayload(buildShareEnvelope(map), (bytes) => deflateRawSync(bytes, { level: 9 }))}`);
+  await expect(page.getByRole("radio", { name: "Sequence" })).toBeVisible();
+  expect(views.fetches).toBe(1);
+
+  // The compiler, which nothing asks for until someone exports.
+  const compiler = await failsUntilFetched(page, /\/assets\/compile-[^/]*\.js$/);
+  await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const [zip] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download package (.zip)" }).tap()]);
+  expect(compiler.fetches).toBe(1);
+  // However it came (an engine that remembers a failed module is given the file at another address, `piece.ts`),
+  // the compiler that came is the compiler: the package is the golden one, byte for byte.
+  const files = Object.fromEntries(Object.entries(unzipSync(await downloadBytes(zip))).map(([path, bytes]) => [path, strFromU8(bytes)]));
+  const golden = readTree(goldenDir);
+  expect(Object.keys(files).sort()).toEqual(Object.keys(golden).sort());
+  for (const path of Object.keys(golden)) expect(files[path], path).toBe(golden[path]);
+  // Each was asked for as a script once and refused, and once more after the fetch.
+  for (const asked of [screens, views, compiler]) expect(asked.scripts).toBeGreaterThanOrEqual(2);
+});
+
+test("a screen that could not be fetched is asked for again when the next one is opened, with no reload", async ({ page }) => {
+  // No connection for the canvas screens, however they are asked for.
+  let refused = 0;
+  await page.route(/\/assets\/screens-[^/]*\.js$/, (route) => {
+    refused += 1;
+    return route.abort();
+  });
+  // The address of a screen that needs them. The page asks before it draws and the app asks again as it opens, and
+  // only then does the screen say so: nothing is asking any more when it does, so the connection can be given back
+  // without a try that was already on its way using it. (This test once opened the screen from the list, where the
+  // words show for a moment before the next try starts; on a slow machine the connection came back in that moment,
+  // the try succeeded, and the test looked for a way out of a screen that had opened.)
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(page.getByText("This screen could not be fetched.")).toBeVisible();
+  await page.evaluate(() => ((window as unknown as { sameTab: boolean }).sameTab = true));
+  expect(refused).toBeGreaterThan(1);
+
+  // The connection is back. The way out the screen offers, and the same template again: it opens, in the same page.
+  await page.unroute(/\/assets\/screens-[^/]*\.js$/);
+  await page.getByRole("link", { name: "Back to the library" }).tap();
+  await page.evaluate(() => (location.hash = "#/templates/built-in/review-gate"));
+  await expect(node(page, "builder")).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { sameTab?: boolean }).sameTab)).toBe(true);
+});
+
 test.describe("with the service worker running", () => {
   // Every other spec blocks service workers so it tests the files as built; the offline visit needs the worker.
   test.use({ serviceWorkers: "allow" });

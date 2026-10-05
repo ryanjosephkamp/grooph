@@ -12,7 +12,13 @@
     // Decision 0005: the web app consumes core from source; Vite resolves the same path.
     // The app starts from core without the compiler, and fetches the compiler, at an address of its own, when a
     // person exports (slice 0070).
-    "paths": { "@grooph/core": ["../../packages/core/src/base.ts"], "@grooph/core/compile": ["../../packages/core/src/compile/index.ts"] }
+    // An operation map's other views are a third address, fetched when a map is drawn (slice 0080).
+    "paths": {
+      "@grooph/core": ["../../packages/core/src/base.ts"],
+      "@grooph/core/compile": ["../../packages/core/src/compile/index.ts"],
+      "@grooph/core/map-views": ["../../packages/core/src/picture/map-views.ts"],
+      "@grooph/core/units": ["../../packages/core/src/picture/graph-units.ts"]
+    }
   },
   "include": ["src", "test", "e2e", "vite.config.ts", "playwright.config.ts"]
 }

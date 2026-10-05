@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { fixturePath, node } from "./support.js";
+import { canvasIsQuiet, fixturePath, node } from "./support.js";
 import { builtApp, expectWhole, held, makeRelease, namedBy, removeReleases, seen, serveSite, settled, twoReleases, type Release, type Site, type WorkerOf } from "./support-release.js";
 
 /**
@@ -103,6 +103,7 @@ const frontPageIsUp = (page: Page): Promise<void> => expect(page.getByRole("head
 async function importAndExport(page: Page): Promise<void> {
   await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
   await expect(node(page, "builder")).toBeVisible();
+  await canvasIsQuiet(page);
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   const [zip] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download package (.zip)" }).tap()]);
   expect(zip.suggestedFilename()).toBe("review-loop-claude-code.zip");
@@ -110,10 +111,14 @@ async function importAndExport(page: Page): Promise<void> {
 
 /** A built-in template on the canvas, at an address typed in and loaded from nothing. */
 async function openTemplate(page: Page, site: Site): Promise<void> {
+  // An address that differs only after the # is drawn and not loaded, so the template is on the canvas before the
+  // reload: wait for all it fetches, or the reload cuts a fetch short and the tests that count failures count it.
   await page.goto(`${site.url}#/templates/built-in/review-gate`);
+  await canvasIsQuiet(page);
   await page.reload();
   await expect(node(page, "builder")).toBeVisible();
   await expect(page.locator(".react-flow__edge")).toHaveCount(5);
+  await canvasIsQuiet(page);
 }
 
 /** A visitor who has the older release: one visit, with the worker in control and holding all of it. */
@@ -277,15 +282,13 @@ for (const visitor of VISITORS) {
       { file: /\/assets\/compile-[^/]*\.js$/, what: "the compiler, which no page asks for until someone exports", where: {} },
       { file: /\/assets\/screens-[^/]*\.js$/, what: "the canvas screens, which the page itself asked for and was refused", where: {} },
     ]) {
-      test(`once the rest of the new version arrives, the next visit takes it, and it opens with no network: ${late.what}`, late.where, async ({ page, browserName }) => {
+      test(`once the rest of the new version arrives, the next visit takes it, and it opens with no network: ${late.what}`, late.where, async ({ page }) => {
         // WebKit remembers a script whose load failed, for the tab's later loads: after the canvas screens were
-        // refused once, the pages that follow in that tab never ask for them again, though the site has them and the
-        // worker holds them, and the canvas says "This screen could not be fetched". Seen in CI on 2026-10-04
-        // (Playwright 1.63's WebKit), with the request log: answered with a 503 or with a failed fetch, it is the
-        // same, and asking for the file with fetch() and then importing it works. The worker cannot undo that from
-        // where it sits. What this test is about, the worker taking the version once it is whole, is held in WebKit
-        // by the run above, where the late file is one the page did not ask for.
-        test.fixme(browserName === "webkit" && late.file.source.includes("screens"), "WebKit does not ask again for a script whose load failed once in the tab");
+        // refused once, the pages that followed in that tab never asked for them again, though the site had them and
+        // the worker held them, and the canvas said "This screen could not be fetched". Seen in CI on 2026-10-04
+        // (Playwright 1.63's WebKit), with the request log; asking for the file with fetch() and then importing it
+        // worked. The app now does that itself when an import fails (`src/piece.ts`), and this run, which was set
+        // aside for WebKit until then, holds it to it.
         const [older, newer] = twoReleases(visitor);
         const site = await visitorOf(older, page);
         try {
@@ -466,21 +469,50 @@ test.describe("what the worker's cache holds", () => {
     }
   });
 
-  test("a file the page does not name, the embed's own, is still there after the next visit, and with no network", async ({ page, context }) => {
-    // The front page's recorded run is drawn by the embed, in a frame. Its two files are fetched when someone watches
-    // it, and the page does not name them: nothing says they are old, so the tidying must leave them.
+  test("the embed's files are held though no one watched the run: an open tab has its own after a deploy, and the next visit the new ones with no network", async ({ page, context }) => {
+    // The front page's recorded run is drawn by the embed, in a frame. The page names the embed's script and its
+    // style sheet, so the worker fetches them as it installs. They were once kept only after someone had watched the
+    // run with a network, and a tab left open across a deploy could not fetch them at all (handback 0083).
     const [older, newer] = twoReleases();
-    const embed = newer.assets.filter((path) => /\/assets\/EmbedApp-/.test(path)).sort();
-    expect(embed, "the embed's script and its style sheet").toHaveLength(2);
-    expect(newer.named.filter((path) => embed.includes(path)), "the page names neither").toEqual([]);
+    const embedOf = (release: Release): string[] => release.assets.filter((path) => /\/assets\/EmbedApp-/.test(path)).sort();
+    const [was, now] = [embedOf(older), embedOf(newer)];
+    expect(now, "the embed's script and its style sheet").toHaveLength(2);
+    expect(newer.named.filter((path) => now.includes(path)).sort(), "the page names both").toEqual(now);
     const site = await visitorOf(older, page);
-    const ask = (tab: Page): Promise<number[]> => tab.evaluate((paths) => Promise.all(paths.map(async (path) => (await fetch(path)).status)), embed);
+    const ask = (tab: Page, paths: string[]): Promise<number[]> => tab.evaluate((list) => Promise.all(list.map(async (path) => (await fetch(path)).status)), paths);
+    let next: Page;
+    try {
+      // Nobody watched the run, and the worker holds the embed all the same.
+      expect((await held(page)).paths.filter((path) => was.includes(path))).toEqual(was);
+      // A deploy: the site no longer has the older files. The tab left open asks for its own and is answered.
+      site.deploy(newer);
+      expect(await ask(page, was), "the open tab's own, after the deploy").toEqual([200, 200]);
+
+      next = await context.newPage();
+      await next.goto(site.url);
+      await settled(next, newer);
+      expect((await held(next)).paths.filter((path) => now.includes(path))).toEqual(now);
+    } finally {
+      await site.stop();
+    }
+    expect(await ask(next, now), "the new version's, with no network").toEqual([200, 200]);
+  });
+
+  test("a file the page does not name, a font's license, is still there after the next visit, and with no network", async ({ page, context }) => {
+    // The page names every file the app asks for. A file a person opens by its address, such as the license beside a
+    // font, it does not name: nothing says it is old, so the tidying must leave it.
+    const [older, newer] = twoReleases();
+    const license = newer.assets.filter((path) => path.endsWith(".txt")).sort().slice(0, 1);
+    expect(license, "a license beside a font").toHaveLength(1);
+    expect(newer.named.filter((path) => license.includes(path)), "the page does not name it").toEqual([]);
+    const site = await visitorOf(older, page);
+    const ask = (tab: Page): Promise<number[]> => tab.evaluate((paths) => Promise.all(paths.map(async (path) => (await fetch(path)).status)), license);
     let next: Page;
     try {
       site.deploy(newer);
       await page.goto(site.url);
       await settled(page, newer);
-      expect(await ask(page), "watched once, with a network").toEqual([200, 200]);
+      expect(await ask(page), "opened once, with a network").toEqual([200]);
       await page.close();
 
       // An ordinary visit in a tab of its own: the only window there is, with a page before the one kept. That is
@@ -489,12 +521,13 @@ test.describe("what the worker's cache holds", () => {
       await next.goto(site.url);
       await settled(next, newer);
       await next.waitForTimeout(600);
-      expect((await held(next)).paths.filter((path) => embed.includes(path))).toEqual(embed);
-      expect(await heldOf(next, older), "the page before is kept whole, as ever").toEqual(hashedOf(older));
+      expect((await held(next)).paths.filter((path) => license.includes(path))).toEqual(license);
+      // (The license has one name in every release, so it counts as the older one's as well.)
+      expect((await heldOf(next, older)).filter((path) => !license.includes(path)), "the page before is kept whole, as ever").toEqual(hashedOf(older));
     } finally {
       await site.stop();
     }
-    expect(await ask(next), "watched again, with no network").toEqual([200, 200]);
+    expect(await ask(next), "opened again, with no network").toEqual([200]);
   });
 
   test("a script that asks for the page's own address does not replace either page the worker keeps", CHROMIUM, async ({ page }) => {
@@ -642,13 +675,8 @@ test("the page names every file the app can ask for under assets/, and every fil
   // name is kept only if the page happens to have finished fetching it when the worker takes control: the race the
   // site lane met with its fonts.
   //
-  // The embed's own two files are the known exception, and it is a gap, not a design: the app does ask for them, in
-  // the frame that plays the front page's recorded run, and the page does not name them. So they are kept only once
-  // someone has watched the run with a network, and a tab left open across a deploy cannot fetch them at all. The
-  // lists the page carries are written in `vite.config.ts`, which is another lane's to change (handback 0083).
-  const routes = JSON.parse(readFileSync(join(builtApp, "routes.json"), "utf8")) as { entry: string[]; app: { js: string[]; css: string[] }; canvas: { js: string[]; css: string[] }; later: string[]; embed: { js: string[]; css: string[] } };
-  const ofTheApp = new Set([...routes.entry, ...routes.app.js, ...routes.app.css, ...routes.canvas.js, ...routes.canvas.css, ...routes.later]);
-  const embedOnly = [...routes.embed.js, ...routes.embed.css].filter((file) => !ofTheApp.has(file)).map((file) => `/grooph/${file}`);
+  // That holds for the embed's own two files as for the rest: the app asks for them in the frame that plays the
+  // front page's recorded run. They were the one exception until `vite.config.ts` named them (handback 0083).
   const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => (statSync(join(dir, name)).isDirectory() ? walk(join(dir, name)) : [join(dir, name)]));
   // Source maps are for a debugger, and a license beside a font is a document a person opens: neither is asked for by the app.
   const files = walk(join(builtApp, "assets"))
@@ -656,7 +684,7 @@ test("the page names every file the app can ask for under assets/, and every fil
     .map((file) => `/grooph/assets/${file.slice(join(builtApp, "assets").length + 1).split("\\").join("/")}`);
   const named = namedBy(readFileSync(join(builtApp, "index.html"), "utf8"));
   expect(files.length, "files under the built app's assets/").toBeGreaterThan(5);
-  expect(files.filter((file) => !named.includes(file) && !embedOnly.includes(file)).sort()).toEqual([]);
+  expect(files.filter((file) => !named.includes(file)).sort()).toEqual([]);
   // And the other way: a page that names a hashed file the build does not have is never whole to the worker, which
   // then keeps the page before it for good, and stops tidying.
   expect(named.filter((path) => path.includes("/assets/") && !files.includes(path)), "named by the page and not in the build").toEqual([]);
