@@ -6,7 +6,9 @@ Everything so far has been about **one session**: a lead and the subagents it st
 
 Some work is bigger than one session. One session plans, another builds on a different computer, a third reviews under a different account, and a person carries things between them. A graph cannot describe that, and grooph does not pretend it can. There is a second kind of document for it: the **operation map**.
 
-The difference to remember: **a graph is compiled into instructions. A map is only drawn and checked.** Nothing reads a map while work is going on. It is a picture of how an operation is arranged, so that the people in it can see the arrangement and its weak points.
+The difference to remember: **a graph is compiled into instructions. A map is only drawn and checked.** No agent reads a map, and a map instructs nobody. It is a picture of how an operation is arranged, so that the people in it can see the arrangement and its weak points.
+
+If you work with one agent session on one computer, you may never need a map. It is here so that the guide is complete, and because the difference between "one session" and "several" is worth understanding.
 
 ## What is on a map
 
@@ -14,7 +16,7 @@ A map's file name ends in `.grooph-map.json`. It has four kinds of thing.
 
 | Thing | What it is |
 |---|---|
-| **Lane** | One machine under one account. Sessions in the same lane can reach each other directly |
+| **Lane** | One computer under one account with the harness's provider. Sessions in the same lane can reach each other directly |
 | **Session** | One harness session, or several alike drawn as one with a count. What happens inside it is a graph's business |
 | **Person** | Someone the sessions work with |
 | **Handoff** | Work passing from one session or person to another, in one direction, by a named carrier |
@@ -27,7 +29,7 @@ The repository has a sample, `fixtures/maps/valid/a-person-and-two-sessions.groo
 
 ![An operation map. At the top a person, "The owner". Below, a lane called "Laptop" holding two session cards, "Lead" and "Worker". Numbered arrows in the right margin join them, and the five handoffs are listed underneath.](team.svg)
 
-One person, one lane, two sessions, five handoffs. The owner asks the lead for something (1). The lead hands a piece to a worker (2). The worker hands it back on a branch (3). The lead wakes itself every hour to check in (4). The lead tells the owner when it is done (5).
+One person, one lane, two sessions, five handoffs. The owner asks the lead for something (1). The lead hands a piece to a worker (2). The worker hands it back on a branch (3). The lead wakes itself every hour to check in (4): some harnesses let a session schedule a message to itself. The lead tells the owner when it is done (5).
 
 ## Checking a map
 
@@ -74,7 +76,7 @@ It is refused by name. There is no package for a map and nothing to run.
 - **Seeing a carrier that cannot work.** A message cannot cross from one account to another.
 - **Explaining an operation to someone new**, in one picture.
 
-A map can also be drawn with its lanes side by side on a wide screen, as a sequence with one row per handoff, and, in the app only, in three dimensions with a slider that steps through the handoffs in order. Chapter 10 covers the views. Combined with the event hook of chapter 11, a map can also mark which of its sessions are at work right now.
+A map can also be drawn with its lanes side by side on a wide screen, as a sequence with one row per handoff, and, in the app only, in three dimensions with a slider that steps through the handoffs in order. Chapter 10 covers the views. Combined with the recordings of chapter 11, a *person looking at* a map can also see which of its sessions are at work right now.
 
 A map is a snapshot of one day. A map that is out of date is simply wrong, and harmless, because nothing depends on it.
 

@@ -30,6 +30,8 @@ ship.grooph.json: no issues
 applied 2 ops; wrote ship.grooph.json
 ```
 
+(No complaint, though the two boxes are not joined yet. A box that nothing leads into counts as a place where the run starts, so neither is "unreachable".)
+
 Then the whole `review-gate` template, placed between them. `--as` names the unit, `--after` says which node leads into it, and `--then` says where it leads when it succeeds.
 
 ```bash
@@ -52,7 +54,7 @@ Three things happened. The template's nodes came in with the unit's name in fron
 
 ![The graph "Ship the helper": a Planner box, then one box labeled Subgrooph, Review gate, with a small diagram inside it, then a Released box.](ship.svg)
 
-The review gate is drawn as **one box**. It says where it came from (`review-gate@1`), how many nodes are inside, and which brakes are among them (one human gate, one loop). The small wordless diagram inside it is a **glyph**: a square for a worker that writes, a diamond for one that judges, an octagon for a human gate, and the dashed arcs underneath for the arrows that send work back. In the app the box opens when you tap it. In a picture, `--open review` draws it opened.
+The review gate is drawn as **one box**. It says where it came from (`review-gate@1`), how many nodes are inside, and that a human gate and a loop are among them. The small wordless diagram inside it is a **glyph**: a square for a worker that writes, a diamond for one that judges, an octagon for a human gate, and the dashed arcs underneath for the arrows that send work back. In the app the box opens when you tap it. In a picture, `--open review` draws it opened.
 
 ## Nothing is hidden
 
@@ -78,7 +80,7 @@ review  "Review gate"  review-gate@1  3 nodes
 
 ## Keeping one current
 
-Because the unit remembers its template and version, grooph can ask later: has the template changed, and what would the new version change here? That is a **refresh**.
+Because the unit remembers its template and version, grooph can ask later: has the template changed, and what would the new version change here? That is a **refresh**, and the command for it is `sub update`. Like `apply`, it only shows what it would do until you add `--write`.
 
 ```bash
 grooph sub update ship.grooph.json
@@ -89,9 +91,9 @@ review  review-gate@1 → review-gate@1 (built-in): nothing to change
 ship.grooph.json is up to date
 ```
 
-Nothing to do here, since the template has not changed. When it has, the command lists each difference by name and applies them, with one exception that you have met already. **A change that removes or loosens a brake is listed first and is not applied unless you ask for it by name.** It is the same comparison, and the same `--allow`, as adopting a run in chapter 7. A newer template that quietly dropped the human gate would not take the gate out of your graph.
+Nothing to do here, since the template has not changed. When it has, the command lists each difference by name and applies them, with one exception that you have met already. **A change that removes or loosens a brake is listed first and is not applied unless you ask for it by name.** It is the same check, and the same `--allow`, as adopting a run in chapter 7. A newer template that quietly dropped the human gate would not take the gate out of your graph.
 
-Everything chapter 7 said about that comparison applies here too. It sees the brakes it knows how to compare, the list has not been shown complete, and it has not yet been read by a second harness.
+Everything chapter 7 said about that check applies here too. It sees the brakes it knows how to compare, the list has not been shown complete, and it has not yet been audited.
 
 Two smaller rules are worth knowing:
 

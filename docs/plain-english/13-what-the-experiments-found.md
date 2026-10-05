@@ -4,7 +4,11 @@
 
 It is easy to build a tool and say it helps. This chapter is about what grooph has actually tested, what came out, and what did not. Much of it is "this is not shown". A beginner deciding whether to spend time on a tool is owed that more than anyone.
 
-Everything here is said in [decision 0029](../decisions/0029-what-is-shown-as-of-the-first-audit.md) and on the [claims page](../claims.md). This chapter adds nothing to them. It only uses simpler words.
+Everything here is said in two of the project's own pages: its [list of claims](../claims.md), and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums the list up. This chapter adds nothing to them. It only uses simpler words. The project's agreed summary, word for word, is this:
+
+> Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.
+
+The rest of the chapter explains each part of it.
 
 ## Two kinds of experiment
 
@@ -19,7 +23,7 @@ Both kinds keep their evidence in the repository, under `experiments/`. One rule
 
 ## The proving runs
 
-Each of the twenty templates was run once, on a small task, with nobody watching. The harness's output, the run folder and the cost were kept. The twenty kept runs cost $41.12 in all.
+Each of the twenty templates has one counted run, on a small task, with nobody watching. The harness's output, the run folder and the cost were kept. The twenty counted runs cost $41.12 in all, so about two dollars each. A few templates have an earlier run as well. Those records are kept too, beside the later ones, and are not among the twenty.
 
 Then a script, the **proving check**, looks at each record and asks a few fixed questions. Did the agents the graph names run as their own subagents? Did the run end where the graph said it would? Are the notes whole? It reads the lead's own notes for some of these and the harness's own log for others. It looks at selected parts of a record. It is not a full reconstruction of the run, and it does not judge whether the work was good.
 
@@ -27,11 +31,11 @@ Then a script, the **proving check**, looks at each record and asks a few fixed 
 
 What these twenty records show:
 
-- **A run stopped where its graph said.** Every one ended at a passed bar, at a stop the graph names, or at a human gate.
+- **A run stopped where its graph said.** Every one ended in one of three ways: its loop's standard was met, it reached a stop box, or it reached a human gate and waited. Across these records and the comparison's package runs, fourteen stops at a human gate are on record. That is fourteen recorded cases, not a measured success rate.
 - **A run left a record.** Every one left its notes, its progress page and its working copy. Some records leave out things the package asks for. Ten of the twenty, for instance, did not write down their dispatch counts.
-- **Two mechanisms were seen working, once each.** In two templates, a critic sent work back to the builder on the strength of reference material the builder had been told not to read. That is the independent reviewer of chapter 1 doing its job, on record, twice.
+- **An independent reviewer was seen to catch something, in two templates, once each.** In each, the critic held reference material that the builder had been told not to read, judged the work against it, and sent the work back. (The builder did not cheat. The point is that the reviewer knew something the builder did not.)
 
-What they do not show: that any template makes work *better*. One run of one small task is a demonstration that the steps happen. It is not a measurement of benefit. The word the project used to use, "proven", was withdrawn for that reason.
+What they do not show: that any template makes work *better*. One run of one small task is a demonstration that the steps happen. It is not a measurement of benefit. The project used to say each template had been "proven", and withdrew that word for this reason. The runs are still *called* proving runs. That is only their name.
 
 ## The first paired comparison
 
@@ -45,17 +49,18 @@ It took four templates (`grind-loop`, `review-gate`, `red-team-loop`, `spec-then
 | **B, the prompt** | One ordinary prompt, made by rewriting the package as plain prose: the same roles, the same order, the same limits, with none of grooph's files or record-keeping |
 | **C, the prompt in a loop** | That same prompt given to a fresh session again and again, up to the template's round cap |
 
-Each arm was run two or three times. That made 27 runs, costing $60.62. The results were scored by a script against **held-out** test cases, meaning tests the builder was never shown, and also ranked by a judge that did not know which arm was which.
+Each arm was run two or three times. That made 27 runs, costing $60.62. The results were scored by a script against **held-out** test cases, meaning tests the builder was never shown, and also ranked by a judge: a separate AI session that was not told which arm was which.
 
-Before any run, each project wrote down what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It stops anyone from deciding afterwards that whatever happened was a success. The test each project set itself was whether the graph **earned its cost**.
+Before any run, the write-up for each of the four tasks said what result would count as the graph winning and what would count as it losing. Writing that down in advance is called **pre-registration**. It stops anyone from deciding afterwards that whatever happened was a success. The question each one set itself was whether the graph **earned its cost**: whether it did something better that was worth what it cost to run. A typical losing condition was the plain prompt matching the graph's result for less money.
 
 ### What came out
 
 - **No quality advantage was shown.** Within each project, every arm reached the same score on the held-out tests.
-- **None of the four projects met its test for the graph earning its cost.** Three met the condition they had written down for the graph *losing*. The fourth, `review-gate`, met neither condition.
+- **None of the four met its test for the graph earning its cost.** Three met the condition they had written down for the graph *losing*. The fourth, `review-gate`, met neither condition: the results matched, but the prompt was not cheaper every time.
+- **The graph was not always the dearer one.** In `grind-loop` the package cost about twice what the prompt did. In `red-team-loop` the costs overlapped, and the dearest run of all was a prompt run.
 - **The judge never ranked a graph run first.** It was asked once for each project.
 
-In plain terms: on these four small tasks, a plain prompt that said the same things did as well as the package.
+In plain terms: on these four small tasks, a plain prompt that said the same things scored the same as the package.
 
 ### What this does not mean
 
@@ -68,31 +73,33 @@ It would be just as wrong to overstate this result the other way.
 
 That last point is worth sitting with. What the comparison tested was the *package* against the *same plan written as prose*. It did not test whether having a plan helps.
 
-## No brake has yet had to hold
+## No cap or budget has yet had to hold
 
-This is the most important gap, and it is easy to miss.
+This is the most important gap, and it is easy to miss. It is about two of the brakes, the round cap and the budget. Human gates are a different case: runs have stopped at those, as above.
 
 A round cap and a budget are there for the bad day: the run that would otherwise go round forever. To know that a cap works, you need a run that *reaches* it while there is still work it wants to do, and then stops.
 
-**No such run is on record.** In the 33 package runs recorded when version 0.3.0 was published, no round cap and no budget fired. Every run ended earlier, because the work passed or a person was asked. The runs added since have not changed that.
+**No such run is on record.** When version 0.3.0 was published there were 33 recorded runs of a package: the twenty counted proving runs, four earlier ones, and the nine package runs of the comparison. In none of them did a round cap or a budget fire. Every run ended earlier, because the work passed or a person was asked. The runs added since have not changed that.
 
 So it is **not shown that a cap or a budget holds a run that would otherwise go on.** That is why the project stopped saying that grooph "bounds" autonomous work. It may. Nothing recorded shows it.
 
 One run in the first comparison was cut off before it finished. It was a *prompt* run, it was still inside the same caps its graph has, and what stopped it was the experiment's own dollar ceiling, set outside the session. It tells us nothing about a graph's brakes.
 
+It does show that one limit with real force exists, and it is the harness's, not grooph's. Claude Code, started by a script, accepts a spending limit (`--max-budget-usd`) and ends the session when it is reached. If what you need is certainty that a run cannot spend more than a set amount, that option is the thing that gives it.
+
 An experiment designed to produce exactly the missing record, a run that hits a small budget with work still to do, has been written down in advance and built. It has not been run. It is in `experiments/brakes/budget/`.
 
-## Nothing is enforced while a session runs
+## grooph enforces nothing while a session runs
 
-Chapters 5 and 7 said this, and it belongs in the list of what is not shown.
+Chapter 1's table said this, and it belongs in the list of what is not shown.
 
-The validator checks a document. The package instructs a session. While a session is running, nothing in grooph watches it or can stop it. The one check that refuses anything afterwards is the adoption check of chapter 7, which is new, narrow, and not yet audited.
+The validator checks a document. The package instructs a session. While a session is running, nothing in grooph watches it or can stop it. What force there is during a run is the harness's: the tool list, and a spending limit if you set one. The one check of grooph's that refuses anything afterwards is the adoption check of chapter 7, which is new, narrow, and not yet audited.
 
 ## The second comparison
 
 A second, larger comparison was run on 4 October 2026. It added a fourth arm, the task given alone with no plan at all, and used tasks built so that a first attempt would fail. Its records are in the repository under `experiments/comparisons/`.
 
-**Its results are not repeated here.** They have been read by one harness only, and the project's rule is that no page states them as shown until a second has read them. That reading is the next round of the audit in chapter 14. If you want to see the records yourself, they are public, and its write-up says plainly what its author believes they show.
+**Its results are not repeated here.** They have been read by one AI system only, and the project's rule is that no page states them as shown until a second, independent one has read them. That reading is the next round of the audit in chapter 14. The rule is the same whichever way a result points, so do not read anything into the silence. If you want to see the records yourself, they are public, and its write-up says plainly what its author believes they show.
 
 ## What is not known at all
 
@@ -109,14 +116,14 @@ A fair question, and the honest answer has two parts.
 - the plan is **written down before anything runs**, in a form you can read, draw and send to someone;
 - a short list of known mistakes in a plan is **caught before you spend anything**;
 - every brake is **visible** in the picture, not buried in a prompt;
-- afterwards there is **a record** of which steps ran, in what order, and why the run ended.
+- the instructions tell the lead to keep **a record** of which steps ran, in what order, and why the run ended. Every recorded run did leave one. Some are incomplete.
 
 **What you cannot count on**, because it has been tested and not found, or not tested:
 
 - that the result will be better than a careful prompt would give;
 - that a cap will stop a run that wants to continue;
-- that a session will do everything the package says. Most recorded ones did. Two did not.
+- that a session will do everything the package says. Eighteen of twenty records pass the project's check of selected parts. Two do not, and some of the eighteen still left things out.
 
-If what you want is better output from an agent on a small task, the evidence so far says a well-written prompt does as well. If what you want is to see the plan, check it and have a record, that is what grooph is.
+If what you want is better output from an agent on a small task, nothing so far shows that grooph gives it: where it was tested, a prompt saying the same things scored the same. If what you want is to see the plan, check it and have a record, that is what grooph is.
 
 The references for this chapter are [decision 0029](../decisions/0029-what-is-shown-as-of-the-first-audit.md), [claims.md](../claims.md), [comparisons.md](../comparisons.md) and the records under [`experiments/`](../../experiments/).

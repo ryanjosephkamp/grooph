@@ -6,7 +6,15 @@ A **run** is one time an agent session follows a package from start to finish, o
 
 grooph does not do this part. You open the harness in your project and start the run yourself, by pasting the kickoff message or, in Claude Code, by typing the command the package installed (`/add-a-rounding-helper` for our example). From then on the harness's main session is the **lead**, and it works from `LEAD.md`.
 
-**This guide started no agent.** Running one costs money and is not something a guide should do on your behalf. So this chapter does not show a run of the rounding example. It shows a real one that the project keeps: the **proving run** of the same `review-gate` template, recorded on 20 September 2026, on a very similar small task. There the task was to add a `truncate(text, max)` function, and the graph's id is `truncate`. Everything below is that record, read with grooph's own commands. To follow along, copy it into a scratch folder in the layout a project would have: `experiments/patterns/review-gate/run/package/graph.grooph.json` to `.grooph/truncate/graph.grooph.json`, and the folder `experiments/patterns/review-gate/run/runs/20260920-172408` to `.grooph/truncate/runs/`.
+**This guide started no agent.** Running one costs money and is not something a guide should do on your behalf. So this chapter does not show a run of the rounding example. It shows a real one that the project keeps: the **proving run** of the same `review-gate` template, recorded on 20 September 2026, on a very similar small job. There the job was to add a `truncate(text, max)` function, and the graph's id is `truncate`. It is the same graph as ours with a different job filled in. That run cost $1.36 and took a little over four minutes. Everything below is that record, read with grooph's own commands. To follow along, make an empty folder and copy the record into it, laid out the way a project would have it. `<grooph>` stands for the folder you downloaded grooph into.
+
+```bash
+mkdir -p .grooph/truncate/runs
+cp <grooph>/experiments/patterns/review-gate/run/package/graph.grooph.json .grooph/truncate/graph.grooph.json
+cp -R <grooph>/experiments/patterns/review-gate/run/runs/20260920-172408 .grooph/truncate/runs/
+```
+
+Those three lines make the folders, copy the graph, and copy the run's own folder. They print nothing.
 
 ## What the lead is told to do
 
@@ -42,7 +50,7 @@ RUN               GRAPH      STATE    ROUNDS   STOP
 20260920-172408   truncate   halted   0        bar passed
 ```
 
-One run. It is **halted**, which means it is waiting, not that it failed. It went zero rounds past the first pass, and the stop that applied was "bar passed".
+One run. Its state is **halted**: it has stopped and is waiting for a person. Halted does not mean failed. Its loop made one trip and went back zero times ("ROUNDS 0"), and the stop that ended the loop was "bar passed": the work met the standard. So the loop finished well, and *then* the run halted, at the human gate that comes after it.
 
 And one run in full:
 
@@ -78,7 +86,7 @@ Timeline
   n-0007  node:merge-gate         r0 · halt · human gate merge-gate reached: asking the human whether to merge the change the critic pa…
 ```
 
-Read the timeline as a story. The run started. The builder was dispatched and finished. The critic was dispatched and passed the work. The lead checked the loop's stops and found the bar passed. It reached the human gate, wrote that it was halting, asked, and stopped. `done` is still pending because nobody has answered.
+In the list of nodes, "1 run" means that step ran once, and "last pass" means it last finished without a failure. Read the timeline as a story. The run started. The builder was dispatched and finished. The critic was dispatched and passed the work. The lead checked the loop's stops and found the bar passed. It reached the human gate, wrote that it was halting, asked, and stopped. `done` is still pending because nobody has answered.
 
 ## The progress page
 
@@ -112,16 +120,18 @@ Besides these, a note can be an **amendment** (the lead changed its working copy
 
 ## Waiting for a person, and carrying on
 
+The word **halt** is used for three things, and all three mean "stopped, short of finished": a run waiting at a gate, a run that stopped itself at a cap or a budget and reported to you, and a stop box whose outcome is "halt" and not "success". Only the first is expected to carry on.
+
 A run that reaches a gate ends its turn there. If you are sitting in the session, you answer and it continues. If the session was started by a script with nobody watching (a **headless** run), it simply ends at the halt note. To carry on, the same session is resumed and told the run id. It reads `PROGRESS.md`, sees where it stopped, and keeps writing to the same `notes.jsonl`.
 
 ## Four honest things about this record
 
-**The loop did not turn.** The bar passed on the first pass. The critic agreed with the builder, so no work was sent back. This run shows the template's steps happening in order. It does not show a reviewer catching anything.
+**The loop did not turn.** The standard was met on the first trip. The critic agreed with the builder, so no work was sent back. This run shows the template's steps happening in order. It does not show a reviewer catching anything.
 
 **The record is the lead's own account.** The notes and the progress page are written by the session that did the work. The project does check them against a second source, the harness's own log of which subagents ran, with a script called the proving check. That check looks at selected parts of a record. It does not re-judge the work.
 
-**Sessions do not always do exactly what the package says.** An earlier run of this same template stopped at the gate and asked, but did not write the halt note the brief asks for, and the check failed it on that. The project kept that record too. Across the twenty kept proving records, eighteen pass the check and two do not, and some records leave out fields the package asks for.
+**Sessions do not always do exactly what the package says.** This template has an earlier run on record as well. That one stopped at the gate and asked, but did not write the "halting" note the brief asks for, and the check failed it on that. The project kept that record too, beside this one. Across the twenty counted proving records, eighteen pass the check and two do not, and some of the eighteen still leave out things the package asks for.
 
-**No brake had to hold here.** The run ended because the work passed and a person was asked. The round cap of 4 and the budget of 10 were never reached. That is true of every recorded run so far, and [chapter 13](13-what-the-experiments-found.md) says why it matters.
+**No cap or budget had to hold here.** The run stopped because the work passed and a person was asked. The human gate did its job. The round cap of 4 and the budget of 10 were never reached. That is true of every recorded run so far, and [chapter 13](13-what-the-experiments-found.md) says why it matters.
 
 The reference for this chapter is [runs.md](../runs.md), and the write-up of this run is [experiments/patterns/review-gate](../../experiments/patterns/review-gate/README.md).

@@ -30,12 +30,12 @@ The idea is simple: **the one who built the thing should not be the only one to 
 
 So each claim is read twice, by two different harnesses.
 
-1. A Claude Code session, called the **audit lane**, reads every claim against its evidence and writes down what it believes and how sure it is.
+1. A Claude Code session, called the **audit lane**, reads every claim against its evidence and writes down what it believes and how sure it is. ("Lane" here is the project's word for a session with one standing job. It is not the lane of chapter 9.)
 2. **Codex**, a different harness with a different model, reads the same claims and the same evidence as a skeptic. It is asked to attack the first reading as hard as the claims. It changes nothing in the repository. It writes what it found.
 3. The audit lane answers each finding: agree, partly agree, or disagree.
-4. **The owner decides** what gets corrected.
+4. **The owner**, the person the project belongs to, **decides** what gets corrected.
 
-The rounds repeat until neither side holds a finding that blocks a claim. Anything still in dispute is written down with both positions. Every round is kept in the repository under `experiments/audits/`, and a round's record is not edited afterwards.
+These four steps are one round of the audit, and rounds repeat until neither side holds a finding that blocks a claim. Anything still in dispute is written down with both positions. Every round is kept in the repository under `experiments/audits/`, and a round's record is not edited afterwards.
 
 ## What the first audit found
 
@@ -53,7 +53,7 @@ The audit also turned up something that was not a wording problem. Checking the 
 
 ## What still stands in old words
 
-A few things were deliberately left as they were, and the claims page lists them: a blog draft its author is rewriting by hand, a few lines inside files that an experiment in progress has frozen, two long descriptions (one template's and one community graph's), and the write-ups of past experiments. Past write-ups and decisions are never edited. What they got wrong is written in a new decision instead, so the history stays readable.
+A few things were deliberately left as they were, and the claims page lists them with the reason for each. The main one is the project's past write-ups and decisions, which are never edited. What they got wrong is written in a new decision instead, so the history stays readable.
 
 ## What has not been audited yet
 

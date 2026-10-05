@@ -31,7 +31,7 @@ built-in (<grooph>/packages/cli/dist/patterns/)
 Each entry has a name, a kind, three rough words, and one sentence on when to reach for it.
 
 - The **kind** is `graph` (a whole plan) or `fragment` (a few nodes meant to be put into another graph).
-- The three words are **cost**, **speed** and **rigor**. They are the template author's rough judgment: low, medium or high. They are not measurements.
+- The three words are **cost** (low, medium or high), **speed** (fast, medium or slow) and **rigor** (light, standard or high), in that order. They are the template author's rough judgment. They are not measurements.
 
 ## The twenty, in one line each
 
@@ -41,10 +41,10 @@ Each entry has a name, a kind, three rough words, and one sentence on when to re
 | `review-gate` | Build, an independent reviewer checks against a checklist, a person approves. **Our example** |
 | `heterogeneous-critic` | `review-gate` with the reviewer on a different model tier from the builder |
 | `spec-then-loop` | A planner first writes down what "done" means, a person approves that, then build and review against it |
-| `taste-polish` | Polish something until it matches a named reference, judged from captures of the result |
+| `taste-polish` | Polish something until it matches a named reference, judged from saved copies of what it produces |
 | `dual-bar` | A "good enough to ship" line that stops the loop, and a "better" direction that never does |
 | `metric-sandwich` | Cheap automatic checks first, and an expensive reviewer only for what those cannot see |
-| `specialist-critic-bank` | Several reviewers, each with one concern, and a judge who merges their findings by severity |
+| `specialist-critic-bank` | Several reviewers, each with one concern, and a judge who combines their findings, most serious first |
 | `contradiction-seeker` | A reviewer hunts for one concrete counterexample, on a fixed budget |
 | `red-team-loop` | An attacker produces failing cases; the builder is given only those |
 | `debate-then-build` | Two planners argue opposite approaches, a judge picks, a person approves, then a small build |
@@ -54,7 +54,7 @@ Each entry has a name, a kind, three rough words, and one sentence on when to re
 | `gauntlet-decomposed` | `taste-polish` for something too large for one builder: built and judged piece by piece |
 | `ralph-loop` | A list of small items that tests can check one at a time, a fresh worker for each, with the plan and an agent file as the only memory |
 | `retrospective-rewrite` | A grind loop, then a final step that reads the run's notes and *proposes* changes to the graph |
-| `patrol-pulse` | Look at something on a schedule and write a record for a person; never change anything |
+| `patrol-pulse` | Look at something regularly and write a record for a person; never change anything. (The harness's own scheduler starts it each time. grooph starts nothing) |
 | `human-gated-irreversible` | A fragment: a human gate in front of a step that cannot be undone |
 | `merge-queue` | A fragment: several reviewed changes land together only if the combined build passes |
 
@@ -102,7 +102,7 @@ Loop review: builder, critic, merge-gate; stops: bar passed, max iterations: 4, 
 Use it: grooph template use review-gate --name "<graph name>" --set task="…" --set test-command="…" --set checklist="…" --out <file>
 ```
 
-It has three slots: the task, the command that runs the tests, and the file that holds the checklist. Notice `{{test-command}}` still sitting in the bar's text. That is a blank waiting to be filled. Notice also "Not for": every template says when it is the wrong choice.
+It has three slots: the task, the command that runs the tests, and the file that holds the checklist. The edges out of `merge-gate` are marked `[pass]` and `[fail]`: at a gate, the person's "approve" is the pass and their "reject" is the fail. Notice `{{test-command}}` still sitting in the bar's text. That is a blank waiting to be filled. Notice also "Not for": every template says when it is the wrong choice.
 
 ## Using one
 
@@ -128,13 +128,13 @@ When you ask for a template by name, grooph looks in four places and takes the f
 1. **your project**, in `.grooph/templates/`;
 2. **your user folder**, in `~/.grooph/templates/`;
 3. **the built-in library** that comes with grooph;
-4. **a published library on the web**, only if the name was not found nearer.
+4. **the project's published library on the web**, only if the name was not found nearer. This is one of the few times grooph uses the network at all. For a built-in name it never gets that far.
 
 A folder of templates with an index file is a **registry**. You can save any graph of your own as a template with `grooph template save`, and it will be found by name like the built-in ones.
 
 ## What is on record about each template
 
-Each of the twenty has one **proving run**: a single recorded run of the template on a small task, kept in the repository under `experiments/patterns/`, with what the harness printed and what it cost. A script, the **proving check**, then looks at selected parts of each record and asks whether they match the graph: did the named agents run as their own subagents, did the run end where the graph said, are the notes whole.
+Each of the twenty has one kept **proving run**: a recorded run of the template on a small task, in the repository under `experiments/patterns/`, with what the harness printed and what it cost. (A fragment cannot run alone, so each of the two fragments was placed inside a small host graph for its run.) A few templates have an earlier run as well. Those records are kept beside the later one, and the later one is the one counted. A script, the **proving check**, then looks at selected parts of each record and asks whether they match the graph: did the named agents run as their own subagents, did the run end where the graph said, is the run's written record whole.
 
 Eighteen of the twenty records pass that check. Two do not, `gauntlet-decomposed` and `ralph-loop`, and they are published as failures with the reasons. The project calls that "published red".
 

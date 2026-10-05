@@ -80,12 +80,12 @@ It says: at this time, in this session, a subagent of this type started.
 |---|---|
 | The time | What you asked the agent |
 | Which harness | What the agent said |
-| The kind of event: a session, a turn or a subagent starting or stopping, or (if you ask for it) a tool call finishing | What a tool was given or what it returned |
+| The kind of event: a session, a turn or a subagent starting or stopping, or (if you ask for it with `--tools`) a tool call finishing | What a tool was given or what it returned |
 | Ids for the session and the subagent | The contents of any file |
 | The subagent's type and, where given, the model | |
 | A tool's *name*, if you installed with `--tools` | |
 
-One more thing it holds, which the short description "ids, names and times" leaves out: **on the machine it runs on, a line can also hold the path of the working folder and the path where a subagent's transcript is kept.** A path is not content, but it can say something about you, such as a folder's name.
+One more thing it holds, which the short description "ids, names and times" leaves out: **on the machine it runs on, a line can also hold the path of the working folder and the path where a subagent's transcript is kept.** A path is not content, but it can say something about you, such as a folder's name. The file is plain text. If you plan to send it anywhere, open it and look first.
 
 ## Reading what was recorded
 
@@ -112,7 +112,7 @@ claude-code · ended · 0 running, 3 done · session 00aeb49e · exp2
   ✓ general-purpose  6dc2472e  done in 4 s · 1 tool call, last Bash
 ```
 
-One session, now ended. It started two subagents, and the first of those started one of its own (the indented line). Each shows how long it ran and the name of its last tool. Nothing here says what any of them was asked or what it answered.
+One session, now ended. (`exp2` is the name of the folder it worked in. "general-purpose" and "Explore" are the harness's own names for kinds of subagent.) It started two subagents, and the first of those started one of its own (the indented line). Each shows how long it ran and the name of its last tool. This record was made with the `--tools` option, which is why tool calls are counted. Nothing here says what any of them was asked or what it answered.
 
 ## The live view
 
@@ -129,12 +129,12 @@ open http://127.0.0.1:4369/grooph/#/live
 read-only: re-reads the run folder and the events on every request and writes nothing. Ctrl-C stops it.
 ```
 
-(It was stopped after three seconds here. It normally runs until you press Ctrl-C.) The page it serves is the **live view**. It shows two things side by side, refreshed every two seconds:
+(It was stopped after three seconds here. It normally runs until you press Ctrl-C.) The address it prints begins `http://127.0.0.1`, which is a computer's name for itself: the page comes from your own machine and is not on the internet. `--port` only chooses which of the machine's numbered doors to use. The page it serves is the **live view**. It shows two things side by side, refreshed every two seconds:
 
 - **the run**, from the lead's notes: the graph with each node marked pending, running, passed, failed or halted, and each loop's round;
 - **the sessions**, from the event hook: which sessions and subagents exist and which are running right now.
 
-It reads files and writes nothing. It is reachable only from your own computer unless you ask otherwise with `--host`, and when you do, it warns that anyone on that network can read the run.
+It reads files and writes nothing. It is reachable only from your own computer unless you ask otherwise with `--host`. That option is how you watch a run from your phone: the phone must be on the same network, and the command prints the address to open. It also warns that anyone else on that network can then read the run.
 
 One honesty rule is built into every such view: **a silent session is not called "working".** If a session that has not ended has written nothing for half an hour, the view says "last seen" and how long ago. A long turn with no subagents can look quiet without having stopped, and the view does not pretend to know which.
 
@@ -142,7 +142,7 @@ One honesty rule is built into every such view: **a silent session is not called
 
 The events file lives on the machine where the session ran. `grooph events push` sends the events to a branch of their own in your repository, so someone on another machine can read them. A second, longer script, the **sender**, can do this at the end of every turn.
 
-Before you turn the sender on, know what the audit found about it: **it sends more than event lines.** A session's own notes and plans go too, with their text. The "never content" promise is about the event hook's lines. Read [subagents.md](../subagents.md) before using the sender on work you would not want copied to a branch.
+Before you turn the sender on, know what the audit found about it: **it sends more than event lines.** Notes and plans that the session itself has recorded go too, with their text. The "never content" promise is about the event hook's lines. Read [subagents.md](../subagents.md) before using the sender on work you would not want copied to a branch.
 
 ## Maps that show who is at work
 
@@ -150,6 +150,8 @@ Chapter 9's operation map says which sessions exist. The events say which are at
 
 ## What grooph itself keeps about you
 
-Nothing leaves your machine unless you send it. grooph has no account, no server of its own, no cookies and no analytics, and it never calls a model. A share link carries its whole document inside the link, so whoever has the link has the document. See [privacy.md](../privacy.md).
+grooph has no account, no server of its own, no cookies and no analytics, and it never calls a model. It sends nothing about you anywhere. It uses the network only when you ask it to send something (a push, a share link you pass on) or when you ask for a template by a name it cannot find on your computer. A share link carries its whole document inside the link, so whoever has the link has the document. See [privacy.md](../privacy.md).
+
+That is grooph. **The harness is a different matter**: as chapter 1 said, it sends what your agents read to its model provider, under its own terms.
 
 The reference for this chapter is [subagents.md](../subagents.md).

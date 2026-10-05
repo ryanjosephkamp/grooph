@@ -4,6 +4,25 @@
 
 Every term this guide uses, in plain words, with the chapter that explains it. Where a term is also in the project's own [glossary](../GLOSSARY.md), the meaning here is the same, said more simply. If the two ever seem to differ, the project's glossary and [graph-ir.md](../graph-ir.md) are right.
 
+## Everyday programming words
+
+| Term | Meaning | Chapter |
+|---|---|---|
+| **Project** | A folder of files that together make a piece of software | 1 |
+| **Repository** | A project folder that remembers its own history of changes | 1 |
+| **Terminal**, **command** | A window where you type instructions to the computer; one such instruction | 1 |
+| **Test** | A small program that checks another program | 1 |
+| **Exits 0** | Finished and reported "fine". A command that failed reports another number | 1 |
+| **Diff** | A listing of exactly what changed between two versions | 1 |
+| **Branch** | A separate line of work inside a repository | 1 |
+| **Merge** | To fold a branch's changes into the main copy. (A merge *node* in a graph is different: a step that combines several workers' output) | 1, 2 |
+| **Pull request** | A request to merge a branch, shown so someone can look it over first | 1 |
+| **Turn** | One exchange in a session: you say something, the agent answers | 1 |
+| **Token** | The small piece of text that a model's use is measured and billed in | 1 |
+| **Skill** | A set of instructions a harness can load by name | 5, 12 |
+| **MCP** | A common way of giving a session an extra tool it can call | 12 |
+| **The project**, **the owner** | grooph and those who build it; the person it belongs to | start page |
+
 ## The basics
 
 | Term | Meaning | Chapter |
@@ -14,7 +33,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Session** | One conversation with a coding agent | 1 |
 | **Context** | Everything a session has read and written so far. It is all the session knows | 1 |
 | **Subagent** | A helper session that another session starts for one job, with its own empty context | 1 |
-| **Dispatch** | Starting a subagent. For a budget, one node run inside a loop: an agent sent off or a check run | 1, 2 |
+| **Dispatch** | Starting a subagent. When a budget counts dispatches, running a check counts as one too | 1, 2 |
 | **Lead** | The harness's main session, which runs the graph: it dispatches, follows edges, counts rounds and stops for people | 1, 5 |
 
 ## The graph document
@@ -38,6 +57,9 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Check** | A step that runs a command and passes or fails, with no judgment | 2 |
 | **Merge** | A step where pieces of work are combined | 2 |
 | **Stop node** | A step that ends the run, as a success or as a halt | 2 |
+| **Halt** | Stopped, short of finished: waiting at a gate, stopped at a cap or a budget, or ended at a stop node that is not a success | 2, 6 |
+| **Group** | A named set of nodes drawn as one box. A subgrooph is a group that remembers its template | 3, 8 |
+| **Artifact** | Anything a run produces, such as a file or the tests' output | 2 |
 | **Irreversible marker** | A label on a step that does something that cannot be undone: merge, publish, spend, delete | 1, 3 |
 | **Policy** | A rule attached to the whole graph or to part of it, such as critic isolation or no self-grading | 2 |
 | **Lineage** | The record of which template or earlier version a graph came from | 2 |
@@ -57,7 +79,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Stop** | A rule that ends a loop: bar passed, round cap, budget, a person, diminishing returns, or unreadable evidence | 2 |
 | **Round cap** | The most times a loop may go round (the `max-iterations` stop) | 1, 2 |
 | **Budget** | The most a loop may spend, counted in dispatches, minutes, dollars, turns or tokens | 1, 2 |
-| **Brake** | Anything in a graph whose job is to stop a run, make it wait for a person, or keep a judgment honest: gates, approvals, irreversible markers, round caps and budgets, a bar's acceptance, critic isolation, the adaptation level, and checks | 1, 7 |
+| **Brake** | Anything in a graph whose job is to stop a run, make it wait for a person, or keep a reviewer independent: gates, approvals, irreversible markers, round caps and budgets, a bar's acceptance, critic isolation, the adaptation level, and checks. For the most part a brake is a written instruction to the lead, not a lock | 1, 7 |
 | **Adaptation** | How far a run may change its own copy of the graph: adaptive, propose or fixed | 2, 7 |
 
 ## Checking and compiling
@@ -119,7 +141,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Session event** | One line the event hook wrote: ids, names and times, and on its own machine two file paths. Never content | 11 |
 | **Live view** | What `grooph watch` shows: the run and the sessions, as they are now | 11 |
 | **Executive** | The agent session that, using the design skill, proposes candidate graphs | 12 |
-| **Proposal set** | A small file holding one to four candidate graphs with the reasons for each | 12 |
+| **Proposal set** | A small file holding up to four candidate graphs with the reasons for each. The design skill makes one to three | 12 |
 | **Share link** | A link that carries a whole document inside itself | 10, 12 |
 | **Compare view** | The app's screen for comparing the candidates in a proposal set | 12 |
 
@@ -139,4 +161,4 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Audit** | The reading of every claim by two different harnesses, with the owner deciding what is corrected | 14 |
 | **Audit lane** | The Claude Code session that makes the first reading | 14 |
 
-Two words in the project's own glossary are about how the project itself is built, and not about using grooph: a **slice** is one unit of work handed from one session to another, and a **handoff, handback and review** are the three files that carry it.
+The project's own glossary also has a few entries about how the project itself is built ("slice", and the files that pass a piece of work between sessions). They are not about using grooph and are left out here.

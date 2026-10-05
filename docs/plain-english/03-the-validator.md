@@ -4,8 +4,8 @@
 
 The **validator** reads a graph document and looks for a fixed list of mistakes. It is a checker, like a spelling checker for plans. It gives two kinds of answer:
 
-- an **error**, whose code starts with `E_`. A graph with an error cannot be compiled;
-- a **warning**, whose code starts with `W_`. A graph with a warning can be compiled, and the warning is copied into the instructions so the lead sees it.
+- an **error**, whose code starts with `E_`. grooph will not write instructions for a graph with an error. (Writing the instructions is called compiling. Chapter 5.)
+- a **warning**, whose code starts with `W_`. A graph with a warning can still be compiled, and the warning is copied into the instructions so the lead sees it.
 
 Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 27 rules for graphs: 16 errors and 11 warnings.
 
@@ -24,11 +24,17 @@ rounding.grooph.json: 0 errors, 1 warning
 
 No errors. One warning: the builder and the critic are on the same model tier. The warning says a reviewer on a different model *may* catch different mistakes. It does not say it will. Whether it does has not been measured. The `[at: …]` at the end names the pieces involved, so a picture can highlight them.
 
-`--for-export` adds the two checks that only matter when you are about to compile: that the graph has a goal and names a harness.
+`--for-export` adds four checks that only matter when you are about to compile: that the graph has a goal, that it names a harness, that it is not still a template, and that no blank is left unfilled.
 
 ## Seeing a refusal
 
 To see an error we have to break the graph. The command `grooph apply` changes a graph with a small list of edits. Without `--write` it shows what would happen and saves nothing, which makes it safe for experiments.
+
+The commands below look fierce. Each has the same three parts, and you only need to read the middle:
+
+- `echo '…'` prints the text between the quotes. Here that text is a list of edits, each saying what to do (`"op"`), to which piece (`"id"`), and what to set.
+- The upright bar `|` hands that text to the next command.
+- `grooph apply rounding.grooph.json --ops -` applies edits to our file. The lone `-` means "take the edits from what you were just handed".
 
 **Take away every stopping rule from the loop:**
 
@@ -44,7 +50,7 @@ rounding.grooph.json: 1 error, 2 warnings
 applied 1 op; rounding.grooph.json not written (dry run — pass --write to save)
 ```
 
-This is the first worry from chapter 1, "nothing says when to stop", turned into a rule. A path that goes round with no stopping rule is refused.
+This is the first worry from chapter 1, "nothing says when to stop", turned into a rule. A path that goes round (the message calls it a cycle) with no stopping rule on it is refused. The edit also set off a second warning, about the missing budget and cap.
 
 **Let the critic share the builder's context:**
 
@@ -69,7 +75,7 @@ error  E_JUDGMENT_LOOP_NO_BAR  judgment loop "review" has a bar with nothing ins
 error  E_STOP_NOT_INSPECTABLE  loop "review" stops only when its bar passes, but the bar names nothing a critic can inspect. An adjective is not a bar.  [at: review]
 ```
 
-A loop decided by judgment must name something that can be looked at. "It is good" is not a standard anyone can check.
+A loop decided by judgment must name something that can be looked at. "It is good" is not a standard anyone can check. One edit, two errors: they are two rules that both object to a standard with nothing to inspect.
 
 **Mark a step as irreversible with no person in front of it:**
 
@@ -81,7 +87,7 @@ echo '[{"op":"updateNode","id":"builder","set":{"irreversible":["merge"]}}]' | g
 error  E_IRREVERSIBLE_NO_GATE  node "builder" performs irreversible actions (merge) and can be reached without a human decision through "e-critic-fail"; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node  [at: builder, e-critic-fail]
 ```
 
-A step that is **marked** as doing something that cannot be undone must have a person on every way in. The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
+A step that is **marked** as doing something that cannot be undone must have a person on every way in. The message names the arrow from the critic, which no person stands on. (The other arrow into the builder comes from the human gate, and that one is acceptable.) The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
 
 None of these four commands changed the file.
 
@@ -95,7 +101,7 @@ None of these four commands changed the file.
 | `E_DUPLICATE_ID` | Two things share one id | An instruction pointing at the wrong thing |
 | `E_DANGLING_REF` | Something points at an id that does not exist | An arrow that leads nowhere |
 | `E_LOOP_BACK_EDGE` | A loop has no back edge, or its back edge does not really go round inside the loop | Something called a loop that is not one, so its stopping rules count nothing |
-| `E_GROUP_CYCLE` | A group contains itself | A box that would have to be drawn inside itself |
+| `E_GROUP_CYCLE` | A group contains itself. (A group is a named set of nodes drawn as one box: chapter 8) | A box that would have to be drawn inside itself |
 | `E_SECOND_LEAD` | Two nodes both have the role "lead" | Two managers; a graph is one session and its lead |
 | `E_CYCLE_NO_STOP` | A path goes round and no loop with a stop covers it | A loop that never ends |
 | `E_JUDGMENT_LOOP_NO_BAR` | A loop decided by judgment has no bar, or a bar that inspects nothing | Judging against nothing in particular |
@@ -113,8 +119,8 @@ None of these four commands changed the file.
 | Code | In plain words | Why it is worth knowing |
 |---|---|---|
 | `W_HOMOGENEOUS_CRITICS` | A critic is on the same model as the builder it judges | A different model may catch different mistakes |
-| `W_FANOUT_ON_COUPLED` | Work marked as tightly connected is being split among parallel workers | Parallel workers on connected work collide |
-| `W_LONG_LOOP_NO_BUDGET` | A loop has no budget, and no round cap or one above 5 | A loop that may run long with nothing counting the cost |
+| `W_FANOUT_ON_COUPLED` | A node its author labeled `coupled` (tightly connected to others) is being handed to several workers at the same time | Workers changing connected things at once collide |
+| `W_LONG_LOOP_NO_BUDGET` | A loop has no budget, and also either has no round cap or has one above 5 | A loop that may run long with nothing counting the cost |
 | `W_ASPIRATION_AS_ACCEPTANCE` | The "direction to aim in" is being used as the stopping condition | A target that may never be reached cannot stop a loop |
 | `W_ONLY_MAX_ITERATIONS` | The loop's only stop is the round cap | A cap is a backstop, not a definition of done |
 | `W_UNREACHABLE_NODE` | A node can never be reached | A step that will never run |
@@ -122,9 +128,9 @@ None of these four commands changed the file.
 | `W_OUTPUT_NOT_WRITABLE` | A worker must leave a file behind and is not allowed to write one | The lead ends up writing the file for it |
 | `W_GROUP_OVERLAP` | A node sits in two groups, neither inside the other | A picture can draw it in only one box |
 | `W_UNKNOWN_KEY` | The file has a field grooph does not know | A typo in a field name, silently ignored |
-| `W_DOC_TOO_LARGE` | The document is over 24,000 characters | Too big to rewrite in one pass or to put in a link |
+| `W_DOC_TOO_LARGE` | The document is over 24,000 characters | Too big for an agent to rewrite in one go, or to fit in a link |
 
-The repository keeps one failing example and one passing example for every rule, under `fixtures/`. You can run the validator on any of them:
+grooph's own repository keeps one failing example and one passing example for every rule, in a folder called `fixtures/`. From inside the folder you downloaded grooph into, you can run the validator on any of them:
 
 ```bash
 grooph validate fixtures/invalid/E_OWNERSHIP_CONFLICT/two-writers-one-artifact.grooph.json
@@ -138,6 +144,7 @@ fixtures/invalid/E_OWNERSHIP_CONFLICT/two-writers-one-artifact.grooph.json: 1 er
 ## What the validator cannot do
 
 - **It cannot judge a brief.** A badly written brief passes. So does a checklist that checks the wrong things.
+- **It does not check that a file exists.** A standard has to *name* something to inspect. Our example passed with no `docs/REVIEW-CHECKLIST.md` anywhere in the folder.
 - **It cannot see unmarked danger.** A step that deletes files and is not marked `irreversible` passes.
 - **It cannot see a run.** It checks a file. Whether an agent later follows that file is a separate question, answered by records and not by the validator ([chapter 13](13-what-the-experiments-found.md)).
 

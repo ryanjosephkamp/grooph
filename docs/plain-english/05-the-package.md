@@ -6,9 +6,9 @@ A graph document is a plan. An agent cannot run a plan written as JSON any more 
 
 That step is called **compiling**, and the command is `grooph export`. What it writes is the **package**: a small set of text files that tell a harness, in its own terms, how to run this graph.
 
-## Before compiling: what bounds this run?
+## Before compiling: what limits does this graph set?
 
-One command reads a graph and says, in plain words, what limits it.
+One command reads a graph and says, in plain words, what limits are written in it. (The command's own description says it tells you "what bounds a graph". Read that as "what limits the graph writes down". Whether a limit holds in a real run is chapter 13's subject.)
 
 ```bash
 grooph explain rounding.grooph.json
@@ -39,7 +39,7 @@ add-a-rounding-helper: 2 agents · 1 gate · 1 loop · up to 4 rounds · 10 disp
 tiers: 2 strong
 ```
 
-These describe what the graph *says*. They are counts read from the document, not predictions of cost.
+These describe what the graph *says*. They are counts read from the document, not predictions of cost and not guarantees. Two bits of the output need a word: "(before Done, Builder)" lists the steps the gate stands in front of, and "nested loops multiplied" means that when one loop sits inside another, the worst case multiplies their caps.
 
 ## Compiling
 
@@ -72,14 +72,16 @@ Read `.grooph/add-a-rounding-helper/LEAD.md` first and follow it. It is the brie
 
 Seven files. If the graph had an error, `export` would refuse and list the reasons, and write nothing.
 
+Two practical notes. Folders whose names begin with a dot, like `.claude` and `.grooph`, are hidden by default on many computers, so you may have to ask your file browser to show them. And "a Claude Code session opened in ." means: Claude Code, which you install and sign in to separately by its own instructions, started in this same folder.
+
 ## The seven files
 
 | File | What it is |
 |---|---|
-| `.grooph/add-a-rounding-helper/graph.grooph.json` | A copy of the graph document. The only file grooph ever reads back |
+| `.grooph/add-a-rounding-helper/graph.grooph.json` | A copy of the graph document. Of these seven, the only one grooph itself reads again later |
 | `.grooph/add-a-rounding-helper/LEAD.md` | The **lead brief**: the instructions for the main session. The most important file |
 | `.grooph/add-a-rounding-helper/KICKOFF.md` | The short message that starts a run, for pasting |
-| `.claude/skills/add-a-rounding-helper/SKILL.md` | The same start, as a command: typing `/add-a-rounding-helper` in Claude Code starts or resumes a run |
+| `.claude/skills/add-a-rounding-helper/SKILL.md` | The same start, as a **skill**: a set of instructions Claude Code can load by name. Typing `/add-a-rounding-helper` there starts or resumes a run |
 | `.claude/agents/add-a-rounding-helper--builder.md` | The builder's instructions |
 | `.claude/agents/add-a-rounding-helper--critic.md` | The critic's instructions |
 | `.grooph/add-a-rounding-helper/MAPPING.md` | A table saying which file came from which piece of the graph, for a person who wants to adjust one by hand |
@@ -91,7 +93,7 @@ Only the two **agent** nodes get a file of their own. The human gate and the sto
 `LEAD.md` is 227 lines for our example, in eleven numbered sections:
 
 1. **You are the lead.** Run the graph. Do not do the workers' jobs. Do not grade your own work while a critic exists.
-2. **Goal and constraints.** Copied from the document.
+2. **Goal and constraints.** Copied from the document. (Constraints are optional free-text hints about budget or time. Our example has none.)
 3. **Run setup.** Make a folder for this run and copy the graph into it.
 4. **Nodes.** Who can be dispatched and what each returns.
 5. **Edges.** Where each result leads, and what evidence travels with it.
@@ -119,11 +121,15 @@ Here is the part of section 6 that turns our loop's three stops into instruction
 
 Read who is doing the counting: "Keep the count … and evaluate the stop against it." The **lead** counts rounds and dispatches, and the lead decides that a stop has fired. Nothing outside the session counts for it.
 
+"Before every round" here and "when a trip finishes" in chapter 2 are the same moment: after one trip, before the next. The two things in the quoted note that you have not met, a step sent twice in one round and a loop inside a loop, are the unusual cases the budget is there for. Chapter 2's "How many times can the builder run?" works through the numbers.
+
 And the rule for the human gate, from section 7:
 
 ```text
-One rule, in every kind of session. On reaching a gate: first append a note at the gate (`at` = `node:<gate-id>`, or `edge:<edge-id>` for an approval edge) with `"outcome":"halt"` and a `text` naming it, and write `PROGRESS.md`; then ask, with `AskUserQuestion` when it is available, otherwise in plain text; then end your turn. Do not simulate an answer, do not batch two gates into one question, and do not proceed on …
+One rule, in every kind of session. On reaching a gate: first append a note at the gate (`at` = `node:<gate-id>`, or `edge:<edge-id>` for an approval edge) with `"outcome":"halt"` and a `text` naming it, and write `PROGRESS.md`; then ask, with `AskUserQuestion` when it is available, otherwise in plain text; then end your turn. Do not simulate an answer, do not batch two gates into one question, and do not proceed on silence.
 ```
+
+In plain words: write down that you are stopping, ask the person, and stop. Do not make up their answer. (`AskUserQuestion` is Claude Code's own way of putting a question on the screen.)
 
 ## An agent's file
 
@@ -142,13 +148,15 @@ disallowedTools: Edit
 
 This header is Claude Code's own format for defining a subagent. Three lines are worth understanding.
 
-- **`model: sonnet`.** The graph said tier `strong`. The compiler translated that into a real model name for this harness. For Claude Code today, `frontier` becomes `opus`, and `strong` and `fast` both become `sonnet`. You can choose differently for one export with `--models`, without changing the graph.
-- **`tools:`.** The graph's capabilities were translated into the harness's tool names. `read-files` became Read, Glob and Grep. `run-tests` became Bash, the tool that runs commands. `write-outputs` became Write.
-- **`disallowedTools: Edit`.** The graph said `deny: edit-files`, so the Edit tool is withheld.
+- **`model: sonnet`.** The graph said tier `strong`. The compiler translated that into the name of a real model for this harness. (`opus` and `sonnet` are names of models Claude Code offers.) For Claude Code today, `frontier` becomes `opus`, and `strong` and `fast` both become `sonnet`. You can choose differently for one export with `--models`, without changing the graph.
+
+  That has a consequence worth knowing. Two tiers are one model, so a critic on `strong` reviewing a builder on `fast` is the same model reviewing its own kind. The validator's warning cannot see this, because it compares tier names, and those differ. The export says so in a line of its own when a graph has agents on both tiers. In our example the builder and the critic are both `strong`, so they are the same model, and the warning said so.
+- **`tools:`.** The graph's capabilities were translated into the harness's tool names. `read-files` became Read, Glob and Grep (reading and searching). `run-tests` became Bash, the tool that runs commands. `write-outputs` became Write, which creates a whole file.
+- **`disallowedTools: Edit`.** The graph said `deny: edit-files`, so Edit, the tool that changes part of an existing file, is withheld. The critic can still create its own report with Write, and the brief tells it to write only the files named in its outputs.
 
 Below the header, the file holds the brief, the inputs, the outputs, the rule about what evidence may be read, and the exact form the worker must report in. The lead decides where to go next from one line of that report, the **verdict**.
 
-A caution. The tool list narrows what a worker has. It is not a guarantee about what a worker does. A worker that needs Bash to run the tests has, in Bash, a tool that can also change files. The rule "you judge, you do not fix" is in the critic's brief, as an instruction.
+A caution. The tool list is applied by the harness, and it is the one restriction with real force during a run (chapter 1's table). It narrows what a worker has. It is not a guarantee about what a worker does. A worker that needs Bash to run the tests has, in Bash, a tool that can also change files. The rule "you judge, you do not fix" is in the critic's brief, as an instruction.
 
 ## Two ways to deliver a package
 

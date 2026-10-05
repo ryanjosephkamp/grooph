@@ -4,7 +4,7 @@
 
 A graph document is the truth, and it is not pleasant to read. So grooph can show it in several ways. Each way is a **view**: something made *from* the document. A view is never a second copy to keep in step. You change the document, and the views follow.
 
-Almost all of these go in one direction only. You cannot edit a picture and have the graph change. The one place a graph is edited by hand is the canvas in the app ([chapter 12](12-command-line-and-app.md)).
+All of the views in this chapter go in one direction only. You cannot edit a picture and have the graph change. A graph is changed by changing the document: with `grooph apply`, by an agent, or by hand on the app's editing screen, the canvas ([chapter 12](12-command-line-and-app.md)).
 
 ## The picture
 
@@ -140,7 +140,7 @@ flowchart LR
   classDef stop fill:none,stroke-dasharray:3 3,font-size:12px
 ```
 
-Its own first lines say what to remember: it is one way only, and the brakes live in the document.
+You are not meant to read that. A website that understands Mermaid turns it into a drawing. Its own first lines say what to remember: "does not round-trip" means you cannot turn the flowchart back into a graph, and the brakes live in the document.
 
 ## Three dimensions
 
