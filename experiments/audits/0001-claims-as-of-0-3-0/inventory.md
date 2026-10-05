@@ -2,6 +2,8 @@
 
 **Commit:** `dbc7a28` · **Written:** 2026-10-04, by the audit lane, before Codex saw anything · **Count:** 52 claims, C1 to C52, in eight groups.
 
+**This page is the lane's first reading and is kept as it was.** Round 1 changed ten of the readings below; the readings both sides now hold are in [`round-01/RECONCILE.md`](round-01/RECONCILE.md), "Every claim after round one", and on the public page, [`docs/claims.md`](../../../docs/claims.md).
+
 A claim is a sentence about what grooph does to the quality, cost, speed or safety of work, or about what an experiment or a measurement showed (decision 0024). A sentence published in several places in nearly the same words is one claim; every place is listed. Line numbers are at the commit above.
 
 Each row gives the claim in its exact words at its main place, every place it stands, and the lane's reading: **carried**, **other words** (carried with other words, or only under a condition the sentence does not give), or **not carried**. The reasoning, the evidence by path, what each command printed and the words the lane would publish instead are in the claim's block in [`round-01/HANDOFF.md`](round-01/HANDOFF.md), under the same number.

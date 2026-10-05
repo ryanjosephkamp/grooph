@@ -5,17 +5,18 @@ The first audit under decision 0024. Its subject is everything grooph says about
 - **Commit under audit:** `dbc7a281f977dddf7acc7948a0221e2aba93c5e4` (`main` on 2026-10-04). It is eleven commits after the tag `v0.3.0`; those commits changed spelling in the audited files and no claim. It was chosen over the tag because it is what the site serves, and corrections are made against it.
 - **Snapshot:** `/Users/noir/Documents/grooph-exchange/snapshots/0001-claims-as-of-0-3-0/`, a detached worktree at that commit, installed and built.
 - **Audit lane:** a Claude Code session on Opus 5.5 (slice 0075). **Auditor:** Codex with GPT-6.1 Sol, opened by the owner on `/Users/noir/Documents/grooph-exchange/codex/0001-claims-as-of-0-3-0/`.
-- **State:** round 1 is out to Codex. Not ended.
+- **State:** round 1 is reconciled (2026-10-05): 21 findings, none disputed. The corrections wait for the owner; a second round is proposed for the corrected words and for comparison study two. Not ended.
 
 ## What is here
 
 | File | What it is |
 |---|---|
 | [`inventory.md`](inventory.md) | Every claim, with an id, its exact words, where it stands, its evidence, and the lane's own reading before Codex saw anything |
-| [`tools/`](tools/) | Four small scripts written for this audit. They read the records and call no model. Each says at its top how to run it. One reads the study's transcripts, which are kept only on the Mac that ran it |
+| [`tools/`](tools/) | Five small scripts written for this audit. They read the records and call no model. Each says at its top how to run it. One reads the study's transcripts, which are kept only on the Mac that ran it |
 | [`round-01/HANDOFF.md`](round-01/HANDOFF.md) | What the lane asked Codex to read and attack |
-| `round-01/HANDBACK.md` | What Codex found (when it comes back) |
-| `round-01/RECONCILE.md` | Where the two stood, what was corrected, what stayed disputed (after the handback) |
+| [`round-01/HANDBACK.md`](round-01/HANDBACK.md) | What Codex found: 21 findings, what it checked and found sound, what it could not check, and a design for the one experiment it says is needed. Its main receipts are in `round-01/notes/`; the rest of its working notes stay in the exchange folder |
+| [`round-01/RECONCILE.md`](round-01/RECONCILE.md) | The lane's answer to each finding, one reading for each of the 52 claims, and 26 numbered corrections for the owner to accept or decline |
+| [`designs/a-brake-that-binds.md`](designs/a-brake-that-binds.md) | The experiment both sides say is needed before "bound" can be claimed: designed, not run, passed to the driver |
 
 The public register of claims is [`docs/claims.md`](../../../docs/claims.md).
 
@@ -40,6 +41,18 @@ From the driver, 2026-10-04, after reading round one:
 - **The FAQ (pull request #54, branch `slice/0081-faq`) is held for this audit**: three of its answers repeat the wording of C1, C5 and C19. Its wording is settled with the rest when the rounds converge.
 - The paint times in decision 0021 (C44) stay "not re-measured this round". No browser run is started for them.
 - A decision that supersedes 0013 is the owner's. The driver drafts it once Codex and the lane agree on the wording of C1.
+
+## Round 1, as it came out
+
+Codex agreed with most of the lane's narrowing and corrected the lane three times; the records bore Codex out each time.
+
+- **A correction cycle did turn in study one** (F1): in prompt run B-1 a red team reported a failure the written contract covers, the builder revised, and a second red team attacked. The lane had repeated the write-up's "two traces outside the contract" and decision 0012's "no loop turned in 27 runs".
+- **`review-gate` did not meet its pre-registered losing condition** (F2): its second prompt replicate cost more than its second graph replicate. No project met its test for the graph earning its cost; three met their losing condition; one met neither.
+- **One suite was not at its ceiling** (F5): every `grind-loop` run scored 61 of 62.
+
+The lane added one observation to a point Codex could only reason about: `grooph adopt --write` accepts a working copy whose round cap and budget were raised (`tools/adopt-probe.sh`).
+
+After the round: 12 claims carried, 33 carried with other words, 7 not carried as worded. The owner did not carry Codex's prompt back; the lane found the handback on disk on 2026-10-05. One carry out, none back.
 
 ## How it ended
 
