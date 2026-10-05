@@ -16,9 +16,15 @@ import { desktop } from "./support-alive.js";
  *
  * And, with `GROOPH_SHOTS=0092-switch`, every frame the browser paints while Picture is changed for 3D and back, on
  * a map and on a graph, at a phone's width with the processor slowed four times: `switch-<page>-phone-<n>-<when>.jpg`.
+ * That is the switch with no motion, which is a graph's with reduced motion and a map's always.
+ *
+ * With `GROOPH_SHOTS=0092-becomes`, the same on a graph with motion: the picture becoming the scene and the scene
+ * the picture, some twenty frames each way, written to the folder `GROOPH_FRAMES` names and not into the
+ * repository. The strips and the moving picture in the slice folder were put together from them by hand (the
+ * handback says how).
  */
 const SHOTS = process.env["GROOPH_SHOTS"];
-test.skip(SHOTS !== "0092" && SHOTS !== "0092-switch", "screenshots are made on request (GROOPH_SHOTS=0092 or 0092-switch)");
+test.skip(!["0092", "0092-switch", "0092-becomes"].includes(SHOTS ?? ""), "screenshots are made on request (GROOPH_SHOTS=0092, 0092-switch or 0092-becomes)");
 
 const dir = join(repoRoot, "handoffs/0092-a-graph-in-three-dimensions/shots");
 const TEMPLATES = ["review-gate", "grind-loop", "gauntlet-decomposed"];
@@ -30,11 +36,14 @@ const SWITCHED: Record<string, () => string> = {
 };
 for (const [name, address] of Object.entries(SWITCHED)) {
   test.describe(`the switch on a ${name}`, () => {
-    test.skip(SHOTS !== "0092-switch", "the frames of the switch are made with GROOPH_SHOTS=0092-switch");
-    test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+    const moving = SHOTS === "0092-becomes";
+    test.skip(SHOTS !== "0092-switch" && !(moving && name === "graph"), "the frames of the switch are made with GROOPH_SHOTS=0092-switch, of the move with 0092-becomes");
+    test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, reducedMotion: moving ? "no-preference" : "reduce" });
     test(`the frames of the switch on a ${name}`, async ({ page }) => {
       await page.goto(address());
       await expect(page.getByRole("radio", { name: "3D" })).toBeVisible();
+      // A template's details lie over the foot of a phone; out of the way for the move, which is of the whole canvas.
+      if (moving) await page.getByRole("button", { name: "Close panel" }).click();
       await page.waitForTimeout(1200);
       const cdp = await page.context().newCDPSession(page);
       await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
@@ -54,7 +63,9 @@ for (const [name, address] of Object.entries(SWITCHED)) {
       await cdp.send("Page.stopScreencast");
       frames.forEach((frame, k) => {
         const when = [...pressed].reverse().find(([, at]) => at <= frame.at)?.[0] ?? "start";
-        writeFileSync(join(dir, `switch-${name}-phone-${k + 1}-${when}.jpg`), Buffer.from(frame.data, "base64"));
+        const since = Math.round(frame.at - ([...pressed].reverse().find(([, at]) => at <= frame.at)?.[1] ?? frame.at));
+        if (moving) writeFileSync(join(process.env["GROOPH_FRAMES"]!, `becomes-${String(k + 1).padStart(3, "0")}-${when}-${String(since).padStart(4, "0")}.jpg`), Buffer.from(frame.data, "base64"));
+        else writeFileSync(join(dir, `switch-${name}-phone-${k + 1}-${when}.jpg`), Buffer.from(frame.data, "base64"));
       });
     });
   });

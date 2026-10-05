@@ -80,3 +80,39 @@
     padding: 72px 28px 104px;
   }
 }
+
+/* The picture becomes the scene (ui/become.ts). A node and its card are one thing on the way: it is the node's face
+   for the first third, the card's for the last, and both only between, so that the two sets of words are not read
+   through each other the whole way. What has no name, the edges and the sheets and the page round them, fades from
+   the one to the other in the same time. Reduced motion never starts any of it. */
+::view-transition-group(.gv) {
+  animation-duration: 0.3s;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}
+::view-transition-old(.gv) {
+  animation: 0.3s both gv-goes;
+}
+::view-transition-new(.gv) {
+  animation: 0.3s both gv-comes;
+}
+@keyframes gv-goes {
+  35% {
+    opacity: 1;
+  }
+  65%,
+  to {
+    opacity: 0;
+  }
+}
+@keyframes gv-comes {
+  from,
+  35% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+}
