@@ -645,7 +645,7 @@ function onlyMaxIterations(index: GraphIndex): Issue[] {
     );
 }
 
-/** `W_UNREACHABLE_NODE` — a node no entry node leads to. */
+/** `W_UNREACHABLE_NODE` — a node no entry node leads to, along edges or by a loop's stop that continues there. */
 function unreachableNodes(index: GraphIndex): Issue[] {
   const entries = entryNodeIds(index);
   const reached = reachableFrom(index, entries);
@@ -655,7 +655,7 @@ function unreachableNodes(index: GraphIndex): Issue[] {
       warning(
         "W_UNREACHABLE_NODE",
         entries.length === 0
-          ? `node "${node.id}" is not reachable: the graph has no entry node (every node has an inbound edge that is not a loop back edge)`
+          ? `node "${node.id}" is not reachable: the graph has no entry node (every node has an inbound edge that is not a loop back edge, or a loop's stop that continues there)`
           : `node "${node.id}" is not reachable from any entry node (${quoted(entries)}); connect it or remove it`,
         [node.id],
       ),
