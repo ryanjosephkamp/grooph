@@ -175,6 +175,16 @@ It also checked and found sound: the kit's thirteen positions, the turning arith
 11. **The frame rates are headless Chromium's** (above).
 12. **`e2e/screenshots-0087.spec.ts` stays in the tree**, skipped unless asked for, as 0080's does: it makes the pictures and counts the frames.
 
+## After the handback: main merged in, and the piece asked for like the others
+
+The owner approved the pull request on 2026-10-04. `main` had moved under it (#75, the leftovers of slice 0083, which changed how the app's pieces are fetched and what the page names; then #83, a validator rule), so `main` was merged into the branch and one thing was added.
+
+- **The conflict** was one place, `apps/web/vite.config.ts`: the list the page carries for the worker. It now names the compiler, the map's views, this piece, and the embed's two files.
+- **The 3D piece goes through `piece()`** (`apps/web/src/piece.ts`, #75), as the pull request for #75 said it would. A browser does not ask twice for a script that failed; `piece()` follows a failed import with a fetch of the file and a second import, then the same file at an address that differs after its `#`. So pressing 3D after a failure is a new try, in every engine. `views.tsx` imports `piece` directly: it is in the file every address loads, as React is, and the build's pieces are the same files as before (the shared file's name did not change).
+- **A test**, in `map-space.spec.ts`: the piece comes though its load fails until its file has been fetched, and after a failure with no connection, pressing 3D again in the same page fetches it. It fails with the plain `import()` put back. Seventeen tests in that file now.
+- **Figures after the merges, on this Mac** (CI reads each line about 0.2 KB higher): first load 178.53 of 180, scripts 157.10, styles 19.91, first visit 220.55, a template's address 276.46, an embed 126.44; the 3D piece 8.10 of 9; the views piece 7.07. Most of the movement since the handback is `main`'s (#75's retry and two names, #83's rule); this branch adds the one name in the HTML and nothing else to a first load.
+- **Run at that head:** core 367, CLI 120, web 79; the browser suite 226 passed, 141 skipped, none failed.
+
 ## Prompt to paste into the driver session
 
 ```text
