@@ -269,7 +269,7 @@ Example
 Take a run's working copy as the graph's next version.
 
 ```text
-grooph adopt <run dir> [--into <graph file>] [--write]
+grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]
 
 Take what a run learned: its working copy becomes the next version of the graph. Shows the
 changes the run made (each with the amendment note that says why) and the version it would
@@ -277,7 +277,17 @@ write. Nothing is written without --write; the source the package placed is neve
 
   --into <graph file>   where the next version goes (default .grooph/graphs/<graph-id>.grooph.json,
                         beside the run's .grooph/<graph-id>/ folder)
+  --allow <change>      adopt a change that removes or loosens a brake, by the name it is
+                        listed under (loop:review.stops); repeatable
   --write               write it
+
+A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
+marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
+isolation, the adaptation level. The working copy is compared with the source on the whole
+graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
+with its reasons, and --write is refused until each is asked for with --allow; one that
+tightens is adopted with the rest, and said. What is compared and what is not:
+docs/templates.md, "Refreshing".
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting

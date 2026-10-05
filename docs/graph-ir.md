@@ -185,7 +185,7 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
     Amending at kickoff is fine when reading the task already shows a gap (the first adaptive run added a file to a builder's `owns` before dispatching anyone). Redesigning the graph up front is not adaptation: a change to the graph's overall shape before any node has run is a `proposal`.
   - `propose`: the lead changes nothing and records `proposal` notes.
   - `fixed`: the lead follows the graph exactly; when it cannot, it halts and asks.
-- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. An adaptive lead may tighten any of them (tightening is an amendment, so `propose` and `fixed` runs do not tighten either). Loosening one is a `proposal` for the human. A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other.
+- **Brakes are not adaptable.** At every adaptation level the lead may not remove or loosen a human gate, an edge `approval`, an `irreversible` marker, a `budget` or `max-iterations` stop, a bar's `acceptance`, critic isolation, or the `adaptation` level itself. An adaptive lead may tighten any of them (tightening is an amendment, so `propose` and `fixed` runs do not tighten either). Loosening one is a `proposal` for the human, and `grooph adopt` refuses a working copy that has loosened one until the person asks for that change by name (`runs.md` §5). A new loop added by the lead needs a stop, and a bar if it is a judgment loop, like any other.
 
 ## 3. Validation rules
 

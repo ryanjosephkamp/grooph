@@ -263,7 +263,7 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
     const dry = capture();
     assert.equal(await grooph(["adopt", run], dry), 0);
     assert.match(text(dry.stdout), /loosens a brake/);
-    assert.match(text(dry.stdout), /loop:sandwich\.stops {2}raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.match(text(dry.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
     assert.match(text(dry.stdout), /--allow loop:sandwich\.stops/);
     assert.match(text(dry.stdout), /--write would be refused/);
     assert.deepEqual(tree(dir), before);
@@ -272,7 +272,7 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
     const refused = capture();
     assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
     assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
-    assert.match(text(refused.stdout), /loop:sandwich\.stops {2}raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.match(text(refused.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
     assert.deepEqual(tree(dir), before);
     assert.equal(existsSync(target), false);
 
@@ -285,7 +285,7 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
     // Asked for by name, it is adopted, and the report says what was allowed.
     const allowed = capture();
     assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
-    assert.match(text(allowed.stdout), /loop:sandwich\.stops {2}raises the round cap from 5 to 50; raises the budget from 80 to 800 turns {3}\(asked for by name\)/);
+    assert.match(text(allowed.stdout), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns {3}\(asked for by name\)/);
     const adopted = readGraph(target);
     assert.equal(adopted.version, 2);
     assert.deepEqual(stopsOf(adopted).map((stop) => (stop.kind === "max-iterations" ? stop.n : stop.kind === "budget" ? stop.limit : undefined)), [undefined, 50, 800]);
