@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
-import { adoptWorkingCopy, canonicalize, canonicalizeWithoutLayout, checkAdoption, formatIssue, parseGraphText, type Graph } from "@grooph/core";
+import { adoptCommandLine, adoptWorkingCopy, canonicalize, canonicalizeWithoutLayout, checkAdoption, formatIssue, parseGraphText, type Graph } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
 import type { Output } from "../print.js";
@@ -100,6 +100,7 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     io.out("");
     io.out(`loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow ${check.refused[0]!.name}`);
     for (const change of check.refused) io.out(`  ${change.name.padEnd(width)}${change.loosens}`);
+    io.out(`  all of them, on purpose: ${adoptCommandLine(dir, [...meant, ...check.refused].map((change) => change.name), flags.into)}`);
   }
   if (meant.length > 0) {
     io.out("");

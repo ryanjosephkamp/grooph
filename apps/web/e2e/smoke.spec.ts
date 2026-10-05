@@ -8,7 +8,7 @@ import { buildShareEnvelope, encodeSharePayload, parseMapText } from "@grooph/co
 import { expect, test, type Page } from "@playwright/test";
 import { strFromU8, unzipSync } from "fflate";
 
-import { downloadBytes, fixturePath, goldenDir, importDocument, node, readTree, repoRoot, requestsOut, status, viewIsStill, visitIsOver } from "./support.js";
+import { downloadBytes, fixturePath, goldenDir, importDocument, libraryDocs, linkFor, node, readTree, repoRoot, requestsOut, runBundle, runTab, status, viewIsStill, visitIsOver } from "./support.js";
 
 /**
  * Handoff 0081, item 4: the smoke set. Five visits a stranger makes, short enough to run in Safari's engine
@@ -390,6 +390,29 @@ test("a screen that could not be fetched is asked for again when the next one is
   expect(await page.evaluate(() => (window as unknown as { sameTab?: boolean }).sameTab)).toBe(true);
 });
 
+test("Adopt with its check of the brakes refused saves nothing, and adopts once the check can be had", async ({ page }) => {
+  // A run's page holds a working copy to its source's brakes before it saves one (docs/runs.md §5), by a piece
+  // fetched when Adopt is pressed. No comparison, no save: not an unchecked one.
+  let refused = 0;
+  await page.route(/\/assets\/brakes-[^/]*\.js$/, (route) => {
+    refused += 1;
+    return route.abort();
+  });
+  await page.goto(linkFor(runBundle("slice-0007-sandwich")));
+  await runTab(page, "Changes").tap();
+  await page.getByRole("button", { name: "Adopt as version 2" }).tap();
+  await expect(page.getByText("Could not check this working copy's brakes, so nothing was saved. Press Adopt to try again.")).toBeVisible();
+  await expect(page.locator(".adopt-done")).toHaveCount(0);
+  expect(refused).toBeGreaterThan(0);
+
+  // The connection is back: the same button, in the same page, checks and saves. One document is in the library
+  // then, the one saved now: the refused press had saved none. (Read once, after the app has made its own store.)
+  await page.unroute(/\/assets\/brakes-[^/]*\.js$/);
+  await page.getByRole("button", { name: "Adopt as version 2" }).tap();
+  await expect(page.locator(".adopt-done")).toContainText("Saved version 2 of Slice 0007 sandwich to this device as a new graph.");
+  expect((await libraryDocs(page)).map((doc) => doc.version)).toEqual([2]);
+});
+
 test.describe("with the service worker running", () => {
   // Every other spec blocks service workers so it tests the files as built; the offline visit needs the worker.
   test.use({ serviceWorkers: "allow" });
@@ -434,6 +457,38 @@ test.describe("with the service worker running", () => {
     await page.reload();
     await expect(node(page, "builder")).toBeVisible();
     await expect(page.locator(".react-flow__edge")).toHaveCount(5);
+  });
+
+  test("with no network, Adopt still checks a working copy's brakes: the worker holds the piece", async ({ page }) => {
+    const app = await serveBuiltApp();
+    try {
+      await page.goto(app.url);
+      await frontPageIsUp(page);
+      await visitIsOver(page, out);
+    } finally {
+      await app.stop();
+    }
+    await expect(page.request.get(app.url)).rejects.toThrow();
+
+    // A run whose working copy raised its round cap, opened from a link with no network: not saved, and named.
+    const loosened = runBundle("slice-0007-sandwich");
+    loosened.working.loops[0]!.stops = loosened.working.loops[0]!.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 50 } : stop));
+    await page.goto(`${app.url}${linkFor(loosened).slice(2)}`);
+    await page.reload();
+    await runTab(page, "Changes").tap();
+    await page.getByRole("button", { name: "Adopt as version 2" }).tap();
+    await expect(page.locator('[data-brakes="refused"]')).toContainText("Not adopted: this working copy loosens a brake.");
+    await expect(page.locator('[data-brakes="loosens"] li')).toHaveText(["loop:sandwich.stops raises the round cap from 5 to 50"]);
+    await expect(page.locator(".adopt-done")).toHaveCount(0);
+
+    // And the run as it was, which loosens nothing, is checked and saved.
+    await page.goto(`${app.url}${linkFor(runBundle("slice-0007-sandwich")).slice(2)}`);
+    await page.reload();
+    await runTab(page, "Changes").tap();
+    await page.getByRole("button", { name: "Adopt as version 2" }).tap();
+    await expect(page.locator(".adopt-done")).toContainText("Saved version 2 of Slice 0007 sandwich to this device as a new graph.");
+    // One document in the library, the one saved now: the refused press had saved none.
+    expect((await libraryDocs(page)).map((doc) => doc.version)).toEqual([2]);
   });
 
   test("the wait for a visit to be over does not pass while a file the page names is not held: it says which", async ({ page }) => {

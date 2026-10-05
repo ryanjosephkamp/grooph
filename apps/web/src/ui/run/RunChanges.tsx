@@ -1,7 +1,8 @@
 import { formatIssue, type ChangedField, type Id } from "@grooph/core";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { listChange, type RunModel } from "../../doc/run.js";
+import { piece } from "../../piece.js";
 import { saveVersion } from "../../store/runs.js";
 import { editorHref } from "../open/save.js";
 
@@ -64,6 +65,8 @@ export function RunChanges({ model, onNote }: { model: RunModel; onNote: (id: Id
   const { source, working } = bundle;
   const [decision, setDecision] = useState<Decision | null>(null);
   const [busy, setBusy] = useState(false);
+  /** What the check of the working copy's brakes had to say: a refusal, or what was tightened (`./brakes.tsx`). */
+  const [said, setSaid] = useState<ReactNode>(null);
   const amendments = new Map(model.summary.amendments.map((n) => [n.id, n]));
   const next = source.version + 1;
 
@@ -71,6 +74,10 @@ export function RunChanges({ model, onNote }: { model: RunModel; onNote: (id: Id
     if (!adoption.ok) return;
     setBusy(true);
     try {
+      // The working copy's brakes against the source's, by a piece fetched now. No comparison, no save.
+      const judged = await piece("brakes", () => import("./brakes.js")).then((brakes) => brakes.judge(source, adoption.doc, bundle.run), () => undefined);
+      setSaid(judged ? judged.view : <p className="refusal" role="alert">Could not check this working copy's brakes, so nothing was saved. Press Adopt to try again.</p>);
+      if (!judged?.ok) return;
       const record = await saveVersion(adoption.doc);
       setDecision({ kind: "adopted", key: record.key, version: adoption.doc.version });
     } finally {
@@ -133,6 +140,7 @@ export function RunChanges({ model, onNote }: { model: RunModel; onNote: (id: Id
           <p className="adopt-done" role="status">
             Saved version {decision.version} of {source.name || source.id} to this device as a new graph. The source stays as it was.{" "}
             <a href={editorHref(decision.key)}>Open version {decision.version}</a>
+            {said}
           </p>
         ) : decision?.kind === "discarded" ? (
           <p className="adopt-done" role="status">
@@ -166,9 +174,10 @@ export function RunChanges({ model, onNote }: { model: RunModel; onNote: (id: Id
               Adopt saves the working copy as version {next} of {source.name || source.id}, a new graph on this device; the source stays as it is. Discard leaves
               everything as it was.
             </p>
+            {said}
             <div className="actions-row">
               <button type="button" className="btn btn-primary" disabled={busy} onClick={() => void adopt()}>
-                Adopt as version {next}
+                {busy ? "Checking its brakes…" : `Adopt as version ${next}`}
               </button>
               <button type="button" className="btn" onClick={() => setDecision({ kind: "discarded" })}>
                 Discard
