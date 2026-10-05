@@ -1117,8 +1117,9 @@ test("a pane's name stands where no card is over it, and an edge's head is at th
         const drawn = (window as unknown as { drawn: { said: { text: string; x: number; y: number; wide: number; tall: number }[]; heads: [number, number][] } }).drawn;
         const under = (x: number, y: number, w: number, h: number): number => cards.reduce((sum, c) => sum + Math.max(0, Math.min(x + w, c[0] + c[2]) - Math.max(x, c[0])) * Math.max(0, Math.min(y + h, c[1] + c[3]) - Math.max(y, c[1])), 0) / (w * h);
         return {
-          // Each pane's name, with the share of its box that lies under a card.
-          names: drawn.said.filter((s) => / · (loop|subgrooph)/.test(s.text)).map((s) => [s.text, Math.round(under(s.x, s.y - s.tall / 2, s.wide, s.tall) * 100)] as const),
+          // Each line of each pane's name (the only words Panes draws; a long name is on more lines than one), with
+          // the share of its box that lies under a card.
+          names: drawn.said.map((s) => [s.text, Math.round(under(s.x, s.y - s.tall / 2, s.wide, s.tall) * 100)] as const),
           // Each arrowhead's tip, with whether it is more than two pixels inside a card.
           heads: drawn.heads.map(([x, y]) => cards.some((c) => x > c[0] + 2 && x < c[0] + c[2] - 2 && y > c[1] + 2 && y < c[1] + c[3] - 2)),
         };
@@ -1133,6 +1134,47 @@ test("a pane's name stands where no card is over it, and an edge's head is at th
   // The check looked at something: the loops of twenty templates, twice, and every edge of each.
   expect(names).toBeGreaterThan(30);
   expect(heads).toBeGreaterThan(200);
+});
+
+test("on a phone the sheet that went down for a kind comes up again when the kind never comes, and when another panel is asked for; and where cards touch in a frame that is not held, the stage is the frame's height", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  const body = page.locator("aside.sheet .sheet-body");
+  // The stage cannot be fetched: the picture stays, with the template's details as they were.
+  await page.route(STAGE, (route) => route.abort());
+  await page.goto("./#/templates/built-in/grind-loop");
+  await canvasIsQuiet(page);
+  await expect(body).toBeVisible();
+  await view(page, "3D").click();
+  await expect(page.locator(".graph-views-note")).toContainText("could not be fetched");
+  await expect(body).toBeVisible();
+  await page.unroute(STAGE);
+  // The editor, a node's panel up, and Panes: the panel is down to its head, with no button to make it taller.
+  await importDocument(page, "review-loop.grooph.json", readFileSync(join(repoRoot, "fixtures/valid/review-loop.grooph.json"), "utf8"));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await page.locator(".react-flow__node").first().click();
+  await expect(body).toBeVisible();
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  await expect(body).toBeHidden();
+  await expect(page.locator("aside.sheet .sheet-toggle")).toBeHidden();
+  // Another panel, asked for from the bar over the canvas: it comes up whole, with its button.
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await expect(page.locator("aside.sheet")).toHaveAttribute("aria-label", /Export/);
+  await expect(body).toBeVisible();
+  await expect(page.locator("aside.sheet .sheet-toggle")).toBeVisible();
+  // With the panel closed the frame has the page, and is asked for no height: this graph is one row of four, and
+  // at this width its cards touch. The line that says so makes the bar over the frame taller; the stage is as
+  // tall as the frame is with it.
+  await closeSheet(page);
+  await viewIsStill(page);
+  await expect(page.locator(".s3-bar .s3-tight")).toBeVisible();
+  await page.waitForTimeout(120);
+  expect(await page.locator(".s3").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--s3-tall"))).toBe("");
+  const [has, shown] = await page.locator(".s3-frame canvas").evaluate((el) => [(el as HTMLCanvasElement).height, Math.round(el.getBoundingClientRect().height) * devicePixelRatio]);
+  expect(has).toBe(shown);
 });
 
 test("a browser that gives no drawing surface: the switch is still there, the page says why and shows what it showed, and the visit does not remember the kind that never drew", async ({ page }) => {
@@ -1165,9 +1207,10 @@ test("a browser that gives no drawing surface: the switch is still there, the pa
   await page.evaluate(() => sessionStorage.setItem("groophSpace", "panes"));
   await page.reload();
   await canvasIsQuiet(page);
-  await page.getByRole("button", { name: "Close panel" }).click();
   await view(page, "3D").click();
   await expect(page.locator(".graph-views-note")).toHaveText("That view cannot be drawn in this browser. The picture shows the same graph.");
+  // The template's details, which went down to their head for the panes, are up again with the picture.
+  await expect(page.locator("aside.sheet .sheet-body")).toBeVisible();
   await expect(node(page, "builder")).toBeVisible();
   await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator("#root")).not.toBeEmpty();

@@ -199,6 +199,9 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
             if (!clear(measure(), 0)) host.dataset["tight"] = "";
           } else if (!clear(fits, 0)) host.dataset["tight"] = "";
         }
+        // The words that say so can make the bar over the frame taller, and a frame that is not held is then
+        // shorter: the canvas is the frame's height as it is with them.
+        if ("tight" in host.dataset) measure();
         scroller.scrollTop = scrolled;
         tallFor = what();
       }
@@ -305,7 +308,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         const cut = [reached ? outside(pts, reached) : null, left ? outside([...pts].reverse(), left) : null];
         if (cut[0]) pts = cut[0];
         if (cut[1]) pts = outside([...pts].reverse(), left!)?.reverse() ?? pts;
-        if (p.inset) pts = inset(pts, cut[0] ? 2 : p.inset[0], cut[1] ? 1 : p.inset[1]);
+        if (p.inset) pts = inset(pts, cut[1] ? 2 : p.inset[0], cut[0] ? 1 : p.inset[1]);
         // A line that grows is drawn from its start, so far along.
         if (p.grow && grown < 1) pts = pts.slice(0, Math.max(2, Math.ceil(pts.length * grown)));
         trace(pts);

@@ -187,7 +187,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const round = loop ? (seen[loop] = note.round ?? seen[loop] ?? 0) : null;
       if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
       // A loop's note that names the stop that fired: its ways back were not taken on what had been reported.
-      if (focus.kind === "loop" && note.stop !== undefined) ways.stopped(focus.id);
+      if (focus.kind === "loop" && note.stop !== undefined && note.stop !== "human") ways.stopped(focus.id);
       for (const id in seen) most[id] = Math.max(most[id] ?? 0, seen[id]!);
       const out: NonNullable<Model["run"]>["notes"][number] = {
         says: step.caption,
@@ -198,13 +198,15 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
         verdict: note.verdict ?? null,
         what: note.proposal ? "proposal" : note.amendment ? "amendment" : null,
         open: note.outcome === "started",
-        stop: focus.kind === "loop" && note.stop !== undefined,
+        // A person's stop halts the run and is lifted by their answer: the way back is taken then, on what was reported.
+        stop: focus.kind === "loop" && note.stop !== undefined && note.stop !== "human",
         // The note's own words, cut at a word: a note about the run or about an edge is not a move.
         words: own.length > 150 ? `${own.slice(0, own.lastIndexOf(" ", 150))} …` : own,
       };
-      // A dispatch is a result at an agent or a check: not the line before it. Its minutes are by the stamps, which
+      // A dispatch is a result at an agent or a check: not the line before it, and not a note that reports nothing
+      // (a word, a proposal, an amendment at the node). Its minutes are by the stamps, which
       // a note may leave out (graph-ir section 6: read from the clock or omitted, never estimated): then it has none.
-      if (node && (node.kind === "agent" || node.kind === "check") && note.outcome !== "started") {
+      if (node && (node.kind === "agent" || node.kind === "check") && note.outcome && note.outcome !== "started") {
         out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: note.ended ? Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) : null }) - 1;
         last = note.ended ?? last;
       }
@@ -237,8 +239,9 @@ type Said = { round: number | null; outcome: string | null; verdict: string | nu
  * Three rules of the contract are kept. Two notes running at one node, the first the line before its dispatch, are
  * one visit, and nothing was taken between them, though the node may have an edge to itself. A stop is looked at
  * before any way back is taken: where a loop's note names the stop that fired, no way back of that loop was taken
- * on what its nodes had reported by then (`stopped`). And a second `invalid-evidence` from a node in a row routes as
- * a fail.
+ * on what its nodes had reported by then (`stopped`); a person's stop is not such a one, since their answer lifts it
+ * and the way back is taken then. And a second `invalid-evidence` from a node in a row, in one round, routes as a
+ * fail.
  */
 export function walk(edges: MEdge[]): { into(to: Id): (MEdge & { r0: number })[]; at(node: Id, said: Said): void; stopped(loop: Id): void } {
   const said = new Map<Id, Said & { k: number; routes: string | null; not: Set<Id> }>();
@@ -260,8 +263,10 @@ export function walk(edges: MEdge[]): { into(to: Id): (MEdge & { r0: number })[]
     at(node, now) {
       k += 1;
       const was = said.get(node);
-      // A node that has ended is not un-ended by a later line of the same visit; one still running has said nothing yet.
-      if (!now.open || !was || was.open) said.set(node, { ...now, k, routes: now.outcome === "invalid-evidence" && was?.outcome === "invalid-evidence" && !was.open ? "fail" : now.outcome, not: new Set() });
+      // A node that has ended is not un-ended by a later line that reports nothing: the line before its next
+      // dispatch, or a word at the node. One still running has said nothing yet. The second invalid evidence is the
+      // second in one round: the node is asked once more in the same round, and no further.
+      if (!was || was.open || (!now.open && (now.outcome ?? now.verdict) !== null)) said.set(node, { ...now, k, routes: now.outcome === "invalid-evidence" && was?.outcome === "invalid-evidence" && !was.open && was.round === now.round ? "fail" : now.outcome, not: new Set() });
       reached.set(node, k);
       [last, open] = [node, now.open ? node : null];
     },

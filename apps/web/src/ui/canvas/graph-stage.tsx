@@ -122,7 +122,7 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
       <div className="s3-bar">
         <span>Drag to turn. Pinch to move in and out.</span>
         {/* Shown in its place where the frame is as tall as it may be and cards still touch (`stage/draw.ts`). */}
-        <span className="s3-tight">Not every card has room here. Close the details under this view, or move in, to read them.</span>
+        <span className="s3-tight">Not every card has room here. Move in to read them, or close the details if they are open under this view.</span>
         <button type="button" aria-label="Move out" onClick={() => stage.current?.zoom(0.8)}>
           −
         </button>
