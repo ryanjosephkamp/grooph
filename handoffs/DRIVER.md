@@ -66,9 +66,9 @@ The owner answered every open card at about 2:30 p.m. and said in the chat: "You
 
 ## Where things stand
 
-The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above:
-
 When the owner brings his own review of the site and of grooph, it goes in `handoffs/reviews/`; that folder's README says what he sends, what you may do before he answers (save it and write cards, nothing else), and what to check before the file is committed.
+
+The review desk is https://claude.ai/artifact/5vsrBabzGtYkZuQw56PXHg. `docs/PROGRESS.md` is the state. As of the date above:
 
 **Merged on the owner's word on 2026-10-04**: #63, #58, #57, #65 (afternoon); #83, #71, #72, #77, #78, #80, #79, #74 (evening, from the desk); #88 (late, on "merge whatever in the right order"). **On 2026-10-05, on his word**: #93 and #94 just after midnight; #76 (the themes, approved on the desk for when it was ready) at 1:05 a.m.; #98 (his change to the switch) at 1:23 a.m.; #101 (the picture becomes the scene, on his desk note) at 3:33 a.m.; #97 (study two) and #102 (the lighter first load) at noon and #104 (the two limits lowered, decision 0028) at 12:23 p.m., on his answers; #105 (the audit's corrections) at 2:34 p.m. and #117 (the app's Adopt button) at 2:40 p.m., on his answers of the afternoon. **Merged by the driver under decision 0023**, each on the desk's list with its reason: #47 to #53, #55, #56, #59, #61, #62, #64, #66 to #69, #73, #75, #81, #82, #84 to #87, #89 to #92, #95, #96, #99, #100, #103, #107, #109, #110, #112 to #116. So on `main` and live: the site in his style; subgroophs, all but their MCP tools; a map in three views; 3D for any loop graph and a recorded run replayed in it; six themes for a picture; default tiers without Fable; the compiler's frontmatter fix; the game experiment on paper and its Claude Code arm made ready. None of it is released: the version is still 0.3.0.
 
