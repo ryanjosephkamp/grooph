@@ -2,8 +2,27 @@ import "../../embed.css";
 
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
+import { piece } from "../../piece.js";
 import { Embed } from "./Embed.js";
 import { isEmbedHash, parseEmbedHash } from "./link.js";
+
+// An embed's address may name one of the pictures' five themes that are not Paper (docs/themes.md). Then the
+// themes' piece is fetched, and it dresses the embed; with none named an embed fetches nothing more, whatever the
+// reader's own browser has kept. `light` and `dark` alone, Paper, and a name that is no theme's fetch nothing.
+const NAMED = /^#\/embed\?(?:[^&]*&)*?theme=(?:blueprint|ink|phosphor|transit|chalk)(?:-(?:light|dark|auto))?(?:&|$)/;
+const named = (): Promise<unknown> | undefined => (NAMED.test(location.hash) ? piece("themes", () => import("../theme/themes.js")).catch(() => undefined) : undefined);
+addEventListener("hashchange", () => void named());
+// An embed that is to be drawn in a theme is not shown in Paper first: it is held back, a moment and no longer,
+// until the themes are here and have dressed it.
+const asked = named();
+if (asked) {
+  const held = document.createElement("style");
+  held.textContent = ".gx{visibility:hidden}";
+  document.head.append(held);
+  const shown = (): void => held.remove();
+  void asked.then(shown);
+  setTimeout(shown, 800);
+}
 
 /**
  * The embed as a page of its own. `main.tsx` loads this module, and not the
