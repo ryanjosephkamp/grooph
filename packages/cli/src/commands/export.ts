@@ -56,28 +56,40 @@ export function tiersSaid(
 const HEADER_LINES = 200;
 const HEADER_LINE = 1000;
 
-const unquoted = (text: string): string => (text.length >= 2 && (text[0] === '"' || text[0] === "'") && text.at(-1) === text[0] ? text.slice(1, -1) : text);
+/** A header's line as grooph writes one: a plain key at the line's start, a colon, and a value on the same line. */
+const PLAIN_LINE = /^[A-Za-z][A-Za-z0-9_-]*:( |$)/;
+
+/** A header grooph does not read: it is not in the plain form grooph writes, so what it names cannot be said for sure. */
+export type Unread = "unread";
 
 /**
- * Every `model:` a file's header names, read as loosely as a harness might read it: a byte order mark and carriage
- * returns set aside, space after the opening dashes, the key in quotes or with space around it, the value with or
- * without quotes. A header that names the key twice gives both: which of them a reader takes is the reader's to
- * say, so both count. Nothing here can take long over a hostile file: the text is cut to a header's size before it
- * is looked at, and a key and its value are found by position, with no pattern that tries again.
+ * Every `model:` a file's header names, when the header is in the plain form grooph writes: `key: value` lines, one
+ * to a line, between two lines of three dashes. A byte order mark, carriage returns and space after the dashes are
+ * set aside; a key named twice gives both. Any other header is `"unread"`: YAML has many ways to name a key (a flow
+ * mapping, a quoted or escaped key, a merge, a tag, a key under another), a header's reader is not grooph's to
+ * guess at, and grooph has no YAML parser. Unread is never taken for "names no model": an export over such a file
+ * stops, as for a model that would change. A file with no header at all names none.
+ *
+ * Nothing here can take long over a hostile file: the text is cut to a header's size before it is looked at.
  */
-export function headerModels(text: string): string[] {
+export function headerModels(text: string): string[] | Unread {
   const plain = (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text).slice(0, HEADER_LINES * HEADER_LINE);
   const lines = plain.split(/\r\n|\r|\n/, HEADER_LINES + 1);
   if ((lines[0] ?? "").trimEnd() !== "---") return [];
   const models: string[] = [];
-  for (const whole of lines.slice(1)) {
-    const line = whole.slice(0, HEADER_LINE);
+  for (const line of lines.slice(1)) {
     const alone = line.trimEnd();
-    if (alone === "---" || alone === "...") break;
-    const colon = line.indexOf(":");
-    if (colon >= 0 && unquoted(line.slice(0, colon).trim()) === "model") models.push(unquoted(line.slice(colon + 1).trim()));
+    if (alone === "---" || alone === "...") return models;
+    if (line.length > HEADER_LINE || !PLAIN_LINE.test(line)) return "unread";
+    // A character that a YAML reader may take for the end of a line, or that has no place in one.
+    for (let i = 0; i < line.length; i += 1) {
+      const c = line.charCodeAt(i);
+      if ((c < 0x20 && c !== 0x09) || (c >= 0x7f && c <= 0x9f) || c === 0x2028 || c === 0x2029) return "unread";
+    }
+    if (line.startsWith("model:")) models.push(line.slice("model:".length).trim());
   }
-  return models;
+  // The header did not close within a header's length.
+  return "unread";
 }
 
 /** The start of a file, as far as a header can reach: a file of any size is not read whole to look at its first lines. */
@@ -91,22 +103,25 @@ function headOf(file: string): string {
   }
 }
 
-export type ModelChange = { path: string; was: string[]; now: string[] };
+export type ModelChange = { path: string; was: string[] | Unread; now: string[] | Unread };
 
 /** The models of a header as a line says them, each a JSON string: a value read from a file is someone else's text. */
-export const modelsSaid = (models: readonly string[]): string => (models.length === 0 ? "(the session's)" : models.map((model) => JSON.stringify(model)).join(" and "));
+export const modelsSaid = (models: readonly string[] | Unread): string =>
+  models === "unread" ? "(not read: its header is not in the plain form grooph writes)" : models.length === 0 ? "(the session's)" : models.map((model) => JSON.stringify(model)).join(" and ");
 
 /**
- * The files already in place whose `model:` this export would change. A file grooph wrote is replaced without
- * asking, except in this: the model an agent runs on is what the run costs and how well it does, and an export from
- * a shell or a server with another tier map (or none) would otherwise change it and say nothing.
+ * The files already in place whose `model:` this export would change, or whose header cannot be read for one. A
+ * file grooph wrote is replaced without asking, except in this: the model an agent runs on is what the run costs
+ * and how well it does, and an export from a shell or a server with another tier map (or none) would otherwise
+ * change it and say nothing.
  */
 export function modelChanges(places: readonly { path: string; full: string; contents: string }[]): ModelChange[] {
   return places.flatMap((place) => {
     if (!existsSync(place.full) || !statSync(place.full).isFile()) return [];
     const was = headerModels(headOf(place.full));
     const now = headerModels(place.contents);
-    return was.length === now.length && was.every((model, i) => model === now[i]) ? [] : [{ path: place.path, was, now }];
+    const same = was !== "unread" && now !== "unread" && was.length === now.length && was.every((model, i) => model === now[i]);
+    return same ? [] : [{ path: place.path, was, now }];
   });
 }
 

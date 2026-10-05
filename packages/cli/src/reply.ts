@@ -4,8 +4,10 @@
  * A reply is lines. Every line opens with one of the tool's own labels (`LABELS`), and whatever comes from outside
  * the tool (a document, a template, an argument, the environment, a file's name, another session) is carried after
  * the label as a JSON string: a quote, a line break, a character that does not show and a look-alike letter are all
- * inside the quotes, where they are data. Only ids that are ids stand bare. The last line may be the tool's own
- * `next:` line, which holds the tool's words, tool and argument names, and ids, and nothing else from outside.
+ * inside the quotes, where they are data. An id is no exception: an id is made from a name, and a name is anyone's
+ * sentence with hyphens in it. Only a number, and a word from a closed list of the tool's own (`word`), stands bare.
+ * The last line may be the tool's own `next:` line, which holds the tool's words and tool and argument names, and
+ * nothing at all from outside: where it needs an id or a slot's key, it points at the line that holds it.
  *
  * There is no list of characters to keep up with: a line's first word is the tool's by construction, and
  * `test/reply-lines.test.ts` holds it with strings drawn from all of Unicode in every field of every input.
@@ -23,8 +25,8 @@ export const q = (value: unknown): string => JSON.stringify(typeof value === "st
 /** What an id is made of (graph-ir section 1). */
 export const ID = /^[a-z][a-z0-9-]*$/;
 
-/** An id as a line says it: bare when it is an id, a JSON string when it is anything else. */
-export const ident = (value: unknown): string => (typeof value === "string" && ID.test(value) ? value : q(value));
+/** A word from a closed list of the tool's own (a kind, a tier, a target), said bare; anything else is someone's text. */
+export const word = (value: unknown, allowed: readonly string[]): string => (typeof value === "string" && allowed.includes(value) ? value : q(value));
 
 /** A rule's code as a line says it: bare when it has a code's shape. */
 const code = (value: string): string => (/^[EW]_[A-Z0-9_]+$/.test(value) ? value : q(value));
@@ -89,9 +91,9 @@ export const refusalText = (r: Refusal): string => reply([`refused: ${r.lines[0]
 
 const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
 
-/** One issue as a line: its severity, its code, what it says as a JSON string, and the ids it is at. */
+/** One issue as a line: its severity, its code, what it says and the ids it is at, each as a JSON string. */
 export const issueLine = (issue: IssueLike): string =>
-  `${issue.severity === "error" ? "error" : "warning"} ${code(issue.code)} ${q(issue.message)}${issue.at.length > 0 ? ` at ${issue.at.map(ident).join(", ")}` : ""}`;
+  `${issue.severity === "error" ? "error" : "warning"} ${code(issue.code)} ${q(issue.message)}${issue.at.length > 0 ? ` at ${issue.at.map(q).join(", ")}` : ""}`;
 
 /** The issue lines a refusal carries: each with its code, then one `fix` line per code. */
 export const issueLines = (issues: readonly IssueLike[]): string[] => [...issues.map(issueLine), ...fixLines(issues)];

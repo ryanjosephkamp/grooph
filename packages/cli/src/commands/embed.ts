@@ -50,7 +50,17 @@ dragged. Example:
 const BAR_HEIGHT = 49;
 const REPLAY_HEIGHT = 124;
 
-const attr = (text: string): string => text.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+/**
+ * An attribute's value, on one line: the four characters HTML reads, and every control character and line break
+ * as its numbered reference. The frame is one line of the two this prints, whatever a document's name holds.
+ */
+const attr = (text: string): string =>
+  text
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(new RegExp("[" + "\\u0000-\\u001f\\u007f-\\u009f" + "\u2028" + "\u2029" + "]", "g"), (ch) => `&#${ch.charCodeAt(0)};`);
 
 /** The picture an embed opens on at a phone's width, and so its height there. */
 function pictureHeight(envelope: ShareEnvelope): number {

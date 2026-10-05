@@ -76,9 +76,9 @@ import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
 import type { McpContext } from "./mcp.js";
-import { isLink, nearestExisting, pathArg, putAll, shownIn, within } from "./place.js";
+import { isLink, nearestExisting, pathArg, putAll, shownIn, within, writeArg } from "./place.js";
 import { defaultRegistryEnv, scanFolder, scanLocal, type Found } from "./registry.js";
-import { ID, Refusal, counted, ident, issueLine, issueLines, issuesBlock, q, refusalText, reply } from "./reply.js";
+import { ID, Refusal, counted, issueLine, issueLines, issuesBlock, q, refusalText, reply, word } from "./reply.js";
 import { LoadError, deflateRaw, loadProposals } from "./share-io.js";
 
 export { nearestExisting, pathArg, within } from "./place.js";
@@ -113,6 +113,13 @@ const str = (v: unknown): string | undefined => (typeof v === "string" && v.trim
 const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
 const isObject = (v: unknown): v is Json => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** The closed lists a word may be said bare from: anything not in its list is someone's text, and is quoted. */
+const COSTS = ["low", "medium", "high"];
+const SPEEDS = ["fast", "medium", "slow"];
+const RIGORS = ["light", "standard", "high"];
+const KINDS = ["graph", "fragment"];
+const SOURCES = ["project", "user", "built-in"];
+
 /** Where the rules and their repairs are written down for an agent. */
 const AGENTS_PAGE = "docs/agents.md";
 
@@ -125,8 +132,10 @@ export const refusing =
   (body: (args: Json, ctx: McpContext) => ToolOut | Promise<ToolOut>): Tool["run"] =>
   async (args, ctx) => {
     try {
-      // Before anything else: a path argument with a character no path has is refused, whatever the tool.
-      for (const key of ["path", "out", "into"]) if (typeof args[key] === "string") pathArg(args[key], key);
+      // Before anything else: a path argument with a character no path has is refused, whatever the tool. A path to
+      // write is held to plain ASCII.
+      if (typeof args["path"] === "string") pathArg(args["path"], "path");
+      for (const key of ["out", "into"]) if (typeof args[key] === "string") writeArg(args[key], key);
       return await body(args, ctx);
     } catch (err) {
       if (err instanceof Refusal) return refusalOut(err);
@@ -135,11 +144,12 @@ export const refusing =
   };
 
 /**
- * The `next:` line after a graph was checked: what an author usually does now. `id` names the graph when the server
- * remembers it; like everything a `next:` line holds from outside the tool, it is said only when it is an id.
+ * The `next:` line after a graph was checked: what an author usually does now. `known` says the server remembers
+ * the graph, so its id will do in place of the document. The id itself is on the reply's first line, as a JSON
+ * string: a `next:` line holds nothing from outside the tool, an id included.
  */
-export function nextAfter(issues: readonly IssueLike[], forExport: boolean, id?: string): string {
-  const by = id === undefined || !ID.test(id) ? "" : ` (pass "graph": "${id}"; the server remembers it)`;
+export function nextAfter(issues: readonly IssueLike[], forExport: boolean, known = false): string {
+  const by = known ? ' (pass its id as "graph"; the server remembers it)' : "";
   if (hasErrors(issues)) return `fix what is listed with grooph_apply${by} (each "fix" line names the usual operation; ${AGENTS_PAGE} has them all), then grooph_validate`;
   if (!forExport) return `grooph_validate${by}, which adds the rules a package must pass (a goal, a target, no unfilled slot)`;
   return `grooph_share${by} for a link the person opens, grooph_picture to show it here, grooph_export for the package`;
@@ -160,20 +170,27 @@ const REMEMBERED = 64;
  * Keep a graph a tool returned or was handed, under its id, so a later call can name it and need not carry it.
  * `made` says the graph is new under this id (a template used, an empty graph, a rename): if the id already named a
  * different graph, that one is replaced, and the line returned says so, so the replacement is never silent.
+ * `fromFile` says the graph was read from a file: a file's graph does not take the id from a different graph of
+ * this conversation (a later call by that id would then work on what the file holds, with no word said). It is left
+ * unremembered, and the line returned says so.
  */
-export function remember(ctx: McpContext, doc: Graph, made = false): string | undefined {
+export function remember(ctx: McpContext, doc: Graph, made = false, fromFile = false): string | undefined {
   const graphs = (ctx.graphs ??= new Map<string, Graph>());
   const before = graphs.get(doc.id);
+  const differs = before !== undefined && canonicalize(before) !== canonicalize(doc);
+  if (fromFile && differs) {
+    return `note: the id ${q(doc.id)} already names another graph in this conversation, so the graph from this file is not remembered under it: name the file with "path" each time.`;
+  }
   graphs.delete(doc.id);
   graphs.set(doc.id, doc);
   if (graphs.size > REMEMBERED) graphs.delete(graphs.keys().next().value!);
-  if (!made || before === undefined || canonicalize(before) === canonicalize(doc)) return undefined;
+  if (!made || !differs) return undefined;
   // Nothing is lost when what was there was only a start: an empty graph, or the same template with a slot still to fill
   // (the usual second call, with the value the person has now given).
-  const onlyAStart = before.nodes.length === 0 || (before.lineage?.from === doc.lineage?.from && findSlots(before).length > 0);
+  const onlyAStart = before!.nodes.length === 0 || (before!.lineage?.from === doc.lineage?.from && findSlots(before!).length > 0);
   return onlyAStart
     ? undefined
-    : `note: the id "${doc.id}" named another graph in this conversation until now; it names this one from here on. To keep both, give this one another name (grooph_apply, setGraphName).`;
+    : `note: the id ${q(doc.id)} named another graph in this conversation until now; it names this one from here on. To keep both, give this one another name (grooph_apply, setGraphName).`;
 }
 const PATH_ARG = { type: "string", description: "Or a graph file to read (*.grooph.json), absolute or relative to the project folder." };
 const OUT_ARG = { type: "string", description: "Also write the graph to this file, inside the project folder; the name ends in .grooph.json. The document comes back either way." };
@@ -188,7 +205,7 @@ const fileOf = (ctx: McpContext, given: string): string => (isAbsolute(given) ? 
  * What a document handed over as JSON is called in a reply: its id, when that is an id. An `id` of any other text is
  * the caller's or a file's words, and is not repeated.
  */
-const labelOf = (json: unknown): string => (isObject(json) && typeof json["id"] === "string" && ID.test(json["id"]) ? json["id"] : "the document");
+const labelOf = (json: unknown): string => (isObject(json) && typeof json["id"] === "string" && ID.test(json["id"]) ? `the document ${q(json["id"])}` : "the document");
 
 /** Whether JSON says it is one of grooph's documents: a graph, a proposal set, an operation map or a run. */
 const marked = (json: unknown): boolean => (isObject(json) && "grooph" in json) || isProposalSetLike(json) || isMapLike(json) || isRunBundleLike(json);
@@ -208,10 +225,10 @@ export function readJson(args: Json, ctx: McpContext, tool: string): { json: unk
       const text = given.trim();
       if (ID.test(text)) {
         const kept = ctx.graphs?.get(text);
-        if (kept) return { json: kept, label: text };
+        if (kept) return { json: kept, label: `the document ${q(text)}` };
         const near = closest(text, [...(ctx.graphs?.keys() ?? [])]);
         throw new Refusal(
-          `No graph ${ident(text)} has been made in this conversation${near === undefined ? "" : `; did you mean ${ident(near)}?`} (the server remembers the graphs its tools return, until it restarts).`,
+          `No graph ${q(text)} has been made in this conversation${near === undefined ? "" : `; did you mean ${q(near)}?`} (the server remembers the graphs its tools return, until it restarts).`,
           'pass the whole document as "graph", or make one with grooph_use_template or grooph_new',
         );
       }
@@ -249,7 +266,7 @@ export function readJson(args: Json, ctx: McpContext, tool: string): { json: unk
 }
 
 /** A graph document, checked against the schema. A map, a proposal set or a run is named for what it is and refused. */
-export function readGraph(args: Json, ctx: McpContext, tool: string): { doc: Graph; file?: string; label: string } {
+export function readGraph(args: Json, ctx: McpContext, tool: string): { doc: Graph; file?: string; label: string; note?: string } {
   const read = readJson(args, ctx, tool);
   const other = isMapLike(read.json) ? "an operation map" : isProposalSetLike(read.json) ? "a proposal set" : isRunBundleLike(read.json) ? "a run bundle" : undefined;
   if (other !== undefined) {
@@ -263,8 +280,8 @@ export function readGraph(args: Json, ctx: McpContext, tool: string): { doc: Gra
       { issues: parsed.issues },
     );
   }
-  remember(ctx, parsed.doc);
-  return { doc: parsed.doc, ...(read.file !== undefined ? { file: read.file } : {}), label: read.label };
+  const note = remember(ctx, parsed.doc, false, read.file !== undefined);
+  return { doc: parsed.doc, ...(read.file !== undefined ? { file: read.file } : {}), label: read.label, ...(note !== undefined ? { note } : {}) };
 }
 
 // ─── writing a file ───────────────────────────────────────────────────────
@@ -301,7 +318,7 @@ function save(ctx: McpContext, args: Json, given: string, contents: string | Uin
  * a hand-edited file look like grooph's, or grooph's look hand-edited.
  */
 function graphName(ctx: McpContext, given: string): string {
-  pathArg(given, "out");
+  writeArg(given, "out");
   if (!/[^/\\]\.grooph\.json$/i.test(given)) {
     throw new Refusal(`${q(given)} is not a name for a graph: a graph is saved as <name>.grooph.json.`, 'give "out" a name ending .grooph.json');
   }
@@ -312,10 +329,9 @@ function graphName(ctx: McpContext, given: string): string {
   // folder under .grooph is a package's, named for its graph.
   const kept = forms.find(([folder, owner, name]) => name === "graph.grooph.json" && folder === ".grooph" && owner !== undefined && !["graphs", "proposals", "templates"].includes(owner));
   if (kept !== undefined) {
-    const owner = kept[1] ?? "";
     throw new Refusal(
       `${q(given)} is the graph a package keeps: grooph_export writes it, and the next export reads it to tell its own files from yours.`,
-      `save the graph elsewhere (for example .grooph/graphs/${ID.test(owner) ? owner : "<name>"}.grooph.json), then grooph_export with "into" to bring the package up to date`,
+      `save the graph elsewhere (for example .grooph/graphs/<name>.grooph.json), then grooph_export with "into" to bring the package up to date`,
     );
   }
   return given;
@@ -396,16 +412,8 @@ function findTemplate(ctx: McpContext, id: string): Found {
   const hit = all.find((f) => f.doc.id === id);
   if (hit) return hit;
   const near = closest(id, all.map((f) => f.doc.id));
-  throw new Refusal(`No template ${q(id)} in the project's templates, the user's or the built-in library${near === undefined ? "" : `; did you mean ${ident(near)}?`}`, "grooph_templates with no id lists every template with when to use it");
+  throw new Refusal(`No template ${q(id)} in the project's templates, the user's or the built-in library${near === undefined ? "" : `; did you mean ${q(near)}?`}`, "grooph_templates with no id lists every template with when to use it");
 }
-
-/**
- * Slot keys as the tool's own `next:` line may say them: only when each is one word of letters, digits, `_` and `-`,
- * at most 32 characters. A key is free text in the schema and a project's template is anyone's document, so any
- * other key is left where it is listed, as a JSON string on a `slot` line, and the `next:` line points there.
- */
-const KEY = /^[A-Za-z0-9_-]{1,32}$/;
-const keysForNext = (keys: readonly string[]): string | undefined => (keys.length > 0 && keys.every((key) => KEY.test(key)) ? keys.join(", ") : undefined);
 
 /** The questions for slots still unfilled, as lines. */
 function slotQuestions(doc: Graph, template: Graph): string[] {
@@ -415,7 +423,7 @@ function slotQuestions(doc: Graph, template: Graph): string[] {
   const lines = [`slots unfilled: ${unfilled.length}; the document holds ${unfilled.length === 1 ? "it" : "each"} as {{key}}:`];
   for (const use of unfilled) {
     const slot = slots.find((s) => s.key === use.key);
-    lines.push(`  slot ${q(use.key)}: ${slot ? `${q(slot.ask)} (e.g. ${q(slot.example)})` : "the template gives no question for it"}, at ${use.at.map(ident).join(", ")}`);
+    lines.push(`  slot ${q(use.key)}: ${slot ? `${q(slot.ask)} (e.g. ${q(slot.example)})` : "the template gives no question for it"}, at ${use.at.map(q).join(", ")}`);
   }
   return lines;
 }
@@ -541,7 +549,7 @@ export const AUTHOR_TOOLS: Tool[] = [
           };
         });
         const lines = rows.flatMap((r) => [
-          `template ${ident(r.id)}: ${q(r.title)}${r.kind === "fragment" ? " (a fragment: nodes to add to a graph, not a whole graph)" : ""}, cost ${ident(r.profile.cost)}, speed ${ident(r.profile.speed)}, rigor ${ident(r.profile.rigor)}`,
+          `template ${q(r.id)}: ${q(r.title)}${r.kind === "fragment" ? " (a fragment: nodes to add to a graph, not a whole graph)" : ""}, cost ${word(r.profile.cost, COSTS)}, speed ${word(r.profile.speed, SPEEDS)}, rigor ${word(r.profile.rigor, RIGORS)}`,
           `  when: ${q(r.whenToUse)}`,
           ...(r.notFor !== undefined ? [`  not for: ${q(r.notFor)}`] : []),
           `  shape: ${q(r.shape)}`,
@@ -555,22 +563,22 @@ export const AUTHOR_TOOLS: Tool[] = [
       const block = found.doc.template!;
       const slots = block.slots ?? [];
       const lines = [
-        `template ${ident(found.doc.id)}: ${q(block.title)} (${ident(block.kind)}, version ${Number(found.doc.version)}, ${ident(found.source)})`,
+        `template ${q(found.doc.id)}: ${q(block.title)} (${word(block.kind, KINDS)}, version ${Number(found.doc.version)}, ${word(found.source, SOURCES)})`,
         `Summary: ${q(block.summary)}`,
         `When to use: ${q(block.whenToUse)}`,
         ...(block.notFor !== undefined ? [`Not for: ${q(block.notFor)}`] : []),
-        `Profile: cost ${ident(block.profile.cost)}, speed ${ident(block.profile.speed)}, rigor ${ident(block.profile.rigor)}`,
+        `Profile: cost ${word(block.profile.cost, COSTS)}, speed ${word(block.profile.speed, SPEEDS)}, rigor ${word(block.profile.rigor, RIGORS)}`,
         `Shape: ${q(shapeLine(estimateShape(found.doc)))}`,
         ...(block.credits ?? []).map((c) => `Inspired by: ${q(c.name)} at ${q(c.url)}, ${q(c.note)}`),
         ...(slots.length > 0 ? ["Slots:", ...slots.map((s) => `  slot ${q(s.key)}: ${q(s.ask)} (e.g. ${q(s.example)})`)] : ["Slots: none."]),
-        ...found.doc.loops.map((loop) => `loop ${ident(loop.id)}: members ${loop.members.map(ident).join(", ")}; stops ${loop.stops.map((stop) => q(describeStop(stop))).join(", ")}`),
+        ...found.doc.loops.map((loop) => `loop ${q(loop.id)}: members ${loop.members.map(q).join(", ")}; stops ${loop.stops.map((stop) => q(describeStop(stop))).join(", ")}`),
       ];
-      const keys = keysForNext(slots.map((s) => s.key));
-      const called = ID.test(found.doc.id) ? `id "${found.doc.id}"` : "the id above";
+      // A slot's key is the template's text, and several short ones in a row make a sentence: the next: line names none
+      // of them, and points at the lines that hold them.
       const next =
         block.kind === "fragment"
           ? "a fragment is not a whole graph. Add its nodes and edges to your graph with grooph_apply; the document in the next block is what to copy from."
-          : `grooph_use_template with ${called}, a name, and ${slots.length === 0 ? "no values: it has no slots" : keys !== undefined ? `values for ${keys}` : "a value for each slot listed above"}`;
+          : `grooph_use_template with this template's id, a name, and ${slots.length === 0 ? "no values: it has no slots" : "a value for each slot listed above"}`;
       return { text: reply(lines, next), data: { source: found.source, template: docData(found.doc) }, more: [docBlock(found.doc)] };
     }),
   },  {
@@ -595,7 +603,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       if (id === undefined) throw new Refusal('grooph_use_template needs "id": the template to start from.', "grooph_templates lists them");
       const found = findTemplate(ctx, id);
       if (found.doc.template?.kind === "fragment") {
-        throw new Refusal(`${ident(found.doc.id)} is a fragment, not a whole graph.`, "grooph_templates with that id returns its document; add those nodes and edges to your graph with grooph_apply");
+        throw new Refusal(`${q(found.doc.id)} is a fragment, not a whole graph.`, "grooph_templates with that id returns its document; add those nodes and edges to your graph with grooph_apply");
       }
       const given = args["values"];
       if (given !== undefined && !isObject(given)) throw new Refusal('"values" must be an object of slot values by key.', "grooph_templates with the template's id lists its slots");
@@ -613,26 +621,23 @@ export const AUTHOR_TOOLS: Tool[] = [
       }
       const checked = writable(made);
       if ("schema" in checked) {
-        throw new Refusal([`The graph made from ${ident(found.doc.id)} does not match the schema, so nothing was returned:`, ...issueLines(checked.schema)], "a slot value probably broke a field; pass plain text values and call again", { issues: checked.schema });
+        throw new Refusal([`The graph made from ${q(found.doc.id)} does not match the schema, so nothing was returned:`, ...issueLines(checked.schema)], "a slot value probably broke a field; pass plain text values and call again", { issues: checked.schema });
       }
       const doc = checked.doc;
-      const replaced = remember(ctx, doc, true);
       const issues = validate(doc);
       const unfilled = findSlots(doc).map((use) => use.key);
       const out = str(args["out"]);
+      // The file first: a call that is refused leaves what the server remembers as it was.
       const wrote = out === undefined ? undefined : save(ctx, args, graphName(ctx, out), canonicalize(doc), () => false, "a file this tool read");
+      const replaced = remember(ctx, doc, true);
       const lines = [
-        `graph ${ident(doc.id)} from template ${ident(found.doc.id)}@${Number(found.doc.version)} (${ident(found.source)}): ${q(shapeLine(estimateShape(doc)))}`,
+        `graph ${q(doc.id)} from template ${q(found.doc.id)}@${Number(found.doc.version)} (${word(found.source, SOURCES)}): ${q(shapeLine(estimateShape(doc)))}`,
         ...slotQuestions(doc, found.doc),
         ...issuesBlock(issues),
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${q(wrote)}`] : []),
       ];
-      const keys = keysForNext(unfilled);
-      const next =
-        unfilled.length > 0
-          ? `get ${keys !== undefined ? `the values for ${keys}` : "a value for each slot listed above"} from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)`
-          : nextAfter(issues, false, doc.id);
+      const next = unfilled.length > 0 ? "get a value for each slot listed above from the person, then grooph_use_template again with all of them (or fill the fields with grooph_apply)" : nextAfter(issues, false, true);
       return { text: reply(lines, next), data: { ok: !hasErrors(issues), graph: docData(doc), unfilled, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },  {
@@ -658,11 +663,11 @@ export const AUTHOR_TOOLS: Tool[] = [
       const goal = str(args["goal"]);
       const target = str(args["target"]);
       const doc = newGraph({ name, ...(goal !== undefined ? { goal } : {}), ...(target !== undefined ? { target } : {}) });
-      const replaced = remember(ctx, doc, true);
       const out = str(args["out"]);
       const wrote = out === undefined ? undefined : save(ctx, args, graphName(ctx, out), canonicalize(doc), () => false, "a file this tool read");
-      const lines = [`graph ${ident(doc.id)}: empty`, ...(replaced !== undefined ? [replaced] : []), ...(wrote !== undefined ? [`wrote ${q(wrote)}`] : [])];
-      const next = `grooph_apply with ${ID.test(doc.id) ? `"graph": "${doc.id}"` : "the graph"} and "ops", for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"...","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]`;
+      const replaced = remember(ctx, doc, true);
+      const lines = [`graph ${q(doc.id)}: empty`, ...(replaced !== undefined ? [replaced] : []), ...(wrote !== undefined ? [`wrote ${q(wrote)}`] : [])];
+      const next = `grooph_apply with this graph's id as "graph" and "ops", for example [{"op":"addNode","kind":"agent","name":"Builder","set":{"role":"builder","brief":"...","outputs":["src/"],"allow":["read-files","edit-files","run-tests"]}},{"op":"addNode","kind":"stop","name":"Done"},{"op":"connect","from":"builder","to":"done"}]`;
       return { text: reply(lines, next), data: { ok: true, graph: docData(doc), ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },  {
@@ -706,19 +711,21 @@ export const AUTHOR_TOOLS: Tool[] = [
         );
       }
       const doc = checked.doc;
-      const replaced = remember(ctx, doc, doc.id !== read.doc.id);
       const forExport = args["forExport"] === true;
       const issues = validate(doc, { forExport });
       const out = str(args["out"]);
       const wrote = out === undefined ? undefined : save(ctx, args, graphName(ctx, out), canonicalize(doc), (full) => read.file !== undefined && sameFile(read.file, full), "the file this call read");
+      // The file's own graph, changed, is the graph the server remembers unless the file's graph was not remembered itself.
+      const replaced = remember(ctx, doc, doc.id !== read.doc.id, read.note !== undefined) ?? read.note;
+      const known = ctx.graphs?.get(doc.id) === doc;
       const made = result.ids.filter((id): id is string => id !== null);
       const lines = [
-        `applied ${plural(ops.length, "operation")} to ${ident(doc.id)}${made.length > 0 ? `; ids: ${made.map(ident).join(", ")}` : ""}`,
+        `applied ${plural(ops.length, "operation")} to ${q(doc.id)}${made.length > 0 ? `; ids: ${made.map(q).join(", ")}` : ""}`,
         ...issuesBlock(issues),
         ...(replaced !== undefined ? [replaced] : []),
         ...(wrote !== undefined ? [`wrote ${q(wrote)}`] : []),
       ];
-      return { text: reply(lines, nextAfter(issues, forExport, doc.id)), data: { ok: !hasErrors(issues), graph: docData(doc), ids: result.ids, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
+      return { text: reply(lines, nextAfter(issues, forExport, known)), data: { ok: !hasErrors(issues), graph: docData(doc), ids: result.ids, issues, ...(wrote !== undefined ? { wrote } : {}) }, more: [docBlock(doc)] };
     }),
   },  {
     name: "grooph_explain",
@@ -728,19 +735,20 @@ export const AUTHOR_TOOLS: Tool[] = [
     inputSchema: { type: "object", properties: { graph: GRAPH_ARG, path: PATH_ARG } },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     run: refusing((args, ctx) => {
-      const { doc } = readGraph(args, ctx, "grooph_explain");
+      const { doc, note } = readGraph(args, ctx, "grooph_explain");
       const explained = explain(doc);
       // The same facts `grooph explain` prints, each after a label: a loop's name, what a stop says and what a gate
       // asks are the document's words.
       const lines = [
-        `graph ${ident(explained.id)}`,
+        `graph ${q(explained.id)}`,
         ...(explained.loops.length === 0 ? ["loops: none."] : []),
         ...explained.loops.flatMap((loop) => [
-          `loop ${ident(loop.id)} ${q(loop.name)}: ${loop.maxRounds === null ? "no round cap" : `at most ${plural(loop.maxRounds, "round")}`}.`,
+          `loop ${q(loop.id)} ${q(loop.name)}: ${loop.maxRounds === null ? "no round cap" : `at most ${plural(loop.maxRounds, "round")}`}.`,
           ...loop.stops.map((stop) => `  stop: ${q(stop.says)}`),
         ]),
         ...(explained.gates.length === 0 ? ["gates: none."] : explained.gates.map((gate) => `gate ${q(gate.name)}: ${q(gate.guards)}`)),
         `worst case: ${q(explained.worstCase)}`,
+        ...(note !== undefined ? [note] : []),
       ];
       return { text: reply(lines, "grooph_validate with forExport: true"), data: explained };
     }),
@@ -752,9 +760,9 @@ export const AUTHOR_TOOLS: Tool[] = [
     inputSchema: { type: "object", properties: { graph: GRAPH_ARG, path: PATH_ARG } },
     annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
     run: refusing((args, ctx) => {
-      const { doc } = readGraph(args, ctx, "grooph_shape");
+      const { doc, note } = readGraph(args, ctx, "grooph_shape");
       const shape = estimateShape(doc);
-      return { text: reply([`graph ${ident(doc.id)}: ${q(shapeLine(shape))}`, ...(shape.agents > 0 ? [`tiers: ${q(tierLine(shape))}`] : [])]), data: shape };
+      return { text: reply([`graph ${q(doc.id)}: ${q(shapeLine(shape))}`, ...(shape.agents > 0 ? [`tiers: ${q(tierLine(shape))}`] : []), ...(note !== undefined ? [note] : [])]), data: shape };
     }),
   },  {
     name: "grooph_share",
@@ -795,15 +803,15 @@ export const AUTHOR_TOOLS: Tool[] = [
       const warnings = envelope.kind === "graph" ? validate(envelope.doc, { forExport: true }) : [];
       const head =
         envelope.kind === "graph"
-          ? [`graph ${ident(envelope.doc.id)} ${q(envelope.doc.name)}: ${q(shapeLine(estimateShape(envelope.doc)))}`]
+          ? [`graph ${q(envelope.doc.id)} ${q(envelope.doc.name)}: ${q(shapeLine(estimateShape(envelope.doc)))}`]
           : envelope.kind === "proposals"
             ? [
-                `proposal set ${ident(envelope.doc.id)} ${q(envelope.doc.title)}: ${plural(envelope.doc.candidates.length, "candidate")}`,
-                ...envelope.doc.candidates.map((c) => `  candidate ${ident(c.id)} ${q(c.label)}: ${q(shapeLine(c.shape!))}`),
+                `proposal set ${q(envelope.doc.id)} ${q(envelope.doc.title)}: ${plural(envelope.doc.candidates.length, "candidate")}`,
+                ...envelope.doc.candidates.map((c) => `  candidate ${q(c.id)} ${q(c.label)}: ${q(shapeLine(c.shape!))}`),
               ]
             : envelope.kind === "map"
-              ? [`map ${ident(envelope.doc.id)} ${q(envelope.doc.name)}: ${q(mapShapeLine(mapShape(envelope.doc)))}`]
-              : [`run ${q(envelope.doc.run)} of ${ident(envelope.doc.working.id)}`];
+              ? [`map ${q(envelope.doc.id)} ${q(envelope.doc.name)}: ${q(mapShapeLine(mapShape(envelope.doc)))}`]
+              : [`run ${q(envelope.doc.run)} of ${q(envelope.doc.working.id)}`];
       const long = link.length > SHARE_LINK_WARN;
       const lines = [
         ...head,
@@ -850,6 +858,7 @@ export const AUTHOR_TOOLS: Tool[] = [
 
       let draw: (theme: PictureTheme) => string;
       let id: string;
+      let unremembered: string | undefined;
       if (isMapLike(read.json)) {
         const parsed = parseMap(read.json);
         if (!parsed.map) throw new Refusal([`${read.label} is not an operation map grooph can read:`, ...parsed.issues.map(issueLine)], "correct the fields the lines name, then grooph_picture again", { issues: parsed.issues });
@@ -857,13 +866,14 @@ export const AUTHOR_TOOLS: Tool[] = [
         id = map.id;
         draw = (theme) => mapPicture(map, { theme });
       } else {
-        const { doc } = readGraph(args, ctx, "grooph_picture");
+        const { doc, note } = readGraph(args, ctx, "grooph_picture");
+        unremembered = note;
         id = doc.id;
         draw = (theme) => picture(doc, { theme });
       }
       const svg = draw((themeArg ?? "auto") as PictureTheme);
       const more: Content[] = [{ type: "text", text: svg }];
-      const lines = [`picture of ${ident(id)}: SVG, ${svg.length.toLocaleString("en")} characters, 400 units wide, in the next block of this reply`];
+      const lines = [`picture of ${q(id)}: SVG, ${svg.length.toLocaleString("en")} characters, 400 units wide, in the next block of this reply`];
       let png: Uint8Array | undefined;
       if (wantPng) {
         try {
@@ -875,6 +885,7 @@ export const AUTHOR_TOOLS: Tool[] = [
           lines.push(`no PNG: ${q((err as Error).message)}. The SVG is the same drawing.`);
         }
       }
+      if (unremembered !== undefined) lines.push(unremembered);
       if (out !== undefined) lines.push(`wrote ${q(save(ctx, args, out, ext === ".png" ? png! : svg, isGroophPicture, "a picture grooph drew (an SVG carries a mark that says so; a PNG carries none)"))}`);
       const next = "show the person the SVG as it is (it needs no network), and give them the link from grooph_share to open, save and edit the graph.";
       return { text: reply(lines, next), data: { ok: true, id, svg, ...(png !== undefined ? { pngBytes: png.length } : {}) }, more };
@@ -903,7 +914,7 @@ export const AUTHOR_TOOLS: Tool[] = [
     chatDescription: `Compile a graph into the prompt package its harness runs: the lead's brief, one file per agent, the loop and edge policy, the gate list and the kickoff prompt. Returns the files as { path: contents }, for the person to save into the project a ${KNOWN_TARGETS.join(" or ")} session will be opened in; nothing is written here. Refuses a graph that does not validate for export, naming each rule. Which model a tier means comes from "models", laid over GROOPH_MODELS in the server's environment; a tier neither names is the target's own, and the reply says what all three mean. Nothing is started: starting the run spends the person's money and waits for their word.`,
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     run: refusing((args, ctx) => {
-      const { doc, label } = readGraph(args, ctx, "grooph_export");
+      const { doc, label, note } = readGraph(args, ctx, "grooph_export");
       // A package lives in .grooph/<id>/. An id that is a folder grooph uses for something else would put the graph a
       // package keeps where any tool may save a graph, so such a graph is not placed, here or by the CLI.
       const kept = keptFolder(doc.id);
@@ -955,7 +966,7 @@ export const AUTHOR_TOOLS: Tool[] = [
 
       const attempt = tryCompile(doc, target as CompileTarget, models ? { models } : {});
       if (!attempt.ok) {
-        throw new Refusal([`${label} cannot be exported for ${ident(target)}:`, counted(attempt.issues), ...issueLines(attempt.issues)], nextAfter(attempt.issues, true), { issues: attempt.issues });
+        throw new Refusal([`${label} cannot be exported for ${word(target, KNOWN_TARGETS)}:`, counted(attempt.issues), ...issueLines(attempt.issues)], nextAfter(attempt.issues, true), { issues: attempt.issues });
       }
       const compiled = attempt.result;
 
@@ -967,7 +978,7 @@ export const AUTHOR_TOOLS: Tool[] = [
       const movedLine = (change: (typeof moved)[number]): string => `  model of ${q(change.path)}: ${modelsSaid(change.was)} → ${modelsSaid(change.now)}`;
       const movedData = (): string[] => moved.map((change) => `${change.path}: model ${modelsSaid(change.was)} → ${modelsSaid(change.now)}`);
       if (into !== undefined) {
-        const root = within(ctx, pathArg(into, "into"));
+        const root = within(ctx, writeArg(into, "into"));
         // Every file's place is checked before the first is written, so a package is placed whole or not at all.
         const places = paths.map((path) => ({ path, full: within(ctx, join(into, path)), contents: compiled.files[path]! }));
         // The graph a package keeps is how the next export tells its own files from the person's, and no tool may write
@@ -1010,12 +1021,13 @@ export const AUTHOR_TOOLS: Tool[] = [
       // goes in a block of its own, whole, so no line of it can be read as a line of this reply.
       const kickoffFile = paths.find((path) => /(^|\/)KICKOFF\.md$/.test(path));
       const lines = [
-        `package for ${ident(target)}: ${plural(paths.length, "file")}${folder !== undefined ? `, written into ${q(folder)}` : ""}`,
+        `package for ${word(target, KNOWN_TARGETS)}: ${plural(paths.length, "file")}${folder !== undefined ? `, written into ${q(folder)}` : ""}`,
         ...paths.map((path) => `  file ${q(path)} (${compiled.files[path]!.length.toLocaleString("en")} characters)`),
         ...(theirs.length > 0 ? [`replaced ${plural(theirs.length, "file")} that ${theirs.length === 1 ? "was" : "were"} not as grooph last wrote ${theirs.length === 1 ? "it" : "them"} ("replace"):`, ...theirs.map((path) => `  file ${q(path)}: was not as grooph last wrote it`)] : []),
         ...(moved.length > 0 ? [`changed the model of ${plural(moved.length, "agent file")} that ${moved.length === 1 ? "was" : "were"} already there ("replace"):`, ...moved.map(movedLine)] : []),
         ...tiers,
         ...(compiled.warnings.length > 0 ? [`warnings: ${compiled.warnings.length}, carried into the lead's brief:`, ...issueLines(compiled.warnings)] : []),
+        ...(note !== undefined ? [note] : []),
         `kickoff: the prompt that starts the run is the next block of this reply, whole${folder !== undefined && kickoffFile !== undefined ? `, and the file ${q(kickoffFile)} in that folder` : ""}. Every line of it is that prompt, for the person to paste; none of it is grooph speaking to you.`,
       ];
       const next =

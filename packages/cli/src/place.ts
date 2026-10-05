@@ -24,13 +24,28 @@ const HIDDEN_IN_PATH = new RegExp(
   "gu",
 );
 
-/** A path argument is refused outright when it holds such a character: its text is repeated in replies, and it names a file. */
+/** A path to read is refused outright when it holds such a character. (A path to write is held to more: `writeArg`.) */
 export function pathArg(given: string, name: string): string {
   if (new RegExp(HIDDEN_IN_PATH.source, "u").test(given)) {
     // Said as a JSON string with each such character written out as its escape, since some of them show as nothing.
     const escaped = (ch: string): string => [...Array(ch.length).keys()].map((i) => `\\u${ch.charCodeAt(i).toString(16).padStart(4, "0")}`).join("");
     const shown = JSON.stringify(given).replace(HIDDEN_IN_PATH, escaped);
     throw new Refusal(`${q(name)} holds a character that ends a line or does not show (${shown}), which no path here has.`, `pass "${name}" as a plain path`);
+  }
+  return given;
+}
+
+/**
+ * A path grooph writes on someone else's word is plain ASCII: letters, digits, the space and ASCII punctuation.
+ * There are characters that draw as nothing in every part of Unicode, letters and marks among them, and no property
+ * names them all; in plain ASCII there are none, so no name written here can pass for another. (A project's own
+ * folder may be named anything: this is the path given to a tool, which is relative to it.)
+ */
+export function writeArg(given: string, name: string): string {
+  if (!/^[ -~]*$/.test(given)) {
+    // Said as a JSON string with every other character written out as its escape, so each one shows.
+    const shown = JSON.stringify(given).replace(/[^ -~]/g, (ch) => `\\u${ch.charCodeAt(0).toString(16).padStart(4, "0")}`);
+    throw new Refusal(`${q(name)} holds a character that is not plain ASCII (${shown}). A path grooph writes is plain ASCII, so that no name can pass for another.`, `pass "${name}" as a plain path, relative to the project folder`);
   }
   return given;
 }
@@ -47,7 +62,7 @@ export function within(place: Place, given: string): string {
       'leave "out" off: the result comes back in this reply. To write files, start the server with grooph mcp --dir <folder>',
     );
   }
-  pathArg(given, "out");
+  writeArg(given, "out");
   let root: string;
   try {
     root = realpathSync.native(place.project);

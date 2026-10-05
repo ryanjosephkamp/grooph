@@ -115,13 +115,13 @@ test("validate checks a graph or a map by path, relative to the project or absol
   await withProject(async (ctx) => {
     cpSync(join(repoRoot, "fixtures", "valid", "review-loop.grooph.json"), join(ctx.project, "review-loop.grooph.json"));
     const graph = await call(ctx, "grooph_validate", { path: "review-loop.grooph.json" });
-    assert.match(textOf(graph), /^graph review-loop\nissues: 0 errors, 1 warning\nwarning W_HOMOGENEOUS_CRITICS "[^\n]*" at builder, critic\nfix {2}W_HOMOGENEOUS_CRITICS /);
+    assert.match(textOf(graph), /^graph "review-loop"\nissues: 0 errors, 1 warning\nwarning W_HOMOGENEOUS_CRITICS "[^\n]*" at "builder", "critic"\nfix {2}W_HOMOGENEOUS_CRITICS /);
     assert.equal((graph.result!["structuredContent"] as { ok: boolean }).ok, true);
 
     const map = await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "invalid", "E_HANDOFF_NO_CARRIER", "no-carrier.grooph-map.json") });
-    assert.match(textOf(map), /^map two-sessions: "1 lane · 2 sessions · 2 handoffs"\nissues: 1 error, 0 warnings\nerror E_HANDOFF_NO_CARRIER "/);
+    assert.match(textOf(map), /^map "two-sessions": "1 lane · 2 sessions · 2 handoffs"\nissues: 1 error, 0 warnings\nerror E_HANDOFF_NO_CARRIER "/);
     assert.equal((map.result!["structuredContent"] as { ok: boolean }).ok, false);
-    assert.match(textOf(await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nissues: none\nby hand: handoff h-brief-grooph, operator to grooph, moves only when "Ryan" carries it\nby hand: /);
+    assert.match(textOf(await call(ctx, "grooph_validate", { path: join(repoRoot, "fixtures", "maps", "valid", "owner-operation-2026-09-30.grooph-map.json") })), /\nissues: none\nby hand: handoff "h-brief-grooph", "operator" to "grooph", moves only when "Ryan" carries it\nby hand: /);
     assert.equal((await call(ctx, "grooph_validate", { path: "nope.json" })).result!["isError"], true);
   });
 });

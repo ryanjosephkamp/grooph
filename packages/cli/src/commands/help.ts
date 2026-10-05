@@ -127,8 +127,11 @@ It says what each tier means in the package every time, and names each pin.
                                 GROOPH_MODELS in the environment says the same for every export
                                 on a machine; the flag wins over it. The graph does not change.
   --change-models               go ahead when the export would change the model of an agent file
-                                already in <dir>. Without it such an export stops, lists each file
-                                with its model before and after, and writes nothing.
+                                already in <dir>, or cannot read one for its model (a header not in
+                                the plain form grooph writes). Without it such an export stops, lists
+                                each file with its model before and after, and writes nothing.
+
+Every file is written inside <dir> and through no link, and the package is placed whole or not at all.
 
 A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
 .grooph/<id>/, and grooph keeps those folders for something else.
