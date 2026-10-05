@@ -694,7 +694,7 @@ test("a node a loop's stop continues at is led into: it is no entry node, and it
   assert.deepEqual(entries(ring), []);
   const said = only(validate(ring), "W_UNREACHABLE_NODE");
   assert.deepEqual(said.map((i) => i.at[0]), ["a", "b"]);
-  assert.match(said[0]!.message, /no entry node \(something leads into every node/);
+  assert.match(said[0]!.message, /no entry node \(every node has an inbound edge that is not a loop back edge, or a loop's stop that continues there\)/);
 });
 
 test("W_OUTPUT_NOT_WRITABLE spares the lead, which is the main session", () => {

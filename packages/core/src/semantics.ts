@@ -99,28 +99,20 @@ export function stopAction(stop: Stop): string {
  * The nodes a loop's stops lead out to: where a stop continues (`then`), unless that is one of the loop's own
  * members, which is the loop going round again as a back edge is.
  */
-export function stopsLeadTo(loop: Loop): Id[] {
-  const members = new Set(loop.members ?? []);
-  return (loop.stops ?? []).flatMap((stop) => (stop.then !== undefined && !members.has(stop.then) ? [stop.then] : []));
-}
+export const stopsLeadTo = (loop: Loop): Id[] =>
+  (loop.stops ?? []).flatMap((stop) => (stop.then === undefined || (loop.members ?? []).includes(stop.then) ? [] : [stop.then]));
 
 /**
  * Entry nodes: nothing leads into them (graph-ir §2). A way in is an inbound edge that is not a loop's back edge, or
  * a stop of a loop the node is not in that continues there (`then`).
  */
 export function entryNodeIds(index: GraphIndex): Id[] {
-  const backEdgeIds = new Set<Id>();
-  const continuedAt = new Set<Id>();
-  for (const loop of index.doc.loops ?? []) {
-    for (const id of loop.back ?? []) backEdgeIds.add(id);
-    for (const id of stopsLeadTo(loop)) continuedAt.add(id);
-  }
-  const entries: Id[] = [];
-  for (const node of index.doc.nodes ?? []) {
-    const inbound = (index.incoming.get(node.id) ?? []).filter((edge) => !backEdgeIds.has(edge.id));
-    if (inbound.length === 0 && !continuedAt.has(node.id)) entries.push(node.id);
-  }
-  return entries;
+  const loops = index.doc.loops ?? [];
+  const back = new Set<Id>(loops.flatMap((loop) => loop.back ?? []));
+  const continued = new Set<Id>(loops.flatMap(stopsLeadTo));
+  return (index.doc.nodes ?? [])
+    .filter((node) => !continued.has(node.id) && (index.incoming.get(node.id) ?? []).every((edge) => back.has(edge.id)))
+    .map((node) => node.id);
 }
 
 /** Loops a node belongs to, in document order. */
@@ -135,13 +127,10 @@ export function loopsOfNode(index: GraphIndex, nodeId: Id): Loop[] {
 export function reachableFrom(index: GraphIndex, starts: readonly Id[]): Set<Id> {
   const seen = new Set<Id>(starts.filter((id) => index.nodes.has(id)));
   const queue = [...seen];
-  const loops = index.doc.loops ?? [];
   while (queue.length > 0) {
     const current = queue.shift()!;
-    const onward = [
-      ...(index.outgoing.get(current) ?? []).map((edge) => edge.to),
-      ...loops.flatMap((loop) => ((loop.members ?? []).includes(current) ? stopsLeadTo(loop) : [])),
-    ];
+    const onward = (index.outgoing.get(current) ?? []).map((edge) => edge.to);
+    for (const loop of index.doc.loops ?? []) if ((loop.members ?? []).includes(current)) onward.push(...stopsLeadTo(loop));
     for (const next of onward) {
       if (!index.nodes.has(next) || seen.has(next)) continue;
       seen.add(next);
