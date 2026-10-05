@@ -49,7 +49,7 @@ grooph sessions [<source>...] [--json]            what the hook has recorded, as
 - **Canvas with state.** Pending nodes quiet, running nodes pulse (a static ring under `prefers-reduced-motion`), passed and failed take the semantic colors already in the tokens, halted amber. Loops show their round. State is shown by icon and label as well as color.
 - **Timeline.** Notes in order, newest first while live; tapping one highlights its object. Amendments and proposals are marked.
 - **What the run changed.** The `diffGraphs` list between source and working copy, each line tied to the amendment note that explains it. **Adopt as version N+1** checks the working copy's brakes against the source's (§5) and, when none is loosened, saves the adopted graph to the library (the source stays); **Discard** does nothing to the source and says so.
-- **Proposals** are listed with their patch; "Apply to a copy" applies an op-list patch to a new version for the human to inspect. Nothing is applied automatically (spec §11).
+- **Proposals** are listed with their patch; "Apply to a copy" applies an op-list patch to a new version for the human to inspect. Nothing is applied automatically (spec §11). The copy is compared with the graph's brakes as an adoption is, and the page says by name what it loosens (`loop:sandwich.stops raises the round cap from 5 to 9`); it is saved either way, since a proposal is how a run asks for a brake to be loosened and the answer is the person's.
 - **Pin to graph** on any note.
 - Runs imported into the app are stored beside graphs on the device and listed under the graph they belong to.
 

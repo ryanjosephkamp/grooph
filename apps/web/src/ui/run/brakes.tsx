@@ -23,6 +23,30 @@ export type Judged = {
 
 const copy = (text: string) => () => void navigator.clipboard?.writeText(text).catch(() => undefined);
 
+/**
+ * A proposal applied to a copy: what the copy loosens that the graph has, by name, or nothing. The copy is saved
+ * either way. A proposal is how a run asks for a brake to be loosened (graph-ir §2), so this is a thing to be told
+ * and not a thing to refuse: the person reads each line before using the copy.
+ */
+export function loosened(source: Graph, proposed: Graph): ReactNode {
+  const refused = checkAdoption(source, proposed).refused;
+  if (refused.length === 0) return null;
+  return (
+    <div className="refusal-hint" data-brakes="proposed">
+      <p>
+        <strong>This copy loosens a brake the graph has.</strong> A proposal is how a run asks for that, and it is yours to grant or not: read each before you use the copy.
+      </p>
+      <ul className="brakes-list" data-brakes="loosens">
+        {refused.map((change) => (
+          <li key={change.name} data-change-name={change.name}>
+            <span className="mono">{change.name}</span> {change.loosens}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** The document adoption would save, held to the brakes of the source it would replace. */
 export function judge(source: Graph, adopted: Graph, run: string): Judged {
   const check = checkAdoption(source, adopted);

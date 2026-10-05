@@ -1,7 +1,8 @@
 import { describePatch, type Id, type Op, type RunBundle, type RunNote } from "@grooph/core";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { noteTarget, proposalCopy, targetLabel } from "../../doc/run.js";
+import { piece } from "../../piece.js";
 import { saveVersion } from "../../store/runs.js";
 import { editorHref } from "../open/save.js";
 
@@ -12,7 +13,7 @@ function opLine(op: Op): string {
   return `${op.op}${target ? ` ${String(target)}` : ""}${set.length > 0 ? `: ${set.join(", ")}` : ""}`;
 }
 
-type Applied = { ok: true; key: string; version: number; errors: number; warnings: number } | { ok: false; message: string };
+type Applied = { ok: true; key: string; version: number; errors: number; warnings: number; brakes: ReactNode } | { ok: false; message: string };
 
 /**
  * The run's proposals: changes it wanted and did not make, for the human.
@@ -30,11 +31,14 @@ export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle;
       return;
     }
     const record = await saveVersion(copy.doc);
+    // What the copy loosens that the graph has, said beside it (the piece Adopt fetches; nothing is held here).
+    const brakes = await piece("brakes", () => import("./brakes.js")).then((b) => b.loosened(bundle.source, copy.doc), () => "Its brakes could not be compared with the graph's here.");
     setApplied((a) => ({
       ...a,
       [note.id]: {
         ok: true,
         key: record.key,
+        brakes,
         version: copy.doc.version,
         errors: copy.issues.filter((i) => i.severity === "error").length,
         warnings: copy.issues.filter((i) => i.severity === "warning").length,
@@ -83,11 +87,14 @@ export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle;
                 <p className="field-hint">No patch: the summary is the whole proposal.</p>
               )}
               {done?.ok ? (
+                <>
                 <p className="adopt-done" role="status">
                   Saved a copy of the working copy with {note.id} applied, as version {done.version}, for you to inspect
                   {done.errors > 0 ? `; it has ${done.errors} error${done.errors === 1 ? "" : "s"}, which the editor lists` : done.warnings > 0 ? `; ${done.warnings} warning${done.warnings === 1 ? "" : "s"}` : "; it validates"}. Nothing
                   else changed. <a href={editorHref(done.key)}>Open the copy</a>
                 </p>
+                {done.brakes}
+                </>
               ) : done ? (
                 <p className="refusal-hint" role="status">
                   {done.message}
