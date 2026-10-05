@@ -1,0 +1,66 @@
+/* A loop graph's other views (handoff 0092). These rules ride in graph-views.tsx and are added to the page when the
+   piece arrives: no stylesheet every address asks for carries them. */
+
+/* Over the canvas, and out of its way: only the switch and a chosen view take the pointer. */
+.graph-views {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+/* The switch sits at the canvas's top right corner, under the canvas library's own line. The loops' names, which
+   run from the left, keep clear of it; and in three dimensions they are on the sheets, so the names step aside. */
+.stage:has(> .graph-views) > .loop-legend {
+  right: 196px;
+}
+.stage:has(> .graph-views.is-space) > .loop-legend {
+  display: none;
+}
+.graph-switch {
+  position: absolute;
+  top: 26px;
+  right: 10px;
+  z-index: 2;
+  flex-wrap: nowrap;
+  pointer-events: auto;
+  box-shadow: var(--shadow);
+}
+.graph-switch .seg {
+  min-width: 78px;
+  min-height: 36px;
+}
+.graph-views-note {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  z-index: 2;
+  width: min(92%, 44ch);
+  margin: 0;
+  padding: 8px 12px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: auto;
+}
+/* The view in three dimensions lies over the canvas, which keeps its place under it. */
+.graph-space {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* Room above for the switch, and below for the bar a viewer keeps at its foot. */
+  padding: 72px 0 104px;
+  overflow: auto;
+  background: var(--bg);
+  pointer-events: auto;
+}
+.graph-space .map-picture {
+  padding: 0;
+}
+@media (min-width: 1100px) {
+  .graph-space {
+    padding: 72px 28px 104px;
+  }
+}
