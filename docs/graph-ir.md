@@ -142,8 +142,24 @@ type Policy = {
   params?: Record<string, string | number | boolean>;   // e.g. { max: 3 } for concurrency-cap
 };
 
-type Group = { id: Id; name: string; members: Id[]; coupled?: boolean };
+type Group = {
+  id: Id;
+  name: string;
+  members: Id[];                   // node ids and group ids: groups form a tree
+  coupled?: boolean;
+  description?: string;            // one line a person reads on the closed box
+  from?: string;                   // "<template id>@<version>": this group is a subgrooph placed from that template
+  with?: Record<string, string>;   // the slot values it was filled with, so it can be refreshed
+};
 ```
+
+**Groups form a tree.** A group may hold groups. A group that holds itself, directly or through another, is `E_GROUP_CYCLE`; a node or group that sits in two groups, neither inside the other, is `W_GROUP_OVERLAP`, and views draw it in the first.
+
+**A subgrooph** (amendment A-018, decision 0025) is a group with a `from`: a template placed inside a graph as a unit. `from` is the template's id and its version, `review-gate@1`, and nothing looser. Nothing else is stored, and nothing is resolved, fetched or inlined when a package is compiled: the template's nodes, edges, loops and policies are ordinary members of this one document, every rule in §3 applies to them as written, and the lead runs them as it runs any others.
+
+- An edge belongs to a subgrooph when both its ends are inside it, a loop when all its members are. An edge that crosses the boundary inward is an **entry**; one that crosses outward is an **exit**.
+- A `stop` node inside a subgrooph still ends the run. Placing a template with a next step sends the edges that reached its success stop to that step, and drops that stop; its halts stay halts.
+- A subgrooph has no lead of its own. A graph is one session and has at most one lead node: a second is `E_SECOND_LEAD`.
 
 `no-live-graph-rewrite` is kept for compatibility and means the same as `adaptation: "propose"`; prefer the `adaptation` field. When both are present the stricter one wins.
 
@@ -183,6 +199,8 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `E_DUPLICATE_ID` | An id appears more than once across all id-bearing objects, the graph's own id included. |
 | `E_DANGLING_REF` | An edge, loop, group, policy, stop `then`, or `answerKeyFrom` references an unknown id. |
 | `E_LOOP_BACK_EDGE` | A loop's `back` list is empty, or one of its edges does not have both endpoints among `members`, or there is no path inside `members` from that edge's `to` back to its `from`. |
+| `E_GROUP_CYCLE` | A group holds itself, directly or through another group. Groups form a tree (amendment A-018), and no view can draw a box inside itself. One issue for each ring of groups. |
+| `E_SECOND_LEAD` | More than one agent node has the role `lead`. A graph is one session and the lead is that session (§2); the compiler would take the first and run the other as a subagent. Placing a template inside a graph is the first operation that could add one (A-018). |
 
 ### Spec §12 hard errors
 
@@ -216,6 +234,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `W_UNREACHABLE_NODE` | A node is not reachable from any entry node. Under the entry rule this always accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`); it exists to name the stranded nodes so a view can highlight them. |
 | `W_NO_TERMINAL` | No `stop` node is reachable from an entry node. Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host). |
 | `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). |
+| `W_GROUP_OVERLAP` | A node or a group is a member of two groups and neither holds the other (A-018). A view draws it in one box only, the first. A member listed again by a group that already holds it through an inner group is nesting said twice, and is not an overlap. |
 | `W_UNKNOWN_KEY` | The document carries a key the schema does not know. Unknown keys are accepted and preserved (views may stash state), but a typo in an optional field name should be visible. |
 | `W_DOC_TOO_LARGE` | Canonical serialization without `layout` exceeds 24,000 characters (about six thousand tokens). This is the "rewrite in one pass" budget and the share-link guard. |
 
@@ -292,4 +311,4 @@ The review-gate pattern, the acceptance graph for slice 0001: [`fixtures/valid/r
 
 ## 9. Deferred to later versions
 
-Named so nobody designs them twice: nested subgraph references (groups are flat in v0); node multiplicity (`count`) for fan-out families; per-node budgets; typed artifacts with a registry; dual-harness runners on a node (stage 9).
+Named so nobody designs them twice: subgroophs by reference, a node that names another graph and is inlined by the compiler (A-018 places a template by value, as a group; decision 0025 weighs the two); node multiplicity (`count`) for fan-out families; per-node budgets; typed artifacts with a registry; dual-harness runners on a node (stage 9).
