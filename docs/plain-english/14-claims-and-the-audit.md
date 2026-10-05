@@ -35,7 +35,7 @@ So each claim is read twice, by two different harnesses.
 3. The audit lane answers each finding: agree, partly agree, or disagree.
 4. **The owner**, the person the project belongs to, **decides** what gets corrected.
 
-These four steps are one round of the audit, and rounds repeat until neither side holds a finding that blocks a claim. Anything still in dispute is written down with both positions. Every round is kept in the repository under `experiments/audits/`, and a round's record is not edited afterwards.
+These four steps are one round of the audit, and rounds repeat until neither side holds a finding that blocks a claim. Anything still in dispute is written down with both positions. Every round is kept in the repository under `experiments/audits/`, and a round's record is not edited afterward.
 
 ## What the first audit found
 
@@ -47,7 +47,7 @@ The largest finding concerned the sentence the whole project had been using to d
 - **"record"** is supported by something narrower: runs leave records, and some records are incomplete;
 - **"contract"** is supported by something narrower: most recorded sessions followed their packages, by a check of selected parts, and nothing enforces it.
 
-The sentence was replaced, everywhere it stood, by the paragraph quoted at the top of chapter 13. The owner accepted the audit's corrections on 5 October 2026 and they were made that day, each as its own change so that any one of them could be taken back alone.
+The sentence was replaced, on every page but a blog draft its author is rewriting by hand, by the paragraph quoted at the top of chapter 13. The owner accepted the audit's corrections on 5 October 2026 and they were made that day, each as its own change so that any one of them could be taken back alone.
 
 The audit also turned up something that was not a wording problem. Checking the claim that a run "may tighten a brake and never loosen one", the audit lane tried it: it raised a round cap and a budget in a run's working copy and asked grooph to adopt it. grooph adopted it. Nothing had ever checked that rule. The adoption check of chapter 7 was written in answer. Later the same day, reading that new check, the audit lane found that it did not treat a test command as a brake, and the owner ruled that it should. That is the "one kind is known to be missing" of chapter 7.
 
@@ -61,13 +61,13 @@ A few things were deliberately left as they were, and the claims page lists them
 - **The adoption check** of chapter 7.
 - **This guide.**
 
-These are the subject of the audit's second round, which had not been sent when this was written.
+The first two are the subject of the audit's second round, which had not been sent when this was written. This guide is in that round only if it is in the project's main copy when the round is prepared.
 
 ## Why this matters to you
 
 Two reasons.
 
-**First, it tells you how to read everything else grooph says.** Where a page of grooph's makes a statement about what the tool achieves, there is a numbered row on the claims page saying what the evidence supports. If you ever find a sentence that says more than its row, the row is right.
+**First, it tells you how to read everything else grooph says.** For every such statement made as of version 0.3.0, there is a numbered row on the claims page saying what the evidence supports. If you ever find a sentence that says more than its row, the row is right.
 
 **Second, it is the tool's own idea turned on itself.** grooph is built on the belief that work should be checked by someone who did not do it, against something that can be looked at, with a record kept. The audit is that belief applied to the project's own claims: a second reader, the evidence in the open, every round on file. Whether that belief makes agent work better is, as chapter 13 said, not yet shown. It is at least practiced.
 

@@ -67,7 +67,7 @@ You have now met most of them. Grouped the way the list groups them:
 | Group | Commands | Chapter |
 |---|---|---|
 | **Start** | `new` makes an empty graph. `template` lists, shows and uses ready-made ones. `sub` places a template as one box. `apply` edits a graph with a list of small changes. `pick` writes out one candidate from a set of proposals | 4, 8, and below |
-| **Check** | `validate` checks a graph or a map. `explain` says in words what bounds a run. `shape` gives the one-line count. `canonicalize` rewrites a file in grooph's standard layout, so two copies of the same graph are identical character for character | 3, 5 |
+| **Check** | `validate` checks a graph or a map. `explain` says in words what limits a graph writes down. `shape` gives the one-line count. `canonicalize` rewrites a file in grooph's standard layout, so two copies of the same graph are identical character for character | 3, 5 |
 | **Compile** | `export` writes the package. `adopt` takes a run's working copy as the next version | 5, 7 |
 | **See** | `image`, `outline`, `page`, `glyph`, `mermaid` | 10 |
 | **Watch** | `watch` serves the live view on your machine. `runs` lists and shows what runs left. `hooks` installs the event hook. `sessions` and `events` read and send what the hook recorded. `mcp` lets a session call grooph itself | 6, 11 |
@@ -147,7 +147,7 @@ What it is for, in the order you are likely to meet it:
 | **A link's page** | Read a graph someone sent you, or compare the candidates in a proposal set and choose one |
 | **The library** | Keep graphs on this device and open them again |
 | **The templates** | Browse the twenty, with search and filters, and start from one |
-| **The canvas** | See a graph as boxes and arrows, and edit it. This is the one place a graph is edited by hand. A subgrooph's box opens when you tap it |
+| **The canvas** | See a graph as boxes and arrows, and edit it. This is where a graph is edited by hand. A subgrooph's box opens when you tap it |
 | **The outline** | Read a graph top to bottom, every brief in full |
 | **A run's page** | See a run: each node's state, the timeline of notes, what the run changed, its proposals, and two buttons. **Adopt** is chapter 7's check, and saves the next version among the graphs kept on that device. **Discard** leaves everything as it was. A run reaches the app as a link (`grooph share` on the run's folder), as a file you import, or live. With `grooph watch` running on your computer, the page it serves updates live (chapter 11 says how to open it from a phone) |
 | **A map's page** | Look at an operation map as a picture, a sequence, or in 3D |

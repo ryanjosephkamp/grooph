@@ -54,11 +54,11 @@ Much of real work is a loop: do something, check it, fix what the check found, c
 
 Agents can be told to loop like this, and that is where the trouble starts. These are the worries grooph is built around:
 
-- **Nothing says when to stop.** "Keep improving it until it is perfect" has no end. Every extra trip round costs money and time.
+- **Nothing says when to stop.** "Keep improving it until it is perfect" has no end. Every extra trip around costs money and time.
 - **"Good" is only an adjective.** If the reviewer is told to check that the work is "high quality", nobody can say whether the loop is finished. A loop needs something that can be looked at: a checklist, a test command, a reference to compare with.
 - **The reviewer is not independent.** If the reviewer has read the builder's whole train of thought, it may simply follow it. If the builder reviews its own work, nothing has been reviewed.
 - **Something cannot be undone.** Merging code, publishing, spending money, deleting. An agent in a loop may do one of these without anyone having said yes.
-- **Nobody can tell afterwards what happened.** Which trips ran, who decided what, why it stopped.
+- **Nobody can tell afterward what happened.** Which trips ran, who decided what, why it stopped.
 
 ## A loop graph
 
@@ -134,7 +134,7 @@ This is the most important table in the guide. Keep it in mind whenever a later 
 | **During a run** | A spending limit, if you set one | The harness, not grooph | Real. It cuts the session off. It is not part of a graph ([chapter 13](13-what-the-experiments-found.md)) |
 | **After a run** | The check when a run's changed plan is taken up ([chapter 7](07-adopting-a-run.md)) | grooph | Real but narrow, new, and easy to get past on purpose |
 
-So for most of what this guide calls a brake, the fair description is: **a brake is a written instruction to the lead.** Afterwards, the run's own notes are the evidence of whether it was followed. It is not a lock.
+So for most of what this guide calls a brake, the fair description is: **a brake is a written instruction to the lead.** Afterward, the run's own notes are the evidence of whether it was followed. It is not a lock.
 
 How well agents have followed such instructions is a matter of record, and [chapter 13](13-what-the-experiments-found.md) reports it plainly.
 
@@ -146,7 +146,7 @@ grooph is three things.
 2. **A validator.** A checker that reads the document and reports a short list of known mistakes, such as a loop with no stopping rule. [Chapter 3](03-the-validator.md).
 3. **A compiler.** A translator that turns the document into a set of instruction files for a harness. Those files are the **package**. [Chapter 5](05-the-package.md).
 
-Around those three there is a library of ready-made graphs, some ways to draw a graph, an app for looking at graphs on a phone, and tools for seeing what a run did afterwards.
+Around those three there is a library of ready-made graphs, some ways to draw a graph, an app for looking at graphs on a phone, and tools for seeing what a run did afterward.
 
 ## What grooph is not
 

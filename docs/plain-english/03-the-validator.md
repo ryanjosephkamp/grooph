@@ -50,7 +50,7 @@ rounding.grooph.json: 1 error, 2 warnings
 applied 1 op; rounding.grooph.json not written (dry run — pass --write to save)
 ```
 
-This is the first worry from chapter 1, "nothing says when to stop", turned into a rule. A path that goes round (the message calls it a cycle) with no stopping rule on it is refused. The edit also set off a second warning, about the missing budget and cap.
+This is the first worry from chapter 1, "nothing says when to stop", turned into a rule. A path that goes around (the message calls it a cycle) with no stopping rule on it is refused. The edit also set off a second warning, about the missing budget and cap.
 
 **Let the critic share the builder's context:**
 
@@ -102,10 +102,10 @@ None of these four commands changed the file.
 | `E_SCHEMA` | The file is not shaped like a graph document | A program misreading the file |
 | `E_DUPLICATE_ID` | Two things share one id | An instruction pointing at the wrong thing |
 | `E_DANGLING_REF` | Something points at an id that does not exist | An arrow that leads nowhere |
-| `E_LOOP_BACK_EDGE` | A loop has no back edge, or its back edge does not really go round inside the loop | Something called a loop that is not one, so its stopping rules count nothing |
+| `E_LOOP_BACK_EDGE` | A loop has no back edge, or its back edge does not really go around inside the loop | Something called a loop that is not one, so its stopping rules count nothing |
 | `E_GROUP_CYCLE` | A group contains itself. (A group is a named set of nodes drawn as one box: chapter 8) | A box that would have to be drawn inside itself |
 | `E_SECOND_LEAD` | Two nodes both have the role "lead" | Two managers; a graph is one session and its lead |
-| `E_CYCLE_NO_STOP` | A path goes round and no loop with a stop covers it | A loop that never ends |
+| `E_CYCLE_NO_STOP` | A path goes around and no loop with a stop covers it | A loop with no stopping rule written down |
 | `E_JUDGMENT_LOOP_NO_BAR` | A loop decided by judgment has no bar, or a bar that inspects nothing | Judging against nothing in particular |
 | `E_STOP_NOT_INSPECTABLE` | The loop's only stop is "the bar passed" and the bar names nothing to look at | "Until it is good" |
 | `E_NO_TARGET` | Compiling was asked for and no harness is named | Instructions written for nobody |
@@ -130,7 +130,7 @@ None of these four commands changed the file.
 | `W_OUTPUT_NOT_WRITABLE` | A worker must leave a file behind and is not allowed to write one | The lead ends up writing the file for it |
 | `W_GROUP_OVERLAP` | A node sits in two groups, neither inside the other | A picture can draw it in only one box |
 | `W_UNKNOWN_KEY` | The file has a field grooph does not know | A typo in a field name, silently ignored |
-| `W_DOC_TOO_LARGE` | The document is over 24,000 characters | Too big for an agent to rewrite in one go, or to fit in a link |
+| `W_DOC_TOO_LARGE` | The document is over 24,000 characters | Past the project's design target for one rewrite; too long for a link |
 
 grooph's own repository keeps one failing example and one passing example for every rule, in a folder called `fixtures/`. From inside the folder you downloaded grooph into, you can run the validator on any of them:
 

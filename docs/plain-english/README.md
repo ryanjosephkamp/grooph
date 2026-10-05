@@ -14,10 +14,10 @@ Before you read on, here is the honest state of the evidence, in plain words:
 
 - grooph comes with twenty ready-made plans. For each, the project keeps the record of one run. Eighteen of the twenty records pass the project's check, which looks at selected parts of a record to see whether the agents did the steps the plan drew. Two fail it, and those two are shown as failures.
 - In those runs the agents stopped where their plan said to: when the work passed, at the plan's last step, or when a person had to be asked.
-- Every plan also carries limits for a run that will not stop by itself. **No recorded run has ever reached one of those limits.** So it is not shown that one works.
-- When the same four small jobs were given to grooph's instructions and to an ordinary well-written prompt, **the results were no better with grooph.**
+- Every loop in those plans also carries limits, a round cap and a budget, for a run that will not stop by itself. **None of those limits is on record as firing.** So it is not shown that one works.
+- When four small jobs were given both to grooph's instructions and to a prompt written from those same instructions as plain prose, **no quality advantage was shown for grooph.**
 
-So: grooph is a careful way to plan agent work and to keep a record of it. It is **not** shown to make the work better than a good prompt does, on the small jobs tested. [Chapter 13](13-what-the-experiments-found.md) goes through all of this.
+So: grooph is a careful way to plan agent work and to keep a record of it. It is **not** shown to make the work better than that prompt does, on the small jobs tested. [Chapter 13](13-what-the-experiments-found.md) goes through all of this.
 
 ## The chapters
 
@@ -25,7 +25,7 @@ They are in an order that teaches. Each builds on the one before. A term is in *
 
 One small example is carried through: a plan called **"Add a rounding helper"**. In it, one AI agent writes a small piece of code, a second one reviews it against a checklist, and a person approves the result.
 
-| | Chapter | What you will know afterwards |
+| | Chapter | What you will know afterward |
 |---|---|---|
 | 1 | [Starting from nothing](01-starting-from-nothing.md) | What a coding agent, a subagent, a loop, a loop graph and a brake are; what grooph is; and what has real force |
 | 2 | [The graph document](02-the-graph-document.md) | What is written in a plan, piece by piece |
@@ -46,8 +46,8 @@ One small example is carried through: a plan called **"Add a rounding helper"**.
 ## About this guide
 
 - **It is not on grooph's website.** The website is built from a list of pages (`scripts/site/pages.json`), and this guide is not on that list. It is kept with the project's other files.
-- **It has not been audited.** Every other statement grooph publishes about what it does to the quality, cost, speed or safety of work is first read by a second, independent AI system ([chapter 14](14-claims-and-the-audit.md)). This guide has not been through that. It must go through it before any part of it is published.
-- **It claims nothing new about what grooph achieves.** Where it says what grooph is shown to do, it says only what two of the project's own pages say, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. Where the honest answer is "this is not shown", it says so.
+- **It has not been audited.** The project's rule is that a statement about what grooph does to the quality, cost, speed or safety of work is read by a second, independent AI system before it is published ([chapter 14](14-claims-and-the-audit.md)). This guide has not been through that. It must go through it before any part of it is published.
+- **It claims nothing new about what grooph achieves.** The findings it reports are the ones on two of the project's own pages, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. Figures that are not on those pages come from the ledgers and write-ups kept under `experiments/`. Where the honest answer is "this is not shown", it says so.
 - **Every `grooph` command in it was run**, in an empty test folder, on 5 October 2026, and the output under each is what was printed. Where the output held a long folder path from the author's computer, the path is shortened to `<grooph>`. Where output is cut for length, a line reading `…` says so. The one exception is the install commands at the foot of this page, which come from the project's [quickstart](../quickstart.md): the author's computer already had grooph installed that way.
 - **Which grooph.** The copy used was the project's newest on that day. It calls itself version 0.3.0, and it also contains changes made after 0.3.0 was first released. One of them, the check described in chapter 7, was added that same day.
 - **Who wrote it.** An AI session: the same one that carried out the audit described in chapter 14, at the owner's request. Two fresh AI readers, told that they knew nothing and could read only the guide, read drafts and reported where they got lost and what they came away believing. The guide was revised after each. No person has yet checked it line by line.

@@ -155,6 +155,6 @@ One more thing a careful reader will ask about our example: the gate says "Merge
 
 **Sessions do not always do exactly what the package says.** This template has an earlier run on record as well. That one stopped at the gate and asked, but did not write the "halting" note the brief asks for, and the check failed it on that. The project kept that record too, beside this one. Across the twenty counted proving records, eighteen pass the check and two do not, and some of the eighteen still leave out things the package asks for.
 
-**No cap or budget had to hold here.** The run stopped because the work passed and a person was asked. The human gate did its job. The round cap of 4 and the budget of 10 were never reached. That is true of every recorded run so far, and [chapter 13](13-what-the-experiments-found.md) says why it matters.
+**No cap or budget fired here.** The run stopped because the work passed and a person was asked. The human gate did its job. The round cap of 4 and the budget of 10 did not fire. No round cap or budget is on record as firing in any recorded run, and [chapter 13](13-what-the-experiments-found.md) says why it matters.
 
 The reference for this chapter is [runs.md](../runs.md), and the write-up of this run is [experiments/patterns/review-gate](../../experiments/patterns/review-gate/README.md).

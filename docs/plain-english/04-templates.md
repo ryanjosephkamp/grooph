@@ -31,7 +31,7 @@ built-in (<grooph>/packages/cli/dist/patterns/)
 Each entry has a name, a kind, three rough words, and one sentence on when to reach for it.
 
 - The **kind** is `graph` (a whole plan) or `fragment` (a few nodes meant to be put into another graph).
-- The three words are **cost** (low, medium or high), **speed** (fast, medium or slow) and **rigor** (light, standard or high), in that order. They are the template author's rough judgment. They are not measurements.
+- The three words are **cost** (low, medium or high), **speed** (fast, medium or slow) and **rigor** (light, standard or high), in that order. They are the template author's rough judgment. They are not measurements. The one-sentence descriptions, such as the lines quoted above, are likewise the author's belief about when a template fits.
 
 ## The twenty, in one line each
 

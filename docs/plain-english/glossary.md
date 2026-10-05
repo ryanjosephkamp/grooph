@@ -51,7 +51,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Effort** | How hard the model should think: low, medium, high or max | 2 |
 | **Brief** | What a worker may and may not do, and what it must leave behind | 2 |
 | **Capability** | A plain name for something a worker may do, such as `read-files` or `run-tests` | 2 |
-| **Evidence** | What the next worker is allowed to look at. A critic sees evidence, not the builder's reasoning | 2 |
+| **Evidence** | What the next worker is allowed to look at. A critic is told to judge the evidence, not the builder's reasoning | 2 |
 | **Isolation** | Whether the next worker starts with an empty context (`fresh`) or carries on with what it knows (`shared`) | 2 |
 | **Human gate** | A step where the run stops and asks a person | 1, 2 |
 | **Approval** | A mark on an edge: a person must say yes before the run goes that way | 1, 2 |
@@ -70,15 +70,15 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 
 | Term | Meaning | Chapter |
 |---|---|---|
-| **Loop** | A part of the graph that can go round, written down as its own object: its members, its back edges, its bar and its stops | 2 |
+| **Loop** | A part of the graph that can go around, written down as its own object: its members, its back edges, its bar and its stops | 2 |
 | **Back edge** | An arrow that sends work back to an earlier step. Taking one starts a new round | 2 |
-| **Round** | One trip round a loop. The first pass is round 0 | 2 |
+| **Round** | One trip around a loop. The first pass is round 0 | 2 |
 | **Grind loop / judgment loop** | A loop decided by a check / by an agent's verdict | 2 |
 | **Verdict** | How a check or a critic ends: pass, fail, or a named result | 2, 5 |
 | **Bar** | The named standard a critic judges against. It must point at something that can be inspected. An adjective is not a bar | 2 |
 | **Acceptance / aspiration** | The reachable "good enough to stop" / a direction to aim in. Only acceptance can stop a loop | 2 |
 | **Stop** | A rule that ends a loop: bar passed, round cap, budget, a person, diminishing returns, or unreadable evidence | 2 |
-| **Round cap** | The most times a loop may go round (the `max-iterations` stop) | 1, 2 |
+| **Round cap** | The most times a loop may go around (the `max-iterations` stop) | 1, 2 |
 | **Budget** | The most a loop may spend, counted in dispatches, minutes, dollars, turns or tokens | 1, 2 |
 | **Brake** | Anything in a graph whose job is to stop a run, make it wait for a person, or keep a reviewer independent: gates, approvals, irreversible markers, round caps and budgets, a bar's acceptance, critic isolation, the adaptation level, and checks. For the most part a brake is a written instruction to the lead, not a lock | 1, 7 |
 | **Adaptation** | How far a run may change its own copy of the graph: adaptive, propose or fixed | 2, 7 |
@@ -114,7 +114,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Amendment** | A change a lead made to its working copy, with its reason | 7 |
 | **Proposal** | A change a lead only suggests, for a person to accept or reject | 7 |
 | **Adopting** | Taking a run's working copy as the graph's next version | 7 |
-| **Tighten / loosen** | To make a brake stricter / less strict. A run may tighten and never loosen | 7 |
+| **Tighten / loosen** | To make a brake stricter / less strict. A run is told it may tighten and never loosen | 7 |
 
 ## Larger structures
 
@@ -156,7 +156,7 @@ Every term this guide uses, in plain words, with the chapter that explains it. W
 | **Published red** | A record that failed its check, kept and shown as a failure | 4, 13 |
 | **Paired comparison** | The same task given to a graph and to a plain prompt, and the results compared | 13 |
 | **Arm** | One of the ways a task is run in a comparison | 13 |
-| **Held-out** | Test cases or reference material the builder was not shown | 13 |
+| **Held-out** | Test cases or reference material the builder was told not to read | 13 |
 | **Pre-registration** | Writing down, before a run, what result would count as winning and as losing | 13 |
 | **Claim** | A sentence about what grooph does to the quality, cost, speed or safety of work, or about what an experiment showed | 14 |
 | **Carried / other words / not carried** | The three readings of a claim against its evidence | 14 |
