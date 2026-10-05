@@ -46,6 +46,18 @@ The scripts are as their readers wrote them, with three kinds of change so that 
 
 No figure in #114 rests on a script that is gone.
 
+## Since amendment A-019 (a check is a brake)
+
+`printed/` is still what the scripts printed at `30b59d0`. Run on 2026-10-05 at the head of the branch that added the check kind to the comparison (`slice/0096-a-check-is-a-brake`), 44 of the 86 files print something else, and `git diff printed/` after `run-all.sh` shows each. Nothing that was held is let through. What moves:
+
+- Lines that now also name a check (`adds a way into "…" that does not pass the check "…"`, `changes "…", an edge that leaves the check "…"`), in the hand cases and in what the commands print.
+- Two of the second adoption reader's cases that were adopted with nothing refused are refused: in `hand1`, the check's command changed beside a second loop; in `hand2`, a step put behind a check's pass.
+- The refresh fuzzers' open family, `gate-answer-leads-elsewhere, held none`, falls on every seed, since some of those ways also go round a check: 23, 31, 24, 27, 24, 18, 23, 21 become 18, 28, 23, 25, 21, 15, 20, 18. The house lane's two copies of that fuzzer move with it.
+- The first adoption reader's fuzzer, seeds 1 to 5: 7, 11, 11, 6 and 9 through become 7, 11, 11, 5 and 7; seed 7, 6 becomes 5. `consistency` seed 7: 209 refused and 165 written (205 and 169), still 0 disagreements with core. `fuzz-allow` seed 1: 1,589 allowed one change (1,580), and losses in the written graph with no allow are still 0.
+- The same reader's honest fuzzer, seed 1, shows the price: "an edge under another id" is refused 50 times of 167 (3 before), where the edge leaves a check, and "a second gate put in front of a gate" 4 of 63 (0 before), where the edge into the gate leaves a check. Seed 7: 67 of 222 and 6 of 88.
+- `house/recorded-runs`: one of the 43 recorded runs would now be refused, `patrol-pulse/run-2` as `node:scan.check` (its lead made the check's pass text stricter, which a program cannot tell from looser), and 2 are said to tighten.
+- Not the amendment's doing: the sentence of `W_HOMOGENEOUS_CRITICS` changed in #108, `grooph adopt` prints the line "all of them, on purpose" since #117, and `d1` prints timings.
+
 ## What these do not show
 
-That the list of what a brake is, is complete. Five readers each found something. The six questions that are open are in `handoffs/0085-subgroophs/HANDBACK.md`, "For the audit of `brakes.ts`", and since then the owner has ruled that a check's command and where its verdicts lead are brakes (amendment A-019), which the comparison at `30b59d0` does not hold: the audit lane's two probes of it are in `round-02/lane-notes/`.
+That the list of what a brake is, is complete. Five readers each found something. The six questions that are open are in `handoffs/0085-subgroophs/HANDBACK.md`, "For the audit of `brakes.ts`", and since then the owner has ruled that a check's command and where its verdicts lead are brakes (amendment A-019), which the comparison at `30b59d0` does not hold: the audit lane's two probes of it are in `round-02/lane-notes/`. The comparison holds it since the branch named above, where three more readers attacked that rule; what they got through and what they left open is in that pull request and in `docs/templates.md`, "Refreshing".

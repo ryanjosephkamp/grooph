@@ -429,7 +429,7 @@ const builtIn = (id: string): Graph => {
 };
 const checkOf = (doc: Graph, id: string): Extract<Node, { kind: "check" }> => doc.nodes.find((n) => n.id === id) as Extract<Node, { kind: "check" }>;
 /** What every line about an edge that leaves a check ends on: a tightening is held too, and is told that it costs one `--allow`. */
-const EITHER = ": a program cannot tell which way this goes, so it is held either way, and a tightening (a gate put behind the check's pass) costs one --allow too, the price of a rule a program can apply";
+const EITHER = ": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply";
 
 test("A-019, the audit's three probes on the grind loop: the check made to pass always, its verdicts swapped, a way round it", () => {
   const grind = builtIn("grind-loop");
@@ -738,4 +738,36 @@ test("A-019: a condition written two ways is one condition; and a tightening's l
   assert.deepEqual(adopt((w) => void (w.edges.find((e) => e.id === "e-tests-pass")!.when = { verdict: "pass" }), { from: grind }).refused, []);
   const asked = adopt((w) => void (w.edges.find((e) => e.id === "e-tests-pass")!.approval = true), { from: grind });
   assert.doesNotMatch(asked.changes.find((change) => change.name === "edge:e-tests-pass.approval")!.tightens!, /an edge that leaves the check/);
+});
+
+test("A-019's exception, case by case as the audit lane read it: an approval newly asked and evidence added for a critic pass, and nothing near them does", () => {
+  const grind = builtIn("grind-loop");
+  const edge = (w: Graph, id: string): Edge => w.edges.find((e) => e.id === id)!;
+  const second = { id: "done-too", kind: "stop", name: "Done too", outcome: "success" } as Node;
+  // An approval newly asked on an edge that was already there, and nothing else: taken, and said to tighten.
+  assert.deepEqual(adopt((w) => void (edge(w, "e-tests-fail").approval = true), { from: grind }).refused, []);
+  // The same approval with the edge led to the stop that ends in success, or to a second one added for it: the "to" is held.
+  // (On the retrospective, where the pass leads to the wrap-up and not straight to the end.)
+  const retro = builtIn("retrospective-rewrite");
+  assert.deepEqual(names(adopt((w) => Object.assign(edge(w, "e-tests-retro"), { approval: true, to: "done" }), { from: retro })), ["edge:e-tests-retro.to"]);
+  assert.deepEqual(names(adopt((w) => {
+    w.nodes.push(second);
+    Object.assign(edge(w, "e-tests-pass"), { approval: true, to: "done-too" });
+  }, { from: grind })), ["edge:e-tests-pass.to"]);
+  // An edge added from the check, on a failure, to the stop that ends in success, with an approval on it: an added edge is never excepted.
+  assert.deepEqual(names(adopt((w) => void w.edges.push({ id: "e-tests-failed", from: "tests", to: "done", when: "fail", approval: true }), { from: grind })), ["edge:e-tests-failed"]);
+  // An approval taken away.
+  const asked = adoptWorkingCopy(grind, { ...structuredClone(grind), edges: grind.edges.map((e) => (e.id === "e-tests-pass" ? { ...e, approval: true } : e)) } as Graph, { run: "r" });
+  assert.ok(asked.ok);
+  assert.deepEqual(names(adopt((w) => void delete edge(w, "e-tests-pass").approval, { from: asked.doc })), ["edge:e-tests-pass.approval"]);
+  // Evidence: added to what the edge hands a critic passes; one piece taken away, or one swapped for another, is held;
+  // and added on the check's edge to a builder is held, since nothing counts what a builder is handed.
+  const rare = builtIn("fresh-grind-rare-judge");
+  const handed = rare.edges.find((e) => e.id === "e-tests-judge")!.evidence!;
+  assert.ok(handed.length > 1, "the edge hands the judge more than one piece");
+  assert.deepEqual(adopt((w) => void edge(w, "e-tests-judge").evidence!.push("the full log"), { from: rare }).refused, []);
+  assert.ok(names(adopt((w) => void edge(w, "e-tests-judge").evidence!.pop(), { from: rare })).includes("edge:e-tests-judge.evidence"));
+  assert.ok(names(adopt((w) => void (edge(w, "e-tests-judge").evidence = [...handed.slice(0, -1), "a summary"]), { from: rare })).includes("edge:e-tests-judge.evidence"));
+  const more = adopt((w) => void edge(w, "e-tests-fail").evidence!.push("the failing test's name"), { from: grind });
+  assert.deepEqual(refused(more), [`edge:e-tests-fail.evidence: changes "e-tests-fail", an edge that leaves the check "tests" (evidence)${EITHER}`]);
 });

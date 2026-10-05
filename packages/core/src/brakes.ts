@@ -611,7 +611,7 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
 function checkEdgeLosses(before: Graph, after: Graph): Loss[] {
   const losses: Loss[] = [];
   // Said on every such line, so that nobody who tightened one thinks they did something wrong.
-  const either = "a program cannot tell which way this goes, so it is held either way, and a tightening (a gate put behind the check's pass) costs one --allow too, the price of a rule a program can apply";
+  const either = "a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply";
   const stays = new Set(before.nodes.filter((node) => node.kind === "check" && after.nodes.some((other) => other.id === node.id && other.kind === "check")).map((node) => node.id));
   const still = new Set(after.nodes.map((node) => node.id));
   const edgeWas = new Map(before.edges.map((edge) => [edge.id, edge]));
