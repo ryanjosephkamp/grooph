@@ -1,15 +1,27 @@
 /**
- * Core, whole: `base.ts`, the compiler, and an operation map's other views. See `base.ts` for why the compiler is a
- * file of its own, and `picture/map-views.ts` for why the views are. Here the views have their parts already.
+ * Core, whole: `base.ts`, the compiler, an operation map's other views, and a graph's picture with its subgroophs
+ * as boxes. See `base.ts` for why the compiler is a file of its own, and `picture/map-views.ts` for why the views
+ * are. Here the views have their parts already.
  */
+import { pictureWithUnits, type UnitsOptions } from "./picture/graph-units.js";
+import { unitsKit } from "./picture/units-kit.js";
 import { mapKit } from "./picture/map-kit.js";
 import { mapSequenceWith, mapWideWith } from "./picture/map-views.js";
 import type { MapPictureOptions, PictureOptions } from "./picture/svg.js";
-import type { OperationMap } from "./types.js";
+import type { Graph, OperationMap } from "./types.js";
 
 export * from "./base.js";
 export { compile, tryCompile, CompileError, keptFolder } from "./compile/index.js";
-export { mapSequenceWith, mapWideWith };
+// Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
+export * from "./subgrooph.js";
+export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
+export type { UnitsKit } from "./picture/units-kit.js";
+
+/**
+ * A graph's picture (docs/exports.md). A subgrooph is one box, closed unless `open` names it; a graph with none is
+ * drawn as `base.ts`'s picture draws it, byte for byte.
+ */
+export const picture = (doc: Graph, options: UnitsOptions = {}): string => pictureWithUnits(unitsKit, doc, options);
 
 /** An operation map with its lanes side by side (docs/operation-map.md §4c). `width`, when given, is the room there is. */
 export const mapWide = (map: OperationMap, options: MapPictureOptions = {}): string => mapWideWith(mapKit, map, options);
