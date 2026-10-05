@@ -21,7 +21,11 @@ test("the prompt holds every agent brief, its inputs, outputs and capabilities",
     for (const cap of node.allow ?? []) assert.ok(prompt.includes(`\`${cap}\``), `capability ${cap} of ${node.id}`);
     assert.ok(prompt.includes(`role ${node.role}`), `role of ${node.id}`);
   }
-  assert.match(prompt, /model opus, effort high/);
+  // Each brief's heading names the model and effort its agent file names, whatever the target's tiers mean this month.
+  for (const [id, file] of Object.entries(pkg.agents)) {
+    const named = (key) => file.match(new RegExp(`^${key}:\\s*(.+)$`, "m"))[1].trim();
+    assert.ok(prompt.includes(`node \`${id}\``) && prompt.includes(`model ${named("model")}, effort ${named("effort")}`), `model and effort of ${id}`);
+  }
 });
 
 test("the prompt holds the goal verbatim and the sections the rule keeps", () => {
