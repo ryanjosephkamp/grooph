@@ -341,6 +341,12 @@ The driver lifted the hold on 2026-10-05 (the game run is put off, and its start
 
 **Checked on the merged tree, from a clean build:** core 476, cli 196, web 123; the browser suite on port 4366, 303 passed and none failed; `pack-check.sh` (858 KB, 86 files), `kit-check.sh`, `first-run.sh`, the golden packages by export and diff, American English, the generators, the site's pages, the pictures, the outside addresses, the version. CI's own budget lines for the head are in the pull request's description.
 
+## For the 0.4.0 notes
+
+**A package placed by 0.3.0 may stop its first export through the MCP tool.** If you placed a package with 0.3.0 and, after upgrading, export over it with `grooph_export` and `into`, the tool may stop and list files as "not as grooph last wrote it". Nothing is wrong with them: 0.4.0 words part of the lead's brief differently, and the tool cannot tell a file another version wrote from one changed by hand. **What to do:** if you have not edited the listed files yourself, export once more with `replace: true`; if you have, look at them first, because a replaced file loses your changes. The command line's `grooph export … --into` does not make this check and is not affected.
+
+**The export tool asks before a brake is loosened; the command does not yet.** Over a package already in place, `grooph_export` lists each change that may remove or loosen a brake of the graph that package keeps, and places it only when the change is named in `allow`. The plain command `grooph export` makes no such comparison in this release.
+
 ## Prompt to paste into the driver session
 
 ```text
