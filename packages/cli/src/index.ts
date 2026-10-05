@@ -12,6 +12,7 @@ import { parseArgs } from "node:util";
 
 import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, readTheme, type CompileTarget } from "@grooph/core";
 
+import { oneLine } from "./reply.js";
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
@@ -77,7 +78,8 @@ export async function run(
 
   /** A wrong invocation: the message, the command's usage line, and where the full page is. */
   const usageError = (out: Output, message: string): number => {
-    out.err(`grooph: ${message}`);
+    // The message echoes what was typed (an option, a target, a tier): one line, whatever it holds.
+    out.err(oneLine(`grooph: ${message}`));
     const first = (COMMAND_HELP[command] ?? "").split("\n")[0];
     out.err(first ? `Usage: ${first}` : `Usage: grooph <command> (grooph --help lists them)`);
     if (COMMAND_HELP[command] !== undefined) out.err(`More: grooph help ${command}`);
@@ -454,14 +456,19 @@ export async function run(
       return 1;
     }
     const error = err as NodeJS.ErrnoException;
+    // A file's name is echoed as it was typed: one line, whatever it holds.
     if (error.code === "ENOENT") {
-      io.err(`grooph: no such file: ${error.path ?? "(unknown)"}`);
+      io.err(oneLine(`grooph: no such file: ${error.path ?? "(unknown)"}`));
+      return 1;
+    }
+    if (error.code === "KEPT_GRAPH") {
+      io.err(oneLine(`grooph: ${error.message}`));
       return 1;
     }
     if (error.name === "TypeError" && /Unknown option|Option/.test(error.message)) {
       return usageError(io, error.message);
     }
-    io.err(`grooph: ${error.message}`);
+    io.err(oneLine(`grooph: ${error.message}`));
     return 2;
   }
 }

@@ -162,6 +162,10 @@ packages/core/README.md), read from a file or from stdin with --ops -. All or no
 that cannot apply is named and nothing is written. Prints the resulting issues; --write saves
 the result in canonical form (never one that fails the schema). Exits 1 while errors remain.
 
+The graph a package keeps (.grooph/<id>/graph.grooph.json) is not written by apply, or by any
+command but export: an export compares the next graph with it (grooph export --help). Work on a
+copy of your own, .grooph/graphs/<id>.grooph.json by habit, and export that.
+
 Example
   echo '[{"op":"addNode","kind":"agent","name":"Builder"}]' | grooph apply g.grooph.json --ops - --write
 ```
@@ -275,13 +279,14 @@ is listed with its reason, nothing is written, and the exit code is 1, until eac
 lists those too. A brake is removed or loosened only on a person's word: an agent that meets the
 refusal puts each listed change to the person, and adds --allow only for the ones they said yes to.
 
-The kept graph is a baseline only while it can be read as a graph and the lead's brief in the
-package is what it compiles to. Where it is gone, cannot be read as a graph, or was changed after
-the brief was written (by grooph apply --write on it, by hand, or because another version of grooph
-wrote the package), nothing is called compared: the export writes nothing and says why, and
---uncompared places the graph on a person's word. What still reads as loosened against a changed
-kept graph is held by name as well. A first export, and a graph under a new id (a second package
-beside the first), compare nothing and need no flag.
+The kept graph is a baseline only while it can be read as a graph, is this package's own, and the
+lead's brief and the mapping notes in the package are what it compiles to. Where it is gone, cannot
+be read as this package's graph, or does not match those two files (it was changed by hand, one of
+them was, or another version of grooph wrote the package), nothing is called compared: the export
+writes nothing and says why, and --uncompared places the graph on a person's word. What still reads
+as loosened against a changed kept graph is held by name as well. A first export, and a graph under
+a new id (a second package beside the first), compare nothing and need no flag. No command of
+grooph's but export writes a kept graph: apply and the others refuse it.
 
 The last line of the output opens "brakes:" and says which of these happened. The kickoff is the
 graph's own words and may hold any line: it runs from the line after "Kickoff" to the line before
@@ -289,8 +294,9 @@ that last line, which is always grooph's own.
 
 What the comparison does not see: a check's command, a brief, a node's tools, the graph's own
 constraints (its budget line among them), an edge's retry and concurrency. "None of the brakes it
-compares" is all the last line says after a comparison. And nothing stops a hand that rewrites the
-kept graph and the brief together.
+compares" is all the last line says after a comparison. And it is not a seal: a hand that rewrites
+the kept graph together with the brief and the mapping notes is not seen, nor is one that takes an
+irreversible marker off the kept graph, which neither file shows.
 
 An agent's file is named <graph id>--<node id>.md. Where this graph would write one that another
 package in <dir> has as its own, nothing is written.

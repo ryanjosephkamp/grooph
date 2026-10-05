@@ -204,7 +204,7 @@ test("third pass 2: a model is never changed or pinned without a word: the CLI s
     assert.equal(asked.isError, true);
     assert.match(
       textOf(asked),
-      /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and this export would change the model of 1 agent file there, and the graph this package keeps is no baseline to compare this one with\. The lead's brief in the package there is not what the graph it keeps compiles to: .+ so nothing was compared\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\ntiers in this package: .*\nnext: these are two questions, and "replace": true answers both at once: the file changed by hand is lost, and the models change\. Put both to the person\./,
+      /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and this export would change the model of 1 agent file there, and the graph this package keeps is no baseline to compare this one with\. The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to: .+ so nothing was compared\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\ntiers in this package: .*\nnext: these are two questions, and "replace": true answers both at once: the file changed by hand is lost, and the models change\. Put both to the person\./,
     );
     assert.deepEqual(asked.structuredContent!["changed"], [".grooph/fix-until-green/LEAD.md"]);
     assert.equal((asked.structuredContent!["modelChanges"] as string[]).length, 1);
@@ -212,13 +212,13 @@ test("third pass 2: a model is never changed or pinned without a word: the CLI s
 
     // Each alone is still asked on its own terms.
     const byHand = await call(ctx, "grooph_export", { graph, into: "." });
-    assert.match(textOf(byHand), /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and the graph this package keeps is no baseline to compare this one with\. The lead's brief in the package there is not what the graph it keeps compiles to: .+ so nothing was compared\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\nnext: look at it: /);
+    assert.match(textOf(byHand), /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and the graph this package keeps is no baseline to compare this one with\. The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to: .+ so nothing was compared\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\nnext: look at it: /);
     assert.deepEqual(byHand.structuredContent!["modelChanges"], []);
 
     // Given the flag, both happen, and the reply says both.
     const done = await call(ctx, "grooph_export", { graph, into: ".", models: { [tier]: "mine" }, replace: true });
     assert.equal(done.isError, undefined, textOf(done));
-    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: not compared \("replace"\)\. The lead's brief in the package there is not what the graph it keeps compiles to: .+\ntiers in this package: /);
+    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: not compared \("replace"\)\. The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to: .+\ntiers in this package: /);
     assert.deepEqual(done.structuredContent!["replaced"], [".grooph/fix-until-green/LEAD.md"]);
     assert.equal((done.structuredContent!["modelChanges"] as string[]).length, 1);
     assert.match(fixer(ctx.project), /^model: mine$/m);
@@ -920,7 +920,7 @@ test("after the merge, read again: what the comparison holds besides a loosening
     const loose = { ...reworded, loops: reworded.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 99 } : stop)) })) } as Graph;
     for (const [spoil, why] of [
       [() => rmSync(keptFile), "Files of this graph's name were there, and no graph kept with them."],
-      [() => writeFileSync(keptFile, "{ not a graph"), "The graph this package kept cannot be read as a graph."],
+      [() => writeFileSync(keptFile, "{ not a graph"), "The graph this package kept cannot be read as this package's graph."],
     ] as const) {
       assert.equal((await call(ctx, "grooph_export", { graph: reworded, into: ".", replace: true })).isError, undefined);
       spoil();

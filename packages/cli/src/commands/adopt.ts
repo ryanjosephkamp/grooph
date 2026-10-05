@@ -154,9 +154,10 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     return /^[A-Za-z0-9_.:/@=+-]+$/.test(plain) ? plain : `'${plain.replace(/'/g, "'\\''")}'`;
   };
   // The project is known only when the run is where a package keeps its runs, under <project>/.grooph/<id>/runs/.
-  // A run read from anywhere else (a copy, a fixture) names no project, and the line says so with a blank to fill.
+  // A run read from anywhere else (a copy, a fixture) names no project, and the line says so with a blank to fill,
+  // in quotes: bare, a shell would read it as "take input from the file project".
   const inPackage = basename(dirname(run.graphDir)) === ".grooph";
-  const exportLine = ["grooph", "export", word(shown(target)), "--target", adopted.doc.target?.harness ?? "<harness>", "--into", inPackage ? word(shown(dirname(dirname(run.graphDir)))) : "<project>", ...meant.flatMap((change) => ["--allow", word(change.name)])].join(" ");
+  const exportLine = ["grooph", "export", word(shown(target)), "--target", adopted.doc.target?.harness ?? "<harness>", "--into", inPackage ? word(shown(dirname(dirname(run.graphDir)))) : "'<project>'", ...meant.flatMap((change) => ["--allow", word(change.name)])].join(" ");
   io.out(`place it for the next run with: ${exportLine}`);
   return 0;
 }

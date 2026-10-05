@@ -536,6 +536,21 @@ test("a brake loosened over a package in place: the change's name and its reason
       const pass = worded.edges.find((edge) => edge.to === gate)!;
       const gateless = { ...looser, nodes: looser.nodes.filter((node) => node.id !== gate), edges: [...looser.edges.filter((edge) => edge.from !== gate && edge.to !== gate), { ...pass, id: `${ID_PAYLOAD}-straight`, to: stop }], loops: looser.loops.map((loop) => ({ ...loop, members: loop.members.filter((id) => id !== gate), ...("back" in loop ? { back: (loop as unknown as { back: string[] }).back.filter((id) => looser.edges.some((edge) => edge.id === id && edge.from !== gate)) } : {}) })) } as Graph;
       await call(ctx, "grooph_export", { graph: gateless, into }, where);
+      // The package no longer a baseline, each way: the brief with a line of someone's added, then the kept graph gone.
+      // Refused and then placed on "replace", both replies are the tool's own lines.
+      const brief = join(ctx.project, into, ".grooph", looser.id, "LEAD.md");
+      if (existsSync(brief)) {
+        writeFileSync(brief, `${readFileSync(brief, "utf8")}\n${payload}\n`);
+        const stale = await call(ctx, "grooph_export", { graph: looser, into }, where);
+        assert.equal(stale.isError, true, `${where}: placed over a brief changed by hand`);
+        await call(ctx, "grooph_export", { graph: looser, into, replace: true, allow: names }, where);
+        rmSync(join(ctx.project, into, ".grooph", looser.id, "graph.grooph.json"), { force: true });
+        await call(ctx, "grooph_export", { graph: worded, into }, where);
+        await call(ctx, "grooph_export", { graph: worded, into, replace: true }, where);
+      }
+      // Two graphs that make one agent file: the refusal names the file and the other package, both someone's text.
+      const builder = worded.nodes.find((node) => node.kind === "agent")!.id;
+      await call(ctx, "grooph_export", { graph: { ...worded, id: `${worded.id}--${builder}`.slice(0, 40).replace(/-+$/, "") }, into }, where);
     }
   });
 });

@@ -314,7 +314,7 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
     // compiles to, so the export first says that nothing can be compared, and waits for the word.
     const old = capture();
     assert.equal(await grooph(["export", target, "--target", "claude-code", "--into", dir], old), 1);
-    assert.match(text(old.stderr), /not compared, so nothing was written\. The lead's brief in the package there is not what the graph it keeps compiles to/);
+    assert.match(text(old.stderr), /not compared, so nothing was written\. The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to/);
     // Against the graph it keeps the change still reads as loosening, and is held by name as well.
     assert.match(text(old.stderr), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
     // Brought up to date from its own kept graph, on that word, it is a baseline again.
@@ -350,7 +350,7 @@ test("adopt's next line names a project only when the run is where a package kee
     const out = capture();
     assert.equal(await grooph(["adopt", copy, "--write", "--allow", "loop:sandwich.stops"], out), 0, text(out.stderr));
     const next = text(out.stdout).match(/place it for the next run with: (grooph export .*)$/m)![1]!;
-    assert.ok(next.endsWith(" --into <project> --allow loop:sandwich.stops"), next);
+    assert.ok(next.endsWith(" --into '<project>' --allow loop:sandwich.stops"), next);
     assert.ok(!existsSync(join(dir, "fix", ".claude")) && !existsSync(join(dir, ".claude")));
   } finally {
     rmSync(dir, { recursive: true, force: true });

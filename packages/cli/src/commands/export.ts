@@ -173,7 +173,7 @@ export function parseModels(text: string): { models: NonNullable<CompileOptions[
  *                 (a graph given a new id is a second package beside the first)
  * - `no-kept`     files of this graph's name are there, and no kept graph
  * - `unreadable`  the kept graph is there and cannot be read as a graph
- * - `stale`       the kept graph reads, and the lead's brief in place is not what it compiles to. What reads as
+ * - `stale`       the kept graph reads, and the lead's brief or the mapping notes in place are not what it compiles to. What reads as
  *                 loosened against it is still held by name; "none loosened" is not said
  */
 export type BaselineState = "compared" | "nothing" | "no-kept" | "unreadable" | "stale";
@@ -202,8 +202,8 @@ export type BrakesAtExport = {
 /** Why nothing was compared, for the three states that wait for a word. One sentence each, the same at both doors. */
 export const NOT_COMPARED: Record<Exclude<BaselineState, "compared" | "nothing">, string> = {
   "no-kept": "Files of this graph's name were there, and no graph kept with them.",
-  unreadable: "The graph this package kept cannot be read as a graph.",
-  stale: "The lead's brief in the package there is not what the graph it keeps compiles to: that graph was changed after the brief was written, the brief was changed by hand, or another version of grooph wrote it.",
+  unreadable: "The graph this package kept cannot be read as this package's graph.",
+  stale: "The lead's brief or the mapping notes in the package there are not what the graph it keeps compiles to: that graph was changed after they were written, one of them was changed by hand, or another version of grooph wrote them.",
 };
 export const waitsForAWord = (state: BaselineState): state is Exclude<BaselineState, "compared" | "nothing"> => state === "no-kept" || state === "unreadable" || state === "stale";
 
@@ -234,6 +234,8 @@ export function brakesAtExport(
     before = undefined;
   }
   if (before === undefined) return none("unreadable");
+  // A graph of another id in this package's folder is another package's kept graph, moved here: no baseline.
+  if (before.id !== doc.id) return none("unreadable");
   // A kept graph that is not what the brief was written from is no baseline for "nothing was loosened". What does read
   // as loosened against it is still held: the comparison is made, and its answer is trusted only one way.
   const stale = !writtenFrom(root, before, target, models);
@@ -253,11 +255,14 @@ export function brakesAtExport(
 }
 
 /**
- * Whether the lead's brief in `root` is what `kept` compiles to, with the tiers the package's own MAPPING.md states,
- * or this export's, or the target's own. The brief is where a package says its brakes to the session that runs it
- * (each loop's cap and budget, the gates, the policies), so it is the file that shows whether the kept graph is still
- * the one the package was written from; an agent's file tuned by hand does not make the kept graph any less so. A
- * kept graph that does not compile wrote no package.
+ * Whether the lead's brief and the mapping notes in `root` are what `kept` compiles to, with the tiers the package's
+ * own MAPPING.md states, or this export's, or the target's own. Those two files are where a package writes down the
+ * graph it was made from (each loop's cap and budget and the gates in the brief; the policies in force in the mapping
+ * notes), so they are what shows whether the kept graph is still that graph; an agent's file tuned by hand does not
+ * make it any less so. A kept graph that does not compile wrote no package.
+ *
+ * It is not a seal. An irreversible marker is in neither file, so a hand that takes one off the kept graph is not
+ * seen here; grooph's own commands do not write the kept graph at all (../io.ts), which is the other half of this.
  */
 function writtenFrom(root: string, kept: Graph, target: CompileTarget, models: CompileOptions["models"] | undefined): boolean {
   let said: RegExpExecArray | null = null;
@@ -276,15 +281,18 @@ function writtenFrom(root: string, kept: Graph, target: CompileTarget, models: C
     } catch {
       continue;
     }
-    const brief = Object.keys(files).find((path) => path.endsWith(`/${kept.id}/LEAD.md`));
-    if (brief === undefined) continue;
-    try {
-      const full = join(root, brief);
-      // As a file holds it: half a character in a document is written as a replacement character.
-      if (statSync(full).isFile() && readFileSync(full, "utf8") === asWritten(files[brief]!)) return true;
-    } catch {
-      // not there, or not a file: not written from this graph
-    }
+    const written = ["LEAD.md", "MAPPING.md"].map((name) => Object.keys(files).find((path) => path.endsWith(`/${kept.id}/${name}`)));
+    if (written.some((path) => path === undefined)) continue;
+    const same = written.every((path) => {
+      try {
+        const full = join(root, path!);
+        // As a file holds it: half a character in a document is written as a replacement character.
+        return statSync(full).isFile() && readFileSync(full, "utf8") === asWritten(files[path!]!);
+      } catch {
+        return false; // not there, or not a file: not written from this graph
+      }
+    });
+    if (same) return true;
   }
   return false;
 }
@@ -330,7 +338,7 @@ export function sharedAgentFiles(root: string, id: string, places: readonly { pa
     let nodes: string[];
     try {
       const json = JSON.parse(readFileSync(join(root, ".grooph", other, "graph.grooph.json"), "utf8")) as { nodes?: unknown };
-      nodes = Array.isArray(json.nodes) ? json.nodes.flatMap((node) => (typeof (node as { id?: unknown })?.id === "string" ? [(node as { id: string }).id] : [])) : [];
+      nodes = Array.isArray(json.nodes) ? json.nodes.flatMap((node) => ((node as { kind?: unknown })?.kind === "agent" && typeof (node as { id?: unknown }).id === "string" ? [(node as { id: string }).id] : [])) : [];
     } catch {
       continue;
     }
@@ -463,6 +471,7 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
     io.err(`grooph: ${plural(shared.length, "agent file")} of this graph would replace another package's in ${flags.into}, so nothing was written:`);
     for (const one of shared) io.err(`  ${one.path}  is an agent of the package ${one.other}`);
     io.err("An agent's file is named <graph id>--<node id>.md, and these two graphs make the same name. Give this graph or that node another id (renameId) and export again.");
+    return 1;
   }
   const waits = waitsForAWord(brakes.state);
   if (waits && flags.uncompared !== true) {
@@ -532,11 +541,11 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
   // of this command's. So it is set apart: it runs from the line after "Kickoff" to the line before the last, and the
   // last line of this output is always this command's own, the one that says what was compared.
   io.out("");
+  printNext(io, `open a ${flags.target} session in ${flags.into} and paste the kickoff below`);
   io.out(`Kickoff — paste this into a Claude Code session opened in ${flags.into}. It runs from the next line to the line before the last line of this output, which is grooph's own:`);
   io.out("");
   for (const line of compiled.kickoff.trimEnd().split("\n")) raw.out(line.replace(KICKOFF_CONTROL, " "));
   io.out("");
-  printNext(io, `open a ${flags.target} session in ${flags.into} and paste the kickoff above`);
   const beside = brakes.beside ?? [];
   io.out(
     brakes.state === "nothing"
