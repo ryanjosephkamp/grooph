@@ -139,6 +139,15 @@ const CASES: [string, () => Graph, (working: Graph) => void][] = [
     doc.edges = doc.edges.filter((e) => e.id !== "e-ship-done");
   }), (w) => void ((loop(w, "review").stops[0] as { then?: string }).then = "merge")],
   ["a way round a person newly opens: noted, not refused", () => valid(SUB), (w) => void review(w).stops.push({ kind: "human", every: 2, then: "review-builder" })],
+  // Amendment A-019: a check is a brake. The audit lane's two cases, and a tightening on an edge that leaves a check.
+  ["a check made to pass always", () => valid("fix-until-green.grooph.json"), (w) => {
+    const suite = w.nodes.find((n) => n.id === "suite") as Extract<Node, { kind: "check" }>;
+    suite.check = { ...suite.check, run: "true" };
+  }],
+  ["a check's two verdicts swapped", () => valid("fix-until-green.grooph.json"), (w) => {
+    for (const e of w.edges) if (e.from === "suite") e.when = e.when === "pass" ? "fail" : "pass";
+  }],
+  ["an approval asked on a check's pass: a tightening, saved", () => valid("fix-until-green.grooph.json"), (w) => void (edge(w, "e-suite-pass").approval = true)],
 ];
 
 test("the app and the command agree on every working copy, the readers' attacks among them; and the command the app shows is one the command takes", async ({ page }) => {
