@@ -8,6 +8,14 @@
  *   node scripts/lib/roles-or-information-paid.mjs --spend --go "<the driver's words>"     the next run, and only that one
  *   … --rerun <task>/<arm>-<n>     only for a run whose record is invalid, once, on the driver's word
  *   node scripts/lib/roles-or-information-paid.mjs --readings                              what the recorded scores are read as, so far
+ *
+ * A RUN IS RECORDED AND NOT SCORED unless `--score-outside-the-sandbox` is given. Scoring is study two's: it runs the
+ * task's own `npm test` and the repository's held-out suite against the session's final tree, which runs the code the
+ * session wrote, outside the sandbox and with this account's rights. So it is asked for by name, with the paid run or
+ * afterwards, from the tree the runner kept:
+ *
+ *   … --spend --go "<the driver's words>" --score-outside-the-sandbox
+ *   node scripts/lib/roles-or-information-paid.mjs --score <task>/<arm>-<n> --score-outside-the-sandbox     no session, no spend
  */
 
 import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -23,6 +31,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const comparisons = join(root, "experiments", "comparisons");
 const HOME = join(comparisons, "roles-or-information");
 export const expectation = () => JSON.parse(readFileSync(join(HOME, "expect.json"), "utf8"));
+
+/** What scoring does, said wherever it is refused. The profile's page (experiments/comparisons/profile/README.md) says the same. */
+export const SCORING_RUNS_WHAT_A_SESSION_WROTE =
+  "Scoring runs the task's own `npm test` and the repository's held-out suite against the session's final tree, and that runs the code the session wrote: outside the sandbox, with this account's rights. A session's commands run inside the sandbox; what it wrote does not when it is scored. So a run is recorded and not scored unless --score-outside-the-sandbox is given.";
+
+/** A refusal to score: nothing a session wrote was run. */
+export class NotScored extends Error {}
 
 /** Every run in the pre-registered order. */
 export function order(expect) {
@@ -78,7 +93,9 @@ export function scoreOf(run, recordRoot = HOME) {
   const used = own.result.ended_by === "the harness" ? read(`${first}-rerun`) : own;
   if (!used) return { state: "invalid, and not yet run again" };
   if (used.result.ended_by === "the harness") return { state: "not obtained: invalid both times" };
-  const held = used.score?.held_out;
+  // Recorded, and the scorer was not run on it (it runs what a session wrote, and is asked for by name): not a score of nothing.
+  if (!used.score) return { state: "recorded, not scored" };
+  const held = used.score.held_out;
   return { state: "scored", passed: held?.ran ? held.passed : 0, cut_off: used.result.ended_by === "the watchdog", from: used === own ? "its own record" : "its rerun" };
 }
 
@@ -101,7 +118,8 @@ export function readings(expect, recordRoot = HOME) {
   for (const run of scored(runs)) ((scores[run.task] ??= {})[run.arm] ??= []).push(run.passed);
   const lost = runs.filter((run) => run.state.startsWith("not obtained")).map((run) => run.name);
   const waiting = runs.filter((run) => run.state === "not recorded" || run.state.startsWith("invalid")).map((run) => run.name);
-  const open = waiting.length > 0 ? "not decided yet" : "not decided: a run was not obtained";
+  const unscored = runs.filter((run) => run.state === "recorded, not scored").map((run) => run.name);
+  const open = waiting.length > 0 || unscored.length > 0 ? "not decided yet" : "not decided: a run was not obtained";
   const complete = runs.every((run) => run.state === "scored");
   const refuted = expect.tasks.some((task) => scored(of(task, "E")).some((run) => run.passed < two[task].held_out_cases) || scored(of(task, "F")).some((run) => run.passed > two[task].the_task_alone));
   const fAbove = expect.tasks.filter((task) => scored(of(task, "F")).length === expect.replicates && of(task, "F").every((run) => run.passed > two[task].the_task_alone));
@@ -114,12 +132,13 @@ export function readings(expect, recordRoot = HOME) {
     the_roles_did_some_of_it: fAbove.length >= 2 ? true : expect.tasks.length - fOut.length < 2 ? false : open,
     tasks_where_both_runs_of_F_are_above_the_task_alone: fAbove,
     runs_still_to_come: waiting,
+    runs_recorded_and_not_scored: unscored,
     runs_not_obtained: lost,
   };
 }
 
 /** One run, start to record. */
-export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, ledgerPath, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace }) {
+export async function runOne({ go, rerun = null, scoreOutsideTheSandbox = false, home = DEFAULT_HOME, claude, ledgerPath, recordRoot = HOME, profileCheck, gameOpen, firstCallGate = firstCallAllows(), grace }) {
   const expect = expectation();
   if (!firstCallGate.ok) throw new NotStarted(firstCallGate.why);
   let run = nextRun(expect, recordRoot);
@@ -143,18 +162,18 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
     throw error;
   }
   const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, excludes: [] });
-  let scored = { held_out: { ran: false, reason: "the scorer did not run" }, tests: { pass: false }, scope: {} };
-  try {
-    scored = score({ run, cwd: built.cwd, call });
-  } catch (error) {
-    copied.problems.push(`scoring: ${error.message}`);
+  // The scorer runs what the session wrote, outside the sandbox. It does not start unless it was asked for by name;
+  // without that the run is recorded, its tree is kept, and it can be scored later with --score.
+  let scored = null;
+  if (scoreOutsideTheSandbox) {
+    try {
+      scored = score({ run, cwd: built.cwd, call });
+      writeFileSync(join(recordDir, "score.json"), `${JSON.stringify(scored, null, 2)}\n`, "utf8");
+    } catch (error) {
+      copied.problems.push(`scoring: ${error.message}`);
+    }
   }
-  try {
-    writeFileSync(join(recordDir, "score.json"), `${JSON.stringify(scored, null, 2)}\n`, "utf8");
-  } catch (error) {
-    copied.problems.push(`keeping the score: ${error.message}`);
-  }
-  const result = writeResult(recordDir, call, { run: run.name, task: run.task, arm: run.arm, replicate: run.replicate, rerun_of: rerun ? run.name : null, held_out_given: run.arm === "E" ? reviewersFiles(run.task) : [], transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, pre_registration: "experiments/comparisons/roles-or-information/README.md" });
+  const result = writeResult(recordDir, call, { run: run.name, task: run.task, arm: run.arm, replicate: run.replicate, rerun_of: rerun ? run.name : null, scored: scored !== null, ...(scoreOutsideTheSandbox ? {} : { not_scored_because: SCORING_RUNS_WHAT_A_SESSION_WROTE }), held_out_given: run.arm === "E" ? reviewersFiles(run.task) : [], transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, pre_registration: "experiments/comparisons/roles-or-information/README.md" });
   let kept = null;
   try {
     kept = setAside({ home, work: built.work, sessionId: call.session_id });
@@ -164,9 +183,45 @@ export async function runOne({ go, rerun = null, home = DEFAULT_HOME, claude, le
   return { run, recordDir, result, score: scored, kept, tripwire: call.tripwire, next: nextRun(expect, recordRoot) };
 }
 
+/**
+ * Score a run that was recorded and not scored, from its final tree where the runner moved it. It starts no session
+ * and spends nothing; it runs what the session wrote, and refuses unless that was asked for by name.
+ */
+export function scoreKept({ name, scoreOutsideTheSandbox = false, home = DEFAULT_HOME, recordRoot = HOME }) {
+  if (!scoreOutsideTheSandbox) throw new NotScored(SCORING_RUNS_WHAT_A_SESSION_WROTE);
+  const again = String(name).endsWith("-rerun");
+  const run = order(expectation()).find((candidate) => candidate.name === (again ? String(name).slice(0, -"-rerun".length) : name));
+  if (!run) throw new NotScored(`${JSON.stringify(name)} is not a run of this question: --score names one, such as review-gate-2/E-1 or review-gate-2/E-1-rerun`);
+  const recordDir = join(recordRoot, run.task, `${run.arm}-${run.replicate}${again ? "-rerun" : ""}`);
+  if (!existsSync(join(recordDir, "result.json"))) throw new NotScored(`${name} has no record`);
+  if (existsSync(join(recordDir, "score.json"))) throw new NotScored(`${name} is already scored`);
+  const result = JSON.parse(readFileSync(join(recordDir, "result.json"), "utf8"));
+  if (result.ended_by === "the harness") throw new NotScored(`${name} was ended by the harness: an invalid run is not scored`);
+  const tree = join(home, "kept", String(result.session_id), "work", JSON.parse(readFileSync(join(comparisons, run.task, "task", "package.json"), "utf8")).name);
+  if (!existsSync(tree)) throw new NotScored(`the final tree of ${name} is not where the runner moved it (${tree})`);
+  const scored = score({ run, cwd: tree, call: result });
+  scored.scored_afterwards_from = "the final tree as the runner kept it";
+  writeFileSync(join(recordDir, "score.json"), `${JSON.stringify(scored, null, 2)}\n`, "utf8");
+  return { run, recordDir, score: scored };
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
   const expect = expectation();
+  const outside = flags.includes("--score-outside-the-sandbox");
+  if (flags.includes("--score")) {
+    const named = flags[flags.indexOf("--score") + 1];
+    try {
+      if (!named || named.startsWith("--")) throw new NotScored("--score names the run to score, such as review-gate-2/E-1");
+      const done = scoreKept({ name: named, scoreOutsideTheSandbox: outside });
+      const held = done.score.held_out;
+      console.log(`${named} scored in ${relativeToRoot(done.recordDir)}: held-out ${held.ran ? `${held.passed}/${held.cases}` : `not run (${held.reason})`} · tests ${done.score.tests.pass ? "pass" : "fail"} · outside scope ${done.score.scope.outside?.length ?? "?"}`);
+      process.exit(0);
+    } catch (error) {
+      console.error(`${error.message}\nNothing a session wrote was run.`);
+      process.exit(error instanceof NotScored ? 64 : 1);
+    }
+  }
   if (flags.includes("--readings")) {
     console.log(JSON.stringify(readings(expect), null, 2));
     process.exit(0);
@@ -199,9 +254,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       console.error("--rerun names the run to make again, such as review-gate-2/E-1. Nothing was started.");
       process.exit(64);
     }
-    const done = await runOne({ go: allowed.go, rerun: named });
-    const held = done.score.held_out;
-    console.log(`${done.run.name} recorded in ${relativeToRoot(done.recordDir)}: ended by ${done.result.ended_by}; reported cost ${done.result.reported_cost_usd === null ? "unknown (counted at the ceiling)" : `$${done.result.reported_cost_usd.toFixed(4)}`}; ledger line ${done.result.ledger_n}\nheld-out ${held.ran ? `${held.passed}/${held.cases}` : `not run (${held.reason})`} · tests ${done.score.tests.pass ? "pass" : "fail"} · outside scope ${done.score.scope.outside?.length ?? "?"}\nnext: ${done.next ? done.next.name : "none; every run is recorded"}`);
+    const done = await runOne({ go: allowed.go, rerun: named, scoreOutsideTheSandbox: outside });
+    const held = done.score?.held_out;
+    const scoreLine = held ? `held-out ${held.ran ? `${held.passed}/${held.cases}` : `not run (${held.reason})`} · tests ${done.score.tests.pass ? "pass" : "fail"} · outside scope ${done.score.scope.outside?.length ?? "?"}` : outside ? "not scored: the scorer failed, and what went wrong is in the record" : `recorded and not scored. ${SCORING_RUNS_WHAT_A_SESSION_WROTE}\nTo score it from the tree the runner kept: node scripts/lib/roles-or-information-paid.mjs --score ${done.run.name}${named ? "-rerun" : ""} --score-outside-the-sandbox`;
+    console.log(`${done.run.name} recorded in ${relativeToRoot(done.recordDir)}: ended by ${done.result.ended_by}; reported cost ${done.result.reported_cost_usd === null ? "unknown (counted at the ceiling)" : `$${done.result.reported_cost_usd.toFixed(4)}`}; ledger line ${done.result.ledger_n}\n${scoreLine}\nnext: ${done.next ? done.next.name : "none; every run is recorded"}`);
     if (done.tripwire) console.log(`\n${done.tripwire}`);
     process.exit(done.result.ended_by === "the harness" ? 2 : 0);
   } catch (error) {

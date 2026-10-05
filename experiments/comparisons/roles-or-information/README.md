@@ -2,6 +2,8 @@
 
 **Pre-registered on 2026-10-05, before any run. Nothing here has been run.** The owner said yes to this question the same day. It holds the two derived prompts for each of study two's three tasks, and what each result will be read as, written before any of them exists. The question is in [`handoffs/briefs/study-three-on-paper.md`](../../../handoffs/briefs/study-three-on-paper.md), question 5. The same facts are in [`expect.json`](expect.json) for the runner.
 
+**Parked on 2026-10-05: not run.** The owner parked the experiments that day; his yes waits for him. The order when work resumes, and what each step may cost, is at the top of [the profile's page](../profile/README.md). Nothing here may be changed after the first paid call without a dated note saying what changed and why.
+
 ## Why
 
 In both comparisons the reviewer held evidence the builder had not seen. So a design ended above the task alone, and nobody can say whether the roles did it or the information did (audit 0001, finding F12). These two arms take the two apart, on the same three tasks and with the same suites as the scorer.
@@ -42,6 +44,8 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 
 **How a run is scored.** By study two's scorer and study two's suites, run from the repository's own `held-out/` folders against the final tree. Never from the copy a session was given.
 
+**A run is recorded and not scored unless scoring is asked for by name.** The scorer runs the task's own `npm test` and the held-out suite against the session's final tree, and that runs the code the session wrote: outside the sandbox, with the account's rights. Study two's runs were scored that way. Here the runner keeps everything and stops before that step; it starts only with `--score-outside-the-sandbox`, with the paid run or afterwards from the tree the runner kept. A run that is recorded and not scored is read as waiting, never as a score of nothing.
+
 **What the scores will be read as.** Two statements, each of which either holds or does not. The numbers are study two's: with the design, 55 of 55, 70 of 70 and 24 of 24; with the task alone, 51, 52 and 15.
 
 - **"The information did it"** holds when, in every task, both runs of E pass every held-out case and both runs of F pass no more than the task alone did.
@@ -72,6 +76,7 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 node scripts/lib/roles-or-information-paid.mjs --next                       # which run is next, and what it would start
 node scripts/lib/roles-or-information-paid.mjs --spend --go "<the driver's words>"   # the next run, and only that one
 node scripts/lib/roles-or-information-paid.mjs --readings                   # what the recorded scores are read as, so far
+node scripts/lib/roles-or-information-paid.mjs --score <task>/<arm>-<n> --score-outside-the-sandbox   # score a recorded run; no session, no spend
 ```
 
 A paid run is started from a terminal, and is refused unless the first paid call's record says the runs after it may be made ([`../profile/first-call/`](../profile/first-call/)).

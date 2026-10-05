@@ -12,7 +12,7 @@ import { recordFor, runBrake } from "./brake-run-paid.mjs";
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
 import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
-import { build as buildArm, expectation as rolesExpectation, nextRun, order, readings, runOne } from "./roles-or-information-paid.mjs";
+import { build as buildArm, expectation as rolesExpectation, nextRun, NotScored, order, readings, runOne, scoreKept, SCORING_RUNS_WHAT_A_SESSION_WROTE } from "./roles-or-information-paid.mjs";
 import { asOfToday, changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, spendFlags, writeResult } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -939,6 +939,15 @@ test("the two statements are read from the recorded scores: true, false, not dec
     put("taste-polish/F-1", 15);
     assert.deepEqual(both(), [false, false]);
 
+    // A run that is recorded and was not scored is not a score of nothing: it waits, by name.
+    all([55, 70, 24], [51, 52, 15]);
+    rmSync(join(top, "taste-polish/E-2", "score.json"));
+    assert.deepEqual([readings(expect, top).runs["taste-polish/E-2"], readings(expect, top).runs_recorded_and_not_scored, ...both()], ["recorded, not scored", ["taste-polish/E-2"], yet, false]);
+    all([55, 70, 24], [55, 52, 24]);
+    assert.deepEqual(both(), [false, true]);
+    rmSync(join(top, "taste-polish/F-1", "score.json"));
+    assert.deepEqual(both(), [false, yet], "a run of F that is not scored leaves the second open where its score could still settle it");
+
     // A run the watchdog cut off is scored as it stands, and says so; a tree the suite could not be run against passed no case.
     all([55, 70, 24], [51, 52, 15]);
     put("review-gate-2/E-2", 40, "the watchdog");
@@ -957,9 +966,10 @@ test("a run of roles or information, with a stand-in for the harness: built, sta
   // The session did the work, and also put a suite of its own where its copy of the held-out suite was.
   const p = place({ uses: [{ tool: "Write", input: { file_path: "src/layer.mjs", content: "…" }, result: "ok", writes: { "src/layer.mjs": solution, "held-out/layer-cases.test.mjs": "import { test } from 'node:test';\ntest('everything passes', () => {});\n" } }], cost: 0.3 });
   try {
-    const first = await runOne({ ...p.common, recordRoot: p.recordRoot });
+    const first = await runOne({ ...p.common, recordRoot: p.recordRoot, scoreOutsideTheSandbox: true });
     assert.equal(first.run.name, "review-gate-2/E-1");
     assert.deepEqual([first.score.held_out.passed, first.score.held_out.cases], [55, 55], "the reference solution, scored from the repository's suite");
+    assert.deepEqual([first.result.scored, first.result.not_scored_because], [true, undefined]);
     assert.equal(first.score.held_out.scored_from, "experiments/comparisons/review-gate-2/held-out");
     assert.equal(first.score.held_out.the_sessions_copy_changed.length, 1, "what it did to its own copy is recorded, and is not what it is scored by");
     assert.match(first.score.held_out.the_sessions_copy_changed[0], /held-out\/layer-cases\.test\.mjs/);
@@ -970,7 +980,7 @@ test("a run of roles or information, with a stand-in for the harness: built, sta
     assert.equal(first.next.name, "review-gate-2/F-1");
 
     writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ no_output: true }), "utf8");
-    const second = await runOne({ ...p.common, recordRoot: p.recordRoot });
+    const second = await runOne({ ...p.common, recordRoot: p.recordRoot, scoreOutsideTheSandbox: true });
     assert.equal(second.run.name, "review-gate-2/F-1", "the next in the order, and only that one");
     assert.deepEqual([second.result.ended_by, second.result.held_out_given], ["the harness", []]);
     assert.equal(p.ledger().invocations[1].max_budget_usd, 4);
@@ -980,7 +990,7 @@ test("a run of roles or information, with a stand-in for the harness: built, sta
     await assert.rejects(runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "nothing/Z-9" }), notStarted(/not a run of this question/));
 
     writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [], cost: 0.7 }), "utf8");
-    const again = await runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "review-gate-2/F-1" });
+    const again = await runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "review-gate-2/F-1", scoreOutsideTheSandbox: true });
     assert.equal(again.recordDir.endsWith("review-gate-2/F-1-rerun"), true);
     assert.equal(p.ledger().invocations[2].run, "roles-or-information/review-gate-2/F-1-rerun");
     assert.notEqual(again.score.held_out.passed, 55, "a tree with no work in it does not pass the suite");
@@ -990,4 +1000,52 @@ test("a run of roles or information, with a stand-in for the harness: built, sta
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
+});
+
+test("a run of roles or information is recorded and not scored, unless scoring outside the sandbox is asked for by name", async () => {
+  const solution = readFileSync(join(root, "experiments", "comparisons", "review-gate-2", "reference", "solution", "src", "layer.mjs"), "utf8");
+  // The session did the work, and made the task's own test command a program of its own: what a scorer would run.
+  const own = JSON.stringify({ name: "settingskit", type: "module", scripts: { test: "node -e \"require('node:fs').writeFileSync('run-by-the-scorer.txt', 'x')\"" } });
+  const p = place({ uses: [{ tool: "Write", input: { file_path: "src/layer.mjs", content: "…" }, result: "ok", writes: { "src/layer.mjs": solution, "package.json": own } }], cost: 0.3 });
+  try {
+    const done = await runOne({ ...p.common, recordRoot: p.recordRoot });
+    const tree = join(done.kept, "work", "settingskit");
+    assert.deepEqual([done.score, done.result.scored, done.result.not_scored_because], [null, false, SCORING_RUNS_WHAT_A_SESSION_WROTE]);
+    assert.ok(existsSync(join(done.recordDir, "result.json")) && existsSync(join(done.recordDir, "project.diff")) && !existsSync(join(done.recordDir, "score.json")), "everything is kept, and there is no score");
+    assert.ok(existsSync(join(tree, "src", "layer.mjs")) && !existsSync(join(tree, "run-by-the-scorer.txt")), "nothing the session wrote was run");
+    assert.deepEqual(done.result.problems, []);
+    assert.equal(done.next.name, "review-gate-2/F-1", "a run that is not scored does not hold up the order");
+    const read = readings(rolesExpectation(), p.recordRoot);
+    assert.deepEqual([read.runs["review-gate-2/E-1"], read.runs_recorded_and_not_scored, read.the_information_did_it], ["recorded, not scored", ["review-gate-2/E-1"], "not decided yet"]);
+
+    // Afterwards, from the tree the runner kept: refused without the same words, and then nothing was run.
+    const asked = { name: "review-gate-2/E-1", home: p.home, recordRoot: p.recordRoot };
+    assert.throws(() => scoreKept(asked), (error) => error instanceof NotScored && error.message === SCORING_RUNS_WHAT_A_SESSION_WROTE);
+    assert.ok(!existsSync(join(tree, "run-by-the-scorer.txt")) && !existsSync(join(done.recordDir, "score.json")));
+    assert.throws(() => scoreKept({ ...asked, name: "nothing/Z-9", scoreOutsideTheSandbox: true }), /not a run of this question/);
+    assert.throws(() => scoreKept({ ...asked, name: "review-gate-2/F-1", scoreOutsideTheSandbox: true }), /has no record/);
+    // Asked for by name, it scores, and that does run what the session wrote: the page says so, and here it shows.
+    const scored = scoreKept({ ...asked, scoreOutsideTheSandbox: true });
+    assert.deepEqual([scored.score.held_out.passed, scored.score.held_out.cases, scored.score.scored_afterwards_from], [55, 55, "the final tree as the runner kept it"]);
+    assert.ok(existsSync(join(tree, "run-by-the-scorer.txt")), "the session's own test command was run by the scorer");
+    assert.equal(readings(rolesExpectation(), p.recordRoot).runs["review-gate-2/E-1"], "55");
+    assert.throws(() => scoreKept({ ...asked, scoreOutsideTheSandbox: true }), /already scored/);
+
+    // A run the harness ended is not scored at all.
+    writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ no_output: true }), "utf8");
+    const dead = await runOne({ ...p.common, recordRoot: p.recordRoot });
+    assert.deepEqual([dead.run.name, dead.result.ended_by, dead.score], ["review-gate-2/F-1", "the harness", null]);
+    assert.throws(() => scoreKept({ ...asked, name: "review-gate-2/F-1", scoreOutsideTheSandbox: true }), /an invalid run is not scored/);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("asked to score from the command line without the words, the runner says what scoring does and runs nothing", () => {
+  const refused = spawnSync(process.execPath, [join(here, "roles-or-information-paid.mjs"), "--score", "review-gate-2/E-1"], { encoding: "utf8" });
+  assert.equal(refused.status, 64);
+  assert.ok(refused.stderr.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE) && refused.stderr.includes("Nothing a session wrote was run."));
+  assert.match(SCORING_RUNS_WHAT_A_SESSION_WROTE, /outside the sandbox, with this account's rights.*--score-outside-the-sandbox/);
+  const page = readFileSync(join(root, "experiments", "comparisons", "profile", "README.md"), "utf8");
+  assert.ok(page.includes("--score-outside-the-sandbox") && page.includes("outside the sandbox, with the account's rights"), "the profile's page says the same");
 });

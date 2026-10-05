@@ -2,6 +2,8 @@
 
 **Pre-registered on 2026-10-05, before any run. Nothing here has been run.** This is the first step of study three's second question (`handoffs/briefs/study-three-on-paper.md`), and the measurement both sides of audit 0001 name (finding F11): every resume on record is the same harness session resumed and told its run id. A fresh session picking a run up from its folder by its id, with the first session's history out of reach, is what the package is written for and has never been recorded.
 
+**Parked on 2026-10-05: not run.** The owner parked the experiments that day; his yes waits for him. The order when work resumes, and what each step may cost, is at the top of [the profile's page](../profile/README.md). Nothing here may be changed after the first paid call without a dated note saying what changed and why.
+
 ## What is run
 
 - **The run it starts from** is kept in the repository: [`review-gate-2/A-1`](../review-gate-2/A-1/), study two's first package run, which halted at its human gate with the note "halted at human gate merge-gate". Its project is rebuilt from the record: the task, the kept change, the package as it was compiled, and the run folder with its thirteen notes.

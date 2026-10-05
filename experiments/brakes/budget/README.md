@@ -2,6 +2,15 @@
 
 **Pre-registered on 2026-10-05, before any run. Nothing here has been run: no model session was started.** The owner said yes to this pair and its prose pair the same day. The script that starts a run, `scripts/lib/brake-run-paid.mjs`, was written after this page was read and merged; it starts nothing without `--spend` and the driver's words, and it is read in its turn before the first call.
 
+## Parked on 2026-10-05
+
+**Pre-registered, built, read, not run.** The owner parked the experiments the day he said yes to them ("npm yes, experiments parked, round two before the pause"). His yes to this pair and its prose pair is not withdrawn. It waits for him.
+
+- **The profile** these runs start from is made and signed in on the owner's Mac (`~/grooph-compare`); [its page](../../comparisons/profile/README.md) says where things stand and has the whole order with what each step may cost.
+- **The order when work resumes:** the profile check; the first paid call, from Terminal, by a person; stop and read its record; then this pair and its prose pair the same day (four runs, at most $3.00 and twenty minutes each); then the resume step; then roles or information.
+- **The harness's version** will be whatever is installed that day. Each run's record keeps it.
+- **Nothing on this page may be changed after the first call without a dated note saying what changed and why.** What was changed before any run is in the section near the end, "Changed after this page was merged, and before any run".
+
 The design is audit 0001's: `experiments/audits/0001-claims-as-of-0-3-0/designs/a-brake-that-binds.md` (Codex's, adopted by the audit lane with the game experiment's clean profile and a record of what each session was given). This page is that design made concrete, with what was chosen where it left a choice. The same facts are in [`expect.json`](expect.json) for the scripts.
 
 ## What it asks

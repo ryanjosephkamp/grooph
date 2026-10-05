@@ -1,6 +1,33 @@
 # The clean profile for comparison sessions
 
-How a session of study three would be started so that it loads nothing of the account's and can touch nothing but its own folder. **Nothing has been run with a model from it. The folders are not made on this Mac, and the profile is not signed in.**
+How a session of study three would be started so that it loads nothing of the account's and can touch nothing but its own folder. **Nothing has been run with a model from it.** Its folders are made on the owner's Mac and he has signed it in.
+
+## Parked on 2026-10-05
+
+**Nothing here has been run. No model session has been started from this profile, and nothing has been paid.** Everything below was pre-registered, built, tested against a stand-in for the harness, and read; then the owner parked the experiments the same day ("npm yes, experiments parked, round two before the pause"). His yes to the three small steps, given earlier that day, is not withdrawn. It waits for him.
+
+**Where things stand.** The profile's home is `~/grooph-compare` on the owner's Mac. Its folders are made, and he has signed it in. On 2026-10-05 the check held sixteen of sixteen, with the harness at 2.1.289.
+
+**The order when work resumes.**
+
+1. **The profile check**, which costs nothing: `node scripts/lib/compare-profile.mjs --check`. Sixteen lines, all of which have to hold.
+2. **The first paid call**, from Terminal, by a person, on the owner's yes for it by name and the driver's words:
+
+   ```bash
+   node scripts/lib/profile-first-call-paid.mjs --spend --go "<the driver's words allowing this call>"
+   ```
+
+   At most $1.00 and ten minutes; fifteen to forty cents is expected. `--dry-run` in place of the two flags shows the command and what would refuse it, and starts nothing.
+3. **Stop and read its record.** Nothing after it starts unless that record says it may.
+4. **The brake pair and its prose pair**, the same day: four runs, at most $3.00 and twenty minutes each.
+5. **The resume step:** one run, at most $2.00 and ten minutes.
+6. **Roles or information:** twelve runs, at most $2.00 for a run of arm E and $4.00 for a run of arm F. Its scorer runs what a session wrote and does not start unless asked for by name.
+
+All of these together stop at $20.00 on the comparisons ledger ([`study-three-first-steps.json`](../study-three-first-steps.json)); past that is the owner's word.
+
+**Two things that will be different by then, and are handled.** The harness's version will be whatever is installed that day; each run's record keeps it, and the first call's record is held against it. And if the profile's settings have been changed, the same holds.
+
+**Nothing in a pre-registration may be changed after the first call without a dated note on its page saying what changed and why.** Before it, a page may still be corrected. The one page that had already been merged when it was corrected, the brake experiment's, says what changed in a dated section.
 
 It is the game experiment's profile made for headless comparison sessions. [`experiments/game/setup/PROFILE.md`](../../game/setup/PROFILE.md) says what each line is for and how it is known; this page says only what differs. It is a second profile in a home of its own (`~/grooph-compare`), so that nothing here reads or writes the game experiment's folders, and so that a session resumed "by a fresh session" finds no earlier session's history.
 
@@ -71,7 +98,7 @@ In order, for every session:
 
 **A runner executes nothing a session wrote, with one exception that is said here.** A file a session could have replaced is read only if it is a plain file of a sane size, never through a link. A check is run from the repository's own copy. The project's change is read through a copy of the repository made before the session started and kept beside its folder, never through the session's own `.git`, so nothing a session configured there is run.
 
-**The exception is the scorer of roles or information.** It is study two's: it runs the task's own `npm test` and the repository's held-out suite against the session's final tree, and that runs the code the session wrote. It does so outside the sandbox, with the account's rights, as it did in study two. A session's commands run inside the sandbox; what it wrote is run outside it when it is scored. Nothing here closes that.
+**The exception is the scorer of roles or information.** It is study two's: it runs the task's own `npm test` and the repository's held-out suite against the session's final tree, and that runs the code the session wrote. It does so outside the sandbox, with the account's rights, as it did in study two. A session's commands run inside the sandbox; what it wrote is run outside it when it is scored. Nothing here closes that. **So it is not done unless it is asked for by name.** The runner of roles or information records a run and does not score it; the scorer starts only with `--score-outside-the-sandbox`, given with the paid run or afterwards (`--score <run> --score-outside-the-sandbox`, which scores from the tree the runner kept and starts no session). Without it the runner prints what scoring does and runs nothing a session wrote.
 
 **Nothing of the account's is left in a record.** The harness tells every session the account's e-mail address at its start, and paths under the home folder are in every command. Each file of a record is passed through one scrub before it is kept: the home folder's path becomes `~`, and an e-mail address is taken out. A file of a run folder that is not text is named and left out, since only text can be passed through it.
 

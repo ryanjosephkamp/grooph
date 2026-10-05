@@ -14,6 +14,7 @@
   "watchdog": { "E": { "usd_per_session": 2.0, "minutes_per_session": 15 }, "F": { "usd_per_session": 4.0, "minutes_per_session": 20 }, "is_not_a_graphs_stop": true },
   "held_out_in_arm_E": "inside the session's folder, at held-out/, because the comparison profile lets no file tool read outside it; closed to writing by the sandbox and by a rule on the command line; the token in the prompt becomes that path",
   "scored_by": "study two's scorer (scripts/lib/compare-score.mjs) and study two's suites, run from the repository's held-out folders against the final tree, never from the copy a session was given",
+  "scored_only_when_asked_by_name": "the scorer runs the task's own npm test and the held-out suite against the session's final tree, which runs the code the session wrote, outside the sandbox and with the account's rights. A run is recorded and not scored unless --score-outside-the-sandbox is given, with the paid run or afterwards from the tree the runner kept. A run recorded and not scored is read as waiting, never as a score of nothing",
   "from_study_two": {
     "review-gate-2": { "held_out_cases": 55, "with_the_design": 55, "the_task_alone": 51 },
     "heterogeneous-critic": { "held_out_cases": 70, "with_the_design": 70, "the_task_alone": 52 },

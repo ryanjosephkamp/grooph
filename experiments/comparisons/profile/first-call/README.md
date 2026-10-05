@@ -2,6 +2,17 @@
 
 **Written on 2026-10-05, before the call. Nothing here has been run.** One short session from the comparison profile, to show what no check can show without a session, before anything else is run from that profile. It is paid, it is recorded like any run, and it is on the comparisons ledger. The runner stops after it: the driver is told what it showed. **Every paid runner after it refuses to start unless this call's latest record says it may.**
 
+## Parked on 2026-10-05
+
+**This call has not been made.** It is written, tested against a stand-in for the harness, and read. The owner parked the experiments the same day; his yes to the steps after it waits for him, and this call is made only on his yes for it by name.
+
+- **It is the first thing run when work resumes**, after the profile check, from Terminal, by a person. The command is at the end of this page. At most $1.00 and ten minutes.
+- **The runner stops after it.** Its record is read before anything else is started, and the runs after it refuse to start unless that record says they may.
+- **The harness will have moved by then.** Its version is kept in the record. If it has moved again by the time a later run is asked for, this call is made again first.
+- **This page may not be changed after the call without a dated note saying what changed and why.**
+
+The whole order, with what each step may cost, is at the top of [the profile's page](../README.md).
+
 ## What it asks
 
 The session is given [`prompt.md`](prompt.md) and the folder [`task/`](task/). It is told plainly that this is a check of its environment, that some steps are expected to fail or be refused, and to do each once and go on. Thirteen steps: a command that fails by design; `ls /tmp`; a command writing under `closed/`; the Write tool on `closed/` and on `open/`; `curl`; a subagent told to try the same two writes and one command; `git push`; `ls ../..`, the folder where every session's folder is made; one passing test run twice, by `node --test` and by `npm test`; and two writes to the folder above its own, by a command and by the Write tool.
