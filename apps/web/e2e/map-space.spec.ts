@@ -431,6 +431,42 @@ test("when the view fails to come after another view was chosen, the switch stay
   await expect(page.locator('.map-picture svg[data-picture="sequence"]')).toBeVisible();
 });
 
+test("the view is asked for like the app's other pieces: it comes though its load fails until its file is fetched, and pressing 3D after a failure is a new try", async ({ page }) => {
+  // A browser does not ask twice for a script that failed (`src/piece.ts`). First, WebKit's fault as it was seen,
+  // made to happen here: the script's load fails until its file has been asked for with fetch.
+  const asked = { scripts: 0, fetches: 0 };
+  await page.route(/\/assets\/space-[^/]*\.js$/, (route) => {
+    if (route.request().resourceType() === "fetch") {
+      asked.fetches += 1;
+      return route.continue();
+    }
+    asked.scripts += 1;
+    return asked.fetches > 0 ? route.continue() : route.abort();
+  });
+  await page.goto(linkFor(LONG()));
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  expect(asked.fetches).toBe(1);
+  expect(asked.scripts).toBeGreaterThanOrEqual(2);
+  await page.unroute(/\/assets\/space-[^/]*\.js$/);
+
+  // Then no connection at all for it, in a page of its own: the switch says so. With the connection back, pressing
+  // 3D again asks again, in the same page, and the note goes.
+  await page.goto("./");
+  await page.route(/\/assets\/space-[^/]*\.js$/, (route) => route.abort());
+  await page.goto(linkFor(LONG()));
+  await page.evaluate(() => ((window as unknown as { sameTab: boolean }).sameTab = true));
+  await view(page, "3D").click();
+  await expect(page.getByRole("status")).toHaveText(/could not be fetched/);
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await page.unroute(/\/assets\/space-[^/]*\.js$/);
+  await view(page, "3D").click();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText(/could not be fetched/)).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { sameTab?: boolean }).sameTab)).toBe(true);
+});
+
 test.describe("with the service worker running", () => {
   test.use({ serviceWorkers: "allow" });
 

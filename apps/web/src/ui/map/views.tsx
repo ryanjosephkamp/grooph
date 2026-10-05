@@ -4,8 +4,8 @@
  * drawn (decision 0021): `MapView.tsx` asks for it as it opens, and the page names it so the service worker holds
  * it for a visit with no network (`vite.config.ts`).
  *
- * So that fetching it moves nothing else, this file imports nothing that the app's other pieces share but React,
- * which every address has already: core's views import only types (`packages/core/src/picture/map-kit.ts` says
+ * So that fetching it moves nothing else, this file imports nothing that the app's other pieces share but React
+ * and the loader of pieces (`piece.ts`), which every address has already: core's views import only types (`packages/core/src/picture/map-kit.ts` says
  * why), and the screen hands them core's parts. Its styles ride in the script, for the same reason: a stylesheet
  * of its own would be asked for at every address.
  *
@@ -16,6 +16,7 @@ import type { MapKit, MapPictureOptions, OperationMap } from "@grooph/core";
 import { mapSequenceWith, mapWideWith } from "@grooph/core/map-views";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from "react";
 
+import { piece as fetched } from "../../piece.js";
 import css from "./views.css?inline";
 
 const sheet = document.createElement("style");
@@ -64,7 +65,9 @@ export function Views({ map, kit, wide, stage, onDrawn, live, at }: { map: Opera
   const choose = (next: View): void => {
     setView(next);
     if (next !== "space") return setFlat(next);
-    if (!piece) import("./space.js").then((m) => setPiece((space = m)), () => (setPiece(null), setView((now) => (now === "space" ? drawnFlat.current : now))));
+    // Like the app's other pieces it is asked for in a way that can be asked again (`piece.ts`): pressing 3D after a
+    // failure is a new try, in every engine.
+    if (!piece) fetched("space", () => import("./space.js")).then((m) => setPiece((space = m)), () => (setPiece(null), setView((now) => (now === "space" ? drawnFlat.current : now))));
   };
   note(stage.current);
   useEffect(() => refocus(stage.current));
