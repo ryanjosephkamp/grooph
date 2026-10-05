@@ -501,7 +501,8 @@ A plan and a note are appended to <project>/.grooph/events/said-<session>.jsonl.
 The graph a package keeps (.grooph/<id>/graph.grooph.json) is written only by grooph_export.
 grooph_export reads GROOPH_MODELS from the server's environment, lays the call's own "models"
 over it, says what every tier means, and asks before it changes the model of an agent file
-already in place.
+already in place. Over a package in place it also lists each change that may remove or loosen a
+brake of the graph that package keeps, and places it only when that change is named in "allow".
 
 Add it to a harness:
   Claude Code   claude mcp add grooph -- grooph mcp

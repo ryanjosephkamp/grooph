@@ -62,7 +62,10 @@ describe("reading what was pasted", () => {
   it("recognizes a grooph link, alone or in a sentence, as a link to open", () => {
     expect(readPasted("https://ryanjosephkamp.github.io/grooph/#/open?d=AbC-_123")).toEqual({ kind: "link", payload: "AbC-_123" });
     expect(readPasted("Open this on your phone: http://localhost:4362/grooph/#/open?d=xyz_9 (it is the lean one)")).toEqual({ kind: "link", payload: "xyz_9" });
-    expect(readPasted("https://ryanjosephkamp.github.io/grooph/#/embed?theme=dark&d=Q1w2")).toEqual({ kind: "link", payload: "Q1w2" });
+    expect(readPasted("https://ryanjosephkamp.github.io/grooph/#/embed?theme=dark&d=Q1w2")).toEqual({ kind: "link", payload: "Q1w2", rest: "&theme=dark" });
+    // The candidate and the look a link names go with it, in that order; anything else in the address does not.
+    expect(readPasted("see https://ryanjosephkamp.github.io/grooph/#/open?d=Q1w2&theme=blueprint-dark&c=lean-one&frame=1 now")).toEqual({ kind: "link", payload: "Q1w2", rest: "&c=lean-one&theme=blueprint-dark" });
+    expect(readPasted("#/open?d=Q1w2&c=<script>&theme=A%20B")).toEqual({ kind: "link", payload: "Q1w2" });
   });
 
   it("says there is nothing when there is nothing: no text, prose, a list, a document cut short", () => {

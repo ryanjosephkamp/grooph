@@ -44,7 +44,7 @@ export const FIXES: Record<ImplementedCode, string> = {
   E_IRREVERSIBLE_NO_GATE:
     'A node that merges, publishes, spends or deletes can be reached without a person. Every way in must pass one: {"op":"updateEdge","id":"<each inbound edge>","set":{"approval":true}}, or put a human-gate node in front. Never drop the "irreversible" marker to pass.',
   W_HOMOGENEOUS_CRITICS:
-    'A critic runs on the same tier as the writer it judges and tends to approve the same mistakes. {"op":"updateNode","id":"<critic>","set":{"model":{"tier":"frontier"}}} (or any tier that differs); or keep it and tell the person plainly.',
+    'A critic runs on the same tier as the writer it judges; one on a different tier may catch different mistakes. {"op":"updateNode","id":"<critic>","set":{"model":{"tier":"frontier"}}} (or any tier that differs); or keep it and tell the person plainly.',
   W_FANOUT_ON_COUPLED:
     'Parallel work is aimed at something marked coupled. Lower the edge to one at a time: {"op":"updateEdge","id":"<edge>","set":{"concurrency":{"max":1}}}, or give the coupled piece one owner.',
   W_LONG_LOOP_NO_BUDGET:
@@ -54,7 +54,7 @@ export const FIXES: Record<ImplementedCode, string> = {
   W_ONLY_MAX_ITERATIONS:
     'The loop ends only by running out of rounds. Give it a real stop: for a check loop the check passing ends it, so add {"op":"addStop","loop":"<loop>","kind":"budget"}; for a critic loop setBar and {"op":"addStop","loop":"<loop>","kind":"bar-passed"}.',
   W_UNREACHABLE_NODE:
-    'Nothing leads to this node. Connect it: {"op":"connect","from":"<a node that runs>","to":"<node>"}, or remove it: {"op":"removeNode","id":"<node>"}. It comes with an error (a cycle or a dangling reference); fix that first.',
+    'Nothing leads to this node. Connect it: {"op":"connect","from":"<a node that runs>","to":"<node>"}, or remove it: {"op":"removeNode","id":"<node>"}. It usually comes with an error (a cycle or a dangling reference); fix that first.',
   W_NO_TERMINAL:
     'No stop node can be reached, so the run ends when the lead runs out of edges. {"op":"addNode","kind":"stop","name":"Done"} and connect the last node to it (with "when":"pass" after a check or a critic).',
   W_OUTPUT_NOT_WRITABLE:

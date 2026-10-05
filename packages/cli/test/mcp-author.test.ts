@@ -740,7 +740,7 @@ test("D: a file that is there is replaced only when it is grooph's own, or when 
     const leadBefore = readFileSync(lead, "utf8");
     const again = graphOf(await call(ctx, "grooph_apply", { graph: changed, ops: [{ op: "setGraphField", key: "goal", value: "Another goal entirely." }] }));
     const stopped = await call(ctx, "grooph_export", { graph: again, into: "." });
-    refused(stopped, /^Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it\.\n {2}file "\.claude\/agents\/fix-until-green--fixer\.md": not as grooph last wrote it\nnext: look at it: a change made by hand is lost when the file is replaced\. Then pass "replace": true/);
+    refused(stopped, /^Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it\.\n {2}file "\.claude\/agents\/fix-until-green--fixer\.md": not as grooph last wrote it\nnext: look at it: a change made by hand is lost when the file is replaced, and a file another version of grooph wrote reads the same way here\. Then pass "replace": true/);
     assert.deepEqual(stopped.structuredContent!["changed"], [".claude/agents/fix-until-green--fixer.md"]);
     assert.equal(readFileSync(agent, "utf8"), edited);
     assert.equal(readFileSync(lead, "utf8"), leadBefore, "no other file of the package was replaced either");

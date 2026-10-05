@@ -827,7 +827,7 @@ test("after the merge: an export over a package in place does not loosen a brake
       const refused = await call(ctx, "grooph_export", { graph: withCap(9), into: ".", ...args });
       assert.equal(refused.isError, true, textOf(refused));
       const lines = ownNext(refused, "looser");
-      assert.match(lines[0]!, /^refused: Nothing was placed in ".+": 1 change in this graph would remove or loosen a brake the package there has\.$/);
+      assert.match(lines[0]!, /^refused: Nothing was placed in ".+": 1 change in this graph may remove or loosen a brake the package there has\.$/);
       assert.ok(lines.some((line) => /^ {2}loosens "loop:review-cycle\.stops": ".+"$/.test(line)), textOf(refused));
       assert.match(lines.at(-1)!, /^next: a brake is removed or loosened only when the person asks for that change by its name\./);
       assert.ok(!lines.at(-1)!.includes("review-cycle"), "the tool's own line holds no id");
@@ -864,7 +864,7 @@ test("after the merge: an export over a package in place does not loosen a brake
     const meant = await call(ctx, "grooph_export", { graph: withCap(9), into: ".", allow: ["loop:review-cycle.stops"] });
     assert.equal(meant.isError, undefined, textOf(meant));
     const said = ownNext(meant, "meant");
-    assert.ok(said.includes('loosened a brake the package there had, by 1 change asked for by name ("allow"):'), textOf(meant));
+    assert.ok(said.includes('brakes: placed with 1 change that may remove or loosen a brake the package there had, each asked for by name ("allow"):'), textOf(meant));
     assert.ok(said.some((line) => /^ {2}loosens "loop:review-cycle\.stops": ".+"$/.test(line)), textOf(meant));
     assert.deepEqual(stops(kept()), stops(withCap(9)));
 
@@ -873,9 +873,63 @@ test("after the merge: an export over a package in place does not loosen a brake
     const noGate = await call(ctx, "grooph_export", { graph: gateless, into: ".", replace: true });
     if (noGate.isError === true && /cannot be exported/.test(textOf(noGate))) assert.fail(`the test's own graph does not export: ${textOf(noGate)}`);
     assert.equal(noGate.isError, true, textOf(noGate));
-    assert.match(textOf(noGate), /would remove or loosen a brake the package there has/);
+    assert.match(textOf(noGate), /may remove or loosen a brake the package there has/);
     assert.ok(existsSync(keptFile) && kept().nodes.some((node) => node.id === "merge-gate"));
     const offered = ((await handle({ jsonrpc: "2.0", id: 2, method: "tools/list" }, { ...ctx, chat: true })) as { result: { tools: { name: string; inputSchema: { properties: Record<string, unknown> } }[] } }).result.tools.find((tool) => tool.name === "grooph_export")!;
     assert.ok(!("allow" in offered.inputSchema.properties) && !("into" in offered.inputSchema.properties));
+  });
+});
+
+test("after the merge, read again: what the comparison holds besides a loosening, and what it says when it could compare nothing", async () => {
+  const graph = fixture("valid", "review-loop.grooph.json");
+  const withCap = (n: number): Graph => ({ ...graph, loops: graph.loops.map((loop) => (loop.id === "review-cycle" ? { ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n } : stop)) } : loop)) });
+  await withProject(async (ctx) => {
+    const keptFile = join(ctx.project, ".grooph", "review-loop", "graph.grooph.json");
+    assert.equal((await call(ctx, "grooph_export", { graph, into: "." })).isError, undefined);
+
+    // A stricter acceptance is words changed, and a program cannot tell stricter from looser: it is listed, the tool's
+    // own line says that it lists such changes, and placed by name the reply does not call it a loosening.
+    const stricter = { ...graph, loops: graph.loops.map((loop) => (loop.bar ? { ...loop, bar: { ...loop.bar, acceptance: `${loop.bar.acceptance} And a second reviewer agrees.` } } : loop)) } as Graph;
+    const held = await call(ctx, "grooph_export", { graph: stricter, into: "." });
+    assert.equal(held.isError, true, textOf(held));
+    const lines = ownNext(held, "stricter");
+    assert.ok(lines.some((line) => /^ {2}loosens "loop:review-cycle\.bar": ".+"$/.test(line)), textOf(held));
+    assert.match(lines.at(-1)!, /cannot tell a stricter wording or a renamed part from a looser one, so it lists those too/);
+    const placed = await call(ctx, "grooph_export", { graph: stricter, into: ".", allow: ["loop:review-cycle.bar"] });
+    assert.equal(placed.isError, undefined, textOf(placed));
+    assert.ok(textOf(placed).includes("brakes: placed with 1 change that may remove or loosen a brake the package there had"), textOf(placed));
+    assert.ok(!/^loosened /m.test(textOf(placed)));
+    // What is not a brake's change goes through with no question: a brief reworded, a stop added, a lower budget.
+    const reworded = { ...stricter, nodes: stricter.nodes.map((node) => (node.id === "builder" ? { ...node, brief: "Build it, and say what you ran." } : node)), loops: stricter.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "budget" ? { ...stop, limit: 20 } : stop)) })) } as Graph;
+    const quiet = await call(ctx, "grooph_export", { graph: reworded, into: "." });
+    assert.equal(quiet.isError, undefined, textOf(quiet));
+    assert.ok(!textOf(quiet).includes("brakes:") && !textOf(quiet).includes("loosens"), textOf(quiet));
+
+    // The kept graph gone, or not a graph: nothing can be compared, and the reply says so, refused and placed.
+    const loose = { ...reworded, loops: reworded.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 99 } : stop)) })) } as Graph;
+    for (const spoil of [() => rmSync(keptFile), () => writeFileSync(keptFile, "{ not a graph")]) {
+      assert.equal((await call(ctx, "grooph_export", { graph: reworded, into: ".", replace: true })).isError, undefined);
+      spoil();
+      const refused = await call(ctx, "grooph_export", { graph: loose, into: "." });
+      assert.equal(refused.isError, true, textOf(refused));
+      assert.match(textOf(refused).split(LF)[0]!, /The graph this package kept is gone or does not read, so its brakes could not be compared with this graph's\.$/);
+      ownNext(refused, "uncompared, refused");
+      const forced = await call(ctx, "grooph_export", { graph: loose, into: ".", replace: true });
+      assert.equal(forced.isError, undefined, textOf(forced));
+      assert.ok(ownNext(forced, "uncompared, placed").includes("brakes: not compared. The graph this package kept was gone or did not read."), textOf(forced));
+      assert.equal(forced.structuredContent!["brakesCompared"], false);
+    }
+    // A first export into an empty folder has nothing to compare and says nothing of it.
+    const fresh = await call(ctx, "grooph_export", { graph: withCap(99), into: "elsewhere" });
+    assert.equal(fresh.isError, undefined, textOf(fresh));
+    assert.ok(!textOf(fresh).includes("brakes:"), textOf(fresh));
+
+    // A package another version wrote reads as changed by hand, and the tool's own line says that it may be either.
+    const leadFile = join(ctx.project, ".grooph", "review-loop", "LEAD.md");
+    writeFileSync(leadFile, readFileSync(leadFile, "utf8").replace("may catch", "tends to catch"));
+    assert.ok(readFileSync(leadFile, "utf8").includes("tends to catch"), "the lead's brief no longer carries the sentence this test rewords");
+    const older = await call(ctx, "grooph_export", { graph: loose, into: "." });
+    assert.equal(older.isError, true, textOf(older));
+    assert.match(textOf(older), /a file another version of grooph wrote reads the same way here/);
   });
 });

@@ -123,7 +123,8 @@ async function importRead(text: string, file: { name: string }, host: ImportHost
 }
 
 /** What a person pasted: a grooph link, a document found somewhere in the text, or neither. */
-export type Pasted = { kind: "link"; payload: string } | { kind: "document"; text: string } | { kind: "nothing" };
+/** A link carries its payload and, when its address named them, which candidate and which look (`rest`, as the address continues). */
+export type Pasted = { kind: "link"; payload: string; rest?: string } | { kind: "document"; text: string } | { kind: "nothing" };
 
 const jsonObject = (text: string): Record<string, unknown> | undefined => {
   try {
@@ -213,8 +214,14 @@ export function readPasted(input: string): Pasted {
     const doc = documentIn(candidate.json);
     if (doc) return { kind: "document", text: doc === candidate.json ? candidate.text : JSON.stringify(doc, null, 2) };
   }
-  const link = /#\/(?:open|embed)\?(?:[^#\s]*&)?d=([A-Za-z0-9_-]+)/.exec(text);
-  if (link) return { kind: "link", payload: link[1]! };
+  const link = /#\/(?:open|embed)\?((?:[^#\s]*&)?d=([A-Za-z0-9_-]+)[^#\s]*)/.exec(text);
+  if (link) {
+    // The candidate a link opens on and the look it is drawn in travel with it; nothing else of the address does.
+    const c = /(?:^|&)c=([A-Za-z0-9_%.~-]+)(?:&|$)/.exec(link[1]!)?.[1];
+    const theme = /(?:^|&)theme=([a-z]+(?:-[a-z]+)?)(?:&|$)/.exec(link[1]!)?.[1];
+    const rest = `${c ? `&c=${c}` : ""}${theme ? `&theme=${theme}` : ""}`;
+    return { kind: "link", payload: link[2]!, ...(rest ? { rest } : {}) };
+  }
   // No object says it is a grooph document. A whole object that stands on its own is still handed on, so the person is
   // told what it lacks; a piece from inside a document cut short is not, because it would be judged as if it were the whole.
   const first = found.find((candidate) => !candidate.inside);
@@ -236,7 +243,7 @@ export async function openPasted(pasted: string, host: ImportHost, quiet = false
     const read = readPasted(pasted);
     if (read.kind === "link") {
       host.close();
-      location.hash = `#/open?d=${read.payload}`;
+      location.hash = `#/open?d=${read.payload}${read.rest ?? ""}`;
       return true;
     }
     if (read.kind === "nothing") {

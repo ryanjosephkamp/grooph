@@ -313,8 +313,36 @@ Its read of `e95e5f4`: the structure holds (59 labels, closed, none built from i
 - A link among the folders: `.claude` linked to a folder outside `--into` is refused, with a message that says "outside the project folder" and names no link; linked to a folder inside `--into`, it is written through. The guard is on where a file really is and on a link at the file's own place, and the export's help now says exactly that (it said "through no link").
 - No labeled line announces the document block of `grooph_new`, `grooph_use_template`, `grooph_apply` and `grooph_templates`, as `kickoff:`, `embed:` and `picture of` announce theirs. The server's instructions say a block after the first is a thing and not more lines.
 
+## After the hold: main merged again, and a brake at the export tool
+
+The driver lifted the hold on 2026-10-05 (the game run is put off, and its starting contents will be frozen anew). Main had moved 255 commits past `383d70f`.
+
+**Merged at `e4749a3` (`40dd579`), then at `9b7a87c` and `cdcec1c` with no conflict** (documents, a fixture, the audit's probe scripts). Two conflicts in the first, both kept whole from both sides: `apps/web/vite.config.ts` (this lane's Import piece beside main's three: the graph's views, the pictures' themes, a run's brakes) and `packages/cli/src/commands/image.ts` (`renderPng` exported, with main's third argument; the tool passes two, which is the Paper look).
+
+**The driver's question: can a tool change a brake in a kept graph, now that `grooph adopt` refuses a loosened one?** One could. `grooph_new`, `grooph_use_template` and `grooph_apply` are refused the path of the graph a package keeps (`.grooph/<id>/graph.grooph.json`) and have been since the third pass. `grooph_export` with `into` writes it: that is how a package is brought up to date, and a file still as grooph wrote it was replaced with no question except its model. So a graph with a raised cap, exported over its own package, replaced the kept graph and the lead's brief with no word.
+
+**What it does now.** Over a package in place, `grooph_export` compares the graph the package keeps with the one being exported, with core's `checkAdoption`, the comparison `grooph adopt` makes. Where a change may remove or loosen a brake, nothing is placed, each change is on a line `  loosens "<name>": "<why>"`, and `replace` does not answer it: the person's yes is the change's name in a new argument, `allow`. Tested in `third-pass.test.ts` ("after the merge", two tests) and in the property test, which puts payloads in the loop's id, its words and in `allow` itself; with the guard out the test fails, and with the quoting off the names the property test fails.
+
+**What a fresh reader then found in it**, given the merge commits and not this account. Each is fixed in the code or said in `docs/agents.md`, which now tells an agent what to expect of the comparison:
+
+1. **It is at this one door.** The command line's `grooph export` compares nothing, and it is the command `grooph adopt` prints as the next step: `grooph export <run dir>/graph.grooph.json --into .` places a run's loosened working copy with no adopt at all. That is main's door and was so before this branch; **it is the driver's or the house lane's to decide**, and the same call to `checkAdoption` would fit there with `--allow`, as `adopt` and `sub update` have it. Not done here.
+2. **It holds more than a loosening.** A stricter acceptance, a renamed loop, a renamed node a critic reads from: core cannot tell these from a loosening and lists them. The reply said "would remove or loosen" and, once placed, "loosened". It says "may remove or loosen" now, the tool's own line says that it lists rewordings and renames, and the line after placing opens `brakes:` and does not call the change a loosening.
+3. **With the kept graph gone or unreadable, `replace: true` answered for brakes that were never compared.** The refusal and the reply now say `brakes: not compared`.
+4. **It compares by graph id**, so a renamed graph is a second package beside the first and is compared with nothing. Said in the page; not changed.
+5. **A name in `allow` answers for every reason under it**, as `--allow` does at `adopt`. The reply lists the reasons placed. Said in the page.
+6. **It does not compare a check's command, a brief or a node's tools**: core's comparison does not, at this date. The code's comment and the page no longer cite A-019 for it.
+7. **A package another version of grooph wrote reads as changed by hand**, because "as grooph last wrote it" is asked by compiling the kept graph again, and main reworded one sentence the compiler carries. Everyone with a 0.3.0 package meets this on their first export with the tool after upgrading. It stops on the safe side; the tool's own line now says a file another version wrote reads the same way. **Known, for a patch:** tell the two apart (a mark of the version that wrote the package).
+
+**Also from that read:** the fix line for `W_HOMOGENEOUS_CRITICS` said a same-tier critic "tends to approve the same mistakes", which the audit withdrew; it reads as the validator's corrected sentence now. The fix line for `W_UNREACHABLE_NODE` says "usually" where main found the exception. A pasted share link keeps its candidate and its look (`&c=`, `&theme=`), which the door dropped. `docs/chat.md` says the kit files are about 300 KB. And after decision 0029 this lane's pages and tool texts say "what its brakes are" where they said "what bounds it".
+
+**Main's own, not changed here, for the driver:** `docs/quickstart.md`, `grooph help` and so `docs/cli.md` still say `explain` tells "what bounds a graph"; `plugins/grooph/skills/grooph-design/SKILL.md` line 26 still says a same-tier critic "tends to approve the builder's mistakes".
+
+**One more known issue, found by the property test:** a graph holding half a character (a lone surrogate) is written to disk as a replacement character, so its own `LEAD.md` reads as changed on the second export. It stops on the safe side.
+
+**Checked on the merged tree, from a clean build:** core 476, cli 196, web 123; the browser suite on port 4366, 303 passed and none failed; `pack-check.sh` (858 KB, 86 files), `kit-check.sh`, `first-run.sh`, the golden packages by export and diff, American English, the generators, the site's pages, the pictures, the outside addresses, the version. CI's own budget lines for the head are in the pull request's description.
+
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (four fix passes and the driver's last reader, main merged in at 4f1c11e with slice 0084 and all of subgroophs, the paste reader behind a door). Status: done. Please reconcile with the grooph-reconcile skill.
+Handback for slice 0078 is at handoffs/0078-agents-and-chat/HANDBACK.md on branch slice/0078-agents-and-chat (four fix passes, the driver's last reader, main merged in at cdcec1c after the hold, and the export tool holding a loosened brake until it is asked for by name). Status: done. Please reconcile with the grooph-reconcile skill.
 ```

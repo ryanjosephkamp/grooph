@@ -43,7 +43,7 @@ export const LABELS = [
   "graph ", "loop ", "loops:", "stop:", "gates:", "gate ", "worst case:", "applied ", "tiers:", "tiers in this package:",
   "proposal set ", "candidate ", "map ", "run ", "by hand:", "document:", "link ", "embed:",
   "picture of ", "PNG:", "no PNG:",
-  "package for ", "file ", "replaced ", "changed the model of ", "model of ", "loosens ", "loosened ", "kickoff:",
+  "package for ", "file ", "replaced ", "changed the model of ", "model of ", "loosens ", "brakes:", "kickoff:",
   "Plan recorded:", "Noted", "sessions:", "session:", "agent:", "plan:",
 ] as const;
 const LABELED = new RegExp(`^ *(?:${LABELS.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`);
