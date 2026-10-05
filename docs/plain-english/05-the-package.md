@@ -152,8 +152,10 @@ A caution. The tool list narrows what a worker has. It is not a guarantee about 
 
 ## Two ways to deliver a package
 
-- **Files mode** is what we just did: the package is written as files into the project.
-- **Paste-only mode** is for when you cannot write files there yourself: the package is delivered as one long prompt that tells the session to write those files.
+grooph's contract names two.
+
+- **Files mode** is what we just did: the package is written as files into the project. It is what `grooph export` does.
+- **Paste-only mode** is one long prompt that tells a session to write those same files, for a situation where pasting is the only thing you can do, such as working from a phone. This guide did not use it.
 
 ## What compiling does not do
 
