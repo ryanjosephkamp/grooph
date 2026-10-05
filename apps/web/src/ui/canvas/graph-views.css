@@ -59,10 +59,13 @@
 .graph-space .map-picture {
   padding: 0;
 }
-/* A run's page keeps its canvas short, for the timeline under it. In three dimensions the canvas is the view, with
-   a slider of its own through the same notes, so it is given the room of a screen. */
-.run-stage:has(> .graph-views.is-space) {
-  min-height: min(84vh, 680px);
+/* On a phone a run's page keeps its canvas short, for the timeline under it. In three dimensions the canvas is the
+   view, with a slider of its own through the same notes, so the page gives it the room "Bigger graph" does: the
+   row grows and what is under it moves down, where a taller stage in the same row would lie over the run's summary. */
+@media (max-width: 899px) {
+  .run-view:has(> .run-stage > .graph-views.is-space) {
+    grid-template-rows: auto minmax(220px, 76dvh) minmax(0, 1fr);
+  }
 }
 /* The button that makes a run's canvas taller is the canvas's; the view has its room already. */
 .run-stage:has(> .graph-views.is-space) > .canvas-size {

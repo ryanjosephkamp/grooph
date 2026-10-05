@@ -19,7 +19,7 @@
  * replay says it (`replaySteps` in core). That order is the run's, and it happened.
  */
 import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { piece } from "../../piece.js";
 import css from "./graph-views.css?inline";
@@ -154,8 +154,11 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     if (next === "space" && !three) piece("space", () => import("../map/space.js")).then((m) => setThree((space = m)), () => (setThree(null), setView("picture")));
   };
   const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
-  // The scene is markup; once it is on the page it is given its behavior, and its cards and arcs their names.
-  useEffect(() => {
+  // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
+  // cards and arcs their names. Before the browser paints, as a map's is: the first press of a visit is drawn by a
+  // fetch that has arrived and not by the press, and what is put off until after the paint is then seen without it,
+  // raw text and arcs drawn black across the canvas for a frame or more on a phone.
+  useLayoutEffect(() => {
     const root = host.current?.querySelector<HTMLElement>(".space");
     if (!root || !three || !made) return;
     const name = (id: Id): string => doc.nodes.find((n) => n.id === id)?.name || id;
@@ -186,7 +189,8 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     return !!node;
   };
   return (
-    <div ref={host} className={`graph-views${view === "space" ? " is-space" : ""}`}>
+    // `is-space` when the scene is on the page, not when it is asked for: until then the canvas is whole.
+    <div ref={host} className={`graph-views${made ? " is-space" : ""}`}>
       <div className="segmented graph-switch" role="radiogroup" aria-label="View of the graph">
         {(["picture", "space"] as const).map((name) => (
           <button key={name} type="button" role="radio" aria-checked={view === name} className={view === name ? "seg seg-on" : "seg"} onClick={() => choose(name)}>
