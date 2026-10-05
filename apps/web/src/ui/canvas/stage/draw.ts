@@ -13,9 +13,9 @@ import type { Id, V } from "./model.js";
 type Common = { key?: string; alpha?: number; hide?: boolean; lift?: number; /** not there when the view first comes: grown, or faded in, once the cards have landed */ grow?: boolean };
 export type Prim =
   | (Common & { t: "poly"; pts: V[]; fill?: string; fa?: number; stroke?: string; w?: number; dash?: number[] })
-  | (Common & { t: "line"; pts: V[]; stroke?: string; w?: number; dash?: number[]; arrow?: boolean; inset?: [number, number] })
+  | (Common & { t: "line"; pts: V[]; stroke?: string; w?: number; dash?: number[]; arrow?: boolean; inset?: [number, number]; /** the nodes it runs between: it is drawn from the edge of the one's card to the edge of the other's, where it passes through them */ from?: Id; to?: Id })
   | (Common & { t: "dot"; at: V; r?: number; fill?: string; stroke?: string; w?: number; /** over the cards, as an element: what travels from one card to another */ over?: boolean })
-  | (Common & { t: "text"; at: V; text: string; size?: number; fill?: string; bold?: boolean; align?: "left" | "center" | "right"; max?: number; up?: boolean; heads?: number; headFill?: string })
+  | (Common & { t: "text"; at: V; text: string; size?: number; fill?: string; bold?: boolean; align?: "left" | "center" | "right"; max?: number; up?: boolean; heads?: number; headFill?: string; /** other places it may stand: it stands at the first, of its own and these, where no card and no such word before it is over it */ or?: { at: V; align?: "left" | "center" | "right" }[] })
   | (Common & { t: "card"; at: V; id: Id; stand?: boolean; side?: boolean; /** its name only: a node the view is not about */ small?: boolean });
 
 export type Look = { yaw: number; pitch: number };
@@ -45,6 +45,8 @@ const TOKENS: Record<string, string> = { ink: "--ink", "ink-2": "--ink-2", "ink-
  *  fifth of that height is left outside it to scroll from. (The frame's own floor, 180 px in its style sheet, is
  *  more than that where the stage is under 225 px tall: a phone on its side with a sheet open.) */
 export const TALLEST = 0.8;
+/** The size a frame is made taller to reach, where its width has room for it: at it a card's name is ten pixels. */
+const READABLE = 0.9;
 
 /**
  * `roomy`: where the scene's cards would lie over each other in the room the frame has, the frame is made as tall as
@@ -52,7 +54,11 @@ export const TALLEST = 0.8;
  * frame's parent, whose row it is, as `--s3-tall`; what scrolls is that parent's parent.
  */
 export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = false): Stage {
-  const g = canvas.getContext("2d")!;
+  // A browser that gives no drawing surface (it can refuse one, or have none left) cannot show this view: said, so
+  // that what holds the view can fall back to what it showed before, and not left to fail at the first line drawn.
+  const surface = canvas.getContext("2d");
+  if (!surface) throw new Error("no 2D context");
+  const g: CanvasRenderingContext2D = surface;
   const view = { ...start, zoom: 1 };
   let prims: Prim[] = [];
   let fitted = 1;
@@ -111,7 +117,9 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     Object.assign(view, start, { zoom: 1 });
     // Each thing takes room round its point that does not shrink with the scene: a card its box, words their lines.
     const room = (p: Prim): [number, number, number, number] => {
-      if (p.t === "card") return p.side ? (p.small ? [8, 100, 14, 14] : [8, 128, 22, 22]) : p.stand ? [58, 58, 60, 8] : [58, 58, 24, 24];
+      // A card that is its name alone is as wide as its name.
+      const half = (p.t === "card" && p.small ? (cardOf(p.id)?.offsetWidth ?? 88) : 106) / 2 + 5;
+      if (p.t === "card") return p.side ? (p.small ? [8, half * 2, 14, 14] : [8, 128, 22, 22]) : p.stand ? [half, half, 60, 8] : [58, 58, 24, 24];
       if (p.t === "text") return [8, 8, p.up ? 16 * p.text.split("\n").length * 1.6 : 12, 12];
       return [3, 3, 3, 3];
     };
@@ -144,11 +152,11 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
       else if (what() !== tallFor) {
         // At a size, whether no two cards lie over each other, placed as they are drawn: two pixels clear, so that
         // their edges are not one line.
-        const clear = (f: number): boolean => {
+        const clear = (f: number, gap = 2): boolean => {
           const [x0, x1, y0, y1] = box(f);
           const [sx, sy] = [(x0 + x1) / 2 / f, -(y0 + y1) / 2 / f];
           const boxes = placed.map(([p, el, t]) => boxOf(p, el, (t[0] - sx) * near(t[2], f), -(t[1] - sy) * near(t[2], f), near(t[2], f)));
-          return boxes.every((a, i) => boxes.every((b, j) => j <= i || a[0] >= b[0] + b[2] + 2 || b[0] >= a[0] + a[2] + 2 || a[1] >= b[1] + b[3] + 2 || b[1] >= a[1] + a[3] + 2));
+          return boxes.every((a, i) => boxes.every((b, j) => j <= i || a[0] >= b[0] + b[2] + gap || b[0] >= a[0] + a[2] + gap || a[1] >= b[1] + b[3] + gap || b[1] >= a[1] + a[3] + gap));
         };
         const measure = (): number => {
           h = Math.round(canvas.getBoundingClientRect().height);
@@ -159,26 +167,37 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         // than it is scrolled: where it was scrolled to is kept, and given back.
         const scrolled = scroller.scrollTop;
         host.style.removeProperty("--s3-tall");
+        delete host.dataset["tight"];
         const fits = measure();
-        if (h && !clear(fits)) {
+        // Clear of each other, and large enough to read: under nine tenths a card's name is under ten pixels.
+        if (h && (!clear(fits) || fits < READABLE)) {
           // The smallest size at which they are clear, of those the frame's width has room for: the first clear one
           // of twenty-four steps up, and then, by halving, the one nearest the last that was not. If none is, the
           // largest. A frame that would pass the cap is at the cap.
           const widest = largest(w, 1e6);
-          let f = widest;
-          for (let n = 1; n <= 24; n += 1) {
+          let f = clear(fits) ? fits : widest;
+          for (let n = 1; n <= 24 && !clear(fits); n += 1) {
             let [not, yes] = [fits + ((widest - fits) * (n - 1)) / 24, fits + ((widest - fits) * n) / 24];
             if (!clear(yes)) continue;
             for (let k = 0; k < 10; k += 1) clear((not + yes) / 2) ? (yes = (not + yes) / 2) : (not = (not + yes) / 2);
             f = yes;
             break;
           }
-          const [, , y0, y1] = box(f);
-          const tall = Math.min(Math.ceil(y1 - y0) + 18, Math.round(scroller.clientHeight * TALLEST));
+          const high = (at: number): number => Math.ceil(box(at)[3] - box(at)[2]) + 18;
+          // To be clear of each other the cards may take the frame to its cap. To be read they may take it only as
+          // far as leaves the slider and its sentence in sight without scrolling: the words under those are then
+          // scrolled to. (What is under the frame: the slider's row and the sentence's, a gap above each; and the
+          // room the page keeps at its foot.)
+          const under = (el: Element | null, n: number): number => (n && el instanceof HTMLElement ? el.offsetHeight + 10 + under(el.nextElementSibling, n - 1) : 0);
+          const sight = scroller.clientHeight - frame.offsetTop - under(frame.nextElementSibling, 2) - parseFloat(getComputedStyle(scroller).paddingBottom);
+          const need = clear(fits) ? h : high(f);
+          const tall = Math.min(Math.max(need, Math.min(high(Math.max(f, Math.min(widest, READABLE))), sight)), Math.round(scroller.clientHeight * TALLEST));
+          // Where the cap leaves cards over each other (touching, not merely nearer than a hair), the view says so
+          // (`graph-stage.tsx` has the words).
           if (tall > h) {
             host.style.setProperty("--s3-tall", `${tall}px`);
-            measure();
-          }
+            if (!clear(measure(), 0)) host.dataset["tight"] = "";
+          } else if (!clear(fits, 0)) host.dataset["tight"] = "";
         }
         scroller.scrollTop = scrolled;
         tallFor = what();
@@ -207,6 +226,19 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     };
     return cut(cut(pts, head).reverse(), tail).reverse();
   }
+  /** A line from where it last leaves a box to its end, a little clear of the box: null if it does not end in the box. */
+  const outside = (pts: number[][], [x, y, bw, bh]: [number, number, number, number]): number[][] | null => {
+    const inside = (q: number[]): boolean => q[0]! > x && q[0]! < x + bw && q[1]! > y && q[1]! < y + bh;
+    if (pts.length < 2 || !inside(pts[pts.length - 1]!)) return null;
+    let n = pts.length - 1;
+    while (n > 0 && inside(pts[n - 1]!)) n -= 1;
+    if (n === 0) return null;
+    // Between the last point outside and the first inside, the place where the line crosses the box's edge.
+    const [a, b] = [pts[n - 1]!, pts[n]!];
+    let [lo, hi] = [0, 1];
+    for (let k = 0; k < 12; k += 1) inside([a[0]! + (b[0]! - a[0]!) * ((lo + hi) / 2), a[1]! + (b[1]! - a[1]!) * ((lo + hi) / 2)]) ? (hi = (lo + hi) / 2) : (lo = (lo + hi) / 2);
+    return [...pts.slice(0, n), [a[0]! + (b[0]! - a[0]!) * lo, a[1]! + (b[1]! - a[1]!) * lo]];
+  };
   const trace = (pts: number[][]): void => {
     g.beginPath();
     pts.forEach((p, k) => (k ? g.lineTo(p[0]!, p[1]!) : g.moveTo(p[0]!, p[1]!)));
@@ -234,23 +266,29 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         return { p, pts, depth };
       })
       .sort((a, b) => a.depth - b.depth);
-    const placed = new Set<string>();
+    // The cards first: an edge is drawn up to the card it runs to, and a word stands where no card is over it.
+    const boxes = new Map<Id, [number, number, number, number]>();
     token.hidden = true;
     items.forEach(({ p, pts: at }, order) => {
+      if (p.t !== "card") return;
+      // A card is an element: it is put where its point is seen, as large as that depth makes it.
+      const el = cardOf(p.id);
+      if (!el) return;
       const on = !!(lit && p.key && lit.has(p.key));
-      if (p.t === "card") {
-        // A card is an element: it is put where its point is seen, as large as that depth makes it.
-        const el = cardOf(p.id);
-        if (!el) return;
-        placed.add(p.id);
-        const [x, y, , , s] = boxOf(p, el, at[0]![0], at[0]![1], at[0]![3]);
-        el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
-        el.style.zIndex = String(order);
-        el.hidden = false;
-        el.classList.toggle("is-lit", on);
-        el.classList.toggle("is-dim", !!lit && !on);
-        return;
-      }
+      const [x, y, cw, ch, s] = boxOf(p, el, at[0]![0], at[0]![1], at[0]![3]);
+      boxes.set(p.id, [x, y, cw, ch]);
+      el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
+      el.style.zIndex = String(order);
+      el.hidden = false;
+      el.classList.toggle("is-lit", on);
+      el.classList.toggle("is-dim", !!lit && !on);
+    });
+    // The words that have chosen a place, so that the next does not choose the same.
+    const said: [number, number, number, number][] = [];
+    const over = (a: [number, number, number, number], b: [number, number, number, number]): number => Math.max(0, Math.min(a[0] + a[2], b[0] + b[2]) - Math.max(a[0], b[0])) * Math.max(0, Math.min(a[1] + a[3], b[1] + b[3]) - Math.max(a[1], b[1]));
+    items.forEach(({ p, pts: at }) => {
+      if (p.t === "card") return;
+      const on = !!(lit && p.key && lit.has(p.key));
       let pts: number[][] = at;
       g.globalAlpha = dim(p) * (p.alpha ?? 1) * (p.grow && p.t !== "line" ? grown : 1);
       g.setLineDash("dash" in p && p.dash ? p.dash : []);
@@ -261,7 +299,13 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
         if (p.fill) ((g.fillStyle = color(p.fill, on ? Math.min(1, (p.fa ?? 1) * 1.8) : (p.fa ?? 1))), g.fill());
         if (p.stroke) ((g.strokeStyle = color(on ? "accent" : p.stroke)), (g.lineWidth = (p.w ?? 1) * (on ? 2 : 1)), g.stroke());
       } else if (p.t === "line") {
-        if (p.inset) pts = inset(pts, p.inset[0], p.inset[1]);
+        // Up to the edge of the card it leaves and of the card it reaches, where it runs through them: its head is
+        // at the card, not under it.
+        const [left, reached] = [p.from ? boxes.get(p.from) : undefined, p.to ? boxes.get(p.to) : undefined];
+        const cut = [reached ? outside(pts, reached) : null, left ? outside([...pts].reverse(), left) : null];
+        if (cut[0]) pts = cut[0];
+        if (cut[1]) pts = outside([...pts].reverse(), left!)?.reverse() ?? pts;
+        if (p.inset) pts = inset(pts, cut[0] ? 2 : p.inset[0], cut[1] ? 1 : p.inset[1]);
         // A line that grows is drawn from its start, so far along.
         if (p.grow && grown < 1) pts = pts.slice(0, Math.max(2, Math.ceil(pts.length * grown)));
         trace(pts);
@@ -305,11 +349,22 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
           }
           return out.map((text) => ({ text, head: n < (p.heads ?? 0) }));
         });
+        // Where it stands: at its own place, or at the first of the others it may stand at where no card and no
+        // word placed before it is over it; if all are covered, where the least of it is.
+        const widest = Math.max(...lines.map(({ text }) => g.measureText(text).width));
+        const places = [{ at: pts[0]!, align: p.align }, ...(p.or ?? []).map((o) => ({ at: seen(o.at) as number[], align: o.align }))].map((o) => {
+          const x = clamp(o.at[0]! - (o.align === "center" ? widest / 2 : o.align === "right" ? widest : 0), 4, Math.max(4, w - 4 - widest));
+          const tall = lines.length * (size + 3);
+          const at: [number, number, number, number] = [x, o.at[1]! - (p.up ? tall - (size + 3) / 2 : tall / 2), widest, tall];
+          return { ...o, box: at, under: [...boxes.values(), ...said].reduce((sum, b) => sum + over(at, b), 0) };
+        });
+        const here = p.or ? (places.find((o) => o.under === 0) ?? [...places].sort((a, b) => a.under - b.under)[0]!) : places[0]!;
+        if (p.or) said.push(here.box);
         lines.forEach(({ text, head }, k) => {
           const wide = g.measureText(text).width;
-          const left = clamp(pts[0]![0]! - (p.align === "center" ? wide / 2 : p.align === "right" ? wide : 0), 4, Math.max(4, w - 4 - wide));
+          const left = clamp(here.at[0]! - (here.align === "center" ? wide / 2 : here.align === "right" ? wide : 0), 4, Math.max(4, w - 4 - wide));
           // A block stands on its point and grows upward, or is centered on it.
-          const y = pts[0]![1]! + (p.up ? k - (lines.length - 1) : k - (lines.length - 1) / 2) * (size + 3);
+          const y = here.at[1]! + (p.up ? k - (lines.length - 1) : k - (lines.length - 1) / 2) * (size + 3);
           g.strokeStyle = color("ground", 0.9);
           g.lineWidth = 3.5;
           g.setLineDash([]);
@@ -322,7 +377,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     g.globalAlpha = 1;
     g.setLineDash([]);
     // A card the view has no place for (none today) is not left where it last was.
-    for (const el of cards.querySelectorAll<HTMLElement>("[data-node]")) if (!placed.has(el.dataset["node"]!)) el.hidden = true;
+    for (const el of cards.querySelectorAll<HTMLElement>("[data-node]")) if (!boxes.has(el.dataset["node"]!)) el.hidden = true;
   }
   const ask = (): void => {
     if (!asked) asked = requestAnimationFrame(draw);

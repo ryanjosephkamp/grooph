@@ -55,18 +55,34 @@ export const panes: View = (m) => {
     const z = box.depth * STEP - 12;
     const color = box.loop ? hue(m, box.loop.id) : "ink-3";
     prims.push({ t: "poly", pts: [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]], fill: color, fa: box.loop ? 0.15 : 0.08, stroke: color, ...(box.loop ? { key: `loop:${box.loop.id}` } : { dash: [5, 4] }), w: 1.3, lift: box.depth * 30 - 80 });
-    // A pane inside another says its name at its foot, clear of the outer one's.
-    prims.push({ t: "text", at: [x0 + 4, box.depth % 2 ? y1 + 10 : y0 - 10, z], text: `${box.name} · ${box.sub}`, fill: color, size: 10.5, bold: true, max: 200 });
+    // Its name, outside it: over its top edge or under its foot, at the left or at the right, or beside it, wherever
+    // no card stands (a card is drawn over everything, and the next node of a column stands at a pane's corner).
+    // A pane inside another tries its foot first, clear of the outer one's name.
+    const [over, under]: [V, V][] = [[[x0 + 4, y1 + 10, z], [x1 - 4, y1 + 10, z]], [[x0 + 4, y0 - 10, z], [x1 - 4, y0 - 10, z]]];
+    const [first, then] = box.depth % 2 ? [over, under] : [under, over];
+    prims.push({
+      t: "text",
+      at: first[0],
+      text: `${box.name} · ${box.sub}`,
+      fill: color,
+      size: 10.5,
+      bold: true,
+      max: 200,
+      or: [{ at: first[1], align: "right" }, { at: then[0] }, { at: then[1], align: "right" }, { at: [x0 - 6, (y0 + y1) / 2, z], align: "right" }, { at: [x1 + 6, (y0 + y1) / 2, z] }],
+    });
     // Its shadow on the picture: where the picture draws its outline.
     prims.push({ t: "line", pts: [[x0, y0, -8], [x1, y0, -8], [x1, y1, -8], [x0, y1, -8], [x0, y0, -8]], stroke: color, w: 1, dash: [2, 4], alpha: 0.6 });
   }
   const paths: Record<Id, V[]> = {};
-  for (const e of m.edges) {
+  m.edges.forEach((e, k) => {
     const [p, q] = [at[e.from]!, at[e.to]!];
-    // A way back bows out to the side, as it does on the flat picture.
-    const bow = 70 + Math.abs(p[1] - q[1]) * 0.2;
-    paths[e.id] = e.back ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] + bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp([p[0] + 50, p[1], p[2]], [q[0] + 50, q[1], q[2]], n / 18))) : [p, q];
-    prims.push(edgeLine(m, e, paths[e.id]!, { inset: e.back ? [4, 8] : [20, 24] }));
-  }
+    // A way back bows out to the side, as it does on the flat picture; and a second edge between the same two
+    // nodes bows out past the first, so that neither lies under the other.
+    const twin = m.edges.slice(0, k).filter((x) => (x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from)).length;
+    const bow = (e.back ? 70 + Math.abs(p[1] - q[1]) * 0.2 : 0) + 22 * twin;
+    const out = e.back ? 50 : 0;
+    paths[e.id] = bow ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] + bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp([p[0] + out, p[1], p[2]], [q[0] + out, q[1], q[2]], n / 18))) : [p, q];
+    prims.push(edgeLine(m, e, paths[e.id]!, { inset: [4, 8] }));
+  });
   return { prims, node: (id) => at[id]!, path: (e) => paths[e]! };
 };

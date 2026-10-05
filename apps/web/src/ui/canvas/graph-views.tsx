@@ -30,7 +30,7 @@
  * kind to another each card is seen to go to its place in the next, as from the picture.
  */
 import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Component, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { piece } from "../../piece.js";
 import { become } from "../become.js";
@@ -46,7 +46,7 @@ let styled = false;
 /** The kinds of view in three dimensions, in the order the row has them: each with its name and what it is. */
 const KINDS = [
   ["stairs", "Stairs", "Each loop is a floor with its own nodes standing on it; a loop inside it has a floor of its own."],
-  ["panes", "Panes", "The picture as it is, with each loop and each box lifted toward you on a pane of its own."],
+  ["panes", "Panes", "The picture as it is, with each loop and each subgrooph lifted toward you on a pane of its own."],
   ["spiral", "Spiral", "Each loop is a spiral: a round is one turn upward, and the brakes that count rounds are places on the way up, the lid where max iterations stops it."],
 ] as const;
 type Kind = (typeof KINDS)[number][0];
@@ -179,6 +179,24 @@ export function graphScene(doc: Graph, per: number, card: number, notes?: readon
 }
 
 /**
+ * Round a view that a browser may not be able to draw (no drawing surface): what fails in it is told to what holds
+ * it, which falls back to what it showed before, and the rest of the page is left as it is. Without it an error in a
+ * view takes the whole app off the page.
+ */
+class Guard extends Component<{ lost: () => void; children: ReactNode }, { lost: boolean }> {
+  override state = { lost: false };
+  static getDerivedStateFromError(): { lost: boolean } {
+    return { lost: true };
+  }
+  override componentDidCatch(): void {
+    this.props.lost();
+  }
+  override render(): ReactNode {
+    return this.state.lost ? null : this.props.children;
+  }
+}
+
+/**
  * The switch, over the canvas, and the view it chooses. `of` is what the canvas was given: a tap on a card does what
  * a tap on its node does there.
  */
@@ -233,6 +251,13 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   // after the scene's own, calls those the commit has reached: the browser holds the page still until it is told, for
   // seconds if it never is, and takes its picture of the page as it is when it is told.
   const moved = useRef<[number, () => void][]>([]);
+  // The last of the picture and the stairs to be up: where a view that cannot be drawn falls back to.
+  const safe = useRef<On>("picture");
+  const fold = (down: boolean): void => {
+    const editor = host.current?.closest<HTMLElement>(".editor");
+    if (down) editor?.setAttribute("data-space-folds", "");
+    else editor?.removeAttribute("data-space-folds");
+  };
   const count = useRef(0);
   const [reached, again] = useState(0);
   // `idle` is asked when the browser comes for the change, a frame after it was told of it: whether another press
@@ -254,14 +279,19 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   const show = (): void => {
     const now = asked.current;
     if (now === "picture") setOn(now);
-    // What the visit remembers is the kind last drawn: not one that was asked for and has not come.
-    else if (pieceOf(now) === "space" ? space : stage3) (setOn(now), keep(now));
+    // What the visit remembers is the kind last drawn: not one that was asked for and has not come, and not one
+    // that came and could not be drawn (the stage says when it has drawn, below).
+    else if (pieceOf(now) === "space" ? space : stage3) (setOn(now), pieceOf(now) === "space" ? keep(now) : undefined);
     setView(now === "picture" ? "picture" : "space");
     if (now !== "picture") setKind(now);
   };
   const choose = (next: On): void => {
     // A press puts away the note that an earlier choice could not be fetched; asking for it again is a new try.
     setNote(undefined);
+    // On a phone a panel's sheet goes down to its head when one of the stage's kinds is chosen, and comes back with
+    // the picture. Not for the stairs: they are as they were, and what is seen to go into them is what was in
+    // sight over the sheet (#101's test of that is unchanged).
+    fold(next !== "picture" && pieceOf(next) === "stage");
     if (next === asked.current) return;
     asked.current = next;
     const slot = next === "picture" ? undefined : pieceOf(next);
@@ -327,8 +357,16 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
   const told = (upTo: number): void => void (moved.current = moved.current.filter(([n, done]) => n > upTo || (done(), false)));
   useLayoutEffect(() => {
     shown.current = on;
+    if (on === "picture" || on === "stairs") safe.current = on;
     told(reached);
   });
+  // The sheet's head, pressed, brings it up again; and the mark goes with this.
+  useEffect(() => {
+    const editor = host.current?.closest<HTMLElement>(".editor");
+    const up = (e: Event): void => void (e.target instanceof Element && e.target.closest(".sheet-head") && fold(false));
+    editor?.addEventListener("click", up, true);
+    return () => (editor?.removeEventListener("click", up, true), fold(false));
+  }, []);
   // A view that goes while a change is on its way must not leave the browser waiting for it.
   useEffect(() => () => told(Infinity), []);
   // Three cards in a row at a phone's width, and more where there is room, as a map's sheets have.
@@ -339,10 +377,22 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     sized.observe(stage);
     return () => sized.disconnect();
   }, []);
+  // A card that is pressed opens its node's sheet: the sheet comes up for it.
+  const open = (id: Id): void => (fold(false), of.onNodeTap?.(id));
   const tap = (target: EventTarget | null): boolean => {
     const node = target instanceof Element ? target.closest<SVGGElement>("[data-node]") : null;
-    if (node) of.onNodeTap?.(node.dataset["node"]!);
+    if (node) open(node.dataset["node"]!);
     return !!node;
+  };
+  // A view the browser could not draw: back to what was up before it, with a word of why. It is not what the visit
+  // remembers, since it never drew.
+  const lost = (): void => {
+    const back = safe.current;
+    asked.current = back;
+    setOn(back);
+    setView(back === "picture" ? "picture" : "space");
+    setKind("stairs");
+    setNote(back === "picture" ? "That view cannot be drawn in this browser. The picture shows the same graph." : "That view cannot be drawn in this browser. This one shows the same graph.");
   };
   const up = !!made || !!staged;
   return (
@@ -386,7 +436,9 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
         </div>
       ) : staged && more ? (
         <div className="graph-space">
-          <more.Stage3 key={staged} doc={doc} kind={staged} wide={wide.current.at} of={of} />
+          <Guard key={staged} lost={lost}>
+            <more.Stage3 doc={doc} kind={staged} wide={wide.current.at} of={{ ...of, onNodeTap: open }} drawn={() => keep(staged)} />
+          </Guard>
         </div>
       ) : null}
     </div>
