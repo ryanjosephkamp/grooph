@@ -17,6 +17,7 @@ import {
 import { OP_ARGS, type OpName } from "../../ops/apply.js";
 import type { Edge, Loop, Node, Stop } from "../../types.js";
 import { bullet, cell, code, doc, fence, lines, table } from "../markdown.js";
+import { units } from "../units.js";
 import type { PackageContext } from "./context.js";
 
 export function leadBrief(ctx: PackageContext, warnings: Issue[]): string {
@@ -153,6 +154,7 @@ function sectionFour(ctx: PackageContext): string {
     `Dispatch an agent node with the ${code("spawn_agent")} tool and the ${code(
       "agent_type",
     )} named above; its TOML file under ${code(".codex/agents/")} carries the full brief. Set ${code('fork_turns: "none"')} for fresh edges; wait for its result before routing. If fresh-history exclusion cannot be requested or confirmed by this harness, halt before dispatching; do not silently omit it. If the named custom role or subagent tools are unavailable, append a halt note and ask for a correctly configured fresh session, never do the worker job yourself. Your prompt carries only the task, the declared inputs and the edge's evidence. Never paste a transcript into a fresh worker.`,
+    units(ctx.doc),
   );
 }
 
