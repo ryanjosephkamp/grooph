@@ -214,6 +214,8 @@ test("a map with thirty sessions in one lane is fitted whole: no card and no she
 });
 
 test("a drag turns it and is not a tap; pinch, the buttons and the keyboard move it; one tap returns to the starting view", async ({ page }) => {
+  // Many small steps, each a round trip to the browser: on a machine busy with other suites it has run past thirty seconds.
+  test.slow();
   await open(page);
   const start = await posed(page);
   const size = await sized(page);
@@ -336,6 +338,8 @@ test.describe("with reduced motion", () => {
 });
 
 test("a device that cannot draw it thirty times a second is told so, and offered the two flat views", async ({ page }) => {
+  // Eighty steps of a slow drag: the same.
+  test.slow();
   // Frames that come fifty milliseconds apart: twenty a second.
   await page.addInitScript(() => {
     window.requestAnimationFrame = (fn) => window.setTimeout(() => fn(performance.now()), 50);

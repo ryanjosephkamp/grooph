@@ -168,7 +168,7 @@ type Group = {
 What a package must make the harness do. Harness-neutral; each `docs/targets/<harness>.md` says how its native units express each line.
 
 - **Lead.** The harness main session runs the graph: dispatches nodes, follows edges, counts rounds, checks stops, keeps the progress log, and stops for humans. It never grades its own work when a critic exists.
-- **Entry.** Nodes with no inbound edges other than loop back-edges are entry nodes. The lead starts them.
+- **Entry.** Nodes that nothing leads into are entry nodes. The lead starts them. A way into a node is an inbound edge that is not a loop's back edge, or a stop of a loop the node is not in that continues there (`then`): a step a round cap continues at is where that stop sends the run, not where the run starts.
 - **Traversal.** When a node finishes, every outgoing edge whose `when` matches its result is taken. Several matching edges run in parallel, capped by `concurrency` and any `concurrency-cap` policy in scope.
 - **Isolation.** `fresh`: the downstream worker starts with no context except its brief, its declared inputs, and the edge's `evidence`. `shared`: the same worker continues with its prior context, or the lead performs the step itself.
 - **Evidence.** A worker may inspect what its inbound edge lists **plus its own declared inputs**; for a writer that includes the project it is changing. A critic that cannot read its evidence reports `invalid-evidence` rather than guessing. When no edge routes that verdict, the lead repairs the evidence and dispatches the same node once more in the same round; a second `invalid-evidence` routes as `fail`. Such rounds count toward an `evidence-invalid` stop only when the loop has one. "The repository as the change leaves it, read-only" is ordinary evidence for a critic: isolation means a fresh context and none of the builder's claims, not a hidden repository.
@@ -231,8 +231,8 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | Code | Rule |
 |---|---|
 | `W_ONLY_MAX_ITERATIONS` | A loop's only stop kind is `max-iterations`. |
-| `W_UNREACHABLE_NODE` | A node is not reachable from any entry node. Under the entry rule this always accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`); it exists to name the stranded nodes so a view can highlight them. |
-| `W_NO_TERMINAL` | No `stop` node is reachable from an entry node. Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host). |
+| `W_UNREACHABLE_NODE` | A node is not reachable from any entry node, along edges or from a loop's member to where the loop's stops continue (`then`). Under the entry rule this accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`) unless loops' stops continue only into one another, so that nothing starts; it exists to name the stranded nodes so a view can highlight them. |
+| `W_NO_TERMINAL` | No `stop` node is reachable from an entry node, along edges or by a loop's stop that continues at one (`then`). Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host). |
 | `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). |
 | `W_GROUP_OVERLAP` | A node or a group is a member of two groups and neither holds the other (A-018). A view draws it in one box only, the first. A member listed again by a group that already holds it through an inner group is nesting said twice, and is not an overlap. |
 | `W_UNKNOWN_KEY` | The document carries a key the schema does not know. Unknown keys are accepted and preserved (views may stash state), but a typo in an optional field name should be visible. |

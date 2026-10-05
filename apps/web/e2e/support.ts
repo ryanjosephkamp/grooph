@@ -47,6 +47,14 @@ export const sheet = (page: Page): Locator => page.locator("aside.sheet");
 export const node = (page: Page, id: string): Locator => page.locator(`.react-flow__node[data-id="${id}"]`);
 export const edgeLabel = (page: Page, id: string): Locator => page.locator(`.gedge-label[data-edge-id="${id}"]`);
 
+/**
+ * A canvas has everything it asks for once the switch between its views is there. The piece behind the switch is the
+ * last file a canvas fetches, some milliseconds after its nodes are drawn (slice 0092). A test that counts failed
+ * requests waits for this before it reloads or leaves a page with a canvas on it: a fetch cut short by the page going
+ * away is reported as failed, by Firefox every time it happens.
+ */
+export const canvasIsQuiet = (page: Page): Promise<void> => expect(page.getByRole("radiogroup", { name: "View of the graph" })).toBeVisible();
+
 export async function closeSheet(page: Page): Promise<void> {
   const close = page.getByRole("button", { name: "Close panel" });
   if (await close.isVisible()) await close.tap();

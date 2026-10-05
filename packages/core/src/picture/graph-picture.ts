@@ -19,7 +19,7 @@ import { layerNodes } from "../layout.js";
 import { estimateShape, shapeLine } from "../proposals.js";
 import { describeStop, loopMode, stopAction } from "../semantics.js";
 import type { Edge, Graph, Id, Node } from "../types.js";
-import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Color, type PictureOptions } from "./svg.js";
+import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Color, type Ink, type PictureOptions } from "./svg.js";
 
 const M = 12;
 const CARD_PAD = 10;
@@ -73,13 +73,32 @@ function edgeStyle(edge: Edge, loop: number | undefined): { color: Color; dash?:
 
 type Card = { node: Node; name: string[]; sub: string[]; extra: string; height: number; y: number; left: Id[]; right: Id[] };
 
+/** A card that stands for more than a node, a closed subgrooph: what it says in place of a kind's label and line. */
+export type Face = { label: string; color: Color; sub: string[]; extra: string; /** room kept at the card's foot */ room: number };
+
+/**
+ * What the picture is handed to draw subgroophs as boxes (`graph-units.ts`, fetched only for a graph that has one).
+ * `doc` is then the graph with each closed subgrooph folded into one node. Without it nothing here is different:
+ * the picture of a graph with no group is byte for byte what it was.
+ */
+export type PictureView = {
+  /** the column and, for each row, room to leave above it: an open subgrooph's nodes are kept together, under its name */
+  ranks: Id[][];
+  gaps: number[];
+  faces: ReadonlyMap<Id, Face>;
+  /** the graph before folding: what the caption counts */
+  whole: Graph;
+  /** what goes under the cards and what goes over them, given where each card is */
+  draw: (cards: ReadonlyMap<Id, { y: number; height: number }>, x: number, width: number, ink: Ink) => [under: string, over: string];
+};
+
 /**
  * A graph as one SVG with its words on it. Nodes carry `data-node`, edges
  * `data-edge` and loops `data-loop`, so a page holding the picture inline can
  * make them tappable. Edges and loops that point at nothing are left out: the
  * validator names them.
  */
-export function picture(doc: Graph, options: PictureOptions = {}): string {
+export function picture(doc: Graph, options: PictureOptions = {}, view?: PictureView): string {
   const theme = options.theme ?? "auto";
   const W = options.width ?? PICTURE_WIDTH;
   const ink = inkFor(theme);
@@ -87,7 +106,7 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
   const nodes = new Map<Id, Node>(doc.nodes.map((n) => [n.id, n]));
 
   // The column: rank by rank, and inside a rank the order that crosses least.
-  const ranks = layerNodes(doc);
+  const ranks = view?.ranks ?? layerNodes(doc);
   const column: Id[] = ranks.flat();
   const at = new Map<Id, number>(column.map((id, i) => [id, i]));
   const rankOf = new Map<Id, number>();
@@ -142,7 +161,7 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
     body.push(text(M, y, line, { size: 17, fill: ink("ink"), weight: "bold" }));
     y += 4;
   }
-  const caption = [doc.target?.harness, doc.nodes.length > 0 ? shapeLine(estimateShape(doc)) : "no nodes yet"].filter(Boolean).join(" · ");
+  const caption = [doc.target?.harness, doc.nodes.length > 0 ? shapeLine(estimateShape(view?.whole ?? doc)) : "no nodes yet"].filter(Boolean).join(" · ");
   for (const line of wrap(caption, W - 2 * M, 11, 2)) {
     y += 13;
     body.push(text(M, y, line, { size: 11, fill: ink("ink-3") }));
@@ -161,15 +180,17 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
   for (const id of column) {
     const node = nodes.get(id)!;
     const name = wrap(node.name || node.id, textW, 13.5, 2, "bold");
-    const sub = subline(node) ? wrap(subline(node), textW, 10.5, 2) : [];
-    const extra = node.kind === "agent" && (node.irreversible ?? []).length > 0 ? `irreversible: ${node.irreversible!.join(", ")}` : "";
-    const content = CARD_PAD + 10 + 4 + name.length * 15.5 + sub.length * 13 + (extra ? 14 : 0) + CARD_PAD - 3;
+    const face = view?.faces.get(id);
+    const sub = face ? face.sub.flatMap((line) => wrap(line, textW, 10.5, 2)) : subline(node) ? wrap(subline(node), textW, 10.5, 2) : [];
+    const extra = face ? face.extra : node.kind === "agent" && (node.irreversible ?? []).length > 0 ? `irreversible: ${node.irreversible!.join(", ")}` : "";
+    const content = CARD_PAD + 10 + 4 + name.length * 15.5 + sub.length * 13 + (extra ? 14 : 0) + CARD_PAD - 3 + (face?.room ?? 0);
     const l = (slots.left.get(id) ?? []).map((s) => s.edge);
     const r = (slots.right.get(id) ?? []).map((s) => s.edge);
     cards.set(id, { node, name, sub, extra, height: Math.max(content, (Math.max(l.length, r.length) + 1) * SLOT + 2), y: 0, left: l, right: r });
   }
   const bands: string[] = [];
   ranks.forEach((row, r) => {
+    y += view?.gaps[r] ?? 0;
     const top = y;
     row.forEach((id, i) => {
       const card = cards.get(id)!;
@@ -185,6 +206,8 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
     if (r < ranks.length - 1) y += GAP;
   });
   body.push(...bands);
+  const drawn = view?.draw(cards, cardX, cardW, ink);
+  if (drawn) body.push(drawn[0]);
 
   // Edges to the very next card: an arrow down the middle, or two side by side.
   const labels: string[] = [];
@@ -261,7 +284,7 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
   for (const id of column) {
     const card = cards.get(id)!;
     const { node } = card;
-    const kind = KIND[node.kind];
+    const kind = view?.faces.get(id) ?? KIND[node.kind];
     const g: string[] = [];
     const gate = node.kind === "human-gate";
     g.push(rect(cardX, card.y, cardW, card.height, { fill: ink("surface"), stroke: ink(gate ? "gate" : "line-strong"), rx: node.kind === "stop" ? 16 : 9, width: gate ? 1.8 : 1, mark: "card" }));
@@ -284,8 +307,9 @@ export function picture(doc: Graph, options: PictureOptions = {}): string {
       ty += 14;
       g.push(text(cardX + CARD_PAD, ty, truncate(card.extra, textW, 10, "bold"), { size: 10, fill: ink("gate"), weight: "bold" }));
     }
-    body.push(`<g data-node="${id}">${g.join("")}</g>`);
+    body.push(`<g data-${kind === KIND[node.kind] ? "node" : "group"}="${id}">${g.join("")}</g>`);
   }
+  if (drawn) body.push(drawn[1]);
   body.push(...labels);
   y += 14;
 

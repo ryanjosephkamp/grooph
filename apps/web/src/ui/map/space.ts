@@ -19,7 +19,7 @@ import css from "./space.css?inline";
 export type V = [number, number, number];
 type Live = NonNullable<MapPictureOptions["live"]>;
 
-const CARD = 128; // a card's width
+export const CARD = 128; // a card's width
 const GAP = 14; // between two cards of a row
 const ROW = 104; // between two rows on a sheet, front to back
 const EDGE = 24; // from a sheet's edge to its cards
@@ -49,7 +49,12 @@ export function apart(a: OperationMap["lanes"][number], b: OperationMap["lanes"]
   return a.machine === b.machine ? 1 : 1.35;
 }
 
-export type Stop = { handoff?: Id; now?: boolean; says: string; short: string };
+/**
+ * A stop of the slider: what it says, and what it lights. `handoff` is the link that is lit, with its two ends.
+ * A stop about no link may light cards (`ends`) or a sheet (`sheet`, the sheet's own mark); and `alone` leaves the
+ * other links as they are, for a slider whose order is not the order the links are drawn in.
+ */
+export type Stop = { handoff?: Id; now?: boolean; says: string; short: string; ends?: Id[]; sheet?: string; alone?: boolean };
 export type Arc = { id: Id; n: number; from: Id; to: Id; a: V; b: V; lift: number };
 export type Plan = { html: string; box: { min: V; max: V }; arcs: Arc[]; stops: Stop[]; cards: Map<Id, { at: V; h: number }>; floors: number[] };
 
@@ -66,15 +71,14 @@ function seen(now: Live[string]): { state: "working" | "waiting" | "quiet" | "en
  */
 export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?: Live; at?: string } = {}): Plan {
   // The kit's parts by name; the order is packages/core/src/picture/map-kit.ts's.
-  const [, , , , , , , , , carriedBy, drawn, fmt, frame, , , inkFor, , numberBadge, , , , , rect, , stroke, styleOf, text, textWidth, wrap] = kit;
+  const [, , , , , , , , , carriedBy, drawn, fmt, , , , inkFor, , , , , , , rect, , , styleOf, text, textWidth, wrap] = kit;
   const ink = inkFor("auto");
   const per = Math.max(1, opts.per ?? 3);
   const { sessions, people, handoffs, numberOf } = drawn(map);
   const nameOf = (id: Id): string => map.sessions.find((s) => s.id === id)?.name || (map.people ?? []).find((p) => p.id === id)?.name || id;
 
   // The sheets: the people's first, then each lane's, in the document's order.
-  type Item = { id: Id; person: boolean; h: number; svg: (w: number, h: number) => string };
-  const card = (id: Id, name: string, person: boolean, under: string, count: number, model = "", now?: Live[string]): Item => {
+  const card = (id: Id, name: string, person: boolean, under: string, count: number, model = "", now?: Live[string]): Card => {
     const pill = count > 1 ? `×${count}` : "";
     const pillW = pill ? textWidth(pill, 9.5, "bold") + 10 : 0;
     const lines = wrap(name, (k) => CARD - 16 - (pill && k === 0 ? pillW + 4 : 0), 12.5, 3, "bold");
@@ -82,7 +86,6 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
     const h = 7 + lines.length * 15 + 13 + (model ? 11.5 : 0) + (mark ? 15 : 0) + 6;
     return {
       id,
-      person,
       h,
       svg: () => {
         const g: string[] = [rect(0.7, 0.7, CARD - 1.4, h - 1.4, person ? { fill: ink("gate-soft"), stroke: ink("gate"), rx: 12, width: 1.4, mark: "card" } : { fill: ink("surface"), stroke: ink("line-strong"), rx: 8, mark: "card" })];
@@ -105,43 +108,90 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
       },
     };
   };
-  const sheets = [
-    ...(people.length ? [{ id: "", name: people.length === 1 ? "Person" : "People", sub: "on no machine, under no account", place: "", person: true, items: people.map((p) => card(p.id, p.name || p.id, true, "person", 1)) }] : []),
-    ...map.lanes.map((lane) => ({
-      id: lane.id,
+  // Each sheet is clear of the cards on the one above by more where the two lanes are further apart.
+  const lanes = map.lanes;
+  const sheets: Sheet[] = [
+    ...(people.length ? [{ cls: " is-people", mark: 'data-people=""', name: people.length === 1 ? "Person" : "People", sub: "on no machine, under no account", place: "", gap: 0, items: people.map((p) => card(p.id, p.name || p.id, true, "person", 1)) }] : []),
+    ...lanes.map((lane, k) => ({
+      cls: "",
+      mark: `data-lane="${esc(lane.id)}"`,
       name: lane.name || lane.id,
       sub: `${lane.machine} · ${lane.account}`,
       place: lane.place ?? "",
-      person: false,
+      gap: k === 0 ? 1 : apart(lanes[k - 1]!, lane),
       items: sessions.filter((s) => s.lane === lane.id).map((s) => card(s.id, s.name || s.id, false, HARNESS[s.harness] ?? s.harness, s.count ?? 1, s.model, opts.live?.[s.id])),
     })),
   ];
+  const links: Link[] = handoffs.map((h) => ({ id: h.id, n: numberOf.get(h.id)!, from: h.from, to: h.to, style: styleOf(h) }));
+
+  // The slider's stops: all of them, then one at a time in the map's order, then now, where the hooks saw anything.
+  const total = handoffs.length;
+  const stops: Stop[] = [{ short: "all handoffs", says: total === 0 ? "This map has no handoffs to step through." : total === 1 ? "The map's one handoff is lit." : `All ${total} handoffs are lit. Move the slider or press Play to light them one at a time.` }];
+  handoffs.forEach((h: Handoff, k) => {
+    const who = h.from === h.to ? `${nameOf(h.from)} to itself` : `${nameOf(h.from)} to ${nameOf(h.to)}`;
+    stops.push({ handoff: h.id, short: `handoff ${links[k]!.n} of ${map.handoffs.length}`, says: `Handoff ${links[k]!.n} of ${map.handoffs.length}: ${who} · ${carriedBy(map, h)}${h.what ? ` · ${h.what}` : ""}` });
+  });
+  if (opts.live) {
+    const states = Object.values(opts.live).map((now) => seen(now).state);
+    const count = (state: string, word: string): string[] => (states.includes(state as never) ? [`${states.filter((s) => s === state).length} ${word}`] : []);
+    const said = [...count("working", "working"), ...count("waiting", "waiting"), ...count("quiet", "gone quiet"), ...count("ended", "ended")];
+    stops.push({ now: true, short: "now", says: `Now${opts.at ? `, as the hooks saw it at ${opts.at.slice(0, 16).replace("T", " ")} UTC` : ""}: ${said.length ? said.join(", ") : "no session has been seen"}.` });
+  }
+
+  return scene(kit, {
+    title: map.name || map.id,
+    sheets,
+    links,
+    stops,
+    per,
+    link: "handoff",
+    links_: "handoffs",
+    none: " · no sessions",
+    range: "Handoff, in the order the map lists them",
+    note: `The order the map lists its handoffs in. An order, not a clock: a map records no times${opts.live ? "; the slider's last stop is now" : ""}.`,
+    flat: ' The picture and the sequence show the same map, flat. <button type="button" data-flat="picture">Picture</button> <button type="button" data-flat="sequence">Sequence</button>',
+  });
+}
+
+/** A sheet of the scene, with what stands on it; a card; and a link from one card to another. */
+export type Card = { id: Id; h: number; svg: () => string };
+export type Sheet = { cls: string; mark: string; name: string; sub: string; place: string; gap: number; items: Card[] };
+export type Link = { id: Id; n: number; from: Id; to: Id; style: { color: Parameters<ReturnType<MapKit[15]>>[0]; dash?: string; width: number } };
+/**
+ * What a scene is of, whatever that is: an operation map's lanes, sessions and handoffs (`plan`, above), or a loop
+ * graph's loops, nodes and edges (`ui/canvas/views.tsx`, handoff 0092). The words are the caller's, because a map
+ * steps through handoffs and a graph through edges.
+ */
+export type Scene = { title: string; sheets: Sheet[]; links: Link[]; stops: Stop[]; per: number; link: string; links_: string; none: string; range: string; note: string; flat: string; step?: string };
+
+/** Where every sheet, card and arc of a scene is, and the markup for it. */
+export function scene(kit: MapKit, { title, sheets, links, stops, per, link, links_, none, range, note, flat, step = link }: Scene): Plan {
+  const [, , , , , , , , , , , fmt, frame, , , inkFor, , numberBadge, , , , , , , stroke] = kit;
+  const ink = inkFor("auto");
   const across = Math.max(1, Math.min(per, Math.max(...sheets.map((s) => s.items.length), 1)));
   const width = 2 * EDGE + across * CARD + (across - 1) * GAP;
   // A sheet is as deep as its rows; the front edges step forward down the stack, so no sheet stands over the
   // front row of the one below it.
   const depthOf = (count: number): number => 2 * EDGE + (Math.max(1, Math.ceil(count / across)) - 1) * ROW;
   const deepest = Math.max(0, ...sheets.map((s) => depthOf(s.items.length))) + Math.max(0, sheets.length - 1) * FORWARD;
-  // Every sheet keeps the room the map's tallest card needs, so that the step from one sheet to the next is that
-  // room and the gap, and the gap alone says how far apart two lanes are.
+  // Every sheet keeps the room the tallest card needs, so that the step from one sheet to the next is that room and
+  // the gap, and the gap alone says how far apart two sheets are.
   const band = Math.max(40, ...sheets.flatMap((s) => s.items.map((c) => c.h)));
 
-  // Down the stack: each sheet clear of the cards on the one below, by more where the two lanes are further apart.
+  // Down the stack: each sheet clear of the cards on the one above, by its gap.
   const cards: Plan["cards"] = new Map();
   const floors: number[] = [];
   const parts: string[] = [];
   let floor = 0;
   sheets.forEach((sheet, i) => {
-    const lanes = map.lanes;
-    const gap = i === 0 ? 0 : sheets[i - 1]!.person ? 1 : apart(lanes[i - (people.length ? 2 : 1)]!, lanes[i - (people.length ? 1 : 0)]!);
-    floor += band + (i === 0 ? 0 : CLEAR * gap);
+    floor += band + (i === 0 ? 0 : CLEAR * sheet.gap);
     floors.push(floor);
     const depth = depthOf(sheet.items.length);
     const front = deepest - (sheets.length - 1 - i) * FORWARD;
     const back = front - depth;
     parts.push(
-      `<div class="space-sheet${sheet.person ? " is-people" : ""}" ${sheet.person ? 'data-people=""' : `data-lane="${esc(sheet.id)}"`} style="width:${fmt(width)}px;height:${fmt(depth)}px;transform:translate3d(0,${fmt(floor)}px,${fmt(back)}px) rotateX(90deg)"></div>` +
-        `<div class="space-label" style="width:${fmt(width)}px;transform:translate3d(0,${fmt(floor + 3)}px,${fmt(front)}px)"><b>${esc(sheet.name)}</b>${sheet.place ? `<i>${esc(sheet.place)}</i>` : ""}<span>${esc(sheet.sub)}${sheet.items.length ? "" : " · no sessions"}</span></div>`,
+      `<div class="space-sheet${sheet.cls}" ${sheet.mark} style="width:${fmt(width)}px;height:${fmt(depth)}px;transform:translate3d(0,${fmt(floor)}px,${fmt(back)}px) rotateX(90deg)"></div>` +
+        `<div class="space-label" style="width:${fmt(width)}px;transform:translate3d(0,${fmt(floor + 3)}px,${fmt(front)}px)"><b>${esc(sheet.name)}</b>${sheet.place ? `<i>${esc(sheet.place)}</i>` : ""}<span>${esc(sheet.sub)}${sheet.items.length ? "" : none}</span></div>`,
     );
     sheet.items.forEach((c, j) => {
       const row = Math.floor(j / across);
@@ -149,14 +199,14 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
       const x = (width - inRow * CARD - (inRow - 1) * GAP) / 2 + (j % across) * (CARD + GAP);
       const z = front - EDGE - row * ROW; // the first row is the front one
       cards.set(c.id, { at: [x, floor - c.h, z], h: c.h });
-      parts.push(`<div class="space-card" style="width:${CARD}px;height:${fmt(c.h)}px;transform:translate3d(${fmt(x)}px,${fmt(floor - c.h)}px,${fmt(z)}px)"><svg viewBox="0 0 ${CARD} ${fmt(c.h)}" width="${CARD}" height="${fmt(c.h)}">${c.svg(CARD, c.h)}</svg></div>`);
+      parts.push(`<div class="space-card" style="width:${CARD}px;height:${fmt(c.h)}px;transform:translate3d(${fmt(x)}px,${fmt(floor - c.h)}px,${fmt(z)}px)"><svg viewBox="0 0 ${CARD} ${fmt(c.h)}" width="${CARD}" height="${fmt(c.h)}">${c.svg()}</svg></div>`);
     });
   });
 
   // The arcs: from a place on the sender's top edge to one on the receiver's. The ends along an edge are in the
   // order of where they lead, left to right, so arcs leave a card without crossing there.
   const ends = new Map<Id, { arc: number; from: boolean; toward: number }[]>();
-  handoffs.forEach((h, arc) => {
+  links.forEach((h, arc) => {
     const [a, b] = [cards.get(h.from)!, cards.get(h.to)!];
     (ends.get(h.from) ?? ends.set(h.from, []).get(h.from)!).push({ arc, from: true, toward: b.at[0] - a.at[0] });
     (ends.get(h.to) ?? ends.set(h.to, []).get(h.to)!).push({ arc, from: false, toward: a.at[0] - b.at[0] });
@@ -169,18 +219,18 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
     list.forEach((e, k) => place.set(`${e.arc}${e.from ? "a" : "b"}`, [c.at[0] + CARD / 2 + (k - (list.length - 1) / 2) * step, c.at[1], c.at[2]]));
   }
   const pairs = new Map<string, number>();
-  const arcs: Arc[] = handoffs.map((h, arc) => {
+  const arcs: Arc[] = links.map((h, arc) => {
     const [a, b] = [place.get(`${arc}a`)!, place.get(`${arc}b`)!];
     const pair = [h.from, h.to].sort().join(" ");
     const nth = pairs.get(pair) ?? 0;
     pairs.set(pair, nth + 1);
     const length = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
-    return { id: h.id, n: numberOf.get(h.id)!, from: h.from, to: h.to, a, b, lift: 16 + length * 0.16 + nth * 9 };
+    return { id: h.id, n: h.n, from: h.from, to: h.to, a, b, lift: 16 + length * 0.16 + nth * 9 };
   });
   const HEAD = 9;
   arcs.forEach((arc, k) => {
-    const h = handoffs[k]!;
-    const style = styleOf(h);
+    const h = links[k]!;
+    const style = h.style;
     const color = ink(style.color);
     const length = Math.max(1, Math.hypot(arc.b[0] - arc.a[0], arc.b[1] - arc.a[1], arc.b[2] - arc.a[2]));
     const tall = arc.lift + HEAD;
@@ -191,25 +241,11 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
     const d = `M0,${fmt(tall)} Q${fmt(cx)},${fmt(cy)} ${fmt(ex)},${fmt(ey)}`;
     parts.push(
       `<div class="space-arc" data-arc="${k}" style="width:${fmt(length)}px;height:${fmt(tall + HEAD)}px"><svg viewBox="0 0 ${fmt(length)} ${fmt(tall + HEAD)}" width="${fmt(length)}" height="${fmt(tall + HEAD)}">` +
-        `<g data-handoff="${esc(h.id)}" tabindex="0"><path d="${d}" ${stroke(style, color)}/><path class="space-hit" d="${d}"/><circle cx="0" cy="${fmt(tall)}" r="2.4" style="fill:${color}"/>` +
+        `<g data-${link}="${esc(h.id)}" tabindex="0"><path d="${d}" ${stroke(style, color)}/><path class="space-hit" d="${d}"/><circle cx="0" cy="${fmt(tall)}" r="2.4" style="fill:${color}"/>` +
         `<path d="M0,0 L-8,-3.8 L-8,3.8 z" transform="translate(${fmt(length)},${fmt(tall)}) rotate(${fmt((slope * 180) / Math.PI)})" style="fill:${color}"/></g></svg></div>` +
         `<div class="space-n" data-arc="${k}" aria-hidden="true"><svg data-number="${esc(h.id)}" viewBox="-11 -9 22 18" width="22" height="18">${numberBadge(0, 0, String(arc.n), color, ink)}</svg></div>`,
     );
   });
-
-  // The slider's stops: all of them, then one at a time in the map's order, then now, where the hooks saw anything.
-  const total = handoffs.length;
-  const stops: Stop[] = [{ short: "all handoffs", says: total === 0 ? "This map has no handoffs to step through." : total === 1 ? "The map's one handoff is lit." : `All ${total} handoffs are lit. Move the slider or press Play to light them one at a time.` }];
-  handoffs.forEach((h: Handoff, k) => {
-    const who = h.from === h.to ? `${nameOf(h.from)} to itself` : `${nameOf(h.from)} to ${nameOf(h.to)}`;
-    stops.push({ handoff: h.id, short: `handoff ${arcs[k]!.n} of ${map.handoffs.length}`, says: `Handoff ${arcs[k]!.n} of ${map.handoffs.length}: ${who} · ${carriedBy(map, h)}${h.what ? ` · ${h.what}` : ""}` });
-  });
-  if (opts.live) {
-    const states = Object.values(opts.live).map((now) => seen(now).state);
-    const count = (state: string, word: string): string[] => (states.includes(state as never) ? [`${states.filter((s) => s === state).length} ${word}`] : []);
-    const said = [...count("working", "working"), ...count("waiting", "waiting"), ...count("quiet", "gone quiet"), ...count("ended", "ended")];
-    stops.push({ now: true, short: "now", says: `Now${opts.at ? `, as the hooks saw it at ${opts.at.slice(0, 16).replace("T", " ")} UTC` : ""}: ${said.length ? said.join(", ") : "no session has been seen"}.` });
-  }
 
   const palette = /<style>[\s\S]*?<\/style>/.exec(frame(1, 1, "", "auto", ink, "", "space"))?.[0] ?? "";
   // The box the starting view must show whole: the sheets with their labels, and each arc's highest point there.
@@ -226,11 +262,11 @@ export function plan(kit: MapKit, map: OperationMap, opts: { per?: number; live?
   const html =
     `<div class="space grooph-picture" data-picture="space">${palette}` +
     `<div class="space-bar"><span>Drag to turn. Pinch to move in and out, or pick the scene and scroll.</span><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Starting view</button></div>` +
-    `<div class="space-scene" tabindex="0" role="group" aria-label="${esc(map.name || map.id)} in three dimensions: ${sheets.length} sheets, ${cards.size} cards, ${total} handoffs. Drag, or use the arrow keys, to turn it; pinch, scroll, or use plus and minus, to move in and out."><div class="space-lens"><div class="space-world">${parts.join("")}</div></div></div>` +
-    `<div class="space-time"><div class="space-steps"><button type="button" data-do="play" aria-label="Play"${last === 0 ? " disabled" : ""}>Play</button><button type="button" data-do="back" aria-label="Previous handoff"${last === 0 ? " disabled" : ""}>‹</button><button type="button" data-do="next" aria-label="Next handoff"${last === 0 ? " disabled" : ""}>›</button>` +
-    `<input type="range" min="0" max="${last}" step="1" value="0" aria-label="Handoff, in the order the map lists them"${last === 0 ? " disabled" : ""}></div>` +
-    `<output>${esc(stops[0]!.says)}</output><p class="space-note">The order the map lists its handoffs in. An order, not a clock: a map records no times${opts.live ? "; the slider's last stop is now" : ""}.</p></div>` +
-    `<p class="space-flat" role="status" hidden><span></span> The picture and the sequence show the same map, flat. <button type="button" data-flat="picture">Picture</button> <button type="button" data-flat="sequence">Sequence</button></p></div>`;
+    `<div class="space-scene" tabindex="0" role="group" aria-label="${esc(title)} in three dimensions: ${sheets.length} sheets, ${cards.size} cards, ${links.length} ${links_}. Drag, or use the arrow keys, to turn it; pinch, scroll, or use plus and minus, to move in and out."><div class="space-lens"><div class="space-world">${parts.join("")}</div></div></div>` +
+    `<div class="space-time"><div class="space-steps"><button type="button" data-do="play" aria-label="Play"${last === 0 ? " disabled" : ""}>Play</button><button type="button" data-do="back" aria-label="Previous ${step}"${last === 0 ? " disabled" : ""}>‹</button><button type="button" data-do="next" aria-label="Next ${step}"${last === 0 ? " disabled" : ""}>›</button>` +
+    `<input type="range" min="0" max="${last}" step="1" value="0" aria-label="${range}"${last === 0 ? " disabled" : ""}></div>` +
+    `<output>${esc(stops[0]!.says)}</output><p class="space-note">${note}</p></div>` +
+    `<p class="space-flat" role="status" hidden><span></span>${flat}</p></div>`;
   return { html, box, arcs, stops, cards, floors };
 }
 
@@ -307,7 +343,7 @@ export function tooSlow(gaps: number[]): number | undefined {
 export function lights(made: Plan, step: number): { stop: Stop; arcs: ("lit" | "past" | "ahead" | "")[]; ends: Id[] } {
   const stop = made.stops[Math.max(0, Math.min(made.stops.length - 1, step))]!;
   const at = made.arcs.findIndex((a) => a.id === stop.handoff);
-  return { stop, arcs: made.arcs.map((_, k) => (stop.now ? "past" : at < 0 ? "" : k === at ? "lit" : k < at ? "past" : "ahead")), ends: at < 0 ? [] : [made.arcs[at]!.from, made.arcs[at]!.to] };
+  return { stop, arcs: made.arcs.map((_, k) => (stop.now ? "past" : at < 0 ? "" : k === at ? "lit" : stop.alone ? "" : k < at ? "past" : "ahead")), ends: at < 0 ? (stop.ends ?? []) : [made.arcs[at]!.from, made.arcs[at]!.to] };
 }
 
 // ─── behavior ─────────────────────────────────────────────────────────────
@@ -390,7 +426,8 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
     // The scene is never taller than the room the screen's stage has. With details open under it (on a phone they
     // take the lower half of the screen) the whole of it is then in view above them, and what was picked with it.
     const want = Math.max(340, Math.min(820, innerHeight - 300));
-    scene.style.height = `${Math.max(180, Math.min(want, stage ? stage.clientHeight - 12 : want))}px`;
+    // A stage may say how much of its height is not the scene's: what stands above and below it there (`data-keep`).
+    scene.style.height = `${Math.max(180, Math.min(want, stage ? stage.clientHeight - 12 - Number(stage.dataset["keep"] ?? 0) : want))}px`;
     if (stage && stage.clientHeight < room && root.querySelector(".is-on")) scene.scrollIntoView({ block: "nearest" });
     room = stage?.clientHeight ?? 0;
     lens = Math.max(900, scene.clientWidth * 1.7);
@@ -560,7 +597,8 @@ export function attach(root: HTMLElement, made: Plan, state: Held, flat: (view: 
       for (const el of [arcs[k]!, numbers[k]!]) for (const name of ["lit", "past", "ahead"]) el.classList.toggle(`is-${name}`, mark === name);
     });
     for (const el of root.querySelectorAll(".is-end")) el.classList.remove("is-end");
-    for (const id of ends) root.querySelector(`[data-session="${CSS.escape(id)}"],[data-person="${CSS.escape(id)}"]`)?.classList.add("is-end");
+    for (const id of ends) root.querySelector(["session", "person", "node"].map((part) => `[data-${part}="${CSS.escape(id)}"]`).join())?.classList.add("is-end");
+    if (stop.sheet) root.querySelector(`.space-sheet[${stop.sheet}]`)?.classList.add("is-end");
     root.classList.toggle("is-now", stop.now === true);
     range.value = String(state.step);
     // The slider says where it is; the sentence under it, which is read out as it changes, says the rest.
