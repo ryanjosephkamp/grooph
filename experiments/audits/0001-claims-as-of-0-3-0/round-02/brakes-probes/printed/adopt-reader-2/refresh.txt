@@ -1,0 +1,67 @@
+
+### R0 control: review-gate cap 4 -> 40
+  refresh: 1 changes; held 
+    - loop:review-review.stops: raises the round cap from 4 to 40
+  the graph with every change applied: valid; written by plain refresh == that graph: false
+  adoption of the same graph: refused 
+    - loop:review-review.stops: raises the round cap from 4 to 40
+
+### R1 review-gate: unlisted helper beside builder->critic (not a member)
+  refresh: 3 changes; held 
+    - node:review-helper: "review-helper" would work on the rounds of the loop "review-review" and not be among its members: its budget of dispatches would not count it
+    - edge:review-e-b-helper: (waits for node:review-helper)
+    - edge:e-review-helper-review-critic: (waits for node:review-helper)
+  the graph with every change applied: valid; written by plain refresh == that graph: false
+  adoption of the same graph: refused 
+    - node:review-helper: "review-helper" would work on the rounds of the loop "review-review" and not be among its members: its budget of dispatches would not count it
+
+### R2 review-gate: approval put on builder->critic, and critic -> redo -> builder under a new loop cap 1000 (person on every lap: stated limit)
+  refresh: 5 changes; held NONE  <<<<<< applied with nothing asked
+  the graph with every change applied: valid; written by plain refresh == that graph: true
+  adoption of the same graph: refused NONE  <<<<<<
+
+### R2b the same WITHOUT the approval (must be held)
+  refresh: 4 changes; held 
+    - edge:e-review-critic-review-redo: "e-review-critic-review-redo" (review-critic → review-redo) would make a way round the nodes of "review-review" that its stops do not count
+    - edge:e-review-redo-review-builder: "e-review-redo-review-builder" (review-redo → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-redo-loop" would count it, and each time round "review-review" starts afresh
+    - loop:review-redo-loop: "e-review-redo-review-builder" (review-redo → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-redo-loop" would count it, and each time round "review-review" starts afresh
+    - node:review-redo: (waits for edge:e-review-critic-review-redo)
+  the graph with every change applied: valid; written by plain refresh == that graph: false
+  adoption of the same graph: refused 
+    - edge:e-review-critic-review-redo: "e-review-critic-review-redo" (review-critic → review-redo) would make a way round the nodes of "review-review" that its stops do not count
+    - edge:e-review-redo-review-builder: "e-review-redo-review-builder" (review-redo → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-redo-loop" would count it, and each time round "review-review" starts afresh
+    - loop:review-redo-loop: "e-review-redo-review-builder" (review-redo → review-builder) would make a way round the nodes of "review-review" that its stops do not count: "review-redo-loop" would count it, and each time round "review-review" starts afresh
+
+### R3 review-gate: new human stop every 1 then: builder, first (stated limit)
+  refresh: 1 changes; held NONE  <<<<<< applied with nothing asked
+  the graph with every change applied: valid; written by plain refresh == that graph: true
+  adoption of the same graph: refused NONE  <<<<<<
+
+### R4 debate-then-build: the husk on its build loop (builder replaced by builder2/tests2 under a new loop cap 1000; build keeps tests + a stub)
+  refresh: 15 changes; held 
+    - node:dtb-builder: removes "dtb-builder", which the loop "dtb-build" bounded, while "dtb-builder2", "dtb-tests2" would come in on a round it does not count: it may be the same step under another name
+    - loop:dtb-build.members: removes "dtb-builder", which the loop "dtb-build" bounded, while "dtb-builder2", "dtb-tests2" would come in on a round it does not count: it may be the same step under another name
+    - node:dtb-stub: (waits for node:dtb-builder)
+    - node:dtb-builder2: (waits for node:dtb-builder)
+    - node:dtb-tests2: (waits for node:dtb-builder)
+    - edge:e-dtb-plan-gate-dtb-builder: (waits for node:dtb-builder)
+    - edge:e-dtb-builder-dtb-tests: (waits for node:dtb-builder)
+    - edge:dtb-e-tests-fail.to: (waits for node:dtb-builder)
+    - edge:dtb-e-plan-gate-builder: (waits for node:dtb-builder)
+    - edge:e-dtb-plan-gate-dtb-stub: (waits for node:dtb-builder)
+    - edge:e-dtb-stub-dtb-tests: (waits for node:dtb-builder)
+    - edge:dtb-e-b2-t2: (waits for node:dtb-builder)
+    - edge:dtb-e-t2-fail: (waits for node:dtb-builder)
+    - edge:e-dtb-tests2-release: (waits for node:dtb-builder)
+    - loop:dtb-build-2: (waits for node:dtb-builder)
+  the graph with every change applied: valid; written by plain refresh == that graph: false
+  adoption of the same graph: refused 
+    - node:dtb-builder: removes "dtb-builder", which the loop "dtb-build" bounded, while "dtb-builder2", "dtb-tests2" would come in on a round it does not count: it may be the same step under another name
+    - loop:dtb-build.members: removes "dtb-builder", which the loop "dtb-build" bounded, while "dtb-builder2", "dtb-tests2" would come in on a round it does not count: it may be the same step under another name
+
+### R4c control: debate-then-build build loop cap 5 -> 1000
+  refresh: 1 changes; held 
+    - loop:dtb-build.stops: raises the round cap from 5 to 1000
+  the graph with every change applied: valid; written by plain refresh == that graph: false
+  adoption of the same graph: refused 
+    - loop:dtb-build.stops: raises the round cap from 5 to 1000

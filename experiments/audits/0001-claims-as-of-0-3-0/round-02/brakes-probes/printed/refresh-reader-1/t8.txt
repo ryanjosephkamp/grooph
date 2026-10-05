@@ -1,0 +1,108 @@
+
+=== 5j critic node removed; builder leads straight to the gate
+changes: [
+  'node:review-critic [LOOSENS: removes a critic]',
+  'edge:e-review-builder-review-critic',
+  'edge:review-e-critic-fail',
+  'edge:review-e-critic-pass',
+  'edge:e-review-builder-review-merge-gate',
+  'loop:review-review.members',
+  'loop:review-review.back'
+]
+held: [
+  'node:review-critic',
+  'edge:e-review-builder-review-critic (waits node:review-critic)',
+  'edge:review-e-critic-fail (waits node:review-critic)',
+  'edge:review-e-critic-pass (waits node:review-critic)',
+  'edge:e-review-builder-review-merge-gate (waits node:review-critic)',
+  'loop:review-review.members (waits node:review-critic)',
+  'loop:review-review.back (waits node:review-critic)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  nodes: [
+  'plan',
+  'release',
+  'done',
+  'review-builder',
+  'review-critic',
+  'review-merge-gate'
+]
+
+=== 5k e-critic-pass.from: critic -> builder, when always (critic no longer decides)
+changes: [
+  'edge:review-e-critic-pass.from [LOOSENS: opens a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  `edge:review-e-critic-pass.when [LOOSENS: changes what the critic's verdict leads to; opens a way into "review-merge-gate" that does not pass the critic "review-critic"]`
+]
+held: [ 'edge:review-e-critic-pass.from', 'edge:review-e-critic-pass.when' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edge: {"id":"review-e-critic-pass","from":"review-critic","to":"review-merge-gate","when":"pass"}
+
+=== T1 tightening: a second gate inserted after the merge gate (then placement)
+changes: [
+  'node:review-release-gate',
+  'edge:e-review-merge-gate-release',
+  'edge:e-review-merge-gate-review-release-gate',
+  'edge:e-review-release-gate-release'
+]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into release: [ 'e-review-release-gate-release(review-release-gate)' ]
+
+=== T2 tightening: a tests check inserted after the merge gate (then placement)
+changes: [
+  'node:review-smoke',
+  'edge:e-review-merge-gate-release',
+  'edge:e-review-merge-gate-review-smoke',
+  'edge:e-review-smoke-release'
+]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into release: [ 'e-review-smoke-release(review-smoke)' ]
+
+=== T2 allowed by name
+changes: [
+  'node:review-smoke',
+  'edge:e-review-merge-gate-release',
+  'edge:e-review-merge-gate-review-smoke',
+  'edge:e-review-smoke-release'
+]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into release: [ 'e-review-smoke-release(review-smoke)' ]
+
+=== T3 then v3 adds critic -> done; release now has an ungated way in
+changes: [
+  'edge:e-review-critic-release [LOOSENS: adds a way into "release" that does not pass a person; adds a way into "release" that does not pass "pass" from the critic "review-critic"]'
+]
+held: [ 'edge:e-review-critic-release' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== S1 no --then: success stop renamed done -> finished
+changes: [
+  'node:review-done',
+  'node:review-finished',
+  'edge:e-review-merge-gate-review-done',
+  'edge:e-review-merge-gate-review-finished'
+]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  stops: [ 'done', 'review-finished' ] | edges from gate: [
+  'review-e-merge-gate-reject->review-builder',
+  'e-review-merge-gate-review-finished->review-finished'
+]
+before: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== S2 no --then, person's exit gate->audit-ok; v2 adds a second success stop 'shipped' reached from critic
+changes: [
+  'edge:e-review-critic-review-shipped [LOOSENS: adds a way from "review-critic" to end in success that does not pass a person]',
+  'node:review-shipped'
+]
+held: [
+  'edge:e-review-critic-review-shipped',
+  'node:review-shipped (waits edge:e-review-critic-review-shipped)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  new edges: [
+  'review-e-critic-fail->review-builder',
+  'review-e-critic-pass->review-merge-gate'
+]

@@ -1,0 +1,69 @@
+before: behind a person: [ 'release', 'done', 'review-tag' ]
+
+=== (1) 'tag' behind the gate comes back as 'tagger', reached from the critic
+applied: []
+held:    [
+  'node:review-tag [removes "review-tag", which a run reached only by passing a person, while "review-tagger" would come in with no such need: it may be the same step under another name]',
+  'node:review-tagger (waits node:review-tag)',
+  'edge:review-e-merge-gate-done (waits node:review-tag)',
+  'edge:e-review-tag-release (waits node:review-tag)',
+  'edge:e-review-merge-gate-release (waits node:review-tag)',
+  'edge:e-review-critic-review-tagger (waits node:review-tag)'
+]
+schema: ok | errors before: [] after: []
+after: behind a person: [ 'release', 'done', 'review-tag' ] | tagger: undefined | into tagger: [] | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+(2) before: nodes [
+  'plan',    'release',
+  'done',    'go',
+  'prep',    'g-builder',
+  'g-tests', 'g-done'
+] 
+    behind a person: [ 'prep', 'g-builder', 'g-tests', 'g-done' ]
+
+=== (2) every node of the box renamed; the graph's gate is one step upstream of the box
+applied: []
+held:    [
+  'node:g-builder [removes "g-builder", which a run reached only by passing a person, while "g-builder2", "g-tests2", "g-done2" would come in with no such need: it may be the same step under another name]',
+  'node:g-tests [removes "g-tests", which a run reached only by passing a person, while "g-builder2", "g-tests2", "g-done2" would come in with no such need: it may be the same step under another name]',
+  'node:g-done [removes "g-done", which a run reached only by passing a person, while "g-builder2", "g-tests2", "g-done2" would come in with no such need: it may be the same step under another name]',
+  'loop:g-grind.members [the loop "g-grind" would keep its stops and bound none of the nodes it did]',
+  'loop:g-grind.back [the loop "g-grind" would keep its stops and bound none of the nodes it did]',
+  'node:g-builder2 (waits node:g-builder)',
+  'node:g-tests2 (waits node:g-builder)',
+  'node:g-done2 (waits node:g-builder)',
+  'edge:e-g-builder-g-tests (waits node:g-builder)',
+  'edge:g-e-tests-fail (waits node:g-builder)',
+  'edge:g-e-tests-pass (waits node:g-builder)',
+  'edge:g-e-builder-tests-2 (waits node:g-builder)',
+  'edge:g-e-tests-fail-2 (waits node:g-builder)',
+  'edge:g-e-tests-pass-2 (waits node:g-builder)'
+]
+schema: ok | errors before: [] after: []
+    after: nodes [
+  'plan',    'release',
+  'done',    'go',
+  'prep',    'g-builder',
+  'g-tests', 'g-done'
+] 
+    behind a person: [ 'prep', 'g-builder', 'g-tests', 'g-done' ] | issues: []
+
+=== (2b) control: the gate leads straight into the box
+applied: []
+held:    [
+  'node:g-builder ["always" at the human gate "go" would lead nowhere; removes "g-builder", which a run reached only by passing a person, while "g-builder2", "g-tests2", "g-done2" would come in with no such need: it may be the same step under another name]',
+  'node:g-tests [removes "g-tests", which a run reached only by passing a person, while "g-builder2", "g-tests2", "g-done2" would come in with no such need: it may be the same step under another name]',
+  'node:g-done [removes "g-done", which a run reached only by passing a person, while "g-builder2", "g-tests2", "g-done2" would come in with no such need: it may be the same step under another name]',
+  'loop:g-grind.members [the loop "g-grind" would keep its stops and bound none of the nodes it did]',
+  'loop:g-grind.back [the loop "g-grind" would keep its stops and bound none of the nodes it did]',
+  'node:g-builder2 (waits node:g-builder)',
+  'node:g-tests2 (waits node:g-builder)',
+  'node:g-done2 (waits node:g-builder)',
+  'edge:e-g-builder-g-tests (waits node:g-builder)',
+  'edge:g-e-tests-fail (waits node:g-builder)',
+  'edge:g-e-tests-pass (waits node:g-builder)',
+  'edge:g-e-builder-tests-2 (waits node:g-builder)',
+  'edge:g-e-tests-fail-2 (waits node:g-builder)',
+  'edge:g-e-tests-pass-2 (waits node:g-builder)'
+]
+schema: ok | errors before: [] after: []
