@@ -12,17 +12,24 @@
 /** Whether a change is made at once: reduced motion, or no view transitions. */
 export const still = (): boolean => typeof document.startViewTransition !== "function" || matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+// The parts that carry a name now, and which call gave it them: a change asked for while another is still moving
+// takes the names over, and the earlier one's end must not take them off again.
+let named: HTMLElement[] = [];
+let turn = 0;
+
 /**
  * Make a change with its parts seen to move. `parts` is asked twice, before the change and after it, for the
  * elements on the page then and the key of each: one before and one after with the same key are one thing to the
- * eye. `change` makes the change and calls what it is handed once the page has it; until then the browser shows
- * the page as it was. The names are taken off again when the move has ended.
+ * eye. `change` makes the change and calls what it is handed once the page has it, and must call it whatever
+ * happens: until then the browser shows the page as it was, and takes nothing. The names are taken off again when
+ * the move has ended.
  */
 export function become(parts: () => Iterable<readonly [HTMLElement, string]>, change: (done: () => void) => void): void {
   if (still()) return change(() => {});
   const keys: string[] = [];
-  let named: HTMLElement[] = [];
+  const mine = ++turn;
   const name = (now: Iterable<readonly [HTMLElement, string]>): void => {
+    if (mine !== turn) return;
     for (const el of named) for (const what of ["name", "class"]) el.style.removeProperty(`view-transition-${what}`);
     named = [];
     for (const [el, key] of now) {
@@ -33,6 +40,9 @@ export function become(parts: () => Iterable<readonly [HTMLElement, string]>, ch
     }
   };
   name(parts());
+  const move = document.startViewTransition(() => new Promise<void>((done) => change(() => (name(parts()), done()))));
+  // A move the browser gives up (another began, the page is out of sight) rejects this, and nobody else reads it.
+  move.ready.catch(() => {});
   const ended = (): void => name([]);
-  document.startViewTransition(() => new Promise<void>((done) => change(() => (name(parts()), done())))).finished.then(ended, ended);
+  void move.finished.then(ended, ended);
 }

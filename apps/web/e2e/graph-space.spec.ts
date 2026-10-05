@@ -199,10 +199,11 @@ async function noteArrivals(page: Page): Promise<() => Promise<Arrival[]>> {
   return () => page.evaluate(() => (window as unknown as { __arrived: Arrival[] }).__arrived);
 }
 
-/** Hold the scene's piece on its way, as a slow connection does; `release` lets it through. */
+/** Hold the scene's piece on its way, as a slow connection does; `release` lets it through. Asked for again, it holds again. */
 async function holdTheScene(page: Page): Promise<{ asked: Promise<unknown>; release: () => void }> {
   let release!: () => void;
   const held = new Promise<void>((resolve) => (release = resolve));
+  await page.unroute(/\/assets\/space-[^/]*\.js$/);
   await page.route(/\/assets\/space-[^/]*\.js$/, async (route) => {
     await held;
     await route.continue();
@@ -345,37 +346,48 @@ test.describe("with reduced motion the switch is one paint each way", () => {
 
 /* ─── the picture becomes the scene (the owner's notes of 2026-10-05): each node is seen to go to its card ─── */
 
-type Move = { parts: number; ended: boolean };
+type Move = { pairs: number; ended: boolean };
 
 /**
- * Note each view transition the page starts: how many of the graph's parts the browser is moving in it, read when
- * its pictures are ready, and whether it has ended. Asked for before the page is opened. With `held`, each move is
- * stopped where it starts, with the page under the browser's picture of it, until `letGo` is called in the page.
+ * Note each view transition the page starts: how many of the graph's parts the browser is carrying from a place
+ * before to a place after (it has a picture of each both ways), read when its pictures are ready, and whether it
+ * has ended. Asked for before the page is opened. With `held`, each move is stopped where it starts, with the page
+ * under the browser's picture of it, until `letGo` is called in the page. `slowest` is the longest any took, from
+ * being asked for to its end, in milliseconds: a browser left waiting for a change holds the page for seconds.
  */
 async function noteMoves(page: Page, held = false): Promise<() => Promise<Move[]>> {
   await page.addInitScript((hold) => {
     const real = document.startViewTransition?.bind(document);
     if (!real) return;
-    const log: { parts: number; ended: boolean }[] = [];
+    const log: { pairs: number; ended: boolean }[] = [];
+    const took: number[] = [];
     const its = (): Animation[] => document.getAnimations().filter((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition"));
-    Object.assign(window, { __moves: log, letGo: () => its().forEach((a) => a.finish()) });
+    const pictures = (side: string): string[] =>
+      its()
+        .map((a) => (a.effect as KeyframeEffect).pseudoElement!)
+        .filter((part) => part.startsWith(`::view-transition-${side}(gv`))
+        .map((part) => part.slice(part.indexOf("(")));
+    Object.assign(window, { __moves: log, __took: took, letGo: () => its().forEach((a) => a.finish()) });
     document.startViewTransition = (update?: unknown) => {
+      const from = performance.now();
       const move = real(update as ViewTransitionUpdateCallback);
-      const seen = { parts: -1, ended: false };
-      log.push(seen);
+      const seen = { pairs: -1, ended: false };
+      const at = log.push(seen) - 1;
       void move.ready.then(
         () => {
           if (hold) its().forEach((a) => a.pause());
-          seen.parts = new Set(its().map((a) => (a.effect as KeyframeEffect).pseudoElement!).filter((part) => part.startsWith("::view-transition-group(gv"))).size;
+          const after = new Set(pictures("new"));
+          seen.pairs = new Set(pictures("old").filter((name) => after.has(name))).size;
         },
-        () => (seen.parts = 0),
+        () => (seen.pairs = 0),
       );
-      void move.finished.then(() => (seen.ended = true));
+      void move.finished.then(() => ((seen.ended = true), (took[at] = performance.now() - from)));
       return move;
     };
   }, held);
   return () => page.evaluate(() => (window as unknown as { __moves?: Move[] }).__moves ?? []);
 }
+const slowest = (page: Page): Promise<number> => page.evaluate(() => Math.max(0, ...((window as unknown as { __took?: number[] }).__took ?? [])));
 
 /** Where everything of the scene stands on the screen: its cards, sheets and arcs, and how its world is turned. */
 const stands = (page: Page): Promise<string> =>
@@ -424,7 +436,7 @@ test("the picture becomes the scene and the scene the picture: nothing moves whi
   // It comes: one move, of every node, and it ends on the scene as it is with no motion, with no name left on it.
   scene.release();
   await expect(page.locator(".space-scene")).toBeVisible();
-  await expect.poll(moves).toEqual([{ parts: nodes, ended: true }]);
+  await expect.poll(moves).toEqual([{ pairs: nodes, ended: true }]);
   expect(await stands(page)).toBe(asItIs);
   expect(await namedStill(page)).toBe(0);
   await expect(legend).toBeHidden();
@@ -434,7 +446,7 @@ test("the picture becomes the scene and the scene the picture: nothing moves whi
   // Back: every card is seen to go home, and the canvas is as it was.
   await view(page, "Picture").click();
   await expect(page.locator(".space")).toHaveCount(0);
-  await expect.poll(moves).toEqual(Array(2).fill({ parts: nodes, ended: true }));
+  await expect.poll(moves).toEqual(Array(2).fill({ pairs: nodes, ended: true }));
   await expect(legend).toBeVisible();
   expect([await where(), await namedStill(page)]).toEqual([before, 0]);
 
@@ -442,7 +454,7 @@ test("the picture becomes the scene and the scene the picture: nothing moves whi
   await threeD(page);
   await view(page, "Picture").click();
   await expect(page.locator(".space")).toHaveCount(0);
-  await expect.poll(moves).toEqual(Array(4).fill({ parts: nodes, ended: true }));
+  await expect.poll(moves).toEqual(Array(4).fill({ pairs: nodes, ended: true }));
   expect([await where(), await namedStill(page)]).toEqual([before, 0]);
 });
 
@@ -461,27 +473,29 @@ test("a tap while the picture is becoming the scene does nothing and no harm, an
     const box = (await of.boundingBox())!;
     return [box.x + box.width / 2, box.y + box.height / 2] as const;
   };
+  const rests = async () => JSON.stringify(await node(page, "builder").boundingBox());
+  await expect.poll(async () => (await rests()) === (await rests())).toBe(true);
   const picture = await center(view(page, "Picture"));
   const builder = await center(node(page, "builder"));
 
   await view(page, "3D").click();
-  await expect.poll(moves).toEqual([{ parts: nodes, ended: false }]);
+  await expect.poll(moves).toEqual([{ pairs: nodes, ended: false }]);
   // On the way: the browser shows its picture of the page, and a finger on it reaches nothing under it.
   await page.touchscreen.tap(...picture);
   await page.touchscreen.tap(...builder);
   await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
   await expect(page.locator(".space")).toHaveCount(1);
   await expect(sheet(page)).toHaveCount(0);
-  expect(await moves()).toEqual([{ parts: nodes, ended: false }]);
+  expect(await moves()).toEqual([{ pairs: nodes, ended: false }]);
 
   // Ended: the page is the page again, and the tap on Picture that did nothing now starts the way back.
   await letGo();
-  await expect.poll(moves).toEqual([{ parts: nodes, ended: true }]);
+  await expect.poll(moves).toEqual([{ pairs: nodes, ended: true }]);
   await viewIsStill(page);
   await page.touchscreen.tap(...picture);
   await expect.poll(moves).toEqual([
-    { parts: nodes, ended: true },
-    { parts: nodes, ended: false },
+    { pairs: nodes, ended: true },
+    { pairs: nodes, ended: false },
   ]);
   await letGo();
   await expect.poll(async () => (await moves()).every((move) => move.ended)).toBe(true);
@@ -492,6 +506,190 @@ test("a tap while the picture is becoming the scene does nothing and no harm, an
   await page.touchscreen.tap(...builder);
   await expect(sheet(page).getByText("Builder").first()).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("presses while the scene is on its way: it is fetched once, moves once when it comes, and the page is never left waiting", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(String(error)));
+  const moves = await noteMoves(page);
+  let fetched = 0;
+  page.on("request", (request) => void (/\/assets\/space-[^/]*\.js$/.test(new URL(request.url()).pathname) && (fetched += 1)));
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(node(page, "builder")).toBeVisible();
+  await expect(view(page, "3D")).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const nodes = await page.locator(".react-flow__node").count();
+
+  // 3D, Picture and 3D again before the piece has come: the switch follows each press, and nothing moves.
+  const scene = await holdTheScene(page);
+  await view(page, "3D").click();
+  await scene.asked;
+  await view(page, "Picture").click();
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await view(page, "3D").click();
+  await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
+  expect([await moves(), fetched]).toEqual([[], 1]);
+  // It comes: one move, whole, and over in the time a move takes.
+  scene.release();
+  await expect(page.locator(".space-scene")).toBeVisible();
+  await expect.poll(moves).toEqual([{ pairs: nodes, ended: true }]);
+  expect(await slowest(page)).toBeLessThan(2500);
+  await view(page, "Picture").click();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await expect.poll(moves).toEqual(Array(2).fill({ pairs: nodes, ended: true }));
+
+  // In a visit of its own: Picture asked for again before the piece has come. When it comes the page is the picture
+  // already, and nothing moves; the next press of 3D has the piece and moves.
+  await page.reload();
+  await expect(node(page, "builder")).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const second = await holdTheScene(page);
+  const again = page.waitForResponse(/\/assets\/space-[^/]*\.js$/);
+  await view(page, "3D").click();
+  await second.asked;
+  await view(page, "Picture").click();
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  second.release();
+  await (await again).finished();
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space")).toHaveCount(0);
+  expect(await moves()).toEqual([]);
+  await threeD(page);
+  await expect.poll(moves).toEqual([{ pairs: nodes, ended: true }]);
+
+  // And the reader gone to another screen before it has come: no move is made of a screen that never asked for one.
+  await page.reload();
+  await expect(node(page, "builder")).toBeVisible();
+  const third = await holdTheScene(page);
+  const late = page.waitForResponse(/\/assets\/space-[^/]*\.js$/);
+  await view(page, "3D").click();
+  await third.asked;
+  await page.goto("./#/templates");
+  await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
+  third.release();
+  await (await late).finished();
+  await viewIsStill(page);
+  expect(await moves()).toEqual([]);
+  await page.locator('.template-row[data-template="review-gate"]').tap();
+  await expect(node(page, "builder")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("a key pressed while it moves is taken: the view asked for last is the one the page ends on, whole, with no name left and no error", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(String(error)));
+  const moves = await noteMoves(page, true);
+  const letGo = () => page.evaluate(() => (window as unknown as { letGo: () => void }).letGo());
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(node(page, "builder")).toBeVisible();
+  await expect(view(page, "3D")).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const nodes = await page.locator(".react-flow__node").count();
+  const where = async () => JSON.stringify(await node(page, "builder").boundingBox());
+  await expect.poll(async () => (await where()) === (await where())).toBe(true);
+  const before = await where();
+
+  await view(page, "3D").click();
+  await expect.poll(moves).toEqual([{ pairs: nodes, ended: false }]);
+  // A finger reaches nothing while it moves; the keyboard does. Picture, from the keyboard, with the first move held.
+  await view(page, "Picture").focus();
+  await page.keyboard.press("Enter");
+  // The browser gives the first move up for the second, which is whole: every card is seen to go home, though the
+  // first move's end came between its being asked for and its being drawn.
+  await expect.poll(async () => (await moves())[0]!.ended).toBe(true);
+  await expect.poll(async () => (await moves())[1]).toEqual({ pairs: nodes, ended: false });
+  await letGo();
+  await expect.poll(async () => (await moves()).every((move) => move.ended)).toBe(true);
+  await viewIsStill(page);
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space")).toHaveCount(0);
+  expect([await where(), await namedStill(page), errors]).toEqual([before, 0, []]);
+
+  // And the next press moves whole again: the names the two left were taken off.
+  await view(page, "3D").click();
+  await expect.poll(async () => (await moves())[2]).toEqual({ pairs: nodes, ended: false });
+  await letGo();
+  await expect.poll(async () => (await moves())[2]!.ended).toBe(true);
+  expect([await namedStill(page), errors]).toEqual([0, []]);
+});
+
+test("two presses in one breath: the page ends on the view asked for last, and a move the browser gives up is nobody's error", async ({ page }) => {
+  // Nothing here listens to the moves themselves: a move given up that nobody had read would be an error of the page's.
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(String(error)));
+  await page.goto("./#/templates/built-in/review-gate");
+  await expect(node(page, "builder")).toBeVisible();
+  await expect(view(page, "3D")).toBeVisible();
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const where = async () => JSON.stringify(await node(page, "builder").boundingBox());
+  await expect.poll(async () => (await where()) === (await where())).toBe(true);
+  const before = await where();
+  // Two presses with nothing drawn between them, as taps kept waiting by a busy phone arrive.
+  const press = (first: number, then: number) =>
+    page.evaluate(
+      ([a, b]) => {
+        const radios = document.querySelectorAll<HTMLElement>('[role="radiogroup"][aria-label="View of the graph"] [role="radio"]');
+        radios[a!]!.click();
+        radios[b!]!.click();
+      },
+      [first, then],
+    );
+  await threeD(page);
+
+  // Picture, then 3D: the first move is given up for the second, and the scene stays.
+  await press(0, 1);
+  await viewIsStill(page);
+  await expect(view(page, "3D")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space-scene")).toBeVisible();
+  expect(await namedStill(page)).toBe(0);
+  // Picture, 3D, Picture.
+  await press(0, 1);
+  await view(page, "Picture").focus();
+  await page.keyboard.press("Enter");
+  await viewIsStill(page);
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space")).toHaveCount(0);
+  // From the picture: 3D, then Picture. The page was the picture and is.
+  await press(1, 0);
+  await viewIsStill(page);
+  await expect(view(page, "Picture")).toHaveAttribute("aria-checked", "true");
+  await expect(page.locator(".space")).toHaveCount(0);
+  expect([await where(), await namedStill(page), errors]).toEqual([before, 0, []]);
+  // And a press after all that is a press: the scene comes.
+  await threeD(page);
+  expect(errors).toEqual([]);
+});
+
+test("with a template's details over the foot of a phone, only the nodes in sight are seen to go: nothing crosses what it was behind", async ({ page }) => {
+  const moves = await noteMoves(page);
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await expect(node(page, "planner")).toBeVisible();
+  await expect(view(page, "3D")).toBeVisible();
+  const all = page.locator(".react-flow__node");
+  const where = async () => JSON.stringify(await node(page, "planner").boundingBox());
+  await expect.poll(async () => (await where()) === (await where())).toBe(true);
+  // In sight: a node whose middle the stage holds. The stage ends where the details begin, and cuts the canvas there.
+  const inSight = await all.evaluateAll((els) => {
+    const room = document.querySelector("main.stage")!.getBoundingClientRect();
+    return els.filter((el) => {
+      const box = el.getBoundingClientRect();
+      const y = box.y + box.height / 2;
+      return y > room.top && y < room.bottom;
+    }).length;
+  });
+  // The details begin where the stage ends, and no part of the stage is under them: what the stage holds is in sight.
+  expect(await page.locator("aside.sheet").evaluate((el) => Math.round(el.getBoundingClientRect().top - document.querySelector("main.stage")!.getBoundingClientRect().bottom))).toBeGreaterThanOrEqual(-1);
+  const nodes = await all.count();
+  expect(inSight).toBeGreaterThan(0);
+  expect(inSight).toBeLessThan(nodes);
+
+  await threeD(page);
+  await expect(page.locator(".space [data-node]")).toHaveCount(nodes);
+  await expect.poll(moves).toEqual([{ pairs: inSight, ended: true }]);
+  await view(page, "Picture").click();
+  await expect(page.locator(".space")).toHaveCount(0);
+  await expect.poll(moves).toEqual(Array(2).fill({ pairs: inSight, ended: true }));
+  expect(await namedStill(page)).toBe(0);
 });
 
 /* ─── behind doors (decision 0021): the switch comes with a canvas, the scene when 3D is chosen ─── */

@@ -156,21 +156,57 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     styled = true;
   }
   // The nodes on the canvas, or their cards when the scene is up: what is seen to go from the one view to the other.
+  // Only those whose middle is in the frame that holds them, the stage or the scene's own: the browser draws a moving
+  // part over everything that is not moving, uncut, so a node the stage cuts off (on a phone, one that would be under
+  // a template's details) would be seen to cross what it was behind. Measured, not asked of the page: while the
+  // browser waits for a change, every point of the page is the page's root.
   const parts = (): [HTMLElement, string][] => {
     const stage = host.current?.parentElement;
-    const cards = [...(stage?.querySelectorAll<HTMLElement>(".space-card") ?? [])].map((card): [HTMLElement, string] => [card, card.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? ""]);
-    return cards.length ? cards : [...(stage?.querySelectorAll<HTMLElement>(".react-flow__node[data-id]") ?? [])].map((node) => [node, node.dataset["id"]!]);
+    if (!stage) return [];
+    const cards = [...stage.querySelectorAll<HTMLElement>(".space-card")].map((card): [HTMLElement, string] => [card, card.querySelector<SVGGElement>("[data-node]")?.dataset["node"] ?? ""]);
+    const room = (stage.querySelector(".space-scene") ?? stage).getBoundingClientRect();
+    return (cards.length ? cards : [...stage.querySelectorAll<HTMLElement>(".react-flow__node[data-id]")].map((node): [HTMLElement, string] => [node, node.dataset["id"]!])).filter(([el, id]) => {
+      const box = el.getBoundingClientRect();
+      const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+      return id && x > room.left && x < room.right && y > room.top && y < room.bottom;
+    });
   };
-  // What to call once the page has a change that was asked for: the layout effect below does, after the scene's own.
-  // The browser asks for the change a frame after it is told of it; a view that has gone by then has none to make,
-  // and says so at once, or the browser would hold the page still while it waited.
-  const moved = useRef<() => void>(undefined);
-  const go = (change: () => void): void => become(parts, (done) => (host.current ? ((moved.current = done), change()) : done()));
+  // The view that was last asked for, which the page may not have yet; and whether the scene's piece is on its way.
+  const asked = useRef<"picture" | "space">("picture");
+  const fetching = useRef(false);
+  // What to call once the page has a change that was asked for. Each change is made with a turn of `again`, so that
+  // a commit follows it even when it changes nothing, and the layout effect below, which runs after the scene's own,
+  // calls every one: the browser holds the page still until it is told, for seconds if it never is.
+  const moved = useRef<(() => void)[]>([]);
+  const [, again] = useState(0);
+  const go = (change: () => void): void => {
+    // A view that has gone has nothing to move, now or by the time the browser asks for the change, a frame later.
+    if (!host.current) return change();
+    become(parts, (done) => (host.current ? (moved.current.push(done), change(), again((n) => n + 1)) : done()));
+  };
   const choose = (next: "picture" | "space"): void => {
-    if (next === view) return;
-    // The first press of a visit fetches the scene's piece, and nothing moves until it has come.
-    if (next === "space" && !three) (setView(next), piece("space", () => import("../map/space.js")).then((m) => go(() => setThree((space = m))), () => (setThree(null), setView("picture"))));
-    else go(() => setView(next));
+    if (next === asked.current) return;
+    asked.current = next;
+    if (next === "space" && !three) {
+      // The first press of a visit fetches the scene's piece, once, and nothing moves until it has come; nor then, if
+      // the picture was asked for again meanwhile.
+      setView(next);
+      if (fetching.current) return;
+      fetching.current = true;
+      piece("space", () => import("../map/space.js")).then(
+        (m) => {
+          const come = (): void => setThree((space = m));
+          if (asked.current === "space") go(come);
+          else come();
+        },
+        () => ((fetching.current = false), (asked.current = "picture"), setThree(null), setView("picture")),
+      );
+    } else if (next === "space" || made)
+      // The browser asks for the change a frame later, and another press may have come by then: the view the page is
+      // given is the one asked for last.
+      go(() => setView(asked.current));
+    // The picture, asked for while the scene was still on its way: the page is the picture already.
+    else setView(next);
   };
   const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
   // The scene is markup; once it is on the page it is given its styles, its starting view, its behavior, and its
@@ -194,12 +230,10 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     }
     return three.attach(root, made, (kept.current ??= three.held()), () => choose("picture"));
   }, [made]);
-  useLayoutEffect(() => {
-    moved.current?.();
-    moved.current = undefined;
-  });
+  const told = (): void => moved.current.splice(0).forEach((done) => done());
+  useLayoutEffect(told);
   // A view that goes while a change is on its way must not leave the browser waiting for it.
-  useEffect(() => () => moved.current?.(), []);
+  useEffect(() => told, []);
   // Three cards in a row at a phone's width, and more where there is room, as a map's sheets have.
   useEffect(() => {
     const stage = host.current?.parentElement;

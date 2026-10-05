@@ -59,7 +59,8 @@ export const canvasIsQuiet = (page: Page): Promise<void> => expect(page.getByRol
  * A graph's change of view is seen to move for about a third of a second (`ui/become.ts`), and until it has ended
  * the browser shows a picture of the page over the page: a point of the screen is under that picture, and takes no
  * pointer. A test that reads what is under a point, or sends a pointer where Playwright is not asked to wait for the
- * element to take it, waits for this first. An engine that does not know the selector has no such move to wait for.
+ * element to take it, waits for this first. An engine that does not know the selector is asked for the moving
+ * pictures themselves.
  */
 export const viewIsStill = (page: Page): Promise<void> =>
   expect
@@ -68,7 +69,7 @@ export const viewIsStill = (page: Page): Promise<void> =>
         try {
           return document.documentElement.matches(":active-view-transition");
         } catch {
-          return false;
+          return document.getAnimations().some((a) => (a.effect as KeyframeEffect | null)?.pseudoElement?.startsWith("::view-transition"));
         }
       }),
     )
