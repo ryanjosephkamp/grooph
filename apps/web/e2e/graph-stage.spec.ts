@@ -624,10 +624,19 @@ test("the spiral: every node a card, the loops' brakes said in words under it, a
   await expect(kinds(page)).toBeVisible();
   await viewIsStill(page);
   await expect(kind(page, "Spiral")).toHaveAttribute("aria-description", /a round is one turn upward/);
+  // What the stage's canvas holds at the moment the view is put on the page, read there and then: a test that
+  // looked from outside would look some time after, and the growing starts a third of a second on.
+  await page.evaluate(() => {
+    const log: boolean[] = ((window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst = []);
+    new MutationObserver(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>(".s3-frame canvas");
+      if (canvas && !canvas.dataset["seen"]) ((canvas.dataset["seen"] = "1"), log.push(canvas.width > 0 && canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data.some((v) => v !== 0)));
+    }).observe(document.body, { childList: true, subtree: true });
+  });
   await kind(page, "Spiral").click();
   await expect(page.locator(".s3-frame")).toBeVisible();
   // When the view comes its cards are there and nothing else is: the spirals are grown after.
-  expect(await drawnOn(page)).toBe(false);
+  expect(await page.evaluate(() => (window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst)).toEqual([false]);
   await expect(cards(page)).toHaveCount(doc.nodes.length);
   await viewIsStill(page);
   await expect.poll(() => drawnOn(page)).toBe(true);
@@ -709,8 +718,17 @@ test.describe("the spiral with reduced motion", () => {
     await page.getByRole("button", { name: "Close panel" }).click();
     await view(page, "3D").click();
     await expect(kinds(page)).toBeVisible();
+    await page.evaluate(() => {
+      const log: boolean[] = ((window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst = []);
+      new MutationObserver(() => {
+        const canvas = document.querySelector<HTMLCanvasElement>(".s3-frame canvas");
+        if (canvas && !canvas.dataset["seen"]) ((canvas.dataset["seen"] = "1"), log.push(canvas.width > 0 && canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data.some((v) => v !== 0)));
+      }).observe(document.body, { childList: true, subtree: true });
+    });
     await kind(page, "Spiral").click();
     await expect(page.locator(".s3-frame")).toBeVisible();
+    // Whole at the moment it is put on the page, and not only by the time a test looks.
+    expect(await page.evaluate(() => (window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst)).toEqual([true]);
     expect(await drawnOn(page)).toBe(true);
   });
 });
