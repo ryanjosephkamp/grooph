@@ -486,23 +486,27 @@ export function plainSha(path) {
  * where a session cannot write. The session's own `.git` is never used, and neither is the account's configuration:
  * nothing a session configured there (a filter, a monitor, a hook, a diff program) is run by the runner. No ignore
  * file is honored, so a session cannot hide what it added. `files` is the whole change only when `not_wholly_read` is
- * null: a file that could not be opened is named there, and a caller must not read "no change" from the rest.
+ * null: a file or a folder that could not be opened is named there, and a caller must not read "no change" from the rest.
  */
-export function changeSince({ cwd, base, gitDir, excludes = [] }) {
+export function changeSince({ cwd, base, gitDir, excludes = [], addLimitMs = 120_000, maxBuffer = 64 << 20 }) {
   const temp = mkdtempSync(join(tmpdir(), "grooph-paid-index-"));
   const env = { PATH: process.env.PATH, HOME: process.env.HOME ?? "", GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0", GIT_INDEX_FILE: join(temp, "index") };
-  const run = (...args) => spawnSync("git", ["--git-dir", gitDir, "--work-tree", cwd, ...args], { cwd, env, encoding: "utf8", maxBuffer: 64 << 20 });
+  const run = (args, more = {}) => spawnSync("git", ["--git-dir", gitDir, "--work-tree", cwd, ...args], { cwd, env, encoding: "utf8", maxBuffer, ...more });
   const git = (...args) => {
-    const out = run(...args);
-    if (out.status !== 0) throw new Error(`git ${args[0]} failed: ${String(out.stderr ?? out.error?.message ?? "").trim().slice(0, 300)}`);
+    const out = run(args);
+    // An error with a clean exit is still a failure: output past the buffer can come back cut short from a program that ended well.
+    if (out.status !== 0 || out.error) throw new Error(`git ${args[0]} failed: ${String(out.stderr ?? "").trim().slice(0, 300) || out.error?.message || `it exited ${out.status ?? out.signal}`}`);
     return out.stdout;
   };
   try {
     git("read-tree", base);
     // Every file, whatever an ignore file says: a session's own .gitignore, or the account's, hides nothing here. A
-    // file that cannot be opened does not stop the rest being read; that it was not read is said.
-    const added = run("add", "-A", "-f", "--ignore-errors");
-    const notRead = added.status === 0 ? null : String(added.stderr ?? "").trim().split("\n").filter(Boolean).slice(0, 5).join("; ").slice(0, 400) || `git add exited ${added.status ?? added.signal}`;
+    // file that cannot be opened does not stop the rest being read; that it was not read is said. The read is whole
+    // only when git ended well AND said nothing at all: a folder nobody may open is only a warning to it, and so is a
+    // repository inside the project, whose files it does not read. One limit of time, so a huge file cannot stall the record.
+    const added = run(["add", "-A", "-f", "--ignore-errors"], { timeout: addLimitMs });
+    const said = [added.error?.code === "ETIMEDOUT" ? `git add did not end within ${Math.round(addLimitMs / 1000)} seconds` : added.error ? `git add: ${added.error.message}` : null, ...String(added.stderr ?? "").trim().split("\n").filter(Boolean).slice(0, 5)].filter(Boolean).join("; ").slice(0, 400);
+    const notRead = added.status === 0 && said === "" ? null : said || `git add exited ${added.status ?? added.signal}`;
     const spec = [".", ...excludes.map((path) => `:(exclude)${path}`)];
     const diff = git("diff", "--cached", "--no-color", "--no-ext-diff", "--no-textconv", base, "--", ...spec);
     const stat = git("diff", "--cached", "--name-status", base, "--", ...spec);
@@ -510,6 +514,11 @@ export function changeSince({ cwd, base, gitDir, excludes = [] }) {
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }
+}
+
+/** The list of changed files a record keeps: the first `max`, and how many more there were. A list that was cut is not the whole change. */
+export function capFiles(files, max = 2000) {
+  return { listed: files.slice(0, max), left_out: Math.max(0, files.length - max) };
 }
 
 /**
@@ -546,10 +555,12 @@ export function copyRecord({ home, cwd, base, gitDir, call, recordDir, prompt, g
     attempt("the project's change", () => {
       const change = changeSince({ cwd, base, gitDir, excludes });
       writeFileSync(join(recordDir, "project.diff"), change.diff.length > 2 * MAX_FILE ? `${change.diff.slice(0, 2 * MAX_FILE)}\n… cut at ${2 * MAX_FILE} characters of ${change.diff.length}\n` : change.diff, "utf8");
-      call.project_files_changed = change.files;
-      if (change.not_wholly_read) {
-        call.project_change_not_wholly_read = change.not_wholly_read;
-        problems.push(`the project's change was not wholly read: ${change.not_wholly_read}`);
+      const kept = capFiles(change.files);
+      call.project_files_changed = kept.listed;
+      const short = [change.not_wholly_read, kept.left_out > 0 ? `${change.files.length} files changed, and only the first ${kept.listed.length} are listed` : null].filter(Boolean).join("; ");
+      if (short) {
+        call.project_change_not_wholly_read = short;
+        problems.push(`the project's change was not wholly read: ${short}`);
       }
     });
   }
@@ -575,8 +586,13 @@ export function writeResult(recordDir, call, facts) {
     mkdirSync(recordDir, { recursive: true });
     writeFileSync(join(recordDir, "result.json"), `${JSON.stringify(result, null, 2)}\n`, "utf8");
   } catch (error) {
-    console.error(`result.json could not be written to ${recordDir} (${error.message}). It is printed here instead; keep it:\n${JSON.stringify(result, null, 2)}`);
-    result = { ...result, problems: [...(result.problems ?? []), `result.json could not be written: ${error.message}`] };
+    // Nothing is thrown from here either: a result that cannot even be printed is said to be so.
+    let shown = "(it could not be printed either)";
+    try {
+      shown = JSON.stringify(result, null, 2);
+    } catch {}
+    console.error(`result.json could not be written to ${recordDir} (${error.message}). It is printed here instead; keep it:\n${shown}`);
+    result = { ...result, problems: [...(Array.isArray(result.problems) ? result.problems : []), `result.json could not be written: ${error.message}`] };
   }
   return result;
 }

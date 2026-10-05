@@ -13,7 +13,7 @@ import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
 import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
 import { build as buildArm, expectation as rolesExpectation, nextRun, NotScored, order, readings, runOne, scoreKept, scoringDecided, SCORING_RUNS_WHAT_A_SESSION_WROTE } from "./roles-or-information-paid.mjs";
-import { asOfToday, changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, profileFingerprint, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, scrubValue, spendFlags, unknownFlags, writeResult } from "./study-three-paid.mjs";
+import { asOfToday, capFiles, changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, profileFingerprint, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, scrubValue, spendFlags, unknownFlags, writeResult } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
@@ -221,6 +221,11 @@ test("nothing of the account's is left in a record: the home folder's path and a
     const unwritten = writeResult(join(dir, "loaded.txt", "under-a-file"), call, { problems: ["an earlier one"] });
     assert.deepEqual([unwritten.problems.length, unwritten.problems[0]], [2, "an earlier one"]);
     assert.match(unwritten.problems[1], /result\.json could not be written/);
+    // Nor when what it is given cannot be made into JSON at all: a value that refers to itself.
+    const loop = { problems: ["an earlier one"] };
+    loop.itself = loop;
+    const circular = writeResult(join(dir, "result-2"), call, loop);
+    assert.deepEqual([circular.problems.length, /result\.json could not be written/.test(circular.problems[1]), existsSync(join(dir, "result-2", "result.json"))], [2, true, false]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -427,6 +432,41 @@ test("the project's change is read through the runner's own copy of the reposito
       assert.ok(part.files.includes("M a.txt") && part.files.includes("A hidden/work.mjs") && !part.files.some((file) => file.endsWith("locked.txt")), "the rest was read");
       assert.match(part.not_wholly_read, /locked\.txt/);
     }
+    // A folder nobody may open is only a warning to git, which still ends well. The read is whole only when git ends
+    // well and says nothing: a new file in a folder that was then shut, and a changed file whose folder was shut.
+    if (process.getuid?.() !== 0) {
+      const shut = (folder) => {
+        chmodSync(join(project.cwd, folder), 0o000);
+        try {
+          return changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir });
+        } finally {
+          chmodSync(join(project.cwd, folder), 0o755);
+        }
+      };
+      mkdirSync(join(project.cwd, "shut"));
+      writeFileSync(join(project.cwd, "shut", "added.mjs"), "x\n", "utf8");
+      const unseen = shut("shut");
+      assert.ok(!unseen.files.some((file) => file.includes("shut/")), "what is in it was not read");
+      assert.match(unseen.not_wholly_read, /could not open directory 'shut\/'/, "and that is said, though git add ended well");
+      assert.ok(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir }).files.includes("A shut/added.mjs"), "the control: with the folder open it is read");
+      assert.equal(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir }).not_wholly_read, null);
+      assert.match(shut("hidden").not_wholly_read, /could not open directory 'hidden\/'/, "a folder that held files of the change, then shut");
+    }
+    // A repository inside the project is a link to git, not files: its files are not read, and that is not a whole read.
+    mkdirSync(join(project.cwd, "inner"));
+    execFileSync("git", ["-c", "init.defaultBranch=main", "-C", join(project.cwd, "inner"), "init", "-q"]);
+    writeFileSync(join(project.cwd, "inner", "work.mjs"), "x\n", "utf8");
+    execFileSync("git", ["-C", join(project.cwd, "inner"), "-c", "user.name=dev", "-c", "user.email=dev@localhost", "add", "-A"]);
+    execFileSync("git", ["-C", join(project.cwd, "inner"), "-c", "user.name=dev", "-c", "user.email=dev@localhost", "commit", "-qm", "inner"]);
+    assert.match(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir }).not_wholly_read, /embedded git repository|inner/);
+    rmSync(join(project.cwd, "inner"), { recursive: true, force: true });
+    // One limit of time on the read, which lands in the same place; and a failure of git has words.
+    assert.match(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir, addLimitMs: 1 }).not_wholly_read, /^git add did not end within 0 seconds/);
+    assert.throws(() => changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir, maxBuffer: 16 }), /^Error: git diff failed: \S+/);
+    assert.throws(() => changeSince({ cwd: project.cwd, base: "0".repeat(40), gitDir: project.gitDir }), /^Error: git read-tree failed: \S+/);
+    // A record lists at most two thousand changed files, and says how many more there were.
+    assert.deepEqual(capFiles(["A a", "A b", "A c"], 2), { listed: ["A a", "A b"], left_out: 1 });
+    assert.deepEqual(capFiles(["A a"]), { listed: ["A a"], left_out: 0 });
     // A folder that cannot be made whole is taken away, and that is a refusal before any call.
     clearTheWorkFolder(p, project);
     assert.throws(() => makeProject({ home: p.home, name: "broken", fill: () => { throw new Error("the task's folder is not there"); } }), notStarted(/the session's folder could not be made: the task's folder is not there/));
@@ -930,8 +970,27 @@ test("the resume step, with a stand-in for the harness: a run picked up, one sta
       assert.ok(unread.result.problems.some((problem) => /the project's change was not wholly read/.test(problem)));
       assert.match(readFileSync(join(unread.recordDir, "project.diff"), "utf8"), /changed by the resuming session/, "what could be read of the change is kept");
     } finally {
-      spawnSync("chmod", ["-R", "u+rw", u.top]);
+      spawnSync("chmod", ["-R", "u+rwX", u.top]);
       rmSync(u.top, { recursive: true, force: true });
+    }
+  }
+  // The confirming read's case: a new folder with a new file, and the folder then shut. Left open it is "not resumed"
+  // for the file; shut, git only warns, and the line must still not hold.
+  if (process.getuid?.() !== 0) {
+    for (const [label, modes, seen] of [["left open", {}, /^A extra\/added-by-the-session\.mjs$/], ["shut", { extra: 0 }, /was not wholly read, so this is not known \(.*could not open directory 'extra\/'/]]) {
+      const folder = resumePlan();
+      folder.uses.splice(1, 0, { tool: "Bash", input: { command: "true" }, result: "", writes: { "extra/added-by-the-session.mjs": "export const x = 1;\n" }, modes });
+      const w = place(folder);
+      try {
+        const done = await resumeStep({ ...w.common, recordRoot: w.recordRoot });
+        const line = done.result.resumed_if.at(-1);
+        assert.deepEqual([done.result.verdict, line.holds], ["not resumed", false], label);
+        assert.match(line.seen, seen, label);
+        assert.equal(done.result.problems.some((problem) => /the project's change was not wholly read/.test(problem)), label === "shut", label);
+      } finally {
+        spawnSync("chmod", ["-R", "u+rwX", w.top]);
+        rmSync(w.top, { recursive: true, force: true });
+      }
     }
   }
   // A change that could not be read at all (here the runner's copy of the repository is gone) is not "nothing changed" either.
@@ -1190,12 +1249,12 @@ test("a run of roles or information, with a stand-in for the harness: built, sta
     if (process.getuid?.() !== 0) {
       writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [{ tool: "Bash", input: { command: "true" }, result: "", writes: { "locked.txt": "x" }, modes: { "locked.txt": 0 } }], cost: 0.2 }), "utf8");
       const unread = await runOne(all);
-      spawnSync("chmod", ["-R", "u+rw", p.top]);
+      spawnSync("chmod", ["-R", "u+rwX", p.top]);
       assert.equal(unread.run.name, "review-gate-2/E-2");
       assert.match(unread.score.scope.not_known, /was not wholly read.*locked\.txt/);
     }
   } finally {
-    spawnSync("chmod", ["-R", "u+rw", p.top]);
+    spawnSync("chmod", ["-R", "u+rwX", p.top]);
     rmSync(p.top, { recursive: true, force: true });
   }
 });
