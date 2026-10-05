@@ -169,7 +169,7 @@ error  E_OWNERSHIP_CONFLICT  artifact "src" is owned by writers "planner", "buil
 
 ### `E_IRREVERSIBLE_NO_GATE`
 
-**Irreversible action without a gate.** A node with non-empty `irreversible` is reachable without a human decision: it has no inbound edge, or at least one inbound edge that neither carries `approval: true` nor starts at a `human-gate` node. Every way in must pass a human.
+**Irreversible action without a gate.** A node with non-empty `irreversible` is reachable without a human decision: nothing leads to it, or at least one inbound edge neither carries `approval: true` nor starts at a `human-gate` node, or a loop's stop other than `human` continues at it (`then`). Every way in must pass a human.
 
 **Fails:** [`fixtures/invalid/E_IRREVERSIBLE_NO_GATE/mixed-inbound.grooph.json`](../fixtures/invalid/E_IRREVERSIBLE_NO_GATE/mixed-inbound.grooph.json) prints
 
