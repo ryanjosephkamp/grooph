@@ -90,7 +90,7 @@ Neither golden graph has a subgrooph, so the Units table is in neither golden `L
 
 ### Found beside the task
 
-- **`GROOPH_MODELS` crosses harnesses.** Not in this diff, and not changed. The variable names the tiers for every export on a machine. With `GROOPH_MODELS=frontier=opus,strong=sonnet,fast=haiku`, a Codex-named review loop exported for Codex gets `model = "sonnet"` in both agent files and `-m 'opus'` in the suggested command (my reader ran it). The export does print "Named by GROOPH_MODELS", the proving runner deletes the variable, and `make-repo.sh` unsets it; a hand export for Codex on a machine that sets it for Claude Code is not protected. It wants a decision (one map per target, or a refusal), not a patch from this pass.
+- **`GROOPH_MODELS` crosses harnesses.** (Since decided by the driver and changed: see "After the driver's reader" below. What follows is as it stood at `0b67de3`.) Not in this diff, and not changed. The variable names the tiers for every export on a machine. With `GROOPH_MODELS=frontier=opus,strong=sonnet,fast=haiku`, a Codex-named review loop exported for Codex gets `model = "sonnet"` in both agent files and `-m 'opus'` in the suggested command (my reader ran it). The export does print "Named by GROOPH_MODELS", the proving runner deletes the variable, and `make-repo.sh` unsets it; a hand export for Codex on a machine that sets it for Claude Code is not protected. It wants a decision (one map per target, or a refusal), not a patch from this pass.
 - **`hasProfile()` answered true for `constructor`** and every other word an object answers to (`harness in PROFILES`). A document naming one passed the validator and crashed the compiler (exit 2, on `main` too). It reads its own entries only now, and such a document is refused as one whose harness has no profile. Tested.
 - **`scripts/prove-codex.test.mjs` was in no CI step** (above).
 
@@ -124,13 +124,54 @@ An Opus 5.5 subagent, given the diff of the lane's commits and the review's text
 ### Still open
 
 - **Criterion 5: the one proving run in Codex.** Not run. The owner starts it in Codex, from the final head, built, as the review's three conditions say.
-- **The reasons for refusing are in this section, the commit `db2e74c` and a comment in `compile/index.ts`.** If the driver judges the decision durable it wants a record in `docs/decisions/`; I did not take a number.
+- **The reasons for refusing** were in this section, the commit `db2e74c` and a comment in `compile/index.ts`. They are in [decision 0030](../../docs/decisions/0030-a-package-is-one-harnesss.md) now, drafted at the driver's word.
 - The Codex target's page is not among the site's pages (`scripts/site-pages.mjs` lists Claude Code's only). The rule's row, `docs/rules.md` and `docs/cli.md` are, so three paragraphs a visitor can read change with this merge.
+
+### After the driver's reader, 2026-10-05 (commits `0d608c4`, `b2c1232` and the one after them)
+
+The driver's reader read `0b67de3` and found the three review items closed and nothing in the fix pass wrong (39 shapes of the target field against both targets, the Claude Code packages byte for byte main's across 105 exports). What it found were gaps around item 1's promise. The driver decided each; a lane of Claude Code built them, on top of a third merge of `main` (`862e8cd`).
+
+**A. A machine's model names are per harness.** `GROOPH_MODELS` naming Claude Code's models wrote `model = "sonnet"` into a Codex package's agent files and `-m 'opus'` into its suggested command, and the reverse wrote `gpt-6-luna` into `.claude/agents/`, both exit 0. Now `GROOPH_MODELS` is read for the claude-code target only, as it always was; the codex target reads `GROOPH_MODELS_CODEX` and never `GROOPH_MODELS`; `--models`, typed on the command, applies to that export whichever its target. The export prints which named the tiers; a map that does not parse is reported under its own variable's name; the proving runner deletes both. The test (`packages/cli/test/cli.test.ts`) sets each variable, exports for the other target and reads the other target's own defaults out of the agent file, `MAPPING.md` and `LEAD.md`.
+
+**B. A mixed package.** Exported for Claude Code, named for Codex and exported into the same folder, a graph leaves both harnesses' files beside one `.grooph/<graph-id>/`, exit 0, and the Claude Code skill left behind still says to read `LEAD.md`, which is now the Codex brief. The refusal's own advice led there. The message now ends "and export into a project that does not hold this graph's <first harness> package", and `docs/targets/codex.md` has it under "Known limits".
+
+**The first follow-up, once #60 is on `main`** (it rewrites `export.ts` around a guard for what grooph last wrote): the export notices the other harness's files for this graph id and refuses, or says so. The files to look for, by graph id:
+
+| Exporting for | The other harness's files for this graph |
+|---|---|
+| `codex` | `.claude/agents/<graph-id>--*.md`, `.claude/skills/<graph-id>/SKILL.md` |
+| `claude-code` | `.codex/agents/<graph-id>--*.toml` |
+
+Both targets write `.grooph/<graph-id>/graph.grooph.json`, `LEAD.md`, `MAPPING.md` and `KICKOFF.md`, so those four say nothing about which harness was there; the copy of the graph does, in its `target.harness`.
+
+**C. A critic told apart only by the other harness's pin.** `W_HOMOGENEOUS_CRITICS` read every harness's pin, so the review loop with its critic pinned for Claude Code only, naming Codex, validated clean while the package put both agents on `gpt-6-luna`. It reads the pin for the harness the document names, and a pin for that harness is the model whatever the tier (two nodes pinned to one model are on one model, on one tier or two); a document that names none yet is read by its tier and every pin, as before. A failing fixture (`fixtures/invalid/W_HOMOGENEOUS_CRITICS/pin-for-the-other-harness-only.grooph.json`), a passing one (`fixtures/valid/critic-apart-by-its-harness-pin.grooph.json`), and a test that the package agrees with the warning.
+
+**No shipped document changes its issues.** Every `*.grooph.json` under `patterns/`, `fixtures/`, `community/` and `experiments/` (181) was validated, plainly and for export, under `main`'s build (`4dc0705`) and this one. Three differ, all this pull request's own: the two Codex golden copies of the graph (they name a harness `main` has no profile for) and the new failing fixture. One shipped document has pins at all (`fixtures/valid/pinned-and-skilled.grooph.json`), on a builder with no critic.
+
+**D. Three public sentences.** `README.md` and the technical report's limitations said "Claude Code is the only compile target today. The Codex target is planned" (the report: "One compile target today. A Codex target is planned and not built."). Both now say: "Claude Code is the compile target the built-in templates have been run on. A second target, Codex, compiles and is tested against golden packages; no run of a package in Codex is on record yet." **Three words are mine and not the driver's**: it gave "no run in Codex is on record yet", and my reader pointed out that the repository does record sessions in Codex (the audits, the hook's recordings), so "of a package" says which runs are meant. A fourth sentence of the kind, in `docs/fleets/what-it-would-take.md` ("The second target is not on `main` yet. The Codex target is still in its pull request"), is brought into line too. The diagram in `docs/ARCHITECTURE.md` says `targets/claude-code, targets/codex` where it said "codex later". No other page of the site and nothing on the front page said either. **The FAQ (#54) quotes the README's old sentence**, on a line of its own, and changes when this merges; its pull request says so.
+
+**E. Known limits, stated and not fixed** (`docs/targets/codex.md`): `grooph adopt` takes a harness change a run made (I did not run that case myself: it is as the driver's reader ran it, and from reading, the comparison of brakes does not look at `target`); `grooph validate --for-export` can say "0 errors" for a graph the export then refuses; and the two above.
+
+**F. The decision is on record:** `docs/decisions/0030-a-package-is-one-harnesss.md`, status "proposed with pull request #127". The fixtures' runner validates a document without an export, so it cannot hold "this document, exported for that target, is refused": the rule's row in `docs/graph-ir.md` says the case is held by `packages/core/test/compile-target.test.ts`.
+
+**G. Small.** `MAPPING.md`'s "Parent live sandbox and approval settings can supersede custom settings" is marked as Codex's documentation with no run on record (the two golden `MAPPING.md` move by that sentence; an agent file's "Parent sandbox settings may supersede this agent's settings" is left: it says "may", and it is an instruction's caveat, not a claim of the package). `@grooph/core` exports the Codex profile by path beside the Claude Code one. `scripts/prove-codex.test.mjs` skips its `git check-ignore` case, with the reason, in a copy with no `.git`.
+
+**My own reader on this round** (Opus 5.5, its own clone, the code diff before any account) could not get one harness's tier map into the other's package in 31 probes, and found 144 Claude Code exports identical under `main`'s build and this one. What it found, all in the last commit:
+
+- The export's help, three lines under the new advice, exported the renamed graph for Codex `--into .`, the folder its Claude Code package is in. It names another project now, and says export does not yet notice a mixed package; the design skill's step says the same. `grooph adopt`'s closing line prints `--into <project>` and is left.
+- The pin rule kept the tier beside the pin, so a critic and a builder pinned to one model for the named harness on two tiers were not warned about. A pin for the named harness is the model now. What the rule still cannot see is in "Known limits": a pin that names the very model the builder's tier means.
+- The rule reference took the new fixture as the rule's one example, because its name sorted first. It is renamed, and the rule's example is the plain case again.
+- One assertion of my test of the note could not fail. It reads the variable's name out of the note now, for a graph that prints it, in both targets.
+- The validator threw on a harness that is not a string, in a document made in code. It does not.
+- The runner's test would have run its git case in a copy unpacked inside another repository.
+- **Left as they are:** `PROVING-COMMAND.md` says the workers resolve "without `--models` or `GROOPH_MODELS` overrides", which is still true and is not item 3's to touch (the runner removes both variables); Codex's own handback below names one variable; `docs/PLAN.md` line 175 says "Codex is deferred without a date" against its own line 34, and the plan is the driver's.
+
+**Verified at this head:** core 512, CLI 140, web 111; the runner's tests 8 of 8; browser tests on port 4367, 295 passed and 164 skipped; every generator's `--check`; `git diff origin/main -- fixtures/golden/claude-code` empty; `make-repo.sh` prints the tree `3238a9052ce7765c79990029bbff6bccd88628bf`. **The budget on this Mac:** first load 160.75 of 164, a template's address 279.14 of 280 (`main` here: 160.59 and 279.04). The pin rule is in the validator, which every address loads: it costs about 0.04 KB. On CI the last head read 160.97 and 279.52 against `main`'s 160.85 and 279.45; this head's lines are in a comment on the pull request.
 
 ### Prompt to paste into the driver session
 
 ```text
-The second fix pass of slice 0076 is on branch slice/0076-codex-target-second-pass: the code's head is 862a081, and the handback's new section (handoffs/0076-codex-target/HANDBACK.md, "Second fix pass, 2026-10-05") follows it in documentation-only commits. It carries Codex's commits unchanged and supersedes pull request #70. Status: done for the review's second read; criterion 5, the one proving run in Codex, is still the owner's to start. Please have your reader look at item 1 and reconcile with the grooph-reconcile skill.
+The second fix pass of slice 0076 is on branch slice/0076-codex-target-second-pass: the code's head is the commit before this section's (after the driver's reader's findings A to G and my own reader's on them), and the handback's new section (handoffs/0076-codex-target/HANDBACK.md, "Second fix pass, 2026-10-05") follows it in documentation-only commits. It carries Codex's commits unchanged and supersedes pull request #70. Status: done for the review's second read; criterion 5, the one proving run in Codex, is still the owner's to start. Please have your reader look at item 1 and reconcile with the grooph-reconcile skill.
 ```
 
 ---
