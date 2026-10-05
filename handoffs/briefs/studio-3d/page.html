@@ -7,8 +7,8 @@
   <header class="mast">
     <p class="eyebrow">Slice 0094 · sketches, not the product</p>
     <h1>Other ways to see a loop graph in three dimensions</h1>
-    <p class="lede">The stairs you like are here as D0. Under them are four other views, each drawn from the same real documents, each live. A view is here only if it makes one true thing about a graph plain that the stairs and the flat picture do not.</p>
-    <p class="how">Drag a picture to turn it; pinch, or the − and + beside it, to move in and out. Play walks it through a first pass, or through a run's own notes. The four buttons that stay at the top change the document for every view at once, so the same graph can be compared in all five. Answer with the labels: D1, D2, D3, D4.</p>
+    <p class="lede">The stairs the app has now are here as D0. Under them are four other views, each drawn from the same real documents, each live. A view is here only if it puts one true thing about a graph where the eye finds it, which the stairs and the flat picture leave in words or leave you to trace.</p>
+    <p class="how">Drag a picture to turn it; pinch, or the − and + beside it, to move in and out. Play walks it through a first pass, or through a run's own notes. The four buttons that stay at the top change the document for every view at once, so the same graph can be compared in all five. In every view a solid gray line is an edge that goes on, and a dashed line in a loop's color is a way back into that loop. Answer with the labels: D1, D2, D3, D4.</p>
   </header>
 
   <nav class="docs" aria-label="The document every view draws">
@@ -25,19 +25,20 @@
     <div class="view-head">
       <p class="label"><b>D0</b><span class="eyebrow">the reference</span></p>
       <h2>The stairs</h2>
-      <p class="shows">What the app draws today: <b>a loop is a floor, and its members stand on it.</b> It shows which loop a node is in. It does not show the order of a round, how many rounds there may be, or what anything costs.</p>
+      <p class="shows">What the app draws today: <b>a loop is a floor, and its members stand on it.</b> It shows which loop a node is in. The order of a first pass is in the numbers on its arcs, and a loop's stops are words on its floor: both are there to be read, and neither is a shape.</p>
     </div>
     <div class="stage"><canvas tabindex="0" role="img"></canvas></div>
     <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="Previous step">‹</button><button type="button" data-do="next" aria-label="Next step">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Step" /><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Start</button></div>
     <output class="says" aria-live="polite"></output>
-    <p class="true">Redrawn here with this page's pencil, so that all five are drawn alike: the floors, the rows of three and the arcs are the app's, the cards are plainer.</p>
+    <p class="stops" data-also></p>
+    <p class="true">Redrawn here with this page's pencil, so that all five are drawn alike: the floors, the rows of three and the arcs are the app's. Left out: the numbers the app puts on its arcs, and the stops it writes on each floor, which are in the line above instead; the cards are plainer.</p>
   </section>
 
   <section class="view" data-view="rings" data-name="Rings" id="d1">
     <div class="view-head">
       <p class="label"><b>D1</b><span class="eyebrow">a loop is a ring</span></p>
       <h2>Rings</h2>
-      <p class="shows"><b>A round is one trip round the ring.</b> It shows the order of a round, where the loop is entered and where it is left, and a fail that cuts across to the start instead of going all the way round: the shape of the loop itself, which a floor does not have and the flat picture leaves you to trace.</p>
+      <p class="shows"><b>A round is one trip round the ring.</b> The order of a round is the way round, with no numbers to follow; where the loop is entered and where it is left are places on it; and a fail that cuts the round short is an arch across to the start. It is the shape of the loop itself, which a floor does not have and the flat picture leaves you to trace.</p>
     </div>
     <div class="stage"><canvas tabindex="0" role="img"></canvas></div>
     <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="Previous step">‹</button><button type="button" data-do="next" aria-label="Next step">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Step" /><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Start</button></div>
@@ -49,20 +50,20 @@
     <div class="view-head">
       <p class="label"><b>D2</b><span class="eyebrow">what a brake looks like</span></p>
       <h2>The spiral and its lid</h2>
-      <p class="shows"><b>A round is one turn upward, and the brake is the ceiling.</b> It shows how many rounds a loop may take, which of its brakes is met first, and for a run how many rounds it took, where it failed and passed on the way up, and how much room was left under the lid.</p>
+      <p class="shows"><b>A round is one turn upward, and a brake is a place on the way up.</b> The lid is where the loop's cap on rounds stops it; a ring part-way is where a person is asked. For a run it shows how far up it went, where it failed and passed on the way, and how much room was left under the lid. The app and the flat picture say a loop's stops in words; neither shows how far a run was from one.</p>
     </div>
     <div class="stage"><canvas tabindex="0" role="img"></canvas></div>
     <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="Previous step">‹</button><button type="button" data-do="next" aria-label="Next step">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Step" /><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Start</button></div>
     <output class="says" aria-live="polite"></output>
     <p class="stops" data-also></p>
-    <p class="true">The solid lid is at the round where <code>max iterations</code> stops the loop. A budget counted in dispatches is a second, dashed lid at the height that many dispatches reach if every round is a full one (a dispatch is an agent or a check, as the lead counts them; a loop inside this one is counted at as many full rounds as its own lid allows). The lower of the two is the one met first when the rounds are full; a round cut short uses fewer dispatches, so the dashed lid can only be higher than drawn, never lower. A budget in turns or minutes has no height in rounds; it is in the line above, with the loop's other stops, in core's own words. The faint spiral is every round the lid allows; the solid part is the first pass, or what a run took, with a bead for each dispatch, green for a pass and amber for a fail.</p>
+    <p class="true">The solid lid is at the round where <code>max iterations</code> stops the loop. An amber ring is at each round after which a person is asked (a <code>human</code> stop with <code>every</code>). A budget counted in dispatches is a dashed ring at the rounds it covers when every round is a full one, counted as grooph's own compiler tells a lead to count it: each member that is an agent or a check, once. That is a reading and not a forecast: a round cut short uses fewer dispatches, every further round of a loop inside adds its own, and a node sent out twice in a round (a critic that could not read its evidence) counts twice, so a run can meet its budget well before or well after that ring. When the ring would be far above the lid it is said in words and not drawn. A budget in turns or minutes has no place on the way up; it is in the line above, with the loop's other stops, in core's own words. The faint spiral is every round the lid allows. The solid part is the first pass, or what a run took, with a bead for each dispatch, green for a pass and amber for a fail; an edge a run never took is faint.</p>
   </section>
 
   <section class="view" data-view="panes" data-name="Panes" id="d3">
     <div class="view-head">
       <p class="label"><b>D3</b><span class="eyebrow">the picture, pulled apart</span></p>
       <h2>Panes</h2>
-      <p class="shows"><b>The flat picture as it is, with each loop and each subgrooph lifted toward you on a pane of its own.</b> Face on, it is the picture. Turned, it shows what is inside what, and which edges pass from one pane to another: an edge that changes depth is entering or leaving a loop.</p>
+      <p class="shows"><b>The flat picture as it is, with each loop and each subgrooph lifted toward you on a pane of its own.</b> Face on, it is the picture. Turned, it shows what is inside what, and which edges pass from one pane to another: an edge that changes depth is entering or leaving a loop or a box.</p>
     </div>
     <div class="stage"><canvas tabindex="0" role="img"></canvas></div>
     <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="Previous step">‹</button><button type="button" data-do="next" aria-label="Next step">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Step" /><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Start</button></div>
@@ -79,18 +80,18 @@
     <div class="stage"><canvas tabindex="0" role="img"></canvas></div>
     <div class="bar"><button type="button" data-do="play" aria-pressed="false">Play</button><button type="button" data-do="prev" aria-label="Previous step">‹</button><button type="button" data-do="next" aria-label="Next step">›</button><input type="range" min="0" max="1" value="0" step="1" aria-label="Step" /><button type="button" data-do="out" aria-label="Move out">−</button><button type="button" data-do="in" aria-label="Move in">+</button><button type="button" data-do="reset">Start</button></div>
     <output class="says" aria-live="polite"></output>
-    <p class="true">A tier is a class of model, not a price: the heights say which is above which, not by how much. A node with no tier of its own takes the session's, and its column is drawn faint. A run's minutes are by the stamps on its notes, from the end of the dispatch before to the end of this one, so the lead's own time between two dispatches is in the later one.</p>
+    <p class="true">A tier is a class of model, not a price: the heights say which is above which, not by how much, and a harness may give two tiers the same model. A node with no tier of its own takes the session's; its column is drawn faint, at the height of strong, which is a guess at what the session is. A run's minutes are by the stamps on its notes: for the first dispatch from its own start to its end, and for each one after from the end of the dispatch before to its own end, so the lead's time between two dispatches is in the later one. The run's own note of its first dispatch says 22 minutes where the stamps give 19.7, and two notes are stamped as starting after they end; the stamps of the ends are what is drawn.</p>
   </section>
 
   <section class="pick">
     <h2>If I had to pick</h2>
-    <p><b>D2 first.</b> Brakes are what grooph is for, and nothing it draws today shows one. On the recorded run it says in one look what the run page says in a paragraph: two rounds taken of five allowed, a fail at the critic on the first and a pass on the second. On Gauntlet it shows something I had not seen in the document until it was drawn: the outer loop's budget of 42 dispatches is two more than its four rounds can use at their fullest.</p>
+    <p><b>D2 first.</b> Brakes are what grooph is for, and everything it draws today says them in words. On the recorded run this view shows in one look what otherwise takes reading: rounds 0 and 1 taken under a lid at five, a fail at the critic in the first and a pass in the second, and three turns of room never used. On Gauntlet it shows the brake that stopped that template's own proving run: the person who is asked after every second round of the outer loop, as a ring half-way up to the lid.</p>
     <ul>
       <li><b>D1</b> is the one for a stranger: it is what the word "loop" looks like, and the easiest to read without a legend.</li>
       <li><b>D3</b> is the nearest to the flat picture, so the picture would become it with the least travel.</li>
       <li><b>D4</b> earns its place on a run's page and is thin on a template.</li>
     </ul>
-    <p class="foot">Every picture on this page is drawn from four documents in the repository: the templates <code>review-gate</code> and <code>gauntlet-decomposed</code>, the fixture <code>subgrooph-in-a-graph</code>, and the recorded run of slice 0007. The rows, the stops' words, the roles and the run's steps are worked out by grooph's own core when the page is built; the page fetches nothing. Each view is a few dozen lines that place the graph in space, on one small stage of about two hundred that draws on a 2D canvas, with no library: any of them can go into the app behind the door the 3D view is behind now.</p>
+    <p class="foot">Every picture on this page is drawn from four documents in the repository: the templates <code>review-gate</code> and <code>gauntlet-decomposed</code>, the fixture <code>subgrooph-in-a-graph</code>, and the recorded run of slice 0007. The rows, the stops' words, the roles and the run's steps are worked out by grooph's own core when the page is built; the page fetches nothing. Each view is between forty and a hundred lines that place the graph in space, on one small stage of about two hundred and fifty that draws on a 2D canvas, with no library: any of them can go into the app behind the door the 3D view is behind now.</p>
   </section>
 </div>
 

@@ -9,10 +9,11 @@
  * The page fetches nothing, so what it draws is worked out here, by core's own functions, and put in the page as
  * data: the rows of the layout (`layerNodes`, `autoLayout`), a stop in a person's words (`describeStop`), an edge's
  * condition (`edgeWhenLabel`), a role's name (`roleName`), and a run's notes as steps with their captions
- * (`buildRunBundle`, `replaySteps`). What core has no function for is worked out below and said on the page: the
- * order of a first pass (the app's own, `apps/web/src/ui/canvas/graph-views.tsx`), which loop is inside which, how
- * many dispatches a full round of a loop is (graph-ir: agents and checks), and how long each dispatch of the run took
- * by the stamps on its notes.
+ * (`buildRunBundle`, `replaySteps`). What core has no function to call for is worked out below, the way the code
+ * that does it works it out, and said on the page: the order of a first pass (`firstPass` in
+ * `apps/web/src/ui/canvas/graph-views.tsx`), which loop is inside which, what a full round of a loop costs in
+ * dispatches (`dispatchesPerRound` in `packages/core/src/compile/claude-code/lead.ts`: each member that is an agent
+ * or a check, once), and how long each dispatch of the run took by the stamps on its notes.
  *
  * The page is `page.html` with `page.css`, the data and `views.js` put where it says. Nothing here is in the product.
  */
@@ -67,24 +68,16 @@ function model(doc, about) {
       stops: loop.stops.map((s) => ({ kind: s.kind, words: describeStop(s) })),
       cap: stop("max-iterations")?.n ?? null,
       budget: stop("budget") ? { measure: stop("budget").measure, limit: stop("budget").limit } : null,
+      // A person is asked every so many rounds (a `human` stop with `every`).
+      human: stop("human")?.every ?? null,
+      // What the compiler tells a lead a full round costs: each member that is an agent or a check, once. A loop
+      // inside this one is in that count at one round of its own; every further round of it adds its own on top,
+      // and a node dispatched twice in a round (invalid evidence) counts twice.
+      perRound: loop.members.filter((id) => ["agent", "check"].includes(doc.nodes.find((n) => n.id === id)?.kind)).length,
     };
   });
   // The nodes that are a loop's own: its members that are in no loop inside it.
   for (const loop of loops) loop.own = loop.members.filter((m) => !loops.some((inner) => inner.inside === loop.id && inner.members.includes(m)));
-  // A full round of a loop, in dispatches: its own agents and checks (graph-ir: "node dispatches counted by the
-  // lead (agents and checks)"), and for each loop inside it as many full rounds as that loop's cap allows, since an
-  // inner loop's rounds start afresh each time the outer one comes round. Null where an inner loop has no cap.
-  const counts = (id) => ["agent", "check"].includes(doc.nodes.find((n) => n.id === id)?.kind);
-  const full = (loop) => {
-    let sum = loop.own.filter(counts).length;
-    for (const inner of loops.filter((l) => l.inside === loop.id)) {
-      const each = full(inner);
-      if (each === null || inner.cap === null) return null;
-      sum += each * inner.cap;
-    }
-    return sum;
-  };
-  for (const loop of loops) loop.perRound = full(loop);
   const innermost = (id) => loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length)[0]?.id ?? null;
   const back = new Map(doc.loops.flatMap((loop) => loop.back.map((id) => [id, loop.id])));
   return {
@@ -129,7 +122,11 @@ function run(folder, about) {
   m.steps = replay.steps.slice(1).map((step) => {
     const note = step.note;
     const focus = step.focus ?? { kind: "graph" };
-    const out = { says: step.caption, about: focus.kind, id: focus.id ?? null, round: note.round ?? null, outcome: note.outcome ?? null };
+    // The note's own words, cut at a word: a note about the run or about an edge is not a move, and core's short
+    // caption for it says less than the note does.
+    const own = note.proposal?.summary ?? note.amendment?.summary ?? note.text ?? "";
+    const words = own.length > 150 ? `${own.slice(0, own.lastIndexOf(" ", 150))} …` : own;
+    const out = { says: step.caption, about: focus.kind, id: focus.id ?? null, round: note.round ?? null, outcome: note.outcome ?? null, what: note.proposal ? "proposal" : note.amendment ? "amendment" : null, words };
     const node = focus.kind === "node" ? working.nodes.find((n) => n.id === focus.id) : undefined;
     if (node && ["agent", "check"].includes(node.kind) && note.ended) {
       const took = minutes(last ?? note.started ?? note.ended, note.ended);
@@ -152,8 +149,8 @@ function run(folder, about) {
 const data = [
   model(graphAt("patterns/review-gate.grooph.json"), "A small template: one loop, four nodes."),
   model(graphAt("patterns/gauntlet-decomposed.grooph.json"), "A large template: ten nodes, and a loop inside a loop."),
-  model(graphAt("fixtures/valid/subgrooph-in-a-graph.grooph.json"), "A graph with a subgrooph: a template placed whole inside it."),
-  run("fixtures/runs/slice-0007-sandwich", "A recorded run: slice 0007, two rounds of one loop, with its notes."),
+  model(graphAt("fixtures/valid/subgrooph-in-a-graph.grooph.json"), "A graph with a subgrooph: the review gate placed in it as a unit, inside a plain group."),
+  run("fixtures/runs/slice-0007-sandwich", "A recorded run: slice 0007, rounds 0 and 1 of one loop, with its fifteen notes."),
 ];
 
 const page = readFileSync(join(here, "page.html"), "utf8")

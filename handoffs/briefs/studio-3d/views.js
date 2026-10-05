@@ -23,21 +23,24 @@
         }),
       ];
     }
-    const out = [{ says: `The whole run: ${m.run.dispatches.length} dispatches. ${m.run.end} Press Play to follow its ${m.steps.length} notes.` }];
+    const rounds = [...new Set(m.run.dispatches.map((d) => d.round))];
+    const out = [{ says: `The whole run: ${m.run.dispatches.length} dispatches in rounds ${rounds.join(" and ")}. ${m.run.end} Press Play to follow its ${m.steps.length} notes.` }];
     let at = null;
     m.steps.forEach((s, k) => {
-      const step = { says: `Note ${k + 1} of ${m.steps.length}: ${s.says}`, note: k, dispatch: s.dispatch };
+      const of = `Note ${k + 1} of ${m.steps.length}`;
+      const step = { note: k, dispatch: s.dispatch };
       if (s.about === "node") {
         const round = s.round ?? at?.round ?? 0;
         // The edge the run took to get here: one from where it was, a way back if the round went up.
         const took = at && m.edges.filter((e) => e.from === at.node && e.to === s.id).sort((a, b) => (round > at.round ? (b.back ? 1 : 0) - (a.back ? 1 : 0) : (a.back ? 1 : 0) - (b.back ? 1 : 0)))[0];
-        Object.assign(step, { nodes: [s.id], to: s.id, r1: round, outcome: s.outcome }, took ? { edge: took.id, from: at.node, r0: at.round } : {});
+        Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round, outcome: s.outcome }, took ? { edge: took.id, from: at.node, r0: at.round } : {});
         at = { node: s.id, round };
-      } else if (s.about === "loop") step.loops = [s.id];
+      } else if (s.about === "loop") Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
       else if (s.about === "edge") {
+        // A note about an edge is not a move along it: here, a proposal to change what the edge carries.
         const e = by(m.edges, s.id);
-        if (e) Object.assign(step, { edge: e.id, nodes: [e.from, e.to], about: true });
-      }
+        Object.assign(step, { says: `${of}, ${s.what ? `a ${s.what}` : "a note"} about the edge ${s.says}, not a move along it: ${s.words}` }, e ? { edge: e.id, nodes: [e.from, e.to], about: true, r0: at?.round ?? 0 } : {});
+      } else step.says = `${of}, ${s.what ? `an ${s.what}` : "about the run"}: ${s.words}`;
       out.push(step);
     });
     return out;
@@ -86,8 +89,25 @@
       const at = pts.map(turned);
       const [x0, x1, y0, y1] = [Math.min(...at.map((t) => t[0])), Math.max(...at.map((t) => t[0])), Math.min(...at.map((t) => t[1])), Math.max(...at.map((t) => t[1]))];
       shift = [(x0 + x1) / 2, (y0 + y1) / 2];
-      fitted = Math.min((w - 126) / Math.max(1, x1 - x0), (h - 60) / Math.max(1, y1 - y0), 1.5);
+      fitted = Math.min((w - 126) / Math.max(1, x1 - x0), (h - 96) / Math.max(1, y1 - y0), 1.5);
+      shift[1] += 14 / fitted;
       Object.assign(view, was);
+    }
+    function inset(pts, head, tail) {
+      const cut = (list, by) => {
+        const out = [...list];
+        let left = by;
+        while (out.length > 2 && left > 0) {
+          const d = Math.hypot(out[1][0] - out[0][0], out[1][1] - out[0][1]);
+          if (d > left) break;
+          left -= d;
+          out.shift();
+        }
+        const d = Math.hypot(out[1][0] - out[0][0], out[1][1] - out[0][1]);
+        if (d > left + 1) out[0] = [out[0][0] + ((out[1][0] - out[0][0]) * left) / d, out[0][1] + ((out[1][1] - out[0][1]) * left) / d];
+        return out;
+      };
+      return cut(cut(pts, head).reverse(), tail).reverse();
     }
     function path(pts) {
       g.beginPath();
@@ -111,11 +131,15 @@
           return { p, pts, depth };
         })
         .sort((a, b) => a.depth - b.depth);
-      for (const { p, pts } of items) {
+      for (const item of items) {
+        const p = item.p;
+        let pts = item.pts;
         const on = !!(lit && p.key && lit.has(p.key));
         g.globalAlpha = dim(p) * (p.alpha ?? 1);
         g.setLineDash(p.dash || []);
         g.lineJoin = g.lineCap = "round";
+        // An edge stops short of what it runs to, by so many pixels of the screen, so that its head is seen.
+        if (p.inset) pts = inset(pts, p.inset[0], p.inset[1]);
         if (p.t === "poly") {
           path(pts);
           g.closePath();
@@ -141,40 +165,41 @@
         } else if (p.t === "dot") {
           g.beginPath();
           g.arc(pts[0][0], pts[0][1], p.r || 5, 0, TAU);
-          g.fillStyle = color(p.fill || "accent");
-          g.fill();
-          if (p.stroke) ((g.strokeStyle = color(p.stroke)), (g.lineWidth = 2), g.stroke());
+          if (p.fill) ((g.fillStyle = color(p.fill)), g.fill());
+          if (p.stroke) ((g.strokeStyle = color(p.stroke)), (g.lineWidth = p.w || 2), g.stroke());
         } else if (p.t === "text") {
           g.font = `${p.bold ? 600 : 400} ${p.size || 11}px system-ui, -apple-system, "Segoe UI", sans-serif`;
           g.textAlign = p.align || "left";
           g.textBaseline = "middle";
           // Words that would run past the frame are put on a line of their own, and a line is moved to stay in it.
           const room = Math.min(p.max || 220, w - 12);
-          const lines = String(p.text).split("\n").flatMap((line) => {
+          const lines = String(p.text).split("\n").flatMap((line, n) => {
             const out = [""];
             for (const word of line.split(" ")) {
               const next = out[out.length - 1] ? `${out[out.length - 1]} ${word}` : word;
               if (g.measureText(next).width > room && out[out.length - 1]) out.push(word);
               else out[out.length - 1] = next;
             }
-            return out;
+            return out.map((text) => ({ text, head: n < (p.heads || 0) }));
           });
-          lines.forEach((line, k) => {
+          lines.forEach(({ text: line, head }, k) => {
             const wide = g.measureText(line).width;
             const left = clamp(pts[0][0] - (p.align === "center" ? wide / 2 : p.align === "right" ? wide : 0), 4, Math.max(4, w - 4 - wide));
-            const y = pts[0][1] + (k - (lines.length - 1) / 2) * ((p.size || 11) + 3);
+            // A block stands on its point and grows upward, or is centered on it.
+            const y = pts[0][1] + (p.up ? k - (lines.length - 1) : k - (lines.length - 1) / 2) * ((p.size || 11) + 3);
             g.textAlign = "left";
             g.strokeStyle = color("panel", 0.9);
             g.lineWidth = 3.5;
             g.setLineDash([]);
             g.strokeText(line, left, y);
-            g.fillStyle = color(p.fill || "ink-2");
+            g.fillStyle = color(head ? p.headFill : p.fill || "ink-2");
             g.fillText(line, left, y);
           });
         } else if (p.t === "card") {
           const s = clamp(pts[0][3], 0.72, 1.15);
           const [cw, ch] = p.small ? [84 * s, 22 * s] : [106 * s, 36 * s];
-          const [x, y] = [pts[0][0] - cw / 2, pts[0][1] - ch / 2];
+          // A card stands on its point, clear of it, or is centered on it.
+          const [x, y] = [pts[0][0] - cw / 2, p.stand ? pts[0][1] - ch - 5 : pts[0][1] - ch / 2];
           g.beginPath();
           g.roundRect(x, y, cw, ch, 7 * s);
           g.fillStyle = color(on ? "accent-soft" : "card");
@@ -277,7 +302,7 @@
   /* ── what every view draws alike ─────────────────────────────────────────────────────────────────────────── */
   const KIND = { agent: "agent", check: "check", "human-gate": "gate", merge: "gate", stop: "stop" };
   const hue = (m, loop) => `loop-${(m.loops.findIndex((l) => l.id === loop) % 4) + 1}`;
-  const card = (n, at) => ({ t: "card", at, name: n.name, line: n.line, kind: KIND[n.kind], key: `node:${n.id}` });
+  const card = (n, at, more = { stand: true }) => ({ t: "card", at, name: n.name, line: n.line, kind: KIND[n.kind], key: `node:${n.id}`, ...more });
   const circle = (c, r, y, n = 40, from = 0, to = TAU) => Array.from({ length: n + 1 }, (_, k) => [c[0] + r * Math.cos(from + ((to - from) * k) / n), y, c[2] + r * Math.sin(from + ((to - from) * k) / n)]);
   // A curve from a to b, lifted in the middle: an edge that leaves the ground to get where it is going.
   const arch = (a, b, lift, n = 16) =>
@@ -286,15 +311,11 @@
       const p = lerp(a, b, t);
       return [p[0], p[1] + lift * 4 * t * (1 - t), p[2]];
     });
-  const edgeLine = (m, e, pts, more = {}) => ({ t: "line", pts, stroke: e.back ? hue(m, e.back) : "ink-2", dash: e.back ? [6, 4] : undefined, w: e.back ? 1.8 : 1.4, arrow: true, key: `edge:${e.id}`, ...more });
+  const edgeLine = (m, e, pts, more = {}) => ({ t: "line", pts, stroke: e.back ? hue(m, e.back) : "ink-2", dash: e.back ? [6, 4] : undefined, w: e.back ? 1.8 : 1.4, arrow: true, key: `edge:${e.id}`, inset: [2, 5], ...more });
   const along = (pts, t) => {
     const at = clamp(t, 0, 1) * (pts.length - 1);
     const k = Math.min(pts.length - 2, Math.floor(at));
     return lerp(pts[k], pts[k + 1], at - k);
-  };
-  const short = (pts, cut = 0.08) => {
-    const n = pts.length - 1;
-    return pts.length > 6 ? pts.slice(Math.round(n * cut), n - Math.round(n * cut) + 1) : pts;
   };
   /* The stations of a loop, in the order of a round: its own nodes, and a loop inside it as one stop. */
   function stations(m, loop) {
@@ -314,28 +335,30 @@
     const at = {};
     const rank = new Map(m.rows.flat().map((id, k) => [id, k]));
     const first = (l) => Math.min(...l.members.map((id) => rank.get(id)));
+    // As the app's own: what is in no loop first, then the loops in the order a first pass meets them. The app also
+    // writes each loop's stops on its floor and numbers its arcs; here the stops are under the picture, in a line.
     const sheets = [{ name: m.name, sub: "outside any loop", nodes: m.nodes.filter((n) => !n.loop) }, ...[...m.loops].sort((p, q) => first(p) - first(q) || p.members.length - q.members.length).map((l) => ({ loop: l, name: l.name, sub: `loop${l.inside ? ` inside ${by(m.loops, l.inside).name}` : ""}`, nodes: l.own.map((id) => by(m.nodes, id)) }))].filter((x) => x.nodes.length);
     sheets.forEach((sheet, k) => {
       const rows = Math.ceil(sheet.nodes.length / 3);
-      const [y, z0] = [-k * 126, k * 104];
+      const [y, z0] = [-k * 130, k * 104];
       const width = 3 * 116 + 16;
       const depth = rows * 60 + 30;
       const color = sheet.loop ? hue(m, sheet.loop.id) : "line-strong";
       prims.push({ t: "poly", pts: [[-width / 2, y, z0 - depth / 2], [width / 2, y, z0 - depth / 2], [width / 2, y, z0 + depth / 2], [-width / 2, y, z0 + depth / 2]], fill: sheet.loop ? color : "floor", fa: sheet.loop ? 0.16 : 0.8, stroke: color, key: sheet.loop ? `loop:${sheet.loop.id}` : undefined });
-      prims.push({ t: "text", at: [-width / 2 + 2, y - 15, z0 + depth / 2], text: `${sheet.name} · ${sheet.sub}`, bold: true, fill: sheet.loop ? color : "ink-2", size: 10.5 });
+      prims.push({ t: "text", at: [-width / 2 + 2, y - 16, z0 + depth / 2], text: `${sheet.name} · ${sheet.sub}`, fill: sheet.loop ? color : "ink-2", size: 10.5, bold: true, max: 250 });
       sheet.nodes.sort((p, q) => rank.get(p.id) - rank.get(q.id)).forEach((n, i) => {
         const inRow = Math.min(3, sheet.nodes.length - Math.floor(i / 3) * 3);
-        at[n.id] = [((i % 3) - (inRow - 1) / 2) * 116, y + 22, z0 - depth / 2 + 34 + Math.floor(i / 3) * 60];
+        at[n.id] = [((i % 3) - (inRow - 1) / 2) * 116, y + 2, z0 - depth / 2 + 34 + Math.floor(i / 3) * 60];
         prims.push(card(n, at[n.id]));
       });
     });
     const paths = {};
     for (const e of m.edges) {
-      const [p, q] = [at[e.from], at[e.to]];
-      paths[e.id] = arch([p[0], p[1] + 16, p[2]], [q[0], q[1] + 16, q[2]], 24 + Math.hypot(p[0] - q[0], p[1] - q[1]) * 0.1 + (e.back ? 22 : 0));
+      const [p, q] = [at[e.from], at[e.to]].map((v) => [v[0], v[1] + 40, v[2]]);
+      paths[e.id] = arch(p, q, 24 + Math.hypot(p[0] - q[0], p[1] - q[1]) * 0.1 + (e.back ? 22 : 0));
       prims.push(edgeLine(m, e, paths[e.id]));
     }
-    return { prims, node: (id) => at[id], path: (e) => paths[e] };
+    return { prims, node: (id) => [at[id][0], at[id][1] + 40, at[id][2]], path: (e) => paths[e] };
   }
 
   /* ── D1 · rings: a loop is a ring, and a round is one trip round it ──────────────────────────────────────── */
@@ -344,7 +367,8 @@
     const at = {};
     const ring = {};
     const paths = {};
-    const R = (loop) => Math.max(loop.inside ? 60 : 84, stations(m, loop).length * (loop.inside ? 30 : 40));
+    // A ring is large enough for its stations, and larger than any ring that stands on it.
+    const R = (loop) => Math.max(loop.inside ? 60 : 84, stations(m, loop).length * (loop.inside ? 30 : 40), ...m.loops.filter((l) => l.inside === loop.id).map((l) => R(l) + 30));
     // A station's place on its ring: the first at the far side, where the way in arrives, and on round to the right.
     const where = (c, r, i, k) => [c[0] + r * Math.sin((TAU * i) / k), c[1], c[2] - r * Math.cos((TAU * i) / k)];
     function place(loop, c) {
@@ -353,10 +377,10 @@
       ring[loop.id] = { c, r, stops };
       const color = hue(m, loop.id);
       prims.push({ t: "poly", pts: [...circle(c, r + 15, c[1], 48), ...circle(c, r - 15, c[1], 48).reverse()], fill: color, fa: 0.2, key: `loop:${loop.id}` });
-      prims.push({ t: "text", at: c, text: `${loop.name}\n${loop.cap ? `${loop.cap} rounds at most` : "no cap on rounds"}`, align: "center", bold: true, fill: color, size: 10.5, max: r * 1.5 });
+      prims.push({ t: "text", at: c, text: `${loop.name}\n${loop.cap ? `max iterations: ${loop.cap}` : "no cap on rounds"}`, align: "center", bold: true, fill: color, size: 10.5, max: r * 1.5 });
       stops.forEach((stop, i) => {
         const p = where(c, r, i, stops.length);
-        if (stop.node) ((at[stop.node] = [p[0], p[1] + 20, p[2]]), prims.push(card(by(m.nodes, stop.node), at[stop.node])));
+        if (stop.node) ((at[stop.node] = p), prims.push(card(by(m.nodes, stop.node), p)));
         else {
           // A loop inside this one: a ring of its own, standing on this ring where its members would be.
           const up = [p[0], p[1] + 64, p[2]];
@@ -368,27 +392,27 @@
     }
     let z = 0;
     for (const item of ground(m)) {
-      if (item.node) ((at[item.node] = [0, 20, z]), prims.push(card(by(m.nodes, item.node), at[item.node])), (z += 74));
+      if (item.node) ((at[item.node] = [0, 0, z]), prims.push(card(by(m.nodes, item.node), at[item.node])), (z += 78));
       else {
         // A ring of its own at the first station stands where the way in arrives: room for it.
         const first = stations(m, item.loop)[0].loop;
         const r = R(item.loop) + 26;
         z += first ? R(first) + 24 : 0;
         place(item.loop, [0, 0, z + r - 20]);
-        z += 2 * r + 34;
+        z += 2 * r + 38;
       }
     }
     // Where an edge runs. Inside a ring, to the next station: along the ring. The way back from the last station: the
     // rest of the ring, which is what closes it. Any other way back: an arch across, because it cuts the round short.
     const stationOf = (loop, id) => ring[loop.id].stops.findIndex((stop) => stop.node === id || stop.loop?.members.includes(id));
     for (const e of m.edges) {
-      const [p, q] = [at[e.from], at[e.to]].map((v) => [v[0], v[1] - 17, v[2]]);
+      const [p, q] = [at[e.from], at[e.to]];
       const loop = m.loops.filter((l) => l.members.includes(e.from) && l.members.includes(e.to)).sort((x, y) => x.members.length - y.members.length)[0];
       let pts;
       if (loop) {
         const { c, r, stops } = ring[loop.id];
         const [i, j, k] = [stationOf(loop, e.from), stationOf(loop, e.to), stops.length];
-        const arc = (from, to) => Array.from({ length: 25 }, (_, n) => where([c[0], c[1] + 3, c[2]], r, from + ((to - from) * n) / 24, k));
+        const arc = (from, to) => Array.from({ length: 25 }, (_, n) => where(c, r, from + ((to - from) * n) / 24, k));
         if (i !== j && !e.back && j === i + 1) pts = arc(i, j);
         else if (i !== j && e.back && i === k - 1 && j === 0) pts = arc(i, k);
         // A station that is a ring of its own is entered and left at the node, up on that ring.
@@ -400,13 +424,18 @@
     return { prims, node: (id) => at[id], path: (e) => paths[e] };
   }
 
-  /* ── D2 · the spiral and its lid: a round is a turn upward, and the brake is the ceiling ─────────────────── */
+  /* ── D2 · the spiral and its lid: a round is a turn upward, and a brake is a place on the way up ─────────── */
   function spiral(m, shown) {
     const prims = [];
     const at = {};
     const tower = {};
     const H = 54;
-    const taken = (loop) => (m.run ? (m.run.loops.find((l) => l.loop === loop.id)?.round ?? -1) + 1 : 1);
+    // The rounds a run has taken of a loop, as far as the slider has come: one more than the last round it was in.
+    const taken = (loop) => {
+      if (!m.run) return 1;
+      const seen = m.run.dispatches.filter((d, n) => loop.own.includes(d.node) && (shown.dispatches === undefined || n < shown.dispatches));
+      return seen.length ? Math.max(...seen.map((d) => d.round)) + 1 : 0;
+    };
     const R = (loop) => Math.max(64, stations(m, loop).length * 27);
     const on = (t, u, out = 0) => [t.c[0] - (t.r + out) * Math.cos(TAU * u), u * H, t.c[2] + (t.r + out) * Math.sin(TAU * u)];
     const helix = (t, u0, u1) => {
@@ -418,33 +447,41 @@
       const k = stops.length;
       const t = (tower[loop.id] = { c, r: R(loop), stops, k });
       const color = hue(m, loop.id);
-      const top = loop.cap ?? taken(loop) + 2;
+      const top = loop.cap ?? Math.max(taken(loop), 1) + 2;
       prims.push({ t: "poly", pts: circle(c, t.r + 12, 0), fill: "floor", fa: 0.8, stroke: "line", lift: -400 });
       prims.push({ t: "line", pts: [[c[0], 0, c[2]], [c[0], top * H, c[2]]], stroke: "line-strong", w: 1 });
-      // Every round the brake allows, faint; the rounds that were taken (for a template, the first), solid.
+      // Every round the lid allows, faint; the rounds that were taken (for a template, the first pass), solid.
       prims.push({ t: "line", pts: helix(t, 0, top), stroke: color, w: 1.3, alpha: 0.5, dash: [3, 4] });
-      const done = shown.until?.[loop.id] ?? taken(loop) - 1 + (k - 1) / k;
+      const done = shown.until?.[loop.id] ?? (m.run ? taken(loop) : 1) - 1 + (k - 1) / k;
       if (done > 0) prims.push({ t: "line", pts: helix(t, 0, done), stroke: color, w: 3.2, key: `loop:${loop.id}` });
-      // The lid: the round at which max iterations stops it. A budget in dispatches is a second lid, at the height
-      // that many dispatches reach if every round is a full one; whichever is lower is the one that is met first.
-      const lids = [];
-      if (loop.cap) lids.push({ u: loop.cap, text: `max iterations: ${loop.cap}` });
-      if (loop.budget?.measure === "dispatches" && loop.perRound) lids.push({ u: loop.budget.limit / loop.perRound, text: `budget: ${loop.budget.limit} dispatches, ${Math.round((loop.budget.limit / loop.perRound) * 10) / 10} full rounds` });
-      lids.sort((x, y) => x.u - y.u).forEach((lid, n) => {
-        const y = lid.u * H;
-        if (n === 0) prims.push({ t: "poly", pts: circle(c, t.r + 18, y), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, key: `loop:${loop.id}`, lift: 300 });
-        else prims.push({ t: "line", pts: circle(c, t.r + 18, y), stroke: "brake", w: 1.2, dash: [4, 4], alpha: 0.85 });
-      });
-      const over = Math.max(top, ...lids.map((lid) => lid.u)) * H;
-      const words = lids.length ? lids.map((lid, n) => `${lid.text}${lids.length > 1 ? (n === 0 ? " (met first)" : " (dashed)") : ""}`) : ["no lid: no cap on rounds"];
-      // Two spirals side by side say their words at two heights, so that neither is written over the other.
-      const raise = (Object.keys(tower).length - 1) % 2 ? 58 : 0;
-      const wide = Math.max(128, 2 * t.r + 20);
-      prims.push({ t: "text", at: [c[0], over + 30 + words.length * 9 + raise, c[2]], text: words.join("\n"), align: "center", fill: "brake", size: 10.5, bold: true, max: wide });
-      prims.push({ t: "text", at: [c[0], over + 58 + words.length * 20 + raise, c[2]], text: `${loop.name}${m.run ? ` · ${taken(loop)} of ${loop.cap ?? "any number of"} rounds taken` : ""}`, align: "center", fill: color, size: 11.5, bold: true, max: wide });
-      if (raise) prims.push({ t: "line", pts: [[c[0], over + 8, c[2]], [c[0], over + raise + 22, c[2]]], stroke: "brake", w: 1, alpha: 0.5 });
+      // The brakes, each where it is on the way up. The lid: the round at which max iterations stops the loop. A
+      // person asked every so many rounds: a ring at each of those rounds. A budget in dispatches: a dashed ring at
+      // the rounds it covers when each round is a full one, as the compiler tells a lead to count it; if that is far
+      // over the lid it is said in words only.
+      const words = [];
+      if (loop.cap) {
+        prims.push({ t: "poly", pts: circle(c, t.r + 18, loop.cap * H), fill: "brake", fa: 0.24, stroke: "brake", w: 1.8, key: `loop:${loop.id}`, lift: 300 });
+        words.push(`max iterations: ${loop.cap} (the lid)`);
+      } else words.push("no lid: no cap on rounds");
+      if (loop.human) {
+        for (let u = loop.human; u <= top; u += loop.human) if (u !== loop.cap) prims.push({ t: "line", pts: circle(c, t.r + 18, u * H), stroke: "k-gate", w: 2.2 });
+        words.push(`a person is asked every ${loop.human} rounds (the amber ring${top >= loop.human * 2 && loop.cap !== loop.human * 2 ? "s" : ""})`);
+      }
+      let over = top;
+      if (loop.budget?.measure === "dispatches" && loop.perRound) {
+        const [full, more] = [Math.floor(loop.budget.limit / loop.perRound), loop.budget.limit % loop.perRound];
+        const u = loop.budget.limit / loop.perRound;
+        const drawn = u <= top + 1.5;
+        if (drawn) (prims.push({ t: "line", pts: circle(c, t.r + 18, u * H), stroke: "brake", w: 1.2, dash: [4, 4], alpha: 0.85 }), (over = Math.max(over, u)));
+        words.push(`budget: ${loop.budget.limit} dispatches, ${full} full round${full === 1 ? "" : "s"}${more ? ` and ${more} more` : ""} (${drawn ? "dashed" : "far above the lid, not drawn"})`);
+      }
+      // The loop's name and its brakes, in one block over the spiral. Two spirals side by side say theirs at two
+      // heights, so that neither is written over the other.
+      const raise = (Object.keys(tower).length - 1) % 2 ? 78 : 0;
+      prims.push({ t: "text", at: [c[0], over * H + 30 + raise, c[2]], text: [`${loop.name}${m.run ? ` · ${taken(loop)} of ${loop.cap ?? "any number of"} rounds taken` : ""}`, ...words].join("\n"), align: "center", up: true, heads: 1, headFill: color, fill: "brake", size: 10.5, bold: true, max: Math.max(138, 2 * t.r + 30) });
+      if (raise) prims.push({ t: "line", pts: [[c[0], over * H + 6, c[2]], [c[0], over * H + raise + 18, c[2]]], stroke: "brake", w: 1, alpha: 0.5 });
       stops.forEach((stop, i) => {
-        if (stop.node) ((at[stop.node] = ((p) => [p[0], p[1] - 14, p[2]])(on(t, i / k, 52))), prims.push(card(by(m.nodes, stop.node), at[stop.node])), prims.push({ t: "line", pts: [on(t, i / k), on(t, i / k, 30)], stroke: color, w: 1, alpha: 0.7 }));
+        if (stop.node) ((at[stop.node] = ((p) => [p[0], p[1] - 30, p[2]])(on(t, i / k, 46))), prims.push(card(by(m.nodes, stop.node), at[stop.node])), prims.push({ t: "line", pts: [on(t, i / k), on(t, i / k, 30)], stroke: color, w: 1, alpha: 0.7 }));
         else prims.push({ t: "text", at: on(t, i / k, 34), text: `${stop.loop.name}: the spiral beside`, align: "center", fill: hue(m, stop.loop.id), size: 10.5, bold: true, max: 96 });
       });
       // A run's dispatches, each a bead where it happened: the round it was in, and whether it passed.
@@ -452,7 +489,7 @@
         m.run.dispatches.forEach((d, n) => {
           const i = stops.findIndex((stop) => stop.node === d.node);
           if (i < 0 || (shown.dispatches !== undefined && n >= shown.dispatches)) return;
-          prims.push({ t: "dot", at: on(t, d.round + i / k), r: 6, fill: d.outcome === "fail" ? "bad" : "ok", stroke: "card", lift: -3990 });
+          prims.push({ t: "dot", at: on(t, d.round + i / k), r: 6, fill: d.outcome === "fail" ? "bad" : "ok", stroke: "card" });
         });
     }
     // The ground: what comes before the loops recedes behind the first spiral, the spirals stand side by side (one
@@ -469,22 +506,23 @@
         const r = R(item.loop) + 40;
         place(item.loop, [x + r, 0, 0]);
         x += 2 * r + 56;
-      } else if (n > firstLoop && n < lastLoop) ((at[item.node] = [x + 50, 20, 0]), (x += 130));
+      } else if (n > firstLoop && n < lastLoop) ((at[item.node] = [x + 50, 0, 0]), (x += 130));
     });
-    order.slice(0, Math.max(0, firstLoop)).reverse().forEach((item, n) => (at[item.node] = [-64 - n * 30, 20, -130 - n * 88]));
-    order.slice(lastLoop + 1).forEach((item, n) => (at[item.node] = [x - 6 + n * 26, 20, 150 + n * 80]));
+    order.slice(0, Math.max(0, firstLoop)).reverse().forEach((item, n) => (at[item.node] = [-64 - n * 30, 0, -130 - n * 88]));
+    order.slice(lastLoop + 1).forEach((item, n) => (at[item.node] = [x - 6 + n * 26, 0, 150 + n * 80]));
     // What is in no loop is small here: this view is of the loops.
-    for (const item of order) if (item.node) prims.push({ ...card(by(m.nodes, item.node), at[item.node]), small: true });
+    for (const item of order) if (item.node) prims.push(card(by(m.nodes, item.node), at[item.node], { stand: true, small: true }));
     // Where a node is in a given round: on its own loop's spiral, that many turns up.
     const spot = (id, round = 0) => {
       const loop = by(m.loops, by(m.nodes, id).loop);
-      if (!loop) return [at[id][0], 3, at[id][2]];
+      if (!loop) return at[id];
       const t = tower[loop.id];
       return on(t, round + t.stops.findIndex((stop) => stop.node === id) / t.k);
     };
+    const round = (e) => m.loops.find((l) => l.own.includes(e.from) && l.own.includes(e.to));
     const path = (id, r0 = 0, r1 = 0) => {
       const e = by(m.edges, id);
-      const loop = m.loops.find((l) => l.own.includes(e.from) && l.own.includes(e.to));
+      const loop = round(e);
       if (loop) {
         const t = tower[loop.id];
         const [i, j] = [t.stops.findIndex((stop) => stop.node === e.from), t.stops.findIndex((stop) => stop.node === e.to)];
@@ -495,18 +533,32 @@
       }
       // Between a loop and what is outside it, or between two loops: from where each is in its round. A way back
       // into a loop inside the one it belongs to arrives at that loop's first round: its rounds start afresh.
-      const rise = (node, round) => (by(m.nodes, node).loop ? round : 0);
+      const rise = (node, r) => (by(m.nodes, node).loop ? r : 0);
       return arch(spot(e.from, rise(e.from, r0)), spot(e.to, e.back ? 0 : rise(e.to, r1)), e.back ? 40 : 0, 18);
     };
+    // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, in the
+    // round it took them, as far as the slider has come; one it never took is faint, at round 0. An edge that is
+    // the spiral itself is not drawn twice: it is shown when it is the one a step is about.
+    const drawn = new Set();
+    const line = (e, r0, r1, more = {}) => {
+      const key = `edge:${e.id}@${r0}`;
+      if (drawn.has(key)) return;
+      drawn.add(key);
+      const hidden = round(e) && !e.back && !shown.lit?.has(key);
+      prims.push(edgeLine(m, e, path(e.id, r0, r1), { key, ...(round(e) && !e.back ? { hide: hidden, stroke: hue(m, round(e).id), w: 3.2 } : {}), ...more }));
+    };
     for (const e of m.edges) {
-      const round = m.loops.some((l) => l.own.includes(e.from) && l.own.includes(e.to));
-      // The spiral itself is the edges of a round, so those are not drawn twice; every other edge is, as in round 0.
-      prims.push(edgeLine(m, e, path(e.id, 0, e.back ? 1 : 0), round && !e.back ? { hide: !shown.lit?.has(`edge:${e.id}`), stroke: hue(m, by(m.nodes, e.from).loop), w: 3.2 } : {}));
+      const took = (shown.took || []).filter((x) => x.edge === e.id && (shown.k === undefined || shown.k === 0 || x.step <= shown.k));
+      if (!m.run) line(e, 0, e.back ? 1 : 0);
+      else if (took.length) for (const x of took) line(e, x.r0, x.r1);
+      else if (!(shown.took || []).some((x) => x.edge === e.id)) line(e, 0, e.back ? 1 : 0, { alpha: 0.3 });
     }
+    // A note about an edge the run has not walked yet at this point is shown where the run stood.
+    if (shown.about) line(by(m.edges, shown.about.edge), shown.about.r0, shown.about.r0);
     return { prims, node: spot, path };
   }
 
-  /* ── D3 · panes: the flat picture, with each loop and each subgrooph lifted toward the eye ──────────────── */
+  /* ── D3 · panes: the flat picture, with each loop and each box lifted toward the eye ─────────────────────── */
   function panes(m) {
     const prims = [];
     const at = {};
@@ -518,12 +570,12 @@
     const depth = (id) => Math.max(0, ...boxes.filter((box) => box.ids.includes(id)).map((box) => box.depth));
     const STEP = 84;
     for (const n of m.nodes) at[n.id] = [n.at[0] * 0.62 + 62, -n.at[1] * 0.4, depth(n.id) * STEP];
-    for (const n of m.nodes) prims.push(card(n, at[n.id]));
+    for (const n of m.nodes) prims.push(card(n, at[n.id], {}));
     const around = (ids, pad) => {
       const pts = ids.map((id) => at[id]);
       return [Math.min(...pts.map((p) => p[0])) - 58 - pad, Math.max(...pts.map((p) => p[0])) + 58 + pad, Math.min(...pts.map((p) => p[1])) - 22 - pad, Math.max(...pts.map((p) => p[1])) + 22 + pad];
     };
-    // The picture's own plane, where the nodes in no loop stay: what the panes are seen to be lifted from.
+    // The picture's own plane, where the nodes in no loop and no box stay: what the panes are seen to be lifted from.
     const [gx0, gx1, gy0, gy1] = around(m.nodes.map((n) => n.id), 42);
     prims.push({ t: "poly", pts: [[gx0, gy0, -8], [gx1, gy0, -8], [gx1, gy1, -8], [gx0, gy1, -8]], fill: "floor", fa: 0.7, stroke: "line-strong", lift: -600 });
     prims.push({ t: "text", at: [gx0 + 4, gy1 + 10, -8], text: "the picture", fill: "ink-3", size: 10 });
@@ -533,7 +585,7 @@
       const color = box.loop ? hue(m, box.loop.id) : "ink-3";
       prims.push({ t: "poly", pts: [[x0, y0, z], [x1, y0, z], [x1, y1, z], [x0, y1, z]], fill: color, fa: box.loop ? 0.15 : 0.08, stroke: color, dash: box.loop ? undefined : [5, 4], w: 1.3, key: box.loop ? `loop:${box.loop.id}` : undefined, lift: box.depth * 30 - 80 });
       prims.push({ t: "text", at: [x0 + 4, box.depth % 2 ? y1 + 10 : y0 - 10, z], text: `${box.name} · ${box.sub}`, fill: color, size: 10.5, bold: true, max: 200 });
-      // Its shadow on the picture: where the picture draws the loop's outline.
+      // Its shadow on the picture: where the picture draws its outline.
       prims.push({ t: "line", pts: [[x0, y0, -8], [x1, y0, -8], [x1, y1, -8], [x0, y1, -8], [x0, y0, -8]], stroke: color, w: 1, dash: [2, 4], alpha: 0.6 });
     }
     const paths = {};
@@ -541,8 +593,8 @@
       const [p, q] = [at[e.from], at[e.to]];
       // A way back bows out to the side, as it does on the flat picture.
       const bow = 70 + Math.abs(p[1] - q[1]) * 0.2;
-      paths[e.id] = e.back ? Array.from({ length: 19 }, (_, n) => ((v) => [v[0] + bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp([p[0] + 50, p[1], p[2]], [q[0] + 50, q[1], q[2]], n / 18))) : [[p[0], p[1] - 17, p[2]], [q[0], q[1] + 17, q[2]]];
-      prims.push(edgeLine(m, e, paths[e.id]));
+      paths[e.id] = e.back ? Array.from({ length: 19 }, (_, n) => ((v) => [v[0] + bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp([p[0] + 50, p[1], p[2]], [q[0] + 50, q[1], q[2]], n / 18))) : [p, q];
+      prims.push(edgeLine(m, e, paths[e.id], { inset: e.back ? [4, 8] : [20, 24] }));
     }
     return { prims, node: (id) => at[id], path: (e) => paths[e] };
   }
@@ -550,7 +602,6 @@
   /* ── D4 · columns: a node is as tall as what it costs ────────────────────────────────────────────────────── */
   function columns(m, shown) {
     const prims = [];
-    const at = {};
     const foot = {};
     const TIER = { frontier: 104, strong: 68, fast: 34, unset: 68 };
     const box = (c, wide, deep, y0, y1, fill, more = {}) => {
@@ -580,8 +631,7 @@
         box(c, 58, 36, 0, top, "k-agent", { key: `node:${n.id}`, alpha: n.tier === "unset" ? 0.4 : 1 });
         prims.push({ t: "text", at: [c[0] + 38, top / 2, c[2] + 18], text: n.tier === "unset" ? "session default" : n.tier, size: 10, fill: "ink-2" });
       } else box(c, 58, 36, 0, 5, "floor", { key: `node:${n.id}` });
-      at[n.id] = [c[0], top + 24, c[2]];
-      prims.push(card(n, at[n.id]));
+      prims.push(card(n, [c[0], top + 2, c[2]]));
     }
     for (const loop of m.loops) {
       const pts = loop.members.map((id) => foot[id]);
@@ -613,6 +663,7 @@
     const says = root.querySelector("output");
     const play = root.querySelector('[data-do="play"]');
     let steps = [];
+    let took = [];
     let made;
     let timer = 0;
     let frame = 0;
@@ -623,20 +674,25 @@
       says.textContent = step.says;
       // A run is drawn as far as the note it is at; step 0 is all of it.
       const shown = {};
+      shown.k = k;
+      shown.took = took;
+      if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
       if (m().run && k > 0) {
         shown.dispatches = steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length;
         shown.until = {};
         const last = [...steps.slice(1, k + 1)].reverse().find((s) => s.to);
         for (const loop of m().loops) shown.until[loop.id] = last && loop.own.includes(last.to) ? last.r1 + stations(m(), loop).findIndex((s) => s.node === last.to) / stations(m(), loop).length : last && !by(m().nodes, last.to).loop ? undefined : 0.001;
       }
-      stage.lit = shown.lit = k === 0 ? null : new Set([...(step.nodes || []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`] : []), ...(step.loops || []).map((id) => `loop:${id}`)]);
+      // An edge is lit by its name, and in the spiral by its name and the round it is taken in.
+      stage.lit = shown.lit = k === 0 ? null : new Set([...(step.nodes || []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}`] : []), ...(step.loops || []).map((id) => `loop:${id}`)]);
       made = build(m(), shown);
       const prims = made.prims;
       // What is at this step travels to it: along the edge it took, or it is simply where the note is.
       cancelAnimationFrame(frame);
       const route = step.edge && !step.about ? made.path(step.edge, step.r0, step.r1) : step.to ? [made.node(step.to, step.r1), made.node(step.to, step.r1)] : null;
       if (!route) return stage.set(prims);
-      const token = { t: "dot", at: route[0], r: 6.5, fill: "accent", stroke: "card" };
+      // A ring, so that what it stands on (a run's bead, amber for a fail) is seen through it.
+      const token = { t: "dot", at: route[0], r: 9.5, stroke: "accent", w: 3 };
       stage.set([...prims, token]);
       if (!move || still()) return ((token.at = route[route.length - 1]), stage.ask());
       const from = performance.now();
@@ -653,6 +709,8 @@
       load() {
         stop();
         steps = stepsOf(m());
+        // The edges a run took, each with the rounds it was taken between and the step it was taken at.
+        took = m().run ? steps.flatMap((step, n) => (step.edge && !step.about ? [{ edge: step.edge, r0: step.r0, r1: step.r1, step: n }] : [])) : [];
         range.max = String(steps.length - 1);
         const also = root.querySelector("[data-also]");
         if (also) also.textContent = m().loops.map((loop) => `${loop.name} stops on: ${loop.stops.map((x) => x.words).join("; ")}.`).join(" ");
