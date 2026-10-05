@@ -147,6 +147,9 @@ export function check({ home = DEFAULT_HOME, claude = found("claude") } = {}) {
     add("it holds no instructions, skills, agents or plugins", extra.length === 0, extra.length === 0 ? "none" : extra.join(", "));
     add("its temp folder is empty", readdirSync(at.temp).length === 0, at.temp);
     add("its work folder is empty", readdirSync(at.work).length === 0, at.work);
+    // npm reads its own settings from a file in its cache folder, which every session may write: one session must not leave them for the next.
+    const npmrc = join(at.cache, "npmrc");
+    add("no npm settings were left in its npm cache", !existsSync(npmrc), existsSync(npmrc) ? `${npmrc}: an earlier session wrote npm's settings there, and the next would read them. A person looks, and moves it` : "none");
   }
   const above = instructionsAbove(at.work);
   add("no instruction file above a session's folder", above.length === 0, above.length === 0 ? `none in ${at.work} or any folder above it` : above.join(", "));
@@ -195,7 +198,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const home = resolve(at("--home") ?? DEFAULT_HOME);
   const where = layout(home);
   if (flags.includes("--make")) {
-    for (const dir of [where.profile, where.shell, where.temp, where.cache, where.work]) mkdirSync(dir, { recursive: true });
+    // The two folders the settings close to a session's commands are made too, so that no rule names a path that is not there.
+    for (const dir of [where.profile, where.shell, where.temp, where.cache, where.work, join(home, "kept"), join(where.profile, "projects")]) mkdirSync(dir, { recursive: true });
     writeFileSync(join(where.profile, "settings.json"), `${JSON.stringify(settingsFor({ home }), null, 2)}\n`, "utf8");
     console.log(`made ${where.profile} with its settings, and ${where.temp}, ${where.cache}, ${where.work}\nnot signed in: that is the owner's, once, in a terminal:\n  CLAUDE_CONFIG_DIR=${where.profile} claude auth login`);
   } else if (flags.includes("--print")) {

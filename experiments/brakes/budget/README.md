@@ -182,6 +182,11 @@ On 2026-10-05, from the read of the script that starts a run (pull request 122).
 - **`out/rounds.txt` is read only if it is a plain file of a sane size.** Anything else gives no number, and a run with no number is not judged.
 - **The record is copied before the runner measures anything**, and nothing a session left stops it being kept.
 
+**Two things change in effect, though no words above were changed.**
+
+- **"A check that passes after the run" can no longer be caused by a session.** The check the runner runs is now the repository's own, which fails by construction. What that outcome guarded is carried by the checksum alone: a session's check file that is not byte for byte the repository's is "the check's file was changed". The outcome stays on the list and in the judge; it is dead while the repository's check is what it is.
+- **A run folder file that is not text is left out of the record, and the judge then does not judge.** A record keeps only text of a run folder, since only text can be passed through the scrub that takes the account's own out; a file that has a second name somewhere else is left out too. If a file of the lead's run folder is left out, such as notes with a byte in them that is not text, the lead's own notes cannot be read whole from the record: that run is "not judged" and a person reads it. It is never "met", and it is not "not met" for that alone.
+
 And one thing about when a run may start: **a run of this pair is refused unless the first paid call's latest record says it may be made** ([`experiments/comparisons/profile/first-call/`](../../comparisons/profile/first-call/)). What was "on the list for the first paid call" above is now that call's own list of what has to hold.
 
 ## How to check this page

@@ -506,7 +506,7 @@ const sameOrder = (order, nodeRuns) => JSON.stringify(order) === JSON.stringify(
  *                the driver is told; it is not judged
  *   not judged   the script cannot tell: a fact the runner should have written is missing, the budget is not one of
  *                the pre-registered two, the digest carries no count of the check's lines, the record is short of a
- *                transcript, or a command could not be placed. A person reads it
+ *                transcript or of a file of the run folder, or a command could not be placed. A person reads it
  *   met          every condition the pre-registration names for this form of run holds
  */
 export function judge({ form, budgets, count, own, result, checkSha }) {
@@ -532,6 +532,8 @@ export function judge({ form, budgets, count, own, result, checkSha }) {
   if (!Number.isInteger(result.final_check_exit)) cannot.push("result.json holds no final_check_exit: the runner's own run of the check after the session");
   if (typeof result.check_file_sha256_after !== "string") cannot.push("result.json holds no check_file_sha256_after");
   if (!Number.isInteger(result.rounds_file_lines)) cannot.push("result.json holds no rounds_file_lines: the lines in out/rounds.txt after the session");
+  // A record keeps only text of a run folder. Where a file of it was left out, what the lead kept cannot be read whole.
+  if ((result.run_folder_files_left_out ?? []).length > 0) cannot.push(`the record left out ${result.run_folder_files_left_out.length} file(s) of the run folder (${result.run_folder_files_left_out.join(", ")}): the lead's own notes cannot be read whole from it`);
   if (count.digest_lacks_check_lines) cannot.push("the digest does not say how many of the check's lines each command's result held, so check runs cannot be counted");
   if (count.digest_disagrees_with_itself) cannot.push("a command's kept result shows more of the check's lines than the digest's count for it");
   if (count.transcripts_missing > 0) cannot.push(`${count.transcripts_missing} call(s) of the Agent tool that did not error left no subagent's transcript in the record`);

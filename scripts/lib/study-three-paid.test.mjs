@@ -2,7 +2,7 @@
 // model (scripts/lib/fixtures/stand-in-harness.mjs). The profile, the ledger and the records are all temporary.
 import assert from "node:assert/strict";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { test } from "node:test";
@@ -12,8 +12,8 @@ import { recordFor, runBrake } from "./brake-run-paid.mjs";
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
 import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
-import { build as buildArm, expectation as rolesExpectation, nextRun, NotScored, order, readings, runOne, scoreKept, SCORING_RUNS_WHAT_A_SESSION_WROTE } from "./roles-or-information-paid.mjs";
-import { asOfToday, changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { build as buildArm, expectation as rolesExpectation, nextRun, NotScored, order, readings, runOne, scoreKept, scoringDecided, SCORING_RUNS_WHAT_A_SESSION_WROTE } from "./roles-or-information-paid.mjs";
+import { asOfToday, changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, profileFingerprint, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, scrubValue, spendFlags, unknownFlags, writeResult } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
@@ -39,13 +39,27 @@ function place(plan) {
   // What a session is started with in a test: the stand-in, no real profile check, no game session, a short grace.
   const session = { home, claude: harness, ledgerPath, profileCheck: () => [], gameOpen: [], go: "the driver said: run the small package run", grace: 300 };
   const common = { ...session, firstCallGate: { ok: true, record: "record" } };
-  return { top, home, at, harness, ledgerPath, recordRoot: join(top, "records"), session, common, ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")) };
+  // For the runs of roles or information: the first steps' file with the owner's decision on scoring recorded in it.
+  const decided = { projects: ["roles-or-information"], stop_usd: 20, scoring_outside_the_sandbox: { decided_by: "the owner", on: "2026-10-05", words: "a test's stand-in for his words" } };
+  return { top, home, at, harness, ledgerPath, recordRoot: join(top, "records"), session, common, decided, ledger: () => JSON.parse(readFileSync(ledgerPath, "utf8")) };
 }
 const agent = (round) => ({ tool: "Agent", input: { subagent_type: "brake-budget--builder", description: `Builder round ${round}`, prompt: `Round ${round}` }, result: "verdict: done", appends: { "out/rounds.txt": `round ${round}\n` } });
 const checkRun = { tool: "Bash", input: { command: "node check/fixed-fail.mjs" }, result: `Exit code 1\n${LINE}`, is_error: true };
 const note = (line) => `${JSON.stringify(line)}\n`;
 const notes = (stop = "budget") => ({ tool: "Bash", input: { command: `printf note >> ${RUN}/notes.jsonl` }, result: "", appends: { [`${RUN}/notes.jsonl`]: note({ id: "n-0001", at: "graph", text: "run started" }) + note({ id: "n-0002", at: "node:builder", outcome: "pass", round: 0 }) + note({ id: "n-0003", at: "node:check", outcome: "fail", round: 0 }) + note({ id: "n-0004", at: "loop:rounds", outcome: "halt", round: 0, stop }) } });
 const count = (dir) => spawnSync(process.execPath, [join(here, "brake-count.mjs"), dir], { encoding: "utf8" });
+/** Wait until a process is gone, for at most five seconds: on a slow machine a killed process is not gone at once. */
+async function gone(pid) {
+  for (let waited = 0; waited < 5000; waited += 50) {
+    try {
+      process.kill(pid, 0);
+    } catch {
+      return true;
+    }
+    await new Promise((later) => setTimeout(later, 50));
+  }
+  return false;
+}
 
 test("a paid step needs both flags, and the driver's words are more than a word", () => {
   assert.deepEqual(spendFlags(["--spend", "--go", "the driver: run the first call"]), { ok: true, go: "the driver: run the first call", missing: [] });
@@ -56,6 +70,14 @@ test("a paid step needs both flags, and the driver's words are more than a word"
   assert.equal(spendFlags(["--spend", "--go", "--budget-of-two"]).ok, false, "however long that flag is");
   assert.equal(spendFlags(["--spend", "--go", "yes"]).ok, false, "a bare yes is not a record of who said what");
   assert.equal(spendFlags([]).missing.length, 2);
+  // A flag a script does not know is never passed over: "--dryrun --spend" must not be a paid run.
+  const known = { plain: ["--dry-run", "--spend"], valued: ["--go", "--form"] };
+  assert.deepEqual(unknownFlags(["--spend", "--go", "the driver's words", "--form", "package", "--dry-run"], known), []);
+  assert.deepEqual(unknownFlags(["--dryrun", "--spend", "--go", "the driver's words", "extra"], known), ["--dryrun", "extra"]);
+  for (const [script, flags] of [["brake-run-paid.mjs", ["--form", "package", "--budget", "2", "--dryrun", "--spend", "--go", "the driver's words"]], ["profile-first-call-paid.mjs", ["--dry_run", "--spend", "--go", "the driver's words"]], ["resume-step-paid.mjs", ["--next", "--spend", "--go", "the driver's words"]], ["roles-or-information-paid.mjs", ["--dryrun", "--spend", "--go", "the driver's words"]]]) {
+    const out = spawnSync(process.execPath, [join(here, script), ...flags], { encoding: "utf8" });
+    assert.deepEqual([out.status, /not a flag of this script\. Nothing was started\./.test(out.stderr)], [64, true], script);
+  }
 });
 
 test("what ended a run is the session, the watchdog or the harness, and only one of them", () => {
@@ -95,25 +117,23 @@ test("the harness is found by its whole path, or nothing is started", () => {
 test("a watchdog's limit of minutes ends the whole group, a stubborn child and its own child with it", async () => {
   const dir = mkdtempSync(join(tmpdir(), "bounded-"));
   try {
+    // The limit is long enough for a slow machine to start the program and its child before it falls: the files they write are read below.
     const stubborn = `process.on("SIGTERM", () => {}); const { spawn } = require("node:child_process"); const c = spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)"], { stdio: "ignore" }); require("node:fs").writeFileSync(${JSON.stringify(join(dir, "pids"))}, process.pid + " " + c.pid); setInterval(() => {}, 1000);`;
     const started = Date.now();
-    const child = await runBounded({ program: process.execPath, args: ["-e", stubborn], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 400, grace: 300 });
+    const child = await runBounded({ program: process.execPath, args: ["-e", stubborn], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 3000, grace: 300 });
     assert.equal(child.timed_out, true);
-    assert.ok(Date.now() - started < 5000, "it did not wait for a child that ignored being asked");
-    await new Promise((later) => setTimeout(later, 200));
-    for (const pid of readFileSync(join(dir, "pids"), "utf8").split(" ").map(Number)) assert.throws(() => process.kill(pid, 0), /ESRCH/, `process ${pid} is gone`);
+    assert.ok(Date.now() - started < 15000, "it did not wait for a child that ignored being asked");
+    for (const pid of readFileSync(join(dir, "pids"), "utf8").split(" ").map(Number)) assert.ok(await gone(pid), `process ${pid} is gone`);
     // A session that goes when it is asked does not leave behind a child of its own that would not.
     const leaver = `const { spawn } = require("node:child_process"); const c = spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)"], { stdio: "ignore" }); require("node:fs").writeFileSync(${JSON.stringify(join(dir, "left"))}, String(c.pid)); setInterval(() => {}, 1000);`;
-    const left = await runBounded({ program: process.execPath, args: ["-e", leaver], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 400, grace: 5000 });
+    const left = await runBounded({ program: process.execPath, args: ["-e", leaver], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 3000, grace: 60000 });
     assert.deepEqual([left.timed_out, left.signal], [true, "SIGTERM"]);
-    await new Promise((later) => setTimeout(later, 200));
-    assert.throws(() => process.kill(Number(readFileSync(join(dir, "left"), "utf8")), 0), /ESRCH/, "the child it left is gone at once, not after the grace");
+    assert.ok(await gone(Number(readFileSync(join(dir, "left"), "utf8"))), "the child it left is gone at once, not after the grace");
     // Nor does one that ended by itself, with a child of its own still running.
     const early = `const { spawn } = require("node:child_process"); const c = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" }); require("node:fs").writeFileSync(${JSON.stringify(join(dir, "after"))}, String(c.pid)); c.unref(); process.exit(0);`;
     const over = await runBounded({ program: process.execPath, args: ["-e", early], cwd: dir, env: process.env, outPath: join(dir, "out"), errPath: join(dir, "err"), ms: 5000 });
     assert.deepEqual([over.status, over.timed_out], [0, false]);
-    await new Promise((later) => setTimeout(later, 200));
-    assert.throws(() => process.kill(Number(readFileSync(join(dir, "after"), "utf8")), 0), /ESRCH/, "nothing of a session outlives it");
+    assert.ok(await gone(Number(readFileSync(join(dir, "after"), "utf8"))), "nothing of a session outlives it");
     // A program that cannot even be given its output files is a fact, not something thrown.
     const nowhere = await runBounded({ program: process.execPath, args: ["-e", "0"], cwd: dir, env: process.env, outPath: join(dir, "no-such-folder", "out"), errPath: join(dir, "err"), ms: 5000 });
     assert.equal(nowhere.error.code, "ENOENT");
@@ -126,27 +146,34 @@ test("a watchdog's limit of minutes ends the whole group, a stubborn child and i
   }
 });
 
-test("a runner that is itself told to stop ends its session first, and says who ended it", async () => {
+test("a runner that is itself told to stop ends its session first, and says who ended it; told twice, it kills it and still records", async () => {
   const dir = mkdtempSync(join(tmpdir(), "stopped-"));
   try {
     const pidFile = join(dir, "session.pid");
+    // A session that ignores being asked to end, and a grace of a minute: only a second signal ends it sooner.
     writeFileSync(join(dir, "runner.mjs"), `import { runBounded } from ${JSON.stringify(join(here, "study-three-paid.mjs"))};
-const child = await runBounded({ program: process.execPath, args: ["-e", "process.on('SIGTERM', () => {}); require('node:fs').writeFileSync(process.argv[1], String(process.pid)); setInterval(() => {}, 1000)", ${JSON.stringify(pidFile)}], cwd: ${JSON.stringify(dir)}, env: process.env, outPath: ${JSON.stringify(join(dir, "out"))}, errPath: ${JSON.stringify(join(dir, "err"))}, ms: 60000, grace: 300 });
+const child = await runBounded({ program: process.execPath, args: ["-e", "process.on('SIGTERM', () => {}); require('node:fs').writeFileSync(process.argv[1], String(process.pid)); setInterval(() => {}, 1000)", ${JSON.stringify(pidFile)}], cwd: ${JSON.stringify(dir)}, env: process.env, outPath: ${JSON.stringify(join(dir, "out"))}, errPath: ${JSON.stringify(join(dir, "err"))}, ms: 600000, grace: 60000 });
 console.log(JSON.stringify(child));
 `, "utf8");
     const runner = spawn(process.execPath, [join(dir, "runner.mjs")], { stdio: ["ignore", "pipe", "inherit"] });
     let printed = "";
     runner.stdout.on("data", (chunk) => (printed += chunk));
-    const ended = new Promise((done) => runner.once("exit", done));
-    for (let waited = 0; !existsSync(pidFile) && waited < 5000; waited += 50) await new Promise((later) => setTimeout(later, 50));
+    const ended = new Promise((done) => runner.once("exit", (status, signal) => done({ status, signal })));
+    for (let waited = 0; !existsSync(pidFile) && waited < 10000; waited += 50) await new Promise((later) => setTimeout(later, 50));
     const session = Number(readFileSync(pidFile, "utf8"));
-    runner.kill("SIGTERM");
-    await ended;
+    const began = Date.now();
+    // Ctrl-C, and Ctrl-C again while the session is being ended: the same signal twice.
+    runner.kill("SIGINT");
+    await new Promise((later) => setTimeout(later, 300));
+    assert.equal(runner.exitCode, null, "the first signal did not end the runner: it is ending its session");
+    runner.kill("SIGINT");
+    const how = await ended;
+    assert.deepEqual(how, { status: 0, signal: null }, "the second did not end it either: it went on to say what happened");
+    assert.ok(Date.now() - began < 30000, "and the session did not get its minute of grace");
     const child = JSON.parse(printed);
-    assert.deepEqual([child.runner_stopped, child.timed_out], ["SIGTERM", false]);
+    assert.deepEqual([child.runner_stopped, child.timed_out, child.signal], ["SIGINT", false, "SIGKILL"]);
     assert.equal(endedBy({ child, output: null }).ended_by, "the harness", "a run the runner's own stopping ended is the harness's to answer for, and may be made again once");
-    await new Promise((later) => setTimeout(later, 200));
-    assert.throws(() => process.kill(session, 0), /ESRCH/, "the session did not outlive its runner");
+    assert.ok(await gone(session), "the session did not outlive its runner");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -167,10 +194,28 @@ test("nothing of the account's is left in a record: the home folder's path and a
     assert.deepEqual(scrubRecord(dir, { home: "/Users/someone" }), { addresses: 2, home_paths: 1 });
     assert.ok(!/@example/.test(readFileSync(join(dir, "loaded.txt"), "utf8") + readFileSync(join(dir, "runs", "r", "notes.jsonl"), "utf8")));
     assert.deepEqual(scrubRecord(dir, { home: "/Users/someone" }), { addresses: 0, home_paths: 0 }, "a second pass finds nothing");
+    // JSON is scrubbed by its values, never as text: as text, an address after a new line takes the escape's letter with it.
+    const broken = scrub(JSON.stringify({ tail: "13 refused\nsomeone@example.org asked" }), { home: "/Users/someone" }).text;
+    assert.throws(() => JSON.parse(broken), SyntaxError, "which is why a file of JSON is never handed to scrub whole");
+    assert.deepEqual(scrubValue({ "a\tkey of someone@example.org": ["13 refused\nsomeone@example.org asked", { in: "/Users/someone/x", n: 3, no: null }] }, { home: "/Users/someone" }), { value: { "a\tkey of <an address, kept out>": ["13 refused\n<an address, kept out> asked", { in: "~/x", n: 3, no: null }] }, addresses: 2, home_paths: 1 });
+    mkdirSync(join(dir, "json"));
+    const pretty = `${JSON.stringify({ result: "done\nsomeone@example.org asked", cost: 0.2 }, null, 2)}\n`;
+    writeFileSync(join(dir, "json", "pretty.json"), pretty, "utf8");
+    writeFileSync(join(dir, "json", "one-line.json"), JSON.stringify({ result: "x\tsomeone@example.org" }), "utf8");
+    writeFileSync(join(dir, "json", "clean.json"), '{"a":  1,\n "b":"no address here"}', "utf8");
+    writeFileSync(join(dir, "json", "notes.jsonl"), `${JSON.stringify({ text: "first\nsomeone@example.org" })}\nnot json, from someone@example.org\n`, "utf8");
+    writeFileSync(join(dir, "json", "cut-short.json"), '{"result": "to someone@example.org', "utf8");
+    assert.deepEqual(scrubRecord(join(dir, "json"), { home: "/Users/someone" }), { addresses: 5, home_paths: 0 });
+    assert.deepEqual(JSON.parse(readFileSync(join(dir, "json", "pretty.json"), "utf8")), { result: "done\n<an address, kept out> asked", cost: 0.2 });
+    assert.match(readFileSync(join(dir, "json", "pretty.json"), "utf8"), /^\{\n {2}"result"[\s\S]*\}\n$/, "laid out as it was");
+    assert.equal(readFileSync(join(dir, "json", "one-line.json"), "utf8"), '{"result":"x\\t<an address, kept out>"}');
+    assert.equal(readFileSync(join(dir, "json", "clean.json"), "utf8"), '{"a":  1,\n "b":"no address here"}', "a file with nothing to take out is left byte for byte");
+    assert.deepEqual(readFileSync(join(dir, "json", "notes.jsonl"), "utf8").split("\n").slice(0, 2).map((line, i) => (i === 0 ? JSON.parse(line).text : line)), ["first\n<an address, kept out>", "not json, from <an address, kept out>"]);
+    assert.equal(readFileSync(join(dir, "json", "cut-short.json"), "utf8"), '{"result": "to <an address, kept out>', "what is not JSON is scrubbed as text, which cannot break it further");
     // A run's result is written through the same scrub, without the harness's whole output or the runner's own folder.
-    const call = { session_id: "s", why: `no result from the harness in ${homedir()}/grooph-compare/work`, output: { result: "I wrote to a.person@example.org" }, harness_dir: join(dir, "harness") };
+    const call = { session_id: "s", why: `no result from the harness in ${homedir()}/grooph-compare/work`, output: { result: "I wrote, and\na.person@example.org asked" }, harness_dir: join(dir, "harness") };
     const written = writeResult(join(dir, "result"), call, { problems: [] });
-    assert.deepEqual([written.why, written.result_tail, written.output, written.harness_dir], ["no result from the harness in ~/grooph-compare/work", "I wrote to <an address, kept out>", undefined, undefined]);
+    assert.deepEqual([written.why, written.result_tail, written.output, written.harness_dir], ["no result from the harness in ~/grooph-compare/work", "I wrote, and\n<an address, kept out> asked", undefined, undefined]);
     assert.deepEqual(JSON.parse(readFileSync(join(dir, "result", "result.json"), "utf8")), written);
     // Where it cannot be written, nothing is thrown: the result comes back with that said in it.
     const unwritten = writeResult(join(dir, "loaded.txt", "under-a-file"), call, { problems: ["an earlier one"] });
@@ -199,48 +244,66 @@ test("what a session left is read only as plain files of a sane size", () => {
     symlinkSync("/etc/hosts", join(dir, "runs", "r", "hosts"));
     writeFileSync(join(dir, "runs", "r", "huge.bin"), Buffer.alloc((1 << 20) + 1));
     writeFileSync(join(dir, "runs", "r", "picture.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff, 0xfe, 0x00]));
+    writeFileSync(join(dir, "outside.txt"), "a file that is somewhere else\n", "utf8");
+    linkSync(join(dir, "outside.txt"), join(dir, "runs", "r", "second-name.txt"));
     const left = copyPlain(join(dir, "runs"), join(dir, "copy"));
     assert.deepEqual(readdirSync(join(dir, "copy", "r")), ["notes.jsonl"]);
-    assert.deepEqual(left.sort(), ["r/hosts (not a plain file)", `r/huge.bin (${(1 << 20) + 1} bytes)`, "r/picture.png (not text)"]);
+    assert.deepEqual(left.sort(), ["r/hosts (not a plain file)", `r/huge.bin (${(1 << 20) + 1} bytes)`, "r/picture.png (not text)", "r/second-name.txt (it has another name elsewhere: a hard link)"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("the first call's record gates everything after it: no record is a no, and so is one made with another harness or other settings", () => {
-  const dir = mkdtempSync(join(tmpdir(), "gate-"));
-  const today = { harness_version: "2.1.289 (Claude Code)", profile_settings_sha256: "s".repeat(64) };
-  const put = (name, may, more = {}) => {
-    mkdirSync(join(dir, name), { recursive: true });
-    writeFileSync(join(dir, name, "result.json"), JSON.stringify({ may_the_pair_run: may, harness: { path: "/x/claude", version: today.harness_version }, profile_settings_sha256: today.profile_settings_sha256, ...more }), "utf8");
+test("the first call's record gates everything after it: its yes has to be the latest attempt's, borne out by its own record, and made with today's harness and profile", () => {
+  const today = { harness_version: "2.1.289 (Claude Code)", profile_sha256: "s".repeat(64) };
+  const good = { may_the_pair_run: true, findings: [{ what: "the session started and ended itself", holds: true }], problems: [], ended_by: "the session", harness: { path: "/x/claude", version: today.harness_version }, profile_sha256: today.profile_sha256 };
+  const made = [];
+  const folder = (records) => {
+    const dir = mkdtempSync(join(tmpdir(), "gate-"));
+    made.push(dir);
+    for (const [name, value] of Object.entries(records)) {
+      mkdirSync(join(dir, name), { recursive: true });
+      if (value !== null) writeFileSync(join(dir, name, "result.json"), typeof value === "string" ? value : JSON.stringify(value), "utf8");
+    }
+    return dir;
   };
+  const says = (records, when = today) => firstCallAllows(folder(records), when);
   try {
-    assert.match(firstCallAllows(dir, today).why, /has no record/);
-    put("record", false);
-    assert.match(firstCallAllows(dir, today).why, /latest record \(record\) does not say/);
-    put("record-2", true);
-    assert.deepEqual(firstCallAllows(dir, today), { ok: true, record: "record-2" });
-    put("record-3", false);
-    assert.equal(firstCallAllows(dir, today).ok, false, "the latest attempt is the one that counts");
-    put("record-10", true);
-    assert.deepEqual(firstCallAllows(dir, today), { ok: true, record: "record-10" }, "by its number, not by how its name sorts");
-    put("record-11", undefined);
-    assert.equal(firstCallAllows(dir, today).ok, false, "a record that does not say is a no");
-    // What a session showed under another version of the harness, or other settings, is not known to hold now.
-    put("record-12", true);
-    assert.match(firstCallAllows(dir, { ...today, harness_version: "2.2.0 (Claude Code)" }).why, /another version of the harness \(2\.1\.289 \(Claude Code\), and today 2\.2\.0 \(Claude Code\)\).*made again as the next attempt/);
-    assert.match(firstCallAllows(dir, { ...today, profile_settings_sha256: "t".repeat(64) }).why, /another state of the profile's settings/);
-    put("record-13", true, { harness: { path: "/x/claude" } });
-    assert.match(firstCallAllows(dir, today).why, /not recorded, and today 2\.1\.289/, "a record that does not say which harness made it is a no");
-    put("record-14", true, { profile_settings_sha256: undefined });
-    assert.equal(firstCallAllows(dir, today).ok, false);
-    // Today's own facts: the settings as the repository has them, and the harness as it is found; not found is never a match.
+    assert.match(says({}).why, /has no record/);
+    assert.deepEqual(says({ record: good }), { ok: true, record: "record" });
+    assert.match(says({ record: { ...good, may_the_pair_run: false } }).why, /latest record \(record\) does not say/);
+    assert.deepEqual(says({ record: { ...good, may_the_pair_run: false }, "record-2": good }), { ok: true, record: "record-2" });
+    assert.equal(says({ record: good, "record-2": { ...good, may_the_pair_run: false } }).ok, false, "the latest attempt is the one that counts");
+    assert.deepEqual(says({ record: good, "record-2": good, "record-10": good }), { ok: true, record: "record-10" }, "by its number, not by how its name sorts");
+    assert.equal(says({ record: { ...good, may_the_pair_run: undefined } }).ok, false, "a record that does not say is a no");
+    // The yes has to be borne out by the record it sits in.
+    assert.match(says({ record: { ...good, findings: [{ what: "x", holds: true }, { what: "y", holds: false }] } }).why, /says yes and does not bear it out: a finding in it does not hold/);
+    assert.match(says({ record: { ...good, findings: [] } }).why, /it holds no findings/);
+    assert.match(says({ record: { ...good, findings: undefined } }).why, /it holds no findings/);
+    assert.match(says({ record: { ...good, problems: ["the ledger line could not be settled"] } }).why, /something went wrong keeping it/);
+    assert.match(says({ record: { ...good, ended_by: "the harness" } }).why, /it was ended by the harness/);
+    // The latest attempt is the latest folder, with or without a result: one that was started and left none is a no.
+    assert.match(says({ record: good, "record-2": null }).why, /latest attempt \(record-2\) has no result that can be read/);
+    assert.match(says({ record: '{"may_the_pair_run": tr' }).why, /has no result that can be read \(SyntaxError\)/, "a record cut short is a no, and nothing is thrown");
+    assert.match(says({ record: "null" }).why, /does not say/);
+    // A folder the runner never makes is no attempt's, whatever it says.
+    assert.match(says({ record: { ...good, may_the_pair_run: false }, "record-1": good }).why, /holds record-1, which is no attempt's record/);
+    assert.match(says({ record: good, "record-02": good }).why, /no attempt's record/);
+    assert.match(says({ record: good, "record-final": null }).why, /no attempt's record/);
+    // What a session showed under another version of the harness, or another profile, is not known to hold now.
+    assert.match(says({ record: good }, { ...today, harness_version: "2.2.0 (Claude Code)" }).why, /another version of the harness \(2\.1\.289 \(Claude Code\), and today 2\.2\.0 \(Claude Code\)\).*made again as the next attempt/);
+    assert.match(says({ record: good }, { ...today, profile_sha256: "t".repeat(64) }).why, /another state of the profile \(its settings, or the command a session is started with\)/);
+    assert.match(says({ record: { ...good, harness: { path: "/x/claude" } } }).why, /not recorded, and today 2\.1\.289/, "a record that does not say which harness made it is a no");
+    assert.equal(says({ record: { ...good, profile_sha256: undefined } }).ok, false);
+    // Today's own facts: the profile as the repository has it, and the harness as it is found; not found is never a match.
     const real = asOfToday(() => ({ path: "/x/claude", version: "9.9.9" }));
-    assert.deepEqual([real.harness_version, real.profile_settings_sha256], ["9.9.9", plainSha(join(root, "experiments", "comparisons", "profile", "settings.json"))]);
+    assert.deepEqual([real.harness_version, real.profile_sha256], ["9.9.9", profileFingerprint()]);
+    assert.match(profileFingerprint(), /^[0-9a-f]{64}$/);
+    assert.notEqual(profileFingerprint(), plainSha(join(root, "experiments", "comparisons", "profile", "settings.json")), "it covers the command a session is started with, not the settings file alone");
     assert.equal(asOfToday(() => findHarness(() => ({ status: 1, stdout: "" }))).harness_version, "the harness was not found");
     assert.equal(typeof firstCallAllows().ok, "boolean", "with nothing named, the repository's own record and today's own facts are the ones read");
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    for (const dir of made) rmSync(dir, { recursive: true, force: true });
   }
 });
 
@@ -277,6 +340,7 @@ test("a transcript's results come back whole and in the order of its tool uses",
 });
 
 const aProject = (p) => makeProject({ home: p.home, name: "rounds", fill: (cwd) => writeFileSync(join(cwd, "a.txt"), "a\n", "utf8") });
+const clearTheWorkFolder = (p, project) => rmSync(project.work, { recursive: true, force: true });
 const notStarted = (pattern) => (error) => error instanceof NotStarted && pattern.test(error.message);
 
 test("a session is refused before anything is written anywhere, and each refusal says nothing was started", async () => {
@@ -346,7 +410,27 @@ test("the project's change is read through the runner's own copy of the reposito
     assert.ok(existsSync(ran));
     // And a session that took its repository away altogether changes nothing about what is read.
     rmSync(join(project.cwd, ".git"), { recursive: true, force: true });
-    assert.deepEqual(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir }).files.sort(), ["A .gitattributes", "A new.txt", "M a.txt"]);
+    const whole = changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir });
+    assert.deepEqual([whole.files.sort(), whole.not_wholly_read], [["A .gitattributes", "A new.txt", "M a.txt"], null]);
+    // A session's own ignore file hides nothing it added.
+    writeFileSync(join(project.cwd, ".gitignore"), "hidden/\n*.secret\n", "utf8");
+    mkdirSync(join(project.cwd, "hidden"));
+    writeFileSync(join(project.cwd, "hidden", "work.mjs"), "export const x = 1;\n", "utf8");
+    writeFileSync(join(project.cwd, "notes.secret"), "x\n", "utf8");
+    assert.deepEqual(changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir }).files.sort(), ["A .gitattributes", "A .gitignore", "A hidden/work.mjs", "A new.txt", "A notes.secret", "M a.txt"]);
+    // A file nobody may open does not stop the rest being read; that the read was not whole is said, and is never "no change".
+    if (process.getuid?.() !== 0) {
+      writeFileSync(join(project.cwd, "locked.txt"), "x\n", "utf8");
+      chmodSync(join(project.cwd, "locked.txt"), 0o000);
+      const part = changeSince({ cwd: project.cwd, base: project.base, gitDir: project.gitDir });
+      chmodSync(join(project.cwd, "locked.txt"), 0o644);
+      assert.ok(part.files.includes("M a.txt") && part.files.includes("A hidden/work.mjs") && !part.files.some((file) => file.endsWith("locked.txt")), "the rest was read");
+      assert.match(part.not_wholly_read, /locked\.txt/);
+    }
+    // A folder that cannot be made whole is taken away, and that is a refusal before any call.
+    clearTheWorkFolder(p, project);
+    assert.throws(() => makeProject({ home: p.home, name: "broken", fill: () => { throw new Error("the task's folder is not there"); } }), notStarted(/the session's folder could not be made: the task's folder is not there/));
+    assert.deepEqual(readdirSync(p.at.work), []);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -430,11 +514,10 @@ test("one call: its line is on the ledger before it runs and settled after; the 
     // A session whose own child ignores being asked to end: the minute limit ends the whole group, and kills what is left.
     plan({ children: true, hang_ms: 20000 });
     const began = Date.now();
-    const stubborn = await ask({ label: { project: "x", arm: "a", replicate: 6 }, minutes: 0.02 });
+    const stubborn = await ask({ label: { project: "x", arm: "a", replicate: 6 }, minutes: 0.05 });
     assert.deepEqual([stubborn.ended_by, stubborn.which], ["the watchdog", "minutes"]);
-    assert.ok(Date.now() - began < 8000, "it did not wait out a process that would not go");
-    await new Promise((later) => setTimeout(later, 200));
-    assert.throws(() => process.kill(Number(readFileSync(join(p.at.profile, "child.pid"), "utf8")), 0), /ESRCH/, "the session's own child is gone with it");
+    assert.ok(Date.now() - began < 18000, "it did not wait out a process that would not go");
+    assert.ok(await gone(Number(readFileSync(join(p.at.profile, "child.pid"), "utf8"))), "the session's own child is gone with it");
 
     plan({ model: "claude-fable-5-1" });
     assert.deepEqual((await ask({ label: { project: "x", arm: "a", replicate: 7 } })).models_never_used, ["claude-fable-5-1"]);
@@ -470,13 +553,13 @@ test("nothing after the first call starts until its record says it may: each run
   try {
     await assert.rejects(runBrake({ ...p.common, firstCallGate: no, form: "package", budget: 2, recordRoot: p.recordRoot }), notStarted(/the first paid call has no record/));
     await assert.rejects(resumeStep({ ...p.common, firstCallGate: no, recordRoot: p.recordRoot }), notStarted(/the first paid call has no record/));
-    await assert.rejects(runOne({ ...p.common, firstCallGate: no, recordRoot: p.recordRoot }), notStarted(/the first paid call has no record/));
+    await assert.rejects(runOne({ ...p.common, plan: p.decided, firstCallGate: no, recordRoot: p.recordRoot }), notStarted(/the first paid call has no record/));
     // With nothing injected, each reads the repository's own record of the first call. Until that record says yes
     // (there is none before the call is made), each refuses by it; this part says nothing once it does.
     if (!firstCallAllows().ok) {
       await assert.rejects(runBrake({ ...p.session, form: "package", budget: 2, recordRoot: p.recordRoot }), notStarted(/the first paid call/));
       await assert.rejects(resumeStep({ ...p.session, recordRoot: p.recordRoot }), notStarted(/the first paid call/));
-      await assert.rejects(runOne({ ...p.session, recordRoot: p.recordRoot }), notStarted(/the first paid call/));
+      await assert.rejects(runOne({ ...p.session, plan: p.decided, recordRoot: p.recordRoot }), notStarted(/the first paid call/));
     }
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false]);
     // Allowed by the first call and refused at the gates, after its folder was made: each takes its folder away again.
@@ -486,7 +569,7 @@ test("nothing after the first call starts until its record says it may: each run
     assert.deepEqual(readdirSync(p.at.work), []);
     await assert.rejects(resumeStep({ ...p.common, gameOpen: open, recordRoot: p.recordRoot }), refused);
     assert.deepEqual(readdirSync(p.at.work), []);
-    await assert.rejects(runOne({ ...p.common, gameOpen: open, recordRoot: p.recordRoot }), refused);
+    await assert.rejects(runOne({ ...p.common, plan: p.decided, gameOpen: open, recordRoot: p.recordRoot }), refused);
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
@@ -594,6 +677,14 @@ test("whatever a session left, its record is kept: a check it replaced is not ru
     assert.notEqual(count(swapped.recordDir).status, 0);
     assert.match(count(swapped.recordDir).stdout, /the check's file was changed during the run/);
 
+    // A package run that did exactly what passes, with one byte in its notes that is not text. The record keeps only
+    // text, so the notes are left out of it; the judge then cannot read what the lead kept, and does not judge.
+    writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [agent(0), checkRun, notes(), { tool: "Bash", input: { command: "true" }, result: "", bytes: { [`${RUN}/notes.jsonl`]: [0xe9, 0x0a] } }] }), "utf8");
+    const odd = await runBrake({ ...p.common, form: "package", budget: 2, recordRoot: p.recordRoot });
+    assert.deepEqual(odd.result.run_folder_files_left_out, ["20261005-000000/notes.jsonl (not text)"]);
+    assert.ok(!existsSync(join(odd.recordDir, "runs", "20261005-000000", "notes.jsonl")));
+    assert.deepEqual([count(odd.recordDir).status, /outcome: not judged\n {2}- the record left out 1 file\(s\) of the run folder/.test(count(odd.recordDir).stdout)], [2, true], count(odd.recordDir).stdout);
+
     // The ledger is gone by the time the call ends (here a folder stands where it was): the line cannot be settled.
     // Nothing is thrown, the record is kept with what went wrong in it, and the session's folder is moved aside, not removed.
     writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [agent(0), checkRun, agent(1), checkRun], mkdirs: [p.ledgerPath] }), "utf8");
@@ -624,13 +715,13 @@ const probe = (more = {}) => ({
     { tool: "Write", input: { file_path: "closed/by-file-tool.txt", content: "x" }, result: refusedText, is_error: true },
     { tool: "Write", input: { file_path: "open/by-file-tool.txt", content: "x" }, result: "ok", appends: { "open/by-file-tool.txt": "x" } },
     { tool: "Bash", input: { command: "curl -sS -m 5 https://example.com" }, result: "curl: (6) Could not resolve host", is_error: true },
-    { tool: "Agent", input: { subagent_type: "general-purpose", description: "check", prompt: "…" }, result: "three lines", appends: { "open/by-subagent.txt": "x", ...(more.subagentWrote ? { "closed/by-subagent.txt": "x" } : {}) }, subagent_uses: [{ tool: "Write", input: { file_path: "closed/by-subagent.txt", content: "x" }, result: more.subagentWrote ? "ok" : refusedText, is_error: !more.subagentWrote }, { tool: "Write", input: { file_path: "open/by-subagent.txt", content: "x" }, result: "ok" }, { tool: "Bash", input: { command: "touch closed/by-subagent-command.txt" }, result: "Operation not permitted", is_error: true }] },
+    { tool: "Agent", input: { subagent_type: "general-purpose", description: "check", prompt: "…" }, result: "three lines", appends: { "open/by-subagent.txt": "x", ...(more.subagentWrote ? { "closed/by-subagent.txt": "x" } : {}) }, subagent_uses: [{ tool: "Write", input: { file_path: "closed/by-subagent.txt", content: "x" }, result: more.subagentWrote ? "ok" : refusedText, is_error: !more.subagentWrote }, { tool: "Write", input: { file_path: "open/by-subagent.txt", content: "x" }, result: "ok" }, { tool: "Bash", input: { command: "touch closed/by-subagent-command.txt" }, result: "Operation not permitted", is_error: true }, ...(more.subagentNotAskedBeside ? [] : [{ tool: "Write", input: { file_path: more.subagentWroteElsewhere ? "/tmp/by-subagent.txt" : "../by-subagent.txt", content: "x" }, result: refusedText, is_error: true }])] },
     { tool: "Bash", input: { command: "git push" }, result: "Permission to use Bash with command git push has been denied.", is_error: true },
     ...(more.withoutOneStep ? [] : [{ tool: "Bash", input: { command: "ls ../.." }, result: "ls: ../..: Operation not permitted", is_error: true }]),
     { tool: "Bash", input: { command: "node --test probe/pass.test.mjs" }, result: "✔ one and one are two\nℹ pass 1" },
     more.npmFails ? { tool: "Bash", input: { command: "npm test" }, result: "Exit code 1\nnpm error code EPERM\nnpm error syscall open", is_error: true } : { tool: "Bash", input: { command: "npm test" }, result: "> probe@0.0.0 test\n> node --test probe/pass.test.mjs\n\n✔ one and one are two" },
-    more.wroteBeside ? { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "", appends: { "../by-command.txt": "" } } : { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "touch: ../by-command.txt: Operation not permitted", is_error: true },
-    ...(more.withoutTheWriteBeside ? [] : [{ tool: "Write", input: { file_path: "../by-file-tool.txt", content: "x" }, result: refusedText, is_error: true, ...(more.madeBesideAnyway ? { appends: { "../by-file-tool.txt": "x" } } : {}) }]),
+    more.wroteBeside ? { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "", appends: { "../by-command.txt": "" } } : { tool: "Bash", input: { command: more.touchedFromElsewhere ? "cd /tmp && touch ../by-command.txt" : "touch ../by-command.txt" }, result: "touch: ../by-command.txt: Operation not permitted", is_error: true },
+    ...(more.withoutTheWriteBeside ? [] : [{ tool: "Write", input: { file_path: more.wroteElsewhere ? "/tmp/by-file-tool.txt" : "../by-file-tool.txt", content: "x" }, result: refusedText, is_error: true, ...(more.madeBesideAnyway ? { appends: { "../by-file-tool.txt": "x" } } : {}) }]),
     ...(more.twoSubagents ? [{ tool: "Agent", input: { subagent_type: "general-purpose", description: "another", prompt: "…" }, result: "done" }] : []),
   ],
   cost: 0.2,
@@ -639,7 +730,8 @@ const probe = (more = {}) => ({
 const failing = (result) => result.findings.filter((line) => !line.holds).map((line) => line.what);
 
 test("the first call, with a stand-in for the harness: what it showed is read from the folder and the transcripts, and says whether anything after it may run", async () => {
-  const p = place(probe());
+  // The session's last words hold a line that begins with an address: as text of JSON that broke the record; as a value it cannot.
+  const p = place(probe({ plan: { reply: "1 failed\n2 refused\nsomeone@example.org asked for this check" } }));
   const plan = (next) => writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify(next), "utf8");
   try {
     // The stand-in is started by its path, so its records name no version; they are held against that and today's settings.
@@ -650,7 +742,13 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     assert.deepEqual(failing(result), []);
     assert.equal(result.may_the_pair_run, true);
     assert.equal(result.findings.length, 14, "fourteen lines, and every one of them has to hold");
-    assert.deepEqual(result.what_a_refusal_looks_like.map((r) => r.asked), ["ls /tmp", "touch closed/by-command.txt", "closed/by-file-tool.txt", "curl -sS -m 5 https://example.com", "git push", "ls ../..", "touch ../by-command.txt", "../by-file-tool.txt", "closed/by-subagent.txt", "touch closed/by-subagent-command.txt"]);
+    assert.match(result.findings.find((line) => line.what.startsWith("every step")).seen, /^all seventeen$/);
+    assert.deepEqual(result.what_a_refusal_looks_like.map((r) => r.asked), ["ls /tmp", "touch closed/by-command.txt", "closed/by-file-tool.txt", "curl -sS -m 5 https://example.com", "git push", "ls ../..", "touch ../by-command.txt", "../by-file-tool.txt", "closed/by-subagent.txt", "touch closed/by-subagent-command.txt", "../by-subagent.txt"]);
+    assert.equal(result.result_tail, "1 failed\n2 refused\n<an address, kept out> asked for this check");
+    assert.deepEqual(JSON.parse(readFileSync(join(done.recordDir, "result.json"), "utf8")), result, "the record's result is what was returned, and it is JSON");
+    assert.equal(JSON.parse(readFileSync(join(done.recordDir, "claude-output.json"), "utf8")).result, "1 failed\n2 refused\n<an address, kept out> asked for this check", "and so is the kept copy of the harness's own output");
+    assert.ok(Array.isArray(JSON.parse(readFileSync(join(done.recordDir, "transcript-digest.json"), "utf8"))));
+    assert.ok(done.kept && existsSync(join(done.kept, "work", "probe")), "the session's folder was moved aside");
     assert.equal(result.what_a_refusal_looks_like[2].result_begins, refusedText);
     assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["profile-first-call/probe-1", 1]);
     assert.ok(existsSync(join(done.recordDir, "transcript-digest.json")));
@@ -707,11 +805,11 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     assert.deepEqual(failing((await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 11 })).result), ["the transcripts are where the runner looks, and the result has the shape it reads"]);
     // A command that could write beside the session's folder, where the runner keeps the harness's output; and a file
     // that is there although the tool said it was refused.
-    const wall = "nothing could be written beside the session's folder, by a command or by the file tool";
+    const wall = "nothing could be written beside the session's folder, by a command, by the file tool, or by the subagent's file tool";
     plan(probe({ wroteBeside: true }));
     const beside = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 12 });
     assert.deepEqual(failing(beside.result), [wall]);
-    assert.match(beside.result.findings.find((line) => line.what === wall).seen, /touch \.\.\/ NOT refused · Write \.\.\/ refused · made: \.\.\/by-command\.txt/);
+    assert.match(beside.result.findings.find((line) => line.what === wall).seen, /touch \.\.\/ NOT refused · Write \.\.\/ refused · the subagent's Write \.\.\/ refused · made: \.\.\/by-command\.txt/);
     plan(probe({ madeBesideAnyway: true }));
     assert.deepEqual(failing((await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 13 })).result), [wall]);
     // The write beside the folder left out: the write under closed/, to a file of the same name, does not stand for it.
@@ -719,6 +817,13 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     const untried = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 14 });
     assert.deepEqual(failing(untried.result), ["every step was tried, by the lead and by the subagent", wall]);
     assert.match(untried.result.findings.find((line) => line.what.startsWith("every step")).seen, /^not tried: Write \.\.\/$/);
+    // A step tried somewhere else is a step not tried: a refusal under /tmp says nothing about the folder beside the session's.
+    const untriedStep = "every step was tried, by the lead and by the subagent";
+    for (const [attempt, more, named] of [[15, { wroteElsewhere: true }, "Write ../"], [16, { touchedFromElsewhere: true }, "touch ../"], [17, { subagentWroteElsewhere: true }, "the subagent's Write ../"], [18, { subagentNotAskedBeside: true }, "the subagent's Write ../"]]) {
+      plan(probe(more));
+      const elsewhere = (await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt })).result;
+      assert.deepEqual([failing(elsewhere), elsewhere.findings.find((line) => line.what === untriedStep).seen, elsewhere.may_the_pair_run], [[untriedStep, wall], `not tried: ${named}`, false], named);
+    }
     // One by one, what else is a no: a second model in the lead's transcript; a second subagent; a server; an
     // instruction file; a result with no cost in it.
     const only = async (attempt, more) => {
@@ -727,14 +832,14 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     };
     const given = "it was given no skill, no server and no instruction file";
     const shape = "the transcripts are where the runner looks, and the result has the shape it reads";
-    assert.deepEqual(await only(15, { plan: { second_lead_model: "claude-sonnet-5-5" } }), ["the lead ran on claude-opus-5-5 and nothing else"]);
-    assert.deepEqual(await only(16, { twoSubagents: true }), ["it started one subagent, which ran on claude-sonnet-5-5 and nothing else", shape]);
-    assert.deepEqual(await only(17, { plan: { servers: ["a-server-of-the-accounts"] } }), [given]);
-    assert.deepEqual(await only(18, { plan: { instructions: ["/Users/someone/CLAUDE.md"] } }), [given]);
-    assert.deepEqual(await only(19, { plan: { no_cost: true } }), [shape]);
+    assert.deepEqual(await only(19, { plan: { second_lead_model: "claude-sonnet-5-5" } }), ["the lead ran on claude-opus-5-5 and nothing else"]);
+    assert.deepEqual(await only(20, { twoSubagents: true }), ["it started one subagent, which ran on claude-sonnet-5-5 and nothing else", shape]);
+    assert.deepEqual(await only(21, { plan: { servers: ["a-server-of-the-accounts"] } }), [given]);
+    assert.deepEqual(await only(22, { plan: { instructions: ["/Users/someone/CLAUDE.md"] } }), [given]);
+    assert.deepEqual(await only(23, { plan: { no_cost: true } }), [shape]);
     // Everything held, and something went wrong keeping the record (here the ledger is gone when the call ends): still a no.
     plan(probe({ plan: { mkdirs: [p.ledgerPath] } }));
-    const unkept = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 20 });
+    const unkept = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 24 });
     assert.deepEqual([failing(unkept.result), unkept.result.may_the_pair_run], [[], false]);
     assert.match(unkept.result.problems.join("\n"), /the ledger line could not be settled/);
   } finally {
@@ -810,6 +915,38 @@ test("the resume step, with a stand-in for the harness: a run picked up, one sta
     await assert.rejects(resumeStep({ ...r.common, recordRoot: r.recordRoot, rerun: true }), notStarted(/already run again once/));
   } finally {
     rmSync(r.top, { recursive: true, force: true });
+  }
+  // The reader's case: the session changed a source file and left one file nobody may open. The change cannot be read
+  // whole, and that is not "nothing changed": the line does not hold, and what was read of it is named.
+  if (process.getuid?.() !== 0) {
+    const locked = resumePlan();
+    locked.uses.splice(1, 0, { tool: "Bash", input: { command: "true" }, result: "", appends: { "src/layer.mjs": "\n// changed by the resuming session\n" }, writes: { "locked.txt": "x" }, modes: { "locked.txt": 0 } });
+    const u = place(locked);
+    try {
+      const unread = await resumeStep({ ...u.common, recordRoot: u.recordRoot });
+      const line = unread.result.resumed_if.at(-1);
+      assert.deepEqual([unread.result.verdict, line.holds], ["not resumed", false]);
+      assert.match(line.seen, /was not wholly read, so this is not known.*locked\.txt.*of what was read: M src\/layer\.mjs/);
+      assert.ok(unread.result.problems.some((problem) => /the project's change was not wholly read/.test(problem)));
+      assert.match(readFileSync(join(unread.recordDir, "project.diff"), "utf8"), /changed by the resuming session/, "what could be read of the change is kept");
+    } finally {
+      spawnSync("chmod", ["-R", "u+rw", u.top]);
+      rmSync(u.top, { recursive: true, force: true });
+    }
+  }
+  // A change that could not be read at all (here the runner's copy of the repository is gone) is not "nothing changed" either.
+  const gone = resumePlan();
+  gone.uses.splice(1, 0, { tool: "Bash", input: { command: "true" }, result: "", mkdirs: ["../base.git"] });
+  const v = place(gone);
+  try {
+    const blind = await resumeStep({ ...v.common, recordRoot: v.recordRoot });
+    const line = blind.result.resumed_if.at(-1);
+    assert.deepEqual([blind.result.verdict, line.holds, blind.result.resumed_if.filter((entry) => !entry.holds).length], ["not resumed", false, 1]);
+    assert.match(line.seen, /^the project's change was not read, so this is not known$/);
+    assert.ok(blind.result.problems.some((problem) => /^the project's change: git read-tree failed/.test(problem)), JSON.stringify(blind.result.problems));
+    assert.ok(!existsSync(join(blind.recordDir, "project.diff")));
+  } finally {
+    rmSync(v.top, { recursive: true, force: true });
   }
   // A note on an edge that is not the gate's approval does not stand for the gate's answer.
   const elsewhere = [{ ...answered[0], at: "edge:e-not-the-gates" }, answered[1], answered[2]];
@@ -961,91 +1098,112 @@ test("the two statements are read from the recorded scores: true, false, not dec
   }
 });
 
-test("a run of roles or information, with a stand-in for the harness: built, started, recorded, scored by study two's suite", async () => {
-  const solution = readFileSync(join(root, "experiments", "comparisons", "review-gate-2", "reference", "solution", "src", "layer.mjs"), "utf8");
-  // The session did the work, and also put a suite of its own where its copy of the held-out suite was.
-  const p = place({ uses: [{ tool: "Write", input: { file_path: "src/layer.mjs", content: "…" }, result: "ok", writes: { "src/layer.mjs": solution, "held-out/layer-cases.test.mjs": "import { test } from 'node:test';\ntest('everything passes', () => {});\n" } }], cost: 0.3 });
+test("no run of roles or information starts, and none is scored, until the owner's decision on scoring is recorded", async () => {
+  const p = place({ uses: [], cost: 0.3 });
+  const sentence = (error) => error.message.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE) && /no decision of his is recorded \(experiments\/comparisons\/study-three-first-steps\.json, scoring_outside_the_sandbox/.test(error.message);
   try {
-    const first = await runOne({ ...p.common, recordRoot: p.recordRoot, scoreOutsideTheSandbox: true });
+    // The decision as it can be left: absent, empty, half given, given in blanks. Each is a no.
+    const undecided = [{}, { scoring_outside_the_sandbox: {} }, { scoring_outside_the_sandbox: { decided_by: null, on: null, words: null } }, { scoring_outside_the_sandbox: { decided_by: "the owner", on: "2026-10-05" } }, { scoring_outside_the_sandbox: { decided_by: "the owner", on: "2026-10-05", words: "   " } }, { scoring_outside_the_sandbox: { decided_by: "the owner", on: "2026-10-05", words: true } }];
+    for (const plan of undecided) {
+      assert.equal(scoringDecided(plan).ok, false, JSON.stringify(plan));
+      await assert.rejects(runOne({ ...p.common, plan: { projects: [], stop_usd: 20, ...plan }, recordRoot: p.recordRoot }), (error) => error instanceof NotStarted && sentence(error));
+    }
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false], "refused before any folder is made: a run that cannot be scored is not paid for");
+    assert.deepEqual(scoringDecided(p.decided), { ok: true, decision: p.decided.scoring_outside_the_sandbox });
+    assert.throws(() => scoreKept({ name: "review-gate-2/E-1", plan: {}, home: p.home, recordRoot: p.recordRoot }), (error) => error instanceof NotScored && sentence(error));
+    // The first call's word comes first: with no decision and no first call, it is the first call that is named.
+    await assert.rejects(runOne({ ...p.common, plan: {}, firstCallGate: { ok: false, why: "the first paid call has no record" }, recordRoot: p.recordRoot }), notStarted(/the first paid call has no record/));
+    // As the repository stands, the decision is not recorded: the runner refuses by its own file, and the command line says the same.
+    const kept = JSON.parse(readFileSync(join(root, "experiments", "comparisons", "study-three-first-steps.json"), "utf8"));
+    if (!scoringDecided(kept).ok) {
+      await assert.rejects(runOne({ ...p.common, recordRoot: p.recordRoot }), (error) => error instanceof NotStarted && sentence(error));
+      const refused = spawnSync(process.execPath, [join(here, "roles-or-information-paid.mjs"), "--score", "review-gate-2/E-1"], { encoding: "utf8" });
+      assert.deepEqual([refused.status, refused.stderr.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE), refused.stderr.includes("Nothing a session wrote was run.")], [64, true, true]);
+      assert.deepEqual(Object.keys(kept.scoring_outside_the_sandbox), ["about", "decided_by", "on", "words"]);
+    }
+    assert.match(SCORING_RUNS_WHAT_A_SESSION_WROTE, /runs the code the session wrote: outside the sandbox, with this account's rights/);
+    for (const page of [join("profile", "README.md"), join("roles-or-information", "README.md")]) assert.ok(readFileSync(join(root, "experiments", "comparisons", page), "utf8").includes("scoring_outside_the_sandbox"), `${page} says where the decision is kept`);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+test("a run of roles or information, with a stand-in for the harness: built, started, recorded, scored by study two's suite on the recorded decision", async () => {
+  const solution = readFileSync(join(root, "experiments", "comparisons", "review-gate-2", "reference", "solution", "src", "layer.mjs"), "utf8");
+  // The session did the work, put a suite of its own where its copy of the held-out suite was, and made the task's own
+  // test command a program of its own. Scoring runs that program: the page says so, and here it shows.
+  const own = JSON.stringify({ name: "settingskit", type: "module", scripts: { test: "node -e \"require('node:fs').writeFileSync('run-by-the-scorer.txt', 'x')\"" } });
+  const p = place({ uses: [{ tool: "Write", input: { file_path: "src/layer.mjs", content: "…" }, result: "ok", writes: { "src/layer.mjs": solution, "held-out/layer-cases.test.mjs": "import { test } from 'node:test';\ntest('everything passes', () => {});\n", "package.json": own } }], cost: 0.3 });
+  const all = { ...p.common, plan: p.decided, recordRoot: p.recordRoot };
+  try {
+    const first = await runOne(all);
+    const tree = join(first.kept, "work", "settingskit");
     assert.equal(first.run.name, "review-gate-2/E-1");
     assert.deepEqual([first.score.held_out.passed, first.score.held_out.cases], [55, 55], "the reference solution, scored from the repository's suite");
-    assert.deepEqual([first.result.scored, first.result.not_scored_because], [true, undefined]);
     assert.equal(first.score.held_out.scored_from, "experiments/comparisons/review-gate-2/held-out");
     assert.equal(first.score.held_out.the_sessions_copy_changed.length, 1, "what it did to its own copy is recorded, and is not what it is scored by");
     assert.match(first.score.held_out.the_sessions_copy_changed[0], /held-out\/layer-cases\.test\.mjs/);
+    assert.equal(first.score.scope.not_known, undefined);
+    assert.deepEqual([first.result.scored, first.result.scored_outside_the_sandbox_on], [true, p.decided.scoring_outside_the_sandbox], "the record names the decision it was scored on");
+    assert.ok(existsSync(join(tree, "run-by-the-scorer.txt")), "the session's own test command was run by the scorer, outside any sandbox");
     assert.deepEqual(first.result.held_out_given, ["layer-cases.test.mjs"]);
     assert.deepEqual(first.result.problems, []);
     assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["roles-or-information/review-gate-2/E-1", 2]);
     assert.ok(existsSync(join(first.recordDir, "score.json")) && existsSync(join(first.recordDir, "result.json")));
     assert.equal(first.next.name, "review-gate-2/F-1");
 
+    // A score that is not there (the scorer failed, or its file was lost) is not a score of nothing: the run waits, and
+    // can be scored again from the tree the runner kept, on the same recorded decision.
+    rmSync(join(first.recordDir, "score.json"));
+    const waiting = readings(rolesExpectation(), p.recordRoot);
+    assert.deepEqual([waiting.runs["review-gate-2/E-1"], waiting.runs_recorded_and_not_scored, waiting.the_information_did_it], ["recorded, not scored", ["review-gate-2/E-1"], "not decided yet"]);
+    assert.throws(() => scoreKept({ name: "nothing/Z-9", plan: p.decided, home: p.home, recordRoot: p.recordRoot }), /not a run of this question/);
+    assert.throws(() => scoreKept({ name: "review-gate-2/F-1", plan: p.decided, home: p.home, recordRoot: p.recordRoot }), /has no record/);
+    const again = scoreKept({ name: "review-gate-2/E-1", plan: p.decided, home: p.home, recordRoot: p.recordRoot });
+    assert.deepEqual([again.score.held_out.passed, again.score.held_out.cases, again.score.scored_afterwards_from], [55, 55, "the final tree as the runner kept it"]);
+    assert.equal(readings(rolesExpectation(), p.recordRoot).runs["review-gate-2/E-1"], "55");
+    assert.throws(() => scoreKept({ name: "review-gate-2/E-1", plan: p.decided, home: p.home, recordRoot: p.recordRoot }), /already scored/);
+
+    // A run the harness ended is recorded and is not scored at all; its one rerun is.
     writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ no_output: true }), "utf8");
-    const second = await runOne({ ...p.common, recordRoot: p.recordRoot, scoreOutsideTheSandbox: true });
+    const second = await runOne(all);
     assert.equal(second.run.name, "review-gate-2/F-1", "the next in the order, and only that one");
-    assert.deepEqual([second.result.ended_by, second.result.held_out_given], ["the harness", []]);
+    assert.deepEqual([second.result.ended_by, second.result.held_out_given, second.score, second.result.scored], ["the harness", [], null, false]);
+    assert.ok(!existsSync(join(second.recordDir, "score.json")));
     assert.equal(p.ledger().invocations[1].max_budget_usd, 4);
     assert.equal(second.next.name, "review-gate-2/E-2", "an invalid run does not hold up the order");
     assert.equal(readings(rolesExpectation(), p.recordRoot).runs["review-gate-2/F-1"], "invalid, and not yet run again");
-    await assert.rejects(runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "review-gate-2/E-1" }), notStarted(/no invalid record to run again/));
-    await assert.rejects(runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "nothing/Z-9" }), notStarted(/not a run of this question/));
+    assert.throws(() => scoreKept({ name: "review-gate-2/F-1", plan: p.decided, home: p.home, recordRoot: p.recordRoot }), /an invalid run is not scored/);
+    await assert.rejects(runOne({ ...all, rerun: "review-gate-2/E-1" }), notStarted(/no invalid record to run again/));
+    await assert.rejects(runOne({ ...all, rerun: "nothing/Z-9" }), notStarted(/not a run of this question/));
 
     writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [], cost: 0.7 }), "utf8");
-    const again = await runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "review-gate-2/F-1", scoreOutsideTheSandbox: true });
-    assert.equal(again.recordDir.endsWith("review-gate-2/F-1-rerun"), true);
+    const rerun = await runOne({ ...all, rerun: "review-gate-2/F-1" });
+    assert.equal(rerun.recordDir.endsWith("review-gate-2/F-1-rerun"), true);
     assert.equal(p.ledger().invocations[2].run, "roles-or-information/review-gate-2/F-1-rerun");
-    assert.notEqual(again.score.held_out.passed, 55, "a tree with no work in it does not pass the suite");
+    assert.notEqual(rerun.score.held_out.passed, 55, "a tree with no work in it does not pass the suite");
     assert.match(readings(rolesExpectation(), p.recordRoot).runs["review-gate-2/F-1"], /^\d+ \(its rerun\)$/);
-    await assert.rejects(runOne({ ...p.common, recordRoot: p.recordRoot, rerun: "review-gate-2/F-1" }), notStarted(/was already run again once/));
+    await assert.rejects(runOne({ ...all, rerun: "review-gate-2/F-1" }), notStarted(/was already run again once/));
     assert.deepEqual(readdirSync(p.at.work), []);
+
+    // A change that could not be read whole: the scope is said to be not known, never "nothing outside it".
+    if (process.getuid?.() !== 0) {
+      writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ uses: [{ tool: "Bash", input: { command: "true" }, result: "", writes: { "locked.txt": "x" }, modes: { "locked.txt": 0 } }], cost: 0.2 }), "utf8");
+      const unread = await runOne(all);
+      spawnSync("chmod", ["-R", "u+rw", p.top]);
+      assert.equal(unread.run.name, "review-gate-2/E-2");
+      assert.match(unread.score.scope.not_known, /was not wholly read.*locked\.txt/);
+    }
   } finally {
+    spawnSync("chmod", ["-R", "u+rw", p.top]);
     rmSync(p.top, { recursive: true, force: true });
   }
 });
 
-test("a run of roles or information is recorded and not scored, unless scoring outside the sandbox is asked for by name", async () => {
-  const solution = readFileSync(join(root, "experiments", "comparisons", "review-gate-2", "reference", "solution", "src", "layer.mjs"), "utf8");
-  // The session did the work, and made the task's own test command a program of its own: what a scorer would run.
-  const own = JSON.stringify({ name: "settingskit", type: "module", scripts: { test: "node -e \"require('node:fs').writeFileSync('run-by-the-scorer.txt', 'x')\"" } });
-  const p = place({ uses: [{ tool: "Write", input: { file_path: "src/layer.mjs", content: "…" }, result: "ok", writes: { "src/layer.mjs": solution, "package.json": own } }], cost: 0.3 });
-  try {
-    const done = await runOne({ ...p.common, recordRoot: p.recordRoot });
-    const tree = join(done.kept, "work", "settingskit");
-    assert.deepEqual([done.score, done.result.scored, done.result.not_scored_because], [null, false, SCORING_RUNS_WHAT_A_SESSION_WROTE]);
-    assert.ok(existsSync(join(done.recordDir, "result.json")) && existsSync(join(done.recordDir, "project.diff")) && !existsSync(join(done.recordDir, "score.json")), "everything is kept, and there is no score");
-    assert.ok(existsSync(join(tree, "src", "layer.mjs")) && !existsSync(join(tree, "run-by-the-scorer.txt")), "nothing the session wrote was run");
-    assert.deepEqual(done.result.problems, []);
-    assert.equal(done.next.name, "review-gate-2/F-1", "a run that is not scored does not hold up the order");
-    const read = readings(rolesExpectation(), p.recordRoot);
-    assert.deepEqual([read.runs["review-gate-2/E-1"], read.runs_recorded_and_not_scored, read.the_information_did_it], ["recorded, not scored", ["review-gate-2/E-1"], "not decided yet"]);
-
-    // Afterwards, from the tree the runner kept: refused without the same words, and then nothing was run.
-    const asked = { name: "review-gate-2/E-1", home: p.home, recordRoot: p.recordRoot };
-    assert.throws(() => scoreKept(asked), (error) => error instanceof NotScored && error.message === SCORING_RUNS_WHAT_A_SESSION_WROTE);
-    assert.ok(!existsSync(join(tree, "run-by-the-scorer.txt")) && !existsSync(join(done.recordDir, "score.json")));
-    assert.throws(() => scoreKept({ ...asked, name: "nothing/Z-9", scoreOutsideTheSandbox: true }), /not a run of this question/);
-    assert.throws(() => scoreKept({ ...asked, name: "review-gate-2/F-1", scoreOutsideTheSandbox: true }), /has no record/);
-    // Asked for by name, it scores, and that does run what the session wrote: the page says so, and here it shows.
-    const scored = scoreKept({ ...asked, scoreOutsideTheSandbox: true });
-    assert.deepEqual([scored.score.held_out.passed, scored.score.held_out.cases, scored.score.scored_afterwards_from], [55, 55, "the final tree as the runner kept it"]);
-    assert.ok(existsSync(join(tree, "run-by-the-scorer.txt")), "the session's own test command was run by the scorer");
-    assert.equal(readings(rolesExpectation(), p.recordRoot).runs["review-gate-2/E-1"], "55");
-    assert.throws(() => scoreKept({ ...asked, scoreOutsideTheSandbox: true }), /already scored/);
-
-    // A run the harness ended is not scored at all.
-    writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify({ no_output: true }), "utf8");
-    const dead = await runOne({ ...p.common, recordRoot: p.recordRoot });
-    assert.deepEqual([dead.run.name, dead.result.ended_by, dead.score], ["review-gate-2/F-1", "the harness", null]);
-    assert.throws(() => scoreKept({ ...asked, name: "review-gate-2/F-1", scoreOutsideTheSandbox: true }), /an invalid run is not scored/);
-  } finally {
-    rmSync(p.top, { recursive: true, force: true });
-  }
-});
-
-test("asked to score from the command line without the words, the runner says what scoring does and runs nothing", () => {
-  const refused = spawnSync(process.execPath, [join(here, "roles-or-information-paid.mjs"), "--score", "review-gate-2/E-1"], { encoding: "utf8" });
-  assert.equal(refused.status, 64);
-  assert.ok(refused.stderr.includes(SCORING_RUNS_WHAT_A_SESSION_WROTE) && refused.stderr.includes("Nothing a session wrote was run."));
-  assert.match(SCORING_RUNS_WHAT_A_SESSION_WROTE, /outside the sandbox, with this account's rights.*--score-outside-the-sandbox/);
-  const page = readFileSync(join(root, "experiments", "comparisons", "profile", "README.md"), "utf8");
-  assert.ok(page.includes("--score-outside-the-sandbox") && page.includes("outside the sandbox, with the account's rights"), "the profile's page says the same");
+test("as the repository stands, parked: no decision on scoring is recorded, and the flag of an earlier shape is refused", () => {
+  const kept = JSON.parse(readFileSync(join(root, "experiments", "comparisons", "study-three-first-steps.json"), "utf8"));
+  // This is the one line that has to change, on purpose and in the same commit, when the owner's decision is written down.
+  assert.equal(scoringDecided(kept).ok, false, "parked on 2026-10-05 with no decision recorded");
+  const unknown = spawnSync(process.execPath, [join(here, "roles-or-information-paid.mjs"), "--dry-run", "--spend", "--go", "the driver's words", "--score-outside-the-sandbox"], { encoding: "utf8" });
+  assert.deepEqual([unknown.status, /--score-outside-the-sandbox: not a flag of this script/.test(unknown.stderr)], [64, true], "refused, not passed over");
 });

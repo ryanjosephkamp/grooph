@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 import { commandFor, DEFAULT_HOME } from "./compare-profile.mjs";
 import { rebuildTree } from "./compare-score.mjs";
-import { asThingsStand, copyRecord, firstCallAllows, makeProject, NotStarted, plainSha, relativeToRoot, runSession, setAside, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { asThingsStand, copyRecord, firstCallAllows, makeProject, NotStarted, plainSha, relativeToRoot, runSession, setAside, spendFlags, unknownFlags, writeResult } from "./study-three-paid.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const home0 = join(root, "experiments", "comparisons", "resume-by-a-fresh-session");
@@ -29,30 +29,34 @@ export function resumePrompt(expect, kickoff) {
 /** Rebuild the halted run's project from its kept record, in a folder of its own under the profile's work folder. Starts nothing. */
 export function build({ home, expect }) {
   const from = join(root, ...expect.from.split("/"));
+  // Everything that is read is read before the session's folder is made: what fails after it would leave the folder behind.
+  const name = JSON.parse(readFileSync(join(from, "..", "task", "package.json"), "utf8")).name;
+  const prompt = resumePrompt(expect, readFileSync(join(from, "package", "KICKOFF.md"), "utf8"));
+  const notesBefore = readFileSync(join(from, "runs", expect.run_id, "notes.jsonl"), "utf8");
+  const sourceSha = plainSha(join(from, "package", "graph.grooph.json"));
   const { tree } = rebuildTree(from);
   try {
     const project = makeProject({
       home,
-      name: JSON.parse(readFileSync(join(from, "..", "task", "package.json"), "utf8")).name,
+      name,
       fill: (cwd) => {
-        for (const name of readdirSync(tree)) if (name !== ".git") cpSync(join(tree, name), join(cwd, name), { recursive: true });
+        for (const entry of readdirSync(tree)) if (entry !== ".git") cpSync(join(tree, entry), join(cwd, entry), { recursive: true });
         const graph = join(cwd, ".grooph", expect.graph_id);
         mkdirSync(graph, { recursive: true });
-        for (const name of ["LEAD.md", "KICKOFF.md", "MAPPING.md", "graph.grooph.json"]) cpSync(join(from, "package", name), join(graph, name));
+        for (const file of ["LEAD.md", "KICKOFF.md", "MAPPING.md", "graph.grooph.json"]) cpSync(join(from, "package", file), join(graph, file));
         cpSync(join(from, "package", "agents"), join(cwd, ".claude", "agents"), { recursive: true });
         if (existsSync(join(from, "package", "skill"))) cpSync(join(from, "package", "skill"), join(cwd, ".claude", "skills", expect.graph_id), { recursive: true });
         cpSync(join(from, "runs", expect.run_id), join(graph, "runs", expect.run_id), { recursive: true });
       },
     });
-    const graph = join(project.cwd, ".grooph", expect.graph_id);
-    return { ...project, prompt: resumePrompt(expect, readFileSync(join(from, "package", "KICKOFF.md"), "utf8")), notesBefore: readFileSync(join(graph, "runs", expect.run_id, "notes.jsonl"), "utf8"), sourceSha: plainSha(join(graph, "graph.grooph.json")) };
+    return { ...project, prompt, notesBefore, sourceSha };
   } finally {
     rmSync(tree, { recursive: true, force: true });
   }
 }
 
 /** The seven things, read from the folder and the digest. Each: what, whether it holds, what was seen. */
-export function resumed({ cwd, expect, call, digest, notesBefore, sourceSha, projectFilesChanged }) {
+export function resumed({ cwd, expect, call, digest, notesBefore, sourceSha, projectFilesChanged, notWhollyRead = null }) {
   const graph = join(cwd, ".grooph", expect.graph_id);
   const runs = existsSync(join(graph, "runs")) ? readdirSync(join(graph, "runs")).sort() : [];
   const notesPath = join(graph, "runs", expect.run_id, "notes.jsonl");
@@ -87,8 +91,10 @@ export function resumed({ cwd, expect, call, digest, notesBefore, sourceSha, pro
   const ending = added.findIndex((note) => note.outcome === "ending");
   add("a new note says the run is ending, and the last note is the graph's", ending >= 0 && ending < added.length - 1 && added.at(-1).at === "graph" && added.at(-1).outcome !== "ending", added.map((note) => `${note.at ?? "?"}${note.outcome ? `:${note.outcome}` : ""}`).join(", ") || "no line added");
   // Everything the session changed, less what is inside a run folder: the package's own files and the agent files count.
-  const changed = (projectFilesChanged ?? []).filter((file) => !/\.grooph\/[^/]+\/runs\//.test(file));
-  add("the source document is unchanged, and so is every file of the project outside the run folder", plainSha(join(graph, "graph.grooph.json")) === sourceSha && changed.length === 0, changed.length === 0 ? "nothing changed" : changed.join(", "));
+  // A change that was not read, or not wholly, is not "nothing changed": the line holds only on a whole read that shows none.
+  const read = Array.isArray(projectFilesChanged) && !notWhollyRead;
+  const changed = (Array.isArray(projectFilesChanged) ? projectFilesChanged : []).filter((file) => !/\.grooph\/[^/]+\/runs\//.test(file));
+  add("the source document is unchanged, and so is every file of the project outside the run folder", read && plainSha(join(graph, "graph.grooph.json")) === sourceSha && changed.length === 0, !read ? `the project's change was not ${Array.isArray(projectFilesChanged) ? "wholly " : ""}read, so this is not known${notWhollyRead ? ` (${notWhollyRead})` : ""}${changed.length > 0 ? `; of what was read: ${changed.join(", ")}` : ""}` : changed.length === 0 ? "nothing changed" : changed.join(", "));
   const verdict = call.ended_by === "the harness" ? "invalid" : lines.every((line) => line.holds) ? "resumed" : "not resumed";
   return { verdict, lines, notes_added: added.length };
 }
@@ -113,7 +119,7 @@ export async function resumeStep({ go, rerun = false, home = DEFAULT_HOME, claud
   const copied = copyRecord({ home, cwd: built.cwd, base: built.base, gitDir: built.gitDir, call, recordDir, prompt: built.prompt, graphId: expect.graph_id, excludes: [] });
   let found = { verdict: call.ended_by === "the harness" ? "invalid" : "not resumed", lines: [], notes_added: null };
   try {
-    found = resumed({ cwd: built.cwd, expect, call, digest: copied.digest, notesBefore: built.notesBefore, sourceSha: built.sourceSha, projectFilesChanged: call.project_files_changed });
+    found = resumed({ cwd: built.cwd, expect, call, digest: copied.digest, notesBefore: built.notesBefore, sourceSha: built.sourceSha, projectFilesChanged: call.project_files_changed, notWhollyRead: call.project_change_not_wholly_read ?? null });
   } catch (error) {
     copied.problems.push(`reading whether it resumed: ${error.message}`);
   }
@@ -129,6 +135,11 @@ export async function resumeStep({ go, rerun = false, home = DEFAULT_HOME, claud
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
+  const unknown = unknownFlags(flags, { plain: ["--dry-run", "--spend", "--rerun"], valued: ["--go"] });
+  if (unknown.length > 0) {
+    console.error(`${unknown.join(", ")}: not a flag of this script. Nothing was started.`);
+    process.exit(64);
+  }
   const expect = expectation();
   if (flags.includes("--dry-run")) {
     const built = build({ home: DEFAULT_HOME, expect });

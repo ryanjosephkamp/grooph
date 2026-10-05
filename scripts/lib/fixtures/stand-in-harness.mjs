@@ -2,7 +2,7 @@
 // A STAND-IN for the harness, for tests of the paid path only. It calls no model and costs nothing. It does what a
 // plan in its prompt says: writes a transcript where the harness would, touches the files the plan names, and prints
 // a result of the harness's shape. A test puts the plan in stand-in-plan.json in the configuration folder it names.
-import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, chmodSync, linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 const args = process.argv.slice(2);
@@ -75,7 +75,14 @@ let agents = 0;
     mkdirSync(dirname(join(process.cwd(), path)), { recursive: true });
     appendFileSync(join(process.cwd(), path), text, "utf8");
   }
-  for (const [path, text] of Object.entries(use.writes ?? {})) writeFileSync(join(process.cwd(), path), text, "utf8");
+  for (const [path, text] of Object.entries(use.writes ?? {})) {
+    mkdirSync(dirname(join(process.cwd(), path)), { recursive: true });
+    writeFileSync(join(process.cwd(), path), text, "utf8");
+  }
+  // A second name for a file that is somewhere else, bytes that are not text, a file nobody may open: what a session could leave.
+  for (const [path, target] of Object.entries(use.links ?? {})) linkSync(target, join(process.cwd(), path));
+  for (const [path, bytes] of Object.entries(use.bytes ?? {})) appendFileSync(join(process.cwd(), path), Buffer.from(bytes));
+  for (const [path, mode] of Object.entries(use.modes ?? {})) chmodSync(join(process.cwd(), path), mode);
   for (const path of use.mkdirs ?? []) folderAt(path);
 });
 writeFileSync(join(folder, `${sessionId}.jsonl`), `${lines.join("\n")}\n`, "utf8");

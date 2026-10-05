@@ -68,6 +68,16 @@ export function spendFlags(flags) {
   return { ok: missing.length === 0, go: go ?? null, missing };
 }
 
+/** The flags a script does not know. A paid script refuses them: a flag that is not understood is never passed over. */
+export function unknownFlags(flags, { plain = [], valued = [] }) {
+  const unknown = [];
+  for (let i = 0; i < flags.length; i += 1) {
+    if (valued.includes(flags[i])) i += 1;
+    else if (!plain.includes(flags[i])) unknown.push(flags[i]);
+  }
+  return unknown;
+}
+
 /**
  * The sessions of the game experiment open on this machine: its start script names every session `arena-claude-<which>`
  * (or `arena-codex-<which>`), and that name is on the process's command line. The whole process list is read, so a
@@ -93,7 +103,7 @@ export function findHarness(run = spawnSync) {
   const found = run("/bin/sh", ["-c", "command -v claude"], { encoding: "utf8" });
   const path = String(found.stdout ?? "").trim().split("\n")[0];
   if (found.status !== 0 || !isAbsolute(path) || !existsSync(path)) throw new NotStarted(`the harness was not found on this shell's path (command -v claude gave ${JSON.stringify(path)})`);
-  const version = run(path, ["--version"], { encoding: "utf8" });
+  const version = run(path, ["--version"], { encoding: "utf8", timeout: 15_000 });
   if (version.status !== 0 || !String(version.stdout ?? "").trim()) throw new NotStarted(`${path} did not answer --version`);
   return { path, version: version.stdout.trim() };
 }
@@ -171,12 +181,18 @@ export function runBounded({ program, args, cwd, env, outPath, errPath, ms, grac
       end();
     }, ms);
     const stopped = (signal) => () => {
+      // Told a second time while the session is being ended: the group is killed now, and the runner still records it.
+      if (facts.runner_stopped) {
+        group("SIGKILL");
+        return;
+      }
       facts.runner_stopped = signal;
       end();
     };
-    // Interrupted, told to end, or its terminal closed: in each case the session is ended before the runner goes on to record it.
+    // Interrupted, told to end, or its terminal closed: in each case the session is ended before the runner goes on to
+    // record it. The handlers stay until the session is gone, so a second signal cannot end the runner first.
     const handlers = ["SIGINT", "SIGTERM", "SIGHUP"].map((signal) => [signal, stopped(signal)]);
-    for (const [signal, handler] of handlers) process.once(signal, handler);
+    for (const [signal, handler] of handlers) process.on(signal, handler);
     let finished = false;
     const finish = (more) => {
       if (finished) return;
@@ -201,7 +217,7 @@ export function runBounded({ program, args, cwd, env, outPath, errPath, ms, grac
  * started nothing is thrown: what went wrong afterwards is in `problems_after_the_call`. The record is copied by
  * `copyRecord`, by the caller, before anything is read from it.
  */
-export async function runSession({ home, cwd, prompt, model, effort, usd, minutes, closed = [], label, note, go, claude, ledgerPath = LEDGER_PATH, harnessDir, gameOpen, profileCheck, plan = JSON.parse(readFileSync(FIRST_STEPS, "utf8")), findProgram = findHarness, grace }) {
+export async function runSession({ home, cwd, prompt, model, effort, usd, minutes, closed = [], label, note, go, claude, ledgerPath = LEDGER_PATH, harnessDir, gameOpen, profileCheck, plan, findProgram = findHarness, grace }) {
   const at = layout(home);
   let base, harness, ledger, ceiling, sessionId, command, entry, spentBefore;
   let settingsWritten = false;
@@ -209,6 +225,7 @@ export async function runSession({ home, cwd, prompt, model, effort, usd, minute
   // and what is thrown is a `NotStarted`, whatever it was.
   try {
     if (!go) throw new NotStarted("no word from the driver for this step (--go)");
+    plan ??= JSON.parse(readFileSync(FIRST_STEPS, "utf8"));
     base = `${JSON.stringify(settingsFor({ home }), null, 2)}\n`;
     harness = claude ? { path: claude, version: null } : findProgram();
     const refused = refusals({ home, cwd, claude: harness.path, gameOpen, profileCheck });
@@ -343,9 +360,56 @@ export function scrub(text, { home = homedir() } = {}) {
   return { text: cleaned, addresses, home_paths: parts.length - 1 };
 }
 
+/**
+ * The same for a value that came from JSON or is on its way to it: every string in it, keys too. JSON is never
+ * scrubbed as text: an address that follows an escape (a new line, a tab) would take the escape's letter with it, and
+ * what was left would no longer be JSON.
+ */
+export function scrubValue(value, options) {
+  const found = { addresses: 0, home_paths: 0 };
+  const text = (string) => {
+    const cleaned = scrub(string, options);
+    found.addresses += cleaned.addresses;
+    found.home_paths += cleaned.home_paths;
+    return cleaned.text;
+  };
+  const walk = (part) => (typeof part === "string" ? text(part) : Array.isArray(part) ? part.map(walk) : part && typeof part === "object" ? Object.fromEntries(Object.entries(part).map(([key, inner]) => [text(key), walk(inner)])) : part);
+  return { value: walk(value), ...found };
+}
+
 const MAX_FILE = 1 << 20;
 
-/** Scrub every plain text file under a record folder. Returns what was taken out. */
+/** One file's text, scrubbed in the way its kind allows: JSON by its values, lines of JSON line by line, anything else as text. */
+function scrubFile(name, before, options) {
+  const asJson = (text, write) => {
+    const cleaned = scrubValue(JSON.parse(text), options);
+    return { text: write(cleaned.value), addresses: cleaned.addresses, home_paths: cleaned.home_paths };
+  };
+  try {
+    if (name.endsWith(".json")) return asJson(before, (value) => `${JSON.stringify(value, null, /^\s*[[{]\s*\n/.test(before) ? 2 : 0)}${before.endsWith("\n") ? "\n" : ""}`);
+  } catch {}
+  if (name.endsWith(".jsonl")) {
+    const found = { addresses: 0, home_paths: 0 };
+    const lines = before.split("\n").map((line) => {
+      let cleaned;
+      try {
+        cleaned = line.trim() ? asJson(line, (value) => JSON.stringify(value)) : { text: line, addresses: 0, home_paths: 0 };
+      } catch {
+        cleaned = scrub(line, options);
+      }
+      found.addresses += cleaned.addresses;
+      found.home_paths += cleaned.home_paths;
+      return cleaned.text;
+    });
+    return { text: lines.join("\n"), ...found };
+  }
+  return scrub(before, options);
+}
+
+/**
+ * Scrub every file under a record folder, each in the way its kind allows. A file with nothing to take out is left
+ * byte for byte as it was. Returns what was taken out.
+ */
 export function scrubRecord(recordDir, options) {
   const found = { addresses: 0, home_paths: 0 };
   const walk = (dir) => {
@@ -355,10 +419,10 @@ export function scrubRecord(recordDir, options) {
       if (stat.isDirectory()) walk(full);
       else if (stat.isFile() && stat.size <= 8 * MAX_FILE) {
         const before = readFileSync(full, "utf8");
-        const after = scrub(before, options);
+        const after = scrubFile(name, before, options);
         found.addresses += after.addresses;
         found.home_paths += after.home_paths;
-        if (after.text !== before) writeFileSync(full, after.text, "utf8");
+        if (after.addresses + after.home_paths > 0) writeFileSync(full, after.text, "utf8");
       }
     }
   };
@@ -367,8 +431,8 @@ export function scrubRecord(recordDir, options) {
 }
 
 /**
- * Copy a folder a session wrote, keeping only plain files of text and of a sane size: a link, a device, a huge file or
- * one that is not text is named and left. A record is text, and only text can be passed through the scrub.
+ * Copy a folder a session wrote, keeping only plain files of text and of a sane size: a link of either kind, a device,
+ * a huge file or one that is not text is named and left. A record is text, and only text can be passed through the scrub.
  */
 export function copyPlain(from, to) {
   const left = [];
@@ -377,6 +441,7 @@ export function copyPlain(from, to) {
       const full = join(src, name);
       const stat = lstatSync(full);
       if (stat.isDirectory()) walk(full, join(dst, name));
+      else if (stat.isFile() && stat.nlink > 1) left.push(`${relative(from, full)} (it has another name elsewhere: a hard link)`);
       else if (stat.isFile() && stat.size <= MAX_FILE) {
         const bytes = readFileSync(full);
         if (!Buffer.from(bytes.toString("utf8"), "utf8").equals(bytes)) {
@@ -419,19 +484,29 @@ export function plainSha(path) {
  * The project's change since its first commit, new files included, in the shape of prove-evidence.mjs `projectDiff`.
  * It is read through `gitDir`, a copy of the repository made before the session started and kept beside its folder,
  * where a session cannot write. The session's own `.git` is never used, and neither is the account's configuration:
- * nothing a session configured there (a filter, a monitor, a hook, a diff program) is run by the runner.
+ * nothing a session configured there (a filter, a monitor, a hook, a diff program) is run by the runner. No ignore
+ * file is honored, so a session cannot hide what it added. `files` is the whole change only when `not_wholly_read` is
+ * null: a file that could not be opened is named there, and a caller must not read "no change" from the rest.
  */
 export function changeSince({ cwd, base, gitDir, excludes = [] }) {
   const temp = mkdtempSync(join(tmpdir(), "grooph-paid-index-"));
   const env = { PATH: process.env.PATH, HOME: process.env.HOME ?? "", GIT_CONFIG_GLOBAL: "/dev/null", GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0", GIT_INDEX_FILE: join(temp, "index") };
-  const git = (...args) => execFileSync("git", ["--git-dir", gitDir, "--work-tree", cwd, ...args], { cwd, env, encoding: "utf8", maxBuffer: 64 << 20, stdio: ["ignore", "pipe", "pipe"] });
+  const run = (...args) => spawnSync("git", ["--git-dir", gitDir, "--work-tree", cwd, ...args], { cwd, env, encoding: "utf8", maxBuffer: 64 << 20 });
+  const git = (...args) => {
+    const out = run(...args);
+    if (out.status !== 0) throw new Error(`git ${args[0]} failed: ${String(out.stderr ?? out.error?.message ?? "").trim().slice(0, 300)}`);
+    return out.stdout;
+  };
   try {
     git("read-tree", base);
-    git("add", "-A");
+    // Every file, whatever an ignore file says: a session's own .gitignore, or the account's, hides nothing here. A
+    // file that cannot be opened does not stop the rest being read; that it was not read is said.
+    const added = run("add", "-A", "-f", "--ignore-errors");
+    const notRead = added.status === 0 ? null : String(added.stderr ?? "").trim().split("\n").filter(Boolean).slice(0, 5).join("; ").slice(0, 400) || `git add exited ${added.status ?? added.signal}`;
     const spec = [".", ...excludes.map((path) => `:(exclude)${path}`)];
     const diff = git("diff", "--cached", "--no-color", "--no-ext-diff", "--no-textconv", base, "--", ...spec);
     const stat = git("diff", "--cached", "--name-status", base, "--", ...spec);
-    return { diff, files: stat.split("\n").filter(Boolean).map((line) => line.replace(/\t/g, " ")) };
+    return { diff, files: stat.split("\n").filter(Boolean).map((line) => line.replace(/\t/g, " ")), not_wholly_read: notRead };
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }
@@ -472,32 +547,38 @@ export function copyRecord({ home, cwd, base, gitDir, call, recordDir, prompt, g
       const change = changeSince({ cwd, base, gitDir, excludes });
       writeFileSync(join(recordDir, "project.diff"), change.diff.length > 2 * MAX_FILE ? `${change.diff.slice(0, 2 * MAX_FILE)}\n… cut at ${2 * MAX_FILE} characters of ${change.diff.length}\n` : change.diff, "utf8");
       call.project_files_changed = change.files;
+      if (change.not_wholly_read) {
+        call.project_change_not_wholly_read = change.not_wholly_read;
+        problems.push(`the project's change was not wholly read: ${change.not_wholly_read}`);
+      }
     });
   }
   const runs = graphId ? join(cwd, ".grooph", graphId, "runs") : null;
   const left = runs && existsSync(runs) ? attempt("the run folder", () => copyPlain(runs, join(recordDir, "runs")), []) : [];
   if (left.length > 0) problems.push(`left out of the run folder's copy: ${left.join(", ")}`);
+
   const named = attempt("the transcripts' checksums", () => transcripts.map((t) => ({ who: t.who, file: t.file, sha256: sha256(t.file), stays: "on this machine" })), []);
   const taken = attempt("taking the account's own out of the record", () => scrubRecord(recordDir, {}), { addresses: null, home_paths: null });
-  return { digest: kept, transcripts: named, run_folders: attempt("the run folders' names", () => (runs && existsSync(runs) ? readdirSync(runs).sort() : []), []), problems, kept_out_of_the_record: taken };
+  return { digest: kept, transcripts: named, run_folders: attempt("the run folders' names", () => (runs && existsSync(runs) ? readdirSync(runs).sort() : []), []), left_out: left, problems, kept_out_of_the_record: taken };
 }
 
 /**
  * Write a run's `result.json`: the call's facts without the harness's whole output, and whatever the caller measured
- * after the session. Scrubbed like the rest. If it cannot be written it is printed instead, and nothing is thrown.
+ * after the session. Its values are scrubbed like the rest of the record, before they are made into JSON. Nothing is
+ * thrown: if it cannot be written it is printed instead, and what comes back says so.
  */
 export function writeResult(recordDir, call, facts) {
-  const { output, harness_dir: _harnessDir, ...kept } = call;
-  const result = { ...kept, result_tail: typeof output?.result === "string" ? output.result.slice(-600) : null, ...facts, recorded: new Date().toISOString() };
-  const text = scrub(`${JSON.stringify(result, null, 2)}\n`).text;
+  let result = { ...facts };
   try {
+    const { output, harness_dir: _harnessDir, ...kept } = call;
+    result = scrubValue({ ...kept, result_tail: typeof output?.result === "string" ? output.result.slice(-600) : null, ...facts, recorded: new Date().toISOString() }).value;
     mkdirSync(recordDir, { recursive: true });
-    writeFileSync(join(recordDir, "result.json"), text, "utf8");
+    writeFileSync(join(recordDir, "result.json"), `${JSON.stringify(result, null, 2)}\n`, "utf8");
   } catch (error) {
-    console.error(`result.json could not be written to ${recordDir} (${error.message}). It is printed here instead; keep it:\n${text}`);
-    return { ...JSON.parse(text), problems: [...(facts.problems ?? []), `result.json could not be written: ${error.message}`] };
+    console.error(`result.json could not be written to ${recordDir} (${error.message}). It is printed here instead; keep it:\n${JSON.stringify(result, null, 2)}`);
+    result = { ...result, problems: [...(result.problems ?? []), `result.json could not be written: ${error.message}`] };
   }
-  return JSON.parse(text);
+  return result;
 }
 
 /**
@@ -511,19 +592,25 @@ export function makeProject({ home, name, fill }) {
   if (there.length > 0) throw new NotStarted(`the profile's work folder is not empty (${there.join(", ")}): an earlier session's folder is still there. Move it aside before another is made`);
   const work = join(at.work, randomUUID().slice(0, 8));
   const cwd = join(work, name);
-  mkdirSync(cwd, { recursive: true });
-  fill(cwd);
-  const git = (...args) => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
-  git("init", "-q");
-  git("config", "user.email", "dev@localhost");
-  git("config", "user.name", "dev");
-  git("add", "-A");
-  git("commit", "-qm", "initial commit");
-  const base = git("rev-parse", "HEAD").trim();
-  // The repository as the runner made it, kept beside the session's folder: the change is read through this copy afterwards.
-  const gitDir = join(work, "base.git");
-  cpSync(join(cwd, ".git"), gitDir, { recursive: true });
-  return { work, cwd, base, gitDir, harnessDir: join(work, "harness") };
+  try {
+    mkdirSync(cwd, { recursive: true });
+    fill(cwd);
+    const git = (...args) => execFileSync("git", ["-C", cwd, ...args], { encoding: "utf8" });
+    git("init", "-q");
+    git("config", "user.email", "dev@localhost");
+    git("config", "user.name", "dev");
+    git("add", "-A");
+    git("commit", "-qm", "initial commit");
+    const base = git("rev-parse", "HEAD").trim();
+    // The repository as the runner made it, kept beside the session's folder: the change is read through this copy afterwards.
+    const gitDir = join(work, "base.git");
+    cpSync(join(cwd, ".git"), gitDir, { recursive: true });
+    return { work, cwd, base, gitDir, harnessDir: join(work, "harness") };
+  } catch (error) {
+    // Nothing was started: a folder that could not be made whole is taken away, so that it does not stand in the next one's way.
+    rmSync(work, { recursive: true, force: true });
+    throw new NotStarted(`the session's folder could not be made: ${error.message}`);
+  }
 }
 
 /**
@@ -541,10 +628,19 @@ export function setAside({ home, work, sessionId }) {
 }
 
 /**
- * What the first call's record is held against: the harness's version today, and the profile's settings as the
- * repository has them today. What a session showed under another version or other settings is not known to hold now.
+ * One checksum of what a session is started with: the profile's settings as the repository has them, and the fixed
+ * part of the command and the environment `commandFor` builds (the flags, the permission mode, the rule that closes a
+ * path to the file tools, the session's own path, the pins on model names). The walls the first call tests are in both.
  */
-export const profileSettingsSha = () => sha256(TEMPLATE);
+export function profileFingerprint() {
+  const fixed = commandFor({ home: "/h", claude: "/c", cwd: "/h/work/a/p", prompt: "<the prompt>", model: "<the model>", effort: "<the effort>", sessionId: "<the id>", maxBudgetUsd: 1, closed: ["/h/work/a/p/closed"], user: "u", userHome: "/u" });
+  return createHash("sha256").update(readFileSync(TEMPLATE)).update(JSON.stringify([fixed.argv, fixed.env])).digest("hex");
+}
+
+/**
+ * What the first call's record is held against: the harness's version today, and the profile as the repository has it
+ * today. What a session showed under another version or another profile is not known to hold now.
+ */
 export function asOfToday(find = findHarness) {
   let version;
   try {
@@ -552,23 +648,39 @@ export function asOfToday(find = findHarness) {
   } catch {
     version = "the harness was not found";
   }
-  return { harness_version: version, profile_settings_sha256: profileSettingsSha() };
+  return { harness_version: version, profile_sha256: profileFingerprint() };
 }
 
+/** An attempt's number from its folder's name: `record` is the first, `record-N` the Nth from the second on. Anything else is no attempt's. */
+const attemptOf = (name) => (name === "record" ? 1 : /^record-(?:[2-9]|[1-9]\d+)$/.test(name) ? Number(name.slice(7)) : null);
+
 /**
- * Whether the first paid call's record says the runs after it may be made: the latest attempt that is recorded, its
- * `may_the_pair_run`, and that it was made with today's harness and today's settings. No record is a no; a record
- * made before either changed is a no, and the call is made again as the next attempt.
+ * Whether the first paid call's record says the runs after it may be made. The latest attempt is the one that counts,
+ * and it is the latest folder, whether or not it holds a result: an attempt that was started and left no result is a
+ * no. Its yes has to be borne out by the record it sits in (every line holds, nothing went wrong keeping it, the
+ * session ended itself), and the record has to have been made with today's harness and today's profile. No record is
+ * a no; a record that cannot be read is a no; a folder that is no attempt's is a no until a person has looked.
  */
 export function firstCallAllows(folder = join(root, "experiments", "comparisons", "profile", "first-call"), today = asOfToday()) {
-  const records = existsSync(folder) ? readdirSync(folder).filter((name) => /^record(-\d+)?$/.test(name) && existsSync(join(folder, name, "result.json"))) : [];
-  if (records.length === 0) return { ok: false, why: "the first paid call has no record: it is made first, and what it showed is read before anything else runs" };
-  const latest = records.sort((a, b) => Number(a.split("-")[1] ?? 1) - Number(b.split("-")[1] ?? 1)).at(-1);
-  const result = JSON.parse(readFileSync(join(folder, latest, "result.json"), "utf8"));
-  if (result.may_the_pair_run !== true) return { ok: false, why: `the first paid call's latest record (${latest}) does not say the runs after it may be made` };
-  const then = { harness_version: result.harness?.version ?? null, profile_settings_sha256: result.profile_settings_sha256 ?? null };
+  const no = (why) => ({ ok: false, why });
+  const names = existsSync(folder) ? readdirSync(folder).filter((name) => /^record/.test(name)) : [];
+  if (names.length === 0) return no("the first paid call has no record: it is made first, and what it showed is read before anything else runs");
+  const odd = names.filter((name) => attemptOf(name) === null);
+  if (odd.length > 0) return no(`the first paid call's folder holds ${odd.join(", ")}, which is no attempt's record: a person looks at it before anything runs`);
+  const latest = names.sort((a, b) => attemptOf(a) - attemptOf(b)).at(-1);
+  let result;
+  try {
+    result = JSON.parse(readFileSync(join(folder, latest, "result.json"), "utf8"));
+  } catch (error) {
+    return no(`the first paid call's latest attempt (${latest}) has no result that can be read (${error.code ?? error.name}): it was started and not recorded, or its record is cut short`);
+  }
+  if (result?.may_the_pair_run !== true) return no(`the first paid call's latest record (${latest}) does not say the runs after it may be made`);
+  const lines = Array.isArray(result.findings) ? result.findings : [];
+  const against = [lines.length === 0 ? "it holds no findings" : null, lines.some((line) => line?.holds !== true) ? "a finding in it does not hold" : null, (result.problems ?? []).length > 0 ? "something went wrong keeping it" : null, result.ended_by !== "the session" ? `it was ended by ${result.ended_by ?? "nobody it names"}` : null].filter(Boolean);
+  if (against.length > 0) return no(`the first paid call's latest record (${latest}) says yes and does not bear it out: ${against.join("; ")}`);
+  const then = { harness_version: result.harness?.version ?? null, profile_sha256: result.profile_sha256 ?? null };
   const moved = Object.keys(today).filter((key) => then[key] !== today[key]);
-  if (moved.length > 0) return { ok: false, why: `the first paid call's latest record (${latest}) was made with another ${moved.map((key) => (key === "harness_version" ? `version of the harness (${then[key] ?? "not recorded"}, and today ${today[key]})` : "state of the profile's settings")).join(" and another ")}: what it showed is not known to hold now, so it is made again as the next attempt` };
+  if (moved.length > 0) return no(`the first paid call's latest record (${latest}) was made with another ${moved.map((key) => (key === "harness_version" ? `version of the harness (${then[key] ?? "not recorded"}, and today ${today[key]})` : "state of the profile (its settings, or the command a session is started with)")).join(" and another ")}: what it showed is not known to hold now, so it is made again as the next attempt`);
   return { ok: true, record: latest };
 }
 

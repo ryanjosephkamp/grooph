@@ -44,7 +44,7 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 
 **How a run is scored.** By study two's scorer and study two's suites, run from the repository's own `held-out/` folders against the final tree. Never from the copy a session was given.
 
-**A run is recorded and not scored unless scoring is asked for by name.** The scorer runs the task's own `npm test` and the held-out suite against the session's final tree, and that runs the code the session wrote: outside the sandbox, with the account's rights. Study two's runs were scored that way. Here the runner keeps everything and stops before that step; it starts only with `--score-outside-the-sandbox`, with the paid run or afterwards from the tree the runner kept. A run that is recorded and not scored is read as waiting, never as a score of nothing.
+**No run of this question starts until the owner has decided that it may be scored this way.** The scorer runs the task's own `npm test` and the held-out suite against the session's final tree, and that runs the code the session wrote: outside the sandbox, with the account's rights. Study two's runs were scored that way. A session's commands here run inside the sandbox; what it wrote does not when it is scored. His decision is kept in [`../study-three-first-steps.json`](../study-three-first-steps.json), under `scoring_outside_the_sandbox`: who decided, on what day, in what words. It is empty today, and while it is the runner refuses the whole run before it makes a folder, since a run that cannot be scored is not paid for. Each scored run's record names the decision it was scored on.
 
 **What the scores will be read as.** Two statements, each of which either holds or does not. The numbers are study two's: with the design, 55 of 55, 70 of 70 and 24 of 24; with the task alone, 51, 52 and 15.
 
@@ -61,7 +61,8 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 
 - **A run the harness or the account ended is not a score.** It is recorded, the driver is told, and it is made again once on the driver's word; the rerun's score is read in its place. Invalid both times, the run was not obtained: a task with a run of F not obtained cannot count toward the second statement, and the first is "not decided: a run was not obtained" unless a run in hand has already settled it.
 - **A run the watchdog cut off is scored as it stands**, as study two's protocol scores a cut-off, and its score is marked so.
-- **A final tree the suite cannot be run against passed no case.**
+- **A final tree the suite was run against and gave no summary for passed no case**: it would not load, or it did not end. That is the session's.
+- **A run with no score at all is not a score.** The scorer failed, or its file is not there: that is the runner's, not the session's. The run reads as "recorded, not scored", a statement that needs it is not decided yet, and it can be scored again from the tree the runner kept.
 
 **Said beforehand.**
 
@@ -76,7 +77,7 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 node scripts/lib/roles-or-information-paid.mjs --next                       # which run is next, and what it would start
 node scripts/lib/roles-or-information-paid.mjs --spend --go "<the driver's words>"   # the next run, and only that one
 node scripts/lib/roles-or-information-paid.mjs --readings                   # what the recorded scores are read as, so far
-node scripts/lib/roles-or-information-paid.mjs --score <task>/<arm>-<n> --score-outside-the-sandbox   # score a recorded run; no session, no spend
+node scripts/lib/roles-or-information-paid.mjs --score <task>/<arm>-<n>     # score a recorded run whose scorer failed, from the tree the runner kept; no session, no spend
 ```
 
 A paid run is started from a terminal, and is refused unless the first paid call's record says the runs after it may be made ([`../profile/first-call/`](../profile/first-call/)).

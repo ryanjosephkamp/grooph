@@ -30,7 +30,7 @@ import { fileURLToPath } from "node:url";
 import { addCheckLines } from "./brake-count.mjs";
 import { compileBoth } from "./brake-run.mjs";
 import { commandFor, DEFAULT_HOME } from "./compare-profile.mjs";
-import { asThingsStand, copyRecord, firstCallAllows, makeProject, NotStarted, plainLines, plainSha, relativeToRoot, runSession, setAside, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { asThingsStand, copyRecord, firstCallAllows, makeProject, NotStarted, plainLines, plainSha, relativeToRoot, runSession, setAside, spendFlags, unknownFlags, writeResult } from "./study-three-paid.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const experiment = join(root, "experiments", "brakes", "budget");
@@ -55,6 +55,9 @@ export function build({ form, budget, home, expect }) {
   try {
     const packages = compileBoth(compiled, expect);
     const graphId = JSON.parse(readFileSync(join(experiment, "brake.grooph.json"), "utf8")).id;
+    // Everything that is read is read before the session's folder is made: what fails after it would leave the folder behind.
+    const prompt = form === "package" ? readFileSync(join(packages[name], ".grooph", graphId, "KICKOFF.md"), "utf8") : readFileSync(join(experiment, `prompt-prose-${budget}.md`), "utf8");
+    const checkPath = expect.check_run.split(/\s+/).pop();
     const project = makeProject({
       home,
       name: JSON.parse(readFileSync(join(experiment, "task", "package.json"), "utf8")).name,
@@ -63,9 +66,7 @@ export function build({ form, budget, home, expect }) {
         if (form === "package") for (const part of [".grooph", ".claude"]) cpSync(join(packages[name], part), join(cwd, part), { recursive: true });
       },
     });
-    const prompt = form === "package" ? readFileSync(join(packages[name], ".grooph", graphId, "KICKOFF.md"), "utf8") : readFileSync(join(experiment, `prompt-prose-${budget}.md`), "utf8");
-    const checkFolder = dirname(expect.check_run.split(/\s+/).pop());
-    return { ...project, prompt, graphId: form === "package" ? graphId : null, closed: [join(project.cwd, checkFolder)], checkFile: join(project.cwd, ...expect.check_run.split(/\s+/).pop().split("/")) };
+    return { ...project, prompt, graphId: form === "package" ? graphId : null, closed: [join(project.cwd, dirname(checkPath))], checkFile: join(project.cwd, ...checkPath.split("/")) };
   } finally {
     rmSync(compiled, { recursive: true, force: true });
   }
@@ -112,7 +113,7 @@ export async function runBrake({ form, budget, go, rerun = false, home = DEFAULT
   } catch (error) {
     copied.problems.push(`the runner's own measures: ${error.message}`);
   }
-  const result = writeResult(record.dir, call, { form, budget, check_run: expect.check_run, ...measured, rerun_of: record.rerun_of ?? null, transcripts: copied.transcripts, run_folders: copied.run_folders, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, pre_registration: "experiments/brakes/budget/README.md" });
+  const result = writeResult(record.dir, call, { form, budget, check_run: expect.check_run, ...measured, rerun_of: record.rerun_of ?? null, transcripts: copied.transcripts, run_folders: copied.run_folders, run_folder_files_left_out: copied.left_out, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, pre_registration: "experiments/brakes/budget/README.md" });
   let kept = null;
   try {
     kept = setAside({ home, work: built.work, sessionId: call.session_id });
@@ -124,6 +125,11 @@ export async function runBrake({ form, budget, go, rerun = false, home = DEFAULT
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
+  const unknown = unknownFlags(flags, { plain: ["--dry-run", "--spend", "--rerun"], valued: ["--form", "--budget", "--go"] });
+  if (unknown.length > 0) {
+    console.error(`${unknown.join(", ")}: not a flag of this script. Nothing was started.`);
+    process.exit(64);
+  }
   const value = (name) => (flags.includes(name) ? flags[flags.indexOf(name) + 1] : undefined);
   const form = value("--form");
   const budget = Number(value("--budget"));

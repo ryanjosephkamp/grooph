@@ -18,5 +18,11 @@
     "roles-or-information"
   ],
   "stop_usd": 20,
-  "why_this_number": "About $14 was approved. Every planned session at its watchdog's ceiling would come to $51; no session is expected near its ceiling. $20 leaves room for one invalid run made again and for the first call made twice, and nothing more."
+  "why_this_number": "About $14 was approved. Every planned session at its watchdog's ceiling would come to $51; no session is expected near its ceiling. $20 leaves room for one invalid run made again and for the first call made twice, and nothing more. Since then the first call's record is held against the harness's version: each time the harness has moved before a later run is asked for, the first call is made once more (fifteen to forty cents each). If that happens more than once, this number is the owner's to raise.",
+  "scoring_outside_the_sandbox": {
+    "about": "The scorer of roles or information is study two's: it runs the task's own npm test and the repository's held-out suite against a session's final tree, and that runs the code the session wrote, outside the sandbox and with the account's rights. A session's commands run inside the sandbox; what it wrote does not when it is scored. Whether that may be done is the owner's to decide. Until his decision is written in the three fields below, no run of roles or information is started and none is scored. The first call, the brake pair and the resume step score nothing by running what a session wrote, and do not wait on this.",
+    "decided_by": null,
+    "on": null,
+    "words": null
+  }
 }

@@ -14,7 +14,7 @@
   "watchdog": { "E": { "usd_per_session": 2.0, "minutes_per_session": 15 }, "F": { "usd_per_session": 4.0, "minutes_per_session": 20 }, "is_not_a_graphs_stop": true },
   "held_out_in_arm_E": "inside the session's folder, at held-out/, because the comparison profile lets no file tool read outside it; closed to writing by the sandbox and by a rule on the command line; the token in the prompt becomes that path",
   "scored_by": "study two's scorer (scripts/lib/compare-score.mjs) and study two's suites, run from the repository's held-out folders against the final tree, never from the copy a session was given",
-  "scored_only_when_asked_by_name": "the scorer runs the task's own npm test and the held-out suite against the session's final tree, which runs the code the session wrote, outside the sandbox and with the account's rights. A run is recorded and not scored unless --score-outside-the-sandbox is given, with the paid run or afterwards from the tree the runner kept. A run recorded and not scored is read as waiting, never as a score of nothing",
+  "scored_only_on_the_owners_recorded_decision": "the scorer runs the task's own npm test and the held-out suite against the session's final tree, which runs the code the session wrote, outside the sandbox and with the account's rights. No run of this question is started, and none is scored, until the owner's decision that this may be done is recorded in experiments/comparisons/study-three-first-steps.json (scoring_outside_the_sandbox: decided_by, on, words). Each scored run's record names it",
   "from_study_two": {
     "review-gate-2": { "held_out_cases": 55, "with_the_design": 55, "the_task_alone": 51 },
     "heterogeneous-critic": { "held_out_cases": 70, "with_the_design": 70, "the_task_alone": 52 },
@@ -27,7 +27,8 @@
     "read_when": "as soon as the recorded scores settle a statement either way, and not before; until then it is 'not decided yet', never false. The first is false at the first run of E short of every case or run of F above the task alone, and true only with all twelve scored and none of them either. The second is true once two tasks each have both runs of F above the task alone, and false once fewer than two tasks could still have that",
     "a_run_the_harness_ended": "is not a score; its one rerun is read in its place. Invalid both times, it was not obtained: a task with a run of F not obtained cannot count toward the second statement, and the first is 'not decided: a run was not obtained' unless a run in hand has already settled it",
     "a_run_the_watchdog_cut_off": "is scored as it stands, as study two's protocol scores a cut-off, and its score is marked so",
-    "a_tree_the_suite_cannot_run_against": "passed no case"
+    "a_tree_the_suite_gave_no_summary_for": "passed no case: it would not load, or it did not end. That is the session's",
+    "a_run_with_no_score_at_all": "is not a score: the scorer failed or its file is not there, which is the runner's and not the session's. It reads as recorded and not scored, a statement that needs it is not decided yet, and it can be scored again from the tree the runner kept"
   },
   "said_beforehand": [
     "On review-gate-2 and heterogeneous-critic, arm E is handed the scorer's own suite and told to pass it: 'E passes everything' there is a ceiling, and would be a surprise only if it failed. The arm that can say something on those two tasks is F.",
