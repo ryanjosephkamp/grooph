@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { recordFor, runBrake } from "./brake-run-paid.mjs";
 import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
+import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
 import { endedBy, gameSessionsOpen, makeProject, refusals, resultsOfTranscript, runSession, spendFlags } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -271,5 +272,74 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     assert.match(second.result.findings.find((line) => line.what.startsWith("nothing it was asked")).seen, /closed\/by-subagent\.txt/);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
+  }
+});
+
+// ── the resume step ──────────────────────────────────────────────────────
+
+const OLD_RUN = ".grooph/layer-settings/runs/20261004-211444";
+const answered = [{ id: "n-0014", run: "20261004-211444", at: "node:merge-gate", outcome: "pass", text: "the human approved" }, { id: "n-0015", run: "20261004-211444", at: "graph", outcome: "ending", text: "reached done" }, { id: "n-0016", run: "20261004-211444", at: "graph", outcome: "pass", text: "run ended at done" }];
+const resumePlan = (more = {}) => ({
+  uses: [
+    { tool: "Read", input: { file_path: `${OLD_RUN}/PROGRESS.md` }, result: "…" },
+    ...(more.dispatches ? [{ tool: "Agent", input: { subagent_type: "layer-settings--builder", description: "Builder round 2", prompt: "again" }, result: "done", appends: { "src/layer.mjs": "\n// again\n" } }] : []),
+    { tool: "Bash", input: { command: `cat >> ${more.secondRun ? ".grooph/layer-settings/runs/20261005-000001" : OLD_RUN}/notes.jsonl` }, result: "", appends: { [`${more.secondRun ? ".grooph/layer-settings/runs/20261005-000001" : OLD_RUN}/notes.jsonl`]: (more.notes ?? answered).map((line) => `${JSON.stringify(line)}\n`).join("") } },
+    { tool: "Write", input: { file_path: `${OLD_RUN}/PROGRESS.md`, content: "…" }, result: "ok", appends: { [`${OLD_RUN}/PROGRESS.md`]: "\nended at done\n" } },
+  ],
+  cost: 0.45,
+});
+
+test("the prompt a fresh session is given is the kept kickoff and one sentence", () => {
+  const expect = expectation();
+  const prompt = resumePrompt(expect, "Run the grooph graph.\n\n");
+  assert.equal(prompt, "Run the grooph graph.\n\nYou are given a run id to resume: `20261004-211444`. Answer at the gate `merge-gate` of run `20261004-211444`: approve. Continue that run from where it halted.\n");
+  assert.equal(expect.the_answer_is_scripted, true);
+  assert.equal(expect.resumed_if.length, 7);
+});
+
+test("the resume step, with a stand-in for the harness: a run picked up, one started over, and one the harness ended", () => {
+  const p = place(resumePlan());
+  try {
+    const done = resumeStep({ ...p.common, recordRoot: p.recordRoot });
+    assert.equal(done.result.verdict, "resumed", JSON.stringify(done.result.resumed_if.filter((line) => !line.holds)));
+    assert.equal(done.result.notes_added, 3);
+    assert.equal(done.result.the_gates_answer_is_scripted, true);
+    assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["resume-by-a-fresh-session/A-1", 2]);
+    assert.match(readFileSync(join(done.recordDir, "prompt.md"), "utf8"), /^Run the grooph graph `layer-settings`[\s\S]*Continue that run from where it halted\.\n$/);
+    assert.equal(readFileSync(join(done.recordDir, "runs", "20261004-211444", "notes.jsonl"), "utf8").split("\n").filter(Boolean).length, 16, "the thirteen notes it was given and the three it added");
+    assert.ok(existsSync(join(done.kept, "work", "settingskit", "src", "layer.mjs")), "the rebuilt project held the first run's change");
+    assert.throws(() => resumeStep({ ...p.common, recordRoot: p.recordRoot }), /already recorded/);
+    assert.throws(() => resumeStep({ ...p.common, recordRoot: p.recordRoot, rerun: true }), /no invalid first record/);
+  } finally {
+    rmSync(p.top, { recursive: true, force: true });
+  }
+  const q = place(resumePlan({ dispatches: true, secondRun: true }));
+  try {
+    const over = resumeStep({ ...q.common, recordRoot: q.recordRoot });
+    assert.equal(over.result.verdict, "not resumed");
+    assert.deepEqual(over.result.resumed_if.filter((line) => !line.holds).map((line) => line.what), [
+      "there is still one run folder, the one it was given",
+      "the notes it was given are the first lines of the notes it left, with at least one line after them",
+      "no subagent was dispatched",
+      "a new note stands at the gate or on its approval edge",
+      "a new note says the run is ending, and the last note is the graph's",
+      "the source document is unchanged, and so is every file of the project outside the run folder",
+    ]);
+    assert.match(over.result.resumed_if.at(-1).seen, /src\/layer\.mjs/);
+  } finally {
+    rmSync(q.top, { recursive: true, force: true });
+  }
+  const r = place({ no_output: true });
+  try {
+    const dead = resumeStep({ ...r.common, recordRoot: r.recordRoot });
+    assert.equal(dead.result.verdict, "invalid");
+    writeFileSync(join(r.at.profile, "stand-in-plan.json"), JSON.stringify(resumePlan({ notes: answered.slice(0, 2) })), "utf8");
+    const again = resumeStep({ ...r.common, recordRoot: r.recordRoot, rerun: true });
+    assert.equal(again.recordDir.endsWith("record-rerun"), true);
+    assert.equal(again.result.verdict, "not resumed", "the line that says the run is ending is not the final note: the brief's ending is two lines");
+    assert.deepEqual(again.result.resumed_if.filter((line) => !line.holds).map((line) => line.what), ["a new note says the run is ending, and the last note is the graph's"]);
+    assert.throws(() => resumeStep({ ...r.common, recordRoot: r.recordRoot, rerun: true }), /already run again once/);
+  } finally {
+    rmSync(r.top, { recursive: true, force: true });
   }
 });
