@@ -1,17 +1,17 @@
 # Where the package's extra cost goes
 
-**Derived on 2026-10-05 from the records of study two. It is not evidence of the runs, it has not been audited, and no model session was started to make it.** Every number in the tables at the end is made by [`scripts/lib/compare-lead.mjs`](../../../scripts/lib/compare-lead.mjs) from the harness's own transcripts of the six package runs (arm A) and the six runs of the same design as prose (arm B), and kept in [`lead-cost.json`](lead-cost.json): counts and kinds, no prompt, no reply, no file content. A few facts in the prose are counted straight from the kept packages, notes and digests instead, and say so.
+**Derived on 2026-10-05 from the records of study two. It is not evidence of the runs, it has not been audited, and no model session was started to make it. The dollar rates are inferred, not taken from a price list: they are the ones that reproduce every reported per-model cost of these runs, and the split of the difference into three parts depends on them.** Every number in the tables at the end is made by [`scripts/lib/compare-lead.mjs`](../../../scripts/lib/compare-lead.mjs) from the harness's own transcripts of the six package runs (arm A) and the six runs of the same design as prose (arm B), and kept in [`lead-cost.json`](lead-cost.json): counts and kinds, no prompt, no reply, no file content. A few facts in the prose are counted straight from the kept packages, notes and digests instead, and say so.
 
 The owner's question was what exactly makes a graph cost more than the same design given as a prompt, and whether a longer or larger run would dilute it.
 
 ## The answer
 
-1. **All of it is the lead.** On the mean the subagents cost the same in both arms (A less B: −$0.008 a run; by project −$0.008, +$0.055 and −$0.071). The lead cost $0.838 a run in A and $0.314 in B. That +$0.524 is the whole difference (Tables 1 and 2).
+1. **On the mean, all of it is the lead.** The subagents cost the same in both arms on the mean, not in each project (A less B: −$0.008 a run; by project −$0.008, +$0.055 and −$0.071). The lead cost $0.838 a run in A and $0.314 in B. That +$0.524 is the whole difference (Tables 1 and 2).
 2. **It is three things of about the same size** (Table 2).
    - **Reading the context back: +$0.179.** Every call the lead makes reads back everything so far. The package's lead made 25.5 calls a run and the prose lead 7.5. This part goes with the number of calls.
    - **Adding to the context: +$0.183.** Most of it is one thing: the brief, the graph and the agent files, 16.3 thousand tokens written to the cache once, which at $8.00 a million is $0.130. This part goes with size, not with the number of calls.
    - **Output: +$0.162.** This part goes with what the lead writes. Half of what the package's lead sends is notes and the progress file (Table 5).
-3. **About half is paid once and half is paid again at every dispatch.** Before the first dispatch and at the reply: +$0.276. Over the four dispatches: +$0.248, which is $0.062 a dispatch (Table 4). By project the part paid once is 50%, 53% and 55%.
+3. **At four dispatches, about half of it falls before the first dispatch and at the reply, and half in the four cycles.** Before the first dispatch and at the reply: +$0.276. In the four cycles: +$0.248, which is $0.062 a cycle (Table 4). By project the first part is 50%, 53% and 55%. Every run had four dispatches, so this says where the cost fell and not how it would grow.
 4. **Two items are most of it.** Reading the brief, the graph and the agent files costs $0.165 in its own calls, once, and $0.076 more in the later calls that read them back: $0.241 at four dispatches, or 46% of the difference (Table 9). Writing a node's note and the progress file costs $0.222, and repeats (Table 3).
 
 A mean call of the package's lead cost three cents. A call that only read the clock cost a cent and a half ($0.037 over 2.5 calls). So making fewer calls, with the same things read and written, would save at most the first third.
@@ -35,24 +35,25 @@ Two kinds the driver asked about have no call of their own in any of the twelve 
 
 **What every session starts with.** Each call also reads back 15,983 tokens that are the harness's own instructions and tool definitions. That is $0.0032 a call and $0.058 of the difference (Table 9). It is not grooph's to change.
 
-## Paid once, or paid again at every dispatch
+## Where in a run it falls, and what that can say about a longer one
 
 **Every run here had four dispatches, so a slope cannot be fitted across runs.** What can be separated is where in a run a call fell (Table 4).
 
 - **Plainly once:** the prompt, reading the brief, the run folder and working copy, the amendments (all at the start in these runs), the first note and progress file, and the reply.
 - **Plainly repeating:** the dispatch itself, the note after each node, the progress file after each node, the clock reads, and once a round the kept report.
 
-The split is by position, so it is rough at its edges. The first node's `started` line and clock read fall before the first dispatch ($0.026 of the part "paid once"), and the run's last note and progress file fall in the fourth cycle.
+The split is by position, so it is rough at its edges. The first node's `started` line and clock read fall before the first dispatch ($0.026 of the first part), and the run's last note and progress file fall in the fourth cycle.
 
-The four cycles cost the package's lead $0.127, $0.118, $0.118 and $0.117: flat over four. So at four dispatches the difference is about $0.28 once and $0.06 a dispatch.
+The four cycles cost the package's lead $0.127, $0.118, $0.118 and $0.117: flat over four. So at four dispatches the difference is about $0.28 before the first dispatch and at the reply, and about $0.06 in each of the four cycles. That is what the records carry.
 
-**What that would mean for a longer run is arithmetic, and Table 8 does it.** It is not a measurement. It is also not these designs, whose own stops end them at 10 or 16 dispatches: it is a design of the same shape with more nodes, each arm held at what four dispatches showed.
+**What that would mean for a longer run is arithmetic, and Table 8 does it.** It is not a measurement. It is also not these designs, whose own stops end them at 10 or 16 dispatches: it is a design of the same shape with more nodes, with each arm held at what four dispatches showed. Nothing past four dispatches was observed.
 
-- **The part paid once would be diluted.** At 20 dispatches the package would be about 45% above the prose, against about 60% as run. From each project's runs alone that figure is 30%, 49% and 64%.
-- **The part paid at each dispatch would not be.**
-- **And the context grows, which works the other way.** Each dispatch adds to the lead's context, and every later call reads all of it back. The package's lead adds 4,238 tokens a dispatch and makes 3.9 calls a dispatch; the prose lead adds 2,848 and makes 1.6 (Table 6). At four dispatches that is a cent. Carried to 100 it would be the largest part of the difference, and the package would be about 74% above the prose. From each project's runs alone: 41%, 85% and 112%.
+- **If the first part is paid once, a longer run dilutes it.** By arithmetic on twelve runs of four dispatches, the package would be about 45% above the prose at 20 dispatches, against about 60% as run. From each project's runs alone that figure is 30%, 49% and 64%.
+- **If the second part is paid again at each dispatch, a longer run does not dilute it.**
+- **The context grows, which works the other way.** Each dispatch adds to the lead's context, and every later call reads all of it back. The package's lead adds 4,238 tokens a dispatch and makes 3.9 calls a dispatch; the prose lead adds 2,848 and makes 1.6 (Table 6). At four dispatches that is a cent.
+- **Past that the arithmetic stops being a guide.** Carried to 100 dispatches it says about 74% above the prose, and from each project's runs alone 41%, 85% and 112%. But it gets there by taking the package lead's context to about 465 thousand tokens, and it has no compaction. What the harness does with a context of that size is not known here: no run came near it. A compaction would reset what is read back, at the price of a summary and of writing the new context once, and the growth term would no longer be this one.
 
-**So by this arithmetic a longer run would first dilute the premium and then compound it, and would never take it much below 45%.** The spread between projects is wide, because each rests on two runs an arm. None of it is observed. The growth is too small to see in four cycles.
+**So the direction is: a longer run dilutes one part and compounds another, and these runs cannot say where the two cross.** The spread between projects is wide, because each rests on two runs an arm.
 
 The first lead transcript of real length will be the game experiment's own run. The same reading could be made of it afterwards: the script would need pointing at its record, and it would start no session.
 
@@ -73,12 +74,12 @@ Audit 0001 asks that every comparison carry this table (finding F12). It is from
 | | Arm A, the package | Arm B, the same design as prose |
 |---|---|---|
 | **The lead** | The kickoff as its prompt, about 3,000 characters. It then reads the lead brief (20,000), and unasked the graph (8,400) and both agent files (6,700), from the project. The `grooph` command is on its path. It is asked to keep a run folder. | One prompt of 8,600 to 10,200 characters, derived by rule from the same package: the roles, the routing, the loop and its stops, the gate, and each node's brief. No package in the project, no command on the path, no record asked for. |
-| **A builder** | Its agent file, which holds its brief, and the lead's dispatch prompt. | The lead's dispatch prompt, which carries the same brief, to a general-purpose subagent. |
-| **A reviewer** | Its agent file and the lead's dispatch prompt, with the held-out material named by its path. | The lead's dispatch prompt with the same brief and the same path. |
+| **A builder** | A named agent. Its agent file gives it a model, a tool list, its brief, its declared inputs and outputs, a line that it dispatches nobody, and sections on what it owns, what evidence it may inspect and the form of its report. Then the lead's dispatch prompt. | A general-purpose subagent, with that subagent's own tools. It is given what the lead writes into the dispatch prompt from the prose, which carries the node's brief, inputs, outputs and capabilities. |
+| **A reviewer** | A named agent in the same way, with the held-out material named by its path. | A general-purpose subagent in the same way, with the same path. |
 | **The held-out material** | Named to the reviewer only. A copy sits beside the project and the session's rules allow reading it, so a builder is kept from it by instruction and not by the harness. | The same. |
 | **Models** | The lead on Opus 5.5 at high effort. Each node on the model its tier maps to. | The same. The prose names each role's model. |
 
-**The two arms differ in what the lead is given and asked to keep, and in nothing a builder or a reviewer is given.** So the difference on this page is the cost of the package's form and its record. The other half of F12, whether the roles or the reviewer's evidence lifted both arms above the task alone, is a question about arm D, which this page does not price.
+**The two arms differ in what the lead is given and asked to keep, and in the form a builder and a reviewer get their instructions in:** a named agent with a tool list and a compiled file in A, a general-purpose subagent with a prompt the lead wrote in B (audit 0001, finding F4). The held-out material goes to the same role in both. The cost finding does not rest on the subagents being given the same thing: it is the lead's cost that differs, and the subagents' differs by −$0.008 on the mean. The other half of F12, whether the roles or the reviewer's evidence lifted both arms above the task alone, is a question about arm D, which this page does not price.
 
 ## What stage 16 would remove, by this count
 
@@ -176,10 +177,10 @@ On the Mac that holds the transcripts: `node scripts/lib/compare-lead.mjs --writ
 | cycle 3 | 4.3 | $0.118 | 1.8 | $0.055 | +$0.063 |
 | cycle 4 | 3 | $0.117 | 1 | $0.050 | +$0.068 |
 | reply | 1 | $0.027 | 1 | $0.022 | +$0.005 |
-| **paid once** (setup and reply) |  | **$0.359** |  | **$0.083** | **+$0.276** |
-| **paid again each dispatch** (the cycles) |  | **$0.480** |  | **$0.232** | **+$0.248** |
+| **before the first dispatch and at the reply** |  | **$0.359** |  | **$0.083** | **+$0.276** |
+| **in the four cycles** |  | **$0.480** |  | **$0.232** | **+$0.248** |
 
-Of A less B, the part paid once is 53% over all three projects, and by project 50%, 53%, 55%.
+Of A less B, the part that fell before the first dispatch and at the reply is 53% over all three projects, and by project 50%, 53%, 55%.
 
 **Table 5. What the lead did, counted by tool use: the mean of a run, with the range.** Characters sent is the size of the arguments the lead wrote to make those tool uses (a note's line, a file's new text, a dispatch's prompt): where its output went.
 
@@ -215,13 +216,13 @@ The harness refused 8 of arm A's 239 tool uses over the six runs and 0 of arm B'
 | the same, and the progress file rendered from the notes (not in the plan) | 11.5 | 28% | 3.7 | 3 to 6 | 14% | $0.062 | $0.776 | +$0.462 |
 | a workflow script that dispatches and keeps the record (slice 0022): everything but the prompt, the amendments and the reply | 37.7 | 92% | 22.7 | 18 to 27 | 89% | $0.732 | $0.107 | −$0.208 |
 
-**Table 8. A design of the same shape at more dispatches: arithmetic, not a measurement.** It holds each arm at what four dispatches showed (the cost paid once, the cost of a dispatch with its subagent, the context each dispatch adds and the calls that read it back), prices the context at the cached rate at any size, and has no compaction. No run here had more than four dispatches, and these designs' own stops end them at 10 or 16.
+**Table 8. A design of the same shape at more dispatches: arithmetic, not a measurement.** It holds each arm at what four dispatches showed (the cost paid once, the cost of a dispatch with its subagent, the context each dispatch adds and the calls that read it back), prices the context at the cached rate at any size, and has no compaction: it is not known here at what size the harness compacts a lead's context, and a compaction would reset what is read back, at the price of a summary and of writing the new context once. No run here had more than four dispatches, and these designs' own stops end them at 10 or 16. Nothing past four dispatches was observed.
 
-| dispatches | B | A | A less B | A above B | of the difference: paid once | paid each dispatch | from the context growing |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| 4 (as run) | $0.87 | $1.38 | +$0.52 | 60% | +$0.28 | +$0.23 | +$0.01 |
-| 20 | $4.15 | $6.01 | +$1.86 | 45% | +$0.28 | +$1.13 | +$0.45 |
-| 100 | $24.14 | $41.92 | +$17.78 | 74% | +$0.28 | +$5.65 | +$11.85 |
+| dispatches | B | A | A less B | A above B | of the difference: held as paid once | held as paid at each dispatch | from the context growing | A's lead's context by then, in tokens |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 4 (as run) | $0.87 | $1.38 | +$0.52 | 60% | +$0.28 | +$0.23 | +$0.01 | 57,845 |
+| 20 | $4.15 | $6.01 | +$1.86 | 45% | +$0.28 | +$1.13 | +$0.45 | 125,647 |
+| 100 | $24.14 | $41.92 | +$17.78 | 74% | +$0.28 | +$5.65 | +$11.85 | 464,657 |
 
 Each dispatch adds $0.0033 to the cost of every later dispatch in A and $0.0009 in B: the calls a dispatch takes, times the context it adds, at the cached rate.
 

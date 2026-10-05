@@ -426,14 +426,14 @@ export function tables(data) {
       ["phase", "A: calls", "A: cost", "B: calls", "B: cost", "A less B"],
       [
         ...phases.map(phaseLine),
-        ["**paid once** (setup and reply)", "", `**${money(mean(A.map(once)))}**`, "", `**${money(mean(B.map(once)))}**`, `**${signed(allDiff(once))}**`],
-        ["**paid again each dispatch** (the cycles)", "", `**${money(mean(A.map(repeating)))}**`, "", `**${money(mean(B.map(repeating)))}**`, `**${signed(allDiff(repeating))}**`],
+        ["**before the first dispatch and at the reply**", "", `**${money(mean(A.map(once)))}**`, "", `**${money(mean(B.map(once)))}**`, `**${signed(allDiff(once))}**`],
+        ["**in the four cycles**", "", `**${money(mean(A.map(repeating)))}**`, "", `**${money(mean(B.map(repeating)))}**`, `**${signed(allDiff(repeating))}**`],
       ],
     ),
   );
 
   const onceShare = (list) => (mean(list.filter((r) => r.arm === "A").map(once)) - mean(list.filter((r) => r.arm === "B").map(once))) / (mean(list.filter((r) => r.arm === "A").map((r) => r.lead.usd.total)) - mean(list.filter((r) => r.arm === "B").map((r) => r.lead.usd.total)));
-  out.push(`Of A less B, the part paid once is ${Math.round(100 * onceShare(runs))}% over all three projects, and by project ${projects.map((p) => `${Math.round(100 * onceShare(runs.filter((r) => r.project === p)))}%`).join(", ")}.`);
+  out.push(`Of A less B, the part that fell before the first dispatch and at the reply is ${Math.round(100 * onceShare(runs))}% over all three projects, and by project ${projects.map((p) => `${Math.round(100 * onceShare(runs.filter((r) => r.project === p)))}%`).join(", ")}.`);
 
   out.push("**Table 5. What the lead did, counted by tool use: the mean of a run, with the range.** Characters sent is the size of the arguments the lead wrote to make those tool uses (a note's line, a file's new text, a dispatch's prompt): where its output went.");
   const useKinds = ["brief", "run-folder", "amendment", "started-line", "clock", "note", "progress", "report", "check", "dispatch", "other"].filter((kind) => runs.some((run) => run.uses_by_kind[kind]));
@@ -480,7 +480,7 @@ export function tables(data) {
       ],
     ),
   );
-  out.push("**Table 8. A design of the same shape at more dispatches: arithmetic, not a measurement.** It holds each arm at what four dispatches showed (the cost paid once, the cost of a dispatch with its subagent, the context each dispatch adds and the calls that read it back), prices the context at the cached rate at any size, and has no compaction. No run here had more than four dispatches, and these designs' own stops end them at 10 or 16.");
+  out.push("**Table 8. A design of the same shape at more dispatches: arithmetic, not a measurement.** It holds each arm at what four dispatches showed (the cost paid once, the cost of a dispatch with its subagent, the context each dispatch adds and the calls that read it back), prices the context at the cached rate at any size, and has no compaction: it is not known here at what size the harness compacts a lead's context, and a compaction would reset what is read back, at the price of a summary and of writing the new context once. No run here had more than four dispatches, and these designs' own stops end them at 10 or 16. Nothing past four dispatches was observed.");
   const readRate = data.rates_usd_per_million_tokens["claude-opus-5-5"].cache_read / 1e6;
   const law = (list) => {
     const dispatches = mean(list.map((r) => r.lead.dispatches));
@@ -492,8 +492,8 @@ export function tables(data) {
   const lawB = law(B);
   out.push(
     table(
-      ["dispatches", "B", "A", "A less B", "A above B", "of the difference: paid once", "paid each dispatch", "from the context growing"],
-      [4, 20, 100].map((n) => [n === 4 ? "4 (as run)" : String(n), money(lawB.at(n), 2), money(lawA.at(n), 2), signed(lawA.at(n) - lawB.at(n), 2), `${Math.round(100 * (lawA.at(n) / lawB.at(n) - 1))}%`, signed(lawA.once - lawB.once, 2), signed(n * (lawA.each - lawB.each), 2), signed(((lawA.perStep - lawB.perStep) * n * (n - 1)) / 2, 2)]),
+      ["dispatches", "B", "A", "A less B", "A above B", "of the difference: held as paid once", "held as paid at each dispatch", "from the context growing", "A's lead's context by then, in tokens"],
+      [4, 20, 100].map((n) => [n === 4 ? "4 (as run)" : String(n), money(lawB.at(n), 2), money(lawA.at(n), 2), signed(lawA.at(n) - lawB.at(n), 2), `${Math.round(100 * (lawA.at(n) / lawB.at(n) - 1))}%`, signed(lawA.once - lawB.once, 2), signed(n * (lawA.each - lawB.each), 2), signed(((lawA.perStep - lawB.perStep) * n * (n - 1)) / 2, 2), thousands(mean(A.map((r) => r.lead.context_at_first_dispatch)) + n * mean(A.map(growth)))]),
     ),
   );
   out.push(`Each dispatch adds ${money(lawA.perStep, 4)} to the cost of every later dispatch in A and ${money(lawB.perStep, 4)} in B: the calls a dispatch takes, times the context it adds, at the cached rate.`);
