@@ -22,7 +22,7 @@ import {
   reachableFrom,
 } from "./semantics.js";
 import { didYouMean } from "./suggest.js";
-import { hasProfile } from "./targets/index.js";
+import { hasProfile } from "./targets/names.js";
 import { findSlots } from "./template.js";
 import type { AgentNode, Edge, Graph, Group, Id, Node } from "./types.js";
 
@@ -431,11 +431,14 @@ function ownershipConflicts(index: GraphIndex): Issue[] {
  * continues at the node (`then`). An edge passes a human when it carries
  * `approval: true` or starts at a human-gate node; a stop does when it is the
  * stop where a person is asked (`human`). Every way in must pass a human, and
- * there must be one.
+ * there must be one. A node the run starts at (graph-ir §2: only a loop's back
+ * edges lead to it) is reached the first time with nobody asked, whatever
+ * those edges carry.
  */
 function irreversibleWithoutGate(index: GraphIndex): Issue[] {
   const issues: Issue[] = [];
   const passesHuman = (edge: Edge): boolean => edge.approval === true || index.nodes.get(edge.from)?.kind === "human-gate";
+  const entries = new Set(entryNodeIds(index));
   for (const node of agentNodes(index)) {
     const actions = node.irreversible ?? [];
     if (actions.length === 0) continue;
@@ -444,6 +447,18 @@ function irreversibleWithoutGate(index: GraphIndex): Issue[] {
     // The lead arrives by a stop's `then` as surely as by an edge: "continue at node …" is in its brief.
     const led = (index.doc.loops ?? []).flatMap((loop) => (loop.stops ?? []).flatMap((stop, i) => (stop.then === node.id ? [{ loop, stop, i }] : [])));
     const openStops = led.filter(({ stop }) => stop.kind !== "human");
+    // An entry node with a way back to it: the way back may pass a person, and the first time round nobody is asked.
+    const starts = entries.has(node.id) && inbound.length + led.length > 0;
+    if (starts) {
+      issues.push(
+        error(
+          "E_IRREVERSIBLE_NO_GATE",
+          `node "${node.id}" performs irreversible actions (${actions.join(", ")}) and is where the run starts: only ${inbound.length > 0 ? `a loop's back edge (${quoted(inbound.map((edge) => edge.id))})` : "a stop of its own loop"} leads to it, so no human decides before it runs the first time; put a human-gate node before it`,
+          [node.id, ...inbound.map((edge) => edge.id)],
+        ),
+      );
+      continue;
+    }
     if (inbound.length + led.length > 0 && open.length === 0 && openStops.length === 0) continue;
     const through = [...(open.length > 0 ? [quoted(open.map((edge) => edge.id))] : []), ...openStops.map(({ loop, stop, i }) => `loop "${loop.id}" stop ${i} (${stop.kind}), which continues there`)];
     const fix = [...(open.length > 0 ? ["set approval: true on those edges, or start them at a human-gate node"] : []), ...(openStops.length > 0 ? ["have the stop continue at a human-gate node that leads to it"] : [])];
@@ -460,16 +475,25 @@ function irreversibleWithoutGate(index: GraphIndex): Issue[] {
   return issues;
 }
 
-/** The model a node resolves to, harness-neutrally: its tier and pins, or the session default. */
-function modelKey(node: AgentNode): string {
+/**
+ * What says which model a node is on, in the harness the document names: its pin for that harness, which the
+ * package writes in place of the tier's model; or else its tier; or the session default. A pin for another harness
+ * is not read there, so it tells no critic apart from its builder. Two nodes pinned to one model for the named
+ * harness are on one model whatever their tiers. (What a tier means is the target profile's and the exporter's to
+ * say, so a pin that names the very model its builder's tier resolves to is not seen here.)
+ *
+ * A document that names no harness yet is read harness-neutrally: its tier and every pin, as before.
+ */
+function modelKey(node: AgentNode, harness: string | undefined): string {
   const pin = node.model?.pin;
-  const pins = pin ? Object.keys(pin).sort().map((harness) => `${harness}: ${pin[harness]}`) : [];
+  if (harness !== undefined && pin?.[harness] !== undefined) return `pin ${harness}: ${pin[harness]}`;
+  const pins = pin && harness === undefined ? Object.keys(pin).sort().map((name) => `${name}: ${pin[name]}`) : [];
   return [node.model ? `tier ${node.model.tier}` : "the session default", ...pins.map((p) => `pin ${p}`)].join(", ");
 }
 
 /**
- * `W_HOMOGENEOUS_CRITICS` — a critic resolves to the same tier and pins as every
- * one of its nearest writers: the writers with a path to it along non-back
+ * `W_HOMOGENEOUS_CRITICS` — a critic resolves to the same tier and pin (its pin
+ * for the harness the document names) as every one of its nearest writers: the writers with a path to it along non-back
  * edges that passes through no other writer (graph-ir §3). A planner two steps
  * upstream does not excuse a critic that shares a model with the builder it
  * judges. Judged per critic, so one differing node elsewhere in the graph does
@@ -480,17 +504,19 @@ function modelKey(node: AgentNode): string {
 function homogeneousCritics(index: GraphIndex): Issue[] {
   const back = new Set<Id>((index.doc.loops ?? []).flatMap((loop) => loop.back ?? []));
   const writers = agentNodes(index).filter(isWriterFamily);
+  const named = index.doc.target?.harness;
+  const harness = typeof named === "string" && named.trim() !== "" ? named : undefined;
   const flagged: { critic: AgentNode; writers: AgentNode[] }[] = [];
   for (const critic of agentNodes(index).filter(isCriticFamily)) {
     const nearest = nearestWriters(index, critic.id, back);
     const reaching = writers.filter((writer) => writer.id !== critic.id && nearest.has(writer.id));
     if (reaching.length === 0) continue;
-    const key = modelKey(critic);
-    if (reaching.every((writer) => modelKey(writer) === key)) flagged.push({ critic, writers: reaching });
+    const key = modelKey(critic, harness);
+    if (reaching.every((writer) => modelKey(writer, harness) === key)) flagged.push({ critic, writers: reaching });
   }
   if (flagged.length === 0) return [];
   const parts = flagged.map(
-    ({ critic, writers: same }) => `critic "${critic.id}" judges ${quoted(same.map((n) => n.id))} on the same model (${modelKey(critic)})`,
+    ({ critic, writers: same }) => `critic "${critic.id}" judges ${quoted(same.map((n) => n.id))} on the same model (${modelKey(critic, harness)})`,
   );
   return [
     warning(

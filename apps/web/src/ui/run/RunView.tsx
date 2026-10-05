@@ -1,7 +1,7 @@
 import { overlayRun, type Graph, type Id, type Loop, type NodeLive, type RunBundle, type RunNote, type RunSummary } from "@grooph/core";
 import { useCallback, useMemo, useState } from "react";
 
-import { duration, noteTarget, orderedNotes, runHref, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
+import { duration, noteTarget, orderedNotes, runHref, runKey, runModel, targetHighlight, targetLabel } from "../../doc/run.js";
 import { LookMenu } from "../canvas/LookMenu.js";
 import { deleteRun, saveRun } from "../../store/runs.js";
 import { ViewCanvas } from "../canvas/ViewCanvas.js";
@@ -319,7 +319,7 @@ export function RunView({
           ) : tab === "changes" ? (
             <RunChanges model={model} onNote={showNote} />
           ) : tab === "proposals" ? (
-            <RunProposals bundle={bundle} proposals={summary.proposals} onNote={showNote} />
+            <RunProposals key={runKey(bundle)} bundle={bundle} proposals={summary.proposals} onNote={showNote} />
           ) : (
             <pre className="run-log">{bundle.progress}</pre>
           )}

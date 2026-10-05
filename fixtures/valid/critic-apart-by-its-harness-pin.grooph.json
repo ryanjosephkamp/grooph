@@ -1,0 +1,73 @@
+{
+  "grooph": 0,
+  "id": "critic-apart-by-its-harness-pin",
+  "name": "Critic apart by its harness's pin",
+  "version": 1,
+  "goal": "Review a draft.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "Builder and critic share a tier, and the critic is pinned to another model for the harness the graph names. That pin is read, so the critic is not on its builder's model and no warning is raised.",
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "brief": "Builder: write the draft.",
+      "outputs": [
+        "DRAFT.md"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files"
+      ]
+    },
+    {
+      "id": "critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "strong",
+        "pin": {
+          "claude-code": "opus"
+        }
+      },
+      "brief": "Critic: judge DRAFT.md against the checklist.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-build-review",
+      "from": "builder",
+      "to": "critic",
+      "evidence": [
+        "DRAFT.md"
+      ]
+    },
+    {
+      "id": "e-review-pass",
+      "from": "critic",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": []
+}

@@ -225,10 +225,10 @@ test("export-only rules fire only for export", () => {
 });
 
 test("E_NO_TARGET fires for a harness with no profile", () => {
-  const doc = base({ target: { harness: "codex" }, nodes: [agent("a", "builder")] });
+  const doc = base({ target: { harness: "unknown-harness" }, nodes: [agent("a", "builder")] });
   const issues = errors(validate(doc, { forExport: true }));
   assert.deepEqual(codes(issues), ["E_NO_TARGET"]);
-  assert.match(issues[0]!.message, /no compile profile for target harness "codex"/);
+  assert.match(issues[0]!.message, /no compile profile for target harness "unknown-harness"/);
 });
 
 test("every issue names the objects involved", () => {
@@ -356,6 +356,40 @@ test("E_IRREVERSIBLE_NO_GATE: an approval edge or a gate before every inbound ed
     [],
     "a gate on one way in and an approval on the other both pass a human",
   );
+});
+
+test("E_IRREVERSIBLE_NO_GATE: a node the run starts at is reached with nobody asked, whatever leads back to it", () => {
+  // Found by the audit of 0.3.0's claims: a step marked irreversible that only its loop's back edge leads into.
+  // With no approval on that edge the rule named the edge; with one it passed, though the run starts at the step.
+  const tests: Node = { id: "tests", kind: "check", name: "Tests", check: { kind: "tests", run: "npm test", pass: "exit code 0" } };
+  const looped = (back: object, extra: Node[] = [], edges: Graph["edges"] = [], stops: Graph["loops"][number]["stops"] = []): Graph =>
+    base({
+      nodes: [agent("pusher", "builder", { ...writable, irreversible: ["push"] }), tests, ...extra, stopNode],
+      edges: [
+        { id: "e-push-tests", from: "pusher", to: "tests" },
+        { id: "e-tests-fail", from: "tests", to: "pusher", when: "fail", ...back },
+        { id: "e-tests-pass", from: "tests", to: "done", when: "pass" },
+        ...edges,
+      ],
+      loops: [{ id: "fix", name: "Fix", members: ["pusher", "tests"], back: ["e-tests-fail"], stops: [{ kind: "max-iterations", n: 3 }, { kind: "budget", measure: "minutes", limit: 10 }, ...stops] }],
+    });
+  for (const back of [{}, { approval: true }]) {
+    const issues = only(validate(looped(back)), "E_IRREVERSIBLE_NO_GATE");
+    assert.equal(issues.length, 1, JSON.stringify(back));
+    assert.match(issues[0]!.message, /is where the run starts: only a loop's back edge \("e-tests-fail"\) leads to it, so no human decides before it runs the first time/);
+    assert.deepEqual(issues[0]!.at, ["pusher", "e-tests-fail"]);
+  }
+  // A stop of its own loop that asks a person and continues at it is the loop going round again: still where the run starts.
+  assert.equal(only(validate(looped({ approval: true }, [], [], [{ kind: "human", every: 2, then: "pusher" }])), "E_IRREVERSIBLE_NO_GATE").length, 1);
+
+  // A gate before it: every way in passes a human, the way in at the start among them.
+  const gate: Node = { id: "gate", kind: "human-gate", name: "Gate", prompt: "Push as fixes are made?" };
+  const gated: Graph["edges"] = [{ id: "e-gate-push", from: "gate", to: "pusher", when: "pass" }];
+  assert.deepEqual(only(validate(looped({ approval: true }, [gate], gated)), "E_IRREVERSIBLE_NO_GATE"), []);
+  // With the gate before it and the way back open, the open edge is named, as it was.
+  const open = only(validate(looped({}, [gate], gated)), "E_IRREVERSIBLE_NO_GATE");
+  assert.deepEqual(open.map((issue) => issue.at), [["pusher", "e-tests-fail"]]);
+  assert.match(open[0]!.message, /can be reached without a human decision through "e-tests-fail"/);
 });
 
 test("E_IRREVERSIBLE_NO_GATE: a loop's stop that continues at the node is a way in, and must pass a human too", () => {

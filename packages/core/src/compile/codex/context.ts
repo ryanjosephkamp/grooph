@@ -1,0 +1,134 @@
+/**
+ * The resolved view of a graph for the Codex target: names, models,
+ * sandbox settings and paths, computed once so every emitted file agrees with the others.
+ * Mapping source: `docs/targets/codex.md`.
+ */
+
+import { indexGraph, type GraphIndex } from "../../graph-index.js";
+import { effectiveAdaptation, isCriticFamily, isWriterFamily, roleName } from "../../semantics.js";
+import { getProfile, type TargetProfile } from "../../targets/index.js";
+import type { Adaptation, AgentNode, Capability, Edge, Graph, Id, Node, Tier } from "../../types.js";
+
+export type ResolvedAgent = {
+  node: AgentNode;
+  /** `<graph-id>--<node-id>`; subagent names forbid colons */
+  agentName: string;
+  file: string;
+  role: string;
+  isCritic: boolean;
+  isWriter: boolean;
+  /** absent when the document pins no model: the subagent inherits the session's */
+  model?: string;
+  modelSource: "pin" | "tier" | "unset";
+  effort?: string;
+  sandbox: "read-only" | "workspace-write";
+  web: "disabled" | "live";
+  /** capability strings with no tool mapping; recorded in the body, never as tools */
+  unmappedAllow: Capability[];
+  unmappedDeny: Capability[];
+};
+
+export type PackageContext = {
+  doc: Graph;
+  index: GraphIndex;
+  profile: TargetProfile;
+  graphId: Id;
+  /** `.grooph/<graph-id>` */
+  root: string;
+  paths: {
+    graph: string;
+    lead: string;
+    mapping: string;
+    kickoff: string;
+    runs: string;
+    progress: string;
+    notes: string;
+    /** the run's working copy of the graph (graph-ir §2) */
+    workingCopy: string;
+  };
+  /** the level this run follows: the document's, the default, or a stricter policy (graph-ir §2) */
+  adaptation: Adaptation;
+  /** the tiers whose model the one exporting named, in place of the target's own (CompileOptions.models) */
+  tiersNamed: Tier[];
+  agents: ResolvedAgent[];
+  agentByNode: Map<Id, ResolvedAgent>;
+  /** the `lead`-role node, when the document has one */
+  leadNode?: AgentNode;
+};
+
+export function buildContext(doc: Graph, options: { models?: Partial<Record<Tier, string>> } = {}): PackageContext {
+  const index = indexGraph(doc);
+  const stock = getProfile("codex");
+  // The one exporting may say which model a tier means (CompileOptions). The rest of the profile is the target's.
+  const named = Object.entries(options.models ?? {}).filter(([, model]) => typeof model === "string" && model !== "") as [Tier, string][];
+  const profile = named.length > 0 ? { ...stock, models: { ...stock.models, ...Object.fromEntries(named) } } : stock;
+  const graphId = doc.id;
+  const root = `.grooph/${graphId}`;
+
+  const leadNode = (doc.nodes ?? []).find(
+    (node): node is AgentNode => node.kind === "agent" && node.role === "lead",
+  );
+
+  const agents = (doc.nodes ?? [])
+    .filter((node): node is AgentNode => node.kind === "agent")
+    .filter((node) => node.id !== leadNode?.id)
+    .map((node) => resolveAgent(node, profile, graphId));
+
+  return {
+    doc,
+    index,
+    profile,
+    graphId,
+    root,
+    paths: {
+      graph: `${root}/graph.grooph.json`,
+      lead: `${root}/LEAD.md`,
+      mapping: `${root}/MAPPING.md`,
+      kickoff: `${root}/KICKOFF.md`,
+      runs: `${root}/runs`,
+      progress: `${root}/runs/<run-id>/PROGRESS.md`,
+      notes: `${root}/runs/<run-id>/notes.jsonl`,
+      workingCopy: `${root}/runs/<run-id>/graph.grooph.json`,
+    },
+    adaptation: effectiveAdaptation(doc),
+    tiersNamed: named.map(([tier]) => tier),
+    agents,
+    agentByNode: new Map(agents.map((agent) => [agent.node.id, agent])),
+    ...(leadNode ? { leadNode } : {}),
+  };
+}
+
+function resolveAgent(node: AgentNode, profile: TargetProfile, graphId: Id): ResolvedAgent {
+  const agentName = `${graphId}--${node.id}`;
+
+  const pin = node.model?.pin?.[profile.harness];
+  const model = pin ?? (node.model ? profile.models[node.model.tier] : undefined);
+  const modelSource: ResolvedAgent["modelSource"] = pin ? "pin" : node.model ? "tier" : "unset";
+
+  const allow = node.allow ?? profile.defaultCapabilities;
+
+  return {
+    node,
+    agentName,
+    file: `.codex/agents/${agentName}.toml`,
+    role: roleName(node),
+    isCritic: isCriticFamily(node),
+    isWriter: isWriterFamily(node),
+    ...(model ? { model } : {}),
+    modelSource,
+    ...(node.effort ? { effort: profile.effort[node.effort] } : {}),
+    sandbox: ((allow.includes("edit-files") && !(node.deny ?? []).includes("edit-files")) || (allow.includes("write-outputs") && !(node.deny ?? []).includes("write-outputs"))) ? "workspace-write" : "read-only",
+    web: allow.includes("web") && !(node.deny ?? []).includes("web") ? "live" : "disabled",
+    unmappedAllow: unmapped(allow, profile),
+    unmappedDeny: unmapped(node.deny ?? [], profile),
+  };
+}
+
+const unmapped = (capabilities: readonly Capability[], profile: TargetProfile): Capability[] =>
+  capabilities.filter((capability) => profile.capabilityTools[capability] === undefined);
+
+/** Node ids an edge can route to, used when describing routing. */
+export const nodeLabel = (node: Node | undefined, id: Id): string =>
+  node ? `${node.name} (${node.kind})` : `unknown node ${id}`;
+
+export const edgeDescription = (edge: Edge): string => `${edge.from} → ${edge.to}`;

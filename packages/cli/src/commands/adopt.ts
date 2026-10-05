@@ -23,7 +23,8 @@ write. Nothing is written without --write; the source the package placed is neve
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
 marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, the adaptation level. The working copy is compared with the source on the whole
+isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens

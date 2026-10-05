@@ -1,0 +1,146 @@
+
+### A grind-loop: e-tests-pass becomes fail -> NEW success stop; new edge tests -pass(approval)-> done
+  changes: edge:e-tests-pass.to, edge:e-tests-pass.when, edge:zz-pass, node:zz-done
+  refused: 
+    - edge:e-tests-pass.to: changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    - edge:e-tests-pass.when: changes "e-tests-pass", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    - edge:zz-pass: adds "zz-pass", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:e-tests-pass.to: opens a way into "done" that does not pass a person
+    + tightens edge:e-tests-pass.when: opens a way into "done" that does not pass a person
+    + tightens edge:zz-pass: removes an edge that needs a person's approval
+  oracle (no person): ends in success at zz-done with tests never passing   | (a person approves): ends in success at zz-done with tests never passing
+
+### A2 control: e-tests-pass becomes fail -> NEW success stop, nothing else
+  changes: edge:e-tests-pass.to, edge:e-tests-pass.when, node:zz-done
+  refused: 
+    - edge:e-tests-pass.to: nothing would lead to "done", so a run would start there, where every way to it passed the check "tests"; changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    - edge:e-tests-pass.when: changes "e-tests-pass", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+  oracle (no person): reaches done with tests never passing; ends in success at done,zz-done with tests never passing   | (a person approves): reaches done with tests never passing; ends in success at done,zz-done with tests never passing
+
+### A3 grind-loop: add tests -fail(approval)-> NEW success stop
+  changes: edge:zz-fail, node:zz-done
+  refused: 
+    - edge:zz-fail: adds "zz-fail", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:zz-fail: removes an edge that needs a person's approval
+    + tightens node:zz-done: removes an edge that needs a person's approval
+  oracle (no person): -   | (a person approves): ends in success at zz-done with tests never passing
+
+### A3b control: add tests -fail(approval)-> done (the known stop)
+  changes: edge:zz-fail
+  refused: 
+    - edge:zz-fail: adds a way into "done" that does not pass "pass" from the check "tests"; adds "zz-fail", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:zz-fail: removes an edge that needs a person's approval
+  oracle (no person): -   | (a person approves): reaches done with tests never passing; ends in success at done with tests never passing
+
+### B grind-loop: a bar of the builder's own word and bar-passed then done
+  changes: loop:grind.stops, loop:grind.bar
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"; adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+  oracle (no person): -   | (a person approves): -
+
+### B2 grind-loop: bar-passed (no then) and a bar
+  changes: loop:grind.stops, loop:grind.bar
+  refused: 
+    - loop:grind.stops: adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar
+  oracle (no person): -   | (a person approves): -
+
+### B3 grind-loop: diminishing-returns then done
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  oracle (no person): reaches done with tests never passing; ends in success at done with tests never passing   | (a person approves): reaches done with tests never passing; ends in success at done with tests never passing
+
+### B4 grind-loop: bar-passed then done, no bar
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"; adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+  oracle (no person): -   | (a person approves): -
+
+### C1 grind-loop: builder -> NEW success stop
+  changes: edge:zz-e, node:zz-done
+  refused: 
+    - edge:zz-e: adds a way from "builder" to end in success that does not pass the check "tests"
+  oracle (no person): ends in success at zz-done with tests never passing   | (a person approves): ends in success at zz-done with tests never passing
+
+### C2 grind-loop: weaker check in front; tests kept, reached only by the new check's fail
+  changes: edge:e-builder-tests.to, edge:zz-q-pass, node:zz-quick, edge:zz-q-fail, loop:grind.members
+  refused: 
+    - edge:e-builder-tests.to: adds a way from "builder" to end in success that does not pass the check "tests"
+    - edge:zz-q-pass: adds a way into "done" that does not pass the check "tests"
+    + tightens node:zz-quick: removes a check
+  oracle (no person): reaches done with tests never passing; ends in success at done with tests never passing   | (a person approves): reaches done with tests never passing; ends in success at done with tests never passing
+
+### D1 threshold added
+  changes: node:tests.check
+  refused: 
+    - node:tests.check: changes the check's definition (threshold): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  oracle (no person): -   | (a person approves): -
+
+### D2 kind tests -> command
+  changes: node:tests.check
+  refused: 
+    - node:tests.check: changes the check's definition (kind): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  oracle (no person): -   | (a person approves): -
+
+### D3 an unknown field in check
+  changes: node:tests.check
+  refused: 
+    - node:tests.check: changes the check's definition (allowFailure): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  oracle (no person): -   | (a person approves): -
+
+### D4 key order in check
+  changes: node:tests.check
+  refused: NONE <<<<<<
+  oracle (no person): -   | (a person approves): -
+
+### D5 unknown field on the check node (skip: true)
+  changes: node:tests.skip
+  refused: NONE <<<<<<
+  oracle (no person): -   | (a person approves): -
+
+### D6 description on the check node saying to skip it
+  changes: node:tests.name, node:tests.description
+  refused: NONE <<<<<<
+  oracle (no person): -   | (a person approves): -
+
+### D7 the check becomes an agent, same id and edges
+  changes: node:tests.kind, node:tests.check, node:tests.role, node:tests.brief, node:tests.outputs, node:tests.allow
+  refused: 
+    - node:tests.kind: a check becomes another kind of node
+    - node:tests.check: a check becomes another kind of node
+  oracle (no person): -   | (a person approves): -
+
+### D8 check moved out of the loop's members
+  NOT VALID: invalid: E_LOOP_BACK_EDGE
+
+### D9 edge into the check given a verdict that never comes
+  changes: edge:e-builder-tests.when
+  refused: NONE <<<<<<
+  oracle (no person): -   | (a person approves): -
+
+### D10 goal reworded: 'done when the builder says so'
+  changes: graph:goal
+  refused: NONE <<<<<<
+  oracle (no person): -   | (a person approves): -
+
+### E1 allow node:tests.check where kind AND run AND pass changed
+  changes: node:tests.check
+  refused: NONE <<<<<<
+  oracle (no person): -   | (a person approves): -
+
+### E2 swap verdicts, allow only one edge's when
+  changes: edge:e-tests-fail.when, edge:e-tests-pass.when
+  refused: 
+    - edge:e-tests-fail.when: changes "e-tests-fail", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:e-tests-pass.when: opens a way into "done" that does not pass "fail" from the check "tests"
+  oracle (no person): reaches done with tests never passing; ends in success at done with tests never passing   | (a person approves): reaches done with tests never passing; ends in success at done with tests never passing
+
+### E3 ralph: both checks made true, allow one
+  changes: node:tests.check, node:plan-check.check
+  refused: 
+    - node:plan-check.check: changes the check's definition (run): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  oracle (no person): -   | (a person approves): -

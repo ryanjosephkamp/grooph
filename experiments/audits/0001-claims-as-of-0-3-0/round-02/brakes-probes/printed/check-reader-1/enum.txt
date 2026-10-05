@@ -1,0 +1,15 @@
+{"tried":6224,"valid":3073,"through":54,"holesNoPerson":0,"holesPerson":0}
+
+== through, oracle silent: 54
+    21  E (pass): approval
+        e.g. patterns/debate-then-build.grooph.json tests: e-tests-pass (pass to done): approval
+        tightens: edge:e-tests-pass.approval: removes a person's approval from the edge; adds a way from "tests" to end in success that does not pass a person
+    19  E (fail): approval
+        e.g. patterns/debate-then-build.grooph.json tests: e-tests-fail (fail to builder): approval
+        tightens: edge:e-tests-fail.approval: removes a person's approval from the edge
+     7  E (pass): +evidence
+        e.g. patterns/fresh-grind-rare-judge.grooph.json tests: e-tests-judge (pass to judge): +evidence
+        tightens: edge:e-tests-judge.evidence: the critic would no longer be handed "the full log" by "tests"
+     7  E (pass): approval +evidence
+        e.g. patterns/fresh-grind-rare-judge.grooph.json tests: e-tests-judge (pass to judge): approval +evidence
+        tightens: edge:e-tests-judge.evidence: the critic would no longer be handed "the full log" by "tests" | edge:e-tests-judge.approval: removes a person's approval from the edge; opens a way into "judge" that does not pass a person

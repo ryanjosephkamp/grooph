@@ -1,0 +1,131 @@
+
+### C1 budget of another measure, then done  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: removes the budget (1 dispatches)
+
+### C1b budget tokens, then done  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: removes the budget (1 tokens)
+
+### C2 human stop, then done  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: removes the stop where a person is asked
+
+### C1c same on grind-loop (control: expect held)  [grind-loop]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: removes the budget (1 dispatches)
+
+### C1d budget dispatches then land-gate (same place the cap leads)  [irreversible-after-a-stop-gated]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: removes the budget (1 dispatches)
+
+### C1e budget dispatches then green  [wrap-up-after-the-cap]
+  changes: loop:fix-cycle.stops
+  refused: 
+    - loop:fix-cycle.stops: a stop of the loop would lead on to "green", a way that does not pass the check "suite"
+    + tightens loop:fix-cycle.stops: removes the budget (1 dispatches)
+
+### C1f cap then done added beside the cap then retro (expect held)  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: the round cap would lead on to "done", not to "retro"; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: raises the round cap from 1 to 5
+
+### C1g existing budget's then moved to done (expect held)  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: the budget would lead on to "done", not to "retro"; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+    + tightens loop:grind.stops: the budget would lead on to "retro", not to "done"
+
+### C3 second loop on the same round, cap 1 then done  [retrospective-rewrite]
+  changes: loop:quick   warnings: W_ONLY_MAX_ITERATIONS
+  refused: 
+    - loop:quick: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### C3b control on grind-loop  [grind-loop]
+  changes: loop:quick   warnings: W_ONLY_MAX_ITERATIONS
+  refused: 
+    - loop:quick: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+
+### C3c new loop of new steps in front of builder, cap then done  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C3d new loop builder<->scribe, budget then done  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C3e new loop that also holds the scribe in grind  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C8 cap to a new halting stop that an edge leaves to done  [grind-loop]
+  NOT VALID: invalid: E_CYCLE_NO_STOP
+
+### C8b cap to a new halting stop, a member of a new loop whose stop leads to done  [grind-loop]
+  changes: loop:grind.stops, node:gave-up, loop:grind.members
+  refused: 
+    - loop:grind.stops: a stop of the loop "grind" would lead back to "gave-up": a way round the nodes of "grind" that its stops do not count
+
+### C9 cap then retro made diminishing-returns then retro  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: removes the round cap (5); a stop of the loop would lead on to "retro", a way that does not pass the check "tests"
+
+### C9b budget then retro made evidence-invalid then retro, cap kept  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: removes the budget (30 minutes); a stop of the loop would lead on to "retro", a way that does not pass the check "tests"
+
+### C9c bar-passed then retro added (no bar)  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: 
+    - loop:grind.stops: a stop of the loop would lead on to "retro", a way that does not pass the check "tests"; adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+
+### C10 retro made a member of grind  [retrospective-rewrite]
+  changes: loop:grind.members
+  refused: 
+    - loop:grind.members: there would be a way round the nodes of "grind" that its stops do not count
+    + tightens loop:grind.members: the loop "grind" would no longer bound "retro", which is still in the graph
+
+### C10b new step, member of grind, leads to done  [retrospective-rewrite]
+  changes: edge:e-builder-scribe, edge:e-scribe-done, node:scribe, loop:grind.members
+  refused: 
+    - edge:e-builder-scribe: adds a way from "builder" to end in success that does not pass the check "tests"
+    - edge:e-scribe-done: adds a way into "done" that does not pass the check "tests"
+
+### C10c new step that only the cap reaches (in a 2-cycle), leads to done; new budget key leads to it  [retrospective-rewrite]
+  NOT VALID: invalid: E_JUDGMENT_LOOP_NO_BAR
+
+### C11 owner straight to critic  [gauntlet-decomposed]
+  changes: edge:e-owner-critic
+  refused: 
+    - edge:e-owner-critic: adds a way into "critic" that does not pass the check "capture-check"
+    + tightens edge:e-owner-critic: the critic would no longer be handed "x" by "owner"
+
+### C11b owner to next-piece  [gauntlet-decomposed]
+  changes: edge:e-owner-next
+  refused: 
+    - edge:e-owner-next: adds a way into "next-piece" that does not pass the check "capture-check"; adds a way into "next-piece" that does not pass the critic "critic"
+
+### C11c critic gains a verdict to integrator (around next-piece)  [gauntlet-decomposed]
+  changes: edge:e-critic-int
+  refused: 
+    - edge:e-critic-int: adds a way into "integrator" that does not pass "pass" from the critic "critic"
+
+### C11d polish gains diminishing-returns then integrator  [gauntlet-decomposed]
+  changes: loop:polish.stops
+  refused: 
+    - loop:polish.stops: a stop of the loop would lead on to "integrator", a way that does not pass the critic "critic"
+
+### C11e polish bar-passed then next-piece -> then integrator  [gauntlet-decomposed]
+  changes: loop:polish.stops
+  refused: NONE   <<<<<< THROUGH
+
+== 21 valid cases, 2 through

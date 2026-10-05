@@ -1,0 +1,260 @@
+
+######## the two that pass
+
+### T1 approval on pass edge + its end (done) made a halt  [grind-loop]
+  changes: edge:e-tests-pass.approval
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-pass.approval: removes a person's approval from the edge; opens a way into "done" that does not pass a person
+
+### T2 approval asked on the fail edge (the lap)  [grind-loop]
+  changes: edge:e-tests-fail.approval
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-fail.approval: removes a person's approval from the edge
+
+### T3 approval on fail edge + fail edge's end, the builder, told to do nothing (brief)  [grind-loop]
+  changes: node:builder.brief, edge:e-tests-fail.approval
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-fail.approval: removes a person's approval from the edge
+
+### T4 more evidence to judge + judge made red-team + its brief  [fresh-grind-rare-judge]
+  changes: node:judge.role, node:judge.brief, edge:e-tests-judge.evidence
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-judge.evidence: the critic would no longer be handed "the builder's own summary" by "tests"
+
+### T5 evidence the same pieces twice, one dropped by duplicate  [fresh-grind-rare-judge]
+  changes: edge:e-tests-judge.evidence
+  refused: 
+    - edge:e-tests-judge.evidence: the critic would no longer be handed "the repository as the change leaves it, read-only" by "tests"; changes "e-tests-judge", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --a
+    + tightens edge:e-tests-judge.evidence: the critic would no longer be handed "more" by "tests"
+
+### T6 evidence superset + isolation shared on the same edge  [fresh-grind-rare-judge]
+  NOT VALID: invalid: E_CRITIC_NOT_ISOLATED
+
+### T7 evidence superset + retry/concurrency/label  [fresh-grind-rare-judge]
+  changes: edge:e-tests-judge.retry, edge:e-tests-judge.label, edge:e-tests-judge.evidence
+  refused: 
+    - edge:e-tests-judge.retry: changes "e-tests-judge", an edge that leaves the check "tests" (retry): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    - edge:e-tests-judge.label: changes "e-tests-judge", an edge that leaves the check "tests" (label): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+    + tightens edge:e-tests-judge.evidence: the critic would no longer be handed "more" by "tests"
+
+### T8 approval true -> approval asked on an edge that had approval:false  [grind-loop]
+  changes: edge:e-tests-pass.approval
+  refused: 
+    - edge:e-tests-pass.approval: changes "e-tests-pass", an edge that leaves the check "tests" (approval): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+
+### T9 approval on pass + a twin of it added from builder w/o approval  [grind-loop]
+  changes: edge:e-b-done, edge:e-tests-pass.approval
+  refused: 
+    - edge:e-b-done: adds a way into "done" that does not pass the check "tests"
+    + tightens edge:e-b-done: removes an edge that needs a person's approval
+    + tightens edge:e-tests-pass.approval: removes a person's approval from the edge; opens a way into "done" that does not pass a person
+
+### T10 approval on pass edge, plus `when` written {verdict:'pass '}  [grind-loop]
+  changes: edge:e-tests-pass.when, edge:e-tests-pass.approval
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-pass.when: opens a way into "done" that does not pass a person
+    + tightens edge:e-tests-pass.approval: removes a person's approval from the edge; opens a way into "done" that does not pass a person
+
+### T11 judge (end of the evidence edge) taken out of phases' members  [fresh-grind-rare-judge]
+  changes: edge:e-tests-judge.evidence
+  refused: NONE   <<<<<< THROUGH
+    + tightens edge:e-tests-judge.evidence: the critic would no longer be handed "more" by "tests"
+
+######## honest edits where a stop leads on
+
+### H a brief  [retrospective-rewrite]
+  changes: node:builder.brief
+  refused: NONE   <<<<<< THROUGH
+
+### H cap lowered  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:grind.stops: raises the round cap from 2 to 5
+
+### H a note step after the last step before the end  [retrospective-rewrite]
+  changes: node:note, edge:e-retro-done.to, edge:e-note-end
+  refused: NONE   <<<<<< THROUGH
+
+### H a new check with its own edges in front of the builder's check  [retrospective-rewrite]
+  changes: node:lint, edge:e-builder-tests.to, edge:e-lint-pass, edge:e-lint-fail, loop:grind.members, loop:grind.back
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:lint: removes a check
+
+### H an edge that does not leave a check, re-identified  [retrospective-rewrite]
+  changes: edge:e-builder-tests, edge:e-builder-tests-2
+  refused: NONE   <<<<<< THROUGH
+
+### H a budget added that halts  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:grind.stops: removes the budget (5 usd)
+
+### H a human stop added that halts  [retrospective-rewrite]
+  changes: loop:grind.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:grind.stops: removes the stop where a person is asked
+
+### H model tier + effort  [retrospective-rewrite]
+  changes: node:builder.model, node:builder.effort
+  refused: NONE   <<<<<< THROUGH
+
+### H check's name  [retrospective-rewrite]
+  changes: node:tests.name
+  refused: NONE   <<<<<< THROUGH
+
+### H a step after what the cap leads to  [retrospective-rewrite]
+  changes: node:tidy, edge:e-retro-done.to, edge:e-tidy-on
+  refused: NONE   <<<<<< THROUGH
+
+### H a gate before the end (edge from a non-check)  [retrospective-rewrite]
+  changes: node:ok, edge:e-retro-done.to, edge:e-ok-end
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:ok: removes a human gate
+    + tightens edge:e-retro-done.to: opens a way into "done" that does not pass a person
+
+### H a brief  [irreversible-after-a-stop-gated]
+  changes: node:fixer.brief
+  refused: NONE   <<<<<< THROUGH
+
+### H cap lowered  [irreversible-after-a-stop-gated]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: raises the round cap from 2 to 5
+
+### H a note step after the last step before the end  [irreversible-after-a-stop-gated]
+  changes: node:note, edge:e-land-landed.to, edge:e-note-end
+  refused: NONE   <<<<<< THROUGH
+
+### H a new check with its own edges in front of the builder's check  [irreversible-after-a-stop-gated]
+  changes: node:lint, edge:e-fix-suite.to, edge:e-lint-pass, edge:e-lint-fail, loop:fix-cycle.members, loop:fix-cycle.back
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:lint: removes a check
+
+### H an edge that does not leave a check, re-identified  [irreversible-after-a-stop-gated]
+  changes: edge:e-fix-suite, edge:e-fix-suite-2
+  refused: NONE   <<<<<< THROUGH
+
+### H a budget added that halts  [irreversible-after-a-stop-gated]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: removes the budget (5 usd)
+
+### H a human stop added that halts  [irreversible-after-a-stop-gated]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: removes the stop where a person is asked
+
+### H model tier + effort  [irreversible-after-a-stop-gated]
+  changes: node:fixer.effort
+  refused: NONE   <<<<<< THROUGH
+
+### H check's name  [irreversible-after-a-stop-gated]
+  changes: node:suite.name
+  refused: NONE   <<<<<< THROUGH
+
+### H a step after what the cap leads to  [irreversible-after-a-stop-gated]
+  (not applicable)
+
+### H a gate before the end (edge from a non-check)  [irreversible-after-a-stop-gated]
+  changes: node:ok, edge:e-land-landed.to, edge:e-ok-end
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:ok: removes a human gate
+    + tightens edge:e-land-landed.to: adds a way from "land" to end in success that does not pass a person
+
+### H a brief  [wrap-up-after-the-cap]
+  changes: node:fixer.brief
+  refused: NONE   <<<<<< THROUGH
+
+### H cap lowered  [wrap-up-after-the-cap]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: raises the round cap from 2 to 5
+
+### H a note step after the last step before the end  [wrap-up-after-the-cap]
+  (not applicable)
+
+### H a new check with its own edges in front of the builder's check  [wrap-up-after-the-cap]
+  changes: node:lint, edge:e-fix-suite.to, edge:e-lint-pass, edge:e-lint-fail, loop:fix-cycle.members, loop:fix-cycle.back
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:lint: removes a check
+
+### H an edge that does not leave a check, re-identified  [wrap-up-after-the-cap]
+  changes: edge:e-fix-suite, edge:e-fix-suite-2
+  refused: NONE   <<<<<< THROUGH
+
+### H a budget added that halts  [wrap-up-after-the-cap]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: removes the budget (5 usd)
+
+### H a human stop added that halts  [wrap-up-after-the-cap]
+  changes: loop:fix-cycle.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:fix-cycle.stops: removes the stop where a person is asked
+
+### H model tier + effort  [wrap-up-after-the-cap]
+  changes: node:fixer.effort
+  refused: NONE   <<<<<< THROUGH
+
+### H check's name  [wrap-up-after-the-cap]
+  changes: node:suite.name
+  refused: NONE   <<<<<< THROUGH
+
+### H a step after what the cap leads to  [wrap-up-after-the-cap]
+  changes: node:tidy, edge:e-wrap-handed-over.to, edge:e-tidy-on
+  refused: NONE   <<<<<< THROUGH
+
+### H a gate before the end (edge from a non-check)  [wrap-up-after-the-cap]
+  (not applicable)
+
+### H a brief  [merge-queue]
+  changes: node:bisect.brief
+  refused: NONE   <<<<<< THROUGH
+
+### H cap lowered  [merge-queue]
+  changes: loop:queue.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:queue.stops: raises the round cap from 2 to 4
+
+### H a note step after the last step before the end  [merge-queue]
+  changes: node:note, edge:e-land-done.to, edge:e-note-end
+  refused: NONE   <<<<<< THROUGH
+
+### H a new check with its own edges in front of the builder's check  [merge-queue]
+  changes: edge:e-lint-fail, node:lint, edge:e-bisect-integrate.to, edge:e-lint-pass, loop:queue.members, loop:queue.back
+  refused: 
+    - edge:e-lint-fail: adds a way into "bisect" that does not pass the check "integrate"
+    + tightens node:lint: removes a check
+
+### H an edge that does not leave a check, re-identified  [merge-queue]
+  changes: edge:e-land-gate-land, edge:e-land-gate-land-2
+  refused: NONE   <<<<<< THROUGH
+
+### H a budget added that halts  [merge-queue]
+  changes: loop:queue.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:queue.stops: removes the budget (5 usd)
+
+### H a human stop added that halts  [merge-queue]
+  changes: loop:queue.stops
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:queue.stops: removes the stop where a person is asked
+
+### H model tier + effort  [merge-queue]
+  changes: node:bisect.effort
+  refused: NONE   <<<<<< THROUGH
+
+### H check's name  [merge-queue]
+  changes: node:integrate.name
+  refused: NONE   <<<<<< THROUGH
+
+### H a step after what the cap leads to  [merge-queue]
+  (not applicable)
+
+### H a gate before the end (edge from a non-check)  [merge-queue]
+  changes: node:ok, edge:e-land-done.to, edge:e-ok-end
+  refused: NONE   <<<<<< THROUGH
+    + tightens node:ok: removes a human gate
+    + tightens edge:e-land-done.to: adds a way from "land" to end in success that does not pass a person
+
+== 50 valid cases, 45 through

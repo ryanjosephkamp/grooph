@@ -6,7 +6,7 @@ One core, three shells. The core is pure: no DOM, no Node-only APIs, no network.
                  ┌──────────────────────────────────────────────┐
                  │ packages/core                                │
                  │  schema · canonicalize · validate            │
-                 │  compile: targets/claude-code (codex later)  │
+                 │  compile: targets/claude-code, targets/codex │
                  │  patterns (stage 4) · notes (stage 6)        │
                  └──────────┬───────────────┬──────────────┬────┘
                             │               │              │

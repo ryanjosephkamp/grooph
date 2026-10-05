@@ -13,7 +13,7 @@ import { KNOWN_TARGETS, PICTURE_THEMES, TemplateError, readTheme, type CompileTa
 import { adoptCommand, ADOPT_HELP } from "./commands/adopt.js";
 import { applyCommand } from "./commands/apply.js";
 import { canonicalizeCommand } from "./commands/canonicalize.js";
-import { exportCommand, parseModels } from "./commands/export.js";
+import { MODELS_ENV, exportCommand, parseModels } from "./commands/export.js";
 import { explainCommand } from "./commands/explain.js";
 import { APPLY_HELP, CANONICALIZE_HELP, EXPLAIN_HELP, EXPORT_HELP, NEW_HELP, VALIDATE_HELP, nearestCommand, overview } from "./commands/help.js";
 import { glyphCommand, mermaidCommand, GLYPH_HELP, MERMAID_HELP } from "./commands/glyph.js";
@@ -167,13 +167,17 @@ export async function run(
         if (file === undefined) {
           return usageError(io, "export needs a file: grooph export <file> --target <harness> --into <dir>");
         }
-        // Which model a tier means, for this export: the flag, or else GROOPH_MODELS, so a machine can say it once.
-        const fromEnv = (env.env ?? process.env)["GROOPH_MODELS"];
+        const target = values["target"];
+        // Which model a tier means, for this export: the flag, typed for this export whichever its target; or else
+        // the machine's own map for this target's harness, so a machine can say it once. A machine's map names one
+        // harness's models, so each target reads a variable of its own and never another's (decision 0030):
+        // a map of Claude Code's models in GROOPH_MODELS does not reach a Codex package, nor the reverse.
+        const modelsEnv = target !== undefined && Object.hasOwn(MODELS_ENV, target) ? MODELS_ENV[target as CompileTarget] : undefined;
+        const fromEnv = modelsEnv === undefined ? undefined : (env.env ?? process.env)[modelsEnv];
         const modelsText = values["models"] ?? (fromEnv !== undefined && fromEnv.trim() !== "" ? fromEnv : undefined);
-        const modelsFrom = values["models"] !== undefined ? "--models" : "GROOPH_MODELS";
+        const modelsFrom = values["models"] !== undefined ? "--models" : (modelsEnv ?? "--models");
         const tierMap = modelsText === undefined ? undefined : parseModels(modelsText);
         if (tierMap && "error" in tierMap) return usageError(io, `${modelsFrom}: ${tierMap.error}`);
-        const target = values["target"];
         if (target === undefined) return usageError(io, `export needs --target (${KNOWN_TARGETS.join(", ")})`);
         if (!KNOWN_TARGETS.includes(target)) {
           return usageError(io, `unknown target "${target}"; known targets: ${KNOWN_TARGETS.join(", ")}`);

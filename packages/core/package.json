@@ -14,7 +14,8 @@
     "./schema/grooph-proposals-0.schema.json": "./schema/grooph-proposals-0.schema.json",
     "./schema/grooph-run-0.schema.json": "./schema/grooph-run-0.schema.json",
     "./schema/grooph-map-0.schema.json": "./schema/grooph-map-0.schema.json",
-    "./targets/claude-code.profile.json": "./targets/claude-code.profile.json"
+    "./targets/claude-code.profile.json": "./targets/claude-code.profile.json",
+    "./targets/codex.profile.json": "./targets/codex.profile.json"
   },
   "main": "./dist/src/index.js",
   "types": "./dist/src/index.d.ts",
