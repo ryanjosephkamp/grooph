@@ -21,7 +21,9 @@ export const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
  * the builder it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers that are the same model.
  * That happens when the one exporting names them so, and since handoff 0084 with nothing named: the target's own
  * map gives `strong` and `fast` one model.
- * `ways` is how the one exporting names a tier map: the CLI's flags, or the MCP tool's argument.
+ * `ways` is how the one exporting names a tier map: the CLI's flags, or the MCP tool's argument. `show` is how text
+ * that comes from the document or from the one exporting is said: a model's name, and a pinned node's id. The CLI
+ * prints both as they read to a person; the MCP tool gives both as JSON strings, like every id in a reply.
  */
 export function tiersSaid(
   doc: Graph,
@@ -29,7 +31,7 @@ export function tiersSaid(
   models: CompileOptions["models"],
   from: string,
   ways = "--models, or GROOPH_MODELS",
-  show: (model: string) => string = (model) => model,
+  show: (text: string) => string = (text) => text,
 ): string[] {
   const stock = getProfile(target).models;
   const named = models ?? {};
@@ -37,7 +39,7 @@ export function tiersSaid(
   const means = (tier: (typeof TIERS)[number]): string => show(model(tier));
   const pins = (doc.nodes ?? []).flatMap((node) => {
     const pin = node.kind === "agent" ? node.model?.pin?.[target] : undefined;
-    return pin === undefined ? [] : [`a pin on ${node.id}: ${show(pin)}`];
+    return pin === undefined ? [] : [`a pin on ${show(node.id)}: ${show(pin)}`];
   });
   const lines = [
     `tiers in this package: ${TIERS.map((tier) => `${tier} → ${means(tier)}${tier in named ? "" : " (the target's own)"}`).join(", ")}. ` +
@@ -54,7 +56,12 @@ export function tiersSaid(
   return lines;
 }
 
-/** How much of a file is read for its header: a header is a few short lines, whatever follows it. */
+/**
+ * How much of a file is read for its header, and how long a `model:` line may be. A header is a few lines, whatever
+ * follows it; one of them, `description:`, is as long as a brief's first sentence, and a brief with no full stop in
+ * it (a list, another script's punctuation) makes that a long line. So the whole header is bounded, and only the
+ * line that names a model is held to a line's length.
+ */
 const HEADER_LINES = 200;
 const HEADER_LINE = 1000;
 
@@ -82,13 +89,16 @@ export function headerModels(text: string): string[] | Unread {
   for (const line of lines.slice(1)) {
     const alone = line.trimEnd();
     if (alone === "---" || alone === "...") return models;
-    if (line.length > HEADER_LINE || !PLAIN_LINE.test(line)) return "unread";
+    if (!PLAIN_LINE.test(line)) return "unread";
     // A character that a YAML reader may take for the end of a line, or that has no place in one.
     for (let i = 0; i < line.length; i += 1) {
       const c = line.charCodeAt(i);
       if ((c < 0x20 && c !== 0x09) || (c >= 0x7f && c <= 0x9f) || c === 0x2028 || c === 0x2029) return "unread";
     }
-    if (line.startsWith("model:")) models.push(line.slice("model:".length).trim());
+    if (line.startsWith("model:")) {
+      if (line.length > HEADER_LINE) return "unread";
+      models.push(line.slice("model:".length).trim());
+    }
   }
   // The header did not close within a header's length.
   return "unread";

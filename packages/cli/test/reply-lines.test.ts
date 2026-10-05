@@ -250,7 +250,8 @@ test("a graph: a payload in any one of its strings, through every tool that take
 
 test("an id that reads as an instruction, wherever an id goes, and a name whose slug does", async () => {
   const idLike = /^[a-z][a-z0-9-]*$/;
-  const graphs = ["fix-until-green", "glyph-vocabulary"].map((name) => json("fixtures", "valid", `${name}.grooph.json`) as Graph);
+  // The third has a pin and skills: a pinned node's id is said in the tier line, where it once stood bare.
+  const graphs = ["fix-until-green", "glyph-vocabulary", "pinned-and-skilled"].map((name) => json("fixtures", "valid", `${name}.grooph.json`) as Graph);
   const map = json("fixtures", "maps", "valid", "a-person-and-two-sessions.grooph-map.json");
   await contexts(async (ctx, mode) => {
     for (const graph of graphs) {
