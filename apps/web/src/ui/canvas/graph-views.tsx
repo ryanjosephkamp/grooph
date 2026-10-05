@@ -13,8 +13,12 @@
  * **The slider** steps through the edges a first pass takes, in the order of the graph's layers, and then one turn
  * of each loop: its back edges, which are drawn dashed in the loop's color so that they read as returning. It is an
  * order and not a clock, and says so.
+ *
+ * **A recorded run** is given the slider instead: its own notes, in the order it wrote them, each lighting what it
+ * is about (a node's card, an edge's arc, a loop's sheet) and saying who did what and in which round, as the run's
+ * replay says it (`replaySteps` in core). That order is the run's, and it happened.
  */
-import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, roleName, type Edge, type Graph, type Id, type Node } from "@grooph/core";
+import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, mapKit, replaySteps, roleName, type Edge, type Graph, type Id, type Node, type RunNote } from "@grooph/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { piece } from "../../piece.js";
@@ -42,7 +46,7 @@ export function firstPass(doc: Graph): { edge: Edge; loop?: Graph["loops"][numbe
  * A graph as a scene: its sheets with their cards, its edges as links in the order of a first pass, and what the
  * slider says at each. `card` is how wide a card is, which is the scene's to say.
  */
-export function graphScene(doc: Graph, per: number, card: number): Scene {
+export function graphScene(doc: Graph, per: number, card: number, notes?: readonly RunNote[]): Scene {
   const [, , , , , , , , , , , , , , , inkFor, , , , , , , rect, , , , text, , wrap] = mapKit;
   const ink = inkFor("auto");
   const nameOf = (id: Id): string => doc.nodes.find((n) => n.id === id)?.name || id;
@@ -102,18 +106,29 @@ export function graphScene(doc: Graph, per: number, card: number): Scene {
     const when = edgeWhen(edge) === "always" ? "" : ` · when ${edgeWhenLabel(edge)}`;
     stops.push({ handoff: edge.id, short: `step ${k + 1} of ${total}`, says: `Step ${k + 1} of ${total}: ${edge.from === edge.to ? `${nameOf(edge.from)} to itself` : `${nameOf(edge.from)} to ${nameOf(edge.to)}`}${when}${loop ? ` · back into ${loop.name || loop.id}: another round, until ${loop.stops.map(describeStop).join("; ")}` : ""}` });
   });
+  const words = { title: doc.name || doc.id, sheets, links, per, link: "edge", links_: "edges", none: " · no nodes", flat: ' The picture shows the same graph, flat. <button type="button" data-flat="picture">Picture</button>' };
+  if (notes?.length) {
+    // A run's notes, as its replay reads them. A note lights what it is about and leaves the rest as it is: the
+    // order here is the run's, not the order the arcs are numbered in.
+    const replay = replaySteps(notes, doc);
+    const drawn = new Set(sheets.map((s) => s.mark));
+    const lit = (focus: (typeof replay.steps)[number]["focus"]): Partial<Scene["stops"][number]> =>
+      focus?.kind === "edge" ? { handoff: focus.id } : focus?.kind === "node" ? { ends: [focus.id] } : focus?.kind === "loop" ? (drawn.has(`data-loop="${esc(focus.id)}"`) ? { sheet: `data-loop="${esc(focus.id)}"` } : { ends: doc.loops.find((l) => l.id === focus.id)?.members ?? [] }) : {};
+    return {
+      ...words,
+      stops: replay.steps.map((step, k) =>
+        k === 0 ? { short: "before the run", says: `Before the run: ${notes.length} note${notes.length === 1 ? "" : "s"} to follow. Move the slider or press Play.` } : { short: `note ${k} of ${notes.length}`, says: `Note ${k} of ${notes.length}: ${step.caption}`, alone: true, ...lit(step.focus) },
+      ),
+      step: "note",
+      range: "Note, in the order the run wrote them",
+      note: `The run's own notes, in the order it wrote them. ${replay.end.line}`,
+    };
+  }
   return {
-    title: doc.name || doc.id,
-    sheets,
-    links,
+    ...words,
     stops,
-    per,
-    link: "edge",
-    links_: "edges",
-    none: " · no nodes",
     range: "Step, in the order a first pass takes them",
     note: "The edges a first pass takes, in order, and then one turn of each loop. An order, not a clock: a graph records no times.",
-    flat: ' The picture shows the same graph, flat. <button type="button" data-flat="picture">Picture</button>',
   };
 }
 
@@ -121,7 +136,7 @@ export function graphScene(doc: Graph, per: number, card: number): Scene {
  * The switch, over the canvas, and the view it chooses. `of` is what the canvas was given: a tap on a card does what
  * a tap on its node does there.
  */
-export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => void } }) {
+export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] } }) {
   const [view, setView] = useState<"picture" | "space">("picture");
   // `undefined` until the scene's piece has come, `null` when it could not be fetched.
   const [three, setThree] = useState<Space | null | undefined>(space);
@@ -138,7 +153,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
     setView(next);
     if (next === "space" && !three) piece("space", () => import("../map/space.js")).then((m) => setThree((space = m)), () => (setThree(null), setView("picture")));
   };
-  const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD)) : undefined), [doc, view, three, per]);
+  const made = useMemo(() => (view === "space" && three ? three.scene(mapKit, graphScene(doc, per, three.CARD, of.notes)) : undefined), [doc, view, three, per, of.notes]);
   // The scene is markup; once it is on the page it is given its behavior, and its cards and arcs their names.
   useEffect(() => {
     const root = host.current?.querySelector<HTMLElement>(".space");

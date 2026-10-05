@@ -184,7 +184,7 @@ export function RunView({
       <main className={`stage run-stage${atWork ? " is-glowing" : ""}`}>
         {/* The node the run ended or halted at carries a flag. The canvas is not this slice's to change, so the flag is a rule for that one node. */}
         {end?.node ? <style>{`.run-stage .react-flow__node[data-id="${CSS.escape(end.node)}"] .gnode::before{content:"${summary.state} here"}`}</style> : null}
-        <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
+        <ViewCanvas doc={doc} variant="full" issues={model.issues} run={onCanvas} notes={bundle.notes} {...(highlight ? { highlight } : {})} onNodeTap={onNodeTap} />
         {loopsIndexed.length > 0 ? (
           <nav className="loop-legend" aria-label="Loops">
             {loopsIndexed.map(({ loop, i, run }) => {
