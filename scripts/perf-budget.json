@@ -6,5 +6,6 @@
   "firstVisitKB": 224,
   "canvasLoadKB": 280,
   "embedLoadKB": 132,
+  "mapSpaceKB": 9,
   "cliColdMs": 400
 }
