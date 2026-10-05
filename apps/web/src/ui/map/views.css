@@ -1,0 +1,57 @@
+/* A map's other views (handoff 0080). These rules ride in views.tsx and are added to the page when a map is drawn:
+   map.css is asked for at every address, and an address that shows no map should not carry them. */
+
+/* The switch: the picture, the sequence, or the map in three dimensions. The screen keeps its place before it arrives. */
+.map-views {
+  width: fit-content;
+  margin: 10px auto 12px;
+}
+.map-views .seg {
+  min-width: min(104px, 27vw);
+}
+.map-views-note {
+  max-width: 44ch;
+  margin: -4px auto 12px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--ink-3);
+}
+
+/* The sequence is as wide as its columns make it: on a narrow screen it scrolls sideways inside its own frame,
+   and the page still scrolls only down. With room to spare it is shown a little larger. */
+.map-picture.is-sequence {
+  max-width: min(100%, calc(var(--map-units) * 1.25));
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.map-picture.is-sequence svg {
+  min-width: var(--map-units);
+}
+.map-picture [data-picture="sequence"] [data-handoff]:is(.is-on, .is-hot, :focus-visible) > rect[data-row] {
+  fill: var(--accent-soft) !important;
+  fill-opacity: 0.6;
+}
+
+@media (min-width: 1100px) {
+  /* The picture is drawn for the room the stage has, so the room must not change when a scrollbar comes or goes. */
+  .is-wide .map-stage {
+    scrollbar-gutter: stable;
+  }
+  /* Beside the list a sequence may be drawn a little smaller to be seen whole; past that it scrolls, as on a phone. */
+  .is-wide .map-picture.is-sequence {
+    max-width: min(100%, calc(var(--map-units) * 1.25));
+    overflow-x: auto;
+  }
+  .is-wide .map-picture.is-sequence svg {
+    min-width: calc(var(--map-units) * 0.85);
+  }
+  /* A sequence has no tangle: when one handoff is picked its row is tinted, and the others do not step back. */
+  .is-wide .map-picture [data-picture="sequence"] :is([data-handoff], [data-plate], [data-number]) {
+    opacity: 1 !important;
+  }
+  /* A short list keeps its lines together at the top; it is a grid, and would spread them down the column. */
+  .map-side .map-list {
+    align-content: start;
+  }
+}

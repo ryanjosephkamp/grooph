@@ -13,7 +13,7 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { runInNewContext } from "node:vm";
 
-import { buildRunBundle, canonicalizeRunBundle, decodeSharePayload, parseGraphText, SHARE_BASE } from "@grooph/core";
+import { PICTURE_THEMES, buildRunBundle, canonicalizeRunBundle, decodeSharePayload, parseGraphText, SHARE_BASE } from "@grooph/core";
 
 import { EMBED_HELP, embedCommand, embedSrc, resizeScript, type EmbedFlags } from "../src/commands/embed.js";
 import type { Output } from "../src/print.js";
@@ -159,6 +159,10 @@ test("the script sizes only grooph frames, only from the app's origin, only to a
 test("embedSrc and the help agree on the address's shape", () => {
   assert.equal(embedSrc("abc", {}), `${SHARE_BASE}#/embed?d=abc`);
   assert.equal(embedSrc("abc", { theme: "light", base: "http://localhost:5173/grooph" }), "http://localhost:5173/grooph/#/embed?d=abc&theme=light");
-  assert.match(EMBED_HELP, /^grooph embed <file> \[--theme light|dark\] \[--height <px>\]/);
+  assert.match(EMBED_HELP, /^grooph embed <file> \[--theme <name>\] \[--height <px>\]/);
+  // A theme by name, light or dark, or both.
+  assert.equal(embedSrc("abc", { theme: "blueprint" }), `${SHARE_BASE}#/embed?d=abc&theme=blueprint`);
+  assert.equal(embedSrc("abc", { theme: "chalk-dark", frame: true }), `${SHARE_BASE}#/embed?d=abc&theme=chalk-dark&frame=1`);
+  for (const name of PICTURE_THEMES) assert.ok(EMBED_HELP.includes(name), `the help names ${name}`);
   assert.ok(EMBED_HELP.split("\n").every((line) => line.length <= 100), "help lines fit a terminal");
 });

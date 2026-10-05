@@ -1,0 +1,249 @@
+{
+  "template": "heterogeneous-critic",
+  "arm": "C",
+  "replicate": 1,
+  "project": "heterogeneous-critic",
+  "graph_id": "parse-page-ranges",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/heterogeneous-critic/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/Df5S71/printkit-IJekDN.harness/held-out",
+      "files": [
+        {
+          "path": "parse-ranges-cases.test.mjs",
+          "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+          "at_run": true
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/heterogeneous-critic/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "parse-page-ranges--builder": "claude-sonnet-5-5",
+      "parse-page-ranges--critic": "claude-opus-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "heterogeneous-critic",
+    "template_version": "heterogeneous-critic@1",
+    "graph_id": "parse-page-ranges",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/Df5S71/printkit-IJekDN"
+  },
+  "derivation": {
+    "graph": "parse-page-ranges",
+    "sections_kept": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7
+    ],
+    "agents": [
+      "builder",
+      "critic"
+    ],
+    "loops": [
+      "review"
+    ],
+    "gates": [
+      "merge-gate"
+    ],
+    "held_out_mentions": {
+      "package": 14,
+      "prompt": 12
+    },
+    "mechanics_left": []
+  },
+  "iterations_cap": 4,
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.788844,
+      "output_tokens": 15714
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.2381082,
+      "output_tokens": 13533
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "general-purpose": [
+      "claude-sonnet-5-5",
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 1.026952,
+  "harness_turns": 13,
+  "duration_s": 223,
+  "wall_s": 224,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.788844,
+        "output_tokens": 15714
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.2381082,
+        "output_tokens": 13533
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "general-purpose": [
+        "claude-sonnet-5-5",
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 1.026952,
+    "harness_turns": 13,
+    "duration_s": 223,
+    "wall_s": 224,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "cat > src/parse-ranges.mjs <<'EOF'\nconst PART = /^(\\d*)\\s*(?:(-)\\s*(\\d*))?$/;\n\n/**\n * The pages to print, from what a person typed into the page box.\n * Parts are separated by commas; a part is one page (\"7\") or a range written\n * first-last (\"1-3\"). Spaces around parts and around the dash are ignored.\n * A range may leave out its first page (page 1) or its last page (the last\n * page of the document): \"-3\" is 1-3 and \"8-\" is 8 to the end. An empty box\n * means every page.\n * Pages come back in the order typed, and a page typed twice comes back twice.\n * A range typed last-first runs backward (\"5-3\" is 5, 4, 3).\n * @param {string} text e.g. \"1-3,5\"\n * @param {number} pageCount pages in the document, a positive integer\n * @returns {number[]}\n */\nexport function parseRanges(text, pageCount) {\n  if (typeof text !== \"string\") throw new TypeError(\"parseRanges: text must be a string\");\n  if (!Number.isInteger(pageCount) || pageCount < 1) {\n    throw new TypeError(\"parseRanges: pageCount must be a positive integer\");\n  }\n\n  const pages = [];\n  if (text.trim() === \"\") {\n    for (let page = 1; page <= pageCount; page++) pages.push(page);\n    return pages;\n  }\n\n  for (const raw of text.split(\",\")) {\n    const part = raw.trim();\n    const match = PART.exec(part);\n    // A bare \"-\" or an empty part says nothing about which pages.\n    if (!match || part === \"\" || part === \"-\") {\n      throw new RangeError(`parseRanges: \"${part}\" is not a page or a range`);\n    }\n\n    const [, from, dash, to] = match;\n    const first = from === \"\" ? 1 : Number(from);\n    const last = dash === undefined ? first : to === \"\" ? pageCount : Number(to);\n    if (first < 1 || last < 1 || first > pageCount || last > pageCount) {\n      throw new RangeError(`parseRanges: \"${part}\" is outside pages 1-${pageCount}`);\n    }\n\n    const step = first <= last ? 1 : -1;\n    for (let page = first; page !== last + step; page += step) pages.push(page);\n  }\n  return pages;\n}\nEOF"
+      },
+      {
+        "tool": "Bash",
+        "command": "python3 - <<'EOF'\np='tests/parse-ranges.test.mjs'\ns=open(p).read()\na=s.index('test(\"parseRanges lists each page once')\nb=s.index('test(\"parseRanges throws TypeError when text')\nnew='''test(\"parseRanges returns pages in the order typed\", () => {\n  assert.deepEqual(parseRanges(\"5,1-3\", 10), [5, 1, 2, 3]);\n  assert.deepEqual(parseRanges(\"3,1\", 10), [3, 1]);\n  assert.deepEqual(parseRanges(\"10,4-5,1\", 10), [10, 4, 5, 1]);\n});\n\ntest(\"parseRanges returns a page typed twice twice\", () => {\n  assert.deepEqual(parseRanges(\"2,2\", 10), [2, 2]);\n  assert.deepEqual(parseRanges(\"1-3,2\", 10), [1, 2, 3, 2]);\n  assert.deepEqual(parseRanges(\"1-2,1-2\", 10), [1, 2, 1, 2]);\n});\n\ntest(\"parseRanges runs a range typed last-first backward\", () => {\n  assert.deepEqual(parseRanges(\"5-3\", 10), [5, 4, 3]);\n  assert.deepEqual(parseRanges(\"10-8\", 10), [10, 9, 8]);\n  assert.deepEqual(parseRanges(\"2-1\", 10), [2, 1]);\n  assert.deepEqual(parseRanges(\"1,5-3\", 10), [1, 5, 4, 3]);\n});\n\ntest(\"parseRanges reads a missing first page as 1 and a missing last page as the last\", () => {\n  assert.deepEqual(parseRanges(\"8-\", 10), [8, 9, 10]);\n  assert.deepEqual(parseRanges(\"-3\", 10), [1, 2, 3]);\n  assert.deepEqual(parseRanges(\"10-\", 10), [10]);\n  assert.deepEqual(parseRanges(\"-1\", 10), [1]);\n  assert.deepEqual(parseRanges(\"1,8-\", 10), [1, 8, 9, 10]);\n});\n\ntest(\"parseRanges reads an empty box as every page\", () => {\n  assert.deepEqual(parseRanges(\"\", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);\n  assert.deepEqual(parseRanges(\"   \", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);\n  assert.deepEqual(parseRanges(\"\", 1), [1]);\n});\n\ntest(\"parseRanges returns a new array each call\", () => {\n  const first = parseRanges(\"1-2\", 10);\n  first.push(99);\n  assert.deepEqual(parseRanges(\"1-2\", 10), [1, 2]);\n  assert.notEqual(parseRanges(\"\", 3), parseRanges(\"\", 3));\n});\n\n'''\ns=s[:a]+new+s[b:]\ns=s.replace('''for (const text of [\"\", \" \", \"1,,2\", \"1,\", \",1\", \"1-\", \"-3\", \"1-2-3\", \"1 2\", \"2.5\", \"-1\", \"+1\", \"1;2\", \"5-3\"]) {''','''for (const text of [\"1,,2\", \"1,\", \",1\", \",\", \"-\", \"1-2-3\", \"1 2\", \"1 0\", \"00\", \"2.5\", \"+1\", \"1;2\"]) {''')\ns=s.replace('''  assert.throws(() => parseRanges(\"1-11\", 10), RangeError);\n''','''  assert.throws(() => parseRanges(\"1-11\", 10), RangeError);\n  for (const text of [\"12-8\", \"12-\", \"-12\"]) {\n    assert.throws(() => parseRanges(text, 10), RangeError, text);\n  }\n''')\nopen(p,'w').write(s)\n\np='README.md'\ns=open(p).read()\na=s.index('range written first-last (`1-3`). Spaces')\nb=s.index('A `text` that is not a string, or a `pageCount`')\ns=s[:a]+'''range written first-last (`1-3`). Spaces around parts and around the dash are\nignored. Pages come back in the order typed, and a page typed twice comes back\ntwice (`\"1-3,2\"` is `[1, 2, 3, 2]`). A range typed last-first runs backward\n(`\"5-3\"` is `[5, 4, 3]`). A range may leave out an end: a missing first page\nmeans page 1 (`\"-3\"` is `[1, 2, 3]`) and a missing last page means the last\npage of the document (`\"8-\"` in 10 pages is `[8, 9, 10]`). An empty box (or one\nholding only spaces) means every page.\n\n'''+s[b:]\na=s.index('throws a `RangeError`: a page past')\ns=s[:a]+'''throws a `RangeError`: a page past the last one, page `0`, a word, an empty\npart (`\"1,,2\"`, `\"1,\"`, `\",1\"`), a lone `-`, or any part that is neither a page\nnor a range.\n'''\nopen(p,'w').write(s)\n\np='CHANGES.md'\ns=open(p).read()\ns+='''\n## Round 2\n\nAddresses every finding in REVIEW.md (held-out suite: 18 of 70 failed).\n`src/parse-ranges.mjs`, `tests/parse-ranges.test.mjs` and `README.md` now agree.\n\n- Order and repeats: pages come back in the order typed, and a page typed twice\n  comes back twice (no sort, no de-duplication). Findings: Order, Repeats.\n- Backward ranges: `\"5-3\"` is `[5, 4, 3]` instead of a RangeError. Finding: Backward.\n- Open ends: a missing first page means 1, a missing last page means the last\n  page (`\"-3\"`, `\"8-\"`, `\"10-\"`, `\"-1\"`). A lone `-` and ends past the document\n  (`\"12-\"`, `\"-12\"`) still throw RangeError. Finding: Open end.\n- Empty box: `\"\"` or only spaces returns every page instead of throwing.\n  Empty parts (`\"1,,2\"`, `\"1,\"`, `\",1\"`) still throw. Finding: Empty.\n- Tests: replaced the earlier sort/dedupe, backward, open-end and empty-text\n  tests with the cases quoted in REVIEW.md; added refusal cases (`\"12-8\"`,\n  `\"12-\"`, `\"-12\"`, `\"-\"`, `\"1 0\"`, `\"00\"`) and a fresh-array-per-call check.\n- README: updated the `parseRanges` section to describe the above.\n- Checklist items 1-6 were already satisfied and remain so.\n'''\nopen(p,'w').write(s)\nEOF"
+      }
+    ],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder: implement parseRanges",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: review parseRanges change",
+        "model_asked": "opus"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Builder round 1: address REVIEW.md",
+        "model_asked": "sonnet"
+      },
+      {
+        "subagent_type": "general-purpose",
+        "description": "Critic: re-review parseRanges change",
+        "model_asked": "opus"
+      }
+    ],
+    "held_out_touched": {
+      "general-purpose (Critic: re-review parseRanges change)": 1,
+      "general-purpose (Critic: review parseRanges change)": 1
+    },
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 5,
+      "where": []
+    }
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "cat > src/parse-ranges.mjs <<'EOF'\nconst PART = /^(\\d*)\\s*(?:(-)\\s*(\\d*))?$/;\n\n/**\n * The pages to print, from what a person typed into the page box.\n * Parts are separated by commas; a part is one page (\"7\") or a range written\n * first-last (\"1-3\"). Spaces around parts and around the dash are ignored.\n * A range may leave out its first page (page 1) or its last page (the last\n * page of the document): \"-3\" is 1-3 and \"8-\" is 8 to the end. An empty box\n * means every page.\n * Pages come back in the order typed, and a page typed twice comes back twice.\n * A range typed last-first runs backward (\"5-3\" is 5, 4, 3).\n * @param {string} text e.g. \"1-3,5\"\n * @param {number} pageCount pages in the document, a positive integer\n * @returns {number[]}\n */\nexport function parseRanges(text, pageCount) {\n  if (typeof text !== \"string\") throw new TypeError(\"parseRanges: text must be a string\");\n  if (!Number.isInteger(pageCount) || pageCount < 1) {\n    throw new TypeError(\"parseRanges: pageCount must be a positive integer\");\n  }\n\n  const pages = [];\n  if (text.trim() === \"\") {\n    for (let page = 1; page <= pageCount; page++) pages.push(page);\n    return pages;\n  }\n\n  for (const raw of text.split(\",\")) {\n    const part = raw.trim();\n    const match = PART.exec(part);\n    // A bare \"-\" or an empty part says nothing about which pages.\n    if (!match || part === \"\" || part === \"-\") {\n      throw new RangeError(`parseRanges: \"${part}\" is not a page or a range`);\n    }\n\n    const [, from, dash, to] = match;\n    const first = from === \"\" ? 1 : Number(from);\n    const last = dash === undefined ? first : to === \"\" ? pageCount : Number(to);\n    if (first < 1 || last < 1 || first > pageCount || last > pageCount) {\n      throw new RangeError(`parseRanges: \"${part}\" is outside pages 1-${pageCount}`);\n    }\n\n    const step = first <= last ? 1 : -1;\n    for (let page = first; page !== last + step; page += step) pages.push(page);\n  }\n  return pages;\n}\nEOF"
+    },
+    {
+      "tool": "Bash",
+      "command": "python3 - <<'EOF'\np='tests/parse-ranges.test.mjs'\ns=open(p).read()\na=s.index('test(\"parseRanges lists each page once')\nb=s.index('test(\"parseRanges throws TypeError when text')\nnew='''test(\"parseRanges returns pages in the order typed\", () => {\n  assert.deepEqual(parseRanges(\"5,1-3\", 10), [5, 1, 2, 3]);\n  assert.deepEqual(parseRanges(\"3,1\", 10), [3, 1]);\n  assert.deepEqual(parseRanges(\"10,4-5,1\", 10), [10, 4, 5, 1]);\n});\n\ntest(\"parseRanges returns a page typed twice twice\", () => {\n  assert.deepEqual(parseRanges(\"2,2\", 10), [2, 2]);\n  assert.deepEqual(parseRanges(\"1-3,2\", 10), [1, 2, 3, 2]);\n  assert.deepEqual(parseRanges(\"1-2,1-2\", 10), [1, 2, 1, 2]);\n});\n\ntest(\"parseRanges runs a range typed last-first backward\", () => {\n  assert.deepEqual(parseRanges(\"5-3\", 10), [5, 4, 3]);\n  assert.deepEqual(parseRanges(\"10-8\", 10), [10, 9, 8]);\n  assert.deepEqual(parseRanges(\"2-1\", 10), [2, 1]);\n  assert.deepEqual(parseRanges(\"1,5-3\", 10), [1, 5, 4, 3]);\n});\n\ntest(\"parseRanges reads a missing first page as 1 and a missing last page as the last\", () => {\n  assert.deepEqual(parseRanges(\"8-\", 10), [8, 9, 10]);\n  assert.deepEqual(parseRanges(\"-3\", 10), [1, 2, 3]);\n  assert.deepEqual(parseRanges(\"10-\", 10), [10]);\n  assert.deepEqual(parseRanges(\"-1\", 10), [1]);\n  assert.deepEqual(parseRanges(\"1,8-\", 10), [1, 8, 9, 10]);\n});\n\ntest(\"parseRanges reads an empty box as every page\", () => {\n  assert.deepEqual(parseRanges(\"\", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);\n  assert.deepEqual(parseRanges(\"   \", 10), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);\n  assert.deepEqual(parseRanges(\"\", 1), [1]);\n});\n\ntest(\"parseRanges returns a new array each call\", () => {\n  const first = parseRanges(\"1-2\", 10);\n  first.push(99);\n  assert.deepEqual(parseRanges(\"1-2\", 10), [1, 2]);\n  assert.notEqual(parseRanges(\"\", 3), parseRanges(\"\", 3));\n});\n\n'''\ns=s[:a]+new+s[b:]\ns=s.replace('''for (const text of [\"\", \" \", \"1,,2\", \"1,\", \",1\", \"1-\", \"-3\", \"1-2-3\", \"1 2\", \"2.5\", \"-1\", \"+1\", \"1;2\", \"5-3\"]) {''','''for (const text of [\"1,,2\", \"1,\", \",1\", \",\", \"-\", \"1-2-3\", \"1 2\", \"1 0\", \"00\", \"2.5\", \"+1\", \"1;2\"]) {''')\ns=s.replace('''  assert.throws(() => parseRanges(\"1-11\", 10), RangeError);\n''','''  assert.throws(() => parseRanges(\"1-11\", 10), RangeError);\n  for (const text of [\"12-8\", \"12-\", \"-12\"]) {\n    assert.throws(() => parseRanges(text, 10), RangeError, text);\n  }\n''')\nopen(p,'w').write(s)\n\np='README.md'\ns=open(p).read()\na=s.index('range written first-last (`1-3`). Spaces')\nb=s.index('A `text` that is not a string, or a `pageCount`')\ns=s[:a]+'''range written first-last (`1-3`). Spaces around parts and around the dash are\nignored. Pages come back in the order typed, and a page typed twice comes back\ntwice (`\"1-3,2\"` is `[1, 2, 3, 2]`). A range typed last-first runs backward\n(`\"5-3\"` is `[5, 4, 3]`). A range may leave out an end: a missing first page\nmeans page 1 (`\"-3\"` is `[1, 2, 3]`) and a missing last page means the last\npage of the document (`\"8-\"` in 10 pages is `[8, 9, 10]`). An empty box (or one\nholding only spaces) means every page.\n\n'''+s[b:]\na=s.index('throws a `RangeError`: a page past')\ns=s[:a]+'''throws a `RangeError`: a page past the last one, page `0`, a word, an empty\npart (`\"1,,2\"`, `\"1,\"`, `\",1\"`), a lone `-`, or any part that is neither a page\nnor a range.\n'''\nopen(p,'w').write(s)\n\np='CHANGES.md'\ns=open(p).read()\ns+='''\n## Round 2\n\nAddresses every finding in REVIEW.md (held-out suite: 18 of 70 failed).\n`src/parse-ranges.mjs`, `tests/parse-ranges.test.mjs` and `README.md` now agree.\n\n- Order and repeats: pages come back in the order typed, and a page typed twice\n  comes back twice (no sort, no de-duplication). Findings: Order, Repeats.\n- Backward ranges: `\"5-3\"` is `[5, 4, 3]` instead of a RangeError. Finding: Backward.\n- Open ends: a missing first page means 1, a missing last page means the last\n  page (`\"-3\"`, `\"8-\"`, `\"10-\"`, `\"-1\"`). A lone `-` and ends past the document\n  (`\"12-\"`, `\"-12\"`) still throw RangeError. Finding: Open end.\n- Empty box: `\"\"` or only spaces returns every page instead of throwing.\n  Empty parts (`\"1,,2\"`, `\"1,\"`, `\",1\"`) still throw. Finding: Empty.\n- Tests: replaced the earlier sort/dedupe, backward, open-end and empty-text\n  tests with the cases quoted in REVIEW.md; added refusal cases (`\"12-8\"`,\n  `\"12-\"`, `\"-12\"`, `\"-\"`, `\"1 0\"`, `\"00\"`) and a fresh-array-per-call check.\n- README: updated the `parseRanges` section to describe the above.\n- Checklist items 1-6 were already satisfied and remain so.\n'''\nopen(p,'w').write(s)\nEOF"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "iteration": 1,
+      "ledger_n": 52,
+      "session_id": "fcc49495-6f5c-4d81-9399-cb46549c4a98",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.026952,
+      "reported_cost_usd": 1.0269522000000002,
+      "max_budget_usd": 9,
+      "harness_turns": 13,
+      "duration_s": 223,
+      "wall_s": 224,
+      "says_done": true,
+      "tests_after": true,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output-1.json",
+      "reply_tail": " 10]`);\n   - an empty or blank box means every page.\n\n   Input that isn't valid pages still throws a `RangeError`, e.g. `\"1,,2\"`, `\"12-\"`, `\"00\"` and `\"1 2\"`.\n3. **Second review:** the critic passed it. All six checklist items are cited with a file and line, the held-out suite passes 70 of 70, and `npm test` passes 18 of 18 (the critic ran both itself).\n\nThat took 1 of the 4 allowed rounds and 4 of the 10 allowed dispatches.\n\n**Should I merge it?** If you approve, the run ends successfully. If you reject it with feedback, I'll send the feedback back to the builder for another round.\n\ndone: yes"
+    }
+  ],
+  "base_commit": "c6d5460e6b15356246f8ac524c286b64a5895063",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/parse-ranges.mjs",
+    "A tests/parse-ranges.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/Df5S71/printkit-IJekDN",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "iteration 1 of 4 said done and the tests passed"
+  },
+  "home_redactions": 0
+}

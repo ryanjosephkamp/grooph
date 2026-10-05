@@ -1,0 +1,343 @@
+{
+  "template": "heterogeneous-critic",
+  "template_version": "heterogeneous-critic@1",
+  "slots": {
+    "values": {
+      "task": "Add `parseRanges(text, pageCount)` in a new file, src/parse-ranges.mjs: it reads what a person typed into the print dialog's page box, such as \"1-3,5\" or \"7\", and returns the page numbers to print as an array. Pages are numbered from 1 to `pageCount`; parts are separated by commas, and a part is one page or a range written first-last. A `text` that is not a string, or a `pageCount` that is not a positive integer, throws a TypeError; a text that cannot be read as pages of this document throws a RangeError. Tests go in tests/parse-ranges.test.mjs.",
+      "test-command": "npm test",
+      "checklist": "docs/REVIEW-CHECKLIST.md and every case of the held-out suite /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3.harness/held-out/parse-ranges-cases.test.mjs (the suite is outside this project and settles what the task leaves open; the critic runs it from the project root with `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3.harness/held-out/parse-ranges-cases.test.mjs` and, for each case that fails, quotes the input and the expected result in REVIEW.md; it is the critic's alone, and the builder does not read or run it)"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3.harness/held-out",
+    "files": [
+      {
+        "path": "parse-ranges-cases.test.mjs",
+        "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+        "at_run": true
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "parse-page-ranges",
+  "run_id": "20261004-215612",
+  "run_ids": [
+    "20261004-215612"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "lead": {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "tier_map": "frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+  "aliases": {
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+  },
+  "agent_models": {
+    "parse-page-ranges--builder": "claude-sonnet-5-5",
+    "parse-page-ranges--critic": "claude-opus-5-5"
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 1.1088065999999999,
+      "output_tokens": 20686
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.1764124,
+      "output_tokens": 9836
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "parse-page-ranges--critic": [
+      "claude-opus-5-5"
+    ],
+    "parse-page-ranges--builder": [
+      "claude-sonnet-5-5"
+    ]
+  },
+  "models_never_used": [],
+  "cost_usd": 1.285219,
+  "harness_turns": 30,
+  "lead_turns": null,
+  "duration_s": 249,
+  "rounds": {
+    "loop_passes": 2,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "halt at merge-gate"
+  ],
+  "subagents": {
+    "parse-page-ranges--critic": 2,
+    "parse-page-ranges--builder": 2
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 54,
+      "session_id": "c61f25f7-0dd9-4313-be7c-299363d19d5c",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.285219,
+      "reported_cost_usd": 1.2852189999999997,
+      "max_budget_usd": 9,
+      "harness_turns": 30,
+      "duration_s": 249,
+      "wall_s": 250,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "\n- An empty or blank box means every page. An empty part between commas, such as `\"1,,2\"`, still throws a RangeError.\n\nThe change is not committed. The files are in the working tree: `src/parse-ranges.mjs`, `tests/parse-ranges.test.mjs`, `README.md`, `CHANGES.md` and `REVIEW.md`. I didn't amend the graph's working copy.\n\n**Merge gate:** the critic passed the change against the checklist. Do you want to merge it?\n- **approve**: the run ends at `done`.\n- **reject with feedback**: the builder gets your feedback for round 2.\n\nThe run will stay here until you answer, and the same run id resumes it."
+    }
+  ],
+  "base_commit": "f0218ea7351d45c6b6df108e0a753636d8e6ac4b",
+  "source_sha256_before": "afc96a9ce81abf3432cc2960084e3dde01f9974894155824559226d4a6f8ab2a",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "M README.md",
+    "A REVIEW.md",
+    "A src/parse-ranges.mjs",
+    "A tests/parse-ranges.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source",
+  "arm": "A",
+  "replicate": 2,
+  "project": "heterogeneous-critic",
+  "wall_s": 250,
+  "conditions": {
+    "task": "experiments/comparisons/heterogeneous-critic/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3.harness/held-out",
+      "files": [
+        {
+          "path": "parse-ranges-cases.test.mjs",
+          "sha256": "5d1d8f484efd724d9e1d287734a90f2adcdd9e31ea683f07dd0a8f3098cae921",
+          "at_run": true
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [],
+      "scored_from": "experiments/comparisons/heterogeneous-critic/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "parse-page-ranges--builder": "claude-sonnet-5-5",
+      "parse-page-ranges--critic": "claude-opus-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": true
+    },
+    "tool_on_path": true,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "heterogeneous-critic",
+    "template_version": "heterogeneous-critic@1",
+    "graph_id": "parse-page-ranges",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 1.1088065999999999,
+        "output_tokens": 20686
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.1764124,
+        "output_tokens": 9836
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "parse-page-ranges--critic": [
+        "claude-opus-5-5"
+      ],
+      "parse-page-ranges--builder": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 1.285219,
+    "harness_turns": 30,
+    "duration_s": 249,
+    "wall_s": 250,
+    "permission_denials": [],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "parse-page-ranges--builder",
+        "description": "Builder round 0"
+      },
+      {
+        "subagent_type": "parse-page-ranges--critic",
+        "description": "Critic round 0"
+      },
+      {
+        "subagent_type": "parse-page-ranges--builder",
+        "description": "Builder round 1"
+      },
+      {
+        "subagent_type": "parse-page-ranges--critic",
+        "description": "Critic round 1"
+      }
+    ],
+    "held_out_touched": {
+      "parse-page-ranges--critic": 3
+    },
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 198,
+      "transcripts": 5,
+      "where": [
+        {
+          "who": "lead",
+          "mentions": 165
+        },
+        {
+          "who": "parse-page-ranges--critic",
+          "mentions": 13
+        },
+        {
+          "who": "parse-page-ranges--builder",
+          "mentions": 4
+        },
+        {
+          "who": "parse-page-ranges--builder",
+          "mentions": 5
+        },
+        {
+          "who": "parse-page-ranges--critic",
+          "mentions": 11
+        }
+      ]
+    },
+    "record": {
+      "rounds": {
+        "loop_passes": 2,
+        "rounds_recorded": 2,
+        "last_round": 1
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "halt at merge-gate"
+      ],
+      "back_edges": {
+        "later_rounds": 1,
+        "edge_notes": [],
+        "mentioned": [
+          "e-critic-fail"
+        ],
+        "caught_by": [
+          "critic (fail)"
+        ],
+        "taken": true
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0006",
+          "loop": "review",
+          "round": 0,
+          "recorded": 2,
+          "started": 2,
+          "off": 0
+        },
+        {
+          "note": "n-0011",
+          "loop": "review",
+          "round": 1,
+          "recorded": 4,
+          "started": 4,
+          "off": 0
+        }
+      ],
+      "amendments": [],
+      "halt_notes": [
+        "node:merge-gate"
+      ]
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20261004-215612: the clock form",
+      "REVIEW.md: critic Write REVIEW.md; critic Write REVIEW.md",
+      "per-round report copies in the run folder: REVIEW.md round 0",
+      "parse-page-ranges--critic (Critic round 1) read docs/REVIEW-CHECKLIST.md, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3.harness/held-out/parse-ranges-cases.test.mjs, README.md; ran `git diff`, `git diff --no-index /dev/null src/parse-ranges.mjs`, `git diff --no-index /dev/null tests/parse-ranges.test.mjs`, `git diff --no-index /dev/null CHANGES.md`, `npm test`, `node --test /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5…`, `git status --porcelain --untracked-files=all`, `grep -n \"test(\\|\\\"1-3,5\\\"\\|\\\"7\\\"\\|\\\"abc\\\"\" tests/parse-ranges.test.mjs`",
+      "parse-page-ranges--critic (Critic round 0) read docs/REVIEW-CHECKLIST.md, src/parse-ranges.mjs, tests/parse-ranges.test.mjs, CHANGES.md, README.md, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/lj09vO/printkit-o5fCy3.harness/held-out/parse-ranges-cases.test.mjs; ran `git diff`, `npm test`, `git status --porcelain --untracked-files=all`",
+      "the final note is at node:merge-gate, not at graph",
+      "ending as expected: halt at merge-gate",
+      "dispatch count: n-0006 review r0 recorded 2, started lines 2; n-0011 review r1 recorded 4, started lines 4 (exact)",
+      "back edge taken: e-critic-fail; 1 loop note(s) beyond round 0; caught by critic (fail)",
+      "verdicts in order: critic → fail, pass",
+      "held-out evidence (parse-ranges-cases.test.mjs): touched by critic ×1; named in 2 dispatch prompt(s)",
+      "timestamps: 8 given, 0 out of append order"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "halt at merge-gate"
+  }
+}

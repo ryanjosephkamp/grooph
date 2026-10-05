@@ -10,6 +10,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { run } from "../src/index.js";
+
+// A developer's own tier map must not reach these tests.
+delete process.env["GROOPH_MODELS"];
 import type { Output } from "../src/print.js";
 
 type Capture = Output & { stdout: string[]; stderr: string[] };
@@ -194,7 +197,23 @@ test("embed is a command like the others: listed in the overview, with its own h
     assert.match(io.stdout[0]!, /^<iframe [^>]*src="https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/embed\?[^"]*theme=dark[^"]*"[^>]*height="480"/);
     io = capture();
     assert.equal(await run(["embed", file, "--theme", "purple"], io), 1);
-    assert.match(io.stderr.join("\n"), /--theme is light or dark/);
+    assert.match(io.stderr.join("\n"), /--theme is one of paper, blueprint, ink, phosphor, transit, chalk; or light or dark; or both, as chalk-dark\. Got "purple"/);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "transit-dark"], io), 0, io.stderr.join("\n"));
+    assert.match(io.stdout[0]!, /#\/embed\?[^"]*theme=transit-dark"/);
+    // Paper is the default and is not said: its address is the one an embed had before there were themes.
+    io = capture();
+    assert.equal(await run(["embed", file], io), 0);
+    const plain = io.stdout[0]!;
+    assert.ok(!plain.includes("theme="));
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "paper"], io), 0);
+    assert.equal(io.stdout[0], plain);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "paper-dark"], io), 0);
+    assert.match(io.stdout[0]!, /#\/embed\?[^"]*theme=dark"/);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "auto"], io), 1);
     io = capture();
     assert.equal(await run(["embd", file], io), 1);
     assert.match(io.stderr.join("\n"), /Did you mean "embed"\?/);
@@ -203,3 +222,55 @@ test("embed is a command like the others: listed in the overview, with its own h
   }
 });
 
+test("export --models names the model of a tier for one export; GROOPH_MODELS says it for a machine; the flag wins", async () => {
+  const graph = join(import.meta.dirname, "..", "..", "..", "..", "fixtures", "valid", "review-loop.grooph.json");
+  const builder = (dir: string): string => readFileSync(join(dir, ".claude", "agents", "review-loop--builder.md"), "utf8");
+  const dir = mkdtempSync(join(tmpdir(), "grooph-models-"));
+  try {
+    let io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=opus,frontier=opus"], io, () => "", { env: {} }), 0);
+    assert.match(builder(dir), /^model: opus$/m);
+    // All three tiers are said, so a tier left on the target's own model is in plain sight.
+    assert.match(io.stdout.join("\n"), /tiers in this package: frontier → opus, strong → opus, fast → sonnet \(the target's own\)\. Named by --models\./);
+    assert.doesNotMatch(io.stdout.join("\n"), /note: /, "the review loop's agents are on one tier, so no two tiers met");
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.match(builder(dir), /^model: haiku$/m);
+    assert.match(io.stdout.join("\n"), /Named by GROOPH_MODELS\./);
+
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", "strong=opus"], io, () => "", { env: { GROOPH_MODELS: "strong=haiku" } }), 0);
+    assert.match(builder(dir), /^model: opus$/m);
+
+    // Nothing named: the target's own map (handoff 0084: frontier opus, strong and fast sonnet), and no file says fable.
+    io = capture();
+    assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir], io, () => "", { env: {} }), 0);
+    assert.match(builder(dir), /^model: sonnet$/m);
+    assert.doesNotMatch(io.stdout.join("\n"), /tiers in this package/);
+    assert.doesNotMatch(io.stdout.join("\n"), /note: /, "the review loop's agents are on one tier");
+    assert.doesNotMatch(readFileSync(join(dir, ".grooph", "review-loop", "MAPPING.md"), "utf8"), /fable/i);
+
+    // Two tiers the graph uses, made one model from outside the document: the export says what the validator cannot see.
+    const mixed = join(import.meta.dirname, "..", "..", "..", "..", "fixtures", "valid", "glyph-vocabulary.grooph.json");
+    io = capture();
+    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "strong=opus"], io, () => "", { env: {} }), 0);
+    assert.match(io.stdout.join("\n"), /note: frontier and strong are both opus in this package, and this graph has agents on each\. A critic and the builder it checks may now share a model/);
+    io = capture();
+    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir, "--models", "frontier=opus,strong=sonnet,fast=haiku"], io, () => "", { env: {} }), 0);
+    assert.doesNotMatch(io.stdout.join("\n"), /note: /);
+    // And with nothing named: the target's own map gives strong and fast one model, and the export says that too.
+    io = capture();
+    assert.equal(await run(["export", mixed, "--target", "claude-code", "--into", dir], io, () => "", { env: {} }), 0);
+    assert.doesNotMatch(io.stdout.join("\n"), /tiers in this package/);
+    assert.match(io.stdout.join("\n"), /note: strong and fast are both sonnet in this package, by the target's own map, and this graph has agents on each\. A critic and the builder it checks may share a model; the validator's check for that reads tiers and does not see it\. To keep them apart, name the tiers: --models, or GROOPH_MODELS\./);
+
+    for (const bad of ["best=opus", "strong", "strong=", "strong=a b", ",", "strong=sonnet;fast=haiku", "frontier=opus=x", "strong={x}", "strong=opus,strong=sonnet", "Strong=opus"]) {
+      io = capture();
+      assert.equal(await run(["export", graph, "--target", "claude-code", "--into", dir, "--models", bad], io, () => "", { env: {} }), 1, bad);
+      assert.match(io.stderr.join("\n"), /--models: /);
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

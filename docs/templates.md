@@ -33,8 +33,44 @@ template?: {
 | `instantiate(template, { name, values, id? })` | Fills slots, removes the `template` block, sets a new id and name, sets `version: 1`, sets `lineage: { pattern: <template id>, from: "<template id>@<version>" }`. Unfilled slots stay as `{{key}}`. Refuses `kind: "fragment"`. |
 | `insertFragment(doc, template, { values, prefix? })` | Accepts fragments and whole-graph templates (inserted as a subgraph; a graph-scoped policy comes along unless the host has the identical one). Adds the template's nodes, edges, loops, policies and groups into `doc`, re-deriving ids that collide (or applying `prefix`), and returns the id map. Layout is dropped. |
 | `extractTemplate(doc, { kind, nodeIds?, meta })` | Whole graph, or a fragment of the given nodes with the edges between them, loops whose members and back edges are all inside, and policies scoped inside. Fragments drop everything graph-level (goal, target, constraints, adaptation, description, layout, notes); whole-graph templates keep goal, target and layout and drop run notes. |
+| `placeSubgrooph(doc, template, { as, name?, values, after?, then? })` | Places a template as a subgrooph (below): `insertFragment` under the prefix `as`, inside a group `as` that carries `from` and `with`. `then` sends what reached the template's success stop to a node of the graph and drops that stop; `after` leads into its entry nodes. Refuses an `as` the graph already uses, as an id or as the start of one, and a template with a lead node. `opens` names the nodes of the graph it now leads to around a person. |
+| `listGroups(doc)`, `groupContents(doc, id)` | Every group with the template it came from, the nodes it holds at any depth, and its entries and exits; one group's nodes, edges, loops, entries and exits. |
+| `refreshSubgrooph(doc, groupId, template, { allow? })` | What the template as it is now would change in a subgrooph, as named changes, and the graph with them applied. A change that loosens a brake (amendment A-008's list) is not applied unless its name is in `allow`; while a change to the shape is held, every change to the shape waits. The brakes are compared on the whole graph, before and after (`brakes.ts`, `reach.ts`). |
+| `extractGroup(doc, groupId, meta)` | A fragment template from a group's nodes, with the groups inside it and without itself. |
 | `templateIndexEntry(template)` | The index row (§3). |
 | `findSlots(doc)` | Every `{{key}}` with the ids of the objects holding it. |
+
+### A template placed as a unit: a subgrooph
+
+`insertFragment` copies a template's nodes into a graph, and afterwards nothing in the document says they came in together. A **subgrooph** (amendment A-018, decision 0025) keeps that: the nodes sit inside a group that names the template and the version they came from, with the slot values they were filled with.
+
+```json
+"groups": [
+  { "id": "review", "name": "Review gate", "description": "A builder, an isolated critic and a person who approves the merge.",
+    "from": "review-gate@1",
+    "with": { "task": "the checkout flow", "test-command": "pnpm test", "checklist": "docs/checklist.md" },
+    "members": ["review-builder", "review-critic", "review-merge-gate"] }
+]
+```
+
+It is by value, not by reference. The nodes are in `nodes` like any others, there is no second file to find, and the same document gives the same package. `from` and `with` are what a refresh needs: which template to look at again, and how it was filled. `fixtures/valid/subgrooph-in-a-graph.grooph.json` is the built-in review gate placed between a planner and a release step, with its own stop replaced by the edge to the release. The shape and its three rules are in [graph-ir.md](graph-ir.md) §1 and §3.
+
+**A worked example.** `fixtures/composed/` is the built-in `debate-then-build` cut into two templates and put together again as two subgroophs, by the operations below and nothing else. The composed graph passes every rule the flat one passes, and compiles to the same agent files but for names; its lead's brief says the same lines and adds the table of units (`fixtures/golden/claude-code/debate-then-build-composed/`). `packages/core/test/composed.test.ts` holds all of that.
+
+**Placing.** Everything that comes in gets an id under the group's: `review-builder`, `review-critic`. That is what lets a subgrooph be found again and refreshed, so every id that begins with the group's id and a dash is the subgrooph's own from then on. A group id the graph already uses that way is refused, not renamed, and so is one that begins with another subgrooph's id and a dash. A template with a lead node is refused: a subgrooph has no lead of its own (decision 0025). If the graph kept a node behind a person and the subgrooph now leads to it around that person (`--then` a step that sat behind a gate), `sub add` says so. Neither `add` nor `update` writes a graph it would leave with an error the file does not have now.
+
+**Refreshing.** `grooph sub update` places the template afresh, with the values in `with`, and compares it with what stands in the graph under the group's ids. Each difference has a name (`node:review-critic.brief`, `loop:review-review.stops`). These things hold:
+
+- **A change that removes or loosens a brake is listed first and not applied** unless it is asked for by its name. Tightening applies with the rest. A brake is a fact about the whole graph, so the graph as it stands is compared with the graph as it would be written (`packages/core/src/brakes.ts`), not one change at a time: a brake cannot be shed by doing in two changes, or under a new id, what one change under the old id would be held for. What is compared, from amendment A-008's list:
+  - *A person on the way.* Each human gate, the answers it offers, and what each answer leads to; each approval. And what a run reaches without a person's decision: worked out once for every person at once, once for each gate, once for each answer at a gate, once for each approval. A node that could be reached only by that decision and can be reached without it afterwards is a loss, however the way around is made: an edge added, an edge moved, a stop that leads on, a second way out of a gate on another answer, a way around the second of two gates. A step that was behind a person and is removed, while another comes in that is not, is held too: it may be the same step under another name. So is a way to end in success: a node from which a run could come to a good end only by that decision, and can without it afterwards (a new stop, a stop that halted and now succeeds). And an answer a gate gives that no edge takes any more. Here a run is taken to start at every node no edge leads into, which is wider than `graph-ir.md` §2: a step that only a loop's stop continues at is no entry node there, and still a start here, so a newer version that leaves a step with nothing but a stop leading to it is held. That is kept on purpose until the comparison has been read by a second harness.
+  - *An irreversible marker* on each node that carries one; the node itself; a marked node brought in with no person before it.
+  - *A loop's stops, and the rounds they count.* Under the loop's own id: the tightest round cap, budget, and "ask a person"; the tightest of each that halts the run (a stop with a `then` ends the loop and leads on, and halts only if it leads to a human gate or a halting stop); where a stop that only leads on leads; and no stop that leads on set to fire before the one that halts. And each edge that starts a round stays the loop's: a round taken out of the loop, into another loop or none, is counted against no stop of the loop's, so one loop split into two with the same cap each is held, and so is a second edge back between two of the loop's nodes that another loop counts. A cap whose halting stop becomes an agent is held too.
+  - *A bar's acceptance*, for the same rounds; the bar; its loop.
+  - *Critics.* Each critic and its role; the evidence each node hands it (on the same edge, on a new edge from the same node, or from a new step put between the two); that no edge into it shares its builder's context; and what a run reaches, or how it comes to end, without its verdict, as for a gate. A loop's bar being passed is the verdict of the critics in the loop. A round cap that leads on to a human gate is a way to that gate around the critic, and is held as one; a cap that leads to a stop that halts is not. The `critic-isolation`, `no-self-grading` and `no-live-graph-rewrite` policies, by their kind, scope and parameters.
+- **A change is held for every loss it may have caused**, and says each. Where no one change can be named, every change is held. What is held is judged again on the graph that would be written with it held, until that graph loses nothing unasked; and if what is left would fail a rule the graph passes now, nothing is applied until the held changes are asked for.
+- **That list is not everything that can make a graph worse.** A brief, a gate's prompt, a model tier, a critic's permissions, a bar's answer key or what it inspects, a loop's mode and its other stops, and a policy of another kind are shown and applied. Nothing remembers an earlier version: a step dropped by one version and brought back, in front of its gate, by the next is two refreshes that each lose nothing. And a join is read as either way in, so a second critic put beside the first is held as a way around the first. A change's reasons are worked out with the other changes as they then stand, so allowing one change can show a reason on another that was not shown before; nothing is written until each has been asked for. Read the changes; the names held back are the ones grooph can tell.
+- **The shape moves as a whole.** While a change to the nodes, the edges or a loop's members is held back, every other change to the shape waits for it, and so does a change that names a part of the new shape: a gate kept while the edges around it are replaced is a gate nobody reaches. A brief, a cap or an approval is its own.
+- **What a person added is theirs, under another id.** A node inside the box whose id does not begin with the group's, and its edges, are left alone, and so is every edge that leads into the subgrooph. Under the group's prefix everything is the template's: an edit to one of its nodes, edges or loops is a difference like any other and is shown before it is undone, because nothing keeps the version a group was placed from and the template's change cannot be told from a person's. An edge of the graph's own that led to a node the newer version no longer has is removed with it and said, and so is that node's place in a loop of the graph's own; anything else of the graph's own that still names it (a stop's `then`, a bar's answer key, a policy's scope) is said and left for a person to point elsewhere. A node the newer version starts at that nothing in the graph leads to is said. An id the newer version needs that the graph uses elsewhere stops the refresh.
 
 ## 3. Registries and the index
 
@@ -52,7 +88,7 @@ Resolution order by name (template id), first hit wins:
 
 1. **Project:** `.grooph/templates/` in the working tree.
 2. **User:** `~/.grooph/templates/`.
-3. **Built-in:** this repo's `patterns/`, bundled with the CLI and the web app at build time.
+3. **Built-in:** this repo's `patterns/`, bundled with the CLI and the web app at build time. In the app they are a file of their own: an address that lists or opens a template asks for it at once, any other fetches it once its first screen is up, and it is kept for use with no network like the rest of the app.
 4. **Remote:** any registry URL passed with `--registry`, and by default the published library at `https://ryanjosephkamp.github.io/grooph/patterns/index.json`. Remote is consulted only when the name is not found locally, or on `grooph template add`.
 
 `patterns/index.json` is generated (without a timestamp, so it is deterministic), committed, and checked in CI. A template document's `version` is the template's version, which is what `lineage.from` records. The Pages deploy publishes `patterns/` beside the app, so anyone can fetch a template by name with no clone.
@@ -66,7 +102,14 @@ grooph template use <name> --name <graph name> [--set key=value …] [--out <fil
 grooph template insert <name> --into <file> [--set key=value …] [--prefix <p>] [--write]
 grooph template save <file> --id <id> --title <t> --summary <s> --when <w> [--fragment --nodes a,b,c] [--to project|user]
 grooph template add <name | url> [--to project|user]
+
+grooph sub add <template> --into <file> --as <id> [--name <name>] [--set key=value …] [--after <node>] [--then <node>] [--write]
+grooph sub list <file> [--json]
+grooph sub update <file> [<group> …] [--allow <change> …] [--write]
+grooph sub extract <file> <group> --id <id> --title <t> --summary <s> --when <w> [--to project|user]
 ```
+
+`grooph sub` places a template as a subgrooph, lists a graph's groups, refreshes subgroophs from their templates, and saves a group as a template (§2, "A template placed as a unit"). `add` and `update` are dry runs unless `--write`.
 
 `--registry` is repeatable and replaces the default remote. `save` and `add` default to `--to project`, refuse to overwrite without `--force` (`save --force` bumps the template's version), and `save` estimates the `profile` from the graph and prints it for correction. `use` prints the questions for unfilled slots to stderr and still writes the document, so an agent can fill the rest by editing or with `grooph apply`.
 

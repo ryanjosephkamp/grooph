@@ -1,7 +1,7 @@
 ---
 name: review-loop--critic
 description: critic for graph review-loop. Compare the diff and test output against the checklist.
-model: opus
+model: sonnet
 effort: high
 tools: Read, Write, Glob, Grep, Bash
 disallowedTools: Edit

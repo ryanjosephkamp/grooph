@@ -1,6 +1,6 @@
 # patrol-pulse · one proving run
 
-**Run** `20260922-050527` · Claude Code 2.1.278 · lead `claude-opus-5`, investigator `claude-opus-5` (tier strong), ticket writer `claude-sonnet-5` (tier fast) · **$1.31** · 22 harness turns · 241 s · evidence in [`run/`](run/) · **`--check` passes** · **the bet paid**
+**Run** `20260922-050527` · Claude Code 2.1.278 · lead `claude-opus-5`, investigator `claude-opus-5` (tier strong), ticket writer `claude-sonnet-5` (tier fast) · **$1.31** · 22 harness turns · 241 s · evidence in [`run-1/`](run-1/) (moved from `run/` when the template was re-proved in slice 0019, below) · **`--check` passes** · **the bet paid**
 
 _Pre-registered 2026-09-22 before the run (commit `experiments: patrol-pulse task, slots, expectations and pre-registration`); the sections after "Pre-registration" are written from the record afterwards._
 
@@ -23,9 +23,9 @@ _Pre-registered 2026-09-22 before the run (commit `experiments: patrol-pulse tas
 | node | result | record |
 |---|---|---|
 | scan | the lead ran the grep: exit 0, 31 lines, saved as `scan-output.txt` in the run folder; `e-scan-investigator` taken | `n-0003` |
-| investigator | read the scan output, `README.md`, `TICKETS.md`, the log and all three source files, ran `npm test` (2/2); **two genuine faults**: F-1 the pool exhaustion (lines 53–63, four `503`s, cause traced to `POOL_SIZE = 20` and `WAIT_MS = 5000` in `src/db.mjs`, "not covered: T-0005 is `/reports` 504s from a missing index"), F-2 the webhook mismatches (four dropped events, "covered by T-0007, open; not filed again"); **six noise classes dismissed** each with the README line that makes it routine, the nightly-export window checked against the export's own start and finish lines, the single failed probe checked against the `probe ok` ten seconds later; verdict **finding** | `n-0005`, [`FINDINGS.md`](run/project.diff) |
-| ticket-writer | one `Edit` to `TICKETS.md` appending **T-0008 · DB pool exhausted during flash sale, 503s on /orders (open)** in the store's format with the log line, the cause and a next step; `FILED.md` lists T-0008 as filed and F-2 as "already covered by T-0007 … additional confirmation, not a new ticket" | `n-0007`, [`project.diff`](run/project.diff) |
-| prioritise | **halt note first** (`n-0008`, `outcome: halt`, naming T-0008 and the options), `PROGRESS.md` updated, then the question, then the turn ended | [`PROGRESS.md`](run/runs/20260922-050527/PROGRESS.md) |
+| investigator | read the scan output, `README.md`, `TICKETS.md`, the log and all three source files, ran `npm test` (2/2); **two genuine faults**: F-1 the pool exhaustion (lines 53–63, four `503`s, cause traced to `POOL_SIZE = 20` and `WAIT_MS = 5000` in `src/db.mjs`, "not covered: T-0005 is `/reports` 504s from a missing index"), F-2 the webhook mismatches (four dropped events, "covered by T-0007, open; not filed again"); **six noise classes dismissed** each with the README line that makes it routine, the nightly-export window checked against the export's own start and finish lines, the single failed probe checked against the `probe ok` ten seconds later; verdict **finding** | `n-0005`, [`FINDINGS.md`](run-1/project.diff) |
+| ticket-writer | one `Edit` to `TICKETS.md` appending **T-0008 · DB pool exhausted during flash sale, 503s on /orders (open)** in the store's format with the log line, the cause and a next step; `FILED.md` lists T-0008 as filed and F-2 as "already covered by T-0007 … additional confirmation, not a new ticket" | `n-0007`, [`project.diff`](run-1/project.diff) |
+| prioritise | **halt note first** (`n-0008`, `outcome: halt`, naming T-0008 and the options), `PROGRESS.md` updated, then the question, then the turn ended | [`PROGRESS.md`](run-1/runs/20260922-050527/PROGRESS.md) |
 
 **Ending:** the halt at `prioritise`. The project changed in exactly three files: `TICKETS.md` (one ticket appended, the `added` assertion: one `## T-` heading), `FINDINGS.md` and `FILED.md` (new). No source file, no test, no README touched; `clean` was not taken; no amendment, no proposal; the working copy is identical to the source. Dispatch counts do not apply (no loop).
 
@@ -47,3 +47,38 @@ The record is the pulse log the target doc promises: `runs/20260922-050527/` hol
 ## What I would change in the template
 
 Name the investigator's report something other than `FINDINGS.md`: the harness's report-file heuristic cost the investigator two turns and would cost a fast-tier investigator more. `PULSE.md` or `TRIAGE.md` says the same thing. Otherwise nothing: the fixture's three traps were all sidestepped with reasons, which is what the read-only investigator is for.
+
+## Re-proved at version 3 (slice 0019)
+
+Two runs, both kept. The template is `patrol-pulse@3`: version 2 respelled the gate's id as `prioritize` and its option as `prioritized` (slice 0073), and version 3 renames the investigator's file from `FINDINGS.md` to `PULSE.md`, as this write-up asked. The task, the slots and the bet are unchanged; [`expect.json`](expect.json) names the new file and the new id. Both ran on Claude Code 2.1.289 with the lead named on the command line (`claude-opus-5-5`, effort `high`) and the tiers by `GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5`. With `strong` and `fast` both Sonnet 5.5, the investigator and the ticket writer ran on one model, where the first run had them on two.
+
+### The run that had no log ([`run-2/`](run-2/))
+
+**Run** `20261004-225445` · **$0.79** · 41 harness turns · 121 s · **`--check` fails** (ten problems, all of them the investigator and the ticket writer never running) · ledger invocation 34
+
+**The task folder in the repository had no log.** `task/logs/app.log` is the file the scan reads. The repository ignores `*.log`, so it was never committed: it lay untracked in the owner's main clone, where the first record was made, and this run was built from a worktree that did not have it. That is a fault of the proving task as it was kept, not of the package, and the file is in the repository now.
+
+**What the package did with a scan that could read nothing is worth the record on its own.** The scan's `grep` exited 2. The graph as written sends a scan that prints nothing to the `clean` stop. The lead would not take that edge ([`n-0003`](run-2/runs/20261004-225445/notes.jsonl): "routing it down e-scan-clean would report an all-clear for a log nobody read"), recorded the scan as `invalid-evidence`, and amended its working copy: a check that the log exists ahead of the scan, and a new stop node `no-log` with outcome `halt` for when it does not (`n-0004`: "The change only tightens: nothing reaches clean without the log having been read"). It took that edge and ended there, having dispatched nobody and changed no project file. Two things were refused: a `find /` for the log, and `grooph apply --help`, after which it edited the working copy by hand and validated it.
+
+The check fails because it asks whether the investigator and the writer ran, and neither did. One of its ten problems is a true defect of the record: replaying the amendment note's patch on the source does not give the working copy, since the lead edited by hand after `grooph apply` was refused.
+
+### The run with its log ([`run/`](run/))
+
+**Run** `20261005-042756` · lead `claude-opus-5-5`, investigator and ticket writer `claude-sonnet-5-5` · **$0.73** · 35 harness turns · 131 s · **`--check` passes** · ledger invocation 35, the one further retry the driver allowed on 2026-10-05 (the ledger's `extra_retries` says who and why)
+
+**The bet paid in full, as in the first run.**
+
+| node | result | record |
+|---|---|---|
+| scan | 31 `ERROR` and `WARN` lines listed, kept as `scan-output.txt` in the run folder | [`scan-output.txt`](run/runs/20261005-042756/scan-output.txt) |
+| investigator | read the scan output, `README.md`, `TICKETS.md`, the log and two source files; **two genuine faults**: the pool exhaustion (four `503`s at 12:00, traced to the pool of 20 and the 5000 ms wait in `src/db.mjs`, "none" of the tickets covers it) and the webhook mismatches ("already on file as T-0007 (open)"); **seven classes of signal dismissed**, each with the README line or the log lines that make it routine; verdict **finding** | [`PULSE.md`](run/runs/20261005-042756/PULSE.md) |
+| ticket-writer | one `Edit` to `TICKETS.md` appending **T-0008**, in the store's format; "Payment webhook signature mismatches … already T-0007 (open); not refiled" | [`project.diff`](run/project.diff), [`FILED.md`](run/runs/20261005-042756/FILED.md) |
+| prioritize | halt note, then the question, then the turn ended | [`notes.jsonl`](run/runs/20261005-042756/notes.jsonl) |
+
+**Ending:** the halt at `prioritize`. The project changed in one file, `TICKETS.md`, by one ticket; no source file, no test, no README. No amendment; the working copy is identical to the source.
+
+**What the rename was for, and whether it worked.** In the first run the harness refused the investigator's `Write FINDINGS.md` with "Subagents should return findings as text, not write report files", and the investigator wrote the file with a shell here-document instead, two turns later. In this run the investigator's `Write` of `PULSE.md` went through at the first try: the transcript digest shows the one `Write` and no refusal of it. One run each way does not prove the file's name was the cause, and the harness is eleven versions on (2.1.278 then, 2.1.289 now); what the record shows is that the renamed file was written by the tool, by the node that owns it.
+
+Two differences from the first run that are not the template's: the investigator and the writer put `PULSE.md` and `FILED.md` in the run folder, where the lead pointed them, not at the project root, so `project.diff` holds only the ticket; and the investigator tried once to write a placeholder file outside the project, which was refused and cost a turn.
+
+**What I would change in the template:** nothing in its shape. The no-log run found a real gap, and its lead's amendment is the fix: a scan that cannot read its input is not a scan that found nothing, and the graph should not send both down the same edge. A check that the input exists, with its own stop, belongs in the template or in the description of what `scan-command` must do when it has nothing to read.

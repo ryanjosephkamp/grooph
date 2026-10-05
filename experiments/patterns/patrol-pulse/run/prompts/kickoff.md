@@ -4,7 +4,7 @@ Read `.grooph/orders-api-patrol/LEAD.md` first and follow it. It is the brief fo
 
 **Goal.**
 
-Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise. One pulse is one run: it ends clean, or with new tickets in TICKETS.md for a human to prioritise. Nothing else changes.
+Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise. One pulse is one run: it ends clean, or with new tickets in TICKETS.md for a human to prioritize. Nothing else changes.
 
 **Before you touch anything:**
 

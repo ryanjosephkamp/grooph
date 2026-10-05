@@ -30,6 +30,8 @@ export type OfflinePageOptions = {
   live?: Record<string, MapSessionLive>;
   /** When that live state was read, ISO 8601. */
   at?: string;
+  /** A graph's picture already drawn, to show in place of the plain one: with its subgroophs as boxes (`index.ts`'s `picture`). */
+  picture?: string;
 };
 
 const CSS = `
@@ -101,7 +103,7 @@ function sectionHtml(section: OutlineSection, first: boolean): string {
 export function offlinePage(doc: Graph | OperationMap, options: OfflinePageOptions = {}): string {
   const map = isMapLike(doc) ? (doc as OperationMap) : undefined;
   const graph = map ? undefined : (doc as Graph);
-  const svg = (map ? mapPicture(map, options.live ? { live: options.live, ...(options.at ? { at: options.at } : {}) } : {}) : picture(graph!)).trimEnd();
+  const svg = (map ? mapPicture(map, options.live ? { live: options.live, ...(options.at ? { at: options.at } : {}) } : {}) : (options.picture ?? picture(graph!))).trimEnd();
   const sections = map ? mapOutline(map) : outline(graph!);
   if (map && options.live) {
     // A snapshot: what each session was doing when the page was made, first in its section.

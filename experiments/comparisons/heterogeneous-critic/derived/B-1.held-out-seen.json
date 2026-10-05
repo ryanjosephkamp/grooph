@@ -1,0 +1,59 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "heterogeneous-critic/B-1",
+  "sessions": [
+    "04c08fbf-e363-4d57-bd63-514a86c8c651"
+  ],
+  "transcripts_found": 5,
+  "suite_runs": [
+    {
+      "who": "general-purpose (Critic: review parseRanges change)",
+      "at": "2026-10-04T21:48:03.095Z",
+      "command": "node --test <held-out>/parse-ranges-cases.test.mjs",
+      "tests": null,
+      "pass": 50,
+      "fail": null,
+      "fail_lines_kept": 22,
+      "read_from": "the lines the harness kept; the output was cut, so these are lower bounds",
+      "cut": true
+    },
+    {
+      "who": "general-purpose (Critic: review parseRanges change)",
+      "at": "2026-10-04T21:48:12.779Z",
+      "command": "node --test --test-skip-pattern=\"^(stated|order|repeats|backward|spaces|open end|careful|zeros|empty):\" <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "read_from": "node's summary"
+    },
+    {
+      "who": "general-purpose (Critic: review parseRanges change)",
+      "at": "2026-10-04T21:48:14.635Z",
+      "command": "node --test --test-name-pattern=\"^(empty|careful|zeros|backward|open end|spaces):\" <held-out>/parse-ranges-cases.test.mjs --test-reporter=dot",
+      "tests": 35,
+      "pass": 23,
+      "fail": 12,
+      "read_from": "node's summary",
+      "part_of_suite": true
+    },
+    {
+      "who": "general-purpose (Critic: review parseRanges change)",
+      "at": "2026-10-04T21:48:18.312Z",
+      "command": "node --test --test-name-pattern=\"^(stated|order|repeats):\" <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 35,
+      "pass": 29,
+      "fail": 6,
+      "read_from": "node's summary",
+      "part_of_suite": true
+    },
+    {
+      "who": "general-purpose (Critic round 1: re-review change)",
+      "at": "2026-10-04T21:49:54.906Z",
+      "command": "node --test <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 70,
+      "pass": 70,
+      "fail": 0,
+      "read_from": "node's summary"
+    }
+  ]
+}

@@ -1,0 +1,335 @@
+diff --git a/CHANGES.md b/CHANGES.md
+new file mode 100644
+index 0000000..efe5c82
+--- /dev/null
++++ b/CHANGES.md
+@@ -0,0 +1,15 @@
++# Changes, round 1
++
++All in src/statement.mjs. Capture rerun; npm test passes (3/3). Widest line is 61 characters.
++
++Closed:
++
++1. Ordering (major). Charges are sorted by amount, largest first, ties by service name (Key management before Load balancing). Credits are sorted largest credit first (Committed-use discount 410.63, then Service credit 164.25).
++2. Credits with a minus sign (major). Credits and the credits total are now written in parentheses, no minus sign. Plain amounts stop one column short of the table edge, so the closing parenthesis hangs in the last column and the decimal points stay in line.
++3. Zero-usage lines (major). Machine learning inference and Monitoring are dropped from the table. A sentence after the total says "2 services with no usage this month are not listed: Machine learning inference and Monitoring." Counts and names come from the data. The test that every service is named is still satisfied by this sentence.
++4. Share column (major). Each charge shows its percentage of total charges to one decimal (Compute 39.5%), computed with integer arithmetic, rounded half up. The Charges line shows 100.0%.
++5. Opening line and usage column (minor). The first line is the customer name with "Account NW-20418" right-aligned at the table edge; the month line is under it ("Usage statement, September 2026"). Quantity and unit are merged into one left-aligned "Usage" column ("18,250 vCPU-hours"). "Total due" no longer repeats the currency; USD appears once, in the "Amount (USD)" heading. The credits block drops its "Credits" heading line and the subtotal is labelled "Credits".
++
++Kept as before: rule-set total in the amount column, Charges line before credits, thousands commas, no currency signs, month by name, no trailing spaces, ASCII only.
++
++Left on purpose: nothing from GAPS.md. No conflict between GAPS.md, STYLE.md and tests/.
+diff --git a/GAPS.md b/GAPS.md
+new file mode 100644
+index 0000000..f5c0ea4
+--- /dev/null
++++ b/GAPS.md
+@@ -0,0 +1,69 @@
++# Gaps, round 1
++
++Capture judged: captures/statement.txt (27 lines, widest 61 columns), rendered
++2026-10-04T22:15:39Z from src/statement.mjs, sha256 3cd529c434b2
++(captures/CAPTURE.md:3-4). I read it next to the billing team's statement with
++both labels removed and in random order. Then I checked each one against the
++same seven points, listed below.
++
++## Comparison
++
++Both statements have the same figures, rows, row order and shares. Everything
++below is about layout.
++
++1. **Is the total easy to find?** Both end with the total due in the amount
++   column, with a rule above it. The order is charges, then the "Charges"
++   subtotal (statement.txt:15), then the credits (statement.txt:17-18). The
++   capture also has a "Credits" subtotal line (statement.txt:20), placed after
++   the credit lines. It also puts a double rule both above and below the total
++   (statement.txt:22, 24). The other statement puts a heading over the credits
++   and has no credits subtotal. Its figures go straight from the last credit,
++   through a single rule, to the total. Both orders are acceptable. The other
++   statement is slightly clearer, because the reader knows the lines are
++   credits before reading them.
++2. **Largest first.** Met. Charges run from 1,642.50 down to 36.00
++   (statement.txt:6-13). The two 36.00 charges are in name order: Key
++   management, then Load balancing (statement.txt:12-13). The larger credit
++   comes first (statement.txt:17-18).
++3. **Amounts read as money.** Met. Every amount has dollars, cents and a comma
++   between thousands. The decimal point is in column 58 on every figure line
++   (statement.txt:6-15, 17-18, 20, 23; line lengths are in
++   captures/CAPTURE.md:17-34). Credits are in parentheses, and the closing
++   parenthesis sits just past the column. The currency is named only in the
++   heading, "Amount (USD)" (statement.txt:4). No amount has a currency sign
++   or a minus sign.
++4. **Nothing that says nothing.** Met. No service with zero usage appears as
++   a row. One sentence at the foot gives the count and the names
++   (statement.txt:26-27). The capture breaks this sentence between items. The
++   other statement breaks it in the middle of a service name, so the capture
++   does this a little better.
++5. **Each charge's share.** Met. Shares have one decimal, are right-aligned
++   under "Share", and add up to 100.0% (statement.txt:4-15).
++6. **Month by name.** Met. The heading says "September 2026"
++   (statement.txt:2). The customer's name is at the left of line 1 and the
++   account number at the right (statement.txt:1).
++7. **Usage with its unit.** Met, for example "18,250 vCPU-hours"
++   (statement.txt:6).
++
++Overall, the other statement is slightly better because of how its credits
++block is labelled. Neither has a gap a customer would notice at a glance, and
++neither has anything misleading.
++
++## Ranked gaps
++
++1. **minor: the credits are labelled only after they are listed.** See
++   statement.txt:17-20. The two credit lines come with no heading. The word
++   "Credits" first appears on line 20, as a subtotal. To fix it, put a
++   "Credits" heading line directly above the credit lines. Then either drop
++   the credits subtotal, or keep it only if it clearly totals the credits and
++   does not read like a second total.
++2. **minor: an extra figure and heavy rules around the total.** See
++   statement.txt:20-24. The bracketed credits subtotal sits just above the
++   total, and the double rules above and below make that whole area busy. The
++   total should come straight after the last credit, behind one rule, with
++   nothing after it except the footnote. This is fine to leave as it is; it is
++   a matter of taste.
++
++No major gap remains.
++
++verdict: pass
+diff --git a/captures/CAPTURE.md b/captures/CAPTURE.md
+new file mode 100644
+index 0000000..7d23d92
+--- /dev/null
++++ b/captures/CAPTURE.md
+@@ -0,0 +1,39 @@
++# Capture of the current revision
++
++- rendered at 2026-10-04T22:15:39.093Z from src/statement.mjs, sha256 3cd529c434b2
++- file: captures/statement.txt, 27 lines, the widest 61 characters
++- lines that end in a space or a tab: 0
++- tabs: none
++- characters outside plain ASCII: none
++
++## The statement, with line numbers and each line's length
++
++```text
++ 1 | 61 | Northwind Robotics                           Account NW-20418
++ 2 | 31 | Usage statement, September 2026
++ 3 |  0 | 
++ 4 | 61 | Service             Usage                Share   Amount (USD)
++ 5 | 61 | -------------------------------------------------------------
++ 6 | 60 | Compute             18,250 vCPU-hours    39.5%      1,642.50
++ 7 | 60 | Managed database    720 instance-hours   31.2%      1,296.00
++ 8 | 60 | Dedicated support   1 plan               12.0%        500.00
++ 9 | 60 | Data transfer out   4,380 GB              9.5%        394.20
++10 | 60 | Object storage      9,120 GB-months       5.0%        209.76
++11 | 60 | Container registry  412 GB-months         1.0%         41.20
++12 | 60 | Key management      36 keys               0.9%         36.00
++13 | 60 | Load balancing      1,440 hours           0.9%         36.00
++14 | 61 | -------------------------------------------------------------
++15 | 60 | Charges                                 100.0%      4,155.66
++16 |  0 | 
++17 | 61 | Committed-use discount                               (410.63)
++18 | 61 | Service credit, 14 Sep outage                        (164.25)
++19 | 61 | -------------------------------------------------------------
++20 | 61 | Credits                                              (574.88)
++21 |  0 | 
++22 | 61 | =============================================================
++23 | 60 | Total due                                           3,580.78
++24 | 61 | =============================================================
++25 |  0 | 
++26 | 51 | 2 services with no usage this month are not listed:
++27 | 42 | Machine learning inference and Monitoring.
++```
+diff --git a/captures/statement.txt b/captures/statement.txt
+new file mode 100644
+index 0000000..a82f19f
+--- /dev/null
++++ b/captures/statement.txt
+@@ -0,0 +1,27 @@
++Northwind Robotics                           Account NW-20418
++Usage statement, September 2026
++
++Service             Usage                Share   Amount (USD)
++-------------------------------------------------------------
++Compute             18,250 vCPU-hours    39.5%      1,642.50
++Managed database    720 instance-hours   31.2%      1,296.00
++Dedicated support   1 plan               12.0%        500.00
++Data transfer out   4,380 GB              9.5%        394.20
++Object storage      9,120 GB-months       5.0%        209.76
++Container registry  412 GB-months         1.0%         41.20
++Key management      36 keys               0.9%         36.00
++Load balancing      1,440 hours           0.9%         36.00
++-------------------------------------------------------------
++Charges                                 100.0%      4,155.66
++
++Committed-use discount                               (410.63)
++Service credit, 14 Sep outage                        (164.25)
++-------------------------------------------------------------
++Credits                                              (574.88)
++
++=============================================================
++Total due                                           3,580.78
++=============================================================
++
++2 services with no usage this month are not listed:
++Machine learning inference and Monitoring.
+diff --git a/src/statement.mjs b/src/statement.mjs
+index 8bf919c..f3b1b29 100644
+--- a/src/statement.mjs
++++ b/src/statement.mjs
+@@ -1,3 +1,56 @@
++const MONTHS = [
++  "January", "February", "March", "April", "May", "June",
++  "July", "August", "September", "October", "November", "December",
++];
++
++/** "2026-09" -> "September 2026"; anything else is passed through. */
++function monthName(period) {
++  const match = /^(\d{4})-(\d{2})$/.exec(period);
++  if (!match || Number(match[2]) < 1 || Number(match[2]) > 12) return period;
++  return `${MONTHS[Number(match[2]) - 1]} ${match[1]}`;
++}
++
++/** Whole cents -> "1,642.50" (sign ignored; credits get parentheses elsewhere), exact. */
++function dollars(cents) {
++  const abs = Math.abs(cents);
++  const whole = String(Math.floor(abs / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++  const frac = String(abs % 100).padStart(2, "0");
++  return `${whole}.${frac}`;
++}
++
++const count = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
++const left = (s, w) => s.padEnd(w);
++const right = (s, w) => s.padStart(w);
++
++/** Share of the whole in tenths of a percent, rounded half up, integers only -> "39.5%". */
++function percent(part, whole) {
++  if (whole <= 0) return "0.0%";
++  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));
++  return `${Math.floor(tenths / 10)}.${tenths % 10}%`;
++}
++
++/** "A", "A and B", "A, B and C". */
++function joinNames(names) {
++  if (names.length < 2) return names.join("");
++  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
++}
++
++/** Greedy word wrap to at most `width` characters per line. */
++function wrap(text, width) {
++  const lines = [];
++  let line = "";
++  for (const word of text.split(" ")) {
++    if (line && line.length + 1 + word.length > width) {
++      lines.push(line);
++      line = word;
++    } else {
++      line = line ? `${line} ${word}` : word;
++    }
++  }
++  if (line) lines.push(line);
++  return lines;
++}
++
+ /**
+  * The monthly usage statement as plain text.
+  * @param {{ customer: string, account: string, period: string, currency: string,
+@@ -6,17 +59,89 @@
+  * @returns {string}
+  */
+ export function renderStatement(data) {
++  const byName = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
++  const hasUsage = (l) => l.quantity > 0 || l.amount_cents !== 0;
++  const used = data.lines.filter(hasUsage);
++  const unused = data.lines.filter((l) => !hasUsage(l));
++
++  const chargeCents = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);
++  const creditCents = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);
++  const totalCents = chargeCents + creditCents;
++
++  // Largest charge first, ties by name.
++  const charges = [...used]
++    .sort((a, b) => b.amount_cents - a.amount_cents || byName(a.service, b.service))
++    .map((l) => ({
++      service: l.service,
++      usage: `${count(l.quantity)} ${l.unit}`,
++      share: percent(l.amount_cents, chargeCents),
++      amount: dollars(l.amount_cents),
++    }));
++  // Credits are stored as negative cents; the largest credit comes first.
++  const credits = [...data.credits]
++    .sort((a, b) => a.amount_cents - b.amount_cents || byName(a.reason, b.reason))
++    .map((c) => ({ reason: c.reason, amount: dollars(c.amount_cents), credit: c.amount_cents < 0 }));
++  const subtotal = dollars(chargeCents);
++  const creditSum = dollars(creditCents);
++  const total = dollars(totalCents);
++
++  const head = { service: "Service", usage: "Usage", share: "Share", amount: `Amount (${data.currency})` };
++  const wService = Math.max(head.service.length, ...charges.map((c) => c.service.length));
++  const wUsage = Math.max(head.usage.length, ...charges.map((c) => c.usage.length));
++  const wShare = Math.max(head.share.length, "100.0%".length, ...charges.map((c) => c.share.length));
++  const wAmount = Math.max(
++    head.amount.length,
++    ...charges.map((c) => c.amount.length),
++    ...credits.map((c) => c.amount.length + 1),
++    subtotal.length,
++    creditSum.length + 1,
++    total.length,
++  );
++  // Plain amounts stop one column short of the table edge, so a credit's closing
++  // parenthesis hangs in the last column and the decimal points stay in line.
++  const wCol = wAmount + 1;
++  const gap = "  ";
++  const width = wService + wUsage + wShare + wCol + gap.length * 3;
++
++  const plain = (amount) => `${right(amount, wAmount)} `;
++  const credit = (amount) => `${right(`(${amount}`, wAmount)})`;
++  const amountCol = (c) => (c.credit ? credit(c.amount) : plain(c.amount));
++  const row = (service, usage, share, amount) =>
++    [left(service, wService), left(usage, wUsage), right(share, wShare), amount]
++      .join(gap)
++      .trimEnd();
++  const money = (label, amount) => `${left(label, width - wCol - gap.length)}${gap}${amount}`.trimEnd();
++  const rule = (ch) => ch.repeat(width);
++
+   const out = [];
+-  out.push(`Usage statement ${data.account} ${data.customer} ${data.period}`);
+-  let total = 0;
+-  for (const line of data.lines) {
+-    out.push(`${line.service} ${line.quantity} ${line.unit} ${line.amount_cents}`);
+-    total += line.amount_cents;
+-  }
+-  for (const credit of data.credits) {
+-    out.push(`${credit.reason} ${credit.amount_cents}`);
+-    total += credit.amount_cents;
++  const account = `Account ${data.account}`;
++  out.push(`${left(data.customer, width - account.length)}${account}`.trimEnd());
++  out.push(`Usage statement, ${monthName(data.period)}`);
++  out.push("");
++  out.push(row(head.service, head.usage, head.share, right(head.amount, wCol)));
++  out.push(rule("-"));
++  for (const c of charges) out.push(row(c.service, c.usage, c.share, plain(c.amount)));
++  out.push(rule("-"));
++  out.push(row("Charges", "", "100.0%", plain(subtotal)));
++  out.push("");
++  for (const c of credits) out.push(money(c.reason, amountCol(c)));
++  out.push(rule("-"));
++  out.push(money("Credits", amountCol({ amount: creditSum, credit: creditCents < 0 })));
++  out.push("");
++  out.push(rule("="));
++  out.push(money("Total due", plain(total)));
++  out.push(rule("="));
++  if (unused.length > 0) {
++    const n = unused.length;
++    // Service names stay whole across line breaks (spaces held as   while wrapping).
++    const names = joinNames(unused.map((l) => l.service.replace(/ /g, " ")));
++    out.push("");
++    out.push(
++      ...wrap(
++        `${n} ${n === 1 ? "service" : "services"} with no usage this month ${n === 1 ? "is" : "are"} not listed: ${names}.`,
++        width,
++      ).map((s) => s.replace(/ /g, " ")),
++    );
+   }
+-  out.push(`Total ${total} ${data.currency} cents`);
+   return `${out.join("\n")}\n`;
+ }

@@ -1,0 +1,8 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the investigator and the ticket writer ran as their own subagents; the investigator wrote FINDINGS.md itself and the writer FILED.md; the writer wrote only TICKETS.md (and its report) and nobody else wrote there; TICKETS.md gained exactly one ticket heading; the run halted at the prioritise gate with a halt note (no scripted answer). The design bet (write-up): the investigator names both faults, the writer files the pool exhaustion as T-0008 and references T-0007 instead of filing it again, no code is touched.",
+  "agents": ["investigator", "ticket-writer"],
+  "reports": { "investigator": ["FINDINGS.md"], "ticket-writer": ["FILED.md"] },
+  "ownership": { "ticket-writer": ["TICKETS.md"] },
+  "added": { "TICKETS.md": { "pattern": "^## T-", "count": 1 } },
+  "ending": ["halt at prioritise"]
+}

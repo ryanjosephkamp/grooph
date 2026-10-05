@@ -2,7 +2,7 @@
   "grooph": 0,
   "id": "patrol-pulse",
   "name": "Patrol pulse",
-  "version": 2,
+  "version": 3,
   "goal": "{{task}} One pulse is one run: it ends clean, or with new tickets in {{ticket-store}} for a human to prioritize. Nothing else changes.",
   "target": {
     "harness": "claude-code"
@@ -78,14 +78,14 @@
         "tier": "strong"
       },
       "effort": "high",
-      "brief": "Judge every signal the scan listed: read the project and run what you need to tell a genuine fault from routine noise, and check {{ticket-store}} so a fault already on file is named by its ticket rather than reported as new. Write FINDINGS.md with one entry per genuine fault (the evidence, the likely cause, whether a ticket already covers it) and a line for what you dismissed and why. You investigate; you change nothing. Verdict finding when at least one genuine fault is not yet on file, clean otherwise.",
+      "brief": "Judge every signal the scan listed: read the project and run what you need to tell a genuine fault from routine noise, and check {{ticket-store}} so a fault already on file is named by its ticket rather than reported as new. Write PULSE.md with one entry per genuine fault (the evidence, the likely cause, whether a ticket already covers it) and a line for what you dismissed and why. You investigate; you change nothing. Verdict finding when at least one genuine fault is not yet on file, clean otherwise.",
       "inputs": [
         "the scan output",
         "{{ticket-store}}, read-only",
         "the repository, read-only"
       ],
       "outputs": [
-        "FINDINGS.md: genuine faults with evidence, dismissed signals, and a verdict line",
+        "PULSE.md: genuine faults with evidence, dismissed signals, and a verdict line",
         "verdict: clean | finding"
       ],
       "allow": [
@@ -106,9 +106,9 @@
         "tier": "fast"
       },
       "effort": "medium",
-      "brief": "Append one ticket to {{ticket-store}} for each finding in FINDINGS.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest. Never duplicate a ticket, never edit an existing one, and never touch code or anything outside {{ticket-store}}. Report what you filed and what you left because it was already on file in FILED.md.",
+      "brief": "Append one ticket to {{ticket-store}} for each finding in PULSE.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest. Never duplicate a ticket, never edit an existing one, and never touch code or anything outside {{ticket-store}}. Report what you filed and what you left because it was already on file in FILED.md.",
       "inputs": [
-        "FINDINGS.md",
+        "PULSE.md",
         "{{ticket-store}}"
       ],
       "outputs": [
@@ -182,7 +182,7 @@
         "verdict": "finding"
       },
       "evidence": [
-        "FINDINGS.md",
+        "PULSE.md",
         "{{ticket-store}}"
       ]
     },

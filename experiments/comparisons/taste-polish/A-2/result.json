@@ -1,0 +1,393 @@
+{
+  "template": "taste-polish",
+  "template_version": "taste-polish@2",
+  "slots": {
+    "values": {
+      "task": "Polish the monthly usage statement that `npm run render` writes from src/statement.mjs until it reads like the statement the billing team already sends: STYLE.md says what the statement should be, data/usage.json is the data, and `npm run capture` produces what is judged. The billing team's statement is kept outside this project; work from STYLE.md.",
+      "reference": "the billing team's statement at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md (the critic's yardstick; the owner works from STYLE.md and does not read it)",
+      "capture-command": "npm run capture"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out",
+    "files": [
+      {
+        "path": "REFERENCE.md",
+        "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+        "at_run": true
+      },
+      {
+        "path": "reference.txt",
+        "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+        "at_run": true
+      },
+      {
+        "path": "statement-properties.test.mjs",
+        "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+        "at_run": false
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "polish-usage-statement",
+  "run_id": "20261004-222738",
+  "run_ids": [
+    "20261004-222738"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "lead": {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "tier_map": "frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+  "aliases": {
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+  },
+  "agent_models": {
+    "polish-usage-statement--critic": "claude-opus-5-5",
+    "polish-usage-statement--owner": "claude-sonnet-5-5"
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 1.1817831999999997,
+      "output_tokens": 22565
+    },
+    "claude-sonnet-5-5": {
+      "cost_usd": 0.23897299999999996,
+      "output_tokens": 13408
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ],
+    "polish-usage-statement--critic": [
+      "claude-opus-5-5"
+    ],
+    "polish-usage-statement--owner": [
+      "claude-sonnet-5-5"
+    ]
+  },
+  "models_never_used": [],
+  "cost_usd": 1.420756,
+  "harness_turns": 49,
+  "lead_turns": null,
+  "duration_s": 299,
+  "rounds": {
+    "loop_passes": 2,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "bar-passed"
+  ],
+  "ending": [
+    "stop node done",
+    "stop bar-passed"
+  ],
+  "subagents": {
+    "polish-usage-statement--critic": 2,
+    "polish-usage-statement--owner": 2
+  },
+  "permission_denials": [
+    {
+      "tool": "Edit",
+      "command": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/.claude/agents/polish-usage-statement--owner.md"
+    },
+    {
+      "tool": "Bash",
+      "command": "cat > /tmp/edit.py <<'EOF'\np='src/statement.mjs'\ns=open(p).read()\ni=s.index('/**\\n * The monthly usage')\nhead=s[:i]\nnew='''/** Share of the whole as a percentage to one decimal, rounded half up, from whole cents. */\nfunction percent(part, whole) {\n  if (whole === 0) return \"0.0%\";\n  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));\n  return `${Math.trunc(tenths / 10)}.${tenths % 10}%`;\n}\n\n/** \"A\", \"A and B\", \"A, B and C\". */\nfunction listNames(names) {\n  if (names.length <= 1) return names.join(\"\");\n  return `${names.slice(0, -1).join(\", \")} and ${names[names.length - 1]}`;\n}\n\n/** Greedy word wrap to at most `width` characters per line. */\nfunction wrap(text, width) {\n  const lines = [];\n  let line = \"\";\n  for (const word of text.split(\" \")) {\n    if (line && line.length + 1 + word.length > width) {\n      lines.push(line);\n      line = word;\n    } else {\n      line = line ? `${line} ${word}` : word;\n    }\n  }\n  if (line) lines.push(line);\n  return lines;\n}\n\n/**\n * The monthly usage statement as plain text.\n * @param {{ customer: string, account: string, period: string, currency: string,\n *           lines: { service: string, quantity: number, unit: string, amount_cents: number }[],\n *           credits: { reason: string, amount_cents: number }[] }} data\n * @returns {string}\n */\nexport function renderStatement(data) {\n  const unused = data.lines\n    .filter((l) => l.quantity === 0 && l.amount_cents === 0)\n    .sort((a, b) => a.service.localeCompare(b.service));\n  // Used services only, largest charge first; equal amounts by name.\n  const used = data.lines\n    .filter((l) => !(l.quantity === 0 && l.amount_cents === 0))\n    .sort((a, b) => b.amount_cents - a.amount_cents || a.service.localeCompare(b.service));\n  const credits = [...data.credits].sort(\n    (a, b) => Math.abs(b.amount_cents) - Math.abs(a.amount_cents) || a.reason.localeCompare(b.reason),\n  );\n\n  const charges = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);\n  const creditsSum = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);\n  const total = charges + creditsSum;\n\n  // Credits are shown as positive figures in parentheses; the closing\n  // parenthesis sits in a one-character slot after the amount column.\n  const usageOf = (l) => `${groupDigits(l.quantity)} ${l.unit}`;\n  const serviceW = Math.max(\"Service\".length, ...used.map((l) => l.service.length));\n  const usageW = Math.max(\"Usage\".length, ...used.map((l) => usageOf(l).length));\n  const shareW = Math.max(\"Share\".length, \"100.0%\".length);\n  const amountW = Math.max(\n    `Amount (${data.currency})`.length,\n    ...used.map((l) => money(l.amount_cents).length),\n    ...credits.map((c) => money(Math.abs(c.amount_cents)).length),\n    money(charges).length,\n    money(total).length,\n  );\n  const slot = 1;\n  const gap = \"  \";\n  const width = serviceW + usageW + shareW + amountW + slot + gap.length * 3;\n  const rule = \"-\".repeat(width);\n  const trim = (s) => s.replace(/\\\\s+$/, \"\");\n\n  const row = (a, b, c, d, tail = \" \") =>\n    trim(\n      [padRight(a, serviceW), padRight(b, usageW), padLeft(c, shareW), padLeft(d, amountW)].join(gap) + tail,\n    );\n  // A label on the left and an amount flush with the amount column.\n  const summary = (label, text, tail = \" \") =>\n    trim(`${padRight(label, width - amountW - slot - gap.length)}${gap}${padLeft(text, amountW)}${tail}`);\n\n  const out = [];\n  const account = `Account ${data.account}`;\n  out.push(`${padRight(data.customer, Math.max(1, width - account.length))}${account}`);\n  out.push(`Usage statement for ${monthName(data.period)}`);\n  out.push(\"\");\n  out.push(row(\"Service\", \"Usage\", \"Share\", `Amount (${data.currency})`));\n  out.push(rule);\n  for (const l of used) {\n    out.push(row(l.service, usageOf(l), percent(l.amount_cents, charges), money(l.amount_cents)));\n  }\n  out.push(rule);\n  out.push(row(\"Charges\", \"\", percent(charges, charges), money(charges)));\n  out.push(\"\");\n  out.push(\"Credits\");\n  for (const c of credits) {\n    const cents = c.amount_cents;\n    // Credits are stored as negative amounts; a positive adjustment would be shown plain.\n    out.push(summary(`  ${c.reason}`, cents < 0 ? money(-cents) : money(cents), cents < 0 ? \")\" : \" \"));\n  }\n  out.push(rule);\n  out.push(summary(\"Total due\", money(total)));\n  if (unused.length > 0) {\n    const n = unused.length;\n    out.push(\"\");\n    out.push(\n      ...wrap(\n        `${n} ${n === 1 ? \"service\" : \"services\"} with no usage ${n === 1 ? \"is\" : \"are\"} not listed: ${listNames(unused.map((l) => l.service))}.`,\n        width,\n      ),\n    );\n  }\n  return `${out.join(\"\\\\n\")}\\\\n`;\n}\n'''\nopen(p,'w').write(head+new)\nEOF\npython3 /tmp/edit.py"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 63,
+      "session_id": "7f3782e0-d599-4020-a059-ea6429fe299a",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.420756,
+      "reported_cost_usd": 1.4207561999999998,
+      "max_budget_usd": 9,
+      "harness_turns": 49,
+      "duration_s": 299,
+      "wall_s": 300,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": "d it didn't. I suggest fixing that file or the source graph.\n\nLeft over:\n- **Two minor gaps** the critic didn't count against the pass:\n  - The footer note wraps in the middle of \"Machine learning inference\".\n  - The credit lines are indented two spaces, which the critic called an optional style choice.\n- **Uncommitted work:** the changes to `src/statement.mjs` and the new `captures/` and run folders are not committed yet.\n\nThe full record is in `.grooph/polish-usage-statement/runs/20261004-222738/` (`PROGRESS.md` and `notes.jsonl`, plus each round's critic report and the owner's change list)."
+    }
+  ],
+  "base_commit": "5a91295dd50b24ce546513fcad7c4b2be81fe36d",
+  "source_sha256_before": "01db09719d49451f8aef866bb5388629fc17736886e08cf7a0f2b86f64eced5a",
+  "project_files_changed": [
+    "A captures/CAPTURE.md",
+    "A captures/statement.txt",
+    "M src/statement.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq",
+  "home_redactions": 0,
+  "amendments": [
+    "owner inputs: replaced the held-out reference with STYLE.md and data/usage.json"
+  ],
+  "proposals": [],
+  "working_copy": [
+    "node owner changed: inputs"
+  ],
+  "arm": "A",
+  "replicate": 2,
+  "project": "taste-polish",
+  "wall_s": 300,
+  "conditions": {
+    "task": "experiments/comparisons/taste-polish/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out",
+      "files": [
+        {
+          "path": "REFERENCE.md",
+          "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+          "at_run": true
+        },
+        {
+          "path": "reference.txt",
+          "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+          "at_run": true
+        },
+        {
+          "path": "statement-properties.test.mjs",
+          "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+          "at_run": false
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "a reviewer, as the template names it to its critic",
+      "beside_scratch_during_run": true,
+      "scorer_only": [
+        "statement-properties.test.mjs"
+      ],
+      "scored_from": "experiments/comparisons/taste-polish/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "polish-usage-statement--critic": "claude-opus-5-5",
+      "polish-usage-statement--owner": "claude-sonnet-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": true
+    },
+    "tool_on_path": true,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 26,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "taste-polish",
+    "template_version": "taste-polish@2",
+    "graph_id": "polish-usage-statement",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq"
+  },
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 1.1817831999999997,
+        "output_tokens": 22565
+      },
+      "claude-sonnet-5-5": {
+        "cost_usd": 0.23897299999999996,
+        "output_tokens": 13408
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ],
+      "polish-usage-statement--critic": [
+        "claude-opus-5-5"
+      ],
+      "polish-usage-statement--owner": [
+        "claude-sonnet-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 1.420756,
+    "harness_turns": 49,
+    "duration_s": 299,
+    "wall_s": 300,
+    "permission_denials": [
+      {
+        "tool": "Edit",
+        "command": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/.claude/agents/polish-usage-statement--owner.md"
+      },
+      {
+        "tool": "Bash",
+        "command": "cat > /tmp/edit.py <<'EOF'\np='src/statement.mjs'\ns=open(p).read()\ni=s.index('/**\\n * The monthly usage')\nhead=s[:i]\nnew='''/** Share of the whole as a percentage to one decimal, rounded half up, from whole cents. */\nfunction percent(part, whole) {\n  if (whole === 0) return \"0.0%\";\n  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));\n  return `${Math.trunc(tenths / 10)}.${tenths % 10}%`;\n}\n\n/** \"A\", \"A and B\", \"A, B and C\". */\nfunction listNames(names) {\n  if (names.length <= 1) return names.join(\"\");\n  return `${names.slice(0, -1).join(\", \")} and ${names[names.length - 1]}`;\n}\n\n/** Greedy word wrap to at most `width` characters per line. */\nfunction wrap(text, width) {\n  const lines = [];\n  let line = \"\";\n  for (const word of text.split(\" \")) {\n    if (line && line.length + 1 + word.length > width) {\n      lines.push(line);\n      line = word;\n    } else {\n      line = line ? `${line} ${word}` : word;\n    }\n  }\n  if (line) lines.push(line);\n  return lines;\n}\n\n/**\n * The monthly usage statement as plain text.\n * @param {{ customer: string, account: string, period: string, currency: string,\n *           lines: { service: string, quantity: number, unit: string, amount_cents: number }[],\n *           credits: { reason: string, amount_cents: number }[] }} data\n * @returns {string}\n */\nexport function renderStatement(data) {\n  const unused = data.lines\n    .filter((l) => l.quantity === 0 && l.amount_cents === 0)\n    .sort((a, b) => a.service.localeCompare(b.service));\n  // Used services only, largest charge first; equal amounts by name.\n  const used = data.lines\n    .filter((l) => !(l.quantity === 0 && l.amount_cents === 0))\n    .sort((a, b) => b.amount_cents - a.amount_cents || a.service.localeCompare(b.service));\n  const credits = [...data.credits].sort(\n    (a, b) => Math.abs(b.amount_cents) - Math.abs(a.amount_cents) || a.reason.localeCompare(b.reason),\n  );\n\n  const charges = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);\n  const creditsSum = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);\n  const total = charges + creditsSum;\n\n  // Credits are shown as positive figures in parentheses; the closing\n  // parenthesis sits in a one-character slot after the amount column.\n  const usageOf = (l) => `${groupDigits(l.quantity)} ${l.unit}`;\n  const serviceW = Math.max(\"Service\".length, ...used.map((l) => l.service.length));\n  const usageW = Math.max(\"Usage\".length, ...used.map((l) => usageOf(l).length));\n  const shareW = Math.max(\"Share\".length, \"100.0%\".length);\n  const amountW = Math.max(\n    `Amount (${data.currency})`.length,\n    ...used.map((l) => money(l.amount_cents).length),\n    ...credits.map((c) => money(Math.abs(c.amount_cents)).length),\n    money(charges).length,\n    money(total).length,\n  );\n  const slot = 1;\n  const gap = \"  \";\n  const width = serviceW + usageW + shareW + amountW + slot + gap.length * 3;\n  const rule = \"-\".repeat(width);\n  const trim = (s) => s.replace(/\\\\s+$/, \"\");\n\n  const row = (a, b, c, d, tail = \" \") =>\n    trim(\n      [padRight(a, serviceW), padRight(b, usageW), padLeft(c, shareW), padLeft(d, amountW)].join(gap) + tail,\n    );\n  // A label on the left and an amount flush with the amount column.\n  const summary = (label, text, tail = \" \") =>\n    trim(`${padRight(label, width - amountW - slot - gap.length)}${gap}${padLeft(text, amountW)}${tail}`);\n\n  const out = [];\n  const account = `Account ${data.account}`;\n  out.push(`${padRight(data.customer, Math.max(1, width - account.length))}${account}`);\n  out.push(`Usage statement for ${monthName(data.period)}`);\n  out.push(\"\");\n  out.push(row(\"Service\", \"Usage\", \"Share\", `Amount (${data.currency})`));\n  out.push(rule);\n  for (const l of used) {\n    out.push(row(l.service, usageOf(l), percent(l.amount_cents, charges), money(l.amount_cents)));\n  }\n  out.push(rule);\n  out.push(row(\"Charges\", \"\", percent(charges, charges), money(charges)));\n  out.push(\"\");\n  out.push(\"Credits\");\n  for (const c of credits) {\n    const cents = c.amount_cents;\n    // Credits are stored as negative amounts; a positive adjustment would be shown plain.\n    out.push(summary(`  ${c.reason}`, cents < 0 ? money(-cents) : money(cents), cents < 0 ? \")\" : \" \"));\n  }\n  out.push(rule);\n  out.push(summary(\"Total due\", money(total)));\n  if (unused.length > 0) {\n    const n = unused.length;\n    out.push(\"\");\n    out.push(\n      ...wrap(\n        `${n} ${n === 1 ? \"service\" : \"services\"} with no usage ${n === 1 ? \"is\" : \"are\"} not listed: ${listNames(unused.map((l) => l.service))}.`,\n        width,\n      ),\n    );\n  }\n  return `${out.join(\"\\\\n\")}\\\\n`;\n}\n'''\nopen(p,'w').write(head+new)\nEOF\npython3 /tmp/edit.py"
+      }
+    ],
+    "subagents_dispatched": 4,
+    "dispatches": [
+      {
+        "subagent_type": "polish-usage-statement--owner",
+        "description": "Owner round 0"
+      },
+      {
+        "subagent_type": "polish-usage-statement--critic",
+        "description": "Critic round 0"
+      },
+      {
+        "subagent_type": "polish-usage-statement--owner",
+        "description": "Owner round 1"
+      },
+      {
+        "subagent_type": "polish-usage-statement--critic",
+        "description": "Critic round 1"
+      }
+    ],
+    "held_out_touched": {
+      "polish-usage-statement--critic": 4
+    },
+    "reached_outside_project": {
+      "polish-usage-statement--owner": [
+        "Bash: /tmp/edit.py"
+      ]
+    },
+    "tool_named_in_transcripts": {
+      "mentions": 254,
+      "transcripts": 5,
+      "where": [
+        {
+          "who": "lead",
+          "mentions": 214
+        },
+        {
+          "who": "polish-usage-statement--critic",
+          "mentions": 9
+        },
+        {
+          "who": "polish-usage-statement--critic",
+          "mentions": 10
+        },
+        {
+          "who": "polish-usage-statement--owner",
+          "mentions": 12
+        },
+        {
+          "who": "polish-usage-statement--owner",
+          "mentions": 9
+        }
+      ]
+    },
+    "record": {
+      "rounds": {
+        "loop_passes": 2,
+        "rounds_recorded": 2,
+        "last_round": 1
+      },
+      "stop_fired": [
+        "bar-passed"
+      ],
+      "ending": [
+        "stop node done",
+        "stop bar-passed"
+      ],
+      "back_edges": {
+        "later_rounds": 1,
+        "edge_notes": [],
+        "mentioned": [
+          "e-critic-fail"
+        ],
+        "caught_by": [
+          "critic (fail)"
+        ],
+        "taken": true
+      },
+      "dispatch_count": [
+        {
+          "note": "n-0009",
+          "loop": "polish",
+          "round": 0,
+          "recorded": 3,
+          "started": 3,
+          "off": 0
+        },
+        {
+          "note": "n-0016",
+          "loop": "polish",
+          "round": 1,
+          "recorded": 6,
+          "started": 6,
+          "off": 0
+        }
+      ],
+      "amendments": [
+        "owner inputs: replaced the held-out reference with STYLE.md and data/usage.json"
+      ],
+      "halt_notes": []
+    }
+  },
+  "check": {
+    "problems": [],
+    "findings": [
+      "run id 20261004-222738: the clock form",
+      "GAPS.md: critic Write .grooph/polish-usage-statement/runs/20261004-222738/GAPS.md; critic Write .grooph/polish-usage-statement/runs/20261004-222738/GAPS.md",
+      "per-round report copies in the run folder: GAPS.md round 0",
+      "polish-usage-statement--critic (Critic round 1) read captures/statement.txt, captures/CAPTURE.md, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md; ran nothing",
+      "polish-usage-statement--critic (Critic round 0) read captures/statement.txt, captures/CAPTURE.md, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt, /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md; ran nothing",
+      "`ending` line before the final note",
+      "ending as expected: stop bar-passed, stop node done",
+      "replaying every amendment's patch on the source gives the working copy exactly",
+      "dispatch count: n-0009 polish r0 recorded 3, started lines 3; n-0016 polish r1 recorded 6, started lines 6 (exact)",
+      "back edge taken: e-critic-fail; 1 loop note(s) beyond round 0; caught by critic (fail)",
+      "verdicts in order: critic → fail, pass",
+      "held-out evidence (REFERENCE.md, reference.txt, statement-properties.test.mjs): touched by critic ×2; named in 2 dispatch prompt(s)",
+      "timestamps: 17 given, 0 out of append order",
+      "permission denials: Edit `/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-stateme`; Bash `cat > /tmp/edit.py <<'EOF'\np='src/statement.mjs'\ns=open(p).read()\ni=s.index('/**`"
+    ]
+  },
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "stop node done, stop bar-passed"
+  }
+}

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { expect, test } from "@playwright/test";
 
-import { fixturePath, node } from "./support.js";
+import { canvasIsQuiet, fixturePath, node } from "./support.js";
 
 /**
  * Stage 8, the installable offline app: once opened with a network, the app
@@ -48,10 +48,11 @@ test("once opened with a network, it opens with none: the library, the templates
   // The graph opens and can be worked on.
   await page.locator(".graph-name", { hasText: "Review loop" }).tap();
   await expect(node(page, "critic")).toBeVisible();
+  await canvasIsQuiet(page);
   await page.getByRole("button", { name: "Outline" }).tap();
   await expect(page.locator(".outline-section").first()).toContainText("Review loop");
 
-  // The built-in templates are part of the app, so they are there too.
+  // The built-in templates are a piece of the app the page names, so the worker holds them and they are there too.
   await page.goto("./#/templates");
   await expect(page.locator(".template-row").first()).toBeVisible();
   await page.reload();
@@ -79,9 +80,13 @@ test("a first visit that saw only the front page still opens a template with no 
   await context.setOffline(true);
   const failed: string[] = [];
   page.on("requestfailed", (r) => failed.push(r.url()));
+  // The address differs only after the #, so the template is drawn before the reload: wait for all it fetches, then
+  // load it from nothing. The switch between its views is a file of its own, and it too is there with no network.
   await page.goto("./#/templates/built-in/review-gate");
+  await canvasIsQuiet(page);
   await page.reload();
   await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
   expect(failed).toEqual([]);
 });
 

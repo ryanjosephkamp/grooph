@@ -41,7 +41,7 @@ Every template has one recorded headless run on a small task, kept under `experi
 
 A passing check is not a claim that the template improves the work. As of study one the evidence shows that grooph bounds and records autonomous work and holds a design as a runtime contract; it does not show better quality than the same instructions given as a prompt, on small tasks a strong builder finishes in one pass (decisions 0012 and 0013). A write-up says what happened in one run; it is not a benchmark, and whether the task's bet paid is in the write-up, not in the check.
 
-Of the twenty recorded runs eighteen passed their check and two did not (`gauntlet-decomposed` and `ralph-loop`); the twenty kept runs cost $44.99 (the whole proving ledger, which also counts the runs since replaced and a few probes, stands at $57.51).
+Of the twenty recorded runs eighteen passed their check and two did not (`gauntlet-decomposed` and `ralph-loop`); the twenty kept runs cost $41.12 (the whole proving ledger, which also counts the runs since replaced and a few probes, stands at $62.68).
 
 **Prior art** names whose published work a shape or name comes from, and what was taken. It is not an endorsement by that author, and no template claims to beat a named product (decision 0010).
 
@@ -241,12 +241,13 @@ In a Claude Code session with the `grooph-design` skill:
 
 **Prior art.** [Matt Shumer's Gauntlet Loop and the Claude of Duty repository](https://github.com/mshumer/Claude-of-Duty): decompose, then builder plus fresh critic per piece against a real reference, blind side by side; here bounded, and pieces run in sequence because the repository's own note says fan-out lost on coupled work.
 
-**Proving run.** One recorded run, `20260922-151855` on Claude Code 2.1.278.
+**Proving run.** One recorded run, `20261004-224501` on Claude Code 2.1.289.
 
 - **Check: failed**, on ten findings; the first: integrator never ran as its own subagent (no summary-card--integrator transcript). The record is kept as it ran (decision 0009), and the findings are the check's own words, below.
 - **Rounds:** last round 1; a back edge was taken (`e-next-piece-pass`).
-- **Ended:** on the stop `human`.
-- **Cost:** $6.95 (ledger invocations 30 and 31).
+- **Ended:** at the stop node `done`; the stop `human` fired.
+- **Cost:** $3.64 (ledger invocations 32 and 33).
+- **An earlier run** of this template, `20260922-151855`, is kept in `experiments/patterns/gauntlet-decomposed/run-1/`; its check failed (integrator never ran as its own subagent (no summary-card--integrator transcript); the lead never dispatched summary-card--integrator; no note at node:integrator; final-critic never ran as its own subagent (no summary-card--final-critic transcript); the lead never dispatched summary-card--final-critic; no note at node:final-critic; PIECES.md was also written by summary-card--critic, not only planner; final-critic never wrote FINAL.md itself; the run ended by stop human; the template expects one of: halt at release-gate; final-critic never read or ran the held-out evidence, so its judgment was not made against it). The run above is the later one.
 - [Write-up and evidence](../experiments/patterns/gauntlet-decomposed/README.md): what happened in that one run, in the author's words.
 
 <details><summary>The check's ten findings</summary>
@@ -257,9 +258,9 @@ In a Claude Code session with the `grooph-design` skill:
 - final-critic never ran as its own subagent (no summary-card--final-critic transcript)
 - the lead never dispatched summary-card--final-critic
 - no note at node:final-critic
-- PIECES.md was also written by summary-card--critic, not only planner
 - final-critic never wrote FINAL.md itself
-- the run ended by stop human; the template expects one of: halt at release-gate
+- replaying every amendment's patch on the source does not give the working copy
+- note n-0019: loop:polish records 3 dispatches, but 6 started line(s) at its members precede it
 - final-critic never read or ran the held-out evidence, so its judgment was not made against it
 
 </details>
@@ -448,12 +449,14 @@ In a Claude Code session with the `grooph-design` skill:
 - [u/croovies's "Lloyd" heartbeat orchestrator, as written up by explainx.ai (2026-08-14; a secondary source)](https://www.explainx.ai/blog/claude-code-loop-orchestrator-heartbeat-ticket-memory-august-2026): a standing checklist per pulse, a read-only investigator, findings to a durable ticket store, humans prioritize.
 - [Steve Yegge's Gas Town patrols](https://github.com/gastownhall/gastown): patrol agents that loop by design; here one pulse is one run.
 
-**Proving run.** One recorded run, `20260922-050527` on Claude Code 2.1.278.
+**Proving run.** One recorded run, `20261005-042756` on Claude Code 2.1.289.
 
 - **Check:** passed.
 - **Rounds:** no loop round was recorded; no back edge was taken.
-- **Ended:** halted at `prioritise`.
-- **Cost:** $1.31 (ledger invocation 27).
+- **Ended:** halted at `prioritize`.
+- **Cost:** $0.73 (ledger invocation 35).
+- **An earlier run** of this template, `20260922-050527`, is kept in `experiments/patterns/patrol-pulse/run-1/`; its check passed. The run above is the later one.
+- **An earlier run** of this template, `20261004-225445`, is kept in `experiments/patterns/patrol-pulse/run-2/`; its check failed (investigator never ran as its own subagent (no orders-api-patrol--investigator transcript); the lead never dispatched orders-api-patrol--investigator; no note at node:investigator; ticket-writer never ran as its own subagent (no orders-api-patrol--ticket-writer transcript); the lead never dispatched orders-api-patrol--ticket-writer; no note at node:ticket-writer; investigator never wrote PULSE.md itself; ticket-writer never wrote FILED.md itself; replaying every amendment's patch on the source does not give the working copy; TICKETS.md: 0 added line(s) match /^## T-/; the template expects 1). The run above is the later one.
 - [Write-up and evidence](../experiments/patterns/patrol-pulse/README.md): what happened in that one run, in the author's words.
 
 **Use it.**

@@ -13,7 +13,7 @@ import { OP_ARGS, OP_NAMES } from "../src/ops/apply.js";
 import { parseGraphText } from "../src/parse.js";
 import { instantiate } from "../src/template.js";
 import { validate } from "../src/validate.js";
-import type { Graph } from "../src/types.js";
+import type { AgentNode, Graph } from "../src/types.js";
 import { expectedIssues, fixturesDir, invalidFixtures, read, validFixtures } from "./helpers.js";
 
 const reviewLoopPath = validFixtures().find((f) => f.name.startsWith("review-loop"))!.path;
@@ -57,6 +57,21 @@ for (const name of ["review-loop", "fix-until-green"]) {
     }
   });
 }
+
+test("a step a round cap continues at is named where the stop sends the run, not as a place to start (graph-ir §2)", () => {
+  const doc = load("wrap-up-after-the-cap");
+  const result = compile(doc, "claude-code");
+  const lead = result.files[".grooph/fix-or-say-what-is-left/LEAD.md"]!;
+  assert.match(lead, /^Entry nodes \(start here\): `fixer`\.$/m, "the wrap-up step is not an entry node");
+  assert.match(lead, /\| max iterations: 5 \| continue at node `wrap` \|/, "it is named at the stop that leads to it");
+  assert.match(result.kickoff, /^3\. Start at `fixer`\.$/m);
+  assert.equal(result.warnings.length, 0, "and it is reached, so the brief carries no warning about it");
+
+  // The same graph with the stop halting instead: nothing leads to the step, and the document says a run starts there.
+  const plain = structuredClone(doc);
+  delete (plain.loops[0]!.stops[0] as { then?: string }).then;
+  assert.match(compile(plain, "claude-code").kickoff, /^3\. Start at `fixer`, `wrap`\.$/m);
+});
 
 test("compile is pure: two runs give the same bytes", () => {
   const a = compile(reviewLoop(), "claude-code");
@@ -277,7 +292,7 @@ test("subagent frontmatter follows the capability-to-tools table", () => {
 
   const builder = files[".claude/agents/review-loop--builder.md"]!;
   assert.match(builder, /^---\nname: review-loop--builder\n/);
-  assert.match(builder, /\nmodel: opus\n/, "tier strong → opus");
+  assert.match(builder, /\nmodel: sonnet\n/, "tier strong → sonnet, the target's own since handoff 0084");
   assert.match(builder, /\neffort: high\n/);
   assert.match(builder, /\ntools: Read, Edit, Write, Glob, Grep, Bash\n/);
   assert.ok(!builder.includes("disallowedTools"), "the builder denies nothing");
@@ -553,4 +568,106 @@ test("0014-5/6: LEAD.md §11 asks for the `ending` line before the final note an
   assert.match(eleven, /The final note and `PROGRESS\.md` are the record\. Your last reply is the report: it summarizes them for whoever started this session and points at the run folder, `\.grooph\/review-loop\/runs\/<run-id>\/`\./);
   // §8's line shape says the same word means the same thing there.
   assert.match(lead, /outcome {3}pass \| fail \| halt \| invalid-evidence; started on a dispatch line, ending on the line before the final note \(§11\)/);
+});
+
+test("the one exporting may say which model a tier means; a pin still wins; the default is untouched", () => {
+  const doc = reviewLoop();
+  const stock = compile(doc, "claude-code");
+  // Both agents are `strong`, which the target gives to sonnet (handoff 0084: frontier opus, strong and fast sonnet).
+  const builder = ".claude/agents/review-loop--builder.md";
+  assert.match(stock.files[builder]!, /^model: sonnet$/m);
+  assert.deepEqual(compile(doc, "claude-code", {}).files, stock.files, "no option, no change: the golden package");
+
+  const named = compile(doc, "claude-code", { models: { strong: "opus", frontier: "opus" } });
+  assert.match(named.files[builder]!, /^model: opus$/m);
+  assert.match(named.files[".grooph/review-loop/MAPPING.md"]!, /# this export: frontier → opus, strong → opus, fast → sonnet/);
+  assert.match(stock.files[".grooph/review-loop/MAPPING.md"]!, /# profile: frontier → opus, strong → sonnet, fast → sonnet/);
+  // No file of a package made with nothing named says fable.
+  for (const [path, text] of Object.entries(stock.files)) assert.doesNotMatch(text, /fable/i, path);
+  assert.equal(named.files[".grooph/review-loop/graph.grooph.json"], stock.files[".grooph/review-loop/graph.grooph.json"], "the graph does not change");
+
+  const pinned: Graph = { ...doc, nodes: doc.nodes.map((n) => (n.id === "builder" && n.kind === "agent" ? ({ ...n, model: { tier: "strong", pin: { "claude-code": "haiku" } } } as AgentNode) : n)) };
+  assert.match(compile(pinned, "claude-code", { models: { strong: "sonnet" } }).files[builder]!, /^model: haiku$/m);
+});
+
+/** The keys of a file's frontmatter, in order: what the harness will read as settings. */
+const headerKeys = (file: string): string[] => {
+  const end = file.indexOf("\n---", 4);
+  assert.ok(file.startsWith("---\n") && end > 0, "the file opens with a frontmatter block");
+  return file
+    .slice(4, end)
+    .split("\n")
+    .map((line) => {
+      const key = /^([A-Za-z][A-Za-z-]*): \S/.exec(line);
+      assert.ok(key, `every frontmatter line is "key: value" on one line, got ${JSON.stringify(line)}`);
+      return key[1]!;
+    });
+};
+
+test("a name that would break its line never becomes a frontmatter key: the schema refuses it, and the writer quotes what the schema does not see", () => {
+  const breaking = "sonnet\npermissionMode: bypassPermissions";
+
+  // 1. In the document: a pin, a skill, a capability. Reading the document refuses each by E_SCHEMA, which is what
+  // `grooph validate` and `grooph export` do before anything else.
+  const bad = JSON.parse(read(invalidFixtures().find((f) => f.name === "wrong-with-a-line-break-in-a-name.grooph.json")!.path)) as Graph;
+  const parsed = parseGraphText(JSON.stringify(bad));
+  assert.equal(parsed.doc, undefined);
+  assert.deepEqual(
+    parsed.issues.map((issue) => [issue.code, issue.message.split(":")[0]]),
+    [
+      ["E_SCHEMA", "/nodes/0/model/pin/claude-code"],
+      ["E_SCHEMA", "/nodes/0/allow/3"],
+      ["E_SCHEMA", "/nodes/0/skills/1"],
+    ],
+  );
+
+  // 2. Past the schema: `compile` checks the rules, not the schema, so a caller that hands it a document it never read
+  // through `parseGraph` reaches the writer with those names. They stay on their lines, quoted, and the file's keys are
+  // the ones grooph writes and no others.
+  const unchecked = compile(bad, "claude-code").files[".claude/agents/names-that-break-a-line--fixer.md"]!;
+  assert.deepEqual(headerKeys(unchecked), ["name", "description", "model", "effort", "tools", "skills"]);
+  assert.match(unchecked, /\nmodel: "sonnet permissionMode: bypassPermissions"\n/);
+  assert.match(unchecked, /\nskills: "test-triage, commit-style hooks: none"\n/);
+  assert.doesNotMatch(unchecked.slice(0, unchecked.indexOf("\n---", 4)), /^(permissionMode|hooks):/m);
+  // A capability of the document's own never reaches the tools lines: they hold the target's tool names only.
+  assert.match(unchecked, /\ntools: Read, Edit, Write, Glob, Grep, Bash\n/);
+
+  // 3. A tier map, which no schema reads: a model named with a line break in it.
+  const mapped = compile(load("fix-until-green"), "claude-code", { models: { strong: breaking, fast: breaking, frontier: breaking } });
+  for (const [path, file] of Object.entries(mapped.files).filter(([path]) => path.startsWith(".claude/agents/"))) {
+    assert.deepEqual(headerKeys(file).filter((key) => !["name", "description", "model", "effort", "tools", "disallowedTools", "skills"].includes(key)), [], path);
+    assert.match(file, /\nmodel: "sonnet permissionMode: bypassPermissions"\n/, path);
+  }
+});
+
+test("no header line in a package is written unguarded: an id that would break its line stays on it, in the skill file and in every agent file", () => {
+  // An id is kebab-case for any document that was read; this one was not read, as a caller that skips `parseGraph` would have it.
+  const unread = { ...load("fix-until-green"), id: "fix\nallowed-tools: Bash" } as Graph;
+  const files = compile(unread, "claude-code").files;
+  const skill = Object.entries(files).find(([path]) => path.endsWith("/SKILL.md"))![1];
+  assert.deepEqual(headerKeys(skill), ["name", "description", "disable-model-invocation", "argument-hint"]);
+  assert.match(skill, /^---\nname: "fix allowed-tools: Bash"\n/);
+  const agents = Object.entries(files).filter(([path]) => path.includes("/agents/"));
+  assert.ok(agents.length > 0);
+  for (const [path, file] of agents) {
+    assert.deepEqual(headerKeys(file).filter((key) => !["name", "description", "model", "effort", "tools", "disallowedTools", "skills"].includes(key)), [], path);
+    assert.match(file, /^---\nname: "fix allowed-tools: Bash--[a-z-]+"\n/, path);
+  }
+  // Every file of a package that opens with a header was looked at: there is no third kind.
+  const withHeader = Object.entries(files).filter(([, text]) => text.startsWith("---\n")).map(([path]) => path);
+  assert.deepEqual(withHeader.sort(), [...agents.map(([path]) => path), Object.keys(files).find((path) => path.endsWith("/SKILL.md"))!].sort());
+
+  // A read document's id is written as given, as before.
+  assert.match(compile(load("fix-until-green"), "claude-code").files[".claude/skills/fix-until-green/SKILL.md"]!, /^---\nname: fix-until-green\n/);
+});
+
+test("names the rule lets through are written as given: a pin with brackets, skills with a prefix and a folder", () => {
+  const files = compile(load("pinned-and-skilled"), "claude-code").files;
+  const fixer = files[".claude/agents/pinned-and-skilled--fixer.md"]!;
+  assert.deepEqual(headerKeys(fixer), ["name", "description", "model", "effort", "tools", "skills"]);
+  assert.match(fixer, /\nmodel: sonnet\[1m\]\n/);
+  assert.match(fixer, /\nskills: test-triage, house:commit-style, apps\/web:deploy\n/);
+  // A capability of the document's own, in several words, is in the body for a person to wire, not in the header.
+  assert.match(fixer, /Capabilities with no tool in this harness[^\n]*allow deploy to staging/);
+  assert.doesNotMatch(fixer.slice(0, fixer.indexOf("\n---", 4)), /deploy to staging/);
 });

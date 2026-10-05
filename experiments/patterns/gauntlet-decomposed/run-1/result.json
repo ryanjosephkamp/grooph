@@ -1,0 +1,161 @@
+{
+  "template": "gauntlet-decomposed",
+  "template_version": "gauntlet-decomposed@1",
+  "slots": {
+    "values": {
+      "task": "Make the summary card rendered by `npm run render` from src/card.mjs match the reference card the deck already uses, piece by piece: BRIEF.md says what the card should be, data/summary.json is the data, src/header.mjs and src/trend.mjs are the two parts src/card.mjs frames, and `npm run capture` produces what the critics judge. The reference itself is held outside this project for the planner and the critics; the owner and the integrator work from PIECES.md and do not read it.",
+      "reference": "the deck's reference card at /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-IdUcqa.harness/held-out/reference.svg, described element by element in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-IdUcqa.harness/held-out/REFERENCE-CAPTURE.md, with what matters about it in /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-IdUcqa.harness/held-out/REFERENCE.md (the planner cuts from it and the critics judge against it; the owner and the integrator do not read it)",
+      "capture-command": "npm run capture"
+    }
+  },
+  "held_out": {
+    "dir": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-IdUcqa.harness/held-out",
+    "files": [
+      {
+        "path": "REFERENCE-CAPTURE.md",
+        "sha256": "c1d1eff3cc87705eedfd369ec27adf92be9f68f0495480408410a6587bf4d5ca"
+      },
+      {
+        "path": "REFERENCE.md",
+        "sha256": "c8bfc3a719e3c089afbcd719b78716e1eacd5cae963db4fe321a9cf7cfc56840"
+      },
+      {
+        "path": "reference.svg",
+        "sha256": "b6aa2ef7a3d454fe4871eddbada1020bbd62d0c7774217ff23a022ce328e2440"
+      }
+    ],
+    "substituted_in": []
+  },
+  "graph_id": "summary-card",
+  "run_id": "20260922-151855",
+  "run_ids": [
+    "20260922-151855"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.278 (Claude Code)",
+  "models": {
+    "claude-opus-5[1m]": {
+      "cost_usd": 3.2836722499999986,
+      "output_tokens": 38758
+    },
+    "claude-fable-5-1": {
+      "cost_usd": 3.6622565000000007,
+      "output_tokens": 45051
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5"
+    ],
+    "summary-card--critic": [
+      "claude-fable-5-1"
+    ],
+    "summary-card--owner": [
+      "claude-opus-5"
+    ],
+    "summary-card--planner": [
+      "claude-fable-5-1"
+    ]
+  },
+  "cost_usd": 6.945929,
+  "harness_turns": 35,
+  "lead_turns": null,
+  "duration_s": 757,
+  "rounds": {
+    "loop_passes": 5,
+    "rounds_recorded": 2,
+    "last_round": 1
+  },
+  "stop_fired": [
+    "human"
+  ],
+  "ending": [
+    "stop human"
+  ],
+  "subagents": {
+    "summary-card--critic": 2,
+    "summary-card--owner": 2,
+    "summary-card--planner": 1
+  },
+  "permission_denials": [],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 30,
+      "session_id": "bd28c10e-90ad-4440-9fd9-519f01c83045",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 1.588873,
+      "reported_cost_usd": 1.5888729999999998,
+      "max_budget_usd": 9,
+      "harness_turns": 15,
+      "duration_s": 202,
+      "wall_s": 203,
+      "notes_after": 4,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config"
+      ],
+      "output": "claude-output.json"
+    },
+    {
+      "kind": "resume",
+      "ledger_n": 31,
+      "session_id": "bd28c10e-90ad-4440-9fd9-519f01c83045",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 5.357056,
+      "reported_cost_usd": 5.35705575,
+      "max_budget_usd": 9,
+      "harness_turns": 20,
+      "duration_s": 555,
+      "wall_s": 556,
+      "notes_after": 23,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--resume",
+        "bd28c10e-90ad-4440-9fd9-519f01c83045"
+      ],
+      "output": "claude-output-2.json"
+    }
+  ],
+  "base_commit": "195069fb8ef2c724b5a661337df30450bc05ec79",
+  "source_sha256_before": "36aa8b707f80da878b4b146f8f616bb57cc616d07ef757b3ebf7b4be89e8b4f2",
+  "project_files_changed": [
+    "A CHANGES.md",
+    "A GAPS.md",
+    "A PIECES.md",
+    "A captures/CAPTURE.md",
+    "A captures/card.svg",
+    "A out/card.svg",
+    "M src/card.mjs",
+    "A src/format.mjs",
+    "M src/header.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-gauntlet-decomposed-IdUcqa",
+  "home_redactions": 0,
+  "amendments": [],
+  "proposals": [],
+  "working_copy": "identical to the source"
+}
