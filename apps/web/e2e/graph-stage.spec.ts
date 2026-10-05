@@ -618,7 +618,7 @@ const overlaps = (page: Page) =>
     return boxes.flatMap(([a, p], i) => boxes.slice(i + 1).flatMap(([b, q]) => (p.left < q.right && q.left < p.right && p.top < q.bottom && q.top < p.bottom ? [`${a} over ${b}`] : [])));
   });
 
-test("on a phone no card of any built-in template lies over another in Panes at rest: the frame is as tall as its cards need, to four fifths of the window, and the page scrolls", async ({ page }) => {
+test("on a phone no card of any built-in template lies over another in Panes at rest: the frame is as tall as its cards need, and the page scrolls to the last of the words", async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
@@ -638,8 +638,9 @@ test("on a phone no card of any built-in template lies over another in Panes at 
     const hits = await overlaps(page);
     if (hits.length) found[id] = hits;
     const frame = (await page.locator(".s3-frame").boundingBox())!;
-    // Never taller than four fifths of the window: the page is scrolled from outside the frame.
-    expect(frame.height, id).toBeLessThanOrEqual(Math.round(844 * 0.8) + 1);
+    // Never taller than four fifths of what scrolls it: the page is scrolled from outside the frame.
+    const room = await page.locator(".graph-space").evaluate((el) => el.clientHeight);
+    expect(frame.height, id).toBeLessThanOrEqual(Math.round(room * 0.8) + 1);
     const asked = await page.locator(".s3").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--s3-tall"));
     if (asked) taller.push(id);
     // Every card is whole in its frame, and what is under the frame can be scrolled to.
@@ -649,8 +650,10 @@ test("on a phone no card of any built-in template lies over another in Panes at 
       expect(box.top, id).toBeGreaterThanOrEqual(frame.y - 1);
       expect(box.bottom, id).toBeLessThanOrEqual(frame.y + frame.height + 1);
     }
-    await page.locator(".s3-note").scrollIntoViewIfNeeded();
-    await expect(page.locator(".s3-note")).toBeInViewport();
+    // Scrolled to its end, the last of the words is clear of the bar at the page's foot, not under it.
+    await page.locator(".graph-space").evaluate((el) => el.scrollTo(0, el.scrollHeight));
+    const [last, bar] = [(await page.locator(".s3-note").boundingBox())!, (await page.locator(".viewer-bar").boundingBox())!];
+    expect(last.y + last.height, id).toBeLessThanOrEqual(bar.y);
   }
   // Said by name, so that a template that still has cards over each other at the cap is known, not hidden.
   expect(found).toEqual({});
@@ -697,4 +700,94 @@ test("a frame made taller for its cards does not break the move: the picture bec
   expect(made.map((m) => m.ended)).toEqual([true, true]);
   for (const m of made) expect(m.pairs).toBeGreaterThan(0);
   expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
+});
+
+test("the frame is never taller than four fifths of what scrolls it: with the details sheet open on a phone it stops there, the page can still be scrolled from outside it, and the templates whose cards still touch are these", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  const ids = readdirSync(join(repoRoot, "patterns")).filter((f) => f.endsWith(".grooph.json")).map((f) => f.replace(".grooph.json", ""));
+  const touching: string[] = [];
+  const capped: string[] = [];
+  for (const id of ids) {
+    await page.goto("about:blank");
+    await page.goto(`./#/templates/built-in/${id}`);
+    await canvasIsQuiet(page);
+    // The page opens with its details sheet over the lower half, and here it is left open.
+    await expect(page.getByRole("button", { name: "Close panel" })).toBeVisible();
+    await view(page, "3D").click();
+    await expect(page.locator(".s3-frame")).toBeVisible();
+    await viewIsStill(page);
+    const [frame, room] = [(await page.locator(".s3-frame").boundingBox())!.height, await page.locator(".graph-space").evaluate((el) => el.clientHeight)];
+    const cap = Math.round(room * 0.8);
+    expect(room, id).toBeLessThan(500);
+    expect(frame, id).toBeLessThanOrEqual(cap + 1);
+    if (frame >= cap - 1) capped.push(id);
+    if ((await overlaps(page)).length) touching.push(id);
+  }
+  // A frame at the cap is where a graph that needs more starts; none is left at the floor with its cards in a heap.
+  expect(capped).toEqual(expect.arrayContaining(touching));
+  // Said by name: half a phone's screen is not room for these six. Closing the sheet clears every one (the test above).
+  expect(touching).toEqual(["debate-then-build", "gauntlet-decomposed", "ownership-not-swarm", "patrol-pulse", "specialist-critic-bank", "tournament-then-judge"]);
+});
+
+test("the frame's height is worked out again when its room changes, whichever came first; where the page was scrolled to is kept; and no error is raised on the way", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => void (message.type() === "error" && errors.push(message.text())));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "panes"));
+  await page.goto("./#/templates/built-in/review-gate");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const asked = () => page.locator(".s3").evaluate((el) => (el as HTMLElement).style.getPropertyValue("--s3-tall"));
+  const tall = async () => Math.round((await page.locator(".s3-frame").boundingBox())!.height);
+  // All the room: the review gate's four cards are clear, and nothing is asked for.
+  expect([await asked(), await overlaps(page)]).toEqual(["", []]);
+  const whole = await tall();
+  // A card's sheet takes the lower half: the frame would fall to its floor, where the cards touch. It is given
+  // what they need instead, and they are clear.
+  await page.getByRole("button", { name: "Agent Critic" }).click();
+  await expect(sheet(page)).toBeVisible();
+  await expect.poll(asked).not.toBe("");
+  await expect.poll(() => overlaps(page)).toEqual([]);
+  const half = await tall();
+  expect(half).toBeGreaterThan(180);
+  expect(half).toBeLessThan(whole);
+  // The sheet first and Panes after gives the same height as Panes first and the sheet after.
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  expect(Math.abs((await tall()) - half)).toBeLessThanOrEqual(1);
+  // And with the sheet closed the frame has all the room again, and asks for nothing.
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await expect.poll(asked).toBe("");
+  await expect.poll(tall).toBe(whole);
+
+  // A tall graph, scrolled part of the way; then the window is made a little narrower, and the height is worked out
+  // again. The page is where it was scrolled to.
+  await page.goto("./#/templates/built-in/gauntlet-decomposed");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator(".s3-frame")).toBeVisible();
+  await viewIsStill(page);
+  const before = await asked();
+  expect(before).not.toBe("");
+  const scroller = page.locator(".graph-space");
+  await scroller.evaluate((el) => el.scrollTo(0, 60));
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBe(60);
+  await page.setViewportSize({ width: 376, height: 844 });
+  await expect.poll(async () => (await page.locator(".s3-frame").boundingBox())!.width).toBeLessThan(360);
+  await expect.poll(asked).not.toBe("");
+  await page.waitForTimeout(150);
+  expect(await scroller.evaluate((el) => el.scrollTop)).toBe(60);
+  expect(await overlaps(page)).toEqual([]);
+  expect(errors).toEqual([]);
 });

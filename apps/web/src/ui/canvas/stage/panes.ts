@@ -13,9 +13,10 @@ import type { Id, MGroup, MLoop, V } from "./model.js";
 import { card, edgeLine, hue, lerp, type View } from "./shapes.js";
 
 const STEP = 84;
-/** How the canvas's places are scaled: across by enough that two cards side by side in a row of the canvas's own
- *  layout (236 from one to the next) are clear of each other from where the view starts, and down by less. */
-export const [ACROSS, DOWN] = [0.72, 0.4];
+/** How the canvas's places are scaled: across by enough that the cards of a row of the canvas's own layout (236 from
+ *  one to the next, as many as four) are clear of each other from where the view starts, the far ones too, which
+ *  stand closer for being far; and down by less. */
+export const [ACROSS, DOWN] = [0.8, 0.4];
 
 /** The boxes a node can be in, each with how many others are round it: a loop, a subgrooph. */
 export function boxesOf(loops: MLoop[], groups: MGroup[]): { loop?: MLoop; group?: MGroup; name: string; sub: string; ids: Id[]; depth: number }[] {
@@ -39,7 +40,7 @@ export const panes: View = (m) => {
   const at: Record<Id, V> = {};
   const boxes = boxesOf(m.loops, m.groups);
   const depth = (id: Id): number => Math.max(0, ...boxes.filter((box) => box.ids.includes(id)).map((box) => box.depth));
-  for (const n of m.nodes) at[n.id] = [n.at[0] * ACROSS + 62, -n.at[1] * DOWN, depth(n.id) * STEP];
+  for (const n of m.nodes) at[n.id] = [n.at[0] * ACROSS, -n.at[1] * DOWN, depth(n.id) * STEP];
   for (const n of m.nodes) prims.push(card(n, at[n.id]!, {}));
   const around = (ids: Id[], pad: number): [number, number, number, number] => {
     const pts = ids.map((id) => at[id]!);
