@@ -138,7 +138,8 @@ function routes(): Plugin {
         // piece and not one a view: a name is on every address's first load. Written apart from the lists above too.
         const graphStage = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/canvas/graph-stage.tsx"));
         if (!graphStage) throw new Error("grooph-routes: no chunk of its own for a graph's other views in three dimensions (src/ui/canvas/graph-stage.tsx). The build no longer splits where vite.config.ts expects.");
-        const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f));
+        // Over what a canvas has by then: the switch's own piece, which asks for this one, is not weighed here again.
+        const stage = [...closure(graphStage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !closure(screens).has(f) && !closure(graphViews).has(f));
         found.later = [...new Set([...found.later, ...stage, ...found.templates, ...found.front])];
         // Both are on no address's first load, and each has a line of its own in scripts/perf-budget.json: the
         // stage, which choosing one of those views fetches, and the switch with the graph's reading, which every

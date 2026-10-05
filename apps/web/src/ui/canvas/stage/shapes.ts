@@ -1,6 +1,6 @@
 /** What every view of a graph in three dimensions draws alike (handoff 0096): a card, an edge, a curve. */
 import type { Prim } from "./draw.js";
-import type { Id, MEdge, MLoop, MNode, Model, V } from "./model.js";
+import { under, type Id, type MEdge, type MLoop, type MNode, type Model, type Step, type V } from "./model.js";
 
 /** What a view is asked to draw: the step the slider is at, and how far a run has come by it. */
 export type Shown = {
@@ -63,3 +63,46 @@ export const along = (pts: V[], t: number): V => {
   const k = Math.min(pts.length - 2, Math.floor(at));
   return pts.length < 2 ? pts[0]! : lerp(pts[k]!, pts[k + 1]!, at - k);
 };
+
+/**
+ * Where a run is in each loop by a step, in rounds and parts of a round: where it is now, or was last, and the
+ * farthest it has been (a loop inside another starts afresh each time the outer one comes round, so the two differ).
+ * A loop the run has not entered is not in the answer. A node that is not the loop's own (one of a loop inside it,
+ * or one it shares with another loop) is at its stop there, in the round this loop was last in. A loop's round goes
+ * on by one when the run comes back into it by one of its own ways back, and every loop inside it, at any depth, is
+ * then at round 0 again.
+ */
+export function reach(m: Model, steps: Step[], k: number): Record<Id, { now: number; most: number }> {
+  const [out, round]: [Record<Id, { now: number; most: number }>, Record<Id, number>] = [{}, {}];
+  for (const step of steps.slice(1, k + 1)) {
+    const to = step.to;
+    if (!to) continue;
+    const turned = step.edge && !step.about ? (m.edges.find((e) => e.id === step.edge)?.back ?? null) : null;
+    if (turned) for (const loop of m.loops) if (under(m.loops, loop.id, turned)) round[loop.id] = 0;
+    for (const loop of m.loops) {
+      if (!loop.members.includes(to)) continue;
+      if (loop.own.includes(to)) round[loop.id] = step.r1 ?? 0;
+      else round[loop.id] = (round[loop.id] ?? 0) + (turned === loop.id ? 1 : 0);
+      const stops = stations(m, loop);
+      const now = round[loop.id]! + Math.max(0, stationOf(stops, to)) / stops.length;
+      out[loop.id] = { now, most: Math.max(now, out[loop.id]?.most ?? 0) };
+    }
+  }
+  return out;
+}
+
+/**
+ * What a view is handed at a step of the slider: what the step lights, and for a run how far it has come by then.
+ * An edge is lit by its name, and by its name with the rounds it is taken between, for a view that draws an edge
+ * once each time it is taken. A note about the run as a whole lights nothing.
+ */
+export function shownAt(m: Model, steps: Step[], k: number): Shown {
+  const step = steps[k]!;
+  const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}>${step.r1 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
+  const shown: Shown = { k, lit: about.length ? new Set(about) : null, took: m.run ? steps.flatMap((s, n) => (s.edge && !s.about ? [{ edge: s.edge, r0: s.r0 ?? 0, r1: s.r1 ?? 0, step: n }] : [])) : [] };
+  if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
+  // A run is drawn as far as the note it is at; step 0 is all of it.
+  if (m.run && k > 0) shown.dispatches = steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length;
+  if (m.run) shown.until = reach(m, steps, k || steps.length - 1);
+  return shown;
+}

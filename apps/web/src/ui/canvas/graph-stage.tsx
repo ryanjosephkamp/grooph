@@ -16,8 +16,8 @@ import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
 import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
-import { along, type Shown, type View } from "./stage/shapes.js";
-import { brakes, reach, spiral, topOf } from "./stage/spiral.js";
+import { along, shownAt, type View } from "./stage/shapes.js";
+import { brakes, spiral, topOf } from "./stage/spiral.js";
 
 /** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
 const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean }> = {
@@ -43,8 +43,6 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   const within = (id: Id): string =>
     [...model.loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length).map((l) => `in the loop ${l.name}`), ...model.groups.filter((g) => g.nodes.includes(id)).sort((a, b) => a.nodes.length - b.nodes.length).map((g) => `in the ${g.from ? "subgrooph" : "group"} ${g.name}`)].join(", ");
   const steps = useMemo(() => stepsOf(model), [model]);
-  // The edges a run took, each with the rounds it was taken between and the step it was taken at.
-  const took = useMemo(() => (model.run ? steps.flatMap((step, n) => (step.edge && !step.about ? [{ edge: step.edge, r0: step.r0 ?? 0, r1: step.r1 ?? 0, step: n }] : [])) : []), [model, steps]);
   const [at, setAt] = useState(0);
   const [playing, setPlaying] = useState(false);
   const k = Math.min(at, steps.length - 1);
@@ -80,15 +78,7 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
   // told the page has changed as soon as this is done, and takes the cards from where they are then.
   useLayoutEffect(() => {
     const on = stage.current!;
-    // What the step is about: its nodes, its edge (by its name, and by its name and the round it is taken in, for a
-    // view that draws an edge once a round), its loops. A note about the run as a whole picks nothing out.
-    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}>${step.r1 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
-    const shown: Shown = { k, took, lit: about.length ? new Set(about) : null };
-    if (step.about && step.edge) shown.about = { edge: step.edge, r0: step.r0 ?? 0 };
-    // A run is drawn as far as the note it is at; step 0 is all of it.
-    if (model.run && k > 0) shown.dispatches = steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length;
-    // And each loop as far as the run has come round it by then.
-    if (model.run) shown.until = reach(model, steps, k || steps.length - 1);
+    const shown = shownAt(model, steps, k);
     const built = the.view(model, shown);
     on.lit = shown.lit;
     cancelAnimationFrame(glide.current);

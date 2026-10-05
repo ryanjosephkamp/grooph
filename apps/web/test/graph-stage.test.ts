@@ -8,8 +8,8 @@ import { columnsForViewport } from "../src/doc/layout.js";
 
 import { firstPass } from "../src/ui/canvas/graph-views.js";
 import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
-import { ACROSS, boxesOf, DOWN, panes } from "../src/ui/canvas/stage/panes.js";
-import type { Shown } from "../src/ui/canvas/stage/shapes.js";
+import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
+import { shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
 import { brakes, reach, spiral, topOf } from "../src/ui/canvas/stage/spiral.js";
 
 /**
@@ -248,7 +248,7 @@ describe("panes", () => {
       expect(prims.filter((p) => p.t === "line" && p.arrow).map((p) => p.key).sort(), path).toEqual(doc.edges.map((e) => `edge:${e.id}`).sort());
       // Left to right and top to bottom as on the canvas: its own x and y for this screen, scaled.
       const canvas = places(doc, columns);
-      for (const n of doc.nodes) expect([node(n.id)[0], node(n.id)[1]], `${path} ${n.id}`).toEqual([canvas[n.id]!.x * ACROSS + 62, -canvas[n.id]!.y * DOWN]);
+      for (const n of doc.nodes) expect([node(n.id)[0], node(n.id)[1]], `${path} ${n.id}`).toEqual([canvas[n.id]!.x * 0.8, -canvas[n.id]!.y * 0.4]);
       // A way back is dashed and in its loop's color; an edge that goes on is not.
       for (const e of model.edges) {
         const line = prims.find((p) => p.key === `edge:${e.id}`)!;
@@ -265,20 +265,8 @@ describe("the spiral and its lid", () => {
   const rings = (prims: Prims) => prims.filter((p) => p.t === "line" && p.stroke === "k-gate");
   const dashed = (prims: Prims) => prims.filter((p) => p.t === "line" && p.stroke === "brake" && p.dash);
   const turns = (y: number): number => Math.round((y / 54) * 100) / 100;
-  /** What the slider hands a view at a step of a run, as `graph-stage.tsx` works it out. */
-  const at = (model: ReturnType<typeof modelAt>, k: number): Shown => {
-    const steps = stepsOf(model);
-    const step = steps[k]!;
-    const about = [...(step.nodes ?? []).map((id) => `node:${id}`), ...(step.edge ? [`edge:${step.edge}`, `edge:${step.edge}@${step.r0 ?? 0}>${step.r1 ?? 0}`] : []), ...(step.loops ?? []).map((id) => `loop:${id}`)];
-    return {
-      k,
-      lit: about.length ? new Set(about) : null,
-      took: steps.flatMap((s, n) => (s.edge && !s.about ? [{ edge: s.edge, r0: s.r0 ?? 0, r1: s.r1 ?? 0, step: n }] : [])),
-      until: reach(model, steps, k || steps.length - 1),
-      ...(step.about && step.edge ? { about: { edge: step.edge, r0: step.r0 ?? 0 } } : {}),
-      ...(k > 0 ? { dispatches: steps.slice(1, k + 1).filter((s) => s.dispatch !== undefined).length } : {}),
-    };
-  };
+  /** What the slider hands a view at a step: the component's own working out (`shownAt`), not a copy of it. */
+  const at = (model: ReturnType<typeof modelAt>, k: number): Shown => shownAt(model, stepsOf(model), k);
   /** The edges a view has drawn and not hidden: each by its key, with how strong it is and the turns it starts and ends at. */
   const edges = (prims: Prims) => Object.fromEntries(prims.flatMap((p) => (p.t === "line" && p.key?.startsWith("edge:") && !p.hide ? [[p.key.slice(5), [p.alpha ?? 1, turns(p.pts[0]![1]), turns(p.pts[p.pts.length - 1]![1])]]] : [])));
   /** The nested run's graph, and notes written for it: `[node, outcome, round or none, verdict]`. */
@@ -309,12 +297,13 @@ describe("the spiral and its lid", () => {
     };
     // A person who is not asked by the round is still a brake, and is said.
     expect(cut([{ kind: "bar-passed" }, { kind: "human" }]).words).toEqual(["no lid: no cap on rounds", "human halt (no place on the way up)"]);
-    // Two budgets in dispatches: the least is the one a lead is held to, and the one drawn; both are said.
-    expect(cut([{ kind: "budget", measure: "minutes", limit: 30 }, { kind: "budget", measure: "dispatches", limit: 6 }, { kind: "budget", measure: "dispatches", limit: 40 }, { kind: "max-iterations", n: 5 }])).toEqual({
+    // Two budgets in dispatches, the looser listed first: the least is the one a lead is held to, and the one
+    // drawn; both are said. And two caps: the tightest is the lid, wherever it is listed.
+    expect(cut([{ kind: "budget", measure: "minutes", limit: 30 }, { kind: "max-iterations", n: 7 }, { kind: "budget", measure: "dispatches", limit: 40 }, { kind: "budget", measure: "dispatches", limit: 6 }, { kind: "max-iterations", n: 5 }])).toEqual({
       lid: 5,
       asked: [],
       budget: 3,
-      words: ["budget: 30 minutes (no place on the way up)", "budget: 6 dispatches, at most 3 full rounds (the dashed ring, a reading)", "budget: 40 dispatches, at most 20 full rounds (a looser budget)", "max iterations: 5 (the lid, over round 4)"],
+      words: ["budget: 30 minutes (no place on the way up)", "max iterations: 7 (a looser cap: the lid stops the loop first)", "budget: 40 dispatches, at most 20 full rounds (a looser budget)", "budget: 6 dispatches, at most 3 full rounds (the dashed ring, a reading)", "max iterations: 5 (the lid, over round 4)"],
     });
     // No cap: no lid to be above, and the spiral is two rounds taller than a first pass.
     expect(cut([{ kind: "budget", measure: "dispatches", limit: 30 }])).toEqual({ lid: null, asked: [], budget: null, words: ["no lid: no cap on rounds", "budget: 30 dispatches, at most 15 full rounds (not drawn: above the rounds shown)"] });
@@ -324,6 +313,10 @@ describe("the spiral and its lid", () => {
     // The cap listed before the person: at the lid's own round the cap fires first, and no ring is drawn there.
     expect(cut([{ kind: "max-iterations", n: 4 }, { kind: "human", every: 2 }]).asked).toEqual([2]);
     expect(cut([{ kind: "human", every: 2 }, { kind: "max-iterations", n: 4 }]).asked).toEqual([2, 4]);
+    // Where that leaves no ring at all, the words say why, and do not say the round is out of the drawing.
+    expect(cut([{ kind: "max-iterations", n: 2 }, { kind: "human", every: 2 }])).toMatchObject({ asked: [], words: ["max iterations: 2 (the lid, over round 1)", "a person is asked every 2 rounds (no ring: only at the lid, where the cap is looked at first)"] });
+    // Two people by the round: each has rings, and each line says so.
+    expect(cut([{ kind: "human", every: 2 }, { kind: "human", every: 3 }, { kind: "max-iterations", n: 6 }])).toMatchObject({ asked: [2, 3, 4, 6], words: ["a person is asked every 2 rounds (the amber rings)", "a person is asked every 3 rounds (the amber rings)", "max iterations: 6 (the lid, over round 5)"] });
   });
 
   it("draws each brake where it is, and never lights the lid with its loop", () => {
@@ -440,6 +433,11 @@ describe("the spiral and its lid", () => {
     // And about a way back: drawn as a way back is, arriving one turn up, never down into the round it leaves.
     const back: Shown = { ...at(m, 4), lit: new Set(["edge:e-critic-fail"]), about: { edge: "e-critic-fail", r0: 0 } };
     expect(edges(spiral(m, back).prims)["e-critic-fail@0>1"]).toEqual([0.3, 0.67, 1]);
+    // About an edge that is the spiral itself, taken in round 0, while the run stands in round 1: the step's own
+    // key is for round 1, where it was not taken, so nothing but this branch shows the line of round 0.
+    const earlier = (about: boolean): Shown => ({ ...at(m, 9), lit: new Set(["node:builder", "node:checks", "edge:e-builder-checks", "edge:e-builder-checks@1>1"]), ...(about ? { about: { edge: "e-builder-checks", r0: 1 } } : {}) });
+    expect(edges(spiral(m, earlier(true)).prims)["e-builder-checks@0>0"]).toEqual([1, 0, 0.33]);
+    expect(edges(spiral(m, earlier(false)).prims)["e-builder-checks@0>0"]).toBeUndefined();
   });
 
   it("an edge the run took twice from the same round is drawn twice, each to the round it arrived in", () => {
@@ -459,6 +457,86 @@ describe("the spiral and its lid", () => {
     // A loop's own way back, with no round named: its next round.
     const again = modelAt(NEST, places(NEST), notes([["builder", "pass"], ["tests", "fail"], ["builder", "pass"], ["tests", "fail"], ["builder", "pass"]]));
     expect(again.run!.dispatches.map((d) => d.round)).toEqual([0, 0, 1, 1, 2]);
+  });
+
+  it("every loop inside one that comes round starts afresh, wherever its way back lands and however deep; twins do not", () => {
+    // Plan is in Phases, outside Grind, and both of the judge's ways back go to it: the way back does not land in Grind.
+    const viaPlan: Graph = {
+      ...NEST,
+      nodes: [{ ...NEST.nodes.find((n) => n.id === "judge")!, id: "plan", name: "Plan" }, ...NEST.nodes],
+      edges: [{ id: "e-plan-builder", from: "plan", to: "builder" }, ...NEST.edges.map((e) => (e.from === "judge" && e.to === "builder" ? { ...e, to: "plan" } : e))],
+      loops: NEST.loops.map((l) => (l.id === "phases" ? { ...l, members: ["plan", ...l.members] } : l)),
+    } as Graph;
+    const run = [["plan", "pass"], ["builder", "pass"], ["tests", "fail"], ["builder", "pass"], ["tests", "pass"], ["judge", "fail", undefined, "next-phase"], ["plan", "pass"], ["builder", "pass"], ["tests", "pass"], ["judge", "pass"]] as [string, string, number?, string?][];
+    const m = modelAt(viaPlan, places(viaPlan), notes(run));
+    expect(m.run!.dispatches.map((d) => `${d.node} ${d.loop}:${d.round}`)).toEqual(["plan phases:0", "builder grind:0", "tests grind:0", "builder grind:1", "tests grind:1", "judge phases:0", "plan phases:1", "builder grind:0", "tests grind:0", "judge phases:1"]);
+    expect(reach(m, stepsOf(m), 8).grind).toEqual({ now: 0, most: 1.5 });
+    // Three deep, every round named: after the outermost comes round, the middle loop is at round 0 while the
+    // run is in the innermost, before any note of the middle loop's own says so.
+    const all = { ...NEST.loops.find((l) => l.id === "phases")!, id: "all", name: "All", members: ["builder", "tests", "judge", "chief"], back: ["e-chief-again"] };
+    const deep: Graph = { ...NEST, nodes: [...NEST.nodes, { ...NEST.nodes.find((n) => n.id === "judge")!, id: "chief", name: "Chief" }], edges: [...NEST.edges.filter((e) => e.id !== "e-judge-pass"), { id: "e-judge-chief", from: "judge", to: "chief", when: "pass" }, { id: "e-chief-again", from: "chief", to: "builder", when: "fail" }], loops: [...NEST.loops, all] } as Graph;
+    const named = modelAt(deep, places(deep), notes([["builder", "pass", 0], ["tests", "pass", 0], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0], ["tests", "pass", 0], ["judge", "pass", 1], ["chief", "fail", 0], ["builder", "pass", 0], ["tests", "pass", 0], ["judge", "pass", 0]]));
+    expect(named.loops.map((l) => [l.id, l.inside])).toEqual([["grind", "phases"], ["phases", "all"], ["all", null]]);
+    expect(reach(named, stepsOf(named), 7)).toMatchObject({ phases: { now: 1.5 }, all: { now: 0.5 } });
+    expect(reach(named, stepsOf(named), 8)).toMatchObject({ grind: { now: 0 }, phases: { now: 0 }, all: { now: 1 } });
+    // And with no round named, the judge after the outermost way back is in round 0 of the middle loop.
+    const bare = modelAt(deep, places(deep), notes([["builder", "pass"], ["tests", "pass"], ["judge", "fail", undefined, "next-phase"], ["builder", "pass"], ["tests", "pass"], ["judge", "pass"], ["chief", "fail"], ["builder", "pass"], ["tests", "pass"], ["judge", "pass"]]));
+    expect(bare.run!.dispatches.map((d) => `${d.node} ${d.round}`)).toEqual(["builder 0", "tests 0", "judge 0", "builder 0", "tests 0", "judge 1", "chief 0", "builder 0", "tests 0", "judge 0"]);
+    // Two loops with the very same members are not one inside the other: the second's way back does not send the
+    // first back to round 0.
+    const twins: Graph = { ...RUN, loops: [{ ...RUN.loops[0]!, id: "a", name: "A", back: ["e-checks-fail"] }, { ...RUN.loops[0]!, id: "b", name: "B", back: ["e-critic-fail"] }] };
+    const both = modelAt(twins, places(twins), notes([["builder", "pass"], ["checks", "fail"], ["builder", "pass"], ["checks", "pass"], ["critic", "fail"], ["builder", "pass"]]));
+    expect(both.run!.dispatches.map((d) => d.round)).toEqual([0, 0, 1, 1, 1, 1]);
+    expect(both.run!.most).toMatchObject({ a: 1, b: 1 });
+  });
+
+  it("two notes of one visit to a node are not a move, though the node has an edge to itself", () => {
+    const solo: Graph = { ...RUN, edges: [{ id: "e-again", from: "builder", to: "builder" }], loops: [{ ...RUN.loops[0]!, id: "solo", name: "Solo", members: ["builder"], back: ["e-again"] }] } as Graph;
+    const visit = [{ id: "n-0001", run: "r", at: "node:builder", started: "2026-09-19T13:00:00Z", outcome: "started" }, { id: "n-0002", run: "r", at: "node:builder", ended: "2026-09-19T13:05:00Z", outcome: "pass" }] as RunNote[];
+    const m = modelAt(solo, places(solo), visit);
+    expect(m.run!.dispatches.map((d) => d.round)).toEqual([0]);
+    expect(stepsOf(m).map((s) => s.edge)).toEqual([undefined, undefined, undefined]);
+    // Two ended notes there are two visits: the way back was taken once.
+    const twice = modelAt(solo, places(solo), notes([["builder", "pass"], ["builder", "pass"]]));
+    expect(twice.run!.dispatches.map((d) => d.round)).toEqual([0, 1]);
+    expect(stepsOf(twice).map((s) => s.edge)).toEqual([undefined, undefined, "e-again"]);
+  });
+
+  it("a way back that crosses from one loop's spiral to another's arrives in the round it does, not at round 0", () => {
+    // Big has builder, checks and critic, and its way back is critic to builder; Small has critic and Done, and
+    // critic is Small's. The way back leaves Small's spiral and lands on Big's, a turn on.
+    const big = { ...RUN.loops[0]!, id: "big", name: "Big", members: ["builder", "checks", "critic"], back: ["e-critic-fail"] };
+    const small = { ...RUN.loops[0]!, id: "small", name: "Small", members: ["critic", "done"], back: [] };
+    const cross: Graph = { ...RUN, loops: [big, small] };
+    const m = modelAt(cross, places(cross), notes([["builder", "pass", 0], ["checks", "pass", 0], ["critic", "fail", 0], ["builder", "pass", 1]]));
+    expect(m.loops.map((l) => [l.id, l.own])).toEqual([["big", ["builder", "checks"]], ["small", ["critic", "done"]]]);
+    const drawn = edges(spiral(m, at(m, 0)).prims);
+    expect(drawn["e-critic-fail@0>1"]).toEqual([1, 0, 1]);
+    // On a template the same way back is drawn a turn on, as every way back onto its own loop is.
+    expect(edges(spiral(modelAt(cross, places(cross)), whole).prims)["e-critic-fail@0>1"]).toEqual([1, 0, 1]);
+    // The other direction: Right's way back, critic to checks, lands on Left's spiral, where checks stands. It
+    // arrives in the round Left is in, which Right's way back does not move; on a template that is round 0.
+    const [left, right] = [{ ...RUN.loops[0]!, id: "left", name: "Left", members: ["builder", "checks"], back: ["e-checks-fail"] }, { ...RUN.loops[0]!, id: "right", name: "Right", members: ["checks", "critic"], back: ["e-critic-again"] }];
+    const lr: Graph = { ...RUN, edges: [...RUN.edges.filter((e) => e.id !== "e-critic-fail"), { id: "e-critic-again", from: "critic", to: "checks", when: "fail" }], loops: [left, right] } as Graph;
+    const run = modelAt(lr, places(lr), notes([["builder", "pass", 0], ["checks", "fail", 0], ["builder", "pass", 1], ["checks", "pass", 1], ["critic", "fail", 0], ["checks", "pass", 1]]));
+    expect(edges(spiral(run, at(run, 0)).prims)["e-critic-again@0>1"]).toEqual([1, 0.5, 1.5]);
+    expect(edges(spiral(modelAt(lr, places(lr)), whole).prims)["e-critic-again@0>1"]).toEqual([1, 0.5, 0.5]);
+  });
+
+  it("beads at one place stop short of the middle however many there are, and the solid part stops at the top", () => {
+    const phase = (): [string, string, number?, string?][] => [["builder", "pass", 0], ["tests", "pass", 0], ["judge", "fail", undefined, "next-phase"]];
+    const open = withStops(withStops(NEST, "phases", []), "grind", [{ kind: "max-iterations", n: 2 }]);
+    const m = modelAt(open, places(open), notes(Array.from({ length: 8 }, phase).flat()));
+    const built = spiral(m, at(m, 0));
+    const axis = (built.node("builder")[0] + built.node("tests")[0]) / 2;
+    const beads = built.prims.flatMap((p) => (p.t === "dot" && p.r === 6 && turns(p.at[1]) === 0 ? [p.at[0]] : []));
+    expect(beads).toHaveLength(8);
+    expect(new Set(beads.map((x) => Math.round(x))).size).toBe(8);
+    for (const x of beads) expect(x).toBeLessThan(axis);
+    // A run whose notes go past the cap (a lead that did not stop): the solid part ends at the lid, not over it.
+    const past = modelAt(open, places(open), notes([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "fail", 1], ["builder", "pass", 2], ["tests", "fail", 2]]));
+    const solid = spiral(past, at(past, 0)).prims.find((p) => p.key === "loop:grind")!;
+    expect(solid.t === "line" && turns(solid.pts[solid.pts.length - 1]![1])).toBe(2);
   });
 
   it("a loop with no cap is as tall as two rounds over the highest it was in, though it has since started afresh", () => {

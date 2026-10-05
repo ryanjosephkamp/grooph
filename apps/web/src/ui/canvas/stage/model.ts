@@ -38,7 +38,7 @@ export type Model = {
   loops: MLoop[];
   groups: MGroup[];
   pass: { edge: Id; loop: Id | null; says: string }[];
-  run?: { end: string; dispatches: Dispatch[]; /** the highest round each loop was in at any time; `rounds` is the last */ most: Record<Id, number>; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
+  run?: { end: string; dispatches: Dispatch[]; /** the highest round each loop was in at any time; `rounds` is the last */ most: Record<Id, number>; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** not yet ended: the next note at the same node is the same visit */ open: boolean; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
 };
 /** One stop of the slider: what it says, what it lights, and where what is at it came from. */
 export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; about?: boolean; dispatch?: number };
@@ -157,12 +157,14 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     let last: string | undefined;
     const dispatches: Dispatch[] = [];
     // A note's round is its node's loop's. Where a note names none it is worked out from the edge the run took to
-    // get there (graph-ir, "Rounds" and "Nested loops"): by a loop's own way back, that loop's next round; into a
-    // loop inside the one whose way back it was, round 0, for it starts afresh; otherwise the round the loop was
-    // last seen in. A way back of an outer loop that lands in a loop inside it moves the outer loop on too.
+    // get there (graph-ir, "Rounds" and "Nested loops"): a loop's way back is that loop's next round, wherever in it
+    // the way back lands, and every loop inside it, at any depth, starts afresh at round 0; otherwise a loop is in
+    // the round it was last seen in. Two notes running at one node, the first not yet ended, are one visit: the
+    // second is not a move, though the node may have an edge to itself.
     const seen: Record<Id, number> = {};
     const most: Record<Id, number> = {};
     let was: { node: Id; outcome: string | null; verdict: string | null } | null = null;
+    let open: Id | null = null;
     const steps = replay.steps.slice(1).map((step) => {
       const note = step.note!;
       const at = step.focus ?? { kind: "graph" as const };
@@ -173,10 +175,13 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const node = focus.kind === "node" ? doc.nodes.find((n) => n.id === focus.id) : undefined;
       const loop = node ? innermost(node.id) : focus.kind === "loop" ? focus.id : null;
       if (node) {
-        const turned = wayTaken(model.edges, was, node.id)?.back ?? null;
-        if (turned && turned !== loop) seen[turned] = (seen[turned] ?? 0) + 1;
-        if (turned && loop && note.round === undefined) seen[loop] = turned === loop ? (seen[loop] ?? 0) + 1 : loops.find((l) => l.id === loop)!.members.every((m) => loops.find((l) => l.id === turned)?.members.includes(m)) ? 0 : (seen[loop] ?? 0);
+        const turned = open === node.id ? null : (wayTaken(model.edges, was, node.id)?.back ?? null);
+        if (turned) {
+          if (turned !== loop || note.round === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
+          for (const inner of loops) if (under(loops, inner.id, turned)) seen[inner.id] = 0;
+        }
         was = { node: node.id, outcome: note.outcome ?? null, verdict: note.verdict ?? null };
+        open = note.ended ? null : node.id;
       }
       const round = loop ? (seen[loop] = note.round ?? seen[loop] ?? 0) : null;
       for (const id in seen) most[id] = Math.max(most[id] ?? 0, seen[id]!);
@@ -188,6 +193,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
         outcome: note.outcome ?? null,
         verdict: note.verdict ?? null,
         what: note.proposal ? "proposal" : note.amendment ? "amendment" : null,
+        open: !note.ended,
         // The note's own words, cut at a word: a note about the run or about an edge is not a move.
         words: own.length > 150 ? `${own.slice(0, own.lastIndexOf(" ", 150))} …` : own,
       };
@@ -200,6 +206,12 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     model.run = { end: replay.end.line, dispatches, most, notes: steps, rounds: Object.fromEntries(replay.end.loops.map((l) => [l.loop, l.round ?? -1])) };
   }
   return model;
+}
+
+/** Whether a loop is inside another, at any depth, as the document nests them: not two loops with the same members. */
+export function under(loops: MLoop[], inner: Id, outer: Id): boolean {
+  for (let at = loops.find((l) => l.id === inner)?.inside ?? null, n = 0; at && n <= loops.length; at = loops.find((l) => l.id === at)?.inside ?? null, n += 1) if (at === outer) return true;
+  return false;
 }
 
 /**
@@ -235,7 +247,7 @@ export function stepsOf(m: Model): Step[] {
     return own.length ? [`round${own.length === 1 ? "" : "s"} ${own.length > 2 ? `${own.slice(0, -1).join(", ")} and ${own[own.length - 1]}` : own.join(" and ")} of ${l.name}`] : [];
   });
   const out: Step[] = [{ says: `The whole run: ${dispatches.length} dispatch${dispatches.length === 1 ? "" : "es"}${rounds.length ? `, in ${rounds.join("; ")}` : ""}. ${end} Move the slider or press Play to follow its ${notes.length} notes.` }];
-  let at: { node: Id; round: number; outcome: string | null; verdict: string | null } | null = null;
+  let at: { node: Id; round: number; outcome: string | null; verdict: string | null; open: boolean } | null = null;
   notes.forEach((s, k) => {
     const of = `Note ${k + 1} of ${notes.length}`;
     const step: Step = { says: "", ...(s.dispatch !== undefined ? { dispatch: s.dispatch } : {}) };
@@ -244,9 +256,9 @@ export function stepsOf(m: Model): Step[] {
       const was = at;
       // The edge the run took to get here. If none fits what was reported, no edge is shown as taken: the node is
       // lit, and that is all the notes say.
-      const took = wayTaken(m.edges, was, s.id);
+      const took = was?.open && was.node === s.id ? undefined : wayTaken(m.edges, was, s.id);
       Object.assign(step, { says: `${of}: ${s.says}`, nodes: [s.id], to: s.id, r1: round }, took && was ? { edge: took.id, from: was.node, r0: was.round } : {});
-      at = { node: s.id, round, outcome: s.outcome, verdict: s.verdict };
+      at = { node: s.id, round, outcome: s.outcome, verdict: s.verdict, open: s.open };
     } else if (s.about === "loop" && s.id) Object.assign(step, { says: `${of}: ${s.says}`, loops: [s.id] });
     else if (s.about === "edge" && s.id) {
       // A note about an edge is not a move along it.
