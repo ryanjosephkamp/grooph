@@ -8,7 +8,7 @@ import type { MapPictureOptions, PictureOptions } from "./picture/svg.js";
 import type { OperationMap } from "./types.js";
 
 export * from "./base.js";
-export { compile, tryCompile, CompileError } from "./compile/index.js";
+export { compile, tryCompile, CompileError, keptFolder } from "./compile/index.js";
 export { mapSequenceWith, mapWideWith };
 
 /** An operation map with its lanes side by side (docs/operation-map.md §4c). `width`, when given, is the room there is. */
