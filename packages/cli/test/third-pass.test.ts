@@ -204,7 +204,7 @@ test("third pass 2: a model is never changed or pinned without a word: the CLI s
     assert.equal(asked.isError, true);
     assert.match(
       textOf(asked),
-      /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and this export would change the model of 1 agent file there\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\ntiers in this package: .*\nnext: these are two questions, and "replace": true answers both at once: the file changed by hand is lost, and the models change\. Put both to the person\./,
+      /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and this export would change the model of 1 agent file there, and the graph this package keeps is no baseline to compare this one with\. The lead's brief in the package there is not what the graph it keeps compiles to: .+ so nothing was compared\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\ntiers in this package: .*\nnext: these are two questions, and "replace": true answers both at once: the file changed by hand is lost, and the models change\. Put both to the person\./,
     );
     assert.deepEqual(asked.structuredContent!["changed"], [".grooph/fix-until-green/LEAD.md"]);
     assert.equal((asked.structuredContent!["modelChanges"] as string[]).length, 1);
@@ -212,13 +212,13 @@ test("third pass 2: a model is never changed or pinned without a word: the CLI s
 
     // Each alone is still asked on its own terms.
     const byHand = await call(ctx, "grooph_export", { graph, into: "." });
-    assert.match(textOf(byHand), /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\nnext: look at it: /);
+    assert.match(textOf(byHand), /^refused: Nothing was placed in "\.": 1 file of this package is there and not as grooph last wrote it, and the graph this package keeps is no baseline to compare this one with\. The lead's brief in the package there is not what the graph it keeps compiles to: .+ so nothing was compared\.\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": not as grooph last wrote it\nnext: look at it: /);
     assert.deepEqual(byHand.structuredContent!["modelChanges"], []);
 
     // Given the flag, both happen, and the reply says both.
     const done = await call(ctx, "grooph_export", { graph, into: ".", models: { [tier]: "mine" }, replace: true });
     assert.equal(done.isError, undefined, textOf(done));
-    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened\ntiers in this package: /);
+    assert.match(textOf(done), /\nreplaced 1 file that was not as grooph last wrote it \("replace"\):\n {2}file "\.grooph\/fix-until-green\/LEAD\.md": was not as grooph last wrote it\nchanged the model of 1 agent file that was already there \("replace"\):\n {2}model of "\.claude\/agents\/fix-until-green--fixer\.md": "\S+" → "mine"\nbrakes: not compared \("replace"\)\. The lead's brief in the package there is not what the graph it keeps compiles to: .+\ntiers in this package: /);
     assert.deepEqual(done.structuredContent!["replaced"], [".grooph/fix-until-green/LEAD.md"]);
     assert.equal((done.structuredContent!["modelChanges"] as string[]).length, 1);
     assert.match(fixer(ctx.project), /^model: mine$/m);
@@ -669,7 +669,11 @@ test("fourth read 4: the CLI's export writes under the tools' guard: through no 
     // A folder where a file goes: nothing of the package is left half placed (it used to stop with some files written).
     const c = join(root, "c");
     mkdirSync(join(c, ".grooph", "fix-until-green", "LEAD.md"), { recursive: true });
-    const blocked = await exportTo(c);
+    // A folder of this graph's name with no kept graph in it waits for --uncompared first; given it, the write is tried.
+    const waits = await exportTo(c);
+    assert.equal(waits.code, 1);
+    assert.match(waits.io.stderr.join(LF), /not compared, so nothing was written\. Files of this graph's name were there, and no graph kept with them\./);
+    const blocked = await exportTo(c, "--uncompared");
     assert.equal(blocked.code, 1);
     assert.match(blocked.io.stderr.join(LF), /Could not write "\.grooph\/fix-until-green\/LEAD\.md" \(EISDIR\); nothing was written\./);
     assert.ok(!existsSync(join(c, ".claude")));
@@ -678,7 +682,8 @@ test("fourth read 4: the CLI's export writes under the tools' guard: through no 
     // A folder reached through a link is still a folder of the person's choosing.
     symlinkSync(join(root, "a"), join(root, "a-by-another-name"));
     rmSync(agent);
-    assert.equal((await exportTo(join(root, "a-by-another-name"))).code, 0);
+    // (Its brief was changed by hand above, so nothing can be compared there, and the word for that is given.)
+    assert.equal((await exportTo(join(root, "a-by-another-name"), "--uncompared")).code, 0);
     assert.match(readFileSync(agent, "utf8"), /^---\nname: fix-until-green--fixer\n/);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -854,14 +859,14 @@ test("after the merge: an export over a package in place does not loosen a brake
     }
 
     // Tighter, and unchanged: placed without a question.
-    for (const n of [2, 2]) {
+    for (const [n, said] of [[2, "brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"], [2, "brakes: compared with the graph this package kept; it is the same graph"]] as const) {
       const tighter = await call(ctx, "grooph_export", { graph: withCap(n), into: "." });
       assert.equal(tighter.isError, undefined, textOf(tighter));
-      assert.ok(ownNext(tighter, "tighter").includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"), textOf(tighter));
+      assert.ok(ownNext(tighter, "tighter").includes(said), textOf(tighter));
       assert.ok(!textOf(tighter).includes("loosens "), textOf(tighter));
       // The first of the two tightens (4 to 2) and is said as adopt says it, name and words in quotes; the second changes nothing.
       const tightens = ownNext(tighter, "tighter").filter((line) => /^tightens a brake|^ {2}change /.test(line));
-      if (n === 2 && tightens.length > 0) assert.deepEqual(tightens, ["tightens a brake, and is placed with the rest:", '  change "loop:review-cycle.stops": undoing it: "raises the round cap from 2 to 4"']);
+      if (said.endsWith("loosened")) assert.deepEqual(tightens, ["tightens a brake, and is placed with the rest:", '  change "loop:review-cycle.stops": undoing it: "raises the round cap from 2 to 4"']);
       assert.equal(tighter.structuredContent!["brakesCompared"], true);
     }
     assert.deepEqual(stops(kept()), stops(withCap(2)));
@@ -913,16 +918,19 @@ test("after the merge, read again: what the comparison holds besides a loosening
 
     // The kept graph gone, or not a graph: nothing can be compared, and the reply says so, refused and placed.
     const loose = { ...reworded, loops: reworded.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 99 } : stop)) })) } as Graph;
-    for (const spoil of [() => rmSync(keptFile), () => writeFileSync(keptFile, "{ not a graph")]) {
+    for (const [spoil, why] of [
+      [() => rmSync(keptFile), "Files of this graph's name were there, and no graph kept with them."],
+      [() => writeFileSync(keptFile, "{ not a graph"), "The graph this package kept cannot be read as a graph."],
+    ] as const) {
       assert.equal((await call(ctx, "grooph_export", { graph: reworded, into: ".", replace: true })).isError, undefined);
       spoil();
       const refused = await call(ctx, "grooph_export", { graph: loose, into: "." });
       assert.equal(refused.isError, true, textOf(refused));
-      assert.match(textOf(refused).split(LF)[0]!, /The graph this package kept is gone or does not read, so its brakes could not be compared with this graph's\.$/);
+      assert.ok(textOf(refused).split(LF)[0]!.endsWith(`the graph this package keeps is no baseline to compare this one with. ${why} A looser graph would pass there as no change, so nothing was compared.`), textOf(refused));
       ownNext(refused, "uncompared, refused");
       const forced = await call(ctx, "grooph_export", { graph: loose, into: ".", replace: true });
       assert.equal(forced.isError, undefined, textOf(forced));
-      assert.ok(ownNext(forced, "uncompared, placed").includes("brakes: not compared. The graph this package kept was gone or did not read."), textOf(forced));
+      assert.ok(ownNext(forced, "uncompared, placed").includes(`brakes: not compared ("replace"). ${why}`), textOf(forced));
       assert.equal(forced.structuredContent!["brakesCompared"], false);
     }
     // A first export into an empty folder has nothing to compare and says nothing of it.
@@ -983,7 +991,7 @@ test("after the merge, the schema: a patch that leaves a document outside the sc
       ownNext(applied, what);
       const remembered = await call(ctx, "grooph_export", { graph: graph.id, into: "." });
       assert.equal(remembered.isError, undefined, `${what}: ${textOf(remembered)}`);
-      assert.ok(textOf(remembered).includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"), what);
+      assert.ok(textOf(remembered).includes("brakes: compared with the graph this package kept; it is the same graph"), what);
 
       // The same document handed over whole, as an agent might write it: every tool that takes a graph refuses it,
       // so it reaches neither the comparison nor the compiler, over a package in place or anywhere else.
@@ -1060,7 +1068,7 @@ test("after the merge, the schema: a field hidden behind a \"__proto__\" key is 
         if (has) {
           // Still there: nothing was removed, and what is placed has it as its own.
           assert.equal(exported.isError, undefined, `${what}: ${textOf(exported)}`);
-          assert.ok(textOf(exported).includes("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened"), `${what}: ${textOf(exported)}`);
+          assert.ok(textOf(exported).includes("brakes: compared with the graph this package kept; it is the same graph"), `${what}: ${textOf(exported)}`);
           assert.ok(own(part(JSON.parse(readFileSync(keptFile, "utf8")) as Graph), field), `${what}: the kept graph lost the field`);
         } else {
           // Gone: a brake removed, named and held, and the kept graph is as it was.
@@ -1074,4 +1082,24 @@ test("after the merge, the schema: a field hidden behind a \"__proto__\" key is 
       }
     });
   }
+});
+
+test("after the merge: two graphs whose ids and node ids make one agent file are not written over each other by the tool", async () => {
+  const graph = fixture("valid", "review-loop.grooph.json");
+  await withProject(async (ctx) => {
+    assert.equal((await call(ctx, "grooph_export", { graph: { ...graph, id: "my--graph" }, into: "." })).isError, undefined);
+    const agent = join(ctx.project, ".claude", "agents", "my--graph--builder.md");
+    const before = readFileSync(agent, "utf8");
+    const renamed = await call(ctx, "grooph_apply", { graph: { ...graph, id: "my" }, ops: [{ op: "renameId", from: "builder", to: "graph--builder" }] });
+    assert.equal(renamed.isError, undefined, textOf(renamed));
+    for (const args of [{}, { replace: true }]) {
+      const clash = await call(ctx, "grooph_export", { graph: "my", into: ".", ...args });
+      assert.equal(clash.isError, true, textOf(clash));
+      const lines = ownNext(clash, "a shared agent file");
+      assert.match(lines[0]!, /^refused: Nothing was placed in "\.": 1 agent file of this graph would replace another package's there\.$/);
+      assert.equal(lines[1], '  file ".claude/agents/my--graph--builder.md": an agent of the package "my--graph"');
+      assert.equal(readFileSync(agent, "utf8"), before);
+      assert.ok(!existsSync(join(ctx.project, ".grooph", "my")));
+    }
+  });
 });

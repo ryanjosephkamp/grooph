@@ -122,7 +122,7 @@ Print the document in canonical form (docs/graph-ir.md §7), or rewrite the file
 Example
   grooph canonicalize g.grooph.json --write`;
 
-export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models] [--allow <change>]...
+export const EXPORT_HELP = `grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models] [--allow <change>]... [--uncompared]
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: ${KNOWN_TARGETS.join(", ")}.
@@ -139,19 +139,37 @@ It says what each tier means in the package every time, and names each pin.
   --allow <change>              place a change that may remove or loosen a brake of the graph the
                                 package in <dir> keeps, by the name a refused export lists it under
                                 (loop:review.stops); repeatable
+  --uncompared                  place the graph where a package is in <dir> and nothing can be
+                                compared (see below)
 
-Over a package already in <dir> for the same graph id, while the graph that package keeps reads,
-the graph coming in is held to that graph's brakes, by the comparison grooph adopt makes (grooph
-adopt --help): a round cap or a budget raised, a gate or an approval gone, a bar's acceptance
-changed, a critic's isolation dropped. Each such change is listed with its reason, nothing is
-written, and the exit code is 1, until each is asked for with --allow. The comparison cannot tell a
-stricter wording or a renamed part from a looser one, so it lists those too. It is not made, and a
-line that opens "brakes:" says so, on a first export, for a graph under a new id (a second package
-beside the first), and when the kept graph is gone or does not read. It does not see a check's
-command, a brief, a node's tools, the graph's own constraints (its budget line among them) or an
-edge's retry and concurrency: "none of the brakes it compares" is all the line that follows a
-comparison says. A brake is removed or loosened on a person's word: an agent that meets the refusal
-puts each listed change to the person, and adds --allow only for the ones they said yes to.
+The brakes. A package keeps the graph it was written from (.grooph/<id>/graph.grooph.json). Over a
+package already in <dir> for the same graph id, the graph coming in is held to that graph's brakes,
+by the comparison grooph adopt makes (grooph adopt --help): a loop's round cap or budget raised, a
+gate or an approval gone, a bar's acceptance changed, a critic's isolation dropped. Each such change
+is listed with its reason, nothing is written, and the exit code is 1, until each is asked for with
+--allow. The comparison cannot tell a stricter wording or a renamed part from a looser one, so it
+lists those too. A brake is removed or loosened only on a person's word: an agent that meets the
+refusal puts each listed change to the person, and adds --allow only for the ones they said yes to.
+
+The kept graph is a baseline only while it can be read as a graph and the lead's brief in the
+package is what it compiles to. Where it is gone, cannot be read as a graph, or was changed after
+the brief was written (by grooph apply --write on it, by hand, or because another version of grooph
+wrote the package), nothing is called compared: the export writes nothing and says why, and
+--uncompared places the graph on a person's word. What still reads as loosened against a changed
+kept graph is held by name as well. A first export, and a graph under a new id (a second package
+beside the first), compare nothing and need no flag.
+
+The last line of the output opens "brakes:" and says which of these happened. The kickoff is the
+graph's own words and may hold any line: it runs from the line after "Kickoff" to the line before
+that last line, which is always grooph's own.
+
+What the comparison does not see: a check's command, a brief, a node's tools, the graph's own
+constraints (its budget line among them), an edge's retry and concurrency. "None of the brakes it
+compares" is all the last line says after a comparison. And nothing stops a hand that rewrites the
+kept graph and the brief together.
+
+An agent's file is named <graph id>--<node id>.md. Where this graph would write one that another
+package in <dir> has as its own, nothing is written.
 
 Every file is written inside <dir> by where it really is, never through a link at the file's own
 place, and the package is placed whole or not at all.

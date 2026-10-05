@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { adoptCommandLine, adoptWorkingCopy, canonicalize, canonicalizeWithoutLayout, checkAdoption, formatIssue, parseGraphText, type Graph } from "@grooph/core";
 
@@ -148,8 +148,15 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   io.out(`wrote ${shown(target)} (version ${adopted.doc.version}); the source ${shown(join(run.graphDir, "graph.grooph.json"))} is unchanged`);
   // The export holds the package's kept graph to the same brakes, so what was adopted on purpose is named there again;
   // and the project is the one this run's package is in, so the line is one to run as it stands.
-  const word = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
-  const exportLine = ["grooph", "export", word(shown(target)), "--target", adopted.doc.target?.harness ?? "<harness>", "--into", word(shown(dirname(dirname(run.graphDir)))), ...meant.flatMap((change) => ["--allow", word(change.name)])].join(" ");
+  // A word of the line as a shell takes it: quoted where it needs to be, and never read as an option.
+  const word = (text: string): string => {
+    const plain = text.startsWith("-") ? `./${text}` : text;
+    return /^[A-Za-z0-9_.:/@=+-]+$/.test(plain) ? plain : `'${plain.replace(/'/g, "'\\''")}'`;
+  };
+  // The project is known only when the run is where a package keeps its runs, under <project>/.grooph/<id>/runs/.
+  // A run read from anywhere else (a copy, a fixture) names no project, and the line says so with a blank to fill.
+  const inPackage = basename(dirname(run.graphDir)) === ".grooph";
+  const exportLine = ["grooph", "export", word(shown(target)), "--target", adopted.doc.target?.harness ?? "<harness>", "--into", inPackage ? word(shown(dirname(dirname(run.graphDir)))) : "<project>", ...meant.flatMap((change) => ["--allow", word(change.name)])].join(" ");
   io.out(`place it for the next run with: ${exportLine}`);
   return 0;
 }

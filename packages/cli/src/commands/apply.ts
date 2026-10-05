@@ -1,4 +1,6 @@
-import { applyOps, canonicalize, formatOpError, hasErrors, parseGraph, parseGraphText, validate } from "@grooph/core";
+import { basename, dirname, resolve } from "node:path";
+
+import { applyOps, canonicalize, formatOpError, hasErrors, keptFolder, parseGraph, parseGraphText, validate } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
 import { plural, printIssues, printNext, type Output } from "../print.js";
@@ -74,6 +76,13 @@ export function applyCommand(io: Output, file: string, flags: ApplyFlags, readSt
     report({ ok: !hasErrors(issues), written, applied: ops.length, ids: result.ids, issues });
   } else {
     printIssues(io, issues, file);
+    // `.grooph/<id>/graph.grooph.json` is the graph a package keeps: the copy its files were written from, and what an
+    // export compares the next graph with. Changed here, it no longer stands for what the package runs on, and the
+    // next export says so and compares nothing. The one who wrote it is told what they wrote to.
+    const full = resolve(file);
+    if (written && basename(full) === "graph.grooph.json" && basename(dirname(dirname(full))) === ".grooph" && keptFolder(basename(dirname(full))) === undefined) {
+      io.out("note: this is the graph a package keeps; an export compares against it. The package's own files are not changed by this, so the next export over it will say it was not compared. Edit your own copy (.grooph/graphs/<id>.grooph.json) and export that.");
+    }
     io.out(
       written
         ? `applied ${plural(ops.length, "op")}; wrote ${file}`

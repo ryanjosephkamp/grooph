@@ -1,14 +1,14 @@
 import { closeSync, existsSync, openSync, readFileSync, readdirSync, readSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { CompileError, checkAdoption, formatIssue, getProfile, isMapLike, keptFolder, parseGraphText, tryCompile, type AdoptionChange, type CompileOptions, type CompileTarget, type Graph } from "@grooph/core";
+import { CompileError, canonicalize, checkAdoption, formatIssue, getProfile, isMapLike, keptFolder, parseGraphText, tryCompile, type AdoptionChange, type CompileOptions, type CompileTarget, type Graph } from "@grooph/core";
 
 import { readText } from "../io.js";
-import { putAll, within, type Place } from "../place.js";
+import { isLink, putAll, within, type Place } from "../place.js";
 import { printIssues, printNext, plural, type Output } from "../print.js";
 import { ID, Refusal, oneLine } from "../reply.js";
 
-export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string; changeModels?: boolean; allow?: string[] };
+export type ExportFlags = { target: CompileTarget; into: string; models?: CompileOptions["models"]; modelsFrom?: string; changeModels?: boolean; allow?: string[]; uncompared?: boolean };
 
 export const TIERS = ["frontier", "strong", "fast"] as const;
 /** What a model's name is made of. It goes into a file's frontmatter as written, so nothing else is let through; the MCP server holds a name to the same. */
@@ -162,15 +162,25 @@ export function parseModels(text: string): { models: NonNullable<CompileOptions[
  * keeps (amendment A-008's list, by core's `checkAdoption`, the comparison `grooph adopt` makes). The command and the
  * MCP tool both ask this, here, so the two doors cannot drift.
  *
- * The comparison is made only over a package in place for the same graph id, while the graph that package keeps
- * reads. Otherwise nothing is compared, and which of the other cases it was is said, so that neither door is ever
- * silent about it: `unreadable` when files of the package are there and its kept graph is gone or does not read;
- * `beside` when nothing of this graph's package is there, with the ids of the other packages in the folder (a graph
- * given a new id is a second package beside the first).
+ * The kept graph is a baseline only while the package in place is what that graph compiles to. `grooph apply
+ * --write`, an editor, or a folder swapped for another can change the kept graph and leave the lead's brief as it
+ * was: compared with such a graph, a looser one coming in reads as no change. So the comparison is made only in the
+ * state `compared`: a package in place for the same graph id, whose kept graph can be read as a graph, and whose
+ * files are what that graph compiles to. Every other state is said, by both doors, and three of them wait for a word
+ * that says the person knows nothing was compared:
+ *
+ * - `nothing`     no file of this graph's package is there; `beside` has the ids of the other packages in the folder
+ *                 (a graph given a new id is a second package beside the first)
+ * - `no-kept`     files of this graph's name are there, and no kept graph
+ * - `unreadable`  the kept graph is there and cannot be read as a graph
+ * - `stale`       the kept graph reads, and the lead's brief in place is not what it compiles to. What reads as
+ *                 loosened against it is still held by name; "none loosened" is not said
  */
+export type BaselineState = "compared" | "nothing" | "no-kept" | "unreadable" | "stale";
 export type BrakesAtExport = {
-  compared: boolean;
-  unreadable: boolean;
+  state: BaselineState;
+  /** compared, and the graph coming in is the graph the package keeps */
+  same: boolean;
   beside?: string[];
   /** the changes that may remove or loosen a brake and were not asked for by name: nothing is placed while there is one */
   held: AdoptionChange[];
@@ -189,24 +199,50 @@ export type BrakesAtExport = {
   notices: string[];
 };
 
-export function brakesAtExport(root: string, places: readonly { path: string; full: string }[], doc: Graph, allow: readonly string[]): BrakesAtExport {
+/** Why nothing was compared, for the three states that wait for a word. One sentence each, the same at both doors. */
+export const NOT_COMPARED: Record<Exclude<BaselineState, "compared" | "nothing">, string> = {
+  "no-kept": "Files of this graph's name were there, and no graph kept with them.",
+  unreadable: "The graph this package kept cannot be read as a graph.",
+  stale: "The lead's brief in the package there is not what the graph it keeps compiles to: that graph was changed after the brief was written, the brief was changed by hand, or another version of grooph wrote it.",
+};
+export const waitsForAWord = (state: BaselineState): state is Exclude<BaselineState, "compared" | "nothing"> => state === "no-kept" || state === "unreadable" || state === "stale";
+
+export function brakesAtExport(
+  root: string,
+  places: readonly { path: string; full: string }[],
+  doc: Graph,
+  allow: readonly string[],
+  target: CompileTarget,
+  models?: CompileOptions["models"],
+): BrakesAtExport {
+  const none = (state: BaselineState, beside?: string[]): BrakesAtExport => ({ state, same: false, ...(beside ? { beside } : {}), held: [], meant: [], tighter: [], unjudged: [], unknown: [...allow], notices: [] });
+  const there = (full: string): boolean => {
+    try {
+      statSync(full);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (!places.some((place) => there(place.full))) return none("nothing", otherPackages(root, doc.id));
   const keptPlace = places.find((place) => place.path.endsWith(`/${doc.id}/graph.grooph.json`));
+  if (keptPlace === undefined || !there(keptPlace.full)) return none("no-kept");
   let before: Graph | undefined;
   try {
-    if (keptPlace && existsSync(keptPlace.full) && statSync(keptPlace.full).isFile()) before = parseGraphText(readFileSync(keptPlace.full, "utf8")).doc;
+    before = statSync(keptPlace.full).isFile() ? parseGraphText(readFileSync(keptPlace.full, "utf8")).doc : undefined;
   } catch {
     before = undefined;
   }
-  if (before === undefined) {
-    const unreadable = places.some((place) => existsSync(place.full));
-    return { compared: false, unreadable, ...(unreadable ? {} : { beside: otherPackages(root, doc.id) }), held: [], meant: [], tighter: [], unjudged: [], unknown: [...allow], notices: [] };
-  }
+  if (before === undefined) return none("unreadable");
+  // A kept graph that is not what the brief was written from is no baseline for "nothing was loosened". What does read
+  // as loosened against it is still held: the comparison is made, and its answer is trusted only one way.
+  const stale = !writtenFrom(root, before, target, models);
   const check = checkAdoption(before, doc, { allow });
   // A kept graph that lists the same loop twice gives the same change twice: it is one change, said once.
   const once = (changes: readonly AdoptionChange[]): AdoptionChange[] => changes.filter((change, i) => changes.findIndex((other) => other.name === change.name && other.loosens === change.loosens) === i);
   return {
-    compared: true,
-    unreadable: false,
+    state: stale ? "stale" : "compared",
+    same: !stale && canonicalize(before) === canonicalize(doc),
     held: once(check.refused),
     meant: once(check.changes.filter((change) => change.loosens !== undefined && !check.refused.includes(change))),
     tighter: check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined && !isUnjudged(change)),
@@ -216,6 +252,46 @@ export function brakesAtExport(root: string, places: readonly { path: string; fu
   };
 }
 
+/**
+ * Whether the lead's brief in `root` is what `kept` compiles to, with the tiers the package's own MAPPING.md states,
+ * or this export's, or the target's own. The brief is where a package says its brakes to the session that runs it
+ * (each loop's cap and budget, the gates, the policies), so it is the file that shows whether the kept graph is still
+ * the one the package was written from; an agent's file tuned by hand does not make the kept graph any less so. A
+ * kept graph that does not compile wrote no package.
+ */
+function writtenFrom(root: string, kept: Graph, target: CompileTarget, models: CompileOptions["models"] | undefined): boolean {
+  let said: RegExpExecArray | null = null;
+  try {
+    said = /# this export: frontier → (\S+), strong → (\S+), fast → (\S+)/.exec(readFileSync(join(root, ".grooph", kept.id, "MAPPING.md"), "utf8"));
+  } catch {
+    said = null;
+  }
+  const then = said && said.slice(1).every((name) => MODEL_NAME.test(name)) ? [{ models: { frontier: said[1]!, strong: said[2]!, fast: said[3]! } }] : [];
+  for (const options of [...then, models ? { models } : {}, {}]) {
+    let files: Record<string, string>;
+    try {
+      const was = tryCompile(kept, target, options);
+      if (!was.ok) continue;
+      files = was.result.files;
+    } catch {
+      continue;
+    }
+    const brief = Object.keys(files).find((path) => path.endsWith(`/${kept.id}/LEAD.md`));
+    if (brief === undefined) continue;
+    try {
+      const full = join(root, brief);
+      // As a file holds it: half a character in a document is written as a replacement character.
+      if (statSync(full).isFile() && readFileSync(full, "utf8") === asWritten(files[brief]!)) return true;
+    } catch {
+      // not there, or not a file: not written from this graph
+    }
+  }
+  return false;
+}
+
+/** A text as a file holds it once written as UTF-8 and read back. */
+export const asWritten = (text: string): string => Buffer.from(text, "utf8").toString("utf8");
+
 /** A change core marks as not judged (`unjudged`, beside `tightens`), whatever the mark holds; a core without the field marks none. */
 const isUnjudged = (change: AdoptionChange): boolean => {
   const mark = (change as AdoptionChange & { unjudged?: unknown }).unjudged;
@@ -223,7 +299,7 @@ const isUnjudged = (change: AdoptionChange): boolean => {
 };
 
 /** What `grooph adopt` says above the changes core does not judge; the three doors say it in the same words. */
-export const NOT_JUDGED = "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:";
+export const NOT_JUDGED = "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:";
 
 /**
  * The ids of the packages in `root` other than `id`'s: each folder under `.grooph` that is named as a graph's id is,
@@ -243,8 +319,32 @@ function otherPackages(root: string, id: string): string[] {
 /** How many of a list's names a line says before it says how many more there are. */
 export const NAMED_AT_MOST = 20;
 
+/**
+ * The agent files this export would place that another package in the folder has as its own. An agent's file is
+ * `<graph id>--<node id>.md`, and both ids may hold `--`: the graph `my` with a node `graph--builder` and the graph
+ * `my--graph` with a node `builder` name one file. Neither door writes over the other package's.
+ */
+export function sharedAgentFiles(root: string, id: string, places: readonly { path: string }[]): { path: string; other: string }[] {
+  const shared: { path: string; other: string }[] = [];
+  for (const other of otherPackages(root, id)) {
+    let nodes: string[];
+    try {
+      const json = JSON.parse(readFileSync(join(root, ".grooph", other, "graph.grooph.json"), "utf8")) as { nodes?: unknown };
+      nodes = Array.isArray(json.nodes) ? json.nodes.flatMap((node) => (typeof (node as { id?: unknown })?.id === "string" ? [(node as { id: string }).id] : [])) : [];
+    } catch {
+      continue;
+    }
+    const theirs = new Set(nodes.map((node) => `.claude/agents/${other}--${node}.md`));
+    for (const place of places) if (theirs.has(place.path)) shared.push({ path: place.path, other });
+  }
+  return shared;
+}
+
 /** A word of a command line as a shell takes it. */
 const shellWord = (text: string): string => (/^[A-Za-z0-9_.:/@=+-]+$/.test(text) ? text : `'${text.replace(/'/g, "'\\''")}'`);
+
+/** A line of the kickoff as the command prints it: the prompt's own text, with nothing in it that moves a terminal's cursor or ends the line early. A tab stays. */
+const KICKOFF_CONTROL = new RegExp(`[${[[0, 8], [11, 31], [127, 159], [0x2028, 0x2029]].map(([from, to]) => `\\u{${from!.toString(16)}}-\\u{${to!.toString(16)}}`).join("")}]+`, "gu");
 
 const looksLikeMap = (text: string): boolean => {
   try {
@@ -264,7 +364,11 @@ const looksLikeMap = (text: string): boolean => {
  * that package keeps, as `grooph adopt` holds a run's working copy (`brakesAtExport`): a change that may remove or
  * loosen one is listed and nothing is written, until it is asked for with `--allow <name>`.
  */
-export function exportCommand(io: Output, file: string, given: ExportFlags): number {
+export function exportCommand(raw: Output, file: string, given: ExportFlags): number {
+  // Whatever this command says is one line a call, with no control character in it. It echoes a file's name, a
+  // folder's, an argument, a document's keys and words: none of them can end a line and begin one of grooph's own, or
+  // move a terminal's cursor. The kickoff alone is many lines, and is printed apart (below).
+  const io: Output = { isTTY: raw.isTTY === true, out: (text) => raw.out(oneLine(text)), err: (text) => raw.err(oneLine(text)) };
   // The folder as one path, however it was spelled: `project/nope/..` is `project`, and is looked at as that.
   const flags: ExportFlags = { ...given, into: resolve(given.into) };
   const text = readText(file);
@@ -326,48 +430,76 @@ export function exportCommand(io: Output, file: string, given: ExportFlags): num
     if (err instanceof Refusal) return refused(err);
     throw err;
   }
+  // A package keeps its graph in a folder of the project's own, as the tool holds it: behind a link the kept graph
+  // would be whatever the link's other end holds.
+  for (const part of [".grooph", join(".grooph", parsed.doc.id)]) {
+    if (isLink(join(flags.into, part))) {
+      io.err(`grooph: cannot export ${file} into ${flags.into}: ${join(flags.into, part)} is a link to another folder, and a package keeps its graph in a folder of the project's own; nothing was written.`);
+      return 1;
+    }
+  }
   // The same stop the MCP tool has: an agent file already in place keeps its model unless the one exporting says otherwise.
   const moved = modelChanges(places);
   const movedLines = moved.map((change) => `  ${change.path}: model ${modelsSaid(change.was)} → ${modelsSaid(change.now)}`);
   // The brakes (amendment A-008): the graph coming in against the graph the package in place keeps. An export is one
   // more way that kept graph is replaced, and a run works from it, so a change that may remove or loosen a brake is
-  // put to the person here as it is at `grooph adopt`. Both stops are said together: one answered alone would leave
-  // the other to be met on the next try.
+  // put to the person here as it is at `grooph adopt`. Every stop is said together: one answered alone would leave
+  // the others to be met on the next try.
   const allow = flags.allow ?? [];
-  const brakes = brakesAtExport(flags.into, places, parsed.doc, allow);
+  const brakes = brakesAtExport(flags.into, places, parsed.doc, allow, flags.target, flags.models);
   const width = Math.max(0, ...[...brakes.held, ...brakes.meant].map((change) => change.name.length)) + 2;
-  // A reason is made of the documents' own words (an evidence item, a gate's answer), which can hold a line break:
-  // each change is one line, so no part of one can stand as a line of grooph's own.
-  const changeLine = (change: AdoptionChange): string => oneLine(`  ${change.name.padEnd(width)}${change.loosens ?? ""}`);
-  const tighterWidth = Math.max(0, ...[...brakes.tighter, ...brakes.unjudged].map((change) => change.name.length)) + 2;
+  const changeLine = (change: AdoptionChange): string => `  ${change.name.padEnd(width)}${change.loosens ?? ""}`;
+  const tighterWidth = Math.max(0, ...brakes.tighter.map((change) => change.name.length)) + 2;
   const tighterLines = (): string[] => [
-    ...(brakes.tighter.length > 0 ? [brakes.held.length > 0 ? "tightens a brake:" : "tightens a brake, and is placed with the rest:", ...brakes.tighter.map((change) => oneLine(`  ${change.name.padEnd(tighterWidth)}undoing it: ${change.tightens ?? ""}`))] : []),
-    ...(brakes.unjudged.length > 0 ? [NOT_JUDGED, ...brakes.unjudged.map((change) => oneLine(`  ${change.name}`))] : []),
+    ...(brakes.tighter.length > 0 ? [brakes.held.length > 0 ? "tightens a brake:" : "tightens a brake, and is placed with the rest:", ...brakes.tighter.map((change) => `  ${change.name.padEnd(tighterWidth)}undoing it: ${change.tightens ?? ""}`)] : []),
+    ...(brakes.unjudged.length > 0 ? [NOT_JUDGED, ...brakes.unjudged.map((change) => `  ${change.name}`)] : []),
   ];
-  if (brakes.unknown.length > 0) {
-    io.err(
-      brakes.compared
-        ? `grooph: no change named ${brakes.unknown.map((name) => `"${name}"`).join(", ")} between the graph the package in ${flags.into} keeps and ${file}, so nothing was written. --allow takes the names a refused export lists.`
-        : `grooph: --allow names ${brakes.unknown.map((name) => `"${name}"`).join(", ")}, but nothing was compared, so nothing was written: ${brakes.unreadable ? `the graph the package in ${flags.into} kept is gone or does not read` : `no package of this graph's id is in ${flags.into}`}. Export without --allow.`,
-    );
-    return 1;
+  const quoted = (names: readonly string[]): string => names.map((name) => JSON.stringify(name)).join(", ");
+
+  let stopped = false;
+  const shared = sharedAgentFiles(flags.into, parsed.doc.id, places);
+  if (shared.length > 0) {
+    stopped = true;
+    io.err(`grooph: ${plural(shared.length, "agent file")} of this graph would replace another package's in ${flags.into}, so nothing was written:`);
+    for (const one of shared) io.err(`  ${one.path}  is an agent of the package ${one.other}`);
+    io.err("An agent's file is named <graph id>--<node id>.md, and these two graphs make the same name. Give this graph or that node another id (renameId) and export again.");
   }
-  const stoppedOnModels = moved.length > 0 && flags.changeModels !== true;
+  const waits = waitsForAWord(brakes.state);
+  if (waits && flags.uncompared !== true) {
+    stopped = true;
+    io.err(`grooph: not compared, so nothing was written. ${NOT_COMPARED[brakes.state as keyof typeof NOT_COMPARED]}`);
+    io.err(`The graph a package keeps is what an export compares with, and here it cannot stand for what the package in ${flags.into} runs on: a looser graph would pass as no change.`);
+    io.err("Look at what is there. To place this graph with nothing compared, export again with --uncompared. That is a person's word: if you are an agent, put it to the person first.");
+  }
+  const nothingToName = brakes.state === "no-kept" || brakes.state === "unreadable";
+  if (brakes.unknown.length > 0 && !(nothingToName && flags.uncompared === true)) {
+    stopped = true;
+    io.err(
+      brakes.state === "compared" || brakes.state === "stale"
+        ? `grooph: no change named ${quoted(brakes.unknown)} between the graph the package in ${flags.into} keeps and ${file}, so nothing was written. --allow takes the names a refused export lists.`
+        : brakes.state === "nothing"
+          ? `grooph: --allow names ${quoted(brakes.unknown)}, and nothing was compared, so nothing was written: no package of this graph's id is in ${flags.into}. Without --allow this export places the graph, as a first export does.`
+          : `grooph: --allow names ${quoted(brakes.unknown)}, and nothing was compared, so the names answer for nothing and nothing was written. --uncompared places the graph without a comparison; --allow does not.`,
+    );
+  }
   if (brakes.held.length > 0) {
+    stopped = true;
     io.err(`grooph: ${plural(brakes.held.length, "change")} in ${file} may remove or loosen a brake of the graph the package in ${flags.into} keeps, so nothing was written:`);
     for (const change of brakes.held) io.err(changeLine(change));
-    io.err(`Export one on purpose by its name: --allow ${shellWord(brakes.held[0]!.name)}. All of them: add ${[...brakes.meant, ...brakes.held].map((change) => `--allow ${shellWord(change.name)}`).join(" ")} to the same command.`);
+    const names = [...brakes.meant, ...brakes.held].map((change) => `--allow ${shellWord(change.name)}`).join(" ");
+    io.err(brakes.held.length === 1 && brakes.meant.length === 0 ? `To place it on purpose, add to the same command: ${names}` : `To place one on purpose, add --allow and its name to the same command. All of them: ${names}`);
     io.err("The comparison cannot tell a stricter wording or a renamed part from a looser one, so it lists those too.");
-    io.err("A brake is removed or loosened on a person's word. If you are an agent, put each line above to the person, and add --allow only for the ones they said yes to.");
+    io.err("A brake is removed or loosened only on a person's word. If you are an agent, put each line above to the person, and add --allow only for the ones they said yes to.");
     for (const line of tighterLines()) io.err(line);
   }
-  if (stoppedOnModels) {
+  if (moved.length > 0 && flags.changeModels !== true) {
+    stopped = true;
     io.err(`grooph: this export would change the model of ${plural(moved.length, "agent file")} already in ${flags.into}, so nothing was written:`);
     for (const line of movedLines) io.err(line);
     for (const line of tiers) io.err(line);
     io.err("If the models are meant to change, export again with --change-models. If not, name the tiers the package was placed with: --models, or GROOPH_MODELS.");
   }
-  if (brakes.held.length > 0 || stoppedOnModels) return 1;
+  if (stopped) return 1;
   try {
     putAll(place, places);
   } catch (err) {
@@ -382,16 +514,12 @@ export function exportCommand(io: Output, file: string, given: ExportFlags): num
     for (const line of movedLines) io.out(line);
   }
   if (brakes.meant.length > 0) {
-    io.out(`brakes: placed with ${plural(brakes.meant.length, "change")} that may remove or loosen a brake the package there had, each asked for by name (--allow):`);
+    io.out("may remove or loosen a brake the package there had, and is placed because it was asked for by name (--allow):");
     for (const change of brakes.meant) io.out(changeLine(change));
-  } else if (brakes.compared) io.out("brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened");
-  else if (brakes.unreadable) io.out("brakes: not compared. The graph this package kept was gone or did not read.");
-  else {
-    const beside = brakes.beside ?? [];
-    io.out(`brakes: nothing in place to compare with. No package of this graph's id was there${beside.length > 0 ? `; ${plural(beside.length, "other package")} ${beside.length === 1 ? "is" : "are"}, and ${beside.length === 1 ? "its graph was" : "their graphs were"} not compared with this one: ${beside.slice(0, NAMED_AT_MOST).join(", ")}${beside.length > NAMED_AT_MOST ? `, and ${beside.length - NAMED_AT_MOST} more` : ""}` : ""}`);
   }
   for (const line of tighterLines()) io.out(line);
-  for (const notice of brakes.notices) io.out(oneLine(`note: ${notice}`));
+  if (nothingToName && brakes.unknown.length > 0) io.out(`note: --allow named ${quoted(brakes.unknown)}, and nothing was compared, so the names answered for nothing.`);
+  for (const notice of brakes.notices) io.out(`note: ${notice}`);
   for (const line of tiers) io.out(line);
 
   if (compiled.warnings.length > 0) {
@@ -400,10 +528,26 @@ export function exportCommand(io: Output, file: string, given: ExportFlags): num
     for (const warning of compiled.warnings) io.out(`  ${formatIssue(warning)}`);
   }
 
+  // The kickoff is the graph's own words (its name, its goal), many lines of them, and any of them can read as a line
+  // of this command's. So it is set apart: it runs from the line after "Kickoff" to the line before the last, and the
+  // last line of this output is always this command's own, the one that says what was compared.
   io.out("");
-  io.out(`Kickoff — paste this into a Claude Code session opened in ${flags.into}:`);
+  io.out(`Kickoff — paste this into a Claude Code session opened in ${flags.into}. It runs from the next line to the line before the last line of this output, which is grooph's own:`);
   io.out("");
-  io.out(compiled.kickoff.trimEnd());
+  for (const line of compiled.kickoff.trimEnd().split("\n")) raw.out(line.replace(KICKOFF_CONTROL, " "));
+  io.out("");
   printNext(io, `open a ${flags.target} session in ${flags.into} and paste the kickoff above`);
+  const beside = brakes.beside ?? [];
+  io.out(
+    brakes.state === "nothing"
+      ? `brakes: nothing in place to compare with. No package of this graph's id was there${beside.length > 0 ? `; ${plural(beside.length, "other package")} ${beside.length === 1 ? "is" : "are"}, and ${beside.length === 1 ? "its graph was" : "their graphs were"} not compared with this one: ${beside.slice(0, NAMED_AT_MOST).join(", ")}${beside.length > NAMED_AT_MOST ? `, and ${beside.length - NAMED_AT_MOST} more` : ""}` : ""}`
+      : waits
+        ? `brakes: not compared (--uncompared). ${NOT_COMPARED[brakes.state as keyof typeof NOT_COMPARED]}${brakes.meant.length > 0 ? ` Against the graph it keeps, ${plural(brakes.meant.length, "change")} may remove or loosen a brake, asked for by name (--allow) and listed above the kickoff.` : ""}`
+        : brakes.meant.length > 0
+          ? `brakes: placed with ${plural(brakes.meant.length, "change")} that may remove or loosen a brake the package there had, each asked for by name (--allow) and listed above the kickoff`
+          : brakes.same
+            ? "brakes: compared with the graph this package kept; it is the same graph"
+            : "brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened",
+  );
   return 0;
 }
