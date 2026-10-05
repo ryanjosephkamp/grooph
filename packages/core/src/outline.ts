@@ -85,7 +85,7 @@ export function outline(doc: Graph): OutlineSection[] {
       ...item("Budget", doc.constraints?.budget),
       ...item("Time", doc.constraints?.time),
       ...item("Other limits", doc.constraints?.other),
-      ...item("If the graph turns out wrong", doc.adaptation === "fixed" ? "fixed: the lead follows it exactly, or halts and asks" : doc.adaptation === "propose" ? "propose: the lead changes nothing and records proposals" : "adaptive: the lead may amend its working copy, visibly; brakes cannot be loosened"),
+      ...item("If the graph turns out wrong", doc.adaptation === "fixed" ? "fixed: the lead follows it exactly, or halts and asks" : doc.adaptation === "propose" ? "propose: the lead changes nothing and records proposals" : "adaptive: the lead may amend its working copy, visibly, and is told never to loosen a brake"),
       ...item("Version", `${doc.id}@${doc.version}`),
     ],
   });

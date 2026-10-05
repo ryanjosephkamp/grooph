@@ -21,13 +21,13 @@ These decide whether a graph is good. Apply them before reaching for any templat
 - **Every loop ends.** A real stop, plus a budget, plus a small max-iterations. Unbounded polish is the failure this tool exists to prevent.
 - **Coupled work gets one owner.** Fan out only pieces that touch nothing shared. Parallel agents on a coupled system lose to one owner working in sequence.
 - **Cheap checks before expensive judgment.** A deterministic check in front of a critic saves rounds.
-- **A different eye sees more.** A critic on the same tier as the builder tends to approve the builder's mistakes. Put judges on a different tier when it matters, and say so plainly when it does not.
+- **Vary the judge.** A critic on a different tier or pin from the builder may catch different mistakes. Put judges on a different tier when it matters, and say so plainly when it does not.
 - **Humans gate what cannot be undone.** Merge, publish, spend, delete.
 - **Point at the source of truth; do not paraphrase it.** Path limits, acceptance criteria and commands live in the project's own files. Name the file in a brief or constraint instead of restating it, and never restate a brake's value in prose: the copy goes stale and then contradicts the graph.
 - **Give a critic the repository, not only the diff.** Isolation means a fresh context and no builder claims. A critic that can read the head commit read-only catches what sits just outside the diff.
 - **Close decisions before building.** When the ask is fuzzy and no reference exists, recommend `spec-then-loop` and say plainly that the user should close their open decisions first; a decision map in the style of Matt Pocock's Wayfinder is one way. A loop cannot settle what the human has not decided.
 - **A gate asks for what the model lacks.** Word a human gate's question so it asks for the context only the human has (users, constraints, what must not happen), not for a rubber stamp.
-- **Leave graphs adaptive** unless the user asks otherwise. The lead may amend its working copy visibly and cannot loosen brakes. That is the safety margin for whatever you did not foresee, so do not try to foresee everything.
+- **Leave graphs adaptive** unless the user asks otherwise. The lead may amend its working copy visibly and is told never to loosen a brake; grooph adopt compares a run's copy with the graph it came from and holds a change it reads as loosening until that change is asked for by name. That is the margin for whatever you did not foresee, so do not try to foresee everything.
 
 ## Steps
 

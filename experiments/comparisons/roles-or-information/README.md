@@ -1,6 +1,8 @@
 # Roles or information: two arms on study two's tasks
 
-**On paper, written on 2026-10-05. Nothing here has been run, and this is not yet a pre-registered project:** it holds the two derived prompts for each of study two's three tasks, so that the owner can read exactly what each arm would be given before he says yes or no. The question and its yes and no are in [`handoffs/briefs/study-three-on-paper.md`](../../../handoffs/briefs/study-three-on-paper.md), question 5.
+**Pre-registered on 2026-10-05, before any run. Nothing here has been run.** The owner said yes to this question the same day. It holds the two derived prompts for each of study two's three tasks, and what each result will be read as, written before any of them exists. The question is in [`handoffs/briefs/study-three-on-paper.md`](../../../handoffs/briefs/study-three-on-paper.md), question 5. The same facts are in [`expect.json`](expect.json) for the runner.
+
+**Parked on 2026-10-05: not run.** The owner parked the experiments that day; his yes waits for him. The order when work resumes, and what each step may cost, is at the top of [the profile's page](../profile/README.md). Nothing here may be changed after the first paid call without a dated note saying what changed and why.
 
 ## Why
 
@@ -34,6 +36,50 @@ Nobody writes either by hand. `node scripts/lib/compare-arms-ef.mjs --write` mak
 - **Where the held-out material is.** Arm E's added section does not say. The token `<held-out>` becomes a real path when a run is built, and from the clean profile that path has to be inside the session's folder ([`../profile/README.md`](../profile/README.md)).
 - **The scorer and its suites are study two's.** Nothing under `experiments/comparisons/review-gate-2/`, `heterogeneous-critic/` or `taste-polish/` is changed or copied.
 
-## What is not here yet
+## Pre-registration
 
-The pre-registration in the runner's fields (the losing tests, the replicates, the spend), the runner's support for the two arms, and the clean profile the sessions would start from. Each waits for the owner's yes.
+**What is run.** Twelve sessions: on each of the three tasks, arm E twice and arm F twice, in the order E-1, F-1, E-2, F-2, task by task. A run is started only when every run before it is recorded. The lead is `claude-opus-5-5` at effort `high`; where arm F's prose names a model for a role, it is study two's tier map. Never Fable, never Astra.
+
+**Where a session runs.** From the comparison profile ([`../profile/`](../profile/)), in a folder of its own. In arm E the held-out material is inside that folder, at `held-out/`, since the profile lets no file tool read outside it; it is closed to writing by the sandbox and by a rule on the command line. In arm F there is none.
+
+**How a run is scored.** By study two's scorer and study two's suites, run from the repository's own `held-out/` folders against the final tree. Never from the copy a session was given.
+
+**No run of this question starts until the owner has decided that it may be scored this way.** The scorer runs the task's own `npm test` and the held-out suite against the session's final tree, and that runs the code the session wrote: outside the sandbox, with the account's rights. Study two's runs were scored that way. A session's commands here run inside the sandbox; what it wrote does not when it is scored. His decision is kept in [`../study-three-first-steps.json`](../study-three-first-steps.json), under `scoring_outside_the_sandbox`: who decided, on what day, in what words. It is empty today, and while it is the runner refuses the whole run before it makes a folder, since a run that cannot be scored is not paid for. Each scored run's record names the decision it was scored on.
+
+**What the scores will be read as.** Two statements, each of which either holds or does not. The numbers are study two's: with the design, 55 of 55, 70 of 70 and 24 of 24; with the task alone, 51, 52 and 15.
+
+- **"The information did it"** holds when, in every task, both runs of E pass every held-out case and both runs of F pass no more than the task alone did.
+- **"The roles did some of it"** holds when, in at least two tasks, both runs of F pass more held-out cases than the task alone did.
+- **Otherwise neither is claimed**, and the scores are reported task by task.
+
+**When each is read.** As soon as the recorded scores settle it either way, and not before. Until then the runner prints "not decided yet", never "false".
+
+- "The information did it" is false at the first run of E short of every case, or run of F above the task alone. It is true only when all twelve runs are scored and none of them is either.
+- "The roles did some of it" is true once two tasks each have both runs of F above the task alone, whatever is still to come. It is false once fewer than two tasks could still have that.
+
+**What counts as a run's score.**
+
+- **A run the harness or the account ended is not a score.** It is recorded, the driver is told, and it is made again once on the driver's word; the rerun's score is read in its place. Invalid both times, the run was not obtained: a task with a run of F not obtained cannot count toward the second statement, and the first is "not decided: a run was not obtained" unless a run in hand has already settled it.
+- **A run the watchdog cut off is scored as it stands**, as study two's protocol scores a cut-off, and its score is marked so.
+- **A final tree the suite was run against and gave no summary for passed no case**: it would not load, or it did not end. That is the session's.
+- **A run with no score at all is not a score.** The scorer failed, or its file is not there: that is the runner's, not the session's. The run reads as "recorded, not scored", a statement that needs it is not decided yet, and it can be scored again from the tree the runner kept.
+
+**Said beforehand.**
+
+- Two runs an arm give a range, never a rate. A difference of a case or two between F and the task alone is inside what two runs can show, which is why the second statement asks for both runs on two tasks.
+- Study two's numbers were made from the account's usual folder, under study two's five measures. These runs are made from the clean profile. The comparison with study two's task-alone arm is across that difference, and the write-up says so.
+
+**The watchdog** is $2.00 and fifteen minutes for a session of arm E, and $4.00 and twenty minutes for one of arm F. It is never a brake of a graph.
+
+**What it costs.** About $9: E at about what the task alone cost in study two ($0.25 to $0.42), F at about what the prose arm cost ($0.67 to $1.05).
+
+```bash
+node scripts/lib/roles-or-information-paid.mjs --next                       # which run is next, and what it would start
+node scripts/lib/roles-or-information-paid.mjs --spend --go "<the driver's words>"   # the next run, and only that one
+node scripts/lib/roles-or-information-paid.mjs --readings                   # what the recorded scores are read as, so far
+node scripts/lib/roles-or-information-paid.mjs --score <task>/<arm>-<n>     # score a recorded run whose scorer failed, from the tree the runner kept; no session, no spend
+```
+
+A paid run is started from a terminal, and is refused unless the first paid call's record says the runs after it may be made ([`../profile/first-call/`](../profile/first-call/)).
+
+Each run's record goes to `<task>/<arm>-<n>/` here, with its `score.json`.

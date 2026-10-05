@@ -16,13 +16,14 @@ Every round is kept: [`experiments/audits/`](../experiments/audits/README.md).
 
 **The corrections came with this page.** Round 1 proposed 26 corrections, by number, in [its reconciliation](../experiments/audits/0001-claims-as-of-0-3-0/round-01/RECONCILE.md). Those the owner accepted were made in the same change that added this page, so where a claim below reads "other words" or "not carried", the page it stood on now says what the evidence carries. The quotations in the first column are the words as they stood at 0.3.0.
 
-Five things still stand in their old words, each for a reason:
+Four things still stand in their old words, each for a reason:
 
 - **The blog draft**, which its author is rewriting by hand.
 - **The comments at the top of the two hook scripts, and the `grooph hooks` help text** ("ids, names and times", C30). The hook's files are part of the frozen starting contents of an experiment in progress, and change after it.
-- **The validator's printed sentence** that a critic on another tier "tends to catch different mistakes", and four sentences in the built-in templates' descriptions (C49, C52): code and templates, corrected by a change of their own. One of them reads there "four reviewers and a judge are each a dispatch, every round", and not "are five dispatches a round" as the reconciliation proposed: a check in this repository refuses a count beside a brake's unit in a template's prose, and it is not relaxed for a correction.
 - **"Sees only the traces" and "never sees the held-out cases"** (C46) in two long descriptions: the red-team loop template's, and one community graph's. A run reads a template's description, so changing one makes a new version of the template. They are named for round 2. (The same words in a row of the [templates page](templates.md) were corrected with the rest.)
 - **Decision records and the write-ups of past experiments**, which are kept as they were written ([decision 0009](decisions/0009-proving-records-are-evidence.md)). What they got wrong is said in [decision 0029](decisions/0029-what-is-shown-as-of-the-first-audit.md).
+
+A fifth was corrected a little after the rest, by a change of its own (pull request #108): the validator's printed sentence that a critic on another tier "tends to catch different mistakes", which now says "may", and four sentences in the built-in templates' descriptions (C49, C52). One of those reads "four reviewers and a judge are each a dispatch, every round", and not "are five dispatches a round" as the reconciliation proposed: a check in this repository refuses a count beside a brake's unit in a template's prose, and it is not relaxed for a correction.
 
 A reading is one of three:
 
@@ -117,7 +118,7 @@ Of the 52: 12 carried, 33 other words, 7 not carried.
 
 | # | Claim | Where | Evidence | The reading after round 1 | Audit |
 |---|---|---|---|---|---|
-| C45 | A run "may tighten a brake and never loosen one" | Report, [graph document](graph-ir.md) | The lead's brief; the proving check; a probe of `grooph adopt`, at 0.3.0 and again on 2026-10-05 | **Other words.** A rule the brief states; nothing checks it while a run goes on. At 0.3.0 nothing refused a loosened brake: a working copy with its round cap and budget raised was adopted. Since 2026-10-05 the `grooph adopt` command does not write such a copy until the change is asked for by name; the web app's Adopt button does not make that check yet | Round 1, agreed, for 0.3.0. The command's refusal is newer and waits for round 2 |
+| C45 | A run "may tighten a brake and never loosen one" | Report, [graph document](graph-ir.md) | The lead's brief; the proving check; a probe of `grooph adopt`, at 0.3.0 and again on 2026-10-05 | **Other words.** A rule the brief states; nothing checks it while a run goes on. At 0.3.0 nothing refused a loosened brake: a working copy with its round cap and budget raised was adopted. Since 2026-10-05 the `grooph adopt` command does not write such a copy until the change is asked for by name, and the web app's Adopt button, which makes the same comparison, does not save one at all. That comparison does not yet hold a check's command or where its verdicts lead ([amendment A-019](../spec/AMENDMENTS.md)) | Round 1, agreed, for 0.3.0. The refusal, in the command and in the app, is newer and waits for round 2 |
 | C46 | "everything else is hidden" from a node | [Graph document](graph-ir.md), field guide, [community](community.md), blog draft | [The proving records](../experiments/patterns/README.md) | **Other words.** An instruction, which failed once on record | Round 1, agreed |
 | C47 | "the same run id resumes it" | [Graph document](graph-ir.md) | The proving records | **Other words.** As C2 | Round 1, agreed |
 | C48 | A record with no ending line "is read as interrupted" | [Graph document](graph-ir.md) | The code | **Other words.** Flagged by the proving check; the monitor has no such state | Round 1, agreed |
