@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "blockReadsOutsideWorkingDirectories": true,
+    "deny": ["WebFetch", "WebSearch", "AskUserQuestion", "Bash(git push)", "Bash(git push *)"]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "allowWrite": ["__NPM_CACHE__"],
+      "allowRead": ["__NPM_CACHE__", "~/Library/Caches/ms-playwright"]
+    },
+    "network": {
+      "allowedDomains": ["registry.npmjs.org"],
+      "strictAllowlist": true,
+      "allowLocalBinding": true,
+      "allowMachLookup": ["*"]
+    }
+  },
+  "env": {
+    "npm_config_cache": "__NPM_CACHE__",
+    "npm_config_userconfig": "__NPM_CACHE__/npmrc",
+    "npm_config_update_notifier": "false"
+  },
+  "autoMemoryEnabled": false,
+  "disableClaudeAiConnectors": true,
+  "cleanupPeriodDays": 3650
+}
