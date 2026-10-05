@@ -304,6 +304,24 @@ test("adopt refuses a working copy that loosens a brake, names each, and takes i
     const adopted = readGraph(target);
     assert.equal(adopted.version, 2);
     assert.deepEqual(stopsOf(adopted).map((stop) => (stop.kind === "max-iterations" ? stop.n : stop.kind === "budget" ? stop.limit : undefined)), [undefined, 50, 800]);
+
+    // The next step it prints is the export, and the export holds the package's kept graph to the same brakes: so
+    // the line carries the names again, and is one the export takes, word for word, once the project is named.
+    const next = text(allowed.stdout).match(/place it for the next run with: (grooph export .*)$/m)![1]!;
+    assert.ok(next.endsWith("--into <project> --allow loop:sandwich.stops"), next);
+    const kept = join(dir, ".grooph", "slice-0007-sandwich", "graph.grooph.json");
+    const keptBefore = readFileSync(kept, "utf8");
+    // Without the name: refused, the same change under the same name with the same reasons, and nothing placed.
+    const bare = capture();
+    assert.equal(await grooph(["export", target, "--target", "claude-code", "--into", dir], bare), 1);
+    assert.match(text(bare.stderr), /1 change in .+ may remove or loosen a brake of the graph the package in .+ keeps, so nothing was written:/);
+    assert.match(text(bare.stderr), /loop:sandwich\.stops +raises the round cap from 5 to 50; raises the budget from 80 to 800 turns/);
+    assert.equal(readFileSync(kept, "utf8"), keptBefore);
+    // As printed: placed, and said.
+    const placed = capture();
+    assert.equal(await grooph(next.replace("<project>", dir).split(" ").slice(1), placed), 0, text(placed.stderr));
+    assert.match(text(placed.stdout), /brakes: placed with 1 change that may remove or loosen a brake the package there had, each asked for by name \(--allow\):\n {2}loop:sandwich\.stops +raises the round cap from 5 to 50/);
+    assert.equal(readGraph(kept).version, 2);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

@@ -33,7 +33,9 @@ person's decisions. What is compared and what is not: docs/templates.md, "Refres
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting
-then would undo someone's change. Re-export the new version to place it for the next run.`;
+then would undo someone's change. Re-export the new version to place it for the next run: the
+export holds it to the package's brakes again (grooph export --help), so the line adopt prints
+carries the same --allow names.`;
 
 /** The version the run came from, without the parts adoption never compares. */
 const sameVersion = (a: Graph, b: Graph): boolean => {
@@ -144,6 +146,8 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
   }
   writeText(target, canonicalize(adopted.doc));
   io.out(`wrote ${shown(target)} (version ${adopted.doc.version}); the source ${shown(join(run.graphDir, "graph.grooph.json"))} is unchanged`);
-  io.out(`place it for the next run with: grooph export ${shown(target)} --target ${adopted.doc.target?.harness ?? "<harness>"} --into <project>`);
+  // The export holds the package's kept graph to the same brakes, so what was adopted on purpose is named there again.
+  const again = meant.map((change) => ` --allow ${/^[A-Za-z0-9_.:/@=+-]+$/.test(change.name) ? change.name : `'${change.name.replace(/'/g, "'\\''")}'`}`).join("");
+  io.out(`place it for the next run with: grooph export ${shown(target)} --target ${adopted.doc.target?.harness ?? "<harness>"} --into <project>${again}`);
   return 0;
 }

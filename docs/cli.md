@@ -246,7 +246,7 @@ Example
 Write the prompt package for a harness (claude-code)
 
 ```text
-grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models]
+grooph export <file> --target <harness> --into <dir> [--models <tier>=<model>,...] [--change-models] [--allow <change>]...
 
 Validate for export, then write the harness package into <dir> and print the kickoff prompt.
 Refuses, with the reasons, when the document has errors. Targets: claude-code.
@@ -260,6 +260,19 @@ It says what each tier means in the package every time, and names each pin.
                                 already in <dir>, or cannot read one for its model (a header not in
                                 the plain form grooph writes). Without it such an export stops, lists
                                 each file with its model before and after, and writes nothing.
+  --allow <change>              place a change that may remove or loosen a brake of the graph the
+                                package in <dir> keeps, by the name a refused export lists it under
+                                (loop:review.stops); repeatable
+
+Over a package already in <dir> for the same graph id, while the graph that package keeps reads,
+the graph coming in is held to that graph's brakes, by the comparison grooph adopt makes (grooph
+adopt --help): a round cap or a budget raised, a gate or an approval gone, a bar's acceptance
+changed, a critic's isolation dropped. Each such change is listed with its reason, nothing is
+written, and the exit code is 1, until each is asked for with --allow. The comparison cannot tell a
+stricter wording or a renamed part from a looser one, so it lists those too. It is not made, and a
+line that opens "brakes:" says so, on a first export, for a graph under a new id (a second package
+beside the first), and when the kept graph is gone or does not read. It does not see a check's
+command, a brief or a node's tools.
 
 Every file is written inside <dir> by where it really is, never through a link at the file's own
 place, and the package is placed whole or not at all.
@@ -304,7 +317,9 @@ person's decisions. What is compared and what is not: docs/templates.md, "Refres
 
 Refused when the working copy has errors that block export, and --write is refused when the
 source moved on after the run started, or the target already holds another version: adopting
-then would undo someone's change. Re-export the new version to place it for the next run.
+then would undo someone's change. Re-export the new version to place it for the next run: the
+export holds it to the package's brakes again (grooph export --help), so the line adopt prints
+carries the same --allow names.
 ```
 
 ## `grooph image`

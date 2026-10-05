@@ -23,7 +23,7 @@
  * `next:` line: what to call, with what, to get past it.
  */
 
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import {
@@ -37,7 +37,6 @@ import {
   applyOps,
   buildShareEnvelope,
   canonicalize,
-  checkAdoption,
   closest,
   describeStop,
   encodeSharePayload,
@@ -73,7 +72,7 @@ import {
 } from "@grooph/core";
 
 import { embedHtml } from "./commands/embed.js";
-import { MODEL_NAME, TIERS, modelChanges, modelsSaid, parseModels, tiersSaid } from "./commands/export.js";
+import { MODEL_NAME, TIERS, brakesAtExport, modelChanges, modelsSaid, parseModels, tiersSaid } from "./commands/export.js";
 import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
@@ -337,17 +336,6 @@ function graphName(ctx: McpContext, given: string): string {
     );
   }
   return given;
-}
-/** The ids of the packages in `root` other than `id`'s: each folder under `.grooph` that keeps a graph and is not one grooph keeps for something else. */
-function otherPackages(root: string, id: string): string[] {
-  try {
-    return readdirSync(join(root, ".grooph"))
-      .filter((name) => name !== id && keptFolder(name) === undefined && existsSync(join(root, ".grooph", name, "graph.grooph.json")))
-      .sort()
-      .slice(0, 20);
-  } catch {
-    return [];
-  }
 }
 /** A path inside the project as it was written, relative to the project's real root: no link on the way resolved. */
 function written(ctx: McpContext, given: string): string {
@@ -1034,30 +1022,23 @@ export const AUTHOR_TOOLS: Tool[] = [
         // change `grooph adopt` holds until each is asked for by its name (amendment A-008), so it is put to the
         // person here by the same comparison and with the same limits (docs/runs.md section 3): it sees what core's
         // `brakesLost` sees, it cannot tell a stricter wording from a looser one and so holds both, and a name asked for
-        // answers for every reason under it. It is made at this door only: the command line's export, and anything that
-        // writes the kept graph itself, compare nothing. Where the package is there and its graph does not read, that
+        // answers for every reason under it. The command line's export asks the same function (`brakesAtExport`); anything
+        // that writes the kept graph itself compares nothing. Where the package is there and its graph does not read, that
         // is said, because then nothing was compared.
-        const keptPlace = places.find((place) => place.path.endsWith(`/${doc.id}/graph.grooph.json`));
-        const before = keptPlace && existsSync(keptPlace.full) && statSync(keptPlace.full).isFile() ? parseGraph(safeJson(readFileSync(keptPlace.full, "utf8"))).doc : undefined;
-        const brakes = before === undefined ? undefined : checkAdoption(before, doc, { allow });
-        const unknown = brakes === undefined ? allow : brakes.unknown;
-        if (unknown.length > 0) {
+        const brakes = brakesAtExport(root, places, doc, allow);
+        if (brakes.unknown.length > 0) {
+          const unknown = brakes.unknown;
           throw new Refusal(
-            `Nothing was placed in ${q(shownIn(ctx, root))}: "allow" names ${unknown.map(q).join(", ")}, which ${unknown.length === 1 ? "is" : "are"} no change between ${before === undefined ? "a package in place (there is none with a graph that reads)" : "the graph the package in place keeps"} and this one.`,
+            `Nothing was placed in ${q(shownIn(ctx, root))}: "allow" names ${unknown.map(q).join(", ")}, which ${unknown.length === 1 ? "is" : "are"} no change between ${brakes.compared ? "the graph the package in place keeps" : "a package in place (there is none with a graph that reads)"} and this one.`,
             'pass in "allow" only the names a refusal of this tool listed after "loosens", or leave it out',
           );
         }
-        // A kept graph that lists the same loop twice gives the same change twice: it is one change, said once.
-        const once = (changes: readonly AdoptionChange[]): AdoptionChange[] => changes.filter((change, i) => changes.findIndex((other) => other.name === change.name && other.loosens === change.loosens) === i);
-        const held = once(brakes?.refused ?? []);
-        // Files of this package are in place and the graph it kept is gone or does not read: no brake could be compared.
-        uncompared = before === undefined && places.some((place) => existsSync(place.full));
-        meant = brakes === undefined ? [] : once(brakes.changes.filter((change) => change.loosens !== undefined && !(brakes.refused ?? []).includes(change)));
-        compared = before !== undefined;
-        // Nothing of this graph's package is there. Another graph's may be: a graph given a new id is a second package
-        // beside the first, and is compared with nothing, so the reply names what is there.
-        if (!compared && !uncompared) beside = otherPackages(root, doc.id);
-        notices = brakes?.notices ?? [];
+        const held = brakes.held;
+        meant = brakes.meant;
+        compared = brakes.compared;
+        uncompared = brakes.unreadable;
+        beside = brakes.beside;
+        notices = brakes.notices;
         const unanswered = (theirs.length > 0 || moved.length > 0) && args["replace"] !== true;
         if (held.length > 0) {
           const byBrake = `${plural(held.length, "change")} in this graph may remove or loosen a brake the package there has`;
