@@ -34,6 +34,6 @@ The driver's reader then found the same mistake reachable two more ways: a machi
 
 ## Not decided here
 
-- **Two packages of one graph in one project.** A graph exported for one harness and then, renamed, for the other into the same folder leaves both harnesses' files beside one `.grooph/<graph-id>/`, and the export says nothing. A check in the export is the first follow-up, after the change that makes export aware of what grooph last wrote (pull request #60). The files to look for are in the handback of slice 0076.
+- **Two packages of one graph in one project.** A graph exported for one harness and then, renamed, for the other into the same folder leaves both harnesses' files beside one `.grooph/<graph-id>/`, and the export says nothing. A check in the export is the first follow-up, after the change that makes export aware of what grooph last wrote (pull request #60). The files to look for are in the handback of slice 0076 ("After the driver's reader") and in `docs/targets/codex.md`, "Known limits".
 - **Whether `grooph adopt` should hold a run's change of harness as it holds a brake.** It takes one today. That goes to the audit and to the owner.
 - **A fixture for the new case of `E_NO_TARGET`.** A fixture is a document, and the fixtures' runner validates a document without an export; it cannot say "exported for that target". The case is held by `packages/core/test/compile-target.test.ts` and `packages/cli/test/cli.test.ts`, and the rule's row in `docs/graph-ir.md` says so.

@@ -221,7 +221,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 
 | Code | Rule |
 |---|---|
-| `W_HOMOGENEOUS_CRITICS` | A critic-family node resolves to the same tier and pin as every one of its **nearest writers** (the pin read is the one for the harness the document names: a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic. |
+| `W_HOMOGENEOUS_CRITICS` | A critic-family node is on the same model as every one of its **nearest writers**, as far as the document says: the same pin for the harness the document names, or, where neither is pinned for it, the same tier (a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by its tier and every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic. |
 | `W_FANOUT_ON_COUPLED` | A node or group marked `coupled` receives an edge with `concurrency.max > 1`, or two `coupled` nodes share an `owns` entry. |
 | `W_LONG_LOOP_NO_BUDGET` | A loop has no `budget` stop and either no `max-iterations` stop or one with `n > 5`. |
 | `W_ASPIRATION_AS_ACCEPTANCE` | A bar's `aspiration` equals its `acceptance`, or `acceptance` is blank while `aspiration` is set. |

@@ -42,7 +42,7 @@ The session proposes one to three validated graphs, from the templates or from s
 
 ## What it is not
 
-It is not an automation canvas with connectors, and it is not a hosted studio that executes the graph. It does not replace your harness, your editor or git. Claude Code is the compile target the built-in templates have been run on. A second target, Codex, compiles and is tested against golden packages; no run in Codex is on record yet.
+It is not an automation canvas with connectors, and it is not a hosted studio that executes the graph. It does not replace your harness, your editor or git. Claude Code is the compile target the built-in templates have been run on. A second target, Codex, compiles and is tested against golden packages; no run of a package in Codex is on record yet.
 
 ## Status
 

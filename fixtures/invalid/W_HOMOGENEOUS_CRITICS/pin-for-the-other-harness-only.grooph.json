@@ -1,7 +1,7 @@
 {
   "grooph": 0,
-  "id": "apart-only-by-the-other-harness-pin",
-  "name": "Apart only by the other harness's pin",
+  "id": "pin-for-the-other-harness-only",
+  "name": "A pin for the other harness only",
   "version": 1,
   "goal": "Review a draft.",
   "target": {

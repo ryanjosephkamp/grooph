@@ -15,6 +15,7 @@ import { run } from "../src/index.js";
 
 // A developer's own tier map must not reach the golden packages these tests compare against.
 delete process.env["GROOPH_MODELS"];
+delete process.env["GROOPH_MODELS_CODEX"];
 import type { Output } from "../src/print.js";
 
 const repoRoot = (() => {
@@ -187,10 +188,11 @@ test("export writes the package and prints the kickoff", async () => {
 });
 
 /** The review loop in a scratch folder, naming the harness asked for: by the op, through the command a person uses. */
-const reviewLoopNaming = async (dir: string, harness: string): Promise<string> => {
+const reviewLoopNaming = (dir: string, harness: string): Promise<string> => fixtureNaming(dir, "review-loop", harness);
+const fixtureNaming = async (dir: string, name: string, harness: string): Promise<string> => {
   mkdirSync(dir, { recursive: true });
-  const path = join(dir, "review-loop.grooph.json");
-  copyFileSync(fixture("valid", "review-loop.grooph.json"), path);
+  const path = join(dir, `${name}.grooph.json`);
+  copyFileSync(fixture("valid", `${name}.grooph.json`), path);
   const io = capture();
   assert.equal(await run(["apply", path, "--ops", "-", "--write"], io, () => JSON.stringify([{ op: "setTarget", harness }])), 0, io.all());
   assert.equal(JSON.parse(readFileSync(path, "utf8")).target.harness, harness);
@@ -285,9 +287,16 @@ test("a machine's tier map is one harness's: GROOPH_MODELS is never read for Cod
     assert.equal(await run(["export", paths.codex, "--target", "codex", "--into", join(dir, "never")], bad, () => "", { env: { GROOPH_MODELS_CODEX: "best=x" } }), 1);
     assert.match(bad.stderr.join("\n"), /GROOPH_MODELS_CODEX: "best" is not a tier/);
     assert.equal(await run(["export", paths.codex, "--target", "codex", "--into", join(dir, "fine")], capture(), () => "", { env: { GROOPH_MODELS: "best=x" } }), 0, "Claude Code's variable is not read for Codex, even to be refused");
-    // The note that two tiers are one model names the variable of the target exported.
-    const note = await exported("codex", {});
-    assert.doesNotMatch(note.out, /or GROOPH_MODELS\./);
+    // The note that two tiers are one model names the variable of the target exported. It is printed for a graph
+    // with agents on two tiers that are one model in the target's own map (strong and fast, in both).
+    for (const [target, variable] of [["claude-code", "GROOPH_MODELS"], ["codex", "GROOPH_MODELS_CODEX"]] as const) {
+      const two = await fixtureNaming(join(dir, `two-${target}`), "glyph-vocabulary", target);
+      const io = capture();
+      assert.equal(await run(["export", two, "--target", target, "--into", mkdtempSync(join(dir, "two-pkg-"))], io, () => "", { env: {} }), 0, io.all());
+      const said = /To keep them apart, name the tiers: --models, or ([A-Z_]+)\./.exec(io.stdout.join("\n"));
+      assert.ok(said, `${target}: the note was not printed`);
+      assert.equal(said[1], variable, target);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

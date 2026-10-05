@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash as cryptoHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { after, test } from "node:test";
@@ -143,7 +143,9 @@ test("generic builder dispatch and started-only node notes do not satisfy custom
 
 // `git check-ignore` answers only in a checkout. In a copy without one (`git archive`, a tarball) the case is
 // shown as skipped, with the reason, and not as a failure of the rule.
-const inCheckout = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: ROOT, encoding: "utf8" }).stdout?.trim() === "true";
+// (A copy unpacked inside some other repository is not a checkout of this one: the top of the work tree must be here.)
+const top = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd: ROOT, encoding: "utf8" }).stdout?.trim();
+const inCheckout = Boolean(top) && realpathSync(top) === realpathSync(ROOT);
 
 test("what Codex said and printed is written where git ignores it, and the record beside it is not", { skip: inCheckout ? false : "not a git checkout: git cannot be asked what it ignores here" }, () => {
   // The two files are the whole transcript of a session and the repository is public (REVIEW.md, second read).

@@ -205,9 +205,9 @@ error  E_IRREVERSIBLE_NO_GATE  node "publisher" performs irreversible actions (p
 
 ### `W_HOMOGENEOUS_CRITICS`
 
-A critic-family node resolves to the same tier and pin as every one of its **nearest writers** (the pin read is the one for the harness the document names: a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic.
+A critic-family node is on the same model as every one of its **nearest writers**, as far as the document says: the same pin for the harness the document names, or, where neither is pinned for it, the same tier (a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by its tier and every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic.
 
-**Fails:** [`fixtures/invalid/W_HOMOGENEOUS_CRITICS/apart-only-by-the-other-harness-pin.grooph.json`](../fixtures/invalid/W_HOMOGENEOUS_CRITICS/apart-only-by-the-other-harness-pin.grooph.json) prints
+**Fails:** [`fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json`](../fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json) prints
 
 ```text
 warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]

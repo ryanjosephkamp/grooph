@@ -461,14 +461,18 @@ function irreversibleWithoutGate(index: GraphIndex): Issue[] {
 }
 
 /**
- * The model a node resolves to in the harness the document names: its tier and its pin for that harness, or the
- * session default. A pin for another harness is not read there, so it tells no critic apart from its builder: the
- * package for the named harness would put both on the tier's model. A document that names no harness yet is read
- * harness-neutrally, by every pin.
+ * What says which model a node is on, in the harness the document names: its pin for that harness, which the
+ * package writes in place of the tier's model; or else its tier; or the session default. A pin for another harness
+ * is not read there, so it tells no critic apart from its builder. Two nodes pinned to one model for the named
+ * harness are on one model whatever their tiers. (What a tier means is the target profile's and the exporter's to
+ * say, so a pin that names the very model its builder's tier resolves to is not seen here.)
+ *
+ * A document that names no harness yet is read harness-neutrally: its tier and every pin, as before.
  */
 function modelKey(node: AgentNode, harness: string | undefined): string {
   const pin = node.model?.pin;
-  const pins = pin ? Object.keys(pin).filter((name) => harness === undefined || name === harness).sort().map((name) => `${name}: ${pin[name]}`) : [];
+  if (harness !== undefined && pin?.[harness] !== undefined) return `pin ${harness}: ${pin[harness]}`;
+  const pins = pin && harness === undefined ? Object.keys(pin).sort().map((name) => `${name}: ${pin[name]}`) : [];
   return [node.model ? `tier ${node.model.tier}` : "the session default", ...pins.map((p) => `pin ${p}`)].join(", ");
 }
 
@@ -486,7 +490,7 @@ function homogeneousCritics(index: GraphIndex): Issue[] {
   const back = new Set<Id>((index.doc.loops ?? []).flatMap((loop) => loop.back ?? []));
   const writers = agentNodes(index).filter(isWriterFamily);
   const named = index.doc.target?.harness;
-  const harness = named !== undefined && named.trim() !== "" ? named : undefined;
+  const harness = typeof named === "string" && named.trim() !== "" ? named : undefined;
   const flagged: { critic: AgentNode; writers: AgentNode[] }[] = [];
   for (const critic of agentNodes(index).filter(isCriticFamily)) {
     const nearest = nearestWriters(index, critic.id, back);

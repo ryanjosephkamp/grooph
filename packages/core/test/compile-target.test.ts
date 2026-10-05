@@ -197,6 +197,25 @@ test("a critic told apart from its builder only by a pin for the other harness i
   // The message names what was compared: the tier, and no pin of another harness.
   const said = validate(withPin("codex", { "claude-code": "opus" }), { forExport: true }).find((issue) => issue.code === "W_HOMOGENEOUS_CRITICS")!.message;
   assert.match(said, /on the same model \(tier strong\)/);
+  // A pin for the named harness is the model, whatever the tier: two nodes pinned to one model are on one model,
+  // and two pinned apart are not, on one tier or two.
+  type Said = { tier: "frontier" | "strong" | "fast"; pin?: Record<string, string> };
+  const both = (critic: Said, builder: Said): Graph => {
+    const doc = setTarget(reviewLoop(), "codex");
+    const as = (said: Said): AgentNode["model"] => said as AgentNode["model"];
+    return { ...doc, nodes: doc.nodes.map((node) => (node.kind !== "agent" ? node : node.id === "critic" ? { ...node, model: as(critic) } : node.id === "builder" ? { ...node, model: as(builder) } : node)) };
+  };
+  const onePinTwoTiers = both({ tier: "frontier", pin: { codex: "m1" } }, { tier: "strong", pin: { codex: "m1" } });
+  assert.equal(homogeneous(onePinTwoTiers), true);
+  assert.match(validate(onePinTwoTiers).find((issue) => issue.code === "W_HOMOGENEOUS_CRITICS")!.message, /on the same model \(pin codex: m1\)/);
+  assert.deepEqual(Object.entries(compile(onePinTwoTiers, "codex").files).filter(([path]) => path.endsWith(".toml")).map(([, text]) => /^model = "(.+)"$/m.exec(text)![1]), ["m1", "m1"]);
+  assert.equal(homogeneous(both({ tier: "strong", pin: { codex: "m1" } }, { tier: "strong", pin: { codex: "m2" } })), false);
+  assert.equal(homogeneous(both({ tier: "frontier", pin: { codex: "m1" } }, { tier: "strong" })), false);
+  assert.equal(homogeneous(both({ tier: "frontier", pin: { "claude-code": "m1" } }, { tier: "strong", pin: { "claude-code": "m1" } })), false, "two tiers, and the shared pin is for the other harness");
+  // What the rule cannot see, said in docs/targets/codex.md: a pin that names the model its builder's tier means.
+  assert.equal(homogeneous(both({ tier: "strong", pin: { codex: getProfile("codex").models.strong } }, { tier: "strong" })), false);
+  // A document made in code with a harness that is no string is not the validator's to crash on.
+  for (const odd of [7, null, {}, []]) assert.doesNotThrow(() => validate({ ...reviewLoop(), target: { harness: odd as unknown as string } }), String(odd));
   // A document that names no harness yet is read by every pin, as it was.
   assert.equal(homogeneous(withPin(undefined, { codex: "another-model" })), false);
   assert.equal(homogeneous(withPin(undefined, { "claude-code": "another-model" })), false);
