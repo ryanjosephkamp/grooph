@@ -257,9 +257,10 @@ export function Landing({ device }: { device?: ReactNode }) {
               What is shown, <mark>and what is not</mark>
             </h2>
             <p>
-              In twenty proving runs and one paired comparison, grooph is shown to bound and record autonomous work and to hold a design as a runtime
-              contract. It is not shown to raise quality over the same instructions given as a prompt, on small tasks. It does not run agents, host anything,
-              or call a model. <a href={`${SOURCE}/blob/main/docs/decisions/0013-value-as-of-study-one.md`}>The evidence</a>.
+              In twenty recorded runs a session stopped where its graph said, at a passed bar or a human gate, and left a record; eighteen of the twenty
+              pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
+              no quality advantage over a prompt derived from it. grooph runs no agent, calls no model and needs no hosted service.{" "}
+              <a href={`${DOCS}claims/`}>Every claim and its evidence</a>.
             </p>
           </div>
         </section>
