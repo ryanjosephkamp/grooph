@@ -7,7 +7,6 @@
 import {
   adoptWorkingCopy,
   applyOps,
-  canonicalize,
   describePatch,
   diffGraphs,
   explainChanges,
@@ -142,10 +141,13 @@ export function proposalCopy(bundle: RunBundle, note: RunNote): ProposalCopy {
     lineage: { ...applied.doc.lineage, from: `${source.id}@${source.version}` },
     ...(source.notes && source.notes.length > 0 ? { notes: source.notes } : {}),
   };
+  // One plain document, and that one is what is checked, compared and saved: the library keeps a copy made of a
+  // document's own fields, so anything the document in memory only inherits would be compared and not saved.
+  const plain = JSON.parse(JSON.stringify(doc)) as Graph;
   // Ops check their own arguments, not what a `set` holds: a patch can leave a cap of `null` or evidence that is
-  // one string. So the copy is read back through the schema, as `grooph apply` reads its own before it writes.
-  const read = parseGraph(JSON.parse(canonicalize(doc)));
-  return { ok: true, doc, issues: read.doc ? validate(read.doc, { forExport: true }) : read.issues, graph: read.doc !== undefined };
+  // one string. So the copy is read through the schema, as `grooph apply` reads its own before it writes.
+  const read = parseGraph(plain);
+  return { ok: true, doc: plain, issues: read.doc ? validate(plain, { forExport: true }) : read.issues, graph: read.doc !== undefined };
 }
 
 /** Timeline order: oldest first, or newest first while the run is live and running. */

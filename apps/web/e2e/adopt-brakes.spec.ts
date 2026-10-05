@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -140,10 +141,62 @@ test("Apply to a copy says which brakes the copy loosens, where a person on a ph
   const docs = await libraryDocs(page);
   expect(docs.filter((doc) => doc.version === 2).map((doc) => (doc.loops[0]!.stops[1] as { n: number }).n).sort()).toEqual([5, 9]);
 
-  // Another run's link in the same tab: its proposal of the same id shows its own button, not this run's saved line.
-  await proposals(page, proposing({}, (bundle) => void (bundle.run = "20260919-0100-aaaa")));
+  // Another run's link opened in the same tab, with no reload between (only the address after `#` changes): its
+  // proposal of the same id shows its own button, not this run's saved line.
+  const other = linkFor(proposing({}, (bundle) => void (bundle.run = "20260919-0100-aaaa")));
+  await page.evaluate((hash) => void (location.hash = hash), other.slice(other.indexOf("#")));
+  await expect(page.locator(".title-sub")).toContainText("Run 20260919-0100-aaaa");
+  await runTab(page, "Proposals").tap();
   await expect(proposal(page, "n-0016").getByRole("button", { name: "Apply to a copy" })).toBeVisible();
   await expect(proposal(page, "n-0016").locator('[role="status"]')).toHaveCount(0);
+});
+
+test("a link made by hand whose patch hides a field in \"__proto__\": the op is refused by name and nothing is saved", async ({ page }) => {
+  // The run's edge needs approval. The patch takes the approval away and, in the same `set`, puts one where every
+  // object inherits from: merged in by assignment, the document in memory still had an approval, was compared as
+  // unchanged ("it validates", no line about brakes), and its saved copy had none. A link grooph makes drops the
+  // key, so this one is made by hand: the honest link's text, with the key written into it.
+  const bundle = proposing({ "n-0020": [{ op: "updateEdge", id: "e-checks-critic", set: { approval: null, marker: "HIDE-HERE" } }] }, (b) => {
+    for (const doc of [b.source, b.working]) doc.edges.find((e) => e.id === "e-checks-critic")!.approval = true;
+  });
+  const honest = linkFor(bundle);
+  const text = inflateRawSync(Buffer.from(honest.slice(honest.indexOf("d=") + 2), "base64url")).toString("utf8");
+  expect(text).toContain('"marker":"HIDE-HERE"');
+  const forged = text.replace('"marker":"HIDE-HERE"', '"__proto__":{"approval":true}');
+  await page.goto("about:blank");
+  await page.goto(`./#/open?d=${deflateRawSync(Buffer.from(forged, "utf8"), { level: 9 }).toString("base64url")}`);
+  await runTab(page, "Proposals").tap();
+  await applyIt(page, "n-0020");
+  await expect(proposal(page, "n-0020").locator(".refusal-hint")).toHaveText('The patch does not apply to the run\'s working copy: ops[0] updateEdge: "set" cannot hold the key "__proto__". Nothing was saved.');
+  await expect(proposal(page, "n-0020").locator('[role="status"] .adopt-done')).toHaveCount(0);
+  // The honest twin beside it, to have something saved to read the library after: it is told that it removes the approval.
+  await applyIt(page, "n-0016");
+  await expect(proposal(page, "n-0016").locator(".adopt-done")).toContainText("as version 2");
+  const docs = await libraryDocs(page);
+  expect(docs.filter((doc) => doc.version === 2)).toHaveLength(1);
+  expect(docs.find((doc) => doc.version === 2)!.edges.find((e) => e.id === "e-checks-critic")!.approval).toBe(true);
+});
+
+test("Apply to a copy when the device will not keep the copy: said, and the buttons are given back", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await proposals(page, proposing());
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put;
+    (window as unknown as { restorePut: () => void }).restorePut = () => void (IDBObjectStore.prototype.put = put);
+    IDBObjectStore.prototype.put = () => {
+      throw new DOMException("no room", "QuotaExceededError");
+    };
+  });
+  const cap = proposal(page, "n-0016");
+  await applyIt(page, "n-0016");
+  await expect(cap.locator(".refusal-hint")).toHaveText("The copy could not be saved on this device. Press Apply to a copy to try again.");
+  await expect(cap.getByRole("button", { name: "Apply to a copy" })).toBeEnabled();
+  await expect(proposal(page, "n-0008").getByRole("button", { name: "Apply to a copy" })).toBeEnabled();
+  await page.evaluate(() => (window as unknown as { restorePut: () => void }).restorePut());
+  await applyIt(page, "n-0016");
+  await expect(cap.locator(".adopt-done")).toContainText("Saved a copy of the working copy with n-0016 applied, as version 2");
+  expect(errors).toEqual([]);
 });
 
 test("Apply to a copy compares the copy with the graph the run came from: a brake the run itself moved is listed, and laid at neither", async ({ page }) => {
