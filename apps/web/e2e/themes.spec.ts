@@ -43,7 +43,6 @@ function fetches(page: Page): string[] {
   return asked;
 }
 
-/** A theme chosen before the page loads, as a visit after the choice finds it. */
 /** Whether two boxes on the page share no pixel. */
 const apart = (a: { x: number; y: number; width: number; height: number }, b: typeof a): boolean => a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
 /** A canvas's own last fetch is in before the page is left or loaded again (`canvasIsQuiet`), then the reload. */
@@ -52,6 +51,7 @@ const again = async (page: Page): Promise<void> => {
   await page.reload();
 };
 
+/** A theme chosen before the page loads, as a visit after the choice finds it. */
 const keep = (page: Page, name: string) => page.addInitScript((value) => localStorage.setItem("groophPicture", value), name);
 
 /** How far the widest line of words in a picture runs past its card, its pill or the picture's own edge, in units. */
@@ -509,13 +509,16 @@ test("a graph in three dimensions is Paper in every theme, and whole; the dot st
   await page.goto(linkFor(reviewLoop()));
   const stage = page.locator("main.stage");
   await expect(stage).toHaveAttribute("data-look", "phosphor");
-  const dot = stage.getByRole("button", { name: "Picture theme: Phosphor" });
+  // The dot, by what it is and not by what it says: a name that changed must not read as a dot that hid.
+  const dot = stage.locator("[data-pictures]");
   await expect(dot).toBeVisible();
+  await expect(dot).toHaveAccessibleName("Picture theme: Phosphor");
   await canvasIsQuiet(page);
   await page.getByRole("radiogroup", { name: "View of the graph" }).getByRole("radio", { name: "3D" }).tap();
   const space = stage.locator(".graph-views .space");
   await expect(space).toBeVisible();
-  await expect(space).not.toHaveAttribute("data-look", /.+/);
+  // Nothing that holds the view says a theme while it is shown: not the stage, and not the frame around the scene.
+  await expect(page.locator("main.stage[data-look], .map-picture[data-look]")).toHaveCount(0);
   await expect(space.locator("[data-of-look]")).toHaveCount(0);
   // Paper's own colors, in light as the device is: the cards, and the ground the whole view stands on.
   const papers = /--gp-bg:(#[0-9a-f]+);--gp-surface:(#[0-9a-f]+);[^}]*--gp-ink:(#[0-9a-f]+)/.exec(picture(reviewLoop()))!;
@@ -542,12 +545,133 @@ test("a graph in three dimensions is Paper in every theme, and whole; the dot st
   expect(bar.ground).toBeGreaterThan(0.75);
   // The dot is not there: a theme changes nothing in this view.
   await expect(dot).toBeHidden();
-  // Back to the picture: the canvas is in the theme as it was, and the dot is back under the switch.
+  // Back to the picture: the canvas is in the theme again, and the dot is back under the switch, saying it.
   await page.getByRole("radiogroup", { name: "View of the graph" }).getByRole("radio", { name: "Picture" }).tap();
   await expect(stage).toHaveAttribute("data-look", "phosphor");
   await expect(dot).toBeVisible();
-  await expect(node(page, "builder")).toBeVisible();
+  await expect(dot).toHaveAccessibleName("Picture theme: Phosphor");
+  const card = await node(page, "builder").locator(".gnode").evaluate((el) => getComputedStyle(el).borderRadius);
+  expect(card).toBe(`${THEME_VALUES.phosphor.canvas.radius}px`);
 });
+
+test("turned to three dimensions with its list open, the dot's list is closed and not left open where nobody can see it", async ({ page }) => {
+  await page.goto(linkFor(reviewLoop()));
+  const stage = page.locator("main.stage");
+  await canvasIsQuiet(page);
+  const dot = stage.locator("[data-pictures]");
+  await dot.tap();
+  await expect(list(stage)).toBeVisible();
+  // By the keyboard's way: no press on the page that would close the list for another reason.
+  await page.getByRole("radiogroup", { name: "View of the graph" }).getByRole("radio", { name: "3D" }).dispatchEvent("click");
+  await expect(stage.locator(".graph-views .space")).toBeVisible();
+  await expect(list(stage)).toHaveCount(0);
+  await expect(dot).toHaveAttribute("aria-expanded", "false");
+});
+
+test("when the view in three dimensions cannot be fetched, the switch says so and the dot is still there, clear of the words, and works", async ({ page }) => {
+  await page.route("**/assets/space-*.js", (route) => route.abort());
+  for (const width of [360, 400, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("about:blank");
+    await page.goto(linkFor(reviewLoop()));
+    const stage = page.locator("main.stage");
+    await canvasIsQuiet(page);
+    await page.getByRole("radiogroup", { name: "View of the graph" }).getByRole("radio", { name: "3D" }).click();
+    const note = stage.locator(".graph-views-note");
+    await expect(note).toBeVisible({ timeout: 15000 });
+    const dot = stage.locator("[data-pictures]");
+    await expect(dot).toBeVisible();
+    const [words, its, above] = [(await note.boundingBox())!, (await dot.boundingBox())!, (await page.getByRole("radiogroup", { name: "View of the graph" }).boundingBox())!];
+    expect(apart(words, its), `at ${width} px, the dot and the words`).toBe(true);
+    expect(apart(above, its), `at ${width} px, the dot and the switch`).toBe(true);
+    // The words stay for as long as the screen does; the themes can still be reached while they do.
+    await dot.click();
+    await list(stage).getByRole("menuitemradio", { name: "Ink" }).click();
+    await expect(stage).toHaveAttribute("data-look", "ink");
+    await expect(note).toBeVisible();
+    await stage.locator("[data-pictures]").click();
+    await list(stage).getByRole("menuitemradio", { name: "Paper" }).click();
+    await expect(stage).not.toHaveAttribute("data-look", /.+/);
+    await canvasIsQuiet(page);
+  }
+});
+
+test("the dot's list rises over a sheet that is open on the canvas: all six can be pressed, on a share link and in the editor", async ({ page }) => {
+  // A node's panel covers the lower half of a phone's screen, and the toolbar stands over the canvas: the list is
+  // longer than the room above them.
+  const through = async (): Promise<void> => {
+    const stage = page.locator("main.stage");
+    await canvasIsQuiet(page);
+    await node(page, "builder").tap();
+    await expect(sheet(page)).toBeVisible();
+    for (const [name, id] of [["Chalk", "chalk"], ["Transit", "transit"], ["Phosphor", "phosphor"], ["Ink", "ink"], ["Blueprint", "blueprint"]] as const) {
+      await stage.locator("[data-pictures]").tap();
+      // A tap lands only on what is on top at that place: one that a sheet or a toolbar covered would not be taken.
+      await list(stage).getByRole("menuitemradio", { name }).tap();
+      await expect(stage, name).toHaveAttribute("data-look", id);
+      await expect(sheet(page)).toBeVisible();
+    }
+    await stage.locator("[data-pictures]").tap();
+    await list(stage).getByRole("menuitemradio", { name: "Paper" }).tap();
+    await expect(stage).not.toHaveAttribute("data-look", /.+/);
+    // Closed, the dot is under the sheet's rank again, as everything on the canvas is.
+    expect(await stage.locator(".look-dot").evaluate((el) => (el as HTMLElement).style.zIndex)).toBe("");
+  };
+  await page.goto(linkFor(reviewLoop()));
+  await through();
+  await canvasIsQuiet(page);
+  await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
+  await through();
+});
+
+// The 3D view as the browser computes it: every element of the view and of the frame that holds it, by what would
+// show a theme if one reached it. Colors, lines and lettering; the slider, a native control, which takes
+// `accent-color` and the color scheme from whatever holds it; and the variables the view's own rules read.
+const whole = (page: Page): Promise<string[]> =>
+  page.locator('[data-picture="space"]').evaluate((view) => {
+    const names = ["color", "background-color", "border-top-color", "border-top-width", "outline-color", "fill", "stroke", "stroke-width", "accent-color", "color-scheme", "font-family", "font-size", "letter-spacing", "text-transform", "border-top-left-radius", "--accent", "--accent-soft", "--surface", "--ink", "--line"];
+    const holder = view.parentElement!;
+    return [holder, ...holder.querySelectorAll("*")].map((el) => {
+      const computed = getComputedStyle(el);
+      return `${el.tagName.toLowerCase()}.${el.getAttribute("class") ?? ""}  ${names.map((name) => computed.getPropertyValue(name)).join(" | ")}`;
+    });
+  });
+
+for (const [what, address, flat] of [
+  ["a graph", () => linkFor(reviewLoop()), "main.stage"],
+  ["a map", () => `./#/open?d=${payload(map())}`, ".map-picture"],
+] as const) {
+  for (const scheme of ["light", "dark"] as const) {
+    test(`the 3D view is Paper in all six themes, its slider and buttons with it: ${what}'s, element by element as the browser computes it, in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      let paper: string[] | undefined;
+      for (const name of PICTURE_THEMES) {
+        await page.goto("about:blank");
+        await page.goto(address());
+        await page.evaluate((value) => localStorage.setItem("groophPicture", value), name);
+        if (what === "a graph") await canvasIsQuiet(page);
+        await page.reload();
+        // The flat view first, in the theme: the theme is in effect before the view is turned.
+        if (name === "paper") await expect(page.locator(flat)).not.toHaveAttribute("data-look", /.+/);
+        else await expect(page.locator(flat)).toHaveAttribute("data-look", name);
+        await page.getByRole("radio", { name: "3D" }).tap();
+        await expect(page.locator(".space .space-card").first()).toBeVisible();
+        // Nothing that holds the view says a theme while it is shown.
+        await expect(page.locator("main.stage[data-look], .map-picture[data-look]")).toHaveCount(0);
+        const now = await whole(page);
+        if (name === "paper") paper = now;
+        else expect(now, `${what} in ${name}, ${scheme}`).toEqual(paper);
+        // And the flat view says it again after.
+        await page.getByRole("radio", { name: "Picture" }).tap();
+        if (name !== "paper") await expect(page.locator(flat)).toHaveAttribute("data-look", name);
+        if (what === "a graph") await canvasIsQuiet(page);
+      }
+      // What was compared was something: the view has its cards, and its slider a color of its own in this scheme.
+      expect(paper!.length).toBeGreaterThan(40);
+      expect(paper!.find((line) => line.startsWith("input."))).toMatch(/ \| rgb\(\d+, \d+, \d+\) \| /);
+    });
+  }
+}
 
 test("every rule of every theme finds something to style in a real picture, in a browser", async ({ page }) => {
   // The rules are written for hooks the drawing code writes: a card's mark, an edge's dash, a label's size. A hook

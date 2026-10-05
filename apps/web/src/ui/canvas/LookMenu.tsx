@@ -14,7 +14,7 @@ document.head.append(sheet);
  * `ui/theme/themes.ts`), and once the piece is here it colors the dot and says the theme in its name.
  *
  * Where it stands, and that it steps aside for a graph in three dimensions, is in `look.css`, which rides in this
- * script. It is drawn by the header's own rules for its theme button, with the header's night colors read as the
+ * script. The class `look-dot` is how the themes' piece knows this control from the others that offer the themes. It is drawn by the header's own rules for its theme button, with the header's night colors read as the
  * screen's own: the app's stylesheets, which every address loads, are at their budget.
  */
 export function LookMenu() {
