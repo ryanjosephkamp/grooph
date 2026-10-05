@@ -8,8 +8,9 @@ import { test } from "node:test";
 
 import { indexGraph } from "../src/graph-index.js";
 import type { Issue } from "../src/issues.js";
+import { parseGraph } from "../src/parse.js";
 import { effectiveAdaptation, loopMode } from "../src/semantics.js";
-import type { Graph, Node } from "../src/types.js";
+import type { Graph, Loop, Node } from "../src/types.js";
 import { validate } from "../src/validate.js";
 
 const codes = (issues: Issue[]): string[] => [...new Set(issues.map((issue) => issue.code))].sort();
@@ -357,6 +358,52 @@ test("E_IRREVERSIBLE_NO_GATE: an approval edge or a gate before every inbound ed
   );
 });
 
+test("E_IRREVERSIBLE_NO_GATE: a loop's stop that continues at the node is a way in, and must pass a human too", () => {
+  // A writer and a check in a loop, then a gate, then the publisher. Every edge into the publisher starts at the gate.
+  const gate: Node = { id: "gate", kind: "human-gate", name: "Gate", prompt: "Publish?" };
+  const looped = (stops: Loop["stops"], edges: Graph["edges"] = []): Graph =>
+    base({
+      nodes: [agent("writer", "builder", writable), { id: "tests", kind: "check", name: "Tests", check: { kind: "tests", run: "npm test", pass: "exit code 0" } }, gate, agent("publisher", "builder", { ...writable, irreversible: ["publish"] }), stopNode],
+      edges: [
+        { id: "e-write-tests", from: "writer", to: "tests" },
+        { id: "e-tests-fail", from: "tests", to: "writer", when: "fail" },
+        { id: "e-tests-gate", from: "tests", to: "gate", when: "pass" },
+        { id: "e-pub", from: "gate", to: "publisher", when: "pass" },
+        { id: "e-done", from: "publisher", to: "done" },
+        ...edges,
+      ],
+      loops: [{ id: "fix", name: "Fix", members: ["writer", "tests"], back: ["e-tests-fail"], mode: "grind", stops }],
+    });
+  const cap = { kind: "max-iterations" as const, n: 3 };
+  assert.deepEqual(only(validate(looped([cap])), "E_IRREVERSIBLE_NO_GATE"), [], "gated by its one edge");
+
+  // The round cap continues at the publisher itself: a way in that passes nobody. It validated clean before.
+  const around = only(validate(looped([{ ...cap, then: "publisher" }])), "E_IRREVERSIBLE_NO_GATE");
+  assert.equal(around.length, 1);
+  assert.deepEqual(around[0]!.at, ["publisher", "fix"], "the loop whose stop is the open way in is named");
+  assert.match(around[0]!.message, /through loop "fix" stop 0 \(max-iterations\), which continues there; every way in must pass a human: have the stop continue at a human-gate node that leads to it$/);
+  for (const stop of [{ kind: "budget" as const, measure: "minutes" as const, limit: 10 }, { kind: "bar-passed" as const }, { kind: "diminishing-returns" as const, rounds: 2 }, { kind: "evidence-invalid" as const, rounds: 1 }]) {
+    assert.equal(only(validate(looped([cap, { ...stop, then: "publisher" }])), "E_IRREVERSIBLE_NO_GATE").length, 1, stop.kind);
+  }
+
+  // A stop that continues at the gate asks a person; and the stop where a person is asked is a person's decision.
+  assert.deepEqual(only(validate(looped([{ ...cap, then: "gate" }])), "E_IRREVERSIBLE_NO_GATE"), []);
+  assert.deepEqual(only(validate(looped([cap, { kind: "human", every: 2, then: "publisher" }])), "E_IRREVERSIBLE_NO_GATE"), []);
+
+  // An open edge and an open stop: both are named, each with what would close it.
+  const both = only(validate(looped([{ ...cap, then: "publisher" }], [{ id: "e-shortcut", from: "writer", to: "publisher" }])), "E_IRREVERSIBLE_NO_GATE");
+  assert.deepEqual(both[0]!.at, ["publisher", "e-shortcut", "fix"]);
+  assert.match(both[0]!.message, /through "e-shortcut" and loop "fix" stop 0 \(max-iterations\), which continues there; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node, and have the stop continue at a human-gate node that leads to it$/);
+
+  // Nothing but a stop leads to it: reached without a person, and said as that, not as "nothing leads to it".
+  const lone = base({
+    nodes: [agent("writer", "builder", writable), { id: "tests", kind: "check", name: "Tests", check: { kind: "tests", run: "npm test", pass: "exit code 0" } }, agent("publisher", "builder", { ...writable, irreversible: ["publish"] }), stopNode],
+    edges: [{ id: "e-write-tests", from: "writer", to: "tests" }, { id: "e-tests-fail", from: "tests", to: "writer", when: "fail" }, { id: "e-done", from: "publisher", to: "done" }],
+    loops: [{ id: "fix", name: "Fix", members: ["writer", "tests"], back: ["e-tests-fail"], mode: "grind", stops: [{ kind: "bar-passed", then: "publisher" }, cap] }],
+  });
+  assert.match(only(validate(lone), "E_IRREVERSIBLE_NO_GATE")[0]!.message, /through loop "fix" stop 0 \(bar-passed\), which continues there/);
+});
+
 test("E_IS_TEMPLATE and E_UNFILLED_SLOT bite at export only, and a template reports only the first", () => {
   const block: Graph["template"] = {
     kind: "graph",
@@ -636,6 +683,144 @@ test("issues come out in graph-ir §3 table order", () => {
   });
   const order = validate({ ...doc, extra: true } as unknown as Graph, { forExport: true }).map((i) => i.code);
   assert.deepEqual(order, ["E_OWNERSHIP_CONFLICT", "E_IRREVERSIBLE_NO_GATE", "W_NO_TERMINAL", "W_OUTPUT_NOT_WRITABLE", "W_UNKNOWN_KEY"]);
+});
+
+// ─── groups form a tree; a graph has one lead (amendment A-018) ──────────────
+
+const three = (groups: Graph["groups"]): Graph =>
+  base({
+    nodes: [agent("a", "builder", writable), agent("b", "builder", writable), agent("c", "builder", writable), { id: "done", kind: "stop", name: "Done" }],
+    edges: [
+      { id: "e1", from: "a", to: "b" },
+      { id: "e2", from: "b", to: "c" },
+      { id: "e3", from: "c", to: "done" },
+    ],
+    groups,
+  });
+test("E_GROUP_CYCLE: a group that lists itself, a ring of two, a ring of three, each said once", () => {
+  const itself = only(validate(three([{ id: "g1", name: "G1", members: ["a", "g1"] }])), "E_GROUP_CYCLE");
+  assert.equal(itself.length, 1);
+  assert.match(itself[0]!.message, /group "g1" lists itself as a member/);
+  assert.deepEqual(itself[0]!.at, ["g1"]);
+
+  const ring = only(
+    validate(
+      three([
+        { id: "g1", name: "G1", members: ["a", "g2"] },
+        { id: "g2", name: "G2", members: ["b", "g3"] },
+        { id: "g3", name: "G3", members: ["c", "g1"] },
+      ]),
+    ),
+    "E_GROUP_CYCLE",
+  );
+  assert.equal(ring.length, 1, "one ring is one issue, not one for each group on it");
+  assert.match(ring[0]!.message, /g1 → g2 → g3 → g1/);
+  assert.deepEqual(ring[0]!.at, ["g1", "g2", "g3"]);
+
+  // Two rings that share no group are two issues; a group outside a ring that holds one is not on it.
+  const two = only(
+    validate(
+      three([
+        { id: "outer", name: "Outer", members: ["g1"] },
+        { id: "g1", name: "G1", members: ["a", "g2"] },
+        { id: "g2", name: "G2", members: ["g1"] },
+        { id: "g3", name: "G3", members: ["g3"] },
+      ]),
+    ),
+    "E_GROUP_CYCLE",
+  );
+  assert.deepEqual(
+    two.map((issue) => issue.at),
+    [["g1", "g2"], ["g3"]],
+  );
+});
+
+test("a tree of groups, as deep as it likes, is neither a ring nor an overlap", () => {
+  const issues = validate(
+    three([
+      { id: "all", name: "All", members: ["first", "c"] },
+      { id: "first", name: "First", members: ["inner", "b"] },
+      { id: "inner", name: "Inner", members: ["a"], from: "review-gate@3", with: { task: "x" }, description: "One line." },
+    ]),
+  );
+  assert.deepEqual(codes(issues), []);
+});
+
+test("W_GROUP_OVERLAP: two groups that share a member and neither holds the other; nesting said twice is not one", () => {
+  const overlap = validate(
+    three([
+      { id: "g1", name: "G1", members: ["a", "b"] },
+      { id: "g2", name: "G2", members: ["b", "c"] },
+    ]),
+  );
+  assert.deepEqual(codes(overlap), ["W_GROUP_OVERLAP"]);
+  assert.equal(overlap[0]!.severity, "warning");
+  assert.match(overlap[0]!.message, /node "b" is a member of groups "g1" and "g2", and neither holds the other; views draw it in "g1"/);
+  assert.deepEqual(overlap[0]!.at, ["b", "g1", "g2"]);
+
+  // The outer group lists what its inner group lists as well: the node is in one place, said twice.
+  const nested = validate(
+    three([
+      { id: "outer", name: "Outer", members: ["inner", "a", "b"] },
+      { id: "inner", name: "Inner", members: ["a"] },
+    ]),
+  );
+  assert.deepEqual(codes(nested), []);
+
+  // A group can be the shared member, and three holders are named together.
+  const shared = only(
+    validate(
+      three([
+        { id: "inner", name: "Inner", members: ["a"] },
+        { id: "g1", name: "G1", members: ["inner"] },
+        { id: "g2", name: "G2", members: ["inner", "b"] },
+        { id: "g3", name: "G3", members: ["inner", "c"] },
+      ]),
+    ),
+    "W_GROUP_OVERLAP",
+  );
+  assert.equal(shared.length, 1);
+  assert.match(shared[0]!.message, /group "inner" is a member of groups "g1", "g2" and "g3", and none of them holds another/);
+});
+
+test("a ring of groups does not hang the overlap rule or the coupled one", () => {
+  const issues = validate(
+    three([
+      { id: "g1", name: "G1", members: ["a", "g2"], coupled: true },
+      { id: "g2", name: "G2", members: ["a", "g1"] },
+    ]),
+  );
+  // The ring is the fault, and it is said once. Inside a ring each group holds the other, so nothing is "in two".
+  assert.deepEqual(codes(issues), ["E_GROUP_CYCLE"]);
+});
+
+test("E_SECOND_LEAD: one lead or none is fine; two are one error that names them all", () => {
+  const withLeads = (roles: string[]): Graph =>
+    base({
+      nodes: [...roles.map((role, i) => agent(`n${i}`, role, writable)), { id: "done", kind: "stop", name: "Done" }],
+      edges: [...roles.slice(1).map((_, i) => ({ id: `e${i}`, from: `n${i}`, to: `n${i + 1}` })), { id: "e-done", from: `n${roles.length - 1}`, to: "done" }],
+    });
+  assert.deepEqual(only(validate(withLeads(["builder", "builder"])), "E_SECOND_LEAD"), []);
+  assert.deepEqual(only(validate(withLeads(["lead", "builder"])), "E_SECOND_LEAD"), []);
+  const two = only(validate(withLeads(["lead", "builder", "lead", "lead"])), "E_SECOND_LEAD");
+  assert.equal(two.length, 1);
+  assert.equal(two[0]!.severity, "error");
+  assert.match(two[0]!.message, /the graph has 3 lead nodes \("n0", "n2", "n3"\)/);
+  assert.deepEqual(two[0]!.at, ["n0", "n2", "n3"]);
+});
+
+test("a group's new fields are held to their shapes: where it came from, what it was filled with, one line", () => {
+  const schemaIssues = (group: object): string[] =>
+    parseGraph(three([{ id: "g1", name: "G1", members: ["a"], ...group } as never])).issues.map((issue) => issue.message);
+  assert.deepEqual(schemaIssues({ from: "review-gate@1", with: { task: "the checkout flow", "test-command": "pnpm test" }, description: "A builder and a critic." }), []);
+  for (const from of ["review-gate", "review-gate@", "review-gate@0", "review-gate@1.2", "Review-Gate@1", "review gate@1", "review-gate@1\nmodel: x", "@1", "review-gate@latest"]) {
+    assert.equal(schemaIssues({ from }).length, 1, `from: ${JSON.stringify(from)}`);
+  }
+  assert.equal(schemaIssues({ description: "two\nlines" }).length, 1);
+  assert.equal(schemaIssues({ with: { "a key": "x" } }).length, 1);
+  assert.equal(schemaIssues({ with: { task: 3 } }).length, 1);
+  // A slot's value is text for a brief, and may run over lines.
+  assert.deepEqual(schemaIssues({ with: { task: "line one\nline two" } }), []);
 });
 
 test("the effective adaptation level: default adaptive, the stricter of field and policy", () => {

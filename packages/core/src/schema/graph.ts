@@ -15,6 +15,7 @@ import type {
   Capability,
   Effort,
   Graph,
+  GroupFrom,
   HarnessId,
   PolicyScope,
   Role,
@@ -250,8 +251,25 @@ const policy = obj(
   { name: "Policy" },
 );
 
+/**
+ * Where a subgrooph came from (A-018): a template's id, which is an id, and its version, a whole number from 1.
+ * Nothing looser: a lead's brief names it, and a name that is an id and a number cannot carry a line break or a
+ * word of anyone's into a file a harness reads.
+ */
+export const GROUP_FROM_PATTERN = /^[a-z][a-z0-9-]*@[1-9][0-9]*$/;
+/** A slot's key as `{{key}}` can hold it: no braces and no space. */
+export const SLOT_KEY_PATTERN = /^[^{}\s]+$/;
+
 const group = obj(
-  { id: id(), name: str(), members: arr(idRef()), coupled: opt(bool()) },
+  {
+    id: id(),
+    name: str(),
+    members: arr(idRef()),
+    coupled: opt(bool()),
+    description: opt(str({ pattern: ONE_LINE_PATTERN, patternName: "one line of text" })),
+    from: opt(typedStr<GroupFrom>(GROUP_FROM_PATTERN, "<template id>@<version>")),
+    with: opt(rec(str(), { keyPattern: SLOT_KEY_PATTERN, keyName: "slot key" })),
+  },
   { name: "Group" },
 );
 

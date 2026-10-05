@@ -1,7 +1,7 @@
 ---
 name: fix-until-green--fixer
 description: builder for graph fix-until-green. Make the failing tests in tests/ pass by changing src/.
-model: opus
+model: sonnet
 effort: medium
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---

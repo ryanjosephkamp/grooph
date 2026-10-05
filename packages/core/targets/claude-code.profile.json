@@ -4,8 +4,8 @@
   "verifiedAgainst": "2.1.268",
   "verifiedOn": "2026-09-17",
   "models": {
-    "frontier": "fable",
-    "strong": "opus",
+    "frontier": "opus",
+    "strong": "sonnet",
     "fast": "sonnet"
   },
   "defaultTier": "strong",
