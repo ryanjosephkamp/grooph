@@ -10,7 +10,7 @@
 [Website](https://ryanjosephkamp.github.io/grooph/) · [Docs](https://ryanjosephkamp.github.io/grooph/docs/) · [Report a bug or suggest a feature](https://github.com/ryanjosephkamp/grooph/issues)
 
 **Loop graphs for coding agents.** You, or an agent working with you, draw who builds, who checks, where a person decides and when the work stops.
-grooph checks that every loop can end and every critic can actually inspect something, then compiles the graph into a prompt package for Claude Code.
+grooph checks that every loop names a stop and every bar names what a critic can inspect, then compiles the graph into a prompt package for Claude Code.
 Your harness runs the package. grooph never runs an agent, never calls a model, and keeps your graphs on your device.
 
 **Open the app:** [ryanjosephkamp.github.io/grooph](https://ryanjosephkamp.github.io/grooph/). It works on a phone, needs no account, and opens offline once it has been opened online.

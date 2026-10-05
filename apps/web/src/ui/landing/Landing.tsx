@@ -95,7 +95,7 @@ export function Landing({ device }: { device?: ReactNode }) {
             </div>
             <div className="land-hero-text">
               <p className="land-lede">
-                Draw who builds, who checks, where a person decides and when the work stops. grooph checks that every loop can end, then compiles the graph
+                Draw who builds, who checks, where a person decides and when the work stops. grooph checks that every loop names a stop, then compiles the graph
                 into a package a Claude Code session runs. Your harness runs it; grooph never does.
               </p>
               <div className="land-cta">
