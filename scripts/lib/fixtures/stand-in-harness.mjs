@@ -53,9 +53,9 @@ let agents = 0;
   if (use.tool === "Agent" && use.starts !== false) {
     agents += 1;
     const name = `agent-${agents}`;
-    const own = [JSON.stringify({ type: "assistant", timestamp: at, message: { id: `s-${i}`, model: "claude-sonnet-5-5", content: [{ type: "text", text: "done" }] } })];
+    const own = [JSON.stringify({ type: "assistant", timestamp: at, message: { id: `s-${i}`, model: plan.sub_model ?? "claude-sonnet-5-5", content: [{ type: "text", text: "done" }] } })];
     (use.subagent_uses ?? []).forEach((sub, k) => {
-      own.push(JSON.stringify({ type: "assistant", timestamp: at, message: { id: `s-${i}-${k}`, model: "claude-sonnet-5-5", content: [{ type: "tool_use", id: `sub-${i}-${k}`, name: sub.tool, input: sub.input ?? {} }] } }));
+      own.push(JSON.stringify({ type: "assistant", timestamp: at, message: { id: `s-${i}-${k}`, model: plan.sub_model ?? "claude-sonnet-5-5", content: [{ type: "tool_use", id: `sub-${i}-${k}`, name: sub.tool, input: sub.input ?? {} }] } }));
       own.push(JSON.stringify({ type: "user", timestamp: at, message: { content: [{ type: "tool_result", tool_use_id: `sub-${i}-${k}`, is_error: sub.is_error === true, content: sub.result ?? "" }] } }));
     });
     writeFileSync(join(folder, sessionId, "subagents", `${name}.jsonl`), `${own.join("\n")}\n`, "utf8");
@@ -71,5 +71,5 @@ let agents = 0;
 writeFileSync(join(folder, `${sessionId}.jsonl`), `${lines.join("\n")}\n`, "utf8");
 const models = { [plan.model ?? "claude-opus-5-5"]: { costUSD: plan.cost ?? 0.01 } };
 if (agents > 0) models["claude-sonnet-5-5"] = { costUSD: 0 };
-console.log(JSON.stringify({ type: "result", subtype: plan.subtype ?? "success", is_error: plan.is_error === true, api_error_status: plan.api_error_status ?? null, session_id: sessionId, total_cost_usd: plan.cost ?? 0.01, num_turns: (plan.uses ?? []).length + 1, result: plan.reply ?? "done", modelUsage: models }));
+console.log(JSON.stringify({ type: "result", subtype: plan.subtype ?? "success", is_error: plan.is_error === true, api_error_status: plan.api_error_status ?? null, session_id: plan.reported_session_id ?? sessionId, total_cost_usd: plan.cost ?? 0.01, num_turns: (plan.uses ?? []).length + 1, result: plan.reply ?? "done", modelUsage: models }));
 process.exit(plan.exit ?? 0);

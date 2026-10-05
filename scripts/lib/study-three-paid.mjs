@@ -74,7 +74,8 @@ export function spendFlags(flags) {
  * all, this throws, and nothing paid is started on a check that was not made.
  */
 export function gameSessionsOpen(run = spawnSync) {
-  const listed = run("ps", ["-axo", "pid=,command="], { encoding: "utf8", maxBuffer: 16 << 20 });
+  // Every process, with its whole command line, in the spelling both macOS and Linux take.
+  const listed = run("ps", ["-A", "-ww", "-o", "pid=,command="], { encoding: "utf8", maxBuffer: 16 << 20 });
   const lines = String(listed.stdout ?? "").split("\n").filter((line) => line.trim() !== "");
   if (listed.error || listed.status !== 0 || lines.length === 0) {
     throw new NotStarted(`the process list could not be read (${listed.error?.message ?? `ps exited ${listed.status} and printed ${lines.length} line(s)`}), so it is not known whether a session of the game experiment is open. Nothing paid runs on a check that was not made`);
