@@ -66,8 +66,13 @@ test("what ended a run is the session, the watchdog or the harness, and only one
 });
 
 test("an open session of the game experiment is seen, and stops everything", () => {
-  assert.deepEqual(gameSessionsOpen(() => ({ status: 1, stdout: "" })), []);
-  assert.deepEqual(gameSessionsOpen(() => ({ status: 0, stdout: "4242 claude --model claude-opus-5-5 --name arena-claude-run\n" })), ["4242 claude --model claude-opus-5-5 --name arena-claude-run"]);
+  const others = "  1 /sbin/launchd\n 77 node scripts/lib/brake-run-paid.mjs --form package\n";
+  assert.deepEqual(gameSessionsOpen(() => ({ status: 0, stdout: others })), [], "a list of processes with no game session among them");
+  assert.deepEqual(gameSessionsOpen(() => ({ status: 0, stdout: `${others}4242 claude --model claude-opus-5-5 --name arena-claude-run\n 4300 codex --name arena-codex-rehearsal\n` })), ["4242 claude --model claude-opus-5-5 --name arena-claude-run", "4300 codex --name arena-codex-rehearsal"]);
+  assert.throws(() => gameSessionsOpen(() => ({ status: 1, stdout: "" })), /the process list could not be read \(ps exited 1/, "a look that failed is not a look that found nothing");
+  assert.throws(() => gameSessionsOpen(() => ({ status: 0, stdout: "" })), /printed 0 line\(s\)/, "nor is a list with no process in it");
+  assert.throws(() => gameSessionsOpen(() => ({ status: null, stdout: "", error: new Error("spawn ps ENOENT") })), /spawn ps ENOENT/);
+  assert.ok(Array.isArray(gameSessionsOpen()), "the real process list can be read on this machine");
   const refused = refusals({ home: "/h", cwd: "/h/work/a/p", claude: "c", gameOpen: ["4242 …"], profileCheck: () => [] });
   assert.match(refused[0], /a session of the game experiment is open/);
   assert.deepEqual(refusals({ home: "/h", cwd: "/h/work/a/p", claude: "c", gameOpen: [], profileCheck: () => [] }), []);
@@ -95,6 +100,9 @@ test("a session is refused before anything is written to the ledger", () => {
     const project = makeProject({ home: p.home, name: "rounds", fill: (cwd) => writeFileSync(join(cwd, "a.txt"), "a\n", "utf8") });
     const ask = (more) => () => runSession({ ...p.common, cwd: project.cwd, prompt: "go", model: "claude-opus-5-5", effort: "high", usd: 1, minutes: 1, label: { project: "x", arm: "a", replicate: 1 }, harnessDir: project.harnessDir, ...more });
     assert.throws(ask({ gameOpen: ["4242 claude --name arena-claude-run"] }), /a session of the game experiment is open/);
+    const real = spawnSync;
+    assert.throws(() => refusals({ home: p.home, cwd: project.cwd, claude: STAND_IN, gameOpen: (() => gameSessionsOpen(() => ({ status: 2, stdout: "" })))(), profileCheck: () => [] }), /Nothing paid runs on a check that was not made/, "a failed look stops a call as an open session does");
+    assert.equal(real, spawnSync);
     assert.throws(ask({ go: undefined }), /no word from the driver/);
     assert.throws(ask({ profileCheck: () => [{ what: "the profile is signed in", ok: false, how: "not signed in" }] }), /the profile is signed in/);
     assert.deepEqual(p.ledger().invocations, [], "no line was opened for a call that was not made");

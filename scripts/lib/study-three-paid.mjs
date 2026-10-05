@@ -48,10 +48,19 @@ export function spendFlags(flags) {
   return { ok: missing.length === 0, go: go ?? null, missing };
 }
 
-/** A session of the game experiment open on this machine: its start script names every session `arena-claude-<which>`. */
+/**
+ * The sessions of the game experiment open on this machine: its start script names every session `arena-claude-<which>`
+ * (or `arena-codex-<which>`), and that name is on the process's command line. The whole process list is read, so a
+ * look that could not be made is told apart from a look that found nothing: if `ps` fails, or prints no process at
+ * all, this throws, and nothing paid is started on a check that was not made.
+ */
 export function gameSessionsOpen(run = spawnSync) {
-  const found = run("pgrep", ["-fl", "--", "--name arena-(claude|codex)-"], { encoding: "utf8" });
-  return found.status === 0 ? found.stdout.split("\n").filter((line) => line.trim() && !line.includes("pgrep")) : [];
+  const listed = run("ps", ["-axo", "pid=,command="], { encoding: "utf8", maxBuffer: 16 << 20 });
+  const lines = String(listed.stdout ?? "").split("\n").filter((line) => line.trim() !== "");
+  if (listed.error || listed.status !== 0 || lines.length === 0) {
+    throw new Error(`not started: the process list could not be read (${listed.error?.message ?? `ps exited ${listed.status} and printed ${lines.length} line(s)`}), so it is not known whether a session of the game experiment is open. Nothing paid runs on a check that was not made`);
+  }
+  return lines.filter((line) => /--name arena-(?:claude|codex)-/.test(line)).map((line) => line.trim().slice(0, 160));
 }
 
 /** Everything that must hold before a call, as a list of what does not. Empty means go. */
