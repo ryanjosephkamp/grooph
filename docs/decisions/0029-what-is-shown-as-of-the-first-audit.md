@@ -35,6 +35,7 @@ A second comparison ran on 2026-10-04 and is in the repository. Its claims have 
    - "No loop turned in 27 runs": one correction cycle did turn, in a prompt run.
    - "The only run in study one that went past its bounds was a prompt arm running to the dollar ceiling": that run was inside the graph's caps, and the ceiling was the runner's.
    - "Back edges fired in six templates once tasks carried held-out evidence": six records show a returning edge; two of them are a critic's correction on held-out evidence.
+   - *Note, 2026-10-05, added after this was signed, at the driver's request:* "Budget and iteration stops, which it cannot loosen, bound that" (decision 0008): the lead is told not to loosen them; no record shows one binding.
 5. **Every public claim is listed** in [`docs/claims.md`](../claims.md), with where it is made, its evidence, and where its audit stands.
 6. **What `grooph adopt` refuses is described where the command is documented, and is claimed nowhere as shown** until a second harness has read the comparison it rests on (`packages/core/src/brakes.ts`). By its author's account, five readers in turn have each found a loosened graph that comparison let through; each is closed, and the list of what a brake is has not been shown complete. At this date the comparison does not hold a check's command or where its verdicts lead; amendment A-019 (2026-10-05) makes them brakes, and the code follows it.
 

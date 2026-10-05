@@ -18,7 +18,9 @@ export type { CompileOptions, CompileResult, CompileTarget } from "./compile/ind
 export { graphSchema, graphJsonSchema, SCHEMA_ID } from "./schema/graph.js";
 export { indexGraph, type GraphIndex } from "./graph-index.js";
 export * from "./semantics.js";
-export { KNOWN_TARGETS, getProfile, hasProfile, type TargetProfile } from "./targets/index.js";
+// The targets by name. Their profiles are the compiler's and come with it (`targets/names.ts` says why).
+export { KNOWN_TARGETS, hasProfile, targetTitle } from "./targets/names.js";
+export type { TargetProfile } from "./targets/index.js";
 export * from "./ops/index.js";
 export * from "./template.js";
 export { closest, didYouMean } from "./suggest.js";

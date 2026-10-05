@@ -19,6 +19,7 @@ import { compile } from "../compile/index.js";
 import { parseMapText } from "../map.js";
 import { offlineKit } from "../offline-kit.js";
 import { offlinePageWith } from "../offline.js";
+import { setTarget } from "../ops/edit.js";
 import { parseGraphText } from "../parse.js";
 import { picture } from "../picture/graph-picture.js";
 import { pictureWithUnits } from "../picture/graph-units.js";
@@ -59,18 +60,24 @@ const repoRoot = (() => {
 /**
  * The review loop at the default level (`adaptive`), and a small graph at `fixed`, so both §9 texts are reviewable;
  * and the composed graph, whose lead's brief names its two subgroophs as units.
+ *
+ * The first two again for Codex. Their files name Claude Code, and a package is one harness's files (an export for
+ * a harness the document does not name is refused, `E_NO_TARGET`): each is exported as the same graph with Codex
+ * named in it, by the `setTarget` op, which is what a person does first and what CI's golden step does.
  */
 const GOLDENS = [
   { graph: "fixtures/valid/review-loop.grooph.json", target: "claude-code" as const },
   { graph: "fixtures/valid/fix-until-green.grooph.json", target: "claude-code" as const },
   { graph: `fixtures/composed/${COMPOSED.id}.grooph.json`, target: "claude-code" as const },
+  { graph: "fixtures/valid/review-loop.grooph.json", target: "codex" as const },
+  { graph: "fixtures/valid/fix-until-green.grooph.json", target: "codex" as const },
 ];
 
 for (const golden of GOLDENS) {
   const parsed = parseGraphText(readFileSync(join(repoRoot, golden.graph), "utf8"));
   if (!parsed.doc) throw new Error(`${golden.graph} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
 
-  const result = compile(parsed.doc, golden.target);
+  const result = compile(parsed.doc.target?.harness === golden.target ? parsed.doc : setTarget(parsed.doc, golden.target), golden.target);
   const outDir = join(repoRoot, "fixtures", "golden", golden.target, parsed.doc.id);
   if (existsSync(outDir)) rmSync(outDir, { recursive: true });
 

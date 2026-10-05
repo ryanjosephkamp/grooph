@@ -1,0 +1,29 @@
+At b74c9ee, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/export-door-probe.sh <scratch folder>
+
+== 1. export the graph into an empty project
+wrote 7 files into project
+  .claude/agents/probe--builder.md
+  .claude/agents/probe--critic.md
+   exit 0
+   round cap in the placed package: 4; version 1
+   LEAD.md:86:| 2 | max iterations: 4 | halt the run and report to the human |
+
+== 2. a copy of the graph with its round cap raised from 4 to 40, exported over the package in place
+wrote 7 files into project
+  .claude/agents/probe--builder.md
+  .claude/agents/probe--critic.md
+   exit 0
+   round cap in the placed package: 40; version 1
+   LEAD.md:86:| 2 | max iterations: 40 | halt the run and report to the human |
+
+== 3. put the first package back; a run's working copy has the cap raised to 40. First through grooph adopt --write:
+grooph: not written: the working copy loosens a brake the graph has (loop:review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 1
+   round cap in the placed package: 4; version 1
+
+== 4. the same working copy through grooph export, with no adopt
+wrote 7 files into .
+  .claude/agents/probe--builder.md
+  .claude/agents/probe--critic.md
+   exit 0
+   round cap in the placed package: 40; version 1
