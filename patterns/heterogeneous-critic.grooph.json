@@ -10,8 +10,8 @@
   "template": {
     "kind": "graph",
     "title": "Heterogeneous critic",
-    "summary": "The review gate with the critic on a different model tier from the builder, so it does not share the builder's blind spots.",
-    "whenToUse": "The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic keeps approving the mistakes the builder makes.",
+    "summary": "The review gate with the critic on a different model tier from the builder, so it need not share the builder's blind spots.",
+    "whenToUse": "The judge should not share the builder's model when isolating taste or blind spots matters: a same-model critic may keep approving the mistakes the builder makes.",
     "notFor": "Cheap, routine changes where a same-tier review-gate is enough, or checks a test can make; a stronger critic costs more every round.",
     "profile": {
       "cost": "medium",

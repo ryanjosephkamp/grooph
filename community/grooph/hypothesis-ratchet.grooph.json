@@ -10,7 +10,7 @@
   "template": {
     "kind": "graph",
     "title": "Hypothesis ratchet",
-    "summary": "A proposer tries one change per round, a judge scores it on held-out cases the proposer never sees, and only a change that beats the last kept score is kept; the loop ends when gains stop.",
+    "summary": "A proposer tries one change per round, a judge scores it on held-out cases the proposer is told not to read, and only a change that beats the last kept score is kept; the loop ends when gains stop.",
     "whenToUse": "Something can be improved against a score you can run (a prompt, a heuristic, a parameter set), held-out cases exist, and each change is small enough to keep or discard whole.",
     "notFor": "Work with no score to compute or no held-out cases: a ratchet on a score the proposer can see only learns the score.",
     "profile": {

@@ -10,7 +10,7 @@ There is no backend and nothing is uploaded: the documents live in this reposito
 
 **Template** by `grooph` · _no proving run linked_
 
-A proposer tries one change per round, a judge scores it on held-out cases the proposer never sees, and only a change that beats the last kept score is kept; the loop ends when gains stop.
+A proposer tries one change per round, a judge scores it on held-out cases the proposer is told not to read, and only a change that beats the last kept score is kept; the loop ends when gains stop.
 
 - **Shape:** 2 agents · 1 loop · up to 5 rounds · 12 dispatches
 - **Proof:** none linked. Nobody has recorded this running, so treat it as a design, not a result.
