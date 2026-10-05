@@ -5,9 +5,11 @@ import { deflateRawSync } from "node:zlib";
 import { buildRunBundle, buildShareEnvelope, encodeSharePayload, mapKit, mapPicture, offlinePage, parseGraphText, parseMapText, picture, type Graph, type OperationMap, type RunBundle } from "@grooph/core";
 import { mapSequenceWith, mapWideWith } from "@grooph/core/map-views";
 import { PICTURE_THEMES, THEME_VALUES, themed, themedPage } from "@grooph/core/themes";
+import { pictureWithUnits } from "@grooph/core/units";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
-import { downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet } from "./support.js";
+import { unitsKit } from "../../../packages/core/src/picture/units-kit.js";
+import { canvasIsQuiet, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, reviewLoop, runBundle, sheet } from "./support.js";
 
 /**
  * The picture's themes in the app (handoff 0086; docs/themes.md): six looks for the same picture. Paper is the
@@ -42,6 +44,14 @@ function fetches(page: Page): string[] {
 }
 
 /** A theme chosen before the page loads, as a visit after the choice finds it. */
+/** Whether two boxes on the page share no pixel. */
+const apart = (a: { x: number; y: number; width: number; height: number }, b: typeof a): boolean => a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y;
+/** A canvas's own last fetch is in before the page is left or loaded again (`canvasIsQuiet`), then the reload. */
+const again = async (page: Page): Promise<void> => {
+  await canvasIsQuiet(page);
+  await page.reload();
+};
+
 const keep = (page: Page, name: string) => page.addInitScript((value) => localStorage.setItem("groophPicture", value), name);
 
 /** How far the widest line of words in a picture runs past its card, its pill or the picture's own edge, in units. */
@@ -188,12 +198,17 @@ test("on the canvas the themes are a dot in the stage's corner; the canvas takes
 
   const toggle = stage.getByRole("button", { name: /^Picture theme/ });
   await expect(toggle).toBeVisible();
-  // It is a target a thumb can hit, inside the stage, in the corner the loops' legend keeps clear.
-  const [box, room, legend] = [(await toggle.boundingBox())!, (await stage.boundingBox())!, (await page.locator(".loop-legend").boundingBox())!];
+  // It is a target a thumb can hit, inside the stage, in its top right corner: under the switch of the graph's
+  // views, which has the corner itself, and clear of the loops' legend.
+  await canvasIsQuiet(page);
+  const views = page.getByRole("radiogroup", { name: "View of the graph" });
+  const [box, room, legend, above] = [(await toggle.boundingBox())!, (await stage.boundingBox())!, (await page.locator(".loop-legend").boundingBox())!, (await views.boundingBox())!];
   expect(box.width).toBeGreaterThanOrEqual(36);
   expect(box.height).toBeGreaterThanOrEqual(44);
   expect(box.x + box.width).toBeLessThanOrEqual(room.x + room.width);
-  expect(box.x).toBeGreaterThanOrEqual(legend.x + legend.width);
+  expect(apart(box, legend), "the dot and the loops' legend").toBe(true);
+  expect(apart(box, above), "the dot and the switch of the graph's views").toBe(true);
+  expect(box.y).toBeGreaterThanOrEqual(above.y + above.height);
   expect(asked).toEqual([]);
 
   await toggle.tap();
@@ -269,20 +284,20 @@ test("a share link may name a theme in its address: it is shown and not kept, a 
   expect(page.url()).not.toContain("theme=");
   expect(page.url()).toContain("#/open?d=");
   expect(await page.evaluate(() => localStorage.getItem("groophPicture"))).toBe("chalk");
-  await page.reload();
+  await again(page);
   await expect(stage).toHaveAttribute("data-look", "chalk");
   expect(asked.length).toBeGreaterThan(0);
 
   // A name that is none of the six is Paper: not an error, and not this browser's own choice either, which is Chalk.
   await page.goto(`${linkFor(reviewLoop())}&theme=sepia`);
-  await page.reload();
+  await again(page);
   await expect(node(page, "builder")).toBeVisible();
   await expect(stage.getByRole("button", { name: "Picture theme: Paper" })).toBeVisible();
   await expect(stage).not.toHaveAttribute("data-look", /.+/);
   // With nothing kept, such an address fetches nothing of the themes at all.
   await page.evaluate(() => localStorage.removeItem("groophPicture"));
   asked.length = 0;
-  await page.reload();
+  await again(page);
   await expect(node(page, "builder")).toBeVisible();
   await page.waitForTimeout(300);
   expect(asked).toEqual([]);
@@ -413,8 +428,11 @@ test("in every theme, with the site's own faces, no line of words runs past its 
 
     // More pictures, drawn by core in Paper and set into the same page, where the site's faces are: the piece
     // dresses them as it does anything a screen draws. The full lines, and the long map in its three views.
+    const boxed = graphAt("fixtures/valid/subgrooph-in-a-graph.grooph.json");
     const more: [string, string][] = [
       ["a graph with full lines", picture(full)],
+      ["a subgrooph, closed: one box", pictureWithUnits(unitsKit, boxed)],
+      ["a subgrooph, open: a frame around its cards", pictureWithUnits(unitsKit, boxed, { open: "all" })],
       ["the long map, the phone's picture", mapPicture(long)],
       ["the long map, lanes side by side", mapWideWith(mapKit, long, {})],
       ["the long map, as a sequence", mapSequenceWith(mapKit, long, {})],
@@ -481,6 +499,54 @@ test("a map in three dimensions is Paper in every theme, and whole; the flat vie
   expect(its).toEqual([papers[1], papers[2]]);
   await page.getByRole("radio", { name: "Picture" }).tap();
   await expect(page.locator('.map-picture svg[data-picture="map"]')).toHaveAttribute("data-look", "phosphor");
+});
+
+test("a graph in three dimensions is Paper in every theme, and whole; the dot steps aside there, and the canvas is in the theme again after", async ({ page }) => {
+  // The 3D view of a loop graph (handoff 0092) is the map's, built from the page's own elements: no theme has rules
+  // for it. It must not be half dressed inside a stage that is; and its own bar is where the dot would stand.
+  await keep(page, "phosphor");
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto(linkFor(reviewLoop()));
+  const stage = page.locator("main.stage");
+  await expect(stage).toHaveAttribute("data-look", "phosphor");
+  const dot = stage.getByRole("button", { name: "Picture theme: Phosphor" });
+  await expect(dot).toBeVisible();
+  await canvasIsQuiet(page);
+  await page.getByRole("radiogroup", { name: "View of the graph" }).getByRole("radio", { name: "3D" }).tap();
+  const space = stage.locator(".graph-views .space");
+  await expect(space).toBeVisible();
+  await expect(space).not.toHaveAttribute("data-look", /.+/);
+  await expect(space.locator("[data-of-look]")).toHaveCount(0);
+  // Paper's own colors, in light as the device is: the cards, and the ground the whole view stands on.
+  const papers = /--gp-bg:(#[0-9a-f]+);--gp-surface:(#[0-9a-f]+);[^}]*--gp-ink:(#[0-9a-f]+)/.exec(picture(reviewLoop()))!;
+  const its = await space.locator(".space-card").first().evaluate((el) => [getComputedStyle(el).getPropertyValue("--gp-surface").trim(), getComputedStyle(el).getPropertyValue("--gp-ink").trim()]);
+  expect(its).toEqual([papers[2], papers[3]]);
+  // The words of its bar are dark on a light ground, as the site's are: not Phosphor's pale green.
+  const bar = await space.locator(".space-bar span").first().evaluate((el) => {
+    const lum = (rgb: string): number => {
+      const probe = document.createElement("canvas").getContext("2d")!;
+      probe.fillStyle = rgb;
+      probe.fillRect(0, 0, 1, 1);
+      const [r, g, b] = probe.getImageData(0, 0, 1, 1).data;
+      return (0.2126 * r! + 0.7152 * g! + 0.0722 * b!) / 255;
+    };
+    let under: Element | null = el;
+    let ground = "rgba(0, 0, 0, 0)";
+    while (under && /rgba\(0, 0, 0, 0\)|transparent/.test(ground)) {
+      ground = getComputedStyle(under).backgroundColor;
+      under = under.parentElement;
+    }
+    return { words: lum(getComputedStyle(el).color), ground: lum(ground) };
+  });
+  expect(bar.words).toBeLessThan(0.5);
+  expect(bar.ground).toBeGreaterThan(0.75);
+  // The dot is not there: a theme changes nothing in this view.
+  await expect(dot).toBeHidden();
+  // Back to the picture: the canvas is in the theme as it was, and the dot is back under the switch.
+  await page.getByRole("radiogroup", { name: "View of the graph" }).getByRole("radio", { name: "Picture" }).tap();
+  await expect(stage).toHaveAttribute("data-look", "phosphor");
+  await expect(dot).toBeVisible();
+  await expect(node(page, "builder")).toBeVisible();
 });
 
 test("every rule of every theme finds something to style in a real picture, in a browser", async ({ page }) => {
@@ -594,17 +660,19 @@ test("the app's own marks are seen on a theme: Phosphor on a light device, Trans
   expect({ dot: ink.dot, ring: ink.ring }).toEqual({ dot: paper.dot, ring: paper.ring });
 });
 
-test("on a run's view the dot has the corner to itself, on a phone and on a wide screen; the front page's run and an embed's link keep the theme", async ({ page }) => {
-  // A run's legend ran to the stage's edge. Its pills are long: a name, a round, a stop.
+test("on a run's view the dot is clear of the legend and of the views' switch, on a phone and on a wide screen; the front page's run and an embed's link keep the theme", async ({ page }) => {
+  // A run's legend has long pills: a name, a round, a stop. It stops short of the switch, and the dot is under that.
   for (const width of [400, 1280]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(linkFor(runBundle("slice-0007-sandwich")));
     const stage = page.locator("main.stage");
     const toggle = stage.getByRole("button", { name: /^Picture theme/ });
     await expect(toggle).toBeVisible();
-    const [menu, legend] = [(await toggle.boundingBox())!, (await stage.locator(".loop-legend").boundingBox())!];
-    expect(legend.x + legend.width, `at ${width} px the legend ends before the dot begins`).toBeLessThanOrEqual(menu.x);
-    // At every width it is a dot alone, so the room the legend leaves is enough.
+    await canvasIsQuiet(page);
+    const [menu, legend, above] = [(await toggle.boundingBox())!, (await stage.locator(".loop-legend").boundingBox())!, (await page.getByRole("radiogroup", { name: "View of the graph" }).boundingBox())!];
+    expect(apart(menu, legend), `at ${width} px, the dot and the legend`).toBe(true);
+    expect(apart(menu, above), `at ${width} px, the dot and the switch`).toBe(true);
+    // At every width it is a dot alone.
     expect(menu.width).toBeLessThanOrEqual(48);
     await toggle.click();
     await list(stage).getByRole("menuitemradio", { name: "Blueprint" }).click();
@@ -618,6 +686,7 @@ test("on a run's view the dot has the corner to itself, on a phone and on a wide
   // its address: the piece names the theme in effect there.
   await page.setViewportSize({ width: 400, height: 800 });
   await page.evaluate(() => localStorage.setItem("groophPicture", "blueprint"));
+  await canvasIsQuiet(page);
   await page.goto("./#/about");
   await page.reload();
   await expect(page.locator(".land-picture svg")).toHaveAttribute("data-look", "blueprint");
@@ -712,7 +781,7 @@ test("a theme is said to be missing only when one could not be fetched: a kept v
   await importDocument(page, "review-loop.grooph.json", readFileSync(fixturePath, "utf8"));
   for (const kept of ["sepia", "paper", "ink-dark", ""]) {
     await page.evaluate((value) => localStorage.setItem("groophPicture", value), kept);
-    await page.reload();
+    await again(page);
     await expect(node(page, "builder")).toBeVisible();
     await page.getByRole("button", { name: "Export", exact: true }).tap();
     const keepCopy = sheet(page).getByRole("group", { name: "Keep a copy" });
@@ -728,6 +797,7 @@ test("a theme is said to be missing only when one could not be fetched: a kept v
   // A share link that names Paper, or a name that is none of the six: Paper, and nothing fetched.
   await page.evaluate(() => localStorage.removeItem("groophPicture"));
   for (const named of ["paper", "paper-dark", "sepia", "inklight", "ink-pink"]) {
+    await canvasIsQuiet(page);
     await page.goto("about:blank");
     await page.goto(`${linkFor(reviewLoop())}&theme=${named}`);
     await expect(node(page, "builder")).toBeVisible();
@@ -737,12 +807,14 @@ test("a theme is said to be missing only when one could not be fetched: a kept v
   expect(asked).toEqual([]);
   // A kept theme, and an address that names Paper over it: the themes are fetched, and the screen is Paper.
   await page.evaluate(() => localStorage.setItem("groophPicture", "chalk"));
+  await canvasIsQuiet(page);
   await page.goto("about:blank");
   await page.goto(`${linkFor(reviewLoop())}&theme=paper`);
   await expect(node(page, "builder")).toBeVisible();
   await expect.poll(() => asked.length).toBeGreaterThan(0);
   await expect(stage).not.toHaveAttribute("data-look", /.+/);
   // And without the name, the kept one.
+  await canvasIsQuiet(page);
   await page.goto("about:blank");
   await page.goto(linkFor(reviewLoop()));
   await expect(stage).toHaveAttribute("data-look", "chalk");
@@ -769,6 +841,7 @@ test("a screen that is to be drawn in a theme is not shown in Paper first, and d
   expect((await seen()).length).toBeGreaterThan(5);
   expect(new Set(await seen())).toEqual(new Set(["phosphor"]));
   // An embed, the same.
+  await canvasIsQuiet(page);
   await page.goto("about:blank");
   await page.goto(`./#/embed?d=${payload(reviewLoop())}&theme=phosphor`);
   await expect(page.locator(".gx")).toHaveAttribute("data-look", "phosphor");
