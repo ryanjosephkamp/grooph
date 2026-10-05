@@ -73,7 +73,7 @@ test("the row of kinds is there only while a view in three dimensions is up; Pan
   await view(page, "3D").click();
   await expect(page.locator(".space-scene")).toBeVisible();
   // The row says which kind this is, and offers the others, each with what it is.
-  await expect(kinds(page).getByRole("radio")).toHaveText(["Stairs", "Panes", "Spiral", "Rings"]);
+  await expect(kinds(page).getByRole("radio")).toHaveText(["Stairs", "Panes", "Spiral", "Rings", "Columns"]);
   await expect(kind(page, "Stairs")).toHaveAttribute("aria-checked", "true");
   await expect(kind(page, "Panes")).toHaveAttribute("aria-description", /pane of its own/);
   await viewIsStill(page);
@@ -1062,4 +1062,89 @@ test("the picture becomes the rings and the spiral becomes the rings; on a run's
   await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("10");
   await expect(says(page)).toHaveText("Note 10 of 13: Builder: pass · round 0");
   await expect(page.locator(".s3-card.is-lit")).toHaveAttribute("data-node", "builder");
+});
+
+test("columns: every node a card at the foot of its column, no card over another on any built-in template at a phone's size; on a run each column's blocks are said in words as far as the slider has come", async ({ page }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => sessionStorage.getItem("groophSpace") ?? sessionStorage.setItem("groophSpace", "columns"));
+  const ids = readdirSync(join(repoRoot, "patterns")).filter((f) => f.endsWith(".grooph.json")).map((f) => f.replace(".grooph.json", ""));
+  const touching: Record<string, string[]> = {};
+  for (const id of ids) {
+    await page.goto("about:blank");
+    await page.goto(`./#/templates/built-in/${id}`);
+    await canvasIsQuiet(page);
+    await page.getByRole("button", { name: "Close panel" }).click();
+    await view(page, "3D").click();
+    await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+    await viewIsStill(page);
+    await expect(cards(page)).toHaveCount(pattern(id).nodes.length);
+    const hits = await overlaps(page);
+    if (hits.length) touching[id] = hits;
+    const [frame, room] = [(await page.locator(".s3-frame").boundingBox())!, await page.locator(".graph-space").evaluate((el) => el.clientHeight)];
+    expect(frame.height, id).toBeLessThanOrEqual(Math.round(room * 0.8) + 1);
+    for (const box of await cards(page).evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON() as { top: number; bottom: number; left: number; right: number }))) {
+      expect(box.left, id).toBeGreaterThanOrEqual(frame.x - 1);
+      expect(box.right, id).toBeLessThanOrEqual(frame.x + frame.width + 1);
+      expect(box.top, id).toBeGreaterThanOrEqual(frame.y - 1);
+      expect(box.bottom, id).toBeLessThanOrEqual(frame.y + frame.height + 1);
+    }
+    // A template has no dispatches to say.
+    await expect(page.getByRole("list", { name: "Each node's dispatches so far" })).toHaveCount(0);
+  }
+  expect(touching).toEqual({});
+  await expect(kind(page, "Columns")).toHaveAttribute("aria-checked", "true");
+  await expect(kind(page, "Columns")).toHaveAttribute("aria-description", /taller for a higher model tier/);
+
+  // A recorded run: the blocks in words, node by node, as far as the slider has come.
+  const run = runBundle("slice-0007-sandwich");
+  await page.goto("about:blank");
+  await page.goto(linkFor(run));
+  await expect(page.locator(".react-flow__node").first()).toBeVisible();
+  await canvasIsQuiet(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="columns"] .s3-frame')).toBeVisible();
+  await viewIsStill(page);
+  await expect(page.locator(".s3-frame")).toHaveAttribute("aria-label", /^Slice 0007 sandwich as columns: 4 cards, 5 edges, and the loop Sandwich\./);
+  const said = page.getByRole("list", { name: "Each node's dispatches so far" }).getByRole("listitem");
+  await expect(said).toHaveText(["Builder round 0, 19.7 min; round 1, 4.23 min", "Cheap checks round 0, 0.57 min; round 1, 0.47 min", "Critic round 0, 7.45 min, fail; round 1, 4.83 min"]);
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("6");
+  await expect(says(page)).toHaveText("Note 6 of 15: Critic: fail · round 0");
+  await expect(said).toHaveText(["Builder round 0, 19.7 min", "Cheap checks round 0, 0.57 min", "Critic round 0, 7.45 min, fail"]);
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("2");
+  await expect(said).toHaveCount(0);
+  // The words under the view are each in a row of their own.
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("0");
+  const rows = await page.locator(".s3 > *").evaluateAll((els) => els.map((el) => [el.getBoundingClientRect().top, el.getBoundingClientRect().top + Math.max(el.scrollHeight, el.getBoundingClientRect().height)] as const));
+  for (let n = 1; n < rows.length; n += 1) expect(rows[n]![0], `row ${n}`).toBeGreaterThanOrEqual(rows[n - 1]![1] - 0.5);
+});
+
+test("the picture becomes the columns and the rings become the columns, and all but the cards is grown", async ({ page }) => {
+  const moves = await noteMoves(page);
+  await page.goto("./#/templates/built-in/review-gate");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const whole = { pairs: 4, ended: true };
+  await open(page, "Rings");
+  const before = (await moves()).length;
+  await page.evaluate(() => {
+    const log: boolean[] = ((window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst = []);
+    new MutationObserver(() => {
+      const canvas = document.querySelector<HTMLCanvasElement>('.s3[data-kind="columns"] canvas');
+      if (canvas && !canvas.dataset["seen"]) ((canvas.dataset["seen"] = "1"), log.push(canvas.width > 0 && canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data.some((v) => v !== 0)));
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await kind(page, "Columns").click();
+  await expect(page.locator('.s3[data-kind="columns"]')).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { drawnAtFirst: boolean[] }).drawnAtFirst)).toEqual([false]);
+  await viewIsStill(page);
+  await expect.poll(() => drawnOn(page)).toBe(true);
+  await view(page, "Picture").click();
+  await expect(page.locator(".s3")).toHaveCount(0);
+  await viewIsStill(page);
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="columns"]')).toBeVisible();
+  await viewIsStill(page);
+  await expect.poll(async () => (await moves()).slice(before)).toEqual([whole, whole, whole]);
+  expect([await namedStill(page), (await slowest(page)) < 2500]).toEqual([0, true]);
 });

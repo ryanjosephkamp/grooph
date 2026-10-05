@@ -8,6 +8,7 @@ import { columnsForViewport } from "../src/doc/layout.js";
 
 import { firstPass } from "../src/ui/canvas/graph-views.js";
 import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
+import { blocks, columns, MINUTE, TIER } from "../src/ui/canvas/stage/columns.js";
 import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
 import { rings } from "../src/ui/canvas/stage/rings.js";
 import { shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
@@ -745,5 +746,83 @@ describe("rings", () => {
       return Math.round(Math.max(...pts.map((p, n) => p[1] - (pts[0]![1] + ((pts[pts.length - 1]![1] - pts[0]![1]) * n) / (pts.length - 1)))));
     };
     expect([lift("plan"), lift("scout")]).toEqual([52, 26]);
+  });
+});
+
+describe("columns", () => {
+  const whole: Shown = { k: 0, lit: null, took: [] };
+  const at = (model: ReturnType<typeof modelAt>, k: number): Shown => shownAt(model, stepsOf(model), k);
+  /** The tops of a node's boxes, from the ground up, with each one's color: a box's lid is its fifth face. */
+  const lids = (prims: ReturnType<typeof columns>["prims"], id: string) => prims.filter((p) => p.t === "poly" && p.key === `node:${id}` && p.fa === 1).map((p) => (p.t === "poly" ? [Math.round(p.pts[0]![1] * 100) / 100, p.fill, p.alpha ?? 1] : []));
+
+  it("every node is one card at the foot of its column, where the canvas has it, on every template and valid fixture; every edge is drawn once", () => {
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    for (const path of [...ALL, ...valid]) {
+      const doc = graph(path);
+      const canvas = places(doc);
+      const m = modelAt(doc, canvas);
+      const { prims } = columns(m, whole);
+      const cards = prims.flatMap((p) => (p.t === "card" ? [p] : []));
+      expect(cards.map((p) => p.id).sort(), path).toEqual(doc.nodes.map((n) => n.id).sort());
+      // On the ground, beside the foot: the canvas's x across and its y back, each scaled.
+      for (const p of cards) expect(p.at.map((v) => Math.round(v * 100) / 100), `${path} ${p.id}`).toEqual([Math.round((canvas[p.id]!.x * 0.76 + 29) * 100) / 100, 0, Math.round((canvas[p.id]!.y * 0.94 + 18) * 100) / 100]);
+      expect(prims.every((p) => (p.t === "card") !== !!p.grow), path).toBe(true);
+      expect(prims.filter((p) => p.t === "line" && p.arrow).map((p) => p.key).sort(), path).toEqual(m.edges.map((e) => `edge:${e.id}`).sort());
+    }
+  });
+
+  it("on a template an agent's column is taller for a higher tier, one with no tier is short and faint and says so, and what is not an agent is a slab", () => {
+    expect([TIER["frontier"]! > TIER["strong"]!, TIER["strong"]! > TIER["fast"]!, TIER["fast"]! > TIER["unset"]!]).toEqual([true, true, true]);
+    const m = modelOf(GAUNTLET);
+    const { prims } = columns(m, whole);
+    for (const n of m.nodes) expect(lids(prims, n.id), n.id).toEqual([n.tier ? [TIER[n.tier], "k-agent", n.tier === "unset" ? 0.4 : 1] : [5, "floor", 1]]);
+    // The tier is said beside each agent's column, and nothing is said beside a slab.
+    const said = prims.flatMap((p) => (p.t === "text" && p.align === "right" && !p.bold ? [p.text] : []));
+    expect(said.sort()).toEqual(m.nodes.flatMap((n) => (n.tier ? [n.tier] : [])).sort());
+    // An agent with no tier: not the height of any tier, faint, and named as the session's default.
+    const bare: Graph = { ...REVIEW, nodes: REVIEW.nodes.map((n) => (n.id === "builder" && n.kind === "agent" ? (({ model: _model, ...rest }) => rest)(n) : n)) } as Graph;
+    const drawn = columns(modelOf(bare), whole).prims;
+    expect(lids(drawn, "builder")).toEqual([[16, "k-agent", 0.4]]);
+    expect(drawn.some((p) => p.t === "text" && p.text === "session default")).toBe(true);
+    expect(Object.values(TIER).filter((h) => h === 16)).toHaveLength(1);
+  });
+
+  it("on a run a column is a block for each dispatch so far, as tall as its minutes, in its outcome's color; the blocks are said in words, and the column's whole time beside it", () => {
+    const m = modelAt(RUN, places(RUN), NOTES);
+    // The whole run. The builder: 19.7 and 4.23 minutes, on a slab 4 high, 2 between blocks.
+    const builder = lids(columns(m, at(m, 0)).prims, "builder");
+    expect(builder).toEqual([[Math.round((4 + 19.7 * MINUTE) * 100) / 100, "ok", 1], [Math.round((4 + 19.7 * MINUTE + 2 + 4.23 * MINUTE) * 100) / 100, "ok", 1]]);
+    // The critic failed, then passed; the checks' two blocks are under half a minute's height and are 3 tall.
+    expect(lids(columns(m, at(m, 0)).prims, "critic").map((x) => x[1])).toEqual(["bad", "ok"]);
+    expect(lids(columns(m, at(m, 0)).prims, "checks").map((x) => x[0])).toEqual([Math.round((4 + 0.57 * MINUTE) * 100) / 100, Math.round((4 + 0.57 * MINUTE + 2 + 0.47 * MINUTE) * 100) / 100]);
+    // A block is never less than 3 tall, however short its dispatch.
+    const quick = modelAt(RUN, places(RUN), NOTES.map((n) => (n.id === "n-0005" ? ({ ...n, ended: NOTES.find((x) => x.id === "n-0004")!.ended } as RunNote) : n)));
+    expect(lids(columns(quick, at(quick, 5)).prims, "checks")).toEqual([[7, "ok", 1]]);
+    // A node with no dispatch is a slab, and no block.
+    expect(lids(columns(m, at(m, 0)).prims, "done")).toEqual([]);
+    expect(blocks(m, at(m, 0))).toEqual([
+      { id: "builder", name: "Builder", words: ["round 0, 19.7 min", "round 1, 4.23 min"], total: 19.7 + 4.23 },
+      { id: "checks", name: "Cheap checks", words: ["round 0, 0.57 min", "round 1, 0.47 min"], total: 0.57 + 0.47 },
+      { id: "critic", name: "Critic", words: ["round 0, 7.45 min, fail", "round 1, 4.83 min"], total: 7.45 + 4.83 },
+    ]);
+    // By note 6, the critic's fail: one block each, and the words stop there too.
+    expect(blocks(m, at(m, 6)).map((x) => [x.id, x.words])).toEqual([["builder", ["round 0, 19.7 min"]], ["checks", ["round 0, 0.57 min"]], ["critic", ["round 0, 7.45 min, fail"]]]);
+    expect(lids(columns(m, at(m, 6)).prims, "builder")).toHaveLength(1);
+    expect(blocks(m, at(m, 1))).toEqual([]);
+    // The whole of a column, to two places, beside its top.
+    const beside = columns(m, at(m, 0)).prims.flatMap((p) => (p.t === "text" && p.text.endsWith(" min") ? [p.text] : []));
+    expect(beside).toEqual(["23.93 min", "1.04 min", "12.28 min"]);
+    // A dispatch that neither passed nor failed is gray, and says its outcome; one at a node in no loop has no round.
+    const odd = modelAt({ ...RUN, loops: [] }, places(RUN), NOTES.map((n) => (n.id === "n-0006" ? ({ ...n, outcome: "halt" } as RunNote) : n)));
+    expect(lids(columns(odd, at(odd, 0)).prims, "critic").map((x) => x[1])).toEqual(["ink-3", "ok"]);
+    expect(blocks(odd, at(odd, 0)).find((x) => x.id === "critic")!.words).toEqual(["7.45 min, halt", "4.83 min"]);
+  });
+
+  it("on a run an edge the run has not taken by the note is faint, and on a template none is", () => {
+    const m = modelAt(RUN, places(RUN), NOTES);
+    const faint = (k: number) => columns(m, at(m, k)).prims.flatMap((p) => (p.t === "line" && p.arrow && p.alpha === 0.3 ? [p.key!.slice(5)] : [])).sort();
+    expect(faint(0)).toEqual(["e-checks-fail"]);
+    expect(faint(5)).toEqual(["e-checks-critic", "e-checks-fail", "e-critic-fail", "e-critic-pass"]);
+    expect(columns(modelAt(RUN, places(RUN)), whole).prims.some((p) => p.t === "line" && p.alpha === 0.3)).toBe(false);
   });
 });
