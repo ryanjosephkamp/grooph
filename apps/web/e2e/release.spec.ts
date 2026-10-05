@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 import { canvasIsQuiet, fixturePath, node } from "./support.js";
-import { builtApp, expectWhole, held, makeRelease, namedBy, removeReleases, seen, serveSite, settled, twoReleases, type Release, type Site, type WorkerOf } from "./support-release.js";
+import { builtApp, expectWhole, held, makeRelease, namedBy, removeReleases, seen, serveSite, settled, twoReleases, watchVisits, type Release, type Site, type WorkerOf } from "./support-release.js";
 
 /**
  * Handoff 0083: the service worker across a release.
@@ -32,6 +32,8 @@ const CHROMIUM = { tag: "@chromium" };
 // its page and scripts were, what the worker held, and what the page complained of.
 const complaints: string[] = [];
 test.beforeEach(({ context }) => {
+  // So that `settled` can tell when a page has nothing still arriving (support-release.ts).
+  watchVisits(context);
   complaints.length = 0;
   const began = Date.now();
   const at = (): string => `${String(Date.now() - began).padStart(5)} ms`;
@@ -70,13 +72,19 @@ test.afterEach(async ({ page }, testInfo) => {
         page: await stamp("./"),
         before: await stamp("./?the-page-before"),
         controlled: navigator.serviceWorker.controller !== null,
+        // Whose hands the tab is in, and whether another worker is on its way. A test that waits for a new worker to
+        // take the tab over and never sees it (once, under load, 2026-10-05) is told apart here: a worker still
+        // installing or waiting, one that never came, or one that is in control without the page having been told.
+        workers: await navigator.serviceWorker.getRegistration().then((registration) =>
+          registration ? { installing: registration.installing?.state ?? null, waiting: registration.waiting?.state ?? null, active: registration.active?.state ?? null, theActiveOneIsInControl: navigator.serviceWorker.controller === registration.active } : "no registration",
+        ),
         address: location.href,
         shows: document.body.innerText.replace(/\s+/g, " ").slice(0, 300),
         again,
       };
     })
     .catch((error: Error) => `(could not be read: ${error.message})`);
-  console.log(`DIAGNOSIS ${testInfo.project.name} | ${testInfo.title}\n  the tab: ${JSON.stringify(tab)}\n  the worker keeps: ${JSON.stringify(kept)}\n  its cache: ${JSON.stringify(cache)}\n  complaints: ${JSON.stringify(complaints)}`);
+  console.log(`DIAGNOSIS ${testInfo.project.name} | ${testInfo.title}\n  the tab: ${JSON.stringify(tab)}\n  workers this browser has made, where it says (Chromium): ${page.context().serviceWorkers().length}\n  the worker keeps: ${JSON.stringify(kept)}\n  its cache: ${JSON.stringify(cache)}\n  complaints: ${JSON.stringify(complaints)}`);
 });
 
 /** The documents are not the app's and the test's site does not serve them (`support-release.ts`). */
@@ -340,6 +348,32 @@ test("a release that changes the worker too: the new worker takes over the open 
   }
   await openTemplate(page, site);
   await expectWhole(page, newer);
+});
+
+test("a first visit that loses one request still leaves everything a visit with no network needs: the worker tries a file again", async ({ page }) => {
+  // A first visit has no page to fall back on, so its page is kept with whatever came. The pieces no first screen
+  // asks for (the graph's views are one) are fetched by the worker alone, and it used to try each once: a request
+  // lost on the way left that piece out until the next visit with a network. It tries a second time now.
+  const release = makeRelease("only");
+  const lost = /\/assets\/graph-views-[^/]*\.js$/;
+  expect(release.named.filter((path) => lost.test(path))).toHaveLength(1);
+  const site = await serveSite(release);
+  try {
+    site.failingOnce(lost);
+    await page.goto(site.url);
+    await frontPageIsUp(page);
+    // The worker in control and holding every file the page names: the one it was refused among them.
+    await settled(page, release);
+    // Asked for twice, by the worker alone: refused, then answered. The front page itself never asks for it.
+    expect(site.asked.filter((asked) => lost.test(asked.path)).map((asked) => asked.status)).toEqual([503, 200]);
+    expect(await page.evaluate(() => performance.getEntriesByType("resource").some((entry) => /\/assets\/graph-views-/.test(entry.name)))).toBe(false);
+  } finally {
+    await site.stop();
+  }
+  // No network: a template on the canvas, with the switch between its views, which is that piece.
+  await openTemplate(page, site);
+  await expect(page.getByRole("radiogroup", { name: "View of the graph" })).toBeVisible();
+  await expectWhole(page, release);
 });
 
 test("the site answers with an error where the app was: the app opens from the copy the worker holds", async ({ page }) => {

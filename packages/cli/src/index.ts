@@ -332,10 +332,10 @@ export async function run(
         const { positionals, values } = parseArgs({
           args: rest,
           allowPositionals: true,
-          options: { into: { type: "string" }, write: { type: "boolean" } },
+          options: { into: { type: "string" }, allow: { type: "string", multiple: true }, write: { type: "boolean" } },
         });
         if (positionals[0] === undefined) return usageError(io, "adopt needs a run folder: grooph adopt .grooph/<graph-id>/runs/<run-id> [--write]");
-        return adoptCommand(io, positionals[0], { ...(values["into"] !== undefined ? { into: values["into"] } : {}), write: values["write"] === true });
+        return adoptCommand(io, positionals[0], { ...(values["into"] !== undefined ? { into: values["into"] } : {}), allow: values["allow"] ?? [], write: values["write"] === true });
       }
 
       case "watch": {
