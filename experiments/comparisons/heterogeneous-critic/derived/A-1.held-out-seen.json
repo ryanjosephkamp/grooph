@@ -1,0 +1,60 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "heterogeneous-critic/A-1",
+  "sessions": [
+    "bcda1a24-e90c-4b44-b606-57d329f0f7f7"
+  ],
+  "transcripts_found": 5,
+  "suite_runs": [
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:43:24.007Z",
+      "command": "node --test <held-out>/parse-ranges-cases.test.mjs",
+      "tests": null,
+      "pass": 50,
+      "fail": null,
+      "fail_lines_kept": 22,
+      "read_from": "the lines the harness kept; the output was cut, so these are lower bounds",
+      "cut": true
+    },
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:43:30.578Z",
+      "command": "node --test --test-reporter=tap <held-out>/parse-ranges-cases.test.mjs",
+      "tests": null,
+      "pass": 30,
+      "fail": null,
+      "fail_lines_kept": 3,
+      "read_from": "the lines the harness kept; the output was cut, so these are lower bounds",
+      "cut": true
+    },
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:43:37.132Z",
+      "command": "node --test --test-name-pattern=\"empty: |zeros: |new array\" <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 12,
+      "pass": 9,
+      "fail": 3,
+      "read_from": "node's summary",
+      "part_of_suite": true
+    },
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:43:38.507Z",
+      "command": "node --test --test-reporter=dot <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 70,
+      "pass": 52,
+      "fail": 18,
+      "read_from": "the dot reporter's grid"
+    },
+    {
+      "who": "critic",
+      "at": "2026-10-04T21:46:05.734Z",
+      "command": "node --test <held-out>/parse-ranges-cases.test.mjs",
+      "tests": 70,
+      "pass": 70,
+      "fail": 0,
+      "read_from": "node's summary"
+    }
+  ]
+}

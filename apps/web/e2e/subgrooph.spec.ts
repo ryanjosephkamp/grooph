@@ -25,6 +25,39 @@ const place = async (page: Page, id: string) => {
   return { x: Math.round(at.x), y: Math.round(at.y) };
 };
 
+/**
+ * Where each of these nodes is once the view has stopped moving, to the pixel. They are read together, again and
+ * again, until three readings in a row agree: the view moves when the page first fits the graph and when a panel
+ * opens or closes, and how long that takes is the machine's business.
+ */
+const settled = async (page: Page, ids: string[]): Promise<Record<string, { x: number; y: number }>> => {
+  const read = (): Promise<string> =>
+    page.evaluate(
+      (wanted) =>
+        JSON.stringify(
+          wanted.map((id) => {
+            const at = document.querySelector(`.react-flow__node[data-id="${id}"]`)!.getBoundingClientRect();
+            return { x: Math.round(at.x), y: Math.round(at.y) };
+          }),
+        ),
+      ids,
+    );
+  let last = await read();
+  let agreed = 0;
+  await expect
+    .poll(
+      async () => {
+        const now = await read();
+        agreed = now === last ? agreed + 1 : 0;
+        last = now;
+        return agreed;
+      },
+      { intervals: [120] },
+    )
+    .toBeGreaterThanOrEqual(2);
+  return Object.fromEntries((JSON.parse(last) as { x: number; y: number }[]).map((at, i) => [ids[i]!, at]));
+};
+
 test("a shared graph with a subgrooph: one closed box that says what it holds, and opens in place", async ({ page }) => {
   await page.goto(linkFor(boxed()));
   await expect(box(page)).toBeVisible();
@@ -39,10 +72,12 @@ test("a shared graph with a subgrooph: one closed box that says what it holds, a
   await expect(box(page)).toHaveAttribute("aria-label", /^Subgrooph: Review gate, 3 nodes, 1 human gate, 1 loop\. Closed: Enter opens it$/);
   await expect(box(page)).toHaveAttribute("aria-expanded", "false");
 
-  await page.waitForTimeout(400);
-  const before = Object.fromEntries(await Promise.all(OUTSIDE.map(async (id) => [id, await place(page, id)] as const)));
+  const before = await settled(page, OUTSIDE);
   const frame = (await node(page, "review").boundingBox())!;
-  await box(page).tap();
+  // Tapped at its corner, not in its middle. The middle of this box is the middle of its middle node, and a second
+  // tap in the same place within half a second is a double tap: on this canvas that zooms the view, as it does on
+  // any node or on the background, and gives no click. The tap on the critic below must be a tap whatever the pace.
+  await box(page).tap({ position: { x: 24, y: 24 } });
   await expect(page.locator('[data-unit-id="review"][data-open]')).toBeVisible();
   for (const id of INSIDE) await expect(node(page, id)).toBeVisible();
   await expect(page.locator(".react-flow__edge")).toHaveCount(boxed().edges.length);
@@ -55,16 +90,14 @@ test("a shared graph with a subgrooph: one closed box that says what it holds, a
     const at = (await node(page, id).boundingBox())!;
     expect(at.x >= open.x && at.y >= open.y && at.x + at.width <= open.x + open.width && at.y + at.height <= open.y + open.height, id).toBe(true);
   }
-  // A node inside is a node: a tap opens its details, as it does for any other. (At a person's pace: a second tap
-  // a few hundredths of a second after the first is a double tap to the browser, and is given no click.)
-  await page.waitForTimeout(400);
+  // A node inside is a node: a tap opens its details, as it does for any other.
   await node(page, "review-critic").tap();
   await expect(page.locator("aside.sheet")).toContainText("Critic");
   await page.getByRole("button", { name: "Close panel" }).tap();
+  await expect(page.locator("aside.sheet")).toHaveCount(0);
 
   // Closing is in place too. (The details panel moved the view to keep its node in sight: measure again.)
-  await page.waitForTimeout(500);
-  const opened = Object.fromEntries(await Promise.all([...OUTSIDE, "review"].map(async (id) => [id, await place(page, id)] as const)));
+  const opened = await settled(page, [...OUTSIDE, "review"]);
   await page.getByRole("button", { name: "Close Review gate" }).tap();
   await expect(box(page)).not.toHaveAttribute("data-open", "");
   for (const id of INSIDE) await expect(node(page, id)).toHaveCount(0);
@@ -95,7 +128,7 @@ test.describe("with a keyboard and a mouse", () => {
   test("in the editor a closed box stays where its nodes are, and open, its nodes are the editor's", async ({ page }) => {
     await importDocument(page, "boxed.grooph.json", readFileSync(boxedPath, "utf8"));
     await expect(box(page)).toBeVisible();
-    await page.waitForTimeout(400);
+    await settled(page, ["review", "plan"]);
     // A closed box does not drag: a node's place is the document's, and it is moved where it can be seen. A drag
     // that starts on the box moves the view, as one on the background does, and the box keeps its place among the nodes.
     const apart = async () => {

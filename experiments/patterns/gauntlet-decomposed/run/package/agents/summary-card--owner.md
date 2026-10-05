@@ -1,7 +1,7 @@
 ---
 name: summary-card--owner
 description: builder for graph summary-card. You own the first unchecked piece of PIECES.md and change only what its owner scope allows, working from its acceptance and, from the second round on, the ranked gaps in GAPS.md, largest first, without regressing what already matches.
-model: opus
+model: claude-sonnet-5-5
 effort: high
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---

@@ -1,13 +1,19 @@
-// The runner's pure parts (handoff 0016, criteria 1 and 6): the ledger's rules, the alternation,
-// the judge's letters and the diff it sees. Run with: node --test scripts/lib/compare-run.test.mjs
+// The runner's pure parts (handoffs 0016 and 0019): the ledger's rules and its tripwires, the alternation
+// over three arms and over four, the tier map, the judge's letters and what it sees.
+// Run with: node --test scripts/lib/compare-run.test.mjs
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
-import { gate, loadLedger, openRunEntry, runLabel, settleEntry, totals } from "./compare-ledger.mjs";
-import { ARMS, drawLetters, judgePrompt, judgedDiff, nextRun, runDirs, shuffle } from "./compare-run.mjs";
+import { amendEntry, gate, loadLedger, neverLines, openRunEntry, passedMarks, projectStop, reload, runLabel, saveLedger, setCap, settleEntry, totals, tripwireNotice } from "./compare-ledger.mjs";
+import { ARMS, NEVER, PROTOCOLS, drawLetters, judgePrompt, judgedDiff, leftovers, liveRun, neverUsed, nextRun, parseTierMap, pathWithoutTool, reachedOutside, resolveTierMap, runDirs, shuffle, tierMapText, toolNamed, toolOnPath, workRoot } from "./compare-run.mjs";
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = join(here, "..", "..");
 
 const fresh = () => loadLedger(join(tmpdir(), "no-such-ledger.json"));
 
@@ -88,21 +94,136 @@ test("the alternation A1 B1 C1 A2 B2 C2 follows what is on disk", () => {
     mark("C-2");
     assert.equal(nextRun(proj), null);
     assert.deepEqual(Object.keys(runDirs(dir)).sort(), ["A-1", "A-2", "B-1", "B-2", "C-1", "C-2"]);
-    assert.deepEqual(ARMS, ["A", "B", "C"]);
+    assert.deepEqual(PROTOCOLS[1].arms, ["A", "B", "C"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("the judge's letters are never the arms' names and come in random order", () => {
+test("protocol version 2 alternates A1 B1 C1 D1 A2 B2 C2 D2", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-alt-"));
+  try {
+    const proj = { dir, replicates: 2, arms: PROTOCOLS[2].arms };
+    const mark = (name) => {
+      mkdirSync(join(dir, name));
+      writeFileSync(join(dir, name, "result.json"), "{}");
+    };
+    const order = [];
+    for (let next = nextRun(proj); next; next = nextRun(proj)) {
+      order.push(`${next.arm}${next.replicate}`);
+      mark(`${next.arm}-${next.replicate}`);
+    }
+    assert.deepEqual(order, ["A1", "B1", "C1", "D1", "A2", "B2", "C2", "D2"]);
+    assert.equal(Object.keys(runDirs(dir)).length, 8);
+    assert.deepEqual(ARMS, ["A", "B", "C", "D"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the two studies' models are apart, study one is closed, and no version names Fable for a new call", () => {
+  assert.deepEqual({ lead: PROTOCOLS[1].lead_model, judge: PROTOCOLS[1].judge_model, closed: PROTOCOLS[1].closed }, { lead: "claude-opus-5", judge: "claude-fable-5-1", closed: true });
+  assert.deepEqual({ lead: PROTOCOLS[2].lead_model, judge: PROTOCOLS[2].judge_model, closed: PROTOCOLS[2].closed }, { lead: "claude-opus-5-5", judge: "claude-opus-5-5", closed: false });
+  for (const version of Object.values(PROTOCOLS).filter((v) => !v.closed)) {
+    assert.ok(!NEVER.test(version.lead_model) && !NEVER.test(version.judge_model));
+  }
+});
+
+test("the tier map: every tier named, never Fable, pre-registered before a paid run, and the environment may not contradict it", () => {
+  assert.deepEqual(parseTierMap("frontier=a, strong=b,fast=c"), { frontier: "a", strong: "b", fast: "c" });
+  assert.equal(parseTierMap(""), null);
+  assert.equal(parseTierMap(undefined), null);
+  assert.throws(() => parseTierMap("best=a"), /not a tier/);
+  assert.throws(() => parseTierMap("strong=a,strong=b"), /named twice/);
+  assert.throws(() => parseTierMap("strong="), /needs a model name/);
+  assert.equal(tierMapText({ fast: "c", frontier: "a", strong: "b" }), "frontier=a,strong=b,fast=c", "one spelling, whatever order it was given in");
+
+  const registered = { frontier: "claude-opus-5-5", strong: "claude-sonnet-5-5", fast: "claude-haiku-4-5-20251001" };
+  const text = tierMapText(registered);
+  // Not pre-registered: nothing paid starts; a dry run may borrow one from the environment and says it is provisional.
+  assert.match(resolveTierMap({ registered: null, envText: text, paid: true }).error, /not pre-registered/);
+  assert.match(resolveTierMap({ registered: null, envText: undefined, paid: false }).error, /GROOPH_MODELS=/);
+  const provisional = resolveTierMap({ registered: null, envText: text, paid: false });
+  assert.equal(provisional.provisional, true);
+  assert.equal(provisional.text, text);
+  // Pre-registered: it is the map, with or without the environment saying the same.
+  assert.deepEqual(resolveTierMap({ registered, envText: undefined, paid: true }).map, registered);
+  assert.equal(resolveTierMap({ registered, envText: "fast=claude-haiku-4-5-20251001,strong=claude-sonnet-5-5,frontier=claude-opus-5-5", paid: true }).provisional, false);
+  assert.match(resolveTierMap({ registered, envText: "frontier=claude-opus-5-5,strong=claude-opus-5-5,fast=claude-sonnet-5-5", paid: true }).error, /differs from the pre-registered/);
+  // Every tier, and never the models this study does not use.
+  assert.match(resolveTierMap({ registered: { frontier: "claude-opus-5-5", strong: "claude-sonnet-5-5" }, envText: undefined, paid: true }).error, /fast missing/);
+  assert.match(resolveTierMap({ registered: null, envText: "frontier=fable,strong=opus,fast=sonnet", paid: false }).error, /never uses: frontier=fable/);
+  assert.match(resolveTierMap({ registered: { ...registered, frontier: "claude-fable-5-1" }, envText: undefined, paid: true }).error, /never uses/);
+  assert.match(resolveTierMap({ registered: null, envText: "frontier=opus;strong=sonnet", paid: false }).error, /GROOPH_MODELS/);
+  // What a run reported, by the harness's count or by a transcript.
+  assert.deepEqual(neverUsed({ "claude-opus-5-5": {}, "claude-sonnet-5-5": {} }, { lead: ["claude-opus-5-5"] }), []);
+  assert.deepEqual(neverUsed({ "claude-opus-5-5": {} }, { critic: ["claude-fable-5-1"] }), ["claude-fable-5-1"]);
+});
+
+test("the cap lifted: no countdown, the ceiling stays, the total's marks are said and a project stops and asks", () => {
+  const ledger = fresh();
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-ledger-"));
+  try {
+    const spend = (project, cost, arm = "A", replicate = 1) => {
+      const e = openRunEntry(ledger, { project, arm, replicate, kind: "kickoff", maxBudget: 9 });
+      settleEntry(e, { status: "ok", cost_usd: cost });
+    };
+    spend("old", 60.62);
+    assert.throws(() => setCap(ledger, { to: null, by: "owner" }), /needs both its tripwires/);
+    assert.throws(() => setCap(ledger, { to: null, by: "owner", notifyEvery: 50 }), /needs both its tripwires/, "one tripwire is not two");
+    assert.deepEqual([ledger.cap_usd, ledger.tripwire, ledger.cap_history.length], [100, undefined, 1], "a refused change changes nothing");
+    assert.throws(() => setCap(ledger, { to: 150 }), /who decided/);
+    const line = setCap(ledger, { to: null, by: "owner, 2026-10-04", notifyEvery: 50, projectStop: 60, on: "2026-10-04" });
+    assert.deepEqual(line, { from_usd: 100, to_usd: null, on: "2026-10-04", by: "owner, 2026-10-04", tripwire: { notify_every_usd: 50, project_stop_usd: 60 } });
+    assert.equal(ledger.cap_history.length, 2);
+    assert.deepEqual(totals(ledger), { spent: 60.62, remaining: Infinity });
+    // Saved, the ledger is plain JSON: no cap, nothing remaining to count.
+    const path = join(dir, "ledger.json");
+    saveLedger(ledger, path);
+    const saved = loadLedger(path);
+    assert.equal(saved.cap_usd, null);
+    assert.equal(saved.remaining_usd, null);
+    assert.equal(saved.spent_usd, 60.62);
+    // The ceiling per invocation stays.
+    let d = gate(ledger, { project: "p", arm: "A", replicate: 1, kind: "kickoff" });
+    assert.equal(d.ok, true);
+    assert.equal(d.maxBudget, 9);
+    // The total's marks: each multiple of 50 it passes, once.
+    assert.deepEqual(passedMarks(ledger, 60.62, 99.99), []);
+    assert.deepEqual(passedMarks(ledger, 99.99, 100), [100]);
+    assert.deepEqual(passedMarks(ledger, 96, 152), [100, 150]);
+    spend("p", 38);
+    assert.equal(tripwireNotice(ledger, 60.62), "");
+    spend("p", 2, "B");
+    assert.match(tripwireNotice(ledger, 98.62), /passed \$100\.00 \(\$100\.62 spent in all\): tell the driver/);
+    // One project past its stop starts no new run, until someone says it may; a run under way finishes.
+    assert.deepEqual(projectStop(ledger, "p"), { spent: 40, limit: 60, passed: false });
+    spend("p", 20.5, "C");
+    assert.equal(projectStop(ledger, "p").passed, true);
+    d = gate(ledger, { project: "p", arm: "D", replicate: 1, kind: "kickoff" });
+    assert.equal(d.ok, false);
+    assert.match(d.reason, /past the \$60\.00 at which one project stops and asks/);
+    assert.equal(gate(ledger, { project: "p", arm: "judge", replicate: null, kind: "kickoff" }).ok, false, "the judge's call is a new run too");
+    assert.equal(gate(ledger, { project: "p", arm: "C", replicate: 1, kind: "iteration" }).ok, true, "an iteration of a run under way is not a new run");
+    assert.equal(gate(ledger, { project: "q", arm: "A", replicate: 1, kind: "kickoff" }).ok, true, "another project is not stopped");
+    assert.equal(projectStop(ledger, "old").passed, true, "any project past the mark, an old one too");
+    ledger.project_stop_lifted = { p: { to_usd: 90, on: "2026-10-04", by: "driver" } };
+    assert.equal(gate(ledger, { project: "p", arm: "D", replicate: 1, kind: "kickoff" }).ok, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the judge's letters are never the arms' names (A to D) and come in random order", () => {
   let seed = 7;
   const random = () => {
     seed = (seed * 9301 + 49297) % 233280;
     return seed / 233280;
   };
-  const letters = drawLetters(6, random);
-  assert.equal(new Set(letters).size, 6);
-  for (const l of letters) assert.ok(!["A", "B", "C"].includes(l), l);
+  const letters = drawLetters(8, random);
+  assert.equal(new Set(letters).size, 8);
+  for (let i = 0; i < 200; i += 1) for (const l of drawLetters(8)) assert.ok(!["A", "B", "C", "D"].includes(l), l);
+  for (const l of letters) assert.ok(!["A", "B", "C", "D"].includes(l), l);
   const order = shuffle(["A-1", "B-1", "C-1", "A-2", "B-2", "C-2"], random);
   assert.deepEqual([...order].sort(), ["A-1", "A-2", "B-1", "B-2", "C-1", "C-2"]);
   assert.notDeepEqual(order, ["A-1", "B-1", "C-1", "A-2", "B-2", "C-2"]);
@@ -125,4 +246,211 @@ test("the judge sees only the deliverable paths, with the tool's name redacted",
   assert.ok(prompt.includes("(no change to the deliverable paths)"));
   assert.ok(prompt.includes('"ranking": ["Q", "M"]'));
   assert.ok(!/\barm\b/i.test(prompt), "the prompt never says which arm");
+  assert.ok(!/renders/.test(prompt), "a project with no rendered artifact is told of none");
+});
+
+test("a project that names a rendered artifact shows the judge what each candidate renders, and says when there is none", () => {
+  const proj = { slots: { values: { task: "Polish the statement." } }, expect: { judge: { artifact: { command: "npm run render", path: "out/statement.txt" } } } };
+  const prompt = judgePrompt({ proj, taskFiles: [{ path: "STYLE.md", text: "# style" }], candidates: [{ letter: "Q", diff: "diff --git a/src/x b/src/x\n+x\n", artifact: "Total due   3,580.78\n" }, { letter: "M", diff: "", artifact: null }] });
+  assert.ok(prompt.includes("### What candidate Q renders"));
+  assert.ok(prompt.includes("Total due   3,580.78"));
+  assert.ok(prompt.includes("the render command failed on this candidate's tree"));
+  assert.ok(prompt.includes("the output of `npm run render` on its final tree (`out/statement.txt`)"));
+  assert.ok(!/\barm\b/i.test(prompt));
+});
+
+test("the ledger is read again before it is written: another writer's line and cap change survive a run's settle", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-ledger-"));
+  try {
+    const path = join(dir, "ledger.json");
+    const mine = fresh();
+    setCap(mine, { to: null, by: "owner", notifyEvery: 50, projectStop: 60, on: "2026-10-04" });
+    saveLedger(mine, path);
+    // A run opens its line and the model call begins.
+    reload(mine, path);
+    const entry = openRunEntry(mine, { project: "p", arm: "C", replicate: 1, kind: "kickoff", maxBudget: 9 });
+    saveLedger(mine, path);
+    // Meanwhile someone else records a lift for another project and a probe.
+    const theirs = loadLedger(path);
+    theirs.project_stop_lifted = { q: { to_usd: 90, on: "2026-10-04", by: "driver" } };
+    const probe = openRunEntry(theirs, { project: "-", arm: "-", replicate: "-", kind: "probe", maxBudget: 0.02 });
+    settleEntry(probe, { status: "ok", cost_usd: 0.02 });
+    saveLedger(theirs, path);
+    // The run settles: its own line is changed on the file as it is now, and nothing of theirs is lost.
+    const settled = amendEntry(mine, entry, { status: "ok", cost_usd: 2.5, ended: "2026-10-04T12:00:00.000Z" }, path);
+    const after = loadLedger(path);
+    assert.equal(after.invocations.length, 2);
+    assert.deepEqual(after.invocations.map((e) => [e.n, e.status, e.cost_usd]), [[1, "ok", 2.5], [2, "ok", 0.02]]);
+    assert.equal(after.project_stop_lifted.q.to_usd, 90);
+    assert.equal(after.cap_history.length, 2);
+    assert.equal(settled.cost_usd, 2.5);
+    assert.equal(mine.invocations.length, 2, "the runner's own copy is the file's");
+    // A line that is not the runner's own is never amended.
+    assert.throws(() => amendEntry(mine, { n: 1, started: "another time" }, { cost_usd: 0 }, path), /no longer in the ledger/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("a line that reported a model no run uses stops every new call until someone answers for it", () => {
+  const ledger = fresh();
+  const e = openRunEntry(ledger, { project: "p", arm: "B", replicate: 1, kind: "kickoff", maxBudget: 9 });
+  settleEntry(e, { status: "ok", cost_usd: 1, never_used: ["claude-fable-5-1"] });
+  assert.equal(neverLines(ledger).length, 1);
+  for (const call of [{ arm: "C", replicate: 1, kind: "kickoff" }, { arm: "C", replicate: 1, kind: "iteration" }, { arm: "judge", replicate: null, kind: "kickoff" }]) {
+    const d = gate(ledger, { project: "q", ...call });
+    assert.equal(d.ok, false);
+    assert.match(d.reason, /reported a model no run uses/);
+  }
+  e.never_acknowledged = { on: "2026-10-04", by: "driver: the record stands, flagged" };
+  assert.equal(neverLines(ledger).length, 0);
+  assert.equal(gate(ledger, { project: "q", arm: "C", replicate: 1, kind: "kickoff" }).ok, true);
+});
+
+test("what a session reached for outside its project is listed, the scratch and the reviewer's copy apart", () => {
+  const scratch = "/tmp/wk/a1b2c3/printkit-x1y2z3";
+  const held = `${scratch}.harness/held-out`;
+  const digest = [
+    { who: "lead", tool_uses: [
+      { tool: "Read", file: "src/parse-ranges.mjs" },
+      { tool: "Bash", command: `node --test ${scratch}/tests/a.test.mjs` },
+      { tool: "Bash", command: "ls .." },
+      { tool: "Bash", command: "find /tmp/wk -name '*.test.mjs'" },
+      { tool: "Read", file: "/tmp/someone/project/held-out/cases.test.mjs" },
+      { tool: "Bash", command: "node --test tests/a.test.mjs > /dev/null" },
+      { tool: "Agent", prompt: "read /etc/passwd and ../.." },
+    ] },
+    { who: "general-purpose", description: "Critic", transcript: "t.jsonl", tool_uses: [{ tool: "Read", file: `${held}/cases.test.mjs` }, { tool: "Bash", command: `node --test ${held}/cases.test.mjs` }] },
+  ];
+  const out = reachedOutside(digest, scratch, held);
+  assert.deepEqual(Object.keys(out), ["lead"], "the critic read only the copy it was named");
+  assert.deepEqual(out.lead, ["Bash: climbs with ..: ls ..", "Bash: /tmp/wk", "Read: /tmp/someone/project/held-out/cases.test.mjs"]);
+  // In arm D nothing lies outside, so a reach for the reviewer's copy of another run would show.
+  assert.deepEqual(Object.keys(reachedOutside(digest, scratch, null)).sort(), ["general-purpose (Critic)", "lead"]);
+
+  // Every usual way out is seen, however it is spelled.
+  const ways = ["cd ..; ls", "cd ..&&ls", "ls ..|head", "(cd ..)", "ls ./..", "ls src/../..", "ls $PWD/..", "ls $TMPDIR", 'ls "$TMPDIR/wk"', "ls ~", "ls ~/.claude/projects", "cat $HOME/notes", "cat ${HOME}/notes", "cd / && ls", "find / -name x", "node -e \"console.log(require('fs').readdirSync('..'))\"", "node -e \"console.log(require('os').tmpdir())\"", "node -e \"console.log(os.homedir())\"", "node -e 'console.log(process.env.HOME)'"];
+  for (const command of ways) assert.equal(Object.keys(reachedOutside([{ who: "lead", tool_uses: [{ tool: "Bash", command }] }], scratch, null)).length, 1, `not seen: ${command}`);
+  assert.equal(Object.keys(reachedOutside([{ who: "lead", tool_uses: [{ tool: "Glob", pattern: "../**/*.test.mjs" }] }], scratch, null)).length, 1, "a Glob pattern that climbs");
+  // What stays inside is not listed: a spread, a relative path, a web address, a regular expression, a version range.
+  const inside = ["npm test", "node --test tests/a.test.mjs", "git diff --stat", "node -e 'const a = [...b]; console.log(a)'", "grep -n 'a.*b' src/x.mjs", "node -e 'fetch(\"https://example.com/a/b\")'", "node -e 'console.log(/x/.test(\"x\"))'", "ls src/", "cat ./README.md", "echo 1..3"];
+  for (const command of inside) assert.deepEqual(reachedOutside([{ who: "lead", tool_uses: [{ tool: "Bash", command }] }], scratch, null), {}, `listed: ${command}`);
+  // Nothing is cut silently.
+  const many = Array.from({ length: 70 }, (_, i) => ({ tool: "Read", file: `/tmp/someone/file-${i}.txt` }));
+  const cut = reachedOutside([{ who: "lead", tool_uses: many }], scratch, null).lead;
+  assert.equal(cut.length, 61);
+  assert.equal(cut[60], "… and 10 more: read the transcript");
+});
+
+test("the tool's command is kept off the PATH a session is given, and that is looked for, not assumed", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-path-"));
+  try {
+    mkdirSync(join(dir, "with"));
+    mkdirSync(join(dir, "without"));
+    writeFileSync(join(dir, "with", "grooph"), "#!/bin/sh\n");
+    const path = [join(dir, "with"), join(dir, "without"), "/usr/bin"].join(":");
+    assert.equal(toolOnPath(path), true);
+    assert.equal(pathWithoutTool(path), [join(dir, "without"), "/usr/bin"].join(":"));
+    assert.equal(toolOnPath(pathWithoutTool(path)), false);
+    assert.equal(toolOnPath(pathWithoutTool()), false, "whatever this machine's PATH holds");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the tool's name in a run's transcripts is counted, the lead's and every sub-agent's", () => {
+  const dir = mkdtempSync(join(tmpdir(), "grooph-compare-told-"));
+  try {
+    const project = join(dir, "projects", "-tmp-wk-a-printkit-x");
+    mkdirSync(join(project, "s1", "subagents"), { recursive: true });
+    writeFileSync(join(project, "s1.jsonl"), '{"type":"user","message":"- grooph-design: Design the multi-agent workflow as grooph loop graphs"}\n');
+    writeFileSync(join(project, "s1", "subagents", "a.jsonl"), '{"type":"assistant","message":"nothing here"}\n');
+    writeFileSync(join(project, "s2.jsonl"), '{"type":"user","message":"a task"}\n');
+    assert.deepEqual(toolNamed(["s1", "s1", null], dir), { mentions: 2, transcripts: 2, where: [{ who: "lead", mentions: 2 }] });
+    assert.deepEqual(toolNamed(["s2"], dir), { mentions: 0, transcripts: 1, where: [] });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the work root is the runner's alone: leftovers are seen, --clear-work removes them and nothing else", () => {
+  const tmp = mkdtempSync(join(tmpdir(), "grooph-compare-root-"));
+  const run = (...args) => spawnSync(process.execPath, [join(here, "compare-run.mjs"), ...args], { encoding: "utf8", env: { ...process.env, TMPDIR: tmp } });
+  const before = process.env.TMPDIR;
+  try {
+    process.env.TMPDIR = tmp;
+    const wk = workRoot();
+    assert.equal(wk, join(tmp, "wk"));
+    process.env.TMPDIR = "";
+    assert.ok(workRoot().startsWith("/"), "an empty TMPDIR is no temp directory: the root is never a folder of wherever the command ran");
+    process.env.TMPDIR = tmp;
+    assert.ok(!/grooph|compar/i.test("wk"), "the name says nothing of the tool or the study");
+    assert.deepEqual(leftovers(), []);
+    // A folder named wk that the runner did not make is left alone.
+    mkdirSync(join(wk, "someone-elses"), { recursive: true });
+    let out = run("--clear-work");
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /is not the runner's/);
+    assert.ok(existsSync(join(wk, "someone-elses")));
+    // The runner's own: what an unfinished run left is listed, then removed; the mark stays.
+    writeFileSync(join(wk, ".keep"), "");
+    mkdirSync(join(wk, "a1b2c3", "printkit-x.harness", "held-out"), { recursive: true });
+    assert.equal(leftovers().length, 2);
+    assert.match(run("--status").stdout, /holds 2 folder\(s\) from a run that did not finish/);
+    // A run that is alive is never cleared from under itself: the mark names its runner, and that process answers.
+    writeFileSync(join(wk, ".keep"), JSON.stringify({ pid: process.ppid }));
+    assert.equal(liveRun(), process.ppid);
+    out = run("--clear-work");
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /a run is in progress[\s\S]*nothing was removed/);
+    assert.equal(leftovers().length, 2);
+    assert.match(run("--status").stdout, /a run is in progress/);
+    // A runner that is gone is a leftover: its mark names a process that no longer answers.
+    const gone = spawnSync(process.execPath, ["-e", "console.log(process.pid)"], { encoding: "utf8" }).stdout.trim();
+    writeFileSync(join(wk, ".keep"), JSON.stringify({ pid: Number(gone) }));
+    assert.equal(liveRun(), null);
+    out = run("--clear-work");
+    // The command also asks the study's own ledger, which this test does not replace: while a real run is in flight its
+    // line is marked running and nothing is cleared, which is the refusal working. The rest is checked when no run is.
+    if (loadLedger().invocations.some((entry) => entry.status === "running")) {
+      assert.equal(out.status, 1);
+      assert.match(out.stderr, /is marked running[\s\S]*nothing was removed/);
+      assert.equal(leftovers().length, 2);
+      return;
+    }
+    assert.equal(out.status, 0, out.stderr);
+    assert.deepEqual(readdirSync(wk), [".keep"]);
+    assert.deepEqual(leftovers(), []);
+    // A link to another folder is never built in or cleared through, marked or not.
+    const elsewhere = join(tmp, "elsewhere");
+    mkdirSync(join(elsewhere, "precious"), { recursive: true });
+    writeFileSync(join(elsewhere, ".keep"), "");
+    rmSync(wk, { recursive: true });
+    spawnSync("ln", ["-s", elsewhere, wk]);
+    out = run("--clear-work");
+    assert.equal(out.status, 1);
+    assert.match(out.stderr, /is a link to another folder/);
+    assert.ok(existsSync(join(elsewhere, "precious")));
+    rmSync(wk);
+  } finally {
+    if (before === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = before;
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("study one's judge prompts are what this function writes today: each recorded prompt is reproduced from its records", () => {
+  const comparisons = join(root, "experiments", "comparisons");
+  for (const project of ["grind-loop", "review-gate", "red-team-loop", "spec-then-loop"]) {
+    const dir = join(comparisons, project);
+    const readJson = (path) => JSON.parse(readFileSync(path, "utf8"));
+    const expect = readJson(join(dir, "expect.json"));
+    const mapping = readJson(join(dir, "judge", "mapping.json"));
+    const transcript = readFileSync(join(dir, "judge", "transcript.md"), "utf8");
+    const recorded = transcript.slice(transcript.indexOf("## Prompt\n\n") + "## Prompt\n\n".length, transcript.lastIndexOf("\n\n## Reply\n\n"));
+    const taskFiles = (expect.judge?.acceptance ?? []).map((path) => ({ path, text: readFileSync(join(dir, "task", path), "utf8").replaceAll("<held-out>", "<a folder outside the project>") }));
+    const candidates = mapping.order.map((letter) => ({ letter, diff: judgedDiff(readFileSync(join(dir, mapping.letters[letter], "project.diff"), "utf8"), mapping.files_judged).text }));
+    const today = judgePrompt({ proj: { slots: readJson(join(dir, "slots.json")), expect }, taskFiles, candidates });
+    assert.equal(today, recorded, `${project}: the judge's prompt has changed since study one`);
+  }
 });

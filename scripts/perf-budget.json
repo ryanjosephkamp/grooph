@@ -1,10 +1,11 @@
 {
-  "firstLoadKB": 180,
+  "firstLoadKB": 164,
   "entryJsKB": 162,
   "cssKB": 20,
   "fontsKB": 42,
   "firstVisitKB": 224,
-  "canvasLoadKB": 280,
+  "canvasLoadKB": 262,
+  "templateLoadKB": 280,
   "embedLoadKB": 132,
   "mapSpaceKB": 9,
   "cliColdMs": 400

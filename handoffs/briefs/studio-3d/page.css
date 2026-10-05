@@ -1,0 +1,81 @@
+/* One reading column up to 760px, the documents' switch held at the top of the screen, and each view in a framed
+   stage of its own under its label. Quiet green-gray ground and grooph's green as the one accent, as the design
+   studio has; the loops' colors and the kinds' are the pictures' own. Everything a stage draws takes its colors
+   from these tokens, so light and dark are one drawing. */
+:root {
+  --bg: #fafbfa; --panel: #f1f4f3; --card: #fdfefe; --floor: #e6ebe9;
+  --ink: #1a201e; --ink-2: #454c49; --ink-3: #5f6764;
+  --line: #dce1df; --line-strong: #b9c1be;
+  --accent: #1f5f4a; --accent-soft: #dcefe6; --on-accent: #fdfefe;
+  --loop-1: #6a3fb0; --loop-2: #0f7285; --loop-3: #a8530c; --loop-4: #a3306b;
+  --k-agent: #1f7a5a; --k-check: #2b5f9e; --k-gate: #b25e09; --k-stop: #5f6764;
+  --ok: #2f8f63; --bad: #c8792a; --brake: #b3261e;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1110; --panel: #131817; --card: #1b201e; --floor: #232927;
+    --ink: #ebefed; --ink-2: #c0c7c4; --ink-3: #99a19e;
+    --line: #2d3331; --line-strong: #4a524f;
+    --accent: #5dbb94; --accent-soft: #1e3a30; --on-accent: #0d1110;
+    --loop-1: #b494f0; --loop-2: #58c3d6; --loop-3: #eb9a45; --loop-4: #ee7fb0;
+    --k-agent: #5dbb94; --k-check: #6fa3e0; --k-gate: #eb9a45; --k-stop: #99a19e;
+    --ok: #57b98a; --bad: #e39a4c; --brake: #f2776e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1110; --panel: #131817; --card: #1b201e; --floor: #232927;
+  --ink: #ebefed; --ink-2: #c0c7c4; --ink-3: #99a19e;
+  --line: #2d3331; --line-strong: #4a524f;
+  --accent: #5dbb94; --accent-soft: #1e3a30; --on-accent: #0d1110;
+  --loop-1: #b494f0; --loop-2: #58c3d6; --loop-3: #eb9a45; --loop-4: #ee7fb0;
+  --k-agent: #5dbb94; --k-check: #6fa3e0; --k-gate: #eb9a45; --k-stop: #99a19e;
+  --ok: #57b98a; --bad: #e39a4c; --brake: #f2776e;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1.0625rem/1.55 var(--font); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.page { max-width: 47.5rem; margin-inline: auto; padding: 2rem 1rem 4rem; display: flex; flex-direction: column; gap: 2.75rem; }
+h1, h2 { margin: 0; line-height: 1.15; text-wrap: balance; }
+h1 { font-size: clamp(2rem, 1.5rem + 2.4vw, 2.9rem); font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.35rem, 1.15rem + 0.9vw, 1.7rem); font-weight: 700; letter-spacing: -0.012em; }
+p { margin: 0; max-width: 65ch; text-wrap: pretty; }
+code { font-family: var(--mono); font-size: 0.86em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 0.3rem; }
+.eyebrow { font: 500 0.78rem/1.3 var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); }
+.mast { display: flex; flex-direction: column; gap: 0.9rem; }
+.lede { font-size: 1.18rem; line-height: 1.45; color: var(--ink-2); }
+.how { color: var(--ink-2); }
+
+/* The switch of documents stays at the top of the screen: every view below draws the one chosen. */
+.docs { position: sticky; top: 0; z-index: 5; margin-inline: -1rem; padding: 0.6rem 1rem 0.7rem; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.4rem; }
+.docs-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.35rem; }
+.docs button { min-height: 2.75rem; padding: 0.3rem 0.35rem; border: 1px solid var(--line-strong); border-radius: 0.6rem; background: var(--card); color: var(--ink-2); font: 600 0.82rem/1.15 var(--font); cursor: pointer; text-wrap: balance; }
+.docs button[aria-checked="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.docs small { font-size: 0.86rem; line-height: 1.3; color: var(--ink-3); }
+
+.view { display: flex; flex-direction: column; gap: 0.75rem; border-top: 1px solid var(--line-strong); padding-top: 1.2rem; min-width: 0; scroll-margin-top: 6.5rem; }
+.view-head { display: flex; flex-direction: column; gap: 0.45rem; }
+.label { display: inline-flex; align-items: center; gap: 0.55rem; }
+.label b { display: inline-grid; place-items: center; min-width: 2.4rem; height: 1.6rem; padding-inline: 0.4rem; border-radius: 0.4rem; background: var(--accent); color: var(--on-accent); font: 600 0.8rem/1 var(--mono); }
+.shows { color: var(--ink); }
+.shows b { font-weight: 600; }
+.true { font-size: 0.93rem; line-height: 1.45; color: var(--ink-3); }
+.stops { font-size: 0.95rem; line-height: 1.45; color: var(--brake); }
+.stage { border: 1px solid var(--line); border-radius: 0.9rem; background: var(--panel); overflow: hidden; }
+/* The picture takes the finger: a drag turns it, so the page is scrolled from outside it. */
+.stage canvas { display: block; width: 100%; height: min(112vw, 30rem); touch-action: none; cursor: grab; }
+.stage canvas:active { cursor: grabbing; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.bar button { min-width: 2.75rem; min-height: 2.75rem; padding: 0 0.8rem; border: 1px solid var(--line-strong); border-radius: 0.6rem; background: var(--card); color: var(--ink); font: 600 0.92rem/1 var(--font); cursor: pointer; }
+.bar button[data-do="play"] { min-width: 4.6rem; }
+.bar button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.bar input { flex: 1 1 9rem; min-width: 0; height: 2.75rem; accent-color: var(--accent); }
+.says { display: block; min-height: 3.1em; font-size: 0.98rem; line-height: 1.45; color: var(--ink-2); }
+.pick { display: flex; flex-direction: column; gap: 0.8rem; border-top: 1px solid var(--line-strong); padding-top: 1.2rem; }
+.pick ul { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.45rem; max-width: 65ch; }
+.foot { font-size: 0.93rem; color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }

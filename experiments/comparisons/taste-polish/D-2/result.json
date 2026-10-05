@@ -1,0 +1,200 @@
+{
+  "template": "taste-polish",
+  "arm": "D",
+  "replicate": 2,
+  "project": "taste-polish",
+  "graph_id": "polish-usage-statement",
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "conditions": {
+    "task": "experiments/comparisons/taste-polish/task",
+    "test_command": "npm test",
+    "held_out": {
+      "dir": null,
+      "files": [
+        {
+          "path": "REFERENCE.md",
+          "sha256": "9b93e695b609131422401708863017cca902f9421537386631a7ff2f590e0f63",
+          "at_run": false
+        },
+        {
+          "path": "reference.txt",
+          "sha256": "62ef2a7d8494e7e569375912b0dd1034f9476723083454f61be614cedaa381ca",
+          "at_run": false
+        },
+        {
+          "path": "statement-properties.test.mjs",
+          "sha256": "45d00ffd095b5c2d5155ea55c43a5a74f886db95d079a4c52ccc03ae8734c49a",
+          "at_run": false
+        }
+      ],
+      "substituted_in": [],
+      "named_to": "nobody",
+      "beside_scratch_during_run": false,
+      "scorer_only": [
+        "statement-properties.test.mjs"
+      ],
+      "scored_from": "experiments/comparisons/taste-polish/held-out (the repository's, never the copy beside the scratch)"
+    },
+    "protocol": 2,
+    "study": 2,
+    "lead_model": "claude-opus-5-5",
+    "lead_effort": "high",
+    "judge_model": "claude-opus-5-5",
+    "tier_map": {
+      "frontier": "claude-opus-5-5",
+      "strong": "claude-sonnet-5-5",
+      "fast": "claude-sonnet-5-5",
+      "said_as": "GROOPH_MODELS=frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+      "source": "expect.json tier_map (pre-registered)"
+    },
+    "agent_models": {
+      "polish-usage-statement--critic": "claude-opus-5-5",
+      "polish-usage-statement--owner": "claude-sonnet-5-5"
+    },
+    "aliases": {
+      "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+    },
+    "repository": {
+      "user": "dev",
+      "commits": [
+        "initial commit"
+      ],
+      "holds_the_package": false
+    },
+    "tool_on_path": false,
+    "skills_listed": "none (--disable-slash-commands)",
+    "session_tmpdir": "a folder of the run's own",
+    "permission_allow_rules": 24,
+    "strict_mcp_config": true,
+    "harness_version": "2.1.289 (Claude Code)",
+    "template": "taste-polish",
+    "template_version": "taste-polish@2",
+    "graph_id": "polish-usage-statement",
+    "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/vJfq6e/usage-statement-AJXEmy"
+  },
+  "derivation": {
+    "arm": "D",
+    "from": "the task folder alone: the task text, the acceptance files and the test command",
+    "acceptance": [
+      "README.md",
+      "STYLE.md"
+    ],
+    "design_words": [],
+    "held_out_named": [],
+    "mechanics_left": []
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.41787560000000007,
+      "output_tokens": 10076
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ]
+  },
+  "cost_usd": 0.417876,
+  "harness_turns": 17,
+  "duration_s": 85,
+  "wall_s": 87,
+  "process": {
+    "models": {
+      "claude-opus-5-5": {
+        "cost_usd": 0.41787560000000007,
+        "output_tokens": 10076
+      }
+    },
+    "models_by_agent": {
+      "lead": [
+        "claude-opus-5-5"
+      ]
+    },
+    "models_never_used": [],
+    "cost_usd": 0.417876,
+    "harness_turns": 17,
+    "duration_s": 85,
+    "wall_s": 87,
+    "permission_denials": [
+      {
+        "tool": "Bash",
+        "command": "python3 - <<'EOF'\np='src/statement.mjs'\ns=open(p).read()\nrep=[\n(\"\"\"    quantity: `${formatQuantity(line.quantity)} ${line.unit}`,\"\"\",\"\"\"    quantity: formatQuantity(line.quantity),\n    unit: line.unit,\"\"\"),\n(\"\"\"  // Columns: label, quantity (right-aligned), amount (right-aligned).\n  const amountHeading = \"Amount\";\n  const quantityHeading = \"Quantity\";\"\"\",\"\"\"  // Columns: label, quantity (right-aligned) and unit, amount (right-aligned).\n  const amountHeading = \"Amount\";\n  const quantityHeading = \"Quantity\";\n  const unitWidth = Math.max(0, ...charges.map((row) => row.unit.length));\"\"\"),\n(\"\"\"  const quantityWidth = Math.max(quantityHeading.length, ...charges.map((row) => row.quantity.length));\"\"\",\n\"\"\"  const numberWidth = Math.max(0, ...charges.map((row) => row.quantity.length));\n  const quantityWidth = Math.max(quantityHeading.length, numberWidth + 1 + unitWidth);\n  const quantityText = (charge) =>\n    `${charge.quantity.padStart(numberWidth)} ${charge.unit}`.padEnd(quantityWidth);\"\"\"),\n(\"\"\"    Math.max(\"Total charges\".length, ...charges.map((row) => row.label.length)),\"\"\",\n\"\"\"    Math.max(\"Service\".length, ...charges.map((row) => row.label.length)),\"\"\"),\n(\"\"\"  out.push(...wrap(`Usage statement for ${formatPeriod(data.period)}`, MAX_WIDTH));\n  out.push(\"\");\n  out.push(...wrap(`Customer  ${data.customer}`, MAX_WIDTH));\n  out.push(...wrap(`Account   ${data.account}`, MAX_WIDTH));\n  out.push(...wrap(`Amounts in ${data.currency}`, MAX_WIDTH));\n  out.push(\"\");\n  out.push(...row(\"Charges\", quantityHeading, amountHeading));\n  for (const charge of charges) out.push(...row(charge.label, charge.quantity, charge.amount));\"\"\",\n\"\"\"  out.push(...wrap(`${data.customer} usage statement, ${formatPeriod(data.period)}`, MAX_WIDTH));\n  out.push(...wrap(`Account ${data.account}. Amounts in ${data.currency}.`, MAX_WIDTH));\n  out.push(\"\");\n  out.push(\"Charges\");\n  out.push(...row(\"Service\", quantityHeading.padEnd(quantityWidth), amountHeading));\n  for (const charge of charges) out.push(...row(charge.label, quantityText(charge), charge.amount));\"\"\"),\n]\nfor a,b in rep:\n    assert a in s, a\n    s=s.replace(a,b)\nopen(p,'w').write(s)\nEOF\nnpm run -s capture && sed -n '/```text/,$p' captures/CAPTURE.md && npm test 2>&1 | tail -9"
+      },
+      {
+        "tool": "Bash",
+        "command": "npm run -s capture && sed -n '/```text/,$p' captures/CAPTURE.md && npm test 2>&1 | tail -9"
+      }
+    ],
+    "subagents_dispatched": 0,
+    "dispatches": [],
+    "reached_outside_project": {},
+    "tool_named_in_transcripts": {
+      "mentions": 0,
+      "transcripts": 1,
+      "where": []
+    }
+  },
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "python3 - <<'EOF'\np='src/statement.mjs'\ns=open(p).read()\nrep=[\n(\"\"\"    quantity: `${formatQuantity(line.quantity)} ${line.unit}`,\"\"\",\"\"\"    quantity: formatQuantity(line.quantity),\n    unit: line.unit,\"\"\"),\n(\"\"\"  // Columns: label, quantity (right-aligned), amount (right-aligned).\n  const amountHeading = \"Amount\";\n  const quantityHeading = \"Quantity\";\"\"\",\"\"\"  // Columns: label, quantity (right-aligned) and unit, amount (right-aligned).\n  const amountHeading = \"Amount\";\n  const quantityHeading = \"Quantity\";\n  const unitWidth = Math.max(0, ...charges.map((row) => row.unit.length));\"\"\"),\n(\"\"\"  const quantityWidth = Math.max(quantityHeading.length, ...charges.map((row) => row.quantity.length));\"\"\",\n\"\"\"  const numberWidth = Math.max(0, ...charges.map((row) => row.quantity.length));\n  const quantityWidth = Math.max(quantityHeading.length, numberWidth + 1 + unitWidth);\n  const quantityText = (charge) =>\n    `${charge.quantity.padStart(numberWidth)} ${charge.unit}`.padEnd(quantityWidth);\"\"\"),\n(\"\"\"    Math.max(\"Total charges\".length, ...charges.map((row) => row.label.length)),\"\"\",\n\"\"\"    Math.max(\"Service\".length, ...charges.map((row) => row.label.length)),\"\"\"),\n(\"\"\"  out.push(...wrap(`Usage statement for ${formatPeriod(data.period)}`, MAX_WIDTH));\n  out.push(\"\");\n  out.push(...wrap(`Customer  ${data.customer}`, MAX_WIDTH));\n  out.push(...wrap(`Account   ${data.account}`, MAX_WIDTH));\n  out.push(...wrap(`Amounts in ${data.currency}`, MAX_WIDTH));\n  out.push(\"\");\n  out.push(...row(\"Charges\", quantityHeading, amountHeading));\n  for (const charge of charges) out.push(...row(charge.label, charge.quantity, charge.amount));\"\"\",\n\"\"\"  out.push(...wrap(`${data.customer} usage statement, ${formatPeriod(data.period)}`, MAX_WIDTH));\n  out.push(...wrap(`Account ${data.account}. Amounts in ${data.currency}.`, MAX_WIDTH));\n  out.push(\"\");\n  out.push(\"Charges\");\n  out.push(...row(\"Service\", quantityHeading.padEnd(quantityWidth), amountHeading));\n  for (const charge of charges) out.push(...row(charge.label, quantityText(charge), charge.amount));\"\"\"),\n]\nfor a,b in rep:\n    assert a in s, a\n    s=s.replace(a,b)\nopen(p,'w').write(s)\nEOF\nnpm run -s capture && sed -n '/```text/,$p' captures/CAPTURE.md && npm test 2>&1 | tail -9"
+    },
+    {
+      "tool": "Bash",
+      "command": "npm run -s capture && sed -n '/```text/,$p' captures/CAPTURE.md && npm test 2>&1 | tail -9"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 66,
+      "session_id": "a71bfbb5-ac6c-43ab-990c-9aa22ee4601f",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.417876,
+      "reported_cost_usd": 0.41787560000000007,
+      "max_budget_usd": 9,
+      "harness_turns": 17,
+      "duration_s": 85,
+      "wall_s": 87,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--disable-slash-commands",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json",
+      "reply_tail": " line is 59 characters.\n- Services with zero usage (Machine learning inference, Monitoring) still get a line showing 0.00, since the brief asks for a line for each charge.\n\n**`tests/statement.test.mjs`**: I kept the three existing tests and added three:\n- every line is plain ASCII, at most 72 characters, with no trailing spaces;\n- the month, a sample charge and credit, both subtotals and the total due are shown exactly;\n- a very long service name wraps instead of widening the statement.\n\nI re-ran `npm run capture`, so `captures/statement.txt` and `captures/CAPTURE.md` show the current version."
+    }
+  ],
+  "base_commit": "aa91c791d8fca3e8f123e5f82844f7933417aadb",
+  "project_files_changed": [
+    "A captures/CAPTURE.md",
+    "A captures/statement.txt",
+    "M src/statement.mjs",
+    "M tests/statement.test.mjs"
+  ],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/vJfq6e/usage-statement-AJXEmy",
+  "ending_kind": {
+    "kind": "clean",
+    "reason": "the session ended by itself"
+  },
+  "home_redactions": 0
+}

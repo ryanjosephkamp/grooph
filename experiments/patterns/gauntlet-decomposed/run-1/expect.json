@@ -1,0 +1,15 @@
+{
+  "about": "What --check asserts for this template beyond the common rules: the planner, the owner, both critics and the integrator ran as their own subagents; the owner was dispatched at least twice (one piece per outer round) and the piece critic at least twice; each critic wrote its own report; the owner and the integrator never read the held-out reference and both critics did; a back edge was taken; PIECES.md ends with every box ticked; the run halts at release-gate. One scripted gate answer, at the decomposition gate only (owner decision 2026-09-22, as for spec-then-loop's first gate in batch one): without it nothing past the planner runs and the design bet cannot be tested. The release gate gets no scripted answer. The design bet (write-up): piece 1's obvious rendering misses properties of the reference that only a side-by-side shows, so e-critic-fail fires at least once, and both pieces end ticked.",
+  "agents": ["planner", "owner", "critic", "integrator", "final-critic"],
+  "dispatches": { "owner": { "min": 2 }, "critic": { "min": 2 } },
+  "reports": { "planner": ["PIECES.md"], "critic": ["GAPS.md"], "final-critic": ["FINAL.md"] },
+  "heldOut": { "readers": ["critic", "final-critic"], "notReaders": ["owner", "integrator"] },
+  "backEdge": true,
+  "ending": ["halt at release-gate"],
+  "resume": {
+    "gate": "decomposition-gate",
+    "before": ["planner"],
+    "answer": "approve",
+    "prompt": "Answer at the gate `{{gate}}` of run `{{run-id}}`: {{answer}}. Continue that run from where it halted."
+  }
+}

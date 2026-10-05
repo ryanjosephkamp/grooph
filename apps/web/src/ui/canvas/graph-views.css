@@ -1,0 +1,118 @@
+/* A loop graph's other views (handoff 0092). These rules ride in graph-views.tsx and are added to the page when the
+   piece arrives: no stylesheet every address asks for carries them. */
+
+/* Over the canvas, and out of its way: only the switch and a chosen view take the pointer. */
+.graph-views {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+/* The switch sits at the canvas's top right corner, under the canvas library's own line. The loops' names, which
+   run from the left, keep clear of it; and in three dimensions they are on the sheets, so the names step aside. */
+.stage:has(> .graph-views) > .loop-legend {
+  right: 196px;
+}
+.stage:has(> .graph-views.is-space) > .loop-legend {
+  display: none;
+}
+.graph-switch {
+  position: absolute;
+  top: 26px;
+  right: 10px;
+  z-index: 2;
+  flex-wrap: nowrap;
+  pointer-events: auto;
+  box-shadow: var(--shadow);
+}
+.graph-switch .seg {
+  min-width: 78px;
+  min-height: 36px;
+}
+.graph-views-note {
+  position: absolute;
+  top: 74px;
+  left: 50%;
+  z-index: 2;
+  width: min(92%, 44ch);
+  margin: 0;
+  padding: 8px 12px;
+  transform: translateX(-50%);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 13px;
+  text-align: center;
+  pointer-events: auto;
+}
+/* The view in three dimensions lies over the canvas, which keeps its place under it. */
+.graph-space {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* Room above for the switch, and below for the bar a viewer keeps at its foot. */
+  padding: 72px 0 104px;
+  overflow: auto;
+  background: var(--bg);
+  pointer-events: auto;
+}
+.graph-space .map-picture {
+  padding: 0;
+}
+/* On a phone a run's page keeps its canvas short, for the timeline under it. In three dimensions the canvas is the
+   view, with a slider of its own through the same notes, so the page gives it the room "Bigger graph" does: the
+   row grows and what is under it moves down, where a taller stage in the same row would lie over the run's summary. */
+@media (max-width: 899px) {
+  .run-view:has(> .run-stage > .graph-views.is-space) {
+    grid-template-rows: auto minmax(220px, 76dvh) minmax(0, 1fr);
+  }
+}
+/* No bar stands at the foot of a run's canvas: the room kept for one is the scene's. */
+.run-stage .graph-space {
+  padding-bottom: 16px;
+}
+/* The button that makes a run's canvas taller is the canvas's; the view has its room already. */
+.run-stage:has(> .graph-views.is-space) > .canvas-size {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .graph-space {
+    padding: 72px 28px 104px;
+  }
+}
+
+/* The picture becomes the scene (ui/become.ts). A node and its card are one thing on the way: it is the node's face
+   for the first third, the card's for the last, and both only between, so that the two sets of words are not read
+   through each other the whole way. What has no name, the edges and the sheets and the page round them, fades from
+   the one to the other in the same time. Reduced motion never starts any of it. */
+::view-transition-group(.gv) {
+  animation-duration: 0.3s;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}
+::view-transition-old(.gv) {
+  animation: 0.3s both gv-goes;
+}
+::view-transition-new(.gv) {
+  animation: 0.3s both gv-comes;
+}
+@keyframes gv-goes {
+  35% {
+    opacity: 1;
+  }
+  65%,
+  to {
+    opacity: 0;
+  }
+}
+@keyframes gv-comes {
+  from,
+  35% {
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+  }
+}

@@ -14,6 +14,8 @@ export * from "./base.js";
 export { compile, tryCompile, CompileError, keptFolder } from "./compile/index.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
 export * from "./subgrooph.js";
+// Adoption held to the graph's brakes: it brings the same comparison, and is not on the web app's way in either.
+export * from "./adoption.js";
 export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
 export type { UnitsKit } from "./picture/units-kit.js";
 
@@ -22,6 +24,8 @@ export type { UnitsKit } from "./picture/units-kit.js";
  * drawn as `base.ts`'s picture draws it, byte for byte.
  */
 export const picture = (doc: Graph, options: UnitsOptions = {}): string => pictureWithUnits(unitsKit, doc, options);
+// The picture's themes, a door of their own (`picture/themes.ts`): here they are simply there.
+export { PICTURE_THEMES, THEME_VALUES, isPictureTheme, readTheme, themeParts, themed, themedPage, type PictureThemeName, type ThemeValues } from "./picture/themes.js";
 
 /** An operation map with its lanes side by side (docs/operation-map.md §4c). `width`, when given, is the room there is. */
 export const mapWide = (map: OperationMap, options: MapPictureOptions = {}): string => mapWideWith(mapKit, map, options);

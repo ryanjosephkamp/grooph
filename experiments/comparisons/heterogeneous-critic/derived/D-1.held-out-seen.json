@@ -1,0 +1,9 @@
+{
+  "about": "Derived after the run, not evidence of it: every time a session of this run ran a file of the held-out folder, and the counts that run printed, read from the harness's own transcripts by scripts/lib/compare-seen.mjs. The scorer's count on the final tree is in the run's score.json.",
+  "run": "heterogeneous-critic/D-1",
+  "sessions": [
+    "bef420b4-52f8-4bc2-b2a3-013c9a0d3e12"
+  ],
+  "transcripts_found": 1,
+  "suite_runs": []
+}

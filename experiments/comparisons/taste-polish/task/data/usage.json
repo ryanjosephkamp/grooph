@@ -1,0 +1,22 @@
+{
+  "customer": "Northwind Robotics",
+  "account": "NW-20418",
+  "period": "2026-09",
+  "currency": "USD",
+  "lines": [
+    { "service": "Compute", "quantity": 18250, "unit": "vCPU-hours", "amount_cents": 164250 },
+    { "service": "Container registry", "quantity": 412, "unit": "GB-months", "amount_cents": 4120 },
+    { "service": "Data transfer out", "quantity": 4380, "unit": "GB", "amount_cents": 39420 },
+    { "service": "Dedicated support", "quantity": 1, "unit": "plan", "amount_cents": 50000 },
+    { "service": "Key management", "quantity": 36, "unit": "keys", "amount_cents": 3600 },
+    { "service": "Load balancing", "quantity": 1440, "unit": "hours", "amount_cents": 3600 },
+    { "service": "Machine learning inference", "quantity": 0, "unit": "requests", "amount_cents": 0 },
+    { "service": "Managed database", "quantity": 720, "unit": "instance-hours", "amount_cents": 129600 },
+    { "service": "Monitoring", "quantity": 0, "unit": "metrics", "amount_cents": 0 },
+    { "service": "Object storage", "quantity": 9120, "unit": "GB-months", "amount_cents": 20976 }
+  ],
+  "credits": [
+    { "reason": "Service credit, 14 Sep outage", "amount_cents": -16425 },
+    { "reason": "Committed-use discount", "amount_cents": -41063 }
+  ]
+}

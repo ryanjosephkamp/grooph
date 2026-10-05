@@ -2,7 +2,7 @@
   "grooph": 0,
   "id": "gauntlet-decomposed",
   "name": "Gauntlet, decomposed",
-  "version": 1,
+  "version": 2,
   "goal": "{{task}} Done when every piece in PIECES.md is ticked by its critic against {{reference}}, the whole has been compared once more, and the human releases it.",
   "target": {
     "harness": "claude-code"
@@ -48,8 +48,7 @@
         "url": "https://github.com/mshumer/Claude-of-Duty",
         "note": "decompose, then builder plus fresh critic per piece against a real reference, blind side by side; here bounded, and pieces run in sequence because the repository's own note says fan-out lost on coupled work"
       }
-    ],
-    "version": 2
+    ]
   },
   "description": "The Gauntlet with its pieces, bounded. A frontier planner writes PIECES.md (pieces along real seams, each with an owner scope, a reference cut, an acceptance and a box) and a human approves the cut. The outer loop takes one piece per round: the owner works inside its scope and captures, a check refuses bad captures, and a fresh frontier critic compares the captures blind against the piece's cut of the reference, ticking the box on a pass; the inner loop returns the top gaps to the owner. When no piece remains an integrator assembles the whole, a fresh final critic compares it blind, and a human gate releases it. Both loops are capped and budgeted; no brief asks for a win over the reference. The outer loop pauses for you between pieces at its human stop, so a long decomposition is never unattended.",
   "nodes": [

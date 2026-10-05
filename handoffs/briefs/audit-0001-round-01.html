@@ -1,0 +1,176 @@
+<title>Audit 0001 Round One</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400..800&family=Atkinson+Hyperlegible+Mono:wght@400..700&display=swap">
+<style>
+/* One reading column for a phone, in the look of the other owner pages: a night band that says where the audit stands, then the one finding that matters most, what the auditor corrected in the lane's own reading, the words proposed, the seven decisions with an answer to copy, and what comes next. Source: experiments/audits/0001-claims-as-of-0-3-0/round-01/ on branch slice/0075-audit-claims-as-of-0-3-0. */
+:root{--bg:#f1f4f3;--surface:#fdfefe;--surface2:#e8edeb;--ink:#1a201e;--ink2:#454c49;--ink3:#5f6764;--line:#dce1df;--accent:#1f5f4a;--accent-ink:#ffffff;--accent-soft:#dcefe6;--night:#061a14;--night2:#0d261f;--night-line:#2d423b;--night-ink:#edf4f0;--night-muted:#acbcb4;--bright:#64eab7;--warn-bg:#fcf0d9;--warn-ink:#7a4500;--no-bg:#fceae7;--no-ink:#8f1d12;--head:"Atkinson Hyperlegible Next",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"Atkinson Hyperlegible Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#111514;--surface:#1b201e;--surface2:#242a27;--ink:#ebefed;--ink2:#c0c7c4;--ink3:#99a19e;--line:#2d3331;--accent:#5dbb94;--accent-ink:#0d1a14;--accent-soft:#1e3a30;--warn-bg:#362a15;--warn-ink:#f0b35a;--no-bg:#3a1e1b;--no-ink:#ff8f80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#111514;--surface:#1b201e;--surface2:#242a27;--ink:#ebefed;--ink2:#c0c7c4;--ink3:#99a19e;--line:#2d3331;--accent:#5dbb94;--accent-ink:#0d1a14;--accent-soft:#1e3a30;--warn-bg:#362a15;--warn-ink:#f0b35a;--no-bg:#3a1e1b;--no-ink:#ff8f80;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 1.0625rem/1.6 var(--head);-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px}
+.band{background:var(--night);color:var(--night-ink);padding:36px 0 40px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:6px 12px 6px 10px;border:1px solid var(--night-line);border-radius:999px;color:var(--night-muted);font-size:.86rem;font-weight:600}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--bright)}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-size:clamp(2rem,1.4rem + 3.4vw,3.2rem);font-weight:800;line-height:1.02;letter-spacing:-.035em}
+h1 span{display:block;color:var(--bright)}
+.lede{margin:16px 0 0;max-width:36em;color:var(--night-muted);font-size:1.15rem;line-height:1.5}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;margin:24px 0 0;padding:0;list-style:none;border:1px solid var(--night-line);border-radius:14px;overflow:hidden;background:var(--night-line)}
+.strip li{padding:12px 14px;background:var(--night2);color:var(--night-muted);font-size:.9rem;line-height:1.35}
+.strip b{display:block;color:var(--night-ink);font-size:1.02rem;font-weight:750}
+main{padding:8px 0 64px}
+section{padding-top:40px}
+h2{font-size:clamp(1.5rem,1.2rem + 1.4vw,2rem);font-weight:800;line-height:1.1;letter-spacing:-.025em;margin-bottom:12px}
+h3{font-size:1.1rem;font-weight:750;margin:22px 0 6px}
+p{margin:10px 0;max-width:66ch;text-wrap:pretty}
+ul,ol{margin:10px 0;padding-left:1.3em}
+li{margin:6px 0;max-width:66ch}
+a{color:var(--accent)}
+code{font-family:var(--mono);font-size:.86em;padding:.08em .32em;border:1px solid var(--line);border-radius:5px;background:var(--surface2);overflow-wrap:anywhere}
+.card{margin:14px 0;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.card > :first-child{margin-top:0}
+.card > :last-child{margin-bottom:0}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:14px 0;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:.93rem;line-height:1.45}
+th,td{padding:9px 12px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+thead th{border-top:0;background:var(--surface2);font-weight:700;font-size:.82rem}
+td.n{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
+.two{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:14px 0}
+.two .card{margin:0;min-width:0}
+.now{border-left:4px solid var(--no-ink)}
+.then{border-left:4px solid var(--accent)}
+.label{display:block;margin-bottom:6px;color:var(--ink3);font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.tag{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:999px;font-size:.76rem;font-weight:700;vertical-align:.08em}
+.tag.ok{background:var(--accent-soft);color:var(--accent)}
+.tag.wait{background:var(--warn-bg);color:var(--warn-ink)}
+.tag.no{background:var(--no-bg);color:var(--no-ink)}
+.ask{margin:14px 0;padding:0;list-style:none;counter-reset:q}
+.ask li{counter-increment:q;position:relative;margin:10px 0;padding:14px 16px 14px 52px;border:1px solid var(--line);border-radius:16px;background:var(--surface);max-width:none}
+.ask li::before{content:counter(q);position:absolute;left:14px;top:14px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--bright);color:var(--night);font-weight:800;font-size:.9rem}
+.ask b{display:block}
+.rec{display:block;margin-top:4px;color:var(--ink2);font-size:.95rem}
+.rec i{font-style:normal;font-weight:700;color:var(--accent)}
+.prompt{position:relative;margin:14px 0}
+.prompt pre{margin:0;padding:52px 16px 16px;border-radius:14px;background:var(--night);color:var(--night-ink);font:.86rem/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
+.copy{position:absolute;top:10px;right:10px;min-height:36px;padding:0 14px;border:0;border-radius:9px;background:var(--bright);color:var(--night);font:700 .88rem var(--head);cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:4px}
+.small{color:var(--ink2);font-size:.92rem}
+.foot{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink3);font-size:.88rem}
+</style>
+
+<div class="band"><div class="wrap">
+<p class="eyebrow">Audit 0001 · round one · reconciled October 5, 2026</p>
+<h1>Two harnesses read every claim. <span>They now read them the same way.</span></h1>
+<p class="lede">Codex went through the 52 claims grooph made about itself at version 0.3.0 and sent back 21 findings. I disputed none of them. No page has been changed: which words replace the old ones is yours to say.</p>
+<ul class="strip">
+<li><b>12 carried</b>The evidence supports the sentence as written.</li>
+<li><b>33 need other words</b>True of something narrower than the sentence says.</li>
+<li><b>7 not carried</b>The headline word "bound" is one of them.</li>
+<li><b>7 answers</b>are asked of you, at the end of this page.</li>
+</ul>
+</div></div>
+
+<main><div class="wrap">
+
+<section>
+<h2>The finding that matters most</h2>
+<p>The sentence on the README, the front page, the field guide and the report says grooph "is shown to bound and record autonomous work and to hold a design as a runtime contract". It comes from decision 0013. Both harnesses, reading separately, found that the first word is not carried.</p>
+<div class="card">
+<p><span class="tag no">not shown</span><b>No round cap and no budget has fired in any recorded run.</b> In all 33 package runs at 0.3.0 the only stops that fired were a passed bar (18 times) and a human check-in (once). Study two, which ran since, added 24 runs and its own handback says the same: no brake fired.</p>
+<p><span class="tag no">misread</span><b>The one run that ran on was not past a bound.</b> In the first comparison a prompt-only run was cut off at the $9.00 ceiling. It was in its second round, on its fourth dispatch, inside the same caps the graph has (5 rounds, 12 dispatches). The ceiling was the runner's, and every arm had it.</p>
+<p><span class="tag ok">shown</span><b>Runs stopped where the graph said.</b> Fourteen recorded halts at a human gate, and the kept runs ended at a passed bar, a stop the graph names, or a gate. The prompt arms halted at their gates too, when the prose told them to.</p>
+</div>
+<p>So what is shown is narrower than "bounds", and it is still worth saying. Whether a cap holds a run that would otherwise go on is simply not on record yet. One small experiment would put it there (answer 4 below).</p>
+</section>
+
+<section>
+<h2>Where Codex corrected me</h2>
+<p>Three times, and the records bore it out each time. I checked each in the files before agreeing.</p>
+<div class="scroll"><table>
+<thead><tr><th>What I had written</th><th>What the record says</th></tr></thead>
+<tbody>
+<tr><td>No loop turned in the first comparison's 27 runs, and the runaway run's two traces were outside the task's contract.</td><td>One correction cycle did turn, in that prompt run. Its first trace is inside the contract ("for every string"), and the two traces came from two red teams, not one.</td></tr>
+<tr><td>All four projects met their pre-registered losing condition.</td><td>Three did. <code>review-gate</code> met neither its winning nor its losing condition: its second prompt run cost more than its second graph run ($1.05 against $1.02).</td></tr>
+<tr><td>Every arm was at the top of its test suite, so the study could not have shown the graph ahead.</td><td>Three suites were saturated. Every <code>grind-loop</code> run scored 61 of 62.</td></tr>
+</tbody></table></div>
+<p class="small">None of the three changes the first comparison's result: no project met its test for the graph earning its cost. They change how exactly it may be told. Two of them are also wrong in the study's own write-ups, which stay as written; the correction is attached beside them (decision 0009).</p>
+<p>I added one observation to a point Codex could only reason about: <code>grooph adopt --write</code> accepted a working copy whose round cap I raised from 4 to 40 and whose budget I raised from 10 to 400. So "a run may tighten a brake and never loosen one" is the lead's brief, and a person's eye at adoption. Nothing in grooph refuses it.</p>
+</section>
+
+<section>
+<h2>The words I would publish</h2>
+<p>There are 26 numbered corrections in the reconciliation. This is the first, the status line of the README; the front page's version follows it closely.</p>
+<div class="two">
+<div class="card now"><span class="label">Now</span><p>Twenty templates have each been proven in a recorded run, and one paired comparison has been made. On that evidence, grooph is shown to bound and record autonomous work and to hold a design as a runtime contract. It is not shown to raise quality over the same instructions given as a prompt, on small tasks.</p></div>
+<div class="card then"><span class="label">Proposed</span><p>Each of the twenty templates has a recorded run: eighteen pass the project's checks and two are published red. In those runs a session stopped where its graph said, at a passed bar or at a human gate, and left a record of what it did. No round cap or budget is on record as firing, so it is not shown that one holds a run that would otherwise go on. In a paired comparison on four small tasks the package showed no quality advantage over a prompt derived from it.</p></div>
+</div>
+<p class="small">The proposed line says nothing of study two on purpose. Its claims have been read inside Claude Code only. They go through round two before any page states them.</p>
+
+<h3>The seven that are not carried as worded</h3>
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>The claim</th><th>What the record carries</th></tr></thead>
+<tbody>
+<tr><td class="n">C1</td><td>"shown to bound autonomous work"</td><td>Halts at gates. No cap or budget on record as firing.</td></tr>
+<tr><td class="n">C5</td><td>Twenty templates "proven"</td><td>Twenty have a recorded run; eighteen pass their check.</td></tr>
+<tr><td class="n">C6</td><td>All twenty tasks "pre-registered … with the reason a first pass should fail"</td><td>All were committed before their run; eleven added a written bet, four a probability.</td></tr>
+<tr><td class="n">C39</td><td>"Every line was read before I left it on" (blog draft)</td><td>Another project's session read them and reported; your yes came first.</td></tr>
+<tr><td class="n">C40</td><td>9 of 19 handoffs as what moved (report, blog draft)</td><td>A count on the plan, drawn before the push.</td></tr>
+<tr><td class="n">C43</td><td>A waited hook costs "about 40 ms"</td><td>No measurement is kept.</td></tr>
+<tr><td class="n">C49</td><td>A critic on another tier "tends to catch different mistakes"</td><td>A design belief; nothing here measures it.</td></tr>
+</tbody></table></div>
+</section>
+
+<section>
+<h2>What I need from you</h2>
+<ol class="ask">
+<li><b>The headline words: corrections 1, 2 and 3 (README status line, the front page's three claims, the front page's "what is shown").</b><span class="rec"><i>I would say:</i> accept as proposed. They replace the sentence decision 0013 fixed, so the driver drafts a new decision in your words once you choose.</span></li>
+<li><b>The rest that are plain wording: corrections 4 to 10, 12 to 16, 18 to 24.</b><span class="rec"><i>I would say:</i> accept all. Each is in the reconciliation with the words now and the words proposed. Decline any by number.</span></li>
+<li><b>Study two in the report and on the site (correction 11).</b><span class="rec"><i>I would say:</i> hold until round two has read it. The report still says study two has not run, which is now out of date; that one line can be fixed at once without stating a result.</span></li>
+<li><b>The experiment both harnesses say is needed: a brake that binds.</b><span class="rec"><i>I would say:</i> yes. One graph compiled with a budget of two dispatches and again with six, on a task that never passes. Two tiny sessions, my estimate well under a dollar each. It is designed and not run; the driver gives it to a lane.</span></li>
+<li><b>A second round with Codex.</b><span class="rec"><i>I would say:</i> yes, once, after the corrections are made: on the corrected words as they would be published, and on study two. One carry each way, about four hours of Codex.</span></li>
+<li><b>The validator's own sentence (correction 17): "tends to catch different mistakes" becomes "may catch".</b><span class="rec"><i>I would say:</i> yes. It is code with tests behind it, so it goes to a lane and not into my pull request.</span></li>
+<li><b>The blog draft (correction 25) and the note beside the old write-ups (26).</b><span class="rec"><i>I would say:</i> the blog is yours; the reconciliation lists the sentences I would not publish as they stand. For 26, yes: one dated note above the comparisons' index, written by the evidence lane, and nothing in the old records changed.</span></li>
+</ol>
+<p>To answer, copy this, change what you disagree with, and send it to the driver or to me.</p>
+<div class="prompt"><button class="copy" data-target="answer" type="button">Copy</button><pre id="answer">Audit 0001, round one, my answers:
+1. Headline words (corrections 1, 2, 3): accept as proposed.
+2. Wording (4 to 10, 12 to 16, 18 to 24): accept all.
+3. Study two in the report (11): hold for round two; fix the "not yet run" line now.
+4. The brake experiment: yes, run it.
+5. Round two with Codex: yes, after the corrections.
+6. The validator's sentence (17): yes, to a lane.
+7. Blog: mine. The note beside the old write-ups (26): yes.</pre></div>
+</section>
+
+<section>
+<h2>What happens next</h2>
+<p>On your answers I make the accepted corrections in one pull request that waits for you, with the README's link to the claims page. Then I write round two's handoff and give you the prompt to carry to Codex. This round you did not have to carry Codex's prompt back: I found its handback on disk and reconciled it, and the record says so.</p>
+<p>The claims page for the site is drafted on my branch. It lists all 52 claims with where each is made, its evidence and its reading, and says plainly that no page has been corrected yet.</p>
+<h3>Where to read more</h3>
+<ul>
+<li><code>experiments/audits/0001-claims-as-of-0-3-0/round-01/RECONCILE.md</code>: my answer to each finding and all 26 corrections.</li>
+<li><code>…/round-01/HANDBACK.md</code>: what Codex found, in its words.</li>
+<li><code>…/designs/a-brake-that-binds.md</code>: the experiment, designed and not run.</li>
+<li><code>docs/claims.md</code>: the public register, as a draft.</li>
+</ul>
+<p class="foot">From the audit lane (Claude Code, Opus 5.5), slice 0075, on branch <code>slice/0075-audit-claims-as-of-0-3-0</code>. The auditor was Codex with GPT-6.1 Sol, reading a frozen copy of the repository at <code>dbc7a28</code>; it changed nothing. No model session was started for this audit and no experiment was run.</p>
+</section>
+
+</div></main>
+
+<script>
+/* The Copy button says what it did, and falls back to asking for a selection where the clipboard is refused. */
+(function () {
+  document.querySelectorAll(".copy").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var text = document.getElementById(button.dataset.target).textContent;
+      var done = function () {
+        button.textContent = "Copied";
+        setTimeout(function () { button.textContent = "Copy"; }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () { button.textContent = "Select and copy"; });
+      else button.textContent = "Select and copy";
+    });
+  });
+})();
+</script>

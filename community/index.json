@@ -8,7 +8,7 @@
       "templateKind": "graph",
       "id": "hypothesis-ratchet",
       "name": "Hypothesis ratchet",
-      "summary": "A proposer tries one change per round, a judge scores it on held-out cases the proposer never sees, and only a change that beats the last kept score is kept; the loop ends when gains stop.",
+      "summary": "A proposer tries one change per round, a judge scores it on held-out cases the proposer is told not to read, and only a change that beats the last kept score is kept; the loop ends when gains stop.",
       "shape": "2 agents · 1 loop · up to 5 rounds · 12 dispatches",
       "proof": null,
       "issues": [],

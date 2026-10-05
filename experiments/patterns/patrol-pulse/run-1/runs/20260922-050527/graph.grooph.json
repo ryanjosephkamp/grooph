@@ -1,0 +1,168 @@
+{
+  "grooph": 0,
+  "id": "orders-api-patrol",
+  "name": "Orders API patrol",
+  "version": 1,
+  "goal": "Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise. One pulse is one run: it ends clean, or with new tickets in TICKETS.md for a human to prioritise. Nothing else changes.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "lineage": {
+    "pattern": "patrol-pulse",
+    "from": "patrol-pulse@1"
+  },
+  "description": "A pulse, not a loop. The scan check runs the command that lists candidate signals; nothing to look at ends the pulse clean. Otherwise a read-only investigator judges each signal against the project and the tickets already filed and writes its findings; a clean verdict ends the pulse, a finding goes to a writer that owns only the ticket store, files one ticket per new finding and never files what is already filed. A human gate ends the pulse with the new tickets waiting to be prioritised. The package recurs through the harness's scheduler (the target doc says how); every pulse is its own run, so the run list is the pulse log.",
+  "nodes": [
+    {
+      "id": "scan",
+      "kind": "check",
+      "name": "Scan",
+      "check": {
+        "kind": "command",
+        "run": "grep -n -E ' (ERROR|WARN) ' logs/app.log",
+        "pass": "exit code 0 and at least one candidate signal printed; nothing printed is a fail and ends the pulse clean"
+      }
+    },
+    {
+      "id": "investigator",
+      "kind": "agent",
+      "name": "Investigator",
+      "description": "Read-only by policy: it may read and run, never edit. Its judgment is what separates a fault from routine noise.",
+      "role": "critic",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Judge every signal the scan listed: read the project and run what you need to tell a genuine fault from routine noise, and check TICKETS.md so a fault already on file is named by its ticket rather than reported as new. Write FINDINGS.md with one entry per genuine fault (the evidence, the likely cause, whether a ticket already covers it) and a line for what you dismissed and why. You investigate; you change nothing. Verdict finding when at least one genuine fault is not yet on file, clean otherwise.",
+      "inputs": [
+        "the scan output",
+        "TICKETS.md, read-only",
+        "the repository, read-only"
+      ],
+      "outputs": [
+        "FINDINGS.md: genuine faults with evidence, dismissed signals, and a verdict line",
+        "verdict: clean | finding"
+      ],
+      "allow": [
+        "read-files",
+        "run-commands",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "ticket-writer",
+      "kind": "agent",
+      "name": "Ticket writer",
+      "role": "builder",
+      "model": {
+        "tier": "fast"
+      },
+      "effort": "medium",
+      "brief": "Append one ticket to TICKETS.md for each finding in FINDINGS.md that no existing ticket covers, in the store's own format, cross-referencing the tickets that already cover the rest. Never duplicate a ticket, never edit an existing one, and never touch code or anything outside TICKETS.md. Report what you filed and what you left because it was already on file in FILED.md.",
+      "inputs": [
+        "FINDINGS.md",
+        "TICKETS.md"
+      ],
+      "outputs": [
+        "TICKETS.md with one new ticket per new finding",
+        "FILED.md: tickets filed and findings already covered"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "write-outputs"
+      ],
+      "owns": [
+        "TICKETS.md"
+      ]
+    },
+    {
+      "id": "prioritise",
+      "kind": "human-gate",
+      "name": "Prioritise",
+      "prompt": "This pulse filed new tickets in TICKETS.md (FILED.md says which) and changed nothing else. Prioritise them when you can; the next pulse is a new run.",
+      "options": [
+        "prioritised",
+        "later"
+      ]
+    },
+    {
+      "id": "clean",
+      "kind": "stop",
+      "name": "Clean",
+      "outcome": "success"
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-scan-clean",
+      "from": "scan",
+      "to": "clean",
+      "when": "fail",
+      "label": "nothing to look at"
+    },
+    {
+      "id": "e-scan-investigator",
+      "from": "scan",
+      "to": "investigator",
+      "when": "pass",
+      "evidence": [
+        "the scan output",
+        "TICKETS.md, read-only",
+        "the repository, read-only"
+      ]
+    },
+    {
+      "id": "e-investigator-clean",
+      "from": "investigator",
+      "to": "clean",
+      "when": {
+        "verdict": "clean"
+      }
+    },
+    {
+      "id": "e-investigator-ticket-writer",
+      "from": "investigator",
+      "to": "ticket-writer",
+      "when": {
+        "verdict": "finding"
+      },
+      "evidence": [
+        "FINDINGS.md",
+        "TICKETS.md"
+      ]
+    },
+    {
+      "id": "e-ticket-writer-prioritise",
+      "from": "ticket-writer",
+      "to": "prioritise"
+    },
+    {
+      "id": "e-prioritise-done",
+      "from": "prioritise",
+      "to": "done"
+    }
+  ],
+  "loops": [],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ]
+}

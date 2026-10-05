@@ -1,0 +1,512 @@
+[
+  {
+    "session": "7f3782e0-d599-4020-a059-ea6429fe299a",
+    "who": "lead",
+    "transcript": "7f3782e0-d599-4020-a059-ea6429fe299a.jsonl",
+    "description": null,
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-04T22:27:35.387Z",
+    "ended": "2026-10-04T22:32:34.124Z",
+    "assistant_messages": 67,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:27:37.221Z",
+        "file": ".grooph/polish-usage-statement/LEAD.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:27:37.739Z",
+        "command": "date -u +%Y%m%d-%H%M%S"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:27:40.910Z",
+        "command": "mkdir -p .grooph/polish-usage-statement/runs/20261004-222738"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:27:41.411Z",
+        "command": "git ls-files"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:27:42.244Z",
+        "file": ".grooph/polish-usage-statement/graph.grooph.json"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:27:45.291Z",
+        "file": ".claude/agents/polish-usage-statement--owner.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:27:46.163Z",
+        "file": ".claude/agents/polish-usage-statement--critic.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:27:46.914Z",
+        "file": "package.json"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:27:47.603Z",
+        "file": "scripts/capture.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:27:54.771Z",
+        "command": "cp .grooph/polish-usage-statement/graph.grooph.json .grooph/polish-usage-statement/runs/20261004-222738/graph.grooph.json"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:27:55.373Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:27:55.812Z",
+        "command": "which grooph"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-04T22:28:00.322Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/graph.grooph.json"
+      },
+      {
+        "tool": "Edit",
+        "at": "2026-10-04T22:28:02.933Z",
+        "error": "Claude requested permissions to write to /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/.claude/agents/polish-usage-statement--owner.md, but you haven't gran",
+        "file": ".claude/agents/polish-usage-statement--owner.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:06.789Z",
+        "command": "grooph validate --for-export .grooph/polish-usage-statement/runs/20261004-222738/graph.grooph.json"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:28:11.875Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:28:15.539Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/PROGRESS.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:16.755Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:18.430Z",
+        "command": "echo '{\"id\":\"n-0003\",\"run\":\"20261004-222738\",\"at\":\"node:owner\",\"started\":\"2026-10-04T22:28:16Z\",\"outcome\":\"started\",\"round\":0}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-10-04T22:28:24.497Z",
+        "subagent_type": "polish-usage-statement--owner",
+        "description": "Owner round 0",
+        "prompt": "Round 0 of the polish loop.\n\nTask: Polish the monthly usage statement that `npm run render` writes from src/statement.mjs until it reads like the statement the billing team already sends. STYLE.md says what the statement should be; data/usage.json is the data; `npm run capture` produces what is judged (captures/statement.txt and captures/CAPTURE.md).\n\nInputs: STYLE.md, data/usage.json, and the project itself (src/statement.mjs, scripts/, tests/). There is no GAPS.md yet — this is the first pass, so work from STYLE.md: make the rendered statement meet everything STYLE.md asks, using only the data in data/usage.json.\n\nRestriction (amended in this run's graph): do NOT open anything under the `.harness/` directory or any held-out reference. Your agent file still names the billing team's reference as an input; that line is withdrawn — work from STYLE.md only.\n\nRun commands bare, from the project root (e.g. `npm run capture`, `npm test`) — no `cd … &&` compounds and no `git -C`; compound forms are refused under the allowlist.\n\nBefore you report: keep `npm test` passing (update tests only if STYLE.md requires the change), run `npm run capture`, and write CHANGES.md to .grooph/polish-usage-statement/runs/20261004-222738/CHANGES.md listing what you changed this round and why, and anything in STYLE.md you left on purpose. End with your report block."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:56.945Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:59.754Z",
+        "command": "echo '{\"id\":\"n-0004\",\"run\":\"20261004-222738\",\"at\":\"node:owner\",\"ended\":\"2026-10-04T22:28:56Z\",\"outcome\":\"pass\",\"round\":0,\"text\":\"owner done: rewrote src/statement.mjs from STYLE.md; tests 3/3; captured; CHANGES.md in run folder\"}\n{\"id\":\"n-0005\",\"run\":\"20261004-222738\",\"at\":\"node:capture-check\",\"started\":\"2026-10-04T22:28:56Z\",\"outcome\":\"started\",\"round\":0}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:29:00.200Z",
+        "command": "npm run capture"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:29:02.297Z",
+        "command": "npm run render"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:29:03.668Z",
+        "command": "cmp out/statement.txt captures/statement.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:29:04.418Z",
+        "file": "captures/CAPTURE.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:29:07.116Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:29:09.925Z",
+        "command": "echo '{\"id\":\"n-0006\",\"run\":\"20261004-222738\",\"at\":\"node:capture-check\",\"ended\":\"2026-10-04T22:29:07Z\",\"outcome\":\"pass\",\"round\":0,\"evidence\":[\"npm run capture output\",\"captures/statement.txt\",\"captures/CAPTURE.md\",\"cmp out/statement.txt captures/statement.txt\"],\"text\":\"24 lines, widest 66, ASCII only, no trailing space; capture identical to fresh render (sha256 5de9f33c585c)\"}\n{\"id\":\"n-0007\",\"run\":\"20261004-222738\",\"at\":\"node:critic\",\"started\":\"2026-10-04T22:29:07Z\",\"outcome\":\"started\",\"round\":0}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-10-04T22:29:16.022Z",
+        "subagent_type": "polish-usage-statement--critic",
+        "description": "Critic round 0",
+        "prompt": "Round 0 of the polish loop. Judge the current revision of the monthly usage statement.\n\nEvidence (all you may inspect):\n- captures/ of the current revision: captures/statement.txt and captures/CAPTURE.md (project root /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq). The capture check passed: both files exist and the capture matches a fresh render byte for byte.\n- the billing team's statement: /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt\n- what matters about it: /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md\n\nCompare them side by side with the labels stripped and in random order, say which is better and why, then rank the gaps that matter most (at most five), each with where it shows and what closing it would look like. Mark each gap major or minor. Verdict pass only when no major gap remains.\n\nWrite GAPS.md to /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/.grooph/polish-usage-statement/runs/20261004-222738/GAPS.md, ending with a verdict line. The owner reads GAPS.md but never sees the reference, so describe each gap in terms the owner can act on without quoting the reference verbatim at length. End with your report block."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:29:59.708Z",
+        "command": "cp .grooph/polish-usage-statement/runs/20261004-222738/GAPS.md .grooph/polish-usage-statement/runs/20261004-222738/GAPS-round-0.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:00.217Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:05.345Z",
+        "command": "echo '{\"id\":\"n-0008\",\"run\":\"20261004-222738\",\"at\":\"node:critic\",\"ended\":\"2026-10-04T22:30:00Z\",\"outcome\":\"fail\",\"verdict\":\"fail\",\"round\":0,\"evidence\":[\"captures/statement.txt\",\"captures/CAPTURE.md\",\"held-out reference.txt\",\"held-out REFERENCE.md\"],\"gaps\":[\"charges sorted by name, not largest first\",\"zero-usage services shown as rows\",\"credits use minus signs and smallest first\",\"no share-of-charges column\"],\"text\":\"4 major, 1 minor (quantity/unit layout, account placement, repeated USD); GAPS.md copied to GAPS-round-0.md\"}\n{\"id\":\"n-0009\",\"run\":\"20261004-222738\",\"at\":\"loop:polish\",\"ended\":\"2026-10-04T22:30:00Z\",\"outcome\":\"fail\",\"round\":0,\"cost\":{\"measure\":\"dispatches\",\"amount\":3},\"text\":\"round 0 done, 4 major gaps. Stops before round 1: bar-passed no; diminishing-returns needs 2 rounds of data (have 1); human check-in due every 2 rounds, not yet; max-iterations 1/5; budget 3/16. Taking e-critic-fail.\"}\n{\"id\":\"n-0010\",\"run\":\"20261004-222738\",\"at\":\"node:owner\",\"started\":\"2026-10-04T22:30:00Z\",\"outcome\":\"started\",\"round\":1}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:30:10.132Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/PROGRESS.md"
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-10-04T22:30:15.043Z",
+        "subagent_type": "polish-usage-statement--owner",
+        "description": "Owner round 1",
+        "prompt": "Round 1 of the polish loop.\n\nTask: Polish the monthly usage statement that `npm run render` writes from src/statement.mjs until it reads like the statement the billing team already sends. STYLE.md says what the statement should be; data/usage.json is the data; `npm run capture` produces what is judged (captures/statement.txt and captures/CAPTURE.md).\n\nEvidence: the critic's ranked gaps are in .grooph/polish-usage-statement/runs/20261004-222738/GAPS.md. Close the gaps it ranks highest, majors first, without regressing what it says already meets the bar. Inputs besides that: STYLE.md, data/usage.json, and the project itself.\n\nRestriction (amended in this run's graph): do NOT open anything under the `.harness/` directory or any held-out reference. Your agent file still names the billing team's reference as an input; that line is withdrawn — work from STYLE.md and GAPS.md only.\n\nRun commands bare, from the project root (e.g. `npm run capture`, `npm test`) — no `cd … &&` compounds and no `git -C`; compound forms are refused under the allowlist.\n\nBefore you report: keep `npm test` passing (update tests only where a gap requires the change), run `npm run capture`, and overwrite .grooph/polish-usage-statement/runs/20261004-222738/CHANGES.md with which gaps you closed this round and which you left on purpose, and why. End with your report block."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:12.322Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:14.962Z",
+        "command": "echo '{\"id\":\"n-0011\",\"run\":\"20261004-222738\",\"at\":\"node:owner\",\"ended\":\"2026-10-04T22:31:12Z\",\"outcome\":\"pass\",\"round\":1,\"text\":\"owner reports all 5 ranked gaps closed: largest-first order, zero-usage rows dropped with footer sentence, credits in parentheses largest first, share column, usage phrase/account placement/Total due; tests 3/3\"}\n{\"id\":\"n-0012\",\"run\":\"20261004-222738\",\"at\":\"node:capture-check\",\"started\":\"2026-10-04T22:31:12Z\",\"outcome\":\"started\",\"round\":1}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:15.350Z",
+        "command": "npm run capture"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:16.570Z",
+        "command": "npm run render"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:18.101Z",
+        "command": "cmp out/statement.txt captures/statement.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:31:19.146Z",
+        "file": "captures/CAPTURE.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:20.385Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:31:23.021Z",
+        "command": "echo '{\"id\":\"n-0013\",\"run\":\"20261004-222738\",\"at\":\"node:capture-check\",\"ended\":\"2026-10-04T22:31:20Z\",\"outcome\":\"pass\",\"round\":1,\"evidence\":[\"npm run capture output\",\"captures/statement.txt\",\"captures/CAPTURE.md\",\"cmp out/statement.txt captures/statement.txt\"],\"text\":\"24 lines, widest 61, ASCII only, no trailing space; capture identical to fresh render (sha256 c023b762ac0c)\"}\n{\"id\":\"n-0014\",\"run\":\"20261004-222738\",\"at\":\"node:critic\",\"started\":\"2026-10-04T22:31:20Z\",\"outcome\":\"started\",\"round\":1}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Agent",
+        "at": "2026-10-04T22:31:29.499Z",
+        "subagent_type": "polish-usage-statement--critic",
+        "description": "Critic round 1",
+        "prompt": "Round 1 of the polish loop. Judge the current revision of the monthly usage statement.\n\nEvidence (all you may inspect):\n- captures/ of the current revision: captures/statement.txt and captures/CAPTURE.md (project root /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq). The capture check passed: both files exist and the capture matches a fresh render byte for byte.\n- the billing team's statement: /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt\n- what matters about it: /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md\n\nCompare them side by side with the labels stripped and in random order, say which is better and why, then rank the gaps that matter most (at most five), each with where it shows and what closing it would look like. Mark each gap major or minor. Verdict pass only when no major gap remains.\n\nWrite GAPS.md to /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/.grooph/polish-usage-statement/runs/20261004-222738/GAPS.md (overwrite it), ending with a verdict line. The owner reads GAPS.md but never sees the reference, so describe each gap in terms the owner can act on without quoting the reference verbatim at length. End with your report block."
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:32:14.186Z",
+        "command": "cp .grooph/polish-usage-statement/runs/20261004-222738/GAPS.md .grooph/polish-usage-statement/runs/20261004-222738/GAPS-round-1.md"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:32:14.745Z",
+        "command": "date -u +%Y-%m-%dT%H:%M:%SZ"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:32:15.101Z",
+        "command": "git status --short"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:32:20.124Z",
+        "command": "echo '{\"id\":\"n-0015\",\"run\":\"20261004-222738\",\"at\":\"node:critic\",\"ended\":\"2026-10-04T22:32:14Z\",\"outcome\":\"pass\",\"verdict\":\"pass\",\"round\":1,\"evidence\":[\"captures/statement.txt\",\"captures/CAPTURE.md\",\"held-out reference.txt\",\"held-out REFERENCE.md\"],\"text\":\"0 major, 2 minor (footer wraps mid-name; credit labels indented, optional); GAPS.md copied to GAPS-round-1.md\"}\n{\"id\":\"n-0016\",\"run\":\"20261004-222738\",\"at\":\"loop:polish\",\"ended\":\"2026-10-04T22:32:14Z\",\"outcome\":\"pass\",\"round\":1,\"stop\":\"bar-passed\",\"cost\":{\"measure\":\"dispatches\",\"amount\":6},\"text\":\"bar passed at round 1 (major gaps 4 -> 0); taking e-critic-pass to done\"}\n{\"id\":\"n-0017\",\"run\":\"20261004-222738\",\"at\":\"node:done\",\"ended\":\"2026-10-04T22:32:14Z\",\"outcome\":\"pass\",\"text\":\"stop node done reached, outcome success\"}\n{\"id\":\"n-0018\",\"run\":\"20261004-222738\",\"at\":\"graph\",\"outcome\":\"ending\",\"text\":\"run ending at stop node done (bar passed)\"}\n{\"id\":\"n-0019\",\"run\":\"20261004-222738\",\"at\":\"graph\",\"ended\":\"2026-10-04T22:32:14Z\",\"outcome\":\"pass\",\"text\":\"run ended: bar-passed stop fired at round 1, stop node done reached (success); 6 dispatches; working copy amended once\"}' >> .grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl",
+        "writes": [
+          ".grooph/polish-usage-statement/runs/20261004-222738/notes.jsonl"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:32:27.407Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/PROGRESS.md"
+      }
+    ]
+  },
+  {
+    "session": "7f3782e0-d599-4020-a059-ea6429fe299a",
+    "who": "polish-usage-statement--critic",
+    "transcript": "agent-a330f62dc108a30d8.jsonl",
+    "description": "Critic round 1",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-04T22:31:29.504Z",
+    "ended": "2026-10-04T22:32:10.347Z",
+    "assistant_messages": 8,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:31:31.492Z",
+        "file": "captures/statement.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:31:32.244Z",
+        "file": "captures/CAPTURE.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:31:32.956Z",
+        "file": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:31:33.817Z",
+        "file": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:32:01.222Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/GAPS.md"
+      }
+    ]
+  },
+  {
+    "session": "7f3782e0-d599-4020-a059-ea6429fe299a",
+    "who": "polish-usage-statement--critic",
+    "transcript": "agent-a4e689bfe17e4ac34.jsonl",
+    "description": "Critic round 0",
+    "models": [
+      "claude-opus-5-5"
+    ],
+    "started": "2026-10-04T22:29:16.028Z",
+    "ended": "2026-10-04T22:29:55.349Z",
+    "assistant_messages": 7,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:29:18.041Z",
+        "file": "captures/statement.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:29:18.698Z",
+        "file": "captures/CAPTURE.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:29:19.455Z",
+        "file": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/reference.txt"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:29:20.377Z",
+        "file": "/private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq.harness/held-out/REFERENCE.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:29:46.341Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/GAPS.md"
+      }
+    ]
+  },
+  {
+    "session": "7f3782e0-d599-4020-a059-ea6429fe299a",
+    "who": "polish-usage-statement--owner",
+    "transcript": "agent-a721ac57f91385919.jsonl",
+    "description": "Owner round 1",
+    "models": [
+      "claude-sonnet-5-5"
+    ],
+    "started": "2026-10-04T22:30:15.047Z",
+    "ended": "2026-10-04T22:31:11.016Z",
+    "assistant_messages": 16,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:30:16.606Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/GAPS.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:30:17.272Z",
+        "file": "STYLE.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:30:17.796Z",
+        "file": "src/statement.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:18.495Z",
+        "command": "ls /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/data"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:20.589Z",
+        "command": "cat /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/captures/statement.txt; ls /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/tests; cat /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/tests/*"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:41.078Z",
+        "error": "This Bash command contains multiple operations. The following parts require approval: cat, python3 /tmp/edit.py",
+        "command": "cat > /tmp/edit.py <<'EOF'\np='src/statement.mjs'\ns=open(p).read()\ni=s.index('/**\\n * The monthly usage')\nhead=s[:i]\nnew='''/** Share of the whole as a percentage to one decimal, rounded half up, from whole cents. */\nfunction percent(part, whole) {\n  if (whole === 0) return \"0.0%\";\n  const tenths = Math.floor((part * 2000 + whole) / (2 * whole));\n  return `${Math.trunc(tenths / 10)}.${tenths % 10}%`;\n}\n\n/** \"A\", \"A and B\", \"A, B and C\". */\nfunction listNames(names) {\n  if (names.length <= 1) return names.join(\"\");\n  return `${names.slice(0, -1).join(\", \")} and ${names[names.length - 1]}`;\n}\n\n/** Greedy word wrap to at most `width` characters per line. */\nfunction wrap(text, width) {\n  const lines = [];\n  let line = \"\";\n  for (const word of text.split(\" \")) {\n    if (line && line.length + 1 + word.length > width) {\n      lines.push(line);\n      line = word;\n    } else {\n      line = line ? `${line} ${word}` : word;\n    }\n  }\n  if (line) lines.push(line);\n  return lines;\n}\n\n/**\n * The monthly usage statement as plain text.\n * @param {{ customer: string, account: string, period: string, currency: string,\n *           lines: { service: string, quantity: number, unit: string, amount_cents: number }[],\n *           credits: { reason: string, amount_cents: number }[] }} data\n * @returns {string}\n */\nexport function renderStatement(data) {\n  const unused = data.lines\n    .filter((l) => l.quantity === 0 && l.amount_cents === 0)\n    .sort((a, b) => a.service.localeCompare(b.service));\n  // Used services only, largest charge first; equal amounts by name.\n  const used = data.lines\n    .filter((l) => !(l.quantity === 0 && l.amount_cents === 0))\n    .sort((a, b) => b.amount_cents - a.amount_cents || a.service.localeCompare(b.service));\n  const credits = [...data.credits].sort(\n    (a, b) => Math.abs(b.amount_cents) - Math.abs(a.amount_cents) || a.reason.localeCompare(b.reason),\n  );\n\n  const charges = data.lines.reduce((sum, l) => sum + l.amount_cents, 0);\n  const creditsSum = data.credits.reduce((sum, c) => sum + c.amount_cents, 0);\n  const total = charges + creditsSum;\n\n  // Credits are shown as positive figures in parentheses; the closing\n  // parenthesis sits in a one-character slot after the amount column.\n  const usageOf = (l) => `${groupDigits(l.quantity)} ${l.unit}`;\n  const serviceW = Math.max(\"Service\".length, ...used.map((l) => l.service.length));\n  const usageW = Math.max(\"Usage\".length, ...used.map((l) => usageOf(l).length));\n  const shareW = Math.max(\"Share\".length, \"100.0%\".length);\n  const amountW = Math.max(\n    `Amount (${data.currency})`.length,\n    ...used.map((l) => money(l.amount_cents).length),\n    ...credits.map((c) => money(Math.abs(c.amount_cents)).length),\n    money(charges).length,\n    money(total).length,\n  );\n  const slot = 1;\n  const gap = \"  \";\n  const width = serviceW + usageW + shareW + amountW + slot + gap.length * 3;\n  const rule = \"-\".repeat(width);\n  const trim = (s) => s.replace(/\\\\s+$/, \"\");\n\n  const row = (a, b, c, d, tail = \" \") =>\n    trim(\n      [padRight(a, serviceW), padRight(b, usageW), padLeft(c, shareW), padLeft(d, amountW)].join(gap) + tail,\n    );\n  // A label on the left and an amount flush with the amount column.\n  const summary = (label, text, tail = \" \") =>\n    trim(`${padRight(label, width - amountW - slot - gap.length)}${gap}${padLeft(text, amountW)}${tail}`);\n\n  const out = [];\n  const account = `Account ${data.account}`;\n  out.push(`${padRight(data.customer, Math.max(1, width - account.length))}${account}`);\n  out.push(`Usage statement for ${monthName(data.period)}`);\n  out.push(\"\");\n  out.push(row(\"Service\", \"Usage\", \"Share\", `Amount (${data.currency})`));\n  out.push(rule);\n  for (const l of used) {\n    out.push(row(l.service, usageOf(l), percent(l.amount_cents, charges), money(l.amount_cents)));\n  }\n  out.push(rule);\n  out.push(row(\"Charges\", \"\", percent(charges, charges), money(charges)));\n  out.push(\"\");\n  out.push(\"Credits\");\n  for (const c of credits) {\n    const cents = c.amount_cents;\n    // Credits are stored as negative amounts; a positive adjustment would be shown plain.\n    out.push(summary(`  ${c.reason}`, cents < 0 ? money(-cents) : money(cents), cents < 0 ? \")\" : \" \"));\n  }\n  out.push(rule);\n  out.push(summary(\"Total due\", money(total)));\n  if (unused.length > 0) {\n    const n = unused.length;\n    out.push(\"\");\n    out.push(\n      ...wrap(\n        `${n} ${n === 1 ? \"service\" : \"services\"} with no usage ${n === 1 ? \"is\" : \"are\"} not listed: ${listNames(unused.map((l) => l.service))}.`,\n        width,\n      ),\n    );\n  }\n  return `${out.join(\"\\\\n\")}\\\\n`;\n}\n'''\nopen(p,'w').write(head+new)\nEOF\npython3 /tmp/edit.py",
+        "writes": [
+          "/tmp/edit.py",
+          "width"
+        ]
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:30:57.205Z",
+        "file": "src/statement.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:59.397Z",
+        "command": "npm test 2>&1 | tail -15"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:30:59.603Z",
+        "command": "npm run capture 2>&1 | tail -15"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:31:01.210Z",
+        "file": "captures/statement.txt"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:31:06.575Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/CHANGES.md"
+      }
+    ]
+  },
+  {
+    "session": "7f3782e0-d599-4020-a059-ea6429fe299a",
+    "who": "polish-usage-statement--owner",
+    "transcript": "agent-aa67ab3ef9f8236c1.jsonl",
+    "description": "Owner round 0",
+    "models": [
+      "claude-sonnet-5-5"
+    ],
+    "started": "2026-10-04T22:28:24.506Z",
+    "ended": "2026-10-04T22:28:55.522Z",
+    "assistant_messages": 16,
+    "tool_uses": [
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:25.819Z",
+        "file": "STYLE.md"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:26.353Z",
+        "file": "src/statement.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:26.827Z",
+        "file": "data/usage.json"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:27.895Z",
+        "command": "ls /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/scripts /private/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/wk/ET6cVP/usage-statement-NKBdqq/tests"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:29.142Z",
+        "file": "tests/statement.test.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:29.644Z",
+        "file": "scripts/capture.mjs"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:30.131Z",
+        "file": "README.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:28:42.130Z",
+        "file": "src/statement.mjs"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:43.776Z",
+        "command": "npm test 2>&1 | tail -12"
+      },
+      {
+        "tool": "Bash",
+        "at": "2026-10-04T22:28:43.984Z",
+        "command": "npm run capture 2>&1 | tail -3"
+      },
+      {
+        "tool": "Read",
+        "at": "2026-10-04T22:28:45.864Z",
+        "file": "captures/CAPTURE.md"
+      },
+      {
+        "tool": "Write",
+        "at": "2026-10-04T22:28:50.898Z",
+        "file": ".grooph/polish-usage-statement/runs/20261004-222738/CHANGES.md"
+      }
+    ]
+  }
+]

@@ -10,7 +10,9 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 import { canonicalize } from "../src/canonicalize.js";
+import { indexGraph } from "../src/graph-index.js";
 import { parseGraph, parseGraphText } from "../src/parse.js";
+import { entryNodeIds } from "../src/semantics.js";
 import { extractGroup, groupContents, listGroups, placeSubgrooph, refreshSubgrooph } from "../src/subgrooph.js";
 import { TemplateError } from "../src/template.js";
 import type { Edge, Graph, Loop, Node } from "../src/types.js";
@@ -671,7 +673,8 @@ test("ids under the box's prefix are the subgrooph's: what a person changed ther
   loop.stops = loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 2 } : stop));
   const again = refreshSubgrooph(drawn, "review", reviewGate());
   assert.deepEqual(names(again.changes).sort(), ["loop:review-review.members", "loop:review-review.stops"]);
-  assert.deepEqual(refused(again), ["loop:review-review.stops: raises the round cap from 2 to 4"]);
+  // Both are the person's tightening, and the template's own version would undo both: both are held.
+  assert.deepEqual(refused(again), ['loop:review-review.members: the loop "review-review" would no longer bound "plan", which is still in the graph', "loop:review-review.stops: raises the round cap from 2 to 4"]);
   assert.equal(again.doc.loops.filter((l) => l.id === "review-review").length, 1);
 
   // A person sent the template's edge to a critic of their own inside the box. The same version: one edge, shown.
@@ -744,7 +747,14 @@ test("a loop of the graph's own lets go of a node the subgrooph no longer has, a
     t.edges.find((edge) => edge.id === "e-builder-critic")!.id = "e-implementer-critic";
     t.loops[0]!.members = ["implementer", "critic", "merge-gate"];
   });
-  const result = refreshSubgrooph(before, "review", renamed);
+  // The graph's own loop bounded the builder, and under its new name it would not: held, as a loop left a shell
+  // with its work done under another name would be. It may well be the same step, and that is for a person to say.
+  const held = refreshSubgrooph(before, "review", renamed);
+  assert.deepEqual(refusedNames(held), ["node:review-builder"]);
+  assert.match(refused(held)[0]!, /removes "review-builder", which the loop "redo" bounded, while "review-implementer" would come in on a round it does not count: it may be the same step under another name/);
+  unchanged(before, held.doc);
+  // Asked for by name, it applies, and the loop of the graph's own lets go of what is gone, and says so.
+  const result = refreshSubgrooph(before, "review", renamed, { allow: ["node:review-builder"] });
   assert.deepEqual(result.held, []);
   assert.deepEqual(loopOf(result.doc, "redo").members, ["release", "recheck"]);
   assert.deepEqual(loopOf(result.doc, "redo").back, []);
@@ -807,8 +817,10 @@ test("a cap that led to a stop that halts: the stop does not become something el
     t.nodes[t.nodes.findIndex((node) => node.id === "halted")] = { ...agent("halted", "builder", "RETRY.md"), name: "Try again" };
     t.edges.push({ id: "e-halted-builder", from: "halted", to: "builder" });
   }, 3, led));
-  // What it was, and what made it halt: both are what the cap leaned on.
-  assert.deepEqual(refusedNames(retry), ["node:review-halted.kind", "node:review-halted.outcome"]);
+  // What it was, and what made it halt: both are what the cap leaned on. And the edge that leads back from it: a
+  // way round the loop's nodes that its stops do not count.
+  assert.deepEqual(refusedNames(retry), ["node:review-halted.kind", "node:review-halted.outcome", "edge:e-review-halted-review-builder"]);
+  assert.match(refused(retry).join("\n"), /"e-review-halted-review-builder" \(review-halted → review-builder\) would make a way round the nodes of "review-review" that its stops do not count/);
   assert.match(refused(retry)[0]!, /the round cap \(4\) would no longer halt the run; the budget \(10 dispatches\) would no longer halt the run/);
   unchanged(second.doc, retry.doc);
   const success = refreshSubgrooph(second.doc, "review", newer((t) => void ((t.nodes.find((node) => node.id === "halted") as { outcome: string }).outcome = "success"), 3, led));
@@ -970,6 +982,59 @@ test("an answer a gate gives does not come to lead nowhere; a note on a policy i
   assert.deepEqual(noted.held, []);
 });
 
+test("the refresh still takes a step only a loop's stop continues at for a start, which is wider than graph-ir §2 (#88): it is held", () => {
+  // The built-in decomposed gauntlet: `integrator` is where the pieces loop continues when its bar is passed, and
+  // also where a failed "next piece" check leads. A newer version drops that edge, so only the stop leads there.
+  // By graph-ir §2 no run starts there: the lead is not told to, and the loop is behind the decomposition gate.
+  // The comparison keeps its own, older rule (`startsOf` in reach.ts) until it has been read by a second harness,
+  // and holds the change. Whether it may apply is the first thing that reading should rule on.
+  const gauntlet = pattern("gauntlet-decomposed");
+  const before = placeSubgrooph(host(), gauntlet, { as: "g", values: examples(gauntlet), after: "plan", then: "release" }).doc;
+  const dropped = refreshSubgrooph(before, "g", newer((t) => void (t.edges = t.edges.filter((edge) => edge.id !== "e-next-piece-fail")), 2, gauntlet));
+  assert.deepEqual(refusedNames(dropped), ["edge:g-e-next-piece-fail"]);
+  assert.match(refused(dropped)[0]!, /nothing would lead to "g-integrator", so a run would start there/);
+  unchanged(before, dropped.doc);
+
+  // Asked for by name, it applies, and the graph it leaves starts where it did: the package would say the same.
+  const allowed = refreshSubgrooph(before, "g", newer((t) => void (t.edges = t.edges.filter((edge) => edge.id !== "e-next-piece-fail")), 2, gauntlet), { allow: ["edge:g-e-next-piece-fail"] });
+  assert.deepEqual(allowed.held, []);
+  assert.deepEqual(entryNodeIds(indexGraph(allowed.doc)), entryNodeIds(indexGraph(before)));
+  assert.deepEqual(errorsOf(allowed.doc), errorsOf(before));
+});
+
+test("a fourth reader's cases, found through adoption and open to a refresh as well: a way round the loop's stops do not count, a twin beside an approval", () => {
+  // A newer version gives the critic a second way back to the builder, through a new step, and counts it in a
+  // second loop with a cap of 1000. The review loop's own cap of 4 no longer bounds its builder and critic.
+  const second = refreshSubgrooph(placed(), "review", newer((t) => {
+    t.nodes.push(agent("fixer", "builder", "FIX.md"));
+    t.edges.push({ id: "x-critic-fixer", from: "critic", to: "fixer", when: { verdict: "revise" } }, { id: "x-fixer-builder", from: "fixer", to: "builder", evidence: ["REVIEW.md"] });
+    t.loops.push({ id: "revise", name: "Revise", members: ["builder", "critic", "fixer"], back: ["x-fixer-builder"], mode: "judgment", bar: structuredClone(t.loops[0]!.bar!), stops: [{ kind: "bar-passed" }, { kind: "max-iterations", n: 1000 }] });
+  }));
+  assert.match(refused(second).join("\n"), /would make a way round the nodes of "review-review" that its stops do not count/);
+  for (const name of ["edge:review-x-critic-fixer", "edge:review-x-fixer-builder"]) assert.ok(refusedNames(second).includes(name), `${name}: ${refusedNames(second).join(", ")}`);
+  unchanged(placed(), second.doc);
+
+  // A stop of another measure, set first, that leads back in: the cap and the budget never get their turn.
+  const first = refreshSubgrooph(placed(), "review", newer((t) => void stopsOf(t).splice(1, 0, { kind: "budget", measure: "minutes", limit: 0, then: "builder" })));
+  assert.deepEqual(refusedNames(first), ["loop:review-review.stops"]);
+  assert.match(refused(first)[0]!, /would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count/);
+
+  // A person in this graph asked for approval on the critic's way back. A newer version adds a second edge beside it.
+  const approved = placed();
+  approved.edges.find((edge) => edge.id === "review-e-critic-fail")!.approval = true;
+  const twin = refreshSubgrooph(approved, "review", newer((t) => {
+    t.edges.push({ id: "x-critic-fail-again", from: "critic", to: "builder", when: "fail", evidence: ["REVIEW.md"] });
+    t.loops[0]!.back.push("x-critic-fail-again");
+  }));
+  assert.match(refused(twin).join("\n"), /"review-x-critic-fail-again" would lead from "review-critic" to "review-builder" beside "review-e-critic-fail", which needs a person's approval, and need none/);
+
+  // What is not held is said: a stop where a person is asked, that continues inside the loop. The person is the
+  // brake there, and the cap comes to count the rounds between two of their answers.
+  const asks = refreshSubgrooph(placed(), "review", newer((t) => void stopsOf(t).push({ kind: "human", every: 2, then: "builder" })));
+  assert.deepEqual(asks.held, []);
+  assert.match(asks.notes.join("\n"), /the loop "review-review": the round cap \(4\) and the budget \(10 dispatches\) would count the rounds between two of a person's decisions, and no longer the whole run\. A way round its nodes that they do not count is opened each time by the stop where a person is asked, which continues at "review-builder"/);
+});
+
 test("allowing one change does not let another through: each way that opens is named", () => {
   // Two steps behind the gate. The newer version lets the critic reach the first, and the first lead to the second.
   const two = newer((t) => {
@@ -1037,7 +1102,7 @@ test("an honest update is not held: a new stop that leads on, a check put in, a 
   // A second cap, lower, that leads back while the first still halts, is not among them: which of the two a run
   // obeys at the second round is the lead's reading, so it is held and said.
   assert.deepEqual(refused(refreshSubgrooph(placed(), "review", newer((t) => void stopsOf(t).push({ kind: "max-iterations", n: 2, then: "builder" })))), [
-    'loop:review-review.stops: the round cap of 2 that leads on to "review-builder" would fire before the one of 4 that halts the run',
+    'loop:review-review.stops: the round cap of 2 that leads on to "review-builder" would fire before the one of 4 that halts the run; a stop of the loop "review-review" would lead back to "review-builder": a way round the nodes of "review-review" that its stops do not count',
   ]);
   // The graph has the template's graph-wide policy under an id of its own as well: the same version changes nothing.
   const twice: Graph = { ...placed(), policies: [...placed().policies!, { id: "p-own-isolation", kind: "critic-isolation", scope: "graph" }] };

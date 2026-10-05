@@ -8,12 +8,18 @@ One folder per harness, and in it one folder per session: `claude-code/rehearsal
 | `profile-settings.json` | before the session starts | `setup/start-claude.sh` | the profile's settings file, as it was |
 | `owner-notes.txt` | as it happens | the owner | when "start" was answered; anything asked in the middle and the one line given; a pause for a usage limit and its length; the wall; what `/cost` printed |
 | `after/run-folder/` | after | `setup/record.sh` | `.grooph/arena/runs/<id>/` from the game's folder: `notes.jsonl`, `PROGRESS.md`, the working copy of the graph |
-| `after/events/` | after | `setup/record.sh` | what the event hook wrote: ids, names and times |
+| `after/events/` | after | `setup/record.sh` | what the event hook wrote: ids, names and times, and this machine's paths for the session's folder and for each subagent's transcript |
 | `after/commits.txt`, `tags.txt`, `uncommitted.txt` | after | `setup/record.sh` | every commit with its time; the tags; what was left uncommitted |
 | `after/transcript.txt` | after | `setup/record.sh` | where the transcript is, its size and checksum. The transcript itself stays on the machine |
 | `after/models.txt` | after | `setup/record.sh` | which models answered, as the transcripts name them |
 | `after/held-out-checks-seen.txt` | after | `setup/record.sh` | whether the checks' path or file names appear in any transcript of the session |
 | `after/refusals.txt` | after | `setup/record.sh` | what was refused: a permission, a host, a read |
-| the checks' three outputs, the result commit | after | `setup/score.sh`, a later slice | |
+| `after/loaded.txt` | after | `setup/record.sh`, with `setup/loaded.mjs` | what the session was given at its start, read from its transcript: the skills listed, the kinds of subagent, the servers, the instruction files, the repository as it was told; then the tools that were called |
+| `after/starting-contents.txt` | after | `setup/record.sh` | whether the hook's files, the package and the spec are as the first commit had them |
+| `after/system-services-used.txt` | after | `setup/record.sh` | commands that reached for one of the system's own services, or for another session, by name |
+| `after/moved.txt` | before the run | `setup/clear-rehearsal.sh` | the rehearsal only: where its folder, its transcript, npm's cache and its temp files were moved, so that the run starts without them |
+| `after/result-commit.txt` | after | `setup/score.mjs` | the result commit and how it was found, with every commit that was tried and how far each got |
+| `after/checks-1.txt` to `-3.txt`, and their `.json` | after | `setup/score.mjs` | what the held-out checks printed, each of the three times |
+| `after/score.md` | after | `setup/score.mjs` | each check's verdict: pass (all three), unsteady (some), fail (none), with the three results |
 
 Nothing has been run: no folder is here yet.

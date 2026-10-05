@@ -123,6 +123,8 @@ export function digestTranscripts(transcripts, scratch) {
         }
         if (DISPATCH_TOOLS.has(block.name)) {
           use.subagent_type = input.subagent_type ?? null;
+          // The Agent tool's own `model` argument, when the lead gave one: it is an alias and wins over the agent file.
+          if (typeof input.model === "string") use.model = input.model;
           use.description = input.description ?? null;
           use.prompt = input.prompt ?? null;
         }

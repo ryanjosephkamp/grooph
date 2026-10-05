@@ -197,7 +197,23 @@ test("embed is a command like the others: listed in the overview, with its own h
     assert.match(io.stdout[0]!, /^<iframe [^>]*src="https:\/\/ryanjosephkamp\.github\.io\/grooph\/#\/embed\?[^"]*theme=dark[^"]*"[^>]*height="480"/);
     io = capture();
     assert.equal(await run(["embed", file, "--theme", "purple"], io), 1);
-    assert.match(io.stderr.join("\n"), /--theme is light or dark/);
+    assert.match(io.stderr.join("\n"), /--theme is one of paper, blueprint, ink, phosphor, transit, chalk; or light or dark; or both, as chalk-dark\. Got "purple"/);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "transit-dark"], io), 0, io.stderr.join("\n"));
+    assert.match(io.stdout[0]!, /#\/embed\?[^"]*theme=transit-dark"/);
+    // Paper is the default and is not said: its address is the one an embed had before there were themes.
+    io = capture();
+    assert.equal(await run(["embed", file], io), 0);
+    const plain = io.stdout[0]!;
+    assert.ok(!plain.includes("theme="));
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "paper"], io), 0);
+    assert.equal(io.stdout[0], plain);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "paper-dark"], io), 0);
+    assert.match(io.stdout[0]!, /#\/embed\?[^"]*theme=dark"/);
+    io = capture();
+    assert.equal(await run(["embed", file, "--theme", "auto"], io), 1);
     io = capture();
     assert.equal(await run(["embd", file], io), 1);
     assert.match(io.stderr.join("\n"), /Did you mean "embed"\?/);

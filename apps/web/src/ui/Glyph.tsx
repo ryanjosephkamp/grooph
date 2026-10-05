@@ -29,7 +29,14 @@ export const hasLongGlyph = (doc: Graph): boolean => draw(doc).long;
  * written right beside it.
  */
 export function Glyph({ doc, className, decorative = false }: { doc: Graph; className?: string; decorative?: boolean }) {
-  const { svg, long } = draw(doc);
+  return <GlyphDrawn {...draw(doc)} className={className} decorative={decorative} />;
+}
+
+/**
+ * A glyph from a drawing already made: what `Glyph` writes, for a place that has the drawing and not the graph
+ * (the front page's tiles, drawn ahead of time; `landing/front.generated.ts`).
+ */
+export function GlyphDrawn({ svg, long, className, decorative = false }: { svg: string; long: boolean; className?: string | undefined; decorative?: boolean }) {
   return (
     <span
       className={`glyph${className ? ` ${className}` : ""}${long ? " is-long" : ""}`}

@@ -1,0 +1,122 @@
+{
+  "template": "patrol-pulse",
+  "template_version": "patrol-pulse@3",
+  "slots": {
+    "values": {
+      "task": "Watch the orders API's log for faults users would feel: failed requests, retries that never succeed, resources running out. README.md says which lines are routine noise.",
+      "scan-command": "grep -n -E ' (ERROR|WARN) ' logs/app.log",
+      "ticket-store": "TICKETS.md"
+    }
+  },
+  "graph_id": "orders-api-patrol",
+  "run_id": "20261004-225445",
+  "run_ids": [
+    "20261004-225445"
+  ],
+  "harness": "claude-code",
+  "harness_version": "2.1.289 (Claude Code)",
+  "lead": {
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "tier_map": "frontier=claude-opus-5-5,strong=claude-sonnet-5-5,fast=claude-sonnet-5-5",
+  "aliases": {
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-5-5",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001"
+  },
+  "agent_models": {
+    "orders-api-patrol--investigator": "claude-sonnet-5-5",
+    "orders-api-patrol--ticket-writer": "claude-sonnet-5-5"
+  },
+  "models": {
+    "claude-opus-5-5": {
+      "cost_usd": 0.7914883999999999,
+      "output_tokens": 12697
+    }
+  },
+  "models_by_agent": {
+    "lead": [
+      "claude-opus-5-5"
+    ]
+  },
+  "models_never_used": [],
+  "cost_usd": 0.791488,
+  "harness_turns": 41,
+  "lead_turns": null,
+  "duration_s": 121,
+  "rounds": {
+    "loop_passes": 0,
+    "rounds_recorded": 0,
+    "last_round": null
+  },
+  "stop_fired": [],
+  "ending": [
+    "halt at prioritize",
+    "stop node clean",
+    "stop node no-log"
+  ],
+  "subagents": {},
+  "permission_denials": [
+    {
+      "tool": "Bash",
+      "command": "find / -name app.log -path '*logs*' -maxdepth 6 2>/dev/null"
+    },
+    {
+      "tool": "Bash",
+      "command": "grooph apply --help"
+    }
+  ],
+  "invocations": [
+    {
+      "kind": "kickoff",
+      "ledger_n": 34,
+      "session_id": "049c8b65-7b74-4e07-ad0a-2577aa471645",
+      "result": "success",
+      "is_error": false,
+      "cost_usd": 0.791488,
+      "reported_cost_usd": 0.7914883999999999,
+      "max_budget_usd": 9,
+      "harness_turns": 41,
+      "duration_s": 121,
+      "wall_s": 121,
+      "notes_after": 8,
+      "command": [
+        "claude",
+        "-p",
+        "<prompt>",
+        "--permission-mode",
+        "acceptEdits",
+        "--output-format",
+        "json",
+        "--settings",
+        "<settings.json>",
+        "--max-budget-usd",
+        "9.00",
+        "--strict-mcp-config",
+        "--model",
+        "claude-opus-5-5",
+        "--effort",
+        "high"
+      ],
+      "output": "claude-output.json"
+    }
+  ],
+  "base_commit": "1ed4a66e80e493c05dddc8eeda21912606d30ff7",
+  "source_sha256_before": "3a3176439da23c394970e8fb95a846bc5df25cfa3208229e651f4b53bdb46551",
+  "project_files_changed": [],
+  "scratch": "/var/folders/pv/m1k13gmn189d64ndtxdbzrjc0000gn/T/grooph-prove-patrol-pulse-PGe1Ry",
+  "home_redactions": 0,
+  "amendments": [
+    "Added precondition check log-present (test -s logs/app.log) ahead of scan, with e-log-present-scan (pass) and e-log-present-no-log (fail) to a new stop node no-log (outcome halt); clarified scan's pass text so exit 1 is the clean fail and exit 2 is invalid-evidence."
+  ],
+  "proposals": [],
+  "working_copy": [
+    "node added: log-present",
+    "node added: no-log",
+    "node scan changed: check",
+    "edge added: e-log-present-scan",
+    "edge added: e-log-present-no-log"
+  ]
+}
