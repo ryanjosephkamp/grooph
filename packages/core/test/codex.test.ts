@@ -54,7 +54,7 @@ test("Codex packages preserve the source and do not overwrite shared project ins
   assert.equal(Object.keys(pkg.files).filter((p) => p.endsWith(".toml")).length, 2);
   const critic = settings(pkg.files[".codex/agents/review-loop--critic.toml"]!);
   assert.equal(critic.name, "review-loop--critic");
-  assert.ok(!("approval_policy" in critic), "agent files inherit the owner's approval policy");
+  assert.ok(!("approval_policy" in critic), "an agent file sets no approval policy");
   assert.equal(critic.sandbox_mode, "workspace-write", "a critic must be able to write its declared report");
   assert.equal(critic.web_search, "disabled");
   assert.match(critic.developer_instructions!, /only the files you declare in these outputs/);
