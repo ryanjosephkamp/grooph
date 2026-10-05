@@ -210,7 +210,7 @@ A critic-family node resolves to the same tier and pins as every one of its **ne
 **Fails:** [`fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json`](../fixtures/invalid/W_HOMOGENEOUS_CRITICS/critic-same-model-as-builder.grooph.json) prints
 
 ```text
-warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: builder, critic]
+warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]
 ```
 
 **Passes:** [`fixtures/valid/fix-until-green.grooph.json`](../fixtures/valid/fix-until-green.grooph.json) validates with no issues.

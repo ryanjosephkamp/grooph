@@ -495,7 +495,7 @@ function homogeneousCritics(index: GraphIndex): Issue[] {
   return [
     warning(
       "W_HOMOGENEOUS_CRITICS",
-      `${parts.join("; ")}; a critic on a different tier or pin tends to catch different mistakes`,
+      `${parts.join("; ")}; a critic on a different tier or pin may catch different mistakes`,
       sortNodeIds(index, new Set(flagged.flatMap(({ critic, writers: same }) => [critic.id, ...same.map((n) => n.id)]))),
     ),
   ];

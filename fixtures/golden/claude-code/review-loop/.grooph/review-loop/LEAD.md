@@ -213,7 +213,7 @@ A node you add mid-run has no compiled file under `.claude/agents/`. Write one b
 grooph raised these when compiling this package. They are not errors, and the human running this graph should see them:
 
 ```text
-warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: builder, critic]
+warning  W_HOMOGENEOUS_CRITICS  critic "critic" judges "builder" on the same model (tier strong); a critic on a different tier or pin may catch different mistakes  [at: builder, critic]
 ```
 
 ## 11. Ending

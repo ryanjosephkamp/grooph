@@ -12,7 +12,7 @@
     "title": "Specialist critic bank",
     "summary": "Four fresh specialist critics review in parallel, a triage judge merges their findings by severity, and the change loops until nothing blocker or major remains.",
     "whenToUse": "Multiple disjoint judges (correctness, security, performance, taste) should each look at the change, and their findings need merging by severity.",
-    "notFor": "Small or low-risk changes, where one review-gate critic is enough; four reviewers and a judge cost four times a round.",
+    "notFor": "Small or low-risk changes, where one review-gate critic is enough; four reviewers and a judge are each a dispatch, every round.",
     "profile": {
       "cost": "high",
       "speed": "medium",
