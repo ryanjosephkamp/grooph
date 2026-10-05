@@ -1,0 +1,163 @@
+{
+  "groophMap": 0,
+  "id": "a-bot-fleet",
+  "name": "A bot fleet: two Bots, a dot and their person",
+  "version": 1,
+  "asOf": "2026-10-05",
+  "description": "A sample, drawn from the two vendors' own documentation as read on 2026-10-05 (docs/fleets/). Nobody here has run it: every handoff is one a vendor's page describes, or a person. Two Grok Bots share the one cloud computer of their person's account and message each other; a dot works on its own cloud computer and hands pieces to threads it starts. No page describes a channel from a Bot to a dot, so the person carries it.",
+  "lanes": [
+    {
+      "id": "bots-computer",
+      "name": "The Bots' cloud computer",
+      "machine": "one cloud computer, shared by every Bot of this account",
+      "place": "cloud",
+      "account": "the person's Cursor account"
+    },
+    {
+      "id": "dot-computer",
+      "name": "The dot's cloud",
+      "machine": "the dot's own cloud computer; where a thread it starts runs is not stated",
+      "place": "cloud",
+      "account": "the person's ChatGPT account"
+    }
+  ],
+  "people": [
+    {
+      "id": "person",
+      "name": "The person",
+      "role": "Asks, approves, and carries what the two platforms do not pass to each other"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "scout",
+      "name": "Scout",
+      "lane": "bots-computer",
+      "harness": "grok-bot",
+      "role": "Watches the sources and gathers what changed",
+      "lifetime": "long-lived"
+    },
+    {
+      "id": "scribe",
+      "name": "Scribe",
+      "lane": "bots-computer",
+      "harness": "grok-bot",
+      "role": "Turns what Scout found into a draft",
+      "lifetime": "long-lived"
+    },
+    {
+      "id": "dot",
+      "name": "The dot",
+      "lane": "dot-computer",
+      "harness": "chatgpt",
+      "model": "GPT-6 Astra",
+      "role": "Keeps the plan current and brings back decisions",
+      "lifetime": "long-lived"
+    },
+    {
+      "id": "dot-threads",
+      "name": "The dot's cloud threads",
+      "lane": "dot-computer",
+      "harness": "chatgpt",
+      "role": "One piece of the dot's work each, in a conversation of its own",
+      "lifetime": "per-task"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-job",
+      "from": "person",
+      "to": "scout",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "a standing job, typed in Scout's chat"
+    },
+    {
+      "id": "h-routine",
+      "from": "scout",
+      "to": "scout",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "weekdays at 8:00"
+      },
+      "what": "a routine, in the person's time zone: check the sources"
+    },
+    {
+      "id": "h-found",
+      "from": "scout",
+      "to": "scribe",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "what changed, as a message from one Bot to another"
+    },
+    {
+      "id": "h-files",
+      "from": "scout",
+      "to": "scribe",
+      "carrier": {
+        "kind": "other",
+        "name": "files in /workspace on the computer they share"
+      },
+      "what": "the sources Scout saved"
+    },
+    {
+      "id": "h-draft",
+      "from": "scribe",
+      "to": "person",
+      "carrier": {
+        "kind": "notification",
+        "where": "the Grok Bot app, on the desktop or the phone"
+      },
+      "what": "a draft, and a request to approve sending it on"
+    },
+    {
+      "id": "h-carry",
+      "from": "person",
+      "to": "dot",
+      "carrier": {
+        "kind": "person"
+      },
+      "what": "pastes the draft into the dot's chat, with what to do with it"
+    },
+    {
+      "id": "h-piece",
+      "from": "dot",
+      "to": "dot-threads",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "instructions and context for one piece"
+    },
+    {
+      "id": "h-result",
+      "from": "dot-threads",
+      "to": "dot",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "the result, which the dot checks"
+    },
+    {
+      "id": "h-recurring",
+      "from": "dot",
+      "to": "dot",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "weekdays at 9:00"
+      },
+      "what": "a recurring task with an end date: check the planning channel"
+    },
+    {
+      "id": "h-decision",
+      "from": "dot",
+      "to": "person",
+      "carrier": {
+        "kind": "notification",
+        "where": "ChatGPT, or Slack where the person asked for that"
+      },
+      "what": "a result, or a decision that needs them"
+    }
+  ]
+}
