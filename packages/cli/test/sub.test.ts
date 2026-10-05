@@ -255,7 +255,7 @@ test("grooph --help lists sub, and grooph sub --help is its page", async (t) => 
   const help = await box.grooph("sub", "--help");
   assert.equal(help.code, 0);
   assert.match(help.out, /^grooph sub add <template> --into <file> --as <id>/);
-  assert.match(help.out, /NOT applied unless you ask for it by\s+its name with --allow/);
+  assert.match(help.out, /NOT applied unless you ask\s+for it by its name with --allow/);
   assert.equal((await box.grooph("help", "sub")).out, help.out);
   assert.match((await box.grooph("sbu", "list", box.file)).err, /Did you mean "sub"\?/);
 });
