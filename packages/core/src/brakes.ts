@@ -16,12 +16,14 @@
  * - **A loop's stops and bar, and the rounds they count.** Under the loop's id: the tightest round cap, budget and
  *   "ask a person"; the tightest of each that halts the run (one that leads on ends the loop and halts nothing);
  *   where one that leads on first leads; the bar's acceptance. And each edge that starts a round stays the loop's,
- *   each node the loop bounded stays among its members, and no way round its nodes comes in that its stops do not
- *   count: a loop around it, a second way back through a new step, a stop of its own that continues inside it.
+ *   each node the loop bounded stays among its members (or goes with nothing unbounded coming in to do its work),
+ *   no step comes onto its rounds that a budget of dispatches does not count, and no way round its nodes comes in
+ *   that its stops do not count: a loop around it, a second way back through a new step, a stop of its own that
+ *   continues inside it.
  * - **Critics.** Each critic, what each node hands it and in what context, and what a run reaches or how it ends
  *   without its verdict; the policies that say so.
  *
- * Three readers were asked, one after another, to break this as a refresh, and a fourth as an adoption, and each
+ * Three readers were asked, one after another, to break this as a refresh, and two more as an adoption, and each
  * found what the one before had not: this list is what a brake has been found to be, not a proof that nothing is
  * missing from it.
  *
@@ -122,40 +124,59 @@ const wayName = (way: Way): string => way.edge ?? `${way.loop} → ${way.to}`;
  * critic to its builder through a new step, and a stop that leads back in: by each the loop is entered again, and
  * its counters start afresh (graph-ir §2, "Nested loops").
  *
+ * With them, for each of the loop's nodes, what closes its ways round (`closers`): another loop, by one of its back
+ * edges, or a stop that leads on. A node that gains one has a way round it did not have. A step put into a way round
+ * that was there, an edge under another id, or one more back edge of a loop that already took the node round,
+ * closes nothing new.
+ *
  * `persons` names the ways a person opens (an approval, a gate's answer, the stop where a person is asked) that are
  * taken as part of the graph. One that is not named is left out: a way round that a person newly opens each time is
  * that person's to allow, round by round. One that was there already is no more of a brake on a new way round than
  * it was on the loop's own.
  */
-function waysRoundUncounted(doc: Graph, loop: { id: Id; members: readonly Id[]; back: readonly Id[] }, persons: ReadonlySet<string>): Map<string, Way> {
+type Rounds = { ways: Map<string, Way>; closers: Map<Id, Set<string>> };
+
+function waysRoundUncounted(doc: Graph, loop: { id: Id; members: readonly Id[]; back: readonly Id[] }, persons: ReadonlySet<string>): Rounds {
   const counted = new Set(loop.back);
   const gates = new Set(doc.nodes.filter((node) => node.kind === "human-gate").map((node) => node.id));
   // (A stop is reckoned a way from every node of its loop, and so from the node it leads to: that is no way round.)
   const ways = waysOf(doc).filter((way) => way.from !== way.to && (way.edge === undefined || !counted.has(way.edge)) && (!way.person || persons.has(wayName(way))));
+  const closes = (way: Way): string[] => (way.edge === undefined ? [wayName(way)] : doc.loops.filter((other) => other.id !== loop.id && other.back.includes(way.edge!)).map((other) => other.id));
   const walk = (starts: readonly Id[], step: (id: Id) => Id[]): Set<Id> => {
     const seen = new Set<Id>(starts);
     const queue = [...seen];
     for (let id = queue.pop(); id !== undefined; id = queue.pop()) for (const next of step(id)) if (!seen.has(next)) queue.push((seen.add(next), next));
     return seen;
   };
-  const found = new Map<string, Way>();
+  // The loop's own stop that continues at one of its nodes: the loop goes on, whatever its count says. (At a human
+  // gate a person decides at once, and what the gate then leads to is the gate's.)
+  const own = ways.filter((way) => way.loop === loop.id && loop.members.includes(way.to) && !gates.has(way.to));
+  const found = new Map<string, Way>(own.map((way) => [wayName(way), way]));
+  const closers = new Map<Id, Set<string>>();
   for (const member of loop.members) {
     // From the member, and back to it: a way that starts in the first and ends in the second is on a way round it.
     const out = walk([member], (id) => ways.filter((way) => way.from === id).map((way) => way.to));
     const home = walk([member], (id) => ways.filter((way) => way.to === id).map((way) => way.from));
-    for (const way of ways) if (out.has(way.from) && home.has(way.to)) found.set(wayName(way), way);
+    const mine = new Set<string>(own.map(wayName));
+    for (const way of ways) {
+      if (!out.has(way.from) || !home.has(way.to)) continue;
+      found.set(wayName(way), way);
+      for (const closer of closes(way)) mine.add(closer);
+    }
+    closers.set(member, mine);
   }
-  // The loop's own stop that continues at one of its nodes: the loop goes on, whatever its count says. (At a human
-  // gate a person decides at once, and what the gate then leads to is the gate's.)
-  for (const way of ways) if (way.loop === loop.id && loop.members.includes(way.to) && !gates.has(way.to)) found.set(wayName(way), way);
-  return found;
+  return { ways: found, closers };
 }
 
 /** The loops' stops and bars, by the rounds they count. */
 function loopLosses(before: Graph, after: Graph): Loss[] {
   const losses: Loss[] = [];
   const still = new Set(after.nodes.map((node) => node.id));
+  const known = new Set(before.nodes.map((node) => node.id));
   const waysWas = waysOf(before);
+  // The nodes of the graph as it would be that lie on a way round, by any way.
+  const waysNow = waysOf(after);
+  const round = new Set(after.nodes.filter((node) => [...reachedFrom(after, waysNow.filter((way) => way.from === node.id && way.to !== node.id).map((way) => way.to))].includes(node.id) || waysNow.some((way) => way.edge !== undefined && way.from === node.id && way.to === node.id)).map((node) => node.id));
   const edgeNow = new Map(after.edges.map((edge) => [edge.id, edge]));
   const loopNow = new Map(after.loops.map((loop) => [loop.id, loop]));
   const edgeWas = new Map(before.edges.map((edge) => [edge.id, edge]));
@@ -196,7 +217,9 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
       const had = new Set(before.loops.find((old) => old.id === other.id)?.back ?? []);
       for (const id of other.back) {
         const edge = edgeNow.get(id);
-        if (!edge || had.has(id) || kept?.back.includes(id) || !bounded.has(edge.from) || !bounded.has(edge.to)) continue;
+        // (One the other loop listed already is no news, unless it has been moved to join two of this loop's nodes.)
+        const was = edgeWas.get(id);
+        if (!edge || (had.has(id) && was?.from === edge.from && was.to === edge.to) || kept?.back.includes(id) || !bounded.has(edge.from) || !bounded.has(edge.to)) continue;
         losses.push({ why: `a round between "${edge.from}" and "${edge.to}", which the loop "${loop.id}" bounds, would be counted by "${other.id}" and not against its stops`, at: [`loop:${other.id}`, `loop:${other.id}.back`, `edge:${id}`, `edge:${id}.from`, `edge:${id}.to`] });
       }
     }
@@ -208,6 +231,30 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
     } else if (dropped.length > 0) {
       losses.push({ why: `the loop "${loop.id}" would no longer bound ${quote(dropped)}, which ${dropped.length === 1 ? "is" : "are"} still in the graph`, at: [`loop:${loop.id}.members`] });
     }
+    // A node the loop bounded is gone, and a node comes in that goes round and that the loop does not bound: the
+    // loop may be left as a shell, with its work done under another name and another loop's stops.
+    const gone = kept ? loop.members.filter((member) => !still.has(member)) : [];
+    const come = gone.length > 0 ? after.nodes.filter((node) => !known.has(node.id) && !kept!.members.includes(node.id) && node.kind !== "stop" && round.has(node.id)).map((node) => node.id) : [];
+    if (come.length > 0) {
+      losses.push({ why: `removes ${quote(gone)}, which the loop "${loop.id}" bounded, while ${quote(come)} would come in on a round it does not count: it may be the same step under another name`, at: [...gone.map((id) => `node:${id}`), `loop:${loop.id}.members`] });
+    }
+    // A step that comes in on the loop's own rounds and is not among its members, where the loop has a budget of
+    // dispatches: each round would dispatch it, and the budget would not count it.
+    if (kept && kept.stops.some((stop) => stop.kind === "budget" && stop.measure === "dispatches")) {
+      const others = new Set(after.loops.filter((other) => other.id !== loop.id).flatMap((other) => other.back));
+      const own = waysNow.filter((way) => way.edge !== undefined && !others.has(way.edge));
+      const step = (pick: (way: Way) => [Id, Id]) => (id: Id): Id[] => own.filter((way) => pick(way)[0] === id).map((way) => pick(way)[1]);
+      const reach = (starts: readonly Id[], next: (id: Id) => Id[]): Set<Id> => {
+        const seen = new Set<Id>(starts);
+        const queue = [...seen];
+        for (let id = queue.pop(); id !== undefined; id = queue.pop()) for (const to of next(id)) if (!seen.has(to)) queue.push((seen.add(to), to));
+        return seen;
+      };
+      const out = reach(kept.members, step((way) => [way.from, way.to]));
+      const home = reach(kept.members, step((way) => [way.to, way.from]));
+      const unlisted = after.nodes.filter((node) => !known.has(node.id) && (node.kind === "agent" || node.kind === "check") && !kept.members.includes(node.id) && out.has(node.id) && home.has(node.id)).map((node) => node.id);
+      if (unlisted.length > 0) losses.push({ why: `${quote(unlisted)} would work on the rounds of the loop "${loop.id}" and not be among its members: its budget of dispatches would not count ${unlisted.length === 1 ? "it" : "them"}`, at: [...unlisted.map((id) => `node:${id}`), `loop:${loop.id}.members`] });
+    }
     // A way round the loop's nodes that its stops do not count, and that was not there: by an edge added or moved,
     // by a stop that leads back in, by a loop put around it.
     if (kept) {
@@ -215,12 +262,13 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
       const free = waysRoundUncounted(before, loop, persons);
       const bounded = [...new Set([...loop.members.filter((member) => still.has(member)), ...kept.members])];
       let named = 0;
-      // (An edge renamed is the same way: one that is gone, and a new edge between the same two nodes. Only that: a
-      // stop that comes to lead where an edge already led, or a second edge beside one that stays, is a way more.)
-      const renamed = new Set([...free.values()].filter((way) => way.edge !== undefined && !edgeNow.has(way.edge)).map((way) => `${way.from} → ${way.to}`));
-      const fresh = [...waysRoundUncounted(after, { id: loop.id, members: bounded, back: kept.back }, persons)].filter(
-        ([name, way]) => !free.has(name) && !(way.edge !== undefined && !edgeWas.has(way.edge) && renamed.has(`${way.from} → ${way.to}`)),
-      );
+      const round = waysRoundUncounted(after, { id: loop.id, members: bounded, back: kept.back }, persons);
+      // One of the nodes the loop bounded has a way round it did not have: closed by another loop's back edge, or
+      // by a stop, that did not close one for it before.
+      const gained = loop.members.some((member) => [...(round.closers.get(member) ?? [])].some((closer) => !free.closers.get(member)?.has(closer)));
+      // The ways on it that are new, or that join other nodes than they did.
+      const moved = (way: Way): boolean => way.edge !== undefined && edgeWas.has(way.edge) && (edgeWas.get(way.edge)!.from !== way.from || edgeWas.get(way.edge)!.to !== way.to);
+      const fresh = gained ? [...round.ways].filter(([name, way]) => !free.ways.has(name) || moved(way)) : [];
       for (const [, way] of fresh) {
         const old = way.edge === undefined ? undefined : edgeWas.get(way.edge);
         const counting = way.edge === undefined ? [] : after.loops.filter((other) => other.back.includes(way.edge!));
@@ -244,7 +292,7 @@ function loopLosses(before: Graph, after: Graph): Loss[] {
           at: [...at, ...counting.flatMap((other) => [`loop:${other.id}`, `loop:${other.id}.back`])],
         });
       }
-      if (fresh.length > 0 && named === 0) losses.push({ why: `there would be a way round the nodes of "${loop.id}" that its stops do not count`, at: [`loop:${loop.id}.members`, `loop:${loop.id}.back`] });
+      if (gained && named === 0) losses.push({ why: `there would be a way round the nodes of "${loop.id}" that its stops do not count`, at: [`loop:${loop.id}.members`, `loop:${loop.id}.back`] });
     }
   }
   return losses;
@@ -350,8 +398,12 @@ function endsFrom(doc: Graph, ways: readonly Way[], closed: Closed): Set<Id> {
   return can;
 }
 
-/** What a run comes to reach, and how it comes to end, around a decision it had to pass (`reach.ts`). */
-function reachLosses(before: Graph, after: Graph): Loss[] {
+/**
+ * What a run comes to reach, and how it comes to end, around a decision it had to pass (`reach.ts`). `later` is what
+ * was found by asking from every node and not only from the start: said only for a change that carries no reason
+ * from anything else, since the same change is often named more exactly there.
+ */
+function reachLosses(before: Graph, after: Graph): { losses: Loss[]; later: Loss[] } {
   const losses: Loss[] = [];
   const known = new Set(before.nodes.map((node) => node.id));
   const still = new Set(after.nodes.map((node) => node.id));
@@ -374,6 +426,8 @@ function reachLosses(before: Graph, after: Graph): Loss[] {
   /** Where a run at a node could come to before, by any way: what a decision can be said to stand between. */
   const could = new Map<Id, Set<Id>>();
   const couldReach = (id: Id): Set<Id> => could.get(id) ?? could.set(id, reachedFrom(before, [id])).get(id)!;
+  /** What is found from every node (below), said after the rest and only for a change that carries no reason yet. */
+  const later: [Closed, Id, Loss][] = [];
   const tell = (closed: Closed, about: Id, loss: Loss): void => {
     const key = `${closed !== "every" && "critic" in closed ? closed.critic : ""}\n${about}\n${loss.at.join(" ")}`;
     if (told.has(key)) return;
@@ -437,17 +491,21 @@ function reachLosses(before: Graph, after: Graph): Loss[] {
     // (Asked of a whole decision, as the way a run ends is below: another answer at the same gate is the same
     // person's, and a new one that leads where "reject" led has gone around nobody.)
     const whole = closed === "every" || !("when" in closed) || closed.when === undefined;
+    // (Not from the gate or the critic that decides: a stop is reckoned a way from every node of its loop, and
+    // from there it would look like a way round the node's own answer.)
+    const decides = closed === "every" ? undefined : "gate" in closed ? closed.gate : "critic" in closed ? closed.critic : undefined;
     for (const from of whole ? after.nodes : []) {
-      if (!known.has(from.id)) continue;
+      if (!known.has(from.id) || from.id === decides) continue;
       const without = reachedFrom(before, [from.id], closed);
       const now = reachedFrom(after, [from.id], closed);
       const around = new Set([...now].filter((id) => known.has(id) && !without.has(id) && couldReach(from.id).has(id)));
-      // By an edge. A stop is a way from every node of its loop only in this reckoning (it fires at a pass's end,
-      // not at a gate that waits), and what a stop comes to lead to is judged from the start and as a way round.
+      // Kept for last: where the same change has been named for a reason above, under any decision, that is the one said.
       for (const way of around.size > 0 ? ways : []) {
-        if (way.edge === undefined || shut(way, closed) || !now.has(way.from) || !around.has(way.to)) continue;
+        if (way.from === way.to || shut(way, closed) || !now.has(way.from) || !around.has(way.to)) continue;
         const at = changeOf(way);
-        if (at) say(way.to, { why: `${edgeWas.has(way.edge) ? "opens" : "adds"} a way from "${way.from}" to "${way.to}" ${past}`, at });
+        if (!at) continue;
+        const why = way.edge === undefined ? `a stop of the loop would lead on from "${way.from}" to "${way.to}", a way ${past}` : `${edgeWas.has(way.edge) ? "opens" : "adds"} a way from "${way.from}" to "${way.to}" ${past}`;
+        later.push([closed, way.to, { why, at }]);
       }
     }
 
@@ -490,7 +548,7 @@ function reachLosses(before: Graph, after: Graph): Loss[] {
       losses.push({ why: opened.size > 0 ? `a run would reach ${quote([...opened])} by a way ${past}` : `a run could end in success from ${quote([...freed])} by a way ${past}`, at: [] });
     }
   }
-  return losses;
+  return { losses, later: later.map(([, , loss]) => loss) };
 }
 
 /**
@@ -512,7 +570,7 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
     const bounded = { id: loop.id, members: [...new Set([...loop.members.filter((member) => still.has(member)), ...kept.members])], back: kept.back };
     const free = waysRoundUncounted(before, loop, persons);
     // With every way a person opens taken as part of the graph: the ways round that are there only by one newly opened.
-    const opened = [...waysRoundUncounted(after, bounded, every)].filter(([name, way]) => way.person && !persons.has(name) && !free.has(name));
+    const opened = [...waysRoundUncounted(after, bounded, every).ways].filter(([name, way]) => way.person && !persons.has(name) && !free.ways.has(name));
     if (opened.length === 0) continue;
     const by = [...new Set(opened.map(([, way]) => (way.edge === undefined ? `the stop where a person is asked, which continues at "${way.to}"` : gates.has(way.from) ? `"${way.when}" at the human gate "${way.from}" (${way.edge})` : `the approval asked on "${way.edge}"`)))];
     const counts = [...brakesOf(after, [kept])].filter(([key]) => key !== "human").map(([, brake]) => `${brake.name} (${brake.halt ?? brake.any}${brake.unit})`);
@@ -526,7 +584,13 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
 /** Every brake `after` has lost or loosened that `before` had; empty when it has lost none. */
 export function brakesLost(before: Graph, after: Graph): Loss[] {
   const seen = new Set<string>();
-  return [...ownLosses(before, after), ...loopLosses(before, after), ...reachLosses(before, after)].filter((loss) => {
+  const reach = reachLosses(before, after);
+  const first = [...ownLosses(before, after), ...loopLosses(before, after), ...reach.losses];
+  const named = new Set(first.flatMap((loss) => loss.at));
+  const told = new Set<string>();
+  // From every node: one reason for each set of changes, and only where none of them carries a reason already.
+  const last = reach.later.filter((loss) => !loss.at.some((name) => named.has(name)) && !told.has(loss.at.join(" ")) && told.add(loss.at.join(" ")));
+  return [...first, ...last].filter((loss) => {
     const key = `${loss.why}\n${loss.at.join(" ")}`;
     if (seen.has(key)) return false;
     seen.add(key);

@@ -747,7 +747,14 @@ test("a loop of the graph's own lets go of a node the subgrooph no longer has, a
     t.edges.find((edge) => edge.id === "e-builder-critic")!.id = "e-implementer-critic";
     t.loops[0]!.members = ["implementer", "critic", "merge-gate"];
   });
-  const result = refreshSubgrooph(before, "review", renamed);
+  // The graph's own loop bounded the builder, and under its new name it would not: held, as a loop left a shell
+  // with its work done under another name would be. It may well be the same step, and that is for a person to say.
+  const held = refreshSubgrooph(before, "review", renamed);
+  assert.deepEqual(refusedNames(held), ["node:review-builder"]);
+  assert.match(refused(held)[0]!, /removes "review-builder", which the loop "redo" bounded, while "review-implementer" would come in on a round it does not count: it may be the same step under another name/);
+  unchanged(before, held.doc);
+  // Asked for by name, it applies, and the loop of the graph's own lets go of what is gone, and says so.
+  const result = refreshSubgrooph(before, "review", renamed, { allow: ["node:review-builder"] });
   assert.deepEqual(result.held, []);
   assert.deepEqual(loopOf(result.doc, "redo").members, ["release", "recheck"]);
   assert.deepEqual(loopOf(result.doc, "redo").back, []);

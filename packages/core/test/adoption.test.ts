@@ -311,3 +311,93 @@ test("what is not refused, and is said to be a limit: a way round that a person 
   const renamed = adopt((w) => void (edge(w, "e-plan-review-builder").id = "e-plan-to-builder"), { from: nested });
   assert.deepEqual(renamed.refused, []);
 });
+
+// ─── and what a second reader got through the rules above ─────────────────────────────────────────────────────
+
+const fixture = (file: string, change: (doc: Graph) => void = () => {}): Graph => {
+  const doc = parseGraphText(read(join(repoRoot, "fixtures/valid", file))).doc!;
+  change(doc);
+  return doc;
+};
+
+test("a loop left as a shell: its work under other names and a second loop's stops, while the old loop keeps one of its nodes", () => {
+  // The small grind (a cap of 5 that continues at a wrap-up step, and a budget of 20 minutes). The fixer is removed
+  // and a stub put in its place in the old loop; a second fixer and a second suite do the work under a cap of 1000.
+  const wrap = fixture("wrap-up-after-the-cap.grooph.json");
+  const shell = adopt((w) => {
+    const twin = (id: string, as: string): Node => ({ ...structuredClone(w.nodes.find((n) => n.id === id)!), id: as }) as Node;
+    const [fixer2, suite2] = [twin("fixer", "fixer2"), twin("suite", "suite2")];
+    w.nodes = w.nodes.filter((n) => n.id !== "fixer");
+    w.nodes.push(agent("stub", "builder"), fixer2, suite2);
+    w.edges = w.edges.filter((e) => e.id !== "e-fix-suite");
+    edge(w, "e-suite-fail").to = "stub";
+    w.edges.push({ id: "e-stub-suite", from: "stub", to: "suite" }, { id: "e-fix2-suite2", from: "fixer2", to: "suite2" }, { id: "e-suite2-fail", from: "suite2", to: "fixer2", when: "fail" }, { id: "e-suite2-pass", from: "suite2", to: "green", when: "pass" });
+    w.loops[0]!.members = ["stub", "suite"];
+    w.loops.push({ id: "fix-cycle-2", name: "Again", members: ["fixer2", "suite2"], back: ["e-suite2-fail"], mode: "grind", stops: [{ kind: "max-iterations", n: 1000 }] });
+  }, { from: wrap });
+  assert.ok(names(shell).includes("node:fixer"), names(shell).join(", "));
+  assert.match(refused(shell).join("\n"), /removes "fixer", which the loop "fix-cycle" bounded, while "fixer2", "suite2" would come in on a round it does not count: it may be the same step under another name/);
+  // A loop that is new is not called a tightening.
+  assert.equal(shell.changes.find((change) => change.name === "loop:fix-cycle-2")!.tightens, undefined);
+
+  // A member renamed and kept among the loop's members is not that: nothing of the loop's goes uncounted.
+  const renamed = adopt((w) => {
+    w.nodes.find((n) => n.id === "fixer")!.id = "mender";
+    for (const e of w.edges) Object.assign(e, { from: e.from === "fixer" ? "mender" : e.from, to: e.to === "fixer" ? "mender" : e.to });
+    w.loops[0]!.members = ["mender", "suite"];
+  }, { from: wrap });
+  assert.ok(!refused(renamed).join("\n").includes("it may be the same step under another name"), refused(renamed).join("\n"));
+});
+
+test("an approval gone around by a stop that leads on, to a node the run reaches anyway", () => {
+  // The critic's pass needs approval on its way to the merge, which the docs step reaches without one. No success
+  // stop, so nothing is found by how a run ends. A stop of the review loop comes to continue at the merge.
+  const approved = fixture("glyph-vocabulary.grooph.json", (doc) => {
+    edge(doc, "e-critic-merge").approval = true;
+    doc.nodes = doc.nodes.filter((n) => n.id !== "done");
+    doc.edges = doc.edges.filter((e) => e.id !== "e-ship-done");
+  });
+  const review = (doc: Graph): Loop => doc.loops.find((l) => l.id === "review")!;
+  const cases: [string, (w: Graph) => void][] = [
+    ["the bar passed", (w) => void ((review(w).stops[0] as { then?: string }).then = "merge")],
+    ["a stop of a kind that is no brake", (w) => void review(w).stops.push({ kind: "diminishing-returns", rounds: 2, then: "merge" })],
+    ["a budget of another measure, first", (w) => void review(w).stops.unshift({ kind: "budget", measure: "tokens", limit: 0, then: "merge" })],
+  ];
+  for (const [what, change] of cases) {
+    const check = adopt(change, { from: approved });
+    assert.deepEqual(names(check), ["loop:review.stops"], what);
+    assert.match(refused(check)[0]!, /a stop of the loop would lead on from "[a-z]+" to "merge", a way that does not pass/, what);
+  }
+});
+
+test("a loop's back edge moved to join two nodes of the loop inside it; a step on a loop's rounds that its dispatch budget does not count", () => {
+  // The nested fixture: `review` (cap 3, 12 dispatches) around `grind` (cap 5, 10 dispatches). Grind's back edge is
+  // made to start at the critic, which is review's: a critic → build round is then counted by grind, not by review.
+  const nested = fixture("glyph-vocabulary.grooph.json");
+  const moved = adopt((w) => {
+    Object.assign(edge(w, "e-tests-fail"), { from: "critic", when: { verdict: "again" } });
+    const grind = w.loops.find((l) => l.id === "grind")!;
+    grind.members.push("critic");
+    grind.mode = "grind";
+  }, { from: nested });
+  assert.ok(names(moved).includes("edge:e-tests-fail.from"), `${names(moved).join(", ")}\n${refused(moved).join("\n")}`);
+  assert.match(refused(moved).join("\n"), /a round between "critic" and "build", which the loop "review" bounds, would be counted by "grind" and not against its stops/);
+
+  // An honest step put into both loops, between two of their nodes, is not refused: no node has a way round it did not have.
+  const honest = adopt((w) => {
+    w.nodes.push({ id: "format", kind: "check", name: "Format", check: { kind: "command", run: "pnpm format --check", pass: "exit 0" } } as Node);
+    edge(w, "e-build-tests").from = "format";
+    w.edges.push({ id: "e-build-format", from: "build", to: "format" });
+    for (const l of w.loops) l.members.push("format");
+  }, { from: nested });
+  assert.deepEqual(honest.refused, []);
+
+  // The same step left out of the loops' members: each round dispatches it, and neither budget of dispatches counts it.
+  const unlisted = adopt((w) => {
+    w.nodes.push({ id: "format", kind: "check", name: "Format", check: { kind: "command", run: "pnpm format --check", pass: "exit 0" } } as Node);
+    edge(w, "e-build-tests").from = "format";
+    w.edges.push({ id: "e-build-format", from: "build", to: "format" }, { id: "e-build-tests-direct", from: "build", to: "tests", when: { verdict: "never" } });
+  }, { from: nested });
+  assert.ok(names(unlisted).includes("node:format"), names(unlisted).join(", "));
+  assert.match(refused(unlisted).join("\n"), /"format" would work on the rounds of the loop "grind" and not be among its members: its budget of dispatches would not count it/);
+});

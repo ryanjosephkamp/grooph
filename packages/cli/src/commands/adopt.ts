@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 import { adoptWorkingCopy, canonicalize, canonicalizeWithoutLayout, checkAdoption, formatIssue, parseGraphText, type Graph } from "@grooph/core";
@@ -41,13 +41,24 @@ const sameVersion = (a: Graph, b: Graph): boolean => {
   return strip(a) === strip(b);
 };
 
+/** Whether two paths name one file: by another spelling, another letter case, a symbolic link or a hard one. */
+const sameFile = (a: string, b: string): boolean => {
+  if (resolve(a) === resolve(b)) return true;
+  try {
+    const [x, y] = [statSync(a), statSync(b)];
+    return x.dev === y.dev && x.ino === y.ino;
+  } catch {
+    return false;
+  }
+};
+
 /** `grooph adopt <run dir> [--into <graph file>] [--allow <change> ...] [--write]` (docs/runs.md §3). */
 export function adoptCommand(io: Output, dir: string, flags: { into?: string; allow?: string[]; write: boolean }): number {
   const run = readRun(dir);
   const target = resolve(flags.into ?? join(dirname(run.graphDir), "graphs", `${run.source.id}.grooph.json`));
   // The source the package placed, and the run's own working copy, are never written: not even when named.
   for (const [kept, what] of [[join(run.graphDir, "graph.grooph.json"), "the source this run started from"], [join(run.runDir, "graph.grooph.json"), "the run's working copy"]] as const) {
-    if (resolve(kept) === target) {
+    if (sameFile(kept, target)) {
       io.err(`grooph: --into names ${what} (${shown(target)}), which adopt never writes; name another file`);
       return 1;
     }

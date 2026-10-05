@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { appendFileSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, copyFileSync, cpSync, existsSync, linkSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { request } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
@@ -306,6 +306,18 @@ test("adopt never writes the source or the run's working copy, even when --into 
       assert.match(text(io.stderr), new RegExp(`--into names ${what} .*which adopt never writes`));
     }
     assert.deepEqual(tree(dir), before);
+    // The same file by another name: a symbolic link to it, a hard link, a folder that is a link.
+    const links = mkdtempSync(join(tmpdir(), "grooph-links-"));
+    symlinkSync(sourcePath, join(links, "soft.grooph.json"));
+    linkSync(sourcePath, join(links, "hard.grooph.json"));
+    symlinkSync(dirname(sourcePath), join(links, "folder"));
+    for (const path of [join(links, "soft.grooph.json"), join(links, "hard.grooph.json"), join(links, "folder", "graph.grooph.json")]) {
+      const io = capture();
+      assert.equal(await grooph(["adopt", run, "--write", "--into", path], io), 1, path);
+      assert.match(text(io.stderr), /--into names the source this run started from .*which adopt never writes/);
+    }
+    assert.deepEqual(tree(dir), before);
+    rmSync(links, { recursive: true, force: true });
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
