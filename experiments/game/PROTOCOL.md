@@ -137,3 +137,18 @@ That last part is the kind of thing grooph is already shown to do on small tasks
 | 6 | **The repositories' names**, and whether the run folder (notes and progress) is public with the game. | The run folder public: it is the record, and it holds nothing private. |
 | 7 | **The dates.** | After slice 0076 has merged and one template has run in Codex. |
 | 8 | **A run that ticks all seven milestones early ends early.** The other way is a last loop that polishes what the final play ranks, until hour five. | As written: it ends. Six hours is a ceiling, both runs are treated alike, and the extension is there if what came out is thin. |
+
+## 10. Notes after this was written
+
+Dated, and added to; nothing above is rewritten.
+
+**2026-10-04, before any run. The order is the owner's choice, not a coin.** Section 2 says a coin decides which harness runs first. The owner asked for the Claude Code run first, before the Codex target exists ("Can we do the Claude Code game experiment first?"; [`ANSWERS.md`](ANSWERS.md), 7), and then to run it that night. Nothing else in this protocol changes.
+
+What that costs, said before the run:
+
+- **A flaw the first run shows cannot be mended for the second without running the first again.** With both arms ready, a fault in the spec, the graph or the checks found in one rehearsal would have been fixed for both before either clock started. Now the Claude Code run will have happened under whatever it finds. If the Codex rehearsal or run shows such a fault, the choice is between running Codex under the same fault, or amending for both and running Claude Code again; an amendment for one arm alone is not allowed (section 3, and [`FROZEN.md`](FROZEN.md)).
+- **So the rehearsal matters more.** It is the one look at the package, the profile and the browser before six hours are spent, and for this arm there is no second arm's rehearsal behind it.
+- **The two runs will be further apart in time** than "two days at about the same hour": the Codex run waits on its compiler. The models, the harnesses and the npm packages a session installs may all have moved by then. Section 6 already says the result compares nothing; this is one more reason.
+- **The order was not drawn**, so "who ran first" in the record is a decision and not chance. If going second helps or hurts, this experiment cannot say.
+
+The spec, the graph and the checks were frozen the same day at one commit, with their checksums ([`FROZEN.md`](FROZEN.md)), so that the Codex run is given exactly what this one was.
