@@ -1008,3 +1008,67 @@ test("after the merge, the schema: a patch that leaves a document outside the sc
     }
   });
 });
+
+test("after the merge, the schema: a field hidden behind a \"__proto__\" key is one thing everywhere: what is returned, compared, compiled and written is the same plain document", async () => {
+  // Core's patch() assigns each key of `set`, and assigning "__proto__" sets the object's prototype: in memory the
+  // edge reads approval: true through it while the field of its own is gone. A reader of the web app found the
+  // comparison reading one and the file holding the other. The tools work on one document only, the canonical text
+  // parsed again, which has no prototype: so the field is either there in all four places or gone from all four, and
+  // gone, it is a brake removed, named and held.
+  const graph = fixture("valid", "glyph-vocabulary.grooph.json");
+  const edge = graph.edges.find((e) => (e as { approval?: boolean }).approval === true)!;
+  const loop = graph.loops.find((l) => l.bar !== undefined)!;
+  assert.ok(edge !== undefined && loop !== undefined, "the fixture has an approval edge and a loop with a bar");
+  const own = (object: object, key: string): boolean => Object.prototype.hasOwnProperty.call(object, key);
+  // Parsed from text, as a client's arguments are: the key is the object's own, which a literal in this file would not make it.
+  const cases: [string, string, (doc: Graph) => object, string, RegExp][] = [
+    ["an approval", `[{"op":"updateEdge","id":${JSON.stringify(edge.id)},"set":{"approval":null,"__proto__":{"approval":true}}}]`, (doc) => doc.edges.find((e) => e.id === edge.id)!, "approval", new RegExp(`^ {2}loosens "edge:${edge.id}[^"]*": ".+"$`, "m")],
+    ["a loop's bar", `[{"op":"updateLoop","id":${JSON.stringify(loop.id)},"set":{"bar":null,"__proto__":{"bar":${JSON.stringify(loop.bar)}}}}]`, (doc) => doc.loops.find((l) => l.id === loop.id)!, "bar", new RegExp(`^ {2}loosens "loop:${loop.id}[^"]*": ".+"$`, "m")],
+    // The plain removal, with no trick: this is the case that must be named and held.
+    ["an approval, plainly removed", `[{"op":"updateEdge","id":${JSON.stringify(edge.id)},"set":{"approval":null}}]`, (doc) => doc.edges.find((e) => e.id === edge.id)!, "approval", new RegExp(`^ {2}loosens "edge:${edge.id}[^"]*": ".+"$`, "m")],
+  ];
+  for (const [what, opsText, part, field, names] of cases) {
+    await withProject(async (ctx) => {
+      const ops = JSON.parse(opsText) as { set: object }[];
+      if (!what.includes("plainly")) assert.ok(own(ops[0]!.set, "__proto__"), "the key is the set's own");
+      const first = await call(ctx, "grooph_export", { graph, into: "." });
+      assert.equal(first.isError, undefined, textOf(first));
+      const keptFile = join(ctx.project, ".grooph", graph.id, "graph.grooph.json");
+      const keptBefore = readFileSync(keptFile, "utf8");
+
+      const applied = await call(ctx, "grooph_apply", { graph, ops, out: "patched.grooph.json" });
+      if (applied.isError === true) {
+        // Refused outright is also sound: nothing was made.
+        assert.match(textOf(applied), /E_SCHEMA|could not apply/, `${what}: ${textOf(applied)}`);
+        assert.equal(readFileSync(keptFile, "utf8"), keptBefore);
+        return;
+      }
+      const returned = applied.structuredContent!["graph"] as Graph;
+      const block = JSON.parse((applied.content[1] as { text: string }).text) as Graph;
+      const written = JSON.parse(readFileSync(join(ctx.project, "patched.grooph.json"), "utf8")) as Graph;
+      assert.ok(!JSON.stringify([returned, block, written]).includes("__proto__"), `${what}: a document carries the key`);
+      // One document: the field is the part's own in all three, or in none.
+      const has = own(part(returned), field);
+      assert.deepEqual([own(part(block), field), own(part(written), field)], [has, has], `${what}: what was returned and what was written differ`);
+      if (what.includes("plainly")) assert.equal(has, false, what);
+
+      for (const args of [{ graph: graph.id }, { path: "patched.grooph.json" }, { graph: returned, replace: true }]) {
+        const exported = await call(ctx, "grooph_export", { ...args, into: "." });
+        if (has) {
+          // Still there: nothing was removed, and what is placed has it as its own.
+          assert.equal(exported.isError, undefined, `${what}: ${textOf(exported)}`);
+          assert.ok(textOf(exported).includes("brakes: compared with the graph this package kept; none removed or loosened"), `${what}: ${textOf(exported)}`);
+          assert.ok(own(part(JSON.parse(readFileSync(keptFile, "utf8")) as Graph), field), `${what}: the kept graph lost the field`);
+        } else {
+          // Gone: a brake removed, named and held, and the kept graph is as it was.
+          assert.equal(exported.isError, true, `${what}: ${textOf(exported)}`);
+          if (!/cannot be exported/.test(textOf(exported))) {
+            assert.match(textOf(exported), /may remove or loosen a brake the package there has/, what);
+            assert.match(textOf(exported), names, `${what}: ${textOf(exported)}`);
+          }
+          assert.equal(readFileSync(keptFile, "utf8"), keptBefore, `${what}: the kept graph changed`);
+        }
+      }
+    });
+  }
+});
