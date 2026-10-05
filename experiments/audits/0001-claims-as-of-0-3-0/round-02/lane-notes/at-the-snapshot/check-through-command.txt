@@ -1,0 +1,32 @@
+At a9921e4, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/check-through-command.sh <scratch folder>
+
+  the check was: {"kind":"tests","run":"npm test","pass":"exit code 0 and no test skipped"}
+  the check is now: {"kind":"tests","run":"true","pass":"exit code 0"}
+== always-passes: grooph adopt --write
+Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  Changed the check of Tests (tests)  ← no amendment note explains this
+
+version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to adopted.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:tests.check
+  node:tests.check  changes the check's definition (run, pass): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  all of them, on purpose: grooph adopt .grooph/g/runs/20260919-1230-k7qm --into <scratch>/check-through-command/always-passes/adopted.grooph.json --write --allow node:tests.check
+grooph: not written: the working copy loosens a brake the graph has (node:tests.check, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 1
+   nothing written
+  edge e-tests-fail tests -> builder when fail => pass
+  edge e-tests-pass tests -> done when pass => fail
+== verdicts-swapped: grooph adopt --write
+Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  Changed the condition of edge Tests → Builder (e-tests-fail)  ← no amendment note explains this
+  Changed the condition of edge Tests → Done (e-tests-pass)  ← no amendment note explains this
+
+version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to adopted.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-tests-fail.when
+  edge:e-tests-fail.when  changes "e-tests-fail", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+  edge:e-tests-pass.when  opens a way into "done" that does not pass "pass" from the check "tests"; changes "e-tests-pass", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+  all of them, on purpose: grooph adopt .grooph/g/runs/20260919-1230-k7qm --into <scratch>/check-through-command/verdicts-swapped/adopted.grooph.json --write --allow edge:e-tests-fail.when --allow edge:e-tests-pass.when
+grooph: not written: the working copy loosens a brake the graph has (edge:e-tests-fail.when, edge:e-tests-pass.when, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 1
+   nothing written

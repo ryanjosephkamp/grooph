@@ -1,0 +1,23 @@
+At a9921e4, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/constraints-probe.mjs
+
+the source: review-gate, with constraints.budget "about 40 lead turns", and retry 1 and concurrency 1 on e-builder-critic. validator errors: none
+
+== the graph's own budget line raised: "about 40 lead turns" to "about 4000 lead turns"
+   validator errors: none
+   changes: graph:constraints
+   refused: nothing
+
+== an edge's retry raised from 1 to 50
+   validator errors: none
+   changes: edge:e-builder-critic.retry
+   refused: nothing
+
+== an edge's concurrency raised from 1 to 50
+   validator errors: none
+   changes: edge:e-builder-critic.concurrency
+   refused: nothing
+
+== for comparison, the loop's budget stop raised from 10 to 4000 dispatches
+   validator errors: none
+   changes: loop:review.stops  [loosens: raises the budget from 10 to 4000 dispatches]
+   refused: loop:review.stops

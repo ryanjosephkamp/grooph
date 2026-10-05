@@ -1,0 +1,38 @@
+At a9921e4, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/check-verdict-probe.mjs
+
+the template as it is: {
+ "check": [
+  "tests: run \"{{test-command}}\", pass \"exit code 0 and no test skipped\""
+ ],
+ "edges": [
+  "e-tests-fail: tests -> builder when fail",
+  "e-tests-pass: tests -> done when pass"
+ ],
+ "loop": [
+  "grind: members builder,tests; back e-tests-fail; stops [{\"kind\":\"max-iterations\",\"n\":5},{\"kind\":\"budget\",\"measure\":\"minutes\",\"limit\":30}]"
+ ]
+}
+
+== the check's command replaced by one that always passes
+   validator errors: none
+   changes: node:tests.check  [loosens: changes the check's definition (run, pass): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is]
+   refused: node:tests.check
+   notices: none
+
+== the check's two verdicts swapped: fail leads on, pass leads back
+   validator errors: none
+   changes: edge:e-tests-fail.when  [loosens: changes "e-tests-fail", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply] | edge:e-tests-pass.when  [loosens: opens a way into "done" that does not pass "pass" from the check "tests"; changes "e-tests-pass", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply]  [tightens: opens a way into "done" that does not pass "fail" from the check "tests"]
+   refused: edge:e-tests-fail.when, edge:e-tests-pass.when
+   notices: none
+
+== the check untouched, and an edge added from the builder straight to the stop that ends in success
+   validator errors: none
+   changes: edge:e-around-the-check  [loosens: adds a way into "done" that does not pass the check "tests"]
+   refused: edge:e-around-the-check
+   notices: none
+
+== for comparison, the round cap raised
+   validator errors: none
+   changes: loop:grind.stops  [loosens: raises the round cap from 5 to 50]
+   refused: loop:grind.stops
+   notices: none

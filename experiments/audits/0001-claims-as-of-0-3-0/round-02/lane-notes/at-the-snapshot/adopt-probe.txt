@@ -1,0 +1,26 @@
+At a9921e4, packages built there. Command: bash experiments/audits/0001-claims-as-of-0-3-0/tools/adopt-probe.sh <scratch folder>
+
+the working copy as the run left it: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]
+loosened for the probe:              [{"kind":"bar-passed"},{"kind":"max-iterations","n":40},{"kind":"budget","measure":"dispatches","limit":400}]
+== grooph adopt (shows the change)
+Run 20260920-192538 · Parse duration: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of parse-duration, from parse-duration@1 and run 20260920-192538, would go to .grooph/graphs/parse-duration.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review.stops
+  loop:review.stops  raises the round cap from 4 to 40; raises the budget from 10 to 400 dispatches
+  all of them, on purpose: grooph adopt .grooph/parse-duration/runs/20260920-192538 --write --allow loop:review.stops
+--write would be refused: the working copy loosens a brake the graph has (loop:review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 0
+== grooph adopt --write
+Run 20260920-192538 · Parse duration: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of parse-duration, from parse-duration@1 and run 20260920-192538, would go to adopted.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review.stops
+  loop:review.stops  raises the round cap from 4 to 40; raises the budget from 10 to 400 dispatches
+  all of them, on purpose: grooph adopt .grooph/parse-duration/runs/20260920-192538 --into <scratch>/adopt-probe/adopted.grooph.json --write --allow loop:review.stops
+grooph: not written: the working copy loosens a brake the graph has (loop:review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+   exit 1
