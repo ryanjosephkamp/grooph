@@ -21,7 +21,7 @@ Study three asks five questions. Each puts the package (arm A) beside the same d
 | 4 | A long run with nobody there | 1 | six hours of the weekly allowance | six hours | an amendment to the game experiment's protocol |
 | 5 | Roles or information | 12 | about $9 | about an hour | two derived prompts for each of study two's tasks |
 
-**My recommendation: the first step of 1 and of 2, and 5, now. They are small. The audit asks for the first two, and the third answers its finding F12. Then 3. Decide 4 after the game run's own record has been read.** Questions 1 and 2 test the two things a package claims that prose lacks. If prose does both as well, cutting the record's cost is beside the point. Question 5 says what study two's one positive result was made of.
+**My recommendation: the first step of 1 and of 2, and 5, now. They are small. The audit asks for the first two, and the third answers its finding F12. Then the cheapest cut anyone has named, a sentence in the lead brief (its own section below). Then 3. Decide 4 after the game run's own record has been read.** Questions 1 and 2 test the two things a package claims that prose lacks. If prose does both as well, cutting the record's cost is beside the point. Question 5 says what study two's one positive result was made of.
 
 The comparisons ledger stands at $82.66. Everything in 1, 2, 3 and 5 would take it to about $180, past the $100 and $150 marks at which the driver is told. The estimates are from study two's cost per dispatch.
 
@@ -133,13 +133,34 @@ Both sides of audit 0001 name them. None is run here.
 | b | **What a first visit to the front page fetches with the service worker on.** The published paint times were taken with it blocked, and the published size is what the address loads to show itself, before the worker fetches the rest | The timing script's own browser with the worker allowed and a fresh profile: every request and its size until the worker is idle, in CI, since budget figures are CI's | no model session, no spend, one CI job | the site lane |
 | c | **A fresh session resuming a halted run by its run id** | Question 2's first step, above | one short model session, about $0.50 | the evidence lane, when the driver says |
 
+## The cheapest cut named so far: what the lead reads before it starts
+
+**What it is.** The largest single item in the package's extra cost is the reading before the first dispatch, and nothing tells the lead to read the graph document or the agent files. Six of six leads read both agent files and five read the graph. The cut is a sentence in the lead brief: what you need is here; the agent files are the subagents' and the graph is the record's; read them only to amend.
+
+**What it would save, by my count** (Table 10 of the lead-cost page): **$0.088 a run** at four dispatches, from $0.036 to $0.105 by run, which is 17% of the difference to prose. That is more than hook-written notes would remove ($0.054). About two thirds of it is paid once. The rest is every later call reading 6,700 tokens fewer, so it grows with the length of the run. It is arithmetic: it removes reading from runs that did read.
+
+**What could go wrong.**
+
+- **Routing: no run shows it.** The brief's own tables carry the nodes, the edges, the loops and the stops. The one lead that did not read the graph document dispatched builder, reviewer, builder, reviewer, as the five that did. That is one run.
+- **Isolation: here reading did matter.** In three of the six runs the lead saw, in the agent file, that the builder's declared inputs named the reviewer's held-out material, and amended it out. A lead told not to read would not have seen it. In these runs the scores were the same either way, and the fault came from how I filled the template's slot. But it is the kind of catch an adaptive lead is for. **A validator warning for a reviewer's artifact named in a builder's inputs would make the same catch at compile time**, with a code and a fixture like every other rule.
+- **Declared inputs.** The brief asks the dispatch prompt to carry a node's declared inputs, and those are written only in the files the sentence would close. The brief has to list them, or say that the agent file already gives the node its inputs.
+- **Amendments.** A lead cannot amend a working copy it has not read. The sentence has to leave that open.
+
+**Where it sits: cut first, then test. Not an arm.** Three reasons.
+
+1. **Its effect needs no comparison to see.** Unlike the hooks, nothing here depends on how a lead behaves afterwards: the tokens are either read or not, and the digest shows which. Its proving run only has to show the package still drives the session as designed and that the lead did not read the files.
+2. **Mixed into the A-light arm it would hide the hooks' own effect.** With the brief changed first, question 3's arms stay clean: A is the package with the new brief, A-light adds hook-written notes, B is the prose.
+3. **Questions 1, 2 and 5 should run before it, on the compiler as it is.** The brake design forbids changing the compiler or the brief for its test, and the resume step uses a kept run's own package.
+
+So the order is: questions 1, 2 and 5 on today's compiler; then this change, with the validator warning and a proving run, after the game experiment's first commits are pushed; then question 3.
+
 ## Where slice 0021's measurement belongs
 
 **As an arm of question 3, not as a run before the study.** By the count in the lead-cost page, hook-written notes remove about a sixth of the lead's turns and a tenth of the difference to prose: about three calls and $0.05 a run at four dispatches. Across study two's six package runs the lead's cost ran from $0.64 to $1.06. One proving re-run of a four-dispatch template cannot tell $0.05 from that spread. At twenty dispatches, three runs an arm, it can. Building the slice costs no model session and can go on while questions 1 and 2 run. Those two do not wait on it: they ask what the record buys, not what it costs.
 
 ## What has to be built first, with no spend
 
-The brake design as a numbered slice, with the prose pair. The comparison runner started from the clean profile (it was written for a session in a terminal; I have not checked that a headless session starts from it). A stop-and-resume mode in the comparison runner. The two derived prompts of question 5. The two new tasks (three pieces; six pieces), each with its pre-registration and an independent reader of its held-out material, as in study two. A check that reads the design facts from a prose run's digest. The lighter package.
+The brake design as a numbered slice, with the prose pair. Before question 3, the brief's sentence about what the lead reads, with its validator warning and a proving run. The comparison runner started from the clean profile (it was written for a session in a terminal; I have not checked that a headless session starts from it). A stop-and-resume mode in the comparison runner. The two derived prompts of question 5. The two new tasks (three pieces; six pieces), each with its pre-registration and an independent reader of its held-out material, as in study two. A check that reads the design facts from a prose run's digest. The lighter package.
 
 ## What all five together still cannot say
 
