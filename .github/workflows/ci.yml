@@ -115,6 +115,11 @@ jobs:
           node scripts/lib/brake-run.mjs --check
           node scripts/lib/compare-arms-ef.mjs --check
 
+      # The Codex proving runner's own tests (slice 0076): what it reads of a kept record, the command it would start,
+      # and that what Codex says and prints goes where git ignores it. No model session: nothing here starts Codex.
+      - name: the Codex proving runner reads a record and keeps the transcript out of git
+        run: node --test scripts/prove-codex.test.mjs
+
       # The quickstart's by-hand path, in a fresh folder, against the built CLI.
       - name: the quickstart's first run works
         run: scripts/first-run.sh

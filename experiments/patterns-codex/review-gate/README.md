@@ -31,9 +31,9 @@ pnpm -r build
 node scripts/prove-codex.mjs --run
 ```
 
-The fixed runner proves the profile's defaults without a machine-local `GROOPH_MODELS` override. It keeps temporary grooph state in a separate `GROOPH_HOME`, inherited by the Codex invocation. It sets no approval policy and changes no saved Codex settings: the owner's policy applies, and refusal is not a native graph halt. The graph's gate behavior is still to be observed.
+The fixed runner proves the profile's defaults without a machine-local `GROOPH_MODELS` override. It keeps temporary grooph state in a separate `GROOPH_HOME`, inherited by the Codex invocation. It sets no approval policy and changes no saved Codex settings. Which approval policy then applies to the lead and to the workers is unknown until the run shows it; a refusal is not a native graph halt. The graph's gate behavior is still to be observed.
 
-The runner opens `run/ledger.json` before spawning `codex exec`, streams stdout and stderr to durable files, updates the session id and exact reported token usage, and preserves the package, task diff, run folder and test output. It refuses to overwrite an existing `run/`. Failure is retained as a result; do not delete the first record to retry. USD remains `null` unless the harness reports a cost.
+The runner opens `run/ledger.json` before spawning `codex exec`, streams stdout and stderr to `run/local/codex-output.jsonl` and `run/local/codex-stderr.txt`, which git ignores (they are the whole transcript of the session, and the repository is public; the ledger keeps their checksums, and a person reads them before either is moved to where git sees it), updates the session id and exact reported token usage, and preserves the package, task diff, run folder and test output. It refuses to overwrite an existing `run/`. Failure is retained as a result; do not delete the first record to retry. USD remains `null` unless the harness reports a cost.
 
 The runner never reads `~/.codex`. Collect only the authorized session transcript's path and SHA-256 after the invocation, and add them to that invocation's ledger and result. Keep a transcript containing account details on the machine, as decision 0015 requires. Do not check it into Git. Rewrite this page around the actual record and update the target mapping's seen/unknown marks only to the extent the run establishes them.
 

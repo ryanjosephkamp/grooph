@@ -14,6 +14,8 @@ coverage/
 # raw harness transcripts copied beside experiment records: they hold account details, so they stay on this machine
 experiments/hooks/*/local/
 experiments/log/*/local/
+# what Codex said and printed in a proving run (scripts/prove-codex.mjs): a whole transcript, kept here until a person has read it
+experiments/patterns-codex/*/run/local/
 
 # what the event hook records on this machine (docs/subagents.md): sessions seen here, not shared
 .grooph/events/

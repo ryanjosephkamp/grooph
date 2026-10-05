@@ -25,6 +25,18 @@ const TEMPLATE = "review-gate";
 const EXPECT = { agents: ["builder", "critic"], gate: "merge-gate", stop: "done", loop: "review" };
 const CHECK_SCOPE = "Evidence check covers Codex dispatch records, run-note summary, gate/stop assertions, saved task tests, and source-hash equality. Source graph validation and brake preservation are checked at export time, not re-proved by --check.";
 
+/**
+ * What Codex said and what it printed are the whole transcript of the session, which can hold account details, and
+ * this repository is public. Both files go under `local/` in the run's folder, which .gitignore keeps out
+ * (its line for experiments/patterns-codex), as the raw transcripts beside the other experiment records are.
+ * The ledger keeps their checksums. A person reads them before either is moved to where git sees it.
+ */
+const LOCAL = "local";
+export const transcriptFiles = (evidenceDir) => ({
+  out: join(evidenceDir, LOCAL, "codex-output.jsonl"),
+  err: join(evidenceDir, LOCAL, "codex-stderr.txt"),
+});
+
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const fileHash = (path) => sha256(readFileSync(path));
 const say = (value) => console.log(`\n${value}`);
@@ -136,7 +148,12 @@ export function checkRunEvidence({ evidenceDir, core }) {
   const problems = [];
   const json = (name) => JSON.parse(readFileSync(join(evidenceDir, name), "utf8"));
   const result = json("result.json");
-  const output = parseCodexStream(readFileSync(join(evidenceDir, "codex-output.jsonl"), "utf8"));
+  // Where the runner wrote it, or beside the record once a person has read it and moved it there.
+  const outputFile = [transcriptFiles(evidenceDir).out, join(evidenceDir, "codex-output.jsonl")].find((path) => existsSync(path));
+  if (!outputFile) fail(`what Codex said in this run is not here: ${transcriptFiles(evidenceDir).out} is kept on the machine that ran it (git ignores it), and this check reads it`);
+  const output = parseCodexStream(readFileSync(outputFile, "utf8"));
+  const recorded = existsSync(join(evidenceDir, "ledger.json")) ? json("ledger.json").invocations?.[0]?.output?.sha256 : undefined;
+  if (recorded && recorded !== fileHash(outputFile)) problems.push("the Codex output here is not the file the ledger recorded (its checksum differs)");
   const taskTests = json("task-tests.json");
   const graphFile = join(evidenceDir, "package", "graph.grooph.json");
   if (fileHash(graphFile) !== result.source_sha256_after) problems.push("the kept package graph does not match source_sha256_after");
@@ -293,8 +310,8 @@ function createLedger(evidenceDir, prompt, { codexVersion, sourceCommit, baseCom
 }
 
 function pumpCodex({ prompt, scratch, templateEnv, evidenceDir, ledger, entry, ledgerPath }) {
-  const outPath = join(evidenceDir, "codex-output.jsonl");
-  const errPath = join(evidenceDir, "codex-stderr.txt");
+  const { out: outPath, err: errPath } = transcriptFiles(evidenceDir);
+  mkdirSync(dirname(outPath), { recursive: true });
   const out = createWriteStream(outPath, { flags: "wx" });
   const err = createWriteStream(errPath, { flags: "wx" });
   const child = spawn("codex", buildCodexCommand(prompt), { cwd: scratch, env: templateEnv, stdio: ["inherit", "pipe", "pipe"] });
@@ -351,6 +368,8 @@ function pumpCodex({ prompt, scratch, templateEnv, evidenceDir, ledger, entry, l
     entry.exit_code = code;
     entry.signal = signal;
     if (spawnError) entry.note = `spawn error: ${spawnError.message}`;
+    entry.output = { path: `${LOCAL}/codex-output.jsonl`, sha256: fileHash(outPath), kept: "on this machine; git ignores it" };
+    entry.stderr = { path: `${LOCAL}/codex-stderr.txt`, sha256: fileHash(errPath), kept: "on this machine; git ignores it" };
     entry.transcript = { path: null, sha256: null, status: "not accessed; owner approval required" };
     // The approval-gated rollout remains in ~/.codex. This runner intentionally never opens that path.
     saveJson(ledgerPath, ledger);

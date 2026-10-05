@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import { createHash as cryptoHash } from "node:crypto";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { after, test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import * as core from "../packages/core/dist/src/index.js";
-import { buildCodexCommand, checkRunEvidence, parseCodexStream } from "./prove-codex.mjs";
+import { buildCodexCommand, checkRunEvidence, parseCodexStream, transcriptFiles } from "./prove-codex.mjs";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const tempDirs = [];
 const temp = () => {
@@ -60,7 +64,8 @@ function writeEvidence({ corrupt = {} } = {}) {
     ...(corrupt.merge ? [{ type: "item.started", item: { type: "command_execution", command: "git -C /tmp/task merge main" } }] : []),
     { type: "turn.completed", usage: { input_tokens: 123, cached_input_tokens: 10, output_tokens: 45, reasoning_output_tokens: 12 } },
   ];
-  writeFileSync(join(dir, "codex-output.jsonl"), `${stream.map((event) => JSON.stringify(event)).join("\n")}\n`);
+  mkdirSync(dirname(transcriptFiles(dir).out), { recursive: true });
+  writeFileSync(transcriptFiles(dir).out, `${stream.map((event) => JSON.stringify(event)).join("\n")}\n`);
   writeFileSync(join(dir, "task-tests.json"), JSON.stringify({ command: "npm test", status: corrupt.tests ? 1 : 0 }));
   writeFileSync(join(dir, "result.json"), JSON.stringify({ harness: "codex", codex_version: "codex-cli 0.159.3", source_commit: "source-sha", base_commit: "scratch-sha", session_id: "codex-session-1", run_id: "20261004-120000", source_sha256_after: hash(graphText), source_sha256_before: hash(graphText), usage: stream.at(-1).usage }));
   return dir;
@@ -83,11 +88,11 @@ test("Codex stream parser records thread, exact usage, and custom-role dispatche
   assert.deepEqual(parsed.issues, [5]);
 });
 
-test("launch command inherits approvals and keeps explicit model and worker caps", () => {
+test("launch command names no approval option and keeps explicit model and worker caps", () => {
   const args = buildCodexCommand("prompt");
   assert.deepEqual(args.slice(0, 4), ["exec", "--json", "--sandbox", "workspace-write"]);
   assert.ok(args.includes("gpt-6.1-sol"));
-  assert.ok(!args.some((arg) => /approval_policy|ask-for-approval/.test(arg)), "the run must not override the owner's approval policy");
+  assert.ok(!args.some((arg) => /approval_policy|ask-for-approval/.test(arg)), "the run names no approval option");
   assert.ok(args.includes('web_search="disabled"'));
   assert.ok(args.includes("agents.default_subagent_model=gpt-6-luna"));
   assert.ok(args.includes("agents.max_concurrent_threads_per_session=2"));
@@ -103,7 +108,7 @@ test("kept evidence passes only when both custom roles dispatch and the gate/sto
 
 test("kept evidence reports missing custom dispatch, bad loop stop, failing task tests, and a merge command", () => {
   const evidenceDir = writeEvidence({ corrupt: { stop: "invented", tests: true, merge: true } });
-  const outputPath = join(evidenceDir, "codex-output.jsonl");
+  const outputPath = transcriptFiles(evidenceDir).out;
   const lines = readFileSync(outputPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
   writeFileSync(outputPath, `${lines.filter((event) => {
     try {
@@ -134,4 +139,35 @@ test("generic builder dispatch and started-only node notes do not satisfy custom
   const checked = checkRunEvidence({ evidenceDir, core });
   assert.match(checked.problems.join("\n"), /custom builder role/);
   assert.match(checked.problems.join("\n"), /completed outcome for node:builder/);
+});
+
+test("what Codex said and printed is written where git ignores it, and the record beside it is not", () => {
+  // The two files are the whole transcript of a session and the repository is public (REVIEW.md, second read).
+  const run = join(ROOT, "experiments", "patterns-codex", "review-gate", "run");
+  const ignored = (path) => spawnSync("git", ["check-ignore", "-q", path], { cwd: ROOT }).status;
+  const { out, err } = transcriptFiles(run);
+  assert.equal(out, join(run, "local", "codex-output.jsonl"));
+  assert.equal(err, join(run, "local", "codex-stderr.txt"));
+  assert.equal(ignored(out), 0, "git would take codex-output.jsonl");
+  assert.equal(ignored(err), 0, "git would take codex-stderr.txt");
+  // Where they were written before, and what the record keeps: git takes these, so nothing of the kind goes there.
+  for (const kept of ["codex-output.jsonl", "codex-stderr.txt", "ledger.json", "result.json"]) assert.equal(ignored(join(run, kept)), 1, kept);
+  // The runner writes them nowhere else: every path it opens for them comes from the one function.
+  const source = readFileSync(join(ROOT, "scripts", "prove-codex.mjs"), "utf8");
+  assert.equal((source.match(/"codex-stderr\.txt"/g) ?? []).length, 1, "the stderr file is named once, under local/");
+  assert.deepEqual([...source.matchAll(/join\(([^()]*), "codex-output\.jsonl"\)/g)].map((m) => m[1]), ["evidenceDir, LOCAL", "evidenceDir"]);
+});
+
+test("the check reads the output from local/, or beside the record once a person has moved it there; without it, it says where it is", () => {
+  const evidenceDir = writeEvidence();
+  const { out } = transcriptFiles(evidenceDir);
+  writeFileSync(join(evidenceDir, "ledger.json"), JSON.stringify({ invocations: [{ output: { path: "local/codex-output.jsonl", sha256: hash(readFileSync(out)) } }] }));
+  assert.deepEqual(checkRunEvidence({ evidenceDir, core }).problems, []);
+  renameSync(out, join(evidenceDir, "codex-output.jsonl"));
+  assert.deepEqual(checkRunEvidence({ evidenceDir, core }).problems, []);
+  // Not the file the ledger recorded.
+  writeFileSync(join(evidenceDir, "codex-output.jsonl"), `${readFileSync(join(evidenceDir, "codex-output.jsonl"), "utf8")}\n`);
+  assert.match(checkRunEvidence({ evidenceDir, core }).problems.join("\n"), /not the file the ledger recorded/);
+  rmSync(join(evidenceDir, "codex-output.jsonl"));
+  assert.throws(() => checkRunEvidence({ evidenceDir, core }), /kept on the machine that ran it \(git ignores it\)/);
 });
