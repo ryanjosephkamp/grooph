@@ -38,9 +38,9 @@ jobs:
             diff -r "$RUNNER_TEMP/grooph-pkg-claude-code-$graph" "fixtures/golden/claude-code/$graph"
             # The fixtures name Claude Code, and an export for a harness the document does not name is refused
             # (E_NO_TARGET). The Codex package is of the same graph with Codex named in it, by the op.
-            cp "fixtures/valid/$graph.grooph.json" "$RUNNER_TEMP/$graph.grooph.json"
-            echo '[{"op":"setTarget","harness":"codex"}]' | pnpm exec grooph apply "$RUNNER_TEMP/$graph.grooph.json" --ops - --write > /dev/null
-            pnpm exec grooph export "$RUNNER_TEMP/$graph.grooph.json" \
+            cp "fixtures/valid/$graph.grooph.json" "$RUNNER_TEMP/for-codex-$graph.grooph.json"
+            echo '[{"op":"setTarget","harness":"codex"}]' | pnpm exec grooph apply "$RUNNER_TEMP/for-codex-$graph.grooph.json" --ops - --write > /dev/null
+            pnpm exec grooph export "$RUNNER_TEMP/for-codex-$graph.grooph.json" \
               --target codex --into "$RUNNER_TEMP/grooph-pkg-codex-$graph" > /dev/null
             diff -r "$RUNNER_TEMP/grooph-pkg-codex-$graph" "fixtures/golden/codex/$graph"
           done
