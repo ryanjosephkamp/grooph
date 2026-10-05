@@ -119,6 +119,13 @@ const rows = [
   ["a map in three dimensions: what choosing it fetches, on no address's first load, gzip KB", space, budget.mapSpaceKB],
   ["the CLI's cold start, ms (middle of five)", cli, budget.cliColdMs],
 ];
+// A line with no limit is not held to anything: `value > undefined` is false, and it would read "ok". A budget
+// file that has lost a line, or has one that is not a number, is not a pass.
+const limitless = rows.filter(([, , limit]) => typeof limit !== "number" || !Number.isFinite(limit));
+if (limitless.length > 0) {
+  console.error(`perf-budget: scripts/perf-budget.json has no limit, as a number, for: ${limitless.map(([what]) => what.trim()).join("; ")}.`);
+  process.exit(1);
+}
 let over = 0;
 for (const [what, value, limit] of rows) {
   const bad = value > limit;

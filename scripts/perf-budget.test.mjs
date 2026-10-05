@@ -163,3 +163,27 @@ test("a template's own address has a line: the canvas's and the built-in templat
     assert.match(missing.stderr, /does not say which files hold the built-in templates/);
   }
 });
+
+test("a line with no limit is not a pass: every limit in the budget file must be there, and a number", (t) => {
+  const { canvas, run, dir } = scratch(t);
+  assert.equal(run(canvas).status, 0);
+  const json = join(dir, "scripts", "perf-budget.json");
+  const whole = JSON.parse(readFileSync(json, "utf8"));
+  for (const key of Object.keys(whole)) {
+    for (const lost of [undefined, null, "280", Number.NaN]) {
+      // JSON has no NaN or undefined: a file that says such a thing says `null`, or leaves the line out.
+      const without = { ...whole, [key]: lost };
+      if (lost === undefined) delete without[key];
+      writeFileSync(json, JSON.stringify(without));
+      for (const args of [["scripts/perf-budget.mjs", "--check"], ["scripts/perf-budget.mjs"]]) {
+        const done = spawnSync(process.execPath, args, { cwd: dir, encoding: "utf8" });
+        assert.equal(done.status, 1, `${key} as ${String(lost)}: ${done.stdout}`);
+        assert.match(done.stderr, /has no limit, as a number, for: /, key);
+        assert.doesNotMatch(done.stdout, /of\s+(undefined|null|NaN)/, key);
+      }
+    }
+  }
+  // And whole again, it passes.
+  writeFileSync(json, JSON.stringify(whole));
+  assert.equal(spawnSync(process.execPath, ["scripts/perf-budget.mjs", "--check"], { cwd: dir, encoding: "utf8" }).status, 0);
+});
