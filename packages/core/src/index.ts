@@ -14,6 +14,8 @@ export * from "./base.js";
 export { compile, tryCompile, CompileError } from "./compile/index.js";
 // Placing and refreshing a subgrooph, and what a group holds: not on the web app's way in (`groups.ts` says why).
 export * from "./subgrooph.js";
+// Adoption held to the graph's brakes: it brings the same comparison, and is not on the web app's way in either.
+export * from "./adoption.js";
 export { mapSequenceWith, mapWideWith, pictureWithUnits, unitsKit, type UnitsOptions };
 export type { UnitsKit } from "./picture/units-kit.js";
 
