@@ -735,5 +735,15 @@ describe("rings", () => {
     const into = m.edges.filter((e) => e.to === order[3]).sort((a, b) => order.indexOf(b.from) - order.indexOf(a.from));
     expect(into.map((e) => Math.round(Math.max(...flat.path(e.id).map((p) => p[1]))))).toEqual([0, 26, 52]);
     expect(flat.prims.every((p) => p.t !== "card" || !p.small)).toBe(true);
+    // And an edge from the ground into a ring goes over the ground nodes it passes: plan passes scout and docs.
+    const doc = graph("fixtures/valid/glyph-vocabulary.grooph.json");
+    const g = modelAt(doc, places(doc));
+    const drawn = rings(g, whole);
+    // (Measured over the straight line between its ends: it may arrive at a ring that stands on another.)
+    const lift = (from: string) => {
+      const pts = drawn.path(g.edges.find((x) => x.from === from && g.nodes.find((n) => n.id === x.to)!.loop)!.id);
+      return Math.round(Math.max(...pts.map((p, n) => p[1] - (pts[0]![1] + ((pts[pts.length - 1]![1] - pts[0]![1]) * n) / (pts.length - 1)))));
+    };
+    expect([lift("plan"), lift("scout")]).toEqual([52, 26]);
   });
 });

@@ -60,8 +60,8 @@ export const rings: View = (m, shown) => {
     }
   }
   // Where an edge runs. Between two stations of a ring, to the next: along the ring. The way back from the last
-  // station: the rest of the ring. Anything else: an arch, across the ring or over the ground; one between two nodes
-  // on the ground that are not next to each other rises over those between, so that it does not read as a chain.
+  // station: the rest of the ring. Anything else: an arch, across the ring or over the ground; one from or to a node
+  // on the ground rises over the ground nodes it passes, so that it does not read as a chain through them.
   const station = (stops: Stop[], id: Id): number => stops.findIndex((stop) => stop.node === id || !!stop.loop?.members.includes(id));
   const taken = (id: Id): boolean => shown.took.some((x) => x.edge === id && (shown.k === 0 || x.step <= shown.k));
   for (const e of m.edges) {
@@ -77,8 +77,10 @@ export const rings: View = (m, shown) => {
       // A station that is a ring of its own is entered and left at the node, up on that ring.
       if (pts) pts = [...(stops[i]!.loop ? [p] : []), ...pts, ...(stops[j % k]!.loop ? [q] : [])];
     }
-    const between = Math.abs(line.findIndex((item) => item.node === e.from) - line.findIndex((item) => item.node === e.to));
-    const over = by(m.nodes, e.from).loop || by(m.nodes, e.to).loop ? 0 : 26 * Math.max(0, between - 1);
+    // A node on a ring is where its outermost ring is in the line.
+    const spot = (id: Id): number => line.findIndex((item) => item.node === id || !!item.loop?.members.includes(id));
+    const [a, b] = [spot(e.from), spot(e.to)].sort((x, y) => x - y) as [number, number];
+    const over = by(m.nodes, e.from).loop && by(m.nodes, e.to).loop ? 0 : 26 * line.slice(a + 1, b).filter((item) => item.node).length;
     paths[e.id] = pts ?? arch(p, q, e.back ? 54 : over, 18);
     // On a run's page an edge the run has not taken by this note is faint.
     prims.push(edgeLine(m, e, paths[e.id]!, m.run && !taken(e.id) ? { alpha: 0.3 } : {}));
