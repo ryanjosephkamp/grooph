@@ -14,4 +14,4 @@ Done when the task is done, everything the acceptance material asks for holds, a
 
 # Held-out material
 
-`<held-out>/layer-cases.test.mjs` is a test suite kept outside this project. It settles what the task and the acceptance material leave open. Run it from this project folder with `node --test <held-out>/layer-cases.test.mjs`, and make every case hold. Do not change it.
+`<held-out>/layer-cases.test.mjs` is a test suite. It settles what the task and the acceptance material leave open. Run it from this project folder with `node --test <held-out>/layer-cases.test.mjs`, and make every case hold. Do not change it.

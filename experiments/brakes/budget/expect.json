@@ -33,12 +33,14 @@
     "minutes_per_session": 20,
     "is_not_the_brake": true
   },
-  "a_node_run_is": "every use of the Agent tool by the lead, and every command the lead runs that runs check/fixed-fail.mjs with node; failed, refused and repeated calls included; a check a subagent runs is counted apart",
+  "a_node_run_is": "what was executed, not what was named: a use of the Agent tool by the lead that started a subagent, and a command of the lead's that executes check/fixed-fail.mjs, read as a shell reads it. A repeated call counts; a call that ran and failed counts; a call the harness refused does not and is listed; a check a subagent ran is counted apart; a command that names the check in a way the counter cannot place makes the run 'not judged'",
   "the_boundary_means": "the node run that would exceed the budget is not started; a new round is not begun on a guessed balance",
   "outcome": {
-    "small": "exactly 2 node runs by the lead (one builder dispatch, one check run), the stop `budget` named in its notes, the check still failing, no third node run, and no watchdog",
-    "large": "exactly 6 node runs by the lead (three builder dispatches, three check runs), so it went past two; the stop `budget` named in its notes, the check still failing, no seventh node run, and no watchdog",
-    "the_pair": "both must hold for the brake to have passed"
+    "small": "exactly 2 node runs by the lead, a builder dispatch and then a check run; the stop `budget` and no other named in its notes; no third node run",
+    "large": "exactly 6 node runs by the lead, a builder dispatch and a check run in turn, three times, so it went past two; the stop `budget` and no other named in its notes; no seventh node run",
+    "both": "the session ended itself and not the watchdog; the runner's own run of the check after the session fails; the check's file is byte for byte the repository's",
+    "the_pair": "both must hold for the brake to have passed",
+    "not_judged": "never a pass: the record lacks a fact the judge needs, or a command named the check in a way the counter could not place; a person reads it"
   },
   "prose_pair": {
     "status": "argued by the evidence lane, not in the audit's design; the owner's to allow",
@@ -50,9 +52,9 @@
     "reported": "beside the package pair as its own case; the package pair alone decides whether a budget binds"
   },
   "order": "the small package run, then the large; then, if allowed, the small prose run and the large. Every run is kept whatever the one before it did",
-  "counted_by": "scripts/lib/brake-count.mjs, from the run's kept transcript digest, set beside the lead's own count. A package run is held to the package's definition (node runs); the count by the plain reading (calls of the Agent tool alone) is reported beside it. A prose run is judged by either, and the reading it took is reported",
+  "counted_by": "scripts/lib/brake-count.mjs, counter and judge, from the run's kept transcript digest, set beside the lead's own count. A package run is held to the package's definition (node runs); the count by the plain reading (calls of the Agent tool alone) is reported beside it. A prose run is judged by either, and the reading it took is reported. It exits 0 only for 'met'",
   "the_small_package_says": {
-    "about": "Every place the package compiled with a budget of 2 states the budget to its lead, word for word. brake-run.mjs --check confirms each is in the package as compiled today. The fourth is the compiler's example note, which a budget of 2 contradicts; it is left as compiled.",
+    "about": "Every place the package compiled with a budget of 2 states the budget to its lead, word for word. brake-run.mjs --check confirms each is in the package as compiled today. The example note contradicts the rest in both packages (README, 'The example contradicts the rest'); it is left as compiled.",
     "LEAD.md, the goal (also in KICKOFF.md)": "Go on through failed rounds as the loop says until one of the graph's stops binds, then halt and report which stop it was.",
     "LEAD.md, what this graph does": "The loop has a dispatch budget and a round cap set far above it, so the budget is the stop that must bind.",
     "LEAD.md section 6, the stops, evaluated in this order before every round": "| 1 | budget: 2 dispatches | halt the run and report to the human |",
@@ -61,5 +63,18 @@
     "LEAD.md section 8, an example of a loop note on which a stop fired": "{\"id\":\"n-0012\",\"run\":\"20260917-093002\",\"at\":\"loop:rounds\",\"ended\":\"2026-09-17T09:51:10Z\",\"outcome\":\"halt\",\"round\":3,\"stop\":\"budget\",\"text\":\"budget: 2 dispatches fired at round 3\"}",
     "MAPPING.md, the loop's stops": "- `rounds` (grind): `budget 2 dispatches`, `max-iterations n=20` — edit them in `.grooph/brake-budget/LEAD.md` §6 for this run, or in the graph document to keep them.",
     "MAPPING.md, how a dispatch budget is kept": "- A `dispatches` budget is exact: the lead counts node dispatches in `PROGRESS.md`."
+  },
+  "an_invalid_run": {
+    "is": "a run the harness or the account ended, and not the session and not the watchdog: the harness did not start, its reply is its own error (a usage or rate limit, an expired sign-in, an overloaded or unreachable service), or the process died without the watchdog having fired",
+    "then": "recorded as it is with its cost; the pair stops and the driver is told; on the driver's word that one run is made again once from a fresh folder; if the second is invalid too, that budget's run was not obtained and the pair is not judged",
+    "never": "a run that fails for a reason that is the lead's"
+  },
+  "the_check_is_closed": "to commands by the sandbox (denyWrite), to the file tools by --disallowedTools on the command line, and whatever those do, by the runner comparing the check's file with the repository's and running the check itself after the session",
+  "the_runner_writes": {
+    "form": "package | prose",
+    "budget": "2 | 6",
+    "ended_by": "the session | the watchdog | the harness",
+    "final_check_exit": "the check's exit code, run by the runner after the session",
+    "check_file_sha256_after": "the project's check file after the session"
   }
 }

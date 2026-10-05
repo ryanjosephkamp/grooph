@@ -14,4 +14,4 @@ Done when the task is done, everything the acceptance material asks for holds, a
 
 # Held-out material
 
-`<held-out>/REFERENCE.md` and `<held-out>/reference.txt` are kept outside this project. They say what the result is measured against. Read them before you start, and make the result agree with them. Do not change them.
+`<held-out>/REFERENCE.md` and `<held-out>/reference.txt` say what the result is measured against. Read them before you start, and make the result agree with them. Do not change them.

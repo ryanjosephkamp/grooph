@@ -10,7 +10,7 @@ It is the game experiment's profile made for headless comparison sessions. [`exp
 | The network | the npm registry | none | the tasks install nothing |
 | A browser | Playwright's, readable | none | no task drives one |
 | The event hook | walled off from the session | none installed | no hook is part of these runs |
-| Paths no command may write | the hook's files | whatever a run names: a check's own files, for the brake experiment | so a check is read-only by the sandbox and not by an instruction |
+| Paths a session may not write | the hook's files | whatever a run names: a check's own files, for the brake experiment | so a check is read-only by a wall and not by an instruction. As in the game's profile there are two: the sandbox's `denyWrite` for commands, and `--disallowedTools` on the command line for the file tools. A builder with `Edit` and no shell meets only the second |
 | Model aliases | not pinned | pinned as in study two | so no alias can reach a model this project never uses |
 | Skills | the package's own | none (`--disable-slash-commands`) | as in study two: a prose arm must not be shown a skill's name |
 
@@ -18,9 +18,10 @@ It is the game experiment's profile made for headless comparison sessions. [`exp
 
 `node scripts/lib/compare-profile.mjs --check` checks each line below and starts nothing.
 
-- **The installed harness (2.1.289) takes every flag the command passes.** Twelve flags, each found in its own help text.
+- **The installed harness (2.1.289) takes every flag the command passes.** Thirteen flags, each found in its own help text.
 - **A session's path holds `node` and `git` and not the `grooph` command.**
-- **No instruction file sits above a session's folder, and this Mac has no managed settings.**
+- **No instruction file sits in any folder above a session's, up to the root of the disk, and this Mac has no managed settings.**
+- **The temp folder the settings close is the account's own**, asked of the system and not read from `TMPDIR`, which a shell may have set elsewhere.
 - **A new configuration folder is not signed in.** Seen: `claude auth status` under a folder made for the test says so. The owner signs in to the real one once, in a terminal. Nothing can run until then.
 - **The folders are not made.** `--make` makes them and writes the settings; it signs nothing in. I have not run it against the real home: making a folder in the owner's home is his to allow.
 
@@ -32,6 +33,8 @@ This is the first paid step, and it is not taken here. One call that asks for on
 - that the sandbox is on for its commands, and that `node --test` and `npm test` run inside it with no network;
 - that it lists no skill, no server and no subagent kind beyond the harness's own, read afterwards from its transcript;
 - that a command cannot write a path the run closed, and cannot read `/tmp` or the account's temp folder;
+- that the file tools refuse a path closed on the command line, for the session and for a subagent it starts;
+- how a refusal is worded in this mode, which the brake experiment's counter relies on;
 - that npm, given its cache folder, does not look under `/Users`;
 - what a refused call costs a headless session in this mode: a turn, or the run.
 
@@ -47,4 +50,4 @@ Study two's runner was built for its own five measures. From this profile four t
 ## The files
 
 - [`settings.json`](settings.json): the settings, with two placeholders the script fills (the npm cache folder and the account's temp folder).
-- [`scripts/lib/compare-profile.mjs`](../../../scripts/lib/compare-profile.mjs): `--print` shows the folders, the settings and the command; `--make` makes the folders; `--check` is the check above.
+- [`scripts/lib/compare-profile.mjs`](../../../scripts/lib/compare-profile.mjs): `--print` shows the folders, the settings and the command; `--make` makes the folders; `--check` is the check above. `--home` names another home for the profile and needs a folder after it. Before each run the runner writes the profile's settings with that run's closed paths.

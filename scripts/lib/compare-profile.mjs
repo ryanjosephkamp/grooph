@@ -41,13 +41,27 @@ export const layout = (home = DEFAULT_HOME) => ({
   work: join(home, "work"),
 });
 
-/** This account's temp folder as the sandbox must name it: the folder above the per-process one, e.g. /var/folders/xx/yyyy. */
-export function userTemp(dir = tmpdir()) {
-  const match = /^(?:\/private)?(\/var\/folders\/[^/]+\/[^/]+)/.exec(dir);
-  return match ? match[1] : dir.replace(/^\/private/, "");
+/** The account's temp folder as the system names it, whatever TMPDIR says in this shell. Null where the system has no such name. */
+export function systemTemp() {
+  const asked = spawnSync("getconf", ["DARWIN_USER_TEMP_DIR"], { encoding: "utf8" });
+  return asked.status === 0 && asked.stdout.trim() ? asked.stdout.trim() : null;
 }
 
-/** The settings file for a profile at `home`. `closed` are paths inside a session's folder no command may write (a check's own files). */
+/**
+ * This account's temp folder as the sandbox must name it: the folder above the per-process one, e.g. /var/folders/xx/yyyy.
+ * It is asked of the system (`getconf DARWIN_USER_TEMP_DIR`), not read from TMPDIR: a shell started with TMPDIR set
+ * elsewhere would otherwise leave the account's real temp folder open.
+ */
+export function userTemp(dir = systemTemp() ?? tmpdir()) {
+  const match = /^(?:\/private)?(\/var\/folders\/[^/]+\/[^/]+)/.exec(dir);
+  return match ? match[1] : dir.replace(/^\/private/, "").replace(/\/+$/, "");
+}
+
+/**
+ * The settings file for a profile at `home`. `closed` are paths inside a session's folder no command may write (a
+ * check's own files): the sandbox's wall, which binds commands. The file tools are closed to the same paths by
+ * `commandFor`, on the command line. A run needs both, as the game's profile closes its hook both ways.
+ */
 export function settingsFor({ home = DEFAULT_HOME, temp = userTemp(), closed = [] } = {}) {
   const text = readFileSync(TEMPLATE, "utf8").replaceAll("__NPM_CACHE__", layout(home).cache).replaceAll("__USER_TEMP__", temp);
   const settings = JSON.parse(text);
@@ -59,11 +73,12 @@ export function settingsFor({ home = DEFAULT_HOME, temp = userTemp(), closed = [
  * The environment and the command a headless comparison session is started with. Nothing of the caller's own
  * environment goes in. The session's id is chosen beforehand, so the record can name its transcript before it exists.
  */
-export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, user = userInfo().username, userHome = homedir() }) {
+export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd, closed = [], user = userInfo().username, userHome = homedir() }) {
   const at = layout(home);
   for (const [name, value] of Object.entries({ claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd })) if (value === undefined || value === null || value === "") throw new Error(`commandFor needs ${name}`);
   if (!resolve(cwd).startsWith(`${at.work}/`)) throw new Error(`a session's folder must be under ${at.work}, which the profile's sandbox leaves open; ${cwd} is not`);
   if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project never uses`);
+  for (const path of closed) if (!resolve(path).startsWith(`${resolve(cwd)}/`)) throw new Error(`a closed path must be inside the session's folder; ${path} is not inside ${cwd}`);
   const env = {
     HOME: userHome,
     USER: user,
@@ -85,15 +100,27 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
     ...ALIAS_ENV,
   };
   const argv = [claude, "-p", prompt, "--model", model, "--effort", effort, "--output-format", "json", "--max-budget-usd", String(maxBudgetUsd), "--permission-mode", "dontAsk", "--allowedTools", "Edit(/**)", "--strict-mcp-config", "--setting-sources", "user,project", "--no-chrome", "--disable-slash-commands", "--session-id", sessionId];
+  // A rule that begins with two slashes names a path from the root of the disk. It refuses the file tools; the sandbox's denyWrite refuses commands.
+  if (closed.length > 0) argv.push("--disallowedTools", ...closed.flatMap((path) => [`Edit(/${resolve(path)})`, `Edit(/${resolve(path)}/**)`]));
   return { env, argv, cwd: resolve(cwd), transcript: join(at.profile, "projects", resolve(cwd).replace(/[^A-Za-z0-9]/g, "-"), `${sessionId}.jsonl`) };
 }
 
 /** Every flag `commandFor` passes, for checking against what the installed harness says it takes. */
-export const FLAGS = ["--print", "--model", "--effort", "--output-format", "--max-budget-usd", "--permission-mode", "--allowedTools", "--strict-mcp-config", "--setting-sources", "--no-chrome", "--disable-slash-commands", "--session-id"];
+export const FLAGS = ["--print", "--model", "--effort", "--output-format", "--max-budget-usd", "--permission-mode", "--allowedTools", "--disallowedTools", "--strict-mcp-config", "--setting-sources", "--no-chrome", "--disable-slash-commands", "--session-id"];
 
 function found(name) {
   const which = spawnSync("/bin/sh", ["-c", `command -v ${name}`], { encoding: "utf8" });
   return which.status === 0 ? which.stdout.trim() : null;
+}
+
+/** Every instruction file a session started under `dir` would read from the folders above it, up to the root of the disk. */
+export function instructionsAbove(dir) {
+  const found = [];
+  for (let at = resolve(dir); ; at = dirname(at)) {
+    for (const name of ["CLAUDE.md", "CLAUDE.local.md", join(".claude", "CLAUDE.md"), "AGENTS.md"]) if (existsSync(join(at, name))) found.push(join(at, name));
+    if (dirname(at) === at) break;
+  }
+  return found;
 }
 
 /** What can be known with no session. Each line: what, whether it holds, and how it is known. */
@@ -120,8 +147,10 @@ export function check({ home = DEFAULT_HOME, claude = found("claude") } = {}) {
     add("its temp folder is empty", readdirSync(at.temp).length === 0, at.temp);
     add("its work folder is empty", readdirSync(at.work).length === 0, at.work);
   }
-  const above = [join(homedir(), "CLAUDE.md"), join(home, "CLAUDE.md"), join(at.work, "CLAUDE.md")].filter((path) => existsSync(path));
-  add("no instruction file above a session's folder", above.length === 0, above.length === 0 ? "none in the account's home, the profile's home or the work folder" : above.join(", "));
+  const above = instructionsAbove(at.work);
+  add("no instruction file above a session's folder", above.length === 0, above.length === 0 ? `none in ${at.work} or any folder above it` : above.join(", "));
+  const temp = systemTemp();
+  add("the account's temp folder is the one the settings close", temp === null || settingsFor({ home }).sandbox.filesystem.denyRead.includes(userTemp(temp)), temp === null ? "this system names none" : `${userTemp(temp)}, by getconf and not by TMPDIR (${process.env.TMPDIR ?? "unset"})`);
   add("no managed settings on this Mac", !existsSync("/Library/Application Support/ClaudeCode"), "/Library/Application Support/ClaudeCode");
   const tool = spawnSync("/bin/sh", ["-c", "command -v grooph"], { encoding: "utf8", env: { PATH: SESSION_PATH } });
   add("the grooph command is not on a session's path", tool.status !== 0, tool.status !== 0 ? SESSION_PATH : tool.stdout.trim());
@@ -149,6 +178,8 @@ export const NOT_KNOWN_UNTIL_A_SESSION = [
   "that the sandbox is on for a headless session's commands, and that `node --test` and `npm test` run inside it with no network",
   "that the session lists no skill, no server and no subagent kind beyond the harness's own (read afterwards from its transcript)",
   "that a command cannot write a path named in denyWrite, and cannot read /tmp or the account's temp folder",
+  "that the file tools refuse a path closed on the command line, for the session and for a subagent it starts (the builder has Edit and Write and no shell)",
+  "how a refusal is worded in this mode: the counter tells a refused check from one that ran by its result beginning 'Exit code'",
   "that npm, given its cache folder, does not look under /Users",
   "what a refused call costs a headless session in this mode: a turn, or the run",
 ];
@@ -156,6 +187,10 @@ export const NOT_KNOWN_UNTIL_A_SESSION = [
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const flags = process.argv.slice(2);
   const at = (name) => (flags.includes(name) ? flags[flags.indexOf(name) + 1] : undefined);
+  if (flags.includes("--home") && (at("--home") === undefined || at("--home").startsWith("--"))) {
+    console.error("--home needs a folder after it. Nothing was done.");
+    process.exit(64);
+  }
   const home = resolve(at("--home") ?? DEFAULT_HOME);
   const where = layout(home);
   if (flags.includes("--make")) {

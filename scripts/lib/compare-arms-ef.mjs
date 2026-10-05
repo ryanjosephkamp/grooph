@@ -41,17 +41,18 @@ export function reviewersFiles(task) {
 
 /**
  * The one section arm E adds to arm D's prompt. The same words for every task: a suite is run and made to pass, any
- * other file is read and agreed with. It names no role and no step of a design.
+ * other file is read and agreed with. It names no role and no step of a design, and it does not say where the folder
+ * is: the token becomes a real path when a run is built, and from the clean profile that path is inside the project.
  */
 export function heldOutSection(files) {
   const suites = files.filter((name) => /\.test\.mjs$/.test(name));
   const others = files.filter((name) => !suites.includes(name));
   const lines = [];
   if (suites.length > 0) {
-    lines.push(`${list(suites.map(tick))} ${suites.length === 1 ? "is a test suite" : "are test suites"} kept outside this project. ${suites.length === 1 ? "It settles" : "They settle"} what the task and the acceptance material leave open. Run ${suites.length === 1 ? "it" : "each"} from this project folder with ${list(suites.map((name) => `\`node --test ${HELD_OUT_TOKEN}/${name}\``))}, and make every case hold. Do not change ${suites.length === 1 ? "it" : "them"}.`);
+    lines.push(`${list(suites.map(tick))} ${suites.length === 1 ? "is a test suite" : "are test suites"}. ${suites.length === 1 ? "It settles" : "They settle"} what the task and the acceptance material leave open. Run ${suites.length === 1 ? "it" : "each"} from this project folder with ${list(suites.map((name) => `\`node --test ${HELD_OUT_TOKEN}/${name}\``))}, and make every case hold. Do not change ${suites.length === 1 ? "it" : "them"}.`);
   }
   if (others.length > 0) {
-    lines.push(`${list(others.map(tick))} ${others.length === 1 ? "is" : "are"} kept outside this project. ${others.length === 1 ? "It says" : "They say"} what the result is measured against. Read ${others.length === 1 ? "it" : "them"} before you start, and make the result agree with ${others.length === 1 ? "it" : "them"}. Do not change ${others.length === 1 ? "it" : "them"}.`);
+    lines.push(`${list(others.map(tick))} ${others.length === 1 ? "says" : "say"} what the result is measured against. Read ${others.length === 1 ? "it" : "them"} before you start, and make the result agree with ${others.length === 1 ? "it" : "them"}. Do not change ${others.length === 1 ? "it" : "them"}.`);
   }
   return `# Held-out material\n\n${lines.join("\n\n")}\n`;
 }
