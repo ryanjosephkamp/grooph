@@ -50,8 +50,12 @@ export type Loss = {
   at: string[];
   /** held whichever way the change goes (an edge that leaves a check): no sign that undoing it would loosen anything */
   either?: true;
-  /** a check goes while another comes in: it may be one check under two ids, so the arrival is no sign of a tightening */
-  swap?: true;
+  /**
+   * A check goes, removed or made another kind of node, while a check the graph has not comes in: it may be one
+   * check under two ids, so the arrival is no sign of a tightening. Holds the line without what comes in, which is
+   * what it says read the other way round (there the check that went would be told as the one coming in).
+   */
+  swap?: string;
   /**
    * Read the other way round, as what undoing a change would lose, this speaks of something the change brings in
    * that lets a run or a person do what it could not before: an answer a gate did not give, a step marked
@@ -353,16 +357,21 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
       losses.push({ why: `the stop "${node.id}" would end in success where it halted: what led there to stop the run would now end it well`, at: [`node:${node.id}.outcome`] });
     }
     if (node.kind === "check") {
-      // Removed while a check the graph has not comes in: it may be this check under another id, and the name that
-      // allows the removal then allows whatever was done to it on the way. The line shows what comes in, and says so.
+      // Removed, or made another kind of node, while a check the graph has not comes in: it may be this check under
+      // another id, and the name that allows it then allows whatever was done to the check on the way. The line shows
+      // what comes in, and says so. (The id kept by a step of another kind, with a new check taking its edges, is the
+      // same swap as the id given away: a reader got that one printed with the arrival as a tightening.)
       const come = after.nodes.filter((other): other is Extract<Node, { kind: "check" }> => other.kind === "check" && nodeWas.get(other.id)?.kind !== "check");
       const shown = come
         .map((other) => `"${other.id}": ${other.check.run === undefined ? `of kind "${other.check.kind}"` : `runs ${JSON.stringify(other.check.run)}`}, passes on ${JSON.stringify(other.check.pass)}${other.check.threshold === undefined ? "" : `, threshold ${other.check.threshold}`}`)
         .join(", and ");
+      const arrival = `while ${come.length === 1 ? "a check" : "checks"} the graph has not ${come.length === 1 ? "comes" : "come"} in (${shown}): if that is this check under another id, allowing this`;
       if (!kept && come.length > 0) {
-        losses.push({ why: `removes a check, while ${come.length === 1 ? "a check" : "checks"} the graph has not ${come.length === 1 ? "comes" : "come"} in (${shown}): if that is this check under another id, allowing this name allows every change made to it and every way round it`, at: [`node:${node.id}`], swap: true });
+        losses.push({ why: `removes a check, ${arrival} name allows every change made to it and every way round it`, at: [`node:${node.id}`], swap: "removes a check" });
       } else if (!kept) losses.push({ why: "removes a check", at: [`node:${node.id}`] });
-      else if (kept.kind !== "check") losses.push({ why: "a check becomes another kind of node", at: [`node:${node.id}.kind`, `node:${node.id}.check`] });
+      else if (kept.kind !== "check" && come.length > 0) {
+        losses.push({ why: `a check becomes another kind of node, ${arrival} change allows every change made to it and every way round it`, at: [`node:${node.id}.kind`, `node:${node.id}.check`], swap: "a check becomes another kind of node" });
+      } else if (kept.kind !== "check") losses.push({ why: "a check becomes another kind of node", at: [`node:${node.id}.kind`, `node:${node.id}.check`] });
       else {
         // Key by key, so that the order they are written in is no change, and a key the schema does not know is named.
         const [was, now] = [node.check as Record<string, unknown>, kept.check as Record<string, unknown>];

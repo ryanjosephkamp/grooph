@@ -137,7 +137,7 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
   // backwards, would speak of the check that went as the one coming in.)
   const undone = lost(adopted, source);
   const swapped = loosened.some((loss) => loss.swap);
-  if (swapped) lay(undone.map((loss) => (loss.swap ? { ...loss, why: "removes a check" } : loss)), "unjudged", false);
+  if (swapped) lay(undone.map((loss) => (loss.swap ? { ...loss, why: loss.swap } : loss)), "unjudged", false);
   else {
     lay(undone.filter((loss) => !loss.gain), "tightens", false);
     // An answer a gate did not give, a step marked irreversible that the graph did not have: undoing either would

@@ -991,6 +991,28 @@ test("A-019, a check under another id: the removal's line shows the check that c
     w.loops[0]!.back.push("e-lint-fail");
   }, { from: grind });
   assert.match(lint.changes.find((change) => change.name === "node:lint")!.tightens!, /^removes a check$/);
+  // The reader of this change: the id kept by a step of another kind, while a new check takes its edges with its
+  // command made `true`, and a bar given to the loop. It is the same swap. Before, the two names held said only "a
+  // check becomes another kind of node", and the bar and the arrival were printed as tightenings, the arrival with
+  // the removal's own sentence read backwards.
+  const kept = adopt((w) => {
+    const old = checkOf(w, "tests");
+    const suite = { ...structuredClone(old), id: "test-suite", check: { ...old.check, run: "true" } };
+    Object.assign(old, agent("tests", "builder"));
+    delete (old as { check?: unknown }).check;
+    w.nodes.push(suite as Node);
+    for (const e of w.edges) Object.assign(e, { from: e.from === "tests" ? "test-suite" : e.from, to: e.to === "tests" ? "test-suite" : e.to });
+    w.edges.push({ id: "e-tests-suite", from: "tests", to: "test-suite" } as Edge);
+    w.loops[0]!.members = [...w.loops[0]!.members, "test-suite"];
+    w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." } as Loop["bar"];
+  }, { from: grind });
+  const line = 'a check becomes another kind of node, while a check the graph has not comes in ("test-suite": runs "true", passes on "exit code 0 and no test skipped"): if that is this check under another id, allowing this change allows every change made to it and every way round it';
+  assert.deepEqual(kept.refused.filter((change) => change.name.startsWith("node:tests")).map((change) => [change.name, change.loosens!.split("; ").find((why) => why.startsWith("a check becomes"))]), [["node:tests.kind", line], ["node:tests.check", line]]);
+  assert.equal(kept.swapped, true);
+  assert.deepEqual(kept.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
+  const unjudged = Object.fromEntries(kept.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined).map((change) => [change.name, change.unjudged]));
+  assert.equal(unjudged["node:test-suite"], "removes a check");
+  assert.equal(unjudged["loop:grind.bar"], "removes the loop's bar");
 });
 
 test("A-019: a way that goes round a check and a critic names both", () => {
