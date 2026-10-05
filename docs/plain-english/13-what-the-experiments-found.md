@@ -88,7 +88,7 @@ One run in the first comparison was cut off before it finished. It was a *prompt
 
 It does show that one limit with real force exists, and it is the harness's, not grooph's. Claude Code, started by a script, accepts a spending limit (`--max-budget-usd`). In the one recorded case it ended the session just past the limit: $9.02 against $9.00. If you need a hard limit on spending, that option has force and a graph's budget does not.
 
-An experiment designed to produce exactly the missing record, a run that hits a small budget with work still to do, has been written down in advance. It has not been run, and the script that would start it is not yet in the project's main copy. It is in `experiments/brakes/budget/`.
+An experiment designed to produce exactly the missing record, a run that hits a small budget with work still to do, has been written down in advance, and the script that would start it is written. It has not been run: the runs cost money, and the script starts nothing until it is told to spend. It is in `experiments/brakes/budget/`.
 
 ## grooph enforces nothing while a session runs
 

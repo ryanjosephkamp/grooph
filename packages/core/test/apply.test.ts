@@ -90,6 +90,28 @@ test("errors name the op, its position, and what is wrong", () => {
   }
 });
 
+test("an object argument cannot hold a key that names a part of every object", () => {
+  // Found by a reader of the app's "Apply to a copy": `"__proto__"` in a `set`, merged in by assignment, set what the
+  // edge inherited from, so the document in memory had an approval that its saved copy had not.
+  const doc = reviewLoop();
+  const before = JSON.stringify(doc);
+  const hidden = (text: string): unknown => JSON.parse(text);
+  const cases: [unknown, RegExp][] = [
+    [hidden('{"op":"updateEdge","id":"e-review-pass","set":{"approval":null,"__proto__":{"approval":true}}}'), /^ops\[0\] updateEdge: "set" cannot hold the key "__proto__"$/],
+    [hidden('{"op":"updateNode","id":"critic","set":{"constructor":{"prototype":{}}}}'), /"set" cannot hold the key "constructor"/],
+    [hidden('{"op":"updateLoop","id":"review-cycle","set":{"prototype":{}}}'), /"set" cannot hold the key "prototype"/],
+    [hidden('{"op":"addStop","loop":"review-cycle","kind":"budget","set":{"__proto__":{"limit":1}}}'), /"set" cannot hold the key "__proto__"/],
+    [hidden('{"op":"setStop","loop":"review-cycle","index":0,"stop":{"kind":"bar-passed","__proto__":{"then":"done"}}}'), /"stop" cannot hold the key "__proto__"/],
+    [hidden('{"op":"setBar","loop":"review-cycle","bar":{"__proto__":{"acceptance":"anything"}}}'), /"bar" cannot hold the key "__proto__"/],
+    [hidden('{"op":"addPolicy","kind":"critic-isolation","scope":"graph","params":{"__proto__":{}}}'), /"params" cannot hold the key "__proto__"/],
+    [hidden('{"op":"setGraphField","key":"lineage","value":{"__proto__":{"from":"x@1"}}}'), /"value" cannot hold the key "__proto__"/],
+    [hidden('{"op":"setPositions","positions":{"__proto__":{"x":1,"y":2}}}'), /"positions" cannot hold the key "__proto__"/],
+  ];
+  for (const [op, pattern] of cases) assert.match(formatOpError(failure(applyOps(doc, [op]))), pattern, JSON.stringify(op));
+  assert.equal(JSON.stringify(doc), before, "the input is untouched");
+  assert.equal(({} as { approval?: boolean }).approval, undefined, "and nothing every object inherits was changed");
+});
+
 test("a patch replaces fields shallowly and null removes one", () => {
   const doc = ok(
     applyOps(reviewLoop(), [
