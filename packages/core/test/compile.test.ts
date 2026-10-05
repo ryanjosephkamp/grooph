@@ -277,7 +277,7 @@ test("subagent frontmatter follows the capability-to-tools table", () => {
 
   const builder = files[".claude/agents/review-loop--builder.md"]!;
   assert.match(builder, /^---\nname: review-loop--builder\n/);
-  assert.match(builder, /\nmodel: opus\n/, "tier strong → opus");
+  assert.match(builder, /\nmodel: sonnet\n/, "tier strong → sonnet, the target's own since handoff 0084");
   assert.match(builder, /\neffort: high\n/);
   assert.match(builder, /\ntools: Read, Edit, Write, Glob, Grep, Bash\n/);
   assert.ok(!builder.includes("disallowedTools"), "the builder denies nothing");
@@ -558,15 +558,17 @@ test("0014-5/6: LEAD.md §11 asks for the `ending` line before the final note an
 test("the one exporting may say which model a tier means; a pin still wins; the default is untouched", () => {
   const doc = reviewLoop();
   const stock = compile(doc, "claude-code");
-  // Both agents are `strong`, which the target gives to opus.
+  // Both agents are `strong`, which the target gives to sonnet (handoff 0084: frontier opus, strong and fast sonnet).
   const builder = ".claude/agents/review-loop--builder.md";
-  assert.match(stock.files[builder]!, /^model: opus$/m);
+  assert.match(stock.files[builder]!, /^model: sonnet$/m);
   assert.deepEqual(compile(doc, "claude-code", {}).files, stock.files, "no option, no change: the golden package");
 
-  const named = compile(doc, "claude-code", { models: { strong: "sonnet", frontier: "opus" } });
-  assert.match(named.files[builder]!, /^model: sonnet$/m);
-  assert.match(named.files[".grooph/review-loop/MAPPING.md"]!, /# this export: frontier → opus, strong → sonnet, fast → sonnet/);
-  assert.match(stock.files[".grooph/review-loop/MAPPING.md"]!, /# profile: frontier → fable, strong → opus, fast → sonnet/);
+  const named = compile(doc, "claude-code", { models: { strong: "opus", frontier: "opus" } });
+  assert.match(named.files[builder]!, /^model: opus$/m);
+  assert.match(named.files[".grooph/review-loop/MAPPING.md"]!, /# this export: frontier → opus, strong → opus, fast → sonnet/);
+  assert.match(stock.files[".grooph/review-loop/MAPPING.md"]!, /# profile: frontier → opus, strong → sonnet, fast → sonnet/);
+  // No file of a package made with nothing named says fable.
+  for (const [path, text] of Object.entries(stock.files)) assert.doesNotMatch(text, /fable/i, path);
   assert.equal(named.files[".grooph/review-loop/graph.grooph.json"], stock.files[".grooph/review-loop/graph.grooph.json"], "the graph does not change");
 
   const pinned: Graph = { ...doc, nodes: doc.nodes.map((n) => (n.id === "builder" && n.kind === "agent" ? ({ ...n, model: { tier: "strong", pin: { "claude-code": "haiku" } } } as AgentNode) : n)) };

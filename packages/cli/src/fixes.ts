@@ -21,6 +21,10 @@ export const FIXES: Record<ImplementedCode, string> = {
     'Something points at an id that does not exist. Add the missing object, or re-point the reference: {"op":"updateEdge","id":"<edge>","set":{"to":"<node that exists>"}}; for a loop, updateLoop with "members" or "back"; for a stop, setStop with a "then" that exists.',
   E_LOOP_BACK_EDGE:
     'A loop needs a back edge whose two ends are both members and that really closes a cycle inside them. Add the members first, then {"op":"toggleLoopBack","loop":"<loop>","edge":"<edge from the last member to an earlier one>","on":true}.',
+  E_GROUP_CYCLE:
+    'A group holds itself, directly or through another group, and groups form a tree. No operation edits groups: in the document itself, take the inner group\'s id out of one group\'s "members", and pass the whole document again.',
+  E_SECOND_LEAD:
+    'Two agent nodes have the role "lead", and a graph is one session with one lead. Keep one and say what the other does: {"op":"updateNode","id":"<the other>","set":{"role":"builder"}} (or critic, or a role of its own). A template placed inside a graph is the usual way a second arrives.',
   E_CYCLE_NO_STOP:
     'A cycle no loop with a stop covers. Wrap it: {"op":"addLoop","members":[…the cycle\'s nodes…]}, toggleLoopBack for its returning edge, then {"op":"addStop","loop":"<loop>","kind":"max-iterations","set":{"n":4}} and a budget stop.',
   E_JUDGMENT_LOOP_NO_BAR:
@@ -55,6 +59,8 @@ export const FIXES: Record<ImplementedCode, string> = {
     'No stop node can be reached, so the run ends when the lead runs out of edges. {"op":"addNode","kind":"stop","name":"Done"} and connect the last node to it (with "when":"pass" after a check or a critic).',
   W_OUTPUT_NOT_WRITABLE:
     'The node must leave files behind and may not write. {"op":"updateNode","id":"<node>","set":{"allow":["read-files","write-outputs"]}} lets it write only its own outputs; a builder takes "edit-files".',
+  W_GROUP_OVERLAP:
+    'A node or a group is in two groups and neither holds the other, so a view draws it in the first only. No operation edits groups: in the document itself, take it out of one group\'s "members", or put one group inside the other if that is what is meant; or keep it and tell the person.',
   W_UNKNOWN_KEY:
     'A key the schema does not know, usually a typo. Remove it by setting it to null in a "set" patch: {"op":"updateNode","id":"<node>","set":{"<the key>":null}}, and set the field it was meant to be.',
   W_DOC_TOO_LARGE:

@@ -19,6 +19,8 @@ export const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:/[\]-]*$/;
  * named none; then each pin, by its node, since a pin is a model the tier line would otherwise not show; then, when
  * two tiers a graph's agents use are one model, a line saying so. The validator's check that a critic differs from
  * the builder it checks (W_HOMOGENEOUS_CRITICS) reads tiers, so it cannot see two tiers that are the same model.
+ * That happens when the one exporting names them so, and since handoff 0084 with nothing named: the target's own
+ * map gives `strong` and `fast` one model.
  * `ways` is how the one exporting names a tier map: the CLI's flags, or the MCP tool's argument.
  */
 export function tiersSaid(

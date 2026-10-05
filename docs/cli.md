@@ -12,6 +12,7 @@ Usage: grooph <command> [options]      grooph help <command> for one command in 
 Start
   new          make an empty graph document
   template     list, show and use ready-made graphs (try: template list)
+  sub          place a template inside a graph as one box, and keep it current
   apply        change a graph with a list of JSON ops
   pick         write one candidate of a proposal set out as a graph
 
@@ -102,6 +103,51 @@ holding one), or else the published library ($GROOPH_REGISTRY overrides it).
 
 Example
   grooph template use grind-loop --name "Fix the flaky test" --set task="make the checkout test pass" --out flaky.grooph.json
+```
+
+## `grooph sub`
+
+Place a template inside a graph as one box, and keep it current.
+
+```text
+grooph sub add <template> --into <file> --as <id> [--name <name>] [--set key=value …] [--after <node>] [--then <node>] [--write]
+grooph sub list <file> [--json]
+grooph sub update <file> [<group> …] [--allow <change> …] [--write]
+grooph sub extract <file> <group> --id <id> --title <t> --summary <s> --when <w> [--to project|user] [--force]
+
+A subgrooph is a template placed inside a graph as a unit: a group that remembers which
+template and version it came from, and the values it was filled with. Its nodes are ordinary
+nodes of the one document. Nothing is fetched or inlined when a package is compiled.
+
+  add      Place a template in the graph as a group named --as. Everything that comes in gets an
+           id that starts with it (review-builder). --after <node> leads into it from a node of the
+           graph. --then <node> leads on from it: the edges that reached the template's own
+           success stop go to that node, and that stop is dropped; a stop that halts stays.
+           Every id that begins with --as and a dash is the subgrooph's own from then on, so an
+           --as the graph already uses that way is refused, and so is a template with a lead
+           node. If the graph kept a node behind a person and the subgrooph now leads to it
+           around that person, that is said. Dry run unless --write.
+  list     Every group: the template and version it came from if it is a subgrooph, how many
+           nodes it holds, and the edges that lead in and out. --json prints the same as data.
+  update   What a newer version of its template would change in each subgrooph (or in the ones
+           named), then the graph with those changes. A change that removes or loosens a brake
+           (a human gate, an approval, an irreversible marker, a budget or a round cap, a bar's
+           acceptance, critic isolation) is listed first and NOT applied unless you ask for it by
+           its name with --allow. The brakes are compared on the whole graph as it would be
+           written, so one cannot be shed under a new id or in two changes: what a run could reach
+           only by a gate, an approval or a critic's verdict, it may not reach without it afterwards.
+           A change says every reason it is held for. Tightening applies with the rest. The shape moves as a whole: while a change to the
+           nodes, edges or loop members is held back, the others wait for it. A node you added
+           inside the box under another id is yours, and stays. Dry run unless --write.
+  Neither add nor update writes a graph it would leave with an error the file does not have now.
+  extract  Save any group as a template, in the project (default) or user folder.
+
+A template is found as grooph template finds it: the project, then your home folder, then
+the built-in library, then --registry <url> or the published library.
+
+Example
+  grooph sub add review-gate --into plan.grooph.json --as review --after plan --then release \
+    --set task="the checkout flow" --set test-command="pnpm test" --set checklist=docs/checklist.md --write
 ```
 
 ## `grooph apply`
@@ -219,6 +265,9 @@ Every file is written inside <dir> and through no link, and the package is place
 
 A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
 .grooph/<id>/, and grooph keeps those folders for something else.
+
+The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
+on one over a builder on the other is the same model: the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .

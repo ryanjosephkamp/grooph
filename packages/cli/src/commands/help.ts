@@ -3,7 +3,12 @@
  * "did you mean" for a mistyped command. The longer pages live beside their commands.
  */
 
-import { KNOWN_TARGETS } from "@grooph/core";
+import { KNOWN_TARGETS, getProfile } from "@grooph/core";
+
+/** The Claude Code target's own tier map, as its profile has it, for the export's help. */
+const OWN_TIERS = Object.entries(getProfile("claude-code").models)
+  .map(([tier, model]) => `${tier} → ${model}`)
+  .join(", ");
 
 export const overview = (version: string): string => `grooph ${version}: author, check and compile multi-agent loop graphs. It never runs them.
 
@@ -12,6 +17,7 @@ Usage: grooph <command> [options]      grooph help <command> for one command in 
 Start
   new          make an empty graph document
   template     list, show and use ready-made graphs (try: template list)
+  sub          place a template inside a graph as one box, and keep it current
   apply        change a graph with a list of JSON ops
   pick         write one candidate of a proposal set out as a graph
 
@@ -48,7 +54,7 @@ First time? docs/quickstart.md.   grooph --version prints the version.`;
 
 /** Commands the overview lists, for the "did you mean" and the unknown-command check. */
 export const COMMANDS = [
-  "new", "template", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
+  "new", "template", "sub", "apply", "pick", "validate", "explain", "shape", "canonicalize", "export", "adopt",
   "image", "outline", "page", "glyph", "mermaid", "watch", "runs", "hooks", "sessions", "events", "mcp", "share", "embed",
 ] as const;
 
@@ -135,6 +141,9 @@ Every file is written inside <dir> and through no link, and the package is place
 
 A graph whose id is graphs, proposals, templates, events or hooks is not exported: a package lives in
 .grooph/<id>/, and grooph keeps those folders for something else.
+
+The target's own tiers, for claude-code: ${OWN_TIERS}. Two of them are one model, so a critic
+on one over a builder on the other is the same model: the export says so when a graph has agents on both.
 
 Example
   grooph export flaky.grooph.json --target claude-code --into .
