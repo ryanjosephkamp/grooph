@@ -51,6 +51,9 @@ const lines = [];
 // address is nobody's: a record must not keep one, and a test looks for it.
 const given = (attachment) => JSON.stringify({ type: "attachment", cwd: process.cwd(), attachment });
 if (!plan.no_attachments) lines.push(given({ type: "skill_listing", names: plan.skills ?? [] }), given({ type: "agent_listing_delta", builtInTypes: ["general-purpose"] }), given({ type: "session_context", context: { userEmail: "The user's email address is someone@example.com." } }));
+if (plan.instructions) lines.push(given({ type: "instructions", files: plan.instructions }));
+if (plan.servers) lines.push(given({ type: "mcp_instructions_delta", addedNames: plan.servers }));
+if (plan.second_lead_model) lines.push(JSON.stringify({ type: "assistant", timestamp: "2026-10-05T00:00:00.000Z", message: { id: "m-other", model: plan.second_lead_model, content: [{ type: "text", text: "…" }] } }));
 let agents = 0;
 (plan.uses ?? []).forEach((use, i) => {
   const id = `use-${i}`;
@@ -78,5 +81,5 @@ let agents = 0;
 writeFileSync(join(folder, `${sessionId}.jsonl`), `${lines.join("\n")}\n`, "utf8");
 const models = { [plan.model ?? "claude-opus-5-5"]: { costUSD: plan.cost ?? 0.01 } };
 if (agents > 0) models["claude-sonnet-5-5"] = { costUSD: 0 };
-console.log(JSON.stringify({ type: "result", subtype: plan.subtype ?? "success", is_error: plan.is_error === true, api_error_status: plan.api_error_status ?? null, session_id: plan.reported_session_id ?? sessionId, total_cost_usd: plan.cost ?? 0.01, num_turns: (plan.uses ?? []).length + 1, result: plan.reply ?? "done", modelUsage: models }));
+console.log(JSON.stringify({ type: "result", subtype: plan.subtype ?? "success", is_error: plan.is_error === true, api_error_status: plan.api_error_status ?? null, session_id: plan.reported_session_id ?? sessionId, ...(plan.no_cost ? {} : { total_cost_usd: plan.cost ?? 0.01 }), num_turns: (plan.uses ?? []).length + 1, result: plan.reply ?? "done", modelUsage: models }));
 process.exit(plan.exit ?? 0);

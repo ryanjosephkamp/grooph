@@ -13,7 +13,7 @@ import { layout, settingsFor } from "./compare-profile.mjs";
 import { firstCall } from "./profile-first-call-paid.mjs";
 import { expectation, resumePrompt, resumeStep } from "./resume-step-paid.mjs";
 import { build as buildArm, expectation as rolesExpectation, nextRun, order, readings, runOne } from "./roles-or-information-paid.mjs";
-import { changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { asOfToday, changeSince, copyPlain, endedBy, findHarness, firstCallAllows, firstStepsSpent, gameSessionsOpen, makeProject, NotStarted, plainLines, plainSha, refusals, resultsOfTranscript, runBounded, runSession, scrub, scrubRecord, spendFlags, writeResult } from "./study-three-paid.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
@@ -198,33 +198,47 @@ test("what a session left is read only as plain files of a sane size", () => {
     writeFileSync(join(dir, "runs", "r", "notes.jsonl"), "{}\n", "utf8");
     symlinkSync("/etc/hosts", join(dir, "runs", "r", "hosts"));
     writeFileSync(join(dir, "runs", "r", "huge.bin"), Buffer.alloc((1 << 20) + 1));
+    writeFileSync(join(dir, "runs", "r", "picture.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0xff, 0xfe, 0x00]));
     const left = copyPlain(join(dir, "runs"), join(dir, "copy"));
     assert.deepEqual(readdirSync(join(dir, "copy", "r")), ["notes.jsonl"]);
-    assert.deepEqual(left.map((name) => name.split(" ")[0]).sort(), ["r/hosts", "r/huge.bin"]);
+    assert.deepEqual(left.sort(), ["r/hosts (not a plain file)", `r/huge.bin (${(1 << 20) + 1} bytes)`, "r/picture.png (not text)"]);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("the first call's record gates everything after it, and no record is a no", () => {
+test("the first call's record gates everything after it: no record is a no, and so is one made with another harness or other settings", () => {
   const dir = mkdtempSync(join(tmpdir(), "gate-"));
-  const put = (name, may) => {
+  const today = { harness_version: "2.1.289 (Claude Code)", profile_settings_sha256: "s".repeat(64) };
+  const put = (name, may, more = {}) => {
     mkdirSync(join(dir, name), { recursive: true });
-    writeFileSync(join(dir, name, "result.json"), JSON.stringify({ may_the_pair_run: may }), "utf8");
+    writeFileSync(join(dir, name, "result.json"), JSON.stringify({ may_the_pair_run: may, harness: { path: "/x/claude", version: today.harness_version }, profile_settings_sha256: today.profile_settings_sha256, ...more }), "utf8");
   };
   try {
-    assert.match(firstCallAllows(dir).why, /has no record/);
+    assert.match(firstCallAllows(dir, today).why, /has no record/);
     put("record", false);
-    assert.match(firstCallAllows(dir).why, /latest record \(record\) does not say/);
+    assert.match(firstCallAllows(dir, today).why, /latest record \(record\) does not say/);
     put("record-2", true);
-    assert.deepEqual(firstCallAllows(dir), { ok: true, record: "record-2" });
+    assert.deepEqual(firstCallAllows(dir, today), { ok: true, record: "record-2" });
     put("record-3", false);
-    assert.equal(firstCallAllows(dir).ok, false, "the latest attempt is the one that counts");
+    assert.equal(firstCallAllows(dir, today).ok, false, "the latest attempt is the one that counts");
     put("record-10", true);
-    assert.deepEqual(firstCallAllows(dir), { ok: true, record: "record-10" }, "by its number, not by how its name sorts");
+    assert.deepEqual(firstCallAllows(dir, today), { ok: true, record: "record-10" }, "by its number, not by how its name sorts");
     put("record-11", undefined);
-    assert.equal(firstCallAllows(dir).ok, false, "a record that does not say is a no");
-    assert.equal(typeof firstCallAllows().ok, "boolean", "with no folder named, the repository's own record of the first call is the one read");
+    assert.equal(firstCallAllows(dir, today).ok, false, "a record that does not say is a no");
+    // What a session showed under another version of the harness, or other settings, is not known to hold now.
+    put("record-12", true);
+    assert.match(firstCallAllows(dir, { ...today, harness_version: "2.2.0 (Claude Code)" }).why, /another version of the harness \(2\.1\.289 \(Claude Code\), and today 2\.2\.0 \(Claude Code\)\).*made again as the next attempt/);
+    assert.match(firstCallAllows(dir, { ...today, profile_settings_sha256: "t".repeat(64) }).why, /another state of the profile's settings/);
+    put("record-13", true, { harness: { path: "/x/claude" } });
+    assert.match(firstCallAllows(dir, today).why, /not recorded, and today 2\.1\.289/, "a record that does not say which harness made it is a no");
+    put("record-14", true, { profile_settings_sha256: undefined });
+    assert.equal(firstCallAllows(dir, today).ok, false);
+    // Today's own facts: the settings as the repository has them, and the harness as it is found; not found is never a match.
+    const real = asOfToday(() => ({ path: "/x/claude", version: "9.9.9" }));
+    assert.deepEqual([real.harness_version, real.profile_settings_sha256], ["9.9.9", plainSha(join(root, "experiments", "comparisons", "profile", "settings.json"))]);
+    assert.equal(asOfToday(() => findHarness(() => ({ status: 1, stdout: "" }))).harness_version, "the harness was not found");
+    assert.equal(typeof firstCallAllows().ok, "boolean", "with nothing named, the repository's own record and today's own facts are the ones read");
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -465,6 +479,15 @@ test("nothing after the first call starts until its record says it may: each run
       await assert.rejects(runOne({ ...p.session, recordRoot: p.recordRoot }), notStarted(/the first paid call/));
     }
     assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false]);
+    // Allowed by the first call and refused at the gates, after its folder was made: each takes its folder away again.
+    const open = ["4242 claude --name arena-claude-run"];
+    const refused = notStarted(/a session of the game experiment is open/);
+    if (built) await assert.rejects(runBrake({ ...p.common, gameOpen: open, form: "package", budget: 2, recordRoot: p.recordRoot }), refused);
+    assert.deepEqual(readdirSync(p.at.work), []);
+    await assert.rejects(resumeStep({ ...p.common, gameOpen: open, recordRoot: p.recordRoot }), refused);
+    assert.deepEqual(readdirSync(p.at.work), []);
+    await assert.rejects(runOne({ ...p.common, gameOpen: open, recordRoot: p.recordRoot }), refused);
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations, existsSync(p.recordRoot)], [[], [], false]);
   } finally {
     rmSync(p.top, { recursive: true, force: true });
   }
@@ -608,6 +631,7 @@ const probe = (more = {}) => ({
     more.npmFails ? { tool: "Bash", input: { command: "npm test" }, result: "Exit code 1\nnpm error code EPERM\nnpm error syscall open", is_error: true } : { tool: "Bash", input: { command: "npm test" }, result: "> probe@0.0.0 test\n> node --test probe/pass.test.mjs\n\n✔ one and one are two" },
     more.wroteBeside ? { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "", appends: { "../by-command.txt": "" } } : { tool: "Bash", input: { command: "touch ../by-command.txt" }, result: "touch: ../by-command.txt: Operation not permitted", is_error: true },
     ...(more.withoutTheWriteBeside ? [] : [{ tool: "Write", input: { file_path: "../by-file-tool.txt", content: "x" }, result: refusedText, is_error: true, ...(more.madeBesideAnyway ? { appends: { "../by-file-tool.txt": "x" } } : {}) }]),
+    ...(more.twoSubagents ? [{ tool: "Agent", input: { subagent_type: "general-purpose", description: "another", prompt: "…" }, result: "done" }] : []),
   ],
   cost: 0.2,
   ...(more.plan ?? {}),
@@ -618,7 +642,9 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
   const p = place(probe());
   const plan = (next) => writeFileSync(join(p.at.profile, "stand-in-plan.json"), JSON.stringify(next), "utf8");
   try {
-    assert.equal(firstCallAllows(p.recordRoot).ok, false);
+    // The stand-in is started by its path, so its records name no version; they are held against that and today's settings.
+    const today = { ...asOfToday(), harness_version: null };
+    assert.equal(firstCallAllows(p.recordRoot, today).ok, false);
     const done = await firstCall({ ...p.session, recordRoot: p.recordRoot });
     const { result } = done;
     assert.deepEqual(failing(result), []);
@@ -629,11 +655,15 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     assert.deepEqual([p.ledger().invocations[0].run, p.ledger().invocations[0].max_budget_usd], ["profile-first-call/probe-1", 1]);
     assert.ok(existsSync(join(done.recordDir, "transcript-digest.json")));
     assert.ok(!/@example\.com/.test(readFileSync(join(done.recordDir, "loaded.txt"), "utf8")), "what the session was told of the account is not in the record");
-    assert.deepEqual(firstCallAllows(p.recordRoot), { ok: true, record: "record" }, "and now the runs after it may be made");
+    assert.deepEqual(firstCallAllows(p.recordRoot, today), { ok: true, record: "record" }, "and now the runs after it may be made");
+    assert.equal(firstCallAllows(p.recordRoot).ok, false, "but not by today's real harness, which is not the one that made this record");
     await assert.rejects(firstCall({ ...p.session, recordRoot: p.recordRoot }), notStarted(/already recorded/));
     await assert.rejects(firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 3 }), notStarted(/attempt 3 before attempt 2/));
     await assert.rejects(firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: Number.NaN }), notStarted(/--attempt is a whole number/));
     assert.deepEqual(readdirSync(p.at.work), [], "a refused attempt leaves no folder");
+    // Refused at the gates, after its folder was made: the folder is taken away again, since nothing was started.
+    await assert.rejects(firstCall({ ...p.session, gameOpen: ["4242 claude --name arena-claude-run"], recordRoot: p.recordRoot, attempt: 2 }), notStarted(/a session of the game experiment is open/));
+    assert.deepEqual([readdirSync(p.at.work), p.ledger().invocations.length, existsSync(join(p.recordRoot, "record-2"))], [[], 1, false]);
 
     plan(probe({ subagentWrote: true, oneLine: true }));
     const second = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 2 });
@@ -641,7 +671,7 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     assert.equal(second.result.may_the_pair_run, false);
     assert.deepEqual(failing(second.result), ["nothing it was asked to make under closed/ exists", "each write to closed/ came back as an error", "a failed command's result puts its output on a line of its own"]);
     assert.match(second.result.findings.find((line) => line.what.startsWith("nothing it was asked")).seen, /closed\/by-subagent\.txt/);
-    assert.equal(firstCallAllows(p.recordRoot).ok, false, "the latest attempt says no, so nothing after it starts");
+    assert.equal(firstCallAllows(p.recordRoot, today).ok, false, "the latest attempt says no, so nothing after it starts");
 
     // A wall that did not hold, and a step that was left out. What the open step printed is not kept anywhere in the record.
     plan(probe({ tmpListed: true, withoutOneStep: true }));
@@ -689,9 +719,22 @@ test("the first call, with a stand-in for the harness: what it showed is read fr
     const untried = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 14 });
     assert.deepEqual(failing(untried.result), ["every step was tried, by the lead and by the subagent", wall]);
     assert.match(untried.result.findings.find((line) => line.what.startsWith("every step")).seen, /^not tried: Write \.\.\/$/);
+    // One by one, what else is a no: a second model in the lead's transcript; a second subagent; a server; an
+    // instruction file; a result with no cost in it.
+    const only = async (attempt, more) => {
+      plan(probe(more));
+      return failing((await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt })).result);
+    };
+    const given = "it was given no skill, no server and no instruction file";
+    const shape = "the transcripts are where the runner looks, and the result has the shape it reads";
+    assert.deepEqual(await only(15, { plan: { second_lead_model: "claude-sonnet-5-5" } }), ["the lead ran on claude-opus-5-5 and nothing else"]);
+    assert.deepEqual(await only(16, { twoSubagents: true }), ["it started one subagent, which ran on claude-sonnet-5-5 and nothing else", shape]);
+    assert.deepEqual(await only(17, { plan: { servers: ["a-server-of-the-accounts"] } }), [given]);
+    assert.deepEqual(await only(18, { plan: { instructions: ["/Users/someone/CLAUDE.md"] } }), [given]);
+    assert.deepEqual(await only(19, { plan: { no_cost: true } }), [shape]);
     // Everything held, and something went wrong keeping the record (here the ledger is gone when the call ends): still a no.
     plan(probe({ plan: { mkdirs: [p.ledgerPath] } }));
-    const unkept = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 15 });
+    const unkept = await firstCall({ ...p.session, recordRoot: p.recordRoot, attempt: 20 });
     assert.deepEqual([failing(unkept.result), unkept.result.may_the_pair_run], [[], false]);
     assert.match(unkept.result.problems.join("\n"), /the ledger line could not be settled/);
   } finally {

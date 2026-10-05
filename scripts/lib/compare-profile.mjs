@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 import { ALIAS_ENV } from "./prove-pattern.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const TEMPLATE = join(root, "experiments", "comparisons", "profile", "settings.json");
+export const TEMPLATE = join(root, "experiments", "comparisons", "profile", "settings.json");
 export const DEFAULT_HOME = join(homedir(), "grooph-compare");
 /** The path a session's commands get: node, npm and git, and not ~/.local/bin, where the grooph command and the harness are. */
 export const SESSION_PATH = "/opt/homebrew/bin:/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin";

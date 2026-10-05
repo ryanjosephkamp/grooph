@@ -20,7 +20,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { commandFor, DEFAULT_HOME } from "./compare-profile.mjs";
-import { asThingsStand, copyRecord, makeProject, NotStarted, plainSha, relativeToRoot, runSession, setAside, spendFlags, writeResult } from "./study-three-paid.mjs";
+import { asThingsStand, copyRecord, makeProject, NotStarted, plainSha, profileSettingsSha, relativeToRoot, runSession, setAside, spendFlags, writeResult } from "./study-three-paid.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const folder = join(root, "experiments", "comparisons", "profile", "first-call");
@@ -111,7 +111,7 @@ export async function firstCall({ go, attempt = 1, home = DEFAULT_HOME, claude, 
   } catch (error) {
     copied.problems.push(`reading what the call showed: ${error.message}`);
   }
-  const result = writeResult(recordDir, call, { findings: found.lines, may_the_pair_run: found.may_the_pair_run === true && copied.problems.length === 0, what_a_refusal_looks_like: found.what_a_refusal_looks_like, a_failed_commands_first_line: found.a_failed_commands_first_line ?? null, transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, what_it_asks: "experiments/comparisons/profile/first-call/README.md" });
+  const result = writeResult(recordDir, call, { findings: found.lines, may_the_pair_run: found.may_the_pair_run === true && copied.problems.length === 0, what_a_refusal_looks_like: found.what_a_refusal_looks_like, a_failed_commands_first_line: found.a_failed_commands_first_line ?? null, profile_settings_sha256: profileSettingsSha(), transcripts: copied.transcripts, problems: copied.problems, kept_out_of_the_record: copied.kept_out_of_the_record, what_it_asks: "experiments/comparisons/profile/first-call/README.md" });
   let kept = null;
   try {
     kept = setAside({ home, work: built.work, sessionId: call.session_id });

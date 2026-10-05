@@ -27,6 +27,8 @@ Each is read by the runner from the folder and the transcripts, never from the s
 
 If any of these does not hold, nothing else is run. What is wrong is fixed in the profile or the runner, that fix is read, and this call is made again as a second attempt with its own record.
 
+**The record is held against the day it is used.** It keeps the harness's version and a checksum of the profile's settings as the repository had them. If either is different when a later run is asked for, that run is refused and this call is made again as the next attempt: what a session showed under another version of the harness, or other settings, is not known to hold now.
+
 ## What this call cannot show
 
 - **What the watchdog's limit of minutes does to a real session.** It is tested against a stand-in that ignores being asked to end; a real session is ended that way only when one overruns.

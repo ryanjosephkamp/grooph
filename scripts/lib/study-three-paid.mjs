@@ -41,7 +41,7 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { amendEntry, counted, gate, loadLedger, openRunEntry, saveLedger, totals, tripwireNotice, LEDGER_PATH } from "./compare-ledger.mjs";
-import { check as checkProfile, commandFor, layout, settingsFor } from "./compare-profile.mjs";
+import { check as checkProfile, commandFor, layout, settingsFor, TEMPLATE } from "./compare-profile.mjs";
 import { digestTranscripts, sessionTranscripts } from "./prove-evidence.mjs";
 import { neverUsed } from "./prove-pattern.mjs";
 
@@ -366,7 +366,10 @@ export function scrubRecord(recordDir, options) {
   return found;
 }
 
-/** Copy a folder a session wrote, keeping only plain files of a sane size: a link, a device or a huge file is named and left. */
+/**
+ * Copy a folder a session wrote, keeping only plain files of text and of a sane size: a link, a device, a huge file or
+ * one that is not text is named and left. A record is text, and only text can be passed through the scrub.
+ */
 export function copyPlain(from, to) {
   const left = [];
   const walk = (src, dst) => {
@@ -375,8 +378,13 @@ export function copyPlain(from, to) {
       const stat = lstatSync(full);
       if (stat.isDirectory()) walk(full, join(dst, name));
       else if (stat.isFile() && stat.size <= MAX_FILE) {
+        const bytes = readFileSync(full);
+        if (!Buffer.from(bytes.toString("utf8"), "utf8").equals(bytes)) {
+          left.push(`${relative(from, full)} (not text)`);
+          continue;
+        }
         mkdirSync(dst, { recursive: true });
-        cpSync(full, join(dst, name));
+        writeFileSync(join(dst, name), bytes);
       } else left.push(`${relative(from, full)} (${stat.isFile() ? `${stat.size} bytes` : "not a plain file"})`);
     }
   };
@@ -533,15 +541,35 @@ export function setAside({ home, work, sessionId }) {
 }
 
 /**
- * Whether the first paid call's record says the runs after it may be made: the latest attempt that is recorded, and
- * its `may_the_pair_run`. No record is a no.
+ * What the first call's record is held against: the harness's version today, and the profile's settings as the
+ * repository has them today. What a session showed under another version or other settings is not known to hold now.
  */
-export function firstCallAllows(folder = join(root, "experiments", "comparisons", "profile", "first-call")) {
+export const profileSettingsSha = () => sha256(TEMPLATE);
+export function asOfToday(find = findHarness) {
+  let version;
+  try {
+    version = find().version;
+  } catch {
+    version = "the harness was not found";
+  }
+  return { harness_version: version, profile_settings_sha256: profileSettingsSha() };
+}
+
+/**
+ * Whether the first paid call's record says the runs after it may be made: the latest attempt that is recorded, its
+ * `may_the_pair_run`, and that it was made with today's harness and today's settings. No record is a no; a record
+ * made before either changed is a no, and the call is made again as the next attempt.
+ */
+export function firstCallAllows(folder = join(root, "experiments", "comparisons", "profile", "first-call"), today = asOfToday()) {
   const records = existsSync(folder) ? readdirSync(folder).filter((name) => /^record(-\d+)?$/.test(name) && existsSync(join(folder, name, "result.json"))) : [];
   if (records.length === 0) return { ok: false, why: "the first paid call has no record: it is made first, and what it showed is read before anything else runs" };
   const latest = records.sort((a, b) => Number(a.split("-")[1] ?? 1) - Number(b.split("-")[1] ?? 1)).at(-1);
   const result = JSON.parse(readFileSync(join(folder, latest, "result.json"), "utf8"));
-  return result.may_the_pair_run === true ? { ok: true, record: latest } : { ok: false, why: `the first paid call's latest record (${latest}) does not say the runs after it may be made` };
+  if (result.may_the_pair_run !== true) return { ok: false, why: `the first paid call's latest record (${latest}) does not say the runs after it may be made` };
+  const then = { harness_version: result.harness?.version ?? null, profile_settings_sha256: result.profile_settings_sha256 ?? null };
+  const moved = Object.keys(today).filter((key) => then[key] !== today[key]);
+  if (moved.length > 0) return { ok: false, why: `the first paid call's latest record (${latest}) was made with another ${moved.map((key) => (key === "harness_version" ? `version of the harness (${then[key] ?? "not recorded"}, and today ${today[key]})` : "state of the profile's settings")).join(" and another ")}: what it showed is not known to hold now, so it is made again as the next attempt` };
+  return { ok: true, record: latest };
 }
 
 /**
