@@ -84,12 +84,12 @@ echo '[{"op":"updateNode","id":"builder","set":{"irreversible":["merge"]}}]' | g
 ```
 
 ```text
-error  E_IRREVERSIBLE_NO_GATE  node "builder" performs irreversible actions (merge) and can be reached without a human decision through "e-critic-fail"; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node  [at: builder, e-critic-fail]
+error  E_IRREVERSIBLE_NO_GATE  node "builder" performs irreversible actions (merge) and is where the run starts: only a loop's back edge ("e-critic-fail", "e-merge-gate-reject") leads to it, so no human decides before it runs the first time; put a human-gate node before it  [at: builder, e-critic-fail, e-merge-gate-reject]
 ```
 
-A step that is **marked** as doing something that cannot be undone must have a person on every way in. The message names the arrow from the critic, which no person stands on. (The other arrow into the builder comes from the human gate, and that one is acceptable.) The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
+A step that is **marked** as doing something that cannot be undone must have a person in front of it on every way in. Here the builder is where the run starts, so nobody is asked before it runs the first time, and the message says so. The word "marked" matters: the validator reads the label. It cannot look at a brief and work out for itself that a step will publish something.
 
-One gap turned up while this guide was being written. The rule looks at the arrows *into* a marked step. A marked step that the run **starts at** was not refused once every arrow coming back into it passed a person, even though the run begins there with nobody asked. It has been reported to the project. Until it is fixed, do not rely on this rule for the first step of a graph.
+This message is one day old. While this guide was being written, a marked step that the run starts at was not refused once every arrow coming back into it passed a person, even though the run began there with nobody asked. It was reported and fixed the same day.
 
 None of these four commands changed the file.
 
@@ -114,7 +114,7 @@ None of these four commands changed the file.
 | `E_UNFILLED_SLOT` | A `{{blank}}` is still in the text | A worker told to run `{{test-command}}` |
 | `E_CRITIC_NOT_ISOLATED` | The graph carries the critic-isolation policy and an edge hands a critic the builder's context, or a writer hands a critic no evidence list | A reviewer who has already been talked round |
 | `E_OWNERSHIP_CONFLICT` | Two writers both own one file and nothing merges their work | Two workers overwriting each other |
-| `E_IRREVERSIBLE_NO_GATE` | A step marked irreversible has an arrow into it that no person stands on, or has no arrow into it at all | Merging, publishing, spending or deleting with nobody asked |
+| `E_IRREVERSIBLE_NO_GATE` | A step marked irreversible has an arrow into it that no person stands on, or is where the run starts | Merging, publishing, spending or deleting with nobody asked |
 
 ### Warnings
 
