@@ -71,9 +71,9 @@ Briefs state purpose, limits and outputs, not procedure. The run writes notes to
 
 ### 5.1 Proving runs
 
-Each of the twenty templates has a small task designed so the template's point can show, pre-registered before the run with the reason a first pass should fail, and one recorded headless run ([`experiments/patterns/`](../../experiments/patterns/README.md)). Each record holds the run id, the rounds, which stop fired, how the run ended, the cost as the harness reported it, and a `--check` that re-asserts the outcome from the evidence. The proving ledger stands at $57.51 over 31 model-calling invocations. Records that came back red are published red, with the reason.
+Each of the twenty templates has one kept headless run on a small task ([`experiments/patterns/`](../../experiments/patterns/README.md)). Each task and its expected checks were committed before its run; the second batch also wrote down a design bet, and the last four a probability that a first pass would fail. Each record holds the run id, the rounds, which stop fired, how the run ended, the cost as the harness reported it, and a `--check` that re-asserts selected parts of the outcome from the lead's notes and the harness's transcripts. The proving ledger stands at $57.51 over 31 invocations, 30 of which reached a model. Records that came back red are published red, with the reason.
 
-What the records show: the contract holds. Named agents ran as isolated subagents; stops were evaluated in order; every gate was a halt with nothing irreversible done. Back edges fired in six templates once the tasks carried evidence held out from the builder.
+What the records show: in 18 of 20, named agents ran as their own subagents and the run ended as its graph says; the lead recorded checking its stops in order, and no run reached a point where the order mattered. Every kept record with a gate has a halt note at it. Two templates record a critic sending work back on reference evidence the builder was instructed not to read; a third records a held-out test doing so, and failed that reading rule; a fourth repairs an integration failure with nothing held out. Two other returning edges are the loop moving on to its next phase or piece. These show mechanisms, not what they are worth.
 
 ### 5.2 Paired comparison, study one
 
