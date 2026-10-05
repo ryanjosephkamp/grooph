@@ -22,10 +22,10 @@ import { along, shownAt, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
 /** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean; blocks?: boolean }> = {
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean; rounds?: boolean; blocks?: boolean }> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or box nested round it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving one." },
   spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: true, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
-  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: true, says: "Each loop is a ring, with its own nodes round it in the order of a round. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. The way back from the last node is the rest of the ring." },
+  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: true, rounds: true, says: "Each loop is a ring, with its own nodes round it in the order of a first pass. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. A way back from a loop's last node to its first is the rest of the ring." },
   columns: { view: columns, start: { yaw: -0.18, pitch: 0.44 }, as: "columns", apart: true, blocks: true, says: "Every node stands where the picture has it. On a template an agent's column is taller for a higher model tier, frontier over strong over fast: an order, not a price. On a run a column is a block for each dispatch, as tall as the minutes between the notes' stamps." },
 };
 
@@ -163,6 +163,20 @@ export function Stage3({ doc, kind, wide, of }: { doc: Graph; kind: string; wide
               <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {brakes(loop, topOf(model, loop)).words.join("; ")}
             </li>
           ))}
+        </ul>
+      ) : null}
+      {the.rounds && model.run && model.loops.length ? (
+        // The round the run is in, loop by loop, as far as the slider has come: in the drawing it is beside each
+        // ring, where a card can stand over it.
+        <ul className="s3-key" aria-label="The round the run is in, loop by loop">
+          {model.loops.map((loop, n) => {
+            const now = shownAt(model, steps, k).until?.[loop.id];
+            return (
+              <li key={loop.id}>
+                <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {now ? `round ${Math.floor(now.now)}` : "not entered"}
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {the.blocks && model.run ? (

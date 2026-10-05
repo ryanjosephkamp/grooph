@@ -88,12 +88,14 @@ export const columns: View = (m, shown) => {
   const paths: Record<Id, V[]> = {};
   const side = (id: Id): V => [foot[id]![0] - 42, 1, foot[id]![2]];
   const taken = (id: Id): boolean => shown.took.some((x) => x.edge === id && (shown.k === 0 || x.step <= shown.k));
-  for (const e of m.edges) {
+  m.edges.forEach((e, k) => {
     const [p, q] = [side(e.from), side(e.to)];
-    const bow = 34 + Math.abs(p[2] - q[2]) * 0.16;
-    paths[e.id] = e.back ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] - bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp(p, q, n / 18))) : [p, q];
+    // A second edge between the same two nodes bows out past the first: neither lies under the other.
+    const twin = m.edges.slice(0, k).filter((x) => (x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from)).length;
+    const bow = (e.back ? 34 + Math.abs(p[2] - q[2]) * 0.16 : 0) + 18 * twin;
+    paths[e.id] = bow ? Array.from({ length: 19 }, (_, n) => ((v: V): V => [v[0] - bow * 4 * (n / 18) * (1 - n / 18), v[1], v[2]])(lerp(p, q, n / 18))) : [p, q];
     prims.push(edgeLine(m, e, paths[e.id]!, m.run && !taken(e.id) ? { alpha: 0.3 } : {}));
-  }
+  });
   for (const p of prims) if (p.t !== "card") p.grow = true;
   return { prims, node: side, path: (e) => paths[e]! };
 };

@@ -1059,9 +1059,23 @@ test("the picture becomes the rings and the spiral becomes the rings; on a run's
   await view(page, "3D").click();
   await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
   await viewIsStill(page);
+  // The round the run is in, loop by loop, in words under the rings, as far as the slider has come.
+  const rounds = page.getByRole("list", { name: "The round the run is in, loop by loop" }).getByRole("listitem");
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("1");
+  await expect(rounds).toHaveText(["Grind not entered", "Phases not entered"]);
+  await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("6");
+  await expect(rounds).toHaveText(["Grind round 1", "Phases round 0"]);
   await page.getByRole("slider", { name: "Note, in the order the run wrote them" }).fill("10");
   await expect(says(page)).toHaveText("Note 10 of 13: Builder: pass · round 0");
+  await expect(rounds).toHaveText(["Grind round 0", "Phases round 1"]);
   await expect(page.locator(".s3-card.is-lit")).toHaveAttribute("data-node", "builder");
+  // A template has no run, and no such list.
+  await page.goto("./#/templates/built-in/review-gate");
+  await canvasIsQuiet(page);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await view(page, "3D").click();
+  await expect(page.locator('.s3[data-kind="rings"] .s3-frame')).toBeVisible();
+  await expect(page.getByRole("list", { name: "The round the run is in, loop by loop" })).toHaveCount(0);
 });
 
 test("columns: every node a card at the foot of its column, no card over another on any built-in template at a phone's size; on a run each column's blocks are said in words as far as the slider has come", async ({ page }) => {
