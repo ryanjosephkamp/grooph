@@ -6,6 +6,8 @@
 
 `blocked` — four of the five items are done: item 1 is merged and the other three are four open pull requests; item 4 (the same operations as MCP tools) waits for #60, as the handoff says it must, and nothing else is owed.
 
+**Amended 2026-10-05, at the pause.** The stack is merged (#77 to #80), and so is everything that followed it up to the readers' scripts (#121). What a second day added, where each pull request stands, what is left open on purpose, item 4's next step and what a later session must not undo are in one section near the end: "2026-10-05: after the slice". The status word stays `blocked`, on item 4 alone, and item 4 is parked past the pause by the driver's word: #60 does not reach main before the release itself.
+
 **Amended 2026-10-04, late, after the driver's review.** Three things changed after this was first written, and the sections below are brought up to date where they are marked "amended":
 
 - **#79 was reworked** at the driver's word: the glue every canvas address carried was too heavy. It is 0.48 KB of the canvas line now, where it was 1.40. A closed box no longer drags.
@@ -196,10 +198,68 @@ Written 2026-10-04, after the merge, for the second harness that reads the compa
 5. **A loop or a policy under another id, nothing else changed, is refused** as a loop or a policy removed (the reader's honest changes: 148 of 148 and 103 of 106), and a template's step renamed inside a loop of the graph's own is refused as that loop left a shell. It is on the safe side and costs an `--allow`. Is that the right price, or should two ids with the same contents be read as one thing?
 6. **A loop emptied without removing anything is not held**: its old steps kept, their briefs and commands reduced to nothing, and the work done by new steps under a second loop with a cap of 1000. It is the sum of two stated limits (a brief; a new loop beside an old one). A second reader, given the rules written in answer to the first, also got three more working copies through, now closed and tested: a loop left as a shell with its work under other names, an approval gone around by a stop that leads on, and another loop's back edge moved to join two of the loop's nodes. So five readers have each found something. That is the strongest reason for a second harness to read the file.
 
+**Added 2026-10-05, with the check kind (#132; amendment A-019).** One more question, and three observations the driver sends to round two as they are ("2026-10-05: after the slice" below has each in a line, lettered as here).
+
+7. **Is a bar anybody's word?** (e) Adding a bar reads as a tightening, so a second loop with a looser bar over the members of a loop a critic judges, and a bar given to a loop a critic and a check both judged and that had none, are adopted. Where a check alone judged the loop, the same is held since #132. Should a bar be held to who judges it?
+
+Observations: (b) the second asking of a verdict, without the brakes that fired before, is made for a check and not for a critic; (c) the edge into a check made conditional is adopted, and the check then never runs; (d) a subgrooph group's value for a check's command is taken by adoption and held only at the next refresh.
+
 **A sentence of mine that was wrong, corrected in place.** #77's description said of the second reader's fuzzer that it "now reports no brake lost over eight seeds". On merged main it prints items 2 and 3 above. I believe the sentence was true after the second round and stopped being so when the third round narrowed what a loss is laid at; I repeated it without running the script again. The description carries the correction, dated. The third reader's figure stands as I read it again on merged main: no loss in the written graph with nothing allowed, 0 of 2,719 refreshes for the seed I ran.
+
+## 2026-10-05: after the slice
+
+Written at the pause the owner asked for, for the session that takes this up next. Heads and states are as I read them at about 17:30 ET; read each pull request's own page before leaning on one.
+
+### What merged, and what is open
+
+| what | pull request | state |
+|---|---|---|
+| Items 2, 3a, 3b and 5 of this slice | #77, #78, #79, #80 | merged (`11070a7`, `dec4b67`, `6e6dc6b`, `89c6637`) |
+| This handback, amended; the entry rule sees a stop's `then`; the subgrooph test no longer races a double tap | #85, #88, #91 | merged |
+| `grooph adopt` refuses a working copy that loosens a brake, by the comparison a refresh uses | #114 | merged (`30b59d0`) |
+| The audit's corrections 17 and 22 | #108 | merged |
+| The app's Adopt button makes the same comparison | #117 | merged (`8427c0b`) |
+| The five readers' scripts, for round two of the audit | #121 | merged (`cdcec1c`) |
+| **A check is a brake** (amendment A-019), for `grooph adopt`, `grooph sub update` and the app's button; the amendment's row reworded in it at the driver's ruling; three more readers' scripts beside the others | [ryanjosephkamp/grooph#132](https://github.com/ryanjosephkamp/grooph/pull/132) | open, head `7b9b9ca`. The driver's reader has it; the driver merges on a clean read and green jobs |
+| `E_IRREVERSIBLE_NO_GATE` holds for a step the run starts at | [ryanjosephkamp/grooph#133](https://github.com/ryanjosephkamp/grooph/pull/133) | open, head `8ac4eba`, read by the driver and queued to merge. Nothing more is pushed to it without telling the driver |
+| The tool's own words say what decision 0029 allows | [ryanjosephkamp/grooph#135](https://github.com/ryanjosephkamp/grooph/pull/135) | open, head `37334e7`, queued behind #133 |
+| "Apply to a copy" says which brakes the copy loosens | [ryanjosephkamp/grooph#136](https://github.com/ryanjosephkamp/grooph/pull/136) | open, head `727295f`. The driver's reader has it; it changes what a person sees, so it is shown to the owner |
+
+The four open ones merge together with no conflict in any order, and #60's head merges on top of them with none (trial-merged 2026-10-05; core 492 and CLI 136 tests pass on the four as one). **One line is owed after the first of #132 and #136 merges**: `docs/runs.md` section 5 ends "'Apply to a copy' on a proposal is not checked … The page does not yet say which proposals loosen a brake", which #136 makes false. The sentence is on the long line #132 edits, so it is corrected on whichever of the two merges second, after main is merged into it.
+
+GitHub was slow to give out machines that afternoon: when this was written, two jobs of #133 had passed and every other job of the four was still queued. **CI's budget lines for #132 were not yet read.** On this Mac they are 160.59 of 164 (first load), 258.00 of 262 (canvas), 279.04 of 280 (a template's own address) and 127.90 of 132 (embed); #136 adds about 0.05 KB to the canvas and template lines. CI has read 0.2 to 0.45 KB above this Mac, so the template line is the one to look at, and with #132 and #136 both in it has about half a KB of room.
+
+### What the check kind leaves open, on purpose
+
+Each was run once before it was written, and each is listed where a person adopting a run reads it (`docs/runs.md` section 5, "What adoption does not hold") and under a subgrooph's refresh (`docs/templates.md`, "That list is not everything"). The letters are the ones the driver and I used.
+
+- **a.** A round cap that leads on, lowered, or another brake given to the loop that leads to the same place, is told as a tightening, though the run then comes sooner to where the cap leads. A-008 calls it one. It is all that the second check reader's fuzzer still gets through (8 of 3,110 and 7 of 3,165).
+- **b.** The second asking is made for a check and not for a critic: where a critic's loop has a cap that leads on, an edge from the builder straight to where it leads is adopted. An observation for round two.
+- **c.** The edge into a check made conditional, so that the check never runs and nothing leads on: adopted. Nothing is reached that was not. An observation for round two.
+- **d.** A value a subgrooph's group holds for a check's command, changed in a working copy: adoption takes it and the next refresh holds the check. An observation for round two.
+- **e.** A gap in the bar's rule from A-008, older than this change: a second loop with a looser bar over the members of a loop a critic judges (where that loop holds no check), and a bar given to a loop that a critic and a check both judged and that had none, are adopted. **A slice for after the pause, and a question for the audit; not started, by the driver's word.**
+- **f.** A new stop that asks a person and leads back upstream: question 4 below, ruled on already (noted by name, not held).
+- **g.** `grooph export <graph> --into <dir>` over a package in place compares nothing: a cap of 5 exported there again as 50 exits 0 with no word. A-019's row names its doors and this is not one. Whether it becomes one is on the owner's desk.
+
+Three readers got seven ways through the check kind's earlier versions (three, three and one); each is closed and a test in `packages/core/test/adoption.test.ts`, and their scripts are in `experiments/audits/0001-claims-as-of-0-3-0/round-02/brakes-probes/check-reader-1` to `3`. That is eight readers on this comparison, each of whom found something. I do not read that as done. The next reader should be another harness.
+
+### Item 4, parked: its next step
+
+**Start when #60 is on main, not before** (it is where the tools live, and it is still moving). Then, on a branch from main, opened as a draft pull request first: add four tools to `AUTHOR_TOOLS` in `packages/cli/src/mcp-author.ts`, beside the nine there, one for each of `subAdd`, `subList`, `subUpdate` and `subExtract` in `packages/cli/src/commands/sub.ts`, calling core's `placeSubgrooph`, `refreshSubgrooph` and the extract function directly as the commands do, and never the command line. Every reply is built with `reply()` from `packages/cli/src/reply.ts` (a line opens with one of the tool's own labels, and anything from a document, a template or an argument rides after it as a JSON string), and every argument of the four goes into `packages/cli/test/reply-lines.test.ts`, which holds that with strings drawn from all of Unicode. The update tool takes `allow` as the command does and holds a loosened brake until it is named; `grooph_export` on that branch already calls `checkAdoption`, so read how it words a refusal and use the same lines. Three of the four can write a file (add and update with a write, extract into a registry): they go through `save` in `mcp-author.ts` and `pathArg` from `place.ts`, as the nine do, so that nothing is written outside the project folder, and they want a fresh reader before the pull request is marked ready, given the diff and asked what a tool can be made to write, and where. About 250 to 300 lines and most of a working day, the reader included.
+
+### What a later session must not undo
+
+- **The exception for an edge that leaves a check is two cases told from the two documents** (`onlyTightens` in `packages/core/src/brakes.ts`): an approval newly asked on an edge that was already there, and evidence added to what it hands a critic the graph had there, with none taken away. Do not widen it to "whatever the comparison would call a tightening", and do not tell it by running the comparison backwards: both were built, and both let failing tests end in success. A-019's row carries the dated correction.
+- **A loop's stop on "bar passed" is not its check's verdict** (`waysOf` in `reach.ts`), and a bar or such a stop given to a loop that a check judges is held (`checkLoopLosses`), with a critic counting only if the loop had it among its members and it is a critic still.
+- **A check's verdict is asked a second time without the brakes that fired before** (`firingKey`, taken from the first of the two graphs). Shutting every brake that fires, the new ones too, hid a new budget that led straight to the end.
+- **`startsOf` in `reach.ts` keeps the older, wider start rule on purpose** (question 1 below). The validator's entry rule is `entryNodeIds`, and since #133 the irreversible rule asks it.
+- **`printed/` in the probes folder is a record**: of `30b59d0` for the first five readers, of `0009ee8` for `check-reader-1` to `3`. `run-all.sh` writes over it, which is how a later run shows what moved; do not commit that over the record without saying which commit it is.
+- **The test that counts seven templates judged by a check alone and two checks in no loop** fails when a template is added that changes either number. That is meant: put the new template through the three probes and change the number knowingly.
+- **The game experiment is frozen**: `experiments/game/setup/make-repo.sh --out <a folder outside the clone>` prints tree `3238a9052ce7765c79990029bbff6bccd88628bf` on every head above, and the two hook scripts under `packages/cli/hooks/` are not edited until both game repositories have their first commit.
+- **The words that decision 0029 allows**: the lead "is told never to loosen a brake", and `grooph adopt` "compares a run's copy with the graph it came from and holds a change it reads as loosening until that change is asked for by name". Nothing says a brake has been shown to stop a run.
 
 ## Prompt to paste into the driver session
 
 ```text
-The handback for slice 0085 (handoffs/0085-subgroophs/HANDBACK.md, on main) is amended on branch slice/0085-handback-amended. Status: blocked on item 4 only (the MCP tools wait for #60). #72 (item 1) and #83 (the irreversible rule follows a stop's then) are merged. Open, in the order they merge, each the owner's: #77, #78, then #79 and #80 (both on #78). Every one has main merged in. #79 was reworked: its glue is 0.48 KB of the canvas line where it was 1.40. With all of it merged CI reads first load 179.65 of 180 and canvas 278.22 of 280. Still to scope: the entry rule does not see a stop's then. Please reconcile with the grooph-reconcile skill.
+The handback for slice 0085 (handoffs/0085-subgroophs/HANDBACK.md) is amended at the pause on branch docs/handback-0085-the-check-kind: read its section "2026-10-05: after the slice". Status: blocked on item 4 only, and item 4 (subgroophs as MCP tools) is parked past the pause with its next step written there in one paragraph. Merged since the stack: #85, #88, #91, #108, #114, #117, #121. Open, each with its head in the handback: #132 (a check is a brake, amendment A-019, with the amendment's row reworded in it), #133 (the irreversible rule holds for a step the run starts at), #135 (the tool's own words), #136 (Apply to a copy says which brakes the copy loosens). The four merge together cleanly in any order. Owed after the first of #132 and #136 merges: one sentence at the end of docs/runs.md section 5, corrected on the other. CI's budget lines for #132 were not read when this was written; the template's own address is the tight line. What the check kind leaves open (a to g), and what a later session must not undo, are in the same section. Please reconcile with the grooph-reconcile skill.
 ```
