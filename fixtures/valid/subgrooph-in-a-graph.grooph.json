@@ -1,0 +1,245 @@
+{
+  "grooph": 0,
+  "id": "plan-review-release",
+  "name": "Plan, review, release",
+  "version": 1,
+  "goal": "Ship the checkout flow behind a review gate.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "description": "A planner, then the built-in review gate placed as a unit (a subgrooph, amendment A-018), then a release step. The gate's own stop is gone: its approval leads on to the release.",
+  "nodes": [
+    {
+      "id": "plan",
+      "kind": "agent",
+      "name": "Planner",
+      "role": "planner",
+      "brief": "Planner: split the checkout flow into steps and write them to PLAN.md.",
+      "outputs": [
+        "PLAN.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "release",
+      "kind": "agent",
+      "name": "Release",
+      "role": "builder",
+      "brief": "Release: write the release notes for what was merged to RELEASE.md.",
+      "outputs": [
+        "RELEASE.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    },
+    {
+      "id": "review-builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Do the task in the code, with tests. On a later round, read REVIEW.md first and address each finding, or say why it does not apply. Run the test command before you report, and do not review your own work beyond that.",
+      "inputs": [
+        "the task",
+        "docs/checklist.md",
+        "REVIEW.md (from round 1 on)"
+      ],
+      "outputs": [
+        "the change, with tests",
+        "CHANGES.md: what changed this round and which findings it addresses"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "review-critic",
+      "kind": "agent",
+      "name": "Critic",
+      "role": "critic",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "high",
+      "brief": "Judge the change against the checklist, one line per item, citing the file and line that satisfies it or saying it is unmet; use the repository only to understand what the change touches. Run the test command yourself rather than trusting a report; you judge, you do not fix. Verdict pass only when every item holds and the tests pass; invalid-evidence when the diff or checklist cannot be read.",
+      "inputs": [
+        "diff of the change",
+        "the repository as the change leaves it, read-only",
+        "docs/checklist.md"
+      ],
+      "outputs": [
+        "REVIEW.md: one line per checklist item and a verdict line",
+        "verdict: pass | fail | invalid-evidence"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs",
+        "run-tests"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "review-merge-gate",
+      "kind": "human-gate",
+      "name": "Merge approval",
+      "prompt": "The critic passed the change against the checklist. Merge it?",
+      "options": [
+        "approve",
+        "reject with feedback"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-plan-review-builder",
+      "from": "plan",
+      "to": "review-builder"
+    },
+    {
+      "id": "e-release-done",
+      "from": "release",
+      "to": "done"
+    },
+    {
+      "id": "e-review-builder-review-critic",
+      "from": "review-builder",
+      "to": "review-critic",
+      "evidence": [
+        "diff of the change",
+        "the repository as the change leaves it, read-only",
+        "output of pnpm test",
+        "docs/checklist.md"
+      ]
+    },
+    {
+      "id": "review-e-critic-fail",
+      "from": "review-critic",
+      "to": "review-builder",
+      "when": "fail",
+      "evidence": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "review-e-critic-pass",
+      "from": "review-critic",
+      "to": "review-merge-gate",
+      "when": "pass"
+    },
+    {
+      "id": "review-e-merge-gate-reject",
+      "from": "review-merge-gate",
+      "to": "review-builder",
+      "when": "fail",
+      "evidence": [
+        "the human's feedback"
+      ]
+    },
+    {
+      "id": "e-review-merge-gate-release",
+      "from": "review-merge-gate",
+      "to": "release",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "review-review",
+      "name": "Review",
+      "members": [
+        "review-builder",
+        "review-critic",
+        "review-merge-gate"
+      ],
+      "back": [
+        "review-e-critic-fail",
+        "review-e-merge-gate-reject"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Review checklist",
+        "inspects": [
+          {
+            "kind": "checklist",
+            "ref": "docs/checklist.md"
+          },
+          {
+            "kind": "artifact",
+            "ref": "output of pnpm test"
+          }
+        ],
+        "acceptance": "Every checklist item is cited as satisfied with a file and line, and `pnpm test` exits 0."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 4
+        },
+        {
+          "kind": "budget",
+          "measure": "dispatches",
+          "limit": 10
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "review-p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    },
+    {
+      "id": "review-p-no-self-grading",
+      "kind": "no-self-grading",
+      "scope": "graph"
+    }
+  ],
+  "groups": [
+    {
+      "id": "review",
+      "name": "Review gate",
+      "members": [
+        "review-builder",
+        "review-critic",
+        "review-merge-gate"
+      ],
+      "description": "A builder, an isolated critic and a person who approves the merge.",
+      "from": "review-gate@1",
+      "with": {
+        "checklist": "docs/checklist.md",
+        "task": "the checkout flow",
+        "test-command": "pnpm test"
+      }
+    },
+    {
+      "id": "delivery",
+      "name": "Review and release",
+      "members": [
+        "review",
+        "release"
+      ]
+    }
+  ]
+}

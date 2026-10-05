@@ -210,6 +210,9 @@ Refuses, with the reasons, when the document has errors. Targets: claude-code, c
                                 GROOPH_MODELS in the environment says the same for every export
                                 on a machine; the flag wins over it. The graph does not change.
 
+The target's own tiers, for claude-code: frontier → opus, strong → sonnet, fast → sonnet. Two of them are one model, so a critic
+on one over a builder on the other is the same model: the export says so when a graph has agents on both.
+
 Example
   grooph export flaky.grooph.json --target claude-code --into .
   grooph export flaky.grooph.json --target codex --into .

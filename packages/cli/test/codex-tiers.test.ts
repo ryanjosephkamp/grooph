@@ -33,7 +33,7 @@ function exportGraph({ sameTier = false, pin = false, models }: { sameTier?: boo
 
 test("default Codex export notes when two used tiers resolve to Luna", () => {
   const output = exportGraph();
-  assert.match(output, /note: strong and fast are both gpt-6-luna in this package, and this graph has agents on each/);
+  assert.match(output, /note: strong and fast are both gpt-6-luna in this package, by the target's own map, and this graph has agents on each/);
   assert.match(output, /the validator's check for that reads tiers and does not see it/);
 });
 

@@ -1,0 +1,78 @@
+{
+  "grooph": 0,
+  "id": "groups-in-a-ring",
+  "name": "Groups in a ring",
+  "version": 1,
+  "goal": "Fix the failing test.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "builder",
+      "kind": "agent",
+      "name": "Builder",
+      "role": "builder",
+      "brief": "Builder: make the failing test pass.",
+      "outputs": [
+        "src/"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ]
+    },
+    {
+      "id": "writer",
+      "kind": "agent",
+      "name": "Writer",
+      "role": "builder",
+      "brief": "Writer: note what changed in CHANGELOG.md.",
+      "outputs": [
+        "CHANGELOG.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-build-write",
+      "from": "builder",
+      "to": "writer"
+    },
+    {
+      "id": "e-write-done",
+      "from": "writer",
+      "to": "done"
+    }
+  ],
+  "loops": [],
+  "groups": [
+    {
+      "id": "fix",
+      "name": "Fix",
+      "members": [
+        "builder",
+        "notes"
+      ]
+    },
+    {
+      "id": "notes",
+      "name": "Notes",
+      "members": [
+        "writer",
+        "fix"
+      ]
+    }
+  ]
+}

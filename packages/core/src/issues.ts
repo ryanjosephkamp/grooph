@@ -9,6 +9,8 @@ export type IssueCode =
   | "E_DUPLICATE_ID"
   | "E_DANGLING_REF"
   | "E_LOOP_BACK_EDGE"
+  | "E_GROUP_CYCLE"
+  | "E_SECOND_LEAD"
   // spec §12 hard errors
   | "E_CYCLE_NO_STOP"
   | "E_JUDGMENT_LOOP_NO_BAR"
@@ -30,6 +32,7 @@ export type IssueCode =
   | "W_UNREACHABLE_NODE"
   | "W_NO_TERMINAL"
   | "W_OUTPUT_NOT_WRITABLE"
+  | "W_GROUP_OVERLAP"
   | "W_UNKNOWN_KEY"
   | "W_DOC_TOO_LARGE";
 
@@ -47,6 +50,8 @@ export const IMPLEMENTED_CODES = [
   "E_DUPLICATE_ID",
   "E_DANGLING_REF",
   "E_LOOP_BACK_EDGE",
+  "E_GROUP_CYCLE",
+  "E_SECOND_LEAD",
   "E_CYCLE_NO_STOP",
   "E_JUDGMENT_LOOP_NO_BAR",
   "E_STOP_NOT_INSPECTABLE",
@@ -65,6 +70,7 @@ export const IMPLEMENTED_CODES = [
   "W_UNREACHABLE_NODE",
   "W_NO_TERMINAL",
   "W_OUTPUT_NOT_WRITABLE",
+  "W_GROUP_OVERLAP",
   "W_UNKNOWN_KEY",
   "W_DOC_TOO_LARGE",
 ] as const satisfies readonly IssueCode[];
