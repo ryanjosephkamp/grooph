@@ -168,6 +168,16 @@ Both targets write `.grooph/<graph-id>/graph.grooph.json`, `LEAD.md`, `MAPPING.m
 
 **Verified at this head:** core 512, CLI 140, web 111; the runner's tests 8 of 8; browser tests on port 4367, 295 passed and 164 skipped; every generator's `--check`; `git diff origin/main -- fixtures/golden/claude-code` empty; `make-repo.sh` prints the tree `3238a9052ce7765c79990029bbff6bccd88628bf`. **The budget on this Mac:** first load 160.75 of 164, a template's address 279.14 of 280 (`main` here: 160.59 and 279.04). The pin rule is in the validator, which every address loads: it costs about 0.04 KB. On CI the last head read 160.97 and 279.52 against `main`'s 160.85 and 279.45; this head's lines are in a comment on the pull request.
 
+### The stack's budget, and the profiles out of the first load (commit `3a3d24a`)
+
+The driver had me merge the heads of seven open pull requests onto `main` in a scratch copy and run the budget: a template's own address read 279.57 of 280 on this Mac, about 279.98 by CI's figure. It ruled three things.
+
+1. **Done here:** every address carries a compile target's id and title (`packages/core/src/targets/names.ts`), and the profiles come with the compiler (`targets/index.ts`). `packages/core/test/targets.test.ts` holds the names to the profile files, holds `base.ts` to reaching no profile, and exports for each target at every tier and effort to see its whole profile; the browser test of the harness choice reads both titles. On this Mac, after a fourth merge of `main` (`ac97b14`): the first load 160.56 of 164 (`main`: 160.79), a template's own address 279.14 of 280 (`main`: 279.39). So this pull request now takes about a quarter of a kilobyte off `main`'s lines where it added an eighth.
+2. **Next, its own pull request:** the one-file page's builder (`packages/core/src/offline.ts`, about 2.6 KB of the shared chunk by its source map) behind an on-demand piece, fetched when a person presses "Keep a copy".
+3. **For after the pause, one line:** reading a run (`packages/core/src/runs.ts`, about 4.1 KB of the shared chunk by its source map) is carried by every address and needed by a run's page only.
+
+**#60 and this pull request do not merge cleanly** (`packages/cli/src/commands/export.ts`, `help.ts`, `docs/cli.md`, `apps/web/test/export.test.ts`). This one goes first; what must survive the other's merge is in this pull request's description.
+
 ### Prompt to paste into the driver session
 
 ```text
