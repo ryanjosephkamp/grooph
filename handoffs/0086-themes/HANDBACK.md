@@ -1,6 +1,6 @@
 # Handback 0086 · Themes for a picture, and a switch
 
-**Implementer:** Opus 5.5 (a lane) · **Branch:** `slice/0086-themes` · **Head commit:** the one after `1a014fd`, which holds this file (the prompt at the end names it) · **Date:** 2026-10-04
+**Implementer:** Opus 5.5 (a lane) · **Branch:** `slice/0086-themes` · **Head commit:** the second after `1a014fd`: the two after it hold only this file (the prompt at the end names the head) · **Date:** 2026-10-04
 
 This is the second handback. The first had the switch and the kept choice in the app's first load, 1.19 KB of it, and the driver sent it back on the brief's first limit. The slice was made again so that the first load holds one menu entry and nothing else, and read a second time by a fresh reader.
 
@@ -8,8 +8,8 @@ This is the second handback. The first had the switch and the kept choice in the
 
 `done`. Read before merging:
 
-1. **The app's first load is 0.08 KB over `main`'s**, on this Mac and on CI (The budget). What is left in it is one entry in the header's theme menu and the piece's name in the page. Nothing was raised.
-2. **An address that draws on the canvas loads 1.16 KB more** (278.15 of 280 here). That is not the front page's line, and it is what offering the choice on the canvas takes: the dot on three screens, the button in Keep a copy, and the few lines that fetch the themes when one is wanted. The themes themselves are not in it. If that room is wanted, say which of the dot and Keep a copy's button to give up.
+1. **The app's first load is 0.07 KB over `main`'s on CI** (179.27 to 179.34 of 180), and 0.08 on this Mac (The budget). What is left in it is one entry in the header's theme menu and the piece's name in the page. Nothing was raised.
+2. **An address that draws on the canvas loads 1.12 KB more on CI** (277.42 to 278.54 of 280). That is not the front page's line, and it is what offering the choice on the canvas takes: the dot on three screens, the button in Keep a copy, and the few lines that fetch the themes when one is wanted. The themes themselves are not in it. If that room is wanted, say which of the dot and Keep a copy's button to give up.
 3. **Four places are outside the allowed list**, each small (Deviations 1).
 4. **Phosphor has one form**, the device's own faces for Ink and Chalk, and a PNG from the CLI has part of a theme's look: as the driver read them, unchanged (Deviations 2 and 4).
 5. **Paper has pairs of words under 4.5 to 1** (3.90 at the least). They are `main`'s and were left (Deviations 3).
@@ -68,19 +68,19 @@ The header's own theme menu (slice 0077) did not make this hard. It gained one `
 
 `node scripts/perf-budget.mjs`, gzip KB.
 
-**On CI** (the `build` job's log; `main` at `11070a7`, run 37249844174; this branch at `1a014fd`, run CI_RUN):
+**On CI** (the `build` job's log; `main` at `11070a7`, run 37249844174; this branch at `1a014fd`, run 37250280288; both of its build jobs print the same lines):
 
 | | `main` | this branch | more | limit |
 |---|---|---|---|---|
-| the app's first load | 179.27 | CI_FIRST | CI_FIRST_D | 180 |
-| of which scripts | 157.87 | CI_SCRIPTS | CI_SCRIPTS_D | 162 |
-| of which styles | 19.89 | CI_STYLES | CI_STYLES_D | 20 |
-| the fonts a first visit fetches | 40.69 | CI_FONTS | CI_FONTS_D | 42 |
-| a first visit to the front page in all | 221.28 | CI_VISIT | CI_VISIT_D | 224 |
-| an address that draws on the canvas | 277.42 | CI_CANVAS | CI_CANVAS_D | 280 |
-| an embed's first load | 127.16 | CI_EMBED | CI_EMBED_D | 132 |
-| a map in three dimensions | 8.13 | CI_SPACE | CI_SPACE_D | 9 |
-| the themes' piece, loaded later | | CI_PIECE | | |
+| the app's first load | 179.27 | 179.34 | 0.07 | 180 |
+| of which scripts | 157.87 | 157.93 | 0.06 | 162 |
+| of which styles | 19.89 | 19.89 | 0 | 20 |
+| the fonts a first visit fetches | 40.69 | 40.69 | 0 | 42 |
+| a first visit to the front page in all | 221.28 | 221.35 | 0.07 | 224 |
+| an address that draws on the canvas | 277.42 | 278.54 | 1.12 | 280 |
+| an embed's first load | 127.16 | 127.45 | 0.29 | 132 |
+| a map in three dimensions | 8.13 | 8.13 | 0 | 9 |
+| the themes' piece, loaded later | | 6.62 | | |
 
 **On this Mac**, both built side by side (`main` at `bd6b446`; #77, which came after, does not change the app):
 
@@ -262,7 +262,7 @@ It also checked, and found right: that the first load holds nothing of the theme
 2. **Phosphor has one form.** The brief: "each theme in light and dark". The sketch the owner approved: "T4 has one form and stays dark". Asked for light, it is the same picture.
 3. **Paper is under 4.5 to 1 in seven pairs**, and was not changed, because the brief also says it stays byte for byte. In light: `gate` on the page, 4.22; `loop-1` on the page, 4.43; `gate` on `gate-soft`, 4.14; and in a picked line of the map screen's list, `gate` 3.90 and `loop-1` 4.09. In dark, in a picked line: `merge` 4.37 and `loop-3` 4.38. `docs/themes.md` says so, and the test lists them.
 4. **A PNG from the CLI in a theme is not the whole look.** Its renderer knows colors, line weights, lettering, grounds and Chalk's wobble, and not the rules for corners, capitals, Transit's larger arrowheads and its route color. The SVG has all of them, and so has the PNG from Keep a copy.
-5. **"No first-load cost" is 0.08 KB, not none.** A menu entry cannot weigh nothing. The driver's target was within about 0.15.
+5. **"No first-load cost" is 0.07 KB on CI, not none.** A menu entry cannot weigh nothing. The driver's target was within about 0.15.
 6. **`docs/releases.md` has no entry.** It is not on the allowed list.
 
 ## Risks and leftovers
@@ -281,5 +281,5 @@ It also checked, and found right: that the first load holds nothing of the theme
 ## Prompt to paste into the driver session
 
 ```text
-Handback for slice 0086 is at handoffs/0086-themes/HANDBACK.md on branch slice/0086-themes (head: the commit that holds this file, after 1a014fd). Status: done. The app's first load is 0.08 KB over main's; the lines, CI's and this Mac's, are under "The budget". Please reconcile with the grooph-reconcile skill.
+Handback for slice 0086 is at handoffs/0086-themes/HANDBACK.md on branch slice/0086-themes (head: the second commit after 1a014fd; the two hold only this file). Status: done. On CI the app's first load is 179.34 against main's 179.27 (0.07 KB more), and the canvas's 278.54 against 277.42; every line, CI's and this Mac's, is under "The budget". Please reconcile with the grooph-reconcile skill.
 ```
