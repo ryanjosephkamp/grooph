@@ -1,0 +1,112 @@
+# 7 · Adopting a run
+
+[Start page](README.md) · previous: [a run](06-a-run.md) · next: [subgroophs](08-subgroophs.md)
+
+Chapter 2 said a graph is **adaptive** by default: when the work shows the plan is wrong, the lead may change its own copy of the plan, and must write down each change. Chapter 6 said every run works from a **working copy** and never touches the original.
+
+So after a run there may be two versions of the graph: the **source** you started with, and the working copy the run ended with. **Adopting** is the act of taking the working copy as the graph's next version. The other choice is to discard it. Either way a person decides. Nothing a run learned is applied by itself.
+
+This chapter uses the same kept record as chapter 6, copied into a scratch folder.
+
+## Looking at what a run changed
+
+Without `--write`, `grooph adopt` only reports.
+
+```bash
+grooph adopt .grooph/truncate/runs/20260920-172408
+```
+
+```text
+Run 20260920-172408 · Truncate: what it changed in its working copy
+  none: the working copy is the source (layout and notes aside)
+
+version 2 of truncate, from truncate@1 and run 20260920-172408, would go to .grooph/graphs/truncate.grooph.json
+dry run: --write writes it; the source stays as it is
+```
+
+This run changed nothing in its graph. With `--write`, the working copy would become **version 2**, in a new file. The source file is never written.
+
+## The rule: tighten, never loosen
+
+Recall the list of **brakes** from chapter 1: human gates, approvals, irreversible markers, round caps and budgets, a bar's acceptance, critic isolation, the adaptation level, and checks. The rule for a run is that it **may tighten a brake and may never loosen one**. Lowering a round cap is tightening. Raising one, or removing a gate, is loosening.
+
+To see what happens, we change one number in the working copy's file by hand, as a run might have, and run the same command again.
+
+**A cap lowered from 4 to 3:**
+
+```text
+Run 20260920-172408 · Truncate: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of truncate, from truncate@1 and run 20260920-172408, would go to .grooph/graphs/truncate.grooph.json
+
+tightens a brake, and is adopted with the rest:
+  loop:review.stops  undoing it: raises the round cap from 3 to 4
+dry run: --write writes it; the source stays as it is
+```
+
+A tightening is accepted and pointed out. Notice also "no amendment note explains this": the command saw a change with no note to account for it, because we made it by hand.
+
+**A cap raised from 4 to 40**, asked to write:
+
+```bash
+grooph adopt .grooph/truncate/runs/20260920-172408 --write
+```
+
+```text
+Run 20260920-172408 · Truncate: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of truncate, from truncate@1 and run 20260920-172408, would go to .grooph/graphs/truncate.grooph.json
+
+loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review.stops
+  loop:review.stops  raises the round cap from 4 to 40
+  all of them, on purpose: grooph adopt .grooph/truncate/runs/20260920-172408 --write --allow loop:review.stops
+grooph: not written: the working copy loosens a brake the graph has (loop:review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+```
+
+**Not written.** The command names the change (`loop:review.stops`), says why it counts as loosening, and refuses.
+
+**The same change, asked for by name:**
+
+```bash
+grooph adopt .grooph/truncate/runs/20260920-172408 --allow loop:review.stops --write
+```
+
+```text
+loosens a brake, and is adopted because it was asked for:
+  loop:review.stops  raises the round cap from 4 to 40   (asked for by name)
+wrote .grooph/graphs/truncate.grooph.json (version 2); the source .grooph/truncate/graph.grooph.json is unchanged
+place it for the next run with: grooph export .grooph/graphs/truncate.grooph.json --target claude-code --into <project>
+```
+
+(The first four lines, which repeat, are left out.) A person who really wants a looser brake can have it. They have to say which one.
+
+The app's run page has an **Adopt** button that makes the same comparison. When a brake is loosened it saves nothing and shows the changes by name, with the command above to copy. There is no way to say yes to a loosened brake inside the app.
+
+## What this does and does not protect
+
+This is the one place in grooph that refuses anything about a brake after a graph has been written, so it is worth being exact about it. It is also new: it dates from 5 October 2026, after the project's own audit found that adoption refused nothing ([chapter 14](14-claims-and-the-audit.md)).
+
+- **It happens after a run, not during one.** While a session is running, "never loosen a brake" is a sentence in the lead's brief and nothing checks it. If a lead raised its own round cap mid-run and went on, this command would tell you afterwards. It would not have stopped it.
+- **It refuses "unasked", not "without a person".** Look at the refusal again: it prints the exact flag that gets past it. Whoever runs the command can add that flag. If an agent session is the one running the command, it reads that line too.
+- **A graph file is an ordinary file.** Nothing stops a hand, or a session, from copying a working copy over the source without using `grooph adopt` at all.
+- **It sees only the brakes it knows how to compare.** The project says plainly that the list has not been shown to be complete: by its author's account, five readers in turn were asked to get a loosened graph past it, each found a way, and each way was then closed.
+- **One kind is known to be missing as this is written.** A **check**, the step that runs your tests, was ruled a brake on 5 October 2026, and the program has not caught up with that ruling yet. Today, a working copy in which the test command has been replaced with one that always passes is adopted with nothing refused. The record of that is in the repository at `experiments/audits/0001-claims-as-of-0-3-0/round-02/lane-notes/`.
+- **One thing is noted and not refused, on purpose.** If a change lets a *person* send a loop round again each time, by a new answer at a gate for example, the loop's cap then counts the rounds between that person's decisions and no longer the whole run. The command prints a note naming the loop. It does not refuse, because the person is the brake.
+- **It has not been audited.** No second harness has read the comparison yet. Until one has, no page of grooph's claims it as something shown.
+
+So the fair summary is narrow: **`grooph adopt` does not write a working copy that loosens a brake its comparison sees, until that change is asked for by name.** That is a useful check at one door. It is not a wall around a run.
+
+## Amendments and proposals
+
+Two kinds of note from chapter 6 belong here.
+
+- An **amendment** is a change the lead made to its working copy during a run, with a summary and a reason. `grooph adopt` and the app tie each change they show to the note that explains it, and say so when there is none.
+- A **proposal** is a change the lead only suggests. This is what a lead writes when the graph's adaptation level is `propose`, and what any lead must write when the change would loosen a brake. In the app a proposal can be applied to a *copy* of the graph for you to look at. It is never applied for you.
+
+## Where the versions go
+
+Each adoption makes the next version (`version` goes up by one) and records where it came from (`lineage`). The source stays as it was.
+
+The reference for this chapter is [runs.md](../runs.md), section 5.
