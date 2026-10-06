@@ -32,7 +32,7 @@ describe("the offline page's maker is fetched when it is asked for", () => {
     };
     for (const start of ["main.tsx", "App.tsx", "ui/screens.ts", "ui/embed/EmbedApp.tsx"]) follow(join(root, start));
     const reached = [...seen].map((file) => file.slice(root.length + 1));
-    for (const file of ["doc/keep.ts", "ui/Keep.tsx", "ui/ExportPanel.tsx"]) expect(reached, `the walk did not reach ${file}`).toContain(file);
+    for (const file of ["doc/keep.ts", "ui/Keep.tsx", "ui/open/GraphViewer.tsx"]) expect(reached, `the walk did not reach ${file}`).toContain(file);
     // One place asks, by the name the build gives the piece's file, and hands the maker core's parts.
     const keep = read("doc/keep.ts");
     expect(keep).toContain('piece("offline", () => import("@grooph/core/offline"))');

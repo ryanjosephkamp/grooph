@@ -12,7 +12,7 @@ import { Canvas } from "./canvas/Canvas.js";
 import { LookMenu } from "./canvas/LookMenu.js";
 import { FIT, glide, isDesktop } from "./canvas/fit.js";
 import { EditorContext, type Editor, type Mode, type Panel } from "./editorContext.js";
-import { ExportPanel } from "./ExportPanel.js";
+import { ExportDoor, loadExportPanel } from "./ExportDoor.js";
 import { EdgeInspector } from "./inspector/EdgeInspector.js";
 import { GraphInspector } from "./inspector/GraphInspector.js";
 import { LoopInspector } from "./inspector/LoopInspector.js";
@@ -39,7 +39,10 @@ export function EditorScreen({ graphKey, fresh }: { graphKey: string; fresh: boo
   }, [graphKey]);
   // The compiler, asked for once the editor is up, so the Export panel seldom waits for it (slice 0070).
   useEffect(() => {
-    const soon = window.setTimeout(() => void loadCompiler().catch(() => undefined), 1200);
+    const soon = window.setTimeout(() => {
+      void loadCompiler().catch(() => undefined);
+      void loadExportPanel().catch(() => undefined);
+    }, 1200);
     return () => window.clearTimeout(soon);
   }, []);
 
@@ -367,7 +370,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
           >
             <span className="title-name">{doc.name || "Untitled"}</span>
             <span className="title-sub">
-              {doc.target?.harness ?? "no target"} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
+              {doc.target?.harness ?? "a plan"} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
             </span>
           </button>
           <OutlineButton on={outlineOn} onClick={toggleOutline} />
@@ -538,9 +541,9 @@ function sheetFor(
     case "graph":
       return { title: "Graph", subtitle: doc.id, body: <GraphInspector autoFocusName={fresh && doc.nodes.length === 0} renameWarning={renameWarning} /> };
     case "issues":
-      return { title: "Validation", subtitle: "as export sees it", body: <IssuesPanel issues={issues} /> };
+      return { title: "Validation", subtitle: "the graph's own findings", body: <IssuesPanel issues={issues} /> };
     case "export":
-      return { title: "Export", subtitle: doc.target?.harness ?? "no target", body: <ExportPanel /> };
+      return { title: "Export", subtitle: doc.target?.harness ?? "a plan", body: <ExportDoor /> };
     case "add":
       return { title: "Add a node", subtitle: undefined, body: null };
     case "insert":

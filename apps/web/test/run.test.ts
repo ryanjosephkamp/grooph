@@ -70,6 +70,16 @@ describe("the run view's model", () => {
       expect(copy.issues.filter((i) => i.severity === "error")).toEqual([]);
     }
     const gate = bundle("run-gate");
+    // A run whose graph is a plan (no harness, no goal): the copy has no error for it, as the editor has none.
+    const plan = { ...real, source: { ...real.source }, working: { ...real.working } };
+    for (const doc of [plan.source, plan.working]) {
+      delete doc.target;
+      delete doc.goal;
+    }
+    const ofAPlan = proposalCopy(plan, plan.notes.find((n) => n.id === "n-0008")!);
+    expect(ofAPlan.ok && ofAPlan.issues.filter((issue) => issue.severity === "error")).toEqual([]);
+    expect(runModel(plan).issues.map((issue) => issue.code)).not.toContain("E_NO_TARGET");
+    expect(runModel(plan).issues.map((issue) => issue.code)).not.toContain("E_NO_GOAL");
     const refused = proposalCopy(gate, gate.notes.find((n) => n.proposal)!);
     expect(refused.ok).toBe(false);
     expect(!refused.ok && refused.message).toMatch(/JSON Patch/);
