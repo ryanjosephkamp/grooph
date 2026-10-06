@@ -2,6 +2,8 @@
 
 **By:** the audit lane (Claude Code, Opus 5.5) · **For:** the owner · **Date:** 2026-10-06 · **Handback:** [`HANDBACK.md`](HANDBACK.md) (Codex, GPT-6.1 Sol, written 2026-10-06; 16 findings), with its notes in [`notes/`](notes/)
 
+> **Not final, and wrong in two places.** A fresh reader's report arrived after work stopped for the owner's absence ([`lane-notes/reconcile/fresh-reader/REPORT.md`](lane-notes/reconcile/fresh-reader/REPORT.md)), and it is not yet applied below. It refutes two things this file says. **(1) F1 is wider than stated here:** a *new* stop that leads on, of a kind the loop did not have, added ahead of a halting one, is adopted and exported with nothing refused where no check or critic stands before where it leads; "the source must already hold both stops" and Card 1's "it does notice a new limit being added" are false. **(2) F2 is two-sided:** a real run of the check started through `awk` is filed as printed back and not counted, so a run that went past its budget can read `met`; "it cannot hide a run that went past" is false, and F2 should read "agree", not "partly". Seven smaller points are in the report. Do not open a pull request from this file as it stands.
+
 The owner carried Codex's prompt back on 2026-10-06 at 11:20 ET. One carry out, one back, for this round.
 
 Codex read snapshot `faba78aeff36e9aca5c02c8e726086cbe10191f5` and the cost page's four files at `980bcb6`. Since then grooph 0.4.0 was published and merged (main `e8055fa7`, tag `v0.4.0`), so three pull requests Codex could not read are on main: #142 (a halting stop made a success), #127 (the Codex target) and #60 (export compares brakes). Every command below was run twice where a command settles the finding: at the snapshot, and at main.
