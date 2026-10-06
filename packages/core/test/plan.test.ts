@@ -3,9 +3,14 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
+import { deflateRawSync, inflateRawSync } from "node:zlib";
+
 import { canonicalize } from "../src/canonicalize.js";
 import { tryCompile } from "../src/compile/index.js";
 import { picture } from "../src/index.js";
+import { offlinePage } from "../src/offline.js";
+import { adoptWorkingCopy, buildRunBundle } from "../src/runs.js";
+import { decodeSharePayload } from "../src/share.js";
 import { IMPLEMENTED_CODES } from "../src/issues.js";
 import { parseGraphText } from "../src/parse.js";
 import { planBundle, planSteps } from "../src/plan.js";
@@ -177,4 +182,51 @@ test("every document in the repository that reads as a graph gets a plan, whatev
     assert.ok(codes.has(code), `a document with ${code} was planned`);
   }
   assert.ok(unreadable > 0, "and what does not read as a graph was left to the parser");
+});
+
+// ─── nothing that only draws or shares a document asks for a harness ─────────────────────────────────────────
+//
+// Six places in core validated for export whatever they were for, so a plan was refused a link, arrived with
+// errors, and could not be a candidate or a version. Each now asks only what a graph is asked. (Sharing and a
+// proposal set are held in share.test.ts and proposals.test.ts.)
+
+test("the offline page of a plan says it has no issues, and one of a graph that breaks a rule lists it", () => {
+  const plan = green();
+  delete plan.target;
+  delete plan.goal;
+  const page = offlinePage(plan);
+  assert.match(page, />No issues\.</);
+  assert.doesNotMatch(page, /E_NO_TARGET|E_NO_GOAL|validates for export/);
+  const broken = green();
+  broken.edges[0]!.to = "nowhere";
+  assert.match(offlinePage(broken), /E_DANGLING_REF/);
+});
+
+test("a run's working copy that has lost its goal or its harness can still be the next version; one that breaks a rule cannot", () => {
+  const source = green();
+  const working = green();
+  delete working.goal;
+  delete working.target;
+  const adopted = adoptWorkingCopy(source, working, { run: "r" });
+  assert.ok(adopted.ok, adopted.ok ? "" : adopted.message);
+  assert.equal(adopted.doc.version, source.version + 1);
+  // It is a plan now, and the plan says what a package would need.
+  assert.deepEqual(planBundle(adopted.doc).toFix.filter((issue) => issue.severity === "error").map((issue) => issue.code), ["E_NO_TARGET", "E_NO_GOAL"]);
+
+  const broken = green();
+  broken.edges[0]!.to = "nowhere";
+  const refused = adoptWorkingCopy(source, broken, { run: "r" });
+  assert.equal(refused.ok, false);
+  assert.match(refused.ok ? "" : refused.message, /^The working copy has (an error that blocks|\d+ errors that block) export, so it cannot become version 2 of fix-until-green\. .*E_DANGLING_REF/);
+});
+
+test("a run's link arrives with the working copy's own findings, and none that only a package asks for", () => {
+  const source = green();
+  const working = green();
+  delete working.goal;
+  const bundle = buildRunBundle({ source, working, notesText: "", run: "r1" });
+  const payload = Buffer.from(deflateRawSync(Buffer.from(JSON.stringify({ v: 1, kind: "run", doc: bundle })))).toString("base64url");
+  const arrived = decodeSharePayload(payload, (bytes) => new Uint8Array(inflateRawSync(bytes)));
+  assert.ok(arrived.ok, arrived.ok ? "" : arrived.message);
+  assert.deepEqual(arrived.issues, []);
 });

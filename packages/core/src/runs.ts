@@ -650,8 +650,9 @@ export type Adoption =
  * not copied in (they live beside the graph). Layout comes from the working
  * copy when it has one, else from the source, for the nodes that remain.
  *
- * Refused when the result has errors that block export: a graph that cannot
- * run is not a version.
+ * Refused when the result breaks a rule: a graph with a cycle that has no stop
+ * is not a version. What only a package asks for (a harness, a goal) is not
+ * asked here: a plan is a version like any other.
  */
 export function adoptWorkingCopy(source: Graph, working: Graph, options: { run?: string } = {}): Adoption {
   const from = `${source.id}@${source.version}`;
@@ -668,7 +669,7 @@ export function adoptWorkingCopy(source: Graph, working: Graph, options: { run?:
     ...(source.notes && source.notes.length > 0 ? { notes: source.notes } : {}),
     ...(layout && Object.keys(layout).length > 0 ? { layout } : {}),
   };
-  const errors = validate(doc, { forExport: true }).filter((i) => i.severity === "error");
+  const errors = validate(doc).filter((i) => i.severity === "error");
   if (errors.length > 0) {
     return {
       ok: false,

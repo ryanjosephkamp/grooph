@@ -89,12 +89,12 @@ for (const target of TARGETS) {
     delete none.target;
     assert.deepEqual(refusal(none, target).map((issue) => issue.message), ["export needs a target harness; set target.harness"]);
     const unknown = setTarget(reviewLoop(), "not-a-harness");
-    assert.deepEqual(refusal(unknown, target).map((issue) => issue.message), ['no compile profile for target harness "not-a-harness"']);
+    assert.deepEqual(refusal(unknown, target).map((issue) => issue.message), ['grooph has no compiler for the harness "not-a-harness", so no package can be written for it; the document is a plan as it is']);
     // A word every object answers to is no harness: it has no profile, and is refused as one that has none.
     for (const word of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
       assert.equal(hasProfile(word), false, word);
       assert.throws(() => getProfile(word), /no compile profile for target harness/, word);
-      assert.deepEqual(refusal(setTarget(reviewLoop(), word), target).map((issue) => issue.message), [`no compile profile for target harness "${word}"`], word);
+      assert.deepEqual(refusal(setTarget(reviewLoop(), word), target).map((issue) => issue.message), [`grooph has no compiler for the harness "${word}", so no package can be written for it; the document is a plan as it is`], word);
     }
   });
 

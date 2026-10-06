@@ -30,6 +30,7 @@ import {
   type ShareEnvelope,
 } from "../src/share.js";
 import type { Graph, ProposalSet } from "../src/types.js";
+import { validate } from "../src/validate.js";
 import { fixturesDir, read } from "./helpers.js";
 
 const deflate = (bytes: Uint8Array): Uint8Array => deflateRawSync(bytes, { level: 9 });
@@ -81,10 +82,23 @@ test("a graph envelope keeps layout, drops run notes, and round-trips", () => {
   assert.deepEqual(back.issues.map((i) => i.code), ["W_HOMOGENEOUS_CRITICS"], "the warnings travel with it for the view");
 });
 
-test("a graph with errors, or a document that is not one, is refused with the reasons", () => {
-  const noGoal = reviewLoop();
-  delete noGoal.goal;
-  assert.throws(() => buildShareEnvelope(noGoal), (err: unknown) => err instanceof ShareError && err.issues.some((i) => i.code === "E_NO_GOAL"));
+test("a graph that breaks a rule, or a document that is not one, is refused with the reasons; a plan with no goal and no harness is shared", () => {
+  // What only a package asks for is not asked of a link: a plan is shared as it is, and arrives with nothing to say.
+  const plan = reviewLoop();
+  delete plan.goal;
+  delete plan.target;
+  const shared = buildShareEnvelope(plan);
+  assert.equal(shared.kind, "graph");
+  const arrived = opened(payloadOf(shared));
+  assert.ok(arrived.ok);
+  // Whatever it arrives with is what the graph itself is told (a warning of its own), and no error.
+  assert.deepEqual(arrived.issues, validate(plan));
+  assert.deepEqual(arrived.issues.filter((i) => i.severity === "error"), []);
+  assert.ok(validate(plan, { forExport: true }).some((i) => i.code === "E_NO_GOAL") && validate(plan, { forExport: true }).some((i) => i.code === "E_NO_TARGET"));
+  // A rule the graph itself breaks still refuses it.
+  const dangling = reviewLoop();
+  dangling.edges[0]!.to = "nowhere";
+  assert.throws(() => buildShareEnvelope(dangling), (err: unknown) => err instanceof ShareError && /cannot be shared until these are fixed/.test(err.message) && err.issues.some((i) => i.code === "E_DANGLING_REF"));
   const broken = { ...reviewLoop(), nodes: "none" } as unknown as Graph;
   assert.throws(() => buildShareEnvelope(broken), (err: unknown) => err instanceof ShareError && /not a graph document/.test(err.message));
 });
@@ -160,10 +174,17 @@ test("every broken link fails with a message a person can act on, and nothing un
 
 test("a set whose candidate has rule errors still opens, with the errors for the card to show", () => {
   const set = csvSet();
-  delete (set.candidates[0]!.graph as Graph).goal;
+  (set.candidates[0]!.graph as Graph).edges[0]!.to = "nowhere";
   const back = opened(payloadOf({ v: 1, kind: "proposals", doc: set }));
   assert.ok(back.ok);
   assert.deepEqual(back.issues.map((i) => [i.code, i.at]), [["E_CANDIDATE_INVALID", ["lean"]]]);
+  // A candidate that is a plan, with no goal and no harness, is no error of the set.
+  const plans = csvSet();
+  delete (plans.candidates[0]!.graph as Graph).goal;
+  delete (plans.candidates[0]!.graph as Graph).target;
+  const planned = opened(payloadOf({ v: 1, kind: "proposals", doc: plans }));
+  assert.ok(planned.ok);
+  assert.deepEqual(planned.issues, []);
 });
 
 test("links: the base gets its slash, and the payload comes back out of a link, a hash or on its own", () => {

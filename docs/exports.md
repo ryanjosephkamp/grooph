@@ -73,7 +73,7 @@ It costs an address that draws on the canvas the few lines that ask for the swit
 One file. Its content security policy is `default-src 'none'` with inline style and script only, so the page cannot ask the network for anything: that it opens with no connection is a property of the file. It holds:
 
 - the picture (it follows the device's color scheme; a button switches it);
-- the validator's list, as `grooph validate --for-export` prints it (a map's own rules for a map);
+- the validator's list, as `grooph validate` prints it (a map's own rules for a map). What only a package asks for, a harness and a goal, is not on it: [a plan](#a-plan) lists that;
 - the outline; tapping a card in the picture scrolls to its section;
 - the document, in canonical form. **Save document** writes it back out as `<id>.grooph.json` (or `.grooph-map.json`), byte for byte what went in, ready to import into the app.
 
@@ -100,6 +100,18 @@ A graph can be kept as a plan: something for people to read and follow, whether 
 `PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines (a name, a goal, a table cell): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place. Below "In full" the document's words are as written.
 
 The same document gives the same bytes: there is no date in a plan and nothing of the machine that made it.
+
+**Nothing that only draws or shares a document asks for a harness.** Six places in core used to validate for export whatever they were for, and each now asks only what a graph is asked:
+
+| Where | What it did | What it does |
+|---|---|---|
+| Making a link (`grooph share`, `grooph embed`, the app's share) | Refused a graph with no goal or no harness: "cannot share … fix these first" | Shares a plan. A graph that breaks a rule (an edge to nowhere, a cycle with no stop) is still refused |
+| Opening a graph's link, and a run's | Handed the viewer `E_NO_TARGET` and `E_NO_GOAL` as errors | A shared plan arrives with the graph's own findings and no others |
+| The offline page | Listed them among its issues | Says "No issues." for a plan |
+| A proposal set | A candidate with no goal or no harness made the whole set invalid (`E_CANDIDATE_INVALID`) | A candidate may be a plan; one that breaks a rule still makes the set invalid |
+| Adopting a run's working copy | Refused a copy that had lost its goal or its harness | Refuses on a broken rule only; the next version may be a plan |
+
+A harness grooph has no compiler for is said once, where a package is asked for (`grooph export`, `grooph validate --for-export`): "grooph has no compiler for the harness "x", so no package can be written for it; the document is a plan as it is".
 
 In core so far. The command that writes the three files and the app's button for it come with the lanes that own those.
 

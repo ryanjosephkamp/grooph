@@ -134,7 +134,7 @@ parseRunBundle(json);                                   // { bundle } or { issue
 | `diffGraphs(source, working)` | The change list as grooph ops, ordered so they replay, with one line per change; layout, run notes and `version` ignored. `exact` says whether the ops reproduce the working copy; a change no op expresses (a node's kind, groups) has a line and no op. |
 | `explainChanges(changes, amendments)` | Ties each change to the amendment notes whose op-list patch touches it, else whose text names it, else the only amendment. An empty list means nothing explains it. |
 | `describePatch(patch)` | `ops` for a replayable op list, `other` with the reason for anything else (JSON Patch index paths, prose), `none`. |
-| `adoptWorkingCopy(source, working, { run })` | The working copy as the next version; refused with the issues when it has export errors. |
+| `adoptWorkingCopy(source, working, { run })` | The working copy as the next version; refused with the issues when it breaks a rule (what only a package asks for, a harness and a goal, is not asked). |
 | `checkAdoption(source, adopted, { allow })` | The adopted document held to the source's brakes: each difference by name, why it loosens a brake or what it tightens, and `refused`, the ones that loosen a brake and were not asked for by name. |
 | `buildRunBundle` · `parseRunBundle` · `canonicalizeRunBundle` | The self-contained run; its JSON Schema is `schema/grooph-run-0.schema.json`. `buildShareEnvelope(bundle)` makes a `kind: "run"` link. |
 

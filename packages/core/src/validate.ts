@@ -329,7 +329,7 @@ function exportOnlyRules(index: GraphIndex): Issue[] {
     issues.push(error("E_NO_TARGET", "export needs a target harness; set target.harness", [doc.id]));
   } else if (!hasProfile(harness)) {
     issues.push(
-      error("E_NO_TARGET", `no compile profile for target harness "${harness}"`, [doc.id]),
+      error("E_NO_TARGET", `grooph has no compiler for the harness "${harness}", so no package can be written for it; the document is a plan as it is`, [doc.id]),
     );
   }
 
