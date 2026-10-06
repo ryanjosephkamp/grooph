@@ -158,6 +158,44 @@ test("--out writes the index and a folder per page; blog posts, reports and the 
   }
 });
 
+test("the plain-English guide: its start page is the one card on the index, and its chapters are pages with no cards", () => {
+  const root = tree({
+    "docs/quickstart.md": "# Quickstart\n\nStart here.\n",
+    "docs/claims.md": "# Claims\n\nEvery claim.\n\n## Row one\n\nText.\n",
+    "docs/plain-english/README.md": "# grooph in plain English\n\nA walkthrough.\n\n| | Chapter |\n|---|---|\n| 1 | [Starting from nothing](01-starting-from-nothing.md) |\n\nThe [glossary](glossary.md#loop) lists the words.\n",
+    "docs/plain-english/01-starting-from-nothing.md":
+      "# 1 · Starting from nothing\n\n[Start page](README.md) · next: [the glossary](glossary.md)\n\nSee [the claims](../claims.md#row-one).\n\n![The example graph](rounding.svg)\n",
+    "docs/plain-english/glossary.md": "# Glossary\n\n[Start page](README.md)\n\n## Loop\n\nA trip round.\n",
+    "docs/plain-english/rounding.svg": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 4"></svg>',
+  });
+  const out = mkdtempSync(join(tmpdir(), "grooph-site-out-"));
+  try {
+    const r = run(root, "--out", out);
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(run(root, "--check").status, 0);
+    const index = readFileSync(join(out, "docs", "index.html"), "utf8");
+    // One card, the first of the first group, and none for a chapter or the guide's glossary.
+    const cards = [...index.matchAll(/<a class="card" href="([^"]+)">/g)].map((m) => m[1]);
+    assert.deepEqual(cards, ["plain-english/", "quickstart/", "claims/"]);
+    assert.doesNotMatch(index, /plain-english-chapters/);
+    // The chapters are pages all the same, each under the guide's name, with its pictures beside it.
+    const chapter = readFileSync(join(out, "docs", "plain-english", "01-starting-from-nothing", "index.html"), "utf8");
+    assert.match(chapter, /<p class="page-chip">grooph in plain English<\/p>/);
+    assert.ok(existsSync(join(out, "docs", "plain-english", "01-starting-from-nothing", "rounding.svg")));
+    // Its links are to pages: the start page one folder up, the glossary beside it, another document two up.
+    assert.match(chapter, /<a href="\.\.\/">Start page<\/a>/);
+    assert.match(chapter, /<a href="\.\.\/glossary\/">the glossary<\/a>/);
+    assert.match(chapter, /<a href="\.\.\/\.\.\/claims\/#row-one">the claims<\/a>/);
+    const start = readFileSync(join(out, "docs", "plain-english", "index.html"), "utf8");
+    assert.match(start, /<a href="01-starting-from-nothing\/">Starting from nothing<\/a>/);
+    assert.match(start, /<a href="glossary\/#loop">glossary<\/a>/);
+    assert.match(start, /<p class="page-chip">Start<\/p>/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
 test("without a field guide or posts there is no header link to them and no group for them", () => {
   const root = tree({ "docs/quickstart.md": QUICKSTART, "docs/rules.md": RULES });
   const out = mkdtempSync(join(tmpdir(), "grooph-site-out-"));
