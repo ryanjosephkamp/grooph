@@ -366,8 +366,8 @@ test("an approval gone around by a stop that leads on, to a node the run reaches
   const around = /a stop of the loop would lead on from "[a-z]+" to "merge", a way that does not pass/;
   const cases: [string, (w: Graph) => void, RegExp][] = [
     ["the bar passed", (w) => void ((review(w).stops[0] as { then?: string }).then = "merge"), around],
-    ["a stop of a kind that is no brake", (w) => void review(w).stops.push({ kind: "diminishing-returns", rounds: 2, then: "merge" }), /the stop on diminishing returns over 2 rounds that leads on to "merge" could fire before the round cap of 3 that halts the run/],
-    ["a budget of another measure, first", (w) => void review(w).stops.unshift({ kind: "budget", measure: "tokens", limit: 0, then: "merge" }), /the budget of 0 tokens that leads on to "merge" could fire before the round cap of 3 that halts the run/],
+    ["a stop of a kind that is no brake", (w) => void review(w).stops.push({ kind: "diminishing-returns", rounds: 2, then: "merge" }), /the stop on diminishing returns over 2 rounds that leads on to "merge" would come into the loop, and could fire before the round cap of 3 that halts the run/],
+    ["a budget of another measure, first", (w) => void review(w).stops.unshift({ kind: "budget", measure: "tokens", limit: 0, then: "merge" }), /the budget of 0 tokens that leads on to "merge" would come into the loop, and could fire before the round cap of 3 that halts the run/],
   ];
   for (const [what, change, why] of cases) {
     const check = adopt(change, { from: approved });
@@ -955,10 +955,10 @@ test("A-019, a check under another id: the removal's line shows the check that c
     w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." } as Loop["bar"];
     w.loops[0]!.stops.unshift({ kind: "bar-passed" }, { kind: "budget", measure: "dispatches", limit: 1, then: "done" });
   }, { from: grind });
-  // (The budget is held by its own name as well, since stops are compared as a run fires them: it could fire before
-  // the loop's cap, which halts.)
+  // (The stop on the bar and the budget are held by the loop's name as well, since stops are compared as a run fires
+  // them: either could fire before the loop's cap, which halts, and no critic of the loop's gives that verdict.)
   assert.deepEqual(refused(dressed).map((line) => line.split(": ")[0]), ["node:tests", "loop:grind.stops"]);
-  assert.match(refused(dressed)[1]!, /^loop:grind\.stops: the budget of 1 dispatches that leads on to "done" could fire before the round cap of \d+ that halts the run$/);
+  assert.equal(refused(dressed)[1], 'loop:grind.stops: the stop on "bar passed", which follows the loop\'s pass edges, would come into the loop, and could fire before the round cap of 5 that halts the run; the budget of 1 dispatch that leads on to "done" would come into the loop, and could fire before the round cap of 5 that halts the run');
   assert.equal(dressed.swapped, true);
   assert.deepEqual(dressed.changes.filter((change) => change.tightens !== undefined).map((change) => change.name), []);
   assert.deepEqual(Object.fromEntries(dressed.changes.filter((change) => change.unjudged !== undefined).map((change) => [change.name, change.unjudged])), {

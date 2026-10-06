@@ -183,10 +183,10 @@ test("two limits swapped, and a stop that leads on of a kind the loop did not ha
   const cap = { kind: "max-iterations", n: 1, then: "done" };
   const kept = (project: string): unknown[] => (JSON.parse(readFileSync(keptOf(project, "plain"), "utf8")) as Graph).loops[0]!.stops;
   const cases: [string, unknown[], unknown[], RegExp][] = [
-    ["two budgets of one size, swapped", [halts, leadsOn], [leadsOn, halts], /^ {2}loop:list\.stops +the budget of 2 dispatches that leads on to "done" could fire on the same pass as the budget of 2 dispatches that halts the run, and it comes first in the loop's stops$/m],
-    ["a new cap of one round that leads on, ahead", [halts], [cap, halts], /^ {2}loop:list\.stops +the round cap of 1 that leads on to "done" could fire before the budget of 2 dispatches that halts the run$/m],
-    ["the same cap, behind", [halts], [halts, cap], /^ {2}loop:list\.stops +the round cap of 1 that leads on to "done" could fire before the budget of 2 dispatches that halts the run$/m],
-    ["a new stop on diminishing returns that leads on, ahead", [halts], [{ kind: "diminishing-returns", rounds: 1, then: "done" }, halts], /^ {2}loop:list\.stops +the stop on diminishing returns over 1 round that leads on to "done" could fire before the budget of 2 dispatches that halts the run$/m],
+    ["two budgets of one size, swapped", [halts, leadsOn], [leadsOn, halts], /^ {2}loop:list\.stops +the budget of 2 dispatches that leads on to "done" would be moved ahead of the budget of 2 dispatches that halts the run, and could fire on the same pass$/m],
+    ["a new cap of one round that leads on, ahead", [halts], [cap, halts], /^ {2}loop:list\.stops +the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run$/m],
+    ["the same cap, behind", [halts], [halts, cap], /^ {2}loop:list\.stops +the round cap of 1 that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run$/m],
+    ["a new stop on diminishing returns that leads on, ahead", [halts], [{ kind: "diminishing-returns", rounds: 1, then: "done" }, halts], /^ {2}loop:list\.stops +the stop on diminishing returns over 1 round that leads on to "done" would come into the loop, and could fire before the budget of 2 dispatches that halts the run$/m],
   ];
   for (const [what, was, now, why] of cases) {
     await withProject(async (project, files) => {
@@ -213,7 +213,7 @@ test("two limits swapped, and a stop that leads on of a kind the loop did not ha
     const tighter = await grooph(exportArgs(put(join(files, "working.grooph.json"), plain([halts, leadsOn])), project));
     assert.equal(tighter.code, 0, tighter.err);
     assert.equal(last(tighter.out), NONE);
-    assert.ok(above(tighter.out).join(LF).match(/^tightens a brake, and is placed with the rest:\n {2}loop:list\.stops +undoing it: the budget of 2 dispatches that leads on to "done" could fire on the same pass as the budget of 2 dispatches that halts the run, and it comes first in the loop's stops$/m), tighter.out);
+    assert.ok(above(tighter.out).join(LF).match(/^tightens a brake, and is placed with the rest:\n {2}loop:list\.stops +undoing it: the budget of 2 dispatches that leads on to "done" would be moved ahead of the budget of 2 dispatches that halts the run, and could fire on the same pass$/m), tighter.out);
   });
 });
 
