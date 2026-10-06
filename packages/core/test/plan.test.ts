@@ -8,7 +8,7 @@ import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { canonicalize } from "../src/canonicalize.js";
 import { tryCompile } from "../src/compile/index.js";
 import { picture } from "../src/index.js";
-import { offlinePage } from "../src/offline.js";
+import { offlinePage } from "../src/index.js";
 import { adoptWorkingCopy, buildRunBundle } from "../src/runs.js";
 import { decodeSharePayload } from "../src/share.js";
 import { IMPLEMENTED_CODES } from "../src/issues.js";

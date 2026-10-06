@@ -253,7 +253,7 @@ Tiers are the harness-neutral vocabulary; profiles map them to current names.
 
 | Tier | Meaning |
 |---|---|
-| `frontier` | The most capable model the harness offers; for leads, judges and hard synthesis. |
+| `frontier` | The most capable class of model the harness offers; the profile or `--models` says which model it means. For leads, judges and hard synthesis. |
 | `strong` | The default builder and critic class. |
 | `fast` | Cheap and quick; for grind steps, fan-out and deterministic-adjacent work. |
 

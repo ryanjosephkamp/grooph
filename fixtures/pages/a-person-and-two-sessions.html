@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data: blob:">
+<meta name="generator" content="grooph 0.0.0">
+<title>A person and two sessions · grooph operation map</title>
+<style>
+:root{color-scheme:light dark;--bg:#f1f4f3;--surface:#fdfefe;--surface-2:#e8edeb;--ink:#1a201e;--ink-2:#454c49;--ink-3:#5f6764;--line:#dce1df;--line-strong:#b9c1be;--accent:#1f5f4a;--accent-soft:#dcefe6;--error:#b42318;--warning:#955500}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111514;--surface:#1b201e;--surface-2:#242a27;--ink:#ebefed;--ink-2:#c0c7c4;--ink-3:#99a19e;--line:#2d3331;--line-strong:#4a524f;--accent:#5dbb94;--accent-soft:#1e3a30;--error:#ff8f80;--warning:#f0b35a}}
+:root[data-theme="dark"]{--bg:#111514;--surface:#1b201e;--surface-2:#242a27;--ink:#ebefed;--ink-2:#c0c7c4;--ink-3:#99a19e;--line:#2d3331;--line-strong:#4a524f;--accent:#5dbb94;--accent-soft:#1e3a30;--error:#ff8f80;--warning:#f0b35a}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:560px;margin:0 auto;padding:0 0 48px}
+.bar{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+button,.btn{font:inherit;font-size:14px;font-weight:600;min-height:44px;padding:0 14px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
+.picture svg{display:block;width:100%;height:auto}
+.picture [data-node],.picture [data-session],.picture [data-loop]{cursor:pointer}
+.note{margin:0;padding:10px 16px;color:var(--ink-3);font-size:13px}
+section{margin:12px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);scroll-margin-top:64px}
+section.flash{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.kind{margin:0;color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.02em}
+h2{margin:0 0 2px;font-size:18px;line-height:1.3}
+.id{margin:0 0 10px;color:var(--ink-3);font:12px ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+dl{margin:0}
+dt{margin-top:10px;color:var(--ink-3);font-size:13px;font-weight:600}
+dd{margin:2px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+ul{margin:2px 0 0;padding-left:20px}
+li{margin:2px 0;overflow-wrap:anywhere}
+.issues{list-style:none;padding:0}
+.issues li{padding:8px 10px;margin:6px 0;border-radius:8px;background:var(--surface-2);font-size:14px}
+.issues .error{border-left:4px solid var(--error)}
+.issues .warning{border-left:4px solid var(--warning)}
+.up{display:inline-block;margin-top:12px;color:var(--ink-3);font-size:13px}
+footer{margin:20px 16px 0;color:var(--ink-3);font-size:13px}
+a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main id="top">
+<div class="bar"><strong>A person and two sessions</strong><button type="button" id="theme">Light / dark</button><button type="button" id="save">Save document</button></div>
+<p class="note">A grooph operation map, whole in this one file. It needs no network. Tap a card to read about it below.</p>
+<div class="picture"><svg xmlns="http://www.w3.org/2000/svg" class="grooph-picture" data-picture="map" viewBox="0 0 400 685" width="400" height="685" role="img" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"><title>A person and two sessions</title><style>.grooph-picture{--gp-bg:#f1f4f3;--gp-surface:#fdfefe;--gp-surface-2:#e8edeb;--gp-ink:#1a201e;--gp-ink-2:#454c49;--gp-ink-3:#5f6764;--gp-line:#dce1df;--gp-line-strong:#b9c1be;--gp-accent:#1f5f4a;--gp-accent-soft:#dcefe6;--gp-gate:#b25e09;--gp-gate-soft:#fcf0d9;--gp-check:#2b5f9e;--gp-merge:#6b4fa0;--gp-stop:#5b5f66;--gp-ok:#1f7a4d;--gp-ok-soft:#dff3e6;--gp-warning:#955500;--gp-error:#b42318;--gp-error-soft:#fceae7;--gp-loop-0:#7a4cc2;--gp-loop-1:#0f7c8c;--gp-loop-2:#c2410c;--gp-loop-3:#b5306e}@media (prefers-color-scheme:dark){.grooph-picture:not([data-theme="light"]){--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}}.grooph-picture[data-theme="dark"]{--gp-bg:#111514;--gp-surface:#1b201e;--gp-surface-2:#242a27;--gp-ink:#ebefed;--gp-ink-2:#c0c7c4;--gp-ink-3:#99a19e;--gp-line:#2d3331;--gp-line-strong:#4a524f;--gp-accent:#5dbb94;--gp-accent-soft:#1e3a30;--gp-gate:#eb9a45;--gp-gate-soft:#362a15;--gp-check:#6fa3e0;--gp-merge:#a88be0;--gp-stop:#9ba0a8;--gp-ok:#6fcf9d;--gp-ok-soft:#1c3a2a;--gp-warning:#f0b35a;--gp-error:#ff8f80;--gp-error-soft:#3a1e1b;--gp-loop-0:#a883f0;--gp-loop-1:#3cc0d0;--gp-loop-2:#f0874f;--gp-loop-3:#ee6fa6}</style><rect x="0" y="0" width="400" height="685" style="fill:var(--gp-bg)"/><text x="12" y="35" font-size="17" font-weight="700" style="fill:var(--gp-ink)">A person and two sessions</text><text x="12" y="52" font-size="11" style="fill:var(--gp-ink-3)">1 lane · 2 sessions · 1 person · 5 handoffs, 1 waiting on a person</text><g data-people=""><rect x="12" y="64" width="376" height="86" rx="12" stroke-width="1" stroke-dasharray="5 4" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="84" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Person</text></g><g data-lane="laptop"><rect x="12" y="160" width="376" height="230.5" rx="12" stroke-width="1" style="fill:var(--gp-surface-2);stroke:var(--gp-line)"/><text x="22" y="180" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Laptop</text><rect x="300.8" y="169.2" width="36.2" height="14.7" rx="7.4" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="318.9" y="179.5" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink-2)">local</text><text x="22" y="193.5" font-size="10.5" style="fill:var(--gp-ink-3)">a laptop · one account</text></g><g data-person="owner"><rect data-card="" x="20" y="93.5" width="317" height="48.5" rx="14" stroke-width="1.4" style="fill:var(--gp-gate-soft);stroke:var(--gp-gate)"/><text x="30" y="114.5" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">The owner</text><text x="30" y="130" font-size="11" style="fill:var(--gp-ink-2)">Asks for the work and reads the result</text></g><g data-session="lead"><rect data-card="" x="20" y="203" width="317" height="95" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="224" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Lead</text><text x="30" y="238" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="253.5" font-size="11" style="fill:var(--gp-ink-2)">Plans the work and checks it</text><text x="30" y="267.5" font-size="10" style="fill:var(--gp-ink-3)">long-lived</text><circle data-wakes="" cx="34.2" cy="279.1" r="3.6" fill="none" stroke-width="1.8" stroke-dasharray="1.5 2.2" style="stroke:var(--gp-merge)"/><text x="43" y="282.5" font-size="10" font-weight="700" style="fill:var(--gp-merge)">wakes itself · every hour</text></g><g data-session="worker"><rect data-card="" x="20" y="306" width="317" height="76.5" rx="9" stroke-width="1" style="fill:var(--gp-surface);stroke:var(--gp-line-strong)"/><text x="30" y="327" font-size="13.5" font-weight="700" style="fill:var(--gp-ink)">Worker</text><text x="30" y="341" font-size="10.5" font-weight="700" style="fill:var(--gp-accent)">Claude Code</text><text x="30" y="356.5" font-size="11" style="fill:var(--gp-ink-2)">Does one piece</text><text x="30" y="370.5" font-size="10" style="fill:var(--gp-ink-3)">per task</text></g><g data-plate="h-ask"><circle cx="353" cy="164.6" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/></g><g data-plate="h-start"><circle cx="353" cy="303.9" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/></g><g data-plate="h-back"><circle cx="366" cy="324.9" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/></g><g data-plate="h-done"><circle cx="366" cy="185.6" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-1)"/></g><g data-handoff="h-ask"><path d="M337,111.3 H347 Q353,111.3 353,117.3 V157.4 M353,171.8 V212 Q353,218 347,218 H342.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><circle cx="337" cy="111.3" r="2.2" style="fill:var(--gp-ink-2)"/><path d="M337.5,218 l6.5,-3.6 v7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-handoff="h-start"><path d="M337,270 H347 Q353,270 353,276 V296.7 M353,311.1 V331.8 Q353,337.8 347,337.8 H342.5" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><circle cx="337" cy="270" r="2.2" style="fill:var(--gp-ink-2)"/><path d="M337.5,337.8 l6.5,-3.6 v7.2 z" style="fill:var(--gp-ink-2)"/></g><g data-handoff="h-back"><path d="M337,350.8 H360 Q366,350.8 366,344.8 V332.1 M366,317.7 V289 Q366,283 360,283 H342.5" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><circle cx="337" cy="350.8" r="2.2" style="fill:var(--gp-accent)"/><path d="M337.5,283 l6.5,-3.6 v7.2 z" style="fill:var(--gp-accent)"/></g><g data-handoff="h-wake"><path d="M337,244 H347 Q353,244 353,250 V251 Q353,257 347,257 H342.5" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="1.5 3" style="stroke:var(--gp-merge)"/><circle cx="337" cy="244" r="2.2" style="fill:var(--gp-merge)"/><path d="M337.5,257 l6.5,-3.6 v7.2 z" style="fill:var(--gp-merge)"/></g><g data-plate="h-wake"><circle cx="353" cy="250.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-merge)"/></g><g data-handoff="h-done"><path d="M337,231 H360 Q366,231 366,225 V192.8 M366,178.4 V130.3 Q366,124.3 360,124.3 H342.5" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0.1 4.5" style="stroke:var(--gp-loop-1)"/><circle cx="337" cy="231" r="2.2" style="fill:var(--gp-loop-1)"/><path d="M337.5,124.3 l6.5,-3.6 v7.2 z" style="fill:var(--gp-loop-1)"/></g><g data-number="h-ask"><text x="353" y="167.9" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">1</text></g><g data-number="h-start"><text x="353" y="307.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">2</text></g><g data-number="h-back"><text x="366" y="328.2" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">3</text></g><g data-number="h-wake"><text x="353" y="253.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">4</text></g><g data-number="h-done"><text x="366" y="188.9" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">5</text></g><text x="12" y="417.5" font-size="12.5" font-weight="700" style="fill:var(--gp-ink)">Handoffs</text><g data-handoff-row="h-ask"><rect data-row="" x="8" y="424.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="434.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="20" y="437.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">1</text><text x="36" y="438.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">The owner → Lead</text><path d="M36,449 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><text x="60" y="452.5" font-size="11" font-weight="700" style="fill:var(--gp-ink-2)">session message</text><text x="36" y="466" font-size="11" style="fill:var(--gp-ink-2)">what is wanted</text></g><g data-handoff-row="h-start"><rect data-row="" x="8" y="475" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="485" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-ink-2)"/><text x="20" y="488.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">2</text><text x="36" y="489" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lead → Worker</text><path d="M36,499.5 h18" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="5 3" style="stroke:var(--gp-ink-2)"/><text x="60" y="503" font-size="11" font-weight="700" style="fill:var(--gp-ink-2)">session message</text><text x="36" y="516.5" font-size="11" style="fill:var(--gp-ink-2)">one piece</text></g><g data-handoff-row="h-back"><rect data-row="" x="8" y="525.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="535.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-accent)"/><text x="20" y="538.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">3</text><text x="36" y="539.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Worker → Lead</text><path d="M36,550 h18" fill="none" stroke-width="1.6" stroke-linecap="round" style="stroke:var(--gp-accent)"/><text x="60" y="553.5" font-size="11" font-weight="700" style="fill:var(--gp-accent)">branch on example/app</text><text x="36" y="567" font-size="11" style="fill:var(--gp-ink-2)">the piece, on a branch</text></g><g data-handoff-row="h-wake"><rect data-row="" x="8" y="576" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="586" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-merge)"/><text x="20" y="589.3" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">4</text><text x="36" y="590" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lead → itself</text><path d="M36,600.5 h18" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="1.5 3" style="stroke:var(--gp-merge)"/><text x="60" y="604" font-size="11" font-weight="700" style="fill:var(--gp-merge)">scheduled message, every hour</text><text x="36" y="617.5" font-size="11" style="fill:var(--gp-ink-2)">its own check-in</text></g><g data-handoff-row="h-done"><rect data-row="" x="8" y="626.5" width="384" height="47.5" rx="8" style="fill:transparent"/><circle cx="20" cy="636.5" r="7.2" stroke-width="1.3" style="fill:var(--gp-bg);stroke:var(--gp-loop-1)"/><text x="20" y="639.8" font-size="9.5" font-weight="700" text-anchor="middle" style="fill:var(--gp-ink)">5</text><text x="36" y="640.5" font-size="12" font-weight="700" style="fill:var(--gp-ink)">Lead → The owner</text><path d="M36,651 h18" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="0.1 4.5" style="stroke:var(--gp-loop-1)"/><text x="60" y="654.5" font-size="11" font-weight="700" style="fill:var(--gp-loop-1)">notification, e-mail</text><text x="36" y="668" font-size="11" style="fill:var(--gp-ink-2)">done, with a link</text></g></svg></div>
+<section id="s-validation"><p class="kind">Validation</p><h2>No issues. Every handoff names its carrier.</h2></section>
+<section id="s-a-person-and-two-sessions"><p class="kind">Operation map</p><h2>A person and two sessions</h2><p class="id">a-person-and-two-sessions</p><dl><dt>Shape</dt><dd>1 lane · 2 sessions · 1 person · 5 handoffs, 1 waiting on a person</dd><dt>Version</dt><dd>a-person-and-two-sessions@1</dd></dl></section>
+<section id="s-owner"><p class="kind">Person</p><h2>The owner</h2><p class="id">owner</p><dl><dt>Role</dt><dd>Asks for the work and reads the result</dd><dt>Hands work</dt><dd><ul><li>to Lead, by session message: what is wanted</li></ul></dd><dt>Is handed work</dt><dd><ul><li>from Lead, by notification, e-mail: done, with a link</li></ul></dd></dl><a class="up" href="#top">Back to the picture</a></section>
+<section id="s-laptop"><p class="kind">Lane</p><h2>Laptop</h2><p class="id">laptop</p><dl><dt>Machine</dt><dd>a laptop (local)</dd><dt>Account</dt><dd>one account</dd><dt>Sessions</dt><dd><ul><li>Lead</li><li>Worker</li></ul></dd></dl><a class="up" href="#top">Back to the picture</a></section>
+<section id="s-lead"><p class="kind">Session</p><h2>Lead</h2><p class="id">lead</p><dl><dt>Role</dt><dd>Plans the work and checks it</dd><dt>Runs on</dt><dd>Claude Code</dd><dt>Lifetime</dt><dd>long-lived</dd><dt>Wakes itself</dt><dd>every hour</dd><dt>Hands work</dt><dd><ul><li>to Worker, by session message: one piece</li><li>to itself, by scheduled message, every hour: its own check-in</li><li>to The owner, by notification, e-mail: done, with a link</li></ul></dd><dt>Is handed work</dt><dd><ul><li>from The owner, by session message: what is wanted</li><li>from Worker, by branch on example/app: the piece, on a branch</li><li>from itself, by scheduled message, every hour: its own check-in</li></ul></dd></dl><a class="up" href="#top">Back to the picture</a></section>
+<section id="s-worker"><p class="kind">Session</p><h2>Worker</h2><p class="id">worker</p><dl><dt>Role</dt><dd>Does one piece</dd><dt>Runs on</dt><dd>Claude Code</dd><dt>Lifetime</dt><dd>per task</dd><dt>Hands work</dt><dd><ul><li>to Lead, by branch on example/app: the piece, on a branch</li></ul></dd><dt>Is handed work</dt><dd><ul><li>from Lead, by session message: one piece</li></ul></dd></dl><a class="up" href="#top">Back to the picture</a></section>
+<footer>Made with grooph 0.0.0. The picture, the text and the document are all inside this file; Save document writes <code>a-person-and-two-sessions.grooph-map.json</code>, which the grooph app imports. With a network, <a href="https://example.test/grooph/#/open?d=x">open it in the app</a>.</footer>
+</main>
+<script type="application/json" id="grooph-document" data-name="a-person-and-two-sessions.grooph-map.json">{
+  "groophMap": 0,
+  "id": "a-person-and-two-sessions",
+  "name": "A person and two sessions",
+  "version": 1,
+  "lanes": [
+    {
+      "id": "laptop",
+      "name": "Laptop",
+      "machine": "a laptop",
+      "place": "local",
+      "account": "one account"
+    }
+  ],
+  "people": [
+    {
+      "id": "owner",
+      "name": "The owner",
+      "role": "Asks for the work and reads the result"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "lead",
+      "name": "Lead",
+      "lane": "laptop",
+      "harness": "claude-code",
+      "role": "Plans the work and checks it",
+      "lifetime": "long-lived"
+    },
+    {
+      "id": "worker",
+      "name": "Worker",
+      "lane": "laptop",
+      "harness": "claude-code",
+      "role": "Does one piece",
+      "lifetime": "per-task"
+    }
+  ],
+  "handoffs": [
+    {
+      "id": "h-ask",
+      "from": "owner",
+      "to": "lead",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "what is wanted"
+    },
+    {
+      "id": "h-start",
+      "from": "lead",
+      "to": "worker",
+      "carrier": {
+        "kind": "session-message"
+      },
+      "what": "one piece"
+    },
+    {
+      "id": "h-back",
+      "from": "worker",
+      "to": "lead",
+      "carrier": {
+        "kind": "branch",
+        "repo": "example/app"
+      },
+      "what": "the piece, on a branch"
+    },
+    {
+      "id": "h-wake",
+      "from": "lead",
+      "to": "lead",
+      "carrier": {
+        "kind": "scheduled-message",
+        "schedule": "every hour"
+      },
+      "what": "its own check-in"
+    },
+    {
+      "id": "h-done",
+      "from": "lead",
+      "to": "owner",
+      "carrier": {
+        "kind": "notification",
+        "where": "e-mail"
+      },
+      "what": "done, with a link"
+    }
+  ]
+}
+</script>
+<script>
+(function(){
+var root=document.documentElement,svg=document.querySelector('.grooph-picture');
+function theme(t){root.setAttribute('data-theme',t);if(svg)svg.setAttribute('data-theme',t)}
+document.getElementById('theme').addEventListener('click',function(){
+var now=root.getAttribute('data-theme')||(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+theme(now==='dark'?'light':'dark')});
+document.querySelector('.picture').addEventListener('click',function(e){
+var g=e.target.closest?e.target.closest('[data-node],[data-session],[data-loop]'):null;if(!g)return;
+var el=document.getElementById('s-'+(g.getAttribute('data-node')||g.getAttribute('data-session')||g.getAttribute('data-loop')));if(!el)return;
+el.scrollIntoView({behavior:'smooth',block:'start'});el.classList.add('flash');setTimeout(function(){el.classList.remove('flash')},1600)});
+document.getElementById('save').addEventListener('click',function(){
+var holder=document.getElementById('grooph-document');
+var text=JSON.stringify(JSON.parse(holder.textContent),null,2)+'\n';
+var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'application/json'}));a.download=holder.getAttribute('data-name');document.body.appendChild(a);a.click();a.remove()});
+})();
+</script>
+</body>
+</html>
