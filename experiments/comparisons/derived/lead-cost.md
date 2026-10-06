@@ -6,7 +6,7 @@ The owner's question was what exactly makes a graph cost more than the same desi
 
 ## The answer
 
-1. **On the mean, all of it is the lead.** The subagents cost the same in both arms on the mean, not in each project (A less B: −$0.008 a run; by project −$0.008, +$0.055 and −$0.071). The lead cost $0.838 a run in A and $0.314 in B. That +$0.524 is the whole difference (Tables 1 and 2).
+1. **On the mean, the difference is in the lead.** The subagents cost the same in both arms on the mean, not in each project (A less B: −$0.008 a run; by project −$0.008, +$0.055 and −$0.071). The lead cost $0.838 a run in A and $0.314 in B. That +$0.524 is a little more than the whole difference of +$0.516, since the subagents cost $0.008 less a run in A (Tables 1 and 2).
 2. **It is three things of about the same size** (Table 2).
    - **Reading the context back: +$0.179.** Every call the lead makes reads back everything so far. The package's lead made 25.5 calls a run and the prose lead 7.5. This part goes with the number of calls.
    - **Adding to the context: +$0.183.** Most of it is one thing: the brief, the graph and the agent files, 16.3 thousand tokens written to the cache once, which at $8.00 a million is $0.130. This part goes with size, not with the number of calls.
@@ -73,7 +73,7 @@ Audit 0001 asks that every comparison carry this table (finding F12). It is from
 
 | | Arm A, the package | Arm B, the same design as prose |
 |---|---|---|
-| **The lead** | The kickoff as its prompt, about 3,000 characters. It then reads the lead brief (20,000), and unasked the graph (8,400) and both agent files (6,700), from the project. The `grooph` command is on its path. It is asked to keep a run folder. | One prompt of 8,600 to 10,200 characters, derived by rule from the same package: the roles, the routing, the loop and its stops, the gate, and each node's brief. No package in the project, no command on the path, no record asked for. |
+| **The lead** | The kickoff as its prompt, about 3,000 characters. It then reads the lead brief (20,000), and, without being told to in so many words, the graph (8,400) and both agent files (6,700); the brief asks a dispatch prompt to carry a node's declared inputs, which are written only there, from the project. The `grooph` command is on its path. It is asked to keep a run folder. | One prompt of 8,600 to 10,200 characters, derived by rule from the same package: the roles, the routing, the loop and its stops, the gate, and each node's brief. No package in the project, no command on the path, no record asked for. |
 | **A builder** | A named agent. Its agent file gives it a model, a tool list, its brief, its declared inputs and outputs, a line that it dispatches nobody, and sections on what it owns, what evidence it may inspect and the form of its report. Then the lead's dispatch prompt. | A general-purpose subagent, with that subagent's own tools. It is given what the lead writes into the dispatch prompt from the prose, which carries the node's brief, inputs, outputs and capabilities. |
 | **A reviewer** | A named agent in the same way, with the held-out material named by its path. | A general-purpose subagent in the same way, with the same path. |
 | **The held-out material** | Reviewers were told to read it. The package's builder files also list its path among the builder's inputs and tell the builder not to read it; three of the six leads took that line out of their working copy. A scan found no builder read that names the path. A copy sits beside the project and the session's rules allow reading it, so a builder is kept from it by instruction and not by the harness. | The same. |
@@ -97,7 +97,7 @@ Table 7 removes calls from the package's lead and leaves every other call as it 
 
 **Not in stage 16, and the largest item: the reading before the first dispatch, $0.241.** Table 10 splits it by file.
 
-- **The graph document and the agent files, which nothing tells the lead to read: $0.088 a run by this count**, 17% of the difference, and from $0.036 to $0.105 by run. That is more than hook-written notes would remove, for one sentence in the brief.
+- **The graph document and the agent files, which the brief does not tell the lead to read in so many words: $0.088 a run by this count**, 17% of the difference, and from $0.036 to $0.105 by run. That is more than hook-written notes would remove, for one sentence in the brief.
 - **What that reading did in these runs.** Three of the six leads amended the working copy after it, each for the same reason: the builder's declared inputs named the reviewer's held-out material, and the lead took it out. Those inputs are in the agent file and the graph, not in the brief. A lead told not to read them would not have seen it.
 - **What it did not do.** No run shows routing that depended on it. The one lead that did not read the graph document dispatched builder, reviewer, builder, reviewer, as the five that did, and was the cheapest package lead of the six.
 - **One thing a sentence would have to settle.** The brief asks the dispatch prompt to carry a node's declared inputs, which are written only in the files the sentence would tell the lead not to read. Either the brief lists them, or it says the agent file already gives the node its inputs.
@@ -111,7 +111,7 @@ None of this is measured: it removes reading from runs that did read.
 - **The rates are inferred.** They are the ones that reproduce every reported cost of these runs: each run's Opus line exactly, and two Sonnet lines to within half a cent. In `review-gate-2` the Opus line is the lead alone; in the other two projects it is the lead and one Opus subagent together.
 - **A call with two purposes is filed once**, by a fixed order in the script. Table 5 counts tool uses instead, and carries no cost.
 - **Tables 7 and 8 are arithmetic.** Nothing was run with a hook, a script or more than four dispatches.
-- **It prices the record. It does not say what the record is worth.**
+- **It sorts the lead's cost by what each call did, under the rules stated. It does not isolate what the record costs, and it does not say what the record is worth.**
 
 ## How to make it again
 
