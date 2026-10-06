@@ -1,0 +1,43 @@
+
+--- add
+exit 0
+placed review-gate@1 (built-in) as "review": 3 members, named "Review gate"
+  its stop "review-done" is dropped: what reached it leads to "release"
+  review-merge-gate → release   (e-review-merge-gate-release)
+  plan → review-builder   (e-plan-review-builder)
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+plan.grooph.json: 0 errors, 1 warning
+wrote plan.grooph.json
+
+--- update --write (v2: reject leads on)
+exit 0
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-review-merge-gate-release-2
+    edge:e-review-merge-gate-release-2  adds a way into "release" that does not pass "pass" at the human gate "review-merge-gate"
+  waiting for edge:e-review-merge-gate-release-2: the shape of a subgrooph moves as a whole
+    edge:review-e-merge-gate-reject     removes edge "review-e-merge-gate-reject"
+    loop:review-review.back             loop "review-review": back changes from ["review-e-critic-fail","review-e-merge-gate-reject"] to ["review-e-critic-fail"]
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+plan.grooph.json: 0 errors, 1 warning
+wrote plan.grooph.json
+file changed: true | out of the gate now: [ '"fail" -> review-builder', '"pass" -> release' ] | errors: []
+
+--- update --write (v2: the cycle under a new loop, cap 500)
+exit 0
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow loop:review-review.members
+    loop:review-review.members         the loop "review-review" would keep its stops and bound none of the nodes it did; there would be a way round the nodes of "review-review" that its stops do not count
+    loop:review-review.back            the rounds that "review-e-critic-fail" starts would be counted by "review-work", not against the stops of "review-review"; the rounds that "review-e-merge-gate-reject" starts would be counted by "review-work", not against the stops of "review-review"; the loop "review-review" would keep its stops and bound none of the nodes it did; there would be a way round the nodes of "review-review" that its stops do not count
+    loop:review-work                   the rounds that "review-e-critic-fail" starts would be counted by "review-work", not against the stops of "review-review"; the rounds that "review-e-merge-gate-reject" starts would be counted by "review-work", not against the stops of "review-review"; a round between "review-critic" and "review-builder", which the loop "review-review" bounds, would be counted by "review-work" and not against its stops; a round between "review-merge-gate" and "review-builder", which the loop "review-review" bounds, would be counted by "review-work" and not against its stops
+  waiting for loop:review-review.members: the shape of a subgrooph moves as a whole
+    node:review-lint                   adds node "review-lint"
+    node:review-fmt                    adds node "review-fmt"
+    edge:e-review-builder-review-lint  adds edge "e-review-builder-review-lint"
+    edge:e-review-lint-review-fmt      adds edge "e-review-lint-review-fmt"
+    edge:e-review-fmt-review-lint      adds edge "e-review-fmt-review-lint"
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+plan.grooph.json: 0 errors, 1 warning
+wrote plan.grooph.json
+loops now: [
+  'review-review: review-builder,review-critic,review-merge-gate | [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}]'
+] | errors: []

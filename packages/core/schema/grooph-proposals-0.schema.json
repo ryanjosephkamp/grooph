@@ -157,6 +157,10 @@
           "type": "integer",
           "minimum": 0
         },
+        "people": {
+          "type": "integer",
+          "minimum": 0
+        },
         "checks": {
           "type": "integer",
           "minimum": 0

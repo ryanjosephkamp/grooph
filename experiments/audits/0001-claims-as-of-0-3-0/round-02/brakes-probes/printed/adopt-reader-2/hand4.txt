@@ -1,0 +1,53 @@
+decorated source valid: true
+
+### T1 twin in two hops through a new step: critic -> relay -> merge (pass)
+  changes: add edge:e-critic-relay, add edge:e-relay-merge, add node:relay
+  refused: 
+    - edge:e-critic-relay: adds a way from "critic" to end in success that does not pass the approval on "e-critic-merge"
+    - edge:e-relay-merge: adds a way from "relay" to "merge" that does not pass a person
+
+### T2 the approved edge's from moved to docs; a new unapproved critic -> merge (pass)
+  changes: change edge:e-critic-merge.when, add edge:e-critic-merge-2, change edge:e-critic-merge.from
+  refused: 
+    - edge:e-critic-merge.when: changes what a person's answer leads to
+    - edge:e-critic-merge-2: adds a way from "critic" to end in success that does not pass the approval on "e-critic-merge"
+
+### T3 twin by a stop: review's bar-passed gets then: merge (the bar passed IS the critic's pass)
+  changes: change loop:review.stops
+  refused: 
+    - loop:review.stops: adds a way from "build" to end in success that does not pass the approval on "e-critic-merge"
+
+### T4 twin by a stop of another kind: diminishing-returns then: merge
+  changes: change loop:review.stops
+  refused: 
+    - loop:review.stops: adds a way from "build" to end in success that does not pass the approval on "e-critic-merge"
+
+### T5 twin by a human stop then: merge (a person, but not the approval)
+  changes: change loop:review.stops
+  refused: 
+    - loop:review.stops: adds a way from "build" to end in success that does not pass the approval on "e-critic-merge"
+  tightens:
+    + loop:review.stops: removes the stop where a person is asked
+
+### T6 twin to the node just after: critic -> gate (pass), skipping merge
+  changes: add edge:e-critic-gate
+  refused: 
+    - edge:e-critic-gate: adds a way from "critic" to end in success that does not pass the approval on "e-critic-merge"
+
+### T7 twin by grind's stop (tests is no critic): grind gets diminishing-returns then: merge
+  changes: change loop:grind.stops
+  refused: 
+    - loop:grind.stops: adds a way from "build" to end in success that does not pass the approval on "e-critic-merge"
+
+### G1 base: gate's 'fail' (-> halt) gains a second edge to ship without approval
+  changes: add edge:e-gate-ship-2
+  refused: 
+    - edge:e-gate-ship-2: "e-gate-ship-2" would lead from "gate" to "ship" beside "e-gate-ship", which needs a person's approval, and need none; adds a way into "ship" that does not pass "pass" at the human gate "gate"
+
+### G2 base: a twin gate -> ship (pass) without approval beside the approved one
+  changes: add edge:e-gate-ship-2
+  refused: 
+    - edge:e-gate-ship-2: "e-gate-ship-2" would lead from "gate" to "ship" beside "e-gate-ship", which needs a person's approval, and need none; adds a way into "ship" that does not pass the approval on "e-gate-ship"
+
+### G3 base: gate -> relay (pass, no approval) -> ship
+  NOT VALID (refused earlier): E_IRREVERSIBLE_NO_GATE: node "ship" performs irreversible actions (merge) and can be reached without a human decision through "e-relay-ship"; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node

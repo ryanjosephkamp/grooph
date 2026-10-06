@@ -1,0 +1,13 @@
+At b74c9ee, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/halt-to-success-probe.mjs
+
+the source: builder -> tests; pass -> done (success); fail -> failed (halt). validator errors: none
+
+== the stop that failing tests lead to, changed from a halt to success
+   validator errors: none
+   changes: node:failed.outcome
+   refused: nothing
+
+== for comparison, the failing edge re-pointed at the success stop
+   validator errors: none
+   changes: edge:e-tests-fail.to  [loosens: nothing would lead to "failed", so a run would start there, where every way to it passed the check "tests"; opens a way into "done" that does not pass "pass" from the check "tests"; changes "e-tests-fail", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply]
+   refused: edge:e-tests-fail.to

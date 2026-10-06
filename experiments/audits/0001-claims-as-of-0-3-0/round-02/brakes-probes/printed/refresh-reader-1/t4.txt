@@ -1,0 +1,120 @@
+ship placed: [ 'plan', 'release', 'done', 'ship-gate', 'ship-act' ] [
+  'e-release-done:release->done',
+  'e-ship-gate-ship-act:ship-gate->ship-act',
+  'e-ship-act-done:ship-act->done',
+  'e-release-ship-gate:release->ship-gate'
+] []
+
+=== 8a 'act' replaced by 'act2' without the irreversible marker, entered straight (gate kept, orphaned)
+changes: [
+  'node:ship-act [LOOSENS: removes a node marked irreversible (merge): what takes its place carries no such mark unless it is given one; "pass" at the human gate "ship-gate" would lead nowhere; removes "ship-act", which a run reached only by passing a person, while "ship-act2" would come in with no such need: it may be the same step under another name]',
+  'edge:e-ship-gate-ship-act [LOOSENS: "pass" at the human gate "ship-gate" would lead nowhere]',
+  'node:ship-act2',
+  'edge:e-ship-act-done',
+  'edge:e-ship-act2-done'
+]
+held: [
+  'node:ship-act',
+  'edge:e-ship-gate-ship-act',
+  'node:ship-act2 (waits node:ship-act)',
+  'edge:e-ship-act-done (waits node:ship-act)',
+  'edge:e-ship-act2-done (waits node:ship-act)'
+]
+schema ok: true | validate: clean
+  nodes: [
+  'plan',
+  'release',
+  'done',
+  'ship-gate',
+  'ship-act irreversible=merge'
+] 
+  edges: [
+  'e-release-done:release->done',
+  'e-ship-gate-ship-act:ship-gate->ship-act',
+  'e-ship-act-done:ship-act->done',
+  'e-release-ship-gate:release->ship-gate'
+]
+
+=== 8a' control: marker simply dropped
+changes: [
+  'node:ship-act.irreversible [LOOSENS: removes the irreversible marker "merge"]'
+]
+held: [ 'node:ship-act.irreversible' ]
+schema ok: true | validate: clean
+
+=== 8b e-gate-act when pass -> always (go ahead or stop, both proceed)
+changes: [
+  `edge:e-ship-gate-ship-act.when [LOOSENS: "pass" at the human gate "ship-gate" would lead nowhere; changes what a person's answer leads to; opens a way into "ship-act" that does not pass "pass" at the human gate "ship-gate"]`
+]
+held: [ 'edge:e-ship-gate-ship-act.when' ]
+schema ok: true | validate: clean
+  edge: {"id":"e-ship-gate-ship-act","from":"ship-gate","to":"ship-act","when":"pass"}
+
+=== 8c new node with irreversible marker, no gate
+changes: [
+  'node:review-deploy [LOOSENS: adds an irreversible step that a run reaches without a person]',
+  'edge:e-review-builder-review-deploy'
+]
+held: [
+  'node:review-deploy',
+  'edge:e-review-builder-review-deploy (waits node:review-deploy)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 8c' builder brief gains 'git push origin main', allow run-commands, no marker
+changes: [ 'node:review-builder.brief', 'node:review-builder.allow' ]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== 8d template gains a lead node (host has none)
+THROWS: the template "review-gate" has a lead node ("boss"): a subgrooph has no lead of its own, and a graph has one
+
+=== 8d' template gains a lead node (host has one)
+THROWS: the template "review-gate" has a lead node ("boss"): a subgrooph has no lead of its own, and a graph has one
+
+=== 8e new template node 'lint' collides with host's own 'review-lint' (outside the box)
+THROWS: the template's node "review-lint" needs an id that "plan-review-release" already uses outside the subgrooph "review": rename that one first
+
+=== 8f host's approval edge into the box; template renames builder -> implementer
+changes: [
+  `node:review-builder [LOOSENS: removes an edge that needs a person's approval; removes "review-builder", which a run reached only by passing a person, while "review-implementer" would come in with no such need: it may be the same step under another name]`,
+  'edge:e-review-implementer-review-critic [LOOSENS: adds a way into "review-critic" that does not pass a person]',
+  'node:review-implementer',
+  'edge:e-review-builder-review-critic',
+  'edge:review-e-critic-fail.to',
+  'edge:review-e-merge-gate-reject.to',
+  'loop:review-review.members'
+]
+held: [
+  'node:review-builder',
+  'edge:e-review-implementer-review-critic',
+  'node:review-implementer (waits node:review-builder)',
+  'edge:e-review-builder-review-critic (waits node:review-builder)',
+  'edge:review-e-critic-fail.to (waits node:review-builder)',
+  'edge:review-e-merge-gate-reject.to (waits node:review-builder)',
+  'loop:review-review.members (waits node:review-builder)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  edges with approval: [ 'e-plan-review-builder' ] | ways into implementer: []
+
+=== 8g host gate before the box; template renames builder
+changes: [
+  'node:review-builder [LOOSENS: "pass" at the human gate "go" would lead nowhere; removes "review-builder", which a run reached only by passing a person, while "review-implementer" would come in with no such need: it may be the same step under another name]',
+  'edge:e-review-implementer-review-critic [LOOSENS: adds a way into "review-critic" that does not pass a person]',
+  'node:review-implementer',
+  'edge:e-review-builder-review-critic',
+  'edge:review-e-critic-fail.to',
+  'edge:review-e-merge-gate-reject.to',
+  'loop:review-review.members'
+]
+held: [
+  'node:review-builder',
+  'edge:e-review-implementer-review-critic',
+  'node:review-implementer (waits node:review-builder)',
+  'edge:e-review-builder-review-critic (waits node:review-builder)',
+  'edge:review-e-critic-fail.to (waits node:review-builder)',
+  'edge:review-e-merge-gate-reject.to (waits node:review-builder)',
+  'loop:review-review.members (waits node:review-builder)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  ways into implementer: [] | from go: [ 'e-go-review-builder' ]

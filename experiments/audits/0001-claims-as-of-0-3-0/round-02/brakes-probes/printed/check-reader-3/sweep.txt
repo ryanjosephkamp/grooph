@@ -1,0 +1,30 @@
+{"tried":165,"valid":138,"through":17}
+  THROUGH debate-then-build / build -> planner-a [agent]   by: human
+  THROUGH debate-then-build / build -> planner-b [agent]   by: human
+  THROUGH debate-then-build / build -> judge [agent]   by: human
+  THROUGH debate-then-build / build -> plan-gate [human-gate]   by: human
+  THROUGH gauntlet-decomposed / polish -> planner [agent]   by: human
+  THROUGH gauntlet-decomposed / polish -> decomposition-gate [human-gate]   by: human
+  THROUGH ownership-not-swarm / integrate -> planner [agent]   by: human
+  THROUGH ownership-not-swarm / integrate -> owner-a [agent]   by: human
+  THROUGH ownership-not-swarm / integrate -> owner-b [agent]   by: human
+  THROUGH ownership-not-swarm / integrate -> worker [agent]   by: human
+  THROUGH glyph-vocabulary / grind -> plan [agent]   by: human
+  THROUGH glyph-vocabulary / grind -> scout [agent]   by: human
+  THROUGH glyph-vocabulary / review -> plan [agent]   by: human
+  THROUGH glyph-vocabulary / review -> scout [agent]   by: human
+  THROUGH wrap-up-after-the-cap / fix-cycle -> handed-over [stop:halt]   by: budget dispatches, human, new loop, cap 1
+
+own source (grind-loop + a critic behind the check, a member, no bar): errors none
+
+### B4 that loop given a bar of the builder's word and a stop on bar passed  [own]
+  changes: loop:grind.stops, loop:grind.bar
+  refused: NONE   <<<<<< THROUGH
+    + tightens loop:grind.bar: removes the loop's bar
+
+### B4b the same, and the critic made a builder under its own allowed name  [own] allow=node:rev.role
+  changes: node:rev.role, loop:grind.stops, loop:grind.bar
+  refused: 
+    - loop:grind.stops: adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+    - loop:grind.bar: gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+    + tightens loop:grind.bar: removes the loop's bar

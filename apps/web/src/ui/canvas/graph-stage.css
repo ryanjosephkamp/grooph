@@ -98,6 +98,7 @@
 .s3-card[data-kind="check"] {
   border-left-color: var(--kind-check);
 }
+.s3-card[data-kind="person"],
 .s3-card[data-kind="gate"] {
   border-left-color: var(--kind-human-gate);
 }
@@ -144,6 +145,10 @@
 }
 .s3-card.is-small span {
   display: none;
+}
+/* But a person's step says whose it is wherever its card is (amendment A-020): its line stays. */
+.s3-card.is-small[data-kind="person"] span {
+  display: block;
 }
 .s3-card.is-small b {
   display: block;

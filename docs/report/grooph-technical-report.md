@@ -35,7 +35,7 @@ One JSON file ([`docs/graph-ir.md`](../graph-ir.md)), small enough for a model t
 | **Loops** | A named set of nodes with a back edge, a kind (a grind loop toward a check; a judgment loop toward a bar), and its **stops** in order |
 | **Stops** | What ends a loop: the bar is met, a maximum number of rounds, a budget (dispatches, minutes, dollars), a person, diminishing returns, evidence that does not hold. Each has an action: leave by the pass edges, go on at a named node, or halt and report |
 | **Bars** | What "good enough" means for a judgment loop, and what evidence shows it |
-| **Adaptation** | Whether the lead may amend a working copy of the graph during a run. Its brief tells it to tighten a brake and never loosen one ([decision 0008](../decisions/0008-adaptive-by-default.md)); nothing checks that while a run goes on. Since 2026-10-05 the `grooph adopt` command does not write a working copy that loosens a brake it can see until the change is asked for by name; the web app's Adopt button does not make that check yet |
+| **Adaptation** | Whether the lead may amend a working copy of the graph during a run. Its brief tells it to tighten a brake and never loosen one ([decision 0008](../decisions/0008-adaptive-by-default.md)); nothing checks that while a run goes on. Since 2026-10-05 the `grooph adopt` command does not write a working copy that loosens a brake it can see until the change is asked for by name, and the web app's Adopt button, which makes the same comparison, does not save one |
 
 A graph is one session: the lead is the harness's main session, and every other agent is its subagent. Work that spans sessions is drawn as an operation map (section 6), which is validated and never compiled.
 
@@ -138,7 +138,7 @@ The validator counts how many handoffs move only when a person moves them. In th
 
 ## 8. Limitations
 
-- One compile target today. A Codex target is planned and not built.
+- Claude Code is the compile target the built-in templates have been run on. A second target, Codex, compiles and is tested against golden packages; no run of a package in Codex is on record yet.
 - The comparison evidence stated here is one study of four small projects. A second has run and is not yet audited.
 - The turn-end sender has been seen working in Claude Code's cloud sessions by another session's report, not by this project's own records ([`docs/subagents.md`](../subagents.md) labels each fact as documented, seen, reported or unknown).
 - A session takes up hooks when it starts. Hooks that arrive mid-session are picked up, by Claude Code's documentation; in two reported trials three sessions of four did, then two of three.

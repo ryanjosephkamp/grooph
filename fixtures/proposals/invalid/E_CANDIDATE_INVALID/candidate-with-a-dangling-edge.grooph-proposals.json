@@ -1,7 +1,7 @@
 {
   "groophProposals": 0,
-  "id": "no-goal",
-  "title": "no-goal",
+  "id": "dangling-edge",
+  "title": "dangling-edge",
   "brief": "A minimal set for one rule.",
   "candidates": [
     {
@@ -80,7 +80,7 @@
           {
             "id": "e-tests-pass",
             "from": "tests",
-            "to": "done",
+            "to": "nowhere",
             "when": "pass"
           }
         ],

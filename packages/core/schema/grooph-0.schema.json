@@ -169,6 +169,12 @@
         "coupled": {
           "type": "boolean"
         },
+        "by": {
+          "enum": [
+            "agent",
+            "person"
+          ]
+        },
         "role": {
           "anyOf": [
             {

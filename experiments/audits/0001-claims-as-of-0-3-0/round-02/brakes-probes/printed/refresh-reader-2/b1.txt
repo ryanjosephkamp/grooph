@@ -1,0 +1,63 @@
+
+=== P1: critic becomes a 'reviewer' (held) and its inbound edge shares context with no evidence (applied)
+applied: []
+held:    [
+  'node:review-critic.role [a critic is given another role]',
+  'edge:e-review-builder-review-critic.evidence [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]',
+  "edge:e-review-builder-review-critic.isolation [the critic would share its builder's context]"
+]
+schema: ok | errors before: [] after: []
+  critic role: "critic" | edge into it: {"id":"e-review-builder-review-critic","from":"review-builder","to":"review-critic","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]} | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== P1b: same, evidence cut to one piece, isolation left fresh
+applied: []
+held:    [
+  'node:review-critic.role [a critic is given another role]',
+  'edge:e-review-builder-review-critic.evidence [the critic would no longer be handed "diff of the change", "the repository as the change leaves it, read-only", "output of pnpm test", "docs/checklist.md" by "review-builder"]'
+]
+schema: ok | errors before: [] after: []
+  critic role: "critic" | edge into it: {"id":"e-review-builder-review-critic","from":"review-builder","to":"review-critic","evidence":["diff of the change","the repository as the change leaves it, read-only","output of pnpm test","docs/checklist.md"]} | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== P2: cap -> 'triage' (to be a gate); the kind change waits on another refusal; the cap's change applies
+applied: []
+held:    [
+  'edge:e-review-critic-release [adds a way from "review-critic" to end in success that does not pass a person; adds a way into "release" that does not pass the human gate "review-merge-gate"; adds a way into "release" that does not pass "pass" from the critic "review-critic"]',
+  'loop:review-review.stops [adds a way from "review-builder" to end in success that does not pass the human gate "review-merge-gate"]',
+  'node:review-triage.kind (waits edge:e-review-critic-release)',
+  'node:review-triage.name (waits node:review-triage.kind)',
+  'node:review-triage.role (waits node:review-triage.kind)',
+  'node:review-triage.brief (waits node:review-triage.kind)',
+  'node:review-triage.outputs (waits node:review-triage.kind)',
+  'node:review-triage.allow (waits node:review-triage.kind)',
+  'node:review-triage.prompt (waits node:review-triage.kind)'
+]
+schema: ok | errors before: [] after: []
+  triage is: agent | stops: [{"kind":"bar-passed"},{"kind":"max-iterations","n":4},{"kind":"budget","measure":"dispatches","limit":10}] | issues: [ 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== P3: a marked agent becomes a check; the marker is held, the kind applies
+applied: []
+held:    [
+  'node:review-builder.kind [removes the irreversible marker "push to main"]',
+  'node:review-builder.irreversible [removes the irreversible marker "push to main"]',
+  'node:review-builder.role (waits node:review-builder.irreversible)',
+  'node:review-builder.model (waits node:review-builder.irreversible)',
+  'node:review-builder.effort (waits node:review-builder.irreversible)',
+  'node:review-builder.brief (waits node:review-builder.irreversible)',
+  'node:review-builder.inputs (waits node:review-builder.irreversible)',
+  'node:review-builder.outputs (waits node:review-builder.irreversible)',
+  'node:review-builder.allow (waits node:review-builder.irreversible)',
+  'node:review-builder.check (waits node:review-builder.irreversible)'
+]
+schema: ok | errors before: [ 'E_IRREVERSIBLE_NO_GATE' ] after: [
+  'E_IRREVERSIBLE_NO_GATE: node "review-builder" performs irreversible actions (push to main) and can be reached without a human decision through "review-e-critic-fail", "e-plan-review-builder"; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node'
+]
+  node: {"id":"review-builder","kind":"agent","name":"Builder","role":"builder","model":{"tier":"strong"},"effort":"high","brief":"Do the task in the code, with tests. On a later round, read REVIEW.md first and address each finding, or say why it does not apply. Run the test command before you report, and do not review your own work beyond that.","inputs":["the task","docs/checklist.md","REVIEW.md (from round 1 on)"],"outputs":["the change, with tests","CHANGES.md: what changed this round and which findings it addresses"],"allow":["read-files","edit-files","run-tests"],"irreversible":["push to main"]}
+
+=== P4: e-critic-pass moved to the builder with when always: from is held, when applies
+applied: []
+held:    [
+  'edge:review-e-critic-pass.from [opens a way into "review-merge-gate" that does not pass the critic "review-critic"]',
+  `edge:review-e-critic-pass.when [changes what the critic's verdict leads to; opens a way into "review-merge-gate" that does not pass the critic "review-critic"]`
+]
+schema: ok | errors before: [] after: []
+  edge: {"id":"review-e-critic-pass","from":"review-critic","to":"review-merge-gate","when":"pass"} (was when pass)

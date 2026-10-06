@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
-import { parseGraphText, parseRunNotes, resolvePositions, type Graph, type RunNote } from "@grooph/core";
+import { parseGraphText, parseRunNotes, replaySteps, resolvePositions, summarizeRun, type Graph, type RunNote } from "@grooph/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { columnsForViewport } from "../src/doc/layout.js";
@@ -74,6 +74,20 @@ describe("what a view draws from", () => {
       expect(steps).toHaveLength(model.pass.length + 1);
       for (const [k, step] of steps.slice(1).entries()) expect([step.edge, step.r0, step.r1], path).toEqual([model.pass[k]!.edge, 0, model.pass[k]!.loop ? 1 : 0]);
     }
+  });
+
+  it("a person's step says whose it is: Person, its role, no tier and no effort, in the kind a person's decision has; an agent's is as it was", () => {
+    const plan = graph("fixtures/valid/a-plan-with-people.grooph.json");
+    const cards = Object.fromEntries(modelOf(plan).nodes.map((n) => [n.id, [n.kind, n.word, n.line, n.tier]]));
+    expect(cards).toEqual({
+      draft: ["person", "Person", "Person · builder", null],
+      "fact-check": ["agent", "Agent", "researcher · strong · high", "strong"],
+      review: ["person", "Person", "Person · critic", null],
+      publish: ["person", "Person", "Person · builder", null],
+      done: ["stop", "Stop", "Stop", null],
+    });
+    // In Panes each is one card where the picture has it, a person's among them.
+    expect(panes(modelOf(plan), { k: 0, lit: null, took: [] }).prims.filter((p) => p.t === "card").map((p) => (p.t === "card" ? p.id : "")).sort()).toEqual(plan.nodes.map((n) => n.id).sort());
   });
 
   it("a card says what the canvas says: a role, a tier and an effort, or what kind of node it is", () => {
@@ -189,6 +203,104 @@ describe("a recorded run", () => {
 });
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("every recorded run the repository keeps", () => {
+  /** Every folder with a run's notes under the fixtures and the experiments (but for the game's acceptance runs, which are another lane's). */
+  const recorded = (dir: string): string[] =>
+    readdirSync(join(root, dir), { withFileTypes: true }).flatMap((d) => (!d.isDirectory() || join(dir, d.name) === "experiments/game/acceptance" ? [] : readdirSync(join(root, dir, d.name)).includes("notes.jsonl") ? [join(dir, d.name)] : recorded(join(dir, d.name))));
+  /**
+   * Each run, with how many dispatches it had and the round each loop it entered was in at the end, as literal
+   * numbers. They are what `main` showed for these runs on 2026-10-05, by core, which this change does not touch:
+   * the rounds are core's own (`replaySteps`), and the dispatches are core's count but for the four runs named
+   * under the table. A change to how a run is read (`stage/model.ts`) that moves any of them fails here by name.
+   * A run added to the repository needs a row: its dispatches are its notes at an agent or a check with an outcome
+   * that is not "started", and its rounds are in the sentence its page opens with.
+   */
+  const RUNS: [string, number, Record<string, number>][] = [
+    ["experiments/comparisons/grind-loop/A-1/runs/20260921-213906", 2, { "grind": 0 }],
+    ["experiments/comparisons/grind-loop/A-2/runs/20260921-214249", 2, { "grind": 0 }],
+    ["experiments/comparisons/heterogeneous-critic/A-1/runs/20261004-214144", 4, { "review": 1 }],
+    ["experiments/comparisons/heterogeneous-critic/A-2/runs/20261004-215612", 4, { "review": 1 }],
+    ["experiments/comparisons/red-team-loop/A-1/runs/20260921-220554", 2, { "attack": 0 }],
+    ["experiments/comparisons/red-team-loop/A-2/runs/20260921-224918", 2, { "attack": 0 }],
+    ["experiments/comparisons/review-gate-2/A-1/runs/20261004-211444", 4, { "review": 1 }],
+    ["experiments/comparisons/review-gate-2/A-2/runs/20261004-212722", 4, { "review": 1 }],
+    ["experiments/comparisons/review-gate/A-1/runs/20260921-214803", 2, { "review": 0 }],
+    ["experiments/comparisons/review-gate/A-2/runs/20260921-215704", 2, { "review": 0 }],
+    ["experiments/comparisons/spec-then-loop/A-1/runs/20260921-232556", 3, { "build": 0 }],
+    ["experiments/comparisons/spec-then-loop/A-2/runs/20260921-233822", 3, { "build": 0 }],
+    ["experiments/comparisons/spec-then-loop/A-3/runs/20260921-235057", 3, { "build": 0 }],
+    ["experiments/comparisons/taste-polish/A-1/runs/20261004-221102", 6, { "polish": 1 }],
+    ["experiments/comparisons/taste-polish/A-2/runs/20261004-222738", 6, { "polish": 1 }],
+    ["experiments/patterns/contradiction-seeker/run/runs/20260919-1233-k7qm", 2, { "hunt": 0 }],
+    ["experiments/patterns/debate-then-build/run/runs/20260920-185756", 3, { "debate": 0 }],
+    ["experiments/patterns/dual-bar/run/runs/20260920-191110", 2, { "review": 0 }],
+    ["experiments/patterns/fresh-grind-rare-judge/run-1/runs/20260920-195457", 6, { "grind": 0, "phases": 1 }],
+    ["experiments/patterns/fresh-grind-rare-judge/run/runs/20260921-044114", 6, { "grind": 0, "phases": 1 }],
+    ["experiments/patterns/gauntlet-decomposed/run-1/runs/20260922-151855", 9, { "polish": 0, "pieces": 1 }],
+    ["experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501", 9, { "polish": 0, "pieces": 1 }],
+    ["experiments/patterns/grind-loop/run/runs/20260919-1230-k7qm", 2, { "grind": 0 }],
+    ["experiments/patterns/heterogeneous-critic/run/runs/20260920-192538", 4, { "review": 1 }],
+    ["experiments/patterns/human-gated-irreversible/run/runs/20260920-184824", 2, { "grind": 0 }],
+    ["experiments/patterns/merge-queue/run/runs/20260922-051355", 5, { "grind": 0, "queue": 1 }],
+    ["experiments/patterns/metric-sandwich/run/runs/20260919-1241-k7qm", 3, { "sandwich": 0 }],
+    ["experiments/patterns/ownership-not-swarm/run/runs/20260920-193520", 7, { "integrate": 0 }],
+    ["experiments/patterns/patrol-pulse/run-1/runs/20260922-050527", 3, {}],
+    ["experiments/patterns/patrol-pulse/run-2/runs/20261004-225445", 2, {}],
+    ["experiments/patterns/patrol-pulse/run/runs/20261005-042756", 3, {}],
+    ["experiments/patterns/ralph-loop/run/runs/20260922-052016", 14, { "ralph": 4 }],
+    ["experiments/patterns/red-team-loop/run/runs/20260920-191614", 2, { "attack": 0 }],
+    ["experiments/patterns/retrospective-rewrite/run/runs/20260920-185135", 3, { "grind": 0 }],
+    ["experiments/patterns/review-gate/run-1/runs/20260919-1236-k7q2", 2, { "review": 0 }],
+    ["experiments/patterns/review-gate/run/runs/20260920-172408", 2, { "review": 0 }],
+    ["experiments/patterns/spec-then-loop/run-1/runs/20260919-1245-k7qz", 4, { "build": 0 }],
+    ["experiments/patterns/spec-then-loop/run/runs/20260920-172850", 3, { "build": 0 }],
+    ["experiments/patterns/specialist-critic-bank/run-1/runs/20260920-200356", 12, { "review": 1 }],
+    ["experiments/patterns/specialist-critic-bank/run/runs/20260921-032821", 6, { "review": 0 }],
+    ["experiments/patterns/taste-polish/run/runs/20260920-194427", 6, { "polish": 1 }],
+    ["experiments/patterns/tournament-then-judge/run/runs/20260920-190434", 6, {}],
+    ["fixtures/runs/run-broken/runs/20260919-1400-oops", 0, { "review-cycle": 0 }],
+    ["fixtures/runs/run-gate/runs/20260919-1200-gate", 2, { "review-cycle": 0 }],
+    ["fixtures/runs/run-live/runs/20260919-1100-live", 1, { "review-cycle": 0 }],
+    ["fixtures/runs/run-malformed/runs/20260919-1000-bad1", 1, { "review-cycle": 0 }],
+    ["fixtures/runs/run-nested/runs/20260919-1300-nest", 7, { "grind": 0, "phases": 0 }],
+    ["fixtures/runs/slice-0007-sandwich/runs/20260919-0057-66c8", 6, { "sandwich": 1 }],
+  ];
+  /**
+   * Where core's count of dispatches (`summarizeRun`: a line before a dispatch, or a result with none before it) is
+   * not the number of results, and why. The first three have a dispatch that was started and had not ended when the
+   * run was recorded: core counts it and this model, which counts results, does not. In the fourth two pieces were
+   * started at one node before either ended (started, started, pass, pass): the second pass has no line before it
+   * that is not already answered, so core counts a third dispatch where there were two.
+   */
+  const CORE_COUNTS: Record<string, number> = {
+    "fixtures/runs/run-broken/runs/20260919-1400-oops": 1,
+    "fixtures/runs/run-live/runs/20260919-1100-live": 2,
+    "fixtures/runs/run-nested/runs/20260919-1300-nest": 8,
+    "experiments/patterns/ownership-not-swarm/run/runs/20260920-193520": 8,
+  };
+
+  it("has a row here, and its dispatches and each loop's round are what the row says", () => {
+    const found = [...recorded("fixtures/runs"), ...recorded("experiments")].sort();
+    expect(found).toEqual(RUNS.map(([dir]) => dir).sort());
+    for (const [dir, dispatches, rounds] of RUNS) {
+      const doc = graph(join(dir, readdirSync(join(root, dir)).find((f) => f.endsWith(".grooph.json"))!));
+      const notes = parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes;
+      const run = modelOf(doc, notes).run!;
+      expect([run.dispatches.length, run.rounds], dir).toEqual([dispatches, rounds]);
+      // Against core, read here and not copied: the rounds are its replay's, and its count of dispatches at agents
+      // and checks is the same number, but for the four runs above.
+      expect(run.rounds, dir).toEqual(Object.fromEntries(replaySteps(notes, doc).end.loops.map((l) => [l.loop, l.round ?? -1])));
+      const summary = summarizeRun(notes, doc);
+      expect(doc.nodes.reduce((sum, n) => sum + (n.kind === "agent" || n.kind === "check" ? (summary.nodes[n.id]?.runs ?? 0) : 0), 0), dir).toBe(CORE_COUNTS[dir] ?? dispatches);
+      // And the latest round core's summary has for each loop is the same, but for the nested run: its last line
+      // is the line before the judge's dispatch, which names round 1 of Phases, and a line before a dispatch is no
+      // round of the loop's yet.
+      for (const loop of doc.loops) expect(summary.loops[loop.id]?.round ?? -1, `${dir} ${loop.id}`).toBe(dir.includes("run-nested") && loop.id === "phases" ? 1 : (rounds[loop.id] ?? -1));
+    }
+    expect(RUNS).toHaveLength(48);
+  });
+});
 
 describe("which edges a run took", () => {
   /** Notes written for a graph: `[node or loop:id, outcome, round or none, verdict or stop]`, with stamps a minute apart unless `bare`. */
@@ -473,7 +585,7 @@ describe("the spiral and its lid", () => {
   /** The nested run's graph, and notes written for it: `[node, outcome, round or none, verdict]`. */
   const [NEST] = runAt("run-nested");
   const notes = (list: [string, string, number?, string?][]): RunNote[] =>
-    list.map(([node, outcome, round, verdict], k) => ({ id: `n-${String(k + 1).padStart(4, "0")}`, run: "r", at: `node:${node}`, ended: `2026-09-19T13:${String(k).padStart(2, "0")}:00Z`, outcome, ...(round === undefined ? {} : { round }), ...(verdict ? { verdict } : {}) }) as RunNote);
+    list.map(([node, outcome, round, verdict], k) => ({ id: `n-${String(k + 1).padStart(4, "0")}`, run: "r", at: node.includes(":") ? node : `node:${node}`, ended: `2026-09-19T13:${String(k).padStart(2, "0")}:00Z`, outcome, ...(round === undefined ? {} : { round }), ...(verdict ? { verdict } : {}) }) as RunNote);
   const withStops = (doc: Graph, id: string, stops: unknown[]): Graph => ({ ...doc, loops: doc.loops.map((l) => (l.id === id ? ({ ...l, stops } as typeof l) : l)) });
 
   it("every brake of a loop is said, in the document's order, and the ones that count rounds are places on the way up", () => {
@@ -948,9 +1060,37 @@ describe("the spiral and its lid", () => {
     expect(solid.t === "line" && turns(solid.pts[solid.pts.length - 1]![1])).toBe(2);
   });
 
+  it("a node in a loop inside another: each loop's round is worked out from the loop's own notes and the ways back the run took, whichever loop's number the lead wrote on the node's note", () => {
+    const where = (m: ReturnType<typeof modelAt>) => m.run!.dispatches.map((d) => `${d.node}@${d.loop}:${d.round}`);
+    // The nested fixture's lead wrote the inner loop's round on the builder's and the tests' notes.
+    const [nested, written] = runAt("run-nested");
+    const inner = ["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0", "builder@grind:0", "tests@grind:0"];
+    expect(where(modelAt(nested, places(nested), written))).toEqual(inner);
+    // The same run with the outer loop's round written there, as the recorded Gauntlet and fresh-grind runs have
+    // it, and with none written: the same rounds.
+    const phase = [0, 0, 0, 0, 0, 1, 1];
+    let k = 0;
+    const outer = written.map((n) => (n.at === "node:builder" || n.at === "node:tests" ? ({ ...n, round: phase[k++] } as RunNote) : n));
+    expect(k).toBe(6);
+    expect(where(modelAt(nested, places(nested), outer))).toEqual(inner);
+    expect(where(modelAt(nested, places(nested), written.map(({ round: _round, ...n }) => (n.at.startsWith("node:") ? (n as RunNote) : ({ ...n, round: _round } as RunNote)))))).toEqual(inner);
+    // The recorded Gauntlet run: piece 2 is round 1 of Pieces and round 0 of Polish a piece, as its own loop notes
+    // say, though the owner's note there carries a 1; and the page's first sentence says so.
+    const dir = "experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501";
+    const gauntlet = graph(join(dir, "graph.grooph.json"));
+    const ran = modelAt(gauntlet, places(gauntlet), parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes);
+    expect(where(ran)).toEqual(["planner@null:null", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:0", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:1"]);
+    expect(stepsOf(ran)[0]!.says).toMatch(/^The whole run: 9 dispatches, in round 0 of Polish a piece; rounds 0 and 1 of Pieces\./);
+    // A node in one loop keeps the round its note names.
+    const [sandwich] = [modelAt(RUN, places(RUN), NOTES)];
+    expect(where(sandwich)).toEqual(["builder@sandwich:0", "checks@sandwich:0", "critic@sandwich:0", "builder@sandwich:1", "checks@sandwich:1", "critic@sandwich:1"]);
+  });
+
   it("a loop with no cap is as tall as two rounds over the highest it was in, though it has since started afresh", () => {
     const open = withStops(NEST, "grind", []);
-    const m = modelAt(open, places(open), notes([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 4], ["tests", "pass", 4], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0]]));
+    const m = modelAt(open, places(open), notes([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 3], ["builder", "pass", 4], ["tests", "pass", 4], ["judge", "fail", 0, "next-phase"], ["builder", "pass", 0]]));
+    // (The loop's own note says it was in round 3; its way back makes that 4. A number on a note at the builder
+    // would not: the builder is in two loops.)
     expect(m.run!.most).toMatchObject({ grind: 4 });
     expect(topOf(m, m.loops.find((l) => l.id === "grind")!)).toBe(7);
     const { prims } = spiral(m, at(m, 0));
@@ -1486,6 +1626,11 @@ describe("columns", () => {
     const planner = g.nodes.find((n) => n.tier && n.tier !== "unset")!;
     const word = drawn.prims.find((p) => p.t === "text" && p.text === planner.tier && Math.abs(p.at[0] - (drawn.node(planner.id)[0] - 33)) < 0.01 && p.at[2] === drawn.node(planner.id)[2] + 18) as Extract<ReturnType<typeof columns>["prims"][number], { t: "text" }>;
     expect([word.at[1], word.or]).toEqual([TIER[planner.tier!]! / 2, [{ at: [drawn.node(planner.id)[0], TIER[planner.tier!]! + 12, drawn.node(planner.id)[2]], align: "center" }]]);
+    // A person's step is a slab, with no tier's word: a person is on no model. The one agent among them is a column.
+    const plan = graph("fixtures/valid/a-plan-with-people.grooph.json");
+    const people = columns(modelAt(plan, places(plan)), whole).prims;
+    expect(Object.fromEntries(plan.nodes.map((n) => [n.id, lids(people, n.id).map((x) => x.slice(0, 2))]))).toEqual({ draft: [[5, "floor"]], "fact-check": [[TIER["strong"], "k-agent"]], review: [[5, "floor"]], publish: [[5, "floor"]], done: [[5, "floor"]] });
+    expect(people.flatMap((p) => (p.t === "text" && !p.bold ? [p.text] : []))).toEqual(["strong"]);
     // In a frame a phone's width a card is its name alone; where there is room it is whole.
     expect(columns(modelAt(GAUNTLET, places(GAUNTLET), undefined, true), whole).prims.every((p) => p.t !== "card" || p.small)).toBe(true);
     expect(drawn.prims.some((p) => p.t === "card" && p.small)).toBe(false);

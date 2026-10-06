@@ -1,0 +1,197 @@
+
+### A0 control: approval removed from the back edge
+  changes: change edge:review-e-critic-fail.approval
+  refused: 
+    - edge:review-e-critic-fail.approval: removes a person's approval from the edge
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### A1 a parallel edge without approval beside the approved one, counted by the same loop (new verdict)
+  changes: add edge:e-critic-minor, change loop:review-review.back
+  refused: 
+    - edge:e-critic-minor: "e-critic-minor" would lead from "review-critic" to "review-builder" beside "review-e-critic-fail", which needs a person's approval, and need none
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### A1b a parallel edge without approval on the SAME verdict (fail)
+  changes: add edge:e-critic-fail-2, change loop:review-review.back
+  refused: 
+    - edge:e-critic-fail-2: "e-critic-fail-2" would lead from "review-critic" to "review-builder" beside "review-e-critic-fail", which needs a person's approval, and need none
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### A2 the approved edge moved aside (to: critic itself cannot; from plan to builder), a new unapproved fail edge takes its place
+  changes: change edge:review-e-critic-fail.when, add edge:e-critic-fail-2, change edge:review-e-critic-fail.from, change loop:review-review.back
+  refused: 
+    - edge:review-e-critic-fail.when: changes what a person's answer leads to
+    - edge:e-critic-fail-2: adds a way from "review-critic" to "review-builder" that does not pass a person
+  tightens:
+    + edge:review-e-critic-fail.when: "never" at the human gate "review-merge-gate" would lead nowhere
+    + edge:review-e-critic-fail.from: "never" at the human gate "review-merge-gate" would lead nowhere
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### A3 the approved edge's `when` kept, its `to` moved to the gate; new unapproved fail edge
+  changes: change edge:review-e-critic-fail.to
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + edge:review-e-critic-fail.to: the critic would no longer be handed "REVIEW.md" by "review-critic"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### B1 approved entry edge kept; a new step beside plan leads to the builder without approval
+  changes: add edge:e-scout-builder, add node:scout
+  refused: 
+    - edge:e-scout-builder: adds a way into "review-builder" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### B2 approved edge kept, a new step between: plan -> prep -> builder (no approval)
+  changes: add edge:e-plan-prep, add edge:e-prep-builder, add node:prep
+  refused: 
+    - edge:e-plan-prep: adds a way from "plan" to end in success that does not pass the approval on "e-plan-review-builder"
+    - edge:e-prep-builder: adds a way into "review-builder" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### B3 approval edge: from moved to a new entry node nobody runs after; plan->builder replaced unapproved
+  changes: add edge:e-plan-builder-2, add node:ghost, change edge:e-plan-review-builder.from
+  refused: 
+    - edge:e-plan-builder-2: adds a way into "review-builder" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G1 gate removed outright (rewired critic pass -> release)
+  changes: remove node:review-merge-gate, add edge:e-critic-release, remove edge:review-e-critic-pass, remove edge:review-e-merge-gate-reject, remove edge:e-review-merge-gate-release, change loop:review-review.members, change loop:review-review.back, change group:review.members
+  refused: 
+    - node:review-merge-gate: removes a human gate
+    - edge:e-critic-release: adds a way into "release" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G2 gate kept; critic's pass edge given a sibling straight to release on a new verdict
+  changes: add edge:e-critic-ship
+  refused: 
+    - edge:e-critic-ship: adds a way into "release" that does not pass a person; adds a way into "release" that does not pass "pass" from the critic "review-critic"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G3 gate kept; the critic's pass edge re-pointed to release; nothing leads to the gate
+  NOT VALID (refused earlier): E_LOOP_BACK_EDGE: loop "review-review": back edge "review-e-merge-gate-reject" returns to review-builder, but no path inside the loop's members leads from there to review-merge-gate
+
+### G4 gate's edge hidden as a back edge of a new loop: critic pass->gate marked back
+  changes: change loop:review-review.back
+  refused: 
+    - loop:review-review.back: nothing would lead to "review-merge-gate", so a run would start there, where every way to it passed the critic "review-critic"
+  tightens:
+    + loop:review-review.back: the rounds that "review-e-critic-pass" starts would no longer be counted by any loop
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G5 gate prompt reworded to pre-approve (stated limit: a gate's prompt)
+  changes: change node:review-merge-gate.prompt
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G6 gate options: one reworded
+  changes: change node:review-merge-gate.options
+  refused: 
+    - node:review-merge-gate.options: the gate would no longer offer "reject with feedback"
+  tightens:
+    + node:review-merge-gate.options: the gate would no longer offer "reject"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G7 gate options: one added ('approve without reading')
+  changes: change node:review-merge-gate.options
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:review-merge-gate.options: the gate would no longer offer "skip"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G8 gate answers swapped: pass->builder, fail->release
+  changes: change edge:review-e-merge-gate-reject.when, change edge:e-review-merge-gate-release.when
+  refused: 
+    - edge:review-e-merge-gate-reject.when: changes what a person's answer leads to
+    - edge:e-review-merge-gate-release.when: changes what a person's answer leads to; opens a way into "release" that does not pass "pass" at the human gate "review-merge-gate"
+  tightens:
+    + edge:e-review-merge-gate-release.when: opens a way into "release" that does not pass "fail" at the human gate "review-merge-gate"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G9 gate: a third edge on always -> release
+  changes: add edge:e-gate-always
+  refused: 
+    - edge:e-gate-always: adds a way into "release" that does not pass "pass" at the human gate "review-merge-gate"
+  tightens:
+    + edge:e-gate-always: "always" at the human gate "review-merge-gate" would lead nowhere
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G10 gate kind changed to check
+  changes: change node:review-merge-gate.kind, change node:review-merge-gate.name, change node:review-merge-gate.prompt, change node:review-merge-gate.options, change node:review-merge-gate.check
+  refused: 
+    - node:review-merge-gate.kind: a human gate becomes another kind of node; opens a way into "release" that does not pass a person
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G11 second gate (auto-worded) put beside the first: critic pass -> gate2 -> release
+  changes: add edge:e-critic-gate2, add edge:e-gate2-release, add node:gate2
+  refused: 
+    - edge:e-critic-gate2: adds a way from "review-critic" to end in success that does not pass the human gate "review-merge-gate"
+    - edge:e-gate2-release: adds a way into "release" that does not pass the human gate "review-merge-gate"
+  tightens:
+    + node:gate2: removes a human gate
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G12 release moved before the gate under another id (release2 after critic pass), old release kept
+  changes: add node:release2, add edge:e-critic-release2
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### G13 the release step's brief moved into the builder (brief: stated limit)
+  changes: change node:review-builder.brief
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M0 control: marker list shortened
+  changes: change node:release.irreversible
+  refused: 
+    - node:release.irreversible: removes the irreversible marker "publish"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M1 marker emptied []
+  changes: change node:release.irreversible
+  refused: 
+    - node:release.irreversible: removes the irreversible marker "publish", "merge"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M2 marked node replaced under another id with markers
+  changes: remove node:release, add node:release-2, change edge:e-release-done.from, change edge:e-review-merge-gate-release.to, change group:delivery.members
+  refused: 
+    - node:release: removes a node marked irreversible (publish, merge): what takes its place carries no such mark unless it is given one
+  tightens:
+    + node:release-2: removes a node marked irreversible (publish, merge): what takes its place carries no such mark unless it is given one
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M3 marked node kept, its work moved to an unmarked new node after it
+  changes: change node:release.brief, add node:publish-it, change edge:e-release-done.to, add edge:e-publish-done
+  refused: NONE  <<<<<< adopted with no --allow
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M4 marker kept; the gate edge into it kept; a human `stop` with then: release added to the loop (validator lets a human stop pass)
+  changes: change loop:review-review.stops
+  refused: 
+    - loop:review-review.stops: a stop of the loop would lead on to "release", a way that does not pass the human gate "review-merge-gate"; a stop of the loop would lead on to "release", a way that does not pass the critic "review-critic"
+  tightens:
+    + loop:review-review.stops: removes the stop where a person is asked
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M5 marker case changed publish -> Publish
+  changes: change node:release.irreversible
+  refused: 
+    - node:release.irreversible: removes the irreversible marker "publish"
+  tightens:
+    + node:release.irreversible: removes the irreversible marker "Publish"
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M6 a new marked node behind a new trivial gate reached from plan
+  changes: add node:g0, add node:wipe, add edge:e-plan-g0, add edge:e-g0-wipe
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:g0: removes a human gate
+    + node:wipe: removes a node marked irreversible (delete): what takes its place carries no such mark unless it is given one
+  warnings: W_HOMOGENEOUS_CRITICS
+
+### M7 a new marked node with approval edge from plan
+  changes: add node:wipe, add edge:e-plan-wipe
+  refused: NONE  <<<<<< adopted with no --allow
+  tightens:
+    + node:wipe: removes a node marked irreversible (delete): what takes its place carries no such mark unless it is given one; removes an edge that needs a person's approval
+    + edge:e-plan-wipe: removes an edge that needs a person's approval
+  warnings: W_HOMOGENEOUS_CRITICS

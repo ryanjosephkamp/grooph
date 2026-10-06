@@ -1,0 +1,51 @@
+{
+  "grooph": 0,
+  "id": "the-lead-is-a-person",
+  "name": "The lead is a person",
+  "version": 1,
+  "goal": "Write the release notes and stop.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "lead",
+      "kind": "agent",
+      "name": "Lead",
+      "by": "person",
+      "role": "lead",
+      "brief": "Run the graph.",
+      "outputs": [
+        "PROGRESS.md"
+      ]
+    },
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the notes",
+      "role": "builder",
+      "brief": "Write the release notes from the merged pull requests.",
+      "outputs": [
+        "NOTES.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-done",
+      "from": "write",
+      "to": "done"
+    }
+  ],
+  "loops": []
+}

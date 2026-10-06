@@ -16,7 +16,7 @@ import { test } from "node:test";
 
 import { mapSequence, mapWide } from "../src/index.js";
 import { parseMapText } from "../src/map.js";
-import { offlinePage } from "../src/offline.js";
+import { offlinePage } from "../src/index.js";
 import { parseGraphText } from "../src/parse.js";
 import { picture } from "../src/picture/graph-picture.js";
 import { pictureWithUnits } from "../src/picture/graph-units.js";

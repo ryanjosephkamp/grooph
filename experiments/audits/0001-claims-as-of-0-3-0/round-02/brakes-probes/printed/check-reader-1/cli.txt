@@ -1,0 +1,48 @@
+
+## A fail ends in success, pass needs approval
+  exit 1, written: false
+  | Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  |   Added stop node Done too (zz-done)  ← no amendment note explains this
+  |   Added edge Tests → Done (zz-pass)  ← no amendment note explains this
+  |   Changed the end and condition of edge Tests → Done too (e-tests-pass)  ← no amendment note explains this
+  | version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to <tmp>/grooph-brakes-probes/check-reader-1/cli/c1/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-tests-pass.to
+  |   edge:e-tests-pass.to    changes "e-tests-pass", an edge that leaves the check "tests" (to): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) cost
+  |   edge:e-tests-pass.when  changes "e-tests-pass", an edge that leaves the check "tests" (when): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) co
+  |   edge:zz-pass            adds "zz-pass", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-1/cli/c1/.grooph/g/runs/20260919-1230-k7qm --into <tmp>/grooph-brakes-probes/check-reader-1/cl
+  | grooph: not written: the working copy loosens a brake the graph has (edge:e-tests-pass.to, edge:e-tests-pass.when, edge:zz-pass, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## A3 fail with approval to a new success stop
+  exit 1, written: false
+  | Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  |   Added stop node Done too (zz-done)  ← no amendment note explains this
+  |   Added edge Tests → Done too (zz-fail)  ← no amendment note explains this
+  | version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to <tmp>/grooph-brakes-probes/check-reader-1/cli/c2/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:zz-fail
+  |   edge:zz-fail  adds "zz-fail", an edge that leaves the check "tests": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the 
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-1/cli/c2/.grooph/g/runs/20260919-1230-k7qm --into <tmp>/grooph-brakes-probes/check-reader-1/cl
+  | tightens a brake:
+  |   node:zz-done  undoing it: removes an edge that needs a person's approval
+  | grooph: not written: the working copy loosens a brake the graph has (edge:zz-fail, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## B a bar of the builder's word, bar-passed then done
+  exit 1, written: false
+  | Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  |   Changed the stops and bar of loop Grind (grind)  ← no amendment note explains this
+  | version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to <tmp>/grooph-brakes-probes/check-reader-1/cli/c3/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:grind.stops
+  |   loop:grind.stops  a stop of the loop would lead on to "done", a way that does not pass the check "tests"; adds a stop on "bar passed" to the loop "grind", which the check "tests" judges with no critic: a way out that does not pass the check
+  |   loop:grind.bar    gives the loop "grind", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-1/cli/c3/.grooph/g/runs/20260919-1230-k7qm --into <tmp>/grooph-brakes-probes/check-reader-1/cl
+  | grooph: not written: the working copy loosens a brake the graph has (loop:grind.stops, loop:grind.bar, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## control: check made true
+  exit 1, written: false
+  | Run 20260919-1230-k7qm · Semver compare: what it changed in its working copy
+  |   Changed the check of Tests (tests)  ← no amendment note explains this
+  | version 2 of semver-compare, from semver-compare@1 and run 20260919-1230-k7qm, would go to <tmp>/grooph-brakes-probes/check-reader-1/cli/c4/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow node:tests.check
+  |   node:tests.check  changes the check's definition (run): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-1/cli/c4/.grooph/g/runs/20260919-1230-k7qm --into <tmp>/grooph-brakes-probes/check-reader-1/cl
+  | grooph: not written: the working copy loosens a brake the graph has (node:tests.check, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy

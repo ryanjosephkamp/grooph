@@ -1,0 +1,19 @@
+Does the validator refuse a step marked irreversible that a run starts at?
+Run by the audit lane on 2026-10-05 at main cdcec1c merged into this branch, packages built there.
+Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/irreversible-entry-probe.mjs   (pure; writes nothing, calls no model)
+Found while a test reader of the plain-English guide (pull request #129) asked why the start of a run does not count as a way in.
+
+the graph: builder -> critic -> merge-gate -> done; back edges into builder: e-critic-fail, e-merge-gate-reject
+edges into builder: e-critic-fail (from critic, kind: agent); e-merge-gate-reject (from merge-gate, kind: human-gate)
+entry nodes by graph-ir section 2 (no inbound edge that is not a loop's back edge): builder
+
+== as the template gives it
+   errors: none
+
+== builder marked irreversible (merge)
+   errors: E_IRREVERSIBLE_NO_GATE: node "builder" performs irreversible actions (merge) and can be reached without a human decision through "e-critic-fail"; every way in must pass a human: set approval: true on those edges, or start them at a human-gate node
+
+== builder marked irreversible, and approval: true on e-critic-fail, so every edge into it passes a person
+   errors: none
+
+In the last case the run still starts at the builder, with nobody asked, and no error is raised.
