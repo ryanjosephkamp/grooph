@@ -1,6 +1,6 @@
 # 0030 · A package is one harness's, and the document names which
 
-**Date:** 2026-10-05 · **Status:** proposed with pull request #127 (the owner's word on the review desk, card q39, was that the loosened brake be fixed before the Codex target merges; the driver set points 4 and 5 below from its reader's findings; this record is the lane's draft of what was then built) · **Deciders:** owner
+**Date:** 2026-10-05 · **Status:** in force since pull request #127 merged on 2026-10-05, on the owner's word to merge the Codex target, and released in 0.4.0; he has not been asked about points 4 and 5 one by one (as proposed: the owner's word on the review desk, card q39, was that the loosened brake be fixed before the Codex target merges; the driver set points 4 and 5 below from its reader's findings; this record is the lane's draft of what was then built) · **Deciders:** owner
 
 ## Context
 
