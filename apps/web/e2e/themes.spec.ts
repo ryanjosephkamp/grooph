@@ -12,6 +12,10 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { unitsKit } from "../../../packages/core/src/picture/units-kit.js";
 import { canvasIsQuiet, downloadText, fixturePath, importDocument, linkFor, node, repoRoot, requestsOut, reviewLoop, runBundle, sheet, visitIsOver } from "./support.js";
 
+// The version the app writes into a page it saves, from the one place the app keeps it (scripts/version.mjs writes
+// it there on a release). e2e/keep.spec.ts holds that place to the released version by its own literal.
+import { APP_VERSION } from "../src/doc/keep.js";
+
 /** The offline page as core makes it: the maker, handed core's parts, as the app calls it (it is a piece fetched on demand). */
 const offlinePage = (doc: Graph, options: { version: string }): string => offlinePageWith(offlineKit, doc, options);
 
@@ -397,7 +401,7 @@ test("Keep a copy offers the themes, and keeps the picture and the offline page 
   expect(file.suggestedFilename()).toBe("review-loop.phosphor-light.svg");
   expect(await downloadText(file)).toBe(themed(picture(reviewLoop()), "phosphor", "light"));
   [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Offline page (.html)" }).tap()]);
-  expect(await downloadText(file)).toBe(themedPage(offlinePage(reviewLoop(), { version: "0.3.0" }), "phosphor"));
+  expect(await downloadText(file)).toBe(themedPage(offlinePage(reviewLoop(), { version: APP_VERSION }), "phosphor"));
   // The browser draws the PNG from that SVG, with every rule of the theme.
   [file] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Picture (PNG)" }).tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.phosphor-light.png");
@@ -885,7 +889,7 @@ test("with the themes not to be had, a control says what it needs and every pict
   await expect(keepCopy.getByRole("alert")).toContainText("The picture themes could not be fetched");
   // The offline page too: Paper's, and said.
   const [paperPage] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Offline page (.html)" }).tap()]);
-  expect(await downloadText(paperPage)).toBe(offlinePage(reviewLoop(), { version: "0.3.0" }));
+  expect(await downloadText(paperPage)).toBe(offlinePage(reviewLoop(), { version: APP_VERSION }));
   await expect(keepCopy.getByRole("alert")).toContainText("The picture themes could not be fetched");
 
   // The network is back. A browser remembers a script that failed for as long as the page lives, and the app asks
@@ -917,7 +921,7 @@ test("a theme is said to be missing only when one could not be fetched: a kept v
     expect(file.suggestedFilename(), kept).toBe("review-loop.light.svg");
     expect(await downloadText(file), kept).toBe(paper);
     const [offline] = await Promise.all([page.waitForEvent("download"), keepCopy.getByRole("button", { name: "Offline page (.html)" }).tap()]);
-    expect(await downloadText(offline), kept).toBe(offlinePage(reviewLoop(), { version: "0.3.0" }));
+    expect(await downloadText(offline), kept).toBe(offlinePage(reviewLoop(), { version: APP_VERSION }));
     await expect(keepCopy.getByRole("alert"), kept).toHaveCount(0);
     await expect(stage).not.toHaveAttribute("data-look", /.+/);
   }

@@ -188,6 +188,7 @@ Pull request #127 merged at `bb1b35a` (merge commit `0c008c0`). The driver's rea
 - **`docs/targets/claude-code.md`**: line 16 says a vendor rename is a one-file change (a new target is two files now, the profile and its name; a rename of a model is still one), and line 20 says `GROOPH_MODELS` is "for every export on a machine" (it is for every Claude Code export).
 - **Decision 0030**: point 1 should read "nothing grooph supplies" (a person's `--models` or a pin can name any model); and its sentence that nothing in a graph's nodes is a harness's passes over `model.pin`, which is keyed by harness.
 - **`grooph export … | head -1`** sometimes prints an unhandled `EPIPE` stack trace. It does on `main` without this slice too.
+- **The offline page's piece** (pull request #143, from the driver's reader on it): a request for the piece that never answers leaves the button busy with no notice (there is no timeout; closing and reopening the panel frees it). And the piece has no budget line of its own: it shows only as "loaded later", 3.0 KB; a limit of 4 KB would keep it honest.
 - **Reading a run on every address** (said above): `packages/core/src/runs.ts`, about 4.1 KB of the shared chunk, needed by a run's page only.
 
 ### Prompt to paste into the driver session
