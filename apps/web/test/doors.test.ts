@@ -17,7 +17,7 @@ const front = new RegExp(FRONT);
 const builtIns = new RegExp(BUILT_INS);
 
 /** The screen each address opens on, as `parse` in App.tsx decides it, written out here by hand. */
-const ADDRESSES: [string, "library" | "about" | "templates" | "built-in" | "yours" | "graph" | "open" | "run" | "live-run" | "live" | "embed"][] = [
+const ADDRESSES: [string, "library" | "about" | "templates" | "built-in" | "yours" | "plan" | "graph" | "open" | "run" | "live-run" | "live" | "embed"][] = [
   ["", "library"],
   ["#", "library"],
   ["#/", "library"],
@@ -28,6 +28,9 @@ const ADDRESSES: [string, "library" | "about" | "templates" | "built-in" | "your
   ["#/templates/built-in/a%20name", "built-in"],
   ["#/templates/yours/mine", "yours"],
   ["#/templates/yours/mine/use", "yours"],
+  // A plan's own address (slice 0100) is a template's view: the canvas's, with no front page and none of the twenty.
+  ["#/templates/plan/solo-project", "plan"],
+  ["#/templates/plan/solo-project/use", "plan"],
   ["#/g/abc", "graph"],
   ["#/g/abc?new", "graph"],
   ["#/open?d=abc", "open"],
