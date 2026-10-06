@@ -40,16 +40,18 @@ const minutes = (n: number): string => `${Math.round(n * 10) / 10} min`;
  * written over each other.
  */
 export function blocks(m: Model, shown: Shown): { id: Id; name: string; words: string[]; total: string }[] {
-  const out: { id: Id; name: string; words: string[]; total: string; sum: number; more: boolean }[] = [];
+  const out: { id: Id; name: string; words: string[]; total: string; sum: number; some: boolean; more: boolean }[] = [];
   m.run?.dispatches.forEach((d, k) => {
     if (shown.dispatches !== undefined && k >= shown.dispatches) return;
-    const at = out.find((x) => x.id === d.node) ?? out[out.push({ id: d.node, name: m.nodes.find((n) => n.id === d.node)!.name, words: [], total: "", sum: 0, more: false }) - 1]!;
+    const at = out.find((x) => x.id === d.node) ?? out[out.push({ id: d.node, name: m.nodes.find((n) => n.id === d.node)!.name, words: [], total: "", sum: 0, some: false, more: false }) - 1]!;
     // A round is its loop's: a node in a loop inside another is in a round of each.
     at.words.push(`${d.round === null ? "" : `${m.loops.find((l) => l.id === d.loop)?.name ?? ""} round ${d.round}, `}${d.minutes === null ? "no time" : minutes(d.minutes)}${d.outcome === "pass" || !d.outcome ? "" : `, ${d.outcome}`}`);
-    at.sum += d.minutes ?? 0;
+    // The column's minutes in all: those its stamps hold, each as it is said (so the list adds up to it), and said
+    // to be more where a dispatch has none.
+    at.sum += Math.round((d.minutes ?? 0) * 10) / 10;
+    at.some ||= d.minutes !== null;
     at.more ||= d.minutes === null;
-    // The column's minutes in all: those its stamps hold, and said to be more where a dispatch has none.
-    at.total = at.more ? (at.sum ? `${minutes(at.sum)} and more` : "no time") : minutes(at.sum);
+    at.total = at.more ? (at.some ? `${minutes(at.sum)} and more` : "no time") : minutes(at.sum);
   });
   return out;
 }

@@ -119,6 +119,11 @@ describe("a recorded run", () => {
     expect(waited).toEqual([["builder", 5], ["critic", 2], ["builder", 0.5]]);
     // The start on the line before the dispatch, as the contract has it, is the dispatch's start.
     expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0, 5) }), note(2, "builder", { outcome: "pass", ended: stamp(9) })])).toEqual([["builder", 8.916666666666666]]);
+    // The note's own start wins where it is a time before its end; where it is not, the line before's is used; and
+    // a line before at one node is no other node's start.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "pass", started: stamp(4), ended: stamp(9) })])).toEqual([["builder", 5]]);
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "pass", started: stamp(20, 5), ended: stamp(20) })])).toEqual([["builder", 20]]);
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "critic", { outcome: "pass", ended: stamp(9) })])).toEqual([["critic", null]]);
     // And is used once: the next dispatch at that node, with no start of its own, has no minutes.
     expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "fail", ended: stamp(2) }), note(3, "builder", { outcome: "pass", ended: stamp(6) })])).toEqual([["builder", 2], ["builder", null]]);
     // No end, no start, a stamp that is not a time: a dispatch all the same, with no minutes, and those after it unharmed.
@@ -1409,6 +1414,13 @@ describe("columns", () => {
     expect(beside(6).map((p) => p.text)).toEqual(["19.7 min", "0.4 min", "6.7 min"]);
     const foot = columns(m, at(m, 0)).node("builder");
     expect([beside(0)[0]!.at, beside(0)[0]!.or]).toEqual([[foot[0] - 33, 152.75, foot[2] + 18], [{ at: [foot[0], 164.75, foot[2]], align: "center" }]]);
+    // The whole is the sum of what the list says, each to its tenth: two dispatches of 50 seconds are "0.8 min;
+    // 0.8 min" and 1.6 in all, not 1.7. And none of the minutes known is "no time", not "0 min and more".
+    const fifty = (k: number, more: Partial<RunNote>): RunNote => ({ id: `f-${k}`, run: "r", at: "node:builder", outcome: "pass", round: 0, ...more }) as RunNote;
+    const twice = modelAt(RUN, places(RUN), [fifty(1, { started: "2026-09-19T13:00:00Z", ended: "2026-09-19T13:00:50Z" }), fifty(2, { started: "2026-09-19T13:01:00Z", ended: "2026-09-19T13:01:50Z" })]);
+    expect(blocks(twice, at(twice, 0)).map((x) => [x.words.map((w) => w.split(", ")[1]), x.total])).toEqual([[["0.8 min", "0.8 min"], "1.6 min"]]);
+    const still = modelAt(RUN, places(RUN), [fifty(1, { started: "2026-09-19T13:00:00Z", ended: "2026-09-19T13:00:00Z" }), fifty(2, {})]);
+    expect(blocks(still, at(still, 0)).map((x) => x.total)).toEqual(["0 min and more"]);
     // A dispatch with no minutes alone: "no time", and no figure.
     const bare = modelAt(RUN, places(RUN), NOTES.map(({ started: _s, ...n }) => n as RunNote));
     expect(blocks(bare, at(bare, 0)).map((x) => x.total)).toEqual(["no time", "no time", "no time"]);

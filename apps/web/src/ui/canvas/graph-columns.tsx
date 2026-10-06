@@ -13,7 +13,7 @@ export const COLUMNS = (tools: Tools): Kind => ({
   start: { yaw: -0.18, pitch: 0.44 },
   as: "columns",
   apart: 7,
-  says: "Every node stands where the picture has it. On a template an agent's column is taller for a higher tier, frontier over strong over fast: the order the document asks for, not a price and not a model (a profile or a pin can give two tiers one model). A check, a gate or a stop is a slab. On a run a column is a block for each dispatch, as tall as the minutes between its own start and end stamps, and a faint line where they do not say.",
+  says: "Every node stands where the picture has it. On a template an agent's column is taller for a higher tier, frontier over strong over fast: the order the document asks for, not a price and not a model (a profile can give two tiers one model, and a pin names a model whatever the tier). A check, a gate or a stop is a slab. On a run a column is a block for each dispatch, as tall as the minutes between its own start and end stamps, and a faint line where they do not say.",
   // Each column's blocks in words, from the ground up, as far as the slider has come.
   under: (model, shown) =>
     model.run ? (

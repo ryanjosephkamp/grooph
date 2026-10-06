@@ -206,7 +206,9 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       // (a word, a proposal, an amendment at the node). Its minutes are by the stamps, which
       // a note may leave out (graph-ir section 6: read from the clock or omitted, never estimated): then it has none.
       if (node && (node.kind === "agent" || node.kind === "check") && note.outcome && note.outcome !== "started") {
-        const took = (Date.parse(note.ended ?? "") - Date.parse(note.started ?? began.get(node.id) ?? "")) / 60000;
+        // (Its own start where that is a time before its end; else the line before's.)
+        const since = (from: string | undefined): number => (Date.parse(note.ended ?? "") - Date.parse(from ?? "")) / 60000;
+        const took = since(note.started) >= 0 ? since(note.started) : since(began.get(node.id));
         out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: took >= 0 ? took : null }) - 1;
         began.delete(node.id);
       } else if (node && note.outcome === "started" && note.started) began.set(node.id, note.started);
