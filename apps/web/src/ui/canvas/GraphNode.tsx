@@ -1,8 +1,8 @@
-import { glyph, type Node as DocNode, type NodeRunState, type Severity } from "@grooph/core";
+import { glyph, isPersonStep, type Node as DocNode, type NodeRunState, type Severity } from "@grooph/core";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 
-import { KIND_LABEL } from "../../doc/catalog.js";
+import { kindLabel } from "../../doc/catalog.js";
 import { StateIcon } from "../run/StateIcon.js";
 import { unitsNow } from "./boxes.js";
 
@@ -23,8 +23,10 @@ export type GraphNodeData = {
 
 export type GraphFlowNode = Node<GraphNodeData, "graph">;
 
+/** What a card says a node is: its kind, or, of a step that is a person's (amendment A-020), whose it is. */
+
 /** What a node is called to someone who cannot see it: its kind and its name. */
-export const nodeLabel = (node: DocNode): string => `${KIND_LABEL[node.kind]}: ${node.name || node.id}`;
+export const nodeLabel = (node: DocNode): string => `${kindLabel(node)}: ${node.name || node.id}`;
 
 /** Enter on the node the keyboard is on is a tap on it, so Tab reaches a node and opens it (handoff 0061). */
 export const onNodeKey =
@@ -38,7 +40,8 @@ function subtitle(node: DocNode): string {
   switch (node.kind) {
     case "agent": {
       const role = typeof node.role === "string" ? node.role : node.role.custom || "custom";
-      return [role, node.model?.tier, node.effort].filter(Boolean).join(" · ");
+      // A person's step shows its role alone, as core's picture does: a person is on no tier and at no effort.
+      return isPersonStep(node) ? role : [role, node.model?.tier, node.effort].filter(Boolean).join(" · ");
     }
     case "human-gate":
       return node.options?.length ? node.options.join(" / ") : "asks a human";
@@ -50,6 +53,9 @@ function subtitle(node: DocNode): string {
       return node.outcome ?? "ends the run";
   }
 }
+
+/** The word on a person's card, in the gate's color: the card's own class says "agent", which is what the node is. */
+const PERSONS = { "--kind": "var(--kind-human-gate)" } as CSSProperties;
 
 export const GraphNode = memo(function GraphNode({ data }: NodeProps<GraphFlowNode>) {
   const { node } = data;
@@ -72,9 +78,10 @@ export const GraphNode = memo(function GraphNode({ data }: NodeProps<GraphFlowNo
   return (
     <div className={classes} data-node-id={node.id}>
       <Handle type="target" position={Position.Top} isConnectable={false} className="ghandle" />
-      <div className="gnode-kind">
-        <span className={`kind-mark kind-${node.kind}`} aria-hidden="true" />
-        {KIND_LABEL[node.kind]}
+      {/* A person's step has the mark and the color a person's decision has (the gate's), as in core's picture. */}
+      <div className="gnode-kind" style={isPersonStep(node) ? PERSONS : undefined}>
+        <span className={`kind-mark kind-${isPersonStep(node) ? "human-gate" : node.kind}`} aria-hidden="true" />
+        {kindLabel(node)}
       </div>
       <div className="gnode-name">{node.name || <span className="muted">unnamed</span>}</div>
       <div className="gnode-sub">{subtitle(node)}</div>

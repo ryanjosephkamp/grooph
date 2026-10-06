@@ -15,6 +15,7 @@ import { templateHref } from "./TemplatesScreen.js";
  */
 export function UseTemplate({ source, id }: { source: TemplateSource; id: string }) {
   const doc = useTemplate(source, id);
+  if (doc === "unfetched") return <TemplateMissing unfetched />;
   if (doc === undefined) return <div className="loading">Opening…</div>;
   if (doc === null) return <TemplateMissing />;
   return <UseForm source={source} template={doc} />;

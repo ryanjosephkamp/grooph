@@ -81,7 +81,7 @@ describe("which address asks for which piece (slice 0093)", () => {
       'if (hash === "#/about") return { name: "about" };',
       'if (hash === "#/templates") return { name: "templates" };',
       'if (hash === "#/embed" || hash.startsWith("#/embed?")) return { name: "embed" };',
-      "const template = /^#\\/templates\\/(built-in|yours)\\/([^/?]+)(\\/use)?$/.exec(hash);",
+      "const template = /^#\\/templates\\/(built-in|yours|plan)\\/([^/?]+)(\\/use)?$/.exec(hash);",
       "const graph = /^#\\/g\\/([^/?]+)(\\?new)?$/.exec(hash);",
       'if (hash.startsWith("#/open?")) {',
       'return { name: "library" };',
