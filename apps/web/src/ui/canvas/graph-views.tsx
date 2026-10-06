@@ -113,8 +113,10 @@ export function graphScene(doc: Graph, per: number, card: number, notes?: readon
     (standing.get(home(id)) ?? standing.set(home(id), []).get(home(id))!).push(node);
   }
   const drawn = (node: Node): Scene["sheets"][number]["items"][number] => {
-    const [under, tone] = node.kind === "agent" ? [roleName(node), "accent" as const] : KIND[node.kind];
-    const tier = node.kind === "agent" && node.model ? node.model.tier : "";
+    // A person's step: "Person" before its role, in a gate's tone, and no tier (amendment A-020), as in Panes.
+    const persons = node.kind === "agent" && node.by === "person";
+    const [under, tone] = node.kind === "agent" ? (persons ? [`Person · ${roleName(node)}`, "gate" as const] : [roleName(node), "accent" as const]) : KIND[node.kind];
+    const tier = node.kind === "agent" && !persons && node.model ? node.model.tier : "";
     const lines = wrap(node.name || node.id, card - 16, 12.5, 3, "bold");
     const h = 7 + lines.length * 15 + 13 + (tier ? 11.5 : 0) + 6;
     return {
@@ -341,7 +343,7 @@ export function Views({ doc, of }: { doc: Graph; of: { onNodeTap?: (id: Id) => v
       const node = doc.nodes.find((n) => n.id === el.dataset["node"]);
       el.setAttribute("tabindex", "0");
       el.setAttribute("role", "button");
-      el.setAttribute("aria-label", `${node?.kind === "agent" ? "Agent" : (KIND[node?.kind as "stop"]?.[0] ?? "Node")} ${name(el.dataset["node"]!)}`);
+      el.setAttribute("aria-label", `${node?.kind === "agent" ? (node.by === "person" ? "Person" : "Agent") : (KIND[node?.kind as "stop"]?.[0] ?? "Node")} ${name(el.dataset["node"]!)}`);
     }
     for (const el of root.querySelectorAll<SVGGElement>("[data-edge]")) {
       const at = made.arcs.find((arc) => arc.id === el.dataset["edge"]);

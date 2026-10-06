@@ -51,10 +51,7 @@ describe("a person's step in the app (slice 0100)", () => {
     const doc = reviewLoop();
     expect(nodeLabel(critic(doc))).toBe("Agent: Critic");
     expect(nodeLabel(doneBy(critic(doc), "person"))).toBe("Person: Critic");
-    // The card itself: the word, the gate's mark, and the role alone (the browser test reads the card).
-    const card = read("ui/canvas/GraphNode.tsx");
-    expect(card).toContain('`kind-mark kind-${isPersonStep(node) ? "human-gate" : node.kind}`');
-    expect(card).toContain("return isPersonStep(node) ? role : [role, node.model?.tier, node.effort].filter(Boolean).join(\" · \");");
+    // The card itself (the word, the gate's mark and color, the role alone) is read in the browser: e2e/person.spec.ts.
   });
 
   it("the plan templates are the four in plans/, each a plan, and are handed over once they have been asked for", async () => {
@@ -95,6 +92,9 @@ describe("a person's step in the app (slice 0100)", () => {
     const list = read("ui/templates/TemplatesScreen.tsx");
     expect(list.match(/loadPlanTemplates\(/g)).toHaveLength(1);
     expect(list).toMatch(/const showPlans = \(\): void => \{\s*setPlans\("asking"\);\s*loadPlanTemplates\(\)/);
+    // And the plans are listed whole: the search, the filters and the sort, which read a profile nobody measured, are not theirs.
+    expect(list).toContain('<TemplateList source="plan" docs={plans} />');
+    expect(list).not.toMatch(/browse\(plans/);
     expect(list).toContain("onClick={showPlans}");
   });
 });

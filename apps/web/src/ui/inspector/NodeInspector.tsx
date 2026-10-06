@@ -116,6 +116,9 @@ const as = <N extends Node>(fn: (n: N) => N) => (n: Node) => fn(n as N);
 
 const CUSTOM = "__custom";
 
+/** What only an agent has: the fields the validator does not read on a person's step. */
+const AGENTS_ONLY = ["model", "effort", "skills", "allow", "deny"] as const;
+
 /**
  * Make a step a person's, or an agent's again (amendment A-020). A person is on no model tier and at no effort,
  * loads no skills and is granted no capabilities, and the validator warns of any of them left on a person's step
@@ -133,18 +136,36 @@ function AgentFields({ node, update }: { node: AgentNode; update: Update }) {
   const set = (fn: (n: AgentNode) => AgentNode) => update(as(fn));
   const custom = typeof node.role !== "string";
   const person = isPersonStep(node);
+  // A document made elsewhere may give a person's step an agent's fields (`W_PERSON_FIELDS_NOT_READ`). None of them
+  // is drawn for a person, so the way to take them off is here.
+  const left = person && AGENTS_ONLY.some((field) => node[field] !== undefined && !(Array.isArray(node[field]) && node[field].length === 0));
   return (
     <>
-      <Segmented
-        label="Done by"
-        value={stepBy(node)}
-        options={[
-          { value: "agent", label: "an agent" },
-          { value: "person", label: "a person" },
-        ]}
-        hint={person ? "A person does this step. It has no model, effort or capabilities; a graph with a person's step is a plan, and no package is made of it yet." : undefined}
-        onChange={(v) => set((n) => doneBy(n, v))}
-      />
+      {/* The lead is the session itself and is never a person's (`E_PERSON_LEAD`): the switch is not offered for it,
+          unless a document already says so, and then it is the way back. */}
+      {node.role === "lead" && !person ? null : (
+        <Segmented
+          label="Done by"
+          value={stepBy(node)}
+          options={[
+            { value: "agent", label: "an agent" },
+            { value: "person", label: "a person" },
+          ]}
+          hint={
+            left ? (
+              <>
+                A person does this step, and it still has an agent's model, effort, skills or capabilities, which are not read.{" "}
+                <button type="button" className="link" onClick={() => set((n) => doneBy(n, "person"))}>
+                  Take them off
+                </button>
+              </>
+            ) : person ? (
+              "A person does this step. It has no model, effort, skills or capabilities; a graph with a person's step is a plan, and no package is made of it yet."
+            ) : undefined
+          }
+          onChange={(v) => set((n) => doneBy(n, v))}
+        />
+      )}
       <Select
         label="Role"
         value={custom ? CUSTOM : (node.role as Role)}

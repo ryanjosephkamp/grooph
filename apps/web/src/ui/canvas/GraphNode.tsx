@@ -23,8 +23,6 @@ export type GraphNodeData = {
 
 export type GraphFlowNode = Node<GraphNodeData, "graph">;
 
-/** What a card says a node is: its kind, or, of a step that is a person's (amendment A-020), whose it is. */
-
 /** What a node is called to someone who cannot see it: its kind and its name. */
 export const nodeLabel = (node: DocNode): string => `${kindLabel(node)}: ${node.name || node.id}`;
 
