@@ -44,6 +44,12 @@ Partly. Everything up to the package needs no harness: drawing a graph in the ap
 
 The package itself is written for one harness: Claude Code, or Codex. It is plain text files (Markdown, TOML for Codex's agents, and the graph itself as JSON), so you can read every word of it. No other harness is a target.
 
+## Can I use grooph for a plan nobody's agents will run?
+
+Yes. A graph is a plan first ([amendment A-020](../spec/AMENDMENTS.md)): it needs no harness, and no goal either until a package is asked for, and a step may be a person's, marked `by: "person"`. Such a graph is drawn and checked like any other. The validator, the picture, the outline, the offline page and share links all read it. Four templates of this kind are in [`plans/`](../plans/README.md): a literature review, a research study, a team's handoffs and a solo project.
+
+What you do not get is a package. grooph writes none for a graph that names no harness or has a person's step, and nothing counts a loop's rounds or holds a decision for you: the people following the plan do that. None of the four templates has a recorded run, because there is nothing to run, and nothing is claimed about what following one does for the quality, cost, speed or safety of any work.
+
 ## Where do my graphs live?
 
 Where you made them. In the app, graphs live in your browser on that device, and nothing is sent anywhere ([claim C26](claims.md)): there is no account and no server of grooph's. From the command line, a graph is a file wherever you put it. A package is written into your project, under `.grooph/` and the harness's own folder (`.claude/`, or `.codex/`), and the records a run leaves go under `.grooph/` too.
