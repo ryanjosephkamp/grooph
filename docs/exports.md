@@ -97,13 +97,13 @@ A graph can be kept as a plan: something for people to read and follow, whether 
 
 **A plan is not a package.** It has no lead's brief, no agent files and no kickoff, and nothing in it can be handed to a harness. A package for a harness is still written by `grooph export`, and only for a document with nothing in error (`graph-ir.md` §3). The plan says which of the two a document is ready for.
 
-`PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines with the marks of Markdown and HTML escaped (a name, a goal, a table cell, the place a finding names): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place, and a line of HTML cannot write a section either. Below "In full" the document's words are as written. A reader got both through the first version: through an unknown key named `id`, which is where a finding says it is, and through one line of HTML in a goal.
+`PLAN.md` is Markdown, and a document's own words may be Markdown too. So everything above "In full" is grooph's own account, with the document's words in it only as single lines with the marks of Markdown and HTML escaped (a name, a goal, a table cell, the place a finding names): a description that holds a heading "To fix before a harness can run this" and the word "Nothing" is printed below the real one, not in its place, and a line of HTML cannot write a section either. A check's command is shown in the table only where it is one line as written and holds nothing that could end its code (a backtick, a bar, an angle bracket, a backslash); otherwise the table says "runs a command, given in full below", because a command of several lines made one line would be another command. Two things are left as they are: a bare address in a name may be made a link by a renderer, and its text is the address; and below "In full" the document's words are as written, Markdown and HTML among them, as `grooph outline` has always printed them, so a plan from someone else is best read as text or where HTML in Markdown is not run. A reader got both through the first version: through an unknown key named `id`, which is where a finding says it is, and through one line of HTML in a goal.
 
 **Where the plan is not whole, it says so.** A document that lacks only what a package asks for (a harness, a goal) is whole as a plan. One that breaks a rule of its own may not be: with two nodes under one id the outline can show only one of them. The plan's second paragraph then says how many of the things to fix are rules a graph itself is held to, and that parts of what follows may be missing or drawn wrong.
 
 The same document gives the same bytes: there is no date in a plan and nothing of the machine that made it.
 
-**Nothing that only draws or shares a document asks for a harness.** Six places in core used to validate for export whatever they were for, and each now asks only what a graph is asked:
+**Nothing that only draws or shares a document asks for a harness.** Five places in core used to validate for export whatever they were for, and each now asks only what a graph is asked:
 
 | Where | What it did | What it does |
 |---|---|---|
@@ -111,7 +111,10 @@ The same document gives the same bytes: there is no date in a plan and nothing o
 | Opening a graph's link, and a run's | Handed the viewer `E_NO_TARGET` and `E_NO_GOAL` as errors | A shared plan arrives with the graph's own findings and no others |
 | The offline page | Listed them among its issues | Says "No issues." for a plan |
 | A proposal set | A candidate with no goal or no harness made the whole set invalid (`E_CANDIDATE_INVALID`) | A candidate may be a plan; one that breaks a rule still makes the set invalid |
-| Adopting a run's working copy | Refused a copy that had lost its goal or its harness | Refuses on a broken rule only; the next version may be a plan |
+
+What only a package asks for is four rules: a harness, a goal, that the document is not still a template, and that no `{{slot}}` is left unfilled. So a template, a fragment and a document with a slot unfilled are shared and opened like any other, with nothing said of them by these places.
+
+**Adoption is as it was**, and still validates for export: a run is of a package, so its working copy came from a graph a harness could run, and one that has since lost its goal or its harness, gained a `template` block or an unfilled slot is refused as the next version. A plan has no run, so adoption never meets one.
 
 A harness grooph has no compiler for is said once, where a package is asked for (`grooph export`, `grooph validate --for-export`): "grooph has no compiler for the harness "x", so no package can be written for it; the document is a plan as it is".
 

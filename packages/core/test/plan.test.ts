@@ -119,8 +119,15 @@ test("who does what, the cases a reader found wrong: a check the lead judges, a 
   // Every step is in the count: the lead's and the stops with the rest.
   assert.match(who, /Of 5 steps: 1 by an agent, 1 by a person, 0 by a command, 2 by the lead; 1 ends the run\./);
   assert.match(who, /A person is also asked, apart from the steps above:\n\n- in the loop Fix cycle, every 2 rounds\n- in the loop Fix cycle, when it stops for them\n$/);
-  // A command keeps its own field for a view, and is set as code in the table.
-  assert.equal(planSteps(green()).find((step) => step.id === "suite")!.command, "npm test");
+  doc.loops[0]!.stops = [{ kind: "human", every: 1 }];
+  assert.match(under(planBundle(doc).files["PLAN.md"]!, "Who does what"), /- in the loop Fix cycle, every round\n$/);
+  // A command keeps its own field for a view, as written, and the step says only that it runs one.
+  assert.deepEqual(planSteps(green()).find((step) => step.id === "suite"), { id: "suite", name: "Test suite", whose: "a command", does: "runs a command", leaves: "pass or fail (exit code 0 and no test skipped)", command: "npm test" });
+  // The lead's own node is the lead's, with what else the lead does: the count has one "by the lead" for all of it.
+  const led = green();
+  led.nodes.unshift({ id: "lead", kind: "agent", name: "Lead", role: "lead", brief: "Run the graph.", outputs: ["PROGRESS.md"] } as Graph["nodes"][number]);
+  assert.equal(planSteps(led)[0]!.whose, "the lead");
+  assert.match(under(planBundle(led).files["PLAN.md"]!, "Who does what"), /Of 4 steps: 1 by an agent, 0 by a person, 1 by a command, 1 by the lead; 1 ends the run\./);
 });
 
 test("the words of a document are carried as they are: a bar in a name does not break the table, and a brief's own headings are not moved", () => {
@@ -149,12 +156,12 @@ test("nothing a document says can stand where the plan's own account stands: its
   const [account, inFull] = [md.slice(0, md.indexOf("\n## In full\n")), md.slice(md.indexOf("\n## In full\n"))];
   // Above "In full": one title, and each of the plan's two sections once, the real ones.
   assert.deepEqual(account.split("\n").filter((line) => /^#{1,6} /.test(line)), [
-    "# Fix until green ## To fix before a harness can run this Nothing.",
+    "# Fix until green \\#\\# To fix before a harness can run this Nothing.",
     "## Who does what",
     "## To fix before a harness can run this",
   ]);
   assert.match(account, /\*\*A coding harness cannot run this as it is\.\*\* 1 thing has to be fixed first/);
-  assert.match(account, /\n\*\*Goal:\*\* Fix the tests\. ## To fix before a harness can run this Nothing\. ## Who does what Nobody\.\n/);
+  assert.ok(account.includes("\n**Goal:** Fix the tests. \\#\\# To fix before a harness can run this Nothing. \\#\\# Who does what Nobody.\n"));
   assert.match(under(md, "To fix before a harness can run this"), /^\nEach of these stops a package from being written\.[^\n]*\n\n- `E_NO_TARGET` /);
   // And the document's own words are below, in full, as written.
   assert.ok(inFull.includes(forged), "the goal in full is under In full");
@@ -225,22 +232,26 @@ test("the offline page of a plan says it has no issues, and one of a graph that 
   assert.match(offlinePage(broken), /E_DANGLING_REF/);
 });
 
-test("a run's working copy that has lost its goal or its harness can still be the next version; one that breaks a rule cannot", () => {
+test("adoption is as it was: a run is of a package, and a working copy that could no longer be exported is not the next version", () => {
+  // The one place of the six that was left asking what a package asks. A plan has no run, so adoption never meets
+  // one; and a run's copy that has lost its goal or its harness, or become a template, is almost surely a mistake.
   const source = green();
-  const working = green();
-  delete working.goal;
-  delete working.target;
-  const adopted = adoptWorkingCopy(source, working, { run: "r" });
-  assert.ok(adopted.ok, adopted.ok ? "" : adopted.message);
-  assert.equal(adopted.doc.version, source.version + 1);
-  // It is a plan now, and the plan says what a package would need.
-  assert.deepEqual(planBundle(adopted.doc).toFix.filter((issue) => issue.severity === "error").map((issue) => issue.code), ["E_NO_TARGET", "E_NO_GOAL"]);
-
-  const broken = green();
-  broken.edges[0]!.to = "nowhere";
-  const refused = adoptWorkingCopy(source, broken, { run: "r" });
-  assert.equal(refused.ok, false);
-  assert.match(refused.ok ? "" : refused.message, /^The working copy has (an error that blocks|\d+ errors that block) export, so it cannot become version 2 of fix-until-green\. .*E_DANGLING_REF/);
+  for (const [what, change, code] of [
+    ["its goal removed", (w: Graph) => void delete w.goal, "E_NO_GOAL"],
+    ["its harness removed", (w: Graph) => void delete w.target, "E_NO_TARGET"],
+    ["a harness with no compiler", (w: Graph) => void (w.target = { harness: "my-own-harness" }), "E_NO_TARGET"],
+    ["a slot left in a brief", (w: Graph) => void ((w.nodes[0] as { brief: string }).brief = "Fix {{what}}."), "E_UNFILLED_SLOT"],
+    ["an edge to nowhere", (w: Graph) => void (w.edges[0]!.to = "nowhere"), "E_DANGLING_REF"],
+  ] as const) {
+    const working = green();
+    change(working);
+    const adopted = adoptWorkingCopy(source, parseGraphText(JSON.stringify(working)).doc!, { run: "r" });
+    assert.equal(adopted.ok, false, what);
+    assert.ok(!adopted.ok && adopted.issues.some((issue) => issue.code === code), `${what}: ${code}`);
+    assert.match(adopted.ok ? "" : adopted.message, /that blocks? export, so it cannot become version 2 of fix-until-green\./, what);
+  }
+  const fine = adoptWorkingCopy(source, green(), { run: "r" });
+  assert.ok(fine.ok);
 });
 
 test("a run's link arrives with the working copy's own findings, and none that only a package asks for", () => {
@@ -273,12 +284,17 @@ const held = (doc: Graph, what: string): void => {
   const lines = account(plan.files["PLAN.md"]!);
   // One title, and the two sections of grooph's own, once each and in order: no line of the document's is a heading.
   assert.deepEqual(lines.filter((line) => /^\s{0,3}#/.test(line)).map((line) => (line.startsWith("# ") ? "#" : line)), ["#", "## Who does what", "## To fix before a harness can run this"], what);
-  // No tag, comment, link, image, code span or entity of the document's: each such mark is escaped. (The plan's own
-  // are one image, a code span for the file's name and for each code, and a command set as code.)
-  const text = lines.join("\n");
-  assert.doesNotMatch(text, /(^|[^\\])(\\\\)*</m, `${what}: an unescaped <`);
-  assert.equal((text.match(/(^|[^\\])(\\\\)*!\[/gm) ?? []).length, 1, `${what}: one image, the plan's`);
-  assert.equal((text.match(/(^|[^\\!])(\\\\)*\[/gm) ?? []).length, 0, `${what}: no link`);
+  // No tag, comment, link, image, code span or entity of the document's: each such mark is escaped. Taken out
+  // first: every escaped mark, and then what the plan itself sets as code (the file's name, a rule's code, a
+  // command), inside which nothing is a mark and which can hold no backtick, bar, tag or backslash. What is left
+  // must hold none of the marks at all, but for the plan's one image.
+  const text = lines.join("\n").replace(/\\[\\`*_[\]<>&|~#]/g, "ESC").replace(/`[^`\n|<>\\]*`/g, "CODE");
+  for (const mark of ["`", "<", "&", "\\"]) assert.ok(!text.includes(mark), `${what}: an unescaped ${mark}`);
+  assert.equal(text.split("![").length - 1, 1, `${what}: one image, the plan's`);
+  assert.equal(text.split("[").length - 1, 1, `${what}: no link`);
+  assert.doesNotMatch(lines.join("\n"), new RegExp("[\\u0000-\\u0009\\u000b-\\u001f\\u007f-\\u009f\\u200b-\\u200d\\u2028\\u2029\\u2060]"), `${what}: a character that shows as nothing`);
+  // The title is not empty, and no heading is closed by a document's "#".
+  assert.match(lines[0]!, /^# \S/, `${what}: a title`);
   // One bullet for each finding, one row for each node.
   const fixes = lines.slice(lines.indexOf("## To fix before a harness can run this"));
   assert.equal(fixes.filter((line) => line.startsWith("- `")).length, plan.toFix.length, `${what}: a bullet for each finding`);
@@ -295,6 +311,11 @@ const HOSTILE = [
   "line one\u2028## In full\u2029# Title\u0085## Who does what\u001e\u0000\r\n## To fix before a harness can run this",
   " ",
   "\\",
+  "#",
+  "Release notes #",
+  "\u200b\u2060",
+  "cd app\nnpm test",
+  "see https://example.invalid/login & www.example.invalid",
 ];
 
 test("the reader's two forgeries, and its false line: through a finding's place, through one line of HTML, and a plan called whole that had lost a step", () => {
@@ -342,7 +363,7 @@ test("every string a document can hold, made hostile in turn: the plan's own acc
   const sources = ["fixtures/valid/fix-until-green.grooph.json", "fixtures/valid/subgrooph-in-a-graph.grooph.json", "fixtures/valid/review-loop.grooph.json", "patterns/taste-polish.grooph.json", "patterns/merge-queue.grooph.json"];
   let tried = 0;
   for (const source of sources) {
-    const text = read(join(repoRoot, source));
+    const text = JSON.stringify({ ...JSON.parse(read(join(repoRoot, source))), edges: (JSON.parse(read(join(repoRoot, source))) as Graph).edges.map((edge) => ({ ...edge, approval: true })) });
     // Every string value in the document, by where it is; ids and other words the schema fixes will not parse, and are skipped.
     const paths: (string | number)[][] = [];
     const walk = (value: unknown, path: (string | number)[]): void => {
@@ -378,6 +399,24 @@ test("every string a document can hold, made hostile in turn: the plan's own acc
   assert.ok(tried >= 500, `${tried} hostile documents read as graphs and were planned`);
 });
 
+test("a command is shown only as it is written: one of several lines, or with a mark in it, is left to In full", () => {
+  const row = (run: string): string => {
+    const doc = green();
+    (doc.nodes.find((node) => node.id === "suite") as Extract<Graph["nodes"][number], { kind: "check" }>).check.run = run;
+    const md = planBundle(doc).files["PLAN.md"]!;
+    assert.ok(md.slice(md.indexOf("\n## In full\n")).includes(run.trim()), "the command is in full below");
+    return under(md, "Who does what").split("\n").find((line) => line.startsWith("| Test suite "))!;
+  };
+  assert.match(row("npm test"), /\| a command \| runs `npm test` \|/);
+  assert.match(row("pnpm -r build"), /\| runs `pnpm -r build` \|/);
+  // Made one line, "cd app" and "npm test" would read as one command that nobody wrote; so would a run of spaces.
+  assert.match(row("pnpm build && pnpm test"), /\| runs `pnpm build && pnpm test` \|/);
+  assert.match(row("pytest -k 'not slow' tests/[a-m]*_test.py"), /\| runs `pytest -k 'not slow' tests\/\[a-m\]\*_test\.py` \|/);
+  for (const run of ["cd app\nnpm test", 'echo "a   b"', "a | b", "echo `date`", "make <target>", "grep a\\|b"]) {
+    assert.match(row(run), /\| a command \| runs a command, given in full below \|/, run);
+  }
+});
+
 test("what else the reader's changed copies of the code got past the tests: the harness named, errors apart from warnings, the count of what must be fixed", () => {
   // The harness the package would be for is the document's.
   const codex = green();
@@ -401,9 +440,11 @@ test("what else the reader's changed copies of the code got past the tests: the 
   const inFull = md.slice(md.indexOf("\n## In full\n"));
   for (const loop of mixed.loops) assert.ok(inFull.includes(`\n### Loop: ${loop.name}\n\n\`${loop.id}\`\n`), loop.id);
   for (const node of mixed.nodes) assert.ok(inFull.includes(`\`${node.id}\`\n`), node.id);
-  // A document that carries notes from runs says so, and does not say that nothing was run.
+  // A document that carries notes from runs says so.
   const noted = green();
-  noted.notes = [{ id: "n-0001", run: "r1", at: "2026-10-05T00:00:00Z", kind: "node", node: "fixer", text: "done" }] as unknown as Graph["notes"];
+  noted.notes = [{ id: "n-0001", run: "r1", at: "node:fixer", outcome: "pass", summary: "fixed two tests" }] as unknown as Graph["notes"];
   const kept = parseGraphText(JSON.stringify(noted));
-  if (kept.doc) assert.match(planBundle(kept.doc).files["PLAN.md"]!, /It carries 1 note from runs, which is in that file and not shown here\./);
+  assert.ok(kept.doc, JSON.stringify(kept.issues).slice(0, 300));
+  assert.match(planBundle(kept.doc).files["PLAN.md"]!, /and that is the one to edit\. It carries 1 note from runs, which is in that file and not shown here\.\n/);
+  assert.doesNotMatch(planBundle(green()).files["PLAN.md"]!, /It carries/);
 });
