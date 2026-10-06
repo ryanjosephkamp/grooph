@@ -119,7 +119,7 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     io.out("");
     io.out(
       check.swapped
-        ? "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:"
+        ? "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:"
         : "not judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:",
     );
     for (const change of unjudged) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.unjudged}`);

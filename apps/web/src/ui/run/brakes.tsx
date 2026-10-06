@@ -90,7 +90,7 @@ export function judge(source: Graph, adopted: Graph, run: string): Judged {
         <>
           <p>
             {check.swapped
-              ? "With a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built round it:"
+              ? "With a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:"
               : "An answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:"}
           </p>
           <ul className="brakes-list" data-brakes="unjudged">
