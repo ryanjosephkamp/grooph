@@ -47,7 +47,7 @@ The rules encode a small number of ideas:
 
 | Idea | Example of what is refused |
 |---|---|
-| Every loop names a stop | A loop with no stop; a taste loop with no bar. A loop with no cap draws a warning |
+| Every loop names a stop | A loop with no stop; a taste loop with no bar. A loop with no budget draws a warning when it has no cap, or a cap above five rounds |
 | A critic must be able to disagree | Where the graph asks for isolation, a critic that shares the builder's context; a bar that names nothing the critic can inspect |
 | One owner per artifact | Two agents that may write the same file |
 | A person before a step marked irreversible | A node marked as a merge, a publish or a payment with no human gate before it |

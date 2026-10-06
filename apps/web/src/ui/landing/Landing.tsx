@@ -132,8 +132,8 @@ export function Landing({ device }: { device?: ReactNode }) {
           <div className="site-wrap">
             <ul className="land-claims" aria-label="What grooph does">
               <li>
-                <strong>Every loop names its stop.</strong> The validator refuses a loop without one and warns when a loop has no cap. Where a graph asks
-                for it, it refuses a critic that shares the builder&rsquo;s context, and it refuses a step marked irreversible with no human gate before it.
+                <strong>Every loop names its stop.</strong> The validator refuses a loop without one, and warns when a loop has no budget and either no cap or a cap
+                above five rounds. Where a graph asks for it, it refuses a critic that shares the builder&rsquo;s context, and it refuses a step marked irreversible with no human gate before it.
               </li>
               <li>
                 <strong>The graph is the contract.</strong> The package tells the session to run it as drawn: named subagents, stops in order, a halt at
