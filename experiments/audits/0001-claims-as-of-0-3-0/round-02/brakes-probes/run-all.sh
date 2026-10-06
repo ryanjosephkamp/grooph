@@ -18,7 +18,7 @@ tmp="$(node -e 'process.stdout.write(require("node:os").tmpdir())')"
 real="$(node -e 'process.stdout.write(require("node:fs").realpathSync(require("node:os").tmpdir()))')"
 out="$here/printed"
 quick="${1:-}"
-if [ "$quick" = check ]; then rm -rf "$out"/check-reader-1 "$out"/check-reader-2 "$out"/check-reader-3; else rm -rf "$out"; fi
+if [ "$quick" = check ]; then rm -rf "$out"/check-reader-1 "$out"/check-reader-2 "$out"/check-reader-3 "$out"/check-reader-4; else rm -rf "$out"; fi
 mkdir -p "$out"
 [ -f "$repo/packages/core/dist/src/index.js" ] && [ -f "$repo/packages/cli/dist/src/index.js" ] || { echo "run-all: build first (pnpm -r build)" >&2; exit 1; }
 
@@ -32,19 +32,20 @@ run() {
   echo "$name: $(wc -l <"$out/$name.txt" | tr -d ' ') lines"
 }
 
-# The three readers of the check kind (amendment A-019, pull request #132), in the order they read it. `pkg` reads
-# what `cli` wrote, so it comes after it.
+# The readers of the check kind (amendment A-019, pull request #132), in the order they read it; the fourth is the
+# driver's reader of the merged-to-be head. `pkg` reads what `cli` wrote, so it comes after it.
 checks() {
   for f in hand cli pkg refresh honest3 inv; do run "check-reader-1/$f" "check-reader-1/$f.mjs"; done
   for f in hand1 hand2 hand3 cli4 cli5 compileA twostep survey; do run "check-reader-2/$f" "check-reader-2/$f.mjs"; done
   for f in c4 c4b bar pass-honest cli6 survey; do run "check-reader-3/$f" "check-reader-3/$f.mjs"; done
+  for f in halt rename ends door words; do run "check-reader-4/$f" "check-reader-4/$f.mjs"; done
 }
 checks_long() {
   run check-reader-1/enum check-reader-1/enum.mjs
   for seed in 1 2; do run "check-reader-2/fuzz4-seed-$seed" check-reader-2/fuzz4.mjs "$seed" 5000; done
   run check-reader-3/sweep check-reader-3/sweep.mjs
 }
-[ "$quick" = check ] && { checks; checks_long; echo "check: $(find "$out"/check-reader-* -name '*.txt' | wc -l | tr -d ' ') files under printed/check-reader-1 to 3"; exit 0; }
+[ "$quick" = check ] && { checks; checks_long; echo "check: $(find "$out"/check-reader-* -name '*.txt' | wc -l | tr -d ' ') files under printed/check-reader-1 to 4"; exit 0; }
 
 # The three readers of the refresh (pull request #77), in the order they read it.
 for f in t1 t2 t3 t4 t5 t6 t7 t8 t9 t10 t11 c1 c2 c3; do run "refresh-reader-1/$f" "refresh-reader-1/$f.mjs"; done

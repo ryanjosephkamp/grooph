@@ -228,7 +228,9 @@ test("E_NO_TARGET fires for a harness with no profile", () => {
   const doc = base({ target: { harness: "unknown-harness" }, nodes: [agent("a", "builder")] });
   const issues = errors(validate(doc, { forExport: true }));
   assert.deepEqual(codes(issues), ["E_NO_TARGET"]);
-  assert.match(issues[0]!.message, /no compile profile for target harness "unknown-harness"/);
+  assert.equal(issues[0]!.message, 'grooph has no compiler for the harness "unknown-harness", so no package can be written for it; the document is a plan as it is');
+  // It is asked only where a package is: plainly validated, the same document has nothing to say of its harness.
+  assert.deepEqual(codes(errors(validate(doc))), []);
 });
 
 test("every issue names the objects involved", () => {

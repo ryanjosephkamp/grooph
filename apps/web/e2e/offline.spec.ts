@@ -134,3 +134,28 @@ test("the exporter is kept too: after a visit that saw only the front page, a gr
   const [zip] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Download package (.zip)" }).tap()]);
   expect(zip.suggestedFilename()).toBe("review-loop-claude-code.zip");
 });
+
+test("the offline page's maker is kept too: after a visit that saw only the front page, a copy is kept with no network", async ({ page, context }) => {
+  // Slice 0093, second part: the maker is fetched when "Offline page" is pressed. No address asks for it, but the
+  // page names it, and the worker keeps what a page names.
+  const out = requestsOut(page);
+  await page.goto("./");
+  await expect(page.locator(".land-headline")).toBeVisible();
+  await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+  expect(await page.evaluate(() => performance.getEntriesByType("resource").some((e) => /\/assets\/offline-/.test(e.name)))).toBe(false);
+  // The visit is over before the network goes: every file the page names is held, whole (`visitIsOver`).
+  await visitIsOver(page, out);
+
+  await context.setOffline(true);
+  await page.reload();
+  await page.locator('input[type="file"]').setInputFiles({ name: "review-loop.grooph.json", mimeType: "application/json", buffer: Buffer.from(readFileSync(fixturePath, "utf8")) });
+  await expect(node(page, "builder")).toBeVisible();
+  await page.getByRole("button", { name: "Export", exact: true }).tap();
+  const keep = page.getByRole("group", { name: "Keep a copy" });
+  const [file] = await Promise.all([page.waitForEvent("download"), keep.getByRole("button", { name: "Offline page (.html)" }).tap()]);
+  expect(file.suggestedFilename()).toBe("review-loop.html");
+  const html = readFileSync(await file.path(), "utf8");
+  expect(html.startsWith("<!doctype html>")).toBe(true);
+  expect(html).toContain('id="grooph-document"');
+  await expect(keep.getByRole("alert")).toHaveCount(0);
+});

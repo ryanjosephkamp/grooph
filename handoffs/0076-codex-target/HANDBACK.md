@@ -178,6 +178,19 @@ The driver had me merge the heads of seven open pull requests onto `main` in a s
 
 **#60 and this pull request do not merge cleanly** (`packages/cli/src/commands/export.ts`, `help.ts`, `docs/cli.md`, `apps/web/test/export.test.ts`). This one goes first; what must survive the other's merge is in this pull request's description.
 
+### For after the release (written 2026-10-05, after the merge)
+
+Pull request #127 merged at `bb1b35a` (merge commit `0c008c0`). The driver's reader, on its confirming pass, said to merge as it was and left these for after 0.4.0. None is fixed; this section is carried by the pull request that follows (#143), because the lane's branch had merged.
+
+- **Two critics the pin rule does not see, in Codex.** A builder with no model beside a critic on the default tier runs both on one model with no warning (the kickoff gives a node with no model the default tier's model, and `W_HOMOGENEOUS_CRITICS` reads "the session default" as another model). And the mirror of the blind spot already stated in `docs/targets/codex.md`: a builder pinned to the very model its critic's tier means. Both need the profile, which the validator does not read.
+- **`packages/core/test/targets.test.ts`** says "every effort" and never exercises `low` (it pairs three tiers with `medium`, `high` and `max`).
+- **Two rows still name the old registry.** `docs/graph-ir.md` line 212 and `docs/rules.md` line 124 (generated from it) say a harness is known when it has a profile at `packages/core/targets/<harness>.profile.json`. The validator reads `packages/core/src/targets/names.ts` now; a test holds the two lists equal, but the sentence is no longer where the check is.
+- **`docs/targets/claude-code.md`**: line 16 says a vendor rename is a one-file change (a new target is two files now, the profile and its name; a rename of a model is still one), and line 20 says `GROOPH_MODELS` is "for every export on a machine" (it is for every Claude Code export).
+- **Decision 0030**: point 1 should read "nothing grooph supplies" (a person's `--models` or a pin can name any model); and its sentence that nothing in a graph's nodes is a harness's passes over `model.pin`, which is keyed by harness.
+- **`grooph export … | head -1`** sometimes prints an unhandled `EPIPE` stack trace. It does on `main` without this slice too.
+- **The offline page's piece** (pull request #143, from the driver's reader on it): a request for the piece that never answers leaves the button busy with no notice (there is no timeout; closing and reopening the panel frees it). And the piece has no budget line of its own: it shows only as "loaded later", 3.0 KB; a limit of 4 KB would keep it honest.
+- **Reading a run on every address** (said above): `packages/core/src/runs.ts`, about 4.1 KB of the shared chunk, needed by a run's page only.
+
 ### Prompt to paste into the driver session
 
 ```text

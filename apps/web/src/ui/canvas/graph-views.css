@@ -50,8 +50,8 @@
   position: absolute;
   inset: 0;
   z-index: 1;
-  /* Room above for the switch, and below for the bar a viewer keeps at its foot. */
-  padding: 72px 0 104px;
+  /* Room above for the switch and the row of kinds under it, and below for the bar a viewer keeps at its foot. */
+  padding: 118px 0 104px;
   overflow: auto;
   background: var(--bg);
   pointer-events: auto;
@@ -64,7 +64,7 @@
    row grows and what is under it moves down, where a taller stage in the same row would lie over the run's summary. */
 @media (max-width: 899px) {
   .run-view:has(> .run-stage > .graph-views.is-space) {
-    grid-template-rows: auto minmax(220px, 76dvh) minmax(0, 1fr);
+    grid-template-rows: auto minmax(220px, 82dvh) minmax(0, 1fr);
   }
 }
 /* No bar stands at the foot of a run's canvas: the room kept for one is the scene's. */
@@ -77,8 +77,41 @@
 }
 @media (min-width: 1100px) {
   .graph-space {
-    padding: 72px 28px 104px;
+    padding: 118px 28px 104px;
   }
+}
+/* On a phone a panel's sheet lies over the lower half of the canvas, and a template's page opens with one up. When
+   one of the stage's kinds of 3D is chosen (not the stairs) the sheet goes down to its head, as it does while a node is being picked on
+   the canvas, and with the button that makes it taller put away as it is then; a press on its head, on a card, or on anything that asks for a panel brings it up again, and so does a kind that never comes (`graph-views.tsx` sets and takes away the mark). */
+@media (max-width: 899px) {
+  [data-space-folds] .sheet-body {
+    display: none;
+  }
+  [data-space-folds] .sheet-toggle {
+    visibility: hidden;
+  }
+}
+/* The row of kinds: under the switch, while a view in three dimensions is up. */
+.graph-kinds {
+  position: absolute;
+  top: 74px;
+  right: 10px;
+  z-index: 2;
+  flex-wrap: nowrap;
+  pointer-events: auto;
+  box-shadow: var(--shadow);
+}
+.graph-kinds .seg {
+  min-width: 62px;
+  min-height: 36px;
+}
+/* Over a view in three dimensions the note has a place of its own: the view moves down to give it room, and comes
+   back up when the next press puts the note away. */
+.graph-views.is-space .graph-views-note {
+  top: 118px;
+}
+.graph-views.is-space:has(> .graph-views-note) > .graph-space {
+  padding-top: 188px;
 }
 
 /* The picture becomes the scene (ui/become.ts). A node and its card are one thing on the way: it is the node's face

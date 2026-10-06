@@ -1,0 +1,64 @@
+{
+  "grooph": 0,
+  "id": "a-person-writes-and-an-agent-judges",
+  "name": "A person writes and an agent judges",
+  "version": 1,
+  "goal": "Write the release notes and have them checked.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "nodes": [
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the notes",
+      "by": "person",
+      "role": "builder",
+      "brief": "Write the release notes from the merged pull requests.",
+      "outputs": [
+        "NOTES.md"
+      ]
+    },
+    {
+      "id": "review",
+      "kind": "agent",
+      "name": "Review the notes",
+      "role": "critic",
+      "brief": "Check each note against its pull request.",
+      "outputs": [
+        "REVIEW.md"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-write-review",
+      "from": "write",
+      "to": "review"
+    },
+    {
+      "id": "e-review-done",
+      "from": "review",
+      "to": "done",
+      "when": "pass"
+    }
+  ],
+  "loops": [],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    }
+  ]
+}

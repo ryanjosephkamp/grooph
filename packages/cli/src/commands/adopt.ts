@@ -113,6 +113,17 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     io.out(check.refused.length > 0 ? "tightens a brake:" : "tightens a brake, and is adopted with the rest:");
     for (const change of tighter) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.tightens}`);
   }
+  // Changed where undoing it would lose a brake, and still not called a tightening: a check is removed in this copy.
+  const unjudged = check.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined);
+  if (unjudged.length > 0) {
+    io.out("");
+    io.out(
+      check.swapped
+        ? "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:"
+        : "not judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:",
+    );
+    for (const change of unjudged) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.unjudged}`);
+  }
   for (const notice of check.notices) {
     io.out("");
     io.out(`note: ${notice}`);

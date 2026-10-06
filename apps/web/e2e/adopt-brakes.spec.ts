@@ -323,6 +323,28 @@ const CASES: [string, () => Graph, (working: Graph) => void][] = [
     loop(w, "fix-cycle").bar = { name: "Fixer says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
     loop(w, "fix-cycle").stops.unshift({ kind: "bar-passed", then: "green" });
   }],
+  // The driver's reader of the check kind: a check under another id with a bar put round it (one name held, its
+  // line showing what comes in; nothing called a tightening), and a failure's stop made to end in success.
+  ["a check under another id, with a bar given to its loop", () => valid("fix-until-green.grooph.json"), (w) => {
+    w.nodes.find((n) => n.id === "suite")!.id = "suite-two";
+    for (const e of w.edges) Object.assign(e, { from: e.from === "suite" ? "suite-two" : e.from, to: e.to === "suite" ? "suite-two" : e.to });
+    loop(w, "fix-cycle").members = loop(w, "fix-cycle").members.map((m) => (m === "suite" ? "suite-two" : m));
+    loop(w, "fix-cycle").bar = { name: "Fixer says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
+  }],
+  ["a verdict of a check led to a stop that halts, and that stop made to end in success", () => valid("fix-until-green.grooph.json", (doc) => {
+    doc.nodes.push({ id: "gave-up", kind: "stop", name: "Gave up", outcome: "halt" });
+    doc.edges.push({ id: "e-suite-broken", from: "suite", to: "gave-up", when: { verdict: "broken" } });
+  }), (w) => void ((w.nodes.find((n) => n.id === "gave-up") as { outcome: string }).outcome = "success")],
+  // The export door's reader: an answer a gate did not give, and a step marked irreversible behind the gate's yes,
+  // were printed as tightenings. They are named and not called that; an approval asked beside them still is.
+  ["a new answer at a gate and a new irreversible step behind its yes, with an approval newly asked", () => valid(SUB), (w) => {
+    (w.nodes.find((n) => n.id === "review-merge-gate") as Extract<Node, { kind: "human-gate" }>).options!.push("skip");
+    w.nodes.push({ ...agent("ship"), irreversible: ["publishes the package to npm"] } as Node);
+    const yes = w.edges.find((e) => e.from === "review-merge-gate" && e.when === "pass")!;
+    w.edges.push({ id: "e-ship-on", from: "ship", to: yes.to });
+    yes.to = "ship";
+    edge(w, "e-plan-review-builder").approval = true;
+  }],
 ];
 
 test("the app and the command agree on every working copy, the readers' attacks among them; and the command the app shows is one the command takes", async ({ page }) => {
@@ -363,6 +385,13 @@ test("the app and the command agree on every working copy, the readers' attacks 
       const byApp = await refused.locator('[data-brakes="loosens"] [data-change-name]').evaluateAll((items) => items.map((item) => item.getAttribute("data-change-name")!));
       expect(byApp, `${what}: the same changes refused, in the same order`).toEqual(byCommand);
       expect(await page.locator('[data-brakes="note"]').allTextContents(), `${what}: the same notes`).toEqual(commandNotes.map((note) => `Note: ${note}`));
+      const notJudged = dry.stdout.split("\n\n").find((block) => block.startsWith("not judged:"))?.split("\n").filter((line) => /^ {2}\S+:\S/.test(line)).map((line) => line.trim().split(/\s+/)[0]!) ?? [];
+      expect(await page.locator('[data-brakes="unjudged"] [data-change-name]').evaluateAll((items) => items.map((item) => item.getAttribute("data-change-name")!)), `${what}: the same changes named and not judged`).toEqual(notJudged);
+      // The app says why they are not judged in the command's words, and where a check goes while another comes in
+      // nothing at all is called a tightening.
+      const why = dry.stdout.split("\n\n").find((block) => block.startsWith("not judged:"))?.split("\n")[0]!.slice("not judged: ".length);
+      if (why !== undefined) await expect(page.getByText(why[0]!.toUpperCase() + why.slice(1)), `${what}: why they are not judged`).toBeVisible();
+      expect(await page.locator('[data-brakes="tightens"] li').count() > 0 && why?.startsWith("with a check removed") === true, `${what}: nothing is called a tightening where a check is removed while another comes in`).toBe(false);
       // Saved by the app exactly when --write would write.
       const saved = (await page.locator(".adopt-done").count()) > 0;
       expect(saved, `${what}: saved`).toBe(byCommand.length === 0);

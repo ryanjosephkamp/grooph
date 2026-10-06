@@ -17,7 +17,7 @@ The profile is data (`packages/core/targets/claude-code.profile.json`), so a ven
 
 ### The default map, and what it makes one model
 
-Since handoff 0084 the profile's own map is the one the second comparison study runs with: `frontier` is `opus`, and `strong` and `fast` are both `sonnet`. Until then it was `fable`, `opus` and `sonnet`. For that map, or any other, name the tiers: `grooph export … --models frontier=fable,strong=opus,fast=sonnet`, or `GROOPH_MODELS` for every export on a machine.
+Since handoff 0084 the profile's own map is the one the second comparison study runs with: `frontier` is `opus`, and `strong` and `fast` are both `sonnet`. Until then it was `fable`, `opus` and `sonnet`. For that map, or any other, name the tiers: `grooph export … --models frontier=fable,strong=opus,fast=sonnet`, or `GROOPH_MODELS` for every export on a machine. These are defaults, not limits: any model the harness accepts may be named for a tier or pinned on a node, `fable` among them, and grooph keeps no list of models.
 
 Two tiers are now one model, so **a critic on `strong` over a builder on `fast` is the same model judging its own kind.** The validator cannot say so: `W_HOMOGENEOUS_CRITICS` compares tiers and pins, and those still differ. The export says it instead. When a graph has agents on both `strong` and `fast` and nothing is named, it prints "note: strong and fast are both sonnet in this package, by the target's own map, …".
 
