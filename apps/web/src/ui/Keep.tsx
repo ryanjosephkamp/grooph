@@ -2,7 +2,7 @@ import type { Graph, OperationMap } from "@grooph/core";
 import { useState } from "react";
 
 import { download } from "../doc/exportPackage.js";
-import { pageHtml, pageName, pictureName, pictureSvg, svgToPng, type KeepTheme } from "../doc/keep.js";
+import { pageMaker, pageName, pictureName, pictureSvg, svgToPng, type KeepTheme } from "../doc/keep.js";
 import { themes, wanted } from "../doc/look.js";
 import { AS_THE_SCREEN } from "./canvas/LookMenu.js";
 import { Segmented } from "./fields.js";
@@ -24,6 +24,7 @@ const lookNow = async () => {
   }
 };
 const NO_THEMES = "The picture themes could not be fetched (they need a connection the first time), so this copy is in Paper.";
+const NO_PAGE = "The offline page could not be made: its maker could not be fetched. It needs a connection the first time. The pictures above are made without it.";
 
 /**
  * Keep a copy (review 2026-10, exports): the whole graph, or map, as a
@@ -35,6 +36,8 @@ const NO_THEMES = "The picture themes could not be fetched (they need a connecti
 export function Keep({ doc }: { doc: Graph | OperationMap }) {
   const [theme, setTheme] = useState<KeepTheme>(() => (prefersDark() ? "dark" : "light"));
   const [problem, setProblem] = useState<string | null>(null);
+  /** The offline page's maker is on its way: the button says so and takes no second press. */
+  const [making, setMaking] = useState(false);
   /** The picture as SVG: Paper's as it always was, and any other theme added to the picture that follows the viewer. */
   const drawn = async (): Promise<{ svg: string; look: string }> => {
     const look = await lookNow();
@@ -56,7 +59,20 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
   const page = async () => {
     const look = await lookNow();
     setProblem(look === null ? NO_THEMES : null);
-    download(pageName(doc), look ? look.page(pageHtml(doc)) : pageHtml(doc), "text/html");
+    // The page's maker is fetched at the first press (`doc/keep.ts`). When it cannot be had nothing is downloaded,
+    // and that is said here, in place of a file that never comes. Only the fetch is caught: the notice is about it.
+    setMaking(true);
+    let make: Awaited<ReturnType<typeof pageMaker>>;
+    try {
+      make = await pageMaker();
+    } catch {
+      setProblem(NO_PAGE);
+      return;
+    } finally {
+      setMaking(false);
+    }
+    const html = make(doc);
+    download(pageName(doc), look ? look.page(html) : html, "text/html");
   };
   return (
     <div className="keep" role="group" aria-label="Keep a copy">
@@ -83,7 +99,7 @@ export function Keep({ doc }: { doc: Graph | OperationMap }) {
         <button type="button" className="btn" onClick={() => void svg()}>
           Picture (SVG)
         </button>
-        <button type="button" className="btn" onClick={() => void page()}>
+        <button type="button" className="btn" disabled={making} aria-busy={making} onClick={() => void page()}>
           Offline page (.html)
         </button>
       </div>
