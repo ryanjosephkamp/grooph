@@ -40,6 +40,7 @@ const PUBLIC = [
   "apps/web/test/",
   "packages/",
   "patterns/",
+  "plans/",
   "community/",
   "plugins/",
   "scripts/",
