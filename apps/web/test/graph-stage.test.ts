@@ -114,6 +114,36 @@ describe("a recorded run", () => {
     expect(modelOf(RUN, wordy).run!.dispatches.map((d) => [d.node, d.round, d.outcome])).toEqual(model.run!.dispatches.map((d) => [d.node, d.round, d.outcome]));
   });
 
+  it("a node in a loop inside another: each loop's round is worked out from the loop's own notes and the ways back the run took, whichever loop's number the lead wrote on the node's note", () => {
+    const where = (m: ReturnType<typeof modelOf>) => m.run!.dispatches.map((d) => `${d.node}@${d.loop}:${d.round}`);
+    // The nested fixture's lead wrote the inner loop's round on the builder's and the tests' notes.
+    const [nested, written] = runAt("run-nested");
+    const inner = ["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0", "builder@grind:0", "tests@grind:0"];
+    expect(where(modelOf(nested, written))).toEqual(inner);
+    // The same run with the outer loop's round written there, as the recorded Gauntlet and fresh-grind runs have
+    // it, and with none written at any node: the same rounds.
+    const phase = [0, 0, 0, 0, 0, 1, 1];
+    let k = 0;
+    const outer = written.map((n) => (n.at === "node:builder" || n.at === "node:tests" ? ({ ...n, round: phase[k++] } as RunNote) : n));
+    expect(k).toBe(6);
+    expect(where(modelOf(nested, outer))).toEqual(inner);
+    expect(where(modelOf(nested, written.map(({ round, ...n }) => (n.at.startsWith("node:") ? (n as RunNote) : ({ ...n, round } as RunNote)))))).toEqual(inner);
+    // The four recorded runs with a loop inside a loop: piece 2 of the Gauntlet is round 1 of Pieces and round 0 of
+    // Polish a piece, as its own loop notes say, though the owner's note there carries a 1; and the sentence the
+    // page opens with says so.
+    const recorded = (dir: string) => modelOf(graph(join(dir, "graph.grooph.json")), parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes);
+    for (const dir of ["experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501", "experiments/patterns/gauntlet-decomposed/run-1/runs/20260922-151855"]) {
+      expect(where(recorded(dir)), dir).toEqual(["planner@null:null", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:0", "owner@polish:0", "capture-check@polish:0", "critic@polish:0", "next-piece@pieces:1"]);
+      expect(stepsOf(recorded(dir))[0]!.says, dir).toMatch(/^The whole run: 9 dispatches, in round 0 of Polish a piece; rounds 0 and 1 of Pieces\./);
+    }
+    for (const dir of ["experiments/patterns/fresh-grind-rare-judge/run/runs/20260921-044114", "experiments/patterns/fresh-grind-rare-judge/run-1/runs/20260920-195457"]) {
+      expect(where(recorded(dir)), dir).toEqual(["builder@grind:0", "tests@grind:0", "judge@phases:0", "builder@grind:0", "tests@grind:0", "judge@phases:1"]);
+      expect(stepsOf(recorded(dir))[0]!.says, dir).toMatch(/^The whole run: 6 dispatches, in round 0 of Grind; rounds 0 and 1 of Phases\./);
+    }
+    // A node in one loop keeps the round its note names.
+    expect(where(model)).toEqual(["builder@sandwich:0", "checks@sandwich:0", "critic@sandwich:0", "builder@sandwich:1", "checks@sandwich:1", "critic@sandwich:1"]);
+  });
+
   it("a dispatch's minutes are by the stamps of the ends: the first from its own start, each after from the end before it", () => {
     // 05:01:00 to 05:20:42, 05:21:16, 05:28:43, 05:32:57, 05:33:25, 05:38:15. Two of these notes are stamped as
     // starting after they end; the first's own note of its cost says 22 minutes. Neither is used.

@@ -149,8 +149,19 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     // the first: a lead writes them by hand, and some are later than their `ended`.
     let last: string | undefined;
     const dispatches: Dispatch[] = [];
-    // A note's round is its node's loop's: where a note names none, the round that loop was last seen in.
+    // A note's round is its loop's where it can be no other's: a loop's own note, or a note at a node that is in one
+    // loop. A node in a loop inside another is in a round of each, and the contract's one number does not say
+    // which: leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs) and the inner
+    // one's (the nested fixture). So for such a node, as where a note names no round, each loop's round is worked
+    // out from the ways back the run took (graph-ir, "Rounds" and "Nested loops"): a loop's way back is that loop's
+    // next round, and every loop inside it starts afresh at round 0; otherwise a loop is in the round it was last
+    // seen in.
     const seen: Record<Id, number> = {};
+    const ways = walk(model.edges);
+    const inside = (inner: Id, outer: Id): boolean => {
+      for (let up = loops.find((l) => l.id === inner)?.inside; up; up = loops.find((l) => l.id === up)?.inside) if (up === outer) return true;
+      return false;
+    };
     const steps = replay.steps.slice(1).map((step) => {
       const note = step.note!;
       const at = step.focus ?? { kind: "graph" as const };
@@ -160,7 +171,15 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const own = note.proposal?.summary ?? note.amendment?.summary ?? note.text ?? "";
       const node = focus.kind === "node" ? doc.nodes.find((n) => n.id === focus.id) : undefined;
       const loop = node ? innermost(node.id) : focus.kind === "loop" ? focus.id : null;
-      const round = loop ? (seen[loop] = note.round ?? seen[loop] ?? 0) : null;
+      const named = node && loops.filter((l) => l.members.includes(node.id)).length > 1 ? undefined : note.round;
+      // Each loop one of whose ways back was taken to get here, once.
+      for (const turned of new Set(node ? ways.into(node.id).flatMap((e) => (e.back ? [e.back] : [])) : [])) {
+        if (turned !== loop || named === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
+        for (const inner of loops) if (inside(inner.id, turned)) seen[inner.id] = 0;
+      }
+      const round = loop ? (seen[loop] = named ?? seen[loop] ?? 0) : null;
+      if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
+      if (focus.kind === "loop" && note.stop !== undefined) ways.stopped(focus.id, note.stop === "human");
       const out: NonNullable<Model["run"]>["notes"][number] = {
         says: step.caption,
         about: focus.kind,
