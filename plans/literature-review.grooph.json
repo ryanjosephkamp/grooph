@@ -1,0 +1,306 @@
+{
+  "grooph": 0,
+  "id": "literature-review",
+  "name": "A literature review, by hand with AI help",
+  "version": 1,
+  "goal": "{{question}} Done when REVIEW.md answers it from what is published, with a source for every claim.",
+  "template": {
+    "kind": "graph",
+    "title": "Literature review, by hand with AI help",
+    "summary": "A review of published work that you read and write yourself; an agent finds candidate papers and reads your notes as a skeptic.",
+    "whenToUse": "You want to know what is published on a question, you mean to read the papers yourself, and you want help finding them and a second reader for your notes.",
+    "notFor": "A review an agent writes from abstracts. Here the reading and the judgment are yours.",
+    "profile": {
+      "cost": "medium",
+      "speed": "medium",
+      "rigor": "standard"
+    },
+    "slots": [
+      {
+        "key": "question",
+        "ask": "What do you want to know? One sentence, ending in a question mark.",
+        "example": "Does spaced practice help adults remember new vocabulary for longer?"
+      },
+      {
+        "key": "sources",
+        "ask": "Where should the search look?",
+        "example": "Semantic Scholar, Google Scholar, and the reference lists of the two most recent reviews"
+      }
+    ],
+    "tags": [
+      "plan",
+      "research",
+      "human-gate",
+      "loop"
+    ]
+  },
+  "description": "A plan a person follows, with two steps an agent may take. You frame the question and choose which papers to read; you read them and take the notes; you decide what goes in and you write the review. An agent searches for candidate papers, and an agent reads your notes as a skeptic and says what they do not show. Work comes back twice: the search runs again if the list misses part of the question, and the notes go back to you while the skeptic still finds a claim with no source. If a loop reaches its third round, stop and decide what to change. Nothing here needs a tool that runs agents: where a step is an agent's, give its brief to whatever AI assistant you use.",
+  "nodes": [
+    {
+      "id": "frame",
+      "kind": "agent",
+      "name": "Frame the question",
+      "by": "person",
+      "role": "planner",
+      "brief": "Write the question in one sentence. Under it, say what would count as an answer, what is in and out of scope, and which years and kinds of study you will look at. Keep it to half a page: the search and the skeptic both work from this.",
+      "inputs": [
+        "{{question}}"
+      ],
+      "outputs": [
+        "QUESTION.md: the question, what counts as an answer, what is in and out"
+      ]
+    },
+    {
+      "id": "find",
+      "kind": "agent",
+      "name": "Find candidate papers",
+      "role": "researcher",
+      "brief": "Search {{sources}} for papers that bear on the question. List each with its full reference, where you found it, and one line on why it may matter. Open a paper before you say what it found, and say so plainly when you could not open one. Do not rank them and do not leave any out for being inconvenient. If you find nothing for some part of the question, list that part as having none. On a later round, add to the list; do not start it over.",
+      "inputs": [
+        "QUESTION.md",
+        "{{sources}}",
+        "what the list is missing (from the second round on)"
+      ],
+      "outputs": [
+        "CANDIDATES.md: one entry per paper, with its reference and where it was found, and any part of the question with no paper"
+      ],
+      "allow": [
+        "read-files",
+        "web",
+        "write-outputs"
+      ]
+    },
+    {
+      "id": "choose",
+      "kind": "human-gate",
+      "name": "Choose what to read",
+      "prompt": "Read CANDIDATES.md beside QUESTION.md, and mark in CANDIDATES.md the papers you will read in full. If part of the question has no paper and you think another search could find one, say what is missing and search again.",
+      "options": [
+        "read these",
+        "search again"
+      ]
+    },
+    {
+      "id": "read",
+      "kind": "agent",
+      "name": "Read and take notes",
+      "by": "person",
+      "role": "researcher",
+      "brief": "Read each paper you marked, yourself. For each, write in your own words what it claims, what that rests on, and what it does not show, with the paper and page for each claim. When two papers disagree, write the disagreement down as it is. On a later round, start from SKEPTIC.md, or from what you said you still need to read.",
+      "inputs": [
+        "CANDIDATES.md, with the papers you marked",
+        "QUESTION.md",
+        "SKEPTIC.md (from the second round on)"
+      ],
+      "outputs": [
+        "NOTES.md: one section per paper"
+      ]
+    },
+    {
+      "id": "skeptic",
+      "kind": "agent",
+      "name": "A skeptic reads your notes",
+      "role": "critic",
+      "brief": "Read the notes against the question as a skeptic. For each claim the notes lean on, say whether the notes name the paper and page it comes from, whether another paper in the notes cuts against it, and what is missing for the question to be answered. You judge the notes, not papers you were not given, and you do not rewrite them. Verdict pass only when every claim names its paper and page and every disagreement is written down.",
+      "inputs": [
+        "NOTES.md",
+        "QUESTION.md"
+      ],
+      "outputs": [
+        "SKEPTIC.md: one line per claim, and a verdict line",
+        "verdict: pass | fail"
+      ],
+      "allow": [
+        "read-files",
+        "write-outputs"
+      ],
+      "deny": [
+        "edit-files"
+      ]
+    },
+    {
+      "id": "decide",
+      "kind": "human-gate",
+      "name": "Decide what is in",
+      "prompt": "You have your notes and the skeptic's list. Which findings go into the review, which papers are left out, and why? If you need to read more first, write down what.",
+      "options": [
+        "write it up",
+        "read more"
+      ]
+    },
+    {
+      "id": "write",
+      "kind": "agent",
+      "name": "Write the review",
+      "by": "person",
+      "role": "synthesizer",
+      "brief": "Write the review from your notes: what is known, what is contested, and what nobody has looked at. Give a source for every claim. Say which papers you left out and why. Where the skeptic's list still stands, say so in the text.",
+      "inputs": [
+        "NOTES.md",
+        "SKEPTIC.md",
+        "QUESTION.md"
+      ],
+      "outputs": [
+        "REVIEW.md"
+      ]
+    },
+    {
+      "id": "done",
+      "kind": "stop",
+      "name": "Done",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-frame-find",
+      "from": "frame",
+      "to": "find"
+    },
+    {
+      "id": "e-find-choose",
+      "from": "find",
+      "to": "choose"
+    },
+    {
+      "id": "e-choose-read",
+      "from": "choose",
+      "to": "read",
+      "when": "pass"
+    },
+    {
+      "id": "e-choose-again",
+      "from": "choose",
+      "to": "find",
+      "when": "fail",
+      "evidence": [
+        "what the list is missing, in your words"
+      ]
+    },
+    {
+      "id": "e-read-skeptic",
+      "from": "read",
+      "to": "skeptic",
+      "evidence": [
+        "NOTES.md",
+        "QUESTION.md"
+      ]
+    },
+    {
+      "id": "e-skeptic-fail",
+      "from": "skeptic",
+      "to": "read",
+      "when": "fail",
+      "evidence": [
+        "SKEPTIC.md"
+      ]
+    },
+    {
+      "id": "e-skeptic-pass",
+      "from": "skeptic",
+      "to": "decide",
+      "when": "pass"
+    },
+    {
+      "id": "e-decide-write",
+      "from": "decide",
+      "to": "write",
+      "when": "pass"
+    },
+    {
+      "id": "e-decide-more",
+      "from": "decide",
+      "to": "read",
+      "when": "fail",
+      "evidence": [
+        "what you still need to read"
+      ]
+    },
+    {
+      "id": "e-write-done",
+      "from": "write",
+      "to": "done"
+    }
+  ],
+  "loops": [
+    {
+      "id": "search",
+      "name": "Search",
+      "members": [
+        "find",
+        "choose"
+      ],
+      "back": [
+        "e-choose-again"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "A reading list that covers the question",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "CANDIDATES.md"
+          },
+          {
+            "kind": "file",
+            "ref": "QUESTION.md"
+          }
+        ],
+        "acceptance": "Every part of QUESTION.md has a candidate paper in CANDIDATES.md, or is listed there as having none."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    },
+    {
+      "id": "notes",
+      "name": "Notes",
+      "members": [
+        "read",
+        "skeptic",
+        "decide"
+      ],
+      "back": [
+        "e-skeptic-fail",
+        "e-decide-more"
+      ],
+      "mode": "judgment",
+      "bar": {
+        "name": "Notes that stand up",
+        "inspects": [
+          {
+            "kind": "file",
+            "ref": "NOTES.md"
+          },
+          {
+            "kind": "file",
+            "ref": "QUESTION.md"
+          }
+        ],
+        "acceptance": "Every claim the notes lean on names its paper and page, and every disagreement between papers is written down."
+      },
+      "stops": [
+        {
+          "kind": "bar-passed"
+        },
+        {
+          "kind": "max-iterations",
+          "n": 3
+        }
+      ]
+    }
+  ],
+  "policies": [
+    {
+      "id": "p-critic-isolation",
+      "kind": "critic-isolation",
+      "scope": "graph"
+    }
+  ]
+}
