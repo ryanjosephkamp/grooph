@@ -7,7 +7,7 @@ The **validator** reads a graph document and looks for a fixed list of mistakes.
 - an **error**, whose code starts with `E_`. grooph will not write instructions for a graph with an error. (Writing the instructions is called compiling. Chapter 5.)
 - a **warning**, whose code starts with `W_`. A graph with a warning can still be compiled, and the warning is copied into the instructions so the lead sees it.
 
-Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 27 rules for graphs: 16 errors and 11 warnings.
+Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 30 rules for graphs: 18 errors and 12 warnings. (Three of the 30 were added on the evening of 5 October 2026, when a step could first be marked as a person's and not an agent's. This guide does not cover that. The project's [`plans/`](../../plans/README.md) folder does.)
 
 **One thing to hold on to.** The validator checks a *document*. It runs before any agent starts, and it knows nothing about what an agent later does. A graph that passes is a well-formed plan. It is not a promise about the run.
 
@@ -24,7 +24,7 @@ rounding.grooph.json: 0 errors, 1 warning
 
 No errors. One warning: the builder and the critic are on the same model tier. (A "pin", in the message, is a setting that fixes one worker to a particular named model.) The warning says a reviewer on a different model *may* catch different mistakes. It does not say it will. Whether it does has not been measured. The `[at: …]` at the end names the pieces involved, so a picture can highlight them.
 
-`--for-export` adds four checks that only matter when you are about to compile: that the graph has a goal, that it names a harness, that it is not still a template, and that no blank is left unfilled.
+`--for-export` adds five checks that only matter when you are about to compile: that the graph has a goal, that it names a harness, that it is not still a template, that no blank is left unfilled, and that no step is marked as a person's.
 
 ## Seeing a refusal
 

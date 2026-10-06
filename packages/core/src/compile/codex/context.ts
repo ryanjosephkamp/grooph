@@ -125,7 +125,7 @@ function resolveAgent(node: AgentNode, profile: TargetProfile, graphId: Id): Res
 }
 
 const unmapped = (capabilities: readonly Capability[], profile: TargetProfile): Capability[] =>
-  capabilities.filter((capability) => profile.capabilityTools[capability] === undefined);
+  capabilities.filter((capability) => !Object.hasOwn(profile.capabilityTools, capability));
 
 /** Node ids an edge can route to, used when describing routing. */
 export const nodeLabel = (node: Node | undefined, id: Id): string =>

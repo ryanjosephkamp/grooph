@@ -117,7 +117,7 @@ describe("a recorded run", () => {
     expect(modelOf(RUN, wordy).run!.dispatches.map((d) => [d.node, d.round, d.outcome])).toEqual(model.run!.dispatches.map((d) => [d.node, d.round, d.outcome]));
   });
 
-  it("a node in a loop inside another: its note's number is the inner loop's unless the run's own loop notes show the lead wrote another loop's there, and then each loop's round is worked out from the ways back the run took", () => {
+  it("a node in a loop inside another: its note's number is the inner loop's unless the run's own notes show the lead wrote another loop's there, and then each loop's round is worked out from the ways back the run took", () => {
     const where = (m: ReturnType<typeof modelOf>) => m.run!.dispatches.map((d) => `${d.node}@${d.loop}:${d.round}`);
     // The nested fixture's lead wrote the inner loop's round on the builder's and the tests' notes.
     const [nested, written] = runAt("run-nested");
@@ -155,12 +155,32 @@ describe("a recorded run", () => {
     // And where the judge's way back is not seen (an outcome no edge is for), the second phase's builder, named
     // round 0, starts Grind afresh as its note says.
     expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 1], ["judge", "revise", 0], ["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
-    // The same graph written the outer way, with the judge's verdict where its way back wants an outcome, so
-    // the walk sees no way back: the loop's own note says round 0 for a pass its nodes' notes call 1, the numbers
-    // are another loop's, and Grind is worked out (and stays in the round it was last seen in).
-    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
-    // In such a run the outer loop's own node is in one loop, and its number is still read: the judge's second
-    // note names round 1 of Phases, though no way back of Phases was seen.
+    // A loop's note written late, after the next round's first note, shows nothing: the numbers are still the
+    // inner loop's, and the tests' second note is in round 1.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["loop:grind", "fail", 0], ["tests", "pass", 1], ["loop:grind", "pass", 1], ["judge", "pass", 0]])))).toEqual(["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0"]);
+    // The signs that a lead wrote another loop's number at the inner nodes. One: a round other than 0 right after
+    // the outer loop's way back, where the inner loop has just started afresh. It is there at the first note
+    // that matters, so a record that stops mid-pass is not drawn a round too high and then changed: every
+    // dispatch of the recorded fresh-grind and Gauntlet runs is in the same round whatever number of notes the
+    // record has so far.
+    for (const dir of ["experiments/patterns/fresh-grind-rare-judge/run/runs/20260921-044114", "experiments/patterns/gauntlet-decomposed/run/runs/20261004-224501"]) {
+      const doc = graph(join(dir, "graph.grooph.json"));
+      const all = parseRunNotes(readFileSync(join(root, dir, "notes.jsonl"), "utf8")).notes;
+      const whole = where(modelOf(doc, all));
+      for (let n = 1; n <= all.length; n += 1) {
+        const sofar = where(modelOf(doc, all.slice(0, n)));
+        expect(sofar, `${dir}, ${n} notes`).toEqual(whole.slice(0, sofar.length));
+      }
+    }
+    // Two: an inner loop's own note that names a higher round than its node's note just before it. Written the
+    // outer way with no way back of the outer loop yet, Grind goes round twice and its nodes' notes all say 0.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["loop:grind", "fail", 0], ["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 1]])))).toEqual(["builder@grind:0", "tests@grind:0", "builder@grind:1", "tests@grind:1"]);
+    // With neither sign the number is read as the inner loop's, as the contract's nearest reading has it: a run
+    // written the outer way whose outer way back the notes do not show (the judge's verdict where the edge wants
+    // an outcome) is drawn as its numbers say.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:1", "tests@grind:1"]);
+    // The outer loop's own node is in one loop, and its number is read in any run: the judge's second note names
+    // round 1 of Phases, though no way back of Phases was seen.
     expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0], ["judge", "pass", 1]]))).at(-1)).toBe("judge@phases:1");
   });
 
