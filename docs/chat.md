@@ -49,7 +49,7 @@ The desktop app runs local MCP servers in ordinary chats, and grooph's server ha
 }
 ```
 
-This needs Node 22 or later on the machine and grooph on npm. Until it is published there, name a clone's own file, by its full path: `"command": "node", "args": ["/full/path/to/grooph/packages/cli/bin/grooph.js", "mcp", "--chat"]`.
+This needs Node 22 or later on the machine. `npx -y grooph` fetches grooph from npm. To run a build that is not released yet, name a clone's own file, by its full path: `"command": "node", "args": ["/full/path/to/grooph/packages/cli/bin/grooph.js", "mcp", "--chat"]`.
 
 **With the extension.** `grooph.mcpb` is a desktop extension: the same server and the templates in one file, started by the Node.js the app carries, so nothing else has to be installed. Double-click it, or use Settings, Extensions, Advanced settings, Install Extension. [**[documented]**](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) Its manifest follows the bundle format's version 0.3. [**[documented]**](https://github.com/modelcontextprotocol/mcpb/blob/main/MANIFEST.md)
 
