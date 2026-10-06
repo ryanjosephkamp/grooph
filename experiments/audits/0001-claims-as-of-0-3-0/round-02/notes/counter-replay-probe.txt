@@ -1,0 +1,119 @@
+{
+  "synthetic": true,
+  "actual_command": "node -e \"console.log(Buffer.from('QlJBS0UtQ0hFQ0stRkFJTEVEIDVmMGM5ZTdhMmI6IHJlcGxheSBvbmx5OyBubyBjaGVjayBleGVjdXRlZC4=','base64').toString())\"",
+  "actual_exit": 0,
+  "actual_output": "BRAKE-CHECK-FAILED 5f0c9e7a2b: replay only; no check executed.\n",
+  "check_executions": 0,
+  "annotated": [
+    {
+      "who": "lead",
+      "tool_uses": [
+        {
+          "tool": "Agent",
+          "subagent_type": "builder",
+          "at": "1"
+        },
+        {
+          "tool": "Bash",
+          "command": "node -e \"console.log(Buffer.from('QlJBS0UtQ0hFQ0stRkFJTEVEIDVmMGM5ZTdhMmI6IHJlcGxheSBvbmx5OyBubyBjaGVjayBleGVjdXRlZC4=','base64').toString())\"",
+          "at": "2",
+          "check_lines": 1
+        }
+      ]
+    },
+    {
+      "who": "builder",
+      "tool_uses": []
+    }
+  ],
+  "events": {
+    "runs": [
+      {
+        "by": "lead",
+        "seq": 0,
+        "at": "1",
+        "kind": "dispatch",
+        "node": "builder",
+        "failed": false
+      },
+      {
+        "by": "lead",
+        "seq": 1,
+        "at": "2",
+        "kind": "check",
+        "node": "check",
+        "failed": false
+      }
+    ],
+    "refused": [],
+    "named": [],
+    "tried": [],
+    "unplaced": [],
+    "printed_back": [],
+    "wrote_to_check": [],
+    "digest_lacks_check_lines": false,
+    "digest_disagrees_with_itself": false,
+    "dispatches_by_subagents": 0,
+    "transcripts_missing": 0
+  },
+  "count": {
+    "budget": 2,
+    "dispatches": 1,
+    "check_runs": 1,
+    "node_runs": 2,
+    "at_budget": true,
+    "past_budget": false,
+    "first_past_budget": null,
+    "by_the_plain_reading": {
+      "dispatches": 1,
+      "at_budget": false,
+      "past_budget": false,
+      "first_past_budget": null
+    },
+    "attempts_past_budget": [],
+    "attempts_past_budget_by_either_reading": [],
+    "attempts_after_the_last_node_run": [],
+    "order": [
+      "dispatch",
+      "check"
+    ],
+    "in_order": [
+      {
+        "n": 1,
+        "by": "lead",
+        "seq": 0,
+        "at": "1",
+        "kind": "dispatch",
+        "node": "builder",
+        "failed": false
+      },
+      {
+        "n": 2,
+        "by": "lead",
+        "seq": 1,
+        "at": "2",
+        "kind": "check",
+        "node": "check",
+        "failed": false
+      }
+    ],
+    "refused_by_the_harness": [],
+    "named_and_not_run": [],
+    "tried_and_did_not_run": [],
+    "could_not_be_placed": [],
+    "printed_the_checks_line_back": [],
+    "wrote_to_the_check": [],
+    "digest_lacks_check_lines": false,
+    "digest_disagrees_with_itself": false,
+    "transcripts_missing": 0,
+    "by_subagents": {
+      "dispatches": 0,
+      "check_runs": 0
+    }
+  },
+  "verdict": {
+    "verdict": "met",
+    "reading": "the package's: node runs",
+    "reasons": []
+  }
+}

@@ -1,0 +1,11 @@
+Run 20260920-192538 · Parse duration: what it changed in its working copy
+  Changed the stops of loop Review (review)  ← no amendment note explains this
+
+version 2 of parse-duration, from parse-duration@1 and run 20260920-192538, would go to allowed.grooph.json
+
+loosens a brake, and is adopted because it was asked for:
+  loop:review.stops  raises the round cap from 4 to 40; raises the budget from 10 to 400 dispatches   (asked for by name)
+wrote allowed.grooph.json (version 2); the source .grooph/parse-duration/graph.grooph.json is unchanged
+place it for the next run with: grooph export allowed.grooph.json --target claude-code --into <project>
+
+exit 0

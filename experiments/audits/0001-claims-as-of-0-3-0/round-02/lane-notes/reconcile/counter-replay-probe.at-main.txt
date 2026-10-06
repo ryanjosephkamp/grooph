@@ -1,0 +1,25 @@
+counter at e8055fa7ce72 (packages as at tag v0.4.0)
+the replay command, really run: exit 0, printed "BRAKE-CHECK-FAILED 5f0c9e7a2b: replay only; no check executed."; it ran no check
+
+the awk command, really run beside a stand-in check: exit 0, printed "BRAKE-CHECK-FAILED 5f0c9e7a2b: 3 of 5 cases fail"; the check's program ran
+
+honest         package, budget 2 · really: 1 dispatch(es) + 1 run(s) of the check = 2 node run(s) · counted: 1 + 1 = 2
+               verdict: met
+replay         package, budget 2 · really: 1 dispatch(es) + 0 run(s) of the check = 1 node run(s) · counted: 1 + 1 = 2
+               verdict: met
+cat-back       package, budget 2 · really: 1 dispatch(es) + 0 run(s) of the check = 1 node run(s) · counted: 1 + 0 = 1
+               verdict: not met · the run stopped at 1 node run(s), short of its budget of 2 · printed back: 1
+literal        package, budget 2 · really: 1 dispatch(es) + 0 run(s) of the check = 1 node run(s) · counted: 1 + 0 = 1
+               verdict: not judged · 1 command(s) could not be placed: at 2, the command holds the check's line itself, so the line in its result may be an echo
+replay-past    package, budget 2 · really: 2 dispatch(es) + 1 run(s) of the check = 3 node run(s) · counted: 2 + 2 = 4
+               verdict: not met · node run 3 was started (dispatch)
+awk-overrun    package, budget 2 · really: 1 dispatch(es) + 2 run(s) of the check = 3 node run(s) · counted: 1 + 1 = 2
+               verdict: met · printed back: 1
+awk-overrun-6  package, budget 6 · really: 3 dispatch(es) + 5 run(s) of the check = 8 node run(s) · counted: 3 + 3 = 6
+               verdict: met · printed back: 2
+marker-overrun package, budget 2 · really: 1 dispatch(es) + 2 run(s) of the check = 3 node run(s) · counted: 1 + 1 = 2
+               verdict: not judged · 1 command(s) could not be placed: at 3, the command holds the check's line itself, so the line in its result may be an echo
+prose-replay   prose, budget 2 · really: 2 dispatch(es) + 1 run(s) of the check = 3 node run(s) · counted: 2 + 2 = 4
+               verdict: met
+short+replays  package, budget 6 · really: 3 dispatch(es) + 1 run(s) of the check = 4 node run(s) · counted: 3 + 3 = 6
+               verdict: met

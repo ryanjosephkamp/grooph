@@ -1,0 +1,60 @@
+
+== 1. (b0) critic loop, one pass word; source holds ONLY halting limits; NEW usd budget that leads on, ahead of them
+  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: review: bar-passed  HALT | budget:usd 0.01 then done | max-iterations 1 HALT | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:review.stops [tightens: removes the budget (0.01 usd)]
+  refused: loop:review.stops: a stop of the loop would lead on to "done", a way that does not pass the critic "critic"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 2. (b1) critic loop, pass and pass-with-notes; source holds ONLY halting limits; NEW usd budget that leads on, ahead
+  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: review: bar-passed  HALT | budget:usd 0.01 then done | max-iterations 1 HALT | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:review.stops [tightens: removes the budget (0.01 usd)]
+  refused: loop:review.stops: a stop of the loop would lead on to "done", a way that does not pass the critic "critic"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 3. (b2) same; the NEW leading-on stop is diminishing-returns
+  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: review: bar-passed  HALT | diminishing-returns 1 then done | max-iterations 1 HALT | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:review.stops
+  refused: loop:review.stops: a stop of the loop would lead on to "done", a way that does not pass the critic "critic"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 4. (b3) same; NEW cap of 1 that leads on, same kind as the halting cap of 1, ahead of it
+  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: review: bar-passed  HALT | max-iterations 1 then done | max-iterations 1 HALT | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:review.stops
+  refused: loop:review.stops: the round cap of 1 that leads on to "done" would fire as soon as the one of 1 that halts the run; a stop of the loop would lead on to "done", a way that does not pass the critic "critic"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 5. (c) critic loop, one pass word, builder has its own exit; ONLY halting limits; NEW dispatches-turns budget that leads on, ahead
+  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: review: bar-passed  HALT | budget:turns 1 then done | max-iterations 1 HALT | budget:dispatches 2 HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:review.stops [tightens: removes the budget (1 turns)]
+  refused: loop:review.stops: adds a way from "critic" to end in success that does not pass the critic "critic"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 6. (d) critic loop; the bar-passed stop moved behind the halting cap (control: tightening)
+  source : review: bar-passed  HALT | max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: review: max-iterations 1 HALT | budget:dispatches 2 HALT | bar-passed  HALT
+  validate source: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  validate working: ok (warnings: W_OUTPUT_NOT_WRITABLE)
+  changes: loop:review.stops
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened

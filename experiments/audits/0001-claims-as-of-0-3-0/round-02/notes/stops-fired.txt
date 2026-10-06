@@ -1,0 +1,45 @@
+comparisons/grind-loop/A-1               last round 0 | stops fired: none named in a stop field | halts: none
+comparisons/grind-loop/A-2               last round 0 | stops fired: none named in a stop field | halts: none
+comparisons/heterogeneous-critic/A-1     last round 1 | stops fired: loop:review bar-passed | halts: node:merge-gate
+comparisons/heterogeneous-critic/A-2     last round 1 | stops fired: loop:review bar-passed | halts: node:merge-gate
+comparisons/red-team-loop/A-1            last round 0 | stops fired: loop:attack bar-passed | halts: none
+comparisons/red-team-loop/A-2            last round 0 | stops fired: none named in a stop field | halts: none
+comparisons/review-gate-2/A-1            last round 1 | stops fired: loop:review bar-passed | halts: node:merge-gate
+comparisons/review-gate-2/A-2            last round 1 | stops fired: loop:review bar-passed | halts: node:merge-gate
+comparisons/review-gate/A-1              last round 0 | stops fired: loop:review bar-passed | halts: node:merge-gate
+comparisons/review-gate/A-2              last round 0 | stops fired: loop:review bar-passed | halts: node:merge-gate
+comparisons/spec-then-loop/A-1           last round 0 | stops fired: loop:build bar-passed | halts: node:spec-gate
+comparisons/spec-then-loop/A-2           last round 0 | stops fired: loop:build bar-passed | halts: node:spec-gate
+comparisons/spec-then-loop/A-3           last round 0 | stops fired: loop:build bar-passed | halts: node:spec-gate
+comparisons/taste-polish/A-1             last round 1 | stops fired: loop:polish bar-passed | halts: none
+comparisons/taste-polish/A-2             last round 1 | stops fired: loop:polish bar-passed | halts: none
+patterns/contradiction-seeker/run        last round 0 | stops fired: none named in a stop field | halts: none
+patterns/debate-then-build/run           last round 0 | stops fired: loop:debate bar-passed | halts: node:plan-gate
+patterns/dual-bar/run                    last round 0 | stops fired: loop:review bar-passed | halts: none
+patterns/fresh-grind-rare-judge/run-1    last round 1 | stops fired: loop:phases bar-passed | halts: none
+patterns/fresh-grind-rare-judge/run      last round 1 | stops fired: loop:phases bar-passed | halts: none
+patterns/gauntlet-decomposed/run-1       last round 1 | stops fired: loop:polish bar-passed; loop:polish bar-passed; loop:pieces human | halts: node:decomposition-gate, loop:pieces
+patterns/gauntlet-decomposed/run         last round 1 | stops fired: loop:polish bar-passed; loop:polish bar-passed; loop:pieces human | halts: node:decomposition-gate, loop:pieces
+patterns/grind-loop/run                  last round 0 | stops fired: none named in a stop field | halts: none
+patterns/heterogeneous-critic/run        last round 1 | stops fired: loop:review bar-passed | halts: node:merge-gate
+patterns/human-gated-irreversible/run    last round 0 | stops fired: none named in a stop field | halts: node:gate
+patterns/merge-queue/run                 last round 1 | stops fired: none named in a stop field | halts: node:land-gate
+patterns/metric-sandwich/run             last round 0 | stops fired: none named in a stop field | halts: none
+patterns/ownership-not-swarm/run         last round 0 | stops fired: none named in a stop field | halts: none
+patterns/patrol-pulse/run-1              last round - | stops fired: none named in a stop field | halts: node:prioritise
+patterns/patrol-pulse/run-2              last round - | stops fired: none named in a stop field | halts: graph
+patterns/patrol-pulse/run                last round - | stops fired: none named in a stop field | halts: node:prioritize
+patterns/ralph-loop/run                  last round 4 | stops fired: none named in a stop field | halts: none
+patterns/red-team-loop/run               last round 0 | stops fired: none named in a stop field | halts: none
+patterns/retrospective-rewrite/run       last round 0 | stops fired: none named in a stop field | halts: none
+patterns/review-gate/run-1               last round 0 | stops fired: none named in a stop field | halts: none
+patterns/review-gate/run                 last round 0 | stops fired: loop:review bar-passed | halts: node:merge-gate
+patterns/spec-then-loop/run-1            last round 0 | stops fired: none named in a stop field | halts: none
+patterns/spec-then-loop/run              last round 0 | stops fired: loop:build bar-passed; graph bar-passed | halts: node:spec-gate
+patterns/specialist-critic-bank/run-1    last round 1 | stops fired: none named in a stop field | halts: loop:review, graph
+patterns/specialist-critic-bank/run      last round 0 | stops fired: loop:review bar-passed | halts: node:gate
+patterns/taste-polish/run                last round 1 | stops fired: loop:polish bar-passed | halts: none
+patterns/tournament-then-judge/run       last round - | stops fired: none named in a stop field | halts: none
+
+42 run records. Stops named in a note's stop field, by kind: {"bar-passed":26,"human":2}. Halts at a node: 20.
+Kinds a loop may carry (docs/graph-ir.md, the Stop type): human, budget, bar-passed, diminishing-returns, evidence-invalid, max-iterations.

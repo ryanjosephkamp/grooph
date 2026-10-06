@@ -27,4 +27,4 @@ for (const [name, change] of Object.entries(cases)) {
   const found = errors(doc);
   console.log(`\n== ${name}\n   errors: ${found.length ? found.join(" | ") : "none"}`);
 }
-console.log("\nIn the last case the run still starts at the builder, with nobody asked, and no error is raised.");
+console.log("\nUntil pull request #133 the last case raised no error: the run started at the builder with nobody asked. Since it, both cases raise E_IRREVERSIBLE_NO_GATE (this line was stale until round two's reconciliation; Codex noticed).");

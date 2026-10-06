@@ -1,0 +1,35 @@
+minimal metric-sandwich incoming-edge case {
+  "held": [],
+  "errors": []
+}
+gauntlet as authored starts {"comparison":["planner"],"contract":["planner"]}
+gauntlet with only stop-then to integrator {
+  "comparison": [
+    "planner",
+    "integrator"
+  ],
+  "contract": [
+    "planner"
+  ],
+  "errors": [],
+  "adoption": {
+    "changes": [
+      {
+        "name": "edge:e-next-piece-fail",
+        "kind": "remove",
+        "loosens": "nothing would lead to \"integrator\", so a run would start there, where every way to it passed a person; nothing would lead to \"integrator\", so a run would start there, where every way to it passed the critic \"critic\"; removes \"e-next-piece-fail\", an edge that leaves the check \"next-piece\": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply",
+        "tightens": "adds a way from \"next-piece\" to end in success that does not pass the critic \"critic\""
+      }
+    ],
+    "refused": [
+      {
+        "name": "edge:e-next-piece-fail",
+        "kind": "remove",
+        "loosens": "nothing would lead to \"integrator\", so a run would start there, where every way to it passed a person; nothing would lead to \"integrator\", so a run would start there, where every way to it passed the critic \"critic\"; removes \"e-next-piece-fail\", an edge that leaves the check \"next-piece\": a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply",
+        "tightens": "adds a way from \"next-piece\" to end in success that does not pass the critic \"critic\""
+      }
+    ],
+    "unknown": [],
+    "notices": []
+  }
+}

@@ -1,0 +1,36 @@
+awk command really run in a folder holding a stand-in check: exit 0, printed "BRAKE-CHECK-FAILED 5f0c9e7a2b: 3 of 5 cases fail" -- the check's program ran
+git alias command really run: exit 1, printed "BRAKE-CHECK-FAILED 5f0c9e7a2b: 3 of 5 cases fail"
+
+awk-overrun (package, budget 2)
+    really 3 node run(s) · counted 1 + 1 = 2 · printed back 1 · unplaced 0
+    verdict: met (the package's: node runs)
+git-alias-overrun (package, budget 2)
+    really 3 node run(s) · counted 1 + 1 = 2 · printed back 1 · unplaced 0
+    verdict: met (the package's: node runs)
+awk-overrun x3 (package, budget 2)
+    really 5 node run(s) · counted 1 + 1 = 2 · printed back 3 · unplaced 0
+    verdict: met (the package's: node runs)
+awk-overrun (package, budget 6)
+    really 8 node run(s) · counted 3 + 3 = 6 · printed back 2 · unplaced 0
+    verdict: met (the package's: node runs)
+marker-in-command overrun (package, budget 2)
+    really 3 node run(s) · counted 1 + 1 = 2 · printed back 0 · unplaced 1
+    verdict: not judged · 1 command(s) could not be placed: at 3, the command holds the check's line itself, so the line in its result may be an echo
+all checks carry the marker; 2 rounds (package, budget 2)
+    really 4 node run(s) · counted 2 + 0 = 2 · printed back 0 · unplaced 2
+    verdict: not judged · 2 command(s) could not be placed: at 2, the command holds the check's line itself, so the line in its result may be an echo; at 4, the command holds the check's line itself, so the line in its result 
+prose: d,c,d then one replayed line (budget 2)
+    really 3 node run(s) · counted 2 + 2 = 4 · printed back 0 · unplaced 0
+    verdict: met (the plain one: dispatched agents, with the check run after each)
+prose: d,c,d with no replay (budget 2)
+    really 3 node run(s) · counted 2 + 1 = 3 · printed back 0 · unplaced 0
+    verdict: not met · its node runs were dispatch, check, dispatch: at the budget of 2 under neither reading
+prose: d,c,d,c then awk check (budget 2)
+    really 5 node run(s) · counted 2 + 2 = 4 · printed back 1 · unplaced 0
+    verdict: met (the plain one: dispatched agents, with the check run after each)
+tried-then-replay (package, budget 2)
+    really 1 node run(s) · counted 1 + 1 = 2 · printed back 0 · unplaced 0
+    verdict: met (the package's: node runs)
+time cat of a log (package, budget 2)
+    really 1 node run(s) · counted 1 + 1 = 2 · printed back 0 · unplaced 0
+    verdict: met (the package's: node runs)

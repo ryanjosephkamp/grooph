@@ -1,0 +1,140 @@
+
+== 1. A new diminishing-returns that leads on, ahead of the only halting stop
+  source : work: budget:dispatches 2 HALT
+  working: work: diminishing-returns 1 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: loop:work.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 2. A new evidence-invalid that leads on, ahead
+  source : work: budget:dispatches 2 HALT
+  working: work: evidence-invalid 1 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: loop:work.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 3. source: halting budget + far usd budget that leads on; a NEW cap of 1 that leads on to the same place, ahead
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: max-iterations 1 then done | budget:dispatches 2 HALT | budget:usd 1000 then done
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops [tightens: removes the round cap (1)]
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 4. same source; a NEW diminishing-returns that leads on to the same place, ahead
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: diminishing-returns 1 then done | budget:dispatches 2 HALT | budget:usd 1000 then done
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: loop:work.stops: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 5. same source; far usd budget only moved ahead (no co-fire in practice)
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: budget:usd 1000 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 6. same source; far usd budget lowered to 0.01, not moved
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: budget:dispatches 2 HALT | budget:usd 0.01 then done
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops [tightens: raises the budget from 0.01 to 1000 usd]
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 7. source: cap 3 halts, dispatch budget 100 leads on; budget lowered to 2, NOT moved (fires a round before the cap)
+  source : work: max-iterations 3 HALT | budget:dispatches 100 then done
+  working: work: max-iterations 3 HALT | budget:dispatches 2 then done
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops [tightens: raises the budget from 2 to 100 dispatches]
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 8. two halting stops; `then: done` put on the first
+  source : work: max-iterations 1 HALT | budget:dispatches 2 HALT
+  working: work: max-iterations 1 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: loop:work.stops: the round cap (1) would no longer halt the run; a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 9. far usd leading-on changed to a cap of 1 leading on, and moved ahead
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: max-iterations 1 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops [tightens: removes the round cap (1)]
+  refused: loop:work.stops: removes the budget (1000 usd)
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 10. far usd leading-on changed to a 'turns' budget of 1 leading on, moved ahead
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: budget:turns 1 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops [tightens: removes the budget (1 turns)]
+  refused: loop:work.stops: removes the budget (1000 usd)
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 11. halting stop written as then: halted; `then` retargeted to done
+  source : work: budget:dispatches 2 then halted | budget:usd 1000 then done
+  working: work: budget:dispatches 2 then done | budget:usd 1000 then done
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: loop:work.stops: the budget (2 dispatches) would no longer halt the run
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 12. a second loop over the same members and back edge, with a cap of 1 that leads on
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: budget:dispatches 2 HALT | budget:usd 1000 then done || work2: max-iterations 1 then done
+  validate source: ok
+  validate working: ok (warnings: W_ONLY_MAX_ITERATIONS)
+  changes: loop:work2
+  refused: loop:work2: a stop of the loop would lead on to "done", a way that does not pass the check "tests"
+  grooph adopt --write, no --allow: exit 1; wrote nothing
+  grooph export source: exit 0; working over it, no --allow: exit 1
+
+== 13. source halting budget + far lead; NEW human stop every 1 that leads on to done, ahead
+  source : work: budget:dispatches 2 HALT | budget:usd 1000 then done
+  working: work: human 1 then done | budget:dispatches 2 HALT | budget:usd 1000 then done
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops [tightens: removes the stop where a person is asked]
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
+
+== 14. F1 itself (control): swap of equal budgets
+  source : work: budget:dispatches 2 HALT | budget:dispatches 2 then done
+  working: work: budget:dispatches 2 then done | budget:dispatches 2 HALT
+  validate source: ok
+  validate working: ok
+  changes: loop:work.stops
+  refused: NOTHING
+  grooph adopt --write, no --allow: exit 0; WROTE the copy
+  grooph export source: exit 0; working over it, no --allow: exit 0 · brakes: compared with the graph this package kept; none of the brakes it compares was removed or loosened
