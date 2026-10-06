@@ -44,6 +44,7 @@ type NodeBase = { id: Id; name: string; description?: string; coupled?: boolean 
 
 type AgentNode = NodeBase & {
   kind: "agent";
+  by?: "agent" | "person";          // whose step it is; default "agent". A person's step: see below (amendment A-020)
   role: Role | { custom: string };
   skills?: string[];               // names of harness skills this node may use; the target maps them (Claude Code: the agent file's `skills:` frontmatter, preloaded at dispatch). Harness-neutral names; unknown names are the harness's to refuse. A name is one token of letters, digits and `. _ - : / [ ]` (`E_SCHEMA` otherwise), because a target writes it into a file's header as given.
   model?: { tier: "frontier" | "strong" | "fast"; pin?: Record<HarnessId, string> };   // a pin is a model's name, held to the same one token as a skill's name, for the same reason
@@ -76,6 +77,8 @@ type StopNode = NodeBase & { kind: "stop"; outcome?: "success" | "halt" };
 ```
 
 Role families used by the rules: **critics** are `critic`, `judge`, `red-team`; **writers** are `builder`, `synthesizer`, `planner`. A custom role belongs to no family unless the node also sets `owns` (then it is a writer).
+
+**A person's step** (amendment A-020) is an agent node that says `by: "person"`. It keeps its role, brief, inputs, outputs, what it owns and what it does that cannot be undone; its `model`, `effort`, `skills`, `allow` and `deny` are not read (`W_PERSON_FIELDS_NOT_READ`). It is one field and not a kind of node, so that every edge, loop, bar and stop holds for a person's step as for an agent's, and whose a step is can be changed without redrawing anything. A human gate is something else: a person's decision between steps, not a step a person does. A graph with a person's step is a plan (§2).
 
 At most one node has role `lead`. The lead is the harness's main session; when no lead node exists the compiler synthesizes the lead brief from graph metadata.
 
@@ -176,6 +179,7 @@ What a package must make the harness do. Harness-neutral; each `docs/targets/<ha
 - **Nested loops.** When a loop sits inside another, the inner loop's round counter and its stops start afresh each time the outer loop re-enters it; the outer loop's counter and budget keep running. Budgets are therefore the brake that spans phases.
 - **Human gates and approvals.** One rule in every mode: on reaching a gate the lead first appends a note at the gate with `outcome: "halt"`, then asks, then ends its turn. It does not simulate an answer, batch several gates into one question, or proceed on silence. When the human answers, the lead appends a note with their decision and continues; a run nobody answers (a headless session) simply ends on that halt note, and the same session is resumed and told the run id. (Two of two headless gate runs in the first proving batch waited without the note when the rule depended on the lead judging whether it "could ask".)
 - **Ownership.** A node that `owns` an artifact is the only node that writes it during the run. Others read it or hand it back with findings.
+- **A plan.** A document is a plan first (amendment A-020): it may name no harness, and everything that reads a document works without one (`exports.md`, "A plan"). A document with a person's step is a plan too: it is drawn and checked like any graph, and **no package for a harness is made of it** (`E_PERSON_STEP_NOT_COMPILED`, asked where a package is). What a harness does on reaching a person's step, how the lead hands it over and waits, is not defined yet and is left to a later amendment; until then nothing in this section speaks of a person's step, because nothing runs one. Views say of a plan what a plan means: a loop's stop that would halt a run is where the people following it stop and decide.
 - **Stop nodes.** Reaching a `stop` node ends the run with the given outcome. A run with no reachable stop node ends when the lead has no edges left to take; it reports which nodes ran and why it ended.
 - **Notes.** The run appends run notes (§6) at the path the package names.
 - **Latitude.** A graph says who does what, what each node must leave behind, where the loops and brakes are. It does not script how a node does its work. Briefs state purpose, limits and outputs; the worker chooses its steps, and the lead chooses how to decompose work inside a node. A graph that needs a paragraph of procedure in a brief is over-specified.
@@ -201,6 +205,7 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `E_LOOP_BACK_EDGE` | A loop's `back` list is empty, or one of its edges does not have both endpoints among `members`, or there is no path inside `members` from that edge's `to` back to its `from`. |
 | `E_GROUP_CYCLE` | A group holds itself, directly or through another group. Groups form a tree (amendment A-018), and no view can draw a box inside itself. One issue for each ring of groups. |
 | `E_SECOND_LEAD` | More than one agent node has the role `lead`. A graph is one session and the lead is that session (§2); the compiler would take the first and run the other as a subagent. Placing a template inside a graph is the first operation that could add one (A-018). |
+| `E_PERSON_LEAD` | The node with the role `lead` is marked as a person's step (`by: "person"`). The lead is the harness's own session (§2), and no person can be it (amendment A-020). |
 
 ### Spec §12 hard errors
 
@@ -213,15 +218,16 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `E_NO_GOAL` | bootstrap with no goal | Export or bootstrap requested and `goal` is absent or blank. |
 | `E_IS_TEMPLATE` | — | Export requested on a document that still has a `template` block. Instantiate it first (`docs/templates.md` §2). |
 | `E_UNFILLED_SLOT` | — | Export requested and a `{{slot}}` remains in a string field of a document without a `template` block. `at` names the objects holding it. |
-| `E_CRITIC_NOT_ISOLATED` | critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list. |
+| `E_PERSON_STEP_NOT_COMPILED` | — | Export requested on a document, not a template, that has a person's step (an agent node with `by: "person"`). grooph cannot yet hand a step to a person inside a harness, so no package is written; the plan exports as it is (`exports.md`, "A plan"), and the step can be made an agent's if the graph is to run (amendment A-020). One issue names every such step. It is among the rules an export asks, and not a check inside the compilers, so that the check a run makes of its own working copy (`grooph validate --for-export`) sees a step made a person's while the run goes on. |
+| `E_CRITIC_NOT_ISOLATED` | critic shares builder context | A `critic-isolation` policy is in scope and an edge into a critic-family node has `isolation: "shared"`, or an edge into a critic-family node comes from a writer node with no `evidence` list. A critic that is a person's step is not held to this: a person is dispatched with no context, so there is none to keep fresh. An agent that judges a person's work is held as any critic is (amendment A-020). |
 | `E_OWNERSHIP_CONFLICT` | two writers, one artifact, no merge | Two writer-family nodes list the same artifact in `owns` and no merge node lists it in `merges`. |
-| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: nothing leads to it, or at least one inbound edge neither carries `approval: true` nor starts at a `human-gate` node, or a loop's stop other than `human` continues at it (`then`). Every way in must pass a human. |
+| `E_IRREVERSIBLE_NO_GATE` | irreversible action without a gate | A node with non-empty `irreversible` is reachable without a human decision: nothing leads to it, or at least one inbound edge neither carries `approval: true` nor starts at a `human-gate` node, or a loop's stop other than `human` continues at it (`then`). Every way in must pass a human. A person's step that itself does the irreversible thing needs no gate before it: the person doing it is the one who decides. A person's step before an agent's irreversible step is not a decision about it, and does not stand in for a gate (amendment A-020). |
 
 ### Spec §12 warnings
 
 | Code | Rule |
 |---|---|
-| `W_HOMOGENEOUS_CRITICS` | A critic-family node is on the same model as every one of its **nearest writers**, as far as the document says: the same pin for the harness the document names, or, where neither is pinned for it, the same tier (a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by its tier and every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic. |
+| `W_HOMOGENEOUS_CRITICS` | A critic-family node is on the same model as every one of its **nearest writers**, as far as the document says: the same pin for the harness the document names, or, where neither is pinned for it, the same tier (a pin for another harness tells no critic apart in this document's package; a document that names no harness yet is read by its tier and every pin): the writer-family nodes with a path to it along non-back edges that passes through no other writer. (A planner two steps upstream does not excuse a critic that shares a model with the builder it judges.) A critic no writer reaches is not flagged. Reported once per critic. Only agents are compared: a person's step is on no model, as the critic or as a writer (amendment A-020). |
 | `W_FANOUT_ON_COUPLED` | A node or group marked `coupled` receives an edge with `concurrency.max > 1`, or two `coupled` nodes share an `owns` entry. |
 | `W_LONG_LOOP_NO_BUDGET` | A loop has no `budget` stop and either no `max-iterations` stop or one with `n > 5`. |
 | `W_ASPIRATION_AS_ACCEPTANCE` | A bar's `aspiration` equals its `acceptance`, or `acceptance` is blank while `aspiration` is set. |
@@ -233,7 +239,8 @@ Hard errors block export. Warnings are shown and recorded in the package's lead 
 | `W_ONLY_MAX_ITERATIONS` | A loop's only stop kind is `max-iterations`. |
 | `W_UNREACHABLE_NODE` | A node is not reachable from any entry node, along edges or from a loop's member to where the loop's stops continue (`then`). Under the entry rule this accompanies an error (`E_CYCLE_NO_STOP` or `E_DANGLING_REF`) unless loops' stops continue only into one another, so that nothing starts; it exists to name the stranded nodes so a view can highlight them. |
 | `W_NO_TERMINAL` | No `stop` node is reachable from an entry node, along edges or by a loop's stop that continues at one (`then`). Not raised for an empty graph or for a `template` of kind `fragment` (a fragment usually ends in its host). |
-| `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). |
+| `W_OUTPUT_NOT_WRITABLE` | An agent node declares `outputs` but is allowed neither `edit-files` nor `write-outputs`, so it cannot leave them behind and the lead ends up filing on its behalf (found by the first acceptance run). A person's step is not flagged: a person needs no capability to leave something behind (amendment A-020). |
+| `W_PERSON_FIELDS_NOT_READ` | A person's step sets `model`, `effort`, `skills`, `allow` or `deny`. Those are an agent's; they are kept in the document and not read (amendment A-020). The message names the ones set. |
 | `W_GROUP_OVERLAP` | A node or a group is a member of two groups and neither holds the other (A-018). A view draws it in one box only, the first. A member listed again by a group that already holds it through an inner group is nesting said twice, and is not an overlap. |
 | `W_UNKNOWN_KEY` | The document carries a key the schema does not know. Unknown keys are accepted and preserved (views may stash state), but a typo in an optional field name should be visible. |
 | `W_DOC_TOO_LARGE` | Canonical serialization without `layout` exceeds 24,000 characters (about six thousand tokens). This is the "rewrite in one pass" budget and the share-link guard. |

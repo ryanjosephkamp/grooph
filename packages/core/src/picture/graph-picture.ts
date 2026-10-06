@@ -17,7 +17,7 @@
 import { indexGraph } from "../graph-index.js";
 import { layerNodes } from "../layout.js";
 import { estimateShape, shapeLine } from "../proposals.js";
-import { describeStop, loopMode, stopAction } from "../semantics.js";
+import { describeStop, isPersonStep, isPlan, loopMode, stopAction } from "../semantics.js";
 import type { Edge, Graph, Id, Node } from "../types.js";
 import { PICTURE_WIDTH, assignTracks, fmt, frame, inkFor, pill, rect, text, textWidth, truncate, wrap, type Color, type Ink, type PictureOptions } from "./svg.js";
 
@@ -37,12 +37,17 @@ const KIND: Record<Node["kind"], { label: string; color: Color }> = {
   stop: { label: "Stop", color: "stop" },
 };
 
+/** A person's step (amendment A-020): the card says whose it is, in the color a person's decision has. */
+const PERSON = { label: "Person", color: "gate" } as const;
+const kindOf = (node: Node): { label: string; color: Color } => (isPersonStep(node) ? PERSON : KIND[node.kind]);
+
 /** The line under a node's name: what kind of thing it is, in the document's own words. */
 function subline(node: Node): string {
   switch (node.kind) {
     case "agent": {
       const role = typeof node.role === "string" ? node.role : node.role.custom;
-      return [role, node.model?.tier, node.effort].filter(Boolean).join(" · ");
+      // A person is on no model and has no effort to set: the role is the whole line.
+      return isPersonStep(node) ? role : [role, node.model?.tier, node.effort].filter(Boolean).join(" · ");
     }
     case "human-gate":
       return node.options && node.options.length > 0 ? node.options.join(" / ") : node.prompt;
@@ -99,6 +104,7 @@ export type PictureView = {
  * validator names them.
  */
 export function picture(doc: Graph, options: PictureOptions = {}, view?: PictureView): string {
+  const plan = isPlan(view?.whole ?? doc);
   const theme = options.theme ?? "auto";
   const W = options.width ?? PICTURE_WIDTH;
   const ink = inkFor(theme);
@@ -284,7 +290,7 @@ export function picture(doc: Graph, options: PictureOptions = {}, view?: Picture
   for (const id of column) {
     const card = cards.get(id)!;
     const { node } = card;
-    const kind = view?.faces.get(id) ?? KIND[node.kind];
+    const kind = view?.faces.get(id) ?? kindOf(node);
     const g: string[] = [];
     const gate = node.kind === "human-gate";
     g.push(rect(cardX, card.y, cardW, card.height, { fill: ink("surface"), stroke: ink(gate ? "gate" : "line-strong"), rx: node.kind === "stop" ? 16 : 9, width: gate ? 1.8 : 1, mark: "card" }));
@@ -307,7 +313,7 @@ export function picture(doc: Graph, options: PictureOptions = {}, view?: Picture
       ty += 14;
       g.push(text(cardX + CARD_PAD, ty, truncate(card.extra, textW, 10, "bold"), { size: 10, fill: ink("gate"), weight: "bold" }));
     }
-    body.push(`<g data-${kind === KIND[node.kind] ? "node" : "group"}="${id}">${g.join("")}</g>`);
+    body.push(`<g data-${kind === kindOf(node) ? "node" : "group"}="${id}">${g.join("")}</g>`);
   }
   if (drawn) body.push(drawn[1]);
   body.push(...labels);
@@ -335,7 +341,7 @@ export function picture(doc: Graph, options: PictureOptions = {}, view?: Picture
       };
       para(`${loopMode(index, loop)} loop · ${loop.members.map(nameOf).join(", ")}`, 2, "ink-3");
       if (loop.bar) para(`Bar: ${loop.bar.name}. ${loop.bar.acceptance}`, 3);
-      loop.stops.forEach((stop, k) => para(`${k + 1}. ${describeStop(stop)}: ${stopAction(stop).replace(/`/g, "")}`, 2));
+      loop.stops.forEach((stop, k) => para(`${k + 1}. ${describeStop(stop)}: ${stopAction(stop, plan).replace(/`/g, "")}`, 2));
       y += 12;
       body.push(`<g data-loop="${loop.id}">${row.join("")}</g>`);
     });

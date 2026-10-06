@@ -92,6 +92,12 @@ export type NodeBase = { id: Id; name: string; description?: string; coupled?: b
 
 export type AgentNode = NodeBase & {
   kind: "agent";
+  /**
+   * Whose step it is (amendment A-020): an agent's, which is the default, or a person's. A person's step keeps its
+   * role, brief, inputs, outputs and what it owns; its model, effort, skills and capabilities are not read. A graph
+   * with a person's step is a plan: no package for a harness is made of it yet (`E_PERSON_STEP_NOT_COMPILED`).
+   */
+  by?: "agent" | "person";
   role: Role | { custom: string };
   model?: { tier: Tier; pin?: Record<HarnessId, string> };
   effort?: Effort;
@@ -342,7 +348,13 @@ export type ShapeTier = Tier | "unset";
 
 /** Structural and honest: counts and brakes, no dollar figures. */
 export type Shape = {
+  /** steps an agent does: agent nodes that are not a person's */
   agents: number;
+  /**
+   * Steps a person does (amendment A-020): agent nodes that say `by: "person"`. A human gate is counted with the
+   * gates. Absent means none, so the shape of every graph without a person's step is what it was.
+   */
+  people?: number;
   checks: number;
   /** human-gate nodes plus edges that need approval */
   gates: number;
