@@ -145,7 +145,7 @@ export const spiral: View = (m, shown) => {
     let down = 0;
     for (const item of order) {
       const top = item.loop ? topOf(m, item.loop) : 0;
-      const [over, under] = item.loop ? [Math.max(top, brakes(item.loop, top).budget ?? 0) * H + 96, 0.3 * (R(item.loop) + 50) + 56] : [20, 20];
+      const [over, under] = item.loop ? [Math.max(top, brakes(item.loop, top).budget ?? 0) * H + 96, 0.3 * (R(item.loop) + 50) + 56] : [23, 23];
       down += over;
       if (item.loop) place(item.loop, [0, -down, 0]);
       else at[item.node!] = [-60, -down, 0];
@@ -210,7 +210,23 @@ export const spiral: View = (m, shown) => {
     const place = (id: Id): number => order.findIndex((item) => item.node === id || !!item.loop?.own.includes(id));
     const [a, b] = [place(e.from), place(e.to)].sort((x, y) => x - y) as [number, number];
     const over = by(m.nodes, e.from).loop && landing ? 0 : 26 * order.slice(a + 1, b).filter((item) => item.node).length;
-    return arch(spot(e.from, rise(e.from, r0)), spot(e.to, arrives), e.back ? 40 : over, 18);
+    const [p, q] = [spot(e.from, rise(e.from, r0)), spot(e.to, arrives)];
+    if (!m.narrow) return arch(p, q, e.back ? 40 : over, 18);
+    // Where the spirals stand one under the other, over is along the line: the edge goes out to the side instead,
+    // to the left, where no card on the ground stands (or to the right, between two places on the right of their
+    // spirals). Round the nodes on the ground between; round the top of any spiral it comes down past or goes up
+    // past, lid and turns, so that it does not come through the lid; and each taking of an edge a little apart
+    // from the others, since two rounds of one place are one over the other here.
+    // How far along the edge the top of a spiral is, where the edge passes it; and the side it goes round on:
+    // that of its own end on such a spiral, so that it leaves or reaches its place from outside the turns.
+    const past = (loop: MLoop): number => (tower[loop.id]!.c[1] + topOf(m, loop) * H - p[1]) / (q[1] - p[1] || 1);
+    const tops = m.loops.filter((loop) => past(loop) > 0 && past(loop) < 1);
+    const mine = tops.find((loop) => loop.own.includes(e.from) || loop.own.includes(e.to));
+    const side = (mine ? (mine.own.includes(e.from) ? p : q)[0] > 0 : p[0] > 0 && q[0] > 0) ? 1 : -1;
+    let out = e.back ? 40 : over * 1.3;
+    for (const loop of tops) out = Math.max(out, (tower[loop.id]!.r + 30 - side * (p[0] + (q[0] - p[0]) * past(loop))) / Math.max(0.36, 4 * past(loop) * (1 - past(loop))));
+    out += 12 * r0 + 6 * r1;
+    return arch(p, q, 0, 18).map((v, n): V => [v[0] + side * out * 4 * (n / 18) * (1 - n / 18), v[1], v[2]]);
   };
   // The edges. A template's are drawn as they are in round 0. A run's are drawn where the run took them, between
   // the rounds it took them, as far as the slider has come; one it never took is faint, at round 0. An edge that is

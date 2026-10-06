@@ -20,9 +20,9 @@ import { along, shownAt, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
 /** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: boolean; brakes?: boolean }> = {
-  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: true, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
-  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: true, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
+const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean }> = {
+  panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
+  spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: 7, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
 };
 
 let styled = false;
@@ -40,7 +40,8 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
   const the = KINDS[kind]!;
   // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen.
   // Whether the frame is a phone's width: the frame's own, since a window with the details beside the view is wide
-  // and its frame is not. Read once it is on the page, before anything is painted.
+  // and its frame is not. Read once it is on the page, before anything is painted, and again when its width
+  // changes (a panel opened beside it).
   const [slim, setSlim] = useState(wide < 640);
   const model = useMemo(() => modelOf(doc, resolvePositions(doc, columnsAt(wide), DEFAULT_LAYOUT_BOX).positions, of.notes, slim), [doc, wide, of.notes, slim]);
   // Every loop and box a node is in, the nearest first: what its card is said to be in.
@@ -59,7 +60,13 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
   const once = useRef(false);
   const was = useRef(0);
 
-  useLayoutEffect(() => setSlim(frame.current!.clientWidth < 640), [wide]);
+  useLayoutEffect(() => {
+    const see = (): void => setSlim(frame.current!.clientWidth < 640);
+    see();
+    const sized = new ResizeObserver(see);
+    sized.observe(frame.current!);
+    return () => sized.disconnect();
+  }, []);
   useLayoutEffect(() => {
     const made = (stage.current = makeStage(frame.current!, canvas.current!, cards.current!, the.start, the.apart));
     // What a view grows (a spiral, its lid) is not there when the view comes: the cards land first, and then it is

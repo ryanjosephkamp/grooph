@@ -53,7 +53,7 @@ const READABLE = 0.9;
  * they need to be clear, up to `TALLEST` of what scrolls it, and the page scrolls. The height is asked of the
  * frame's parent, whose row it is, as `--s3-tall`; what scrolls is that parent's parent.
  */
-export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = false): Stage {
+export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = 0): Stage {
   // A browser that gives no drawing surface (it can refuse one, or have none left) cannot show this view: said, so
   // that what holds the view can fall back to what it showed before, and not left to fail at the first line drawn.
   const surface = canvas.getContext("2d");
@@ -153,7 +153,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
       else if (what() !== tallFor) {
         // At a size, whether no two cards lie over each other, placed as they are drawn: two pixels clear, so that
         // their edges are not one line.
-        const clear = (f: number, gap = 2): boolean => {
+        const clear = (f: number, gap = roomy): boolean => {
           const [x0, x1, y0, y1] = box(f);
           const [sx, sy] = [(x0 + x1) / 2 / f, -(y0 + y1) / 2 / f];
           const boxes = placed.map(([p, el, t]) => boxOf(p, el, (t[0] - sx) * near(t[2], f), -(t[1] - sy) * near(t[2], f), near(t[2], f)));
