@@ -34,10 +34,12 @@ export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations,
   // How far a ring and all that stands on it reach from its middle.
   const reach = (loop: MLoop): number => R(loop) + Math.max(0, ...m.loops.filter((l) => l.inside === loop.id).map(reach));
   // A station's place on its ring: the first at the far side, and on round to the right. A ring that stands on
-  // another is turned a quarter of a station on from that: it is drawn 64 higher, which from where the view starts
-  // is over ground 55 farther back, so a node at its near side would be drawn over the ring's own foot, and the
-  // outer loop's line through that foot would read as arriving at the node.
-  const where = (c: V, r: number, i: number, k: number): V => ((a: number): V => [c[0] + r * Math.sin(a), c[1], c[2] - r * Math.cos(a)])((TAU * (i + (c[1] ? 0.25 : 0))) / k);
+  // another is turned from that, by less than half a station either way: it is drawn 64 higher, so from where the
+  // view starts (turned half a radian) the card of a node at the side of it nearest the reader is drawn over the
+  // ring's own foot, and the outer loop's lines through that foot read as arriving at the node. It is turned so
+  // that the nearest side is midway between two of its stations.
+  const turn = (k: number): number => ((Math.PI - 0.5) % (TAU / k)) - Math.PI / k;
+  const where = (c: V, r: number, i: number, k: number): V => ((a: number): V => [c[0] + r * Math.sin(a), c[1], c[2] - r * Math.cos(a)])((TAU * i) / k + (c[1] ? turn(k) : 0));
   function place(loop: MLoop, c: V): void {
     const stops = stations(m, loop);
     const r = R(loop);
@@ -62,10 +64,14 @@ export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations,
       else if (stop.away) prims.push({ t: "text", at: p, text: `${by(m.nodes, stop.away).name}: on ${by(m.loops, by(m.nodes, stop.away).loop!).name}`, align: "center", fill: "ink-3", size: 10.5, max: 96 });
     });
   }
+  // The line on the ground runs away from the reader. The view starts turned half a radian, which draws that line
+  // slanting across the frame: in a frame a phone's width, which has height to spare and no width, the line itself
+  // leans the other way by as much, and is drawn straight up the frame.
+  const lean = m.narrow ? Math.tan(0.5) : 0;
   const line = ground(m);
   let z = 0;
   for (const item of line) {
-    if (item.node) ((at[item.node] = [0, 0, z]), prims.push(card(by(m.nodes, item.node), at[item.node]!, { stand: true, side: true, small: m.loops.length > 0 }), { t: "dot", at: at[item.node]!, r: 3, fill: "ink-2", lift: -3990 }), (z += 78));
+    if (item.node) ((at[item.node] = [z * lean, 0, z]), prims.push(card(by(m.nodes, item.node), at[item.node]!, { stand: true, side: true, small: m.loops.length > 0 }), { t: "dot", at: at[item.node]!, r: 3, fill: "ink-2", lift: -3990 }), (z += 78));
     else if (item.loop) {
       // Room for the ring and for every ring that stands on it, and for the card of its first station, which
       // stands over where the node before the ring would otherwise be: no node on the ground is inside a ring.
@@ -74,7 +80,7 @@ export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations,
       const r = reach(item.loop) + 6;
       const raised = (loop: MLoop): number => ((first) => (first ? 55 + raised(first) : 0))(stations(m, loop)[0]?.loop);
       z += z ? 56 + raised(item.loop) : 0;
-      place(item.loop, [0, 0, z + r]);
+      place(item.loop, [(z + r) * lean, 0, z + r]);
       z += 2 * r + 58;
     }
   }
