@@ -95,7 +95,7 @@ export function GraphViewer({
       };
     }
     // A template is not exported until it is filled in, and its own page says so: nothing more is said of it here.
-    return { title: "Validation", subtitle: "the graph's own findings", body: <IssueList issues={issues} needs={doc.template === undefined && packageNeeds(doc).length > 0 ? <PackageNeeds doc={doc} /> : undefined} /> };
+    return { title: "Validation", subtitle: "the graph's own findings", body: <IssueList issues={issues} whole={doc.template === undefined} needs={doc.template === undefined && packageNeeds(doc).length > 0 ? <PackageNeeds doc={doc} /> : undefined} /> };
   })();
 
   return (

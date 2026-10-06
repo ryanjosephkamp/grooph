@@ -13,7 +13,6 @@ import {
   formatOpError,
   parseGraph,
   summarizeRun,
-  validate,
   type Adoption,
   type Graph,
   type GraphDiff,
@@ -25,6 +24,8 @@ import {
   type RunNote,
   type RunSummary,
 } from "@grooph/core";
+
+import { computeIssues } from "./issues.js";
 
 export type RunModel = {
   bundle: RunBundle;
@@ -49,7 +50,7 @@ export function runModel(bundle: RunBundle): RunModel {
     why: explainChanges(diff.changes, summary.amendments),
     adoption: adoptWorkingCopy(bundle.source, bundle.working, { run: bundle.run }),
     moved: bundle.source.version !== bundle.working.version,
-    issues: validate(bundle.working, { forExport: true }),
+    issues: computeIssues(bundle.working),
   };
 }
 
@@ -147,7 +148,9 @@ export function proposalCopy(bundle: RunBundle, note: RunNote): ProposalCopy {
   // Ops check their own arguments, not what a `set` holds: a patch can leave a cap of `null` or evidence that is
   // one string. So the copy is read through the schema, as `grooph apply` reads its own before it writes.
   const read = parseGraph(plain);
-  return { ok: true, doc: plain, issues: read.doc ? validate(plain, { forExport: true }) : read.issues, graph: read.doc !== undefined };
+  // The copy's own findings, as the editor lists them: a copy that names no harness or states no goal is a plan,
+  // and has no error for it (`doc/issues.ts`).
+  return { ok: true, doc: plain, issues: computeIssues(plain), graph: read.doc !== undefined };
 }
 
 /** Timeline order: oldest first, or newest first while the run is live and running. */

@@ -37,10 +37,11 @@ export function packageNeeds(doc: Graph): Issue[] {
  * compiler for is said as that, and names the ones it has.
  */
 export function needInWords(need: Issue, doc: Graph, known: readonly { id: string; title: string }[]): string {
-  const harness = doc.target?.harness?.trim();
+  // As it was typed, spaces and capitals too: a name that differs from one in the list only by those is another name.
+  const harness = doc.target?.harness;
   const titles = known.map((target) => target.title).join(" or ");
   if (need.code === "E_NO_TARGET") {
-    return harness ? `grooph has no compiler for "${harness}". It has one for ${titles}.` : `A harness grooph has a compiler for: ${titles}. This graph names none, which is right for a plan.`;
+    return harness?.trim() ? `grooph has no compiler for "${harness}". It has one for ${titles}: choose it from the list of harnesses.` : `A harness grooph has a compiler for: ${titles}. This graph names none, which is right for a plan.`;
   }
   if (need.code === "E_NO_GOAL") return "A goal: the lead's brief is built from it.";
   return need.message;

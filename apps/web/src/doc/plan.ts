@@ -18,5 +18,9 @@ export const planOf = (doc: Graph): PlanBundle => planBundleWith([canonicalize, 
 
 export const planZipName = (doc: Graph): string => `${doc.id || "graph"}-plan.zip`;
 
+/** The plan's three files in a folder of their own, so that unzipping them beside other things scatters nothing. */
+export const planFolder = (doc: Graph, plan: PlanBundle): Record<string, string> =>
+  Object.fromEntries(Object.entries(plan.files).map(([path, contents]) => [`${doc.id || "graph"}-plan/${path}`, contents]));
+
 /** How a file of the plan is handed to the browser. */
 export const planFileType = (path: string): string => (path.endsWith(".svg") ? "image/svg+xml" : path.endsWith(".json") ? "application/json" : "text/markdown");

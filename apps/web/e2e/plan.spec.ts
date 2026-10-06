@@ -34,7 +34,7 @@ test("a plan in error is always offered: its three files one by one and together
   const s = sheet(page);
   const plan = s.getByRole("group", { name: "The plan" });
   await expect(plan.getByRole("button")).toHaveText(["The plan, all three (.zip)", "Plan (PLAN.md)", "Its picture (.svg)", "Download graph (.grooph.json)"]);
-  await expect(plan).toContainText("PLAN.md lists 3 things to fix before a harness can run this. They do not stop the plan.");
+  await expect(plan).toContainText("PLAN.md lists what a harness would need before it could run this: 3 things. None of them stops the plan.");
   if (shots) {
     // The whole panel, at a phone's width, once it has come to rest: the plan first.
     mkdirSync(shots, { recursive: true });
@@ -58,7 +58,8 @@ test("a plan in error is always offered: its three files one by one and together
   [file] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: "The plan, all three (.zip)" }).tap()]);
   expect(file.suggestedFilename()).toBe("review-loop-plan.zip");
   const zipped = unzipSync(await downloadBytes(file));
-  expect(Object.fromEntries(Object.entries(zipped).map(([path, bytes]) => [path, strFromU8(bytes)]))).toEqual(made.files);
+  // In a folder of their own, so that unzipping them beside other things scatters nothing.
+  expect(Object.fromEntries(Object.entries(zipped).map(([path, bytes]) => [path, strFromU8(bytes)]))).toEqual(Object.fromEntries(Object.entries(made.files).map(([path, text]) => [`review-loop-plan/${path}`, text])));
 
   // The page and the pictures are beside it, as they were.
   await expect(s.getByRole("group", { name: "Keep a copy" }).getByRole("button", { name: "Offline page (.html)" })).toBeVisible();
@@ -70,7 +71,7 @@ test("a plan in error is always offered: its three files one by one and together
     "A goal: the lead's brief is built from it.",
     "A graph with no errors: this one has 1.",
   ]);
-  await expect(pack.getByRole("alert")).toContainText("Cannot export for a harness: fix these first.");
+  await expect(pack.getByRole("alert")).toContainText("Cannot write a package: fix these first.");
   await expect(pack.getByRole("alert")).toContainText("1 validation error — E_CYCLE_NO_STOP");
   await expect(s.getByRole("button", { name: "Download package (.zip)" })).toHaveCount(0);
   if (shots) {
@@ -95,7 +96,7 @@ test("a plan with nothing wrong shows no error anywhere: the list is clear, and 
   await closeSheet(page);
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   // The plan says, in a line that is no alert, that its own file lists what a harness would need first.
-  await expect(s.getByRole("group", { name: "The plan" })).toContainText("PLAN.md lists 2 things to fix before a harness can run this. They do not stop the plan.");
+  await expect(s.getByRole("group", { name: "The plan" })).toContainText("PLAN.md lists what a harness would need before it could run this: 2 things. None of them stops the plan.");
   const pack = s.getByRole("group", { name: "A package for a harness" });
   await expect(pack.getByRole("listitem")).toHaveCount(2);
   await expect(s.getByRole("alert")).toHaveCount(0);
@@ -117,7 +118,7 @@ test("a harness grooph has no compiler for is said plainly where it is typed and
   await expect(s).toContainText("A plan needs no harness.");
   await field("Target harness").selectOption({ label: "other…" });
   await field("Harness id").fill("my-harness");
-  await expect(s).toContainText('grooph has no compiler for "my-harness". The plan can still be kept; a package needs Claude Code or Codex.');
+  await expect(s).toContainText('grooph has no compiler for "my-harness". The plan can still be kept; a package needs Claude Code or Codex, chosen from this list.');
   // Not an error of the graph: the count does not move, and nothing in the sheet is an alert.
   await expect(status(page)).toHaveText("Valid");
   await expect(s.getByRole("alert")).toHaveCount(0);
@@ -125,7 +126,7 @@ test("a harness grooph has no compiler for is said plainly where it is typed and
   await page.getByRole("button", { name: "Export", exact: true }).tap();
   await expect(s.getByRole("group", { name: "The plan" }).getByRole("button", { name: "The plan, all three (.zip)" })).toBeVisible();
   const pack = s.getByRole("group", { name: "A package for a harness" });
-  await expect(pack.getByRole("listitem")).toHaveText(['grooph has no compiler for "my-harness". It has one for Claude Code or Codex.']);
+  await expect(pack.getByRole("listitem")).toHaveText(['grooph has no compiler for "my-harness". It has one for Claude Code or Codex: choose it from the list of harnesses.']);
   await expect(s.getByRole("alert")).toHaveCount(0);
   await expect(s.locator(".refusal")).toHaveCount(0);
   // Said once in the panel: the sentence is nowhere else in it.

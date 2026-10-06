@@ -15,7 +15,7 @@ import {
   type ExportAttempt,
 } from "../doc/exportPackage.js";
 import { computeIssues, needInWords, packageNeeds } from "../doc/issues.js";
-import { planFileType, planOf, planZipName } from "../doc/plan.js";
+import { planFileType, planFolder, planOf, planZipName } from "../doc/plan.js";
 import { useDoc } from "../doc/store.js";
 import { useEditor } from "./editorContext.js";
 import { Keep } from "./Keep.js";
@@ -98,9 +98,9 @@ function ThePlan({ doc, plan, graph }: { doc: Graph; plan: PlanBundle; graph: Re
   return (
     <div role="group" aria-label="The plan">
       <h3 className="files-title">The plan</h3>
-      <p className="field-hint">This graph for people to read and follow: who does what, the picture, and the file. It can always be kept, whatever the validator found.</p>
+      <p className="field-hint">A plan is this graph to read and follow: who does what, the picture and the file. It can always be kept, whatever the validator found.</p>
       <div className="export-actions">
-        <button type="button" className="btn btn-primary" onClick={() => download(planZipName(doc), zipPackage(plan.files), "application/zip")}>
+        <button type="button" className="btn btn-primary" onClick={() => download(planZipName(doc), zipPackage(planFolder(doc, plan)), "application/zip")}>
           The plan, all three (.zip)
         </button>
         <button type="button" className="btn" onClick={() => download("PLAN.md", plan.files["PLAN.md"]!, planFileType("PLAN.md"))}>
@@ -113,7 +113,7 @@ function ThePlan({ doc, plan, graph }: { doc: Graph; plan: PlanBundle; graph: Re
       </div>
       {errors > 0 ? (
         <p className="field-hint">
-          PLAN.md lists {errors} thing{errors === 1 ? "" : "s"} to fix before a harness can run this. They do not stop the plan.
+          PLAN.md lists what a harness would need before it could run this: {errors} thing{errors === 1 ? "" : "s"}. None of them stops the plan.
         </p>
       ) : null}
     </div>
@@ -157,7 +157,7 @@ function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attemp
         {errors.length > 0 ? (
           <div className="refusal" role="alert">
             <p>
-              <strong>Cannot export for {named || "a harness"}: fix these first.</strong>
+              <strong>{named ? `Cannot export for ${named}: fix these first.` : "Cannot write a package: fix these first."}</strong>
             </p>
             <p className="field-hint">{`${errors.length} validation error${errors.length === 1 ? "" : "s"} — ${errors.map((i) => i.code).join(", ")}`}</p>
             <pre className="issue-lines">{own.map(formatIssue).join("\n")}</pre>

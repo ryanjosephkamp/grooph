@@ -142,11 +142,12 @@ export function GraphDetails({ doc }: { doc: Graph }) {
  * `needs` is what only a package for a harness asks for, already said in words (`ui/IssuesPanel.tsx`'s
  * `PackageNeeds`): a graph that names no harness or states no goal is a plan, and has no issue for it.
  */
-export function IssueList({ issues, needs }: { issues: readonly IssueLike[]; needs?: ReactNode }) {
+export function IssueList({ issues, needs, whole = true }: { issues: readonly IssueLike[]; needs?: ReactNode; whole?: boolean }) {
   if (issues.length === 0) {
     return (
       <div className="inspector">
-        <p className="all-clear">{needs ? "No issues. The graph validates." : "No issues. The graph validates for export."}</p>
+        {/* "For export" only where a package could be written of it: not with needs outstanding, and not of a template. */}
+        <p className="all-clear">{needs || !whole ? "No issues. The graph validates." : "No issues. The graph validates for export."}</p>
         {needs}
       </div>
     );

@@ -5,7 +5,7 @@ import { KNOWN_TARGETS, canonicalize, picture, targetTitle, type Graph } from "@
 import { describe, expect, it } from "vitest";
 
 import { computeIssues, needInWords, packageNeeds } from "../src/doc/issues.js";
-import { planOf, planZipName } from "../src/doc/plan.js";
+import { planFolder, planOf, planZipName } from "../src/doc/plan.js";
 import { repoRoot, reviewLoop } from "./helpers.js";
 
 const root = join(repoRoot, "apps/web/src");
@@ -59,7 +59,12 @@ describe("a plan in the app (slice 0100)", () => {
     expect(needInWords(harness!, aPlan(), TARGETS)).toBe("A harness grooph has a compiler for: Claude Code or Codex. This graph names none, which is right for a plan.");
     expect(needInWords(goal!, aPlan(), TARGETS)).toBe("A goal: the lead's brief is built from it.");
     const custom = { ...reviewLoop(), target: { harness: "my-harness" } };
-    expect(needInWords(packageNeeds(custom)[0]!, custom, TARGETS)).toBe('grooph has no compiler for "my-harness". It has one for Claude Code or Codex.');
+    expect(needInWords(packageNeeds(custom)[0]!, custom, TARGETS)).toBe('grooph has no compiler for "my-harness". It has one for Claude Code or Codex: choose it from the list of harnesses.');
+    // A name that is one of grooph's but for a capital or a space is another name, and is shown as it was typed.
+    for (const near of ["Codex", " codex", "Claude Code"]) {
+      const doc = { ...reviewLoop(), target: { harness: near } };
+      expect(needInWords(packageNeeds(doc)[0]!, doc, TARGETS)).toBe(`grooph has no compiler for "${near}". It has one for Claude Code or Codex: choose it from the list of harnesses.`);
+    }
   });
 
   it("the plan the app makes is the plan core's whole entry makes, file for file, errors or not", async () => {
@@ -78,6 +83,8 @@ describe("a plan in the app (slice 0100)", () => {
     expect(errored.files["PLAN.md"]).toContain("A coding harness cannot run this as it is.");
     expect(errored.files["PLAN.md"]).toContain("`E_CYCLE_NO_STOP`");
     expect(planZipName(inError())).toBe("review-loop-plan.zip");
+    expect(Object.keys(planFolder(inError(), errored))).toEqual(["review-loop-plan/PLAN.md", "review-loop-plan/review-loop.svg", "review-loop-plan/review-loop.grooph.json"]);
+    expect(Object.values(planFolder(inError(), errored))).toEqual(Object.values(errored.files));
   });
 
   it("a subgrooph is drawn in the app's plan as its nodes, as the app draws it everywhere, and in the CLI's as one box", async () => {

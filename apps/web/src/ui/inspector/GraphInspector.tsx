@@ -49,7 +49,7 @@ export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName
         label="Goal"
         value={doc.goal ?? ""}
         rows={3}
-        placeholder="What the run must achieve. Required for export."
+        placeholder="What this is for. A package for a harness needs it; a plan does not."
         onChange={(v) => editor.store.update((d) => setGraphField(d, "goal", optText(v)))}
       />
       <Select
@@ -65,7 +65,7 @@ export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName
             ? "A plan needs no harness. Choose one when a coding harness is to run this: a package is compiled for it."
             : known
               ? "Export compiles a package for the selected harness."
-              : `grooph has no compiler for "${harness}". The plan can still be kept; a package needs ${KNOWN_TARGETS.map((target) => targetTitle(target) ?? target).join(" or ")}.`
+              : `grooph has no compiler for "${harness}". The plan can still be kept; a package needs ${KNOWN_TARGETS.map((target) => targetTitle(target) ?? target).join(" or ")}, chosen from this list.`
         }
         onChange={(v) => {
           setOther(v === OTHER);

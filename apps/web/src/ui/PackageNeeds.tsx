@@ -15,7 +15,7 @@ export function PackageNeeds({ doc, onOpen }: { doc: Graph; onOpen?: () => void 
   return (
     <div className="keep" role="group" aria-label="For a package">
       <h3 className="files-title">For a package</h3>
-      <p className="field-hint">This graph is whole as a plan. To write the files a coding harness runs it from, grooph would still need:</p>
+      <p className="field-hint">Not needed for a plan. To write the files a coding harness runs this graph from, grooph would still need:</p>
       <ul className="files">
         {needs.map((need, i) => (
           <li key={`${need.code}-${i}`} className="field-hint">
