@@ -7,7 +7,7 @@ The **validator** reads a graph document and looks for a fixed list of mistakes.
 - an **error**, whose code starts with `E_`. grooph will not write instructions for a graph with an error. (Writing the instructions is called compiling. Chapter 5.)
 - a **warning**, whose code starts with `W_`. A graph with a warning can still be compiled, and the warning is copied into the instructions so the lead sees it.
 
-Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 30 rules for graphs: 18 errors and 12 warnings. (Three of the 30 were added on the evening of 5 October 2026, when a step could first be marked as a person's and not an agent's. This guide does not cover that. The project's [`plans/`](../../plans/README.md) folder does.)
+Every rule has a fixed code, so a rule keeps its name forever and can be looked up. There are 30 rules for graphs: 18 errors and 12 warnings. (Three of the 30 were added on the evening of 5 October 2026, when a step could first be marked as a person's and not an agent's. [Chapter 4](04-templates.md) says what that is for.)
 
 **One thing to hold on to.** The validator checks a *document*. It runs before any agent starts, and it knows nothing about what an agent later does. A graph that passes is a well-formed plan. It is not a promise about the run.
 

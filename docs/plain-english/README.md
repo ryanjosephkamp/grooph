@@ -30,7 +30,7 @@ One small example is carried through: a plan called **"Add a rounding helper"**.
 | 1 | [Starting from nothing](01-starting-from-nothing.md) | What a coding agent, a subagent, a loop, a loop graph and a brake are; what grooph is; and what has real force |
 | 2 | [The graph document](02-the-graph-document.md) | What is written in a plan, piece by piece |
 | 3 | [The validator](03-the-validator.md) | What grooph refuses, and what each refusal protects against |
-| 4 | [Templates](04-templates.md) | The twenty ready-made plans, and how to start from one |
+| 4 | [Templates](04-templates.md) | The twenty ready-made plans, how to start from one, and four more for work that people do |
 | 5 | [The package](05-the-package.md) | The instruction files grooph writes, one by one |
 | 6 | [A run](06-a-run.md) | What happens when an agent follows those instructions, and what it leaves behind |
 | 7 | [Adopting a run](07-adopting-a-run.md) | How a run's changes to its own plan are taken or refused |
@@ -48,8 +48,8 @@ One small example is carried through: a plan called **"Add a rounding helper"**.
 - **It is not on grooph's website.** The website is built from a list of pages (`scripts/site/pages.json`), and this guide is not on that list. It is kept with the project's other files.
 - **It has not been audited.** The project's rule is that a statement about what grooph does to the quality, cost, speed or safety of work is read by a second, independent AI system before it is published ([chapter 14](14-claims-and-the-audit.md)). This guide has not been through that. It must go through it before any part of it is published.
 - **It claims nothing new about what grooph achieves.** The findings it reports are the ones on two of the project's own pages, in simpler words: its [list of claims](../claims.md) and the [decision](../decisions/0029-what-is-shown-as-of-the-first-audit.md) that sums that list up. Figures that are not on those pages come from the ledgers and write-ups kept under `experiments/`. Where the honest answer is "this is not shown", it says so.
-- **Every `grooph` command in it was run**, in an empty test folder, on 5 October 2026, and the output under each is what was printed. Where the output held a long folder path from the author's computer, the path is shortened to `<grooph>`. Where output is cut for length, a line reading `…` says so. The one exception is the install commands at the foot of this page, which come from the project's [quickstart](../quickstart.md): the author's computer already had grooph installed that way.
-- **Which grooph.** The copy used was the project's newest on that day. It calls itself version 0.3.0, and it also contains changes made after 0.3.0 was first released. One of them, the check described in chapter 7, was added that same day and extended that evening. Every command was run again after each change to the tool that day. Two printed something different, the outline in chapter 10 and the irreversible example in chapter 3, and each is shown as it prints now.
+- **Every `grooph` command in it was run**, in an empty test folder, on 5 October 2026 and again on 6 October, and the output under each is what was printed. Where the output held a long folder path from the author's computer, the path is shortened to `<grooph>`. Where output is cut for length, a line reading `…` says so. The one exception is the install commands at the foot of this page, which come from the project's [quickstart](../quickstart.md): the author's computer already had grooph installed that way.
+- **Which grooph.** Version 0.4.1. The guide was first written against version 0.3.0 with that day's changes. On 6 October 2026 every command in it was run again, against the project's main copy as version 0.4.1 was being prepared, and the output under each is what it printed then. Those that had changed are shown as they print now.
 - **Who wrote it.** An AI session: the same one that carried out the audit described in chapter 14, at the owner's request. Two fresh AI readers, told that they knew nothing and could read only the guide, read drafts and reported where they got lost and what they came away believing. The guide was revised after each. No person has yet checked it line by line.
 - **No agent was started to run the examples.** Starting one costs money, and a guide should not do that on your behalf. So chapters 6 and 7, which are about a run, do not run the rounding example. They read real records the project keeps, of ready-made plans run on very similar jobs.
 
@@ -71,5 +71,5 @@ grooph --version
 ```
 
 ```text
-0.3.0
+0.4.1
 ```

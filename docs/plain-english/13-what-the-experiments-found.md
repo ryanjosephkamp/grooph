@@ -94,7 +94,7 @@ An experiment designed to produce exactly the missing record, a run that hits a 
 
 Chapter 1's table said this, and it belongs in the list of what is not shown.
 
-The validator checks a document. The package instructs a session. While a session is running, grooph can show what it records (the hook's events and the lead's notes, in the live view) and can stop nothing. What force there is during a run is the harness's: each subagent's tool list and, for a fresh worker, a start without the lead's conversation, and a spending limit if you set one. The checks of grooph's that refuse anything afterward are made when a changed plan is taken up: adopting a run, in the command or in the app, and refreshing a subgrooph (chapters 7 and 8). They are new, narrow, and not yet audited, and `grooph export` makes no such check.
+The validator checks a document. The package instructs a session. While a session is running, grooph can show what it records (the hook's events and the lead's notes, in the live view) and can stop nothing. What force there is during a run is the harness's: each subagent's tool list and, for a fresh worker, a start without the lead's conversation, and a spending limit if you set one. The checks of grooph's that refuse anything afterward are made when a changed plan is taken up: adopting a run, in the command or in the app, and refreshing a subgrooph (chapters 7 and 8). They are new and narrow. A second AI system has read the one adoption makes and found it real and incomplete (chapters 7 and 14). Since version 0.4.0 `grooph export` makes the same check over a package already in place.
 
 ## The second comparison
 
