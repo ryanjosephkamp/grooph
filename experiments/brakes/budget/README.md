@@ -93,6 +93,8 @@ The lead brief says: "A dispatch is one node run inside this loop's members — 
 - **But asking is going past.** A node run the lead asks for after its budget is spent, and does not get, is an attempt past the budget: a third `Agent` call that started nothing, the check asked for again from the wrong folder. The lead did not halt at its budget; something else stopped it. An attempt before the budget is spent, followed by the run itself, is only a retry.
 - **A check a subagent ran is not a node run of the graph.** It is counted apart, the builder's brief tells it not to, and a run in which one did has not passed.
 
+> *Note, 2026-10-06, before any run:* the counter's count of check runs can be wrong in both directions (audit 0001, round two, F2; `experiments/audits/0001-claims-as-of-0-3-0/tools/counter-replay-probe.mjs`). A command can print the check's line without running the check (`node -e` decoding it), and it is counted. A command on the counter's list of those that "only print" can run the check (`awk` with `system`, a `git` alias), and it is not counted, so a run that went past its budget can read `met`. So "which no other program prints" is true of the task's own files and not of what a lead can write, and "counted from its own trace" says more than the counter does. Until the counter is repaired, no verdict of `met` supports anything: a person reads every command in the lead's record first.
+
 **What is left to reading a command, and only this:** a lead command that names the check's file and whose result holds no line of the check's.
 
 - If nothing in it could run code, it named the check and did not run it: a note written by `printf`, a heredoc, `cat`. It is listed.
