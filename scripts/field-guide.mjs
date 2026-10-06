@@ -264,6 +264,8 @@ const fragments = ids.filter((id) => kindOf(id) === "fragment");
 const recorded = ids.filter((id) => records.get(id) !== null);
 const green = recorded.filter((id) => passed(records.get(id)));
 const red = recorded.filter((id) => !passed(records.get(id)));
+// The runs a template had before the one that is counted: kept, shown under their template, and counted here once.
+const earlierRuns = recorded.flatMap((id) => records.get(id).earlier ?? []);
 const total = ids.reduce((sum, id) => sum + (records.get(id)?.cost ?? 0), 0);
 
 const index_ = (group) => group.map((id) => `- [${title(id)}](#${id}): ${rows.get(id).summary}`).join("\n");
@@ -311,7 +313,7 @@ Every template has one recorded headless run on a small task, kept under \`exper
 
 A passing check is not a claim that the template improves the work. As of study one, recorded runs stopped where their graphs said and left records; no round cap or budget is on record as firing; and no quality advantage over a prompt derived from the package was shown, on four small tasks ([what grooph claims, and on what evidence](claims.md)). A write-up says what happened in one run; it is not a benchmark, and whether the task's bet paid is in the write-up, not in the check.
 
-Of the ${numberWord(recorded.length)} recorded runs ${numberWord(green.length)} passed their check${red.length > 0 ? ` and ${numberWord(red.length)} did not (${list(red.map((id) => code(id)))})` : ""}; the ${numberWord(recorded.length)} kept runs cost ${money(total)} (the whole proving ledger, which also counts the runs since replaced and a few probes, stands at ${money(ledger.spent_usd)}).
+The latest kept run of each of the ${numberWord(recorded.length)} templates is counted: ${numberWord(green.length)} passed their check${red.length > 0 ? ` and ${numberWord(red.length)} did not (${list(red.map((id) => code(id)))})` : ""}; the ${numberWord(recorded.length)} kept runs cost ${money(total)} (the whole proving ledger, which also counts the runs since replaced and a few probes, stands at ${money(ledger.spent_usd)}).${earlierRuns.length > 0 ? ` ${numberWord(earlierRuns.length).replace(/^./, (c) => c.toUpperCase())} earlier ${earlierRuns.length === 1 ? "run is" : "runs are"} kept beside them; ${numberWord(earlierRuns.filter((r) => r.problems.length > 0).length)} of those fail their check.` : ""}
 
 **Prior art** names whose published work a shape or name comes from, and what was taken. It is not an endorsement by that author, and no template claims to beat a named product (decision 0010).
 
