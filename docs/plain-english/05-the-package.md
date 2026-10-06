@@ -2,7 +2,7 @@
 
 [Start page](README.md) · previous: [templates](04-templates.md) · next: [a run](06-a-run.md)
 
-A graph document is a plan. An agent cannot run a plan written as JSON any more than a builder can pour concrete from a blueprint's file format. Something has to turn the plan into instructions in the form the harness expects.
+A graph document is a plan. A harness has its own form for instructions: agent files, a skill, a prompt to start from. Compiling writes the plan out in that form.
 
 That step is called **compiling**, and the command is `grooph export`. What it writes is the **package**: a small set of text files that tell a harness, in its own terms, how to run this graph.
 

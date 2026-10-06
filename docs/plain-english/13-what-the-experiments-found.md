@@ -16,7 +16,7 @@ grooph has run two kinds, and they ask different questions.
 
 | | Asks | How |
 |---|---|---|
-| **Proving runs** | Does a package drive a session the way the graph was drawn? | Run each template once on a small task and keep the whole record |
+| **Proving runs** | Does a package drive a session the way the graph was drawn? | Run each template once on a small task and keep the record: the harness's output, the run folder and the cost |
 | **Paired comparisons** | Does a graph produce better work than a prompt that says the same things? | Give the same task to a graph and to a plain prompt and compare the results |
 
 Both kinds keep their evidence in the repository, under `experiments/`. One rule covers all of it: **a record is never edited afterward**, and a result that looks bad is published as it is.
@@ -27,7 +27,7 @@ Each of the twenty templates has one counted run, on a small task, with nobody w
 
 Then a script, the **proving check**, looks at each record and asks a few fixed questions. Did the agents the graph names run as their own subagents? Did the run end where the graph said it would? Are the notes whole? It reads the lead's own notes for some of these and the harness's own log for others. It looks at selected parts of a record. It is not a full reconstruction of the run, and it does not judge whether the work was good.
 
-**Eighteen of the twenty records pass. Two do not.** The two are `gauntlet-decomposed` and `ralph-loop`. In one, a step that should have been its own subagent never ran as one. In the other, a builder read evidence it had been told was not its to read. Both records are kept exactly as they ran, marked as failures, with the reasons. That is what "published red" means.
+**Eighteen of the twenty records pass. Two do not.** The two are `gauntlet-decomposed` and `ralph-loop`. `gauntlet-decomposed` halted where its plan told it to ask a person, before its last three steps. Its check fails all the same: several things it looks for assume those steps ran, and the record of one change the run made to its plan does not replay. In the other, a builder read evidence it had been told was not its to read. Both records are kept exactly as they ran, marked as failures, with the reasons. That is what "published red" means.
 
 What these twenty records show:
 
@@ -94,7 +94,7 @@ An experiment designed to produce exactly the missing record, a run that hits a 
 
 Chapter 1's table said this, and it belongs in the list of what is not shown.
 
-The validator checks a document. The package instructs a session. While a session is running, nothing in grooph watches it or can stop it. What force there is during a run is the harness's: each subagent's tool list and empty starting context, and a spending limit if you set one. The checks of grooph's that refuse anything afterward are made when a changed plan is taken up: adopting a run, in the command or in the app, and refreshing a subgrooph (chapters 7 and 8). They are new, narrow, and not yet audited, and `grooph export` makes no such check.
+The validator checks a document. The package instructs a session. While a session is running, grooph can show what it records (the hook's events and the lead's notes, in the live view) and can stop nothing. What force there is during a run is the harness's: each subagent's tool list and, for a fresh worker, a start without the lead's conversation, and a spending limit if you set one. The checks of grooph's that refuse anything afterward are made when a changed plan is taken up: adopting a run, in the command or in the app, and refreshing a subgrooph (chapters 7 and 8). They are new, narrow, and not yet audited, and `grooph export` makes no such check.
 
 ## The second comparison
 
