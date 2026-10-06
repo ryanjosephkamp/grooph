@@ -25,7 +25,7 @@ import {
   type RunSummary,
 } from "@grooph/core";
 
-import { computeIssues } from "./issues.js";
+import { computeIssues } from "./findings.js";
 
 export type RunModel = {
   bundle: RunBundle;

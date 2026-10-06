@@ -3,34 +3,15 @@
  * adds no rule of its own (spec §12 via the core validator).
  *
  * A graph is a plan first (amendment A-020): it may name no harness and state no goal, and that is no fault of
- * it. So those two findings (`E_NO_TARGET`, `E_NO_GOAL`) are taken out of the list and said apart, as what a
- * package for a harness would still need. Every other finding is the graph's own and is listed as it was, a slot
- * left unfilled among them: that is a gap in a plan too, and the list is where a person finds it.
+ * it; and a step may be a person's, which a package cannot hold yet. So those findings (`E_NO_TARGET`,
+ * `E_NO_GOAL`, `E_PERSON_STEP_NOT_COMPILED`) are taken out of the list and said apart, as what a package for a
+ * harness would still need. Every other finding is the graph's own and is listed as it was, a slot left unfilled
+ * among them: that is a gap in a plan too, and the list is where a person finds it.
  */
-import { parseGraph, validate, type Graph, type Id, type Issue, type Severity } from "@grooph/core";
+import type { Graph, Id, Issue, Severity } from "@grooph/core";
 
-/**
- * Schema first, then the rules — the order the CLI uses. A document that does
- * not match the schema yet (a new agent with no outputs, say) shows its
- * `E_SCHEMA` issues; the rules run once the shape is right.
- */
-export function computeIssues(doc: Graph): Issue[] {
-  const parsed = parseGraph(doc);
-  return parsed.doc ? validate(parsed.doc, { forExport: true }).filter((issue) => !onlyAPackage(issue)) : parsed.issues;
-}
-
-/** What a plan may lack and a package may not: a harness grooph has a compiler for, and a goal. */
-const onlyAPackage = (issue: Issue): boolean => issue.code === "E_NO_TARGET" || issue.code === "E_NO_GOAL";
-
-/**
- * What a package for a harness would still need of this graph, apart from the graph's own findings: a harness
- * (none is named, or grooph has no compiler for the one that is) and a goal. Empty for a document that does not
- * read as a graph yet: its schema findings come first.
- */
-export function packageNeeds(doc: Graph): Issue[] {
-  const parsed = parseGraph(doc);
-  return parsed.doc ? validate(parsed.doc, { forExport: true }).filter(onlyAPackage) : [];
-}
+// The two lists themselves are in a small file of their own (`findings.ts` says why); they are handed on from here.
+export { computeIssues, packageNeeds } from "./findings.js";
 
 /**
  * A need, in the panel's own plain words where the app has them; core's message otherwise. A harness grooph has no
@@ -44,6 +25,10 @@ export function needInWords(need: Issue, doc: Graph, known: readonly { id: strin
     return harness?.trim() ? `grooph has no compiler for "${harness}". It has one for ${titles}: choose it from the list of harnesses.` : `A harness grooph has a compiler for: ${titles}. This graph names none, which is right for a plan.`;
   }
   if (need.code === "E_NO_GOAL") return "A goal: the lead's brief is built from it.";
+  if (need.code === "E_PERSON_STEP_NOT_COMPILED") {
+    const steps = need.at.map((id) => doc.nodes.find((node) => node.id === id)?.name || id);
+    return `Every step an agent's: ${steps.join(", ")} ${steps.length === 1 ? "is a person's" : "are people's"}, and grooph cannot yet hand a step to a person inside a harness.`;
+  }
   return need.message;
 }
 

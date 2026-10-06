@@ -1,4 +1,4 @@
-import { KNOWN_TARGETS, formatIssue, targetTitle, type Graph, type Issue } from "@grooph/core";
+import { formatIssue, targetTitle, type Graph, type Issue } from "@grooph/core";
 import type { PlanBundle } from "@grooph/core/plan";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 
@@ -14,13 +14,22 @@ import {
   zipPackage,
   type ExportAttempt,
 } from "../doc/exportPackage.js";
-import { computeIssues, needInWords, packageNeeds } from "../doc/issues.js";
 import { planFileType, planFolder, planOf, planZipName } from "../doc/plan.js";
-import { useDoc } from "../doc/store.js";
-import { useEditor } from "./editorContext.js";
-import { Keep } from "./Keep.js";
 
-const TARGETS = KNOWN_TARGETS.map((id) => ({ id, title: targetTitle(id) ?? id }));
+/**
+ * What the panel is handed by its door (`ExportDoor.tsx`), which is part of the canvas's screens: the document, its
+ * own findings, what a package would still need in words, the "Keep a copy" section, and the editor's two doings.
+ * The panel imports nothing of the canvas's own files: a file two pieces import is moved by the bundler into what
+ * every address loads (the findings' file went there, 0.56 KB, when this panel first imported it).
+ */
+export type ExportPanelProps = {
+  doc: Graph;
+  own: Issue[];
+  needs: string[];
+  keep: ReactNode;
+  open: (panel: "issues" | "graph") => void;
+  exported: () => void;
+};
 
 /**
  * Export (spec §9, amendment A-020). A graph is a plan first, and a plan can always be kept: its three files, for
@@ -31,9 +40,7 @@ const TARGETS = KNOWN_TARGETS.map((id) => ({ id, title: targetTitle(id) ?? id })
  * The panel is a piece of the app, fetched through `ExportDoor.tsx` when Export is pressed (the editor asks for it
  * soon after it opens): a canvas that only draws a graph does not carry it. The plan's maker comes with it.
  */
-export function ExportPanel() {
-  const editor = useEditor();
-  const doc = useDoc(editor.store);
+export function ExportPanel({ doc, own, needs, keep, open, exported }: ExportPanelProps) {
   // The compiler arrives once (the editor asks for it soon after it opens); after that this is as it always was.
   const [compiler, setCompiler] = useState<"here" | "coming" | "failed">(compilerHere() ? "here" : "coming");
   useEffect(() => {
@@ -48,8 +55,6 @@ export function ExportPanel() {
     };
   }, [compiler]);
   const attempt = useMemo(() => attemptExport(doc), [doc, compiler]);
-  const own = useMemo(() => computeIssues(doc), [doc]);
-  const needs = useMemo(() => packageNeeds(doc), [doc]);
   // A document that does not match the schema yet cannot be drawn or outlined, so there is no plan of it.
   const reads = !own.some((issue) => issue.code === "E_SCHEMA");
   const plan = useMemo(() => (reads ? planOf(doc) : undefined), [doc, reads]);
@@ -69,12 +74,12 @@ export function ExportPanel() {
           </p>
           <p className="field-hint">The document does not match the graph schema yet, so it has no plan and no package. The file itself can be kept.</p>
           <pre className="issue-lines">{own.map(formatIssue).join("\n")}</pre>
-          <button type="button" className="btn" onClick={() => editor.openPanel({ type: "issues" })}>
+          <button type="button" className="btn" onClick={() => open("issues")}>
             Show issues
           </button>
         </div>
         <div className="export-actions">{downloadGraph}</div>
-        <Keep doc={doc} />
+        {keep}
       </div>
     );
   }
@@ -82,8 +87,8 @@ export function ExportPanel() {
   return (
     <div className="inspector">
       {plan ? <ThePlan doc={doc} plan={plan} graph={downloadGraph} /> : null}
-      <Keep doc={doc} />
-      <ThePackage doc={doc} attempt={attempt} compiler={compiler} own={own} needs={needs} />
+      {keep}
+      <ThePackage doc={doc} attempt={attempt} compiler={compiler} own={own} needs={needs} open={open} exported={exported} />
     </div>
   );
 }
@@ -124,8 +129,7 @@ function ThePlan({ doc, plan, graph }: { doc: Graph; plan: PlanBundle; graph: Re
  * A package for a harness. What it still needs is said plainly: a harness grooph has a compiler for, a goal, and a
  * graph with no errors. None of those is a fault of a plan, and only the graph's own errors are shown as errors.
  */
-function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attempt: ExportAttempt | undefined; compiler: "here" | "coming" | "failed"; own: Issue[]; needs: Issue[] }) {
-  const editor = useEditor();
+function ThePackage({ doc, attempt, compiler, own, needs, open: show, exported }: { doc: Graph; attempt: ExportAttempt | undefined; compiler: "here" | "coming" | "failed" } & Pick<ExportPanelProps, "own" | "needs" | "open" | "exported">) {
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle");
   const [open, setOpen] = useState<string | null>(null);
   const errors = own.filter((issue) => issue.severity === "error");
@@ -138,9 +142,9 @@ function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attemp
         {title}
         <p className="field-hint">The files a coding harness runs this graph from. To write them, grooph still needs:</p>
         <ul className="files">
-          {needs.map((need, i) => (
-            <li key={`${need.code}-${i}`} className="field-hint">
-              {needInWords(need, doc, TARGETS)}
+          {needs.map((need) => (
+            <li key={need} className="field-hint">
+              {need}
             </li>
           ))}
           {errors.length > 0 ? (
@@ -150,7 +154,7 @@ function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attemp
           ) : null}
         </ul>
         {needs.length > 0 ? (
-          <button type="button" className="btn" onClick={() => editor.openPanel({ type: "graph" })}>
+          <button type="button" className="btn" onClick={() => show("graph")}>
             Open the graph's details
           </button>
         ) : null}
@@ -161,7 +165,7 @@ function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attemp
             </p>
             <p className="field-hint">{`${errors.length} validation error${errors.length === 1 ? "" : "s"} — ${errors.map((i) => i.code).join(", ")}`}</p>
             <pre className="issue-lines">{own.map(formatIssue).join("\n")}</pre>
-            <button type="button" className="btn" onClick={() => editor.openPanel({ type: "issues" })}>
+            <button type="button" className="btn" onClick={() => show("issues")}>
               Show issues
             </button>
           </div>
@@ -203,7 +207,7 @@ function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attemp
             <strong>Cannot export for {attempt.target}: fix these first.</strong>
           </p>
           <pre className="issue-lines">{attempt.issues.map(formatIssue).join("\n")}</pre>
-          <button type="button" className="btn" onClick={() => editor.openPanel({ type: "issues" })}>
+          <button type="button" className="btn" onClick={() => show("issues")}>
             Show issues
           </button>
         </div>
@@ -223,7 +227,7 @@ function ThePackage({ doc, attempt, compiler, own, needs }: { doc: Graph; attemp
           onClick={() => {
             download(packageFileName(doc, attempt.target), zipPackage(files), "application/zip");
             // Remembered so a later rename can warn that the package folder name changes (criterion 9).
-            editor.markExported();
+            exported();
           }}
         >
           Download package (.zip)

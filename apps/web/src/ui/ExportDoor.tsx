@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { KNOWN_TARGETS, targetTitle } from "@grooph/core";
+import { useEffect, useMemo, useState } from "react";
 
+import { computeIssues, needInWords, packageNeeds } from "../doc/issues.js";
+import { useDoc } from "../doc/store.js";
 import { piece } from "../piece.js";
+import { useEditor } from "./editorContext.js";
+import { Keep } from "./Keep.js";
+
+const TARGETS = KNOWN_TARGETS.map((id) => ({ id, title: targetTitle(id) ?? id }));
 
 type Panel = typeof import("./ExportPanel.js");
 let panel: Panel | undefined;
@@ -13,6 +20,10 @@ export const loadExportPanel = (): Promise<Panel> => piece("ExportPanel", () => 
  * draw a graph does not carry the plan, the package and their words, which one button opens. The editor asks for it
  * soon after it opens, as it asks for the compiler, so a press seldom waits; a press that cannot fetch it says so
  * here and offers to try again.
+ *
+ * The door hands the panel all it needs of the canvas's own files (the document, its findings, a package's needs
+ * in words, "Keep a copy", the editor's doings), so the panel imports none of them: a file two pieces import is
+ * moved by the bundler into what every address loads. `test/plan.test.ts` holds that.
  */
 export function ExportDoor() {
   const [state, setState] = useState<"here" | "coming" | "failed">(panel ? "here" : "coming");
@@ -27,7 +38,13 @@ export function ExportDoor() {
       gone = true;
     };
   }, [state]);
-  if (state === "here" && panel) return <panel.ExportPanel />;
+  const editor = useEditor();
+  const doc = useDoc(editor.store);
+  const own = useMemo(() => computeIssues(doc), [doc]);
+  const needs = useMemo(() => packageNeeds(doc).map((need) => needInWords(need, doc, TARGETS)), [doc]);
+  if (state === "here" && panel) {
+    return <panel.ExportPanel doc={doc} own={own} needs={needs} keep={<Keep doc={doc} />} open={(type) => editor.openPanel({ type })} exported={editor.markExported} />;
+  }
   return (
     <div className="inspector">
       {state === "failed" ? (

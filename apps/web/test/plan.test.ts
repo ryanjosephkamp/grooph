@@ -54,6 +54,18 @@ describe("a plan in the app (slice 0100)", () => {
     expect(packageNeeds(unread)).toEqual([]);
   });
 
+  it("a step that is a person's is no error of a plan either: it is what a package cannot hold yet", () => {
+    // Part two of the amendment is on main: a document may hold `by: "person"` (a plan template does), though this
+    // app cannot yet set it. Such a graph must not open on a red error.
+    const doc = reviewLoop();
+    doc.nodes = doc.nodes.map((node) => (node.kind === "agent" && node.id === "critic" ? { ...node, by: "person" as const } : node));
+    expect(codes(computeIssues(doc)).filter((code) => code.startsWith("E_"))).toEqual([]);
+    expect(codes(packageNeeds(doc))).toEqual(["E_PERSON_STEP_NOT_COMPILED"]);
+    expect(needInWords(packageNeeds(doc)[0]!, doc, TARGETS)).toBe("Every step an agent's: Critic is a person's, and grooph cannot yet hand a step to a person inside a harness.");
+    // And the plan of it is made, and says whose the step is.
+    expect(planOf(doc).files["PLAN.md"]).toMatch(/\| Critic \| a person \|/);
+  });
+
   it("a need is said in plain words, and a harness with no compiler names the ones grooph has", () => {
     const [harness, goal] = packageNeeds(aPlan());
     expect(needInWords(harness!, aPlan(), TARGETS)).toBe("A harness grooph has a compiler for: Claude Code or Codex. This graph names none, which is right for a plan.");
@@ -116,6 +128,15 @@ describe("a plan in the app (slice 0100)", () => {
     const reached = [...seen].map((file) => file.slice(root.length + 1));
     for (const file of ["ui/Editor.tsx", "ui/ExportDoor.tsx", "ui/IssuesPanel.tsx", "ui/PackageNeeds.tsx", "doc/issues.ts"]) expect(reached, `the walk did not reach ${file}`).toContain(file);
     for (const file of ["ui/ExportPanel.tsx", "doc/plan.ts"]) expect(reached, `${file} is carried by every canvas`).not.toContain(file);
+    // The panel imports nothing of the canvas's own files: a file two pieces import is moved by the bundler into
+    // what every address loads (the findings' file went there, 0.56 KB). Its door hands it the rest.
+    const relative = (path: string): string[] => [...read(path).matchAll(/^import\s(?!type\b)[^;]*?from\s+"(\.[^"]+)";/gms)].map((m) => m[1]!);
+    expect(relative("ui/ExportPanel.tsx").sort()).toEqual(["../doc/exportPackage.js", "../doc/plan.js"]);
+    expect(relative("doc/plan.ts")).toEqual([]);
+    // And a run's page, which every address loads, reads the two lists from their own small file, not the canvas's.
+    expect(relative("doc/run.ts")).toContain("./findings.js");
+    expect(relative("doc/run.ts")).not.toContain("./issues.js");
+    expect(relative("doc/findings.ts")).toEqual([]);
     // One door, by the name the build gives the piece's file; the editor opens the panel through it.
     expect(read("ui/ExportDoor.tsx")).toContain('piece("ExportPanel", () => import("./ExportPanel.js"))');
     expect(read("ui/Editor.tsx")).toContain("body: <ExportDoor /> };");
