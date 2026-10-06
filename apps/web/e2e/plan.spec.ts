@@ -47,7 +47,7 @@ test("a plan in error is always offered: its three files one by one and together
   let [file] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: "Plan (PLAN.md)" }).tap()]);
   expect(file.suggestedFilename()).toBe("PLAN.md");
   expect(await downloadText(file)).toBe(made.files["PLAN.md"]);
-  expect(made.files["PLAN.md"]).toContain("A coding harness cannot run this as it is.");
+  expect(made.files["PLAN.md"]).toContain("**To run it in a coding harness, ");
   [file] = await Promise.all([page.waitForEvent("download"), plan.getByRole("button", { name: "Its picture (.svg)" }).tap()]);
   expect(file.suggestedFilename()).toBe("review-loop.svg");
   expect(await downloadText(file)).toBe(made.files["review-loop.svg"]);
@@ -101,10 +101,10 @@ test("a plan with nothing wrong shows no error anywhere: the list is clear, and 
   await expect(pack.getByRole("listitem")).toHaveCount(2);
   await expect(s.getByRole("alert")).toHaveCount(0);
   await expect(s.locator(".refusal")).toHaveCount(0);
-  // The plan's own words say a harness could not run it yet, and that as a plan it is whole.
+  // The plan's own words say first that as a plan it is whole, and then what a harness would need.
   const [file] = await Promise.all([page.waitForEvent("download"), s.getByRole("button", { name: "Plan (PLAN.md)" }).tap()]);
   expect(await downloadText(file)).toBe(planBundle(doc).files["PLAN.md"]);
-  expect(await downloadText(file)).toContain("As a plan for people to read and follow it is whole.");
+  expect(await downloadText(file)).toContain("As a plan for people to read and follow, this is whole. **To run it in a coding harness, ");
 });
 
 test("a harness grooph has no compiler for is said plainly where it is typed and where a package is asked for, and the plan still exports", async ({ page }) => {
