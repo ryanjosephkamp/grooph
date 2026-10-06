@@ -137,8 +137,8 @@ export function Landing({ device }: { device?: ReactNode }) {
               </li>
               <li>
                 <strong>The graph is the contract.</strong> The package tells the session to run it as drawn: named subagents, stops in order, a halt at
-                every human gate. grooph does not enforce it while it runs; eighteen of twenty recorded runs pass the checks of it, and two say why they do
-                not.
+                every human gate. grooph does not enforce it while it runs; eighteen of the twenty runs counted pass the checks of it, and two say why they
+                do not.
               </li>
               <li>
                 <strong>Every run is asked for a record.</strong> Notes, rounds and why it stopped, in a folder a monitor reads. A halted run goes on when a
@@ -257,8 +257,8 @@ export function Landing({ device }: { device?: ReactNode }) {
               What is shown, <mark>and what is not</mark>
             </h2>
             <p>
-              In twenty recorded runs a session stopped where its graph said, at a passed bar or a human gate, and left a record; eighteen of the twenty
-              pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
+              The latest kept run of each of the twenty templates is counted: in those a session stopped where its graph said, at a passed bar or a
+              human gate, and left a record; eighteen of the twenty pass the project&rsquo;s checks. No round cap or budget is on record as firing. In a paired comparison on four small tasks the package showed
               no quality advantage over a prompt derived from it. grooph runs no agent, calls no model and needs no hosted service.{" "}
               <a href={`${DOCS}claims/`}>Every claim and its evidence</a>.
             </p>
