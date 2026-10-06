@@ -13,7 +13,7 @@
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
-import { isMapLike, isPlan, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
+import { KNOWN_TARGETS, isMapLike, isPlan, parseGraphText, planBundle, planSteps, validate, type Graph, type Issue } from "@grooph/core";
 
 import { isKeptGraph, keptGraphRefusal, readText } from "../io.js";
 import { shellWord } from "./export.js";
@@ -164,8 +164,22 @@ export function asAPlan(doc: Graph, forPackage: readonly Issue[]): { needs: stri
   return { needs: [...new Set(forPackage.filter(lacks).map((issue) => issue.code))], rest: forPackage.filter((issue) => !lacks(issue)) };
 }
 
-/** Said of a plan wherever a graph is summed up in a line: what it is, and what is in the way of a package, by code. */
-export const planLine = (needs: readonly string[]): string => `a plan as it stands; in the way of a package for a harness: ${needs.join(", ")}`;
+/**
+ * Said of a plan wherever a graph is summed up in a line: what it is, and what is in the way of a package, by code.
+ * A harness the graph names and grooph has no compiler for is said by name, as a JSON string: a name typed wrong
+ * makes a plan of a graph that was meant for a harness, and this is where that shows.
+ */
+export function planLine(doc: Graph, needs: readonly string[]): string {
+  const harness = doc.target?.harness;
+  const named = typeof harness === "string" && !KNOWN_TARGETS.includes(harness) ? `; it names the harness ${JSON.stringify(harness)}, and grooph compiles for ${KNOWN_TARGETS.join(" and ")}` : "";
+  return `a plan as it stands; in the way of a package for a harness: ${needs.join(", ")}${named}`;
+}
+
+/** Whether a person's step is what makes the findings a plan's and nothing else stands in the way: then the next thing is the plan, not a repair. */
+export const onlyAPlansLacks = (issues: readonly { code: string; severity: string }[]): boolean => {
+  const errors = issues.filter((issue) => issue.severity === "error");
+  return errors.some((issue) => issue.code === "E_PERSON_STEP_NOT_COMPILED") && errors.every((issue) => A_PLAN_LACKS.includes(issue.code));
+};
 
 /** Whether a plan is whole, in the plan's own words: what core writes in PLAN.md's second paragraph. */
 export function wholeness(doc: Graph, errors: number, own: number): string {

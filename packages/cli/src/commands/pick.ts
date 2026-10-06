@@ -5,6 +5,7 @@ import { canonicalize, findCandidates, hasErrors, type Graph } from "@grooph/cor
 
 import { writeText } from "../io.js";
 import { printIssues, type Output } from "../print.js";
+import { oneLine } from "../reply.js";
 import { asAPlan, ownAndPackage, planLine } from "./plan.js";
 import { LoadError, loadProposals, shown } from "../share-io.js";
 
@@ -21,7 +22,9 @@ like any other, and the command says so and that grooph plan exports it. An exis
 (or when it already holds the same graph).`;
 
 /** `grooph pick <proposals> <candidate> --out <file>` (docs/executive.md §4). */
-export function pickCommand(io: Output, file: string, query: string, flags: PickFlags): number {
+export function pickCommand(raw: Output, file: string, query: string, flags: PickFlags): number {
+  // One line a call: a candidate's label and a set's id are a document's words, and none of them ends a line of this command's.
+  const io: Output = { isTTY: raw.isTTY === true, out: (text) => raw.out(oneLine(text)), err: (text) => raw.err(oneLine(text)) };
   let set;
   try {
     set = loadProposals(file).set;
@@ -56,7 +59,7 @@ export function pickCommand(io: Output, file: string, query: string, flags: Pick
   const { needs, rest } = asAPlan(graph, forPackage);
   const issues = [...own, ...rest];
   if (hasErrors(issues)) {
-    io.err(`grooph: cannot pick "${candidate.label}" (${candidate.id}): its graph has errors; fix them, re-validate, and pick again`);
+    io.err(`grooph: cannot pick "${candidate.label}" (${candidate.id}): its graph has errors; fix them (grooph validate --for-export lists them for a file) and pick again`);
     printIssues(io, issues, candidate.id);
     return 1;
   }
@@ -72,7 +75,7 @@ export function pickCommand(io: Output, file: string, query: string, flags: Pick
   io.out(`picked "${candidate.label}" (${candidate.id}) from ${set.id} → ${shown(out)}`);
   if (issues.length > 0) printIssues(io, issues, shown(out));
   if (needs.length > 0) {
-    io.out(`"${candidate.label}" is ${planLine(needs)}.`);
+    io.out(`"${candidate.label}" is ${planLine(graph, needs)}.`);
     io.out(`next: grooph plan ${shown(out)}`);
     return 0;
   }

@@ -31,6 +31,7 @@ import {
 } from "@grooph/core";
 
 import { readText, writeText } from "../io.js";
+import { A_PLAN_LACKS } from "./plan.js";
 import { plural, printIssues, type Output } from "../print.js";
 import {
   RegistryError,
@@ -275,7 +276,8 @@ export async function templateUse(io: Output, env: RegistryEnv, name: string, fl
   if (out !== undefined) {
     info.out(`wrote ${out} (graph "${checked.doc.id}" from ${found.doc.id}@${found.doc.version}, ${found.source})`);
     // A graph with a person's step, or with no harness, is a plan: the check for a package would answer with what is no fault of one.
-    info.out(isPlan(checked.doc) ? `next: grooph plan ${out}` : `next: grooph validate --for-export ${out}`);
+    const forPackage = validate(checked.doc, { forExport: true }).filter((issue) => issue.severity === "error");
+    info.out(isPlan(checked.doc) && forPackage.every((issue) => A_PLAN_LACKS.includes(issue.code)) ? `next: grooph plan ${out}` : `next: grooph validate --for-export ${out}`);
   }
   return hasErrors(checked.issues) ? 1 : 0;
 }

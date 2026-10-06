@@ -45,6 +45,8 @@ import {
   hasErrors,
   instantiate,
   isMapLike,
+  isPersonStep,
+  isPlan,
   isProposalSetLike,
   isRunBundleLike,
   keptFolder,
@@ -78,7 +80,7 @@ import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
 import type { McpContext } from "./mcp.js";
-import { A_PLAN_LACKS, asAPlan, hiddenPart, notThisPlans, ownAndPackage, planFindings, planLine, planPlaces, wholeness } from "./commands/plan.js";
+import { asAPlan, hiddenPart, notThisPlans, onlyAPlansLacks, ownAndPackage, planFindings, planLine, planPlaces, wholeness } from "./commands/plan.js";
 import { isGroophPicture, isLink, nearestExisting, pathArg, putAll, shownIn, within, writeArg } from "./place.js";
 import { defaultRegistryEnv, scanFolder, scanLocal, type Found } from "./registry.js";
 import { ID, Refusal, counted, issueLine, issueLines, issuesBlock, q, refusalText, reply, word } from "./reply.js";
@@ -155,8 +157,7 @@ export function nextAfter(issues: readonly IssueLike[], forExport: boolean, know
   const by = known ? ' (pass its id as "graph"; the server remembers it)' : "";
   // A graph with a person's step is a plan, and whose step it is is the person's to say: where that is all that
   // stands in the way of a package, the next thing is the plan, not a repair.
-  const errors = issues.filter((issue) => issue.severity === "error");
-  if (errors.some((issue) => issue.code === "E_PERSON_STEP_NOT_COMPILED") && errors.every((issue) => A_PLAN_LACKS.includes(issue.code))) {
+  if (onlyAPlansLacks(issues)) {
     return `this graph has a step that is a person's, so it is a plan and no package is made of it: grooph_export_plan${by} writes it for people to follow, and grooph_share gives its link. Make a step an agent's only when the person says a harness is to run it`;
   }
   if (hasErrors(issues)) return `fix what is listed with grooph_apply${by} (each "fix" line names the usual operation; ${AGENTS_PAGE} has them all), then grooph_validate`;
@@ -797,7 +798,11 @@ export const AUTHOR_TOOLS: Tool[] = [
           : envelope.kind === "proposals"
             ? [
                 `proposal set ${q(envelope.doc.id)} ${q(envelope.doc.title)}: ${plural(envelope.doc.candidates.length, "candidate")}`,
-                ...envelope.doc.candidates.map((c) => `  candidate ${q(c.id)} ${q(c.label)}: ${q(shapeLine(c.shape!))}`),
+                ...envelope.doc.candidates.map((c) => {
+                  // Which candidates are plans is said here, as the command's table says it.
+                  const plan = asAPlan(c.graph as Graph, ownAndPackage(c.graph as Graph).forPackage).needs;
+                  return `  candidate ${q(c.id)} ${q(c.label)}: ${q(shapeLine(c.shape!))}${plan.length > 0 ? `, ${planLine(c.graph as Graph, plan)}` : ""}`;
+                }),
               ]
             : envelope.kind === "map"
               ? [`map ${q(envelope.doc.id)} ${q(envelope.doc.name)}: ${q(mapShapeLine(mapShape(envelope.doc)))}`]
@@ -806,12 +811,12 @@ export const AUTHOR_TOOLS: Tool[] = [
       const lines = [
         ...head,
         ...warnings.map(issueLine),
-        ...(needs.length > 0 ? [`note: ${planLine(needs)}. grooph_export_plan writes the plan as it is.`] : []),
+        ...(needs.length > 0 && envelope.kind === "graph" ? [`note: ${planLine(envelope.doc, needs)}. grooph_export_plan writes the plan as it is.`] : []),
         `link (${link.length.toLocaleString("en")} characters): ${q(link)}`,
         ...(long ? [`warning: messengers often cut links over ${SHARE_LINK_WARN.toLocaleString("en")} characters. Shorten the briefs or drop a candidate; or give the person the document itself to paste into the app (Paste a document, on its first screen).`] : []),
         "embed: two lines of HTML that show the same picture in any web page are the next block of this reply, as they are.",
       ];
-      const next = "give the person the link, whole and on its own line, without the quotes around it; say in a sentence what the graph does and what its brakes are (grooph_explain). In the app they can save it, edit it and export the package.";
+      const next = `give the person the link, whole and on its own line, without the quotes around it; say in a sentence what the graph does and what its brakes are (grooph_explain). In the app they can save it${needs.length > 0 ? " and edit it; it is a plan, and grooph_export_plan writes it for them to follow." : ", edit it and export the package."}`;
       return {
         text: reply(lines, next),
         data: { ok: true, kind: envelope.kind, link, length: link.length, long, embed: `${embed.frame}\n${embed.script}`, warnings },
@@ -983,6 +988,12 @@ export const AUTHOR_TOOLS: Tool[] = [
         throw new Refusal(kept, `give the graph an id of its own with grooph_apply ({"op":"renameId","from":"${doc.id}","to":"<kebab-case>"}), then grooph_export with that id`);
       }
       const target = str(args["target"]) ?? doc.target?.harness;
+      // A graph with a person's step is a plan whatever harness it names or lacks: said as that, with every finding a
+      // package would meet, and never as "name a harness and export again", which would be refused again.
+      if ((target === undefined || !KNOWN_TARGETS.includes(target)) && isPlan(doc) && doc.nodes.some((node) => isPersonStep(node))) {
+        const issues = validate(doc, { forExport: true }).filter((issue) => issue.severity === "error");
+        throw new Refusal([`${label} cannot be exported:`, counted(issues), ...issueLines(issues)], `${nextAfter(issues, true)}. ${PLAN_NEXT}`, { issues });
+      }
       if (target === undefined) {
         const issue: IssueLike = { code: "E_NO_TARGET", severity: "error", message: "the graph names no target harness, and none was passed", at: [] };
         throw new Refusal([`${label} cannot be exported:`, issueLine(issue), ...fixLines([issue])], `grooph_apply with {"op":"setTarget","harness":"${KNOWN_TARGETS[0]}"}, then grooph_export again. ${PLAN_NEXT}`);

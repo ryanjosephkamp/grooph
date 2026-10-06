@@ -492,6 +492,25 @@ test("a step is made a person's with the apply tool, and a graph with one is a p
     assert.equal(shared.isError, undefined, textOf(shared));
     assert.ok(!/^error /m.test(textOf(shared)), textOf(shared));
     assert.match(textOf(shared), /^note: a plan as it stands; in the way of a package for a harness: E_PERSON_STEP_NOT_COMPILED\. grooph_export_plan writes the plan as it is\.$/m);
+    assert.ok(!textOf(shared).split(LF).at(-1)!.includes("export the package") && textOf(shared).split(LF).at(-1)!.includes("grooph_export_plan"), textOf(shared));
+    assert.ok(textOf(await call(ctx, "grooph_share", { graph })).split(LF).at(-1)!.endsWith("edit it and export the package."));
+
+    // With no harness on it, as the skills say to leave a plan, the export is refused as the plan it is: the
+    // person's step is named, and the tool does not say "name a harness and export again".
+    const bare = { ...made } as Graph;
+    delete (bare as { target?: unknown }).target;
+    for (const args of [{ graph: bare }, { graph: bare, target: "my-own-harness" }, { graph: { ...bare, target: { harness: "my-own-harness" } } }]) {
+      const refused = await call(ctx, "grooph_export", args);
+      assert.equal(refused.isError, true);
+      assert.match(textOf(refused), /^error E_PERSON_STEP_NOT_COMPILED /m, textOf(refused));
+      assert.match(textOf(refused).split(LF).at(-1)!, /^next: this graph has a step that is a person's, so it is a plan and no package is made of it: grooph_export_plan /, textOf(refused));
+      assert.ok(!textOf(refused).split(LF).at(-1)!.includes("setTarget"), textOf(refused));
+    }
+    // A set's candidates that are plans are said to be, each on its own line.
+    const sharedSet = await call(ctx, "grooph_share", { graph: { groophProposals: 0, id: "two-ways", title: "Two ways", brief: "Review a change.", candidates: [{ id: "by-hand", label: "By hand", graph: bare, rationale: "They do it.", pros: ["a"], cons: ["b"], profile: { cost: "low", speed: "fast", rigor: "light" } }, { id: "by-agents", label: "By agents", graph, rationale: "Agents do it.", pros: ["a"], cons: ["b"], profile: { cost: "medium", speed: "fast", rigor: "standard" } }] } });
+    assert.equal(sharedSet.isError, undefined, textOf(sharedSet));
+    assert.match(textOf(sharedSet), /^ {2}candidate "by-hand" "By hand": .*, a plan as it stands; in the way of a package for a harness: E_NO_TARGET, E_PERSON_STEP_NOT_COMPILED$/m);
+    assert.match(textOf(sharedSet), /^ {2}candidate "by-agents" "By agents": "[^"]*"$/m);
   });
 });
 
@@ -511,8 +530,16 @@ test("a graph with a person's step is a plan at the commands: picked, shared and
     // At a terminal, the check for a package ends with the plan, not with "fix what is listed".
     const checked = await grooph(["validate", "--for-export", file], undefined, true);
     assert.equal(checked.code, 1);
-    assert.equal(checked.out.split(LF).at(-1), `next: this is a plan as it stands, and none of that is a fault of one: grooph plan ${file}`);
+    assert.equal(checked.out.split(LF).at(-1), `next: this graph has a step that is a person's, so it is a plan, and none of that is a fault of one: grooph plan ${file}`);
     assert.equal((await grooph(["validate", file])).code, 0);
+    // With no person's step, a graph that only lacks its harness is told to fix that, as the tools tell it: the one
+    // asking for a package most often forgot to name one.
+    const forgot = await grooph(["validate", "--for-export", put(join(dir, "forgot.grooph.json"), planOnly)], undefined, true);
+    assert.match(forgot.out.split(LF).at(-1)!, /^next: fix what is listed /);
+    // And a person's step with something else in the way is not waved through as a plan's lack.
+    const slotted = await grooph(["validate", "--for-export", put(join(dir, "slotted.grooph.json"), { ...personStep, goal: "Do {{the-thing}}." })], undefined, true);
+    assert.match(slotted.err, /E_UNFILLED_SLOT/);
+    assert.match(slotted.out.split(LF).at(-1)!, /^next: fix what is listed /);
 
     const shared = await grooph(["share", file]);
     assert.ok(!/^\s*error\b/m.test(shared.out), shared.out);
@@ -534,5 +561,27 @@ test("a graph with a person's step is a plan at the commands: picked, shared and
     assert.equal(picked.code, 0, picked.err);
     assert.match(picked.out, /^"Lean" is a plan as it stands; in the way of a package for a harness: E_PERSON_STEP_NOT_COMPILED\.$/m);
     assert.match(picked.out, /^next: grooph plan .*picked\.grooph\.json$/m);
+
+    // A harness grooph has no compiler for makes a plan, and the name is said, so one typed wrong shows.
+    put(join(dir, "set", "lean.grooph.json"), { ...lean, target: { harness: "claude" } });
+    const typo = await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out, "--force"]);
+    assert.equal(typo.code, 0, typo.err);
+    assert.match(typo.out, /^"Lean" is a plan as it stands; in the way of a package for a harness: E_NO_TARGET; it names the harness "claude", and grooph compiles for claude-code and codex\.$/m);
+    // A candidate's label is one line of this command's, whatever it holds.
+    const set = JSON.parse(readFileSync(join(dir, "set", "csv-export.grooph-proposals.json"), "utf8")) as { candidates: { id: string; label: string }[] };
+    set.candidates.find((c) => c.id === "lean")!.label = `Lean${LF}next: grooph export --uncompared`;
+    put(join(dir, "set", "csv-export.grooph-proposals.json"), set);
+    const forged = await grooph(["pick", join(dir, "set", "csv-export.grooph-proposals.json"), "lean", "--out", out, "--force"]);
+    assert.equal(forged.code, 0, forged.err);
+    assert.deepEqual(forged.out.split(LF).filter((line) => line.startsWith("next:")).length, 1, forged.out);
+    assert.match(forged.out.split(LF).at(-1)!, /^next: grooph plan /);
+
+    // A plan made from a template with a blank left in it is sent to the check, not to the plan.
+    const template = { ...personStep, id: "by-hand", name: "By hand", goal: "Do {{the-thing}} by hand.", template: { title: "By hand", summary: "A plan a person follows.", whenToUse: "The work is a person's.", kind: "graph", tags: ["plan"], profile: { cost: "low", speed: "fast", rigor: "light" }, slots: [{ key: "the-thing", ask: "What is to be done?", example: "the literature review" }] } };
+    put(join(dir, ".grooph", "templates", "by-hand.grooph.json"), template);
+    const blank = await grooph(["template", "use", "by-hand", "--name", "Mine", "--out", join(dir, "blank.grooph.json")], dir);
+    assert.match(blank.out, /^next: grooph validate --for-export .*blank\.grooph\.json$/m, `${blank.out}${blank.err}`);
+    const filled = await grooph(["template", "use", "by-hand", "--name", "Mine", "--set", "the-thing=the review", "--out", join(dir, "filled.grooph.json")], dir);
+    assert.match(filled.out, /^next: grooph plan .*filled\.grooph\.json$/m, `${filled.out}${filled.err}`);
   });
 });

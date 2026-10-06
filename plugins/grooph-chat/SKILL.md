@@ -44,13 +44,14 @@ Done when the person holds the link, the picture and the file, knows in a senten
 
 ## When they want a plan to follow themselves
 
-A person may ask for a plan or a workflow they will carry out themselves, or with AI helping at some steps. It is the same document, and nothing compiles it.
+A person may ask for a plan or a workflow they will carry out themselves, or with AI helping at some steps. It is the same document, checked and drawn the same way, and handed over as a plan to read.
 
-- A step a person does is an agent node with `"by": "person"`, set in an operation's `set` (`reference/agents.md`, "A person's step"): a role, a brief written to that person, inputs and outputs, and no model, effort, skills or capabilities. Leave the harness off.
+- A step a person does is an agent node with `"by": "person"`, set in an operation's `set` (`reference/agents.md`, "A person's step"): a role, a brief written to that person, inputs and outputs, and no model, effort, skills or capabilities. Leave the harness off. Where no template fits the work, start from `new --name "<a few words>" --out <id>.grooph.json` and build it with `apply`.
 - Ask how much AI help they want if they have not said. Mark each step as theirs or an agent's by that, and say why: theirs when it turns on their judgment, their access or their name on the result, or when they want to do it; an agent's where the work is gathering, drafting, or checking against something written down. When you cannot tell, the step is theirs.
-- Check it with `validate <file>`, without `--for-export`: a missing harness and a person's step are what a package asks, and no fault of a plan.
-- Hand it over as in step 7, and add `plan <file> --into <id>-plan`, which writes `PLAN.md` (who does what, then every step in full), the picture and the document. Give them `PLAN.md`.
-- Say plainly that it is a plan: grooph draws and checks it and does not yet compile a graph with a person's step for a harness, so nothing runs it. The steps marked as an agent's are for them to hand to an assistant themselves.
+- To offer a choice, make two or three that differ in how much the assistant does (by hand; the assistant drafts and checks and they decide; mostly an agent's, with them at the gates), and share them as a set.
+- Check it with `validate --for-export <file>` and read what it lists as a plan's: a missing harness (`E_NO_TARGET`) and a person's step (`E_PERSON_STEP_NOT_COMPILED`) are what a package asks, and no fault of a plan. Fix everything else, a `{{slot}}` left unfilled above all, and write the goal.
+- Hand it over as in step 7, and add `plan <file> --into <id>-plan`, which writes `PLAN.md` (who does what, then every step in full), the picture and the document. Give them `PLAN.md`. The copy of the graph in that folder is the one to edit from then on: after a change, `plan <id>-plan/<id>.grooph.json --into <id>-plan`.
+- Say plainly that it is a plan: grooph draws and checks it and does not yet compile a graph with a person's step for a harness, so nothing runs it. The steps marked as an agent's are for them to hand to an assistant themselves, and what the plan says of such a step is a note, enforced by nothing.
 
 To offer a choice, make two or three graphs that differ in shape (a lean one, a rigorous one), write a proposal set, and `share` the set: the link opens them side by side. `share --help` prints the set's format.
 

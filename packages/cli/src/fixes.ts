@@ -26,7 +26,7 @@ export const FIXES: Record<ImplementedCode, string> = {
   E_SECOND_LEAD:
     'Two agent nodes have the role "lead", and a graph is one session with one lead. Keep one and say what the other does: {"op":"updateNode","id":"<the other>","set":{"role":"builder"}} (or critic, or a role of its own).',
   E_PERSON_LEAD:
-    'The lead is the harness\'s own session, and no person can be it. If the mark is a mistake, take it off: {"op":"updateNode","id":"<the lead>","set":{"by":null}}. If a person does this step, it is not the lead: give it the role that says what they do, {"op":"updateNode","id":"<node>","set":{"role":"planner"}} (or builder, critic, a role of its own).',
+    'The lead is the harness\'s own session, and no person can be it. Ask the person which they mean. If the mark is a mistake, take it off: {"op":"updateNode","id":"<the lead>","set":{"by":null}}. If a person does this step, it is not the lead: give it the role that says what they do, {"op":"updateNode","id":"<node>","set":{"role":"planner"}} (or builder, critic, a role of its own).',
   E_CYCLE_NO_STOP:
     'A cycle no loop with a stop covers. Wrap it: {"op":"addLoop","members":[…the cycle\'s nodes…]}, toggleLoopBack for its returning edge, then {"op":"addStop","loop":"<loop>","kind":"max-iterations","set":{"n":4}} and a budget stop.',
   E_JUDGMENT_LOOP_NO_BAR:

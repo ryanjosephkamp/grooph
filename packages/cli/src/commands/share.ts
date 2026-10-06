@@ -187,7 +187,7 @@ function printGraph(io: Output, graph: Graph): void {
   io.out(`${graph.id} · ${graph.name}`);
   io.out(`  ${shapeLine(estimateShape(graph))}`);
   for (const w of [...own, ...rest]) io.out(`  ${formatIssue(w)}`);
-  if (needs.length > 0) io.out(`  ${planLine(needs)} (grooph plan exports it as it is)`);
+  if (needs.length > 0) io.out(`  ${planLine(graph, needs)} (grooph plan exports it as it is)`);
 }
 
 function printSet(io: Output, set: ProposalSet): void {
@@ -200,8 +200,8 @@ function printSet(io: Output, set: ProposalSet): void {
     const warnings = [...own, ...rest];
     const notes = [
       set.recommendation?.candidate === c.id ? "recommended" : "",
-      needs.length > 0 ? planLine(needs) : "",
-      warnings.length > 0 ? `${plural(warnings.length, "warning")}: ${[...new Set(warnings.map((w) => w.code))].join(", ")}` : "",
+      needs.length > 0 ? planLine(c.graph as Graph, needs) : "",
+      warnings.length > 0 ? `${plural(warnings.length, warnings.some((w) => w.severity === "error") ? "issue" : "warning")}: ${[...new Set(warnings.map((w) => w.code))].join(", ")}` : "",
     ].filter(Boolean);
     io.out(`  ${c.label.padEnd(label)}  ${c.id.padEnd(id)}  ${shapeLine(c.shape!)}${notes.length > 0 ? `  (${notes.join("; ")})` : ""}`);
   }
