@@ -269,11 +269,12 @@ export function walk(edges: MEdge[]): { into(to: Id, over?: boolean): (MEdge & {
       // second in one round: the node is asked once more in the same round, and no further.
       if (now.open ? !was || was.open : (now.outcome ?? now.verdict) !== null) said.set(node, { ...now, k, routes: now.outcome === "invalid-evidence" && was?.outcome === "invalid-evidence" && !was.open && was.round === now.round ? "fail" : now.outcome, not: new Set() });
       reached.set(node, k);
-      [last, open, lifted] = [node, now.open ? node : null, null];
+      // A word at a node between a person's stop and the dispatch that follows their answer does not spend the lift.
+      [last, open, lifted] = [node, now.open ? node : null, now.open || (now.outcome ?? now.verdict) !== null ? null : lifted];
     },
     stopped(loop, person) {
       for (const was of said.values()) was.not.add(loop);
-      lifted = person ? loop : null;
+      if (person || lifted === loop) lifted = person ? loop : null;
     },
   };
 }

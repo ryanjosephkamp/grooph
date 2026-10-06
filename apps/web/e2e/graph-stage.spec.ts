@@ -902,7 +902,8 @@ test("a template's page opens on a phone with its details sheet up: choosing a k
       expect(frame, id).toBeLessThanOrEqual(Math.max(180, Math.round(room * 0.8)) + 1);
       if ((await overlaps(page)).length) {
         touching.push(id);
-        // What the frame had, for the log: which templates touch at the margin is the browser's text to say.
+        // What the frame had, for the log: which templates touch at the margin is the browser's text to say (a
+        // card 52 px tall has its name on two lines).
         console.log(`touching at ${width}: ${id}, frame ${Math.round(frame)} of ${room}, cards ${(await cards(page).evaluateAll((els) => els.map((el) => `${(el as HTMLElement).offsetWidth}x${(el as HTMLElement).offsetHeight}`))).join(" ")}`);
       }
       if (await tight.isVisible()) told.push(id);
@@ -910,7 +911,10 @@ test("a template's page opens on a phone with its details sheet up: choosing a k
     // Where cards touch under the sheet, the bar says so and what to do; and it says so nowhere else.
     expect(told, `at ${width}`).toEqual(touching);
     // Said by name: half a phone's screen is not room for these. Closing the sheet, or the fold, clears every one.
-    // At the smaller size two more are at the margin, and touch in one browser's text and not in another's.
+    // At the smaller size two more are at the margin, and touch in one browser's text and not in another's: both
+    // have a node named "Merge approval", the widest name that fits one line of a card. Chromium on Linux puts
+    // it on two (CI's log: that card 52 px tall among 38s, in the same 296 px of room), the card is a line
+    // taller, and the 12 px these two have under the cap are not enough for it.
     const [always, may] = width === 390 ? [TIGHT_390, []] : [TIGHT_360, MARGIN_360];
     expect(touching.filter((id) => !may.includes(id)), `at ${width}`).toEqual(always);
   }
