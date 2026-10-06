@@ -96,8 +96,10 @@ test("grooph plan writes the plan's three files for a graph a harness could run,
     assert.equal(ready.code, 0, ready.err);
     assert.equal(ready.err, "");
     assert.deepEqual(ready.out.split(LF).slice(0, 4), [`wrote 3 files into ${join(dir, "review-loop-plan")}`, ...FILES.map((name) => `  ${name}`)]);
-    assert.ok(ready.out.split(LF).includes("A coding harness could run this as it is: nothing in it is in error. grooph export writes its package for claude-code."), ready.out);
+    // PLAN.md's own opening, in its order: the plan first, then the harness.
+    assert.deepEqual(ready.out.split(LF).slice(4, 6), ["As a plan for people to read and follow, this is whole.", "A coding harness could run it as it is: nothing in it is in error. grooph export writes its package for claude-code."], ready.out);
     const bundle = planBundle(graph);
+    assert.ok(bundle.files["PLAN.md"]!.includes("As a plan for people to read and follow, this is whole. A coding harness could run it as it is: nothing in it is in error."));
     for (const name of FILES) assert.equal(readFileSync(join(dir, "review-loop-plan", name), "utf8"), bundle.files[name], name);
     assert.deepEqual(readdirSync(join(dir, "review-loop-plan")).sort(), [...FILES].sort());
     // Not a package: nothing a harness reads was written anywhere.
@@ -109,25 +111,25 @@ test("grooph plan writes the plan's three files for a graph a harness could run,
     assert.equal(plan.code, 0, plan.err);
     assert.equal(plan.err, "");
     const said = plan.out.split(LF);
-    assert.ok(said.includes("A coding harness cannot run this as it is. To fix first (2), as PLAN.md lists them:"), plan.out);
+    assert.deepEqual(said.slice(4, 6), ["As a plan for people to read and follow, this is whole.", "To run it in a coding harness, 2 things are to be fixed first, as PLAN.md lists them:"], plan.out);
     assert.ok(said.some((line) => line.startsWith("  E_NO_TARGET  ")) && said.some((line) => line.startsWith("  E_NO_GOAL  ")), plan.out);
-    assert.equal(said.at(-1), "As a plan for people to read and follow it is whole.");
     const written = readFileSync(join(dir, "docs", "the-plan", "PLAN.md"), "utf8");
     assert.ok(written.includes("## To fix before a harness can run this") && written.includes("`E_NO_TARGET`"));
+    assert.ok(written.includes("As a plan for people to read and follow, this is whole. **To run it in a coding harness, 2 things are to be fixed first**"), written.slice(0, 600));
     assert.equal(readFileSync(join(dir, "docs", "the-plan", "review-loop.grooph.json"), "utf8"), canonicalize(planOnly));
 
     const own = await grooph(["plan", put(join(dir, "b.grooph.json"), broken), "--into", join(dir, "broken-plan")]);
     assert.equal(own.code, 0, own.err);
     assert.ok(own.out.split(LF).some((line) => line.startsWith("  E_DANGLING_REF  ")), own.out);
-    assert.match(own.out.split(LF).at(-1)!, /^1 of them is a rule a graph itself is held to, not only what a package asks for: until it is fixed, parts of the plan may be missing or drawn wrong\.$/);
+    assert.deepEqual(own.out.split(LF).slice(4, 6), ["As a plan this is not whole yet: it breaks a rule a graph itself is held to, and until that is fixed, parts of the plan may be missing or drawn wrong.", "To run it in a coding harness, 3 things are to be fixed first (that one among them), as PLAN.md lists them:"], own.out);
     assert.equal(existsSync(join(dir, "broken-plan", "PLAN.md")), true);
 
     // A graph with no steps yet is not called whole: the command says what PLAN.md says.
     assert.equal((await grooph(["new", "--name", "Nothing yet", "--out", join(dir, "empty.grooph.json")])).code, 0);
     const empty = await grooph(["plan", join(dir, "empty.grooph.json"), "--into", join(dir, "empty-plan")]);
     assert.equal(empty.code, 0, empty.err);
-    assert.equal(empty.out.split(LF).at(-1), "It has no steps yet.");
-    assert.ok(readFileSync(join(dir, "empty-plan", "PLAN.md"), "utf8").includes("It has no steps yet."));
+    assert.equal(empty.out.split(LF)[4], "This plan has no steps yet.");
+    assert.ok(readFileSync(join(dir, "empty-plan", "PLAN.md"), "utf8").includes("This plan has no steps yet."));
   });
 });
 
@@ -342,7 +344,7 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     const said = textOf(back).split(LF);
     assert.match(said[0]!, /^plan of "review-loop": 3 files, in the last block of this reply\. /);
     assert.deepEqual(said.slice(1, 4), FILES.map((name) => `  file ${JSON.stringify(name)}`));
-    assert.equal(said[4], "to fix: 2 before a coding harness can run this, and 1 warning a package would be written with. As a plan for people to read and follow it is whole.");
+    assert.deepEqual(said.slice(4, 6), ["note: As a plan for people to read and follow, this is whole.", "to fix: To run it in a coding harness, 2 things are to be fixed first, each listed below. A package would be written with 1 warning."]);
     assert.ok(said.some((line) => line.startsWith("error E_NO_TARGET ")), textOf(back));
     assert.match(said.at(-1)!, /^next: show the person PLAN\.md and the picture; the plan is theirs to follow as it is\. /);
     assert.equal(back.content[1]!.text, bundle.files["PLAN.md"]!.trimEnd());
@@ -354,9 +356,9 @@ test("the tool grooph_export_plan returns the plan's files for any graph that re
     // One that breaks a rule of its own still gets its plan; one a harness could run says so.
     const own = await call(ctx, "grooph_export_plan", { graph: broken });
     assert.equal(own.isError, undefined, textOf(own));
-    assert.match(textOf(own), /^to fix: 3 before a coding harness can run this.* 1 of them is a rule a graph itself is held to, not only what a package asks for: until it is fixed, parts of the plan may be missing or drawn wrong\.$/m);
+    assert.match(textOf(own), /^note: As a plan this is not whole yet: it breaks a rule a graph itself is held to, and until that is fixed, parts of the plan may be missing or drawn wrong\.\nto fix: To run it in a coding harness, 3 things are to be fixed first \(that one among them\), each listed below\./m);
     const ready = await call(ctx, "grooph_export_plan", { graph });
-    assert.match(textOf(ready), /^to fix: nothing\. A coding harness could run this as it is; a package would be written with 1 warning\.$/m);
+    assert.match(textOf(ready), /^note: As a plan for people to read and follow, this is whole\.\nto fix: nothing\. A coding harness could run it as it is: nothing in it is in error\. grooph export writes its package for claude-code\. A package would be written with 1 warning\.$/m);
     assert.equal(ready.structuredContent!["runnable"], true);
 
     // Written into a folder of the project, whole; a person's file there stops it until "replace".
@@ -652,7 +654,7 @@ test("each plan template is found by name, makes a graph that is a plan with not
       assert.equal(existsSync(join(dir, "project")), false, id);
       const planned = await grooph(["plan", file, "--into", join(dir, "out", id)]);
       assert.equal(planned.code, 0, `${id}: ${planned.err}`);
-      assert.equal(planned.out.split(LF).at(-1), "As a plan for people to read and follow it is whole.", `${id}: ${planned.out}`);
+      assert.equal(planned.out.split(LF)[4], "As a plan for people to read and follow, this is whole.", `${id}: ${planned.out}`);
       assert.match(readFileSync(join(dir, "out", id, "PLAN.md"), "utf8"), /\| a person \| /, id);
     }
     // With a slot left unfilled the last line is still the plan, after the slot.

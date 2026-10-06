@@ -197,16 +197,17 @@ function ThePackage({ doc, attempt, compiler, own, needs, open: show, exported }
   }
 
   if (!attempt.ok && attempt.reason === "id") {
+    // The graph's id is a folder grooph keeps for something else, so no package can live under it. The plan and the
+    // copies above and below are offered all the same: this stops a package and nothing else.
     return (
-      <div className="inspector">
+      <div className="keep" role="group" aria-label="A package for a harness">
+        {title}
         <div className="refusal" role="alert">
           <p>
             <strong>Cannot export for {attempt.target}.</strong>
           </p>
           <p className="field-hint">{attempt.said} Give the graph an id of its own, in the graph's panel, and export again.</p>
         </div>
-        <div className="export-actions">{downloadGraph}</div>
-        <Keep doc={doc} />
       </div>
     );
   }

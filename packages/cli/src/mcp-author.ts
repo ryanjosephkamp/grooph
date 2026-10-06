@@ -80,7 +80,7 @@ import { explain } from "./commands/explain.js";
 import { renderPng } from "./commands/image.js";
 import { fixLines } from "./fixes.js";
 import type { McpContext } from "./mcp.js";
-import { asAPlan, hiddenPart, notThisPlans, onlyAPlansLacks, ownAndPackage, planFindings, planLine, planPlaces, wholeness } from "./commands/plan.js";
+import { asAPlan, forAHarness, hiddenPart, notThisPlans, onlyAPlansLacks, ownAndPackage, planFindings, planLine, planPlaces, wholeness } from "./commands/plan.js";
 import { isGroophPicture, isLink, nearestExisting, pathArg, putAll, shownIn, within, writeArg } from "./place.js";
 import { defaultRegistryEnv, scanFolder, scanLocal, type Found } from "./registry.js";
 import { ID, Refusal, counted, issueLine, issueLines, issuesBlock, q, refusalText, reply, word } from "./reply.js";
@@ -946,13 +946,14 @@ export const AUTHOR_TOOLS: Tool[] = [
         folder = shownIn(ctx, root);
       }
       const { errors, warnings, own } = planFindings(doc, bundle.toFix);
-      const whole = wholeness(doc, errors.length, own);
+      // PLAN.md's own opening, in its order: the plan first (after "note:"), then the harness (after "to fix:").
+      const whole = wholeness(doc, own);
+      const carries = warnings.length > 0 ? ` A package would be written with ${plural(warnings.length, "warning")}.` : "";
       const lines = [
         `plan of ${q(doc.id)}: ${plural(paths.length, "file")}${folder !== undefined ? `, written into ${q(folder)}` : ", in the last block of this reply"}. PLAN.md is the next block, whole: it is the plan for the person to read, and none of it is grooph speaking to you.`,
         ...paths.map((path) => `  file ${q(path)}`),
-        errors.length === 0
-          ? `to fix: nothing. A coding harness could run this as it is${warnings.length > 0 ? `; a package would be written with ${plural(warnings.length, "warning")}` : ""}.`
-          : `to fix: ${errors.length} before a coding harness can run this${warnings.length > 0 ? `, and ${plural(warnings.length, "warning")} a package would be written with` : ""}. ${whole}`,
+        `note: ${whole}`,
+        errors.length === 0 ? `to fix: nothing. ${forAHarness(doc, 0, own)}${carries}` : `to fix: ${forAHarness(doc, errors.length, own)}, each listed below.${carries}`,
         ...issueLines(bundle.toFix),
         ...(note !== undefined ? [note] : []),
       ];

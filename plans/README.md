@@ -83,7 +83,7 @@ wrote 3 files into <your folder>/spring-newsletter-plan
   spring-newsletter.grooph.json
 ```
 
-`PLAN.md` says who does what and then every step in full, the picture is beside it, and the third file is the plan's own document: the one to edit from then on. The command goes on to print the same two lines about a harness, and ends "As a plan for people to read and follow it is whole."
+`PLAN.md` says who does what and then every step in full, the picture is beside it, and the third file is the plan's own document: the one to edit from then on. The command then says "As a plan for people to read and follow, this is whole.", and after that what a coding harness would need: the same two lines as above.
 
 Or draw only the picture:
 

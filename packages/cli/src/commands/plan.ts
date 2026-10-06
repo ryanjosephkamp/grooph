@@ -181,10 +181,20 @@ export const onlyAPlansLacks = (issues: readonly { code: string; severity: strin
   return errors.some((issue) => issue.code === "E_PERSON_STEP_NOT_COMPILED") && errors.every((issue) => A_PLAN_LACKS.includes(issue.code));
 };
 
-/** Whether a plan is whole, in the plan's own words: what core writes in PLAN.md's second paragraph. */
-export function wholeness(doc: Graph, errors: number, own: number): string {
-  if (own === 0) return planSteps(doc).length > 0 ? "As a plan for people to read and follow it is whole." : "It has no steps yet.";
-  return `${own === errors ? (own === 1 ? "It is a rule" : "They are rules") : `${own} of them ${own === 1 ? "is a rule" : "are rules"}`} a graph itself is held to, not only what a package asks for: until ${own === 1 ? "it is" : "they are"} fixed, parts of the plan may be missing or drawn wrong.`;
+/**
+ * The two sentences PLAN.md opens with, in its order and its words (core's `planMarkdown`): first whether the plan
+ * is whole as a plan, then what a coding harness would need. A person who wants only the plan reads the first and
+ * may stop there; no finding is left out of the second.
+ */
+export function wholeness(doc: Graph, own: number): string {
+  if (own > 0) return `As a plan this is not whole yet: it breaks ${own === 1 ? "a rule a graph itself is held to" : `the rules a graph itself is held to in ${own} places`}, and until ${own === 1 ? "that is" : "those are"} fixed, parts of the plan may be missing or drawn wrong.`;
+  return planSteps(doc).length === 0 ? "This plan has no steps yet." : "As a plan for people to read and follow, this is whole.";
+}
+
+/** The second sentence: a harness could run it, or how many things are to be fixed first. */
+export function forAHarness(doc: Graph, errors: number, own: number): string {
+  if (errors === 0) return `A coding harness could run it as it is: nothing in it is in error.${doc.target?.harness ? ` grooph export writes its package for ${doc.target.harness}.` : ""}`;
+  return `To run it in a coding harness, ${errors === 1 ? "1 thing is" : `${errors} things are`} to be fixed first${own > 0 && own < errors ? ` (${own === 1 ? "that one" : `those ${own}`} among them)` : ""}`;
 }
 
 /** What stands between a plan and a harness, as counts: what stops a package, what it would carry, and what the graph itself breaks. */
@@ -254,16 +264,17 @@ export function planCommand(raw: Output, file: string, flags: PlanFlags): number
   for (const one of places) io.out(`  ${one.path}`);
   const { errors, warnings, own } = planFindings(doc, bundle.toFix);
   const line = (issue: Issue): string => `  ${issue.code}  ${issue.message}${issue.at.length > 0 ? `  [at: ${issue.at.join(", ")}]` : ""}`;
+  // PLAN.md's own opening, in its order: the plan first, then the harness. Every finding is printed.
+  io.out(wholeness(doc, own));
   if (errors.length === 0) {
-    io.out(`A coding harness could run this as it is: nothing in it is in error.${doc.target?.harness ? ` grooph export writes its package for ${doc.target.harness}.` : ""}`);
+    io.out(forAHarness(doc, 0, own));
   } else {
-    io.out(`A coding harness cannot run this as it is. To fix first (${errors.length}), as PLAN.md lists them:`);
+    io.out(`${forAHarness(doc, errors.length, own)}, as PLAN.md lists them:`);
     for (const issue of errors) io.out(line(issue));
   }
   if (warnings.length > 0) {
     io.out(`${plural(warnings.length, "warning")} a package would be written with:`);
     for (const issue of warnings) io.out(line(issue));
   }
-  if (errors.length > 0) io.out(wholeness(doc, errors.length, own));
   return 0;
 }
