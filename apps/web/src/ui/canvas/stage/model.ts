@@ -22,12 +22,16 @@ export type { Id };
 export type V = [number, number, number];
 export type MNode = { id: Id; name: string; kind: "agent" | "person" | "check" | "gate" | "stop"; word: string; line: string; tier: "frontier" | "strong" | "fast" | "unset" | null; loop: Id | null; at: [number, number] };
 export type MEdge = { id: Id; from: Id; to: Id; when: string; back: Id | null; on: string | { verdict: string } | undefined };
-export type MLoop = { id: Id; name: string; inside: Id | null; members: Id[]; own: Id[]; back: Id[]; stops: string[]; cap: number | null; budget: { measure: string; limit: number } | null; human: number | null; perRound: number };
+/** A stop that ends a run or asks a person whatever the work looks like (core's `isBrakeStop`), as the document has it. */
+export type MBrake = { kind: "max-iterations"; n: number } | { kind: "budget"; measure: string; limit: number } | { kind: "human"; every: number | null };
+export type MLoop = { id: Id; name: string; inside: Id | null; members: Id[]; own: Id[]; back: Id[]; stops: string[]; brakes: MBrake[]; cap: number | null; budget: { measure: string; limit: number } | null; dispatches: number | null; human: number | null; perRound: number };
 /** A group: the nodes it holds, its own and those of the groups in it, and the group it is in. */
 export type MGroup = { id: Id; name: string; from: string | null; nodes: Id[]; inside: Id | null };
 /** A dispatch of a run: its node's own loop and the round of that loop it was in, or neither for a node in no loop. */
 export type Dispatch = { node: Id; loop: Id | null; round: number | null; outcome: string | null; /** by the notes' stamps; none where a note has no stamp */ minutes: number | null };
 export type Model = {
+  /** drawn for a frame a phone's width: a view may stand things one behind the other where it would set them side by side */
+  narrow: boolean;
   id: Id;
   name: string;
   rows: Id[][];
@@ -36,7 +40,7 @@ export type Model = {
   loops: MLoop[];
   groups: MGroup[];
   pass: { edge: Id; loop: Id | null; says: string }[];
-  run?: { end: string; /** the node the run ended or halted at, where the notes show one */ at: Id | null; dispatches: Dispatch[]; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** the short line before a dispatch: the next note at the same node is the same visit */ open: boolean; /** a loop's note that names the stop that fired */ stop: string | null; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
+  run?: { end: string; /** the node the run ended or halted at, where the notes show one */ at: Id | null; dispatches: Dispatch[]; /** the highest round each loop was in at any time; `rounds` is the last */ most: Record<Id, number>; notes: { says: string; about: "graph" | "node" | "edge" | "loop"; id: Id | null; round: number | null; outcome: string | null; verdict: string | null; what: "proposal" | "amendment" | null; /** the short line before a dispatch: the next note at the same node is the same visit */ open: boolean; /** a loop's note that names the stop that fired */ stop: string | null; words: string; dispatch?: number }[]; rounds: Record<Id, number> };
 };
 /** One stop of the slider: what it says, what it lights, and where what is at it came from. */
 export type Step = { says: string; nodes?: Id[]; edge?: Id; loops?: Id[]; from?: Id; to?: Id; r0?: number; r1?: number; /** the other edges taken to reach this step's node, with the round each was taken from */ also?: { edge: Id; r0: number }[]; about?: boolean; dispatch?: number };
@@ -74,7 +78,7 @@ function groupsOf(doc: Graph): MGroup[] {
  *  screens and asking it for one more thing moves bytes onto them. A test holds the two together. */
 export const columnsAt = (width: number): number => (width < 640 ? 2 : 4);
 
-export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>, notes?: readonly RunNote[]): Model {
+export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>, notes?: readonly RunNote[], narrow = false): Model {
   const rows = layerNodes(doc);
   const rank = new Map(rows.flat().map((id, k) => [id, k]));
   const at = places;
@@ -87,6 +91,9 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
   const loops: MLoop[] = doc.loops.map((loop) => {
     const stop = <K extends Graph["loops"][number]["stops"][number]["kind"]>(kind: K) => loop.stops.find((s): s is Extract<Graph["loops"][number]["stops"][number], { kind: K }> => s.kind === kind);
     const budget = stop("budget");
+    const caps = loop.stops.flatMap((s) => (s.kind === "max-iterations" ? [s.n] : []));
+    // The compiler holds a lead to the least of a loop's budgets in dispatches.
+    const least = loop.stops.flatMap((s) => (s.kind === "budget" && s.measure === "dispatches" ? [s.limit] : []));
     return {
       id: loop.id,
       name: loop.name || loop.id,
@@ -96,8 +103,12 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       own: [],
       back: loop.back,
       stops: loop.stops.map(describeStop),
-      cap: stop("max-iterations")?.n ?? null,
+      // Every brake, in the document's order, which is the order they are looked at when a round ends.
+      brakes: loop.stops.flatMap((s): MBrake[] => (s.kind === "max-iterations" ? [{ kind: s.kind, n: s.n }] : s.kind === "budget" ? [{ kind: s.kind, measure: s.measure, limit: s.limit }] : s.kind === "human" ? [{ kind: s.kind, every: s.every ?? null }] : [])),
+      // The tightest cap, the first budget, and the least budget in dispatches.
+      cap: caps.length ? Math.min(...caps) : null,
       budget: budget ? { measure: budget.measure, limit: budget.limit } : null,
+      dispatches: least.length ? Math.min(...least) : null,
       // A person is asked every so many rounds (a `human` stop with `every`).
       human: stop("human")?.every ?? null,
       // What the compiler tells a lead a full round costs: each member that is a check, or an agent other than the
@@ -106,15 +117,18 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       perRound: loop.members.map((id) => doc.nodes.find((n) => n.id === id)).filter((n) => n?.kind === "check" || (n?.kind === "agent" && n.role !== "lead" && !isPersonStep(n))).length,
     };
   });
-  // The nodes that are a loop's own: its members that are in no loop inside it.
-  for (const loop of loops) loop.own = loop.members.filter((m) => !loops.some((inner) => inner.inside === loop.id && inner.members.includes(m)));
+  // A node's loop: the smallest that has it, and of two as small the first in the document. The nodes that are a
+  // loop's own are those whose loop it is: not those of a loop inside it, and not one it shares with another loop
+  // that is neither inside it nor round it, which is the other's if the other is smaller or comes first.
   const innermost = (id: Id): Id | null => loops.filter((l) => l.members.includes(id)).sort((a, b) => a.members.length - b.members.length)[0]?.id ?? null;
+  for (const loop of loops) loop.own = loop.members.filter((m) => innermost(m) === loop.id);
   const back = new Map(doc.loops.flatMap((loop) => loop.back.map((id) => [id, loop.id] as const)));
   // The edges of a first pass, in the order of the graph's rows, and then each loop's back edges: one turn of each.
   const edges = doc.edges.filter((e) => is(e.from) && is(e.to));
   const forward = edges.filter((e) => !back.has(e.id) && rank.has(e.from) && rank.has(e.to)).sort((a, b) => rank.get(a.from)! - rank.get(b.from)! || rank.get(a.to)! - rank.get(b.to)!);
   const turns = [...back].flatMap(([id, loop]) => edges.filter((e) => e.id === id && rank.has(e.from) && rank.has(e.to)).map((e) => ({ e, loop })));
   const model: Model = {
+    narrow,
     id: doc.id,
     name: doc.name || doc.id,
     rows,
@@ -152,26 +166,40 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     // A note's round is its loop's: a loop's own note names that loop's, and a note at a node its innermost loop's.
     // But a node in a loop inside another is in a round of each, the contract's one number does not say which, and
     // leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs) as well as the inner
-    // one's (the nested fixture). The run's own loop notes tell the two apart: a loop's note names the round just
-    // finished, so where an inner loop's note names a round and the note at one of its nodes just before it names
-    // another, the lead wrote some other loop's number at those nodes. In such a run the number at a node of an inner loop is not read, and
-    // each loop's round is worked out from the ways back the run took, as it is wherever a note names none
-    // (graph-ir, "Rounds" and "Nested loops"): a loop's way back is that loop's next round, and every loop inside
-    // it starts afresh at round 0; otherwise a loop is in the round it was last seen in.
+    // one's (the nested fixture). Two signs in the run's own notes tell the two apart, each as early as it can
+    // matter. An inner loop starts afresh when the loop it is inside comes round, so a note at one of its nodes
+    // right after that outer way back that names a round other than 0 is not naming the inner loop's. And a loop's
+    // own note names the round just finished, so one that names a higher round than its node's note just before it
+    // shows the node's number was not this loop's (a lower one shows nothing: the loop's note may have been written
+    // late). In a run with either sign the number at a node of an inner loop is not read, and each loop's round is
+    // worked out from the ways back the run took, as it is wherever a note names none (graph-ir, "Rounds" and
+    // "Nested loops"): a loop's way back is that loop's next round, and every loop inside it starts afresh at
+    // round 0; otherwise a loop is in the round it was last seen in.
     const inner = (id: Id | null): boolean => !!loops.find((l) => l.id === id)?.inside;
-    const said: Record<Id, number | undefined> = {};
-    let others = false;
-    for (const { focus, note } of replay.steps.slice(1)) {
-      if (!focus || note?.round === undefined) continue;
-      if (focus.kind === "node" && inner(innermost(focus.id))) said[innermost(focus.id)!] = note.round;
-      else if (focus.kind === "loop") others ||= (said[focus.id] ?? note.round) !== note.round, (said[focus.id] = undefined);
-    }
-    const seen: Record<Id, number> = {};
-    const ways = walk(model.edges);
     const inside = (inner: Id, outer: Id): boolean => {
       for (let up = loops.find((l) => l.id === inner)?.inside; up; up = loops.find((l) => l.id === up)?.inside) if (up === outer) return true;
       return false;
     };
+    const said: Record<Id, number | undefined> = {};
+    const first = walk(model.edges);
+    let others = false;
+    for (const { focus, note } of replay.steps.slice(1)) {
+      if (!focus || !note) continue;
+      if (focus.kind === "node" && is(focus.id)) {
+        const own = innermost(focus.id);
+        if (own && inner(own) && note.round !== undefined) {
+          others ||= note.round !== 0 && first.into(focus.id).some((e) => e.back && inside(own, e.back));
+          said[own] = note.round;
+        }
+        first.at(focus.id, { round: null, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
+      } else if (focus.kind === "loop") {
+        if (note.round !== undefined) others ||= note.round > (said[focus.id] ?? note.round), (said[focus.id] = undefined);
+        if (note.stop !== undefined) first.stopped(focus.id, note.stop === "human");
+      }
+    }
+    const seen: Record<Id, number> = {};
+    const most: Record<Id, number> = {};
+    const ways = walk(model.edges);
     const steps = replay.steps.slice(1).map((step) => {
       const note = step.note!;
       const at = step.focus ?? { kind: "graph" as const };
@@ -190,6 +218,7 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const round = loop ? (seen[loop] = named ?? seen[loop] ?? 0) : null;
       if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
       if (focus.kind === "loop" && note.stop !== undefined) ways.stopped(focus.id, note.stop === "human");
+      for (const id in seen) most[id] = Math.max(most[id] ?? 0, seen[id]!);
       const out: NonNullable<Model["run"]>["notes"][number] = {
         says: step.caption,
         about: focus.kind,
@@ -213,9 +242,15 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       }
       return out;
     });
-    model.run = { end: replay.end.line, at: replay.end.at && is(replay.end.at.id) ? replay.end.at.id : null, dispatches, notes: steps, rounds: Object.fromEntries(replay.end.loops.map((l) => [l.loop, l.round ?? -1])) };
+    model.run = { end: replay.end.line, at: replay.end.at && is(replay.end.at.id) ? replay.end.at.id : null, dispatches, most, notes: steps, rounds: Object.fromEntries(replay.end.loops.map((l) => [l.loop, l.round ?? -1])) };
   }
   return model;
+}
+
+/** Whether a loop is inside another, at any depth, as the document nests them: not two loops with the same members. */
+export function under(loops: MLoop[], inner: Id, outer: Id): boolean {
+  for (let at = loops.find((l) => l.id === inner)?.inside ?? null, n = 0; at && n <= loops.length; at = loops.find((l) => l.id === at)?.inside ?? null, n += 1) if (at === outer) return true;
+  return false;
 }
 
 /** What a node last reported. `open` is the short line before a dispatch (`"outcome":"started"`): nothing has ended. */
