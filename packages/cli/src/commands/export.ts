@@ -112,6 +112,30 @@ export function headerModels(text: string): string[] | Unread {
   return "unread";
 }
 
+/**
+ * The models a Codex agent file names: its `model = "…"` lines in the plain form grooph writes, a basic string on
+ * the key's own line. TOML has other ways to say the key (a quoted key, a literal or a multi-line string), and
+ * grooph has no TOML parser: a line that names it any other way is `"unread"`, and an export over such a file stops,
+ * as for a model that would change. Every line of the file's start is read, a table's too, so a second `model` under
+ * a table is a difference and never a match.
+ */
+export function tomlModels(text: string): string[] | Unread {
+  const plain = (text.charCodeAt(0) === 0xfeff ? text.slice(1) : text).slice(0, HEADER_LINES * HEADER_LINE);
+  const models: string[] = [];
+  for (const line of plain.split(/\r\n|\r|\n/)) {
+    const at = line.trimStart();
+    if (!/^(?:model|"model"|'model')[ \t]*=/.test(at)) continue;
+    const said = at.length > HEADER_LINE ? null : /^model[ \t]*=[ \t]*("(?:[^"\\]|\\.)*")[ \t]*(?:#.*)?$/.exec(at);
+    if (said === null) return "unread";
+    try {
+      models.push(String(JSON.parse(said[1]!)));
+    } catch {
+      return "unread";
+    }
+  }
+  return models;
+}
+
 /** The start of a file, as far as a header can reach: a file of any size is not read whole to look at its first lines. */
 function headOf(file: string): string {
   const fd = openSync(file, "r");
@@ -127,7 +151,7 @@ export type ModelChange = { path: string; was: string[] | Unread; now: string[] 
 
 /** The models of a header as a line says them, each a JSON string: a value read from a file is someone else's text. */
 export const modelsSaid = (models: readonly string[] | Unread): string =>
-  models === "unread" ? "(not read: its header is not in the plain form grooph writes)" : models.length === 0 ? "(the session's)" : models.map((model) => JSON.stringify(model)).join(" and ");
+  models === "unread" ? "(not read: its header or its model line is not in the plain form grooph writes)" : models.length === 0 ? "(the session's)" : models.map((model) => JSON.stringify(model)).join(" and ");
 
 /**
  * The files already in place whose `model:` this export would change, or whose header cannot be read for one. A
@@ -138,8 +162,10 @@ export const modelsSaid = (models: readonly string[] | Unread): string =>
 export function modelChanges(places: readonly { path: string; full: string; contents: string }[]): ModelChange[] {
   return places.flatMap((place) => {
     if (!existsSync(place.full) || !statSync(place.full).isFile()) return [];
-    const was = headerModels(headOf(place.full));
-    const now = headerModels(place.contents);
+    // An agent file for Codex is TOML and has no header: its model is a key of the file.
+    const read = place.path.endsWith(".toml") ? tomlModels : headerModels;
+    const was = read(headOf(place.full));
+    const now = read(place.contents);
     const same = was !== "unread" && now !== "unread" && was.length === now.length && was.every((model, i) => model === now[i]);
     return same ? [] : [{ path: place.path, was, now }];
   });
@@ -246,16 +272,17 @@ export function brakesAtExport(
   // A graph of another id in this package's folder is another package's kept graph, moved here: no baseline.
   if (before.id !== doc.id) return none("unreadable");
   // The package there was written for another harness: its brief is that harness's, and nothing here vouches for it.
-  if (before.target?.harness !== undefined && before.target.harness !== target) return none("other-harness");
-  // A kept graph that is not what the brief was written from is no baseline for "nothing was loosened". What does read
-  // as loosened against it is still held: the comparison is made, and its answer is trusted only one way.
-  const stale = !writtenFrom(root, before, target, models);
+  const other = before.target?.harness !== undefined && before.target.harness !== target;
+  // A kept graph that is not what the brief was written from is no baseline for "nothing was loosened", and neither
+  // is one kept for another harness. What does read as loosened against it is still held: the comparison is made, and
+  // its answer is trusted only one way.
+  const stale = !other && !writtenFrom(root, before, target, models);
   const check = checkAdoption(before, doc, { allow });
   // A kept graph that lists the same loop twice gives the same change twice: it is one change, said once.
   const once = (changes: readonly AdoptionChange[]): AdoptionChange[] => changes.filter((change, i) => changes.findIndex((other) => other.name === change.name && other.loosens === change.loosens) === i);
   return {
-    state: stale ? "stale" : "compared",
-    same: !stale && canonicalize(before) === canonicalize(doc),
+    state: other ? "other-harness" : stale ? "stale" : "compared",
+    same: !other && !stale && canonicalize(before) === canonicalize(doc),
     held: once(check.refused),
     meant: once(check.changes.filter((change) => change.loosens !== undefined && !check.refused.includes(change))),
     tighter: check.changes.filter((change) => change.tightens !== undefined && change.loosens === undefined),
@@ -479,7 +506,7 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
     stopped = true;
     io.err(`grooph: ${plural(shared.length, "agent file")} of this graph would replace another package's in ${flags.into}, so nothing was written:`);
     for (const one of shared) io.err(`  ${one.path}  is an agent of the package ${one.other}`);
-    io.err("An agent's file is named <graph id>--<node id>.md, and these two graphs make the same name. Give this graph or that node another id (renameId) and export again.");
+    io.err("An agent's file is named <graph id>--<node id>, and these two graphs make the same name. Give this graph or that node another id (renameId) and export again.");
     return 1;
   }
   const waits = waitsForAWord(brakes.state);
@@ -489,11 +516,11 @@ export function exportCommand(raw: Output, file: string, given: ExportFlags): nu
     io.err(`The graph a package keeps is what an export compares with, and here it cannot stand for what the package in ${flags.into} runs on: a looser graph would pass as no change.`);
     io.err("Look at what is there. To place this graph with nothing compared, export again with --uncompared. That is a person's word: if you are an agent, put it to the person first.");
   }
-  const nothingToName = brakes.state === "no-kept" || brakes.state === "unreadable" || brakes.state === "other-harness";
+  const nothingToName = brakes.state === "no-kept" || brakes.state === "unreadable";
   if (brakes.unknown.length > 0 && !(nothingToName && flags.uncompared === true)) {
     stopped = true;
     io.err(
-      brakes.state === "compared" || brakes.state === "stale"
+      brakes.state === "compared" || brakes.state === "stale" || brakes.state === "other-harness"
         ? `grooph: no change named ${quoted(brakes.unknown)} between the graph the package in ${flags.into} keeps and ${file}, so nothing was written. --allow takes the names a refused export lists.`
         : brakes.state === "nothing"
           ? `grooph: --allow names ${quoted(brakes.unknown)}, and nothing was compared, so nothing was written: no package of this graph's id is in ${flags.into}. Without --allow this export places the graph, as a first export does.`

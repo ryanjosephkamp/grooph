@@ -424,7 +424,7 @@ It ran the driver's reader's scripts again (none placed a looser graph as "compa
 
 **#127's seven things, each checked on the merged tree:**
 
-1. `MODELS_ENV` is the one place the two names are written. No path reads `GROOPH_MODELS` for codex or `GROOPH_MODELS_CODEX` for claude-code.
+1. `MODELS_ENV` is the one place code takes the name from; the help and the tool's description also spell both names out. No path reads `GROOPH_MODELS` for codex or `GROOPH_MODELS_CODEX` for claude-code.
 2. The command reads it in `index.ts` as #127 left it. **The `grooph_export` tool reads the same variable for its target** (`MODELS_ENV[target]` in `mcp-author.ts`); before the merge it read `GROOPH_MODELS` for every target. A test in `third-pass.test.ts` sets each variable and exports for the other target through the tool.
 3. The line that says where the map came from names the variable of the target exported, in the command and in the tool's reply.
 4. The note's last words name that variable too.
@@ -453,6 +453,13 @@ Of `see.sh`'s 56 cases, the five the driver asked about:
 | A gate's answer led to a new step | silent when the new step carries no irreversible mark. When it does, the step is named under "not judged" and the export goes on, exit 0 |
 
 Held, with nothing written until asked by name: all eight of its cases on a check (its command, its pass condition, its kind, its removal, a way round it, its fail edge opened, the check made an agent, a way to the stop that skips it), a gate's answer renamed, the adaptation level raised or its field removed, critic isolation or no-self-grading removed, an evidence item reworded on the edge into a critic, and the budget's measure changed. Named and not held: a gate's new answer (not judged), evidence added into a critic and a tighter adaptation level (tightens). Still silent besides the five: the graph's own `constraints`, an edge's retry and concurrency, an agent's allow and deny lists, a critic's brief and model, `owns`, a gate's prompt and name, the diminishing-returns, evidence-invalid and bar-passed stops, a bar's inspects, a loop's mode, and the concurrency-cap, evidence-required, owner-per-artifact and custom policies. `docs/runs.md` is where that list belongs, and it is the house lane's section.
+
+**A fresh reader on the merge** (a subagent on Opus, given the two commits and #127's list, not this lane's account; it changed nothing). It found #127's seven things whole at both doors, the brakes held for both targets with every file untouched on a refusal, and the "not judged" lines equal to adopt's byte for byte. It found two faults in what the merge had joined, both fixed in the commit after it, each with a test through the command and through the tool:
+
+1. **The model stop did not exist for Codex.** The export asks before it changes the model of an agent file in place, and it read that model from a Markdown header only; a Codex agent file is TOML, so another tier map rewrote `.codex/agents/*.toml` with exit 0 and no word, at the command and at the tool. The export now reads the file's `model = "…"` line in the plain form grooph writes (`tomlModels`); any other way to say the key is "not read", which stops as a change does. grooph has no TOML parser, and this is not one.
+2. **Over the other harness's package, `--uncompared` alone placed a looser graph with nothing listed,** while over a stale package the same word did not answer for a brake. The kept graph reads in both, so both are now compared the same one way: what reads as loosened is held by name, and "none loosened" is never said.
+
+Wording it found and that is changed: an agent's file was said to be named `<graph id>--<node id>.md` under a line listing a `.toml`; the design skill's step 7 said only that export does not notice a mixed package; the tool's description did not list the other-harness state.
 
 **Checks on the merged tree, locally:** clean build of all three packages; core 540, CLI 222, web 124 tests; the goldens for both targets by export and diff; every generator's `--check`; site pages; outside addresses; American English; pictures; `first-run.sh`; `pack-check.sh` (grooph-0.3.0.tgz, 857 KB, 86 files); `kit-check.sh` (grooph-chat.zip 274 KB, grooph.mcpb 271 KB); `test-install-local.sh`; the version check (0.3.0 in all 8 places). The budget, locally: first load 160.54 of 164, canvas 258.13 of 262, a template's address 279.18 of 280, embed 127.85 of 132.
 

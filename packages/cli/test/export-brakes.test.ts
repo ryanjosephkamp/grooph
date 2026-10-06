@@ -629,7 +629,46 @@ test("a package of the other harness in the folder is said, and waits for the wo
     assert.equal(mixed.code, 1, mixed.out);
     assert.equal(lines(mixed.err)[0], "grooph: not compared, so nothing was written. The package there is this graph's for another harness, and its files would be left beside this one's: a mixed package.");
     assert.equal(tree(project), before);
+    // The word for "not compared" does not answer for a brake: the kept graph reads, so a looser graph is still held by name.
+    const loose = put(join(files, "g9.grooph.json"), withCap(graph, 9));
+    const word = await grooph(exportArgs(loose, project, "--uncompared"));
+    assert.equal(word.code, 1, word.out);
+    assert.match(word.err, /^ {2}loop:review-cycle\.stops +raises the round cap from 4 to 9$/m);
+    assert.equal(tree(project), before);
+    const both = await grooph(exportArgs(loose, project, "--uncompared", "--allow", "loop:review-cycle.stops"));
+    assert.equal(both.code, 0, both.err);
+    assert.match(last(both.out), /^brakes: not compared \(--uncompared\)\. /);
   });
+});
+
+test("an export for Codex asks before it changes the model of an agent file in place, as one for Claude Code does", async () => {
+  const codex = { ...fixture("review-loop"), target: { harness: "codex" } } as Graph;
+  const { tomlModels } = await import("../src/commands/export.js");
+  await withProject(async (project, files) => {
+    const forCodex = (file: string, ...more: string[]): string[] => ["export", file, "--target", "codex", "--into", project, ...more];
+    const file = put(join(files, "c.grooph.json"), codex);
+    assert.equal((await grooph(forCodex(file))).code, 0);
+    const before = tree(project);
+    const other = await grooph(forCodex(file, "--models", "frontier=one,strong=two,fast=three"));
+    assert.equal(other.code, 1, other.out);
+    assert.match(lines(other.err)[0]!, /^grooph: this export would change the model of \d agent files? already in /);
+    assert.ok(other.err.includes("--models, or GROOPH_MODELS_CODEX."), other.err);
+    assert.equal(tree(project), before);
+    const meant = await grooph(forCodex(file, "--models", "frontier=one,strong=two,fast=three", "--change-models"));
+    assert.equal(meant.code, 0, meant.err);
+    assert.match(meant.out, /^changed the model of \d agent files? that (was|were) already there \(--change-models\):$/m);
+    // And back, with no map: the package's models would change again, so it asks again.
+    assert.equal((await grooph(forCodex(file))).code, 1);
+  });
+  // The plain form grooph writes is read; any other way to say the key is not guessed at.
+  const Q = String.fromCharCode(34);
+  const line = (text: string): string => ["name = " + Q + "a" + Q, text, ""].join(LF);
+  assert.deepEqual(tomlModels(line("model = " + Q + "gpt-x" + Q)), ["gpt-x"]);
+  assert.deepEqual(tomlModels(line("model_reasoning_effort = " + Q + "high" + Q)), []);
+  assert.deepEqual(tomlModels(line("model = " + Q + "a" + Q) + line("model = " + Q + "b" + Q)), ["a", "b"]);
+  for (const odd of ["model = 'gpt-x'", Q + "model" + Q + " = " + Q + "gpt-x" + Q, "model = " + Q + Q + Q + "gpt-x" + Q + Q + Q, "model = gpt-x", "model=" + Q + "x" + Q + " junk"]) {
+    assert.equal(tomlModels(line(odd)), "unread", odd);
+  }
 });
 
 test("the help says what is compared, when it is not, and how to say yes", async () => {

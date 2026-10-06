@@ -188,7 +188,7 @@ baseline is not a seal: a hand that rewrites
 the kept graph together with the brief and the mapping notes is not seen, nor is one that takes an
 irreversible marker off the kept graph, which neither file shows.
 
-An agent's file is named <graph id>--<node id>.md. Where this graph would write one that another
+An agent's file is named <graph id>--<node id>. Where this graph would write one that another
 package in <dir> has as its own, nothing is written.
 
 Every file is written inside <dir> by where it really is, never through a link at the file's own

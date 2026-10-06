@@ -39,7 +39,7 @@ export type McpContext = {
   writes?: boolean;
   /** in a chat app (`grooph mcp --chat`): only the authoring tools are offered; a chat has no subagents to plan and no hook to ask */
   chat?: boolean;
-  /** the environment the server started in (GROOPH_MODELS is read from it); `process.env` when not given */
+  /** the environment the server started in (the target's tier variable is read from it); `process.env` when not given */
   env?: NodeJS.ProcessEnv;
   /** the graphs this server's tools have returned or been handed, by id, so a later call can name one and need not carry it */
   graphs?: Map<string, Graph>;

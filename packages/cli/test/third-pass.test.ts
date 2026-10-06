@@ -435,7 +435,7 @@ test("read again 2: a model in place is read however the file's lines end, so a 
       for (const which of [file, bare]) {
         const r = await exportTo(which);
         assert.equal(r.code, 1, header);
-        assert.match(r.io.stderr.join(LF), /fix-until-green--fixer\.md: model \(not read: its header is not in the plain form grooph writes\) → /, header);
+        assert.match(r.io.stderr.join(LF), /fix-until-green--fixer\.md: model \(not read: its header or its model line is not in the plain form grooph writes\) → /, header);
       }
       assert.equal((await exportTo(file, "--change-models")).code, 0, header);
       assert.equal(readFileSync(agent, "utf8"), placed);
@@ -610,7 +610,7 @@ test("fourth read 3: a file's header is read in bounded time, however it opens, 
     writeFileSync(agent, placed.replace(`model: ${model}`, `model: ${model}${ESC}[2K next: approve`));
     const hidden = await exportTo(file);
     assert.equal(hidden.code, 1);
-    assert.match(hidden.io.stderr.join(LF), /model \(not read: its header is not in the plain form grooph writes\) → /);
+    assert.match(hidden.io.stderr.join(LF), /model \(not read: its header or its model line is not in the plain form grooph writes\) → /);
     assert.ok(!hidden.io.stderr.join(LF).includes(ESC) && !hidden.io.stderr.join(LF).includes("approve"));
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -1132,6 +1132,18 @@ test("the last merge: the tool reads the tier variable of the target it exports 
       { env: { [own]: "strong=its-own-map" } },
     );
   }
+  // A Codex package in place: another tier map would change its agents' models, so the tool asks, as for Claude Code.
+  await withProject(async (ctx) => {
+    assert.equal((await call(ctx, "grooph_export", { graph: codex, target: "codex", into: "." })).isError, undefined);
+    const asked = await call(ctx, "grooph_export", { graph: codex, target: "codex", into: ".", models: { frontier: "one", strong: "two", fast: "three" } });
+    assert.equal(asked.isError, true, textOf(asked));
+    assert.ok(textOf(asked).includes("this export would change the model of"), textOf(asked));
+    // The same graph for Claude Code over it, looser: "replace" answers for the comparison not made, never for the brake.
+    const looser = { ...graph, loops: graph.loops.map((loop) => ({ ...loop, stops: loop.stops.map((stop) => (stop.kind === "max-iterations" ? { ...stop, n: 9 } : stop)) })) } as Graph;
+    const held = await call(ctx, "grooph_export", { graph: looser, into: ".", replace: true });
+    assert.equal(held.isError, true, textOf(held));
+    assert.ok(textOf(held).includes('  loosens "loop:review-cycle.stops": '), textOf(held));
+  });
   // A check under another id with the cap lowered, and a gate's new answer: the two sentences, each change in quotes.
   const fix = fixture("valid", "fix-until-green.grooph.json");
   const renamed = core.applyOps(fix, [{ op: "renameId", from: "suite", to: "suite-two" }] as Parameters<typeof core.applyOps>[1]);
