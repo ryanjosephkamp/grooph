@@ -1,8 +1,8 @@
-import { addLoop, addNode, connect, followsName, toggleLoopBack, toggleLoopMember, type Graph, type Id, type Position } from "@grooph/core";
+import { addLoop, addNode, connect, followsName, isPersonStep, toggleLoopBack, toggleLoopMember, type Graph, type Id, type Position } from "@grooph/core";
 import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { ADDABLE_KINDS, KIND_LABEL, type NodeKind } from "../doc/catalog.js";
+import { ADDABLE_KINDS, KIND_LABEL, kindLabel, type NodeKind } from "../doc/catalog.js";
 import { loadCompiler } from "../doc/exportPackage.js";
 import { computeIssues, countBySeverity, emptyHighlight, type Highlight } from "../doc/issues.js";
 import { NODE_HEIGHT, NODE_WIDTH, resolvePositions } from "../doc/layout.js";
@@ -370,7 +370,7 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
           >
             <span className="title-name">{doc.name || "Untitled"}</span>
             <span className="title-sub">
-              {doc.target?.harness ?? "a plan"} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
+              {forWhat(doc)} · {saveState === "memory" ? "not saved on this device" : saveState === "saving" ? "saving…" : "saved"}
             </span>
           </button>
           <OutlineButton on={outlineOn} onClick={toggleOutline} />
@@ -517,6 +517,9 @@ function EditorView({ record, fresh }: { record: GraphRecord; fresh: boolean }) 
   );
 }
 
+/** What the graph is for, under its name: the harness it names, or "a plan" when it names none or a step is a person's. */
+const forWhat = (doc: Graph): string => ((doc.nodes ?? []).some(isPersonStep) ? undefined : doc.target?.harness) ?? "a plan";
+
 function sheetFor(
   panel: Panel,
   doc: Graph,
@@ -530,7 +533,7 @@ function sheetFor(
   switch (panel.type) {
     case "node": {
       const node = doc.nodes.find((n) => n.id === panel.id);
-      return { title: node ? KIND_LABEL[node.kind] : "Node", subtitle: node?.id, body: <NodeInspector id={panel.id} key="node" focusName={justAdded === panel.id} /> };
+      return { title: node ? kindLabel(node) : "Node", subtitle: node?.id, body: <NodeInspector id={panel.id} key="node" focusName={justAdded === panel.id} /> };
     }
     case "edge": {
       const edge = doc.edges.find((e) => e.id === panel.id);
@@ -543,7 +546,7 @@ function sheetFor(
     case "issues":
       return { title: "Validation", subtitle: "the graph's own findings", body: <IssuesPanel issues={issues} /> };
     case "export":
-      return { title: "Export", subtitle: doc.target?.harness ?? "a plan", body: <ExportDoor /> };
+      return { title: "Export", subtitle: forWhat(doc), body: <ExportDoor /> };
     case "add":
       return { title: "Add a node", subtitle: undefined, body: null };
     case "insert":

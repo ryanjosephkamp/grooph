@@ -36,26 +36,30 @@ export function NodeDetails({ node }: { node: Node }) {
     ["Coupled", node.coupled ? "yes" : undefined],
   ];
   switch (node.kind) {
-    case "agent":
+    case "agent": {
+      // A person's step has no model, effort or capabilities: those rows are an agent's, and are not drawn for it.
+      const agents = node.by !== "person";
       return (
         <div className="inspector">
           <Rows
             rows={[
               ...common,
+              ["Done by", agents ? undefined : "a person"],
               ["Role", typeof node.role === "string" ? node.role : `${node.role.custom} (custom)`],
-              ["Model", node.model ? [node.model.tier, ...Object.entries(node.model.pin ?? {}).map(([h, m]) => `${h}: ${m}`)].join(" · ") : "session default"],
-              ["Effort", node.effort],
+              ["Model", !agents ? undefined : node.model ? [node.model.tier, ...Object.entries(node.model.pin ?? {}).map(([h, m]) => `${h}: ${m}`)].join(" · ") : "session default"],
+              ["Effort", agents ? node.effort : undefined],
               ["Brief", prose(node.brief)],
               ["Inputs", list(node.inputs)],
               ["Outputs", list(node.outputs)],
-              ["Allowed", list(node.allow)],
-              ["Denied", list(node.deny)],
+              ["Allowed", agents ? list(node.allow) : undefined],
+              ["Denied", agents ? list(node.deny) : undefined],
               ["Owns", list(node.owns)],
               ["Irreversible", list(node.irreversible)],
             ]}
           />
         </div>
       );
+    }
     case "human-gate":
       return (
         <div className="inspector">

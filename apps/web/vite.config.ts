@@ -59,7 +59,7 @@ const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", impo
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; more?: string[]; offline?: string[]; exporting?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; stage?: string[]; views?: string[]; more?: string[]; offline?: string[]; exporting?: string[]; plans?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -179,6 +179,12 @@ function routes(): Plugin {
         if (!exportPanel) throw new Error("grooph-routes: no chunk of its own for the Export panel (src/ui/ExportPanel.tsx). Something imports it outright, and every canvas carries it again.");
         found.exporting = [...closure(exportPanel)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
         found.later = [...new Set([...found.later, ...found.exporting])];
+        // And the plan templates (src/doc/plan-templates.ts, slice 0100): the four documents of `plans/`, fetched when a
+        // person asks to see the plans or opens one. No address loads them first; the worker holds them from its install.
+        const planTemplates = chunks.find((c) => c.facadeModuleId?.endsWith("/src/doc/plan-templates.ts"));
+        if (!planTemplates) throw new Error("grooph-routes: no chunk of its own for the plan templates (src/doc/plan-templates.ts). Something imports them outright, and an address carries them.");
+        found.plans = [...closure(planTemplates)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.plans])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them

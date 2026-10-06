@@ -1,8 +1,10 @@
 import {
+  isPersonStep,
   optList,
   optText,
   removeNode,
   setNodeName,
+  stepBy,
   updateNode,
   withField,
   type AgentNode,
@@ -21,7 +23,7 @@ import {
   CHECK_KINDS,
   EFFORTS,
   IRREVERSIBLE,
-  KIND_LABEL,
+  kindLabel,
   ROLES,
   TIERS,
 } from "../../doc/catalog.js";
@@ -88,7 +90,7 @@ export function NodeInspector({ id, focusName }: { id: Id; focusName?: boolean }
           hint="Work that should not be fanned out."
           onChange={(v) => update((n) => withField(n, "coupled", v ? true : undefined))}
         />
-        {node.kind === "agent" ? <PinsField node={node} update={update} /> : null}
+        {node.kind === "agent" && !isPersonStep(node) ? <PinsField node={node} update={update} /> : null}
       </More>
 
       <div className="danger-zone">
@@ -101,7 +103,7 @@ export function NodeInspector({ id, focusName }: { id: Id; focusName?: boolean }
             editor.deleted(node.name || id);
           }}
         >
-          Delete {KIND_LABEL[node.kind].toLowerCase()}
+          Delete {kindLabel(node).toLowerCase()}
         </button>
         <p className="field-hint">Also removes its edges and its place in loops.</p>
       </div>
@@ -114,11 +116,56 @@ const as = <N extends Node>(fn: (n: N) => N) => (n: Node) => fn(n as N);
 
 const CUSTOM = "__custom";
 
+/** What only an agent has: the fields the validator does not read on a person's step. */
+const AGENTS_ONLY = ["model", "effort", "skills", "allow", "deny"] as const;
+
+/**
+ * Make a step a person's, or an agent's again (amendment A-020). A person is on no model tier and at no effort,
+ * loads no skills and is granted no capabilities, and the validator warns of any of them left on a person's step
+ * (`W_PERSON_FIELDS_NOT_READ`): so they are taken off with the mark, in the one edit, and Undo brings them back.
+ * An agent's step simply has no mark.
+ */
+export const doneBy = (n: AgentNode, by: "agent" | "person"): AgentNode => {
+  const { by: _was, ...rest } = n;
+  if (by === "agent") return rest;
+  const { model: _m, effort: _e, skills: _s, allow: _a, deny: _d, ...kept } = rest;
+  return { ...kept, by: "person" };
+};
+
 function AgentFields({ node, update }: { node: AgentNode; update: Update }) {
   const set = (fn: (n: AgentNode) => AgentNode) => update(as(fn));
   const custom = typeof node.role !== "string";
+  const person = isPersonStep(node);
+  // A document made elsewhere may give a person's step an agent's fields (`W_PERSON_FIELDS_NOT_READ`). None of them
+  // is drawn for a person, so the way to take them off is here.
+  const left = person && AGENTS_ONLY.some((field) => node[field] !== undefined && !(Array.isArray(node[field]) && node[field].length === 0));
   return (
     <>
+      {/* The lead is the session itself and is never a person's (`E_PERSON_LEAD`): the switch is not offered for it,
+          unless a document already says so, and then it is the way back. */}
+      {node.role === "lead" && !person ? null : (
+        <Segmented
+          label="Done by"
+          value={stepBy(node)}
+          options={[
+            { value: "agent", label: "an agent" },
+            { value: "person", label: "a person" },
+          ]}
+          hint={
+            left ? (
+              <>
+                A person does this step, and it still has an agent's model, effort, skills or capabilities, which are not read.{" "}
+                <button type="button" className="link" onClick={() => set((n) => doneBy(n, "person"))}>
+                  Take them off
+                </button>
+              </>
+            ) : person ? (
+              "A person does this step. It has no model, effort, skills or capabilities; a graph with a person's step is a plan, and no package is made of it yet."
+            ) : undefined
+          }
+          onChange={(v) => set((n) => doneBy(n, v))}
+        />
+      )}
       <Select
         label="Role"
         value={custom ? CUSTOM : (node.role as Role)}
@@ -133,6 +180,8 @@ function AgentFields({ node, update }: { node: AgentNode; update: Update }) {
           hint="A custom role joins no family unless the node owns artifacts (then it is a writer)."
         />
       ) : null}
+      {person ? null : (
+        <>
       <Segmented
         label="Model tier"
         value={node.model?.tier ?? "default"}
@@ -149,11 +198,13 @@ function AgentFields({ node, update }: { node: AgentNode; update: Update }) {
         options={[{ value: "default", label: "default" }, ...EFFORTS.map((e) => ({ value: e, label: e }))]}
         onChange={(v) => set((n) => withField(n, "effort", v === "default" ? undefined : v))}
       />
+        </>
+      )}
       <TextArea
         label="Brief"
         value={node.brief}
         rows={4}
-        placeholder="What this node may and may not do."
+        placeholder={person ? "What the person does at this step." : "What this node may and may not do."}
         onChange={(v) => set((n) => ({ ...n, brief: v }))}
       />
       <ListInput label="Inputs" value={node.inputs} onChange={(v) => set((n) => withField(n, "inputs", optList(v)))} />
@@ -163,8 +214,12 @@ function AgentFields({ node, update }: { node: AgentNode; update: Update }) {
         hint="One per line. At least one: what it must leave behind."
         onChange={(v) => set((n) => ({ ...n, outputs: v }))}
       />
-      <ChipSet label="Allow" value={node.allow} catalog={CAPABILITIES} onChange={(v) => set((n) => withField(n, "allow", optList(v)))} />
-      <ChipSet label="Deny" value={node.deny} catalog={CAPABILITIES} onChange={(v) => set((n) => withField(n, "deny", optList(v)))} />
+      {person ? null : (
+        <>
+          <ChipSet label="Allow" value={node.allow} catalog={CAPABILITIES} onChange={(v) => set((n) => withField(n, "allow", optList(v)))} />
+          <ChipSet label="Deny" value={node.deny} catalog={CAPABILITIES} onChange={(v) => set((n) => withField(n, "deny", optList(v)))} />
+        </>
+      )}
       <ListInput
         label="Owns"
         value={node.owns}

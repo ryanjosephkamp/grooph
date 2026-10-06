@@ -14,7 +14,7 @@
  * library's, which is the front page on a device with no graphs yet. The library's is every address that is not
  * another screen's (`parse` in `App.tsx`), so this says what the other screens' are.
  */
-export const FRONT = String.raw`^(?!#\/(?:run\?live$|live$|run\/[^?]+$|templates$|embed(?:\?|$)|templates\/(?:built-in|yours)\/[^/?]+(?:\/use)?$|g\/[^/?]+(?:\?new)?$|open\?))`;
+export const FRONT = String.raw`^(?!#\/(?:run\?live$|live$|run\/[^?]+$|templates$|embed(?:\?|$)|templates\/(?:built-in|yours|plan)\/[^/?]+(?:\/use)?$|g\/[^/?]+(?:\?new)?$|open\?))`;
 
 /** The built-in templates (`doc/builtins.ts`): the list, and a built-in template's view and its Use form. */
 export const BUILT_INS = String.raw`^#\/templates(?:$|\/built-in\/[^/?]+(?:\/use)?$)`;

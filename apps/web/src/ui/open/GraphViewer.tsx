@@ -1,7 +1,7 @@
 import type { Graph, Id, Issue } from "@grooph/core";
 import { useMemo, useState, type ReactNode } from "react";
 
-import { KIND_LABEL } from "../../doc/catalog.js";
+import { kindLabel } from "../../doc/catalog.js";
 import { LookMenu } from "../canvas/LookMenu.js";
 import { computeIssues, countBySeverity, packageNeeds } from "../../doc/issues.js";
 import { isDesktop } from "../canvas/fit.js";
@@ -73,7 +73,7 @@ export function GraphViewer({
     if (!panel || panel.type === "outline") return null;
     if (panel.type === "node") {
       const node = doc.nodes.find((n) => n.id === panel.id);
-      return node ? { title: KIND_LABEL[node.kind], subtitle: node.id, body: <NodeDetails node={node} /> } : null;
+      return node ? { title: kindLabel(node), subtitle: node.id, body: <NodeDetails node={node} /> } : null;
     }
     if (panel.type === "loop") {
       const loop = doc.loops.find((l) => l.id === panel.id);
