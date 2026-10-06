@@ -13,10 +13,13 @@
  * is at is faint.
  */
 import type { Prim } from "./draw.js";
-import { under, type Id, type MLoop, type V } from "./model.js";
-import { arch, by, card, circle, edgeLine, ground, hue, stations, TAU, type Stop, type View } from "./shapes.js";
+import type { Id, MLoop, V } from "./model.js";
+import type { Stop, View } from "./shapes.js";
 
-export const rings: View = (m, shown) => {
+/** What this view is drawn with, of the stage's own: handed to it, since it is in a piece apart from the stage's. */
+export type Tools = Pick<typeof import("./shapes.js"), "arch" | "by" | "card" | "circle" | "edgeLine" | "ground" | "hue" | "stations" | "TAU"> & Pick<typeof import("./model.js"), "under">;
+
+export const rings = ({ arch, by, card, circle, edgeLine, ground, hue, stations, TAU, under }: Tools): View => (m, shown) => {
   const prims: Prim[] = [];
   const at: Record<Id, V> = {};
   const ring: Record<Id, { c: V; r: number; stops: Stop[] }> = {};

@@ -10,21 +10,28 @@
  * loop; on a run's page it walks the run's own notes, as the stairs' does.
  */
 import { DEFAULT_LAYOUT_BOX, resolvePositions, type Graph, type Id, type RunNote } from "@grooph/core";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
-import { columnsAt, modelOf, stepsOf } from "./stage/model.js";
+import { columnsAt, modelOf, stepsOf, under, type Model } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
-import { rings } from "./stage/rings.js";
-import { along, shownAt, type View } from "./stage/shapes.js";
+import { along, arch, by, card, circle, edgeLine, ground, hue, shownAt, stations, TAU, type Shown, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
-/** Each kind: how it places the graph, where it is first seen from, what it is in a sentence, whether its frame is made as tall as its cards need to be clear of each other, and whether each loop's brakes are said under it. */
-const KINDS: Record<string, { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; rounds?: boolean }> = {
+/**
+ * A kind: how it places the graph, where it is first seen from, what it is in a sentence, by how many pixels its frame
+ * is made tall enough to keep its cards apart, whether each loop's brakes are said under it, and what else it says
+ * under itself. Rings and Columns are kinds of a piece of their own (`graph-more.tsx`), handed in when one is chosen.
+ */
+export type Kind = { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; under?: (model: Model, shown: Shown) => ReactNode };
+/** The stage's own shapes and readings, for a kind that is not in this piece to be drawn with: handed to it, since
+ *  a thing both pieces imported would be a third file for a browser to fetch. */
+export const tools = { arch, by, card, circle, edgeLine, ground, hue, stations, TAU, under };
+export type Tools = typeof tools;
+const KINDS: Record<string, Kind> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },
   spiral: { view: spiral, start: { yaw: -0.42, pitch: 0.3 }, as: "a spiral for each loop", apart: 7, says: "A round of a loop is one turn upward, and a brake that counts rounds is a place on the way up. A loop inside another is a spiral of its own, where its rounds start afresh; a node two loops share stands on one of them.", brakes: true },
-  rings: { view: rings, start: { yaw: -0.5, pitch: 0.86 }, as: "a ring for each loop", apart: 7, rounds: true, says: "Each loop is a ring, with its own nodes around it in the order of a first pass. A loop inside another is a ring standing on the outer one; a node two loops share stands on one of them. A way back from a loop's last node to its first is the rest of the ring." },
 };
 
 let styled = false;
@@ -32,14 +39,15 @@ const still = (): boolean => matchMedia("(prefers-reduced-motion: reduce)").matc
 
 /** `wide` is how wide the window was when the canvas under this was drawn: its rows wrap as the canvas's do. */
 /** `drawn` is told once the view has been drawn for the first time: a browser that cannot draw it throws before. */
-export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: string; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] }; drawn?: () => void }) {
+/** `its` is the kind itself, for one that is not in this piece. */
+export function Stage3({ doc, kind, its, wide, of, drawn }: { doc: Graph; kind: string; its?: Kind; wide: number; of: { onNodeTap?: (id: Id) => void; notes?: readonly RunNote[] }; drawn?: () => void }) {
   if (!styled) {
     const sheet = document.createElement("style");
     sheet.textContent = css;
     document.head.append(sheet);
     styled = true;
   }
-  const the = KINDS[kind]!;
+  const the = its ?? KINDS[kind]!;
   // Where the canvas has each node: the document's layout where it has one, and the canvas's own for this screen.
   // Whether the frame is a phone's width: the frame's own, since a window with the details beside the view is wide
   // and its frame is not. Read once it is on the page, before anything is painted, and again when its width
@@ -179,20 +187,7 @@ export function Stage3({ doc, kind, wide, of, drawn }: { doc: Graph; kind: strin
           ))}
         </ul>
       ) : null}
-      {the.rounds && model.run && model.loops.length ? (
-        // The round the run is in, loop by loop, as far as the slider has come: in the drawing it is beside each
-        // ring, where a card can stand over it.
-        <ul className="s3-key" aria-label="The round the run is in, loop by loop">
-          {model.loops.map((loop, n) => {
-            const now = shownAt(model, steps, k).until?.[loop.id];
-            return (
-              <li key={loop.id}>
-                <b style={{ color: `var(--loop-${n % 4})` }}>{loop.name}</b> {now ? `round ${Math.floor(now.now)}` : "not entered"}
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+      {the.under?.(model, shownAt(model, steps, k))}
       <p className="s3-note">
         {the.says}
         {kind === "panes" && !model.loops.length && !model.groups.some((g) => g.from) ? " This graph has no loop and no subgrooph, so nothing is lifted." : ""}

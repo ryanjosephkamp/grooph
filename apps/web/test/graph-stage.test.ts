@@ -7,10 +7,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { columnsForViewport } from "../src/doc/layout.js";
 
 import { firstPass } from "../src/ui/canvas/graph-views.js";
-import { columnsAt, modelOf as modelAt, stepsOf } from "../src/ui/canvas/stage/model.js";
+import { columnsAt, modelOf as modelAt, stepsOf, under } from "../src/ui/canvas/stage/model.js";
 import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
-import { rings } from "../src/ui/canvas/stage/rings.js";
+import { rings as ringsWith } from "../src/ui/canvas/stage/rings.js";
 import { shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
+import * as shapes from "../src/ui/canvas/stage/shapes.js";
 import { brakes, reach, spiral, topOf } from "../src/ui/canvas/stage/spiral.js";
 
 /**
@@ -1189,6 +1190,9 @@ describe("the spiral and its lid", () => {
     expect(twin.prims.filter((p) => p.t === "card")).toHaveLength(4);
   });
 });
+
+/** Rings, drawn with the stage's own shapes, as the app hands them to it. */
+const rings = ringsWith({ ...shapes, under });
 
 describe("rings", () => {
   const whole: Shown = { k: 0, lit: null, took: [] };

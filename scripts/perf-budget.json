@@ -9,6 +9,7 @@
   "embedLoadKB": 132,
   "mapSpaceKB": 9,
   "graphStageKB": 17,
+  "graphMoreKB": 4,
   "graphViewsKB": 6,
   "cliColdMs": 400
 }
