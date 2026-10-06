@@ -16,7 +16,7 @@ import css from "./graph-stage.css?inline";
 import { makeStage, type Look, type Prim, type Stage } from "./stage/draw.js";
 import { columnsAt, modelOf, stepsOf, under, type Model } from "./stage/model.js";
 import { panes } from "./stage/panes.js";
-import { along, arch, by, card, circle, edgeLine, ground, hue, shownAt, stations, TAU, type Shown, type View } from "./stage/shapes.js";
+import { along, arch, by, card, circle, edgeLine, ground, hue, lerp, shownAt, stations, TAU, type Shown, type View } from "./stage/shapes.js";
 import { brakes, spiral, topOf } from "./stage/spiral.js";
 
 /**
@@ -27,7 +27,7 @@ import { brakes, spiral, topOf } from "./stage/spiral.js";
 export type Kind = { view: View; start: Look; as: string; says: string; apart?: number; brakes?: boolean; under?: (model: Model, shown: Shown) => ReactNode };
 /** The stage's own shapes and readings, for a kind that is not in this piece to be drawn with: handed to it, since
  *  a thing both pieces imported would be a third file for a browser to fetch. */
-export const tools = { arch, by, card, circle, edgeLine, ground, hue, stations, TAU, under };
+export const tools = { arch, by, card, circle, edgeLine, ground, hue, lerp, stations, TAU, under };
 export type Tools = typeof tools;
 const KINDS: Record<string, Kind> = {
   panes: { view: panes, start: { yaw: -0.86, pitch: 0.16 }, as: "panes", apart: 2, says: "Every node is where the picture has it, one pane toward you for each loop or subgrooph around it; loops that only share a node are panes at one depth. An edge that changes depth is entering or leaving a loop or a subgrooph." },

@@ -51,13 +51,14 @@ const KINDS = [
   ["panes", "Panes", "The picture as it is, with each loop and each subgrooph lifted toward you on a pane of its own."],
   ["spiral", "Spiral", "Each loop is a spiral: a round is one turn upward, and the brakes that count rounds are places on the way up, the lid where max iterations stops it."],
   ["rings", "Rings", "Each loop is a ring, with its own nodes standing around it; a loop inside another is a ring standing on the outer one."],
+  ["columns", "Columns", "Every node where the picture has it, an agent as a column: taller for a higher tier (an order, not a model), and on a run a block for each dispatch, as tall as its own minutes."],
 ] as const;
 type Kind = (typeof KINDS)[number][0];
 /** What is drawn over the canvas: nothing, which is the picture, or a kind of view in three dimensions. */
 type On = "picture" | Kind;
-/** The piece a kind is in: the map's scene for the stairs, the stage for the rest; and Rings wants a piece of its
- *  own beside the stage, which holds the kinds the stage's piece has no room for. */
-const pieceOf = (kind: Kind): "space" | "stage" | "more" => (kind === "stairs" ? "space" : kind === "rings" ? "more" : "stage");
+/** The piece a kind is in: the map's scene for the stairs, the stage for the rest; and Rings and Columns want a
+ *  piece of their own beside the stage, which holds the kinds the stage's piece has no room for. */
+const pieceOf = (kind: Kind): "space" | "stage" | "more" => (kind === "stairs" ? "space" : kind === "rings" || kind === "columns" ? "more" : "stage");
 /** Whether what a kind is drawn with has been fetched. */
 const here = (kind: Kind): boolean => !!(kind === "stairs" ? space : stage3 && (pieceOf(kind) === "stage" || more3));
 

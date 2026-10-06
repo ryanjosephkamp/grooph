@@ -157,11 +157,11 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
   };
   if (notes?.length) {
     const replay = replaySteps(notes, doc);
-    const minutes = (a: string, b: string): number => Math.round(((Date.parse(b) - Date.parse(a)) / 60000) * 100) / 100;
-    // How long each dispatch took, by the stamps on the notes: for the first from its own start to its end, and for
-    // each one after from the end of the dispatch before to its own end. A note's own `started` is not trusted past
-    // the first: a lead writes them by hand, and some are later than their `ended`.
-    let last: string | undefined;
+    // How long each dispatch took, by its own stamps: from its start, on its result's note or on the line before
+    // the dispatch, to its end. Not from the end of the dispatch before, which holds a person's wait at a gate, and
+    // is another node's time where two ran side by side. Where a stamp is missing, is not a time, or the start is
+    // after the end (a lead writes them by hand), the dispatch has no minutes: none is made up.
+    const began = new Map<Id, string>();
     const dispatches: Dispatch[] = [];
     // A note's round is its loop's: a loop's own note names that loop's, and a note at a node its innermost loop's.
     // But a node in a loop inside another is in a round of each, the contract's one number does not say which, and
@@ -244,9 +244,12 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       // a note may leave out (graph-ir section 6: read from the clock or omitted, never estimated): then it has none.
       // Nor is a person's step one (amendment A-020): its result is a person's, and no dispatch was made.
       if (node && (node.kind === "agent" || node.kind === "check") && !isPersonStep(node) && note.outcome && note.outcome !== "started") {
-        out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: note.ended ? Math.max(0, minutes(last ?? note.started ?? note.ended, note.ended)) : null }) - 1;
-        last = note.ended ?? last;
-      }
+        // (Its own start where that is a time before its end; else the line before's.)
+        const since = (from: string | undefined): number => (Date.parse(note.ended ?? "") - Date.parse(from ?? "")) / 60000;
+        const took = since(note.started) >= 0 ? since(note.started) : since(began.get(node.id));
+        out.dispatch = dispatches.push({ node: node.id, loop, round, outcome: note.outcome ?? null, minutes: took >= 0 ? took : null }) - 1;
+        began.delete(node.id);
+      } else if (node && note.outcome === "started" && note.started) began.set(node.id, note.started);
       return out;
     });
     model.run = { end: replay.end.line, at: replay.end.at && is(replay.end.at.id) ? replay.end.at.id : null, dispatches, most, notes: steps, rounds: Object.fromEntries(replay.end.loops.map((l) => [l.loop, l.round ?? -1])) };

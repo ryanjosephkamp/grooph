@@ -12,6 +12,7 @@ import { boxesOf, panes } from "../src/ui/canvas/stage/panes.js";
 import { rings as ringsWith } from "../src/ui/canvas/stage/rings.js";
 import { shownAt, type Shown } from "../src/ui/canvas/stage/shapes.js";
 import * as shapes from "../src/ui/canvas/stage/shapes.js";
+import { blocks, columns as columnsWith, MINUTE, TIER } from "../src/ui/canvas/stage/columns.js";
 import { brakes, reach, spiral, topOf } from "../src/ui/canvas/stage/spiral.js";
 
 /**
@@ -218,10 +219,30 @@ describe("a recorded run", () => {
     expect(m.loops.map((l) => l.perRound)).toEqual([1]);
   });
 
-  it("a dispatch's minutes are by the stamps of the ends: the first from its own start, each after from the end before it", () => {
-    // 05:01:00 to 05:20:42, 05:21:16, 05:28:43, 05:32:57, 05:33:25, 05:38:15. Two of these notes are stamped as
-    // starting after they end; the first's own note of its cost says 22 minutes. Neither is used.
-    expect(model.run!.dispatches.map((d) => d.minutes)).toEqual([19.7, 0.57, 7.45, 4.23, 0.47, 4.83]);
+  it("a dispatch's minutes are its own: from its start, on its note or on the line before it, to its end; and it has none where its stamps do not say", () => {
+    // 05:01:00 to 05:20:42; 05:20:51 to 05:21:16; 05:22:00 to 05:28:43; then two notes stamped as starting after
+    // they end, which have no minutes; and 05:32:57 to 05:33:25. Not from the end of the dispatch before.
+    expect(model.run!.dispatches.map((d) => d.minutes && Math.round(d.minutes * 100) / 100)).toEqual([19.7, 0.42, 6.72, null, 0.47, null]);
+    const stamp = (min: number, sec = 0): string => `2026-09-19T13:${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}Z`;
+    const note = (k: number, at: string, more: Partial<RunNote>): RunNote => ({ id: `n-${k}`, run: "r", at: at.includes(":") ? at : `node:${at}`, ...more }) as RunNote;
+    const took = (doc: Graph, list: RunNote[]) => modelOf(doc, list).run!.dispatches.map((d) => [d.node, d.minutes]);
+    // Three candidates run side by side from one start: each has its own minutes, not the time since a sibling's end.
+    const tournament = graph("patterns/tournament-then-judge.grooph.json");
+    expect(took(tournament, ["candidate-a", "candidate-b", "candidate-c"].map((id, k) => note(k, id, { outcome: "pass", started: stamp(0), ended: stamp(1 + k) })))).toEqual([["candidate-a", 1], ["candidate-b", 2], ["candidate-c", 3]]);
+    // A person's wait at a gate is nobody's block: the builder after the gate ran half a minute, three hours on.
+    const waited = took(REVIEW, [note(1, "builder", { outcome: "pass", started: stamp(0), ended: stamp(5) }), note(2, "critic", { outcome: "pass", started: stamp(5), ended: stamp(7) }), note(3, "merge-gate", { outcome: "halt", ended: stamp(8) }), note(4, "merge-gate", { outcome: "fail", ended: "2026-09-19T16:08:00Z" }), note(5, "builder", { outcome: "pass", started: "2026-09-19T16:08:10Z", ended: "2026-09-19T16:08:40Z" })]);
+    expect(waited).toEqual([["builder", 5], ["critic", 2], ["builder", 0.5]]);
+    // The start on the line before the dispatch, as the contract has it, is the dispatch's start.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0, 5) }), note(2, "builder", { outcome: "pass", ended: stamp(9) })])).toEqual([["builder", 8.916666666666666]]);
+    // The note's own start wins where it is a time before its end; where it is not, the line before's is used; and
+    // a line before at one node is no other node's start.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "pass", started: stamp(4), ended: stamp(9) })])).toEqual([["builder", 5]]);
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "pass", started: stamp(20, 5), ended: stamp(20) })])).toEqual([["builder", 20]]);
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "critic", { outcome: "pass", ended: stamp(9) })])).toEqual([["critic", null]]);
+    // And is used once: the next dispatch at that node, with no start of its own, has no minutes.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "started", started: stamp(0) }), note(2, "builder", { outcome: "fail", ended: stamp(2) }), note(3, "builder", { outcome: "pass", ended: stamp(6) })])).toEqual([["builder", 2], ["builder", null]]);
+    // No end, no start, a stamp that is not a time: a dispatch all the same, with no minutes, and those after it unharmed.
+    expect(took(REVIEW, [note(1, "builder", { outcome: "pass" }), note(2, "critic", { outcome: "fail", started: stamp(1), ended: "10:05 UTC" }), note(3, "builder", { outcome: "pass", ended: stamp(9) }), note(4, "critic", { outcome: "pass", started: stamp(9), ended: stamp(12) })])).toEqual([["builder", null], ["critic", null], ["builder", null], ["critic", 3]]);
   });
 
   it("its steps are its notes: a move is along the edge the run took, in the round it took it", () => {
@@ -1637,5 +1658,169 @@ describe("rings", () => {
     // An edge inside the ring that stands on another: builder to tests is on Grind's ring, a turn of its own, 64 up.
     const inner = rings(r, at(r, 0)).path("e-builder-tests");
     expect(new Set(inner.map((v) => v[1]))).toEqual(new Set([64]));
+  });
+});
+
+/** Columns, drawn with the stage's own shapes, as the app hands them to it. */
+const columns = columnsWith(shapes);
+
+describe("columns", () => {
+  const whole: Shown = { k: 0, lit: null, took: [] };
+  const at = (model: ReturnType<typeof modelAt>, k: number): Shown => shownAt(model, stepsOf(model), k);
+  /** The tops of a node's boxes, from the ground up, with each one's color: a box's lid is its fifth face. */
+  const lids = (prims: ReturnType<typeof columns>["prims"], id: string) => prims.filter((p) => p.t === "poly" && p.key === `node:${id}` && p.fa === 1).map((p) => (p.t === "poly" ? [Math.round(p.pts[0]![1] * 100) / 100, p.fill, p.alpha ?? 1] : []));
+
+  it("every node is one card at the foot of its column, where the canvas has it, on every template and valid fixture; every edge is drawn once", () => {
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    for (const path of [...ALL, ...valid]) {
+      const doc = graph(path);
+      const canvas = places(doc);
+      const m = modelAt(doc, canvas);
+      const { prims } = columns(m, whole);
+      const cards = prims.flatMap((p) => (p.t === "card" ? [p] : []));
+      expect(cards.map((p) => p.id).sort(), path).toEqual(doc.nodes.map((n) => n.id).sort());
+      // On the ground, beside the foot: the canvas's x across and its y back, each scaled.
+      for (const p of cards) expect(p.at.map((v) => Math.round(v * 100) / 100), `${path} ${p.id}`).toEqual([Math.round((canvas[p.id]!.x * 0.76 + 29) * 100) / 100, 0, Math.round((canvas[p.id]!.y * 0.94 + 18) * 100) / 100]);
+      expect(prims.every((p) => (p.t === "card") !== !!p.grow), path).toBe(true);
+      expect(prims.filter((p) => p.t === "line" && p.arrow).map((p) => p.key).sort(), path).toEqual(m.edges.map((e) => `edge:${e.id}`).sort());
+    }
+  });
+
+  it("on a template an agent's column is taller for a higher tier, one with no tier is short and faint and says so, and what is not an agent is a slab", () => {
+    expect([TIER["frontier"]! > TIER["strong"]!, TIER["strong"]! > TIER["fast"]!, TIER["fast"]! > TIER["unset"]!]).toEqual([true, true, true]);
+    const m = modelOf(GAUNTLET);
+    const { prims } = columns(m, whole);
+    for (const n of m.nodes) expect(lids(prims, n.id), n.id).toEqual([n.tier ? [TIER[n.tier], "k-agent", n.tier === "unset" ? 0.4 : 1] : [5, "floor", 1]]);
+    // The tier is said beside each agent's column, and nothing is said beside a slab.
+    const said = prims.flatMap((p) => (p.t === "text" && p.align === "right" && !p.bold ? [p.text] : []));
+    expect(said.sort()).toEqual(m.nodes.flatMap((n) => (n.tier ? [n.tier] : [])).sort());
+    // An agent with no tier: not the height of any tier, faint, and named as the session's default.
+    const bare: Graph = { ...REVIEW, nodes: REVIEW.nodes.map((n) => (n.id === "builder" && n.kind === "agent" ? (({ model: _model, ...rest }) => rest)(n) : n)) } as Graph;
+    const drawn = columns(modelOf(bare), whole).prims;
+    expect(lids(drawn, "builder")).toEqual([[16, "k-agent", 0.4]]);
+    expect(drawn.some((p) => p.t === "text" && p.text === "session default")).toBe(true);
+    expect(Object.values(TIER).filter((h) => h === 16)).toHaveLength(1);
+  });
+
+  it("on a run a column is a block for each dispatch so far, as tall as its own minutes, in its outcome's color; one with no minutes is a faint line; the blocks are said in words, and the column's whole time beside it", () => {
+    const m = modelAt(RUN, places(RUN), NOTES);
+    const name = RUN.loops[0]!.name;
+    // The whole run. The builder: 19.7 minutes, and a second dispatch whose stamps do not say (it is stamped as
+    // starting after it ended): on a slab 4 high, one block on the other with nothing between, the second a faint line.
+    const builder = lids(columns(m, at(m, 0)).prims, "builder");
+    expect(builder).toEqual([[151.75, "ok", 1], [152.75, "ok", 0.4]]);
+    // The critic failed, then passed (no minutes); the checks' two blocks are their 25 and 28 seconds tall.
+    expect(lids(columns(m, at(m, 0)).prims, "critic")).toEqual([[54.38, "bad", 1], [55.38, "ok", 0.4]]);
+    expect(lids(columns(m, at(m, 0)).prims, "checks").map((x) => x[0])).toEqual([7.13, 10.63]);
+    // Heights compare minutes: a block is its minutes and no more, down to a line 1 tall for none at all.
+    const quick = modelAt(RUN, places(RUN), NOTES.map((n) => (n.id === "n-0005" ? ({ ...n, ended: n.started } as RunNote) : n)));
+    expect(lids(columns(quick, at(quick, 5)).prims, "checks")).toEqual([[5, "ok", 1]]);
+    // A node with no dispatch is a slab, and no block; every node of a run stands on a slab 4 high.
+    expect(lids(columns(m, at(m, 0)).prims, "done")).toEqual([]);
+    expect(columns(m, at(m, 0)).prims.filter((p) => p.t === "poly" && p.fill === "floor" && p.fa === 1 && p.pts[0]![1] === 4)).toHaveLength(m.nodes.length);
+    expect(blocks(m, at(m, 0)).map(({ id, name: of, words, total }) => ({ id, of, words, total }))).toEqual([
+      { id: "builder", of: "Builder", words: [`${name} round 0, 19.7 min`, `${name} round 1, no time`], total: "19.7 min and more" },
+      { id: "checks", of: "Cheap checks", words: [`${name} round 0, 0.4 min`, `${name} round 1, 0.5 min`], total: "0.9 min" },
+      { id: "critic", of: "Critic", words: [`${name} round 0, 6.7 min, fail`, `${name} round 1, no time`], total: "6.7 min and more" },
+    ]);
+    // By note 6, the critic's fail: one block each, and the words and the whole stop there too.
+    expect(blocks(m, at(m, 6)).map((x) => [x.id, x.words, x.total])).toEqual([["builder", [`${name} round 0, 19.7 min`], "19.7 min"], ["checks", [`${name} round 0, 0.4 min`], "0.4 min"], ["critic", [`${name} round 0, 6.7 min, fail`], "6.7 min"]]);
+    expect(lids(columns(m, at(m, 6)).prims, "builder")).toHaveLength(1);
+    expect(blocks(m, at(m, 1))).toEqual([]);
+    // The whole of a column beside its top, at its left, as far as the slider has come; with a place over the top
+    // to stand at where a card is over that.
+    const beside = (k: number) => columns(m, at(m, k)).prims.flatMap((p) => (p.t === "text" && /min|no time/.test(p.text) ? [p] : []));
+    expect(beside(0).map((p) => p.text)).toEqual(["19.7 min and more", "0.9 min", "6.7 min and more"]);
+    expect(beside(6).map((p) => p.text)).toEqual(["19.7 min", "0.4 min", "6.7 min"]);
+    const foot = columns(m, at(m, 0)).node("builder");
+    expect([beside(0)[0]!.at, beside(0)[0]!.or]).toEqual([[foot[0] - 33, 152.75, foot[2] + 18], [{ at: [foot[0], 164.75, foot[2]], align: "center" }]]);
+    // The whole is the sum of what the list says, each to its tenth: two dispatches of 50 seconds are "0.8 min;
+    // 0.8 min" and 1.6 in all, not 1.7. And none of the minutes known is "no time", not "0 min and more".
+    const fifty = (k: number, more: Partial<RunNote>): RunNote => ({ id: `f-${k}`, run: "r", at: "node:builder", outcome: "pass", round: 0, ...more }) as RunNote;
+    const twice = modelAt(RUN, places(RUN), [fifty(1, { started: "2026-09-19T13:00:00Z", ended: "2026-09-19T13:00:50Z" }), fifty(2, { started: "2026-09-19T13:01:00Z", ended: "2026-09-19T13:01:50Z" })]);
+    expect(blocks(twice, at(twice, 0)).map((x) => [x.words.map((w) => w.split(", ")[1]), x.total])).toEqual([[["0.8 min", "0.8 min"], "1.6 min"]]);
+    const still = modelAt(RUN, places(RUN), [fifty(1, { started: "2026-09-19T13:00:00Z", ended: "2026-09-19T13:00:00Z" }), fifty(2, {})]);
+    expect(blocks(still, at(still, 0)).map((x) => x.total)).toEqual(["0 min and more"]);
+    // A dispatch with no minutes alone: "no time", and no figure.
+    const bare = modelAt(RUN, places(RUN), NOTES.map(({ started: _s, ...n }) => n as RunNote));
+    expect(blocks(bare, at(bare, 0)).map((x) => x.total)).toEqual(["no time", "no time", "no time"]);
+    // A dispatch that neither passed nor failed is gray, and says its outcome; one at a node in no loop has no round.
+    const odd = modelAt({ ...RUN, loops: [] }, places(RUN), NOTES.map((n) => (n.id === "n-0006" ? ({ ...n, outcome: "halt" } as RunNote) : n)));
+    expect(lids(columns(odd, at(odd, 0)).prims, "critic").map((x) => x[1])).toEqual(["ink-3", "ok"]);
+    expect(blocks(odd, at(odd, 0)).find((x) => x.id === "critic")!.words).toEqual(["6.7 min, halt", "no time"]);
+    // A round is its loop's: in the nested run the builder is in Grind's rounds, the judge in Phases'.
+    const [nested, nestedNotes] = runAt("run-nested");
+    const n = modelAt(nested, places(nested), nestedNotes);
+    expect(blocks(n, at(n, 0)).map((x) => [x.id, x.words[0]])).toEqual([["builder", "Grind round 0, no time"], ["tests", "Grind round 0, no time, fail"], ["judge", "Phases round 0, no time, fail"]]);
+  });
+
+  it("an edge runs from the edge of its column's foot that faces the other, through no column; two between the same two nodes are apart, down the page and across it; a loop is the ground under its nodes, with its name", () => {
+    /** Whether a point on the ground is inside a column's foot (58 by 36), a hair in. */
+    const inside = (v: number[], c: number[]): boolean => Math.abs(v[0]! - c[0]!) < 28 && Math.abs(v[2]! - c[2]!) < 17;
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    let curved = 0;
+    for (const path of [...ALL, ...valid]) for (const wide of [2, 4]) {
+      const doc = graph(path);
+      const m = modelAt(doc, places(doc, wide));
+      const built = columns(m, whole);
+      for (const e of m.edges) {
+        const pts = built.path(e.id);
+        // Finely, along the line as drawn: in no column's foot, its own two among them.
+        const fine = pts.slice(1).flatMap((b, k) => Array.from({ length: 8 }, (_, n) => [pts[k]![0] + ((b[0] - pts[k]![0]) * n) / 8, 0, pts[k]![2] + ((b[2] - pts[k]![2]) * n) / 8]));
+        for (const n of m.nodes) expect(fine.some((v) => inside(v, built.node(n.id))), `${path} at ${wide} to a row: ${e.id} through ${n.id}`).toBe(false);
+        if (e.from !== e.to) for (const [end, id] of [[pts[0]!, e.from], [pts[pts.length - 1]!, e.to]] as const) expect([Math.abs(end[0] - built.node(id)[0]) <= 35.01, Math.abs(end[2] - built.node(id)[2]) <= 24.01], `${path} ${e.id}`).toEqual([true, true]);
+        curved += Number(pts.length === 19 && !e.back && !m.edges.some((x) => x !== e && ((x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from))));
+      }
+    }
+    // Some of them went round a column to be so: forward edges with no twin, bowed.
+    expect(curved).toBeGreaterThan(3);
+    // Down the page (the nested run's judge has two ways back to the builder): 18 apart, to the left.
+    const [doc] = runAt("run-nested");
+    const built = columns(modelAt(doc, places(doc)), whole);
+    const [a, b] = [built.path("e-judge-fail"), built.path("e-judge-next-phase")];
+    expect([a.length, b.length]).toEqual([19, 19]);
+    expect(Math.round(Math.hypot(a[9]![0] - b[9]![0], a[9]![2] - b[9]![2]))).toBe(18);
+    expect([a[0], a[18]]).toEqual([b[0], b[18]]);
+    // Across it (the review loop's own layout is one row): the forward edge is straight, its way back is toward
+    // the reader of it, and a second forward edge 18 toward the reader.
+    const flat = graph("fixtures/valid/review-loop.grooph.json");
+    const twice: Graph = { ...flat, edges: [...flat.edges, { ...flat.edges.find((e) => e.id === "e-review-pass")!, id: "e-review-pass-too" }] };
+    const row = columns(modelAt(twice, places(twice, 4)), whole);
+    expect(row.path("e-build-review")).toHaveLength(2);
+    expect(row.path("e-review-fail")[9]![2] - row.path("e-review-fail")[0]![2]).toBeGreaterThan(34);
+    expect([row.path("e-review-pass").length, Math.round(row.path("e-review-pass-too")[9]![2] - row.path("e-review-pass-too")[0]![2])]).toEqual([2, 18]);
+    // A node's own edge is a spur out to its left and back.
+    const selfish: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-self", from: "builder", to: "builder" }] } as Graph;
+    const own = columns(modelAt(selfish, places(selfish)), whole);
+    expect([own.path("e-self")[0]![0] - own.node("builder")[0], own.path("e-self")[9]![0] - own.path("e-self")[0]![0], own.path("e-self")[18]]).toEqual([-35, -34, own.path("e-self")[0]]);
+    // A loop: a rectangle on the ground under its own nodes and no others', and its name at its corner.
+    const g = modelAt(GAUNTLET, places(GAUNTLET));
+    const drawn = columns(g, whole);
+    for (const loop of g.loops) {
+      const ground = drawn.prims.find((p) => p.t === "poly" && p.key === `loop:${loop.id}`) as Extract<ReturnType<typeof columns>["prims"][number], { t: "poly" }>;
+      const [x0, x1, z0, z1] = [Math.min(...ground.pts.map((v) => v[0])), Math.max(...ground.pts.map((v) => v[0])), Math.min(...ground.pts.map((v) => v[2])), Math.max(...ground.pts.map((v) => v[2]))];
+      for (const n of g.nodes) expect(drawn.node(n.id)[0] > x0 && drawn.node(n.id)[0] < x1 && drawn.node(n.id)[2] > z0 && drawn.node(n.id)[2] < z1, `${loop.id} ${n.id}`).toBe(loop.members.includes(n.id));
+      expect(drawn.prims.filter((p) => p.t === "text" && p.text === loop.name && p.bold).map((p) => (p.t === "text" ? p.at : []))).toEqual([[x0 - 4, 0, z1]]);
+    }
+    // The tier's word: at the column's left, half way up, with a place over its top to stand at.
+    const planner = g.nodes.find((n) => n.tier && n.tier !== "unset")!;
+    const word = drawn.prims.find((p) => p.t === "text" && p.text === planner.tier && Math.abs(p.at[0] - (drawn.node(planner.id)[0] - 33)) < 0.01 && p.at[2] === drawn.node(planner.id)[2] + 18) as Extract<ReturnType<typeof columns>["prims"][number], { t: "text" }>;
+    expect([word.at[1], word.or]).toEqual([TIER[planner.tier!]! / 2, [{ at: [drawn.node(planner.id)[0], TIER[planner.tier!]! + 12, drawn.node(planner.id)[2]], align: "center" }]]);
+    // A person's step is a slab, with no tier's word: a person is on no model. The one agent among them is a column.
+    const plan = graph("fixtures/valid/a-plan-with-people.grooph.json");
+    const people = columns(modelAt(plan, places(plan)), whole).prims;
+    expect(Object.fromEntries(plan.nodes.map((n) => [n.id, lids(people, n.id).map((x) => x.slice(0, 2))]))).toEqual({ draft: [[5, "floor"]], "fact-check": [[TIER["strong"], "k-agent"]], review: [[5, "floor"]], publish: [[5, "floor"]], done: [[5, "floor"]] });
+    expect(people.flatMap((p) => (p.t === "text" && !p.bold ? [p.text] : []))).toEqual(["strong"]);
+    // In a frame a phone's width a card is its name alone; where there is room it is whole.
+    expect(columns(modelAt(GAUNTLET, places(GAUNTLET), undefined, true), whole).prims.every((p) => p.t !== "card" || p.small)).toBe(true);
+    expect(drawn.prims.some((p) => p.t === "card" && p.small)).toBe(false);
+  });
+
+  it("on a run an edge the run has not taken by the note is faint, and on a template none is", () => {
+    const m = modelAt(RUN, places(RUN), NOTES);
+    const faint = (k: number) => columns(m, at(m, k)).prims.flatMap((p) => (p.t === "line" && p.arrow && p.alpha === 0.3 ? [p.key!.slice(5)] : [])).sort();
+    expect(faint(0)).toEqual(["e-checks-fail"]);
+    expect(faint(5)).toEqual(["e-checks-critic", "e-checks-fail", "e-critic-fail", "e-critic-pass"]);
+    expect(columns(modelAt(RUN, places(RUN)), whole).prims.some((p) => p.t === "line" && p.alpha === 0.3)).toBe(false);
   });
 });
