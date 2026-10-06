@@ -114,7 +114,7 @@ describe("a recorded run", () => {
     expect(modelOf(RUN, wordy).run!.dispatches.map((d) => [d.node, d.round, d.outcome])).toEqual(model.run!.dispatches.map((d) => [d.node, d.round, d.outcome]));
   });
 
-  it("a node in a loop inside another: each loop's round is worked out from the loop's own notes and the ways back the run took, whichever loop's number the lead wrote on the node's note", () => {
+  it("a node in a loop inside another: its note's number is the inner loop's unless the run's own loop notes show the lead wrote another loop's there, and then each loop's round is worked out from the ways back the run took", () => {
     const where = (m: ReturnType<typeof modelOf>) => m.run!.dispatches.map((d) => `${d.node}@${d.loop}:${d.round}`);
     // The nested fixture's lead wrote the inner loop's round on the builder's and the tests' notes.
     const [nested, written] = runAt("run-nested");
@@ -142,6 +142,23 @@ describe("a recorded run", () => {
     }
     // A node in one loop keeps the round its note names.
     expect(where(model)).toEqual(["builder@sandwich:0", "checks@sandwich:0", "critic@sandwich:0", "builder@sandwich:1", "checks@sandwich:1", "critic@sandwich:1"]);
+    // Though the notes skip the step that sent it round, so that no way back is seen: the number is read, not
+    // worked out. One loop: the critic's fail is not noted, and the builder's second note names round 1.
+    const skip = (list: [string, string, number?, string?][]): RunNote[] => list.map(([at, outcome, round, stop], k) => ({ id: `n-${k + 1}`, run: "r", at: at.includes(":") ? at : `node:${at}`, outcome, ...(round === undefined ? {} : { round }), ...(stop ? { stop } : {}) }) as RunNote);
+    expect(where(modelOf(REVIEW, skip([["builder", "pass", 0], ["builder", "pass", 1], ["critic", "pass", 1]])))).toEqual(["builder@review:0", "builder@review:1", "critic@review:1"]);
+    // A loop inside another, written the inner way, with the tests' failing note skipped: the loop's own note agrees
+    // with its nodes' notes, so their numbers are the inner loop's and are read.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 1], ["judge", "pass", 0]])))).toEqual(["builder@grind:0", "builder@grind:1", "tests@grind:1", "judge@phases:0"]);
+    // And where the judge's way back is not seen (an outcome no edge is for), the second phase's builder, named
+    // round 0, starts Grind afresh as its note says.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "fail", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 1], ["judge", "revise", 0], ["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
+    // The same graph written the outer way, with the judge's verdict where its way back wants an outcome, so
+    // the walk sees no way back: the loop's own note says round 0 for a pass its nodes' notes call 1, the numbers
+    // are another loop's, and Grind is worked out (and stays in the round it was last seen in).
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0]]))).slice(-2)).toEqual(["builder@grind:0", "tests@grind:0"]);
+    // In such a run the outer loop's own node is in one loop, and its number is still read: the judge's second
+    // note names round 1 of Phases, though no way back of Phases was seen.
+    expect(where(modelOf(nested, skip([["builder", "pass", 0], ["tests", "pass", 0], ["loop:grind", "pass", 0], ["judge", "pass", 0], ["builder", "pass", 1], ["tests", "pass", 1], ["loop:grind", "pass", 0], ["judge", "pass", 1]]))).at(-1)).toBe("judge@phases:1");
   });
 
   it("a person's step is no dispatch: its result is not counted, in a run or in a full round, and the step is still a stop of the slider", () => {
