@@ -1,0 +1,18 @@
+# 0031 · Which models this project's own work uses, and why that is nobody else's rule
+
+**Date:** 2026-10-05 · **Status:** accepted (the owner, in the driver's chat, 2026-10-05, in the words quoted below)
+
+## Context
+
+From 2026-10-04 the project's rules said "Never Fable. Never Astra." (`AGENTS.md`, decision 0024, the driver's notes). The owner meant a narrow thing and has now said it plainly. In his words: "I don't want us to run experiments where we use a Fable or Astra in any of the loop graphs or anything else. I don't want us to do reconciliation with Fable or Astra. The reason is very simple. Those models are expensive and they're not very token efficient. So we would burn usage much faster in order to get the same results that we could get with cheaper and likely faster models for the experiments." And of everyone else: "That rule does not apply to other people who want to use our package, our product, our site, our loop graphs, anything like that. There are no restrictions about the models they use."
+
+## Decision
+
+1. **This project's own work.** Its lanes, experiments, studies, audits and reconciliation, and any run the driver starts, do not use Fable or Astra unless the owner authorizes it for that use. The word is "automatically": he may authorize it at any time, for a study that asks whether what was seen on cheaper models holds on these ones, or if they become cheaper, and the driver records the authorization where it is used. The reason is cost and tokens spent for the same result, and nothing about the models' quality.
+2. **Everyone else: no restriction at all.** grooph keeps no list of models. A person may name any model for any step of any graph, operation map or plan, by a tier map (`--models`, `GROOPH_MODELS`, `GROOPH_MODELS_CODEX`) or by a pin on a node, in the app or in the document, Fable and Astra among them; and a model helping them design a graph may suggest any model, those two included. The stock tier map (`frontier` Opus, `strong` and `fast` Sonnet for Claude Code) is a default and not a limit. A name no harness knows is the harness's to refuse when it runs, not grooph's.
+3. **Checked on 2026-10-05, by running the built command:** a tier map naming Fable for every tier, by flag and by environment variable; a node pinned to Fable in its document, which validates for export clean; Codex with GPT-6 Astra for every tier, by flag and by environment variable; and a name that exists nowhere. Each exported, exit 0, with the name written as given. Nothing in `packages/`, `apps/`, `plugins/`, the templates, the fixtures or the design skill refuses or steers away from either model; the sample bot-fleet map names GPT-6 Astra as a node's model. The only places in the repository that refuse them are this project's own experiment runners (`scripts/lib/compare-profile.mjs`, `compare-run.mjs`, `prove-pattern.mjs`), which carry out point 1 and say so.
+4. **The owner's OpenAI dot (GPT-6 Astra).** It is free this month while it hands no work to Codex or ChatGPT, and it takes no part in any experiment as a node, an operator or an agent. A job of this project's own that needs no hand-off may therefore go to it, if the owner says so. He has not; nothing is briefed to it.
+
+## Consequences
+
+`AGENTS.md`, `handoffs/DRIVER.md`, `docs/PLAN.md`, `docs/PROGRESS.md` and the fleets page say this in place of "never". Decision 0024's item 3 carries a dated note and is otherwise as signed. The Claude Code and Codex target pages say the tier maps are defaults. The experiment runners' refusal now says whose policy it is and where to find it. The design skill says a person's model choice is theirs and a suggestion of any model is allowed (the agents lane adds the sentence when it next merges `main`).

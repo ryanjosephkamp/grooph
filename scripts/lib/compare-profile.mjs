@@ -78,7 +78,7 @@ export function commandFor({ home = DEFAULT_HOME, claude, cwd, prompt, model, ef
   const at = layout(home);
   for (const [name, value] of Object.entries({ claude, cwd, prompt, model, effort, sessionId, maxBudgetUsd })) if (value === undefined || value === null || value === "") throw new Error(`commandFor needs ${name}`);
   if (!resolve(cwd).startsWith(`${at.work}/`)) throw new Error(`a session's folder must be under ${at.work}, which the profile's sandbox leaves open; ${cwd} is not`);
-  if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project never uses`);
+  if (/fable|astra/i.test(model)) throw new Error(`${model} is a model this project's experiments do not use without the owner's authorization (decision 0031)`);
   for (const path of closed) if (!resolve(path).startsWith(`${resolve(cwd)}/`)) throw new Error(`a closed path must be inside the session's folder; ${path} is not inside ${cwd}`);
   const env = {
     HOME: userHome,

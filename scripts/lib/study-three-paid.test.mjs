@@ -358,7 +358,7 @@ test("a session is refused before anything is written anywhere, and each refusal
     await assert.rejects(ask({ profileCheck: () => [{ what: "the profile is signed in", ok: false, how: "not signed in" }] }), notStarted(/the profile is signed in/));
     // No path of the harness given, and none found: the runner looks for it itself, and refuses when it is not there.
     await assert.rejects(ask({ claude: undefined, findProgram: () => findHarness(() => ({ status: 1, stdout: "" })) }), notStarted(/the harness was not found/));
-    await assert.rejects(ask({ model: "claude-fable-5-1" }), notStarted(/a model this project never uses/));
+    await assert.rejects(ask({ model: "claude-fable-5-1" }), notStarted(/a model this project's experiments do not use without the owner's authorization/));
     await assert.rejects(ask({ closed: [join(p.top, "elsewhere")] }), notStarted(/a closed path must be inside the session's folder/));
     await assert.rejects(ask({ plan: { projects: ["x"], stop_usd: 0.5 } }), notStarted(/may cost up to \$1\.00: together past the \$0\.50 at which they stop/));
     mkdirSync(join(p.at.work, "an-earlier-session"));

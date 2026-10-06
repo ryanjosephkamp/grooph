@@ -56,7 +56,7 @@ test("a session is started headless, from the profile, with nothing of the calle
   assert.ok(!env.PATH.includes(".local/bin"), "the grooph command's folder is not on the path");
   assert.equal(env.TMPDIR, join(home, "t"));
   assert.equal(env.ZDOTDIR, join(home, "profile", "no-shell-startup"));
-  assert.equal(env.ANTHROPIC_DEFAULT_FABLE_MODEL, "claude-opus-5-5", "no alias reaches a model this project never uses");
+  assert.equal(env.ANTHROPIC_DEFAULT_FABLE_MODEL, "claude-opus-5-5", "no alias reaches a model this project's experiments do not use without the owner's authorization");
   assert.ok(!("GROOPH_MODELS" in env) && !("ANTHROPIC_API_KEY" in env));
   assert.deepEqual(argv.slice(0, 3), ["/Users/someone/.local/bin/claude", "-p", "go"]);
   const flag = (name) => argv[argv.indexOf(name) + 1];
@@ -76,7 +76,7 @@ test("a session is started headless, from the profile, with nothing of the calle
 test("a session is refused a folder outside the profile's work folder, a model never used, and a missing ceiling", () => {
   assert.throws(() => ask({ cwd: "/tmp/somewhere" }), /must be under/);
   assert.throws(() => ask({ cwd: join(home, "profile") }), /must be under/);
-  assert.throws(() => ask({ model: "claude-fable-5-1" }), /never uses/);
+  assert.throws(() => ask({ model: "claude-fable-5-1" }), /do not use without the owner's authorization/);
   assert.throws(() => ask({ maxBudgetUsd: undefined }), /needs maxBudgetUsd/);
   assert.throws(() => ask({ sessionId: "" }), /needs sessionId/);
 });

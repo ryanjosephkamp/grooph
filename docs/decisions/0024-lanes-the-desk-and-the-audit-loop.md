@@ -12,7 +12,7 @@ The push of 2026-10-04 was built by one driver session, three lanes the owner st
 
 1. **A lane is a session the owner starts in the Claude app**, in this repository, in a worktree of its own. He starts it; the driver cannot. From then on the driver runs it: assigns its slice by a handoff file and a message, reads its transcript, answers its questions, reviews its pull request, and merges it or puts it on the desk (decision 0023).
 2. **At most four lanes at once**, beside the driver. The Mac also runs sessions for the owner's other projects.
-3. **Models.** Opus 5.5 by default. Sonnet 5.5 where the work is a checklist. In Codex, GPT-6.1 Sol leads and GPT-6 Luna works. **Never Fable. Never Astra.** Local sessions, not cloud.
+3. **Models.** Opus 5.5 by default. Sonnet 5.5 where the work is a checklist. In Codex, GPT-6.1 Sol leads and GPT-6 Luna works. **Never Fable. Never Astra.** Local sessions, not cloud. *Note, 2026-10-05, added after this was signed: "never" here is the owner's policy for this project's own lanes and experiments, applied unless he authorizes otherwise, and not a rule for anyone using grooph; decision 0031 says so in full.*
 4. **A lane works one slice at a time** from `handoffs/NNNN-<slug>/HANDOFF.md`, on `slice/NNNN-<slug>`, and ends with a handback and a pull request. It does not merge. It asks the driver, not the owner, unless the handoff says a question is the owner's.
 5. **Experiments.** As of 2026-10-04 the owner has lifted the spending cap on comparison runs made with Claude. Every run is still recorded before its result is used (decision 0015), and the desk shows what has been spent. A study still needs his yes to its design before it runs.
 

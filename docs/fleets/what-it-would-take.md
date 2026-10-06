@@ -52,7 +52,7 @@ Access differs by platform. Grok Bot and dots need a paid plan in the owner's na
 
 ## 4. One fact to have before deciding
 
-The vendor's page says a dot is powered by GPT-6 Astra, and its admin page says a workspace's model controls do not apply to dots. `AGENTS.md` says "Never Astra" for this project's own roles. Whether that rule reaches work handed to a dot is the owner's to say; the sample map records the model because the page states it.
+The vendor's page says a dot is powered by GPT-6 Astra, and its admin page says a workspace's model controls do not apply to dots. `AGENTS.md` keeps Fable and Astra out of this project's own lanes and experiments unless the owner authorizes them (decision 0031), and says that is not a rule for a user: a map or a graph may name any model. The owner has said a dot is an exception for jobs of this project's own, because it is free this month and takes no part in any experiment; a job for it must not hand work to Codex or ChatGPT. The sample map records the model because the page states it.
 
 ## 5. If he wants a next step
 
