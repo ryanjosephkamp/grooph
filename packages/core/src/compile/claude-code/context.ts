@@ -135,13 +135,14 @@ function resolveAgent(node: AgentNode, profile: TargetProfile, graphId: Id): Res
 function toolsFor(capabilities: readonly Capability[], profile: TargetProfile): string[] {
   const tools = new Set<string>();
   for (const capability of capabilities) {
-    for (const tool of profile.capabilityTools[capability] ?? []) tools.add(tool);
+    // A capability is the document's own word, and may be one every object answers to ("constructor").
+    for (const tool of Object.hasOwn(profile.capabilityTools, capability) ? profile.capabilityTools[capability]! : []) tools.add(tool);
   }
   return profile.toolOrder.filter((tool) => tools.has(tool));
 }
 
 const unmapped = (capabilities: readonly Capability[], profile: TargetProfile): Capability[] =>
-  capabilities.filter((capability) => profile.capabilityTools[capability] === undefined);
+  capabilities.filter((capability) => !Object.hasOwn(profile.capabilityTools, capability));
 
 /** Node ids an edge can route to, used when describing routing. */
 export const nodeLabel = (node: Node | undefined, id: Id): string =>
