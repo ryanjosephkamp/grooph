@@ -421,6 +421,38 @@ test("adopt notes, without refusing, a loop whose cap would come to count the ro
   }
 });
 
+test("adopt holds two limits swapped: the one that leads on, put ahead of the one that halts (round two of the audit)", async () => {
+  const dir = project("slice-0007-sandwich");
+  try {
+    const run = runDir(dir, "slice-0007-sandwich");
+    const target = join(dir, ".grooph", "graphs", "slice-0007-sandwich.grooph.json");
+    // The graph as the run started from it, with a budget of dispatches that leads on to the end behind its cap of
+    // five rounds and its budget of 80 turns, which both halt. A budget may come due on the pass the cap does.
+    const lead = { kind: "budget", measure: "dispatches", limit: 15, then: "done" } as const;
+    for (const file of [join(dir, ".grooph", "slice-0007-sandwich"), run]) amend(file, (doc) => void stopsOf(doc).push(lead));
+    // The run leaves it ahead of them: the first that fires wins, and at the same pass the first in the list is first.
+    amend(run, (working) => {
+      working.loops[0]!.stops = [stopsOf(working)[0]!, lead, ...stopsOf(working).slice(1, -1)];
+    });
+    const before = tree(dir);
+    const refused = capture();
+    assert.equal(await grooph(["adopt", run, "--write"], refused), 1);
+    assert.match(text(refused.stderr), /not written: the working copy loosens a brake/);
+    assert.match(text(refused.stdout), /loop:sandwich\.stops +the budget of 15 dispatches that leads on to "done" could fire on the same pass as the round cap of 5 that halts the run, and it comes first in the loop's stops/);
+    assert.doesNotMatch(text(refused.stdout), /tightens a brake/);
+    assert.deepEqual(tree(dir), before);
+    assert.equal(existsSync(target), false);
+    // Asked for by name it is adopted; and nothing calls it a tightening.
+    const allowed = capture();
+    assert.equal(await grooph(["adopt", run, "--write", "--allow", "loop:sandwich.stops"], allowed), 0);
+    assert.match(text(allowed.stdout), /could fire on the same pass as the round cap of 5 that halts the run, and it comes first in the loop's stops {3}\(asked for by name\)/);
+    assert.doesNotMatch(text(allowed.stdout), /tightens a brake/);
+    assert.deepEqual(stopsOf(readGraph(target)).map((stop) => stop.kind), ["bar-passed", "budget", "max-iterations", "budget"]);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("adopt takes a working copy that tightens a brake, and says which", async () => {
   const dir = project("slice-0007-sandwich");
   try {
@@ -496,7 +528,8 @@ test("A-019: the audit lane's two check cases, and the two its reader got throug
     ["the loop given a bar and a stop on it", (w) => {
       w.loops[0]!.bar = { name: "Builder says so", inspects: [{ kind: "file", ref: "CHANGES.md" }], acceptance: "CHANGES.md says the change is made." };
       w.loops[0]!.stops.unshift({ kind: "bar-passed", then: "done" });
-    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
+      // (Held twice over since stops are compared as a run fires them: no critic of the loop's gives that verdict.)
+    }, ["loop:grind.stops", "loop:grind.bar"], /loop:grind\.stops +the stop on "bar passed" that leads on to "done" could fire before the round cap of 5 that halts the run; a stop of the loop would lead on to "done", a way that does not pass the check "tests"/],
     // The driver's reader: the check under another id, with a bar put round it. One name is held, its line shows
     // the check that comes in, and the bar is listed by name as not judged, where it was printed as a tightening.
     ["the check under another id, with a bar given to its loop", (w) => {

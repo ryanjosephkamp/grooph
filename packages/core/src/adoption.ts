@@ -139,7 +139,9 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
   const swapped = loosened.some((loss) => loss.swap);
   if (swapped) lay(undone.map((loss) => (loss.swap ? { ...loss, why: loss.swap } : loss)), "unjudged", false);
   else {
-    lay(undone.filter((loss) => !loss.gain), "tightens", false);
+    // Nor is a stop that leads on, new to the loop or set to fire sooner: undoing it would remove or raise a round
+    // cap or a budget, and the run would only come later to where that stop leads. It is named and given no word.
+    lay(undone.filter((loss) => !loss.gain && !loss.leads), "tightens", false);
     // An answer a gate did not give, a step marked irreversible that the graph did not have: undoing either would
     // take an answer or a mark away, which is how it comes to be named here, and neither tightens anything the
     // graph had. A new answer may be a way to say no or a way on; a new irreversible step is a thing a run could
