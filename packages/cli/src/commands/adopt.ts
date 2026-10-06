@@ -23,7 +23,8 @@ write. Nothing is written without --write; the source the package placed is neve
 
 A run may tighten a brake and never loosen one: a human gate, an approval, an irreversible
 marker, a round cap, a budget, the stop where a person is asked, a bar's acceptance, critic
-isolation, the adaptation level. The working copy is compared with the source on the whole
+isolation, a check (what it runs, what counts as a pass, where its verdicts lead), the
+adaptation level. The working copy is compared with the source on the whole
 graph, as a subgrooph's refresh is (grooph sub --help). A change that loosens one is listed
 with its reasons, and --write is refused until each is asked for with --allow; one that
 tightens is adopted with the rest, and said. A way round a loop that a person newly opens
@@ -111,6 +112,17 @@ export function adoptCommand(io: Output, dir: string, flags: { into?: string; al
     io.out("");
     io.out(check.refused.length > 0 ? "tightens a brake:" : "tightens a brake, and is adopted with the rest:");
     for (const change of tighter) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.tightens}`);
+  }
+  // Changed where undoing it would lose a brake, and still not called a tightening: a check is removed in this copy.
+  const unjudged = check.changes.filter((change) => change.unjudged !== undefined && change.loosens === undefined);
+  if (unjudged.length > 0) {
+    io.out("");
+    io.out(
+      check.swapped
+        ? "not judged: with a check removed in this copy, no change is called a tightening. If the check that comes in is the same one under another id, these may be built around it:"
+        : "not judged: an answer a gate did not give, or a step marked irreversible that the graph did not have, lets a person or a run do what it could not before. It is named here and not called a tightening:",
+    );
+    for (const change of unjudged) io.out(`  ${change.name.padEnd(width)}undoing it: ${change.unjudged}`);
   }
   for (const notice of check.notices) {
     io.out("");

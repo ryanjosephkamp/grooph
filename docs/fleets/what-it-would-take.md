@@ -38,7 +38,7 @@ A package is the contract of [`graph-ir.md` §5](../graph-ir.md#5-package-contra
 
 **A fleet is not a graph.** Several lasting bots with standing jobs, messaging as peers, is what an operation map draws, and a map is never compiled (amendment A-011). Compiling a fleet, as opposed to compiling one bot's session with its helpers, would be a new kind of output and needs an amendment before a design.
 
-**The second target is not on `main` yet.** The Codex target is still in its pull request. A third before the second is the owner's call.
+**The second target has not been run.** The Codex target compiles and is tested against golden packages; no run of a package in Codex is on record yet. A third before the second has been run is the owner's call.
 
 ## 3. What cannot be proved without access
 
@@ -52,7 +52,7 @@ Access differs by platform. Grok Bot and dots need a paid plan in the owner's na
 
 ## 4. One fact to have before deciding
 
-The vendor's page says a dot is powered by GPT-6 Astra, and its admin page says a workspace's model controls do not apply to dots. `AGENTS.md` says "Never Astra" for this project's own roles. Whether that rule reaches work handed to a dot is the owner's to say; the sample map records the model because the page states it.
+The vendor's page says a dot is powered by GPT-6 Astra, and its admin page says a workspace's model controls do not apply to dots. `AGENTS.md` keeps Fable and Astra out of this project's own lanes and experiments unless the owner authorizes them (decision 0031), and says that is not a rule for a user: a map or a graph may name any model. The owner has said a dot takes no part in any experiment and is free this month while it hands no work to Codex or ChatGPT, so a job of this project's own that needs no such hand-off may go to it if he says so; he has not. The sample map records the model because the page states it.
 
 ## 5. If he wants a next step
 

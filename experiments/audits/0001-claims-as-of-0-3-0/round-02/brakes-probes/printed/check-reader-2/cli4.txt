@@ -1,0 +1,124 @@
+
+## adopt: A a critic from elsewhere listed in the check's loop, a bar, a stop on bar passed [debate-then-build]
+  exit 1, written: false
+  | Run 20261005-120000 · Debate then build: what it changed in its working copy
+  |   Changed the members, stops and bar of loop Build (build)  ← no amendment note explains this
+  | version 2 of debate-then-build, from debate-then-build@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt1/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:build.stops
+  |   loop:build.stops    adds a stop on "bar passed" to the loop "build", which the check "tests" judges with no critic: a way out that does not pass the check
+  |   loop:build.bar      gives the loop "build", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt1/.grooph/debate-then-build/runs/20261005-120000 --into <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt1/adopted.grooph
+  | tightens a brake:
+  |   loop:build.members  undoing it: the loop "build" would no longer bound "judge", which is still in the graph
+  | grooph: not written: the working copy loosens a brake the graph has (loop:build.stops, loop:build.bar, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt: A' the same as a new loop over the same round [debate-then-build]
+  exit 1, written: false
+  | Run 20261005-120000 · Debate then build: what it changed in its working copy
+  |   Added loop Build 2 (build-2)  ← no amendment note explains this
+  | version 2 of debate-then-build, from debate-then-build@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt2/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:build-2
+  |   loop:build-2  gives the new loop "build-2", around the check "tests", a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check; adds a stop on "bar passed" to the new loop "build-2", around the check "tests": a way out that does not pass the check
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt2/.grooph/debate-then-build/runs/20261005-120000 --into <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt2/adopted.grooph
+  | grooph: not written: the working copy loosens a brake the graph has (loop:build-2, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt: B evidence on the check's fail edge replaced, its target made a critic [grind-loop]
+  exit 1, written: false
+  | Run 20261005-120000 · Grind loop: what it changed in its working copy
+  |   Changed the role of Builder (builder)  ← no amendment note explains this
+  |   Changed the evidence of edge Tests → Builder (e-tests-fail)  ← no amendment note explains this
+  | version 2 of grind-loop, from grind-loop@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt3/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-tests-fail.evidence
+  |   edge:e-tests-fail.evidence  changes "e-tests-fail", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price o
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt3/.grooph/grind-loop/runs/20261005-120000 --into <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt3/adopted.grooph.json -
+  | tightens a brake:
+  |   node:builder.role           undoing it: a critic is given another role
+  | grooph: not written: the working copy loosens a brake the graph has (edge:e-tests-fail.evidence, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt: B' evidence on the check's pass edge replaced, its target made a critic [retrospective-rewrite]
+  exit 1, written: false
+  | Run 20261005-120000 · Retrospective rewrite: what it changed in its working copy
+  |   Changed the role of Retrospective (retro)  ← no amendment note explains this
+  |   Changed the evidence of edge Tests → Retrospective (e-tests-retro)  ← no amendment note explains this
+  | version 2 of retrospective-rewrite, from retrospective-rewrite@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt4/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow edge:e-tests-retro.evidence
+  |   edge:e-tests-retro.evidence  changes "e-tests-retro", an edge that leaves the check "tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt4/.grooph/retrospective-rewrite/runs/20261005-120000 --into <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt4/adopted.gr
+  | tightens a brake:
+  |   node:retro.role              undoing it: a critic is given another role
+  | grooph: not written: the working copy loosens a brake the graph has (edge:e-tests-retro.evidence, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## adopt: control: bar and stop with no critic borrowed [debate-then-build]
+  exit 1, written: false
+  | Run 20261005-120000 · Debate then build: what it changed in its working copy
+  |   Changed the stops and bar of loop Build (build)  ← no amendment note explains this
+  | version 2 of debate-then-build, from debate-then-build@1 and run 20261005-120000, would go to <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt5/adopted.grooph.json
+  | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:build.stops
+  |   loop:build.stops  adds a stop on "bar passed" to the loop "build", which the check "tests" judges with no critic: a way out that does not pass the check
+  |   loop:build.bar    gives the loop "build", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  |   all of them, on purpose: grooph adopt <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt5/.grooph/debate-then-build/runs/20261005-120000 --into <tmp>/grooph-brakes-probes/check-reader-2/cli/adopt5/adopted.grooph
+  | grooph: not written: the working copy loosens a brake the graph has (loop:build.stops, loop:build.bar, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+## refresh (core): A [debate-then-build]
+  placed valid: true; changes: loop:q-build.stops, loop:q-build.bar, loop:q-build.members
+  held: loop:q-build.stops: adds a stop on "bar passed" to the loop "q-build", which the check "q-tests" judges with no critic: a way out that does not pass the check | loop:q-build.bar: gives the loop "q-build", which the check "q-tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  result valid: true
+  command: exit 0; file changed: true; valid: true
+  | q  debate-then-build@1 → debate-then-build@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-build.stops
+  |     loop:q-build.stops    adds a stop on "bar passed" to the loop "q-build", which the check "q-tests" judges with no critic: a way out that does not pass the check
+  |     loop:q-build.bar      gives the loop "q-build", which the check "q-tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  |   the rest:
+  |     loop:q-build.members  loop "q-build": members changes from ["q-builder","q-tests"] to ["q-builder","q-tests","q-judge"]
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  written loop q-debate: members q-planner-a,q-planner-b,q-judge; bar "Each case answers the other's strongest point, and the judge has written PLAN.md."; stops bar-passed|max-iterations>q-judge|budget
+  written loop q-build: members q-builder,q-tests,q-judge; bar -; stops max-iterations|budget
+  written edge q-e-tests-fail: q-tests->q-builder "fail" ev=["test output"]
+  written edge e-q-tests-release: q-tests->release "pass" ev=undefined
+
+## refresh (core): B [grind-loop]
+  placed valid: true; changes: edge:q-e-tests-fail.evidence, node:q-builder.role
+  held: edge:q-e-tests-fail.evidence: changes "q-e-tests-fail", an edge that leaves the check "q-tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply
+  result valid: true
+  command: exit 0; file changed: true; valid: true
+  | q  grind-loop@1 → grind-loop@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow edge:q-e-tests-fail.evidence
+  |     edge:q-e-tests-fail.evidence  changes "q-e-tests-fail", an edge that leaves the check "q-tests" (evidence): a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the
+  |   the rest:
+  |     node:q-builder.role           node "q-builder": role changes from builder to critic
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  written loop q-grind: members q-builder,q-tests; bar -; stops max-iterations|budget
+  written edge q-e-tests-fail: q-tests->q-builder "fail" ev=["test output"]
+  written edge e-q-tests-release: q-tests->release "pass" ev=undefined
+
+## refresh (core): control: check made true [grind-loop]
+  placed valid: true; changes: node:q-tests.check
+  held: node:q-tests.check: changes the check's definition (run): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  result valid: true
+  command: exit 0; file changed: true; valid: true
+  | q  grind-loop@1 → grind-loop@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow node:q-tests.check
+  |     node:q-tests.check  changes the check's definition (run): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  written loop q-grind: members q-builder,q-tests; bar -; stops max-iterations|budget
+  written edge q-e-tests-fail: q-tests->q-builder "fail" ev=["test output"]
+  written edge e-q-tests-release: q-tests->release "pass" ev=undefined
+
+## refresh (core): control: bar, no critic borrowed [debate-then-build]
+  placed valid: true; changes: loop:q-build.stops, loop:q-build.bar
+  held: loop:q-build.stops: adds a stop on "bar passed" to the loop "q-build", which the check "q-tests" judges with no critic: a way out that does not pass the check | loop:q-build.bar: gives the loop "q-build", which the check "q-tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  result valid: true
+  command: exit 0; file changed: true; valid: true
+  | q  debate-then-build@1 → debate-then-build@2 (project)
+  |   held back: each removes or loosens a brake. Apply one by its name: --allow loop:q-build.stops
+  |     loop:q-build.stops  adds a stop on "bar passed" to the loop "q-build", which the check "q-tests" judges with no critic: a way out that does not pass the check
+  |     loop:q-build.bar    gives the loop "q-build", which the check "q-tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check
+  | host.grooph.json: no issues
+  | wrote host.grooph.json
+  written loop q-debate: members q-planner-a,q-planner-b,q-judge; bar "Each case answers the other's strongest point, and the judge has written PLAN.md."; stops bar-passed|max-iterations>q-judge|budget
+  written loop q-build: members q-builder,q-tests; bar -; stops max-iterations|budget
+  written edge q-e-tests-fail: q-tests->q-builder "fail" ev=["test output"]
+  written edge e-q-tests-release: q-tests->release "pass" ev=undefined

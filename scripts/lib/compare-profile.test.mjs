@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { commandFor, FLAGS, instructionsAbove, layout, SESSION_PATH, settingsFor, userTemp } from "./compare-profile.mjs";
+import { check, commandFor, FLAGS, instructionsAbove, layout, SESSION_PATH, settingsFor, userTemp } from "./compare-profile.mjs";
 
 const home = "/Users/someone/grooph-compare";
 
@@ -39,7 +39,7 @@ test("the settings close what the game's profile closes, open no network, and wa
   assert.equal(settings.sandbox.allowUnsandboxedCommands, false);
   assert.deepEqual(settings.sandbox.network.allowedDomains, []);
   assert.equal(settings.sandbox.network.strictAllowlist, true);
-  assert.deepEqual(settings.sandbox.filesystem.denyRead, ["/tmp", "/private/tmp", "/var/folders/pv/abc123", "/private/var/folders/pv/abc123"]);
+  assert.deepEqual(settings.sandbox.filesystem.denyRead, ["/tmp", "/private/tmp", "/var/folders/pv/abc123", "/private/var/folders/pv/abc123", join(home, "kept"), join(home, "profile", "projects")], "the temp folders, and where earlier sessions' folders and transcripts are");
   assert.deepEqual(settings.sandbox.filesystem.denyWrite, ["/Users/someone/grooph-compare/work/x/rounds/check"]);
   assert.deepEqual(settings.sandbox.filesystem.allowWrite, [join(home, "npm-cache")]);
   assert.equal(settings.autoMemoryEnabled, false);
@@ -56,7 +56,7 @@ test("a session is started headless, from the profile, with nothing of the calle
   assert.ok(!env.PATH.includes(".local/bin"), "the grooph command's folder is not on the path");
   assert.equal(env.TMPDIR, join(home, "t"));
   assert.equal(env.ZDOTDIR, join(home, "profile", "no-shell-startup"));
-  assert.equal(env.ANTHROPIC_DEFAULT_FABLE_MODEL, "claude-opus-5-5", "no alias reaches a model this project never uses");
+  assert.equal(env.ANTHROPIC_DEFAULT_FABLE_MODEL, "claude-opus-5-5", "no alias reaches a model this project's experiments do not use without the owner's authorization");
   assert.ok(!("GROOPH_MODELS" in env) && !("ANTHROPIC_API_KEY" in env));
   assert.deepEqual(argv.slice(0, 3), ["/Users/someone/.local/bin/claude", "-p", "go"]);
   const flag = (name) => argv[argv.indexOf(name) + 1];
@@ -76,7 +76,7 @@ test("a session is started headless, from the profile, with nothing of the calle
 test("a session is refused a folder outside the profile's work folder, a model never used, and a missing ceiling", () => {
   assert.throws(() => ask({ cwd: "/tmp/somewhere" }), /must be under/);
   assert.throws(() => ask({ cwd: join(home, "profile") }), /must be under/);
-  assert.throws(() => ask({ model: "claude-fable-5-1" }), /never uses/);
+  assert.throws(() => ask({ model: "claude-fable-5-1" }), /do not use without the owner's authorization/);
   assert.throws(() => ask({ maxBudgetUsd: undefined }), /needs maxBudgetUsd/);
   assert.throws(() => ask({ sessionId: "" }), /needs sessionId/);
 });
@@ -116,5 +116,26 @@ test("--home with no folder after it does nothing, and says so", () => {
     const run = spawnSync(process.execPath, [script, ...args], { encoding: "utf8" });
     assert.equal(run.status, 64, args.join(" "));
     assert.match(run.stderr, /--home needs a folder after it\. Nothing was done\./);
+  }
+});
+
+test("npm settings a session left in the profile's npm cache are seen by the check, and the folders the settings close are made", () => {
+  const top = mkdtempSync(join(tmpdir(), "npmrc-"));
+  const made = join(top, "home");
+  try {
+    const out = spawnSync(process.execPath, [join(dirname(fileURLToPath(import.meta.url)), "compare-profile.mjs"), "--make", "--home", made], { encoding: "utf8" });
+    assert.equal(out.status, 0, out.stderr);
+    const at = layout(made);
+    // Every path the settings close to a session's commands is there before any session is: no rule names a folder that is not.
+    for (const closed of settingsFor({ home: made }).sandbox.filesystem.denyRead.filter((path) => path.startsWith(`${made}/`))) assert.ok(spawnSync("test", ["-d", closed]).status === 0, closed);
+    const line = () => check({ home: made, claude: null }).find((entry) => entry.what === "no npm settings were left in its npm cache");
+    assert.deepEqual([line().ok, line().how], [true, "none"]);
+    // npm reads its settings from this file, and every session may write the folder it is in.
+    writeFileSync(join(at.cache, "npmrc"), "script-shell=/tmp/a-program-of-an-earlier-session\n", "utf8");
+    assert.equal(line().ok, false);
+    assert.match(line().how, /an earlier session wrote npm's settings there, and the next would read them/);
+    assert.equal(settingsFor({ home: made }).env.npm_config_userconfig, join(at.cache, "npmrc"), "the file the check looks for is the one the settings name");
+  } finally {
+    rmSync(top, { recursive: true, force: true });
   }
 });

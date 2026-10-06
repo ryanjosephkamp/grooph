@@ -22,9 +22,17 @@
  *   continues inside it.
  * - **Critics.** Each critic, what each node hands it and in what context, and what a run reaches or how it ends
  *   without its verdict; the policies that say so.
+ * - **Checks** (amendment A-019). Each check, its definition, every edge that leaves it, and what a run reaches or
+ *   how it ends without its verdict, as for a critic. Any change to the definition is a loss: a program cannot tell
+ *   which way it goes. So is any change to an edge that leaves it, but for the two that can only tighten: an
+ *   approval newly asked on the edge, and more evidence handed along it to a critic the graph had there. Its verdict
+ *   is asked a second time without the brakes that already fired into where they led, so that a cap which already
+ *   leads on to what the pass led to does not hide a new way there. And a loop that a check judges, with no critic among the members it
+ *   had, is given no bar and no "bar passed" stop, nor is a new loop around a check: either is a way out that does
+ *   not pass the check.
  *
- * Three readers were asked, one after another, to break this as a refresh, and two more as an adoption, and each
- * found what the one before had not: this list is what a brake has been found to be, not a proof that nothing is
+ * Three readers were asked, one after another, to break this as a refresh, two more as an adoption, and three more
+ * on a check, and each found what the one before had not: this list is what a brake has been found to be, not a proof that nothing is
  * missing from it.
  *
  * Pure. Each loss names the changes it may be laid at, as `refreshSubgrooph` names a change: `node:<id>`,
@@ -40,9 +48,30 @@ export type Loss = {
   why: string;
   /** the changes that may have done it, most likely first; when none of them is a change that was made, any change may have */
   at: string[];
+  /** held whichever way the change goes (an edge that leaves a check): no sign that undoing it would loosen anything */
+  either?: true;
+  /**
+   * A check goes, removed or made another kind of node, while a check the graph has not comes in: it may be one
+   * check under two ids, so the arrival is no sign of a tightening. Holds the line without what comes in, which is
+   * what it says read the other way round (there the check that went would be told as the one coming in).
+   */
+  swap?: string;
+  /**
+   * Read the other way round, as what undoing a change would lose, this speaks of something the change brings in
+   * that lets a run or a person do what it could not before: an answer a gate did not give, a step marked
+   * irreversible that the graph did not have. Undoing it would take that away, and it tightens nothing.
+   */
+  gain?: true;
 };
 
 const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Whether a reason is already among those a change carries, which are kept as one line joined by "; ". Asked of the
+ * line and not of its pieces: a reason can itself hold "; " (a command quoted in it: `npm test; true`).
+ */
+export const saidOf = (reasons: string | undefined, why: string): boolean =>
+  reasons !== undefined && (reasons === why || reasons.startsWith(`${why}; `) || reasons.endsWith(`; ${why}`) || reasons.includes(`; ${why}; `));
 const quote = (list: readonly string[]): string => list.map((item) => `"${item}"`).join(", ");
 const markers = (node: Node | undefined): string[] => (node?.kind === "agent" ? (node.irreversible ?? []) : []);
 
@@ -312,13 +341,43 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
       else if (kept.kind !== "human-gate") losses.push({ why: "a human gate becomes another kind of node", at: [`node:${node.id}.kind`] });
       else {
         const lost = (node.options ?? []).filter((option) => !(kept.options ?? []).includes(option));
-        if (lost.length > 0) losses.push({ why: `the gate would no longer offer ${quote(lost)}`, at: [`node:${node.id}.options`] });
+        if (lost.length > 0) losses.push({ why: `the gate would no longer offer ${quote(lost)}`, at: [`node:${node.id}.options`], gain: true });
       }
     }
     if (markers(node).length > 0) {
       const lost = markers(node).filter((marker) => !markers(kept).includes(marker));
-      if (!kept) losses.push({ why: `removes a node marked irreversible (${markers(node).join(", ")}): what takes its place carries no such mark unless it is given one`, at: [`node:${node.id}`] });
+      if (!kept) losses.push({ why: `removes a node marked irreversible (${markers(node).join(", ")}): what takes its place carries no such mark unless it is given one`, at: [`node:${node.id}`], gain: true });
       else if (lost.length > 0) losses.push({ why: `removes the irreversible marker ${quote(lost)}`, at: [`node:${node.id}.irreversible`, `node:${node.id}.kind`] });
+    }
+    // A check (amendment A-019): the node, its kind, and its definition. A program cannot tell a stricter command
+    // from a looser one, so any change to what it runs or what counts as a pass is one a person is asked about.
+    // A stop that halts, made to end in success (the dated clause of amendment A-019): what led there to stop the
+    // run, a failing verdict, a cap, an answer, would now end it well. Held wherever the stop stands.
+    if (node.kind === "stop" && node.outcome === "halt" && kept?.kind === "stop" && succeeds(kept)) {
+      losses.push({ why: `the stop "${node.id}" would end in success where it halted: what led there to stop the run would now end it well`, at: [`node:${node.id}.outcome`] });
+    }
+    if (node.kind === "check") {
+      // Removed, or made another kind of node, while a check the graph has not comes in: it may be this check under
+      // another id, and the name that allows it then allows whatever was done to the check on the way. The line shows
+      // what comes in, and says so. (The id kept by a step of another kind, with a new check taking its edges, is the
+      // same swap as the id given away: a reader got that one printed with the arrival as a tightening.)
+      const come = after.nodes.filter((other): other is Extract<Node, { kind: "check" }> => other.kind === "check" && nodeWas.get(other.id)?.kind !== "check");
+      const shown = come
+        .map((other) => `"${other.id}": ${other.check.run === undefined ? `of kind "${other.check.kind}"` : `runs ${JSON.stringify(other.check.run)}`}, passes on ${JSON.stringify(other.check.pass)}${other.check.threshold === undefined ? "" : `, threshold ${other.check.threshold}`}`)
+        .join(", and ");
+      const arrival = `while ${come.length === 1 ? "a check" : "checks"} the graph has not ${come.length === 1 ? "comes" : "come"} in (${shown}): if that is this check under another id, allowing this`;
+      if (!kept && come.length > 0) {
+        losses.push({ why: `removes a check, ${arrival} name allows every change made to it and every way round it`, at: [`node:${node.id}`], swap: "removes a check" });
+      } else if (!kept) losses.push({ why: "removes a check", at: [`node:${node.id}`] });
+      else if (kept.kind !== "check" && come.length > 0) {
+        losses.push({ why: `a check becomes another kind of node, ${arrival} change allows every change made to it and every way round it`, at: [`node:${node.id}.kind`, `node:${node.id}.check`], swap: "a check becomes another kind of node" });
+      } else if (kept.kind !== "check") losses.push({ why: "a check becomes another kind of node", at: [`node:${node.id}.kind`, `node:${node.id}.check`] });
+      else {
+        // Key by key, so that the order they are written in is no change, and a key the schema does not know is named.
+        const [was, now] = [node.check as Record<string, unknown>, kept.check as Record<string, unknown>];
+        const parts = [...new Set([...Object.keys(was), ...Object.keys(now)])].filter((part) => !same(was[part], now[part]));
+        if (parts.length > 0) losses.push({ why: `changes the check's definition (${parts.join(", ")}): what it runs and what counts as a pass may be tightened and not loosened, and a program cannot tell which this is`, at: [`node:${node.id}.check`] });
+      }
     }
     if (isCriticFamily(node)) {
       if (!kept) losses.push({ why: "removes a critic", at: [`node:${node.id}`] });
@@ -363,7 +422,7 @@ function ownLosses(before: Graph, after: Graph): Loss[] {
     // An answer the gate gave that no edge takes any more.
     if (from?.kind === "human-gate" && nodeNow.get(edge.from)?.kind === "human-gate" && !after.edges.some((other) => other.from === edge.from && whenOf(other) === whenOf(edge))) {
       // Laid at the edge, or at the node it led to when it goes with that node.
-      losses.push({ why: `"${whenOf(edge)}" at the human gate "${edge.from}" would lead nowhere`, at: [`edge:${edge.id}`, `edge:${edge.id}.from`, `edge:${edge.id}.when`, `node:${edge.to}`] });
+      losses.push({ why: `"${whenOf(edge)}" at the human gate "${edge.from}" would lead nowhere`, at: [`edge:${edge.id}`, `edge:${edge.id}.from`, `edge:${edge.id}.when`, `node:${edge.to}`], gain: true });
     }
     if (!kept || whenOf(kept) === whenOf(edge)) continue;
     if (edge.approval === true || from?.kind === "human-gate") losses.push({ why: "changes what a person's answer leads to", at: [`edge:${edge.id}.when`] });
@@ -419,7 +478,7 @@ function reachLosses(before: Graph, after: Graph): { losses: Loss[]; later: Loss
   const backWas = new Set(before.loops.flatMap((loop) => loop.back));
   const ways = waysOf(after);
   const waysWas = waysOf(before);
-  const replaced = new Set<Id>();
+  const replaced = new Set<string>();
   // A way around a gate is a way around a person, and is said once: as the widest decision it goes around. A way
   // around a critic is another matter, and is said as well.
   const told = new Set<string>();
@@ -440,11 +499,14 @@ function reachLosses(before: Graph, after: Graph): { losses: Loss[]; later: Loss
     const past = `that does not pass ${decisionName(closed)}`;
 
     // A step that was behind the decision goes, and a step comes in that is not behind it: it may be the same step.
-    const gone = before.nodes.filter((node) => !still.has(node.id) && !was.has(node.id) && !replaced.has(node.id));
+    // (Said once for a node under the people's decisions, and once under each critic's or check's: a step that was
+    // behind a critic and a check names both.)
+    const whose = `${closed !== "every" && "critic" in closed ? closed.critic : ""}\n`;
+    const gone = before.nodes.filter((node) => !still.has(node.id) && !was.has(node.id) && !replaced.has(whose + node.id));
     const come = after.nodes.filter((node) => !known.has(node.id) && reached.has(node.id));
     if (come.length > 0) {
       for (const node of gone) {
-        replaced.add(node.id);
+        replaced.add(whose + node.id);
         losses.push({ why: `removes "${node.id}", which a run reached only by passing ${decisionName(closed)}, while ${quote(come.map((n) => n.id))} would come in with no such need: it may be the same step under another name`, at: [`node:${node.id}`] });
       }
     }
@@ -528,14 +590,26 @@ function reachLosses(before: Graph, after: Graph): { losses: Loss[]; later: Loss
     // comes to end in success, or by an edge to either. No node need be newly reached for that.
     // (Asked of a whole decision, not of one answer: a run that ends well by a gate's "approve" has not gone around
     // its "reject".)
-    const endWas = whole ? endsFrom(before, waysWas, closed) : new Set<Id>();
-    const endNow = whole ? endsFrom(after, ways, closed) : new Set<Id>();
+    // And asked of one answer where that answer is a verdict's "pass", a critic's or a check's: a run that comes to
+    // end in success on another verdict has not passed. (Under the whole verdict every edge the judge has is shut,
+    // so a failing verdict led to a stop that ends in success, one the run adds, one the graph had, or a step made
+    // one, showed nothing.) A gate's answers are all the person's, and are not asked one by one.
+    // A judge with no verdict written "pass" and more than one word of its own (a critic that says "clean" or
+    // "finding") is asked of each word it has: a program cannot tell which of them is the good one.
+    const words = typeof closed === "object" && "critic" in closed && closed.when !== undefined ? new Set(before.edges.filter((edge) => edge.from === closed.critic).map(whenOf)) : new Set<string>();
+    const worded = words.size > 1 && !words.has("pass");
+    const ends = whole || worded || (typeof closed === "object" && "critic" in closed && closed.when === "pass");
+    const endWas = ends ? endsFrom(before, waysWas, closed) : new Set<Id>();
+    const endNow = ends ? endsFrom(after, ways, closed) : new Set<Id>();
     const freed = new Set(after.nodes.filter((node) => node.kind !== "stop" && known.has(node.id) && !endWas.has(node.id) && endNow.has(node.id)).map((node) => node.id));
     for (const way of freed.size > 0 ? ways : []) {
       if (shut(way, closed) || !freed.has(way.from) || !endNow.has(way.to)) continue;
       const at = changeOf(way);
-      // Said once for a change: where the way into a node has been named above, the way on from it is the same loss.
-      if (at && ![...told].some((key) => key.endsWith(`\n${at.join(" ")}`))) say(`ends ${way.to}`, { why: `adds a way from "${way.from}" to end in success ${past}`, at });
+      // Said once for a change under one decision: where the way into a node has been named above, the way on from
+      // it is the same loss. Another decision's reason at the same change is its own, and is said as well: a way that
+      // goes round a check and a critic names both.
+      const mine = `${closed !== "every" && "critic" in closed ? closed.critic : ""}\n`;
+      if (at && ![...told].some((key) => key.startsWith(mine) && key.endsWith(`\n${at.join(" ")}`))) say(`ends ${way.to}`, { why: `adds a way from "${way.from}" to end in success ${past}`, at });
       else if (at) named += 1;
     }
     const succeededWas = new Set(before.nodes.filter(succeeds).map((node) => node.id));
@@ -581,8 +655,107 @@ export function roundsLeftToAPerson(before: Graph, after: Graph): string[] {
   return notes;
 }
 
+/**
+ * The edges that leave a check, changed, added or removed (amendment A-019): where a check's verdicts lead is a brake,
+ * and a program cannot tell which way a change to it goes. One loss for each name, so that each can be judged, and
+ * asked for, by itself.
+ */
+function checkEdgeLosses(before: Graph, after: Graph): Loss[] {
+  const losses: Loss[] = [];
+  // Said on every such line, so that nobody who tightened one thinks they did something wrong.
+  const either = "a program cannot tell which way this goes, so it is held either way, and an honest change (a gate put behind the check's pass, more evidence handed to a builder) costs one --allow too, the price of a rule a program can apply";
+  const stays = new Set(before.nodes.filter((node) => node.kind === "check" && after.nodes.some((other) => other.id === node.id && other.kind === "check")).map((node) => node.id));
+  const still = new Set(after.nodes.map((node) => node.id));
+  const edgeWas = new Map(before.edges.map((edge) => [edge.id, edge]));
+  const edgeNow = new Map(after.edges.map((edge) => [edge.id, edge]));
+  for (const edge of before.edges) {
+    if (!stays.has(edge.from)) continue;
+    const kept = edgeNow.get(edge.id) as Record<string, unknown> | undefined;
+    if (!kept) {
+      losses.push({ why: `removes "${edge.id}", an edge that leaves the check "${edge.from}": ${either}`, at: [still.has(edge.to) ? `edge:${edge.id}` : `node:${edge.to}`], either: true });
+      continue;
+    }
+    for (const field of new Set([...Object.keys(edge), ...Object.keys(kept)])) {
+      // (`when: "pass"` and `when: { verdict: "pass" }` are one condition written two ways.)
+      const changed = field === "when" ? whenOf(edge) !== whenOf(kept as Edge) : !same((edge as Record<string, unknown>)[field], kept[field]);
+      if (field !== "id" && changed) losses.push({ why: `changes "${edge.id}", an edge that leaves the check "${edge.from}" (${field}): ${either}`, at: [`edge:${edge.id}.${field}`], either: true });
+    }
+  }
+  for (const edge of after.edges) {
+    if (!stays.has(edge.from)) continue;
+    const old = edgeWas.get(edge.id);
+    if (!old) losses.push({ why: `adds "${edge.id}", an edge that leaves the check "${edge.from}": ${either}`, at: [`edge:${edge.id}`], either: true });
+    else if (old.from !== edge.from) losses.push({ why: `moves "${edge.id}" to leave the check "${edge.from}": ${either}`, at: [`edge:${edge.id}.from`], either: true });
+  }
+  return losses;
+}
+
+/**
+ * A loop that a check judges, with no critic among its members, given a bar or a stop on "bar passed" (amendment
+ * A-019, the way round a check): the lead is told to stop when the bar's words hold, and a stop on "bar passed"
+ * follows the edges the check's pass takes or leads on by itself. Either is a way out of the loop that does not
+ * pass the check. A critic the same change brings in does not make it one that does: it is no critic the graph had.
+ */
+function checkLoopLosses(before: Graph, after: Graph): Loss[] {
+  const losses: Loss[] = [];
+  const nodeWas = new Map(before.nodes.map((node) => [node.id, node]));
+  const loopWas = new Map(before.loops.map((loop) => [loop.id, loop]));
+  const passed = (loop: Loop | undefined): boolean => loop?.stops.some((stop) => stop.kind === "bar-passed") ?? false;
+  for (const loop of after.loops) {
+    const old = loopWas.get(loop.id);
+    const was = (id: Id): Node | undefined => nodeWas.get(id);
+    const checks = loop.members.filter((member) => was(member)?.kind === "check" && after.nodes.some((node) => node.id === member && node.kind === "check"));
+    // Judged by a critic already: by one among the members the loop had, who is a critic still. A critic of the
+    // graph's own named among the members now, of a kept loop or of a new one, is not that: it was never this
+    // loop's. Nor is one the same change gives another role: allowing that would let the bar ride through unnamed.
+    const critic = (id: Id): boolean => was(id) !== undefined && isCriticFamily(was(id)!) && after.nodes.some((node) => node.id === id && isCriticFamily(node));
+    const had = old?.members.some(critic) ?? false;
+    if (checks.length === 0 || had) continue;
+    const judged = old ? `the loop "${loop.id}", which the check ${quote(checks)} judges with no critic` : `the new loop "${loop.id}", around the check ${quote(checks)}`;
+    if (loop.bar !== undefined && old?.bar === undefined) losses.push({ why: `gives ${judged}, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check`, at: old ? [`loop:${loop.id}.bar`] : [`loop:${loop.id}`] });
+    if (passed(loop) && !passed(old)) losses.push({ why: `adds a stop on "bar passed" to ${judged}: a way out that does not pass the check`, at: old ? [`loop:${loop.id}.stops`] : [`loop:${loop.id}`] });
+  }
+  return losses;
+}
+
+/**
+ * The two changes to an edge that leaves a check that can only tighten (amendment A-019's exception), by the names
+ * they would be held under: an approval newly asked on the edge; and evidence the comparison already counts, which
+ * is more handed along an edge that led into a critic before and does still, with nothing that was handed taken away.
+ * Told from the two documents and not by running the comparison backwards: a reader made the edge's target a critic
+ * in the same change and replaced what it was handed, and backwards that read as a piece the critic would lose.
+ */
+function onlyTightens(before: Graph, after: Graph): Set<string> {
+  const names = new Set<string>();
+  const critic = (doc: Graph, id: Id): boolean => doc.nodes.some((node) => node.id === id && isCriticFamily(node));
+  const edgeNow = new Map(after.edges.map((edge) => [edge.id, edge]));
+  for (const edge of before.edges) {
+    const kept = edgeNow.get(edge.id);
+    if (!kept) continue;
+    if (edge.approval !== true && kept.approval === true) names.add(`edge:${edge.id}.approval`);
+    const [was, now] = [edge.evidence ?? [], kept.evidence ?? []];
+    if (kept.to === edge.to && critic(before, edge.to) && critic(after, edge.to) && was.every((piece) => now.includes(piece))) names.add(`edge:${edge.id}.evidence`);
+  }
+  return names;
+}
+
 /** Every brake `after` has lost or loosened that `before` had; empty when it has lost none. */
 export function brakesLost(before: Graph, after: Graph): Loss[] {
+  const made = [...comparison(before, after), ...checkLoopLosses(before, after)];
+  // A change to an edge that leaves a check is held. The exception is narrower than "whatever the comparison would
+  // call a tightening": the comparison names every change on a way it finds opened, which is the safe side when it
+  // holds and the unsafe side when it lets through (a failure re-pointed at a second stop that ends in success, with
+  // an approval asked beside it, read as a tightening). So only an approval newly asked and evidence that is
+  // counted pass, and only where the comparison lays no loss at that name.
+  const leaving = checkEdgeLosses(before, after);
+  if (leaving.length === 0) return made;
+  const loosens = new Set(made.flatMap((loss) => loss.at));
+  const tightens = onlyTightens(before, after);
+  return [...made, ...leaving.filter((loss) => !(tightens.has(loss.at[0]!) && !loosens.has(loss.at[0]!)))];
+}
+
+/** The comparison apart from the edges that leave a check, which are judged by running it both ways. */
+function comparison(before: Graph, after: Graph): Loss[] {
   const seen = new Set<string>();
   const reach = reachLosses(before, after);
   const first = [...ownLosses(before, after), ...loopLosses(before, after), ...reach.losses];

@@ -1,0 +1,110 @@
+{
+  "grooph": 0,
+  "id": "push-from-the-first-round",
+  "name": "Push from the first round",
+  "version": 1,
+  "goal": "Make the failing test suite pass, pushing each fix to the shared branch as it is made.",
+  "target": {
+    "harness": "claude-code"
+  },
+  "constraints": {
+    "time": "about 20 minutes"
+  },
+  "adaptation": "fixed",
+  "description": "The fixer pushes, and the only edge into it is the loop's own back edge, which asks a person. So a person is asked before every round but the first: the run starts at the fixer, and its first push has nobody before it. An entry node is reached with no human decision, whatever leads back to it.",
+  "nodes": [
+    {
+      "id": "fixer",
+      "kind": "agent",
+      "name": "Fixer",
+      "role": "builder",
+      "model": {
+        "tier": "strong"
+      },
+      "effort": "medium",
+      "brief": "Make the failing tests in tests/ pass by changing src/, then push the change to the shared branch. Do not edit the tests or skip them. Report which tests you fixed and why they failed.",
+      "inputs": [
+        "the failing test output"
+      ],
+      "outputs": [
+        "src/ changes, pushed",
+        "FIXES.md naming each test fixed and its cause"
+      ],
+      "allow": [
+        "read-files",
+        "edit-files",
+        "run-tests"
+      ],
+      "owns": [
+        "src"
+      ],
+      "irreversible": [
+        "push"
+      ]
+    },
+    {
+      "id": "suite",
+      "kind": "check",
+      "name": "Test suite",
+      "check": {
+        "kind": "tests",
+        "run": "npm test",
+        "pass": "exit code 0 and no test skipped"
+      }
+    },
+    {
+      "id": "green",
+      "kind": "stop",
+      "name": "Green",
+      "outcome": "success"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-fix-suite",
+      "from": "fixer",
+      "to": "suite"
+    },
+    {
+      "id": "e-suite-fail",
+      "from": "suite",
+      "to": "fixer",
+      "when": "fail",
+      "evidence": [
+        "test output"
+      ],
+      "approval": true
+    },
+    {
+      "id": "e-suite-pass",
+      "from": "suite",
+      "to": "green",
+      "when": "pass"
+    }
+  ],
+  "loops": [
+    {
+      "id": "fix-cycle",
+      "name": "Fix cycle",
+      "members": [
+        "fixer",
+        "suite"
+      ],
+      "back": [
+        "e-suite-fail"
+      ],
+      "mode": "grind",
+      "stops": [
+        {
+          "kind": "max-iterations",
+          "n": 5
+        },
+        {
+          "kind": "budget",
+          "measure": "minutes",
+          "limit": 20
+        }
+      ]
+    }
+  ]
+}

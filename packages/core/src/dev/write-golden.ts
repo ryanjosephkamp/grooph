@@ -17,12 +17,18 @@ import { fileURLToPath } from "node:url";
 import { canonicalize } from "../canonicalize.js";
 import { compile } from "../compile/index.js";
 import { parseMapText } from "../map.js";
+import { offlineKit } from "../offline-kit.js";
+import { offlinePageWith } from "../offline.js";
+import { setTarget } from "../ops/edit.js";
 import { parseGraphText } from "../parse.js";
 import { picture } from "../picture/graph-picture.js";
 import { pictureWithUnits } from "../picture/graph-units.js";
 import { mapPicture } from "../picture/map-picture.js";
 import { unitsKit } from "../picture/units-kit.js";
 import { COMPOSED, composedProof } from "./composed.js";
+
+/** What the golden offline pages are made with: a version that is no release's, and a link, so the footer's two forms are in them. */
+export const PAGE_OPTIONS = { version: "0.0.0", link: "https://example.test/grooph/#/open?d=x" };
 
 const repoRoot = (() => {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -54,18 +60,24 @@ const repoRoot = (() => {
 /**
  * The review loop at the default level (`adaptive`), and a small graph at `fixed`, so both §9 texts are reviewable;
  * and the composed graph, whose lead's brief names its two subgroophs as units.
+ *
+ * The first two again for Codex. Their files name Claude Code, and a package is one harness's files (an export for
+ * a harness the document does not name is refused, `E_NO_TARGET`): each is exported as the same graph with Codex
+ * named in it, by the `setTarget` op, which is what a person does first and what CI's golden step does.
  */
 const GOLDENS = [
   { graph: "fixtures/valid/review-loop.grooph.json", target: "claude-code" as const },
   { graph: "fixtures/valid/fix-until-green.grooph.json", target: "claude-code" as const },
   { graph: `fixtures/composed/${COMPOSED.id}.grooph.json`, target: "claude-code" as const },
+  { graph: "fixtures/valid/review-loop.grooph.json", target: "codex" as const },
+  { graph: "fixtures/valid/fix-until-green.grooph.json", target: "codex" as const },
 ];
 
 for (const golden of GOLDENS) {
   const parsed = parseGraphText(readFileSync(join(repoRoot, golden.graph), "utf8"));
   if (!parsed.doc) throw new Error(`${golden.graph} does not parse: ${JSON.stringify(parsed.issues, null, 2)}`);
 
-  const result = compile(parsed.doc, golden.target);
+  const result = compile(parsed.doc.target?.harness === golden.target ? parsed.doc : setTarget(parsed.doc, golden.target), golden.target);
   const outDir = join(repoRoot, "fixtures", "golden", golden.target, parsed.doc.id);
   if (existsSync(outDir)) rmSync(outDir, { recursive: true });
 
@@ -129,6 +141,23 @@ for (const file of GRAPH_PICTURES) {
       writeFileSync(out, pictureWithUnits(unitsKit, parsed.doc, { theme, ...(open ? { open: "all" as const } : {}) }), "utf8");
       process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
     }
+  }
+}
+
+/**
+ * The offline page of one graph and one map (`offline.ts`), whole: the one file a person keeps. The maker is handed
+ * its parts and fetched by the web app as a piece, and the CLI binds them; these two files are what both must make.
+ */
+{
+  const outDir = join(repoRoot, "fixtures", "pages");
+  mkdirSync(outDir, { recursive: true });
+  const graph = parseGraphText(readFileSync(join(repoRoot, "fixtures/valid/review-loop.grooph.json"), "utf8")).doc;
+  const map = parseMapText(readFileSync(join(repoRoot, "fixtures/maps/valid/a-person-and-two-sessions.grooph-map.json"), "utf8")).map;
+  if (!graph || !map) throw new Error("the offline pages' documents do not parse");
+  for (const doc of [graph, map]) {
+    const out = join(outDir, `${doc.id}.html`);
+    writeFileSync(out, offlinePageWith(offlineKit, doc, PAGE_OPTIONS), "utf8");
+    process.stdout.write(`wrote ${relative(repoRoot, out)}\n`);
   }
 }
 

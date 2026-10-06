@@ -3,12 +3,16 @@
  *
  * A profile is data (`packages/core/targets/<harness>.profile.json`) so a vendor
  * rename is a one-file change, as `docs/targets/claude-code.md` requires. A
- * harness id is "known" — and so passes `E_NO_TARGET` — exactly when a profile
- * for it is registered here.
+ * harness id is "known" — and so passes `E_NO_TARGET` — exactly when it is named
+ * in `names.ts`, which is all the web app's first load carries of a target; the
+ * profiles here are read by the compilers and the CLI. `test/targets.test.ts`
+ * holds the two to each other.
  */
 
 import claudeCode from "../../targets/claude-code.profile.json" with { type: "json" };
+import codex from "../../targets/codex.profile.json" with { type: "json" };
 import type { Capability, Effort, HarnessId, Tier } from "../types.js";
+import { KNOWN_TARGETS, hasProfile, targetTitle } from "./names.js";
 
 export type TargetProfile = {
   harness: HarnessId;
@@ -30,16 +34,15 @@ export type TargetProfile = {
 
 const PROFILES: Record<string, TargetProfile> = {
   "claude-code": claudeCode as TargetProfile,
+  codex: codex as TargetProfile,
 };
 
 export type TargetId = keyof typeof PROFILES & string;
 
-export const KNOWN_TARGETS: HarnessId[] = Object.keys(PROFILES);
-
-export const hasProfile = (harness: HarnessId): boolean => harness in PROFILES;
+export { KNOWN_TARGETS, hasProfile, targetTitle };
 
 export function getProfile(harness: HarnessId): TargetProfile {
-  const profile = PROFILES[harness];
+  const profile = Object.prototype.hasOwnProperty.call(PROFILES, harness) ? PROFILES[harness] : undefined;
   if (!profile) {
     throw new Error(
       `no compile profile for target harness "${harness}"; known targets: ${KNOWN_TARGETS.join(", ")}`,

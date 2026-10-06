@@ -16,11 +16,11 @@
  * once). The studio these views were chosen from (`handoffs/briefs/studio-3d/`) was held to the graph by a second
  * reader, and what it corrected is kept here: nothing below says which brake a run meets first.
  */
-import { describeStop, edgeWhen, edgeWhenLabel, layerNodes, replaySteps, roleName, type Graph, type Id, type RunNote } from "@grooph/core";
+import { describeStop, edgeWhen, edgeWhenLabel, isPersonStep, layerNodes, replaySteps, roleName, STEP_BY_LABEL, type Graph, type Id, type RunNote } from "@grooph/core";
 
 export type { Id };
 export type V = [number, number, number];
-export type MNode = { id: Id; name: string; kind: "agent" | "check" | "gate" | "stop"; word: string; line: string; tier: "frontier" | "strong" | "fast" | "unset" | null; loop: Id | null; at: [number, number] };
+export type MNode = { id: Id; name: string; kind: "agent" | "person" | "check" | "gate" | "stop"; word: string; line: string; tier: "frontier" | "strong" | "fast" | "unset" | null; loop: Id | null; at: [number, number] };
 export type MEdge = { id: Id; from: Id; to: Id; when: string; back: Id | null; on: string | { verdict: string } | undefined };
 /** A stop that ends a run or asks a person whatever the work looks like (core's `isBrakeStop`), as the document has it. */
 export type MBrake = { kind: "max-iterations"; n: number } | { kind: "budget"; measure: string; limit: number } | { kind: "human"; every: number | null };
@@ -135,10 +135,13 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
     nodes: doc.nodes.map((n) => ({
       id: n.id,
       name: n.name || n.id,
-      kind: KIND[n.kind][0],
-      word: KIND[n.kind][1],
-      line: n.kind === "agent" ? [roleName(n), n.model?.tier ?? "session default", n.effort].filter(Boolean).join(" · ") : KIND[n.kind][1],
-      tier: n.kind === "agent" ? (n.model?.tier ?? "unset") : null,
+      // A person's step (amendment A-020) says whose it is, as the picture does: "Person", in the color a person's
+      // decision has, and its role with no tier and no effort, since a person is on no model and has none to set.
+      // A card here has one line under its name, so the word is on that line, before the role.
+      kind: isPersonStep(n) ? "person" : KIND[n.kind][0],
+      word: isPersonStep(n) ? STEP_BY_LABEL.person : KIND[n.kind][1],
+      line: n.kind === "agent" ? (isPersonStep(n) ? `${STEP_BY_LABEL.person} · ${roleName(n)}` : [roleName(n), n.model?.tier ?? "session default", n.effort].filter(Boolean).join(" · ")) : KIND[n.kind][1],
+      tier: n.kind === "agent" && !isPersonStep(n) ? (n.model?.tier ?? "unset") : null,
       loop: innermost(n.id),
       at: [at[n.id]?.x ?? 0, at[n.id]?.y ?? 0],
     })),
@@ -177,14 +180,20 @@ export function modelOf(doc: Graph, places: Record<Id, { x: number; y: number }>
       const own = note.proposal?.summary ?? note.amendment?.summary ?? note.text ?? "";
       const node = focus.kind === "node" ? doc.nodes.find((n) => n.id === focus.id) : undefined;
       const loop = node ? innermost(node.id) : focus.kind === "loop" ? focus.id : null;
+      // The round a note names is its loop's where it can be no other's: a loop's own note, or a note at a node
+      // that is in one loop. A node in a loop inside another is in a round of each, and the contract's one number
+      // does not say which: leads have written the outer loop's there (the recorded Gauntlet and fresh-grind runs)
+      // and the inner one's (the nested fixture). So for such a node each loop's round is worked out, as it is where
+      // a note names none, and the number on the note is not read.
+      const named = node && loops.filter((l) => l.members.includes(node.id)).length > 1 ? undefined : note.round;
       if (node) {
         // Each loop one of whose ways back was taken to get here, once.
         for (const turned of new Set(ways.into(node.id).flatMap((e) => (e.back ? [e.back] : [])))) {
-          if (turned !== loop || note.round === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
+          if (turned !== loop || named === undefined) seen[turned] = (seen[turned] ?? 0) + 1;
           for (const inner of loops) if (under(loops, inner.id, turned)) seen[inner.id] = 0;
         }
       }
-      const round = loop ? (seen[loop] = note.round ?? seen[loop] ?? 0) : null;
+      const round = loop ? (seen[loop] = named ?? seen[loop] ?? 0) : null;
       if (node) ways.at(node.id, { round, outcome: note.outcome ?? null, verdict: note.verdict ?? null, open: note.outcome === "started" });
       // A loop's note that names the stop that fired: its ways back were not taken on what had been reported.
       if (focus.kind === "loop" && note.stop !== undefined) ways.stopped(focus.id, note.stop === "human");

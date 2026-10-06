@@ -1,7 +1,8 @@
 import { describePatch, type Id, type Op, type RunBundle, type RunNote } from "@grooph/core";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { noteTarget, proposalCopy, targetLabel } from "../../doc/run.js";
+import { piece } from "../../piece.js";
 import { saveVersion } from "../../store/runs.js";
 import { editorHref } from "../open/save.js";
 
@@ -12,7 +13,8 @@ function opLine(op: Op): string {
   return `${op.op}${target ? ` ${String(target)}` : ""}${set.length > 0 ? `: ${set.join(", ")}` : ""}`;
 }
 
-type Applied = { ok: true; key: string; version: number; errors: number; warnings: number } | { ok: false; message: string };
+/** `again`: the refusal is the device's and not the patch's, so the button stays for another try. */
+type Applied = { ok: true; key: string; version: number; errors: number; warnings: number; brakes: ReactNode } | { ok: false; message: string; again?: true };
 
 /**
  * The run's proposals: changes it wanted and did not make, for the human.
@@ -21,25 +23,42 @@ type Applied = { ok: true; key: string; version: number; errors: number; warning
  * never guessed at. Nothing is applied automatically (spec §11).
  */
 export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle; proposals: RunNote[]; onNote: (id: Id) => void }) {
-  const [applied, setApplied] = useState<Record<Id, Applied>>({});
+  // By place in the list, not by a note's id: two notes of one run can carry the same id.
+  const [applied, setApplied] = useState<Record<number, Applied>>({});
+  const [busy, setBusy] = useState(false);
 
-  const apply = async (note: RunNote) => {
+  const apply = async (note: RunNote, at: number) => {
     const copy = proposalCopy(bundle, note);
     if (!copy.ok) {
-      setApplied((a) => ({ ...a, [note.id]: { ok: false, message: copy.message } }));
+      setApplied((a) => ({ ...a, [at]: { ok: false, message: copy.message } }));
       return;
     }
-    const record = await saveVersion(copy.doc);
-    setApplied((a) => ({
-      ...a,
-      [note.id]: {
-        ok: true,
-        key: record.key,
-        version: copy.doc.version,
-        errors: copy.issues.filter((i) => i.severity === "error").length,
-        warnings: copy.issues.filter((i) => i.severity === "warning").length,
-      },
-    }));
+    setBusy(true);
+    try {
+      const record = await saveVersion(copy.doc);
+      // What the copy loosens that the graph has, said with it (the piece Adopt fetches; nothing is held here). The
+      // piece says so when the copy is no valid graph and is not compared; this line is for a piece that did not
+      // come, or a comparison that failed.
+      const brakes = await piece("brakes", () => import("./brakes.js"))
+        .then((b) => b.loosened(bundle.source, copy.doc, copy.graph))
+        .catch(() => <p className="field-hint">Its brakes could not be compared with the graph's: the piece that compares them did not load. Open the copy and read its limits before you use it.</p>);
+      setApplied((a) => ({
+        ...a,
+        [at]: {
+          ok: true,
+          key: record.key,
+          brakes,
+          version: copy.doc.version,
+          errors: copy.issues.filter((i) => i.severity === "error").length,
+          warnings: copy.issues.filter((i) => i.severity === "warning").length,
+        },
+      }));
+    } catch {
+      // The copy could not be kept on this device: said, and the buttons are given back.
+      setApplied((a) => ({ ...a, [at]: { ok: false, again: true, message: "The copy could not be saved on this device. Press Apply to a copy to try again." } }));
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (proposals.length === 0) return <p className="run-intro">The run proposed nothing.</p>;
@@ -47,11 +66,11 @@ export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle;
     <div className="run-proposals">
       <p className="run-intro">Changes the run proposed and did not make. Nothing is applied without you.</p>
       <ol className="proposal-list">
-        {proposals.map((note) => {
+        {proposals.map((note, at) => {
           const patch = describePatch(note.proposal!.patch);
-          const done = applied[note.id];
+          const done = applied[at];
           return (
-            <li key={note.id} className="proposal" data-proposal={note.id}>
+            <li key={at} className="proposal" data-proposal={note.id}>
               <p className="proposal-summary">{note.proposal!.summary}</p>
               <p className="proposal-meta">
                 <button type="button" className="link mono" onClick={() => onNote(note.id)}>
@@ -83,20 +102,28 @@ export function RunProposals({ bundle, proposals, onNote }: { bundle: RunBundle;
                 <p className="field-hint">No patch: the summary is the whole proposal.</p>
               )}
               {done?.ok ? (
-                <p className="adopt-done" role="status">
+                <div role="status">
+                {done.brakes}
+                <p className="adopt-done">
                   Saved a copy of the working copy with {note.id} applied, as version {done.version}, for you to inspect
                   {done.errors > 0 ? `; it has ${done.errors} error${done.errors === 1 ? "" : "s"}, which the editor lists` : done.warnings > 0 ? `; ${done.warnings} warning${done.warnings === 1 ? "" : "s"}` : "; it validates"}. Nothing
                   else changed. <a href={editorHref(done.key)}>Open the copy</a>
                 </p>
-              ) : done ? (
-                <p className="refusal-hint" role="status">
-                  {done.message}
-                </p>
-              ) : patch.kind === "ops" ? (
-                <button type="button" className="btn" onClick={() => void apply(note)}>
-                  Apply to a copy
-                </button>
-              ) : null}
+                </div>
+              ) : (
+                <>
+                  {done ? (
+                    <p className="refusal-hint" role="status">
+                      {done.message}
+                    </p>
+                  ) : null}
+                  {patch.kind === "ops" && (!done || done.again) ? (
+                    <button type="button" className="btn" disabled={busy} onClick={() => void apply(note, at)}>
+                      Apply to a copy
+                    </button>
+                  ) : null}
+                </>
+              )}
             </li>
           );
         })}

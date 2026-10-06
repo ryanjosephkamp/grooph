@@ -8,6 +8,7 @@
 import type { Severity } from "./issues.js";
 import { nearestIds } from "./parse.js";
 import { proposalSetSchema } from "./schema/proposals.js";
+import { isPersonStep } from "./semantics.js";
 import type { UnknownKey } from "./schema/dsl.js";
 import { didYouMean } from "./suggest.js";
 import type { Candidate, CandidateFile, Graph, Id, Loop, ProposalSet, Shape, ShapeTier } from "./types.js";
@@ -130,14 +131,14 @@ export function validateProposalSet(set: ProposalSet, options: ValidateProposals
       }
       continue;
     }
-    const errors = validate(c.graph, { forExport: true }).filter((i) => i.severity === "error");
+    const errors = validate(c.graph).filter((i) => i.severity === "error");
     if (errors.length === 0) continue;
     const codes = [...new Set(errors.map((e) => e.code))];
     issues.push(
       issue(
         "E_CANDIDATE_INVALID",
         "error",
-        `candidate "${c.id}" (${c.label}) has errors that block export: ${codes.join(", ")}. First: ${errors[0]!.message}. Fix its graph and run grooph validate --for-export on it`,
+        `candidate "${c.id}" (${c.label}) has errors: ${codes.join(", ")}. First: ${errors[0]!.message}. Fix its graph and run grooph validate on it`,
         [c.id],
       ),
     );
@@ -180,7 +181,8 @@ export function estimateShape(graph: Graph): Shape {
   const nodes = graph.nodes ?? [];
   const loops = graph.loops ?? [];
   const tiers: Record<ShapeTier, number> = { frontier: 0, strong: 0, fast: 0, unset: 0 };
-  for (const node of nodes) if (node.kind === "agent") tiers[node.model?.tier ?? "unset"] += 1;
+  // A person is on no tier: only an agent's step is counted among them.
+  for (const node of nodes) if (node.kind === "agent" && !isPersonStep(node)) tiers[node.model?.tier ?? "unset"] += 1;
 
   const caps = loops.map(maxIterations);
   let worstCaseRounds: number | null = null;
@@ -199,7 +201,8 @@ export function estimateShape(graph: Graph): Shape {
   );
 
   return {
-    agents: nodes.filter((n) => n.kind === "agent").length,
+    agents: nodes.filter((n) => n.kind === "agent" && !isPersonStep(n)).length,
+    ...(nodes.some(isPersonStep) ? { people: nodes.filter(isPersonStep).length } : {}),
     checks: nodes.filter((n) => n.kind === "check").length,
     gates: nodes.filter((n) => n.kind === "human-gate").length + (graph.edges ?? []).filter((e) => e.approval === true).length,
     loops: loops.length,
@@ -215,7 +218,10 @@ const count = (n: number, one: string, many = `${one}s`): string => `${n} ${n ==
 
 /** One line for a card or a chat message: "4 agents · 1 gate · 1 loop · up to 4 rounds · 12 dispatches". A dispatch is one node run. */
 export function shapeLine(shape: Shape): string {
-  const parts = [count(shape.agents, "agent")];
+  // Whose the steps are. With no person's step it is what it always was, "3 agents"; with some, the people's first,
+  // and the agents' only if there are any: "2 people's steps · 1 agent's step".
+  const people = shape.people ?? 0;
+  const parts = people === 0 ? [count(shape.agents, "agent")] : [people === 1 ? "1 person's step" : `${people} people's steps`, ...(shape.agents > 0 ? [shape.agents === 1 ? "1 agent's step" : `${shape.agents} agents' steps`] : [])];
   if (shape.checks > 0) parts.push(count(shape.checks, "check"));
   if (shape.gates > 0) parts.push(count(shape.gates, "gate"));
   if (shape.loops === 0) parts.push("no loop");

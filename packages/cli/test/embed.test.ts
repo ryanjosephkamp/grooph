@@ -36,6 +36,7 @@ function readdirHas(dir: string, name: string): boolean {
 const reviewLoop = join(repoRoot, "fixtures/valid/review-loop.grooph.json");
 const sampleMap = join(repoRoot, "fixtures/maps/valid/two-sessions.grooph-map.json");
 const noGoal = join(repoRoot, "fixtures/invalid/E_NO_GOAL/no-goal.grooph.json");
+const dangling = join(repoRoot, "fixtures/invalid/E_DANGLING_REF/edge-to-unknown-node.grooph.json");
 
 type Capture = Output & { stdout: string[]; stderr: string[] };
 const capture = (): Capture => {
@@ -119,10 +120,14 @@ test("a run folder and an operation map embed too", () => {
 });
 
 test("a graph with errors, a bad height and a bad base are refused with a line that says why", () => {
-  const broken = embed(noGoal);
+  // A plan with no goal is embedded: a frame asks for nothing that only a package needs (handoff 0100, amendment
+  // A-020). A graph that breaks a rule is still refused.
+  const plan = embed(noGoal);
+  assert.equal(plan.code, 0, plan.io.stderr.join("\n"));
+  const broken = embed(dangling);
   assert.equal(broken.code, 1);
   assert.deepEqual(broken.io.stdout, []);
-  assert.match(broken.io.stderr.join("\n"), /cannot embed .*fix these first\n.*E_NO_GOAL/);
+  assert.match(broken.io.stderr.join("\n"), /cannot embed .*fix these first\n.*E_DANGLING_REF/);
   const tall = embed(reviewLoop, { height: 50 });
   assert.equal(tall.code, 1);
   assert.match(tall.io.stderr[0]!, /^grooph: --height takes a whole number of pixels from 120 to 4000/);

@@ -1,0 +1,35 @@
+TemplateError, extractTemplate, fillSlots, findSlots, instantiate, slotKeys, templateIndex, templateIndexEntry
+fixtures/valid/approval-fragment.grooph.json  [inst failed: "approval-fragment" is a fragment, not a whole graph; insert it into a graph ins] errs=E_NO_TARGET,E_NO_GOAL,E_IS_TEMPLATE nodes=2 loops=0() gates=1 critics=0 marked=1 appr=0 adapt=- pol=
+fixtures/valid/audit-then-fix.grooph.json  [as is] errs=0 nodes=4 loops=0() gates=0 critics=1 marked=0 appr=0 adapt=- pol=
+fixtures/valid/credited-fix-loop.grooph.json  [instantiated] errs=E_NO_TARGET nodes=3 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=fixed pol=
+fixtures/valid/fix-until-green.grooph.json  [as is] errs=0 nodes=3 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=fixed pol=
+fixtures/valid/glyph-vocabulary.grooph.json  [as is] errs=0 nodes=11 loops=2(mb|bmb) gates=1 critics=1 marked=1 appr=1 adapt=- pol=
+fixtures/valid/irreversible-after-a-stop-gated.grooph.json  [as is] errs=0 nodes=5 loops=1(m>b) gates=1 critics=0 marked=1 appr=0 adapt=fixed pol=
+fixtures/valid/pinned-and-skilled.grooph.json  [as is] errs=0 nodes=3 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=fixed pol=
+fixtures/valid/review-loop.grooph.json  [as is] errs=0 nodes=4 loops=1(bmb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+fixtures/valid/skilled-fixer.grooph.json  [as is] errs=0 nodes=3 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=fixed pol=
+fixtures/valid/subgrooph-in-a-graph.grooph.json  [as is] errs=0 nodes=6 loops=1(bmb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+fixtures/valid/wrap-up-after-the-cap.grooph.json  [as is] errs=0 nodes=5 loops=1(m>b) gates=0 critics=0 marked=0 appr=0 adapt=fixed pol=
+patterns/contradiction-seeker.grooph.json  [instantiated] errs=0 nodes=3 loops=1(bbm) gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/debate-then-build.grooph.json  [instantiated] errs=0 nodes=7 loops=2(bm>b|mb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/dual-bar.grooph.json  [instantiated] errs=0 nodes=3 loops=1(bdmb) gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/fresh-grind-rare-judge.grooph.json  [instantiated] errs=0 nodes=4 loops=2(mb|bmb) gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/gauntlet-decomposed.grooph.json  [instantiated] errs=0 nodes=10 loops=2(bdmb|b>hmb) gates=2 critics=2 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/grind-loop.grooph.json  [instantiated] errs=0 nodes=3 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=- pol=
+patterns/heterogeneous-critic.grooph.json  [instantiated] errs=0 nodes=4 loops=1(bmb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/human-gated-irreversible.grooph.json  [inst failed: "human-gated-irreversible" is a fragment, not a whole graph; insert it into a gr] errs=E_NO_TARGET,E_NO_GOAL,E_IS_TEMPLATE nodes=3 loops=0() gates=1 critics=0 marked=1 appr=0 adapt=- pol=
+patterns/merge-queue.grooph.json  [inst failed: "merge-queue" is a fragment, not a whole graph; insert it into a graph instead (] errs=E_NO_TARGET,E_NO_GOAL,E_IS_TEMPLATE nodes=5 loops=1(mb) gates=1 critics=0 marked=1 appr=0 adapt=- pol=
+patterns/metric-sandwich.grooph.json  [instantiated] errs=0 nodes=4 loops=1(bmb) gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/ownership-not-swarm.grooph.json  [instantiated] errs=0 nodes=7 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=- pol=
+patterns/patrol-pulse.grooph.json  [instantiated] errs=0 nodes=6 loops=0() gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/ralph-loop.grooph.json  [instantiated] errs=0 nodes=4 loops=1(dmb) gates=0 critics=0 marked=0 appr=0 adapt=- pol=
+patterns/red-team-loop.grooph.json  [instantiated] errs=0 nodes=3 loops=1(dmb) gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/retrospective-rewrite.grooph.json  [instantiated] errs=0 nodes=4 loops=1(m>b>) gates=0 critics=0 marked=0 appr=0 adapt=propose pol=
+patterns/review-gate.grooph.json  [instantiated] errs=0 nodes=4 loops=1(bmb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/spec-then-loop.grooph.json  [instantiated] errs=0 nodes=5 loops=1(bmb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/specialist-critic-bank.grooph.json  [instantiated] errs=0 nodes=8 loops=1(bmb) gates=1 critics=5 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading,concurrency-cap
+patterns/taste-polish.grooph.json  [instantiated] errs=0 nodes=4 loops=1(bdhmb) gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+patterns/tournament-then-judge.grooph.json  [instantiated] errs=0 nodes=7 loops=0() gates=0 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+fixtures/composed/build-to-green.grooph.json  [inst failed: "build-to-green" is a fragment, not a whole graph; insert it into a graph instea] errs=E_NO_TARGET,E_NO_GOAL,E_IS_TEMPLATE nodes=3 loops=1(mb) gates=0 critics=0 marked=0 appr=0 adapt=- pol=
+fixtures/composed/debate-then-build-composed.grooph.json  [as is] errs=0 nodes=7 loops=2(bm>b|mb) gates=1 critics=1 marked=0 appr=0 adapt=- pol=critic-isolation,no-self-grading
+fixtures/composed/debate-to-a-plan.grooph.json  [inst failed: "debate-to-a-plan" is a fragment, not a whole graph; insert it into a graph inst] errs=E_NO_TARGET,E_NO_GOAL,E_IS_TEMPLATE nodes=4 loops=1(bm>b) gates=1 critics=1 marked=0 appr=0 adapt=- pol=

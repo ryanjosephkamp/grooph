@@ -1,0 +1,72 @@
+refused: [
+  'loop:build.stops: adds a stop on "bar passed" to the loop "build", which the check "tests" judges with no critic: a way out that does not pass the check',
+  `loop:build.bar: gives the loop "build", which the check "tests" judges with no critic, a bar of its own: the lead would stop on the bar's words, a way out that does not pass the check`
+] errors: 0 warnings: []
+=== BEFORE
+### Loop `build` · Build
+
+- **Mode.** grind
+- **Members.** `builder`, `tests`
+- **A round is** one traversal of a back edge: `e-tests-fail` (tests → builder). The first pass through the members is round 0, because no back edge has been taken yet; each traversal after that adds one. Record the round in `PROGRESS.md` and in a loop note every time you finish a pass.
+
+**Bar.** none declared.
+
+**Stops, evaluated in this order before every round; the first that fires wins:**
+
+| # | stop | what you do |
+|---|---|---|
+| 1 | max iterations: 5 | halt the run and report to the human |
+| 2 | budget: 30 minutes | halt the run and report to the human |
+
+> Minutes are wall clock from the run's first note.
+
+## 7. Human gates
+
+- `plan-gate` — Build the first version PLAN.md describes? (options: approve | reject)
+
+One rule, in every kind of session. On reaching a gate: first append a note at the gate (`at` = `node:<gate-id>`, or `edge:<edge-id>` for an approval edge) with `"outcome":"halt"` and a `text` naming it, and write `PROGRESS.md`; then ask, with `AskUserQuestion` when it is available, otherwise in plain text; then end your turn. Do not simulate an answer, do not batch two gates into one question, and do not proceed on silence.
+
+When the human answers, append a note at the same place with their decision and continue along the matching edge. A run nobody answers ends on that halt note, and the same run id resumes it (§3, step 6).
+
+## 8. Progress and notes
+
+- `.grooph/debate-then-build/runs/<run-id>/PROGRESS.md` — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, the dispatch count of `debate`, each node's status, what is waiting, and the stop check you last evaluated.
+- `.grooph/debate-then-build/runs/<run-id>/notes.jsonl` — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (`at` = `node:<node-id>`), one **per pass through a loop** (`at` = `loop:<loop-id>`, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line — and `stop` with the kind of the stop when one fires), and one when the run ends.
+- When you dispatch a node, append one short line first: `"outcome":"started"`, `at` = `node:<node-id>`, and `round` when the node is inside a loop. The usual line follows when the node completes, so a monitor can show what is running.
+- `started` and `ended` are read from the clock,
+=== AFTER
+### Loop `build` · Build
+
+- **Mode.** grind
+- **Members.** `builder`, `tests`, `judge`
+- **A round is** one traversal of a back edge: `e-tests-fail` (tests → builder). The first pass through the members is round 0, because no back edge has been taken yet; each traversal after that adds one. Record the round in `PROGRESS.md` and in a loop note every time you finish a pass.
+
+**Bar — Looks done.** Stop when: CHANGES.md says the change is made.
+
+The critic inspects exactly these:
+
+- file: `CHANGES.md`
+
+**Stops, evaluated in this order before every round; the first that fires wins:**
+
+| # | stop | what you do |
+|---|---|---|
+| 1 | bar passed | follow the loop's pass exit edges |
+| 2 | max iterations: 5 | halt the run and report to the human |
+| 3 | budget: 30 minutes | halt the run and report to the human |
+
+> Minutes are wall clock from the run's first note.
+
+## 7. Human gates
+
+- `plan-gate` — Build the first version PLAN.md describes? (options: approve | reject)
+
+One rule, in every kind of session. On reaching a gate: first append a note at the gate (`at` = `node:<gate-id>`, or `edge:<edge-id>` for an approval edge) with `"outcome":"halt"` and a `text` naming it, and write `PROGRESS.md`; then ask, with `AskUserQuestion` when it is available, otherwise in plain text; then end your turn. Do not simulate an answer, do not batch two gates into one question, and do not proceed on silence.
+
+When the human answers, append a note at the same place with their decision and continue along the matching edge. A run nobody answers ends on that halt note, and the same run id resumes it (§3, step 6).
+
+## 8. Progress and notes
+
+- `.grooph/debate-then-build/runs/<run-id>/PROGRESS.md` — human-readable. Rewrite it **after every node completes** and whenever the round counter moves: run id, goal, round, the dispatch count of `debate`, each node's status, what is waiting, and the stop check you last evaluated.
+- `.grooph/debate-then-build/runs/<run-id>/notes.jsonl` — one JSON object per line, appended, never rewritten. Append a line at the start of the run, one **per node run** (`at` = `node:<node-id>`), one **per pass through a loop** (`at` = `loop:<loop-id>`, carrying the round you just finished and the stop you evaluated — so even a loop that passes on its first pass leaves a line — and `stop` with the kind of the stop when one fires), and one when the run ends.
+- When you dispatch a node, append one short line first: `"outcome":"started"`, `at` = `node:<node-id>`, and `round` 

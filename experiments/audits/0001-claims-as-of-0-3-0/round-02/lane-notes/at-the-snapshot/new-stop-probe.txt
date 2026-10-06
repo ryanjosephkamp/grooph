@@ -1,0 +1,18 @@
+At b74c9ee, packages built there. Command: node experiments/audits/0001-claims-as-of-0-3-0/tools/new-stop-probe.mjs
+
+the source: builder -> tests; tests pass -> critic, fail -> failed (halt); critic pass -> done (success), fail -> failed. validator errors: none
+
+== the critic's failing edge led to the success stop the graph already has
+   validator errors: none
+   changes: edge:e-critic-fail.to  [loosens: opens a way into "done" that does not pass "pass" from the critic "critic"]  [tightens]
+   refused: edge:e-critic-fail.to
+
+== the critic's failing edge led to a NEW stop that ends in success (the stop it left keeps the tests' way in)
+   validator errors: none
+   changes: node:shipped | edge:e-critic-fail.to  [tightens]
+   refused: nothing
+
+== an edge ADDED from the critic, on another verdict, to a NEW stop that ends in success
+   validator errors: none
+   changes: node:shipped | edge:e-critic-minor
+   refused: nothing

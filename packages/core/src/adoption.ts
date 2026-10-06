@@ -15,7 +15,7 @@
  * Pure. Not on the web app's way in: it brings `brakes.ts` and `reach.ts` with it.
  */
 
-import { brakesLost, roundsLeftToAPerson, type Loss } from "./brakes.js";
+import { brakesLost, roundsLeftToAPerson, saidOf, type Loss } from "./brakes.js";
 import { effectiveAdaptation } from "./semantics.js";
 import type { Graph, Id } from "./types.js";
 
@@ -27,6 +27,15 @@ export type AdoptionChange = {
   loosens?: string;
   /** set when undoing the change would remove or loosen a brake, which is to say it tightens one: what undoing it would do */
   tightens?: string;
+  /**
+   * What undoing the change would do, where that is not called a tightening. Two cases. In a working copy that
+   * removes a check while a check the graph has not comes in (`swapped` on the result): it may be one check under
+   * two ids, and then a bar or a budget built round it under its new id would read as a brake gained. And, in any
+   * copy, a change that brings in an answer a gate did not give or a step marked irreversible that the graph did
+   * not have: undoing it would take an answer or a mark away, and it lets a run or a person do what it could not
+   * before. The change is still named; only the label is withheld.
+   */
+  unjudged?: string;
 };
 
 export type AdoptionCheck = {
@@ -38,6 +47,8 @@ export type AdoptionCheck = {
   unknown: string[];
   /** what is not refused and is still to be said: a loop whose cap would count the rounds between a person's decisions */
   notices: string[];
+  /** a check goes while a check the graph has not comes in: every change that undoing would lose by is unjudged, for that reason */
+  swapped: boolean;
 };
 
 const json = (value: unknown): string => JSON.stringify(value);
@@ -101,22 +112,40 @@ const lost = (before: Graph, after: Graph): Loss[] => [...brakesLost(before, aft
 export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: readonly string[] } = {}): AdoptionCheck {
   let changes = changesBetween(source, adopted);
   const names = new Set(changes.map((change) => change.name));
-  const lay = (losses: readonly Loss[], key: "loosens" | "tightens", unnamed: boolean): void => {
+  const lay = (losses: readonly Loss[], key: "loosens" | "tightens" | "unjudged", unnamed: boolean): void => {
     for (const loss of losses) {
+      // A line that is held whichever way the change goes says nothing about what undoing it would lose.
+      if (key !== "loosens" && loss.either) continue;
       const named = new Set(loss.at.filter((name) => names.has(name)));
       if (named.size === 0 && !unnamed) continue;
       changes = changes.map((change) => {
-        if ((named.size > 0 && !named.has(change.name)) || (change[key] ?? "").split("; ").includes(loss.why)) return change;
+        if ((named.size > 0 && !named.has(change.name)) || saidOf(change[key], loss.why)) return change;
         // A change that reads the same both ways (an acceptance reworded) is said once, as what it may loosen. And a
         // loop that is new bounds only what it brings: undoing it "removes a loop with its stops", and tightens nothing.
-        if (key === "tightens" && ((change.loosens ?? "").split("; ").includes(loss.why) || (change.kind === "add" && change.name.startsWith("loop:")))) return change;
+        if (key !== "loosens" && (saidOf(change.loosens, loss.why) || (change.kind === "add" && change.name.startsWith("loop:")))) return change;
         return { ...change, [key]: change[key] === undefined ? loss.why : `${change[key]}; ${loss.why}` };
       });
     }
   };
-  lay(lost(source, adopted), "loosens", true);
-  // Only where a change can be named for it: "every change tightens something" would say nothing.
-  lay(lost(adopted, source), "tightens", false);
+  const loosened = lost(source, adopted);
+  lay(loosened, "loosens", true);
+  // Only where a change can be named for it: "every change tightens something" would say nothing. And nothing is
+  // called a tightening in a copy where a check goes while another comes in: it may be one check under two ids, and
+  // then the comparison can follow neither what was done to it nor what was built round it (a bar, a budget that
+  // leads on), which would otherwise be printed as brakes gained. Each such change is still named, unjudged.
+  // (The check that comes in is named there by what undoing it would do, in the plain words: its own line, read
+  // backwards, would speak of the check that went as the one coming in.)
+  const undone = lost(adopted, source);
+  const swapped = loosened.some((loss) => loss.swap);
+  if (swapped) lay(undone.map((loss) => (loss.swap ? { ...loss, why: loss.swap } : loss)), "unjudged", false);
+  else {
+    lay(undone.filter((loss) => !loss.gain), "tightens", false);
+    // An answer a gate did not give, a step marked irreversible that the graph did not have: undoing either would
+    // take an answer or a mark away, which is how it comes to be named here, and neither tightens anything the
+    // graph had. A new answer may be a way to say no or a way on; a new irreversible step is a thing a run could
+    // not do before. A program cannot tell, so the change is named and not called a tightening.
+    lay(undone.filter((loss) => loss.gain), "unjudged", false);
+  }
   changes.sort((x, y) => Number(y.loosens !== undefined) - Number(x.loosens !== undefined));
   const allow = new Set(options.allow ?? []);
   return {
@@ -124,6 +153,7 @@ export function checkAdoption(source: Graph, adopted: Graph, options: { allow?: 
     refused: changes.filter((change) => change.loosens !== undefined && !allow.has(change.name)),
     unknown: [...allow].filter((name) => !names.has(name)),
     notices: roundsLeftToAPerson(source, adopted),
+    swapped,
   };
 }
 

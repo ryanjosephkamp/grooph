@@ -1,0 +1,21 @@
+
+grind-loop + a stop that halts on the check's verdict "broken": that stop made to end in success
+   head: REFUSED node:gave-up.outcome [the stop "gave-up" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "gave-up"]
+
+no loop: tests fail -> a stop that halts, pass -> done: the halting stop made to end in success (failing tests end in success)
+   head: REFUSED node:failed.outcome [the stop "failed" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "failed", ]
+
+the same graph: the halting stop made an agent that leads to done
+   head: REFUSED edge:e-failed-done [adds a way from "failed" to end in success that does not pass a person; adds a way from "failed" to end in success that does not pass the check "tests]
+
+contradiction-seeker (a critic, no person) + a stop that halts on the critic's verdict: that stop made to end in success
+   head: REFUSED node:gave-up.outcome [the stop "gave-up" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "gave-up"]
+
+red-team-loop (a critic, no person) + a stop that halts on the critic's verdict: that stop made to end in success
+   head: REFUSED node:gave-up.outcome [the stop "gave-up" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "gave-up"]
+
+dual-bar (a critic, no person) + a stop that halts on the critic's verdict: that stop made to end in success
+   head: REFUSED node:gave-up.outcome [the stop "gave-up" would end in success where it halted: what led there to stop the run would now end it well; a run could end in success at "gave-up"]
+
+grind-loop, its round cap leading on to a stop that halts: that stop made to end in success
+   head: REFUSED node:gave-up.outcome [the stop "gave-up" would end in success where it halted: what led there to stop the run would now end it well; the round cap (5) would no longer halt ]

@@ -1,0 +1,73 @@
+
+=== K1 merge-gate becomes an agent (kind held; the other fields?)
+changes: [
+  'node:review-merge-gate.kind [LOOSENS: a human gate becomes another kind of node; opens a way into "release" that does not pass a person]',
+  'node:review-merge-gate.role [LOOSENS: opens a way into "release" that does not pass a person]',
+  'node:review-merge-gate.name',
+  'node:review-merge-gate.prompt',
+  'node:review-merge-gate.options',
+  'node:review-merge-gate.brief',
+  'node:review-merge-gate.outputs',
+  'node:review-merge-gate.allow'
+]
+held: [
+  'node:review-merge-gate.kind',
+  'node:review-merge-gate.role',
+  'node:review-merge-gate.name (waits node:review-merge-gate.role)',
+  'node:review-merge-gate.prompt (waits node:review-merge-gate.role)',
+  'node:review-merge-gate.options (waits node:review-merge-gate.role)',
+  'node:review-merge-gate.brief (waits node:review-merge-gate.role)',
+  'node:review-merge-gate.outputs (waits node:review-merge-gate.role)',
+  'node:review-merge-gate.allow (waits node:review-merge-gate.role)'
+]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  node: {"id":"review-merge-gate","kind":"human-gate","name":"Merge approval","prompt":"The critic passed the change against the checklist. Merge it?","options":["approve","reject with feedback"]}
+  schema issues: []
+before: [ 'ERR E_LOOP_BACK_EDGE', 'warn W_HOMOGENEOUS_CRITICS' ]
+
+=== P1 person re-pointed the template's edge to their own node inside the box; refresh from the SAME version
+changes: [
+  'edge:review-e-critic-pass.to [LOOSENS: nothing would lead to "security", so a run would start there, where every way to it passed the critic "review-critic"; opens a way into "review-merge-gate" that does not pass the critic "security"]'
+]
+held: [ 'edge:review-e-critic-pass.to' ]
+schema ok: true | validate: ERR E_LOOP_BACK_EDGE, warn W_HOMOGENEOUS_CRITICS
+  edges named review-e-critic-pass: [{"id":"review-e-critic-pass","from":"review-critic","to":"security","when":"pass"}]
+
+=== P2 same with a person's gate; SAME version
+changes: [
+  'edge:review-e-critic-pass.to [LOOSENS: opens a way into "review-merge-gate" that does not pass a person; nothing would lead to "signoff", so a run would start there, where every way to it passed the critic "review-critic"]'
+]
+held: [ 'edge:review-e-critic-pass.to' ]
+schema ok: true | validate: ERR E_LOOP_BACK_EDGE, warn W_HOMOGENEOUS_CRITICS
+
+=== P3 person's tightenings vs a newer version that only rewords a brief
+changes: [
+  'node:review-builder.irreversible [LOOSENS: removes the irreversible marker "push"]',
+  "edge:e-review-merge-gate-release.approval [LOOSENS: removes a person's approval from the edge]",
+  'loop:review-review.stops [LOOSENS: raises the round cap from 2 to 4]',
+  'node:review-builder.brief'
+]
+held: [
+  'node:review-builder.irreversible',
+  'edge:e-review-merge-gate-release.approval',
+  'loop:review-review.stops'
+]
+schema ok: true | validate: ERR E_IRREVERSIBLE_NO_GATE, warn W_HOMOGENEOUS_CRITICS
+  cap: 2 | exit approval: true | irreversible: [ 'push' ]
+
+=== P4 person added a human stop and a minutes budget; SAME version
+changes: [
+  'loop:review-review.stops [LOOSENS: removes the stop where a person is asked; removes the budget (30 minutes)]'
+]
+held: [ 'loop:review-review.stops' ]
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+
+=== P5 host adaptation/policy; v2 changes a brief
+changes: [ 'node:review-builder.brief' ]
+held: []
+schema ok: true | validate: warn W_HOMOGENEOUS_CRITICS
+  adaptation: fixed | policies: [
+  'review-p-critic-isolation',
+  'review-p-no-self-grading',
+  'propose-only'
+]

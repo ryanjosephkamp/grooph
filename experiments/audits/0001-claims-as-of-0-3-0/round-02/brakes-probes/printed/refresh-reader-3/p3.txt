@@ -1,0 +1,26 @@
+then release errors before: []
+
+=== P9b then release: the halt stop "bail" becomes a success stop
+applied: []
+held:    [
+  'node:review-bail.outcome [a run could end in success at "review-bail", a way that does not pass a person]'
+]
+schema: ok | errors before: [] after: []
+brakesLost: [] | bail after: {"id":"review-bail","kind":"stop","name":"Bail","outcome":"halt"} | edges into it: [ 'e-review-critic-review-bail:review-critic->review-bail' ]
+own stop errors before: []
+
+=== P9b own stop: the halt stop "bail" becomes a success stop
+applied: []
+held:    [
+  'node:review-bail.outcome [a run could end in success at "review-bail", a way that does not pass a person]'
+]
+schema: ok | errors before: [] after: []
+brakesLost: [] | bail after: {"id":"review-bail","kind":"stop","name":"Bail","outcome":"halt"} | edges into it: [ 'e-review-critic-review-bail:review-critic->review-bail' ]
+
+=== P-policy: critic-isolation policy gains an unknown key, and a brief changes
+applied: [
+  'node:review-builder.brief',
+  'policy:review-p-critic-isolation.note'
+]
+held:    []
+schema: ok | errors before: [] after: []

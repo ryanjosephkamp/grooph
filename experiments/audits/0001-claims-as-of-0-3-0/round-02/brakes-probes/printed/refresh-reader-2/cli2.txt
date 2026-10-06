@@ -1,0 +1,43 @@
+1a dry run: exit 0 | last line: plan.grooph.json not written (dry run — pass --write to save) | file changed: false
+1b --write: exit 0 | last line: wrote plan.grooph.json | file changed: true | from: review-gate@2 | cap: {"kind":"max-iterations","n":4}
+1c --write again: exit 0 | last line: plan.grooph.json is unchanged: every difference is held back | file changed: false
+1d --allow: exit 0 | last line: wrote plan.grooph.json | cap: {"kind":"max-iterations","n":9}
+1e --allow unknown: exit 1 | grooph: no change named "loop:review-review.nope" in "review"; the names are listed above
+
+--- 2 same version, the file has an edge to a missing node
+exit 0
+review  review-gate@1 → review-gate@1 (built-in): nothing to change
+plan.grooph.json is up to date
+file changed: false | e-x still there: true
+
+--- 3 update --write
+exit 0
+review  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow edge:e-review-critic-release
+    edge:e-review-critic-release  adds a way from "review-critic" to end in success that does not pass a person; adds a way into "release" that does not pass the human gate "review-merge-gate"; adds a way into "release" that does not pass "pass" from the critic "review-critic"
+    loop:review-review.stops      adds a way from "review-builder" to end in success that does not pass the human gate "review-merge-gate"
+  waiting for edge:e-review-critic-release, node:review-triage.kind: the shape of a subgrooph moves as a whole
+    node:review-triage.kind       node "review-triage": kind changes from agent to human-gate
+    node:review-triage.name       node "review-triage": name changes from triage to Triage
+    node:review-triage.role       node "review-triage": role is removed; it was builder
+    node:review-triage.brief      node "review-triage": brief is removed; it was triage: do the work.
+    node:review-triage.outputs    node "review-triage": outputs is removed; it was ["TRIAGE.md"]
+    node:review-triage.allow      node "review-triage": allow is removed; it was ["read-files","write-outputs"]
+    node:review-triage.prompt     node "review-triage": prompt is set to The cap was hit. Go on?
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+plan.grooph.json: 0 errors, 1 warning
+wrote plan.grooph.json
+triage is: agent | cap: {"kind":"max-iterations","n":4} | errors: []
+
+--- 4 update --write from the built-in @1 after being placed from @3
+exit 0
+review  review-gate@3 → review-gate@1 (built-in)
+  held back: each removes or loosens a brake. Apply one by its name: --allow loop:review-review.stops
+    loop:review-review.stops   raises the round cap from 2 to 4
+  the rest:
+    node:review-builder.brief  node "review-builder": brief changes from …wn work beyond that. v3. to …wn work beyond that.
+  note: this is version 1 of "review-gate", older than the version 3 the subgrooph was placed from: the changes below lead back to it
+warning  W_HOMOGENEOUS_CRITICS  critic "review-critic" judges "review-builder" on the same model (tier strong); a critic on a different tier or pin tends to catch different mistakes  [at: review-builder, review-critic]
+plan.grooph.json: 0 errors, 1 warning
+wrote plan.grooph.json
+from: review-gate@1

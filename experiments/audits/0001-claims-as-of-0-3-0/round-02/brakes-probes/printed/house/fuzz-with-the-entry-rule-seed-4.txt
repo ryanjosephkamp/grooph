@@ -1,0 +1,15 @@
+seed 4: 3814 refreshed, 0 refused with a TemplateError, 186 skipped; crashes/slow: 0
+
+BRAKE gate-answer-leads-elsewhere | held none  (x27)
+  review-gate, own stop | sound template: true
+  newer version: repoint e-merge-gate-reject.to builder->critic
+  -> gate-answer-leads-elsewhere:s-merge-gate
+  applied: edge:s-e-merge-gate-reject.to
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x3)
+  human-gated-irreversible | sound template: true
+  newer version: marker act ; addEdge gate->done {"verdict":"trivial"}
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-gate-done
+  held: node:s-act.irreversible

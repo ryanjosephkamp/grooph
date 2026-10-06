@@ -1,0 +1,15 @@
+in memory: {"id":"review-builder","kind":"agent","name":"Builder","role":"builder","model":{"tier":"strong"},"effort":"high","brief":"Do the task in the code, with tests. On a later round, read REVIEW.md first and address each finding, or say why it does not apply. Run the test command before you report, and do not review your own work beyond that.","inputs":["the task","docs/checklist.md","REVIEW.md (from round 1 on)"],"outputs":["the change, with tests","CHANGES.md: what changed this round and which findings it addresses"],"allow":["read-files","edit-files","run-tests"],"irreversible":["push to main"]}
+as written: {"id":"review-builder","kind":"agent","name":"Builder","role":"builder","model":{"tier":"strong"},"effort":"high","brief":"Do the task in the code, with tests. On a later round, read REVIEW.md first and address each finding, or say why it does not apply. Run the test command before you report, and do not review your own work beyond that.","inputs":["the task","docs/checklist.md","REVIEW.md (from round 1 on)"],"outputs":["the change, with tests","CHANGES.md: what changed this round and which findings it addresses"],"allow":["read-files","edit-files","run-tests"],"irreversible":["push to main"]}
+parse issues: []
+held: [
+  'node:review-builder.kind',
+  'node:review-builder.irreversible',
+  'node:review-builder.role',
+  'node:review-builder.model',
+  'node:review-builder.effort',
+  'node:review-builder.brief',
+  'node:review-builder.inputs',
+  'node:review-builder.outputs',
+  'node:review-builder.allow',
+  'node:review-builder.check'
+]

@@ -1,0 +1,6 @@
+exit 0 
+review-two  review-gate@1 → review-gate@2 (project)
+  held back: each removes or loosens a brake. Apply one by its name: --allow policy:review-two-p-no-self-grading
+    policy:review-two-p-no-self-grading   lets a node grade its own work
+  the rest:
+    policy:review-two-p-critic-isolation  removes policy "review-two-p-critic-isolation"   (loosens a brake: removes critic isolation; asked for by name) 

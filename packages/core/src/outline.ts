@@ -13,7 +13,7 @@ import { indexGraph } from "./graph-index.js";
 import { layerNodes } from "./layout.js";
 import { CARRIER_LABEL, endName, handoffCarrierText, mapShape, mapShapeLine, wakesItself } from "./map.js";
 import { estimateShape, shapeLine, tierLine } from "./proposals.js";
-import { describeStop, loopMode, stopAction } from "./semantics.js";
+import { describeStop, isPersonStep, isPlan, loopMode, stopAction } from "./semantics.js";
 import type { Edge, Graph, Group, Id, Node, OperationMap } from "./types.js";
 
 /** One fact: a label and its text, or a list. */
@@ -72,6 +72,7 @@ export function outline(doc: Graph): OutlineSection[] {
   const partOf = (id: Id): { inside?: Id } => (unitOf(id) ? { inside: unitOf(id)!.id } : {});
 
   const shape = estimateShape(doc);
+  const plan = isPlan(doc);
   sections.push({
     id: doc.id,
     kind: doc.template ? "Template" : "Graph",
@@ -85,7 +86,7 @@ export function outline(doc: Graph): OutlineSection[] {
       ...item("Budget", doc.constraints?.budget),
       ...item("Time", doc.constraints?.time),
       ...item("Other limits", doc.constraints?.other),
-      ...item("If the graph turns out wrong", doc.adaptation === "fixed" ? "fixed: the lead follows it exactly, or halts and asks" : doc.adaptation === "propose" ? "propose: the lead changes nothing and records proposals" : "adaptive: the lead may amend its working copy, visibly; brakes cannot be loosened"),
+      ...item("If the graph turns out wrong", doc.adaptation === "fixed" ? "fixed: the lead follows it exactly, or halts and asks" : doc.adaptation === "propose" ? "propose: the lead changes nothing and records proposals" : "adaptive: the lead may amend its working copy, visibly, and is told never to loosen a brake"),
       ...item("Version", `${doc.id}@${doc.version}`),
     ],
   });
@@ -97,19 +98,21 @@ export function outline(doc: Graph): OutlineSection[] {
     const inLoops = doc.loops.filter((l) => l.members.includes(id)).map((l) => l.name || l.id);
     const own: OutlineItem[] = (() => {
       switch (node.kind) {
-        case "agent":
+        case "agent": {
+          // A person's step (amendment A-020) has its role and what it is asked, expects, leaves and owns. A model,
+          // an effort, skills and capabilities are an agent's, and are not read of a person.
+          const agent = !isPersonStep(node);
           return [
             ...item("Role", typeof node.role === "string" ? node.role : `${node.role.custom} (custom)`),
-            ...item("Model", [node.model?.tier ?? "session default", ...Object.entries(node.model?.pin ?? {}).map(([h, m]) => `${h}: ${m}`), node.effort ? `${node.effort} effort` : ""].filter((s) => s !== "").join(" · ")),
+            ...(agent ? item("Model", [node.model?.tier ?? "session default", ...Object.entries(node.model?.pin ?? {}).map(([h, m]) => `${h}: ${m}`), node.effort ? `${node.effort} effort` : ""].filter((s) => s !== "").join(" · ")) : []),
             ...item("Brief", node.brief),
             ...item("Expects", node.inputs),
             ...item("Leaves behind", node.outputs),
-            ...item("May", node.allow),
-            ...item("May not", node.deny),
-            ...item("Skills", node.skills),
+            ...(agent ? [...item("May", node.allow), ...item("May not", node.deny), ...item("Skills", node.skills)] : []),
             ...item("Owns", node.owns),
             ...item("Irreversible", node.irreversible),
           ];
+        }
         case "human-gate":
           return [...item("Asks", node.prompt), ...item("Answers", node.options)];
         case "check":
@@ -122,7 +125,7 @@ export function outline(doc: Graph): OutlineSection[] {
     })();
     sections.push({
       id,
-      kind: KIND_LABEL[node.kind],
+      kind: isPersonStep(node) ? "Person" : KIND_LABEL[node.kind],
       title: node.name || node.id,
       items: [...item("About", node.description), ...item("Part of", unitOf(id)?.name), ...own, ...item("In loop", inLoops), ...item("Then", out), ...item("Reached", into)],
       ...partOf(id),
@@ -158,7 +161,7 @@ export function outline(doc: Graph): OutlineSection[] {
         ...item("Good enough to stop", loop.bar?.acceptance),
         ...item("Aiming at", loop.bar?.aspiration),
         ...item("The critic inspects", loop.bar?.inspects.map((e) => `${e.kind}: ${e.ref}${e.note ? ` (${e.note})` : ""}`)),
-        ...item("Stops, in order", loop.stops.map((s) => `${describeStop(s)}: ${stopAction(s).replace(/`/g, "")}`)),
+        ...item("Stops, in order", loop.stops.map((s) => `${describeStop(s)}: ${stopAction(s, plan).replace(/`/g, "")}`)),
       ],
     });
   }

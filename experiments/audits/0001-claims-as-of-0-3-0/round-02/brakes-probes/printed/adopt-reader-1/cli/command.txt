@@ -1,0 +1,65 @@
+
+== A. --into the source file itself, a harmless working copy
+  --write --into <source>: exit 1; files: none touched
+      grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-a/.grooph/plan-review-release/graph.grooph.json), which adopt never writes; name another file
+      source file now version 1
+
+== B. --into the source file, a loosened working copy, no allow
+  --write --into <source>: exit 1; files: none touched
+      grooph: --into names the source this run started from (<tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-b/.grooph/plan-review-release/graph.grooph.json), which adopt never writes; name another file
+
+== C. --into the working copy file itself (inside the run), loosened
+  --write --into <run>/graph.grooph.json: exit 1; files: none touched
+      grooph: --into names the run's working copy (<tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-c/.grooph/plan-review-release/runs/r1/graph.grooph.json), which adopt never writes; name another file
+
+== D. --into a fresh path inside the run folder, loosened, then harmless
+  --write --into <run>/next.grooph.json: exit 1; files: none touched
+      grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+
+== E. twice: refused, refused; then allowed; then again with and without allow
+  1 --write: exit 1; files: none touched
+      grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  2 --write: exit 1; files: none touched
+      grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+  3 --write --allow: exit 0; files: created .grooph/graphs/plan-review-release.grooph.json
+      place it for the next run with: grooph export <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-e/.grooph/graphs/plan-review-release.grooph.json --target claude-code --into <project>
+  4 --write (no allow, target already holds it): exit 0; files: none touched
+      <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-e/.grooph/graphs/plan-review-release.grooph.json already holds exactly this version; nothing to do
+  5 dry (no allow): exit 0; files: none touched
+      <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-e/.grooph/graphs/plan-review-release.grooph.json already holds exactly this version; nothing to do
+
+== F. a refused adoption made to look done: the target already holds what adoption would write (written by other hands)
+  --write, no allow: exit 0; files: none touched
+      <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-f/.grooph/graphs/plan-review-release.grooph.json already holds exactly this version; nothing to do
+      full output:
+        | loosens a brake: a run may tighten one, never loosen one. Adopt one on purpose by its name: --allow loop:review-review.stops
+        |   loop:review-review.stops  raises the round cap from 4 to 40
+        | <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-f/.grooph/graphs/plan-review-release.grooph.json already holds exactly this version; nothing to do
+
+== G. the source moved on (source is version 2, the run worked on 1), loosened
+  --write: exit 1; files: none touched
+      grooph: not written: this run worked on version 1, but the source is now version 2; adopting would undo what changed in between. Compare them by hand, or adopt a run of version 2
+  --write --allow: exit 1; files: none touched
+      grooph: not written: this run worked on version 1, but the source is now version 2; adopting would undo what changed in between. Compare them by hand, or adopt a run of version 2
+
+== H. the working copy claims another id and a version far ahead, loosened
+  --write: exit 1; files: none touched
+      grooph: not written: this run worked on version 99, but the source is now version 1; adopting would undo what changed in between. Compare them by hand, or adopt a run of version 1
+  --write (other id, same version): exit 1; files: none touched
+      grooph: not written: the working copy loosens a brake the graph has (loop:review-review.stops, with the reasons above). Adopt each on purpose with --allow <name>, or correct the working copy
+      wrote other-graph file? false
+
+== I. the target holds another graph; then a file that is no graph
+  --write: exit 1; files: none touched
+      grooph: not written: <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-i/.grooph/graphs/plan-review-release.grooph.json holds version 1, which is not the version 1 this run started from; adopting would overwrite it. C
+  --write: exit 1; files: none touched
+      grooph: <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-i/.grooph/graphs/plan-review-release.grooph.json is not a graph document; pass --into another file
+
+== J. dry run vs --write report: the same lines but the last?
+  stdout lines equal except the last: true; dry exit 0, write exit 1
+  dry last: --write would be refused: the working copy loosens a brake the graph has (node:review-merge-gate.options, loop:review-re
+  write stderr: grooph: not written: the working copy loosens a brake the graph has (node:review-merge-gate.options, loop:review-review.stops, with the reasons above). Adopt ea
+
+== K. the real run folder from fixtures (probe/demo copy): cap 5 -> 50 by hand, as the audit did
+  loop sandwich [{"kind":"bar-passed"},{"kind":"max-iterations","n":5},{"kind":"budget","measure":"turns","limit":80}] members builder,checks,critic back e-checks-fail,e-critic-fail
+  as recorded: exit 0: place it for the next run with: grooph export <tmp>/grooph-brakes-probes/adopt-reader-1/cli/cmd-k/probe-out.json --target claude-code --into <project>

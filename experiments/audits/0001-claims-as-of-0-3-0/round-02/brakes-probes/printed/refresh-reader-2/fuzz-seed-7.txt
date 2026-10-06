@@ -1,0 +1,22 @@
+seed 7: 3807 refreshed, 0 refused with a TemplateError, 193 skipped; crashes/slow: 0
+
+BRAKE critic-verdict-undecided | held none  (x1)
+  review-gate, then release | sound template: false
+  newer version: removeEdge e-critic-fail ; outcome done ; repoint e-critic-pass.from critic->merge-gate
+  -> critic-verdict-undecided:s-critic
+  applied: node:s-done, edge:s-e-critic-fail, edge:s-e-critic-pass.from, edge:e-s-merge-gate-s-done, loop:s-review.back
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held none  (x23)
+  debate-then-build | sound template: true
+  newer version: addEdge plan-gate->tests "pass"
+  -> gate-answer-leads-elsewhere:s-plan-gate
+  applied: edge:s-x-plan-gate-tests
+  held: -
+
+BRAKE gate-answer-leads-elsewhere | held some  (x2)
+  human-gated-irreversible | sound template: true
+  newer version: addEdge gate->done "always" ; marker act
+  -> gate-answer-leads-elsewhere:s-gate
+  applied: edge:e-s-gate-done
+  held: node:s-act.irreversible
