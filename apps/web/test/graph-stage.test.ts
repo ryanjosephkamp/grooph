@@ -977,15 +977,18 @@ describe("rings", () => {
     // Three candidates go to one filter: the nearest one's edge is straight, and the others go out to the left
     // round the candidates between, the farthest widest.
     const into = m.edges.filter((e) => e.to === order[3]).sort((a, b) => order.indexOf(b.from) - order.indexOf(a.from));
-    expect(into.map((e) => Math.round(Math.min(...flat.path(e.id).map((p) => p[0]))))).toEqual([0, -34, -68]);
+    expect(into.map((e) => Math.round(Math.min(...flat.path(e.id).map((p) => p[0]))))).toEqual([0, -34, -76]);
     expect(flat.prims.every((p) => p.t !== "card" || !p.small)).toBe(true);
     // And an edge that would run through a node it has nothing to do with goes round it, on the ground or on a
-    // ring: on every template and valid fixture, each edge that is not along its ring is out to the side, by 34 for
-    // each, of every node within 24 of the straight line between its ends.
-    const near = (p: number[], q: number[], o: number[]): boolean => {
-      const [d, w] = [[q[0]! - p[0]!, q[1]! - p[1]!, q[2]! - p[2]!], [o[0]! - p[0]!, o[1]! - p[1]!, o[2]! - p[2]!]];
-      const t = Math.max(0, Math.min(1, (w[0]! * d[0]! + w[1]! * d[1]! + w[2]! * d[2]!) / (d[0]! ** 2 + d[1]! ** 2 + d[2]! ** 2 || 1)));
-      return Math.hypot(w[0]! - d[0]! * t, w[1]! - d[1]! * t, w[2]! - d[2]! * t) < 24;
+    // ring. Measured, not restated: on every template and valid fixture, for each edge that is not along its ring
+    // and each node within 24 of the straight line between its ends, seen from above, and not hard by an end, the
+    // line as drawn is aside, where it is level with that node, by the room the node's card takes: 60 where the
+    // card stands over its node on a ring (it is 53 to each side), 32 on the ground, where the card is to the right
+    // and the line goes to the left.
+    const plan = (p: number[], q: number[], o: number[]): [number, number] => {
+      const [dx, dz, wx, wz] = [q[0]! - p[0]!, q[2]! - p[2]!, o[0]! - p[0]!, o[2]! - p[2]!];
+      const t = Math.max(0, Math.min(1, (wx * dx + wz * dz) / (dx * dx + dz * dz || 1)));
+      return [Math.hypot(wx - dx * t, wz - dz * t), t];
     };
     let lifted = 0;
     const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
@@ -997,11 +1000,18 @@ describe("rings", () => {
         const pts = drawn.path(e.id);
         const [p, q] = [drawn.node(e.from), drawn.node(e.to)];
         if (pts.length !== 19) continue;
-        const through = g.nodes.filter((n) => n.id !== e.from && n.id !== e.to && near(p, q, drawn.node(n.id))).length;
-        // How far the middle of the path is, on the ground, from the middle of the straight line.
-        const aside = Math.round(Math.hypot(pts[9]![0] - (p[0] + q[0]) / 2, pts[9]![2] - (p[2] + q[2]) / 2));
-        expect(aside, `${path} ${e.id}`).toBe(34 * through);
-        lifted += through;
+        for (const n of g.nodes) {
+          const [off, t] = plan(p, q, drawn.node(n.id));
+          if (n.id === e.from || n.id === e.to || off >= 24 || t < 0.1 || t > 0.9) continue;
+          // Where the line as drawn is when it is level with the node: so far from the straight line's place there.
+          const [k, f] = [Math.min(17, Math.floor(t * 18)), t * 18 - Math.min(17, Math.floor(t * 18))];
+          const [x, z] = [pts[k]![0] + (pts[k + 1]![0] - pts[k]![0]) * f, pts[k]![2] + (pts[k + 1]![2] - pts[k]![2]) * f];
+          const aside = Math.hypot(x - (p[0] + (q[0] - p[0]) * t), z - (p[2] + (q[2] - p[2]) * t));
+          expect(aside, `${path} ${e.id} past ${n.id}`).toBeGreaterThanOrEqual(n.loop ? 60 : 32);
+          // To the left of a line on the ground, whichever way the edge runs along it.
+          if (p[0] === 0 && q[0] === 0) expect(Math.max(...pts.map((b) => b[0])), `${path} ${e.id}`).toBeLessThanOrEqual(0);
+          lifted += 1;
+        }
       }
     }
     expect(lifted).toBeGreaterThan(4);
@@ -1010,7 +1020,136 @@ describe("rings", () => {
     const queue = graph("patterns/merge-queue.grooph.json");
     const q = rings(modelAt(queue, places(queue)), whole);
     const across = q.path("e-integrate-land-gate");
-    expect([Math.round(across[0]![0]), Math.round(across[18]![0]), Math.round(Math.min(...across.map((v) => v[0])))]).toEqual([0, 0, -34]);
+    expect([Math.round(across[0]![0]), Math.round(across[18]![0])]).toEqual([0, 0]);
+    // Bisector's card stands over its place, 53 to each side: behind it, where the card is from where the view
+    // starts, the line is more than that to the left of it.
+    const bisect = q.node("bisect");
+    const behind = across.filter((v) => v[2] <= bisect[2] && v[2] >= bisect[2] - 70);
+    expect(behind.length).toBeGreaterThan(2);
+    for (const v of behind) expect(v[0]).toBeLessThan(bisect[0] - 55);
+  });
+
+  it("an edge goes to the left of a line on the ground whichever way it runs, round what stands under it when it rises, and round the foot of a ring on a ring; a node's own edge is a small round beside it", () => {
+    const base = { ...REVIEW, policies: [] };
+    const node = (id: string) => ({ ...REVIEW.nodes.find((n) => n.id === "builder")!, id, name: id.toUpperCase() });
+    const loopOf = (id: string, members: string[], back: string[]) => ({ ...REVIEW.loops[0]!, id, name: id, members, back });
+    // Ground nodes s1 and s2 after a loop of a and b; an edge from s2 back up the line to b passes s1, to its left.
+    const up = { ...base, nodes: ["a", "b", "s1", "s2"].map(node), edges: [{ id: "ab", from: "a", to: "b" }, { id: "ba", from: "b", to: "a", when: "fail" }, { id: "b1", from: "b", to: "s1", when: "pass" }, { id: "12", from: "s1", to: "s2" }, { id: "2b", from: "s2", to: "b" }], loops: [loopOf("l", ["a", "b"], ["ba"])] } as unknown as Graph;
+    const drawnUp = rings(modelAt(up, places(up)), whole);
+    expect(Math.max(...drawnUp.path("2b").map((v) => v[0]))).toBeLessThanOrEqual(Math.max(drawnUp.node("s2")[0], drawnUp.node("b")[0]));
+    expect(Math.min(...drawnUp.path("2b").map((v) => v[0]))).toBeLessThan(-30);
+    // An outer loop of a and an inner ring of b and c: an edge from the ground to b rises over a, and goes round it;
+    // and one from the ground past the inner ring's foot goes round the foot.
+    const rise = { ...base, nodes: ["g", "a", "b", "c", "end"].map(node), edges: [{ id: "ga", from: "g", to: "a" }, { id: "gb", from: "g", to: "b" }, { id: "ab", from: "a", to: "b" }, { id: "bc", from: "b", to: "c" }, { id: "cb", from: "c", to: "b", when: "fail" }, { id: "ca", from: "c", to: "a", when: "blocked" }, { id: "ce", from: "c", to: "end", when: "pass" }, { id: "ge", from: "g", to: "end" }], loops: [loopOf("outer", ["a", "b", "c"], ["ca"]), loopOf("inner", ["b", "c"], ["cb"])] } as unknown as Graph;
+    const m = modelAt(rise, places(rise));
+    const drawn = rings(m, whole);
+    const level = (id: string, o: number[]): number => {
+      const pts = drawn.path(id);
+      const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![2] - o[2]!) * (v[2] - o[2]!) <= 0);
+      return k < 0 ? Number.NaN : pts[k]![0] - o[0]!;
+    };
+    // Over a (a card on a ring, 53 to each side of it): the rising edge is level with a more than that to its left.
+    expect(level("gb", drawn.node("a"))).toBeLessThan(-55);
+    // The inner ring's foot is under its middle: the edge along the ground from g to the end goes round it.
+    const foot = m.loops.find((l) => l.id === "inner")!;
+    const under = drawn.prims.flatMap((p) => (p.t === "dot" && p.r === 4 ? [p.at] : []))[0]!;
+    expect(foot.inside).toBe("outer");
+    expect(Math.abs(level("ge", under))).toBeGreaterThan(30);
+    // A node's own way back, in a loop of two: a round of 26 beside the node, away from the ring's middle, that
+    // starts and ends at the node. Not a stick up and down.
+    const selfish = { ...up, edges: [...up.edges, { id: "aa", from: "a", to: "a", when: "blocked" }], loops: [loopOf("l", ["a", "b"], ["ba", "aa"])] } as unknown as Graph;
+    const own = rings(modelAt(selfish, places(selfish)), whole);
+    const round = own.path("aa");
+    const a = own.node("a");
+    expect(round).toHaveLength(25);
+    expect([round[0], round[24]].map((v) => v!.map((x) => Math.round(x)))).toEqual([a, a].map((v) => v.map((x) => Math.round(x))));
+    expect(new Set(round.map((v) => v[1])).size).toBe(1);
+    expect(Math.round(Math.max(...round.map((v) => Math.hypot(v[0] - a[0], v[2] - a[2]))))).toBe(52);
+  });
+
+  it("held against one-line changes: an edge to the next station is an arc of the smallest ring both ends are on, only that loop's own way back closes it, twins are outside and higher, rings on a ring stand clear, nothing on the ground is in a ring, and a ring's name is outside it at the near left", () => {
+    const node = (id: string) => ({ ...REVIEW.nodes.find((n) => n.id === "builder")!, id, name: id.toUpperCase() });
+    const loopOf = (id: string, members: string[], back: string[]) => ({ ...REVIEW.loops[0]!, id, name: id, members, back });
+    const make = (nodes: string[], edges: [string, string, string, string?][], loops: [string, string[], string[]][]): Graph => ({ ...REVIEW, policies: [], nodes: nodes.map(node), edges: edges.map(([id, from, to, when]) => ({ id, from, to, ...(when ? { when } : {}) })), loops: loops.map(([id, members, back]) => loopOf(id, members, back)) }) as unknown as Graph;
+    /** A ring's middle and how far out its line is, from the band it is drawn as (15 to each side of the line). */
+    const ringOf = (built: ReturnType<typeof rings>, id: string): { c: number[]; r: number } => {
+      const band = built.prims.find((p) => p.t === "poly" && p.key === `loop:${id}`) as Extract<ReturnType<typeof rings>["prims"][number], { t: "poly" }>;
+      const c = [0, 1, 2].map((k) => (Math.min(...band.pts.map((v) => v[k]!)) + Math.max(...band.pts.map((v) => v[k]!))) / 2);
+      return { c, r: Math.max(...band.pts.map((v) => Math.hypot(v[0] - c[0]!, v[2] - c[2]!))) - 15 };
+    };
+    const out = (v: number[], c: number[]): number => Math.hypot(v[0]! - c[0]!, v[2]! - c[2]!);
+    // Builder to tests is in Grind and in Phases: it is an arc of Grind's ring, the smaller, every point of it on
+    // that ring's line. A straight line between the two would be nearer the middle.
+    const [nested] = runAt("run-nested");
+    const built = rings(modelAt(nested, places(nested)), whole);
+    const grind = ringOf(built, "grind");
+    for (const v of built.path("e-builder-tests")) expect(Math.abs(out(v, grind.c) - grind.r)).toBeLessThan(0.01);
+    // Whichever of the two loops the document lists first.
+    const turned: Graph = { ...nested, loops: [...nested.loops].reverse() };
+    const again = rings(modelAt(turned, places(turned)), whole);
+    for (const v of again.path("e-builder-tests")) expect(Math.abs(out(v, ringOf(again, "grind").c) - ringOf(again, "grind").r)).toBeLessThan(0.01);
+    // A node of an inner loop that stands on another loop's ring (the two share it, and it is the other's) is not
+    // at the inner ring's station on the outer one: an edge to it from the outer ring goes across to where it is.
+    const lent = make(["o", "i", "x", "s"], [["oi", "o", "i"], ["ix", "i", "x"], ["xi", "x", "i", "fail"], ["xo", "x", "o", "blocked"], ["xs", "x", "s", "pass"], ["sx", "s", "x", "fail"], ["ox", "o", "x", "pass"]], [["shared", ["x", "s"], ["sx"]], ["inner", ["i", "x"], ["xi"]], ["outer", ["o", "i", "x"], ["xo"]]]);
+    const away = modelAt(lent, places(lent));
+    expect(away.nodes.find((n) => n.id === "x")!.loop).toBe("shared");
+    expect(rings(away, whole).path("ox")).toHaveLength(19);
+    // The judge's second way back to the builder (the first is the rest of Phases' ring) is outside the first, on a
+    // line 16 farther out, and not inside it.
+    const phases = ringOf(built, "phases");
+    const [first, second] = [built.path("e-judge-fail"), built.path("e-judge-next-phase")].sort((x, y) => out(x[12]!, phases.c) - out(y[12]!, phases.c));
+    expect(Math.round(out(second![12]!, phases.c) - out(first![12]!, phases.c))).toBe(16);
+    expect(Math.abs(out(first![12]!, phases.c) - phases.r)).toBeLessThan(0.01);
+    // A way back of the outer loop between two nodes of the inner one, from its last station to its first, is not
+    // the inner ring's own: it does not close that ring, and is drawn across. Nor is a way back to the next station
+    // laid along the ring as the edge onward is.
+    const other = make(["a", "b", "j"], [["ab", "a", "b"], ["ba", "b", "a", "fail"], ["ba2", "b", "a", "blocked"], ["bj", "b", "j", "pass"], ["ja", "j", "a", "fail"], ["ab2", "a", "b", "blocked"]], [["inner", ["a", "b"], ["ba", "ab2"]], ["outer", ["a", "b", "j"], ["ja", "ba2"]]]);
+    const crossed = rings(modelAt(other, places(other)), whole);
+    expect([crossed.path("ba").length, crossed.path("ba2").length, crossed.path("ab").length, crossed.path("ab2").length]).toEqual([25, 19, 25, 19]);
+    // Two plain edges between the same two nodes, not along a ring: the second is 22 higher.
+    const pair = make(["a", "b", "c"], [["ab", "a", "b"], ["bc", "b", "c"], ["ac", "a", "c"], ["ac2", "a", "c"]], []);
+    const twice = rings(modelAt(pair, places(pair)), whole);
+    expect([Math.max(...twice.path("ac").map((v) => v[1])), Math.max(...twice.path("ac2").map((v) => v[1]))]).toEqual([0, 22]);
+    // Two rings standing on one ring, of five nodes and of three, with two more stations on it: their lines are
+    // clear of each other by more than the two bands (30).
+    const big = make(
+      ["p", "q", "r", "s", "w", "t", "u", "v", "x", "y"],
+      [["pq", "p", "q"], ["qr", "q", "r"], ["rs", "r", "s"], ["sw", "s", "w"], ["wp", "w", "p", "fail"], ["wt", "w", "t", "pass"], ["tu", "t", "u"], ["uv", "u", "v"], ["vt", "v", "t", "fail"], ["vx", "v", "x", "pass"], ["xy", "x", "y"], ["yp", "y", "p", "fail"]],
+      [["one", ["p", "q", "r", "s", "w"], ["wp"]], ["two", ["t", "u", "v"], ["vt"]], ["all", ["p", "q", "r", "s", "w", "t", "u", "v", "x", "y"], ["yp"]]],
+    );
+    const stood = rings(modelAt(big, places(big)), whole);
+    const [one, two] = [ringOf(stood, "one"), ringOf(stood, "two")];
+    expect([one.r, two.r].map(Math.round)).toEqual([150, 90]);
+    expect(out(one.c, two.c)).toBeGreaterThan(one.r + two.r + 30);
+    // On every template and valid fixture: no node on the ground is inside a ring's band or within it, counting
+    // the rings that stand on it; and the node before a ring is 100 or more short of the ring's far side, where
+    // the first station's card stands over the ground behind it.
+    const valid = readdirSync(join(root, "fixtures/valid")).filter((f) => f.endsWith(".grooph.json")).map((f) => `fixtures/valid/${f}`);
+    let looked = 0;
+    for (const path of [...ALL, ...valid, "big"]) {
+      const doc = path === "big" ? make(["g", ...big.nodes.map((n) => n.id), "end"], [["gp", "g", "p"], ...big.edges.map((e): [string, string, string, string?] => [e.id, e.from, e.to, (e as { when?: string }).when]), ["ye", "y", "end", "pass"]], big.loops.map((l): [string, string[], string[]] => [l.id, l.members, l.back ?? []])) : graph(path);
+      const g = modelAt(doc, places(doc));
+      const drawn = rings(g, whole);
+      for (const n of g.nodes.filter((x) => !x.loop)) {
+        for (const l of g.loops) {
+          const { c, r } = ringOf(drawn, l.id);
+          expect(out(drawn.node(n.id), c), `${path}: ${n.id} and ${l.id}`).toBeGreaterThan(r + 15);
+          if (!l.inside && drawn.node(n.id)[2] < c[2]!) expect(c[2]! - r - drawn.node(n.id)[2], `${path}: ${n.id} before ${l.id}`).toBeGreaterThanOrEqual(100);
+          looked += 1;
+        }
+      }
+      // A ring's name: outside its band, to the left of its middle and nearer the reader.
+      for (const l of g.loops) {
+        const { c, r } = ringOf(drawn, l.id);
+        const name = drawn.prims.find((p) => p.t === "text" && p.text.split("\n")[0] === l.name) as Extract<ReturnType<typeof rings>["prims"][number], { t: "text" }>;
+        expect(out(name.at, c), `${path}: ${l.id}`).toBeGreaterThan(r + 15);
+        expect([name.at[0] < c[0]!, name.at[2] > c[2]!], `${path}: ${l.id}`).toEqual([true, true]);
+      }
+    }
+    expect(looked).toBeGreaterThan(40);
+    // In a frame a phone's width every card is its name alone; where there is room, a card on a ring is whole.
+    expect(rings(modelAt(GAUNTLET, places(GAUNTLET), undefined, true), whole).prims.every((p) => p.t !== "card" || p.small)).toBe(true);
+    expect(rings(modelAt(GAUNTLET, places(GAUNTLET)), whole).prims.some((p) => p.t === "card" && !p.small)).toBe(true);
   });
 
   it("two edges between the same two nodes are drawn apart, and a loop of one node has a ring that its way back goes all the way round", () => {
