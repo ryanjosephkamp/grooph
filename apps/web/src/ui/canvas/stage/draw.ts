@@ -53,7 +53,7 @@ const READABLE = 0.9;
  * they need to be clear, up to `TALLEST` of what scrolls it, and the page scrolls. The height is asked of the
  * frame's parent, whose row it is, as `--s3-tall`; what scrolls is that parent's parent.
  */
-export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = false): Stage {
+export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: HTMLElement, start: Look, roomy = 0): Stage {
   // A browser that gives no drawing surface (it can refuse one, or have none left) cannot show this view: said, so
   // that what holds the view can fall back to what it showed before, and not left to fail at the first line drawn.
   const surface = canvas.getContext("2d");
@@ -119,7 +119,8 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
     const room = (p: Prim): [number, number, number, number] => {
       // A card that is its name alone is as wide as its name.
       const half = (p.t === "card" && p.small ? (cardOf(p.id)?.offsetWidth ?? 88) : 106) / 2 + 5;
-      if (p.t === "card") return p.side ? (p.small ? [8, half * 2, 14, 14] : [8, 128, 22, 22]) : p.stand ? [half, half, 60, 8] : [58, 58, 24, 24];
+      // (And one that stands over its point is as tall as it is: a name on two lines, at the largest a card is drawn.)
+      if (p.t === "card") return p.side ? (p.small ? [8, half * 2, 14, 14] : [8, 128, 22, 22]) : p.stand ? [half, half, Math.max(60, (cardOf(p.id)?.offsetHeight ?? 0) * 1.15 + 14), 8] : [58, 58, 24, 24];
       if (p.t === "text") return [8, 8, p.up ? 16 * p.text.split("\n").length * 1.6 : 12, 12];
       return [3, 3, 3, 3];
     };
@@ -153,7 +154,7 @@ export function makeStage(frame: HTMLElement, canvas: HTMLCanvasElement, cards: 
       else if (what() !== tallFor) {
         // At a size, whether no two cards lie over each other, placed as they are drawn: two pixels clear, so that
         // their edges are not one line.
-        const clear = (f: number, gap = 2): boolean => {
+        const clear = (f: number, gap = roomy): boolean => {
           const [x0, x1, y0, y1] = box(f);
           const [sx, sy] = [(x0 + x1) / 2 / f, -(y0 + y1) / 2 / f];
           const boxes = placed.map(([p, el, t]) => boxOf(p, el, (t[0] - sx) * near(t[2], f), -(t[1] - sy) * near(t[2], f), near(t[2], f)));

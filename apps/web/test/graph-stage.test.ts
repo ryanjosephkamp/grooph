@@ -724,6 +724,11 @@ describe("the spiral and its lid", () => {
     // The two spirals' middles are in one upright line, the inner loop's above the outer's by more than its own height.
     // Each spiral has an upright line up its middle: the foot of each, the higher first. The loop inside is placed first.
     const feet = (prims: typeof built.prims) => prims.flatMap((p) => (p.t === "line" && p.stroke === "line-strong" && p.pts.length === 2 ? [p.pts[0]!] : []));
+    /** Each spiral's top (where its middle line ends) and its turn's radius (the floor under it is 12 wider). */
+    const feetOf = (prims: typeof built.prims): { y: number; r: number }[] => {
+      const floors = prims.flatMap((p) => (p.t === "poly" && p.fill === "floor" ? [p.pts] : []));
+      return prims.flatMap((p) => (p.t === "line" && p.stroke === "line-strong" && p.pts.length === 2 ? [p.pts] : [])).map(([foot, top], n) => ({ y: top![1], r: Math.max(...floors[n]!.map((v) => Math.hypot(v[0] - foot![0], v[2] - foot![2]))) - 12 }));
+    };
     const [polish, pieces] = feet(built.prims).sort((a, b) => b[1] - a[1]);
     expect(turnsOf(built.node("owner")[1] - polish![1])).toBe(0);
     expect(turnsOf(built.node("next-piece")[1] - pieces![1])).toBe(0.5);
@@ -739,6 +744,50 @@ describe("the spiral and its lid", () => {
     expect(feet(wide.prims).map((foot) => foot[1])).toEqual([0, 0]);
     expect(new Set(feet(wide.prims).map((foot) => foot[0])).size).toBe(2);
     expect(wide.prims.some((p) => p.t === "card" && !p.small)).toBe(true);
+    // Stacked, over is along the line, so an edge goes out to the side. Round the top of each spiral it passes, lid
+    // and turns: where it is level with that top it is more than the lid's radius (the turn's and 18) from the
+    // middle, on every template; and on the side of its own end there, so that it does not cross the turns.
+    let [passed, right] = [0, 0];
+    for (const path of ALL) {
+      const doc = graph(path);
+      const g = modelAt(doc, places(doc), undefined, true);
+      const drawn = spiral(g, whole);
+      const tops = feetOf(drawn.prims);
+      for (const e of g.edges) {
+        const pts = drawn.path(e.id, 0, e.back ? 1 : 0);
+        if (pts.length !== 19) continue;
+        for (const top of tops) {
+          const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![1] - top.y) * (v[1] - top.y) < 0);
+          if (k < 0) continue;
+          const x = pts[k - 1]![0] + ((pts[k]![0] - pts[k - 1]![0]) * (top.y - pts[k - 1]![1])) / (pts[k]![1] - pts[k - 1]![1]);
+          expect(Math.abs(x), `${path} ${e.id}`).toBeGreaterThan(top.r + 18 + 8);
+          // Between two places on the right of their spirals it stays on the right.
+          if (drawn.node(e.from)[0] > 0 && drawn.node(e.to)[0] > 0) expect(x, `${path} ${e.id}`).toBeGreaterThan(0), (right += 1);
+          passed += 1;
+        }
+      }
+    }
+    expect([passed > 6, right > 0]).toEqual([true, true]);
+    // Round the nodes on the ground between its ends, to the left, where no card stands: three candidates each go
+    // to the filter, and the first's edge is 30 or more to the left of the second and the third where it passes them.
+    const tournament = graph("patterns/tournament-then-judge.grooph.json");
+    const stacked = spiral(modelAt(tournament, places(tournament), undefined, true), whole);
+    const across = (id: string, y: number): number => {
+      const pts = stacked.path(id);
+      const k = pts.findIndex((v, n) => n > 0 && (pts[n - 1]![1] - y) * (v[1] - y) <= 0);
+      return pts[k - 1]![0] + ((pts[k]![0] - pts[k - 1]![0]) * (y - pts[k - 1]![1])) / (pts[k]![1] - pts[k - 1]![1] || 1);
+    };
+    for (const between of ["candidate-b", "candidate-c"]) expect(across("e-candidate-a-filter", stacked.node(between)[1]) - stacked.node(between)[0], between).toBeLessThan(-30);
+    expect(across("e-candidate-b-filter", stacked.node("candidate-c")[1]) - stacked.node("candidate-c")[0]).toBeLessThan(-30);
+    expect(stacked.path("e-candidate-c-filter").every((v) => v[0] === stacked.node("filter")[0])).toBe(true);
+    // And a graph with no loop keeps its cards whole there: a column has room for them.
+    expect(stacked.prims.some((p) => p.t === "card" && p.small)).toBe(false);
+    // Two takings of one edge between the two spirals of the nested run, one over the other, are apart.
+    const [nestedDoc, nestedNotes] = runAt("run-nested");
+    const ran = modelAt(nestedDoc, places(nestedDoc), nestedNotes, true);
+    const takings = spiral(ran, at(ran, 0)).prims.flatMap((p) => (p.t === "line" && p.key?.startsWith("edge:e-tests-judge@") ? [p.pts] : []));
+    expect(takings).toHaveLength(2);
+    expect(Math.abs(takings[0]![9]![0] - takings[1]![9]![0])).toBeGreaterThan(5);
     // No loop, narrow: a column, each node 52 under the one before it.
     const line = graph("patterns/tournament-then-judge.grooph.json");
     const column = spiral(modelAt(line, places(line), undefined, true), whole);
