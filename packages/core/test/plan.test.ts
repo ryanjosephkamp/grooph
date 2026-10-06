@@ -13,7 +13,7 @@ import { adoptWorkingCopy, buildRunBundle } from "../src/runs.js";
 import { decodeSharePayload } from "../src/share.js";
 import { IMPLEMENTED_CODES } from "../src/issues.js";
 import { parseGraphText } from "../src/parse.js";
-import { planBundle, planSteps } from "../src/plan.js";
+import { planBundle, planSteps } from "../src/index.js";
 import type { Graph } from "../src/types.js";
 import { validate } from "../src/validate.js";
 import { fixturesDir, listDirs, listFiles, read, repoRoot } from "./helpers.js";

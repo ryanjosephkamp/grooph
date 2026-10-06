@@ -15,17 +15,32 @@ test("validation is live, points at its objects, and blocks export", async ({ pa
   await page.getByRole("button", { name: "New graph" }).tap();
   await field("Name").fill("Checks");
 
-  // An empty graph: no target, no goal — the two export preconditions.
-  await expect(status(page)).toHaveText("2 errors");
+  // An empty graph names no harness and states no goal. It is a plan, and neither is an error of it (amendment
+  // A-020): the list is clear, and what a package for a harness would still need is said under it, plainly.
+  await expect(status(page)).toHaveText("Valid");
   await status(page).tap();
-  await expect(s.locator(".issue-code")).toHaveText(["E_NO_TARGET", "E_NO_GOAL"]);
+  await expect(s.locator(".all-clear")).toHaveText("No issues. The graph validates.");
+  await expect(s.locator(".issue-code")).toHaveCount(0);
+  const needs = s.getByRole("group", { name: "For a package" });
+  await expect(needs.getByRole("listitem")).toHaveText([
+    "A harness grooph has a compiler for: Claude Code or Codex. This graph names none, which is right for a plan.",
+    "A goal: the lead's brief is built from it.",
+  ]);
+  await expect(s.getByRole("alert")).toHaveCount(0);
 
-  // Fixing one in the graph sheet updates the count as it is typed.
-  await s.getByRole("button", { name: "Open graph" }).first().tap();
+  // Giving one in the graph sheet takes it off the list as it is typed.
+  await needs.getByRole("button", { name: "Open graph" }).tap();
   await field("Goal").fill("Prove the panel is live.");
-  await expect(status(page)).toHaveText("1 error");
+  await expect(field("Target harness").locator("option").first()).toHaveText("None: this is a plan");
+  await status(page).tap();
+  await expect(s.getByRole("group", { name: "For a package" }).getByRole("listitem")).toHaveCount(1);
+  await s.getByRole("group", { name: "For a package" }).getByRole("button", { name: "Open graph" }).tap();
   await field("Target harness").selectOption("claude-code");
   await expect(status(page)).toHaveText("Valid");
+  await status(page).tap();
+  await expect(s.locator(".all-clear")).toHaveText("No issues. The graph validates for export.");
+  await expect(s.getByRole("group", { name: "For a package" })).toHaveCount(0);
+  await closeSheet(page);
 
   // A new agent has no outputs yet: the schema says so, at the node.
   await toolbar(page).getByRole("button", { name: "Add" }).tap();

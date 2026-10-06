@@ -26,6 +26,9 @@ const adoptionSource = fileURLToPath(new URL("../../packages/core/src/adoption.t
 // And the one-file offline page (slice 0093's second part): made when a person presses "Offline page" under Keep a
 // copy, and by nothing an address shows. src/doc/keep.ts fetches it then, and it is named in the page too.
 const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts", import.meta.url));
+// And a plan's files (slice 0100): PLAN.md, the picture and the document, for any graph that reads. Their maker is
+// part of the Export panel's piece (src/ui/ExportDoor.tsx), which is fetched when Export is pressed and named in the page.
+const planSource = fileURLToPath(new URL("../../packages/core/src/plan.ts", import.meta.url));
 
 /**
  * What each address loads, and the app's share of it fetched at once.
@@ -56,7 +59,7 @@ const offlineSource = fileURLToPath(new URL("../../packages/core/src/offline.ts"
  */
 function routes(): Plugin {
   type Files = { js: string[]; css: string[] };
-  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; offline?: string[] } | undefined;
+  let found: { app: Files; canvas: Files; embed: Files; entry: string[]; later: string[]; space: string[]; templates?: string[]; front?: string[]; offline?: string[]; exporting?: string[] } | undefined;
   let outDir = "dist";
   return {
     name: "grooph-routes",
@@ -152,6 +155,12 @@ function routes(): Plugin {
         const inCanvas = closure(screens);
         found.offline = [...closure(offlinePage)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
         found.later = [...new Set([...found.later, ...found.offline])];
+        // And the Export panel (src/ui/ExportPanel.tsx, slice 0100) with the plan's maker in it: fetched when Export is
+        // pressed, and soon after an editor opens. No address loads it first, and the worker holds it from its install.
+        const exportPanel = chunks.find((c) => c.facadeModuleId?.endsWith("/src/ui/ExportPanel.tsx"));
+        if (!exportPanel) throw new Error("grooph-routes: no chunk of its own for the Export panel (src/ui/ExportPanel.tsx). Something imports it outright, and every canvas carries it again.");
+        found.exporting = [...closure(exportPanel)].filter((f) => !inEntry.has(f) && !inApp.has(f) && !inCanvas.has(f));
+        found.later = [...new Set([...found.later, ...found.exporting])];
         const base = ctx.server ? "/" : "/grooph/";
         const list = (files: string[]): string => JSON.stringify(files.map((f) => `${base}${f}`));
         // The styles go in as stylesheets, in that order. Vite's own loader finds them there and does not fetch them
@@ -184,6 +193,7 @@ export default defineConfig({
       { find: "@grooph/core/themes", replacement: themesSource },
       { find: "@grooph/core/adoption", replacement: adoptionSource },
       { find: "@grooph/core/offline", replacement: offlineSource },
+      { find: "@grooph/core/plan", replacement: planSource },
       { find: "@grooph/core", replacement: coreSource },
     ],
   },

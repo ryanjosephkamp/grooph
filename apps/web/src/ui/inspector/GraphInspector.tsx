@@ -56,11 +56,17 @@ export function GraphInspector({ autoFocusName, renameWarning }: { autoFocusName
         label="Target harness"
         value={other ? OTHER : (harness ?? "")}
         options={[
-          { value: "", label: "(choose)" },
+          { value: "", label: "None: this is a plan" },
           ...KNOWN_TARGETS.map((target) => ({ value: target, label: targetTitle(target) ?? target })),
           { value: OTHER, label: "other…" },
         ]}
-        hint="Export compiles a package for the selected harness."
+        hint={
+          harness === undefined
+            ? "A plan needs no harness. Choose one when a coding harness is to run this: a package is compiled for it."
+            : known
+              ? "Export compiles a package for the selected harness."
+              : `grooph has no compiler for "${harness}". The plan can still be kept; a package needs ${KNOWN_TARGETS.map((target) => targetTitle(target) ?? target).join(" or ")}.`
+        }
         onChange={(v) => {
           setOther(v === OTHER);
           if (v !== OTHER) editor.store.update((d) => setTarget(d, v === "" ? undefined : v));

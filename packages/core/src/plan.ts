@@ -7,17 +7,18 @@
  * fix before a harness can run this". A package for a harness is another thing, and is still written only by
  * `compile`, for a document with no error.
  *
- * Pure, and the same bytes for the same document: no date, no machine. Not on the web app's way in: it brings the
- * validator's export rules, the outline and the picture with a subgrooph's box.
+ * Pure, and the same bytes for the same document: no date, no machine. Not on the web app's way in.
+ *
+ * This file imports nothing but types. What it validates, outlines, draws and writes a document with is handed to
+ * it (`plan-kit.ts` says why): the web app fetches it as a piece of its own when the Export panel is opened, and a
+ * piece that imports nothing moves nothing else. In Node there is no door: `index.ts` binds the kit, and
+ * `planBundle(doc)` is called as it always was.
  */
 
-import { canonicalize } from "./canonicalize.js";
 import type { Issue } from "./issues.js";
-import { outline, outlineMarkdown, type OutlineSection } from "./outline.js";
-import { pictureWithUnits } from "./picture/graph-units.js";
-import { unitsKit } from "./picture/units-kit.js";
+import type { OutlineSection } from "./outline.js";
+import type { PlanKit } from "./plan-kit.js";
 import type { Graph, Node } from "./types.js";
-import { validate } from "./validate.js";
 
 export type PlanBundle = {
   /** path → file contents, in the order a person opens them: `PLAN.md`, the picture, the document */
@@ -96,9 +97,10 @@ export function planSteps(doc: Graph): PlanStep[] {
 const count = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 /** A section of the outline without its heading: the items, as `grooph outline` writes them. */
-const itemsOf = (section: OutlineSection): string => outlineMarkdown([{ ...section, title: "x" }]).replace(/^# x\n*/, "").trimEnd();
+const itemsOf = (outlineMarkdown: PlanKit[2], section: OutlineSection): string => outlineMarkdown([{ ...section, title: "x" }]).replace(/^# x\n*/, "").trimEnd();
 
-function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, documentFile: string): string {
+function planMarkdown(kit: PlanKit, doc: Graph, toFix: readonly Issue[], pictureFile: string, documentFile: string): string {
+  const [, outline, outlineMarkdown, validate] = kit;
   const name = plain(doc.name ?? "") || doc.id;
   const errors = toFix.filter((issue) => issue.severity === "error");
   const warnings = toFix.filter((issue) => issue.severity !== "error");
@@ -159,8 +161,8 @@ function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, 
     // stand, when read as text or when rendered. From here down the document speaks in full, as written.
     "## In full",
     "",
-    ...(first ? [itemsOf(first), ""] : []),
-    ...rest.flatMap((section) => [`### ${section.kind}: ${plain(section.title) || section.id}`, "", `\`${section.id}\``, "", itemsOf(section), ""]),
+    ...(first ? [itemsOf(outlineMarkdown, first), ""] : []),
+    ...rest.flatMap((section) => [`### ${section.kind}: ${plain(section.title) || section.id}`, "", `\`${section.id}\``, "", itemsOf(outlineMarkdown, section), ""]),
   ];
   return `${lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`;
 }
@@ -169,14 +171,16 @@ function planMarkdown(doc: Graph, toFix: readonly Issue[], pictureFile: string, 
  * The files of a plan, for any document that reads as a graph. Nothing is refused: a document with no target, no
  * goal, a loop with no stop or a dangling edge still gets its plan, and each such finding is listed in it.
  */
-export function planBundle(doc: Graph): PlanBundle {
+export function planBundleWith(kit: PlanKit, doc: Graph): PlanBundle {
+  // The kit's parts by their names, in the kit's own order.
+  const [canonicalize, , , validate, picture] = kit;
   const toFix = validate(doc, { forExport: true });
   const pictureFile = `${doc.id}.svg`;
   const documentFile = `${doc.id}.grooph.json`;
   return {
     files: {
-      "PLAN.md": planMarkdown(doc, toFix, pictureFile, documentFile),
-      [pictureFile]: pictureWithUnits(unitsKit, doc),
+      "PLAN.md": planMarkdown(kit, doc, toFix, pictureFile, documentFile),
+      [pictureFile]: picture(doc),
       [documentFile]: canonicalize(doc),
     },
     toFix,

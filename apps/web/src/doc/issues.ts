@@ -1,6 +1,11 @@
 /**
- * Live validation: the list `grooph validate --for-export` prints for the same
- * document. The app adds no rule of its own (spec §12 via the core validator).
+ * Live validation: the list `grooph validate --for-export` prints for the same document, in two parts. The app
+ * adds no rule of its own (spec §12 via the core validator).
+ *
+ * A graph is a plan first (amendment A-020): it may name no harness and state no goal, and that is no fault of
+ * it. So those two findings (`E_NO_TARGET`, `E_NO_GOAL`) are taken out of the list and said apart, as what a
+ * package for a harness would still need. Every other finding is the graph's own and is listed as it was, a slot
+ * left unfilled among them: that is a gap in a plan too, and the list is where a person finds it.
  */
 import { parseGraph, validate, type Graph, type Id, type Issue, type Severity } from "@grooph/core";
 
@@ -11,7 +16,34 @@ import { parseGraph, validate, type Graph, type Id, type Issue, type Severity } 
  */
 export function computeIssues(doc: Graph): Issue[] {
   const parsed = parseGraph(doc);
-  return parsed.doc ? validate(parsed.doc, { forExport: true }) : parsed.issues;
+  return parsed.doc ? validate(parsed.doc, { forExport: true }).filter((issue) => !onlyAPackage(issue)) : parsed.issues;
+}
+
+/** What a plan may lack and a package may not: a harness grooph has a compiler for, and a goal. */
+const onlyAPackage = (issue: Issue): boolean => issue.code === "E_NO_TARGET" || issue.code === "E_NO_GOAL";
+
+/**
+ * What a package for a harness would still need of this graph, apart from the graph's own findings: a harness
+ * (none is named, or grooph has no compiler for the one that is) and a goal. Empty for a document that does not
+ * read as a graph yet: its schema findings come first.
+ */
+export function packageNeeds(doc: Graph): Issue[] {
+  const parsed = parseGraph(doc);
+  return parsed.doc ? validate(parsed.doc, { forExport: true }).filter(onlyAPackage) : [];
+}
+
+/**
+ * A need, in the panel's own plain words where the app has them; core's message otherwise. A harness grooph has no
+ * compiler for is said as that, and names the ones it has.
+ */
+export function needInWords(need: Issue, doc: Graph, known: readonly { id: string; title: string }[]): string {
+  const harness = doc.target?.harness?.trim();
+  const titles = known.map((target) => target.title).join(" or ");
+  if (need.code === "E_NO_TARGET") {
+    return harness ? `grooph has no compiler for "${harness}". It has one for ${titles}.` : `A harness grooph has a compiler for: ${titles}. This graph names none, which is right for a plan.`;
+  }
+  if (need.code === "E_NO_GOAL") return "A goal: the lead's brief is built from it.";
+  return need.message;
 }
 
 export type Highlight = { nodes: Set<Id>; edges: Set<Id>; loops: Set<Id>; graph: boolean };
