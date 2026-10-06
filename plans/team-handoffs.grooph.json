@@ -55,6 +55,7 @@
       "id": "request",
       "kind": "agent",
       "name": "{{requester}} writes the request",
+      "by": "person",
       "role": "planner",
       "brief": "Write what is wanted, by when, and what done looks like, as a short list someone else could check. Say what is not wanted too. If {{author}} has to guess, the request is not finished.",
       "inputs": [
@@ -62,16 +63,13 @@
       ],
       "outputs": [
         "REQUEST.md: what is wanted, by when, and what done looks like"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
       "id": "do",
       "kind": "agent",
       "name": "{{author}} does the work",
+      "by": "person",
       "role": "builder",
       "brief": "Do what the request asks. Hand it over with a note: what is done, what is not and why, and what to look at first. On a later round, start from REVIEW.md and answer each point, or say why it does not apply.",
       "inputs": [
@@ -81,20 +79,14 @@
       "outputs": [
         "the work",
         "HANDOFF.md: what is done, what is not, what to look at first"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
       "id": "review",
       "kind": "agent",
       "name": "{{reviewer}} reviews",
+      "by": "person",
       "role": "critic",
-      "model": {
-        "tier": "strong"
-      },
       "brief": "Read the work against the request, one line for each thing it asks for: there, with where to see it, or not there. Say what you could not check. You judge and do not fix: send it back. Pass it when everything asked for is there, or is named in the handoff note as left out for a reason you accept.",
       "inputs": [
         "the work",
@@ -103,10 +95,6 @@
       ],
       "outputs": [
         "REVIEW.md: one line per thing asked for, ending in pass or send back"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {

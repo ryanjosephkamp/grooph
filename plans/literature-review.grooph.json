@@ -40,6 +40,7 @@
       "id": "frame",
       "kind": "agent",
       "name": "Frame the question",
+      "by": "person",
       "role": "planner",
       "brief": "Write the question in one sentence. Under it, say what would count as an answer, what is in and out of scope, and which years and kinds of study you will look at. Keep it to half a page: the search and the skeptic both work from this.",
       "inputs": [
@@ -47,10 +48,6 @@
       ],
       "outputs": [
         "QUESTION.md: the question, what counts as an answer, what is in and out"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
@@ -87,6 +84,7 @@
       "id": "read",
       "kind": "agent",
       "name": "Read and take notes",
+      "by": "person",
       "role": "researcher",
       "brief": "Read each paper you marked, yourself. For each, write in your own words what it claims, what that rests on, and what it does not show, with the paper and page for each claim. When two papers disagree, write the disagreement down as it is. On a later round, start from SKEPTIC.md, or from what you said you still need to read.",
       "inputs": [
@@ -96,10 +94,6 @@
       ],
       "outputs": [
         "NOTES.md: one section per paper"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
@@ -107,9 +101,6 @@
       "kind": "agent",
       "name": "A skeptic reads your notes",
       "role": "critic",
-      "model": {
-        "tier": "strong"
-      },
       "brief": "Read the notes against the question as a skeptic. For each claim the notes lean on, say whether the notes name the paper and page it comes from, whether another paper in the notes cuts against it, and what is missing for the question to be answered. You judge the notes, not papers you were not given, and you do not rewrite them. Verdict pass only when every claim names its paper and page and every disagreement is written down.",
       "inputs": [
         "NOTES.md",
@@ -141,6 +132,7 @@
       "id": "write",
       "kind": "agent",
       "name": "Write the review",
+      "by": "person",
       "role": "synthesizer",
       "brief": "Write the review from your notes: what is known, what is contested, and what nobody has looked at. Give a source for every claim. Say which papers you left out and why. Where the skeptic's list still stands, say so in the text.",
       "inputs": [
@@ -150,10 +142,6 @@
       ],
       "outputs": [
         "REVIEW.md"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {

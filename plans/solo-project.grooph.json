@@ -41,6 +41,7 @@
       "id": "plan",
       "kind": "agent",
       "name": "Write what done means",
+      "by": "person",
       "role": "planner",
       "brief": "Before you start, write what you are making in two sentences, and under it a short list of things that will be true when it is done, each one something you could point at. Add what you will not do. Three to seven lines: this is the list you will be held to.",
       "inputs": [
@@ -48,16 +49,13 @@
       ],
       "outputs": [
         "DONE.md: what you are making, and what will be true when it is done"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
       "id": "make",
       "kind": "agent",
       "name": "Make it",
+      "by": "person",
       "role": "builder",
       "brief": "Make what DONE.md describes. Stop when you believe every line is met. On a later round, start from REVIEW.md: deal with each line that was not met, and with anything you wrote there at the gate.",
       "inputs": [
@@ -66,20 +64,14 @@
       ],
       "outputs": [
         "the work"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
       "id": "review",
       "kind": "agent",
       "name": "Review it with fresh eyes",
+      "by": "person",
       "role": "critic",
-      "model": {
-        "tier": "strong"
-      },
       "brief": "Come back after a break, the next day if you can. Read the work against DONE.md as if someone else had made it, one line each: met, with where to see it, or not met. Fix nothing in this step: write it down and take it back to the making. Pass it when every line is met.",
       "inputs": [
         "the work",
@@ -87,10 +79,6 @@
       ],
       "outputs": [
         "REVIEW.md: one line for each line of DONE.md, ending in pass or go again"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ]
     },
     {
@@ -107,6 +95,7 @@
       "id": "publish",
       "kind": "agent",
       "name": "Publish it",
+      "by": "person",
       "role": "builder",
       "brief": "Put the work out at {{where}}, and write down where it is and when it went out. Check it from somewhere else, as a visitor would see it.",
       "inputs": [
@@ -116,10 +105,6 @@
       "outputs": [
         "the work, published",
         "PUBLISHED.md: where and when"
-      ],
-      "allow": [
-        "read-files",
-        "write-outputs"
       ],
       "irreversible": [
         "publish"
