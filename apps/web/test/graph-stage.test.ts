@@ -232,6 +232,12 @@ describe("which edges a run took", () => {
     // And the answer lifts it once: reached again later, another way, on the same old report, it is barred.
     const elsewhere = taken(GAUNTLET, notes([["next-piece", "pass", 1], ["loop:pieces", "halt", 1, "human"], ["integrator", "pass"], ["owner", "pass", 2]]));
     expect(elsewhere[4]).toEqual([]);
+    // A word at a node, or another loop's stop, between the halt and the dispatch that follows the answer does not
+    // spend the lift; the same loop's own stop that is no person's takes it away.
+    const between = (more: RunNote[]) => taken(GAUNTLET, [...notes([["next-piece", "pass", 1], ["loop:pieces", "halt", 1, "human"]]), ...more, ...notes([["owner", "started", 2]])]).at(-1);
+    expect(between([{ id: "w-1", run: "r", at: "node:next-piece", text: "they said go on" } as RunNote])).toEqual(["e-next-piece-pass"]);
+    expect(between(notes([["loop:polish", "pass", 0, "bar-passed"]]))).toEqual(["e-next-piece-pass"]);
+    expect(between(notes([["loop:pieces", "halt", 1, "max-iterations"]]))).toEqual([]);
   });
 
   it("a line that reports nothing does not take back what a node reported: a word at the node, or the line before its next dispatch", () => {
@@ -389,10 +395,15 @@ describe("panes", () => {
     // An edge from a node to itself, a way back or not, goes out to the right of its node and comes back.
     const selfish: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-self", from: "builder", to: "builder", when: "fail" }, { id: "e-self-too", from: "builder", to: "builder" }], loops: REVIEW.loops.map((l) => ({ ...l, back: [...(l.back ?? []), "e-self"] })) } as Graph;
     const own = panes(modelAt(selfish, places(selfish)), shown);
-    for (const [id, out] of [["e-self", 70], ["e-self-too", 22]] as const) {
+    for (const [id, out] of [["e-self", 70], ["e-self-too", 92]] as const) {
       const path = own.path(id);
       expect([path[9]![0] - path[0]![0], path[9]![1] - path[0]![1], path[18]], id).toEqual([out, 0, path[0]]);
+      // It leaves from the right of its card's middle, as a way back does, and goes out past the card's edge (53).
+      expect(path[0]![0] - own.node("builder")[0], id).toBe(50);
     }
+    // One plain edge to itself, alone: seen too.
+    const once: Graph = { ...REVIEW, edges: [...REVIEW.edges, { id: "e-self", from: "builder", to: "builder" }] } as Graph;
+    expect(panes(modelAt(once, places(once)), shown).path("e-self")[9]![0] - panes(modelAt(once, places(once)), shown).node("builder")[0]).toBe(120);
     // Each pane's name may stand at any of six places round its pane: the stage takes the first no card is over.
     const names = built.prims.flatMap((p) => (p.t === "text" && / · (loop|subgrooph)/.test(p.text) ? [p] : []));
     expect(names.map((p) => p.text).sort()).toEqual(["Grind · loop", "Phases · loop"]);

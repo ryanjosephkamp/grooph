@@ -80,8 +80,10 @@ export const panes: View = (m) => {
     // nodes bows out past the first, so that neither lies under the other. To the side of the line it is: to the
     // right of one that runs down the page, and under one that runs across it, as the picture has its ways back.
     const twin = m.edges.slice(0, k).filter((x) => (x.from === e.from && x.to === e.to) || (x.from === e.to && x.to === e.from)).length;
-    const bow = (e.back ? 70 + Math.abs(p[1] - q[1]) * 0.2 : 0) + 22 * twin;
-    const out = e.back ? 50 : 0;
+    // (An edge from a node to itself, a way back or not, leaves its card as a way back does: it has nowhere else to be seen.)
+    const round = e.back || e.from === e.to;
+    const bow = (round ? 70 + Math.abs(p[1] - q[1]) * 0.2 : 0) + 22 * twin;
+    const out = round ? 50 : 0;
     // (An edge from a node to itself has no line to be beside: it goes out to the right and comes back.)
     const [dx, dy] = e.from === e.to ? [1, 0] : [q[1] - p[1], p[0] - q[0]];
     const side = (dx < 0 || (!dx && dy > 0) ? -bow : bow) / (Math.hypot(dx, dy) || 1);
