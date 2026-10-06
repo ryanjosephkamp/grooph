@@ -4,6 +4,7 @@
  */
 
 import type { GraphIndex } from "./graph-index.js";
+import { hasProfile } from "./targets/names.js";
 import type { Adaptation, AgentNode, Bar, Edge, EdgeWhen, Graph, Id, Loop, Node, Policy, Role, Stop } from "./types.js";
 
 /** graph-ir §1: critics are `critic`, `judge`, `red-team`. */
@@ -105,11 +106,18 @@ export function stopAction(stop: Stop, plan = false): string {
 }
 
 /**
- * A document nothing runs as it stands (amendment A-020): it names no harness, or one of its steps is a person's.
- * A view says of such a document what a plan means (a stop is where the people following it stop and decide),
- * and of any other what a run does.
+ * A document nothing runs as it stands (amendment A-020): one of its steps is a person's, or it names no harness
+ * that grooph has a compiler for. A view says of such a document what a plan means (a stop is where the people
+ * following it stop and decide), and of any other what a run does.
+ *
+ * A template with no harness is not taken for a plan by that alone: its harness is chosen when it is filled in,
+ * and a fragment has its host's. A template is a plan where it has a person's step.
  */
-export const isPlan = (doc: Graph): boolean => !doc.target?.harness?.trim() || (doc.nodes ?? []).some(isPersonStep);
+export const isPlan = (doc: Graph): boolean => {
+  if ((doc.nodes ?? []).some(isPersonStep)) return true;
+  const harness = doc.target?.harness;
+  return doc.template === undefined && (typeof harness !== "string" || !hasProfile(harness));
+};
 
 /**
  * The nodes a loop's stops lead out to: where a stop continues (`then`), unless that is one of the loop's own

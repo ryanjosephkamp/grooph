@@ -80,7 +80,7 @@ test("E_PERSON_STEP_NOT_COMPILED: a graph with a person's step is a plan; only w
   const two = reads(graph({ nodes: [person("a", "builder"), person("b", "builder"), done], edges: [edge("e1", "a", "b"), edge("e2", "b", "done")] }));
   const said = validate(two, { forExport: true });
   assert.equal(said.length, 1);
-  assert.match(said[0]!.message, /^"a", "b" are people's steps, and grooph cannot yet hand a step to a person inside a harness, so no package is written; .* make them an agent's if the graph is to run$/);
+  assert.match(said[0]!.message, /^"a", "b" are people's steps, and grooph cannot yet hand a step to a person inside a harness, so no package is written; .* make each an agent's if the graph is to run$/);
   assert.deepEqual(said[0]!.at, ["a", "b"]);
   // Made an agent's again, it exports.
   const back = reads({ ...doc, nodes: doc.nodes.map((node) => (node.kind === "agent" ? { ...node, by: "agent", allow: ["read-files", "write-outputs"] } : node)) } as Graph);
@@ -126,6 +126,9 @@ test("W_PERSON_FIELDS_NOT_READ: what only an agent has, set on a person's step, 
   assert.deepEqual(validate(one).map((issue) => issue.message), [`step "write" is a person's and sets effort: that is an agent's, and is not read; remove it`]);
   const all = reads(graph({ nodes: [person("write", "builder", { model: { tier: "fast" }, effort: "low", skills: ["a"], allow: ["web"], deny: ["edit-files"] }), done], edges: [edge("e1", "write", "done")] }));
   assert.match(validate(all)[0]!.message, /sets model, effort, skills, allow, deny: those are/);
+  // An empty list sets nothing, and is not named.
+  assert.deepEqual(validate(reads(graph({ nodes: [person("write", "builder", { allow: [], skills: [], deny: [] }), done], edges: [edge("e1", "write", "done")] }))), []);
+  assert.match(validate(reads(graph({ nodes: [person("write", "builder", { allow: [], effort: "low" }), done], edges: [edge("e1", "write", "done")] })))[0]!.message, /sets effort: that is/);
   // Its role, brief, inputs, outputs, what it owns and what it does that cannot be undone are a person's too, and are read.
   assert.deepEqual(validate(reads(graph({ nodes: [person("write", "builder", { inputs: ["x"], owns: ["y"], irreversible: ["publish"] }), done], edges: [edge("e1", "write", "done")] }))), []);
   // The same fields on an agent's step are what they always were.
@@ -260,6 +263,19 @@ test("a loop's stop is worded as a plan means it where nothing runs, and as a ru
     assert.ok(!stops(doc).some((line) => line.includes("halt the run")), doc.id);
     assert.ok(drawn(doc).some((line) => line.endsWith(": stop here and decide")), doc.id);
   }
+  // A harness grooph has no compiler for is no harness to run it on: a plan, as E_NO_TARGET says of it.
+  const unknown = load("valid/fix-until-green.grooph.json");
+  unknown.target = { harness: "my-own-harness" };
+  assert.equal(isPlan(unknown), true);
+  assert.ok(stops(unknown).some((line) => line.endsWith(": stop here and decide")));
+  // A template with no harness is not a plan by that alone: its harness is chosen when it is filled in, and a
+  // fragment has its host's. The built-in one that names none reads as it always did; with a person's step, as a plan.
+  const fragment = parseGraphText(read(join(repoRoot, "patterns", "merge-queue.grooph.json"))).doc!;
+  assert.equal(fragment.target, undefined);
+  assert.equal(isPlan(fragment), false);
+  assert.ok(stops(fragment).every((line) => !line.includes("stop here and decide")));
+  (fragment.nodes.find((node) => node.kind === "agent") as AgentNode).by = "person";
+  assert.equal(isPlan(reads(fragment)), true);
   // Where a stop leads on, or a bar is passed, the words are the same either way; and a compiler's are a run's.
   assert.equal(stopAction({ kind: "max-iterations", n: 3, then: "wrap" }, true), stopAction({ kind: "max-iterations", n: 3, then: "wrap" }));
   assert.equal(stopAction({ kind: "bar-passed" }, true), "follow the loop's pass exit edges");

@@ -372,7 +372,7 @@ function exportOnlyRules(index: GraphIndex): Issue[] {
     // a run checks its working copy with these rules, so a step made a person's while a run goes on is seen.
     const people = agentNodes(index).filter(isPersonStep).map((node) => node.id);
     if (people.length > 0) {
-      const [is, it] = people.length === 1 ? ["is a person's step", "it"] : ["are people's steps", "them"];
+      const [is, it] = people.length === 1 ? ["is a person's step", "it"] : ["are people's steps", "each"];
       issues.push(
         error(
           "E_PERSON_STEP_NOT_COMPILED",
@@ -766,7 +766,8 @@ function personFieldsNotRead(index: GraphIndex): Issue[] {
   return agentNodes(index)
     .filter(isPersonStep)
     .flatMap((node) => {
-      const set = (["model", "effort", "skills", "allow", "deny"] as const).filter((field) => node[field] !== undefined);
+      // An empty list sets nothing, and is not named.
+      const set = (["model", "effort", "skills", "allow", "deny"] as const).filter((field) => node[field] !== undefined && !(Array.isArray(node[field]) && node[field].length === 0));
       return set.length === 0 ? [] : [warning("W_PERSON_FIELDS_NOT_READ", `step "${node.id}" is a person's and sets ${set.join(", ")}: ${set.length === 1 ? "that is" : "those are"} an agent's, and ${set.length === 1 ? "is" : "are"} not read; remove ${set.length === 1 ? "it" : "them"}`, [node.id])];
     });
 }
